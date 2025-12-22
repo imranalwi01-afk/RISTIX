@@ -183,11 +183,10 @@ class JwtService {
         audience: jwtConfigService.getConfiguration().audience,
       }) as JwtPayload;
 
-      // Check if session is still active (temporarily disabled for compatibility)
-      // TODO: Re-enable session tracking when authentication service uses JWT service consistently
-      // if (!this.isSessionActive(decoded.userId, decoded.sessionId)) {
-      //   throw new Error('Session has been invalidated');
-      // }
+      // Check if session is still active
+      if (!this.isSessionActive(decoded.userId, decoded.sessionId)) {
+        throw new Error('Session has been invalidated');
+      }
 
       return decoded;
     } catch (error) {
@@ -213,11 +212,10 @@ class JwtService {
         audience: jwtConfigService.getConfiguration().refreshAudience,
       }) as RefreshTokenPayload;
 
-      // Check if session is still active (temporarily disabled for compatibility)
-      // TODO: Re-enable session tracking when authentication service uses JWT service consistently
-      // if (!this.isSessionActive(decoded.userId, decoded.sessionId)) {
-      //   throw new Error('Refresh session has been invalidated');
-      // }
+      // Check if session is still active
+      if (!this.isSessionActive(decoded.userId, decoded.sessionId)) {
+        throw new Error('Refresh session has been invalidated');
+      }
 
       return decoded;
     } catch (error) {
@@ -237,7 +235,7 @@ class JwtService {
   public async refreshAccessToken(refreshToken: string, userPayload: Omit<JwtPayload, 'iat' | 'exp' | 'sessionId'>): Promise<TokenPair> {
     try {
       const refreshPayload = this.verifyRefreshToken(refreshToken);
-      
+
       // Ensure the refresh token belongs to the same user
       if (refreshPayload.userId !== userPayload.userId || refreshPayload.tenantId !== userPayload.tenantId) {
         throw new Error('Refresh token does not match user credentials');
@@ -334,7 +332,7 @@ class JwtService {
   private getExpirationTime(expiresIn: string): number {
     const timeUnit = expiresIn.slice(-1);
     const timeValue = parseInt(expiresIn.slice(0, -1));
-    
+
     switch (timeUnit) {
       case 's': return timeValue;
       case 'm': return timeValue * 60;
@@ -376,7 +374,7 @@ class JwtService {
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return null;
     }
-    
+
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
     return this.validateTokenFormat(token) ? token : null;
   }
@@ -393,7 +391,7 @@ class JwtService {
     bankingType: 'conventional' | 'syariah' | 'dual';
   }): TokenPair {
     const permissions = this.generatePermissionsFromRoles(userInfo.roles);
-    
+
     return this.createTokenPair({
       userId: userInfo.userId,
       tenantId: userInfo.tenantId,
@@ -420,7 +418,7 @@ class JwtService {
     };
 
     const permissions = new Set<string>();
-    
+
     for (const role of roles) {
       const rolePermissions = permissionMap[role] || [];
       for (const permission of rolePermissions) {
@@ -446,7 +444,7 @@ class JwtService {
   } {
     const totalActiveSessions = Array.from(this.activeSessions.values())
       .reduce((total, sessions) => total + sessions.size, 0);
-    
+
     const activeUsers = this.activeSessions.size;
     const averageSessionsPerUser = activeUsers > 0 ? totalActiveSessions / activeUsers : 0;
 

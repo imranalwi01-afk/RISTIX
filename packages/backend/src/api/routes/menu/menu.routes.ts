@@ -8,7 +8,7 @@
 
 import { Router } from 'express';
 import { MenuController } from '../controllers/menu.controller';
-import { authenticateToken } from '../middleware/auth.middleware';
+import { authenticateToken, requireRoles } from '../middleware/auth.middleware';
 import { resolveTenant } from '../middleware/tenant.middleware';
 import { rateLimiter } from '../middleware/rate-limit.middleware';
 
@@ -17,6 +17,7 @@ const menuController = new MenuController();
 
 // Middleware stack
 const authMiddleware = [authenticateToken, resolveTenant, rateLimiter.general];
+const adminMiddleware = [...authMiddleware, requireRoles(['IAF_TENANT_ADMIN'])];
 
 /**
  * GET /api/menu/hierarchy
@@ -45,9 +46,8 @@ router.get('/tree',
  * Create new menu item (admin only)
  */
 router.post('/',
-  ...authMiddleware,
+  ...adminMiddleware,
   async (req, res) => {
-    // TODO: Add admin authorization middleware
     await menuController.createMenuItem(req, res);
   }
 );
@@ -57,9 +57,8 @@ router.post('/',
  * Update menu item (admin only)
  */
 router.put('/:id',
-  ...authMiddleware,
+  ...adminMiddleware,
   async (req, res) => {
-    // TODO: Add admin authorization middleware
     await menuController.updateMenuItem(req, res);
   }
 );
@@ -69,9 +68,8 @@ router.put('/:id',
  * Delete menu item (admin only)
  */
 router.delete('/:id',
-  ...authMiddleware,
+  ...adminMiddleware,
   async (req, res) => {
-    // TODO: Add admin authorization middleware
     await menuController.deleteMenuItem(req, res);
   }
 );
@@ -92,8 +90,7 @@ router.post('/user/customization',
  * Get menu access analytics (admin/analytics only)
  */
 router.get('/analytics',
-  ...authMiddleware,
-  // TODO: Add authorization middleware
+  ...adminMiddleware,
   async (req, res) => {
     await menuController.getMenuAnalytics(req, res);
   }
@@ -104,8 +101,7 @@ router.get('/analytics',
  * Get all menu items for management (admin only)
  */
 router.get('/management',
-  ...authMiddleware,
-  // TODO: Add admin authorization middleware
+  ...adminMiddleware,
   async (req, res) => {
     await menuController.getAllMenuItems(req, res);
   }
@@ -116,8 +112,7 @@ router.get('/management',
  * Get all menu configurations (admin only)
  */
 router.get('/management/configurations',
-  ...authMiddleware,
-  // TODO: Add admin authorization middleware
+  ...adminMiddleware,
   async (req, res) => {
     await menuController.getMenuConfigurations(req, res);
   }
@@ -128,8 +123,7 @@ router.get('/management/configurations',
  * Create new menu configuration (admin only)
  */
 router.post('/management/configurations',
-  ...authMiddleware,
-  // TODO: Add admin authorization middleware
+  ...adminMiddleware,
   async (req, res) => {
     await menuController.createMenuConfiguration(req, res);
   }
@@ -140,8 +134,7 @@ router.post('/management/configurations',
  * Get complete menu tree structure (admin only)
  */
 router.get('/management/tree',
-  ...authMiddleware,
-  // TODO: Add admin authorization middleware
+  ...adminMiddleware,
   async (req, res) => {
     await menuController.getMenuTree(req, res);
   }
@@ -152,8 +145,7 @@ router.get('/management/tree',
  * Reorder menu items (admin only)
  */
 router.put('/management/reorder',
-  ...authMiddleware,
-  // TODO: Add admin authorization middleware
+  ...adminMiddleware,
   async (req, res) => {
     await menuController.reorderMenuItems(req, res);
   }
@@ -164,8 +156,7 @@ router.put('/management/reorder',
  * Get user menu customizations (admin only)
  */
 router.get('/management/user-customizations',
-  ...authMiddleware,
-  // TODO: Add admin authorization middleware
+  ...adminMiddleware,
   async (req, res) => {
     await menuController.getUserCustomizations(req, res);
   }

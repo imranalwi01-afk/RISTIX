@@ -51,7 +51,7 @@ export class InfrastructureMonitoringService {
           system: this.getStatusFromSettled(systemMetrics)
         }
       };
-      
+
     } catch (error) {
       this.logger.error(`Health check failed: ${error.message}`);
       throw new Error(`Infrastructure health check failed: ${error.message}`);
@@ -63,22 +63,34 @@ export class InfrastructureMonitoringService {
    */
   async checkDatabaseHealth(): Promise<any> {
     const startTime = Date.now();
-    
+
     try {
-      // TODO: Implement actual database connection test
+      // ✅ ACTUAL IMPLEMENTATION: Check database health via DatabaseManager
+      const { databaseManager } = await import('../../config/database');
+      const health = await databaseManager.healthCheck();
+
+      if (health.status !== 'healthy') {
+        throw new Error(health.error || 'Database manager reported unhealthy status');
+      }
+
       const responseTime = Date.now() - startTime;
-      
+
       return {
         serviceName: 'database',
         status: 'healthy',
         responseTime,
-        message: 'Database connection successful',
+        message: 'All database connections healthy',
+        details: {
+          connections: health.connections,
+          platform: health.platform,
+          tenants: Object.keys(health.tenants || {}).length
+        },
         timestamp: new Date()
       };
-      
+
     } catch (error) {
       const responseTime = Date.now() - startTime;
-      
+
       return {
         serviceName: 'database',
         status: 'critical',
@@ -94,11 +106,32 @@ export class InfrastructureMonitoringService {
    */
   async checkRedisHealth(): Promise<any> {
     const startTime = Date.now();
-    
+    let client;
+
     try {
-      // TODO: Implement Redis ping
+      // ✅ ACTUAL IMPLEMENTATION: Check Redis connectivity
+      const { configService } = await import('../../config/ConfigurationService');
+      const { createClient } = await import('redis');
+      const config = configService.getAll();
+
+      client = createClient({
+        socket: {
+          host: config.REDIS_HOST,
+          port: config.REDIS_PORT
+        },
+        password: config.REDIS_PASSWORD,
+        database: config.REDIS_DB
+      });
+
+      client.on('error', (err) => {
+        // Suppress error logging during health check to avoid noise
+      });
+
+      await client.connect();
+      await client.ping();
+
       const responseTime = Date.now() - startTime;
-      
+
       return {
         serviceName: 'redis',
         status: 'healthy',
@@ -106,17 +139,21 @@ export class InfrastructureMonitoringService {
         message: 'Redis connection successful',
         timestamp: new Date()
       };
-      
+
     } catch (error) {
       const responseTime = Date.now() - startTime;
-      
+
       return {
-        serviceName: 'redis', 
+        serviceName: 'redis',
         status: 'critical',
         responseTime,
         message: `Redis connection failed: ${error.message}`,
         timestamp: new Date()
       };
+    } finally {
+      if (client && client.isOpen) {
+        await client.disconnect();
+      }
     }
   }
 
@@ -128,11 +165,16 @@ export class InfrastructureMonitoringService {
       const memoryUsage = process.memoryUsage();
       const systemLoad = os.loadavg();
       const uptime = process.uptime();
-      
+      const cpus = os.cpus();
+
+      // Calculate CPU usage percentage (simplified approximation)
+      const cpuUsage = systemLoad[0] / cpus.length * 100;
+
       const metrics = {
         cpu: {
-          usage: 0, // TODO: Calculate actual CPU usage
-          loadAverage: systemLoad
+          usage: parseFloat(cpuUsage.toFixed(2)),
+          loadAverage: systemLoad,
+          cores: cpus.length
         },
         memory: {
           used: Math.round(memoryUsage.heapUsed / 1024 / 1024),
@@ -143,9 +185,9 @@ export class InfrastructureMonitoringService {
         uptime: Math.round(uptime),
         timestamp: new Date()
       };
-      
+
       return metrics;
-      
+
     } catch (error) {
       this.logger.error(`System metrics collection failed: ${error.message}`);
       throw error;
@@ -159,19 +201,19 @@ export class InfrastructureMonitoringService {
     const statuses = results
       .filter(result => result.status === 'fulfilled')
       .map(result => result.value?.status || 'unknown');
-    
+
     if (statuses.some(status => status === 'critical')) {
       return 'critical';
     }
-    
+
     if (statuses.some(status => status === 'warning')) {
       return 'warning';
     }
-    
+
     if (statuses.every(status => status === 'healthy')) {
       return 'healthy';
     }
-    
+
     return 'unknown';
   }
 
