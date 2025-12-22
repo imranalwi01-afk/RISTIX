@@ -1,0 +1,50 @@
+{
+  "banking": {
+    "conventional": {
+      "name": "Conventional Banking",
+      "description": "Professional corporate banking interface",
+      "features": {
+        "interest_calculations": "Interest-based Calculations",
+        "corporate_reports": "Corporate Reporting",
+        "traditional_products": "Traditional Banking Products",
+        "risk_management": "Standard Risk Management",
+        "compliance_reporting": "Conventional Compliance Reporting"
+      }
+    },
+    "syariah": {
+      "name": "Syariah Banking",
+      "description": "Islamic banking interface with cultural elements",
+      "features": {
+        "profit_sharing": "Profit-sharing Calculations",
+        "islamic_products": "Islamic Product Management",
+        "syariah_reports": "Syariah-compliant Reporting",
+        "halal_indicators": "Halal/Haram Indicators",
+        "cultural_elements": "Cultural Design Elements"
+      },
+      "compliance": {
+        "aaoifi": "AAOIFI Standards Compliance",
+        "syariah_board": "Syariah Board Approval Tracking",
+        "prohibited_sectors": "Prohibited Sector Screening",
+        "islamic_calendar": "Islamic Calendar Support",
+        "arabic_language": "Arabic Language Support",
+        "zakat_calculation": "Zakat Calculation Support"
+      }
+    },
+    "themes": {
+      "switch_to_conventional": "Switch to Conventional Banking",
+      "switch_to_syariah": "Switch to Syariah Banking",
+      "theme_switching": "Banking Theme",
+      "current_theme": "Current Theme",
+      "theme_applied": "Theme Applied Successfully",
+      "theme_error": "Error Applying Theme"
+    },
+    "common": {
+      "dashboard": "Dashboard",
+      "reports": "Reports",
+      "calculations": "Calculations",
+      "settings": "Settings",
+      "help": "Help",
+      "logout": "Logout"
+    }
+  }
+}

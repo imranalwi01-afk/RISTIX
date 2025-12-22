@@ -1,0 +1,557 @@
+// packages/frontend/src/store/slices/dashboardPersonalizationSlice.ts
+// ============================================================================
+// 🎛️ DASHBOARD PERSONALIZATION SLICE - Redux State Management
+// ============================================================================
+// ✅ Feature: Widget configuration management
+// ✅ Feature: Layout persistence
+// ✅ Feature: User preferences storage
+// ✅ Feature: Real-time synchronization
+// ============================================================================
+
+import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
+
+// Widget configuration interfaces
+interface WidgetPosition {
+  x: number
+  y: number
+}
+
+interface WidgetSize {
+  width: number
+  height: number
+}
+
+interface WidgetConfig {
+  id: string
+  type: 'ecl-summary' | 'portfolio-metrics' | 'quick-actions' | 'activities' | 'chart' | 'custom'
+  title: string
+  isVisible: boolean
+  position: WidgetPosition
+  size: WidgetSize
+  refreshInterval: number
+  customSettings: Record<string, any>
+  lastUpdated?: string
+}
+
+interface DashboardLayout {
+  id: string
+  name: string
+  widgets: WidgetConfig[]
+  isDefault: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+interface PersonalizationSettings {
+  userId: string
+  tenantId: string
+  currentLayout: string
+  layouts: DashboardLayout[]
+  globalSettings: {
+    autoSave: boolean
+    showGrid: boolean
+    snapToGrid: boolean
+    compactMode: boolean
+    showTooltips: boolean
+    animationsEnabled: boolean
+  }
+  widgetDefaults: Record<string, Partial<WidgetConfig>>
+}
+
+interface DashboardPersonalizationState {
+  settings: PersonalizationSettings | null
+  currentWidgets: WidgetConfig[]
+  isLoading: boolean
+  isSaving: boolean
+  error: string | null
+  lastSync: string | null
+  hasUnsavedChanges: boolean
+}
+
+// Initial state
+const initialState: DashboardPersonalizationState = {
+  settings: null,
+  currentWidgets: [],
+  isLoading: false,
+  isSaving: false,
+  error: null,
+  lastSync: null,
+  hasUnsavedChanges: false
+}
+
+// Async thunks for API integration
+export const fetchDashboardPersonalization = createAsyncThunk(
+  'dashboardPersonalization/fetchPersonalization',
+  async ({ userId, tenantId }: { userId: string; tenantId: string }, { rejectWithValue }) => {
+    try {
+      const response = await fetch(`/api/v1/users/${userId}/dashboard/personalization`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          'X-Tenant-Slug': tenantId,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch personalization: ${response.statusText}`)
+      }
+
+      const apiResponse = await response.json()
+
+      // Transform backend response to match frontend expectations
+      if (apiResponse.success && apiResponse.data) {
+        const personalizationData = apiResponse.data.personalization
+
+        // Transform to expected format with layouts array
+        const transformedData = {
+          userId: personalizationData.userId || userId,
+          tenantId: tenantId,
+          currentLayout: personalizationData.defaultView || 'default',
+          layouts: [
+            {
+              id: 'default-layout',
+              name: 'Default Layout',
+              widgets: personalizationData.widgetConfig ?
+                Object.entries(personalizationData.widgetConfig).map(([key, config]: any) => ({
+                  id: key,
+                  type: key === 'welcome' ? 'quick-actions' :
+                        key === 'portfolioSummary' ? 'portfolio-metrics' :
+                        key === 'recentActivity' ? 'activities' : 'chart',
+                  title: key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).trim(),
+                  isVisible: config.visible !== false,
+                  position: config.position || { x: 0, y: 0 },
+                  size: config.position ? {
+                    width: config.position.w || 4,
+                    height: config.position.h || 2
+                  } : { width: 4, height: 2 },
+                  refreshInterval: personalizationData.customSettings?.refreshInterval || 30000,
+                  customSettings: {}
+                })) : [
+                  {
+                    id: 'welcome',
+                    type: 'quick-actions',
+                    title: 'Welcome',
+                    isVisible: true,
+                    position: { x: 0, y: 0 },
+                    size: { width: 4, height: 2 },
+                    refreshInterval: 30000,
+                    customSettings: {}
+                  }
+                ],
+              isDefault: true,
+              createdAt: personalizationData.createdAt || new Date().toISOString(),
+              updatedAt: personalizationData.updatedAt || new Date().toISOString()
+            }
+          ],
+          globalSettings: {
+            autoSave: personalizationData.customSettings?.autoSave !== false,
+            showGrid: false,
+            snapToGrid: false,
+            compactMode: personalizationData.themePreferences?.compactMode || false,
+            showTooltips: personalizationData.notificationSettings?.browser !== false,
+            animationsEnabled: true
+          },
+          widgetDefaults: {}
+        }
+
+        console.log('✅ DashboardPersonalization: Transformed data from backend:', transformedData)
+        return transformedData
+      } else {
+        // Return default structure if backend doesn't have data
+        const defaultData = {
+          userId,
+          tenantId,
+          currentLayout: 'default',
+          layouts: [],
+          globalSettings: {
+            autoSave: true,
+            showGrid: false,
+            snapToGrid: false,
+            compactMode: false,
+            showTooltips: true,
+            animationsEnabled: true
+          },
+          widgetDefaults: {}
+        }
+
+        console.log('✅ DashboardPersonalization: Using default structure')
+        return defaultData
+      }
+    } catch (error: any) {
+      console.error('❌ DashboardPersonalization: Fetch error:', error)
+      return rejectWithValue(error.message || 'Failed to fetch dashboard personalization')
+    }
+  }
+)
+
+export const saveDashboardPersonalization = createAsyncThunk(
+  'dashboardPersonalization/savePersonalization',
+  async (
+    { userId, tenantId, settings }: { userId: string; tenantId: string; settings: PersonalizationSettings },
+    { rejectWithValue }
+  ) => {
+    try {
+      // Transform frontend settings to backend format
+      const backendFormat = {
+        dashboardLayout: settings.currentLayout || 'grid',
+        defaultView: settings.currentLayout || 'overview',
+        widgetConfig: settings.layouts && settings.layouts.length > 0
+          ? settings.layouts[0].widgets.reduce((acc: any, widget) => {
+              acc[widget.id] = {
+                visible: widget.isVisible,
+                position: {
+                  x: widget.position.x,
+                  y: widget.position.y,
+                  w: widget.size.width,
+                  h: widget.size.height
+                }
+              }
+              return acc
+            }, {})
+          : {},
+        themePreferences: {
+          mode: settings.globalSettings?.compactMode ? 'dark' : 'light',
+          primaryColor: '#1976d2',
+          secondaryColor: '#dc004e',
+          compactMode: settings.globalSettings?.compactMode || false
+        },
+        notificationSettings: {
+          email: settings.globalSettings?.showTooltips || true,
+          browser: settings.globalSettings?.showTooltips || true,
+          mobile: false,
+          types: ['system', 'portfolio', 'approval', 'deadline']
+        },
+        customSettings: {
+          refreshInterval: settings.globalSettings?.autoSave ? 30000 : 60000,
+          autoSave: settings.globalSettings?.autoSave !== false,
+          showTutorial: false
+        }
+      }
+
+      const response = await fetch(`/api/v1/users/${userId}/dashboard/personalization`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          'X-Tenant-Slug': tenantId,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(backendFormat)
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to save personalization: ${response.statusText}`)
+      }
+
+      const data = await response.json()
+
+      // Transform response back to frontend format
+      if (data.success) {
+        return settings // Return the original settings format
+      } else {
+        throw new Error(data.error || 'Save failed')
+      }
+    } catch (error: any) {
+      console.error('❌ DashboardPersonalization: Save error:', error)
+      return rejectWithValue(error.message || 'Failed to save dashboard personalization')
+    }
+  }
+)
+
+export const createDashboardLayout = createAsyncThunk(
+  'dashboardPersonalization/createLayout',
+  async (
+    { userId, tenantId, layout }: { userId: string; tenantId: string; layout: Omit<DashboardLayout, 'id' | 'createdAt' | 'updatedAt'> },
+    { rejectWithValue }
+  ) => {
+    try {
+      const response = await fetch(`/api/v1/users/${userId}/dashboard/layouts`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          'X-Tenant-Slug': tenantId,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(layout)
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to create layout: ${response.statusText}`)
+      }
+
+      const data = await response.json()
+      return data
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Failed to create dashboard layout')
+    }
+  }
+)
+
+export const deleteDashboardLayout = createAsyncThunk(
+  'dashboardPersonalization/deleteLayout',
+  async (
+    { userId, tenantId, layoutId }: { userId: string; tenantId: string; layoutId: string },
+    { rejectWithValue }
+  ) => {
+    try {
+      const response = await fetch(`/api/v1/users/${userId}/dashboard/layouts/${layoutId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          'X-Tenant-Slug': tenantId,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to delete layout: ${response.statusText}`)
+      }
+
+      return layoutId
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Failed to delete dashboard layout')
+    }
+  }
+)
+
+// Create slice
+const dashboardPersonalizationSlice = createSlice({
+  name: 'dashboardPersonalization',
+  initialState,
+  reducers: {
+    // Set current widgets without saving
+    setCurrentWidgets: (state, action: PayloadAction<WidgetConfig[]>) => {
+      state.currentWidgets = action.payload
+      state.hasUnsavedChanges = true
+    },
+
+    // Update widget configuration
+    updateWidget: (state, action: PayloadAction<{ widgetId: string; updates: Partial<WidgetConfig> }>) => {
+      const { widgetId, updates } = action.payload
+      state.currentWidgets = state.currentWidgets.map(widget =>
+        widget.id === widgetId
+          ? { ...widget, ...updates, lastUpdated: new Date().toISOString() }
+          : widget
+      )
+      state.hasUnsavedChanges = true
+    },
+
+    // Toggle widget visibility
+    toggleWidgetVisibility: (state, action: PayloadAction<string>) => {
+      const widgetId = action.payload
+      state.currentWidgets = state.currentWidgets.map(widget =>
+        widget.id === widgetId
+          ? { ...widget, isVisible: !widget.isVisible, lastUpdated: new Date().toISOString() }
+          : widget
+      )
+      state.hasUnsavedChanges = true
+    },
+
+    // Add new widget
+    addWidget: (state, action: PayloadAction<WidgetConfig>) => {
+      state.currentWidgets.push({
+        ...action.payload,
+        lastUpdated: new Date().toISOString()
+      })
+      state.hasUnsavedChanges = true
+    },
+
+    // Remove widget
+    removeWidget: (state, action: PayloadAction<string>) => {
+      state.currentWidgets = state.currentWidgets.filter(widget => widget.id !== action.payload)
+      state.hasUnsavedChanges = true
+    },
+
+    // Reorder widgets
+    reorderWidgets: (state, action: PayloadAction<WidgetConfig[]>) => {
+      state.currentWidgets = action.payload
+      state.hasUnsavedChanges = true
+    },
+
+    // Update global settings
+    updateGlobalSettings: (state, action: PayloadAction<Partial<PersonalizationSettings['globalSettings']>>) => {
+      if (state.settings) {
+        state.settings.globalSettings = {
+          ...state.settings.globalSettings,
+          ...action.payload
+        }
+        state.hasUnsavedChanges = true
+      }
+    },
+
+    // Switch to different layout
+    switchLayout: (state, action: PayloadAction<string>) => {
+      if (state.settings && state.settings.layouts && Array.isArray(state.settings.layouts)) {
+        const layout = state.settings.layouts.find(l => l.id === action.payload)
+        if (layout) {
+          state.currentWidgets = layout.widgets
+          state.settings.currentLayout = layout.id
+          state.hasUnsavedChanges = false
+        } else {
+          // Layout not found, clear current widgets
+          state.currentWidgets = []
+          console.warn(`DashboardPersonalization: Layout "${action.payload}" not found, clearing widgets`)
+        }
+      } else {
+        // Settings or layouts not available, clear current widgets
+        state.currentWidgets = []
+        console.warn('DashboardPersonalization: Settings or layouts not available for layout switch')
+      }
+    },
+
+    // Reset to default layout
+    resetToDefault: (state) => {
+      if (state.settings?.layouts && Array.isArray(state.settings.layouts)) {
+        const defaultLayout = state.settings.layouts.find(l => l.isDefault)
+        if (defaultLayout) {
+          state.currentWidgets = defaultLayout.widgets
+          state.settings!.currentLayout = defaultLayout.id
+        } else {
+          // No default layout found, clear widgets
+          state.currentWidgets = []
+          console.warn('DashboardPersonalization: No default layout found, clearing widgets')
+        }
+      } else {
+        // Settings or layouts not available, clear widgets
+        state.currentWidgets = []
+        console.warn('DashboardPersonalization: Settings or layouts not available for reset to default')
+      }
+      state.hasUnsavedChanges = false
+    },
+
+    // Mark changes as saved
+    markAsSaved: (state) => {
+      state.hasUnsavedChanges = false
+      state.lastSync = new Date().toISOString()
+    },
+
+    // Clear error
+    clearError: (state) => {
+      state.error = null
+    },
+
+    // Clear personalization data (for logout)
+    clearPersonalization: (state) => {
+      state.settings = null
+      state.currentWidgets = []
+      state.lastSync = null
+      state.hasUnsavedChanges = false
+    }
+  },
+  extraReducers: (builder) => {
+    // Fetch personalization
+    builder
+      .addCase(fetchDashboardPersonalization.pending, (state) => {
+        state.isLoading = true
+        state.error = null
+      })
+      .addCase(fetchDashboardPersonalization.fulfilled, (state, action) => {
+        state.isLoading = false
+        state.settings = action.payload
+
+        // Set current widgets from current layout
+        // Defensive check: ensure layouts is an array and has valid data
+        if (action.payload.layouts && Array.isArray(action.payload.layouts)) {
+          const currentLayout = action.payload.layouts.find((l: DashboardLayout) => l.id === action.payload.currentLayout)
+          if (currentLayout) {
+            state.currentWidgets = currentLayout.widgets
+          } else {
+            // Current layout not found, use default empty array
+            state.currentWidgets = []
+          }
+        } else {
+          // layouts is undefined or not an array, use default empty array
+          console.warn('DashboardPersonalization: layouts is not an array or is undefined, using default empty widgets')
+          state.currentWidgets = []
+        }
+
+        state.lastSync = new Date().toISOString()
+        state.hasUnsavedChanges = false
+      })
+      .addCase(fetchDashboardPersonalization.rejected, (state, action) => {
+        state.isLoading = false
+        state.error = action.payload as string
+      })
+
+    // Save personalization
+    builder
+      .addCase(saveDashboardPersonalization.pending, (state) => {
+        state.isSaving = true
+        state.error = null
+      })
+      .addCase(saveDashboardPersonalization.fulfilled, (state, action) => {
+        state.isSaving = false
+        state.settings = action.payload
+        state.lastSync = new Date().toISOString()
+        state.hasUnsavedChanges = false
+      })
+      .addCase(saveDashboardPersonalization.rejected, (state, action) => {
+        state.isSaving = false
+        state.error = action.payload as string
+      })
+
+    // Create layout
+    builder
+      .addCase(createDashboardLayout.fulfilled, (state, action) => {
+        if (state.settings) {
+          state.settings.layouts.push(action.payload)
+        }
+      })
+      .addCase(createDashboardLayout.rejected, (state, action) => {
+        state.error = action.payload as string
+      })
+
+    // Delete layout
+    builder
+      .addCase(deleteDashboardLayout.fulfilled, (state, action) => {
+        if (state.settings) {
+          state.settings.layouts = state.settings.layouts.filter(l => l.id !== action.payload)
+        }
+      })
+      .addCase(deleteDashboardLayout.rejected, (state, action) => {
+        state.error = action.payload as string
+      })
+  }
+})
+
+// Export actions
+export const {
+  setCurrentWidgets,
+  updateWidget,
+  toggleWidgetVisibility,
+  addWidget,
+  removeWidget,
+  reorderWidgets,
+  updateGlobalSettings,
+  switchLayout,
+  resetToDefault,
+  markAsSaved,
+  clearError,
+  clearPersonalization
+} = dashboardPersonalizationSlice.actions
+
+// Selectors
+export const selectDashboardPersonalization = (state: { dashboardPersonalization: DashboardPersonalizationState }) =>
+  state.dashboardPersonalization.settings
+
+export const selectCurrentWidgets = (state: { dashboardPersonalization: DashboardPersonalizationState }) =>
+  state.dashboardPersonalization.currentWidgets
+
+export const selectPersonalizationLoading = (state: { dashboardPersonalization: DashboardPersonalizationState }) =>
+  state.dashboardPersonalization.isLoading
+
+export const selectPersonalizationSaving = (state: { dashboardPersonalization: DashboardPersonalizationState }) =>
+  state.dashboardPersonalization.isSaving
+
+export const selectPersonalizationError = (state: { dashboardPersonalization: DashboardPersonalizationState }) =>
+  state.dashboardPersonalization.error
+
+export const selectHasUnsavedChanges = (state: { dashboardPersonalization: DashboardPersonalizationState }) =>
+  state.dashboardPersonalization.hasUnsavedChanges
+
+export const selectAvailableLayouts = (state: { dashboardPersonalization: DashboardPersonalizationState }) =>
+  state.dashboardPersonalization.settings?.layouts || []
+
+export const selectGlobalSettings = (state: { dashboardPersonalization: DashboardPersonalizationState }) =>
+  state.dashboardPersonalization.settings?.globalSettings
+
+export default dashboardPersonalizationSlice.reducer

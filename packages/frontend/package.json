@@ -1,0 +1,93 @@
+{
+  "name": "@ifrs9/frontend",
+  "version": "1.0.0",
+  "description": "IFRS 9 Platform Frontend",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@8.15.0",
+  "scripts": {
+    "dev": "NEXT_TELEMETRY_DISABLED=1 NODE_OPTIONS='--max-old-space-size=4096' WSS_PORT=4231 next dev -p 4231 -H 0.0.0.0",
+    "build": "NODE_OPTIONS='--max-old-space-size=4096' next build",
+    "start": "next start -p 4231",
+    "lint": "next lint",
+    "lint:fix": "next lint --fix",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf .next && rm -rf node_modules/.cache && rm -rf .swc",
+    "clean-all": "rm -rf .next && rm -rf node_modules && rm -f pnpm-lock.yaml",
+    "analyze": "ANALYZE=true NODE_OPTIONS='--max-old-space-size=4096' next build"
+  },
+  "dependencies": {
+    "@emotion/cache": "^11.13.1",
+    "@emotion/react": "^11.13.3",
+    "@emotion/styled": "^11.13.0",
+    "@hookform/resolvers": "^3.9.0",
+    "@mui/icons-material": "^6.5.0",
+    "@mui/lab": "^6.0.0-beta.12",
+    "@mui/material": "^6.5.0",
+    "@mui/material-nextjs": "^7.2.0",
+    "@mui/x-data-grid": "^7.22.2",
+    "@mui/x-date-pickers": "^8.10.2",
+    "@reduxjs/toolkit": "^2.2.8",
+    "@types/js-cookie": "^3.0.6",
+    "@types/node": "^22.9.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "axios": "^1.7.7",
+    "clsx": "^2.1.1",
+    "core-js": "3",
+    "critters": "^0.0.16",
+    "date-fns": "^4.1.0",
+    "dayjs": "^1.11.13",
+    "js-cookie": "^3.0.5",
+    "lucide-react": "^0.456.0",
+    "notistack": "^3.0.2",
+    "process": "^0.11.10",
+    "ra-data-simple-rest": "4.16.15",
+    "react": "^18.3.1",
+    "react-admin": "4.16.15",
+    "react-dom": "^18.3.1",
+    "react-hook-form": "^7.53.0",
+    "react-redux": "^9.1.2",
+    "reactflow": "^11.11.4",
+    "recharts": "^2.12.7",
+    "redux-persist": "^6.0.0",
+    "styled-jsx": "5.1.6",
+    "typescript": "^5.6.3",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@next/bundle-analyzer": "^15.3.0",
+    "@playwright/test": "^1.56.1",
+    "@typescript-eslint/eslint-plugin": "^8.15.0",
+    "@typescript-eslint/parser": "^8.15.0",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^15.3.0",
+    "eslint-plugin-react": "^7.37.2",
+    "eslint-plugin-react-hooks": "^5.0.0",
+    "next": "^15.3.0",
+    "playwright": "^1.56.1",
+    "terser-webpack-plugin": "^5.3.14"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "@types/react": "^18.3.12",
+      "@types/react-dom": "^18.3.1"
+    }
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}

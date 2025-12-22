@@ -1,0 +1,193 @@
+/* ============================================================================
+   IFRS 9 PLATFORM - GLOBAL STYLES & SCROLLING FIXES
+   File: packages/frontend/src/styles/globals.css
+   ============================================================================ */
+
+/* Global body and html reset */
+html, body {
+  height: auto !important;
+  min-height: 100vh;
+  overflow: auto !important;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+  font-family: 'Roboto', 'Arial', sans-serif;
+}
+
+/* Next.js root container */
+#__next {
+  height: auto !important;
+  min-height: 100vh;
+  overflow: visible !important;
+}
+
+/* React Admin root container fixes */
+.RaLayout-root {
+  height: auto !important;
+  min-height: 100vh !important;
+  overflow: visible !important;
+}
+
+.RaLayout-appFrame {
+  height: auto !important;
+  min-height: 100vh !important;
+  overflow: visible !important;
+}
+
+.RaLayout-content {
+  height: auto !important;
+  overflow: visible !important;
+}
+
+.RaLayout-contentWithSidebar {
+  height: auto !important;
+  overflow: visible !important;
+}
+
+/* Material-UI container fixes */
+.MuiContainer-root {
+  height: auto !important;
+  overflow: visible !important;
+}
+
+.MuiBox-root {
+  height: auto !important;
+  overflow: visible !important;
+}
+
+/* React Admin main content area */
+main[role="main"] {
+  height: auto !important;
+  overflow: visible !important;
+}
+
+/* Sidebar should scroll independently */
+.RaLayout-sidebar {
+  height: auto !important;
+  max-height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Login page specific fixes */
+.ra-login {
+  height: auto !important;
+  min-height: 100vh;
+  overflow: visible !important;
+}
+
+/* Force scrollbars to appear when needed */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+/* Ensure all page containers allow scrolling */
+.page-container,
+.admin-container,
+.dashboard-container {
+  height: auto !important;
+  min-height: 100vh;
+  overflow: visible !important;
+}
+
+/* Fix for any fixed positioning issues */
+.MuiAppBar-positionFixed {
+  position: relative !important;
+}
+
+/* Ensure content can scroll behind app bar if needed */
+.MuiToolbar-root + * {
+  margin-top: 0 !important;
+}
+
+/* Background containers should not constrain scrolling */
+.background-wrapper,
+.layout-background {
+  height: auto !important;
+  min-height: 100vh;
+  overflow: visible !important;
+}
+
+/* Additional fixes for common scrolling issues */
+.MuiPaper-root {
+  height: auto !important;
+  overflow: visible !important;
+}
+
+/* Ensure forms can scroll */
+.MuiFormControl-root {
+  height: auto !important;
+  overflow: visible !important;
+}
+
+/* Table scroll fixes */
+.MuiTableContainer-root {
+  height: auto !important;
+  max-height: none !important;
+  overflow: auto !important;
+}
+
+/* Card content scroll fixes */
+.MuiCardContent-root {
+  height: auto !important;
+  overflow: visible !important;
+}
+
+/* Dialog scroll fixes */
+.MuiDialog-container {
+  height: auto !important;
+  overflow: visible !important;
+}
+
+.MuiDialogContent-root {
+  height: auto !important;
+  overflow: auto !important;
+}
+
+/* Banking-specific classes */
+.banking-layout {
+  height: auto !important;
+  min-height: 100vh;
+  overflow: visible !important;
+}
+
+.ifrs9-container {
+  height: auto !important;
+  overflow: visible !important;
+}
+
+/* Responsive fixes */
+@media (max-width: 768px) {
+  body {
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  
+  .MuiContainer-root {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
+}
+
+/* Print styles */
+@media print {
+  html, body {
+    height: auto !important;
+    overflow: visible !important;
+  }
+}

@@ -1,0 +1,195 @@
+{
+  "$schema": "./database-schema.json",
+  "version": "1.0.0",
+  "lastUpdated": "2025-10-20T17:25:00.000Z",
+  "updatedBy": "localdev-configuration",
+
+  "servers": [
+    {
+      "id": "DS1_LOCAL",
+      "name": "Local Development Server DS1",
+      "description": "Local development server for platform and tenant databases",
+      "host": "localhost",
+      "port": 5432,
+      "type": "primary",
+      "region": "local",
+      "isActive": true,
+      "credentials": {
+        "username": "postgres",
+        "password": "postgres"
+      },
+      "ssl": false,
+      "maxConnections": 20,
+      "connectionPool": {
+        "min": 5,
+        "max": 20,
+        "idleTimeoutMillis": 30000,
+        "connectionTimeoutMillis": 10000,
+        "acquireTimeoutMillis": 10000
+      },
+      "monitoring": {
+        "healthCheckInterval": 30000,
+        "alertThresholds": {
+          "responseTime": 1000,
+          "errorRate": 0.05,
+          "connectionUtilization": 0.8
+        }
+      },
+      "tags": ["primary", "local", "development"]
+    },
+    {
+      "id": "DS2_LOCAL",
+      "name": "Local Development Server DS2",
+      "description": "Local development server for FRS9 legacy database",
+      "host": "192.168.0.106",
+      "port": 5433,
+      "type": "analytics",
+      "region": "local",
+      "isActive": true,
+      "credentials": {
+        "username": "postgres",
+        "password": "postgres"
+      },
+      "ssl": false,
+      "maxConnections": 10,
+      "connectionPool": {
+        "min": 2,
+        "max": 10,
+        "idleTimeoutMillis": 30000,
+        "connectionTimeoutMillis": 10000,
+        "acquireTimeoutMillis": 10000
+      },
+      "monitoring": {
+        "healthCheckInterval": 30000,
+        "alertThresholds": {
+          "responseTime": 1000,
+          "errorRate": 0.05,
+          "connectionUtilization": 0.8
+        }
+      },
+      "tags": ["analytics", "local", "development", "frs9"]
+    }
+  ],
+  
+  "databases": [
+    {
+      "id": "platform_admin",
+      "name": "Platform Administration",
+      "description": "Core platform administration database",
+      "serverId": "DS1_LOCAL",
+      "database": "ifrspro_platform_admin",
+      "type": "platform",
+      "tags": ["core", "admin"],
+      "priority": 1,
+      "isActive": true,
+      "maxConnections": 10,
+      "schema": {
+        "searchPath": ["platform_admin", "public"],
+        "defaultSchema": "platform_admin"
+      }
+    },
+
+    {
+      "id": "shared_services",
+      "name": "Shared Services",
+      "description": "Shared reference data and services",
+      "serverId": "DS1_LOCAL",
+      "database": "ifrspro_shared_services",
+      "type": "shared",
+      "tags": ["shared", "reference-data"],
+      "priority": 2,
+      "isActive": true,
+      "maxConnections": 10,
+      "schema": {
+        "searchPath": ["reference_data", "public"],
+        "defaultSchema": "reference_data"
+      }
+    },
+
+    {
+      "id": "frs9_legacy",
+      "name": "FRS9 Legacy System",
+      "description": "Legacy FRS9 parameter database on local DS2",
+      "serverId": "DS2_LOCAL",
+      "database": "FRS9PRO",
+      "type": "legacy",
+      "tags": ["legacy", "parameters", "frs9"],
+      "priority": 3,
+      "isActive": true,
+      "maxConnections": 5,
+      "schema": {
+        "searchPath": ["public"],
+        "defaultSchema": "public"
+      }
+    },
+
+    {
+      "id": "tenant_iaf",
+      "name": "IAF - Indonesia Airawata Finance",
+      "description": "IAF tenant database - SINGLE TENANT MODE",
+      "serverId": "DS1_LOCAL",
+      "database": "ifrspro_tenant_iaf",
+      "type": "tenant",
+      "tags": ["tenant", "conventional", "iaf", "single-tenant"],
+      "priority": 4,
+      "isActive": true,
+      "maxConnections": 15,
+      "schema": {
+        "searchPath": ["core", "calculation", "audit", "public"],
+        "defaultSchema": "core"
+      },
+      "tenantInfo": {
+        "tenantSlug": "iaf",
+        "organizationName": "Indonesia Airawata Finance",
+        "bankingType": "conventional",
+        "subscriptionTier": "enterprise",
+        "region": "indonesia",
+        "regulatoryFramework": "OJK"
+      }
+    }
+  ],
+  
+  "settings": {
+    "autoDiscovery": false,
+    "singleTenantMode": true,
+    "defaultTenant": "iaf",
+    "healthCheckInterval": 30000,
+    "connectionTimeout": 10000,
+    "maxHistorySize": 100,
+    
+    "failover": {
+      "enabled": false,
+      "maxRetries": 3,
+      "retryDelayMs": 1000
+    },
+    
+    "security": {
+      "encryptCredentials": true,
+      "auditConnections": true,
+      "maxLoginAttempts": 5
+    },
+    
+    "monitoring": {
+      "enabled": true,
+      "performanceLogging": true,
+      "slowQueryThresholdMs": 1000
+    }
+  },
+  
+  "environments": {
+    "production": {
+      "description": "IAF production environment - single tenant",
+      "overrides": {
+        "ssl": true,
+        "singleTenantMode": true,
+        "defaultTenant": "iaf",
+        "monitoring": {
+          "alerting": {
+            "enabled": true,
+            "channels": ["email"]
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,208 @@
+// packages/frontend/src/app/providers.tsx
+// ✅ Complete app providers for multi-stakeholder platform
+
+'use client';
+
+import React, { ReactNode } from 'react';
+import { Provider as ReduxProvider } from 'react-redux';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ThemeProvider } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+import { LocalizationProvider } from '@mui/x-date-pickers';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { SnackbarProvider } from 'notistack';
+
+// ✅ Import existing providers and themes
+import { AuthProvider } from '../providers/AuthProvider';
+import { BankingThemeProvider } from '../admin/themes/BankingThemeProvider';
+import { store } from '../store/store';
+
+// ✅ Import existing themes
+import { conventionalTheme } from '../themes/conventional/theme';
+import { syariahTheme } from '../themes/syariah/theme';
+
+interface ProvidersProps {
+  children: ReactNode;
+}
+
+// ✅ Create React Query client with optimized settings
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes (renamed from cacheTime)
+      retry: (failureCount, error: any) => {
+        // Don't retry on 4xx errors
+        if (error?.status >= 400 && error?.status < 500) {
+          return false;
+        }
+        return failureCount < 3;
+      },
+      refetchOnWindowFocus: false,
+      refetchOnMount: 'always'
+    },
+    mutations: {
+      retry: false,
+      onError: (error: any) => {
+        console.error('Mutation error:', error);
+      }
+    }
+  }
+});
+
+// ✅ Theme selector based on stakeholder type and banking mode
+function useThemeSelector() {
+  const [currentTheme, setCurrentTheme] = React.useState(conventionalTheme);
+  
+  React.useEffect(() => {
+    // Get theme from localStorage or URL params
+    const savedTheme = localStorage.getItem('banking_theme');
+    const urlParams = new URLSearchParams(window.location.search);
+    const themeParam = urlParams.get('theme');
+    
+    const themeToUse = themeParam || savedTheme || 'conventional';
+    
+    switch (themeToUse) {
+      case 'syariah':
+        setCurrentTheme(syariahTheme);
+        break;
+      case 'conventional':
+      default:
+        setCurrentTheme(conventionalTheme);
+        break;
+    }
+  }, []);
+  
+  return currentTheme;
+}
+
+// ✅ Notification provider configuration
+const notificationConfig = {
+  maxSnack: 3,
+  dense: true,
+  preventDuplicate: true,
+  anchorOrigin: {
+    vertical: 'top' as const,
+    horizontal: 'right' as const,
+  },
+  autoHideDuration: 6000,
+};
+
+// ✅ Error boundary for providers
+class ProvidersErrorBoundary extends React.Component<
+  { children: ReactNode },
+  { hasError: boolean; error?: Error }
+> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('Providers error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ 
+          padding: '20px', 
+          textAlign: 'center',
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}>
+          <h2>Something went wrong with the application providers</h2>
+          <p>Please refresh the page or contact support if the problem persists.</p>
+          <button 
+            onClick={() => window.location.reload()}
+            style={{
+              padding: '10px 20px',
+              backgroundColor: '#1976d2',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            Refresh Page
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+// ✅ Inner providers component to use hooks
+function InnerProviders({ children }: ProvidersProps) {
+  const theme = useThemeSelector();
+  
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <LocalizationProvider dateAdapter={AdapterDateFns}>
+        <SnackbarProvider {...notificationConfig}>
+          <BankingThemeProvider>
+            <AuthProvider>
+              {children}
+            </AuthProvider>
+          </BankingThemeProvider>
+        </SnackbarProvider>
+      </LocalizationProvider>
+    </ThemeProvider>
+  );
+}
+
+// ✅ Main providers component
+export function Providers({ children }: ProvidersProps) {
+  return (
+    <ProvidersErrorBoundary>
+      <ReduxProvider store={store}>
+        <QueryClientProvider client={queryClient}>
+          <InnerProviders>
+            {children}
+          </InnerProviders>
+        </QueryClientProvider>
+      </ReduxProvider>
+    </ProvidersErrorBoundary>
+  );
+}
+
+// ✅ Hook to access query client
+export function useQueryClient() {
+  return queryClient;
+}
+
+// ✅ Provider status hook for debugging
+export function useProviderStatus() {
+  const [status, setStatus] = React.useState({
+    redux: false,
+    queryClient: false,
+    theme: false,
+    auth: false,
+    localization: false
+  });
+
+  React.useEffect(() => {
+    // Check provider status
+    setStatus({
+      redux: !!store,
+      queryClient: !!queryClient,
+      theme: true, // Always available
+      auth: !!document.querySelector('[data-auth-provider]'),
+      localization: true // Always available with LocalizationProvider
+    });
+  }, []);
+
+  return status;
+}
+
+export default Providers;

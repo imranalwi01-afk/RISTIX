@@ -1,0 +1,533 @@
+// packages/frontend/src/components/etl/designer/ETLDesigner.tsx
+
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import {
+  Box,
+  Paper,
+  Toolbar,
+  IconButton,
+  Button,
+  Typography,
+  Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Alert,
+  Chip,
+  Stack
+} from '@mui/material';
+import {
+  Save as SaveIcon,
+  PlayArrow as PlayIcon,
+  Stop as StopIcon,
+  Pause as PauseIcon,
+  Settings as SettingsIcon,
+  Fullscreen as FullscreenIcon,
+  ZoomIn as ZoomInIcon,
+  ZoomOut as ZoomOutIcon,
+  FitScreen as FitScreenIcon,
+  GridOn as GridIcon,
+  Add as AddIcon
+} from '@mui/icons-material';
+import ReactFlow, {
+  Background,
+  Controls,
+  MiniMap,
+  useNodesState,
+  useEdgesState,
+  addEdge,
+  Connection,
+  Node,
+  Edge,
+  OnConnect,
+  OnNodesChange,
+  OnEdgesChange,
+  ReactFlowProvider,
+  useReactFlow
+} from 'react-flow-renderer';
+
+import { ETLToolbox } from './ETLToolbox';
+import { ETLNodeConfigPanel } from './ETLNodeConfigPanel';
+import { ETLExecutionPanel } from './ETLExecutionPanel';
+import { ETLWorkflowSettings } from './ETLWorkflowSettings';
+import { SourceNode } from '../nodes/SourceNode';
+import { TransformNode } from '../nodes/TransformNode';
+import { FilterNode } from '../nodes/FilterNode';
+import { AggregateNode } from '../nodes/AggregateNode';
+import { JoinNode } from '../nodes/JoinNode';
+import { ValidateNode } from '../nodes/ValidateNode';
+import { OutputNode } from '../nodes/OutputNode';
+import { useETLDesigner } from '../../../hooks/etl/useETLDesigner';
+import { ETLWorkflow, ETLFlowNode, ETLFlowEdge, CanvasSettings } from '../../../types/etl.types';
+
+const nodeTypes = {
+  source: SourceNode,
+  transform: TransformNode,
+  filter: FilterNode,
+  aggregate: AggregateNode,
+  join: JoinNode,
+  validate: ValidateNode,
+  output: OutputNode
+};
+
+interface ETLDesignerProps {
+  workflowId?: string;
+  onSave?: (workflow: ETLWorkflow) => void;
+  onExecute?: (workflowId: string) => void;
+  readOnly?: boolean;
+}
+
+export const ETLDesigner: React.FC<ETLDesignerProps> = ({
+  workflowId,
+  onSave,
+  onExecute,
+  readOnly = false
+}) => {
+  // State
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [selectedNode, setSelectedNode] = useState<ETLFlowNode | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [workflowName, setWorkflowName] = useState('');
+  const [workflowDescription, setWorkflowDescription] = useState('');
+  const [canvasSettings, setCanvasSettings] = useState<CanvasSettings>({
+    showGrid: true,
+    snapToGrid: true,
+    gridSize: 20,
+    miniMapVisible: true,
+    controlsVisible: true,
+    zoomOnScroll: true,
+    panOnScroll: false,
+    preventScrolling: false
+  });
+
+  // Custom hooks
+  const {
+    currentWorkflow,
+    isExecuting,
+    executionHistory,
+    validationResults,
+    saveWorkflow,
+    executeWorkflow,
+    pauseExecution,
+    stopExecution,
+    validateWorkflow,
+    loadWorkflow
+  } = useETLDesigner();
+
+  const reactFlowInstance = useReactFlow();
+
+  // Load workflow if ID provided
+  useEffect(() => {
+    if (workflowId) {
+      loadWorkflow(workflowId);
+    }
+  }, [workflowId, loadWorkflow]);
+
+  // Update nodes and edges when workflow changes
+  useEffect(() => {
+    if (currentWorkflow) {
+      setNodes(currentWorkflow.workflowDefinition.nodes);
+      setEdges(currentWorkflow.workflowDefinition.edges);
+      setWorkflowName(currentWorkflow.name);
+      setWorkflowDescription(currentWorkflow.description || '');
+    }
+  }, [currentWorkflow, setNodes, setEdges]);
+
+  // Validate workflow when nodes or edges change
+  useEffect(() => {
+    if (nodes.length > 0) {
+      validateWorkflow(nodes, edges);
+    }
+  }, [nodes, edges, validateWorkflow]);
+
+  // Handle connecting nodes
+  const onConnect: OnConnect = useCallback(
+    (connection: Connection) => {
+      const edge: ETLFlowEdge = {
+        id: `edge-${connection.source}-${connection.target}`,
+        source: connection.source!,
+        target: connection.target!,
+        type: 'default',
+        animated: true,
+        data: {
+          dataType: 'mixed'
+        }
+      };
+      setEdges((eds) => addEdge(edge, eds));
+    },
+    [setEdges]
+  );
+
+  // Handle node selection
+  const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
+    setSelectedNode(node as ETLFlowNode);
+  }, []);
+
+  // Handle node drag and drop from toolbox
+  const onDrop = useCallback(
+    (event: React.DragEvent) => {
+      event.preventDefault();
+
+      const reactFlowBounds = event.currentTarget.getBoundingClientRect();
+      const type = event.dataTransfer.getData('application/reactflow');
+
+      if (typeof type === 'undefined' || !type) {
+        return;
+      }
+
+      const position = reactFlowInstance.project({
+        x: event.clientX - reactFlowBounds.left,
+        y: event.clientY - reactFlowBounds.top
+      });
+
+      const newNode: ETLFlowNode = {
+        id: `${type}-${Date.now()}`,
+        type: type as any,
+        position,
+        data: {
+          label: `${type.charAt(0).toUpperCase() + type.slice(1)} Node`,
+          config: {},
+          isValid: true
+        }
+      };
+
+      setNodes((nds) => nds.concat(newNode));
+    },
+    [reactFlowInstance, setNodes]
+  );
+
+  const onDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+  }, []);
+
+  // Handle saving workflow
+  const handleSave = useCallback(async () => {
+    if (!workflowName.trim()) {
+      setShowSaveDialog(true);
+      return;
+    }
+
+    const workflowDefinition = {
+      nodes,
+      edges,
+      viewport: reactFlowInstance.getViewport(),
+      settings: {
+        gridEnabled: canvasSettings.showGrid,
+        snapToGrid: canvasSettings.snapToGrid,
+        gridSize: canvasSettings.gridSize,
+        parallelExecution: true,
+        errorHandling: 'stop' as const,
+        retryPolicy: {
+          maxAttempts: 3,
+          backoffStrategy: 'exponential' as const,
+          initialDelay: 1000,
+          maxDelay: 30000
+        }
+      }
+    };
+
+    try {
+      const savedWorkflow = await saveWorkflow(
+        workflowName,
+        workflowDescription,
+        workflowDefinition
+      );
+      
+      if (onSave) {
+        onSave(savedWorkflow);
+      }
+    } catch (error) {
+      console.error('Failed to save workflow:', error);
+    }
+  }, [
+    workflowName,
+    workflowDescription,
+    nodes,
+    edges,
+    canvasSettings,
+    reactFlowInstance,
+    saveWorkflow,
+    onSave
+  ]);
+
+  // Handle executing workflow
+  const handleExecute = useCallback(async () => {
+    if (!currentWorkflow?.id) {
+      await handleSave();
+      return;
+    }
+
+    try {
+      await executeWorkflow(currentWorkflow.id);
+      
+      if (onExecute) {
+        onExecute(currentWorkflow.id);
+      }
+    } catch (error) {
+      console.error('Failed to execute workflow:', error);
+    }
+  }, [currentWorkflow, executeWorkflow, onExecute, handleSave]);
+
+  // Handle node configuration updates
+  const handleNodeConfigUpdate = useCallback(
+    (nodeId: string, config: any) => {
+      setNodes((nds) =>
+        nds.map((node) =>
+          node.id === nodeId
+            ? {
+                ...node,
+                data: {
+                  ...node.data,
+                  config: { ...node.data.config, ...config }
+                }
+              }
+            : node
+        )
+      );
+    },
+    [setNodes]
+  );
+
+  // Zoom and fit controls
+  const handleZoomIn = useCallback(() => {
+    reactFlowInstance.zoomIn();
+  }, [reactFlowInstance]);
+
+  const handleZoomOut = useCallback(() => {
+    reactFlowInstance.zoomOut();
+  }, [reactFlowInstance]);
+
+  const handleFitView = useCallback(() => {
+    reactFlowInstance.fitView();
+  }, [reactFlowInstance]);
+
+  // Memoized validation status
+  const validationStatus = useMemo(() => {
+    if (!validationResults) return null;
+    
+    if (validationResults.errors.length > 0) {
+      return { type: 'error', count: validationResults.errors.length };
+    }
+    
+    if (validationResults.warnings.length > 0) {
+      return { type: 'warning', count: validationResults.warnings.length };
+    }
+    
+    return { type: 'success', count: 0 };
+  }, [validationResults]);
+
+  return (
+    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+      {/* Toolbar */}
+      <Paper elevation={1}>
+        <Toolbar>
+          <Typography variant="h6" sx={{ flexGrow: 1 }}>
+            ETL Designer - {workflowName || 'Untitled Workflow'}
+          </Typography>
+          
+          {/* Validation Status */}
+          {validationStatus && (
+            <Chip
+              label={`${validationStatus.count} ${validationStatus.type}${validationStatus.count !== 1 ? 's' : ''}`}
+              color={validationStatus.type === 'error' ? 'error' : validationStatus.type === 'warning' ? 'warning' : 'success'}
+              size="small"
+              sx={{ mr: 2 }}
+            />
+          )}
+
+          {/* Execution Status */}
+          {isExecuting && (
+            <Chip
+              label="Executing"
+              color="info"
+              size="small"
+              sx={{ mr: 2 }}
+            />
+          )}
+
+          <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
+
+          {/* Canvas Controls */}
+          <IconButton onClick={handleZoomIn} title="Zoom In">
+            <ZoomInIcon />
+          </IconButton>
+          <IconButton onClick={handleZoomOut} title="Zoom Out">
+            <ZoomOutIcon />
+          </IconButton>
+          <IconButton onClick={handleFitView} title="Fit View">
+            <FitScreenIcon />
+          </IconButton>
+          
+          <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
+
+          {/* Workflow Actions */}
+          {!readOnly && (
+            <>
+              <IconButton onClick={handleSave} title="Save Workflow">
+                <SaveIcon />
+              </IconButton>
+              
+              {!isExecuting ? (
+                <IconButton 
+                  onClick={handleExecute} 
+                  title="Execute Workflow"
+                  color="primary"
+                >
+                  <PlayIcon />
+                </IconButton>
+              ) : (
+                <>
+                  <IconButton 
+                    onClick={() => pauseExecution()} 
+                    title="Pause Execution"
+                    color="warning"
+                  >
+                    <PauseIcon />
+                  </IconButton>
+                  <IconButton 
+                    onClick={() => stopExecution()} 
+                    title="Stop Execution"
+                    color="error"
+                  >
+                    <StopIcon />
+                  </IconButton>
+                </>
+              )}
+            </>
+          )}
+
+          <IconButton onClick={() => setShowSettings(true)} title="Settings">
+            <SettingsIcon />
+          </IconButton>
+        </Toolbar>
+      </Paper>
+
+      {/* Main Content */}
+      <Box sx={{ flex: 1, display: 'flex' }}>
+        {/* Toolbox */}
+        {!readOnly && (
+          <ETLToolbox />
+        )}
+
+        {/* Canvas */}
+        <Box sx={{ flex: 1, position: 'relative' }}>
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            onNodeClick={onNodeClick}
+            onDrop={onDrop}
+            onDragOver={onDragOver}
+            nodeTypes={nodeTypes}
+            fitView
+            snapToGrid={canvasSettings.snapToGrid}
+            snapGrid={[canvasSettings.gridSize, canvasSettings.gridSize]}
+            deleteKeyCode={readOnly ? null : 'Delete'}
+          >
+            <Background 
+              variant="grid" 
+              gap={canvasSettings.gridSize}
+              visible={canvasSettings.showGrid}
+            />
+            
+            {canvasSettings.controlsVisible && (
+              <Controls 
+                showZoom={true}
+                showFitView={true}
+                showInteractive={!readOnly}
+              />
+            )}
+            
+            {canvasSettings.miniMapVisible && (
+              <MiniMap 
+                nodeColor="var(--node-color)"
+                nodeStrokeColor="var(--node-stroke-color)"
+                nodeClassName="minimap-node"
+                maskColor="rgba(0, 0, 0, 0.1)"
+              />
+            )}
+          </ReactFlow>
+        </Box>
+
+        {/* Configuration Panel */}
+        {selectedNode && !readOnly && (
+          <ETLNodeConfigPanel
+            node={selectedNode}
+            onConfigUpdate={handleNodeConfigUpdate}
+            onClose={() => setSelectedNode(null)}
+          />
+        )}
+
+        {/* Execution Panel */}
+        {(isExecuting || executionHistory.length > 0) && (
+          <ETLExecutionPanel
+            executionHistory={executionHistory}
+            isExecuting={isExecuting}
+            onClose={() => {}}
+          />
+        )}
+      </Box>
+
+      {/* Settings Dialog */}
+      <ETLWorkflowSettings
+        open={showSettings}
+        canvasSettings={canvasSettings}
+        onCanvasSettingsChange={setCanvasSettings}
+        onClose={() => setShowSettings(false)}
+      />
+
+      {/* Save Dialog */}
+      <Dialog open={showSaveDialog} onClose={() => setShowSaveDialog(false)}>
+        <DialogTitle>Save Workflow</DialogTitle>
+        <DialogContent>
+          <TextField
+            fullWidth
+            label="Workflow Name"
+            value={workflowName}
+            onChange={(e) => setWorkflowName(e.target.value)}
+            margin="normal"
+            required
+          />
+          <TextField
+            fullWidth
+            label="Description"
+            value={workflowDescription}
+            onChange={(e) => setWorkflowDescription(e.target.value)}
+            margin="normal"
+            multiline
+            rows={3}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowSaveDialog(false)}>Cancel</Button>
+          <Button 
+            onClick={() => {
+              setShowSaveDialog(false);
+              handleSave();
+            }}
+            variant="contained"
+            disabled={!workflowName.trim()}
+          >
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+};
+
+// Wrapper with ReactFlowProvider
+export const ETLDesignerWithProvider: React.FC<ETLDesignerProps> = (props) => (
+  <ReactFlowProvider>
+    <ETLDesigner {...props} />
+  </ReactFlowProvider>
+);
+
+export default ETLDesignerWithProvider;

@@ -1,0 +1,265 @@
+{
+  "$schema": "./database-schema.json",
+  "version": "1.0.0",
+  "lastUpdated": "2025-09-02T01:25:00.000Z",
+  "updatedBy": "ecs-deployment",
+  
+  "servers": [
+    {
+      "id": "DS1",
+      "name": "Primary Database Server - IAF RDS",
+      "description": "Main PostgreSQL RDS server for platform and tenant databases",
+      "host": "pgm-d9j5id443p7876n9.pgsql.ap-southeast-5.rds.aliyuncs.com",
+      "port": 5432,
+      "type": "primary",
+      "region": "ap-southeast-5",
+      "isActive": true,
+      "credentials": {
+        "username": "admin_iaf",
+        "password": "P@ssw0rd2025!"
+      },
+      "ssl": true,
+      "maxConnections": 20,
+      "connectionPool": {
+        "min": 5,
+        "max": 20,
+        "idleTimeoutMillis": 30000,
+        "connectionTimeoutMillis": 10000,
+        "acquireTimeoutMillis": 10000
+      },
+      "monitoring": {
+        "healthCheckInterval": 30000,
+        "alertThresholds": {
+          "responseTime": 1000,
+          "errorRate": 0.05,
+          "connectionUtilization": 0.8
+        }
+      },
+      "tags": ["primary", "rds", "platform", "iaf"]
+    },
+    
+    {
+      "id": "DS2",
+      "name": "FRS9 Analytics Server - IAF RDS",
+      "description": "PostgreSQL RDS server for FRS9 legacy data and analytics",
+      "host": "pgm-d9j5id443p7876n9.pgsql.ap-southeast-5.rds.aliyuncs.com",
+      "port": 5432,
+      "type": "analytics",
+      "region": "ap-southeast-5",
+      "isActive": true,
+      "credentials": {
+        "username": "admin_iaf",
+        "password": "P@ssw0rd2025!"
+      },
+      "ssl": true,
+      "maxConnections": 10,
+      "connectionPool": {
+        "min": 2,
+        "max": 10,
+        "idleTimeoutMillis": 30000,
+        "connectionTimeoutMillis": 10000,
+        "acquireTimeoutMillis": 10000
+      },
+      "monitoring": {
+        "healthCheckInterval": 45000,
+        "alertThresholds": {
+          "responseTime": 2000,
+          "errorRate": 0.1
+        }
+      },
+      "tags": ["analytics", "legacy", "frs9", "rds"]
+    }
+  ],
+  
+  "databases": [
+    {
+      "id": "platform_admin",
+      "name": "Platform Administration",
+      "description": "Core platform administration and user management database",
+      "serverId": "DS1",
+      "database": "ifrspro_platform_admin",
+      "type": "platform",
+      "tags": ["core", "admin", "user-management", "critical"],
+      "priority": 1,
+      "isActive": true,
+      "maxConnections": 20,
+      "schema": {
+        "searchPath": ["platform_admin", "platform_audit", "platform_analytics", "platform_billing", "public"],
+        "defaultSchema": "platform_admin"
+      },
+      "features": {
+        "auditing": true,
+        "softDelete": false,
+        "versioning": true,
+        "encryption": false
+      },
+      "compliance": {
+        "dataRetention": "7y",
+        "auditLevel": "high",
+        "regulations": ["GDPR", "SOX"]
+      }
+    },
+    
+    {
+      "id": "shared_services",
+      "name": "Shared Services",
+      "description": "Shared reference data and calculation engines",
+      "serverId": "DS1",
+      "database": "ifrspro_shared_services",
+      "type": "shared",
+      "tags": ["shared", "reference-data", "calculations", "menu"],
+      "priority": 2,
+      "isActive": true,
+      "maxConnections": 15,
+      "schema": {
+        "searchPath": ["reference_data", "calculation_engine", "menu", "notification", "public"],
+        "defaultSchema": "reference_data"
+      },
+      "features": {
+        "caching": true,
+        "readReplica": false,
+        "partitioning": false
+      }
+    },
+    
+    {
+      "id": "frs9_legacy",
+      "name": "FRS9 Legacy System",
+      "description": "Legacy FRS9 parameter and calculation database",
+      "serverId": "DS2",
+      "database": "FRS9PRO",
+      "type": "legacy",
+      "tags": ["legacy", "parameters", "calculations", "frs9"],
+      "priority": 3,
+      "isActive": true,
+      "maxConnections": 5,
+      "schema": {
+        "searchPath": ["public"],
+        "defaultSchema": "public"
+      },
+      "features": {
+        "readOnly": false,
+        "migration": {
+          "planned": true,
+          "targetDatabase": "shared_services",
+          "schedule": "2025-Q2"
+        }
+      },
+      "compliance": {
+        "dataRetention": "5y",
+        "regulations": ["OJK", "BI"]
+      }
+    },
+    
+    {
+      "id": "tenant_iaf",
+      "name": "IAF - Indonesia Airawata Finance",
+      "description": "Indonesia Airawata Finance conventional banking tenant",
+      "serverId": "DS1",
+      "database": "ifrspro_tenant_iaf",
+      "type": "tenant",
+      "tags": ["tenant", "conventional", "iaf", "production"],
+      "priority": 4,
+      "isActive": true,
+      "maxConnections": 15,
+      "schema": {
+        "searchPath": ["core", "calculation", "staging", "audit", "workflow", "configuration", "external_integration", "data_quality", "public"],
+        "defaultSchema": "core"
+      },
+      "tenantInfo": {
+        "tenantSlug": "iaf",
+        "organizationName": "Indonesia Airawata Finance",
+        "bankingType": "conventional",
+        "subscriptionTier": "enterprise",
+        "region": "indonesia",
+        "regulatoryFramework": "OJK"
+      },
+      "features": {
+        "auditing": true,
+        "softDelete": true,
+        "encryption": true,
+        "backup": {
+          "frequency": "daily",
+          "retention": "30d"
+        }
+      },
+      "compliance": {
+        "dataResidency": "indonesia",
+        "regulations": ["OJK", "BI"],
+        "auditLevel": "high"
+      }
+    }
+  ],
+  
+  "settings": {
+    "autoDiscovery": true,
+    "healthCheckInterval": 30000,
+    "connectionTimeout": 10000,
+    "maxHistorySize": 100,
+    "configReloadInterval": 300000,
+    
+    "failover": {
+      "enabled": true,
+      "maxRetries": 3,
+      "retryDelayMs": 1000,
+      "backoffMultiplier": 2.0,
+      "maxRetryDelayMs": 30000
+    },
+    
+    "loadBalancing": {
+      "strategy": "round-robin",
+      "healthyThreshold": 0.95,
+      "weights": {
+        "DS1": 1.0,
+        "DS2": 1.0
+      }
+    },
+    
+    "security": {
+      "encryptCredentials": true,
+      "rotatePasswords": false,
+      "auditConnections": true,
+      "maxLoginAttempts": 5,
+      "lockoutDurationMs": 300000
+    },
+    
+    "monitoring": {
+      "enabled": true,
+      "metricsCollection": true,
+      "performanceLogging": true,
+      "slowQueryThresholdMs": 1000,
+      "alerting": {
+        "enabled": true,
+        "channels": ["email", "slack", "webhook"],
+        "escalation": {
+          "criticalDelayMs": 300000,
+          "majorDelayMs": 900000
+        }
+      }
+    }
+  },
+  
+  "environments": {
+    "production": {
+      "description": "Production environment overrides for IAF ECS deployment",
+      "overrides": {
+        "ssl": true,
+        "healthCheckInterval": 10000,
+        "security": {
+          "encryptCredentials": true,
+          "auditConnections": true
+        },
+        "monitoring": {
+          "alerting": {
+            "enabled": true,
+            "channels": ["email", "webhook"]
+          }
+        },
+        "backup": {
+          "frequency": "hourly",
+          "retention": "90d"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,440 @@
+// ============================================================================
+// IFRS9 FRONTEND - CENTRALIZED LOGGING SERVICE
+// ============================================================================
+// File Path: packages/frontend/src/services/logging.service.ts
+// Purpose: Centralized logging for debugging, audit trail, and monitoring
+// Features: Console logs, backend API logging, error tracking, route monitoring
+// ============================================================================
+
+import { getEnvironmentConfig } from '@/config/environment.config';
+
+// ✅ Log levels enum
+export enum LogLevel {
+  DEBUG = 'debug',
+  INFO = 'info',
+  WARN = 'warn',
+  ERROR = 'error',
+  CRITICAL = 'critical'
+}
+
+// ✅ Log category enum
+export enum LogCategory {
+  ROUTING = 'routing',
+  AUTHENTICATION = 'authentication',
+  API = 'api',
+  USER_ACTION = 'user_action',
+  SYSTEM = 'system',
+  BANKING = 'banking',
+  IFRS9 = 'ifrs9',
+  PERFORMANCE = 'performance',
+  SECURITY = 'security'
+}
+
+// ✅ Log entry interface
+export interface LogEntry {
+  id: string;
+  timestamp: string;
+  level: LogLevel;
+  category: LogCategory;
+  message: string;
+  data?: any;
+  userId?: string;
+  userRole?: string;
+  stakeholderType?: string;
+  sessionId?: string;
+  pathname?: string;
+  userAgent?: string;
+  environment: string;
+}
+
+// ✅ Centralized Logging Service
+class CentralizedLoggingService {
+  private config = getEnvironmentConfig();
+  private sessionId: string;
+  private logBuffer: LogEntry[] = [];
+  private bufferSize = 100;
+  private flushInterval = 30000; // 30 seconds
+  private flushTimer?: NodeJS.Timeout;
+
+  constructor() {
+    this.sessionId = this.generateSessionId();
+    this.initializeLogging();
+  }
+
+  // ✅ Initialize logging service
+  private initializeLogging() {
+    if (typeof window !== 'undefined') {
+      // Set up periodic buffer flush
+      this.flushTimer = setInterval(() => {
+        this.flushBuffer();
+      }, this.flushInterval);
+
+      // Set up page unload handler to flush remaining logs
+      window.addEventListener('beforeunload', () => {
+        this.flushBuffer();
+      });
+
+      // Set up error capture
+      window.addEventListener('error', (event) => {
+        this.error(LogCategory.SYSTEM, 'Unhandled JavaScript Error', {
+          message: event.message,
+          filename: event.filename,
+          lineno: event.lineno,
+          colno: event.colno,
+          stack: event.error?.stack
+        });
+      });
+
+      // Set up unhandled promise rejection capture
+      window.addEventListener('unhandledrejection', (event) => {
+        this.error(LogCategory.SYSTEM, 'Unhandled Promise Rejection', {
+          reason: event.reason,
+          promise: event.promise
+        });
+      });
+
+      if (this.config.app.environment === 'development') {
+        console.log('🚀 Centralized Logging Service Initialized', {
+          sessionId: this.sessionId,
+          environment: this.config.app.environment,
+          bufferSize: this.bufferSize,
+          flushInterval: this.flushInterval
+        });
+      }
+    }
+  }
+
+  // ✅ Generate unique session ID
+  private generateSessionId(): string {
+    return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  // ✅ Get current user context
+  private getCurrentUser() {
+    if (typeof window !== 'undefined') {
+      try {
+        const userData = localStorage.getItem('ifrs9_user_data');
+        return userData ? JSON.parse(userData) : null;
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  // ✅ Create log entry
+  private createLogEntry(
+    level: LogLevel,
+    category: LogCategory,
+    message: string,
+    data?: any
+  ): LogEntry {
+    const user = this.getCurrentUser();
+    const id = `log_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    return {
+      id,
+      timestamp: new Date().toISOString(),
+      level,
+      category,
+      message,
+      data,
+      userId: user?.id,
+      userRole: user?.role,
+      stakeholderType: user?.stakeholderType,
+      sessionId: this.sessionId,
+      pathname: typeof window !== 'undefined' ? window.location.pathname : undefined,
+      userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : undefined,
+      environment: this.config.app.environment
+    };
+  }
+
+  // ✅ Add log entry to buffer
+  private addToBuffer(logEntry: LogEntry) {
+    this.logBuffer.push(logEntry);
+
+    // Maintain buffer size
+    if (this.logBuffer.length > this.bufferSize) {
+      this.logBuffer = this.logBuffer.slice(-this.bufferSize);
+    }
+
+    // Auto-flush on critical errors
+    if (logEntry.level === LogLevel.CRITICAL || logEntry.level === LogLevel.ERROR) {
+      this.flushBuffer();
+    }
+  }
+
+  // ✅ Flush log buffer to backend
+  private async flushBuffer() {
+    if (this.logBuffer.length === 0) return;
+
+    const logsToSend = [...this.logBuffer];
+    this.logBuffer = [];
+
+    if (this.config.features.auditTrail && typeof window !== 'undefined') {
+      try {
+        const response = await fetch(`${this.config.api.baseUrl}/audit/frontend-logs`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('ifrs9_auth_token') || ''}`
+          },
+          body: JSON.stringify({ logs: logsToSend })
+        });
+
+        if (!response.ok && this.config.app.environment === 'development') {
+          console.warn('Failed to send logs to backend:', response.statusText);
+        }
+      } catch (error) {
+        if (this.config.app.environment === 'development') {
+          console.warn('Error sending logs to backend:', error);
+        }
+        // Put logs back in buffer if sending failed
+        this.logBuffer = [...logsToSend, ...this.logBuffer];
+      }
+    }
+  }
+
+  // ✅ Console formatting for development
+  private formatConsoleMessage(logEntry: LogEntry): string {
+    const timestamp = new Date(logEntry.timestamp).toLocaleTimeString();
+    const emoji = this.getLevelEmoji(logEntry.level);
+    const category = `[${logEntry.category.toUpperCase()}]`;
+    
+    return `${emoji} ${timestamp} ${category} ${logEntry.message}`;
+  }
+
+  // ✅ Get emoji for log level
+  private getLevelEmoji(level: LogLevel): string {
+    switch (level) {
+      case LogLevel.DEBUG: return '🐛';
+      case LogLevel.INFO: return 'ℹ️';
+      case LogLevel.WARN: return '⚠️';
+      case LogLevel.ERROR: return '❌';
+      case LogLevel.CRITICAL: return '🚨';
+      default: return 'ℹ️';
+    }
+  }
+
+  // ✅ Log to console in development
+  private logToConsole(logEntry: LogEntry) {
+    if (this.config.app.environment !== 'development') return;
+
+    const message = this.formatConsoleMessage(logEntry);
+    const data = logEntry.data;
+
+    switch (logEntry.level) {
+      case LogLevel.DEBUG:
+        console.debug(message, data);
+        break;
+      case LogLevel.INFO:
+        console.info(message, data);
+        break;
+      case LogLevel.WARN:
+        console.warn(message, data);
+        break;
+      case LogLevel.ERROR:
+      case LogLevel.CRITICAL:
+        console.error(message, data);
+        break;
+      default:
+        console.log(message, data);
+    }
+  }
+
+  // ✅ Main logging method
+  private log(level: LogLevel, category: LogCategory, message: string, data?: any) {
+    const logEntry = this.createLogEntry(level, category, message, data);
+    
+    this.logToConsole(logEntry);
+    this.addToBuffer(logEntry);
+  }
+
+  // ✅ Public logging methods
+  debug(category: LogCategory, message: string, data?: any) {
+    this.log(LogLevel.DEBUG, category, message, data);
+  }
+
+  info(category: LogCategory, message: string, data?: any) {
+    this.log(LogLevel.INFO, category, message, data);
+  }
+
+  warn(category: LogCategory, message: string, data?: any) {
+    this.log(LogLevel.WARN, category, message, data);
+  }
+
+  error(category: LogCategory, message: string, data?: any) {
+    this.log(LogLevel.ERROR, category, message, data);
+  }
+
+  critical(category: LogCategory, message: string, data?: any) {
+    this.log(LogLevel.CRITICAL, category, message, data);
+  }
+
+  // ✅ Specialized logging methods for common use cases
+
+  // Route transition logging
+  logRouteTransition(from: string, to: string, stakeholderType?: string, user?: any) {
+    this.info(LogCategory.ROUTING, `Route transition: ${from} → ${to}`, {
+      from,
+      to,
+      stakeholderType,
+      userId: user?.id,
+      userRole: user?.role
+    });
+  }
+
+  // Authentication logging
+  logAuthentication(action: string, success: boolean, user?: any) {
+    const level = success ? LogLevel.INFO : LogLevel.WARN;
+    this.log(level, LogCategory.AUTHENTICATION, `Authentication ${action}: ${success ? 'Success' : 'Failed'}`, {
+      action,
+      success,
+      userId: user?.id,
+      userRole: user?.role
+    });
+  }
+
+  // API call logging
+  logApiCall(method: string, url: string, statusCode?: number, duration?: number, error?: any) {
+    const level = error ? LogLevel.ERROR : statusCode && statusCode >= 400 ? LogLevel.WARN : LogLevel.DEBUG;
+    this.log(level, LogCategory.API, `${method} ${url} - ${statusCode || 'No Response'}`, {
+      method,
+      url,
+      statusCode,
+      duration,
+      error
+    });
+  }
+
+  // User action logging
+  logUserAction(action: string, component?: string, data?: any) {
+    this.info(LogCategory.USER_ACTION, `User action: ${action}`, {
+      action,
+      component,
+      data
+    });
+  }
+
+  // Banking operation logging
+  logBankingOperation(operation: string, bankingMode?: string, data?: any) {
+    this.info(LogCategory.BANKING, `Banking operation: ${operation}`, {
+      operation,
+      bankingMode,
+      data
+    });
+  }
+
+  // IFRS9 calculation logging
+  logIFRS9Calculation(calculationType: string, status: string, data?: any) {
+    const level = status === 'error' ? LogLevel.ERROR : LogLevel.INFO;
+    this.log(level, LogCategory.IFRS9, `IFRS9 ${calculationType}: ${status}`, {
+      calculationType,
+      status,
+      data
+    });
+  }
+
+  // Performance logging
+  logPerformance(metric: string, value: number, unit: string = 'ms') {
+    this.debug(LogCategory.PERFORMANCE, `Performance: ${metric} = ${value}${unit}`, {
+      metric,
+      value,
+      unit
+    });
+  }
+
+  // Security logging
+  logSecurity(event: string, severity: 'low' | 'medium' | 'high' | 'critical', data?: any) {
+    const level = severity === 'critical' ? LogLevel.CRITICAL : 
+                  severity === 'high' ? LogLevel.ERROR : 
+                  severity === 'medium' ? LogLevel.WARN : LogLevel.INFO;
+    this.log(level, LogCategory.SECURITY, `Security event: ${event}`, {
+      event,
+      severity,
+      data
+    });
+  }
+
+  // ✅ Utility methods
+
+  // Get current session logs
+  getSessionLogs(): LogEntry[] {
+    return [...this.logBuffer];
+  }
+
+  // Manual buffer flush
+  flushNow() {
+    this.flushBuffer();
+  }
+
+  // Get session ID
+  getSessionId(): string {
+    return this.sessionId;
+  }
+
+  // Cleanup method
+  cleanup() {
+    if (this.flushTimer) {
+      clearInterval(this.flushTimer);
+    }
+    this.flushBuffer();
+  }
+
+  // ✅ Development utilities
+
+  // Show debug information
+  showDebugInfo() {
+    if (this.config.app.environment === 'development') {
+      console.group('🔧 Logging Service Debug Info');
+      console.log('Session ID:', this.sessionId);
+      console.log('Buffer Size:', this.logBuffer.length);
+      console.log('Configuration:', this.config);
+      console.log('Current User:', this.getCurrentUser());
+      console.log('Recent Logs:', this.logBuffer.slice(-10));
+      console.groupEnd();
+    }
+  }
+
+  // Export logs as JSON (for debugging)
+  exportLogs(): string {
+    return JSON.stringify(this.logBuffer, null, 2);
+  }
+}
+
+// ✅ Create singleton instance
+const loggingService = new CentralizedLoggingService();
+
+// ✅ Export service instance and types
+export { loggingService, LogLevel, LogCategory };
+export type { LogEntry };
+
+// ✅ Export convenience methods for easier usage
+export const log = {
+  debug: (category: LogCategory, message: string, data?: any) => loggingService.debug(category, message, data),
+  info: (category: LogCategory, message: string, data?: any) => loggingService.info(category, message, data),
+  warn: (category: LogCategory, message: string, data?: any) => loggingService.warn(category, message, data),
+  error: (category: LogCategory, message: string, data?: any) => loggingService.error(category, message, data),
+  critical: (category: LogCategory, message: string, data?: any) => loggingService.critical(category, message, data),
+  
+  // Specialized methods
+  routeTransition: (from: string, to: string, stakeholderType?: string, user?: any) => 
+    loggingService.logRouteTransition(from, to, stakeholderType, user),
+  authentication: (action: string, success: boolean, user?: any) => 
+    loggingService.logAuthentication(action, success, user),
+  apiCall: (method: string, url: string, statusCode?: number, duration?: number, error?: any) => 
+    loggingService.logApiCall(method, url, statusCode, duration, error),
+  userAction: (action: string, component?: string, data?: any) => 
+    loggingService.logUserAction(action, component, data),
+  bankingOperation: (operation: string, bankingMode?: string, data?: any) => 
+    loggingService.logBankingOperation(operation, bankingMode, data),
+  ifrs9Calculation: (calculationType: string, status: string, data?: any) => 
+    loggingService.logIFRS9Calculation(calculationType, status, data),
+  performance: (metric: string, value: number, unit?: string) => 
+    loggingService.logPerformance(metric, value, unit),
+  security: (event: string, severity: 'low' | 'medium' | 'high' | 'critical', data?: any) => 
+    loggingService.logSecurity(event, severity, data)
+};
+
+// ✅ Default export
+export default loggingService;

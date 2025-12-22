@@ -1,0 +1,3 @@
+# R Environment for IFRS 9 Platform
+R_LIBS_USER=/home/doppelgaenger/R/x86_64-pc-linux-gnu-library/4.5
+R_LIBS=/home/doppelgaenger/R/x86_64-pc-linux-gnu-library/4.5:/usr/local/lib/R/site-library:/usr/lib/R/site-library:/usr/lib/R/library

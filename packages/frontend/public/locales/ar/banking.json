@@ -1,0 +1,50 @@
+{
+  "banking": {
+    "conventional": {
+      "name": "الخدمات المصرفية التقليدية",
+      "description": "واجهة مصرفية احترافية للشركات",
+      "features": {
+        "interest_calculations": "الحسابات القائمة على الفوائد",
+        "corporate_reports": "التقارير المؤسسية",
+        "traditional_products": "المنتجات المصرفية التقليدية",
+        "risk_management": "إدارة المخاطر المعيارية",
+        "compliance_reporting": "تقارير الامتثال التقليدية"
+      }
+    },
+    "syariah": {
+      "name": "المصرفية الإسلامية",
+      "description": "واجهة مصرفية إسلامية مع عناصر ثقافية",
+      "features": {
+        "profit_sharing": "حسابات المشاركة في الأرباح",
+        "islamic_products": "إدارة المنتجات الإسلامية",
+        "syariah_reports": "التقارير المتوافقة مع الشريعة",
+        "halal_indicators": "مؤشرات الحلال/الحرام",
+        "cultural_elements": "عناصر التصميم الثقافي"
+      },
+      "compliance": {
+        "aaoifi": "الامتثال لمعايير هيئة المحاسبة والمراجعة",
+        "syariah_board": "تتبع موافقة مجلس الشريعة",
+        "prohibited_sectors": "فحص القطاعات المحظورة",
+        "islamic_calendar": "دعم التقويم الإسلامي",
+        "arabic_language": "دعم اللغة العربية",
+        "zakat_calculation": "دعم حساب الزكاة"
+      }
+    },
+    "themes": {
+      "switch_to_conventional": "التبديل إلى المصرفية التقليدية",
+      "switch_to_syariah": "التبديل إلى المصرفية الإسلامية",
+      "theme_switching": "موضوع المصرفية",
+      "current_theme": "الموضوع الحالي",
+      "theme_applied": "تم تطبيق الموضوع بنجاح",
+      "theme_error": "خطأ في تطبيق الموضوع"
+    },
+    "common": {
+      "dashboard": "لوحة التحكم",
+      "reports": "التقارير",
+      "calculations": "الحسابات",
+      "settings": "الإعدادات",
+      "help": "المساعدة",
+      "logout": "تسجيل الخروج"
+    }
+  }
+}

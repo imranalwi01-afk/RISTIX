@@ -1,0 +1,1149 @@
+// packages/frontend/src/app/banking/collective/ecl-config/page.tsx
+// ============================================================================
+// IFRS9 FRONTEND - ECL CONFIGURATION PAGE
+// ============================================================================
+// Database: frs9_imp_ca_ecl_configh (header) + frs9_imp_ca_ecl_configd (detail)
+// Business Parameter: B0023 (Module), B0024 (Period Type), B0020 (Segment)
+// Legacy Reference: Master-detail pattern for ECL Model configuration
+// ============================================================================
+
+'use client';
+
+import React, { useState, useEffect, useCallback } from 'react';
+import { frontendEnvironmentLoader } from '../../../../config/environment-loader-frontend';
+import {
+  Box,
+  Typography,
+  Container,
+  Paper,
+  Grid,
+  Card,
+  CardContent,
+  Button,
+  CircularProgress,
+  Alert,
+  Breadcrumbs,
+  Link,
+  TextField,
+  MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  IconButton,
+  Chip,
+  FormControl,
+  InputLabel,
+  Select,
+  FormControlLabel,
+  Checkbox,
+  Divider,
+  Tabs,
+  Tab,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails
+} from '@mui/material';
+import {
+  Calculate as EclIcon,
+  Home as HomeIcon,
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Refresh as RefreshIcon,
+  Search as SearchIcon,
+  Download as ExportIcon,
+  ExpandMore as ExpandMoreIcon,
+  PlayArrow as RunIcon,
+  Schedule as ScheduleIcon
+} from '@mui/icons-material';
+import { DataGrid, GridColDef, GridActionsCellItem } from '@mui/x-data-grid';
+import { useRouter } from 'next/navigation';
+
+// Types based on live database structure: frs9_imp_ca_ecl_configh + frs9_imp_ca_ecl_configd
+interface ECLConfigHeader {
+  pkid: number;
+  ecl_model_name: string;
+  module: string;
+  module_name?: string;
+  effective_date: string;
+  active_flag: boolean;
+  last_run_period?: string;
+  last_run_status?: string;
+  last_run_date?: string;
+  createdby?: string;
+  createddate?: string;
+  updatedby?: string;
+  updateddate?: string;
+  details: ECLConfigDetail[];
+}
+
+interface ECLConfigDetail {
+  pkid: number;
+  ecl_model_id: number;
+  pf_segment_id: number;
+  pf_segment_name?: string;
+  stage_rule_id: number;
+  stage_rule_name?: string;
+  pd_model_id: number;
+  pd_model_name?: string;
+  lgd_model_id: number;
+  lgd_model_name?: string;
+  ead_model_id: number;
+  ead_model_name?: string;
+  overlay_rate: number;
+  period_type: number;
+  period_type_name?: string;
+  period_date?: string;
+  createdby?: string;
+  createddate?: string;
+}
+
+// API service for ECL Configuration - Use centralized dual-mode configuration
+const getApiBaseUrl = () => {
+  try {
+    // Use centralized environment loader first
+    const config = frontendEnvironmentLoader.getConfiguration();
+    console.log('✅ ECL Config Page: Using centralized API base URL:', config.api.base);
+    return config.api.base;
+  } catch (error) {
+    console.warn('⚠️ ECL Config Page: Failed to load centralized API base URL, using fallback:', error);
+
+    // Fallback to hostname detection
+    const isProductionDomain = typeof window !== 'undefined' && window.location.hostname.includes('danafin.com');
+    const fallbackUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL ||
+      (isProductionDomain ? 'https://iaf-ifrs-be.danafin.com/api/v1' : 'https://bifrs9-iaf.ifrspro.id/api/v1');
+
+    console.log('🔧 ECL Config Page: Using fallback API base URL:', fallbackUrl);
+    return fallbackUrl;
+  }
+};
+
+const API_BASE_URL = getApiBaseUrl();
+
+const eclConfigurationAPI = {
+  getHeaders: async (): Promise<ECLConfigHeader[]> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/banking/collective/ecl-config`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result.success ? result.data : [];
+    } catch (error) {
+      console.error('Error fetching ECL configurations:', error);
+      throw error;
+    }
+  },
+
+  createHeader: async (data: Partial<ECLConfigHeader>): Promise<ECLConfigHeader> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/banking/collective/ecl-config`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result.data;
+    } catch (error) {
+      console.error('Error creating ECL configuration:', error);
+      throw error;
+    }
+  },
+
+  updateHeader: async (pkid: number, data: Partial<ECLConfigHeader>): Promise<ECLConfigHeader> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/banking/collective/ecl-config/${pkid}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result.data;
+    } catch (error) {
+      console.error('Error updating ECL configuration:', error);
+      throw error;
+    }
+  },
+
+  deleteHeader: async (pkid: number): Promise<void> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/banking/collective/ecl-config/${pkid}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Error deleting ECL configuration:', error);
+      throw error;
+    }
+  }
+};
+
+// Business parameters from live system
+const mockModules = [
+  { value: "1", label: "Commercial Module", code: "COMM" },
+  { value: "2", label: "Treasury Module", code: "TREAS" },
+  { value: "3", label: "Retail Module", code: "RETAIL" },
+  { value: "4", label: "Corporate Module", code: "CORP" }
+];
+
+const mockSegments = [
+  { value: 1, label: "All Segments", code: "ALL" },
+  { value: 5, label: "Treasury - Gov Bonds", code: "TREAS_GOV" },
+  { value: 6, label: "Treasury - Corporate Bonds", code: "TREAS_CORP" },
+  { value: 13, label: "Factoring", code: "FACTORING" },
+  { value: 16, label: "Repo", code: "REPO" },
+  { value: 17, label: "Treasury", code: "TREASURY" }
+];
+
+const mockStageRules = [
+  { value: 1, label: "Conservative Rule", code: "CONSERVATIVE" },
+  { value: 2, label: "Standard Rule", code: "STANDARD" },
+  { value: 3, label: "Aggressive Rule", code: "AGGRESSIVE" },
+  { value: 5, label: "Low Risk Rule", code: "LOW_RISK" }
+];
+
+const mockPdModels = [
+  { value: 1, label: "PD All Segment", code: "PD_ALL" },
+  { value: 4, label: "PD Repo Model", code: "PD_REPO" },
+  { value: 5, label: "PD Factoring Model", code: "PD_FACTORING" },
+  { value: 6, label: "PD Treasury Model", code: "PD_TREASURY" }
+];
+
+const mockLgdModels = [
+  { value: 1, label: "LGD All Segment", code: "LGD_ALL" },
+  { value: 2, label: "LGD Factoring", code: "LGD_FACTORING" },
+  { value: 3, label: "LGD Treasury", code: "LGD_TREASURY" }
+];
+
+const mockEadModels = [
+  { value: 1, label: "EAD All Segment", code: "EAD_ALL" },
+  { value: 2, label: "EAD Factoring", code: "EAD_FACTORING" },
+  { value: 3, label: "EAD Repo", code: "EAD_REPO" },
+  { value: 4, label: "EAD Treasury", code: "EAD_TREASURY" }
+];
+
+const mockPeriodTypes = [
+  { value: 1, label: "Monthly", code: "MONTHLY" },
+  { value: 2, label: "Quarterly", code: "QUARTERLY" },
+  { value: 3, label: "Semi-Annual", code: "SEMI_ANNUAL" },
+  { value: 4, label: "Annual", code: "ANNUAL" }
+];
+
+export default function ECLConfigurationPage() {
+  const router = useRouter();
+  
+  // State management
+  const [loading, setLoading] = useState(false);
+  const [eclConfigs, setEclConfigs] = useState<ECLConfigHeader[]>([]);
+  const [filteredConfigs, setFilteredConfigs] = useState<ECLConfigHeader[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedEclConfig, setSelectedEclConfig] = useState<ECLConfigHeader | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterModule, setFilterModule] = useState<string>('');
+  const [currentTab, setCurrentTab] = useState(0);
+
+  // Form data state
+  const [headerFormData, setHeaderFormData] = useState<Partial<ECLConfigHeader>>({
+    ecl_model_name: '',
+    module: '',
+    effective_date: '',
+    active_flag: true,
+    details: []
+  });
+
+  const [detailFormData, setDetailFormData] = useState<Partial<ECLConfigDetail>>({
+    pf_segment_id: '',
+    stage_rule_id: '',
+    pd_model_id: '',
+    lgd_model_id: '',
+    ead_model_id: '',
+    overlay_rate: 100,
+    period_type: 1,
+    period_date: ''
+  });
+
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  // Load ECL configurations on component mount
+  useEffect(() => {
+    loadEclConfigurations();
+  }, []);
+
+  const loadEclConfigurations = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await eclConfigurationAPI.getHeaders();
+      console.log('🔍 [ECL-CONFIG] Loaded ECL configurations:', data.length, 'records');
+      setEclConfigs(data);
+    } catch (error) {
+      console.error('❌ [ECL-CONFIG] Error loading configurations:', error);
+      setError('Failed to load ECL configurations. Please try again.');
+      setEclConfigs([]); // Set empty array on error
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Filter and search functionality
+  useEffect(() => {
+    let filtered = eclConfigs;
+
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter(config =>
+        config.ecl_model_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        config.module_name?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Apply module filter
+    if (filterModule) {
+      filtered = filtered.filter(config => config.module === filterModule);
+    }
+
+    setFilteredConfigs(filtered);
+  }, [eclConfigs, searchTerm, filterModule]);
+
+  // Form validation
+  const validateForm = useCallback(() => {
+    const errors: Record<string, string> = {};
+
+    if (!headerFormData.ecl_model_name?.trim()) {
+      errors.ecl_model_name = 'ECL Model Name is required';
+    }
+
+    if (!headerFormData.module?.trim()) {
+      errors.module = 'Module is required';
+    }
+
+    if (!headerFormData.effective_date?.trim()) {
+      errors.effective_date = 'Effective Date is required';
+    }
+
+    // Validate at least one detail entry
+    if (!headerFormData.details || headerFormData.details.length === 0) {
+      errors.details = 'At least one segment configuration is required';
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  }, [headerFormData]);
+
+  // Handle form field changes
+  const handleHeaderFieldChange = (field: string, value: any) => {
+    setHeaderFormData(prev => ({ ...prev, [field]: value }));
+    
+    // Clear validation error for changed field
+    if (formErrors[field]) {
+      setFormErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  const handleDetailFieldChange = (field: string, value: any) => {
+    setDetailFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Add detail configuration
+  const handleAddDetail = () => {
+    if (!detailFormData.pf_segment_id || !detailFormData.pd_model_id || 
+        !detailFormData.lgd_model_id || !detailFormData.ead_model_id) {
+      return;
+    }
+
+    const segmentInfo = mockSegments.find(s => s.value === detailFormData.pf_segment_id);
+    const stageRuleInfo = mockStageRules.find(r => r.value === detailFormData.stage_rule_id);
+    const pdModelInfo = mockPdModels.find(m => m.value === detailFormData.pd_model_id);
+    const lgdModelInfo = mockLgdModels.find(m => m.value === detailFormData.lgd_model_id);
+    const eadModelInfo = mockEadModels.find(m => m.value === detailFormData.ead_model_id);
+    const periodTypeInfo = mockPeriodTypes.find(t => t.value === detailFormData.period_type);
+
+    const newDetail: ECLConfigDetail = {
+      pkid: Date.now(),
+      ecl_model_id: selectedEclConfig?.pkid || 0,
+      pf_segment_id: detailFormData.pf_segment_id as number,
+      pf_segment_name: segmentInfo?.label,
+      stage_rule_id: detailFormData.stage_rule_id as number,
+      stage_rule_name: stageRuleInfo?.label,
+      pd_model_id: detailFormData.pd_model_id as number,
+      pd_model_name: pdModelInfo?.label,
+      lgd_model_id: detailFormData.lgd_model_id as number,
+      lgd_model_name: lgdModelInfo?.label,
+      ead_model_id: detailFormData.ead_model_id as number,
+      ead_model_name: eadModelInfo?.label,
+      overlay_rate: detailFormData.overlay_rate as number,
+      period_type: detailFormData.period_type as number,
+      period_type_name: periodTypeInfo?.label,
+      period_date: detailFormData.period_date || null,
+      createdby: "current_user",
+      createddate: new Date().toISOString().split('T')[0]
+    };
+
+    setHeaderFormData(prev => ({
+      ...prev,
+      details: [...(prev.details || []), newDetail]
+    }));
+
+    // Reset detail form
+    setDetailFormData({
+      pf_segment_id: '',
+      stage_rule_id: '',
+      pd_model_id: '',
+      lgd_model_id: '',
+      ead_model_id: '',
+      overlay_rate: 100,
+      period_type: 1,
+      period_date: ''
+    });
+
+    // Clear details error if exists
+    if (formErrors.details) {
+      setFormErrors(prev => ({ ...prev, details: '' }));
+    }
+  };
+
+  // Remove detail configuration
+  const handleRemoveDetail = (detailPkid: number) => {
+    setHeaderFormData(prev => ({
+      ...prev,
+      details: (prev.details || []).filter(detail => detail.pkid !== detailPkid)
+    }));
+  };
+
+  // CRUD operations
+  const handleAdd = () => {
+    setSelectedEclConfig(null);
+    setHeaderFormData({
+      ecl_model_name: '',
+      module: '',
+      effective_date: '',
+      active_flag: true,
+      details: []
+    });
+    setDetailFormData({
+      pf_segment_id: '',
+      stage_rule_id: '',
+      pd_model_id: '',
+      lgd_model_id: '',
+      ead_model_id: '',
+      overlay_rate: 100,
+      period_type: 1,
+      period_date: ''
+    });
+    setFormErrors({});
+    setIsEditing(false);
+    setCurrentTab(0);
+    setIsDialogOpen(true);
+  };
+
+  const handleEdit = (eclConfig: ECLConfigHeader) => {
+    setSelectedEclConfig(eclConfig);
+    setHeaderFormData({
+      ecl_model_name: eclConfig.ecl_model_name,
+      module: eclConfig.module,
+      effective_date: eclConfig.effective_date,
+      active_flag: eclConfig.active_flag,
+      details: [...eclConfig.details]
+    });
+    setDetailFormData({
+      pf_segment_id: '',
+      stage_rule_id: '',
+      pd_model_id: '',
+      lgd_model_id: '',
+      ead_model_id: '',
+      overlay_rate: 100,
+      period_type: 1,
+      period_date: ''
+    });
+    setFormErrors({});
+    setIsEditing(true);
+    setCurrentTab(0);
+    setIsDialogOpen(true);
+  };
+
+  const handleSave = async () => {
+    if (!validateForm()) {
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      const saveData = {
+        ecl_model_name: headerFormData.ecl_model_name!,
+        module: headerFormData.module!,
+        effective_date: headerFormData.effective_date!,
+        active_flag: headerFormData.active_flag!,
+        details: headerFormData.details || []
+      };
+
+      let savedConfig: ECLConfigHeader;
+      
+      if (isEditing && selectedEclConfig) {
+        savedConfig = await eclConfigurationAPI.updateHeader(selectedEclConfig.pkid, saveData);
+        console.log('✅ [ECL-CONFIG] Updated ECL configuration:', savedConfig.pkid);
+      } else {
+        savedConfig = await eclConfigurationAPI.createHeader(saveData);
+        console.log('✅ [ECL-CONFIG] Created ECL configuration:', savedConfig.pkid);
+      }
+
+      // Reload all configurations to get the latest data
+      await loadEclConfigurations();
+
+      setIsDialogOpen(false);
+      setHeaderFormData({});
+      setDetailFormData({});
+      setSelectedEclConfig(null);
+
+    } catch (error) {
+      console.error('❌ [ECL-CONFIG] Error saving configuration:', error);
+      setError(isEditing ? 'Failed to update ECL configuration.' : 'Failed to create ECL configuration.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (eclConfig: ECLConfigHeader) => {
+    if (!confirm(`Are you sure you want to delete ECL configuration "${eclConfig.ecl_model_name}"?`)) {
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      await eclConfigurationAPI.deleteHeader(eclConfig.pkid);
+      console.log('✅ [ECL-CONFIG] Deleted ECL configuration:', eclConfig.pkid);
+      
+      // Reload all configurations to get the latest data
+      await loadEclConfigurations();
+    } catch (error) {
+      console.error('❌ [ECL-CONFIG] Error deleting configuration:', error);
+      setError('Failed to delete ECL configuration.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // DataGrid columns
+  const columns: GridColDef[] = [
+    {
+      field: 'ecl_model_name',
+      headerName: 'ECL Model Name',
+      width: 200,
+      renderCell: (params) => (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <EclIcon color="primary" fontSize="small" />
+          <Typography variant="body2" fontWeight="medium">
+            {params.value}
+          </Typography>
+        </Box>
+      )
+    },
+    {
+      field: 'module_name',
+      headerName: 'Module',
+      width: 150,
+      renderCell: (params) => (
+        <Chip
+          label={params.value}
+          size="small"
+          color="primary"
+          variant="outlined"
+        />
+      )
+    },
+    {
+      field: 'effective_date',
+      headerName: 'Effective Date',
+      width: 130,
+      renderCell: (params) => new Date(params.value).toLocaleDateString()
+    },
+    {
+      field: 'details',
+      headerName: 'Segments',
+      width: 100,
+      renderCell: (params) => (
+        <Chip
+          label={params.value?.length || 0}
+          size="small"
+          color="info"
+          variant="outlined"
+        />
+      )
+    },
+    {
+      field: 'last_run_status',
+      headerName: 'Last Run Status',
+      width: 130,
+      renderCell: (params) => (
+        params.value ? (
+          <Chip
+            label={params.value}
+            size="small"
+            color="warning"
+            variant="outlined"
+          />
+        ) : (
+          <Typography variant="body2" color="text.secondary">
+            Not run
+          </Typography>
+        )
+      )
+    },
+    {
+      field: 'active_flag',
+      headerName: 'Status',
+      width: 100,
+      renderCell: (params) => (
+        <Chip
+          label={params.value ? 'Active' : 'Inactive'}
+          size="small"
+          color={params.value ? 'success' : 'error'}
+          variant="outlined"
+        />
+      )
+    },
+    {
+      field: 'actions',
+      type: 'actions',
+      headerName: 'Actions',
+      width: 150,
+      getActions: (params) => [
+        <GridActionsCellItem
+          key="run"
+          icon={<RunIcon />}
+          label="Run ECL"
+          onClick={() => console.log('Run ECL calculation for', params.row.pkid)}
+          color="primary"
+        />,
+        <GridActionsCellItem
+          key="edit"
+          icon={<EditIcon />}
+          label="Edit"
+          onClick={() => handleEdit(params.row)}
+          color="primary"
+        />,
+        <GridActionsCellItem
+          key="delete"
+          icon={<DeleteIcon />}
+          label="Delete"
+          onClick={() => handleDelete(params.row)}
+          color="error"
+        />
+      ]
+    }
+  ];
+
+  return (
+    <Container maxWidth="xl">
+      {/* Breadcrumb Navigation */}
+      <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
+        <Link 
+          underline="hover" 
+          color="inherit" 
+          href="/banking/dashboard"
+          onClick={(e) => {
+            e.preventDefault();
+            router.push('/banking/dashboard');
+          }}
+          sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+        >
+          <HomeIcon sx={{ mr: 0.5, fontSize: 16 }} />
+          Banking Dashboard
+        </Link>
+        <Typography color="text.primary" sx={{ display: 'flex', alignItems: 'center' }}>
+          <EclIcon sx={{ mr: 0.5, fontSize: 16 }} />
+          ECL Configuration
+        </Typography>
+      </Breadcrumbs>
+
+      {/* Page Header */}
+      <Box sx={{ mb: 4 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <EclIcon sx={{ mr: 2, fontSize: 32, color: 'primary.main' }} />
+            <Box>
+              <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
+                ECL Configuration
+              </Typography>
+              <Typography variant="subtitle1" color="text.secondary">
+                Expected Credit Loss calculation configuration and management
+              </Typography>
+            </Box>
+          </Box>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              variant="outlined"
+              startIcon={<ScheduleIcon />}
+              onClick={() => console.log('Schedule ECL batch job')}
+            >
+              Schedule
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<RefreshIcon />}
+              onClick={loadEclConfigurations}
+              disabled={loading}
+            >
+              Refresh
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleAdd}
+            >
+              Add ECL Configuration
+            </Button>
+          </Box>
+        </Box>
+
+        {/* Statistics Cards */}
+        <Grid container spacing={2} sx={{ mb: 3 }}>
+          <Grid item xs={12} sm={3}>
+            <Card>
+              <CardContent sx={{ textAlign: 'center', py: 2 }}>
+                <Typography variant="h4" color="primary.main" fontWeight="bold">
+                  {eclConfigs.length}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  ECL Models
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={3}>
+            <Card>
+              <CardContent sx={{ textAlign: 'center', py: 2 }}>
+                <Typography variant="h4" color="success.main" fontWeight="bold">
+                  {eclConfigs.filter(c => c.active_flag).length}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Active Models
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={3}>
+            <Card>
+              <CardContent sx={{ textAlign: 'center', py: 2 }}>
+                <Typography variant="h4" color="info.main" fontWeight="bold">
+                  {eclConfigs.reduce((sum, config) => sum + (config.details?.length || 0), 0)}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Total Segments
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={3}>
+            <Card>
+              <CardContent sx={{ textAlign: 'center', py: 2 }}>
+                <Typography variant="h4" color="warning.main" fontWeight="bold">
+                  {mockModules.length}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Available Modules
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+      </Box>
+
+      {/* Error Alert */}
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
+
+      {/* Filters and Search */}
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <SearchIcon />
+            Search and Filters
+          </Typography>
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} md={4}>
+              <TextField
+                fullWidth
+                label="Search ECL Configurations"
+                placeholder="Search by model name, module..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                InputProps={{
+                  startAdornment: <SearchIcon color="action" sx={{ mr: 1 }} />
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <FormControl fullWidth>
+                <InputLabel>Filter by Module</InputLabel>
+                <Select
+                  value={filterModule}
+                  label="Filter by Module"
+                  onChange={(e) => setFilterModule(e.target.value as string)}
+                >
+                  <MenuItem value="">All Modules</MenuItem>
+                  {mockModules.map((module) => (
+                    <MenuItem key={module.value} value={module.value}>
+                      {module.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <Button
+                variant="outlined"
+                startIcon={<RunIcon />}
+                fullWidth
+                onClick={() => console.log('Run all ECL calculations')}
+              >
+                Run All ECL
+              </Button>
+            </Grid>
+            <Grid item xs={12} md={2}>
+              <Button
+                variant="outlined"
+                startIcon={<ExportIcon />}
+                size="small"
+              >
+                Export
+              </Button>
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+
+      {/* Main Data Grid */}
+      <Card>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            ECL Configurations ({filteredConfigs.length})
+          </Typography>
+          <Box sx={{ height: 600, width: '100%' }}>
+            <DataGrid
+              rows={filteredConfigs}
+              columns={columns}
+              getRowId={(row) => row.pkid}
+              loading={loading}
+              pageSizeOptions={[10, 25, 50, 100]}
+              initialState={{
+                pagination: { paginationModel: { pageSize: 25 } }
+              }}
+              disableRowSelectionOnClick
+              sx={{
+                '& .MuiDataGrid-row:hover': {
+                  backgroundColor: 'action.hover'
+                }
+              }}
+            />
+          </Box>
+        </CardContent>
+      </Card>
+
+      {/* Add/Edit Dialog */}
+      <Dialog 
+        open={isDialogOpen} 
+        onClose={() => setIsDialogOpen(false)}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <EclIcon />
+          {isEditing ? 'Edit ECL Configuration' : 'Add ECL Configuration'}
+        </DialogTitle>
+        <DialogContent dividers>
+          <Tabs value={currentTab} onChange={(_, newValue) => setCurrentTab(newValue)}>
+            <Tab label="Header Information" />
+            <Tab label="Segment Configuration" />
+          </Tabs>
+
+          {currentTab === 0 && (
+            <Box sx={{ mt: 3 }}>
+              <Typography variant="h6" color="primary" gutterBottom>
+                ECL Model Information
+              </Typography>
+              <Grid container spacing={3}>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="ECL Model Name"
+                    value={headerFormData.ecl_model_name || ''}
+                    onChange={(e) => handleHeaderFieldChange('ecl_model_name', e.target.value)}
+                    error={!!formErrors.ecl_model_name}
+                    helperText={formErrors.ecl_model_name}
+                    required
+                  />
+                </Grid>
+
+                <Grid item xs={12} md={6}>
+                  <FormControl fullWidth error={!!formErrors.module} required>
+                    <InputLabel>Module</InputLabel>
+                    <Select
+                      value={headerFormData.module || ''}
+                      label="Module"
+                      onChange={(e) => handleHeaderFieldChange('module', e.target.value)}
+                    >
+                      {mockModules.map((module) => (
+                        <MenuItem key={module.value} value={module.value}>
+                          {module.label}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                    {formErrors.module && (
+                      <Typography variant="caption" color="error" sx={{ ml: 1.5, mt: 0.5 }}>
+                        {formErrors.module}
+                      </Typography>
+                    )}
+                  </FormControl>
+                </Grid>
+
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Effective Date"
+                    type="date"
+                    value={headerFormData.effective_date || ''}
+                    onChange={(e) => handleHeaderFieldChange('effective_date', e.target.value)}
+                    error={!!formErrors.effective_date}
+                    helperText={formErrors.effective_date}
+                    required
+                    InputLabelProps={{ shrink: true }}
+                  />
+                </Grid>
+
+                <Grid item xs={12}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={headerFormData.active_flag || false}
+                        onChange={(e) => handleHeaderFieldChange('active_flag', e.target.checked)}
+                      />
+                    }
+                    label="Active Configuration"
+                  />
+                </Grid>
+              </Grid>
+            </Box>
+          )}
+
+          {currentTab === 1 && (
+            <Box sx={{ mt: 3 }}>
+              <Typography variant="h6" color="primary" gutterBottom>
+                Add Segment Configuration
+              </Typography>
+              
+              <Grid container spacing={3} sx={{ mb: 3 }}>
+                <Grid item xs={12} md={4}>
+                  <FormControl fullWidth required>
+                    <InputLabel>Segment</InputLabel>
+                    <Select
+                      value={detailFormData.pf_segment_id || ''}
+                      label="Segment"
+                      onChange={(e) => handleDetailFieldChange('pf_segment_id', e.target.value)}
+                    >
+                      {mockSegments.map((segment) => (
+                        <MenuItem key={segment.value} value={segment.value}>
+                          {segment.label}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+
+                <Grid item xs={12} md={4}>
+                  <FormControl fullWidth>
+                    <InputLabel>Stage Rule</InputLabel>
+                    <Select
+                      value={detailFormData.stage_rule_id || ''}
+                      label="Stage Rule"
+                      onChange={(e) => handleDetailFieldChange('stage_rule_id', e.target.value)}
+                    >
+                      {mockStageRules.map((rule) => (
+                        <MenuItem key={rule.value} value={rule.value}>
+                          {rule.label}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+
+                <Grid item xs={12} md={4}>
+                  <FormControl fullWidth required>
+                    <InputLabel>PD Model</InputLabel>
+                    <Select
+                      value={detailFormData.pd_model_id || ''}
+                      label="PD Model"
+                      onChange={(e) => handleDetailFieldChange('pd_model_id', e.target.value)}
+                    >
+                      {mockPdModels.map((model) => (
+                        <MenuItem key={model.value} value={model.value}>
+                          {model.label}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+
+                <Grid item xs={12} md={4}>
+                  <FormControl fullWidth required>
+                    <InputLabel>LGD Model</InputLabel>
+                    <Select
+                      value={detailFormData.lgd_model_id || ''}
+                      label="LGD Model"
+                      onChange={(e) => handleDetailFieldChange('lgd_model_id', e.target.value)}
+                    >
+                      {mockLgdModels.map((model) => (
+                        <MenuItem key={model.value} value={model.value}>
+                          {model.label}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+
+                <Grid item xs={12} md={4}>
+                  <FormControl fullWidth required>
+                    <InputLabel>EAD Model</InputLabel>
+                    <Select
+                      value={detailFormData.ead_model_id || ''}
+                      label="EAD Model"
+                      onChange={(e) => handleDetailFieldChange('ead_model_id', e.target.value)}
+                    >
+                      {mockEadModels.map((model) => (
+                        <MenuItem key={model.value} value={model.value}>
+                          {model.label}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label="Overlay Rate (%)"
+                    type="number"
+                    value={detailFormData.overlay_rate || ''}
+                    onChange={(e) => handleDetailFieldChange('overlay_rate', Number(e.target.value))}
+                    inputProps={{ min: 0, max: 500, step: 1 }}
+                  />
+                </Grid>
+
+                <Grid item xs={12} md={8}>
+                  <Button
+                    variant="contained"
+                    startIcon={<AddIcon />}
+                    onClick={handleAddDetail}
+                    disabled={!detailFormData.pf_segment_id || !detailFormData.pd_model_id || 
+                             !detailFormData.lgd_model_id || !detailFormData.ead_model_id}
+                  >
+                    Add Segment Configuration
+                  </Button>
+                </Grid>
+              </Grid>
+
+              <Divider sx={{ my: 2 }} />
+
+              <Typography variant="h6" gutterBottom>
+                Current Segment Configurations ({(headerFormData.details || []).length})
+              </Typography>
+
+              {formErrors.details && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  {formErrors.details}
+                </Alert>
+              )}
+
+              {(headerFormData.details || []).map((detail, index) => (
+                <Accordion key={detail.pkid}>
+                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                    <Typography variant="subtitle2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Chip label={index + 1} size="small" />
+                      {detail.pf_segment_name} - PD: {detail.pd_model_name}
+                      <IconButton 
+                        size="small" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveDetail(detail.pkid);
+                        }}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Typography>
+                  </AccordionSummary>
+                  <AccordionDetails>
+                    <Grid container spacing={2}>
+                      <Grid item xs={6}>
+                        <Typography variant="body2"><strong>Segment:</strong> {detail.pf_segment_name}</Typography>
+                        <Typography variant="body2"><strong>Stage Rule:</strong> {detail.stage_rule_name || 'Default'}</Typography>
+                        <Typography variant="body2"><strong>PD Model:</strong> {detail.pd_model_name}</Typography>
+                      </Grid>
+                      <Grid item xs={6}>
+                        <Typography variant="body2"><strong>LGD Model:</strong> {detail.lgd_model_name}</Typography>
+                        <Typography variant="body2"><strong>EAD Model:</strong> {detail.ead_model_name}</Typography>
+                        <Typography variant="body2"><strong>Overlay Rate:</strong> {detail.overlay_rate}%</Typography>
+                      </Grid>
+                    </Grid>
+                  </AccordionDetails>
+                </Accordion>
+              ))}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => setIsDialogOpen(false)}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleSave}
+            disabled={loading}
+            startIcon={loading ? <CircularProgress size={16} /> : null}
+          >
+            {isEditing ? 'Update' : 'Create'} Configuration
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Container>
+  );
+}

@@ -1,0 +1,623 @@
+// packages/frontend/src/app/page.tsx
+// ============================================================================
+// IFRS9 HOMEPAGE - UPDATED WITH DANA DIGITAL BANK INTEGRATION
+// ============================================================================
+// ✅ CORRECTED: Navigation URLs match YOUR actual tree structure
+// ✅ FIXED: Banking routes use /banking/dashboard (direct folders)
+// ✅ ADDED: DANA Digital Bank users and multi-tenant support
+// ============================================================================
+
+'use client';
+
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { 
+  Box, Card, CardContent, Typography, Button, Grid, Container,
+  Select, MenuItem, FormControl, InputLabel, Alert, Chip,
+  Avatar, Stack, Divider
+} from '@mui/material';
+import { 
+  AccountBalance, Business, School, Gavel,
+  Login, Dashboard, TrendingUp, Security
+} from '@mui/icons-material';
+
+// ✅ UPDATED: Demo users with DANA Digital Bank users added
+const DEMO_USERS = [
+  // Banking Institution Users (Conventional)
+  {
+    id: 'bank-cro-1',
+    email: 'cro@metrobank.com',
+    name: 'Sarah Chen',
+    role: 'BANK_CRO',
+    stakeholder: 'banking',
+    bankingType: 'conventional',
+    company: 'Metro Bank',
+    tenantId: 'metro',
+    redirectUrl: '/banking/dashboard',
+    description: 'Chief Risk Officer - Metro Bank',
+    avatar: '👩‍💼'
+  },
+  {
+    id: 'bank-ifrs-1',
+    email: 'ifrs.manager@metrobank.com',
+    name: 'David Wilson',
+    role: 'BANK_IFRS_MANAGER',
+    stakeholder: 'banking',
+    bankingType: 'conventional',
+    company: 'Metro Bank',
+    tenantId: 'metro',
+    redirectUrl: '/banking/dashboard',
+    description: 'IFRS 9 Manager - Metro Bank',
+    avatar: '👨‍💼'
+  },
+  {
+    id: 'bank-risk-1',
+    email: 'risk.analyst@metrobank.com',
+    name: 'Lisa Rodriguez',
+    role: 'BANK_RISK_ANALYST',
+    stakeholder: 'banking',
+    bankingType: 'conventional',
+    company: 'Metro Bank',
+    tenantId: 'metro',
+    redirectUrl: '/banking/dashboard',
+    description: 'Senior Risk Analyst - Metro Bank',
+    avatar: '👩‍💻'
+  },
+
+  // Banking Institution Users (Syariah)
+  {
+    id: 'syariah-cro-1',
+    email: 'cro@syariahbank.com',
+    name: 'Ahmad Hassan',
+    role: 'SYARIAH_BANK_CRO',
+    stakeholder: 'banking',
+    bankingType: 'syariah',
+    company: 'Syariah Bank',
+    tenantId: 'syariah',
+    redirectUrl: '/banking/dashboard',
+    description: 'Chief Risk Officer - Syariah Bank',
+    avatar: '🧔‍♂️'
+  },
+  {
+    id: 'syariah-compliance-1',
+    email: 'compliance@syariahbank.com',
+    name: 'Fatimah Al-Zahra',
+    role: 'SYARIAH_COMPLIANCE_OFFICER',
+    stakeholder: 'banking',
+    bankingType: 'syariah',
+    company: 'Syariah Bank',
+    tenantId: 'syariah',
+    redirectUrl: '/banking/dashboard',
+    description: 'Syariah Compliance Officer',
+    avatar: '👩‍💼'
+  },
+  {
+    id: 'dps-member-1',
+    email: 'dps@syariahbank.com',
+    name: 'Dr. Omar Al-Fiqh',
+    role: 'DPS_BOARD_MEMBER',
+    stakeholder: 'banking',
+    bankingType: 'syariah',
+    company: 'Syariah Bank',
+    tenantId: 'syariah',
+    redirectUrl: '/banking/dashboard',
+    description: 'Dewan Pengawas Syariah Member',
+    avatar: '👨‍🏫'
+  },
+
+  // ============================================================================
+  // DANA DIGITAL BANK USERS (NEW TENANT)
+  // ============================================================================
+  
+  // DANA CRO
+  {
+    id: 'dana-cro-1',
+    email: 'cro@dana.com',
+    name: 'Maria Santoso',
+    role: 'BANK_CRO',
+    stakeholder: 'banking',
+    bankingType: 'conventional',
+    company: 'DANA Digital Bank',
+    tenantId: 'dana',
+    redirectUrl: '/banking/dashboard',
+    description: 'Chief Risk Officer - DANA Digital Bank',
+    avatar: '👩‍💼'
+  },
+
+  // DANA IFRS Manager
+  {
+    id: 'dana-ifrs-1',
+    email: 'ifrs.manager@dana.com',
+    name: 'Budi Wijaya',
+    role: 'BANK_IFRS_MANAGER',
+    stakeholder: 'banking',
+    bankingType: 'conventional',
+    company: 'DANA Digital Bank',
+    tenantId: 'dana',
+    redirectUrl: '/banking/dashboard',
+    description: 'IFRS 9 Manager - DANA Digital Bank',
+    avatar: '👨‍💼'
+  },
+
+  // DANA Risk Analyst
+  {
+    id: 'dana-risk-1',
+    email: 'risk.analyst@dana.com',
+    name: 'Sari Dewi',
+    role: 'BANK_RISK_ANALYST',
+    stakeholder: 'banking',
+    bankingType: 'conventional',
+    company: 'DANA Digital Bank',
+    tenantId: 'dana',
+    redirectUrl: '/banking/dashboard',
+    description: 'Senior Risk Analyst - DANA Digital Bank',
+    avatar: '👩‍💻'
+  },
+
+  // DANA Portfolio Manager
+  {
+    id: 'dana-portfolio-1',
+    email: 'portfolio.manager@dana.com',
+    name: 'Agus Rahman',
+    role: 'BANK_PORTFOLIO_MANAGER',
+    stakeholder: 'banking',
+    bankingType: 'conventional',
+    company: 'DANA Digital Bank',
+    tenantId: 'dana',
+    redirectUrl: '/banking/dashboard',
+    description: 'Portfolio Manager - DANA Digital Bank',
+    avatar: '👨‍💻'
+  },
+
+  // DANA Data Administrator
+  {
+    id: 'dana-data-1',
+    email: 'data.admin@dana.com',
+    name: 'Lina Kusuma',
+    role: 'BANK_DATA_ADMIN',
+    stakeholder: 'banking',
+    bankingType: 'conventional',
+    company: 'DANA Digital Bank',
+    tenantId: 'dana',
+    redirectUrl: '/banking/dashboard',
+    description: 'Data Administrator - DANA Digital Bank',
+    avatar: '👩‍💻'
+  },
+
+  // Platform Admin Users
+  {
+    id: 'platform-admin-1',
+    email: 'admin@ifrspro.id',
+    name: 'Michael Zhang',
+    role: 'PLATFORM_SUPER_ADMIN',
+    stakeholder: 'platform',
+    bankingType: null,
+    company: 'i9model Platform',
+    tenantId: null,
+    redirectUrl: '/platform/dashboard',
+    description: 'Platform Super Administrator',
+    avatar: '👨‍💻'
+  },
+
+  // Consultant Users
+  {
+    id: 'consultant-1',
+    email: 'consultant@pwc.com',
+    name: 'Jennifer Smith',
+    role: 'SENIOR_IFRS9_CONSULTANT',
+    stakeholder: 'consultant',
+    bankingType: null,
+    company: 'PwC',
+    tenantId: null,
+    redirectUrl: '/consultant/dashboard',
+    description: 'Senior IFRS 9 Consultant - PwC',
+    avatar: '👩‍🎓'
+  },
+
+  // Regulator Users
+  {
+    id: 'regulator-1',
+    email: 'supervisor@bi.go.id',
+    name: 'Dr. Indra Sari',
+    role: 'BANKING_SUPERVISION_HEAD',
+    stakeholder: 'regulator',
+    bankingType: null,
+    company: 'Bank Indonesia',
+    tenantId: null,
+    redirectUrl: '/regulator/dashboard',
+    description: 'Head of Banking Supervision - BI',
+    avatar: '👩‍⚖️'
+  }
+];
+
+// ✅ CORRECTED: Stakeholder type detection for YOUR structure
+const getStakeholderType = (user: any): string => {
+  if (user.role.includes('BANK_') || user.role.includes('SYARIAH_') || user.role.includes('DPS_')) {
+    return 'banking';
+  }
+  if (user.role.includes('PLATFORM_')) {
+    return 'platform';
+  }
+  if (user.role.includes('CONSULTANT')) {
+    return 'consultant';
+  }
+  return 'regulator';
+};
+
+// ✅ CORRECTED: Route validation for YOUR structure
+const validateUserRoute = (user: any): string => {
+  console.log(`🔍 Route Validation - User: ${user.email}, Role: ${user.role}, Expected: ${user.redirectUrl}`);
+  
+  const stakeholderType = getStakeholderType(user);
+  console.log(`Stakeholder Type: ${stakeholderType}`);
+  
+  // ✅ Banking users should go to /banking/dashboard for YOUR structure
+  if (stakeholderType === 'banking') {
+    if (user.redirectUrl !== '/banking/dashboard') {
+      console.warn(`🚨 WRONG BANKING URL: ${user.redirectUrl} -> Correcting to /banking/dashboard`);
+      return '/banking/dashboard';
+    }
+  }
+  
+  console.log(`✅ Route validation passed: ${user.redirectUrl}`);
+  return user.redirectUrl;
+};
+
+export default function HomePage() {
+  const router = useRouter();
+  const [selectedUser, setSelectedUser] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  // ✅ UPDATED: Handle demo login with tenantId support for DANA users
+  const handleDemoLogin = async () => {
+    if (!selectedUser) return;
+
+    setIsLoading(true);
+    console.log(`🚀 Demo Login - User: ${selectedUser}`);
+    
+    const user = DEMO_USERS.find(u => u.id === selectedUser);
+    if (!user) {
+      console.error('❌ User not found');
+      setIsLoading(false);
+      return;
+    }
+
+    console.log(`Selected user: ${user.email}, Role: ${user.role}, Banking: ${user.bankingType}, Tenant: ${user.tenantId || 'platform'}`);
+    
+    try {
+      // ✅ SURGICAL CHANGE: Include tenantId in authentication for DANA users
+      const loginPayload: any = {
+        email: user.email,
+        password: '1019181716'
+      };
+
+      // Add tenantId for banking users (including DANA)
+      if (user.tenantId) {
+        loginPayload.tenantId = user.tenantId;
+      }
+
+      // Try real authentication first
+      try {
+        // ✅ FIXED: Use centralized configuration for dual-mode support
+        const getBackendUrl = () => {
+          if (typeof window !== 'undefined' && window.location.hostname.includes('danafin.com')) {
+            return 'https://iaf-ifrs-be.danafin.com';
+          }
+          return 'https://bifrs9-iaf.ifrspro.id';
+        };
+
+        const response = await fetch(`${getBackendUrl()}/api/v1/auth/login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(loginPayload)
+        });
+
+        if (response.ok) {
+          const authData = await response.json();
+          
+          // Store authentication data
+          localStorage.setItem('auth_token', authData.data.token);
+          localStorage.setItem('refresh_token', authData.data.refreshToken);
+          localStorage.setItem('user_data', JSON.stringify(authData.data.user));
+          
+          console.log('✅ Real authentication successful:', user.email);
+          
+          // Navigate to validated route
+          const validatedRoute = validateUserRoute(user);
+          console.log(`🚀 Navigating to: ${validatedRoute}`);
+          router.push(validatedRoute);
+          return;
+        }
+      } catch (realAuthError) {
+        console.log('Real auth failed, falling back to demo mode:', realAuthError);
+      }
+      
+      // Fallback to demo mode
+      const validatedRoute = validateUserRoute(user);
+      console.log(`Validated route: ${validatedRoute}`);
+      
+      const demoToken = btoa(JSON.stringify({
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        stakeholder: user.stakeholder,
+        bankingType: user.bankingType,
+        tenantId: user.tenantId,
+        company: user.company,
+        exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60)
+      }));
+      
+      document.cookie = `auth-token=${demoToken}; path=/; max-age=${24 * 60 * 60}`;
+      console.log('✅ Demo token set for:', user.email);
+      
+      console.log(`🚀 Navigating to: ${validatedRoute}`);
+      router.push(validatedRoute);
+      
+    } catch (error) {
+      console.error('❌ Login error:', error);
+      setIsLoading(false);
+    }
+  };
+
+  // Group users by stakeholder type
+  const groupedUsers = DEMO_USERS.reduce((acc, user) => {
+    const stakeholder = getStakeholderType(user);
+    if (!acc[stakeholder]) acc[stakeholder] = [];
+    acc[stakeholder].push(user);
+    return acc;
+  }, {} as Record<string, any[]>);
+
+  return (
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      {/* Header */}
+      <Box textAlign="center" mb={6}>
+        <Typography variant="h2" component="h1" gutterBottom fontWeight="bold">
+          IFRS 9 MODELING PLATFORM
+        </Typography>
+        <Typography variant="h5" color="text.secondary" gutterBottom>
+          i9model
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          Comprehensive IFRS 9 Expected Credit Loss Management for Conventional & Syariah Banking
+        </Typography>
+      </Box>
+
+      {/* Development Notice */}
+      <Alert severity="info" sx={{ mb: 4 }}>
+        <Typography variant="h6" gutterBottom>🚧 Development Environment</Typography>
+        <Typography variant="body2">
+          This is a demo environment with pre-configured test users including DANA Digital Bank. 
+          Select a user below to explore the platform with different roles and permissions.
+          <br />
+          <strong>Structure:</strong> Direct folders → Banking URLs: /banking/dashboard, /banking/ifrs9, etc.
+          <br />
+          <strong>Multi-tenant:</strong> Supports Metro Bank, Syariah Bank, and DANA Digital Bank
+        </Typography>
+      </Alert>
+
+      {/* Demo User Selection */}
+      <Card sx={{ mb: 4 }}>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            🎭 Demo User Selection
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-end' }}>
+            <FormControl sx={{ minWidth: 300, flexGrow: 1 }}>
+              <InputLabel>Select Demo User</InputLabel>
+              <Select
+                value={selectedUser}
+                label="Select Demo User"
+                onChange={(e) => setSelectedUser(e.target.value)}
+              >
+                {Object.entries(groupedUsers).map(([stakeholder, users]) => [
+                  <MenuItem key={stakeholder} disabled>
+                    <Typography variant="subtitle2" fontWeight="bold">
+                      {stakeholder.toUpperCase()} USERS
+                    </Typography>
+                  </MenuItem>,
+                  ...users.map((user) => (
+                    <MenuItem key={user.id} value={user.id}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <span>{user.avatar}</span>
+                        <Box>
+                          <Typography variant="body2">{user.name} ({user.email})</Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {user.company ? `${user.company} - ` : ''}{user.description}
+                          </Typography>
+                          {user.tenantId && (
+                            <Chip 
+                              label={`Tenant: ${user.tenantId}`} 
+                              size="small" 
+                              variant="outlined" 
+                              sx={{ ml: 1, height: 16, fontSize: '0.65rem' }}
+                            />
+                          )}
+                        </Box>
+                      </Box>
+                    </MenuItem>
+                  ))
+                ])}
+              </Select>
+            </FormControl>
+            <Button
+              variant="contained"
+              size="large"
+              onClick={handleDemoLogin}
+              disabled={!selectedUser || isLoading}
+              startIcon={<Login />}
+              sx={{ minWidth: 200 }}
+            >
+              {isLoading ? 'Entering...' : '🚀 Enter Platform'}
+            </Button>
+          </Box>
+          {selectedUser && (
+            <Box sx={{ mt: 2 }}>
+              {(() => {
+                const user = DEMO_USERS.find(u => u.id === selectedUser);
+                return user ? (
+                  <Alert severity="success">
+                    <Typography variant="body2">
+                      <strong>Selected:</strong> {user.name} ({user.role})
+                      <br />
+                      <strong>Company:</strong> {user.company || 'Platform'}
+                      <br />
+                      <strong>Tenant:</strong> {user.tenantId || 'platform'}
+                      <br />
+                      <strong>Redirect URL:</strong> {validateUserRoute(user)}
+                      <br />
+                      <strong>Banking Type:</strong> {user.bankingType || 'platform'}
+                    </Typography>
+                  </Alert>
+                ) : null;
+              })()}
+            </Box>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Stakeholder Overview */}
+      <Grid container spacing={3}>
+        {/* Banking Institutions */}
+        <Grid item xs={12} md={6}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent>
+              <Stack direction="row" spacing={2} alignItems="center" mb={2}>
+                <Avatar sx={{ bgcolor: 'primary.main' }}>
+                  <AccountBalance />
+                </Avatar>
+                <Typography variant="h6">Banking Institutions</Typography>
+              </Stack>
+              <Typography variant="body2" color="text.secondary" mb={2}>
+                Multi-tenant banking IFRS 9 compliance with Metro Bank, Syariah Bank, and DANA Digital Bank
+              </Typography>
+              <Stack direction="row" spacing={1} mb={2} flexWrap="wrap">
+                <Chip label="Metro Bank" size="small" color="primary" />
+                <Chip label="Syariah Bank" size="small" color="success" />
+                <Chip label="DANA Digital Bank" size="small" color="info" />
+              </Stack>
+              <Typography variant="body2">
+                <strong>Routes:</strong> /banking/* (Direct folders)
+                <br />
+                <strong>Features:</strong> ECL Calculations, Portfolio Management, Risk Analytics
+                <br />
+                <strong>Tenants:</strong> metro, syariah, dana
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Platform Admin */}
+        <Grid item xs={12} md={6}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent>
+              <Stack direction="row" spacing={2} alignItems="center" mb={2}>
+                <Avatar sx={{ bgcolor: 'secondary.main' }}>
+                  <Business />
+                </Avatar>
+                <Typography variant="h6">Platform Administration</Typography>
+              </Stack>
+              <Typography variant="body2" color="text.secondary" mb={2}>
+                Multi-tenant platform management and oversight
+              </Typography>
+              <Stack direction="row" spacing={1} mb={2}>
+                <Chip label="Multi-Tenant" size="small" color="secondary" />
+                <Chip label="System Admin" size="small" color="default" />
+              </Stack>
+              <Typography variant="body2">
+                <strong>Routes:</strong> /platform/*
+                <br />
+                <strong>Features:</strong> Tenant Management, System Monitoring, User Administration
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Consultants */}
+        <Grid item xs={12} md={6}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent>
+              <Stack direction="row" spacing={2} alignItems="center" mb={2}>
+                <Avatar sx={{ bgcolor: 'info.main' }}>
+                  <School />
+                </Avatar>
+                <Typography variant="h6">External Consultants</Typography>
+              </Stack>
+              <Typography variant="body2" color="text.secondary" mb={2}>
+                IFRS 9 implementation and validation specialists
+              </Typography>
+              <Stack direction="row" spacing={1} mb={2}>
+                <Chip label="Implementation" size="small" color="info" />
+                <Chip label="Validation" size="small" color="primary" />
+              </Stack>
+              <Typography variant="body2">
+                <strong>Routes:</strong> /consultant/*
+                <br />
+                <strong>Features:</strong> Project Management, Model Validation, Documentation
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Regulators */}
+        <Grid item xs={12} md={6}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent>
+              <Stack direction="row" spacing={2} alignItems="center" mb={2}>
+                <Avatar sx={{ bgcolor: 'warning.main' }}>
+                  <Gavel />
+                </Avatar>
+                <Typography variant="h6">Regulatory Bodies</Typography>
+              </Stack>
+              <Typography variant="body2" color="text.secondary" mb={2}>
+                Banking supervision and compliance monitoring
+              </Typography>
+              <Stack direction="row" spacing={1} mb={2}>
+                <Chip label="Bank Indonesia" size="small" color="warning" />
+                <Chip label="OJK" size="small" color="error" />
+              </Stack>
+              <Typography variant="body2">
+                <strong>Routes:</strong> /regulator/*
+                <br />
+                <strong>Features:</strong> Compliance Monitoring, Audit Management, Reporting
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Technical Information */}
+      <Card sx={{ mt: 4 }}>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            🔧 Technical Architecture - Multi-Tenant with DANA Integration
+          </Typography>
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={6}>
+              <Typography variant="subtitle2" gutterBottom>File Structure:</Typography>
+              <Typography variant="body2" component="pre" sx={{ fontSize: '0.8rem', bgcolor: 'grey.100', p: 1, borderRadius: 1 }}>
+{`src/app/banking/dashboard/page.tsx → /banking/dashboard
+src/app/banking/ifrs9/page.tsx → /banking/ifrs9
+src/app/platform/dashboard/page.tsx → /platform/dashboard
+src/app/consultant/dashboard/page.tsx → /consultant/dashboard`}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="subtitle2" gutterBottom>Implementation:</Typography>
+              <Typography variant="body2">
+                • <strong>Direct Folders:</strong> Banking routes use /banking/ prefix
+                <br />
+                • <strong>Multi-tenancy:</strong> Database-per-tenant isolation (metro, syariah, dana)
+                <br />
+                • <strong>Authentication:</strong> JWT-based with role permissions + tenantId
+                <br />
+                • <strong>Themes:</strong> Dual banking (Conventional/Syariah) + Digital Banking
+              </Typography>
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+    </Container>
+  );
+}

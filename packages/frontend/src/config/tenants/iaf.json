@@ -1,0 +1,48 @@
+{
+  "tenantId": "iaf",
+  "tenantName": "Indonesia Airawata Finance",
+  "bankingType": "conventional",
+  "allowThemeSwitching": false,
+  "defaultLanguage": "en",
+  "defaultDirection": "ltr",
+  "customizations": {
+    "logoUrl": "/assets/logos/iaf/iaf-logo.svg",
+    "brandName": "Indonesia Airawata Finance",
+    "faviconUrl": "/assets/logos/iaf/favicon.ico",
+    "primaryColor": "#1976D2",
+    "secondaryColor": "#424242",
+    "accentColor": "#42A5F5",
+    "successColor": "#4CAF50",
+    "warningColor": "#FF9800",
+    "errorColor": "#F44336",
+    "primaryFont": "Roboto, Helvetica, Arial, sans-serif",
+    "headerHeight": 64,
+    "sidebarWidth": 240
+  },
+  "features": {
+    "interestCalculations": true,
+    "corporateReporting": true,
+    "traditionalProducts": true,
+    "riskManagement": true,
+    "complianceReporting": true,
+    "ifrs9Calculations": true,
+    "eclModeling": true,
+    "stagingAnalysis": true
+  },
+  "compliance": {
+    "ifrs": true,
+    "basel": true,
+    "localRegulations": ["OJK", "BI"],
+    "ifrs9": true,
+    "psak": true
+  },
+  "business": {
+    "industry": "financing",
+    "sector": "multi-finance",
+    "licenseType": "multi-finance",
+    "establishedYear": 2020,
+    "headquarters": "Jakarta, Indonesia"
+  },
+  "createdAt": "2025-01-27T00:00:00Z",
+  "updatedAt": "2025-01-27T00:00:00Z"
+}

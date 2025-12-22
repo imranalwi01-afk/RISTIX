@@ -1,0 +1,42 @@
+please check step by step, line by line the original version at _analytics/_v15/ori/app15.R and global.R also R-Analytics [Working Modular Version] in _analytics/_v15mod-base, how do they works, and solve the problem in modular version!.
+
+please check step by step, very detailed line by line the modular version (old ui design) version at _analytics/_v15mod-base, how do they works, and solve the problem in modular version!.
+
+
+please check step by step, line by line the original version at _analytics/_v15/ori/app15.R and global.R, how do they works, and solve the problem in modular version!.
+
+
+
+
+please Fix the Issues, check the original version at _analytics/_v15/reference/app15.R and global.R, how do they works, and solve the problem in modular version!.
+_analytics/_v15/ori/app15.R and global.R,
+
+_analytics/_v15mod/_docs/flows/03-statistical-model-workflow.md
+
+"Statistical Model" Tab > on Pilih Variabel, where are the Pilih Variable Input ? 
+
+"Statistical Model" Tab > on Pilih Variabel, where are the Pilih Variable Selection Datas ? why does its only 5 should be alot of.
+
+"Statistical Model" Tab > on "Output" Tab
+"Final Model (Pass)" [Section]
+"Uji Asumsi" Result Tab : Erros : could not find function "vif"
+"Back Testing" Result Tab : Erros : attempt to apply non-function
+"Final Model" Result Tab : Erros : attempt to apply non-function
+
+
+> can you make it when user :  Statistical Model tab → Select variables → Click "Pilih Semua" (Select All) → "Run" workflow its automatically move/change the tab to "Output" Tab.
+
+
+"Statistical Model" Tab > on "Output" Tab
+"Final Model (Pass)" [Section]
+"Uji Asumsi" Result Tab : : Already Working
+"Back Testing" Result Tab : dataTableOutput("table_backtest"),  Erros : attempt to apply non-function [FOCUS to This!]
+"Final Model" Result Tab : dataTableOutput("table_finalmodel"), Erros : attempt to apply non-function [FOCUS to This!]
+
+also after the user click "Run" Button, please move the Tab to "Output" Tab
+
+please check the original version at _analytics/_v15/reference/app15.R and global.R, how do they works, and solve the problem in modular version!.
+
+  - `table_asumsi` - Assumption testing (✅ Working)
+  - `table_backtest` - Back testing (NOT WORKS)
+  - `table_finalmodel` - Final model  (NOT WORKS)

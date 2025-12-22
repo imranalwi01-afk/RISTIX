@@ -1,0 +1,439 @@
+// packages/frontend/src/components/ifrs9/dashboard/IfrsCalculationDashboard.tsx
+import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Grid,
+  Button,
+  CircularProgress,
+  Alert,
+  Chip,
+  Divider,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow
+} from '@mui/material';
+import {
+  CalculateOutlined,
+  TrendingUp,
+  Assessment,
+  AccountBalance,
+  Timeline,
+  Refresh
+} from '@mui/icons-material';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { format } from 'date-fns';
+import numeral from 'numeral';
+
+interface EclCalculationResult {
+  jobId: string;
+  totalAccounts: number;
+  processedAccounts: number;
+  results: {
+    stage1Count: number;
+    stage2Count: number;
+    stage3Count: number;
+    totalEcl12m: number;
+    totalEclLifetime: number;
+    totalEcl: number;
+  };
+}
+
+interface PortfolioSummary {
+  total_accounts: number;
+  total_outstanding: number;
+  stage1_count: number;
+  stage2_count: number;
+  stage3_count: number;
+  total_ecl_12m: number;
+  total_ecl_lifetime: number;
+  syariah_outstanding: number;
+}
+
+const COLORS = ['#4caf50', '#ff9800', '#f44336'];
+
+export const IfrsCalculationDashboard: React.FC = () => {
+  const [loading, setLoading] = useState(false);
+  const [portfolioSummary, setPortfolioSummary] = useState<PortfolioSummary | null>(null);
+  const [calculationResult, setCalculationResult] = useState<EclCalculationResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadPortfolioSummary();
+  }, []);
+
+  const loadPortfolioSummary = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/ifrs9/portfolio/summary', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'X-Tenant-ID': localStorage.getItem('tenantId') || ''
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to load portfolio summary');
+      }
+
+      const data = await response.json();
+      setPortfolioSummary(data.data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const runEclCalculation = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await fetch('/api/ifrs9/ecl/calculate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'X-Tenant-ID': localStorage.getItem('tenantId') || ''
+        },
+        body: JSON.stringify({
+          calculationDate: new Date().toISOString().split('T')[0],
+          parameters: {
+            pd12mMethod: 'historical',
+            lgdMethod: 'historical',
+            eadMethod: 'current'
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('ECL calculation failed');
+      }
+
+      const data = await response.json();
+      setCalculationResult(data.data);
+      
+      // Refresh portfolio summary
+      await loadPortfolioSummary();
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatCurrency = (amount: number) => {
+    return numeral(amount).format('$0,0.00');
+  };
+
+  const formatPercentage = (value: number) => {
+    return numeral(value).format('0.00%');
+  };
+
+  const getStageData = () => {
+    if (!portfolioSummary) return [];
+    
+    return [
+      { name: 'Stage 1', value: portfolioSummary.stage1_count, color: COLORS[0] },
+      { name: 'Stage 2', value: portfolioSummary.stage2_count, color: COLORS[1] },
+      { name: 'Stage 3', value: portfolioSummary.stage3_count, color: COLORS[2] }
+    ];
+  };
+
+  if (loading && !portfolioSummary) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" height="400px">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  return (
+    <Box sx={{ p: 3 }}>
+      {/* Header */}
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Typography variant="h4" component="h1">
+          <Assessment sx={{ mr: 2, verticalAlign: 'middle' }} />
+          IFRS 9 Dashboard
+        </Typography>
+        <Box>
+          <Button
+            variant="outlined"
+            startIcon={<Refresh />}
+            onClick={loadPortfolioSummary}
+            sx={{ mr: 2 }}
+            disabled={loading}
+          >
+            Refresh
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<CalculateOutlined />}
+            onClick={runEclCalculation}
+            disabled={loading}
+            color="primary"
+          >
+            {loading ? 'Calculating...' : 'Run ECL Calculation'}
+          </Button>
+        </Box>
+      </Box>
+
+      {/* Error Alert */}
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
+
+      {/* Portfolio Overview Cards */}
+      {portfolioSummary && (
+        <Grid container spacing={3} sx={{ mb: 3 }}>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card>
+              <CardContent>
+                <Box display="flex" alignItems="center">
+                  <AccountBalance color="primary" sx={{ mr: 2 }} />
+                  <Box>
+                    <Typography color="textSecondary" gutterBottom variant="body2">
+                      Total Accounts
+                    </Typography>
+                    <Typography variant="h5">
+                      {numeral(portfolioSummary.total_accounts).format('0,0')}
+                    </Typography>
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={3}>
+            <Card>
+              <CardContent>
+                <Box display="flex" alignItems="center">
+                  <TrendingUp color="success" sx={{ mr: 2 }} />
+                  <Box>
+                    <Typography color="textSecondary" gutterBottom variant="body2">
+                      Total Outstanding
+                    </Typography>
+                    <Typography variant="h5">
+                      {formatCurrency(portfolioSummary.total_outstanding)}
+                    </Typography>
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={3}>
+            <Card>
+              <CardContent>
+                <Box display="flex" alignItems="center">
+                  <Timeline color="warning" sx={{ mr: 2 }} />
+                  <Box>
+                    <Typography color="textSecondary" gutterBottom variant="body2">
+                      Total ECL
+                    </Typography>
+                    <Typography variant="h5">
+                      {formatCurrency(portfolioSummary.total_ecl_12m + portfolioSummary.total_ecl_lifetime)}
+                    </Typography>
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={3}>
+            <Card>
+              <CardContent>
+                <Box display="flex" alignItems="center">
+                  <Assessment color="secondary" sx={{ mr: 2 }} />
+                  <Box>
+                    <Typography color="textSecondary" gutterBottom variant="body2">
+                      Syariah Portfolio
+                    </Typography>
+                    <Typography variant="h5">
+                      {formatPercentage(portfolioSummary.syariah_outstanding / portfolioSummary.total_outstanding)}
+                    </Typography>
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+      )}
+
+      <Grid container spacing={3}>
+        {/* Stage Distribution Chart */}
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                IFRS 9 Stage Distribution
+              </Typography>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={getStageData()}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {getStageData().map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Stage Summary Table */}
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                Stage Analysis
+              </Typography>
+              {portfolioSummary && (
+                <TableContainer component={Paper} variant="outlined">
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Stage</TableCell>
+                        <TableCell align="right">Accounts</TableCell>
+                        <TableCell align="right">Percentage</TableCell>
+                        <TableCell align="right">Status</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell>
+                          <Chip label="Stage 1" color="success" size="small" />
+                        </TableCell>
+                        <TableCell align="right">
+                          {numeral(portfolioSummary.stage1_count).format('0,0')}
+                        </TableCell>
+                        <TableCell align="right">
+                          {formatPercentage(portfolioSummary.stage1_count / portfolioSummary.total_accounts)}
+                        </TableCell>
+                        <TableCell align="right">
+                          <Typography variant="body2" color="success.main">Normal</Typography>
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>
+                          <Chip label="Stage 2" color="warning" size="small" />
+                        </TableCell>
+                        <TableCell align="right">
+                          {numeral(portfolioSummary.stage2_count).format('0,0')}
+                        </TableCell>
+                        <TableCell align="right">
+                          {formatPercentage(portfolioSummary.stage2_count / portfolioSummary.total_accounts)}
+                        </TableCell>
+                        <TableCell align="right">
+                          <Typography variant="body2" color="warning.main">Watch</Typography>
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>
+                          <Chip label="Stage 3" color="error" size="small" />
+                        </TableCell>
+                        <TableCell align="right">
+                          {numeral(portfolioSummary.stage3_count).format('0,0')}
+                        </TableCell>
+                        <TableCell align="right">
+                          {formatPercentage(portfolioSummary.stage3_count / portfolioSummary.total_accounts)}
+                        </TableCell>
+                        <TableCell align="right">
+                          <Typography variant="body2" color="error.main">Impaired</Typography>
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Latest Calculation Results */}
+        {calculationResult && (
+          <Grid item xs={12}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Latest ECL Calculation Results
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Box textAlign="center" p={2}>
+                      <Typography variant="h4" color="primary">
+                        {numeral(calculationResult.totalAccounts).format('0,0')}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        Accounts Processed
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Box textAlign="center" p={2}>
+                      <Typography variant="h4" color="success.main">
+                        {formatCurrency(calculationResult.results.totalEcl12m)}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        12-Month ECL
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Box textAlign="center" p={2}>
+                      <Typography variant="h4" color="warning.main">
+                        {formatCurrency(calculationResult.results.totalEclLifetime)}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        Lifetime ECL
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Box textAlign="center" p={2}>
+                      <Typography variant="h4" color="error.main">
+                        {formatCurrency(calculationResult.results.totalEcl)}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        Total ECL
+                      </Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
+                
+                <Divider sx={{ my: 2 }} />
+                
+                <Typography variant="body2" color="textSecondary">
+                  Calculation ID: {calculationResult.jobId}
+                </Typography>
+                <Typography variant="body2" color="textSecondary">
+                  Completed at: {format(new Date(), 'PPpp')}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        )}
+      </Grid>
+    </Box>
+  );
+};

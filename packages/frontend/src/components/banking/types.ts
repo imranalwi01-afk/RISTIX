@@ -1,0 +1,201 @@
+// packages/frontend/src/components/banking/types.ts
+// ============================================================================
+// BANKING COMPONENTS TYPES - IFRS9 PRO SYSTEM
+// ============================================================================
+// File Path: packages/frontend/src/components/banking/types.ts
+// Purpose: TypeScript interfaces for banking components
+// Architecture: Dual banking support with Syariah compliance
+// ============================================================================
+
+// ✅ Core Banking Types
+export type BankingMode = 'conventional' | 'syariah' | 'dual';
+
+export type IFRS9Stage = 1 | 2 | 3;
+
+export type CurrencyCode = 'IDR' | 'USD' | 'EUR' | 'GBP' | 'SGD' | 'MYR';
+
+// ✅ ECL Calculation Data
+export interface ECLCalculationData {
+  id: string;
+  accountId: string;
+  calculationDate: Date;
+  stage: IFRS9Stage;
+  pdRate: number;
+  lgdRate: number;
+  eadAmount: number;
+  eclAmount: number;
+  currency: CurrencyCode;
+  bankingMode: BankingMode;
+  syariahCompliant?: boolean;
+}
+
+// ✅ Portfolio Metrics
+export interface PortfolioMetrics {
+  totalExposure: number;
+  totalECL: number;
+  coverageRatio: number;
+  stage1Count: number;
+  stage2Count: number;
+  stage3Count: number;
+  stage1Amount: number;
+  stage2Amount: number;
+  stage3Amount: number;
+  currency: CurrencyCode;
+  asOfDate: Date;
+}
+
+// ✅ Compliance Status
+export interface ComplianceStatus {
+  isCompliant: boolean;
+  complianceScore: number;
+  lastAuditDate: Date;
+  nextAuditDate: Date;
+  violations: ComplianceViolation[];
+  recommendations: string[];
+}
+
+export interface ComplianceViolation {
+  id: string;
+  type: 'minor' | 'major' | 'critical';
+  description: string;
+  detectedDate: Date;
+  status: 'open' | 'in_progress' | 'resolved';
+  remedyPlan?: string;
+}
+
+// ✅ Syariah-Specific Types
+export interface SyariahComplianceData {
+  isHalalCertified: boolean;
+  syariahBoardApproval: boolean;
+  dpsApprovalDate?: Date;
+  halalCertificationDate?: Date;
+  prohibitedSectors: string[];
+  profitSharingRatio: number;
+  islamicContractType: string;
+  underlyingAssetType: string;
+  complianceValidation: SyariahValidation;
+}
+
+export interface SyariahValidation {
+  aaoifiCompliant: boolean;
+  ojkCompliant: boolean;
+  customSyariahRules: boolean;
+  validationDate: Date;
+  validatedBy: string;
+  notes?: string;
+}
+
+// ✅ Banking Product Types
+export interface BankingProduct {
+  id: string;
+  productCode: string;
+  productName: string;
+  productType: 'loan' | 'deposit' | 'investment' | 'financing';
+  bankingMode: BankingMode;
+  interestRate?: number; // For conventional products
+  profitSharingRatio?: number; // For Syariah products
+  currency: CurrencyCode;
+  minAmount: number;
+  maxAmount: number;
+  tenure: number; // in months
+  syariahCompliant: boolean;
+  islamicContractType?: string;
+  isActive: boolean;
+}
+
+// ✅ Account Information
+export interface BankingAccount {
+  id: string;
+  accountNumber: string;
+  customerId: string;
+  productId: string;
+  bankingMode: BankingMode;
+  accountType: string;
+  balance: number;
+  currency: CurrencyCode;
+  status: 'active' | 'inactive' | 'suspended' | 'closed';
+  ifrs9Stage: IFRS9Stage;
+  syariahCompliant: boolean;
+  openingDate: Date;
+  maturityDate?: Date;
+  lastPaymentDate?: Date;
+  nextPaymentDate?: Date;
+}
+
+// ✅ Customer Information
+export interface BankingCustomer {
+  id: string;
+  customerNumber: string;
+  customerType: 'individual' | 'corporate';
+  fullName: string;
+  legalEntityName?: string;
+  nationality: string;
+  industrySector?: string;
+  riskCategory: 'low' | 'medium' | 'high';
+  creditScore?: number;
+  totalExposure: number;
+  syariahCustomer: boolean;
+  registrationDate: Date;
+  lastReviewDate: Date;
+}
+
+// ✅ Risk Assessment
+export interface RiskAssessment {
+  customerId: string;
+  assessmentDate: Date;
+  creditRating: string;
+  pd12m: number;
+  pdLifetime: number;
+  lgd: number;
+  ead: number;
+  riskCategory: 'low' | 'medium' | 'high';
+  assessmentMethod: string;
+  validUntil: Date;
+  remarks?: string;
+}
+
+// ✅ Transaction Types
+export interface BankingTransaction {
+  id: string;
+  accountId: string;
+  transactionNumber: string;
+  transactionType: 'debit' | 'credit';
+  amount: number;
+  currency: CurrencyCode;
+  transactionDate: Date;
+  valueDate: Date;
+  description: string;
+  balanceAfter: number;
+  profitSharingAmount?: number; // For Syariah transactions
+  syariahContractReference?: string;
+  status: 'pending' | 'completed' | 'failed' | 'reversed';
+}
+
+// ✅ Component Props Types
+export interface BankingComponentProps {
+  tenantId?: string;
+  bankingMode?: BankingMode;
+  theme?: 'conventional' | 'syariah';
+  readonly?: boolean;
+  onDataChange?: (data: any) => void;
+  onError?: (error: Error) => void;
+}
+
+// ✅ API Response Types
+export interface APIResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+  meta?: {
+    tenantId: string;
+    bankingMode: BankingMode;
+    timestamp: Date;
+  };
+}

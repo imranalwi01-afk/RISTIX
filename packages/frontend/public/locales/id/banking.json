@@ -1,0 +1,50 @@
+{
+  "banking": {
+    "conventional": {
+      "name": "Perbankan Konvensional",
+      "description": "Antarmuka perbankan korporat profesional",
+      "features": {
+        "interest_calculations": "Perhitungan Berbasis Bunga",
+        "corporate_reports": "Laporan Korporat",
+        "traditional_products": "Produk Perbankan Tradisional",
+        "risk_management": "Manajemen Risiko Standar",
+        "compliance_reporting": "Pelaporan Kepatuhan Konvensional"
+      }
+    },
+    "syariah": {
+      "name": "Perbankan Syariah",
+      "description": "Antarmuka perbankan Islam dengan elemen budaya",
+      "features": {
+        "profit_sharing": "Perhitungan Bagi Hasil",
+        "islamic_products": "Manajemen Produk Islam",
+        "syariah_reports": "Pelaporan Sesuai Syariah",
+        "halal_indicators": "Indikator Halal/Haram",
+        "cultural_elements": "Elemen Desain Budaya"
+      },
+      "compliance": {
+        "aaoifi": "Kepatuhan Standar AAOIFI",
+        "syariah_board": "Pelacakan Persetujuan Dewan Syariah",
+        "prohibited_sectors": "Penyaringan Sektor Terlarang",
+        "islamic_calendar": "Dukungan Kalender Islam",
+        "arabic_language": "Dukungan Bahasa Arab",
+        "zakat_calculation": "Dukungan Perhitungan Zakat"
+      }
+    },
+    "themes": {
+      "switch_to_conventional": "Beralih ke Perbankan Konvensional",
+      "switch_to_syariah": "Beralih ke Perbankan Syariah",
+      "theme_switching": "Tema Perbankan",
+      "current_theme": "Tema Saat Ini",
+      "theme_applied": "Tema Berhasil Diterapkan",
+      "theme_error": "Kesalahan Menerapkan Tema"
+    },
+    "common": {
+      "dashboard": "Dasbor",
+      "reports": "Laporan",
+      "calculations": "Perhitungan",
+      "settings": "Pengaturan",
+      "help": "Bantuan",
+      "logout": "Keluar"
+    }
+  }
+}

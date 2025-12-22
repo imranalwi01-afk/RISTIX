@@ -1,0 +1,406 @@
+// packages/frontend/src/components/etl/designer/ETLToolbox.tsx
+
+import React, { useState } from 'react';
+import {
+  Box,
+  Paper,
+  Typography,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Collapse,
+  IconButton,
+  Divider,
+  Chip,
+  TextField,
+  InputAdornment,
+  Tooltip
+} from '@mui/material';
+import {
+  ExpandLess,
+  ExpandMore,
+  Search as SearchIcon,
+  Input as InputIcon,
+  Transform as TransformIcon,
+  FilterList as FilterIcon,
+  Functions as AggregateIcon,
+  AccountTree as JoinIcon,
+  CheckCircle as ValidateIcon,
+  Output as OutputIcon,
+  CallSplit as SplitIcon,
+  CallMerge as MergeIcon,
+  Storage as DatabaseIcon,
+  InsertDriveFile as FileIcon,
+  Api as ApiIcon,
+  Stream as StreamIcon
+} from '@mui/icons-material';
+
+import { NodeToolboxItem, NodeCategory, ETLNodeType } from '../../../types/etl.types';
+
+const nodeCategories: { [key in NodeCategory]: { 
+  label: string; 
+  icon: React.ReactElement; 
+  color: string; 
+} } = {
+  input: {
+    label: 'Data Sources',
+    icon: <InputIcon />,
+    color: '#2196f3'
+  },
+  processing: {
+    label: 'Processing',
+    icon: <TransformIcon />,
+    color: '#ff9800'
+  },
+  output: {
+    label: 'Outputs',
+    icon: <OutputIcon />,
+    color: '#4caf50'
+  },
+  quality: {
+    label: 'Data Quality',
+    icon: <ValidateIcon />,
+    color: '#9c27b0'
+  },
+  utility: {
+    label: 'Utilities',
+    icon: <SplitIcon />,
+    color: '#607d8b'
+  }
+};
+
+const toolboxItems: NodeToolboxItem[] = [
+  // Input Nodes
+  {
+    type: 'source',
+    label: 'Database Source',
+    icon: 'database',
+    description: 'Connect to SQL databases (PostgreSQL, MySQL, SQL Server)',
+    category: 'input',
+    defaultConfig: {
+      sourceType: 'database',
+      connectionId: '',
+      query: 'SELECT * FROM table_name',
+      refreshInterval: '1h'
+    }
+  },
+  {
+    type: 'source',
+    label: 'File Source',
+    icon: 'file',
+    description: 'Read data from CSV, Excel, JSON files',
+    category: 'input',
+    defaultConfig: {
+      sourceType: 'file',
+      filePath: '',
+      fileType: 'csv',
+      hasHeader: true
+    }
+  },
+  {
+    type: 'source',
+    label: 'API Source',
+    icon: 'api',
+    description: 'Fetch data from REST APIs',
+    category: 'input',
+    defaultConfig: {
+      sourceType: 'api',
+      url: '',
+      method: 'GET',
+      headers: {},
+      refreshInterval: '5m'
+    }
+  },
+  
+  // Processing Nodes
+  {
+    type: 'transform',
+    label: 'Transform',
+    icon: 'transform',
+    description: 'Apply data transformations (map, calculate, format)',
+    category: 'processing',
+    defaultConfig: {
+      transformations: []
+    }
+  },
+  {
+    type: 'filter',
+    label: 'Filter',
+    icon: 'filter',
+    description: 'Filter records based on conditions',
+    category: 'processing',
+    defaultConfig: {
+      conditions: []
+    }
+  },
+  {
+    type: 'aggregate',
+    label: 'Aggregate',
+    icon: 'aggregate',
+    description: 'Group and aggregate data (sum, count, average)',
+    category: 'processing',
+    defaultConfig: {
+      groupBy: [],
+      aggregations: []
+    }
+  },
+  {
+    type: 'join',
+    label: 'Join',
+    icon: 'join',
+    description: 'Join data from multiple sources',
+    category: 'processing',
+    defaultConfig: {
+      joinType: 'inner',
+      leftKey: '',
+      rightKey: ''
+    }
+  },
+  
+  // Quality Nodes
+  {
+    type: 'validate',
+    label: 'Validate',
+    icon: 'validate',
+    description: 'Validate data quality and compliance',
+    category: 'quality',
+    defaultConfig: {
+      rules: [],
+      includeInvalid: false
+    }
+  },
+  
+  // Output Nodes
+  {
+    type: 'output',
+    label: 'Database Output',
+    icon: 'database',
+    description: 'Write data to databases',
+    category: 'output',
+    defaultConfig: {
+      outputType: 'database',
+      table: '',
+      writeMode: 'insert'
+    }
+  },
+  {
+    type: 'output',
+    label: 'File Output',
+    icon: 'file',
+    description: 'Export data to files',
+    category: 'output',
+    defaultConfig: {
+      outputType: 'file',
+      filePath: '',
+      fileType: 'csv'
+    }
+  },
+  
+  // Utility Nodes
+  {
+    type: 'split',
+    label: 'Split',
+    icon: 'split',
+    description: 'Split data stream into multiple paths',
+    category: 'utility',
+    defaultConfig: {
+      splitConditions: []
+    }
+  },
+  {
+    type: 'merge',
+    label: 'Merge',
+    icon: 'merge',
+    description: 'Merge multiple data streams',
+    category: 'utility',
+    defaultConfig: {
+      mergeStrategy: 'union'
+    }
+  }
+];
+
+const getNodeIcon = (iconType: string) => {
+  const iconMap: { [key: string]: React.ReactElement } = {
+    database: <DatabaseIcon />,
+    file: <FileIcon />,
+    api: <ApiIcon />,
+    stream: <StreamIcon />,
+    transform: <TransformIcon />,
+    filter: <FilterIcon />,
+    aggregate: <AggregateIcon />,
+    join: <JoinIcon />,
+    validate: <ValidateIcon />,
+    split: <SplitIcon />,
+    merge: <MergeIcon />
+  };
+  
+  return iconMap[iconType] || <TransformIcon />;
+};
+
+interface ETLToolboxProps {
+  onNodeSelect?: (nodeType: ETLNodeType, config: any) => void;
+}
+
+export const ETLToolbox: React.FC<ETLToolboxProps> = ({ onNodeSelect }) => {
+  const [expandedCategories, setExpandedCategories] = useState<NodeCategory[]>(['input', 'processing']);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const handleCategoryToggle = (category: NodeCategory) => {
+    setExpandedCategories(prev =>
+      prev.includes(category)
+        ? prev.filter(c => c !== category)
+        : [...prev, category]
+    );
+  };
+
+  const handleDragStart = (event: React.DragEvent, nodeType: ETLNodeType) => {
+    event.dataTransfer.setData('application/reactflow', nodeType);
+    event.dataTransfer.effectAllowed = 'move';
+  };
+
+  const filteredItems = toolboxItems.filter(item =>
+    item.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.description.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const groupedItems = filteredItems.reduce((acc, item) => {
+    if (!acc[item.category]) {
+      acc[item.category] = [];
+    }
+    acc[item.category].push(item);
+    return acc;
+  }, {} as { [key in NodeCategory]: NodeToolboxItem[] });
+
+  return (
+    <Paper
+      elevation={2}
+      sx={{
+        width: 300,
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        borderRadius: 0
+      }}
+    >
+      {/* Header */}
+      <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
+        <Typography variant="h6" gutterBottom>
+          ETL Toolbox
+        </Typography>
+        
+        {/* Search */}
+        <TextField
+          fullWidth
+          size="small"
+          placeholder="Search nodes..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon fontSize="small" />
+              </InputAdornment>
+            )
+          }}
+        />
+      </Box>
+
+      {/* Node Categories */}
+      <Box sx={{ flex: 1, overflow: 'auto' }}>
+        <List dense>
+          {Object.entries(nodeCategories).map(([category, categoryInfo]) => {
+            const categoryItems = groupedItems[category as NodeCategory] || [];
+            const isExpanded = expandedCategories.includes(category as NodeCategory);
+            
+            if (categoryItems.length === 0) return null;
+
+            return (
+              <React.Fragment key={category}>
+                {/* Category Header */}
+                <ListItem
+                  button
+                  onClick={() => handleCategoryToggle(category as NodeCategory)}
+                  sx={{
+                    bgcolor: 'action.hover',
+                    '&:hover': {
+                      bgcolor: 'action.selected'
+                    }
+                  }}
+                >
+                  <ListItemIcon sx={{ color: categoryInfo.color }}>
+                    {categoryInfo.icon}
+                  </ListItemIcon>
+                  <ListItemText 
+                    primary={categoryInfo.label}
+                    primaryTypographyProps={{ fontWeight: 'medium' }}
+                  />
+                  <Chip 
+                    label={categoryItems.length} 
+                    size="small" 
+                    variant="outlined"
+                    sx={{ mr: 1 }}
+                  />
+                  {isExpanded ? <ExpandLess /> : <ExpandMore />}
+                </ListItem>
+
+                {/* Category Items */}
+                <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+                  <List component="div" disablePadding>
+                    {categoryItems.map((item) => (
+                      <Tooltip
+                        key={`${item.type}-${item.label}`}
+                        title={item.description}
+                        placement="right"
+                        arrow
+                      >
+                        <ListItem
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, item.type)}
+                          onClick={() => onNodeSelect?.(item.type, item.defaultConfig)}
+                          sx={{
+                            pl: 4,
+                            cursor: 'move',
+                            '&:hover': {
+                              bgcolor: 'action.hover'
+                            },
+                            '&:active': {
+                              bgcolor: 'action.selected'
+                            }
+                          }}
+                        >
+                          <ListItemIcon sx={{ minWidth: 36 }}>
+                            {getNodeIcon(item.icon)}
+                          </ListItemIcon>
+                          <ListItemText
+                            primary={item.label}
+                            secondary={item.description}
+                            secondaryTypographyProps={{
+                              fontSize: '0.75rem',
+                              noWrap: true
+                            }}
+                          />
+                        </ListItem>
+                      </Tooltip>
+                    ))}
+                  </List>
+                </Collapse>
+
+                <Divider />
+              </React.Fragment>
+            );
+          })}
+        </List>
+      </Box>
+
+      {/* Footer */}
+      <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}>
+        <Typography variant="caption" color="text.secondary">
+          Drag nodes to the canvas to create your ETL workflow
+        </Typography>
+      </Box>
+    </Paper>
+  );
+};
+
+export default ETLToolbox;

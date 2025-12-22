@@ -1,0 +1,58 @@
+/* ============================================================================
+   CONVENTIONAL BANKING CUSTOM STYLES
+   File Path: public/assets/themes/conventional/custom.css
+   Generated: $(date)
+   Purpose: Additional CSS for conventional banking theme
+   ============================================================================ */
+
+/* Professional Banking Layout */
+.banking-conventional {
+  --banking-primary: #1976D2;
+  --banking-secondary: #424242;
+  --banking-background: #F5F5F5;
+  --banking-paper: #FFFFFF;
+  --banking-text-primary: #212121;
+  --banking-text-secondary: #424242;
+}
+
+/* Corporate Header Styling */
+.banking-conventional .ra-layout-header {
+  background: linear-gradient(135deg, #1976D2 0%, #1565C0 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(25,118,210,0.2);
+}
+
+/* Professional Sidebar */
+.banking-conventional .ra-layout-sidebar {
+  background: var(--banking-background);
+  border-right: 1px solid #E0E0E0;
+}
+
+/* Corporate Cards */
+.banking-conventional .MuiCard-root {
+  border-left: 4px solid var(--banking-primary);
+  transition: all 0.3s ease;
+}
+
+.banking-conventional .MuiCard-root:hover {
+  border-left-width: 6px;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(25,118,210,0.15);
+}
+
+/* Professional Buttons */
+.banking-conventional .MuiButton-containedPrimary {
+  background: linear-gradient(45deg, #1976D2 30%, #42A5F5 90%);
+  box-shadow: 0 3px 5px 2px rgba(25,118,210,0.3);
+}
+
+/* Data Grid Styling */
+.banking-conventional .MuiDataGrid-root {
+  border: 1px solid #E0E0E0;
+  border-radius: 4px;
+}
+
+.banking-conventional .MuiDataGrid-columnHeaders {
+  background-color: var(--banking-primary);
+  color: white;
+}
