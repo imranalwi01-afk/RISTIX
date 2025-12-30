@@ -8,68 +8,18 @@
 // Dependencies: Axios, TypeScript
 // ============================================================================
 
-import axios, { AxiosResponse } from 'axios';
-// Authentication token helper
-const getAuthToken = (): string | null => {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('auth_token');
-  }
-  return null;
-};
+import { AxiosResponse } from 'axios';
+import { apiClient, apiClient as menuApiClient } from '../api-client';
+import '../api'; // Ensure interceptors are registered
 
-// API base URL - Centralized dual-mode configuration
-const getApiBaseUrl = () => {
-  try {
-    // Try to use centralized environment loader first
-    const { frontendEnvironmentLoader } = require('../../config/environment-loader-frontend');
-    const config = frontendEnvironmentLoader.getConfiguration();
-    console.log('✅ Menu API: Using centralized API base URL:', config.api.base);
-    return config.api.base;
-  } catch (error) {
-    console.warn('⚠️ Menu API: Failed to load centralized API base URL, using fallback:', error);
+// NOTE: We use the shared apiClient which is already configured with:
+// 1. Correct Base URL (auto-detected via environment-loader -> api.ts)
+// 2. Auth token interceptor (api.ts)
+// 3. Error handling interceptor (api.ts)
+// 4. Rate limiting (api.ts)
 
-    // Fallback to environment variables with hostname detection
-    const isProductionDomain = typeof window !== 'undefined' && window.location.hostname.includes('danafin.com');
-    const fallbackUrl = process.env.NEXT_PUBLIC_API_URL ||
-      process.env.NEXT_PUBLIC_BACKEND_URL ||
-      (isProductionDomain ? 'https://iaf-ifrs-be.danafin.com/api/v1' : 'https://iaf-ifrs-be.ifrspro.id/api/v1');
-
-    console.log('🔧 Menu API: Using fallback API base URL:', fallbackUrl);
-    return fallbackUrl;
-  }
-};
-
-const API_BASE_URL = getApiBaseUrl();
-
-// Create axios instance with default configuration
-const menuApiClient = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 30000,
-  headers: {
-    'Content-Type': 'application/json'
-  }
-});
-
-// Add auth token to requests
-menuApiClient.interceptors.request.use((config) => {
-  const token = getAuthToken();
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-// Response interceptor for error handling
-menuApiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Handle unauthorized - redirect to login
-      window.location.href = '/login';
-    }
-    return Promise.reject(error);
-  }
-);
+// No need to re-implement getAuthToken, getApiBaseUrl, or interceptors here.
+// The apiClient imported from ../../api-client is the SAME instance configured in ../../services/api.ts
 
 // Types
 export interface MenuApiResponse<T = any> {
@@ -186,7 +136,7 @@ export class MenuApiService {
     return response.data;
   }
 
-  
+
   /**
    * Get breadcrumbs for current path
    */

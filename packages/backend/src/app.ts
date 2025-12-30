@@ -48,15 +48,15 @@ async function initializeApp(): Promise<void> {
     // Initialize database connections
     logger.info('📊 Initializing database connections...');
     await databaseManager.initializeConnections();
-    
+
     // Initialize models
     logger.info('🏗️ Initializing database models...');
     await modelManager.initializeModels();
-    
+
     // ✅ NEW: Initialize centralized database system (optional)
     // logger.info('🔧 Initializing centralized database system...');
     // await initializeCentralizedDatabase();
-    
+
     logger.info('✅ Application initialization completed');
 
   } catch (error) {
@@ -132,7 +132,7 @@ app.get('/api/v1/system/database-status', async (req: Request, res: Response) =>
   try {
     // Basic health check using your existing database manager
     const dbStatus = await databaseManager.getConnectionStatus();
-    
+
     res.json({
       success: true,
       message: 'Database system status',
@@ -175,7 +175,7 @@ app.get('/api/health', async (req: Request, res: Response) => {
 });
 
 // ✅ Mount API routes (using your existing route structure)
-app.use('/', apiRoutes);
+app.use('/api/v1', apiRoutes);
 
 // ✅ Root endpoint with comprehensive platform information
 app.get('/', (req: Request, res: Response) => {
@@ -191,7 +191,7 @@ app.get('/', (req: Request, res: Response) => {
     version: appConfig.appVersion,
     environment: appConfig.nodeEnv,
     timestamp: new Date().toISOString(),
-    
+
     // ✅ Server information
     server: {
       host: appConfig.host,
@@ -205,7 +205,7 @@ app.get('/', (req: Request, res: Response) => {
         ] : [])
       ]
     },
-    
+
     // ✅ Platform features
     platform_features: {
       multi_tenant_architecture: true,
@@ -220,7 +220,7 @@ app.get('/', (req: Request, res: Response) => {
       jwt_authentication: true, // ✅ FIXED
       rate_limiting_fixed: true // ✅ FIXED
     },
-    
+
     // ✅ API navigation
     api_navigation: {
       api_base: '/api/v1',
@@ -232,7 +232,7 @@ app.get('/', (req: Request, res: Response) => {
       banking_endpoints: '/api/v1/banking', // ✅ ADDED
       ifrs9_endpoints: '/api/v1/ifrs9' // ✅ ADDED
     },
-    
+
     // ✅ Demo credentials for testing
     demo_credentials: {
       note: 'All users have password: 1019181716',
@@ -249,7 +249,7 @@ app.get('/', (req: Request, res: Response) => {
         },
         banking_syariah: {
           email: 'cro@barakahbank.com',
-          password: '1019181716', 
+          password: '1019181716',
           description: 'Syariah Bank Chief Risk Officer (Islamic)'
         },
         banking_dana: { // ✅ ADDED: DANA Digital Bank
@@ -259,7 +259,7 @@ app.get('/', (req: Request, res: Response) => {
         }
       }
     },
-    
+
     // ✅ Quick start commands
     quick_start: {
       login_endpoint: `POST ${appConfig.frontendUrl}/api/v1/auth/login`,
@@ -276,7 +276,7 @@ app.get('/', (req: Request, res: Response) => {
 // ✅ Global error handler (enhanced)
 app.use((error: any, req: Request, res: Response, next: NextFunction) => {
   const requestId = Date.now().toString();
-  
+
   logger.error('Global error occurred', {
     type: 'GLOBAL_ERROR',
     requestId,
@@ -287,23 +287,23 @@ app.use((error: any, req: Request, res: Response, next: NextFunction) => {
     ip: req.ip,
     userAgent: req.get('User-Agent')
   });
-  
+
   res.status(error.status || 500).json({
     success: false,
     error: error.message || 'Internal server error',
     code: error.code || 'INTERNAL_SERVER_ERROR',
     requestId,
     timestamp: new Date().toISOString(),
-    
+
     // ✅ Development information
-    ...(appConfig.nodeEnv === 'development' && { 
+    ...(appConfig.nodeEnv === 'development' && {
       stack: error.stack,
       details: {
         method: req.method,
         path: req.originalUrl
       }
     }),
-    
+
     // ✅ Help information
     help: {
       health_check: '/health',

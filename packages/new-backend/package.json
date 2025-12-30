@@ -1,0 +1,44 @@
+{
+    "name": "@ifrs9/new-backend",
+    "version": "1.0.0",
+    "type": "module",
+    "description": "IFRS 9 Multi-Tenant Islamic Banking Platform Backend - Hono + Drizzle + Effect",
+    "main": "src/index.ts",
+    "scripts": {
+        "dev": "bun run --watch src/index.ts",
+        "start": "bun run src/index.ts",
+        "build": "bun build src/index.ts --outdir ./dist",
+        "compile": "bun build src/index.ts --compile --outfile ./dist/server",
+        "compile:linux": "bun build src/index.ts --compile --target=bun-linux-x64 --outfile ./dist/server-linux",
+        "compile:docker": "bun build src/index.ts --compile --target=bun-linux-x64 --outfile ./dist/server",
+        "typecheck": "tsc --noEmit",
+        "lint": "eslint src --ext .ts",
+        "lint:fix": "eslint src --ext .ts --fix",
+        "test": "bun test",
+        "test:watch": "bun test --watch",
+        "db:generate": "drizzle-kit generate",
+        "db:migrate": "drizzle-kit migrate",
+        "db:push": "drizzle-kit push",
+        "db:studio": "drizzle-kit studio",
+        "db:seed": "bun run src/db/seed.ts"
+    },
+    "dependencies": {
+        "@hono/zod-openapi": "0.18.3",
+        "@hono/zod-validator": "^0.4.1",
+        "@scalar/hono-api-reference": "^0.9.30",
+        "drizzle-orm": "^0.38.3",
+        "effect": "^3.12.5",
+        "hono": "^4.6.16",
+        "jose": "^6.1.3",
+        "postgres": "^3.4.5",
+        "zod": "3.23.8"
+    },
+    "devDependencies": {
+        "@types/bun": "^1.1.14",
+        "drizzle-kit": "^0.30.1",
+        "typescript": "^5.7.2"
+    },
+    "engines": {
+        "bun": ">=1.0.0"
+    }
+}

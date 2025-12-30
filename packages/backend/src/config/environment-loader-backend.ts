@@ -99,6 +99,15 @@ class BackendEnvironmentLoader {
         '.env.iafecs',    // IAF ECS specific configuration (higher priority)
         '.env.production' // General production (lowest priority for IAF ECS)
       ];
+    } else if (deploymentTarget === 'vps') {
+      // VPS (OpenVPN) deployment: prioritize .env.vps
+      envFiles = [
+        '.env',
+        '.env.localdev',
+        '.env.iaf',
+        '.env.production',
+        '.env.vps'         // Highest priority for VPS
+      ];
     } else {
       // Local development: prioritize localdev configuration
       envFiles = [
@@ -163,6 +172,13 @@ class BackendEnvironmentLoader {
     if (deploymentTarget === 'iafecs') {
       console.log('🎯 Explicit IAF ECS deployment target detected');
       return 'iafecs';
+    }
+    if (deploymentTarget === 'vps') {
+      console.log('📡 Explicit VPS deployment target detected - Remote Database');
+      // Treat VPS basically as "localdev" but with remote DB, or we can use 'localdev' 
+      // since the code mainly checks for 'iafecs' vs 'localdev'.
+      // Keeping it 'localdev' ensures logic flow remains largely consistent with dev tools.
+      return 'localdev';
     }
     if (deploymentTarget === 'localdev') {
       console.log('🏠 Explicit local development target detected - RESPECTING USER SETTING');
@@ -323,20 +339,20 @@ class BackendEnvironmentLoader {
           domains: {
             iaf: this.getEnvVar('R_ANALYTICS_IAF_DOMAIN',
               environment === 'iafecs' ?
-              'https://iaf-ifrs-analytics.danafin.com' :
-              'https://ifrs9-iaf-analytics.ifrspro.id'),
+                'https://iaf-ifrs-analytics.danafin.com' :
+                'https://ifrs9-iaf-analytics.ifrspro.id'),
             dana: this.getEnvVar('R_ANALYTICS_DANA_DOMAIN',
               environment === 'iafecs' ?
-              'https://iaf-ifrs-analytics.danafin.com' :
-              'https://ifrs9-iaf-analytics.ifrspro.id'),
+                'https://iaf-ifrs-analytics.danafin.com' :
+                'https://ifrs9-iaf-analytics.ifrspro.id'),
             syariah: this.getEnvVar('R_ANALYTICS_SYARIAH_DOMAIN',
               environment === 'iafecs' ?
-              'https://iaf-ifrs-analytics.danafin.com' :
-              'https://ifrs9-iaf-analytics.ifrspro.id'),
+                'https://iaf-ifrs-analytics.danafin.com' :
+                'https://ifrs9-iaf-analytics.ifrspro.id'),
             conventional: this.getEnvVar('R_ANALYTICS_CONVENTIONAL_DOMAIN',
               environment === 'iafecs' ?
-              'https://iaf-ifrs-analytics.danafin.com' :
-              'https://ifrs9-iaf-analytics.ifrspro.id')
+                'https://iaf-ifrs-analytics.danafin.com' :
+                'https://ifrs9-iaf-analytics.ifrspro.id')
           }
         },
 

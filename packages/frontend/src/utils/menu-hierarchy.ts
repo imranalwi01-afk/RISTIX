@@ -305,14 +305,32 @@ export const filterHierarchicalMenu = (
                 return true;
               }
 
-              // Role hierarchy matching
+              // Role hierarchy matching - Enhanced IAF role support
               const roleHierarchy = {
+                // Primary IAF roles (current standard)
                 'iaf_tenant_superadmin': ['iaf_tenant_admin', 'iaf_bank_cro', 'iaf_ifrs_manager', 'iaf_risk_analyst', 'iaf_portfolio_manager', 'iaf_data_admin', 'iaf_report_analyst', 'iaf_auditor', 'iaf_viewer'],
                 'iaf_tenant_admin': ['iaf_bank_cro', 'iaf_ifrs_manager', 'iaf_risk_analyst', 'iaf_portfolio_manager', 'iaf_data_admin', 'iaf_report_analyst', 'iaf_auditor', 'iaf_viewer'],
                 'iaf_bank_cro': ['iaf_ifrs_manager', 'iaf_risk_analyst', 'iaf_portfolio_manager', 'iaf_report_analyst', 'iaf_auditor'],
-                'iaf_ifrs_manager': ['iaf_risk_analyst', 'iaf_portfolio_manager', 'iaf_report_analyst'],
+                'iaf_ifrs_manager': ['iaf_risk_analyst', 'iaf_portfolio_manager', 'iaf_report_analyst', 'iaf_auditor'],
                 'iaf_risk_analyst': ['iaf_auditor'],
-                'iaf_portfolio_manager': ['iaf_auditor']
+                'iaf_portfolio_manager': ['iaf_auditor'],
+                'iaf_data_admin': ['iaf_auditor'],
+                'iaf_report_analyst': ['iaf_auditor'],
+                'iaf_auditor': ['iaf_viewer'],
+
+                // Legacy role compatibility (mapped to primary roles)
+                'iaf_super_admin': ['iaf_tenant_admin', 'iaf_bank_cro', 'iaf_ifrs_manager', 'iaf_risk_analyst', 'iaf_portfolio_manager', 'iaf_data_admin', 'iaf_report_analyst', 'iaf_auditor', 'iaf_viewer'],
+                'iaf_admin': ['iaf_tenant_admin', 'iaf_bank_cro', 'iaf_ifrs_manager', 'iaf_risk_analyst', 'iaf_portfolio_manager', 'iaf_data_admin', 'iaf_report_analyst', 'iaf_auditor', 'iaf_viewer'],
+                'iaf_cro': ['iaf_bank_cro', 'iaf_ifrs_manager', 'iaf_risk_analyst', 'iaf_portfolio_manager', 'iaf_report_analyst', 'iaf_auditor'],
+
+                // Category-based mapping for flexibility
+                'super_admin': ['iaf_tenant_superadmin', 'iaf_super_admin'],
+                'admin': ['iaf_tenant_admin', 'iaf_admin'],
+                'cro': ['iaf_bank_cro', 'iaf_cro'],
+                'manager': ['iaf_ifrs_manager', 'iaf_portfolio_manager'],
+                'analyst': ['iaf_risk_analyst', 'iaf_report_analyst'],
+                'auditor': ['iaf_auditor'],
+                'viewer': ['iaf_viewer']
               };
 
               // Check if effective role matches permission or has higher privileges
@@ -358,7 +376,7 @@ export const filterHierarchicalMenu = (
           children: filteredChildren
         };
       })
-      .filter((item): item is HierarchicalMenuItem => item !== null);
+      .filter((item): item is NonNullable<typeof item> => item !== null);
   };
 
   const filteredItems = filterItems(hierarchicalItems);

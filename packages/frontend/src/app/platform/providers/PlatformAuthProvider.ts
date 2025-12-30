@@ -21,13 +21,27 @@ export const authProvider: AuthProvider = {
   login: async ({ username, password }: { username: string; password: string }) => {
     try {
       console.log('🔐 Platform Admin Login attempt:', username);
-      
-      // ✅ FIXED: Use centralized configuration for dual-mode support
+
+      // ✅ FIXED: Use centralized configuration with environment variable support
       const getBackendUrl = () => {
+        // First check for environment variable
+        if (process.env.NEXT_PUBLIC_API_BASE_URL) {
+          // Remove /api/v1 suffix if it exists to get the base URL
+          return process.env.NEXT_PUBLIC_API_BASE_URL.replace(/\/api\/v1\/?$/, '');
+        } else if (process.env.NEXT_PUBLIC_BACKEND_URL) {
+          return process.env.NEXT_PUBLIC_BACKEND_URL;
+        }
+
+        // Fallback for production/staging URLs based on hostname
         if (typeof window !== 'undefined' && window.location.hostname.includes('danafin.com')) {
           return 'https://iaf-ifrs-be.danafin.com';
         }
-        return 'https://bifrs9-iaf.ifrspro.id';
+        if (typeof window !== 'undefined' && window.location.hostname.includes('ifrspro.id')) {
+          return 'https://bifrs9-iaf.ifrspro.id';
+        }
+
+        // Default local fallback
+        return 'http://localhost:3000';
       };
 
       const response = await fetch(`${getBackendUrl()}/api/v1/auth/login`, {
@@ -89,14 +103,24 @@ export const authProvider: AuthProvider = {
   logout: async () => {
     try {
       const token = localStorage.getItem('auth_token');
-      
+
       if (token) {
         // ✅ FIXED: Use centralized configuration for dual-mode support
+        // ✅ FIXED: Use centralized configuration with environment variable support
         const getBackendUrl = () => {
+          if (process.env.NEXT_PUBLIC_API_BASE_URL) {
+            return process.env.NEXT_PUBLIC_API_BASE_URL.replace(/\/api\/v1\/?$/, '');
+          } else if (process.env.NEXT_PUBLIC_BACKEND_URL) {
+            return process.env.NEXT_PUBLIC_BACKEND_URL;
+          }
+
           if (typeof window !== 'undefined' && window.location.hostname.includes('danafin.com')) {
             return 'https://iaf-ifrs-be.danafin.com';
           }
-          return 'https://bifrs9-iaf.ifrspro.id';
+          if (typeof window !== 'undefined' && window.location.hostname.includes('ifrspro.id')) {
+            return 'https://bifrs9-iaf.ifrspro.id';
+          }
+          return 'http://localhost:3000';
         };
 
         await fetch(`${getBackendUrl()}/api/v1/auth/logout`, {
@@ -127,14 +151,14 @@ export const authProvider: AuthProvider = {
   checkError: async (error) => {
     const status = error.status;
     console.log('🔍 Platform Admin Auth Error Check:', status);
-    
+
     if (status === 401 || status === 403) {
       localStorage.removeItem('auth_token');
       localStorage.removeItem('user_data');
       localStorage.removeItem('refresh_token');
       return Promise.reject();
     }
-    
+
     return Promise.resolve();
   },
 
@@ -152,7 +176,7 @@ export const authProvider: AuthProvider = {
       }
 
       const user = JSON.parse(userData);
-      
+
       // ✅ Verify platform admin privileges
       const isPlatformAdmin = user.role && (
         user.role.includes('PLATFORM_SUPER_ADMIN') ||
@@ -167,13 +191,22 @@ export const authProvider: AuthProvider = {
         throw new Error('Platform administrator privileges required');
       }
 
-      // ✅ FIXED: Use centralized configuration for dual-mode support
+      // ✅ FIXED: Use centralized configuration with environment variable support
       try {
         const getBackendUrl = () => {
+          if (process.env.NEXT_PUBLIC_API_BASE_URL) {
+            return process.env.NEXT_PUBLIC_API_BASE_URL.replace(/\/api\/v1\/?$/, '');
+          } else if (process.env.NEXT_PUBLIC_BACKEND_URL) {
+            return process.env.NEXT_PUBLIC_BACKEND_URL;
+          }
+
           if (typeof window !== 'undefined' && window.location.hostname.includes('danafin.com')) {
             return 'https://iaf-ifrs-be.danafin.com';
           }
-          return 'https://bifrs9-iaf.ifrspro.id';
+          if (typeof window !== 'undefined' && window.location.hostname.includes('ifrspro.id')) {
+            return 'https://bifrs9-iaf.ifrspro.id';
+          }
+          return 'http://localhost:3000';
         };
 
         const response = await fetch(`${getBackendUrl()}/api/v1/auth/me`, {
@@ -207,14 +240,14 @@ export const authProvider: AuthProvider = {
   getPermissions: async () => {
     try {
       const userData = localStorage.getItem('user_data');
-      
+
       if (!userData) {
         console.log('❌ No user data for permissions check');
         return Promise.resolve([]);
       }
 
       const user = JSON.parse(userData);
-      
+
       // ✅ Return platform admin permissions based on role
       const platformPermissions = [
         'platform.tenants.list',
@@ -257,14 +290,14 @@ export const authProvider: AuthProvider = {
   getIdentity: async () => {
     try {
       const userData = localStorage.getItem('user_data');
-      
+
       if (!userData) {
         console.log('❌ No user data for identity');
         throw new Error('No user data found');
       }
 
       const user = JSON.parse(userData);
-      
+
       const identity = {
         id: user.id || user.email,
         fullName: user.fullName || user.full_name || user.username,
@@ -291,12 +324,26 @@ export const authUtils = {
   // Test connection to auth endpoints
   testConnection: async () => {
     try {
-      // ✅ FIXED: Use centralized configuration for dual-mode support
+      // ✅ FIXED: Use centralized configuration with environment variable support
       const getBackendUrl = () => {
+        // First check for environment variable
+        if (process.env.NEXT_PUBLIC_API_BASE_URL) {
+          // Remove /api/v1 suffix if it exists to get the base URL
+          return process.env.NEXT_PUBLIC_API_BASE_URL.replace(/\/api\/v1\/?$/, '');
+        } else if (process.env.NEXT_PUBLIC_BACKEND_URL) {
+          return process.env.NEXT_PUBLIC_BACKEND_URL;
+        }
+
+        // Fallback for production/staging URLs based on hostname
         if (typeof window !== 'undefined' && window.location.hostname.includes('danafin.com')) {
           return 'https://iaf-ifrs-be.danafin.com';
         }
-        return 'https://bifrs9-iaf.ifrspro.id';
+        if (typeof window !== 'undefined' && window.location.hostname.includes('ifrspro.id')) {
+          return 'https://bifrs9-iaf.ifrspro.id';
+        }
+
+        // Default local fallback
+        return 'http://localhost:3000';
       };
 
       const response = await fetch(`${getBackendUrl()}/api/v1/auth/status`);
@@ -313,7 +360,7 @@ export const authUtils = {
   getAuthStatus: () => {
     const token = localStorage.getItem('auth_token');
     const userData = localStorage.getItem('user_data');
-    
+
     return {
       hasToken: !!token,
       hasUserData: !!userData,

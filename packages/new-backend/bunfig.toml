@@ -1,0 +1,11 @@
+[install]
+# Cache packages locally
+cache = true
+
+[run]
+# Enable sourcemaps
+smol = false
+
+[test]
+# Test configuration
+coverage = true

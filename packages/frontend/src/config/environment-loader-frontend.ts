@@ -9,6 +9,38 @@
 
 import * as os from 'os';
 
+// Explicitly map environment variables to ensure Next.js/Webpack can perform static replacement
+const ENV_VARS: Record<string, string | undefined> = {
+  NODE_ENV: process.env.NODE_ENV,
+  DEPLOYMENT_TARGET: process.env.DEPLOYMENT_TARGET,
+  NEXT_PUBLIC_DEPLOYMENT_TARGET: process.env.NEXT_PUBLIC_DEPLOYMENT_TARGET,
+  NEXT_PUBLIC_LOCAL_DEVELOPMENT: process.env.NEXT_PUBLIC_LOCAL_DEVELOPMENT,
+  NEXT_PUBLIC_BACKEND_URL: process.env.NEXT_PUBLIC_BACKEND_URL,
+  NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL,
+  NEXT_PUBLIC_RAPI_BASE_URL: process.env.NEXT_PUBLIC_RAPI_BASE_URL,
+  NEXT_PUBLIC_R_ANALYTICS_URL: process.env.NEXT_PUBLIC_R_ANALYTICS_URL,
+  NEXT_PUBLIC_R_ANALYTICS_CALC_URL: process.env.NEXT_PUBLIC_R_ANALYTICS_CALC_URL,
+  NEXT_PUBLIC_FRONTEND_URL: process.env.NEXT_PUBLIC_FRONTEND_URL,
+  NEXT_PUBLIC_BANKING_DASHBOARD_URL: process.env.NEXT_PUBLIC_BANKING_DASHBOARD_URL,
+  NEXT_PUBLIC_WS_URL: process.env.NEXT_PUBLIC_WS_URL,
+  NEXT_PUBLIC_TENANT_ID: process.env.NEXT_PUBLIC_TENANT_ID,
+  NEXT_PUBLIC_TENANT_NAME: process.env.NEXT_PUBLIC_TENANT_NAME,
+  NEXT_PUBLIC_COMPANY_NAME: process.env.NEXT_PUBLIC_COMPANY_NAME,
+  NEXT_PUBLIC_BANKING_TYPE: process.env.NEXT_PUBLIC_BANKING_TYPE,
+  NEXT_PUBLIC_LOGO_PATH: process.env.NEXT_PUBLIC_LOGO_PATH,
+  NEXT_PUBLIC_PRIMARY_COLOR: process.env.NEXT_PUBLIC_PRIMARY_COLOR,
+  NEXT_PUBLIC_SECONDARY_COLOR: process.env.NEXT_PUBLIC_SECONDARY_COLOR,
+  NEXT_PUBLIC_FEATURE_ADVANCED_ANALYTICS: process.env.NEXT_PUBLIC_FEATURE_ADVANCED_ANALYTICS,
+  NEXT_PUBLIC_FEATURE_ISLAMIC_BANKING: process.env.NEXT_PUBLIC_FEATURE_ISLAMIC_BANKING,
+  NEXT_PUBLIC_FEATURE_AUDIT_TRAIL: process.env.NEXT_PUBLIC_FEATURE_AUDIT_TRAIL,
+  NEXT_PUBLIC_FEATURE_DEVELOPMENT_TOOLS: process.env.NEXT_PUBLIC_FEATURE_DEVELOPMENT_TOOLS,
+  NEXT_PUBLIC_FEATURE_MOCK_DATA: process.env.NEXT_PUBLIC_FEATURE_MOCK_DATA,
+  NEXT_PUBLIC_DEBUG_MODE: process.env.NEXT_PUBLIC_DEBUG_MODE,
+  NEXT_PUBLIC_ENABLE_HTTPS: process.env.NEXT_PUBLIC_ENABLE_HTTPS,
+  NEXT_PUBLIC_SECURE_COOKIES: process.env.NEXT_PUBLIC_SECURE_COOKIES,
+  NEXT_PUBLIC_MOCK_API_RESPONSE: process.env.NEXT_PUBLIC_MOCK_API_RESPONSE
+};
+
 export interface FrontendEnvironmentConfig {
   // Environment Detection
   nodeEnv: string;
@@ -85,7 +117,7 @@ export class FrontendEnvironmentLoader {
   private config: FrontendEnvironmentConfig | null = null;
   private isLoaded: boolean = false;
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): FrontendEnvironmentLoader {
     if (!FrontendEnvironmentLoader.instance) {
@@ -126,32 +158,32 @@ export class FrontendEnvironmentLoader {
     if (typeof window === 'undefined') {
       // Server-side: check if running on development machine
       return process.env.NODE_ENV !== 'production' ||
-             process.env.DEPLOYMENT_TARGET === 'localdev' ||
-             !!process.env.NEXT_PUBLIC_LOCAL_DEVELOPMENT;
+        process.env.DEPLOYMENT_TARGET === 'localdev' ||
+        !!process.env.NEXT_PUBLIC_LOCAL_DEVELOPMENT;
     }
 
     // Client-side: multiple detection methods
     const hostname = window.location.hostname;
 
     // Method 1: Check for explicit development indicator
-    if (process.env.NEXT_PUBLIC_LOCAL_DEVELOPMENT === 'true') {
+    if (ENV_VARS.NEXT_PUBLIC_LOCAL_DEVELOPMENT === 'true') {
       console.log('🏠 EXPLICIT LOCAL DEVELOPMENT INDICATOR DETECTED');
       return true;
     }
 
     // Method 2: Check for Cloudflare Zero Trust development domains
     if (hostname === 'iaf-ifrs.ifrspro.id' ||
-        hostname === 'iaf-ifrs-be.ifrspro.id' ||
-        hostname === 'iaf-ifrs-analytics.ifrspro.id' ||
-        hostname === 'iaf-ifrs-analytics-calc.ifrspro.id' ||
-        hostname.includes('ifrspro.id')) {
+      hostname === 'iaf-ifrs-be.ifrspro.id' ||
+      hostname === 'iaf-ifrs-analytics.ifrspro.id' ||
+      hostname === 'iaf-ifrs-analytics-calc.ifrspro.id' ||
+      hostname.includes('ifrspro.id')) {
       console.log('🔧 CLOUDFLARE ZERO TRUST DEVELOPMENT DOMAIN DETECTED');
       return true;
     }
 
     // Method 3: Check browser developer tools indicators
     if (window.location.protocol === 'http:' &&
-        (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.'))) {
+      (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.'))) {
       console.log('💻 LOCALHOST/PRIVATE IP DETECTED');
       return true;
     }
@@ -159,7 +191,7 @@ export class FrontendEnvironmentLoader {
     // Method 4: Check for development environment patterns
     const userAgent = navigator.userAgent;
     if (userAgent.includes('Chrome') &&
-        (window.outerWidth && window.outerWidth < 1920 && window.outerHeight < 1080)) {
+      (window.outerWidth && window.outerWidth < 1920 && window.outerHeight < 1080)) {
       // This is a weak indicator, so only use as fallback
       console.log('🖥️  POSSIBLE DEVELOPMENT ENVIRONMENT (WEAK INDICATOR)');
     }
@@ -178,9 +210,9 @@ export class FrontendEnvironmentLoader {
 
       // Enhanced production domain detection with local development exception
       if (hostname === 'iaf-ifrs.danafin.com' ||
-          hostname === 'iaf-ifrs-be.danafin.com' ||
-          hostname === 'iaf-ifrs-analytics.danafin.com' ||
-          hostname.includes('danafin.com')) {
+        hostname === 'iaf-ifrs-be.danafin.com' ||
+        hostname === 'iaf-ifrs-analytics.danafin.com' ||
+        hostname.includes('danafin.com')) {
 
         if (isLocalDevelopment) {
           console.log('🏠 PRODUCTION DOMAIN via LOCAL DEVELOPMENT (Cloudflare Zero Trust)');
@@ -197,10 +229,10 @@ export class FrontendEnvironmentLoader {
 
       // Development domains (Cloudflare Zero Trust)
       if (hostname === 'iaf-ifrs.ifrspro.id' ||
-          hostname === 'iaf-ifrs-be.ifrspro.id' ||
-          hostname === 'iaf-ifrs-analytics.ifrspro.id' ||
-          hostname === 'iaf-ifrs-analytics-calc.ifrspro.id' ||
-          hostname.includes('ifrspro.id')) {
+        hostname === 'iaf-ifrs-be.ifrspro.id' ||
+        hostname === 'iaf-ifrs-analytics.ifrspro.id' ||
+        hostname === 'iaf-ifrs-analytics-calc.ifrspro.id' ||
+        hostname.includes('ifrspro.id')) {
         console.log('🔧 DEVELOPMENT DOMAIN DETECTED - Forcing local development');
         console.log(`📍 Current hostname: ${hostname}`);
         return 'localdev';
@@ -208,14 +240,14 @@ export class FrontendEnvironmentLoader {
     }
 
     // Priority 2: Check explicit environment variable (only if hostname detection failed)
-    const explicitTarget = process.env.NEXT_PUBLIC_DEPLOYMENT_TARGET || process.env.DEPLOYMENT_TARGET;
+    const explicitTarget = ENV_VARS.NEXT_PUBLIC_DEPLOYMENT_TARGET || ENV_VARS.DEPLOYMENT_TARGET;
     if (explicitTarget === 'localdev' || explicitTarget === 'iafecs') {
       console.log(`📋 Using explicit DEPLOYMENT_TARGET (hostname detection failed): ${explicitTarget}`);
       return explicitTarget;
     }
 
     // Priority 3: Check NODE_ENV with domain awareness
-    const nodeEnv = process.env.NODE_ENV;
+    const nodeEnv = ENV_VARS.NODE_ENV;
     if (nodeEnv === 'production' && !FrontendEnvironmentLoader.detectLocalDevelopmentContext()) {
       console.log('🚀 NODE_ENV=production - assuming ECS deployment');
       return 'iafecs';
@@ -317,7 +349,7 @@ export class FrontendEnvironmentLoader {
    * Get environment variable with fallback
    */
   private getEnvVar(key: string, defaultValue: string = ''): string {
-    return process.env[key] || defaultValue;
+    return ENV_VARS[key] || defaultValue;
   }
 
   /**

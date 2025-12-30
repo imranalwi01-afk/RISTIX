@@ -9,6 +9,8 @@
 // ============================================================================
 
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
+import { apiClient } from '../../services/api-client'
+import '../../services/api' // Ensure interceptors are registered
 
 // Widget configuration interfaces
 interface WidgetPosition {
@@ -84,19 +86,13 @@ export const fetchDashboardPersonalization = createAsyncThunk(
   'dashboardPersonalization/fetchPersonalization',
   async ({ userId, tenantId }: { userId: string; tenantId: string }, { rejectWithValue }) => {
     try {
-      const response = await fetch(`/api/v1/users/${userId}/dashboard/personalization`, {
+      const response = await apiClient.get(`/users/${userId}/dashboard/personalization`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-          'X-Tenant-Slug': tenantId,
-          'Content-Type': 'application/json'
+          'X-Tenant-Slug': tenantId
         }
       })
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch personalization: ${response.statusText}`)
-      }
-
-      const apiResponse = await response.json()
+      const apiResponse = response.data
 
       // Transform backend response to match frontend expectations
       if (apiResponse.success && apiResponse.data) {
@@ -114,9 +110,9 @@ export const fetchDashboardPersonalization = createAsyncThunk(
               widgets: personalizationData.widgetConfig ?
                 Object.entries(personalizationData.widgetConfig).map(([key, config]: any) => ({
                   id: key,
-                  type: key === 'welcome' ? 'quick-actions' :
-                        key === 'portfolioSummary' ? 'portfolio-metrics' :
-                        key === 'recentActivity' ? 'activities' : 'chart',
+                  type: (key === 'welcome' ? 'quick-actions' :
+                    key === 'portfolioSummary' ? 'portfolio-metrics' :
+                      key === 'recentActivity' ? 'activities' : 'chart') as WidgetConfig['type'],
                   title: key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).trim(),
                   isVisible: config.visible !== false,
                   position: config.position || { x: 0, y: 0 },
@@ -129,7 +125,7 @@ export const fetchDashboardPersonalization = createAsyncThunk(
                 })) : [
                   {
                     id: 'welcome',
-                    type: 'quick-actions',
+                    type: 'quick-actions' as const,
                     title: 'Welcome',
                     isVisible: true,
                     position: { x: 0, y: 0 },
@@ -197,17 +193,17 @@ export const saveDashboardPersonalization = createAsyncThunk(
         defaultView: settings.currentLayout || 'overview',
         widgetConfig: settings.layouts && settings.layouts.length > 0
           ? settings.layouts[0].widgets.reduce((acc: any, widget) => {
-              acc[widget.id] = {
-                visible: widget.isVisible,
-                position: {
-                  x: widget.position.x,
-                  y: widget.position.y,
-                  w: widget.size.width,
-                  h: widget.size.height
-                }
+            acc[widget.id] = {
+              visible: widget.isVisible,
+              position: {
+                x: widget.position.x,
+                y: widget.position.y,
+                w: widget.size.width,
+                h: widget.size.height
               }
-              return acc
-            }, {})
+            }
+            return acc
+          }, {})
           : {},
         themePreferences: {
           mode: settings.globalSettings?.compactMode ? 'dark' : 'light',
@@ -228,21 +224,13 @@ export const saveDashboardPersonalization = createAsyncThunk(
         }
       }
 
-      const response = await fetch(`/api/v1/users/${userId}/dashboard/personalization`, {
-        method: 'PUT',
+      const response = await apiClient.put(`/users/${userId}/dashboard/personalization`, backendFormat, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-          'X-Tenant-Slug': tenantId,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(backendFormat)
+          'X-Tenant-Slug': tenantId
+        }
       })
 
-      if (!response.ok) {
-        throw new Error(`Failed to save personalization: ${response.statusText}`)
-      }
-
-      const data = await response.json()
+      const data = response.data
 
       // Transform response back to frontend format
       if (data.success) {
@@ -264,21 +252,13 @@ export const createDashboardLayout = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const response = await fetch(`/api/v1/users/${userId}/dashboard/layouts`, {
-        method: 'POST',
+      const response = await apiClient.post(`/users/${userId}/dashboard/layouts`, layout, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-          'X-Tenant-Slug': tenantId,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(layout)
+          'X-Tenant-Slug': tenantId
+        }
       })
 
-      if (!response.ok) {
-        throw new Error(`Failed to create layout: ${response.statusText}`)
-      }
-
-      const data = await response.json()
+      const data = response.data
       return data
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to create dashboard layout')
@@ -293,18 +273,14 @@ export const deleteDashboardLayout = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const response = await fetch(`/api/v1/users/${userId}/dashboard/layouts/${layoutId}`, {
-        method: 'DELETE',
+      const response = await apiClient.delete(`/users/${userId}/dashboard/layouts/${layoutId}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-          'X-Tenant-Slug': tenantId,
-          'Content-Type': 'application/json'
+          'X-Tenant-Slug': tenantId
         }
       })
 
-      if (!response.ok) {
-        throw new Error(`Failed to delete layout: ${response.statusText}`)
-      }
+      // apiClient automatically throws on non-2xx status (unless configured otherwise, but interceptor re-throws)
+      // so consistent with fetch !response.ok check
 
       return layoutId
     } catch (error: any) {

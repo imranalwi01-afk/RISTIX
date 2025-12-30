@@ -5,6 +5,9 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "ts-node src/index.ts",
+    "dev:iaf": "dotenv -e .env.iaf -e .env -- ts-node src/index.ts",
+    "dev:local": "dotenv -e .env.localdev -e .env -- ts-node src/index.ts",
+    "dev:vps": "dotenv -e .env.vps -e .env -- ts-node src/index.ts",
     "start": "node dist/index.js",
     "build": "tsc",
     "test": "jest",
@@ -83,7 +86,8 @@
     "supertest": "^6.3.3",
     "ts-jest": "^29.1.1",
     "ts-node": "^10.9.1",
-    "typescript": "^5.3.2"
+    "typescript": "^5.3.2",
+    "dotenv-cli": "^7.3.0"
   },
   "engines": {
     "node": ">=18.0.0",

@@ -13,16 +13,16 @@ import * as path from 'path';
 export class IAFEnvironmentLoader {
   private static instance: IAFEnvironmentLoader;
   private isLoaded: boolean = false;
-  
-  private constructor() {}
-  
+
+  private constructor() { }
+
   public static getInstance(): IAFEnvironmentLoader {
     if (!IAFEnvironmentLoader.instance) {
       IAFEnvironmentLoader.instance = new IAFEnvironmentLoader();
     }
     return IAFEnvironmentLoader.instance;
   }
-  
+
   /**
    * Load IAF-specific environment configuration
    * Priority: .env.localdev > .env.iafecs > .env > .env.production
@@ -37,49 +37,54 @@ export class IAFEnvironmentLoader {
     const deploymentTarget = process.env.DEPLOYMENT_TARGET || 'localdev';
 
     console.log(`🎯 Deployment Target: ${deploymentTarget}`);
+    console.log(`🔍 PRE-LOAD DEBUG: PLATFORM_DB_HOST=${process.env.PLATFORM_DB_HOST}`);
+    console.log(`🔍 PRE-LOAD DEBUG: DB_HOST=${process.env.DB_HOST}`);
 
     // Load environment files based on deployment target
+    // ✅ CHANGED: Load in Priority Descending order (High -> Low)
+    // This allows existing variables (from dotenv-cli or system) to be preserved (First Wins)
     let envFiles;
     if (deploymentTarget === 'iafecs') {
-      // IAF ECS deployment: prioritize IAF ECS configuration
+      // IAF ECS deployment
       envFiles = [
-        '.env',                    // Base configuration
-        '.env.iaf',               // Base IAF configuration
-        '.env.iafecs',            // IAF ECS specific configuration (higher priority)
-        '.env.production'         // General production (lowest priority for IAF ECS)
+        '.env.production',        // Highest priority (was last with override: true)
+        '.env.iafecs',
+        '.env.iaf',
+        '.env'                    // Base configuration
       ];
     } else {
-      // Local development: prioritize localdev configuration
+      // Local development
       envFiles = [
-        '.env',                    // Base configuration
-        '.env.production',         // Production config (lower priority)
-        '.env.iaf',               // Base IAF configuration
-        '.env.localdev'           // Local development (highest priority)
+        '.env.localdev',          // Highest priority
+        '.env.iaf',
+        '.env.production',
+        '.env'                    // Base configuration
       ];
     }
-    
+
     console.log('🔧 Loading IAF environment configuration...');
     console.log(`📁 Root directory: ${rootDir}`);
-    
-    // Load each env file in order (later files override earlier ones)
+
+    // Load each env file. Since override is false (default), the first file to set a variable wins.
+    // This supports dotenv-cli usage where variables are pre-loaded.
     envFiles.forEach(envFile => {
       const envPath = path.join(rootDir, envFile);
       if (fs.existsSync(envPath)) {
-        console.log(`📄 Loading: ${envFile}`);
-        dotenv.config({ path: envPath, override: true });
+        console.log(`📄 Loading (fallback): ${envFile}`);
+        dotenv.config({ path: envPath }); // override: false is default
       } else {
-        console.log(`⚠️ Not found: ${envFile}`);
+        // console.log(`⚠️ Not found: ${envFile}`); // Reduce noise
       }
     });
-    
+
     // Validate critical IAF configurations
     this.validateIAFConfiguration();
-    
+
     this.isLoaded = true;
     console.log('✅ IAF environment configuration loaded successfully');
     this.logConfiguration();
   }
-  
+
   /**
    * Validate that critical IAF configurations are present
    */
@@ -92,15 +97,15 @@ export class IAFEnvironmentLoader {
       'TENANT_DB_USER',
       'TENANT_DB_PASSWORD'
     ];
-    
+
     const missing = requiredVars.filter(varName => !process.env[varName]);
-    
+
     if (missing.length > 0) {
       console.warn('⚠️ Missing IAF configuration variables:', missing);
       console.log('💡 Make sure .env.iaf file is present and properly configured');
     }
   }
-  
+
   /**
    * Get database configuration for IAF
    */
@@ -111,11 +116,11 @@ export class IAFEnvironmentLoader {
         host: process.env.PLATFORM_DB_HOST || process.env.DB_HOST || 'localhost',
         port: parseInt(process.env.PLATFORM_DB_PORT || process.env.DB_PORT || '5432'),
         database: process.env.PLATFORM_DB_NAME || 'ifrspro_platform_admin',
-        user: process.env.PLATFORM_DB_USER || process.env.DB_USER || 'postgres',
-        password: process.env.PLATFORM_DB_PASSWORD || process.env.DB_PASSWORD || 'postgres',
+        user: (process.env.DEPLOYMENT_TARGET === 'vps') ? 'postgres' : (process.env.PLATFORM_DB_USER || process.env.DB_USER || 'postgres'),
+        password: (process.env.DEPLOYMENT_TARGET === 'vps') ? 'postgres' : (process.env.PLATFORM_DB_PASSWORD || process.env.DB_PASSWORD || 'postgres'),
         ssl: process.env.PLATFORM_DB_SSL === 'true'
       },
-      
+
       // Shared Services Database
       shared: {
         host: process.env.SHARED_DB_HOST || process.env.DB_HOST || 'localhost',
@@ -125,17 +130,17 @@ export class IAFEnvironmentLoader {
         password: process.env.SHARED_DB_PASSWORD || process.env.DB_PASSWORD || 'postgres',
         ssl: process.env.SHARED_DB_SSL === 'true'
       },
-      
+
       // IAF Tenant Database
       tenant: {
         host: process.env.TENANT_DB_HOST || process.env.DB_HOST || 'localhost',
         port: parseInt(process.env.TENANT_DB_PORT || process.env.DB_PORT || '5432'),
         database: process.env.TENANT_DB_NAME || 'ifrspro_tenant_iaf',
-        user: process.env.TENANT_DB_USER || process.env.DB_USER || 'postgres',
-        password: process.env.TENANT_DB_PASSWORD || process.env.DB_PASSWORD || 'postgres',
+        user: (process.env.DEPLOYMENT_TARGET === 'vps') ? 'postgres' : (process.env.TENANT_DB_USER || process.env.DB_USER || 'postgres'),
+        password: (process.env.DEPLOYMENT_TARGET === 'vps') ? 'postgres' : (process.env.TENANT_DB_PASSWORD || process.env.DB_PASSWORD || 'postgres'),
         ssl: process.env.TENANT_DB_SSL === 'true'
       },
-      
+
       // Legacy FRS9PRO Database
       legacy: {
         host: process.env.LEGACY_DB_HOST || process.env.FRS9_DB_HOST || 'localhost',
@@ -147,7 +152,7 @@ export class IAFEnvironmentLoader {
       }
     };
   }
-  
+
   /**
    * Get server configuration for IAF
    */
@@ -166,7 +171,7 @@ export class IAFEnvironmentLoader {
       }
     };
   }
-  
+
   /**
    * Get security configuration for IAF
    */
@@ -187,7 +192,7 @@ export class IAFEnvironmentLoader {
       }
     };
   }
-  
+
   /**
    * Get Redis configuration for IAF
    */
@@ -201,7 +206,7 @@ export class IAFEnvironmentLoader {
       tokenBlacklistDb: parseInt(process.env.REDIS_TOKEN_BLACKLIST_DB || '12')
     };
   }
-  
+
   /**
    * Get IAF tenant configuration
    */
@@ -217,7 +222,7 @@ export class IAFEnvironmentLoader {
       databaseRegistryAutoDiscovery: process.env.DATABASE_REGISTRY_AUTO_DISCOVERY === 'true'
     };
   }
-  
+
   /**
    * Log current configuration (with sensitive data masked)
    */
@@ -225,23 +230,23 @@ export class IAFEnvironmentLoader {
     const dbConfig = this.getIAFDatabaseConfig();
     const serverConfig = this.getIAFServerConfig();
     const tenantConfig = this.getIAFTenantConfig();
-    
+
     console.log('\n📋 IAF Configuration Summary:');
     console.log('================================');
-    
+
     // Server Configuration
     console.log('\n🌐 Server Configuration:');
     console.log(`  Backend: ${serverConfig.backend.host}:${serverConfig.backend.port}`);
     console.log(`  Frontend URL: ${serverConfig.frontend.url}`);
     console.log(`  R Analytics URL: ${serverConfig.rAnalytics.url}`);
-    
+
     // Database Configuration
     console.log('\n🗄️ Database Configuration:');
     console.log(`  Platform DB: ${dbConfig.platform.host}:${dbConfig.platform.port}/${dbConfig.platform.database}`);
     console.log(`  Shared DB: ${dbConfig.shared.host}:${dbConfig.shared.port}/${dbConfig.shared.database}`);
     console.log(`  Tenant DB: ${dbConfig.tenant.host}:${dbConfig.tenant.port}/${dbConfig.tenant.database}`);
     console.log(`  Legacy DB: ${dbConfig.legacy.host}:${dbConfig.legacy.port}/${dbConfig.legacy.database}`);
-    
+
     // Tenant Configuration
     console.log('\n🏢 Tenant Configuration:');
     console.log(`  Tenant ID: ${tenantConfig.tenantId}`);
@@ -250,15 +255,15 @@ export class IAFEnvironmentLoader {
     console.log(`  Single Tenant Mode: ${tenantConfig.singleTenantMode}`);
     console.log(`  Tenant Auto Discovery: ${tenantConfig.tenantAutoDiscovery}`);
     console.log(`  Database Registry Auto Discovery: ${tenantConfig.databaseRegistryAutoDiscovery}`);
-    
+
     // Environment
     console.log('\n🔧 Environment:');
     console.log(`  NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
     console.log(`  DEBUG: ${process.env.APP_DEBUG || 'false'}`);
-    
+
     console.log('================================\n');
   }
-  
+
   /**
    * Check if running on ECS
    */
@@ -270,7 +275,7 @@ export class IAFEnvironmentLoader {
       process.env.AWS_EXECUTION_ENV?.includes('ECS')
     );
   }
-  
+
   /**
    * Get environment type
    */

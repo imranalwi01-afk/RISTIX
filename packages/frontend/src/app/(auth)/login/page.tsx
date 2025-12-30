@@ -86,7 +86,11 @@ export default function LoginPage() {
     const fetchTenants = async () => {
       try {
         const config = frontendEnvironmentLoader.getConfiguration();
-        const response = await fetch(`${config.api.backend}${config.api.auth}/login-data`, {
+        // Uses config.api.base (includes /api/v1) or fallback to constructing it
+        const baseUrl = config.api.base || `${config.api.backend}/api/v1`;
+        const authPath = config.api.auth || '/auth';
+
+        const response = await fetch(`${baseUrl}${authPath}/login-data`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',

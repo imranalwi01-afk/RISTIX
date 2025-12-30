@@ -20,7 +20,9 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: 'https://iaf-ifrs-be.ifrspro.id/api/:path*',
+        destination: process.env.NEXT_PUBLIC_BACKEND_API_URL
+          ? `${process.env.NEXT_PUBLIC_BACKEND_API_URL.replace('/api/v1', '')}/api/:path*`
+          : 'http://localhost:4232/api/:path*',
       },
     ];
   },

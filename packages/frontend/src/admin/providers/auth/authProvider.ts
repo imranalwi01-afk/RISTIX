@@ -59,7 +59,7 @@ export const authProvider: AuthProvider = {
           (isProductionDomain ? 'https://iaf-ifrs-be.danafin.com/api/v1' : 'https://iaf-ifrs-be.ifrspro.id/api/v1');
         console.log('🔧 React Admin Auth Provider: Using fallback API URL:', apiUrl);
       }
-      
+
       const response = await fetch(`${apiUrl}/auth/login`, {
         method: 'POST',
         headers: {
@@ -79,7 +79,7 @@ export const authProvider: AuthProvider = {
       }
 
       const data = await response.json();
-      
+
       // ✅ FIXED: Backend sends "token" field (not "accessToken")
       if (data.success && data.data && data.data.token) {
         localStorage.setItem('token', data.data.token);
@@ -87,12 +87,12 @@ export const authProvider: AuthProvider = {
         localStorage.setItem('user', JSON.stringify(data.data.user));
         localStorage.setItem('tenantId', data.data.user.tenantId || 'demo-bank');
         localStorage.setItem('bankingType', data.data.user.bankingType || 'conventional');
-        
+
         // Store tenant configuration
         if (data.data.tenantConfig) {
           localStorage.setItem('tenantConfig', JSON.stringify(data.data.tenantConfig));
         }
-        
+
         console.log('✅ LOGIN SUCCESS: Token stored successfully');
         return Promise.resolve();
       } else {
@@ -109,11 +109,11 @@ export const authProvider: AuthProvider = {
   logout: async () => {
     try {
       const token = localStorage.getItem('token');
-      
+
       if (token) {
         // Call logout API to invalidate token
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://iaf-ifrs-be.danafin.com/api/v1';
-        
+
         try {
           await fetch(`${apiUrl}/auth/logout`, {
             method: 'POST',
@@ -126,7 +126,7 @@ export const authProvider: AuthProvider = {
           console.warn('Logout API call failed:', error);
         }
       }
-      
+
       // Clear all stored authentication data
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
@@ -134,7 +134,7 @@ export const authProvider: AuthProvider = {
       localStorage.removeItem('tenantId');
       localStorage.removeItem('bankingType');
       localStorage.removeItem('tenantConfig');
-      
+
       return Promise.resolve();
     } catch (error) {
       console.error('Logout error:', error);
@@ -146,14 +146,14 @@ export const authProvider: AuthProvider = {
   checkAuth: async () => {
     try {
       const token = localStorage.getItem('token');
-      
+
       if (!token) {
         return Promise.reject(new Error('No authentication token found'));
       }
 
       // Verify token with backend
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://iaf-ifrs-be.danafin.com/api/v1';
-      
+
       const response = await fetch(`${apiUrl}/auth/verify`, {
         method: 'GET',
         headers: {
@@ -165,7 +165,7 @@ export const authProvider: AuthProvider = {
       if (!response.ok) {
         // Token is invalid, try to refresh
         const refreshToken = localStorage.getItem('refreshToken');
-        
+
         if (refreshToken) {
           try {
             const refreshResponse = await fetch(`${apiUrl}/auth/refresh`, {
@@ -178,7 +178,7 @@ export const authProvider: AuthProvider = {
 
             if (refreshResponse.ok) {
               const refreshData = await refreshResponse.json();
-              
+
               // ✅ FIXED: Use correct field name for token
               if (refreshData.success && refreshData.data && refreshData.data.token) {
                 localStorage.setItem('token', refreshData.data.token);
@@ -190,7 +190,7 @@ export const authProvider: AuthProvider = {
             console.error('Token refresh failed:', refreshError);
           }
         }
-        
+
         // Clear invalid tokens
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
@@ -207,7 +207,7 @@ export const authProvider: AuthProvider = {
   // Check error responses for authentication issues
   checkError: async (error: any) => {
     const status = error.status;
-    
+
     if (status === 401 || status === 403) {
       // Clear authentication data on auth errors
       localStorage.removeItem('token');
@@ -216,10 +216,10 @@ export const authProvider: AuthProvider = {
       localStorage.removeItem('tenantId');
       localStorage.removeItem('bankingType');
       localStorage.removeItem('tenantConfig');
-      
+
       return Promise.reject(error);
     }
-    
+
     return Promise.resolve();
   },
 
@@ -227,13 +227,26 @@ export const authProvider: AuthProvider = {
   getIdentity: async (): Promise<UserIdentity> => {
     try {
       const userStr = localStorage.getItem('user');
-      
+
       if (!userStr) {
         throw new Error('No user data found');
       }
 
       const user = JSON.parse(userStr);
-      
+
+      // Transform permissions map to flat array if it's an object
+      let flatPermissions: string[] = [];
+      if (user.permissions) {
+        if (Array.isArray(user.permissions)) {
+          flatPermissions = user.permissions;
+        } else {
+          // Flatten { resource: [actions] } to ["RESOURCE_ACTION", ...]
+          flatPermissions = Object.entries(user.permissions).flatMap(([resource, actions]) =>
+            (actions as string[]).map(action => `${resource}_${action}`.toUpperCase())
+          );
+        }
+      }
+
       return Promise.resolve({
         id: user.id,
         fullName: user.fullName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
@@ -241,7 +254,7 @@ export const authProvider: AuthProvider = {
         tenantId: user.tenantId || 'demo-bank',
         bankingType: user.bankingType || 'conventional',
         roles: user.roles || [],
-        permissions: user.permissions || [],
+        permissions: flatPermissions,
         avatar: user.avatar
       });
     } catch (error) {
@@ -254,15 +267,26 @@ export const authProvider: AuthProvider = {
   getPermissions: async () => {
     try {
       const userStr = localStorage.getItem('user');
-      
+
       if (!userStr) {
         return Promise.resolve([]);
       }
 
       const user = JSON.parse(userStr);
-      const permissions = user.permissions || [];
-      
-      return Promise.resolve(permissions);
+
+      // Transform permissions map to flat array if it's an object
+      let flatPermissions: string[] = [];
+      if (user.permissions) {
+        if (Array.isArray(user.permissions)) {
+          flatPermissions = user.permissions;
+        } else {
+          flatPermissions = Object.entries(user.permissions).flatMap(([resource, actions]) =>
+            (actions as string[]).map(action => `${resource}_${action}`.toUpperCase())
+          );
+        }
+      }
+
+      return Promise.resolve(flatPermissions);
     } catch (error) {
       console.error('Get permissions error:', error);
       return Promise.resolve([]);

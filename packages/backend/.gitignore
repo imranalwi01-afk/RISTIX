@@ -12,6 +12,7 @@ build/
 .env.development
 .env.staging
 .env.production
+.env.*
 
 # Runtime directories
 logs/*

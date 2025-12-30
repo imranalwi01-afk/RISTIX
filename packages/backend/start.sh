@@ -73,5 +73,29 @@ echo "📚 API Documentation: http://localhost:4232/api/v1"
 echo "⏰ Starting in 3 seconds..."
 sleep 3
 
-# Start the backend development server
-pnpm dev
+# Parse argument for environment
+TARGET_ENV=${1:-local} # Default to 'local' if no argument provided
+
+echo "🌍 Target Environment: $TARGET_ENV"
+
+# Execute corresponding pnpm script
+case "$TARGET_ENV" in
+    "vps")
+        echo "📡 Connecting to VPS Environment..."
+        pnpm dev:vps
+        ;;
+    "iaf")
+        echo "🏢 Connecting to IAF Tenant Environment..."
+        pnpm dev:iaf
+        ;;
+    "local")
+        echo "🏠 Connecting to Local Environment..."
+        pnpm dev:local
+        ;;
+    *)
+        echo "⚠️  Unknown environment: $TARGET_ENV"
+        echo "   Usage: ./start.sh [local|iaf|vps]"
+        echo "   Defaulting to 'local'..."
+        pnpm dev:local
+        ;;
+esac
