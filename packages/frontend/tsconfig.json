@@ -12,6 +12,7 @@
     "strict": false,
     "noEmit": true,
     "incremental": true,
+    "tsBuildInfoFile": ".tsbuildinfo",
     "module": "esnext",
     "esModuleInterop": true,
     "moduleResolution": "node",
@@ -21,15 +22,33 @@
     "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "@/components/*": ["./src/components/*"],
-      "@/utils/*": ["./src/utils/*"],
-      "@/services/*": ["./src/services/*"],
-      "@/store/*": ["./src/store/*"],
-      "@/providers/*": ["./src/providers/*"],
-      "@/config/*": ["./src/config/*"],
-      "@/themes/*": ["./src/themes/*"],
-      "@/types/*": ["./src/types/*"]
+      "@/*": [
+        "./src/*"
+      ],
+      "@/components/*": [
+        "./src/components/*"
+      ],
+      "@/utils/*": [
+        "./src/utils/*"
+      ],
+      "@/services/*": [
+        "./src/services/*"
+      ],
+      "@/store/*": [
+        "./src/store/*"
+      ],
+      "@/providers/*": [
+        "./src/providers/*"
+      ],
+      "@/config/*": [
+        "./src/config/*"
+      ],
+      "@/themes/*": [
+        "./src/themes/*"
+      ],
+      "@/types/*": [
+        "./src/types/*"
+      ]
     },
     "plugins": [
       {

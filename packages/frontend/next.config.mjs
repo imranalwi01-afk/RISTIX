@@ -1,21 +1,61 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Remove all experimental features that might cause issues
+  // ============================================================================
+  // PERFORMANCE OPTIMIZATIONS
+  // ============================================================================
+
+  // Enable SWC minification for faster builds
+  swcMinify: true,
+
+  // Optimize package imports to reduce bundle size
   experimental: {
-    // Remove optimizeCss as it might cause issues
-    // optimizePackageImports: [],
+    optimizePackageImports: [
+      '@mui/material',
+      '@mui/icons-material',
+      '@mui/lab',
+      '@mui/x-data-grid',
+      '@mui/x-date-pickers',
+      'react-admin',
+      'ra-data-simple-rest',
+      'recharts',
+      'lucide-react',
+      'notistack'
+    ],
+    // Enable server actions for better performance
+    serverActions: {
+      bodySizeLimit: '2mb'
+    }
   },
 
-  // Simplified compiler
+  // Compiler optimizations
   compiler: {
-    // Remove emotion for now to isolate the issue
-    // emotion: false,
+    // Remove console logs in production (keep errors and warnings)
+    removeConsole: process.env.NODE_ENV === 'production' ? {
+      exclude: ['error', 'warn']
+    } : false
   },
 
-  // Remove complex webpack configuration
-  // webpack: (config) => config,
+  // Modularize imports to reduce bundle size
+  modularizeImports: {
+    '@mui/material': {
+      transform: '@mui/material/{{member}}'
+    },
+    '@mui/icons-material': {
+      transform: '@mui/icons-material/{{member}}'
+    }
+  },
 
-  // Keep only essential rewrites
+  // ============================================================================
+  // IMAGE OPTIMIZATION
+  // ============================================================================
+  images: {
+    domains: ['localhost', 'iaf-ifrs.ifrspro.id', 'bifrs9-iaf.ifrspro.id', 'danafin.com', 'iaf-ifrs.danafin.com'],
+    formats: ['image/webp', 'image/avif']
+  },
+
+  // ============================================================================
+  // API REWRITES
+  // ============================================================================
   async rewrites() {
     return [
       {
@@ -27,25 +67,23 @@ const nextConfig = {
     ];
   },
 
-  // Remove complex headers for now
-  // async headers() { return []; },
+  // ============================================================================
+  // PRODUCTION OPTIMIZATIONS
+  // ============================================================================
 
-  // Simplified images config
-  images: {
-    domains: ['localhost', 'iaf-ifrs.ifrspro.id'],
-  },
+  // Disable source maps in production for smaller bundles
+  productionBrowserSourceMaps: false,
 
-  // Remove transpilePackages
-  // transpilePackages: [],
+  // Remove X-Powered-By header for security
+  poweredByHeader: false,
 
-  // Keep only essential env variables (NODE_ENV is not allowed here)
+  // ============================================================================
+  // ENVIRONMENT VARIABLES
+  // ============================================================================
   env: {
     NEXT_PUBLIC_ENVIRONMENT: process.env.NEXT_PUBLIC_ENVIRONMENT,
     NEXT_PUBLIC_DEPLOYMENT_TARGET: process.env.NEXT_PUBLIC_DEPLOYMENT_TARGET,
   },
-
-  // Remove allowedDevOrigins for now
-  // allowedDevOrigins: [],
 };
 
 export default nextConfig;

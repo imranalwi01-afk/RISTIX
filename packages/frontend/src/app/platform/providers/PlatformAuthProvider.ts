@@ -73,7 +73,12 @@ export const authProvider: AuthProvider = {
           user.role.includes('PLATFORM_ADMIN') ||
           user.role.includes('PLATFORM_TECH_ADMIN') ||
           user.role.includes('PLATFORM_OPERATIONS') ||
-          user.role.includes('PLATFORM_SUPPORT')
+          user.role.includes('PLATFORM_SUPPORT') ||
+          user.role.includes('IAF_TENANT_SUPERADMIN') ||
+          user.role.includes('IAF_IFRS_MANAGER') ||
+          user.role.includes('IAF_BANK_CRO') ||
+          user.role.includes('SUPERADMIN') ||
+          user.role.includes('ADMIN')
         );
 
         if (!isPlatformAdmin) {
@@ -183,7 +188,12 @@ export const authProvider: AuthProvider = {
         user.role.includes('PLATFORM_ADMIN') ||
         user.role.includes('PLATFORM_TECH_ADMIN') ||
         user.role.includes('PLATFORM_OPERATIONS') ||
-        user.role.includes('PLATFORM_SUPPORT')
+        user.role.includes('PLATFORM_SUPPORT') ||
+        user.role.includes('IAF_TENANT_SUPERADMIN') ||
+        user.role.includes('IAF_IFRS_MANAGER') ||
+        user.role.includes('IAF_BANK_CRO') ||
+        user.role.includes('SUPERADMIN') ||
+        user.role.includes('ADMIN')
       );
 
       if (!isPlatformAdmin) {
