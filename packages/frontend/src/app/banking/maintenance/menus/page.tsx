@@ -82,7 +82,12 @@ import {
 } from '@mui/icons-material';
 
 // Import our database-driven menu service
-import { menuService, MenuItem as DatabaseMenuItem, CreateMenuItemRequest, UpdateMenuItemRequest } from '@/services/menu.service';
+import { useRouter } from 'next/navigation';
+import { getAuthToken } from '@/utils/auth-token';
+import {
+  getMenuConfigurations,
+  saveMenuConfiguration
+} from '@/services/api/maintenance.api';
 
 // Import API service for base URL configuration
 import { api } from '@/services/api';

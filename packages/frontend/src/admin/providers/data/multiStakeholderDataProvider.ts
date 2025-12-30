@@ -1,5 +1,5 @@
-// packages/frontend/src/admin/providers/data/multiStakeholderDataProvider.ts
 import { DataProvider, GetListParams, GetOneParams, GetManyParams, GetManyReferenceParams, CreateParams, UpdateParams, UpdateManyParams, DeleteParams, DeleteManyParams } from 'react-admin';
+import { getAuthToken } from '../../../utils/auth-token';
 
 // =============================================================================
 // TYPESCRIPT INTERFACES
@@ -149,7 +149,7 @@ const API_ENDPOINTS = {
     ME: '/api/v1/auth/me',
     REFRESH: '/api/v1/auth/refresh'
   },
-  
+
   // Platform Admin APIs (Cross-tenant)
   PLATFORM: {
     USERS: '/api/v1/platform/users',
@@ -160,7 +160,7 @@ const API_ENDPOINTS = {
     TENANTS: '/api/v1/platform/tenants',
     SYSTEM_CONFIG: '/api/v1/platform/system-config'
   },
-  
+
   // Tenant-specific APIs
   TENANT: {
     PORTFOLIO_ACCOUNTS: (tenantId: string) => `/api/v1/tenants/${tenantId}/portfolio/accounts`,
@@ -190,7 +190,14 @@ class ApiClient {
 
   private loadAuthFromStorage(): void {
     if (typeof window !== 'undefined') {
-      this.authToken = localStorage.getItem('auth_token');
+      this.authToken = getAuthToken();
+      // Get current user token from localStorage
+      const token = getAuthToken();
+      if (!token) {
+        // If no token, clear other auth related items to ensure clean state
+        this.clearAuthFromStorage();
+        return;
+      }
       this.refreshToken = localStorage.getItem('refresh_token');
       this.userStakeholderType = localStorage.getItem('user_stakeholder_type');
       this.tenantId = localStorage.getItem('user_tenant_id');
@@ -512,7 +519,7 @@ class MultiStakeholderDataProvider implements DataProvider {
 
   async getTenantData(tenantId: string, resource: string): Promise<any[]> {
     const stakeholderType = this.apiClient.getStakeholderType();
-    
+
     // Only platform admins and authorized users can access tenant data
     if (stakeholderType !== 'platform_admin' && this.apiClient.getTenantId() !== tenantId) {
       throw new Error('Unauthorized access to tenant data');
@@ -531,31 +538,31 @@ class MultiStakeholderDataProvider implements DataProvider {
     // Map resources to endpoints based on stakeholder type
     switch (resource) {
       case 'users':
-        return stakeholderType === 'platform_admin' 
-          ? API_ENDPOINTS.PLATFORM.USERS 
+        return stakeholderType === 'platform_admin'
+          ? API_ENDPOINTS.PLATFORM.USERS
           : `/api/v1/tenants/${tenantId}/users`;
-          
+
       case 'banking_institutions':
         return API_ENDPOINTS.PLATFORM.BANKING_INSTITUTIONS;
-        
+
       case 'consultant_projects':
         return API_ENDPOINTS.PLATFORM.CONSULTANT_PROJECTS;
-        
+
       case 'consultant_validations':
         return API_ENDPOINTS.PLATFORM.CONSULTANT_VALIDATIONS;
-        
+
       case 'portfolio_accounts':
         if (!tenantId) throw new Error('Tenant ID required for portfolio accounts');
         return API_ENDPOINTS.TENANT.PORTFOLIO_ACCOUNTS(tenantId);
-        
+
       case 'ecl_calculations':
         if (!tenantId) throw new Error('Tenant ID required for ECL calculations');
         return API_ENDPOINTS.TENANT.ECL_CALCULATIONS(tenantId);
-        
+
       case 'model_configurations':
         if (!tenantId) throw new Error('Tenant ID required for model configurations');
         return API_ENDPOINTS.TENANT.MODEL_CONFIGURATIONS(tenantId);
-        
+
       default:
         throw new Error(`Unknown resource: ${resource}`);
     }
@@ -667,7 +674,7 @@ export const multiStakeholderAuthProvider = {
   getPermissions: async () => {
     const dataProvider = new MultiStakeholderDataProvider();
     const stakeholderType = dataProvider.getStakeholderType();
-    
+
     // Define permissions based on stakeholder type
     const permissions = {
       platform_admin: ['all'],

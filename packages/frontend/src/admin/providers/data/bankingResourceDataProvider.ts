@@ -9,6 +9,7 @@
 // ============================================================================
 
 import { DataProvider, GetListParams, GetOneParams, CreateParams, UpdateParams, DeleteParams, GetManyParams, GetManyReferenceParams } from 'react-admin';
+import { getAuthToken } from '../../../utils/auth-token';
 
 export interface BankingResourceDataProviderConfig {
   apiUrl: string;
@@ -64,7 +65,7 @@ export class BankingResourceDataProvider implements DataProvider {
     const { method = 'GET', body, headers = {} } = options;
 
     // Get auth token from localStorage
-    const token = localStorage.getItem('auth_token');
+    const token = getAuthToken();
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }

@@ -41,6 +41,7 @@ import {
   Settings as SettingsIcon,
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
+import { getAuthToken, clearAuthTokens } from '../../../utils/auth-token';
 
 // ============================================================================
 // INTERFACES
@@ -106,10 +107,10 @@ const PlatformNavigation: React.FC<PlatformNavigationProps> = ({
     // Check online status
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
-    
+
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-    
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
@@ -164,11 +165,9 @@ const PlatformNavigation: React.FC<PlatformNavigationProps> = ({
     } catch (error) {
       console.warn('Logout API failed:', error);
     } finally {
-      // Clear local storage
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('user_data');
-      localStorage.removeItem('refresh_token');
-      
+      // Clear all tokens (cookies + storage)
+      clearAuthTokens();
+
       // Redirect to login
       router.push('/login');
     }
@@ -192,10 +191,10 @@ const PlatformNavigation: React.FC<PlatformNavigationProps> = ({
   };
 
   return (
-    <AppBar 
-      position="static" 
+    <AppBar
+      position="static"
       elevation={2}
-      sx={{ 
+      sx={{
         background: `linear-gradient(135deg, ${platformTheme.primary} 0%, ${platformTheme.secondary} 100%)`,
         mb: 0
       }}
@@ -204,12 +203,12 @@ const PlatformNavigation: React.FC<PlatformNavigationProps> = ({
         {/* ============================================================================ */}
         {/* LEFT SIDE - Logo and Current View */}
         {/* ============================================================================ */}
-        
+
         <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
           <Typography variant="h6" component="div" sx={{ fontWeight: 'bold', mr: 2 }}>
             🏢 IFRS9 Platform
           </Typography>
-          
+
           <Chip
             label={currentView === 'classic' ? 'Classic Dashboard' : 'React Admin'}
             icon={currentView === 'classic' ? <ClassicIcon /> : <AdminIcon />}
@@ -238,7 +237,7 @@ const PlatformNavigation: React.FC<PlatformNavigationProps> = ({
         {/* ============================================================================ */}
         {/* CENTER - Quick Switch Buttons */}
         {/* ============================================================================ */}
-        
+
         <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1, mr: 2 }}>
           {currentView === 'admin' && (
             <Tooltip title="Switch to Classic Dashboard">
@@ -256,7 +255,7 @@ const PlatformNavigation: React.FC<PlatformNavigationProps> = ({
               </Button>
             </Tooltip>
           )}
-          
+
           {currentView === 'classic' && (
             <Tooltip title="Switch to React Admin Interface">
               <Button
@@ -278,14 +277,14 @@ const PlatformNavigation: React.FC<PlatformNavigationProps> = ({
         {/* ============================================================================ */}
         {/* RIGHT SIDE - User Info and Menu */}
         {/* ============================================================================ */}
-        
+
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           {/* User Avatar and Info */}
           <Box sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'center', gap: 1, mr: 1 }}>
             <Avatar
               src={getUserAvatar()}
-              sx={{ 
-                width: 32, 
+              sx={{
+                width: 32,
                 height: 32,
                 border: `2px solid ${getStatusColor()}`,
               }}
@@ -331,7 +330,7 @@ const PlatformNavigation: React.FC<PlatformNavigationProps> = ({
             {/* ============================================================================ */}
             {/* USER PROFILE SECTION */}
             {/* ============================================================================ */}
-            
+
             <MenuItem disabled>
               <ListItemIcon>
                 <Avatar src={getUserAvatar()} sx={{ width: 24, height: 24 }} />
@@ -345,13 +344,13 @@ const PlatformNavigation: React.FC<PlatformNavigationProps> = ({
                 </Typography>
               </ListItemText>
             </MenuItem>
-            
+
             <Divider />
 
             {/* ============================================================================ */}
             {/* NAVIGATION MENU ITEMS */}
             {/* ============================================================================ */}
-            
+
             <MenuItem onClick={navigateToClassic} disabled={currentView === 'classic'}>
               <ListItemIcon>
                 <ClassicIcon />
@@ -363,7 +362,7 @@ const PlatformNavigation: React.FC<PlatformNavigationProps> = ({
                 )}
               </ListItemText>
             </MenuItem>
-            
+
             <MenuItem onClick={navigateToAdmin} disabled={currentView === 'admin'}>
               <ListItemIcon>
                 <AdminIcon />
@@ -375,54 +374,54 @@ const PlatformNavigation: React.FC<PlatformNavigationProps> = ({
                 )}
               </ListItemText>
             </MenuItem>
-            
+
             <Divider />
 
             {/* ============================================================================ */}
             {/* QUICK ACCESS MENU ITEMS */}
             {/* ============================================================================ */}
-            
+
             <MenuItem onClick={() => { handleMenuClose(); router.push('/platform/admin#/tenants'); }}>
               <ListItemIcon>
                 <TenantsIcon />
               </ListItemIcon>
               <ListItemText>Manage Tenants</ListItemText>
             </MenuItem>
-            
+
             <MenuItem onClick={() => { handleMenuClose(); router.push('/platform/admin#/consultants'); }}>
               <ListItemIcon>
                 <ConsultantsIcon />
               </ListItemIcon>
               <ListItemText>Consultants</ListItemText>
             </MenuItem>
-            
+
             <MenuItem onClick={() => { handleMenuClose(); router.push('/platform/admin#/analytics'); }}>
               <ListItemIcon>
                 <AnalyticsIcon />
               </ListItemIcon>
               <ListItemText>Platform Analytics</ListItemText>
             </MenuItem>
-            
+
             <MenuItem onClick={() => { handleMenuClose(); router.push('/platform/admin#/infrastructure'); }}>
               <ListItemIcon>
                 <InfrastructureIcon />
               </ListItemIcon>
               <ListItemText>Infrastructure</ListItemText>
             </MenuItem>
-            
+
             <Divider />
 
             {/* ============================================================================ */}
             {/* SYSTEM MENU ITEMS */}
             {/* ============================================================================ */}
-            
+
             <MenuItem onClick={navigateToHome}>
               <ListItemIcon>
                 <BackIcon />
               </ListItemIcon>
               <ListItemText>Back to Home</ListItemText>
             </MenuItem>
-            
+
             <MenuItem onClick={handleLogout} sx={{ color: 'error.main' }}>
               <ListItemIcon>
                 <LogoutIcon sx={{ color: 'error.main' }} />

@@ -68,6 +68,11 @@ import {
   Assessment as ValidateIcon
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
+import { getAuthToken } from '@/utils/auth-token';
+import {
+  getUploadHistory,
+  uploadDataFile
+} from '@/services/api/data.api';
 import { useDropzone } from 'react-dropzone';
 
 interface UploadBatch {
@@ -180,7 +185,7 @@ export default function DataUploadPage() {
       formData.append('file', file);
 
       const xhr = new XMLHttpRequest();
-      
+
       // Track upload progress
       xhr.upload.addEventListener('progress', (event) => {
         if (event.lengthComputable) {
@@ -369,9 +374,9 @@ export default function DataUploadPage() {
     <Container maxWidth="xl">
       {/* Breadcrumb Navigation */}
       <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
-        <Link 
-          underline="hover" 
-          color="inherit" 
+        <Link
+          underline="hover"
+          color="inherit"
           href="/banking/dashboard"
           onClick={(e) => {
             e.preventDefault();
@@ -422,7 +427,7 @@ export default function DataUploadPage() {
                 <UploadIcon sx={{ mr: 1 }} />
                 File Upload
               </Typography>
-              
+
               <Paper
                 {...getRootProps()}
                 sx={{
@@ -443,15 +448,15 @@ export default function DataUploadPage() {
               >
                 <input {...getInputProps()} />
                 <CloudUpload sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
-                
+
                 {uploading ? (
                   <Box>
                     <Typography variant="h6" gutterBottom>
                       Uploading... {Math.round(uploadProgress)}%
                     </Typography>
-                    <LinearProgress 
-                      variant="determinate" 
-                      value={uploadProgress} 
+                    <LinearProgress
+                      variant="determinate"
+                      value={uploadProgress}
                       sx={{ mt: 2, mb: 2 }}
                     />
                   </Box>
@@ -491,7 +496,7 @@ export default function DataUploadPage() {
                 <InfoIcon sx={{ mr: 1 }} />
                 Upload Statistics
               </Typography>
-              
+
               <Grid container spacing={2}>
                 <Grid item xs={6}>
                   <Paper sx={{ p: 2, textAlign: 'center', backgroundColor: 'primary.light' }}>
@@ -627,18 +632,18 @@ export default function DataUploadPage() {
                           <TableCell align="center">
                             <Box sx={{ display: 'flex', gap: 0.5 }}>
                               <Tooltip title="View Details">
-                                <IconButton 
-                                  size="small" 
+                                <IconButton
+                                  size="small"
                                   onClick={() => handleViewDetails(batch)}
                                 >
                                   <ViewIcon />
                                 </IconButton>
                               </Tooltip>
-                              
+
                               {batch.status === 'uploaded' && (
                                 <Tooltip title="Validate Data">
-                                  <IconButton 
-                                    size="small" 
+                                  <IconButton
+                                    size="small"
                                     onClick={() => handleValidateData(batch.batchId)}
                                     color="primary"
                                   >
@@ -646,11 +651,11 @@ export default function DataUploadPage() {
                                   </IconButton>
                                 </Tooltip>
                               )}
-                              
+
                               {batch.status === 'valid' && (
                                 <Tooltip title="Process Data">
-                                  <IconButton 
-                                    size="small" 
+                                  <IconButton
+                                    size="small"
                                     onClick={() => handleProcessData(batch.batchId)}
                                     color="success"
                                   >
@@ -672,8 +677,8 @@ export default function DataUploadPage() {
       </Grid>
 
       {/* Batch Details Dialog */}
-      <Dialog 
-        open={detailsOpen} 
+      <Dialog
+        open={detailsOpen}
         onClose={() => setDetailsOpen(false)}
         maxWidth="md"
         fullWidth
@@ -693,69 +698,69 @@ export default function DataUploadPage() {
                 <Typography variant="subtitle2" gutterBottom>File Information</Typography>
                 <List dense>
                   <ListItem>
-                    <ListItemText 
-                      primary="Batch ID" 
+                    <ListItemText
+                      primary="Batch ID"
                       secondary={selectedBatch.batchId}
                     />
                   </ListItem>
                   <ListItem>
-                    <ListItemText 
-                      primary="Original Filename" 
+                    <ListItemText
+                      primary="Original Filename"
                       secondary={selectedBatch.originalName}
                     />
                   </ListItem>
                   <ListItem>
-                    <ListItemText 
-                      primary="File Size" 
+                    <ListItemText
+                      primary="File Size"
                       secondary={formatFileSize(selectedBatch.fileSize)}
                     />
                   </ListItem>
                   <ListItem>
-                    <ListItemText 
-                      primary="File Type" 
+                    <ListItemText
+                      primary="File Type"
                       secondary={selectedBatch.fileType}
                     />
                   </ListItem>
                   <ListItem>
-                    <ListItemText 
-                      primary="Upload Time" 
+                    <ListItemText
+                      primary="Upload Time"
                       secondary={new Date(selectedBatch.uploadedAt).toLocaleString()}
                     />
                   </ListItem>
                 </List>
               </Grid>
-              
+
               <Grid item xs={12} md={6}>
                 {selectedBatch.validationResults && (
                   <Box>
                     <Typography variant="subtitle2" gutterBottom>Validation Results</Typography>
                     <List dense>
                       <ListItem>
-                        <ListItemText 
-                          primary="Status" 
+                        <ListItemText
+                          primary="Status"
                           secondary={selectedBatch.validationResults.isValid ? 'Valid' : 'Invalid'}
                         />
                       </ListItem>
                       <ListItem>
-                        <ListItemText 
-                          primary="Record Count" 
+                        <ListItemText
+                          primary="Record Count"
                           secondary={selectedBatch.validationResults.recordCount.toLocaleString()}
                         />
                       </ListItem>
                       <ListItem>
-                        <ListItemText 
-                          primary="Errors" 
+                        <ListItemText
+                          primary="Errors"
                           secondary={selectedBatch.validationResults.errorCount}
                         />
                       </ListItem>
                       <ListItem>
-                        <ListItemText 
-                          primary="Warnings" 
+                        <ListItemText
+                          primary="Warnings"
                           secondary={selectedBatch.validationResults.warningCount}
                         />
                       </ListItem>
                     </List>
-                    
+
                     {selectedBatch.validationResults.issues.length > 0 && (
                       <Box sx={{ mt: 2 }}>
                         <Typography variant="subtitle2" gutterBottom>Issues Found</Typography>
@@ -770,45 +775,45 @@ export default function DataUploadPage() {
                     )}
                   </Box>
                 )}
-                
+
                 {selectedBatch.processingResults && (
                   <Box>
                     <Typography variant="subtitle2" gutterBottom>Processing Results</Typography>
                     <List dense>
                       <ListItem>
-                        <ListItemText 
-                          primary="Records Processed" 
+                        <ListItemText
+                          primary="Records Processed"
                           secondary={selectedBatch.processingResults.recordsProcessed.toLocaleString()}
                         />
                       </ListItem>
                       <ListItem>
-                        <ListItemText 
-                          primary="Records Inserted" 
+                        <ListItemText
+                          primary="Records Inserted"
                           secondary={selectedBatch.processingResults.recordsInserted.toLocaleString()}
                         />
                       </ListItem>
                       <ListItem>
-                        <ListItemText 
-                          primary="Records Updated" 
+                        <ListItemText
+                          primary="Records Updated"
                           secondary={selectedBatch.processingResults.recordsUpdated.toLocaleString()}
                         />
                       </ListItem>
                       <ListItem>
-                        <ListItemText 
-                          primary="Records Skipped" 
+                        <ListItemText
+                          primary="Records Skipped"
                           secondary={selectedBatch.processingResults.recordsSkipped.toLocaleString()}
                         />
                       </ListItem>
                       <ListItem>
-                        <ListItemText 
-                          primary="Execution Time" 
+                        <ListItemText
+                          primary="Execution Time"
                           secondary={`${(selectedBatch.processingResults.executionTime / 1000).toFixed(2)}s`}
                         />
                       </ListItem>
                     </List>
                   </Box>
                 )}
-                
+
                 {selectedBatch.errorDetails && (
                   <Alert severity="error" sx={{ mt: 2 }}>
                     <Typography variant="subtitle2">Error Details</Typography>
@@ -836,8 +841,8 @@ export default function DataUploadPage() {
         autoHideDuration={6000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
       >
-        <Alert 
-          severity={snackbar.severity} 
+        <Alert
+          severity={snackbar.severity}
           onClose={() => setSnackbar({ ...snackbar, open: false })}
         >
           {snackbar.message}

@@ -191,7 +191,9 @@ export class MenuApiService {
     bankingMode?: 'conventional' | 'syariah' | 'dual';
     includeInactive?: boolean;
   }): Promise<MenuApiResponse<MenuItem[]>> {
+    console.log('🚀 [MENU API] Fetching menu tree...', params);
     const response = await menuApiClient.get('/menu/hierarchy', { params });
+    console.log('✅ [MENU API] Menu tree response:', response.status, response.data?.success);
     return response.data;
   }
 

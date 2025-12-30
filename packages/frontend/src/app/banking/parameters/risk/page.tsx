@@ -37,6 +37,13 @@ import {
 } from '@mui/icons-material';
 import { DataGrid, GridColDef, GridActionsCellItem, GridRowParams } from '@mui/x-data-grid';
 import { useRouter } from 'next/navigation';
+import { getAuthToken } from '@/utils/auth-token';
+import {
+  getRiskParameters,
+  deleteRiskParameter,
+  createRiskParameter,
+  updateRiskParameter
+} from '../../../../services/api/risk.api';
 
 interface RiskParameter {
   pkid: number;
@@ -124,9 +131,9 @@ export default function RiskParametersPage() {
       width: 100,
       renderCell: (params) => {
         const level = params.value;
-        const color = level === 'CRITICAL' ? 'error' : 
-                     level === 'HIGH' ? 'warning' :
-                     level === 'MEDIUM' ? 'info' : 'success';
+        const color = level === 'CRITICAL' ? 'error' :
+          level === 'HIGH' ? 'warning' :
+            level === 'MEDIUM' ? 'info' : 'success';
         return <Chip label={level} color={color} size="small" />;
       }
     },
@@ -135,7 +142,7 @@ export default function RiskParametersPage() {
       headerName: 'Probability',
       width: 100,
       type: 'number',
-      renderCell: (params) => 
+      renderCell: (params) =>
         params.value ? `${(params.value * 100).toFixed(1)}%` : '-'
     },
     {
@@ -156,10 +163,10 @@ export default function RiskParametersPage() {
       headerName: 'Active',
       width: 80,
       renderCell: (params) => (
-        <Chip 
-          label={params.value ? 'Active' : 'Inactive'} 
-          color={params.value ? 'success' : 'default'} 
-          size="small" 
+        <Chip
+          label={params.value ? 'Active' : 'Inactive'}
+          color={params.value ? 'success' : 'default'}
+          size="small"
         />
       )
     },
@@ -190,8 +197,8 @@ export default function RiskParametersPage() {
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem('ifrs9_auth_token');
-      
+      const token = getAuthToken();
+
       if (!token) {
         console.warn('No auth token found - using mock data');
         setMockData();
@@ -204,7 +211,7 @@ export default function RiskParametersPage() {
           'Content-Type': 'application/json',
         },
       });
-      
+
       if (response.ok) {
         const result = await response.json();
         setData(result.data || []);
@@ -361,7 +368,7 @@ export default function RiskParametersPage() {
   const handleDelete = async (risk: RiskParameter) => {
     if (confirm(`Are you sure you want to delete risk "${risk.risk_code}"?`)) {
       try {
-        const token = localStorage.getItem('ifrs9_auth_token');
+        const token = getAuthToken();
         if (!token) {
           alert('Authentication required');
           return;
@@ -374,7 +381,7 @@ export default function RiskParametersPage() {
             'Content-Type': 'application/json',
           },
         });
-        
+
         if (response.ok) {
           await loadData();
         } else {
@@ -391,18 +398,18 @@ export default function RiskParametersPage() {
 
   const handleSave = async () => {
     try {
-      const token = localStorage.getItem('ifrs9_auth_token');
+      const token = getAuthToken();
       if (!token) {
         alert('Authentication required');
         return;
       }
 
-      const url = selectedRisk 
+      const url = selectedRisk
         ? `/api/v1/banking/parameters/risk/${selectedRisk.pkid}`
         : '/api/v1/banking/parameters/risk';
-      
+
       const method = selectedRisk ? 'PUT' : 'POST';
-      
+
       const payload = {
         risk_category: formData.risk_category,
         risk_type: formData.risk_type,
@@ -416,7 +423,7 @@ export default function RiskParametersPage() {
         review_frequency: formData.review_frequency,
         active_flag: formData.active_flag
       };
-      
+
       const response = await fetch(url, {
         method,
         headers: {
@@ -459,9 +466,9 @@ export default function RiskParametersPage() {
     <Container maxWidth="xl">
       {/* Breadcrumb Navigation */}
       <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
-        <Link 
-          underline="hover" 
-          color="inherit" 
+        <Link
+          underline="hover"
+          color="inherit"
           href="/banking/dashboard"
           onClick={(e) => {
             e.preventDefault();
@@ -498,7 +505,7 @@ export default function RiskParametersPage() {
             Risk management and assessment parameter configuration
           </Typography>
         </Box>
-        
+
         <Box sx={{ display: 'flex', gap: 1 }}>
           <Tooltip title="Refresh Data">
             <IconButton onClick={loadData} color="primary" disabled={loading}>
@@ -575,7 +582,7 @@ export default function RiskParametersPage() {
               <MenuItem value="FUNDING">Funding</MenuItem>
               <MenuItem value="TECHNOLOGY">Technology</MenuItem>
             </TextField>
-            
+
             <TextField
               label="Risk Code"
               value={formData.risk_code}
@@ -595,7 +602,7 @@ export default function RiskParametersPage() {
               <MenuItem value="HIGH">High</MenuItem>
               <MenuItem value="CRITICAL">Critical</MenuItem>
             </TextField>
-            
+
             <TextField
               label="Risk Description"
               value={formData.risk_desc}
@@ -606,7 +613,7 @@ export default function RiskParametersPage() {
               multiline
               rows={2}
             />
-            
+
             <TextField
               label="Probability (0-1)"
               type="number"
@@ -625,7 +632,7 @@ export default function RiskParametersPage() {
               inputProps={{ min: 1, max: 10 }}
               helperText="Scale of 1 (minimal) to 10 (severe)"
             />
-            
+
             <TextField
               label="Owner Department"
               select
@@ -656,7 +663,7 @@ export default function RiskParametersPage() {
               <MenuItem value="SEMI_ANNUALLY">Semi-Annually</MenuItem>
               <MenuItem value="ANNUALLY">Annually</MenuItem>
             </TextField>
-            
+
             <TextField
               label="Mitigation Strategy"
               value={formData.mitigation_strategy}
@@ -667,7 +674,7 @@ export default function RiskParametersPage() {
               sx={{ gridColumn: 'span 2' }}
               placeholder="Describe risk mitigation and control measures..."
             />
-            
+
             <Box sx={{ gridColumn: 'span 2' }}>
               <FormControlLabel
                 control={
@@ -683,8 +690,8 @@ export default function RiskParametersPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
-          <Button 
-            onClick={handleSave} 
+          <Button
+            onClick={handleSave}
             variant="contained"
             disabled={!formData.risk_code || !formData.risk_desc}
           >

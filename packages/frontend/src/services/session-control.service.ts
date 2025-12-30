@@ -2,12 +2,13 @@
 // 🎯 CENTRALIZED SESSION CONTROL SERVICE
 // Unified session management with configurable behavior
 
+import Cookies from 'js-cookie';
 import { getSessionControlConfig, SessionControlConfig } from '../config/session-control.config';
 import { frontendEnvironmentLoader } from '../config/environment-loader-frontend';
 
 export interface SessionEvent {
   type: 'login' | 'logout' | 'token_refresh' | 'session_warning' | 'session_expired' | 'error' |
-        'network_warning' | 'network_offline' | 'offline_indicator_shown' | 'slow_connection_warning';
+  'network_warning' | 'network_offline' | 'offline_indicator_shown' | 'slow_connection_warning';
   timestamp: number;
   data?: any;
   reason?: string;
@@ -357,12 +358,12 @@ export class SessionControlService {
     }
 
     // Declare timeoutId outside try block to make it accessible in catch
-    let timeoutId: NodeJS.Timeout;
+    let timeoutId: NodeJS.Timeout | undefined;
 
     try {
-      // ✅ FIXED: Use backend URL from environment configuration (already includes /api/v1)
+      // ✅ FIXED: Use api.base from environment configuration (includes /api/v1 prefix)
       const config = frontendEnvironmentLoader.getConfiguration();
-      const refreshUrl = `${config.urls.backend}/auth/refresh`;
+      const refreshUrl = `${config.api.base}/auth/refresh`;
 
       this.log('Attempting token refresh', {
         refreshUrl,
@@ -424,7 +425,7 @@ export class SessionControlService {
         return { success: false, error: `HTTP ${response.status}: ${response.statusText}` };
       }
     } catch (error: any) {
-      clearTimeout(timeoutId);
+      if (timeoutId) clearTimeout(timeoutId);
       this.log('Token refresh failed: Exception', { error: error.message });
 
       // Increment failure count
@@ -448,7 +449,12 @@ export class SessionControlService {
       // Call backend logout API if available
       if (!options?.skipAPI && this.state.token) {
         try {
-          await fetch('/auth/logout', {
+          // ✅ FIXED: Use api.base from environment configuration
+          const config = frontendEnvironmentLoader.getConfiguration();
+          const logoutUrl = `${config.api.base}/auth/logout`;
+
+          this.log('Calling logout API', { logoutUrl });
+          await fetch(logoutUrl, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${this.state.token}`,
@@ -491,9 +497,17 @@ export class SessionControlService {
     const config = this.config.logoutBehavior;
 
     if (config.clearLocalStorage) {
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('refresh_token');
-      localStorage.removeItem('user_data');
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('user_data');
+        localStorage.removeItem('token_expiry');
+        localStorage.removeItem('tenant_slug');
+
+        // ✅ FIXED: Clear cookies
+        Cookies.remove('auth_token', { path: '/' });
+        Cookies.remove('auth_user', { path: '/' });
+      }
       localStorage.removeItem('tenantId');
       localStorage.removeItem('bankingType');
       localStorage.removeItem('tenantConfig');
@@ -856,7 +870,7 @@ export class SessionControlService {
 
     // Network-related errors
     if (errorMessage.includes('network') || errorMessage.includes('fetch') ||
-        errorMessage.includes('connection') || error.code === 'NETWORK_ERROR') {
+      errorMessage.includes('connection') || error.code === 'NETWORK_ERROR') {
       return {
         type: 'network',
         userMessage: 'Network connection issue. Please check your internet connection and try again.',
@@ -867,7 +881,7 @@ export class SessionControlService {
 
     // Server errors (5xx)
     if (statusCode >= 500 || errorMessage.includes('server error') ||
-        errorMessage.includes('internal server error')) {
+      errorMessage.includes('internal server error')) {
       return {
         type: 'server',
         userMessage: 'Server is temporarily unavailable. Please try again in a few moments.',
@@ -878,7 +892,7 @@ export class SessionControlService {
 
     // Invalid/Expired refresh token
     if (statusCode === 401 || errorMessage.includes('invalid') ||
-        errorMessage.includes('expired') || errorMessage.includes('unauthorized')) {
+      errorMessage.includes('expired') || errorMessage.includes('unauthorized')) {
       return {
         type: 'expired',
         userMessage: 'Your session has expired for security reasons. Please log in again.',

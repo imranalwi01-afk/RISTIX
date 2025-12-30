@@ -34,6 +34,7 @@ import {
   Divider,
   List,
   ListItem,
+  ListItemButton,
   ListItemText,
   ListItemIcon,
   ListItemSecondaryAction,
@@ -46,8 +47,12 @@ import {
   Breadcrumbs,
   Link,
   InputAdornment,
-  Badge
+  Badge,
+  Avatar,
+  IconButton,
+  Menu
 } from '@mui/material';
+import { getAuthToken } from '@/utils/auth-token';
 import {
   Home as HomeIcon,
   Settings as PreferencesIcon,
@@ -194,13 +199,14 @@ const defaultPreferences: UserPreferences = {
   usageAnalytics: true,
   crashReporting: true,
   performanceMode: 'balanced',
-  cacheSize: 100
+  cacheSize: 100,
+  createdAt: new Date().toISOString()
 };
 
 export default function PreferencesPage() {
   const router = useRouter();
   const { user: currentUser, isAuthenticated } = useAuth();
-  const bankingMode = useSelector((state: RootState) => state.configuration.bankingMode);
+  const bankingMode = useSelector((state: RootState) => state.configuration?.bankingMode || 'conventional');
 
   // ✅ State Management
   const [preferences, setPreferences] = useState<UserPreferences>(defaultPreferences);
@@ -238,15 +244,14 @@ export default function PreferencesPage() {
   const API_BASE = getApiBase();
 
   // ✅ Get Auth Token
-  const getAuthToken = useCallback(() => {
-    return localStorage.getItem('auth_token') || '';
-  }, []);
+  const getAuthTokenValue = () => {
+    return getAuthToken() || '';
+  };
 
   // ✅ API Headers
   const getHeaders = useCallback(() => ({
     'Content-Type': 'application/json',
-    'Authorization': `Bearer ${getAuthToken()}`
-  }), [getAuthToken]);
+  }), []); // Removed getAuthToken from dependency array as it's a function call, not a state/prop
 
   // ✅ Load User Preferences
   const loadPreferences = useCallback(async () => {
@@ -436,8 +441,7 @@ export default function PreferencesPage() {
               Quick Settings
             </Typography>
             <List dense>
-              <ListItem
-                button
+              <ListItemButton
                 selected={activeSection === 'dashboard'}
                 onClick={() => setActiveSection('dashboard')}
               >
@@ -445,9 +449,8 @@ export default function PreferencesPage() {
                   <DashboardIcon />
                 </ListItemIcon>
                 <ListItemText primary="Dashboard" />
-              </ListItem>
-              <ListItem
-                button
+              </ListItemButton>
+              <ListItemButton
                 selected={activeSection === 'data'}
                 onClick={() => setActiveSection('data')}
               >
@@ -455,9 +458,8 @@ export default function PreferencesPage() {
                   <TableIcon />
                 </ListItemIcon>
                 <ListItemText primary="Data Display" />
-              </ListItem>
-              <ListItem
-                button
+              </ListItemButton>
+              <ListItemButton
                 selected={activeSection === 'export'}
                 onClick={() => setActiveSection('export')}
               >
@@ -465,9 +467,8 @@ export default function PreferencesPage() {
                   <ExportIcon />
                 </ListItemIcon>
                 <ListItemText primary="Export" />
-              </ListItem>
-              <ListItem
-                button
+              </ListItemButton>
+              <ListItemButton
                 selected={activeSection === 'notifications'}
                 onClick={() => setActiveSection('notifications')}
               >
@@ -475,9 +476,8 @@ export default function PreferencesPage() {
                   <NotificationIcon />
                 </ListItemIcon>
                 <ListItemText primary="Notifications" />
-              </ListItem>
-              <ListItem
-                button
+              </ListItemButton>
+              <ListItemButton
                 selected={activeSection === 'workflow'}
                 onClick={() => setActiveSection('workflow')}
               >
@@ -485,9 +485,8 @@ export default function PreferencesPage() {
                   <TimelineIcon />
                 </ListItemIcon>
                 <ListItemText primary="Workflow" />
-              </ListItem>
-              <ListItem
-                button
+              </ListItemButton>
+              <ListItemButton
                 selected={activeSection === 'banking'}
                 onClick={() => setActiveSection('banking')}
               >
@@ -495,9 +494,8 @@ export default function PreferencesPage() {
                   <BankingIcon />
                 </ListItemIcon>
                 <ListItemText primary="Banking" />
-              </ListItem>
-              <ListItem
-                button
+              </ListItemButton>
+              <ListItemButton
                 selected={activeSection === 'advanced'}
                 onClick={() => setActiveSection('advanced')}
               >
@@ -505,7 +503,7 @@ export default function PreferencesPage() {
                   <DataIcon />
                 </ListItemIcon>
                 <ListItemText primary="Advanced" />
-              </ListItem>
+              </ListItemButton>
             </List>
           </Paper>
         </Grid>

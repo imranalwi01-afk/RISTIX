@@ -9,6 +9,7 @@
 // ============================================================================
 
 import { AuthProvider } from 'react-admin';
+import { getAuthToken, clearAuthTokens, syncTokenToCookie } from '../../../utils/auth-token';
 
 // Types for authentication
 interface LoginParams {
@@ -88,6 +89,9 @@ export const authProvider: AuthProvider = {
         localStorage.setItem('tenantId', data.data.user.tenantId || 'demo-bank');
         localStorage.setItem('bankingType', data.data.user.bankingType || 'conventional');
 
+        // ✅ SYNC TO COOKIES for middleware/SSR
+        syncTokenToCookie(data.data.token);
+
         // Store tenant configuration
         if (data.data.tenantConfig) {
           localStorage.setItem('tenantConfig', JSON.stringify(data.data.tenantConfig));
@@ -127,13 +131,8 @@ export const authProvider: AuthProvider = {
         }
       }
 
-      // Clear all stored authentication data
-      localStorage.removeItem('token');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('user');
-      localStorage.removeItem('tenantId');
-      localStorage.removeItem('bankingType');
-      localStorage.removeItem('tenantConfig');
+      // ✅ Always clear local auth data and cookies
+      clearAuthTokens();
 
       return Promise.resolve();
     } catch (error) {
@@ -145,7 +144,7 @@ export const authProvider: AuthProvider = {
   // Check authentication status
   checkAuth: async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
 
       if (!token) {
         return Promise.reject(new Error('No authentication token found'));
@@ -192,8 +191,7 @@ export const authProvider: AuthProvider = {
         }
 
         // Clear invalid tokens
-        localStorage.removeItem('token');
-        localStorage.removeItem('refreshToken');
+        clearAuthTokens();
         return Promise.reject(new Error('Authentication token is invalid'));
       }
 
@@ -210,12 +208,7 @@ export const authProvider: AuthProvider = {
 
     if (status === 401 || status === 403) {
       // Clear authentication data on auth errors
-      localStorage.removeItem('token');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('user');
-      localStorage.removeItem('tenantId');
-      localStorage.removeItem('bankingType');
-      localStorage.removeItem('tenantConfig');
+      clearAuthTokens();
 
       return Promise.reject(error);
     }
@@ -323,7 +316,7 @@ export const authHelpers = {
 
   // Get authentication token
   getToken: (): string | null => {
-    return localStorage.getItem('token');
+    return getAuthToken();
   },
 
   // Get tenant configuration

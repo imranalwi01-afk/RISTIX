@@ -1,4 +1,4 @@
-// packages/frontend/src/services/api.client.ts
+import { getAuthToken } from '../utils/auth-token';
 import { ApiResponse } from '../types/api';
 
 /**
@@ -41,9 +41,7 @@ export class ApiClient {
    * Get authentication token from localStorage or session
    */
   private getAuthToken(): string | null {
-    if (typeof window === 'undefined') return null;
-    
-    return localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+    return getAuthToken();
   }
 
   /**
@@ -51,7 +49,7 @@ export class ApiClient {
    */
   private getTenantContext(): string | null {
     if (typeof window === 'undefined') return null;
-    
+
     return localStorage.getItem('tenant_slug') || sessionStorage.getItem('tenant_slug');
   }
 
@@ -85,7 +83,7 @@ export class ApiClient {
    */
   async get<T = any>(endpoint: string, options?: RequestInit): Promise<ApiResponse<T>> {
     const url = `${this.baseUrl}${endpoint}`;
-    
+
     const response = await fetch(url, {
       method: 'GET',
       headers: this.buildHeaders(),
@@ -104,7 +102,7 @@ export class ApiClient {
    */
   async post<T = any>(endpoint: string, data?: any, options?: RequestInit): Promise<ApiResponse<T>> {
     const url = `${this.baseUrl}${endpoint}`;
-    
+
     const response = await fetch(url, {
       method: 'POST',
       headers: this.buildHeaders(),
@@ -124,7 +122,7 @@ export class ApiClient {
    */
   async put<T = any>(endpoint: string, data?: any, options?: RequestInit): Promise<ApiResponse<T>> {
     const url = `${this.baseUrl}${endpoint}`;
-    
+
     const response = await fetch(url, {
       method: 'PUT',
       headers: this.buildHeaders(),
@@ -144,7 +142,7 @@ export class ApiClient {
    */
   async delete<T = any>(endpoint: string, options?: RequestInit): Promise<ApiResponse<T>> {
     const url = `${this.baseUrl}${endpoint}`;
-    
+
     const response = await fetch(url, {
       method: 'DELETE',
       headers: this.buildHeaders(),
@@ -163,10 +161,10 @@ export class ApiClient {
    */
   async uploadFile<T = any>(endpoint: string, file: File, additionalData?: Record<string, any>): Promise<ApiResponse<T>> {
     const url = `${this.baseUrl}${endpoint}`;
-    
+
     const formData = new FormData();
     formData.append('file', file);
-    
+
     // Add additional form data
     if (additionalData) {
       Object.keys(additionalData).forEach(key => {
@@ -176,13 +174,13 @@ export class ApiClient {
 
     const token = this.getAuthToken();
     const tenantSlug = this.getTenantContext();
-    
+
     const headers: Record<string, string> = {};
-    
+
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
-    
+
     if (tenantSlug) {
       headers['X-Tenant-Slug'] = tenantSlug;
     }

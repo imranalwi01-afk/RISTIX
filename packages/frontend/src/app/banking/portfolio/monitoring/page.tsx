@@ -55,6 +55,10 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { format, subDays, startOfMonth, endOfMonth } from 'date-fns';
+import { useRouter } from 'next/navigation';
+import { getAuthToken } from '@/utils/auth-token';
+import { monitoringApi } from '../../../../services/api/monitoring.api';
+import dayjs, { Dayjs } from 'dayjs';
 import { useSnackbar } from 'notistack';
 
 // Types
@@ -156,7 +160,7 @@ const PortfolioMonitoring: React.FC = () => {
     try {
       const response = await fetch('/api/v1/banking/portfolio/monitoring/metrics', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+          'Authorization': `Bearer ${getAuthToken() || ''}`
         }
       });
 
@@ -177,7 +181,7 @@ const PortfolioMonitoring: React.FC = () => {
     try {
       const response = await fetch('/api/v1/banking/portfolio/monitoring/alerts', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+          'Authorization': `Bearer ${getAuthToken() || ''}`
         }
       });
 
@@ -198,7 +202,7 @@ const PortfolioMonitoring: React.FC = () => {
     try {
       const response = await fetch('/api/v1/banking/portfolio/monitoring/kpi', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+          'Authorization': `Bearer ${getAuthToken() || ''}`
         }
       });
 
@@ -232,7 +236,7 @@ const PortfolioMonitoring: React.FC = () => {
     try {
       const response = await fetch(`/api/v1/banking/portfolio/monitoring/export?format=${format}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+          'Authorization': `Bearer ${getAuthToken() || ''}`
         }
       });
 
@@ -459,9 +463,9 @@ const PortfolioMonitoring: React.FC = () => {
               <DatePicker
                 label="Start Date"
                 value={filters.dateRange[0]}
-                onChange={(date) => setFilters({
+                onChange={(date: any) => setFilters({
                   ...filters,
-                  dateRange: [date, filters.dateRange[1]]
+                  dateRange: [date ? (date instanceof Date ? date : (date as any).toDate()) : null, filters.dateRange[1]]
                 })}
                 slotProps={{ textField: { size: 'small', fullWidth: true } }}
               />
@@ -470,9 +474,9 @@ const PortfolioMonitoring: React.FC = () => {
               <DatePicker
                 label="End Date"
                 value={filters.dateRange[1]}
-                onChange={(date) => setFilters({
+                onChange={(date: any) => setFilters({
                   ...filters,
-                  dateRange: [filters.dateRange[0], date]
+                  dateRange: [filters.dateRange[0], date ? (date instanceof Date ? date : (date as any).toDate()) : null]
                 })}
                 slotProps={{ textField: { size: 'small', fullWidth: true } }}
               />
@@ -701,8 +705,8 @@ const PortfolioMonitoring: React.FC = () => {
                       <Typography variant="h4" sx={{
                         fontWeight: 600,
                         color: risk === 'low' ? 'success.main' :
-                               risk === 'medium' ? 'warning.main' :
-                               risk === 'high' ? 'error.main' : 'error.dark'
+                          risk === 'medium' ? 'warning.main' :
+                            risk === 'high' ? 'error.main' : 'error.dark'
                       }}>
                         {percentage}%
                       </Typography>

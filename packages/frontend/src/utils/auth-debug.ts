@@ -1,10 +1,12 @@
-// packages/frontend/src/utils/auth-debug.ts
 // ============================================================================
 // 🔍 AUTHENTICATION DEBUGGING UTILITY
 // ============================================================================
+/**
 // ✅ HELPS DEBUG: Authentication token issues between frontend and backend
 // ✅ PROVIDES TOOLS: Token validation, cache clearing, re-authentication
 // ============================================================================
+ */
+import { getAuthToken } from './auth-token';
 
 interface AuthDebugInfo {
   hasToken: boolean;
@@ -38,13 +40,15 @@ export const authDebugger = {
     };
 
     if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       const userData = localStorage.getItem('user_data');
       const refreshToken = localStorage.getItem('refresh_token');
 
       info.hasToken = !!token;
+      info.token = token ?? undefined;
       info.hasUserData = !!userData;
       info.hasRefreshToken = !!refreshToken;
+      info.refreshToken = refreshToken ?? undefined;
 
       if (token) {
         info.tokenInfo = {

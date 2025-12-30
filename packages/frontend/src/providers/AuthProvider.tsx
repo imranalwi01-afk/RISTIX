@@ -12,13 +12,14 @@
 'use client'
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react'
+import Cookies from 'js-cookie'
 import { useRouter, usePathname } from 'next/navigation'
 import { useDispatch, useSelector } from 'react-redux'
 import type { RootState, AppDispatch } from '../store'
-import { 
-  loginStart, 
-  loginSuccess, 
-  loginFailure, 
+import {
+  loginStart,
+  loginSuccess,
+  loginFailure,
   logout as logoutAction,
   initializeAuth,
   updateLastActivity,
@@ -75,23 +76,47 @@ const getRoleBasedRedirectUrl = (user: any): string => {
   }
 };
 
-// ✅ SURGICAL FIX: Enhanced token sync function
-const syncTokenToCookie = (token: string | null) => {
+// ✅ SURGICAL FIX: Enhanced token sync function using js-cookie
+const syncTokenToCookie = (token: string | null, user: any = null) => {
   try {
-    if (typeof document !== 'undefined') {
+    if (typeof window !== 'undefined') {
       if (token) {
-        // Set cookie for middleware access
-        const isSecure = location.protocol === 'https:';
-        document.cookie = `auth-token=${token}; path=/; ${isSecure ? 'secure;' : ''} samesite=strict; max-age=${7 * 24 * 60 * 60}`;
-        console.log('🔐 Token synced to cookie for middleware');
+        // Set cookies for middleware and SSR access
+        const isSecure = window.location.protocol === 'https:';
+
+        // Store auth_token (matches middleware.ts expectation)
+        Cookies.set('auth_token', token, {
+          path: '/',
+          secure: isSecure,
+          sameSite: 'strict',
+          expires: 7 // 7 days
+        });
+
+        // Optionally store basic user data for SSR if needed
+        if (user) {
+          Cookies.set('auth_user', JSON.stringify({
+            id: user.id,
+            role: user.role || user.roles?.[0],
+            email: user.email,
+            tenantId: user.tenantId
+          }), {
+            path: '/',
+            secure: isSecure,
+            sameSite: 'strict',
+            expires: 7
+          });
+        }
+
+        console.log('🔐 Authentication cookies synced successfully');
       } else {
-        // Clear cookie
-        document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-        console.log('🗑️ Auth cookie cleared');
+        // Clear cookies
+        Cookies.remove('auth_token', { path: '/' });
+        Cookies.remove('auth_user', { path: '/' });
+        console.log('🗑️ Authentication cookies cleared');
       }
     }
   } catch (error) {
-    console.warn('⚠️ Failed to sync token to cookie:', error);
+    console.warn('⚠️ Failed to sync authentication to cookies:', error);
   }
 };
 
@@ -99,52 +124,52 @@ const syncTokenToCookie = (token: string | null) => {
 const detectBankingModeFromUser = (user: any): 'conventional' | 'syariah' | null => {
   try {
     if (!user) return null;
-    
+
     // Check explicit banking type
     if (user.bankingType) {
-      if (user.bankingType.toLowerCase().includes('syariah') || 
-          user.bankingType.toLowerCase().includes('islamic')) {
+      if (user.bankingType.toLowerCase().includes('syariah') ||
+        user.bankingType.toLowerCase().includes('islamic')) {
         return 'syariah';
       }
       if (user.bankingType.toLowerCase().includes('conventional')) {
         return 'conventional';
       }
     }
-    
+
     // Check tenant slug
     if (user.tenantSlug) {
-      if (user.tenantSlug.toLowerCase().includes('syariah') || 
-          user.tenantSlug.toLowerCase().includes('islamic')) {
+      if (user.tenantSlug.toLowerCase().includes('syariah') ||
+        user.tenantSlug.toLowerCase().includes('islamic')) {
         return 'syariah';
       }
       if (user.tenantSlug.toLowerCase().includes('conventional')) {
         return 'conventional';
       }
     }
-    
+
     // Check role for banking type indicators
     const role = user.role || user.roles?.[0] || '';
-    if (role.toLowerCase().includes('syariah') || 
-        role.toLowerCase().includes('islamic') || 
-        role.toLowerCase().includes('dps')) {
+    if (role.toLowerCase().includes('syariah') ||
+      role.toLowerCase().includes('islamic') ||
+      role.toLowerCase().includes('dps')) {
       return 'syariah';
     }
-    
+
     // Check email domain for banking type
     if (user.email) {
       if (user.email.includes('syariah') || user.email.includes('islamic')) {
         return 'syariah';
       }
     }
-    
+
     // Check company name
     if (user.company) {
-      if (user.company.toLowerCase().includes('syariah') || 
-          user.company.toLowerCase().includes('islamic')) {
+      if (user.company.toLowerCase().includes('syariah') ||
+        user.company.toLowerCase().includes('islamic')) {
         return 'syariah';
       }
     }
-    
+
     // Default to conventional if no clear indicators
     return 'conventional';
   } catch (error) {
@@ -218,7 +243,7 @@ const safeNavigate = (router: any, url: string, retries = 3) => {
     router.push(url);
   } catch (error) {
     console.error(`❌ Navigation error (${retries} retries left):`, error);
-    
+
     if (retries > 0) {
       setTimeout(() => {
         safeNavigate(router, url, retries - 1);
@@ -240,7 +265,7 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const dispatch = useDispatch<AppDispatch>()
   const authState = useSelector((state: RootState) => state.auth)
-  
+
   const [localLoading, setLocalLoading] = useState(true)
   const router = useRouter()
   const pathname = usePathname()
@@ -275,31 +300,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         setLocalLoading(true)
         console.log('🔐 Initializing authentication state...')
-        
+
         const token = localStorage.getItem('auth_token')
         const userData = localStorage.getItem('user_data')
         const refreshToken = localStorage.getItem('refresh_token')
-        
+
         if (token && userData && !authState.isAuthenticated) {
           const parsedUser = JSON.parse(userData)
           console.log('✅ Found stored auth data for:', parsedUser.email)
-          
+
           // ✅ SURGICAL FIX: Sync token to cookie immediately
           syncTokenToCookie(token);
-          
+
           // ✅ SURGICAL ENHANCEMENT: Detect and set banking mode
           const detectedBankingMode = detectBankingModeFromUser(parsedUser);
           if (detectedBankingMode) {
             console.log(`🎨 AuthProvider: Setting banking mode to "${detectedBankingMode}" during initialization`);
             dispatch(setBankingMode(detectedBankingMode));
           }
-          
+
           dispatch(initializeAuth({
             user: parsedUser,
             token,
             refreshToken: refreshToken || undefined,
           }))
-          
+
           // ✅ SURGICAL FIX: Validate token with better error handling
           try {
             // ✅ FIXED: Use centralized configuration for dual-mode support
@@ -332,7 +357,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
             if (response.ok) {
               console.log('✅ Token validation successful')
-              
+
               // ✅ SURGICAL FIX: Enhanced redirect handling to prevent loops
               const currentPath = pathname || '/'
               console.log(`Current path: ${currentPath}`)
@@ -340,7 +365,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               // ✅ LOOP PREVENTION: Only redirect if user is explicitly on login page AND has logout parameter
               // This prevents auto-redirect loops when users visit login page
               const hasLogoutParam = typeof window !== 'undefined' &&
-                                   window.location.search.includes('logout=true');
+                window.location.search.includes('logout=true');
 
               // Only redirect from login page if user explicitly logged out, not on page refresh
               if (currentPath === '/login' && hasLogoutParam) {
@@ -372,7 +397,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         } else if (!token || !userData) {
           console.log('❌ No stored authentication data found')
           syncTokenToCookie(null); // Clear any stale cookies
-          
+
           // ✅ SURGICAL FIX: Still mark as initialized even without auth data
           dispatch(initializeAuth({}));
         } else {
@@ -400,7 +425,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       dispatch(loginStart())
       dispatch(clearError())
-      
+
       console.log('🔐 Login attempt for:', credentials.email)
 
       const loginPayload: any = {
@@ -460,7 +485,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return fallbackUrl;
       };
       const apiBaseUrl = getApiBaseUrl();
-      
+
       const response = await fetch(`${apiBaseUrl}/api/v1/auth/login`, {
         method: 'POST',
         headers: {
@@ -514,8 +539,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           tokenExpiry: expiresIn ? Date.now() + (expiresIn * 1000) : null
         });
 
-        // ✅ SURGICAL FIX: Sync token to cookie for middleware
-        syncTokenToCookie(token);
+        // ✅ SURGICAL FIX: Sync token and user to cookie for middleware/SSR
+        syncTokenToCookie(token, userData);
 
         // ✅ SURGICAL ENHANCEMENT: Detect and set banking mode from login data
         const detectedBankingMode = detectBankingModeFromUser(userData);
@@ -536,7 +561,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         try {
           const roleBasedUrl = getRoleBasedRedirectUrl(userData)
           console.log(`🚀 Login successful - preparing redirect to: ${roleBasedUrl}`)
-          
+
           setTimeout(() => {
             try {
               console.log(`🚀 Executing navigation to: ${roleBasedUrl}`);
@@ -721,7 +746,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const checkAuth = useCallback(async (): Promise<boolean> => {
     try {
       dispatch(updateLastActivity())
-      
+
       const token = localStorage.getItem('auth_token')
       const userData = localStorage.getItem('user_data')
 
@@ -761,7 +786,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (response.ok) {
         const parsedUser = JSON.parse(userData)
-        
+
         if (!authState.isAuthenticated) {
           dispatch(initializeAuth({
             user: parsedUser,
@@ -769,7 +794,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             refreshToken: localStorage.getItem('refresh_token') || undefined,
           }))
         }
-        
+
         return true
       } else {
         handleLogoutCleanup()

@@ -61,12 +61,20 @@ import {
   FileDownload as ExportIcon,
   FilterList as FilterIcon,
   TrendingUp as AnalyticsIcon,
+  TrendingUp,
   MoreVert as MoreIcon,
   Visibility as ViewIcon,
   Business as ConventionalIcon,
   AccountBalance as SyariahIcon
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
+import { getAuthToken } from '@/utils/auth-token';
+import {
+  getProducts,
+  deleteProduct,
+  createProduct,
+  updateProduct
+} from '../../../../services/api/portfolio.api';
 
 // Define types for product data
 interface BankingProduct {
@@ -167,7 +175,7 @@ export default function ProductManagementPage() {
     setLoading(true);
     try {
       // Get current user token from localStorage
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       if (!token) {
         throw new Error('No authentication token found');
       }
@@ -305,6 +313,19 @@ export default function ProductManagementPage() {
 
     setFilteredProducts(filtered);
   };
+
+  const handlePageChange = (event: unknown, newPage: number) => {
+    setPagination(prev => ({ ...prev, page: newPage }));
+  };
+
+  const handleRowsPerPageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setPagination(prev => ({
+      ...prev,
+      rowsPerPage: parseInt(event.target.value, 10),
+      page: 0
+    }));
+  };
+
 
   const handleExport = async (format: 'excel' | 'csv') => {
     try {
@@ -607,72 +628,72 @@ export default function ProductManagementPage() {
                 {filteredProducts
                   .slice(pagination.page * pagination.rowsPerPage, (pagination.page + 1) * pagination.rowsPerPage)
                   .map((product) => (
-                  <TableRow key={product.id} hover>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                        {product.product_code}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>{product.product_name}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={product.product_type}
-                        size="small"
-                        color="primary"
-                        variant="outlined"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        {product.banking_type === 'conventional' ? (
-                          <ConventionalIcon sx={{ mr: 1, color: 'info.main', fontSize: 16 }} />
-                        ) : (
-                          <SyariahIcon sx={{ mr: 1, color: 'warning.main', fontSize: 16 }} />
-                        )}
-                        <Typography variant="body2">
-                          {product.banking_type === 'conventional' ? 'Conventional' : 'Syariah'}
+                    <TableRow key={product.id} hover>
+                      <TableCell>
+                        <Typography variant="body2" color="primary" fontWeight="bold">
+                          {product.profit_rate_min ? `${product.profit_rate_min}%` : '0%'} - {product.profit_rate_max ? `${product.profit_rate_max}%` : '0%'}
                         </Typography>
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">
-                        {product.interest_rate_min !== undefined ? (
-                          `${(product.interest_rate_min * 100).toFixed(1)}% - ${(product.interest_rate_max * 100).toFixed(1)}%`
-                        ) : (
-                          `${(product.profit_rate_min! * 100).toFixed(1)}% - ${(product.profit_rate_max! * 100).toFixed(1)}%`
-                        )}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">
-                        {product.tenor_min} - {product.tenor_max} months
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">
-                        {product.loan_amount_min.toLocaleString('id-ID')} - {product.loan_amount_max.toLocaleString('id-ID')}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={product.is_active ? 'Active' : 'Inactive'}
-                        color={product.is_active ? 'success' : 'default'}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <IconButton
-                        size="small"
-                        onClick={(e) => {
-                          setSelectedProduct(product);
-                          setAnchorEl(e.currentTarget);
-                        }}
-                      >
-                        <MoreIcon />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      </TableCell>
+                      <TableCell>{product.product_name}</TableCell>
+                      <TableCell>
+                        <Chip
+                          label={product.product_type}
+                          size="small"
+                          color="primary"
+                          variant="outlined"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          {product.banking_type === 'conventional' ? (
+                            <ConventionalIcon sx={{ mr: 1, color: 'info.main', fontSize: 16 }} />
+                          ) : (
+                            <SyariahIcon sx={{ mr: 1, color: 'warning.main', fontSize: 16 }} />
+                          )}
+                          <Typography variant="body2">
+                            {product.banking_type === 'conventional' ? 'Conventional' : 'Syariah'}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">
+                          {product.interest_rate_min !== undefined ? (
+                            `${(product.interest_rate_min * 100).toFixed(1)}% - ${((product.interest_rate_max || 0) * 100).toFixed(1)}%`
+                          ) : (
+                            `${(product.profit_rate_min! * 100).toFixed(1)}% - ${(product.profit_rate_max! * 100).toFixed(1)}%`
+                          )}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">
+                          {product.tenor_min} - {product.tenor_max} months
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">
+                          {product.loan_amount_min.toLocaleString('id-ID')} - {product.loan_amount_max.toLocaleString('id-ID')}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={product.is_active ? 'Active' : 'Inactive'}
+                          color={product.is_active ? 'success' : 'default'}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <IconButton
+                          size="small"
+                          onClick={(e) => {
+                            setSelectedProduct(product);
+                            setAnchorEl(e.currentTarget);
+                          }}
+                        >
+                          <MoreIcon />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))}
               </TableBody>
             </Table>
           </TableContainer>
@@ -683,8 +704,8 @@ export default function ProductManagementPage() {
             count={filteredProducts.length}
             rowsPerPage={pagination.rowsPerPage}
             page={pagination.page}
-            onPageChange={handleChangePage}
-            onRowsPerPage={handleChangeRowsPerPage}
+            onPageChange={handlePageChange}
+            onRowsPerPageChange={handleRowsPerPageChange}
           />
         </TabPanel>
 

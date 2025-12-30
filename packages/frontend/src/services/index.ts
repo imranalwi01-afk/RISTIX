@@ -79,7 +79,7 @@ export interface PasswordReset {
 
 export class AuthService {
   async login(credentials: LoginCredentials): Promise<AuthUser> {
-    const response = await apiClient.post<LoginResponse>('/auth/login', credentials);
+    const response = await apiClient.post<LoginResponse>('/api/v1/auth/login', credentials);
     if (response.success) {
       return response.user;
     }
@@ -87,15 +87,15 @@ export class AuthService {
   }
 
   async logout(): Promise<void> {
-    await apiClient.post('/auth/logout', {});
+    await apiClient.post('/api/v1/auth/logout', {});
   }
 
   async getCurrentUser(): Promise<AuthUser> {
-    return apiClient.get<AuthUser>('/auth/me');
+    return apiClient.get<AuthUser>('/api/v1/auth/me');
   }
 
   async refreshToken(): Promise<string> {
-    const response = await apiClient.post<{ token: string }>('/auth/refresh', {});
+    const response = await apiClient.post<{ token: string }>('/api/v1/auth/refresh', {});
     return response.token;
   }
 
@@ -135,11 +135,11 @@ export const authService = new AuthService();
 
 // packages/frontend/src/services/platformServices.ts
 import { apiClient } from './apiClient';
-import { 
-  User, 
-  BankingInstitution, 
-  ConsultantProject, 
-  SystemMetrics 
+import {
+  User,
+  BankingInstitution,
+  ConsultantProject,
+  SystemMetrics
 } from '../admin/providers/data/multiStakeholderDataProvider';
 
 export interface CreateUserRequest {
@@ -326,10 +326,10 @@ export const platformService = new PlatformService();
 
 // packages/frontend/src/services/tenantServices.ts
 import { apiClient } from './apiClient';
-import { 
-  PortfolioAccount, 
-  ECLCalculation, 
-  ModelConfiguration 
+import {
+  PortfolioAccount,
+  ECLCalculation,
+  ModelConfiguration
 } from '../admin/providers/data/multiStakeholderDataProvider';
 
 export interface CreatePortfolioAccountRequest {
@@ -418,7 +418,7 @@ export class TenantService {
     const tenantId = this.getTenantId();
     const formData = new FormData();
     formData.append('file', file);
-    
+
     // Note: This would need special handling for file uploads
     return apiClient.post(`/api/v1/tenants/${tenantId}/portfolio/accounts/bulk-import`, formData);
   }
@@ -513,9 +513,9 @@ export const tenantService = new TenantService();
 
 // packages/frontend/src/services/consultantServices.ts
 import { apiClient } from './apiClient';
-import { 
-  ConsultantProject, 
-  ConsultantValidation 
+import {
+  ConsultantProject,
+  ConsultantValidation
 } from '../admin/providers/data/multiStakeholderDataProvider';
 
 export interface ConsultantValidationRequest {
@@ -724,24 +724,24 @@ export const PERMISSIONS = {
   PLATFORM_MANAGE_USERS: 'platform:manage:users',
   PLATFORM_MANAGE_INSTITUTIONS: 'platform:manage:institutions',
   PLATFORM_MANAGE_CONSULTANTS: 'platform:manage:consultants',
-  
+
   // Bank Admin permissions
   TENANT_MANAGE_USERS: 'tenant:manage:users',
   TENANT_MANAGE_IFRS9: 'tenant:manage:ifrs9',
   TENANT_VIEW_REPORTS: 'tenant:view:reports',
   TENANT_MANAGE_CONSULTANTS: 'tenant:manage:consultants',
-  
+
   // Bank User permissions
   TENANT_VIEW_PORTFOLIO: 'tenant:view:portfolio',
   TENANT_CALCULATE_ECL: 'tenant:calculate:ecl',
   TENANT_MANAGE_ACCOUNTS: 'tenant:manage:accounts',
-  
+
   // Consultant permissions
   CONSULTANT_ACCESS_PROJECTS: 'consultant:access:projects',
   CONSULTANT_PERFORM_VALIDATION: 'consultant:perform:validation',
   CONSULTANT_SUBMIT_DELIVERABLES: 'consultant:submit:deliverables',
   CONSULTANT_ACCESS_TENANT_DATA: 'consultant:access:tenant_data',
-  
+
   // Regulator permissions
   REGULATOR_VIEW_ALL_BANKS: 'regulator:view:all_banks',
   REGULATOR_AUDIT_COMPLIANCE: 'regulator:audit:compliance',

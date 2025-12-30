@@ -7,6 +7,7 @@
 // ============================================================================
 
 import { getEnvironmentConfig } from '@/config/environment.config';
+import { getAuthToken } from '../utils/auth-token';
 
 // ✅ Log levels enum
 export enum LogLevel {
@@ -113,7 +114,7 @@ class CentralizedLoggingService {
   private getCurrentUser() {
     if (typeof window !== 'undefined') {
       try {
-        const userData = localStorage.getItem('ifrs9_user_data');
+        const userData = localStorage.getItem('user_data');
         return userData ? JSON.parse(userData) : null;
       } catch {
         return null;
@@ -177,7 +178,7 @@ class CentralizedLoggingService {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('ifrs9_auth_token') || ''}`
+            'Authorization': `Bearer ${getAuthToken() || ''}`
           },
           body: JSON.stringify({ logs: logsToSend })
         });
@@ -200,7 +201,7 @@ class CentralizedLoggingService {
     const timestamp = new Date(logEntry.timestamp).toLocaleTimeString();
     const emoji = this.getLevelEmoji(logEntry.level);
     const category = `[${logEntry.category.toUpperCase()}]`;
-    
+
     return `${emoji} ${timestamp} ${category} ${logEntry.message}`;
   }
 
@@ -245,7 +246,7 @@ class CentralizedLoggingService {
   // ✅ Main logging method
   private log(level: LogLevel, category: LogCategory, message: string, data?: any) {
     const logEntry = this.createLogEntry(level, category, message, data);
-    
+
     this.logToConsole(logEntry);
     this.addToBuffer(logEntry);
   }
@@ -346,9 +347,9 @@ class CentralizedLoggingService {
 
   // Security logging
   logSecurity(event: string, severity: 'low' | 'medium' | 'high' | 'critical', data?: any) {
-    const level = severity === 'critical' ? LogLevel.CRITICAL : 
-                  severity === 'high' ? LogLevel.ERROR : 
-                  severity === 'medium' ? LogLevel.WARN : LogLevel.INFO;
+    const level = severity === 'critical' ? LogLevel.CRITICAL :
+      severity === 'high' ? LogLevel.ERROR :
+        severity === 'medium' ? LogLevel.WARN : LogLevel.INFO;
     this.log(level, LogCategory.SECURITY, `Security event: ${event}`, {
       event,
       severity,
@@ -405,9 +406,8 @@ class CentralizedLoggingService {
 // ✅ Create singleton instance
 const loggingService = new CentralizedLoggingService();
 
-// ✅ Export service instance and types
-export { loggingService, LogLevel, LogCategory };
-export type { LogEntry };
+// ✅ Export service instance
+export { loggingService };
 
 // ✅ Export convenience methods for easier usage
 export const log = {
@@ -416,23 +416,23 @@ export const log = {
   warn: (category: LogCategory, message: string, data?: any) => loggingService.warn(category, message, data),
   error: (category: LogCategory, message: string, data?: any) => loggingService.error(category, message, data),
   critical: (category: LogCategory, message: string, data?: any) => loggingService.critical(category, message, data),
-  
+
   // Specialized methods
-  routeTransition: (from: string, to: string, stakeholderType?: string, user?: any) => 
+  routeTransition: (from: string, to: string, stakeholderType?: string, user?: any) =>
     loggingService.logRouteTransition(from, to, stakeholderType, user),
-  authentication: (action: string, success: boolean, user?: any) => 
+  authentication: (action: string, success: boolean, user?: any) =>
     loggingService.logAuthentication(action, success, user),
-  apiCall: (method: string, url: string, statusCode?: number, duration?: number, error?: any) => 
+  apiCall: (method: string, url: string, statusCode?: number, duration?: number, error?: any) =>
     loggingService.logApiCall(method, url, statusCode, duration, error),
-  userAction: (action: string, component?: string, data?: any) => 
+  userAction: (action: string, component?: string, data?: any) =>
     loggingService.logUserAction(action, component, data),
-  bankingOperation: (operation: string, bankingMode?: string, data?: any) => 
+  bankingOperation: (operation: string, bankingMode?: string, data?: any) =>
     loggingService.logBankingOperation(operation, bankingMode, data),
-  ifrs9Calculation: (calculationType: string, status: string, data?: any) => 
+  ifrs9Calculation: (calculationType: string, status: string, data?: any) =>
     loggingService.logIFRS9Calculation(calculationType, status, data),
-  performance: (metric: string, value: number, unit?: string) => 
+  performance: (metric: string, value: number, unit?: string) =>
     loggingService.logPerformance(metric, value, unit),
-  security: (event: string, severity: 'low' | 'medium' | 'high' | 'critical', data?: any) => 
+  security: (event: string, severity: 'low' | 'medium' | 'high' | 'critical', data?: any) =>
     loggingService.logSecurity(event, severity, data)
 };
 

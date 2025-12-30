@@ -80,7 +80,7 @@ export const ConsultantLayout: React.FC<ConsultantLayoutProps> = ({
 }) => {
   const router = useRouter();
   const pathname = usePathname();
-  
+
   // ✅ Local state management (no hooks dependencies)
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -126,7 +126,7 @@ export const ConsultantLayout: React.FC<ConsultantLayoutProps> = ({
     handleUserMenuClose();
     // Clear any stored auth data
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('ifrs9_auth_token');
+      localStorage.removeItem('auth_token');
       localStorage.removeItem('ifrs9_refresh_token');
     }
     router.push('/login');
@@ -135,10 +135,10 @@ export const ConsultantLayout: React.FC<ConsultantLayoutProps> = ({
   // ✅ Loading state
   if (isLoading || !isInitialized) {
     return (
-      <Box 
-        display="flex" 
-        justifyContent="center" 
-        alignItems="center" 
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
         minHeight="100vh"
         bgcolor="#f5f5f5"
       >
@@ -177,10 +177,10 @@ export const ConsultantLayout: React.FC<ConsultantLayoutProps> = ({
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       {/* ✅ Consultant App Bar - Professional & Neutral Design */}
-      <AppBar 
-        position="sticky" 
+      <AppBar
+        position="sticky"
         elevation={1}
-        sx={{ 
+        sx={{
           bgcolor: '#ffffff',
           color: '#333333',
           borderBottom: '1px solid #e0e0e0',
@@ -200,7 +200,7 @@ export const ConsultantLayout: React.FC<ConsultantLayoutProps> = ({
             {consultantNavigation.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
-              
+
               return (
                 <Box
                   key={item.href}
@@ -286,7 +286,7 @@ export const ConsultantLayout: React.FC<ConsultantLayoutProps> = ({
             <Breadcrumbs aria-label="breadcrumb">
               {breadcrumbItems.map((crumb, index) => {
                 const isLast = index === breadcrumbItems.length - 1;
-                
+
                 if (isLast) {
                   return (
                     <Typography key={index} color="text.primary" variant="body2">
@@ -294,7 +294,7 @@ export const ConsultantLayout: React.FC<ConsultantLayoutProps> = ({
                     </Typography>
                   );
                 }
-                
+
                 return (
                   <Link
                     key={index}
@@ -304,7 +304,7 @@ export const ConsultantLayout: React.FC<ConsultantLayoutProps> = ({
                       e.preventDefault();
                       if (crumb.href) router.push(crumb.href);
                     }}
-                    sx={{ 
+                    sx={{
                       textDecoration: 'none',
                       '&:hover': { textDecoration: 'underline' },
                       cursor: 'pointer',

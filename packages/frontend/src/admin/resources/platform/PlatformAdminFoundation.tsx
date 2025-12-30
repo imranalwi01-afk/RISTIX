@@ -42,6 +42,7 @@ import {
   Alert,
   LinearProgress
 } from '@mui/material';
+import { getAuthToken } from '@/utils/auth-token';
 import {
   Dashboard as DashboardIcon,
   People,
@@ -119,7 +120,7 @@ const platformDataProvider = {
   async getUsers(): Promise<User[]> {
     const response = await fetch('/api/platform/admin/users', {
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+        'Authorization': `Bearer ${getAuthToken()}`,
         'Content-Type': 'application/json'
       }
     });
@@ -131,7 +132,7 @@ const platformDataProvider = {
   async getBankingInstitutions(): Promise<BankingInstitution[]> {
     const response = await fetch('/api/platform/admin/banking-institutions', {
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+        'Authorization': `Bearer ${getAuthToken()}`,
         'Content-Type': 'application/json'
       }
     });
@@ -143,7 +144,7 @@ const platformDataProvider = {
   async getConsultantProjects(): Promise<ConsultantProject[]> {
     const response = await fetch('/api/platform/admin/consultant-projects', {
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+        'Authorization': `Bearer ${getAuthToken()}`,
         'Content-Type': 'application/json'
       }
     });
@@ -155,7 +156,7 @@ const platformDataProvider = {
   async getSystemMetrics(): Promise<SystemMetrics> {
     const response = await fetch('/api/platform/admin/metrics', {
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+        'Authorization': `Bearer ${getAuthToken()}`,
         'Content-Type': 'application/json'
       }
     });
@@ -168,7 +169,7 @@ const platformDataProvider = {
     const response = await fetch('/api/platform/admin/users', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+        'Authorization': `Bearer ${getAuthToken()}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(userData)
@@ -182,7 +183,7 @@ const platformDataProvider = {
     const response = await fetch('/api/platform/admin/consultant-projects', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+        'Authorization': `Bearer ${getAuthToken()}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(projectData)
@@ -810,9 +811,9 @@ const PlatformAdminFoundation: React.FC = () => {
 
   useEffect(() => {
     // Verify platform admin authentication
-    const token = localStorage.getItem('auth_token');
+    const token = getAuthToken();
     const userType = localStorage.getItem('user_stakeholder_type');
-    
+
     if (!token || userType !== 'platform_admin') {
       setAuthError('Platform admin authentication required');
       return;

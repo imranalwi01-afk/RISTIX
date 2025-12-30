@@ -9,6 +9,7 @@
 // ============================================================================
 
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { getAuthToken } from '../../utils/auth-token';
 
 // ✅ User Profile Interface
 export interface UserProfile {
@@ -176,18 +177,10 @@ const getApiBase = (): string => {
 
 const API_BASE = getApiBase();
 
-// ✅ Get Auth Token Helper
-const getAuthToken = () => {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('auth_token') || '';
-  }
-  return '';
-};
-
 // ✅ Get Headers Helper
 const getHeaders = () => ({
   'Content-Type': 'application/json',
-  'Authorization': `Bearer ${getAuthToken()}`
+  'Authorization': `Bearer ${getAuthToken() || ''}`
 });
 
 // ✅ Async Thunks
@@ -247,7 +240,7 @@ export const uploadUserAvatar = createAsyncThunk(
       const response = await fetch(`${API_BASE}/user/${userId}/avatar`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${getAuthToken()}`
+          'Authorization': `Bearer ${getAuthToken() || ''}`
         },
         body: formData
       });

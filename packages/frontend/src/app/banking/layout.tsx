@@ -55,6 +55,7 @@ import {
 
 // Import our enhanced sidebar
 import BankingSidebar from '../../components/banking/BankingSidebar';
+import { getAuthToken, clearAuthTokens } from '../../utils/auth-token';
 
 const DRAWER_WIDTH = 280;
 const DRAWER_WIDTH_COLLAPSED = 60;
@@ -106,11 +107,11 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
       });
 
       let role = authState.user.role ||
-                authState.user.userRole ||
-                authState.user.roleName ||
-                authState.user.roles?.[0] ||
-                authState.user.userType ||
-                '';
+        authState.user.userRole ||
+        authState.user.roleName ||
+        authState.user.roles?.[0] ||
+        authState.user.userType ||
+        '';
 
       // 🔧 FORCE IAF ROLES FOR ADMIN USERS
       if (authState.user?.email === 'admin@iaf.co.id') {
@@ -159,11 +160,11 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
           });
 
           const role = parsedUser.role ||
-                      parsedUser.userRole ||
-                      parsedUser.roleName ||
-                      parsedUser.roles?.[0] ||
-                      parsedUser.userType ||
-                      '';
+            parsedUser.userRole ||
+            parsedUser.roleName ||
+            parsedUser.roles?.[0] ||
+            parsedUser.userType ||
+            '';
 
           console.log('🎯 Extracted user role (localStorage fallback):', role);
           setUserRole(role);
@@ -202,12 +203,7 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
 
   const handleLogout = () => {
     handleProfileMenuClose();
-    if (typeof document !== 'undefined') {
-      document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
-      document.cookie = 'ifrs9_auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
-      document.cookie = 'ifrs9_user_role=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
-      document.cookie = 'ifrs9_user_email=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
-    }
+    clearAuthTokens();
     window.location.href = '/login';
   };
 
@@ -250,14 +246,14 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
     let currentPath = '';
     pathSegments.forEach((segment, index) => {
       currentPath += `/${segment}`;
-      
+
       if (index === 0 && segment === 'banking') {
         return;
       }
 
       const isLast = index === pathSegments.length - 1;
       const label = segment.charAt(0).toUpperCase() + segment.slice(1).replace(/[-_]/g, ' ');
-      
+
       breadcrumbs.push({
         label,
         href: isLast ? undefined : currentPath,
@@ -275,15 +271,13 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
       sx={{
         width: { md: `calc(100% - ${currentDrawerWidth}px)` },
         ml: { md: `${currentDrawerWidth}px` },
-        background: `linear-gradient(135deg, ${
-          bankingMode === 'syariah' 
-            ? theme.palette.success.main 
+        background: `linear-gradient(135deg, ${bankingMode === 'syariah'
+            ? theme.palette.success.main
             : theme.palette.primary.main
-        } 0%, ${
-          bankingMode === 'syariah' 
-            ? theme.palette.success.dark 
+          } 0%, ${bankingMode === 'syariah'
+            ? theme.palette.success.dark
             : theme.palette.primary.dark
-        } 100%)`,
+          } 100%)`,
         boxShadow: theme.shadows[1],
         zIndex: theme.zIndex.drawer + 1,
         transition: theme.transitions.create(['width', 'margin'], {
@@ -292,8 +286,8 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
         }),
       }}
     >
-      <Toolbar 
-        sx={{ 
+      <Toolbar
+        sx={{
           minHeight: `${COMPACT_APPBAR_HEIGHT}px !important`,
           height: COMPACT_APPBAR_HEIGHT,
           px: 2
@@ -318,8 +312,8 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
             color="inherit"
             onClick={handleSidebarToggle}
             size="small"
-            sx={{ 
-              mr: 1.5, 
+            sx={{
+              mr: 1.5,
               display: { xs: 'none', md: 'inline-flex' },
               backgroundColor: alpha(theme.palette.common.white, 0.1),
               '&:hover': {
@@ -335,11 +329,11 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
 
         {/* Title */}
         <Box sx={{ flexGrow: 1 }}>
-          <Typography 
-            variant="h6" 
-            noWrap 
-            component="div" 
-            sx={{ 
+          <Typography
+            variant="h6"
+            noWrap
+            component="div"
+            sx={{
               fontWeight: 600,
               fontSize: '1rem',
               lineHeight: 1.2
@@ -363,7 +357,7 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
             color="inherit"
             onClick={handleProfileMenuOpen}
           >
-            <Avatar sx={{ 
+            <Avatar sx={{
               width: 28,
               height: 28,
               bgcolor: 'rgba(255,255,255,0.2)',
@@ -487,8 +481,8 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
       {/* Navigation Drawer */}
       <Box
         component="nav"
-        sx={{ 
-          width: { md: currentDrawerWidth }, 
+        sx={{
+          width: { md: currentDrawerWidth },
           flexShrink: { md: 0 },
           transition: theme.transitions.create('width', {
             easing: theme.transitions.easing.sharp,
@@ -606,11 +600,11 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
           bgcolor: 'background.default',
         }}
       >
-        <Box sx={{ 
+        <Box sx={{
           height: COMPACT_APPBAR_HEIGHT + 32,
-          flexShrink: 0 
+          flexShrink: 0
         }} />
-        
+
         <Box sx={{ p: 2 }}>
           {children}
         </Box>

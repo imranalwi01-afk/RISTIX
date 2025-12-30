@@ -9,6 +9,7 @@
 // ============================================================================
 
 import { AuthProvider } from 'react-admin';
+import { getAuthToken, clearAuthTokens, syncTokenToCookie } from '../../../utils/auth-token';
 
 // ============================================================================
 // AUTH PROVIDER IMPLEMENTATION
@@ -86,6 +87,9 @@ export const authProvider: AuthProvider = {
           localStorage.setItem('refresh_token', refreshToken);
         }
 
+        // ✅ SYNC TO COOKIES for middleware/SSR
+        syncTokenToCookie(token);
+
         console.log('✅ Platform Admin access granted for:', user.email);
         return Promise.resolve();
       } else {
@@ -135,10 +139,8 @@ export const authProvider: AuthProvider = {
       console.warn('⚠️ Logout API call failed:', error);
       // Continue with local logout even if API fails
     } finally {
-      // ✅ Always clear local auth data
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('user_data');
-      localStorage.removeItem('refresh_token');
+      // ✅ Always clear local auth data and cookies
+      clearAuthTokens();
       console.log('✅ Platform Admin logout completed');
     }
 
@@ -153,9 +155,7 @@ export const authProvider: AuthProvider = {
     console.log('🔍 Platform Admin Auth Error Check:', status);
 
     if (status === 401 || status === 403) {
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('user_data');
-      localStorage.removeItem('refresh_token');
+      clearAuthTokens();
       return Promise.reject();
     }
 
@@ -167,7 +167,7 @@ export const authProvider: AuthProvider = {
   // ============================================================================
   checkAuth: async () => {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAuthToken();
       const userData = localStorage.getItem('user_data');
 
       if (!token || !userData) {
@@ -223,9 +223,7 @@ export const authProvider: AuthProvider = {
         return Promise.resolve();
       } catch (tokenError) {
         console.log('⚠️ Token verification failed, clearing auth data');
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('user_data');
-        localStorage.removeItem('refresh_token');
+        clearAuthTokens();
         throw new Error('Authentication token invalid or expired');
       }
     } catch (error) {
@@ -371,9 +369,6 @@ export const authUtils = {
 
   // Clear all auth data
   clearAuth: () => {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user_data');
-    localStorage.removeItem('refresh_token');
-    console.log('✅ All auth data cleared');
+    clearAuthTokens();
   }
 };

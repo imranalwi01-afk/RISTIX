@@ -66,9 +66,9 @@ class BusinessSetupErrorBoundary extends React.Component<
               Troubleshooting Steps:
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              1. Check your internet connection<br/>
-              2. Ensure you are logged in properly<br/>
-              3. Try refreshing the page<br/>
+              1. Check your internet connection<br />
+              2. Ensure you are logged in properly<br />
+              3. Try refreshing the page<br />
               4. Contact support if the issue persists
             </Typography>
           </Box>
@@ -132,6 +132,7 @@ import {
   Info as InfoIcon
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
+import { getAuthToken } from '@/utils/auth-token';
 import api, { handleAPIError } from '../../../../services/api';
 
 // Shared components
@@ -374,7 +375,7 @@ function BusinessSettingPage() {
 
       // Check if user is authenticated first
       if (typeof window !== 'undefined') {
-        const token = localStorage.getItem('auth_token');
+        const token = getAuthToken();
         if (!token) {
           throw new Error('Authentication required. Please log in again.');
         }
@@ -561,83 +562,83 @@ function BusinessSettingPage() {
                   {businessParameters
                     .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                     .map((parameter) => (
-                    <TableRow key={parameter.pkid} hover>
-                      <TableCell>
-                        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                          {parameter.param_code}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          Created by {parameter.created_by}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">
-                          {parameter.param_desc || 'No description'}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                          {parameter.param_value}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={parameter.param_category}
-                          size="small"
-                          color={parameter.param_category === 'B' ? 'primary' : 'secondary'}
-                          variant="outlined"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={parameter.param_type}
-                          size="small"
-                          variant="outlined"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <TableRow key={parameter.pkid} hover>
+                        <TableCell>
+                          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                            {parameter.param_code}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Created by {parameter.created_by}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">
+                            {parameter.param_desc || 'No description'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                            {parameter.param_value}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
                           <Chip
-                            label={parameter.active_flag ? 'Active' : 'Inactive'}
+                            label={parameter.param_category}
                             size="small"
-                            color={parameter.active_flag ? 'success' : 'default'}
+                            color={parameter.param_category === 'B' ? 'primary' : 'secondary'}
+                            variant="outlined"
                           />
-                          {!parameter.is_editable && (
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={parameter.param_type}
+                            size="small"
+                            variant="outlined"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <Chip
-                              label="Read-only"
+                              label={parameter.active_flag ? 'Active' : 'Inactive'}
                               size="small"
-                              color="warning"
-                              variant="outlined"
+                              color={parameter.active_flag ? 'success' : 'default'}
                             />
-                          )}
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', gap: 1 }}>
-                          <Tooltip title="Edit Parameter">
-                            <IconButton
-                              size="small"
-                              color="primary"
-                              onClick={() => handleEditParameter(parameter)}
-                              disabled={!parameter.is_editable}
-                            >
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Delete Parameter">
-                            <IconButton
-                              size="small"
-                              color="error"
-                              onClick={() => handleDeleteParameter(parameter)}
-                              disabled={!parameter.is_editable}
-                            >
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        </Box>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                            {!parameter.is_editable && (
+                              <Chip
+                                label="Read-only"
+                                size="small"
+                                color="warning"
+                                variant="outlined"
+                              />
+                            )}
+                          </Box>
+                        </TableCell>
+                        <TableCell>
+                          <Box sx={{ display: 'flex', gap: 1 }}>
+                            <Tooltip title="Edit Parameter">
+                              <IconButton
+                                size="small"
+                                color="primary"
+                                onClick={() => handleEditParameter(parameter)}
+                                disabled={!parameter.is_editable}
+                              >
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Delete Parameter">
+                              <IconButton
+                                size="small"
+                                color="error"
+                                onClick={() => handleDeleteParameter(parameter)}
+                                disabled={!parameter.is_editable}
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    ))}
                 </TableBody>
               </Table>
             </TableContainer>

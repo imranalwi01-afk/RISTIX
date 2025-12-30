@@ -43,7 +43,13 @@ import {
   Breadcrumbs,
   Link,
   useTheme,
-  PaletteMode
+  PaletteMode,
+  Tabs,
+  Tab,
+  ListItemSecondaryAction,
+  MenuItem,
+  Select,
+  InputLabel
 } from '@mui/material';
 import {
   Home as HomeIcon,
@@ -80,6 +86,7 @@ import { useAuth } from '../../../../providers/AuthProvider';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState } from "../../../../store";
 import { setTheme, setLanguage } from "../../../../store";
+import { getAuthToken } from '@/utils/auth-token';
 
 // ✅ Theme Settings Interface
 interface ThemeSettings {
@@ -127,7 +134,9 @@ const themePresets = {
     secondary: '#DC004E',
     header: '#1565C0',
     sidebar: '#0D47A1',
-    cards: '#FFFFFF'
+    cards: '#FFFFFF',
+    background: '#F5F7FA',
+    accent: '#1976D2'
   },
   syariah: {
     name: 'Islamic Banking',
@@ -135,7 +144,9 @@ const themePresets = {
     secondary: '#D4AF37',
     header: '#2E7D32',
     sidebar: '#1B5E20',
-    cards: '#FFFFFF'
+    cards: '#FFFFFF',
+    background: '#F0F4F0',
+    accent: '#006B3F'
   },
   dual: {
     name: 'Dual Banking',
@@ -143,7 +154,9 @@ const themePresets = {
     secondary: '#FF5722',
     header: '#6A1B9A',
     sidebar: '#4A148C',
-    cards: '#FFFFFF'
+    cards: '#FFFFFF',
+    background: '#F5F0F8',
+    accent: '#7B1FA2'
   }
 };
 
@@ -151,8 +164,8 @@ export default function ThemeSettingsPage() {
   const router = useRouter();
   const { user: currentUser, isAuthenticated } = useAuth();
   const dispatch = useDispatch();
-  const currentTheme = useSelector((state: RootState) => state.ui.theme);
-  const bankingMode = useSelector((state: RootState) => state.configuration.bankingMode);
+  const currentTheme = useSelector((state: RootState) => state.ui?.theme);
+  const bankingMode = useSelector((state: RootState) => state.configuration?.bankingMode || 'conventional');
 
   // ✅ State Management
   const [loading, setLoading] = useState(false);
@@ -224,14 +237,13 @@ export default function ThemeSettingsPage() {
   const API_BASE = getApiBase();
 
   // ✅ Get Auth Token
-  const getAuthToken = useCallback(() => {
-    return localStorage.getItem('auth_token') || '';
-  }, []);
+  const getAuthTokenValue = () => {
+    return getAuthToken() || '';
+  };
 
   // ✅ API Headers
   const getHeaders = useCallback(() => ({
     'Content-Type': 'application/json',
-    'Authorization': `Bearer ${getAuthToken()}`
   }), [getAuthToken]);
 
   // ✅ Load Theme Settings
@@ -258,7 +270,9 @@ export default function ThemeSettingsPage() {
           customColors: {
             header: preset.header,
             sidebar: preset.sidebar,
-            cards: preset.cards
+            cards: preset.cards,
+            background: preset.background,
+            accent: preset.accent
           }
         }));
       }
@@ -320,7 +334,8 @@ export default function ThemeSettingsPage() {
   // ✅ Reset to Default
   const resetToDefault = () => {
     const preset = themePresets[bankingMode as keyof typeof themePresets] || themePresets.conventional;
-    setThemeSettings({
+    setThemeSettings(prev => ({
+      ...prev,
       mode: 'light',
       bankingTheme: bankingMode as 'conventional' | 'syariah' | 'dual',
       primaryColor: preset.primary,
@@ -333,9 +348,11 @@ export default function ThemeSettingsPage() {
       customColors: {
         header: preset.header,
         sidebar: preset.sidebar,
-        cards: preset.cards
+        cards: preset.cards,
+        background: preset.background,
+        accent: preset.accent
       }
-    });
+    }));
   };
 
   // ✅ Handle Theme Change
@@ -354,7 +371,9 @@ export default function ThemeSettingsPage() {
       customColors: {
         header: preset.header,
         sidebar: preset.sidebar,
-        cards: preset.cards
+        cards: preset.cards,
+        background: preset.background,
+        accent: preset.accent
       }
     }));
   };

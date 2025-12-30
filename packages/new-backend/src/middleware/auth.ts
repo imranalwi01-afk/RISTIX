@@ -14,6 +14,9 @@ export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
     const authHeader = c.req.header('Authorization')
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        console.warn('⚠️ [AUTH] Missing or invalid authorization header:', {
+            authHeader: authHeader ? `${authHeader.substring(0, 15)}...` : 'null'
+        });
         return c.json(
             {
                 success: false,
@@ -29,21 +32,25 @@ export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
     try {
         // Verify JWT signature
         const payload = await verifyToken(token)
+        console.log(`✅ [AUTH] Token verified for sub: ${payload.sub}, jti: ${payload.jti}`);
 
         // Contextual validation
         const session = await AuthRepository.findSessionByTokenId(payload.jti)
 
         if (!session || !session.isActive || new Date() > session.expiresAt) {
+            console.warn(`⚠️ [AUTH] Session invalid or expired: ${payload.jti}`);
             throw new Error('Session invalid or expired')
         }
 
         // Load complete user context
         const user = await AuthRepository.findUserById(payload.sub)
         if (!user || !user.isActive) {
+            console.warn(`⚠️ [AUTH] User not found or inactive: ${payload.sub}`);
             throw new Error('User not found or inactive')
         }
 
         const tenant = await TenantRepository.findById(user.tenantId)
+        console.log(`✅ [AUTH] User context loaded: ${user.email} (Tenant: ${tenant?.name})`);
 
         // Set user context
         c.set('userId', user.id)
@@ -53,7 +60,8 @@ export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
         c.set('isSystemUser', tenant?.code === 'SYSTEM')
 
         await next()
-    } catch (error) {
+    } catch (error: any) {
+        console.error('❌ [AUTH] authentication error:', error.message);
         return c.json(
             {
                 success: false,

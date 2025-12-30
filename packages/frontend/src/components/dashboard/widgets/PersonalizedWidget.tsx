@@ -10,7 +10,7 @@
 
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import {
   Card,
   CardContent,
@@ -31,6 +31,7 @@ import {
   Switch,
   FormControlLabel
 } from '@mui/material'
+import { getAuthToken } from '@/utils/auth-token';
 import {
   MoreVert,
   Refresh,
@@ -115,24 +116,20 @@ export default function PersonalizedWidget({
 
     try {
       let response
+      const { bankingAPI, ifrs9API } = await import('../../../services/api')
 
       switch (type) {
         case 'ecl-summary':
-          // ✅ FIXED: Use proper API service instead of direct fetch
-          const { ifrs9API } = await import('../../../services/api')
           response = await ifrs9API.getCalculationsSummary()
           break
 
-        case 'portfolio-metrics':
+        case 'portfolio-summary':
           // ✅ FIXED: Use proper API service instead of direct fetch
-          const { api } = await import('../../../services/api')
-          response = await api.banking.getPortfolioSummary()
+          response = await bankingAPI.portfolio.summary()
           break
 
         case 'activities':
-          response = await fetch('/api/v1/banking/activities/recent', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
-          })
+          response = await bankingAPI.audit.getActivities()
           break
 
         default:
@@ -141,6 +138,13 @@ export default function PersonalizedWidget({
             response = await fetch(customSettings.endpoint, {
               headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
             })
+          } else {
+            // If no custom endpoint, return early as there's no data to fetch
+            setWidgetData({
+              error: 'No data source configured for this custom widget.',
+              isLoading: false
+            });
+            return;
           }
       }
 

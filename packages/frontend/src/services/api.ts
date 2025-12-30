@@ -10,6 +10,8 @@
 // ============================================================================
 
 import axios, { AxiosResponse, AxiosError } from 'axios';
+import Cookies from 'js-cookie';
+import { getAuthToken } from '../utils/auth-token';
 
 // ============================================================================
 // 🏗️ CENTRALIZED API CONFIGURATION
@@ -23,8 +25,8 @@ import { individualImpairmentAPI as individualImpairmentAPIService } from './api
 
 // ✅ ENVIRONMENT-AWARE CONFIG: Use environment loader with auto-detection
 // ⚠️ NO HARDCODED VALUES: URLs will be set exclusively by environment loader
-let API_BASE_URL: string;  // Will be set by environment loader
-let BACKEND_URL: string;   // Will be set by environment loader
+let API_BASE_URL: string = '';  // Will be set by environment loader
+let BACKEND_URL: string = '';   // Will be set by environment loader
 
 // Initialize URLs from environment loader
 const initializeUrls = () => {
@@ -109,7 +111,7 @@ const getRequestKey = (config: any) => {
 // Check if request should be throttled
 const shouldThrottle = (url: string): boolean => {
   // Skip throttling for non-data endpoints
-  const skipThrottle = ['/health', '/auth/me', '/auth/refresh'];
+  const skipThrottle = ['/health', '/api/v1/auth/me', '/api/v1/auth/refresh'];
   return !skipThrottle.some(endpoint => url.includes(endpoint));
 };
 
@@ -150,7 +152,7 @@ apiClient.interceptors.request.use(
       const urlPattern = config.url?.split('?')[0] || '';
       const similarRequests = Array.from(pendingRequests.keys())
         .filter(key => key.includes(urlPattern))
-        .reduce((total, key) => total + pendingRequests.get(key)?.length || 0, 0);
+        .reduce((total, key) => total + (pendingRequests.get(key)?.length || 0), 0);
 
       if (similarRequests >= MAX_REQUESTS_PER_WINDOW) {
         console.warn(`⚠️ Rate limiting request to ${config.url} (${similarRequests}/${MAX_REQUESTS_PER_WINDOW})`);
@@ -163,12 +165,14 @@ apiClient.interceptors.request.use(
 
     // ✅ FIXED: Add real authentication token
     if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('auth_token'); // Fixed: Use 'auth_token' key to match auth provider
+      // ✅ Use centralized utility (prefers cookie)
+      const token = getAuthToken();
+
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
-        console.log('🔐 Added Authorization header with token');
+        console.log(`🔐 [API] Added Authorization header: Bearer ${token.substring(0, 10)}...`);
       } else {
-        console.warn('⚠️ No auth_token found in localStorage');
+        console.warn('⚠️ [API] No auth_token found');
       }
 
       // ✅ FIXED: Add tenant context for banking users
@@ -230,10 +234,7 @@ apiClient.interceptors.response.use(
 
     // Log errors in development
     if (process.env.NODE_ENV === 'development') {
-      // 🔇 SILENT 401 ERRORS - SPAMMING CONSOLE
-      if (error.response?.status !== 401) {
-        console.error(`❌ API Error: ${originalRequest?.method?.toUpperCase()} ${originalRequest?.url}`, error.response?.status, error.message);
-      }
+      console.error(`❌ API Error: ${originalRequest?.method?.toUpperCase()} ${originalRequest?.url}`, error.response?.status, error.message);
     }
 
     // 🚀 RATE LIMITING (429) RETRY LOGIC
@@ -274,7 +275,8 @@ apiClient.interceptors.response.use(
         // If token was refreshed, retry the original request
         if (status === 401 && originalRequest && !originalRequest._retry) {
           originalRequest._retry = true;
-          const newToken = localStorage.getItem('auth_token');
+          // ✅ Use centralized utility
+          const newToken = getAuthToken();
           if (newToken) {
             originalRequest.headers.Authorization = `Bearer ${newToken}`;
             console.log('✅ Token refreshed by session control, retrying request');
@@ -337,7 +339,8 @@ export const authAPI = {
   // Real token refresh
   refresh: async (refreshToken: string) => {
     console.log('🔄 Real token refresh');
-    const response = await apiClient.post('/auth/refresh', { refreshToken });
+    // ✅ FIXED: Use explicit v1 path for refresh to avoid ambiguity
+    const response = await apiClient.post('/api/v1/auth/refresh', { refreshToken });
     return response.data;
   }
 };

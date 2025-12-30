@@ -111,9 +111,9 @@ export const R_ANALYTICS_CONFIG = {
 
 export const AUTH_CONFIG = {
   // JWT Configuration
-  TOKEN_STORAGE_KEY: 'ifrs9_auth_token',
-  REFRESH_TOKEN_KEY: 'ifrs9_refresh_token',
-  USER_STORAGE_KEY: 'ifrs9_user_data',
+  TOKEN_STORAGE_KEY: 'auth_token',
+  REFRESH_TOKEN_KEY: 'refresh_token',
+  USER_STORAGE_KEY: 'user_data',
 
   // Token expiry
   TOKEN_REFRESH_THRESHOLD: 300000, // 5 minutes before expiry
