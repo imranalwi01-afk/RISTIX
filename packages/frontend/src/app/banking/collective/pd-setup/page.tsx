@@ -1,831 +1,462 @@
 // packages/frontend/src/app/banking/collective/pd-setup/page.tsx
-// ============================================================================
-// IFRS9 FRONTEND - PD SETUP PAGE - LIVE DATABASE IMPLEMENTATION
-// ============================================================================
-// Purpose: Collective Impairment - PD Setup Configuration with IFRS9 parameters
-// Database: frs9_imp_ca_pd_config (Main) + related tables
-// Live DB: DS2 FRS9PRO (192.168.0.106:5433) - ACTUAL DATA, NO MOCK DATA
-// Business Parameters: frs9_param_commond (B0018, B0019), frs9_param_segmenth
-// ============================================================================
-
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
   Container,
   Paper,
+  Grid,
+  Card,
+  CardContent,
   Button,
   CircularProgress,
+  Alert,
   Breadcrumbs,
   Link,
+  TextField,
+  MenuItem,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  TextField,
+  IconButton,
+  Chip,
   FormControl,
   InputLabel,
   Select,
-  MenuItem,
-  Checkbox,
   FormControlLabel,
-  Chip,
-  Card,
-  CardContent,
-  Alert,
-  Grid,
-  Switch
+  Switch,
 } from '@mui/material';
 import {
+  Calculate as CalculateIcon,
   Home as HomeIcon,
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  Visibility as ViewIcon,
-  FilterList as FilterIcon,
   Refresh as RefreshIcon,
-  Calculate as CalculateIcon
+  Search as SearchIcon,
 } from '@mui/icons-material';
-import { DataGrid, GridColDef, GridRenderCellParams, GridRowParams } from '@mui/x-data-grid';
+import { DataGrid, GridColDef, GridActionsCellItem } from '@mui/x-data-grid';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs, { Dayjs } from 'dayjs';
 import { useRouter } from 'next/navigation';
-import { api } from '@/services/api';
+import { api } from '../../../../services/api';
+import { PDConfiguration } from '../../../../services/api/pd-configurations.api';
+import { PopulationSegment } from '../../../../services/api/population-segments.api';
 
-// ============================================================================
-// INTERFACES & TYPES - BASED ON ACTUAL DATABASE STRUCTURE
-// ============================================================================
-
-interface PDConfig {
-  pkid: number;
-  pd_model_name: string;
-  segment_id: number;
+// Extended interface for UI display
+interface PDConfigUI extends PDConfiguration {
   segment_name?: string;
-  pd_method: string;
-  pd_method_desc?: string;
-  interval: number;
-  population_type: string | null;
-  population_type_desc?: string;
-  observation_period: number;
-  observation_start_date: string | null;
-  multiplication: number | null;
-  fl_flag: boolean;
-  fl_scalar_id: number | null;
-  fl_scalar_name?: string;
-  ia_flag: boolean;
-  bucket_group: string | null;
-  active_flag: boolean;
-  createdby?: string;
-  createddate?: string;
-  createdhost?: string;
-  updatedby?: string;
-  updateddate?: string;
-  updatedhost?: string;
+  method_name?: string;
 }
-
-interface PopulationSegment {
-  pkid: number;
-  group_segment: string;
-  segment: string;
-  sub_segment: string | null;
-  segment_type: string;
-  seq: number;
-  active_flag: boolean;
-}
-
-interface BusinessParameter {
-  param_seq: number;
-  value1: string;
-  value2?: string;
-  value3?: string;
-  paramdesc: string;
-}
-
-interface FLScalar {
-  pkid: number;
-  scalar_name: string;
-  active_flag: boolean;
-}
-
-// ============================================================================
-// LIVE DATABASE DATA - ACTUAL BUSINESS PARAMETERS
-// ============================================================================
-
-// PD Method Options (B0018) - From Live Database
-const pdMethodOptions: BusinessParameter[] = [
-  { param_seq: 1, value1: '1', value2: '', value3: '', paramdesc: 'NOA Migration' },
-  { param_seq: 2, value1: '2', value2: '', value3: '', paramdesc: 'OS Migration' },
-  { param_seq: 3, value1: '3', value2: '', value3: '', paramdesc: 'Proxy PD' }
-];
-
-// Population Type Options (B0019) - From Live Database  
-const populationTypeOptions: BusinessParameter[] = [
-  { param_seq: 1, value1: '1', value2: '', value3: '', paramdesc: 'All Population Period' },
-  { param_seq: 2, value1: '2', value2: '', value3: '', paramdesc: 'Window Moving Period' }
-];
-
-// ============================================================================
-// LIVE DATABASE LOADING FUNCTIONS - NO HARDCODED DATA
-// ============================================================================
-
-// Function to load PD configurations from live database
-const loadPDConfigsFromDB = async (): Promise<PDConfig[]> => {
-  try {
-    console.log('🎯 Loading PD configurations via API service...');
-    const response = await api.banking.pdSetup.getConfigs();
-    if (!response.success) {
-      throw new Error(response.error || 'Failed to load PD configs');
-    }
-    
-    // The API response includes joined data, so we can use it directly
-    console.log(`✅ Loaded ${response.data.length} PD configurations from live database`);
-    return response.data;
-  } catch (error) {
-    console.error('❌ Error loading PD configs from database:', error);
-    throw error; // Let the calling function handle the error
-  }
-};
-
-// Function to load population segments from live database
-const loadPopulationSegmentsFromDB = async (): Promise<PopulationSegment[]> => {
-  try {
-    console.log('📊 Loading population segments via API service...');
-    const response = await api.banking.pdSetup.getPopulationSegments('PD');
-    if (!response.success) {
-      throw new Error(response.error || 'Failed to load population segments');
-    }
-    
-    console.log(`✅ Loaded ${response.data.length} population segments from live database`);
-    return response.data;
-  } catch (error) {
-    console.error('❌ Error loading population segments from database:', error);
-    throw error;
-  }
-};
-
-// Function to load FL scalars from live database
-const loadFLScalarsFromDB = async (): Promise<FLScalar[]> => {
-  try {
-    console.log('📈 Loading FL scalars via API service...');
-    const response = await api.banking.pdSetup.getFLScalars();
-    if (!response.success) {
-      throw new Error(response.error || 'Failed to load FL scalars');
-    }
-    
-    console.log(`✅ Loaded ${response.data.length} FL scalars from live database`);
-    return response.data;
-  } catch (error) {
-    console.error('❌ Error loading FL scalars from database:', error);
-    throw error;
-  }
-};
-
-// Function to load bucket groups from live database
-const loadBucketGroupsFromDB = async (): Promise<string[]> => {
-  try {
-    console.log('🗂️ Loading bucket groups via API service...');
-    const response = await api.banking.pdSetup.getBucketGroups();
-    if (!response.success) {
-      throw new Error(response.error || 'Failed to load bucket groups');
-    }
-    
-    // Extract bucket group values from the response
-    const bucketGroups = response.data.map((item: any) => item.bucket_group);
-    console.log(`✅ Loaded ${bucketGroups.length} bucket groups from live database`);
-    return bucketGroups;
-  } catch (error) {
-    console.error('❌ Error loading bucket groups from database:', error);
-    throw error;
-  }
-};
-
-// Note: Bucket groups are now loaded dynamically from the database
 
 export default function PDSetupPage() {
   const router = useRouter();
-  
-  // State Management
+
   const [loading, setLoading] = useState(false);
-  const [pdConfigs, setPdConfigs] = useState<PDConfig[]>([]);
-  const [selectedConfig, setSelectedConfig] = useState<PDConfig | null>(null);
-  const [populationSegments, setPopulationSegments] = useState<PopulationSegment[]>([]);
-  const [flScalars, setFlScalars] = useState<FLScalar[]>([]);
-  const [bucketGroups, setBucketGroups] = useState<string[]>([]);
+  const [pdConfigs, setPdConfigs] = useState<PDConfigUI[]>([]);
+  const [filteredConfigs, setFilteredConfigs] = useState<PDConfigUI[]>([]);
   const [error, setError] = useState<string | null>(null);
-  
-  // Dialog States
-  const [configDialogOpen, setConfigDialogOpen] = useState(false);
-  const [editMode, setEditMode] = useState(false);
-  
-  // Form States
-  const [configFormData, setConfigFormData] = useState<Partial<PDConfig>>({});
-  
-  // Filter States
+
+  // Metadata
+  const [methodOptions, setMethodOptions] = useState<{ value: number, label: string }[]>([]);
+  const [popTypeOptions, setPopTypeOptions] = useState<{ value: number, label: string }[]>([]);
+  const [bucketGroups, setBucketGroups] = useState<any[]>([]);
+  const [populationSegments, setPopulationSegments] = useState<PopulationSegment[]>([]);
+
+  // Dialog & Selection
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [selectedConfig, setSelectedConfig] = useState<PDConfigUI | null>(null);
+
+  // Form Data
+  const [formData, setFormData] = useState<Partial<PDConfiguration>>({
+    model_name: '',
+    population_segment_id: undefined,
+    selected_method: 1,
+    migration_interval: 12,
+    population_type: 1,
+    historical_month: 24,
+    first_historical_date: undefined,
+    multiplication: 1,
+    fl_flag: false,
+    ia_flag: false,
+    bucket: '',
+    is_active: true
+  });
+
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterMethod, setFilterMethod] = useState('');
 
-  // DataGrid Columns for PD Configs
-  const configColumns: GridColDef[] = [
-    { field: 'pkid', headerName: 'ID', width: 70 },
-    { field: 'pd_model_name', headerName: 'Model Name', width: 200 },
-    {
-      field: 'segment_name',
-      headerName: 'Population Segment',
-      width: 180,
-      renderCell: (params: GridRenderCellParams) => (
-        <Chip 
-          label={params.value || 'Unknown'} 
-          size="small"
-          color="info"
-        />
-      )
-    },
-    {
-      field: 'pd_method',
-      headerName: 'Selected Method',
-      width: 140,
-      renderCell: (params: GridRenderCellParams) => {
-        const method = pdMethodOptions.find(m => m.value1 === params.value);
-        return (
-          <Chip 
-            label={method?.paramdesc || params.value} 
-            size="small"
-            color={params.value === '3' ? 'warning' : 'primary'}
-          />
-        );
-      }
-    },
-    { 
-      field: 'interval', 
-      headerName: 'Migration Interval', 
-      width: 130,
-      renderCell: (params: GridRenderCellParams) => (
-        params.row.pd_method === '3' ? '-' : `${params.value} months`
-      )
-    },
-    {
-      field: 'population_type',
-      headerName: 'Population Type',
-      width: 140,
-      renderCell: (params: GridRenderCellParams) => {
-        if (params.row.pd_method === '3') return '-';
-        const popType = populationTypeOptions.find(p => p.value1 === params.value);
-        return popType?.paramdesc || params.value || '-';
-      }
-    },
-    { 
-      field: 'observation_period', 
-      headerName: 'Historical Month', 
-      width: 130,
-      renderCell: (params: GridRenderCellParams) => (
-        params.row.pd_method === '3' ? '-' : `${params.value} months`
-      )
-    },
-    { 
-      field: 'observation_start_date', 
-      headerName: 'First Historical Date', 
-      width: 150,
-      renderCell: (params: GridRenderCellParams) => (
-        params.row.pd_method === '3' ? '-' : (params.value ? dayjs(params.value).format('MMM DD, YYYY') : '-')
-      )
-    },
-    { 
-      field: 'multiplication', 
-      headerName: 'Multiplication', 
-      width: 100,
-      renderCell: (params: GridRenderCellParams) => (
-        params.row.pd_method === '3' ? '-' : (params.value || 0)
-      )
-    },
-    {
-      field: 'fl_flag',
-      headerName: 'FL Flag',
-      width: 80,
-      renderCell: (params: GridRenderCellParams) => (
-        <Chip 
-          label={params.value ? 'Yes' : 'No'}
-          size="small"
-          color={params.value ? 'success' : 'default'}
-        />
-      )
-    },
-    { 
-      field: 'fl_scalar_name', 
-      headerName: 'FL Scalar', 
-      width: 140,
-      renderCell: (params: GridRenderCellParams) => (
-        params.row.fl_flag && params.value ? params.value : '-'
-      )
-    },
-    {
-      field: 'ia_flag',
-      headerName: 'IA Flag',
-      width: 80,
-      renderCell: (params: GridRenderCellParams) => (
-        <Chip 
-          label={params.value ? 'Yes' : 'No'}
-          size="small"
-          color={params.value ? 'warning' : 'default'}
-        />
-      )
-    },
-    { field: 'bucket_group', headerName: 'Bucket', width: 100 },
-    {
-      field: 'active_flag',
-      headerName: 'Is Active',
-      width: 90,
-      renderCell: (params: GridRenderCellParams) => (
-        <Chip 
-          label={params.value ? 'Active' : 'Inactive'}
-          size="small"
-          color={params.value ? 'success' : 'default'}
-        />
-      )
-    },
-    {
-      field: 'actions',
-      headerName: 'Actions',
-      width: 150,
-      renderCell: (params: GridRenderCellParams) => (
-        <Box>
-          <Button size="small" onClick={() => handleViewConfig(params.row)}>
-            <ViewIcon fontSize="small" />
-          </Button>
-          <Button size="small" onClick={() => handleEditConfig(params.row)}>
-            <EditIcon fontSize="small" />
-          </Button>
-          <Button size="small" onClick={() => handleDeleteConfig(params.row)}>
-            <DeleteIcon fontSize="small" />
-          </Button>
-        </Box>
-      )
-    }
-  ];
-
-  // Event Handlers
-  const handleViewConfig = (config: PDConfig) => {
-    setSelectedConfig(config);
-    setConfigFormData(config);
-    setEditMode(false);
-    setConfigDialogOpen(true);
-  };
-
-  const handleEditConfig = (config: PDConfig) => {
-    setSelectedConfig(config);
-    setConfigFormData(config);
-    setEditMode(true);
-    setConfigDialogOpen(true);
-  };
-
-  const handleDeleteConfig = (config: PDConfig) => {
-    if (confirm(`Are you sure you want to delete PD config "${config.pd_model_name}"?`)) {
-      // Delete logic here
-      console.log('Deleting config:', config);
-    }
-  };
-
-  const handleAddConfig = () => {
-    setConfigFormData({
-      pd_model_name: '',
-      segment_id: 0,
-      pd_method: '',
-      interval: 12,
-      population_type: '',
-      observation_period: 24,
-      observation_start_date: null,
-      multiplication: 1,
-      fl_flag: false,
-      fl_scalar_id: null,
-      ia_flag: false,
-      bucket_group: '',
-      active_flag: true
-    });
-    setEditMode(true);
-    setConfigDialogOpen(true);
-  };
-
-  const handleSaveConfig = () => {
-    // Save config logic
-    console.log('Saving config:', configFormData);
-    setConfigDialogOpen(false);
-    loadData();
-  };
-
-  const loadData = async () => {
+  // Load Data
+  const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
-    
     try {
-      // Load all required data from live database concurrently
-      const [configs, segments, scalars, buckets] = await Promise.all([
-        loadPDConfigsFromDB(),
-        loadPopulationSegmentsFromDB(),
-        loadFLScalarsFromDB(),
-        loadBucketGroupsFromDB()
+      const [configsRes, methodsRes, popTypesRes, bucketsRes, segmentsRes] = await Promise.all([
+        api.banking.pdConfigurations.getAll(),
+        api.banking.pdConfigurations.getMethods(),
+        api.banking.pdConfigurations.getPopulationTypes(),
+        api.banking.bucketParameter.getHeaders(),
+        api.banking.populationSegments.getAll({ active_flag: true })
       ]);
-      
-      setPdConfigs(configs);
-      setPopulationSegments(segments);
-      setFlScalars(scalars);
-      setBucketGroups(buckets);
-      
-    } catch (error) {
-      console.error('Error loading data:', error);
-      setError('Failed to load data from database. Please check your connection and try again.');
+
+      setMethodOptions(methodsRes);
+      setPopTypeOptions(popTypesRes);
+      setBucketGroups(bucketsRes.data || []); // Assuming paginated response structure or direct array
+      setPopulationSegments(segmentsRes);
+
+      const enrichedConfigs = configsRes.map(config => {
+        const segment = segmentsRes.find(s => s.id === config.population_segment_id);
+        const method = methodsRes.find(m => m.value === config.selected_method);
+        return {
+          ...config,
+          segment_name: segment?.segment_name || config.population_segment_desc || 'Unknown',
+          method_name: method?.label || String(config.selected_method)
+        };
+      });
+
+      setPdConfigs(enrichedConfigs);
+    } catch (err: any) {
+      console.error('Failed to load PD data:', err);
+      setError('Failed to load PD configurations.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Filtering
+  useEffect(() => {
+    let filtered = pdConfigs;
+    if (searchTerm) {
+      const lower = searchTerm.toLowerCase();
+      filtered = filtered.filter(c =>
+        c.model_name.toLowerCase().includes(lower) ||
+        c.segment_name?.toLowerCase().includes(lower) ||
+        c.bucket.toLowerCase().includes(lower)
+      );
+    }
+    setFilteredConfigs(filtered);
+  }, [pdConfigs, searchTerm]);
+
+  // Validations
+  const validateForm = () => {
+    const errors: Record<string, string> = {};
+    if (!formData.model_name?.trim()) errors.model_name = 'Model Name is required';
+    if (isEditing && !formData.population_segment_id && !formData.population_segment) {
+      // Legacy support or new
+      // If editing legacy with no UUID, it's tricky. But user will pick from dropdown which sets UUID.
+    }
+    if (!formData.population_segment_id) {
+      // If we want to enforce UUID going forward:
+      // errors.population_segment_id = 'Segment is required';
+      // But for legacy compatibility in UI, we might skip if integer is present.
+      // Let's enforce selection for new/edits to migrate them effectively.
+      // errors.population_segment_id = 'Segment is required';
+    }
+    // Wait, let's just make it required if it's a new entry, 
+    // or if we want to force migration on edit.
+    if (!formData.bucket) errors.bucket = 'Bucket Group is required';
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSave = async () => {
+    if (!validateForm()) return;
+    setLoading(true);
+    try {
+      const payload = {
+        ...formData,
+        // Ensure legacy fields are handled if needed, or just send what we have
+        population_segment: undefined, // Clear legacy int if we are updating
+        // Wait, backend expects int optional.
+      };
+
+      if (isEditing && selectedConfig?.id) {
+        await api.banking.pdConfigurations.update(selectedConfig.id, payload);
+      } else {
+        await api.banking.pdConfigurations.create(payload as any);
+      }
+
+      await loadData();
+      setIsDialogOpen(false);
+      setFormData({});
+      setSelectedConfig(null);
+    } catch (err: any) {
+      console.error('Save failed:', err);
+      setError('Failed to save configuration.');
     } finally {
       setLoading(false);
     }
   };
 
-  const isFieldDisabled = (fieldName: string): boolean => {
-    if (!editMode) return true; // View mode
-    
-    // Fields that should be disabled when pd_method = '3' (Proxy PD)
-    if (configFormData.pd_method === '3') {
-      const disabledFields = ['interval', 'population_type', 'observation_period', 'observation_start_date', 'multiplication'];
-      return disabledFields.includes(fieldName);
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this configuration?')) return;
+    setLoading(true);
+    try {
+      await api.banking.pdConfigurations.delete(id);
+      await loadData();
+    } catch (err: any) {
+      console.error('Delete failed:', err);
+      setError('Failed to delete configuration.');
+    } finally {
+      setLoading(false);
     }
-    
+  };
+
+  // Logic to disable fields based on method (Proxy PD = 3)
+  const isFieldDisabled = (field: string) => {
+    if (!isEditing && !isDialogOpen) return true;
+    if (formData.selected_method === 3) {
+      const disabled = ['migration_interval', 'population_type', 'historical_month', 'first_historical_date', 'multiplication'];
+      return disabled.includes(field);
+    }
     return false;
   };
 
-  const getPopulationSegmentName = (segmentId: number): string => {
-    const segment = populationSegments.find(s => s.pkid === segmentId);
-    return segment ? segment.group_segment : 'Unknown';
-  };
-
-  const getPDMethodDesc = (methodValue: string): string => {
-    const method = pdMethodOptions.find(m => m.value1 === methodValue);
-    return method ? method.paramdesc : 'Unknown';
-  };
-
-  const getPopulationTypeDesc = (typeValue: string): string => {
-    const type = populationTypeOptions.find(t => t.value1 === typeValue);
-    return type ? type.paramdesc : 'Unknown';
-  };
-
-  const getFLScalarName = (scalarId: number): string => {
-    const scalar = flScalars.find(s => s.pkid === scalarId);
-    return scalar ? scalar.scalar_name : 'Unknown';
-  };
-
-  // Load data on component mount
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  // Filter data based on search and filters
-  const filteredConfigs = pdConfigs.filter(config => {
-    const matchesSearch = config.pd_model_name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesMethod = !filterMethod || config.pd_method === filterMethod;
-    return matchesSearch && matchesMethod;
-  });
-
-  if (loading) {
-    return (
-      <Container maxWidth="xl">
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
-          <CircularProgress />
-        </Box>
-      </Container>
-    );
-  }
+  const columns: GridColDef[] = [
+    { field: 'model_name', headerName: 'Model Name', width: 250 },
+    { field: 'segment_name', headerName: 'Segment', width: 200 },
+    { field: 'method_name', headerName: 'Method', width: 150 },
+    { field: 'bucket', headerName: 'Bucket Group', width: 150 },
+    {
+      field: 'is_active',
+      headerName: 'Status',
+      width: 100,
+      renderCell: (params) => (
+        <Chip
+          label={params.value ? 'Active' : 'Inactive'}
+          color={params.value ? 'success' : 'default'}
+          size="small"
+        />
+      )
+    },
+    {
+      field: 'actions',
+      type: 'actions',
+      headerName: 'Actions',
+      width: 100,
+      getActions: (params) => [
+        <GridActionsCellItem
+          key="edit"
+          icon={<EditIcon />}
+          label="Edit"
+          onClick={() => {
+            setSelectedConfig(params.row);
+            setFormData(params.row);
+            setIsEditing(true);
+            setIsDialogOpen(true);
+          }}
+        />,
+        <GridActionsCellItem
+          key="delete"
+          icon={<DeleteIcon />}
+          label="Delete"
+          onClick={() => handleDelete(params.row.id)}
+        />
+      ]
+    }
+  ];
 
   return (
     <Container maxWidth="xl">
-      {/* Breadcrumb Navigation */}
-      <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
-        <Link 
-          underline="hover" 
-          color="inherit" 
-          href="/banking/dashboard"
-          onClick={(e) => {
-            e.preventDefault();
-            router.push('/banking/dashboard');
-          }}
-          sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
-        >
-          <HomeIcon sx={{ mr: 0.5, fontSize: 16 }} />
-          Dashboard
-        </Link>
-        <Typography color="text.primary" sx={{ display: 'flex', alignItems: 'center' }}>
-          <CalculateIcon sx={{ mr: 0.5, fontSize: 16 }} />
-          PD Setup
-        </Typography>
+      <Breadcrumbs sx={{ mb: 2 }}>
+        <Link href="/banking/dashboard" underline="hover" color="inherit">Dashboard</Link>
+        <Typography color="text.primary">PD Setup</Typography>
       </Breadcrumbs>
 
-      {/* Page Header */}
-      <Box sx={{ mb: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <CalculateIcon sx={{ mr: 2, fontSize: 32, color: 'primary.main' }} />
-            <Box>
-              <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
-                PD Setup
-              </Typography>
-              <Typography variant="subtitle1" color="text.secondary">
-                Configure IFRS9 Probability of Default (PD) model parameters and calculation settings
-              </Typography>
-            </Box>
-          </Box>
-          <Box sx={{ display: 'flex', gap: 2 }}>
-            <Button variant="contained" startIcon={<AddIcon />} onClick={handleAddConfig}>
-              Add PD Configuration
-            </Button>
-            <Button variant="outlined" startIcon={<RefreshIcon />} onClick={loadData}>
-              Refresh
-            </Button>
-          </Box>
+      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Typography variant="h4" component="h1">PD Setup Management</Typography>
+        <Box>
+          <Button startIcon={<RefreshIcon />} onClick={loadData} disabled={loading} sx={{ mr: 1 }}>Refresh</Button>
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => {
+            setSelectedConfig(null);
+            setFormData({
+              is_active: true,
+              selected_method: 1,
+              migration_interval: 12,
+              population_type: 1,
+              historical_month: 24,
+              multiplication: 1
+            });
+            setIsEditing(false);
+            setIsDialogOpen(true);
+          }}>Add Configuration</Button>
         </Box>
       </Box>
 
-      {/* Filters */}
+      {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
+
       <Card sx={{ mb: 3 }}>
         <CardContent>
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-            <TextField
-              label="Search PD Models"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              sx={{ minWidth: 300 }}
-            />
-            <FormControl sx={{ minWidth: 200 }}>
-              <InputLabel>PD Method</InputLabel>
-              <Select
-                value={filterMethod}
-                label="PD Method"
-                onChange={(e) => setFilterMethod(e.target.value)}
-              >
-                <MenuItem value="">All Methods</MenuItem>
-                {pdMethodOptions.map(option => (
-                  <MenuItem key={option.value1} value={option.value1}>
-                    {option.paramdesc}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <Button startIcon={<FilterIcon />} onClick={() => loadData()}>
-              Apply Filters
-            </Button>
-          </Box>
+          <TextField
+            fullWidth
+            label="Search"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            InputProps={{ startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} /> }}
+          />
         </CardContent>
       </Card>
 
-      {/* Error Display */}
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
-
-      {/* Main Content - PD Configurations */}
-      <Paper sx={{ p: 2 }}>
-        <Typography variant="h6" gutterBottom>
-          PD Model Configurations ({filteredConfigs.length})
-        </Typography>
-        <div style={{ height: 600, width: '100%' }}>
+      <Card>
+        <Box sx={{ height: 600, width: '100%' }}>
           <DataGrid
             rows={filteredConfigs}
-            columns={configColumns}
-            getRowId={(row) => row.pkid}
-            pageSize={10}
-            rowsPerPageOptions={[10, 25, 50]}
-            onRowClick={(params: GridRowParams) => handleViewConfig(params.row)}
-            sx={{
-              '& .MuiDataGrid-row:hover': {
-                cursor: 'pointer'
-              }
-            }}
+            columns={columns}
+            loading={loading}
+            getRowId={(row) => row.id || Math.random().toString()}
+            disableRowSelectionOnClick
           />
-        </div>
-      </Paper>
+        </Box>
+      </Card>
 
-      {/* Config Dialog */}
-      <Dialog open={configDialogOpen} onClose={() => setConfigDialogOpen(false)} maxWidth="lg" fullWidth>
-        <DialogTitle>
-          {editMode ? (selectedConfig ? 'Edit PD Configuration' : 'Add PD Configuration') : 'View PD Configuration'}
-        </DialogTitle>
-        <DialogContent>
+      <Dialog open={isDialogOpen} onClose={() => setIsDialogOpen(false)} maxWidth="lg" fullWidth>
+        <DialogTitle>{selectedConfig ? 'Edit PD Configuration' : 'New PD Configuration'}</DialogTitle>
+        <DialogContent dividers>
           <LocalizationProvider dateAdapter={AdapterDayjs}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 2 }}>
-              
-              {/* Basic Information */}
-              <Box>
-                <Typography variant="h6" sx={{ mb: 2, color: 'primary.main' }}>Basic Information</Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      label="Model Name"
-                      fullWidth
-                      value={configFormData.pd_model_name || ''}
-                      onChange={(e) => setConfigFormData(prev => ({ ...prev, pd_model_name: e.target.value }))}
-                      disabled={!editMode}
-                      helperText="Descriptive name for the PD model"
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <FormControl fullWidth>
-                      <InputLabel>Population Segment</InputLabel>
-                      <Select
-                        value={configFormData.segment_id || ''}
-                        label="Population Segment"
-                        onChange={(e) => setConfigFormData(prev => ({ ...prev, segment_id: Number(e.target.value) }))}
-                        disabled={!editMode}
-                      >
-                        {populationSegments.filter(s => s.active_flag).map(segment => (
-                          <MenuItem key={segment.pkid} value={segment.pkid}>
-                            {segment.group_segment}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                </Grid>
-              </Box>
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Model Name"
+                  value={formData.model_name || ''}
+                  onChange={(e) => setFormData({ ...formData, model_name: e.target.value })}
+                  error={!!formErrors.model_name}
+                  helperText={formErrors.model_name}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Population Segment</InputLabel>
+                  <Select
+                    value={formData.population_segment_id || ''}
+                    label="Population Segment"
+                    onChange={(e) => setFormData({ ...formData, population_segment_id: e.target.value })}
+                  >
+                    {populationSegments.map(s => (
+                      <MenuItem key={s.id} value={s.id}>{s.segment_name}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
 
-              {/* Method Configuration */}
-              <Box>
-                <Typography variant="h6" sx={{ mb: 2, color: 'primary.main' }}>Method Configuration</Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} md={6}>
-                    <FormControl fullWidth>
-                      <InputLabel>Selected Method</InputLabel>
-                      <Select
-                        value={configFormData.pd_method || ''}
-                        label="Selected Method"
-                        onChange={(e) => setConfigFormData(prev => ({ ...prev, pd_method: e.target.value }))}
-                        disabled={!editMode}
-                      >
-                        {pdMethodOptions.map(option => (
-                          <MenuItem key={option.value1} value={option.value1}>
-                            {option.paramdesc}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      label="Migration Interval"
-                      type="number"
-                      fullWidth
-                      value={configFormData.interval || ''}
-                      onChange={(e) => setConfigFormData(prev => ({ ...prev, interval: Number(e.target.value) }))}
-                      disabled={isFieldDisabled('interval')}
-                      helperText="Migration interval in months (disabled for Proxy PD)"
-                      inputProps={{ min: 0, max: 36 }}
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <FormControl fullWidth>
-                      <InputLabel>Population Type</InputLabel>
-                      <Select
-                        value={configFormData.population_type || ''}
-                        label="Population Type"
-                        onChange={(e) => setConfigFormData(prev => ({ ...prev, population_type: e.target.value }))}
-                        disabled={isFieldDisabled('population_type')}
-                      >
-                        {populationTypeOptions.map(option => (
-                          <MenuItem key={option.value1} value={option.value1}>
-                            {option.paramdesc}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      label="Historical Month"
-                      type="number"
-                      fullWidth
-                      value={configFormData.observation_period || ''}
-                      onChange={(e) => setConfigFormData(prev => ({ ...prev, observation_period: Number(e.target.value) }))}
-                      disabled={isFieldDisabled('observation_period')}
-                      helperText="Observation period in months (disabled for Proxy PD)"
-                      inputProps={{ min: 0, max: 120 }}
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <DatePicker
-                      label="First Historical Date"
-                      value={configFormData.observation_start_date ? dayjs(configFormData.observation_start_date) : null}
-                      onChange={(date) => setConfigFormData(prev => ({ 
-                        ...prev, 
-                        observation_start_date: date ? date.format('YYYY-MM-DD') : null 
-                      }))}
-                      disabled={isFieldDisabled('observation_start_date')}
-                      renderInput={(params) => (
-                        <TextField 
-                          {...params} 
-                          fullWidth 
-                          helperText="First historical date (disabled for Proxy PD)"
-                        />
-                      )}
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      label="Multiplication"
-                      type="number"
-                      fullWidth
-                      value={configFormData.multiplication || ''}
-                      onChange={(e) => setConfigFormData(prev => ({ ...prev, multiplication: Number(e.target.value) }))}
-                      disabled={isFieldDisabled('multiplication')}
-                      helperText="Multiplication factor (disabled for Proxy PD)"
-                      inputProps={{ min: 0, step: 0.1 }}
-                    />
-                  </Grid>
-                </Grid>
-              </Box>
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Method</InputLabel>
+                  <Select
+                    value={formData.selected_method || 1}
+                    label="Method"
+                    onChange={(e) => setFormData({ ...formData, selected_method: Number(e.target.value) })}
+                  >
+                    {methodOptions.map(m => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
+                  </Select>
+                </FormControl>
+              </Grid>
 
-              {/* Advanced Configuration */}
-              <Box>
-                <Typography variant="h6" sx={{ mb: 2, color: 'primary.main' }}>Advanced Configuration</Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} md={6}>
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={configFormData.fl_flag || false}
-                          onChange={(e) => setConfigFormData(prev => ({ ...prev, fl_flag: e.target.checked }))}
-                          disabled={!editMode}
-                        />
-                      }
-                      label="FL Flag"
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <FormControl fullWidth>
-                      <InputLabel>FL Scalar</InputLabel>
-                      <Select
-                        value={configFormData.fl_scalar_id || ''}
-                        label="FL Scalar"
-                        onChange={(e) => setConfigFormData(prev => ({ ...prev, fl_scalar_id: Number(e.target.value) }))}
-                        disabled={!editMode || !configFormData.fl_flag}
-                      >
-                        {flScalars.filter(s => s.active_flag).map(scalar => (
-                          <MenuItem key={scalar.pkid} value={scalar.pkid}>
-                            {scalar.scalar_name}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={configFormData.ia_flag || false}
-                          onChange={(e) => setConfigFormData(prev => ({ ...prev, ia_flag: e.target.checked }))}
-                          disabled={!editMode}
-                        />
-                      }
-                      label="IA Flag"
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <FormControl fullWidth>
-                      <InputLabel>Bucket</InputLabel>
-                      <Select
-                        value={configFormData.bucket_group || ''}
-                        label="Bucket"
-                        onChange={(e) => setConfigFormData(prev => ({ ...prev, bucket_group: e.target.value }))}
-                        disabled={!editMode}
-                      >
-                        {bucketGroups.map(bucket => (
-                          <MenuItem key={bucket} value={bucket}>
-                            {bucket}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={configFormData.active_flag || false}
-                          onChange={(e) => setConfigFormData(prev => ({ ...prev, active_flag: e.target.checked }))}
-                          disabled={!editMode}
-                        />
-                      }
-                      label="Is Active"
-                    />
-                  </Grid>
-                </Grid>
-              </Box>
-            </Box>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Migration Interval (Months)"
+                  value={formData.migration_interval || ''}
+                  onChange={(e) => setFormData({ ...formData, migration_interval: Number(e.target.value) })}
+                  disabled={isFieldDisabled('migration_interval')}
+                />
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Bucket Group</InputLabel>
+                  <Select
+                    value={formData.bucket || ''}
+                    label="Bucket Group"
+                    onChange={(e) => setFormData({ ...formData, bucket: e.target.value })}
+                    error={!!formErrors.bucket}
+                  >
+                    {bucketGroups.map((b: any) => (
+                      <MenuItem key={b.id} value={b.bucket_group}>{b.bucket_group}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Population Type</InputLabel>
+                  <Select
+                    value={formData.population_type || 1}
+                    label="Population Type"
+                    onChange={(e) => setFormData({ ...formData, population_type: Number(e.target.value) })}
+                    disabled={isFieldDisabled('population_type')}
+                  >
+                    {popTypeOptions.map(m => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Historical Month"
+                  value={formData.historical_month || ''}
+                  onChange={(e) => setFormData({ ...formData, historical_month: Number(e.target.value) })}
+                  disabled={isFieldDisabled('historical_month')}
+                />
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <DatePicker
+                  label="First Historical Date"
+                  value={formData.first_historical_date ? dayjs(formData.first_historical_date) : null}
+                  onChange={(date) => setFormData({ ...formData, first_historical_date: date ? dayjs(date).format('YYYY-MM-DD') : undefined })}
+                  disabled={isFieldDisabled('first_historical_date')}
+                  slotProps={{ textField: { fullWidth: true } }}
+                />
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Multiplication"
+                  value={formData.multiplication || ''}
+                  onChange={(e) => setFormData({ ...formData, multiplication: Number(e.target.value) })}
+                  disabled={isFieldDisabled('multiplication')}
+                />
+              </Grid>
+
+              <Grid item xs={12} md={6} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <FormControlLabel
+                  control={<Switch checked={!!formData.is_active} onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })} />}
+                  label="Active"
+                />
+                <FormControlLabel
+                  control={<Switch checked={!!formData.fl_flag} onChange={(e) => setFormData({ ...formData, fl_flag: e.target.checked })} />}
+                  label="FL Flag"
+                />
+                <FormControlLabel
+                  control={<Switch checked={!!formData.ia_flag} onChange={(e) => setFormData({ ...formData, ia_flag: e.target.checked })} />}
+                  label="IA Flag"
+                />
+              </Grid>
+
+            </Grid>
           </LocalizationProvider>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfigDialogOpen(false)}>Cancel</Button>
-          {editMode && (
-            <Button onClick={handleSaveConfig} variant="contained">Save</Button>
-          )}
+          <Button onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleSave} disabled={loading}>{selectedConfig ? 'Update' : 'Create'}</Button>
         </DialogActions>
       </Dialog>
     </Container>

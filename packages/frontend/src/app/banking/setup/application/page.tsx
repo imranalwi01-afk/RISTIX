@@ -230,30 +230,30 @@ export default function ApplicationSettingPage() {
           // Map backend response to legacy DataTables format
           const transformed: ApplicationSettingDataTable = {
             ID: item.ID || item.id || item.pkid,
-            CommonCode: item.CommonCode || item.param_code,
-            Description: item.Description || item.param_name || item.param_usage,
-            Value: item.Value || item.param_usage || 'No details configured',
-            ParamType: item.ParamType || item.param_type || 'S', // Default to 'S' for Application Settings
+            CommonCode: item.CommonCode || item.param_code || item.paramCode,
+            Description: item.Description || item.param_name || item.paramName,
+            Value: item.Value || item.param_usage || item.paramUsage || 'No details configured',
+            ParamType: item.ParamType || item.param_type || item.paramType || 'S', // Default to 'S'
             CreatedBy: item.created_by || item.CreatedBy || item.createdby || 'SYSTEM',
             CreatedDate: item.created_date || item.CreatedDate || item.createddate,
             UpdatedBy: item.updated_by || item.UpdatedBy || item.updatedby,
             UpdatedDate: item.updated_date || item.UpdatedDate || item.updateddate,
             // Legacy compatibility fields
             pkid: item.pkid || item.id || item.ID,
-            param_code: item.CommonCode || item.param_code,
-            param_name: item.Description || item.param_name,
-            param_usage: item.ParamUsage || item.param_usage,
-            param_type: item.ParamType || item.param_type || 'S', // Default to 'S' for Application Settings
+            param_code: item.CommonCode || item.param_code || item.paramCode,
+            param_name: item.Description || item.param_name || item.paramName,
+            param_usage: item.ParamUsage || item.param_usage || item.paramUsage,
+            param_type: item.ParamType || item.param_type || item.paramType || 'A', // Default to 'A' for new items
             createdby: item.created_by || item.createdby,
             createddate: item.created_date || item.createddate
           };
 
-          console.log(`🔍 Mapping record: ${item.CommonCode} -> ${transformed.CommonCode}, ${item.Description} -> ${transformed.Description}`);
+          console.log(`🔍 Mapping record: ${item.CommonCode || item.paramCode} -> ${transformed.CommonCode}, ${item.Description || item.paramName} -> ${transformed.Description}`);
           return transformed;
         });
 
-        // Application Settings should show ALL param_type = 'S' records, not just APP* codes
-        const appParams = transformedData.filter(item => item.CommonCode && item.ParamType === 'S');
+        // Application Settings should show param_type = 'S' (Legacy) OR 'A' (New) records
+        const appParams = transformedData.filter(item => item.CommonCode && (item.ParamType === 'S' || item.ParamType === 'A'));
         console.log(`✅ Filtered Application parameters (param_type = S): ${appParams.length} out of ${transformedData.length}`);
         console.log('📋 Application parameters found:', appParams.map(p => p.CommonCode));
 

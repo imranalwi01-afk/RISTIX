@@ -1,0 +1,84 @@
+-- Seeding Business Settings (frs9_param_commond)
+-- Required for Segmentation Configuration (B0012, B0013, B0014, B0015)
+
+-- Clear existing Business Settings data to prevent duplicates
+DELETE FROM ifrs9.frs9_param_commond WHERE param_code IN ('B0012', 'B0013', 'B0014', 'B0015', 'B0016');
+DELETE FROM ifrs9.frs9_param_commonh WHERE param_code IN ('B0012', 'B0013', 'B0014', 'B0015', 'B0016');
+
+-- Insert Headers (frs9_param_commonh) with param_type = 'B'
+INSERT INTO ifrs9.frs9_param_commonh (param_code, param_name, param_usage, param_type, banking_type, is_active, requires_approval, createdby, createddate, createdhost) VALUES
+('B0012', 'Tables Configuration', 'List of tables available for segmentation', 'B', 'conventional', true, false, 'SYSTEM', NOW(), 'localhost'),
+('B0013', 'Columns Configuration', 'List of columns available for segmentation', 'B', 'conventional', true, false, 'SYSTEM', NOW(), 'localhost'),
+('B0014', 'Operators Configuration', 'List of operators available for segmentation', 'B', 'conventional', true, false, 'SYSTEM', NOW(), 'localhost'),
+('B0015', 'Conditions Configuration', 'List of logic conditions available for segmentation', 'B', 'conventional', true, false, 'SYSTEM', NOW(), 'localhost'),
+('B0016', 'Column Values Configuration', 'List of predefined values for columns', 'B', 'conventional', true, false, 'SYSTEM', NOW(), 'localhost');
+
+
+-- 1. B0012: Tables
+-- value1: Table Name
+INSERT INTO ifrs9.frs9_param_commond (param_code, param_seq, value1, value2, value3, paramdesc, createdby, createddate, createdhost) VALUES
+('B0012', 1, 'frs9_param_product', '', '', 'Products Table', 'SYSTEM', NOW(), 'localhost'),
+('B0012', 2, 'frs9_param_journal', '', '', 'Journals Table', 'SYSTEM', NOW(), 'localhost');
+
+-- 2. B0013: Columns
+-- value1: Column Name, value2: Data Type, value3: Table Name
+INSERT INTO ifrs9.frs9_param_commond (param_code, param_seq, value1, value2, value3, paramdesc, createdby, createddate, createdhost) VALUES
+-- Product Table Columns
+('B0013', 1, 'CONTRACT_ID', 'string', 'frs9_param_product', 'Contract Identifier', 'SYSTEM', NOW(), 'localhost'),
+('B0013', 2, 'PRODUCT_TYPE', 'string', 'frs9_param_product', 'Product Type', 'SYSTEM', NOW(), 'localhost'),
+('B0013', 3, 'CURRENCY', 'string', 'frs9_param_product', 'Currency Code', 'SYSTEM', NOW(), 'localhost'),
+('B0013', 4, 'AMOUNT', 'number', 'frs9_param_product', 'Principal Amount', 'SYSTEM', NOW(), 'localhost'),
+('B0013', 5, 'INTEREST_RATE', 'number', 'frs9_param_product', 'Interest Rate', 'SYSTEM', NOW(), 'localhost'),
+('B0013', 6, 'START_DATE', 'date', 'frs9_param_product', 'Start Date', 'SYSTEM', NOW(), 'localhost'),
+('B0013', 8, 'IS_IMPAIRED', 'boolean', 'frs9_param_product', 'Impairment Status', 'SYSTEM', NOW(), 'localhost'),
+
+-- Journal Table Columns
+('B0013', 10, 'JOURNAL_ID', 'string', 'frs9_param_journal', 'Journal Identifier', 'SYSTEM', NOW(), 'localhost'),
+('B0013', 11, 'ACCOUNT_CODE', 'string', 'frs9_param_journal', 'Account Code', 'SYSTEM', NOW(), 'localhost'),
+('B0013', 12, 'DEBIT_AMOUNT', 'number', 'frs9_param_journal', 'Debit Amount', 'SYSTEM', NOW(), 'localhost'),
+('B0013', 13, 'CREDIT_AMOUNT', 'number', 'frs9_param_journal', 'Credit Amount', 'SYSTEM', NOW(), 'localhost'),
+('B0013', 14, 'POSTING_DATE', 'date', 'frs9_param_journal', 'Posting Date', 'SYSTEM', NOW(), 'localhost');
+
+-- 3. B0014: Operators
+-- value1: Operator, value2: Data Type it applies to
+INSERT INTO ifrs9.frs9_param_commond (param_code, param_seq, value1, value2, value3, paramdesc, createdby, createddate, createdhost) VALUES
+-- String Operators
+('B0014', 1, '=', 'string', '', 'Equals', 'SYSTEM', NOW(), 'localhost'),
+('B0014', 2, '!=', 'string', '', 'Not Equals', 'SYSTEM', NOW(), 'localhost'),
+('B0014', 3, 'LIKE', 'string', '', 'Contains', 'SYSTEM', NOW(), 'localhost'),
+('B0014', 4, 'IN', 'string', '', 'In List', 'SYSTEM', NOW(), 'localhost'),
+
+-- Number Operators
+('B0014', 5, '=', 'number', '', 'Equals', 'SYSTEM', NOW(), 'localhost'),
+('B0014', 6, '!=', 'number', '', 'Not Equals', 'SYSTEM', NOW(), 'localhost'),
+('B0014', 7, '>', 'number', '', 'Greater Than', 'SYSTEM', NOW(), 'localhost'),
+('B0014', 8, '<', 'number', '', 'Less Than', 'SYSTEM', NOW(), 'localhost'),
+('B0014', 9, '>=', 'number', '', 'Greater Than or Equal', 'SYSTEM', NOW(), 'localhost'),
+('B0014', 10, '<=', 'number', '', 'Less Than or Equal', 'SYSTEM', NOW(), 'localhost'),
+
+-- Date Operators
+('B0014', 11, '=', 'date', '', 'Equals', 'SYSTEM', NOW(), 'localhost'),
+('B0014', 12, '!=', 'date', '', 'Not Equals', 'SYSTEM', NOW(), 'localhost'),
+('B0014', 13, '>', 'date', '', 'After', 'SYSTEM', NOW(), 'localhost'),
+('B0014', 14, '<', 'date', '', 'Before', 'SYSTEM', NOW(), 'localhost'),
+
+-- Boolean Operators
+('B0014', 15, '=', 'boolean', '', 'Equals', 'SYSTEM', NOW(), 'localhost');
+
+-- 4. B0015: Conditions
+-- value1: Condition
+INSERT INTO ifrs9.frs9_param_commond (param_code, param_seq, value1, value2, value3, paramdesc, createdby, createddate, createdhost) VALUES
+('B0015', 1, 'AND', '', '', 'Logical AND', 'SYSTEM', NOW(), 'localhost'),
+('B0015', 2, 'OR', '', '', 'Logical OR', 'SYSTEM', NOW(), 'localhost');
+
+-- 5. B0016: Column Values (Predefined options for specific columns)
+-- value1: Value, value2: Column Name, value3: Table Name
+INSERT INTO ifrs9.frs9_param_commond (param_code, param_seq, value1, value2, value3, paramdesc, createdby, createddate, createdhost) VALUES
+-- Product Types
+('B0016', 1, 'LOAN', 'PRODUCT_TYPE', 'frs9_param_product', 'Loan Product', 'SYSTEM', NOW(), 'localhost'),
+('B0016', 2, 'MORTGAGE', 'PRODUCT_TYPE', 'frs9_param_product', 'Mortgage Product', 'SYSTEM', NOW(), 'localhost'),
+('B0016', 3, 'CREDIT_CARD', 'PRODUCT_TYPE', 'frs9_param_product', 'Credit Card', 'SYSTEM', NOW(), 'localhost'),
+
+-- Currencies
+('B0016', 4, 'IDR', 'CURRENCY', 'frs9_param_product', 'Indonesian Rupiah', 'SYSTEM', NOW(), 'localhost'),
+('B0016', 5, 'USD', 'CURRENCY', 'frs9_param_product', 'US Dollar', 'SYSTEM', NOW(), 'localhost');

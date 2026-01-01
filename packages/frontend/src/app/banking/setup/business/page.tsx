@@ -373,6 +373,18 @@ function BusinessSettingPage() {
     try {
       console.log('🔄 Loading business parameters...');
 
+      // DEBUG: Check API structure
+      console.log('🔍 Debug API Check:', {
+        apiExists: !!api,
+        bankingExists: !!api?.banking,
+        businessSetupExists: !!api?.banking?.businessSetup,
+        keys: api?.banking ? Object.keys(api.banking) : []
+      });
+
+      if (!api.banking.businessSetup) {
+        throw new Error('API Client Error: api.banking.businessSetup is undefined. Please check api.ts definition.');
+      }
+
       // Check if user is authenticated first
       if (typeof window !== 'undefined') {
         const token = getAuthToken();
@@ -384,12 +396,37 @@ function BusinessSettingPage() {
       const response = await api.banking.businessSetup.getAll();
 
       if (response && response.success && response.data) {
-        setBusinessParameters(response.data);
-        console.log(`✅ Loaded ${response.data.length} business parameters`);
+        // Transform backend data to match BusinessParameter interface
+        const transformedData: BusinessParameter[] = response.data.map((item: any) => ({
+          pkid: item.pkid?.toString() || item.id?.toString() || '0',
+          param_code: item.paramCode || item.param_code || '',
+          param_desc: item.paramName || item.param_name || '',
+          param_category: item.paramType || item.param_type || 'B',
+          param_value: item.paramUsage || item.param_usage || '',
+          param_type: 'BUSINESS', // Derived or hardcoded for now
+          is_editable: true, // Default to true if not present
+          active_flag: item.isActive !== undefined ? item.isActive : true,
+          created_by: item.createdby || item.created_by || 'SYSTEM',
+          created_date: item.createddate || item.created_date || new Date().toISOString()
+        }));
+        setBusinessParameters(transformedData);
+        console.log(`✅ Loaded ${transformedData.length} business parameters`);
       } else if (response && response.data) {
         // Handle case where response doesn't have success flag but has data
-        setBusinessParameters(response.data);
-        console.log(`✅ Loaded ${response.data.length} business parameters (no success flag)`);
+        const transformedData: BusinessParameter[] = response.data.map((item: any) => ({
+          pkid: item.pkid?.toString() || item.id?.toString() || '0',
+          param_code: item.paramCode || item.param_code || '',
+          param_desc: item.paramName || item.param_name || '',
+          param_category: item.paramType || item.param_type || 'B',
+          param_value: item.paramUsage || item.param_usage || '',
+          param_type: 'BUSINESS',
+          is_editable: true,
+          active_flag: item.isActive !== undefined ? item.isActive : true,
+          created_by: item.createdby || item.created_by || 'SYSTEM',
+          created_date: item.createddate || item.created_date || new Date().toISOString()
+        }));
+        setBusinessParameters(transformedData);
+        console.log(`✅ Loaded ${transformedData.length} business parameters (no success flag)`);
       } else {
         // Handle case where response structure is different
         console.warn('⚠️ Unexpected response structure:', response);

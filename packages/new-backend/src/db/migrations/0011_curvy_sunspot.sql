@@ -1,0 +1,1 @@
+ALTER TABLE "frs9_imp_ca_lgd_config" DROP COLUMN "population_segment_id";

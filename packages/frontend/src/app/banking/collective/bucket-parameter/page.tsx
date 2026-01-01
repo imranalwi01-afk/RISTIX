@@ -1,11 +1,9 @@
 // packages/frontend/src/app/banking/collective/bucket-parameter/page.tsx
 // ============================================================================
-// IFRS9 FRONTEND - BUCKET PARAMETER PAGE - APPLICATION SETUP UI/UX PATTERN
+// IFRS9 FRONTEND - BUCKET PARAMETER PAGE
 // ============================================================================
 // Master-detail expandable table UI following Application Setup pattern
-// Database: frs9_param_bucketh (Headers) + frs9_param_bucketd (Details)
-// Live DB: DS2 FRS9PRO (192.168.0.106:5433) - ACTUAL DATA, NO MOCK DATA
-// Business Parameters: frs9_param_commond (B0017 for BASIS options)
+// Database: bucket_parameters (Headers) + bucket_parameter_details (Details)
 // ============================================================================
 
 'use client';
@@ -40,12 +38,11 @@ import {
   Alert,
   Breadcrumbs,
   Link,
-  Divider,
-  Checkbox,
-  FormControlLabel,
   Tooltip,
   CircularProgress,
-  Container
+  Container,
+  Switch,
+  FormControlLabel
 } from '@mui/material';
 import {
   KeyboardArrowDown,
@@ -55,72 +52,24 @@ import {
   Delete as DeleteIcon,
   Search as SearchIcon,
   Refresh as RefreshIcon,
-  FilterList as FilterIcon,
-  Visibility as ViewIcon,
   Home as HomeIcon,
-  Layers as BucketIcon,
-  ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon
+  Layers as BucketIcon
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
-import { api } from '../../../../services/api';
-
-// ============================================================================
-// INTERFACES - BASED ON ACTUAL DATABASE STRUCTURE
-// ============================================================================
-
-interface BucketHeader {
-  pkid: number;
-  bucket_group: string;
-  bucket_desc: string;
-  basis: string;
-  bucket_default: number;
-  closed_flag: boolean;
-  wo_flag: boolean;
-  createdby?: string;
-  createddate?: string;
-  createdhost?: string;
-  updatedby?: string;
-  updateddate?: string;
-  updatedhost?: string;
-  details_count?: number;
-}
-
-interface BucketDetail {
-  pkid: number;
-  pkid_header: number;
-  bucket_id: number;
-  bucket_name: string;
-  range_start: number;
-  range_end: number | null;
-  createdby?: string;
-  createddate?: string;
-  createdhost?: string;
-  updatedby?: string;
-  updateddate?: string;
-  updatedhost?: string;
-}
-
-interface BasisOption {
-  param_seq: number;
-  value1: string;
-  value2?: string;
-  value3?: string;
-  paramdesc: string;
-}
+import { bucketParameterAPI, BucketParameterHeader, BucketParameterDetail } from '../../../../services/api.bucketparameter';
 
 // ============================================================================
 // EXPANDABLE ROW COMPONENT
 // ============================================================================
 
 interface BucketHeaderRowProps {
-  header: BucketHeader;
-  basisOptions: BasisOption[];
-  onEdit: (header: BucketHeader) => void;
-  onDelete: (header: BucketHeader) => void;
-  onAddDetail: (header: BucketHeader) => void;
-  onEditDetail: (detail: BucketDetail) => void;
-  onDeleteDetail: (detail: BucketDetail) => void;
+  header: BucketParameterHeader;
+  basisOptions: { value1: string, paramdesc: string }[];
+  onEdit: (header: BucketParameterHeader) => void;
+  onDelete: (header: BucketParameterHeader) => void;
+  onAddDetail: (header: BucketParameterHeader) => void;
+  onEditDetail: (detail: BucketParameterDetail) => void;
+  onDeleteDetail: (detail: BucketParameterDetail) => void;
 }
 
 const BucketHeaderRow: React.FC<BucketHeaderRowProps> = ({
@@ -133,24 +82,20 @@ const BucketHeaderRow: React.FC<BucketHeaderRowProps> = ({
   onDeleteDetail
 }) => {
   const [open, setOpen] = useState(false);
-  const [details, setDetails] = useState<BucketDetail[]>([]);
+  const [details, setDetails] = useState<BucketParameterDetail[]>([]);
   const [detailsLoading, setDetailsLoading] = useState(false);
 
   const loadDetails = async () => {
-    console.log('🔄 Loading bucket details for header:', header.pkid, header.bucket_group);
     setDetailsLoading(true);
     try {
-      const response = await api.banking.bucketParameter.getDetails(header.pkid);
-      console.log('📥 API response:', response);
+      const response = await bucketParameterAPI.getDetails(header.id);
       if (response.success) {
-        console.log('✅ Setting details:', response.data?.length || 0, 'records');
         setDetails(response.data || []);
       } else {
-        console.error('❌ API response not successful:', response);
         setDetails([]);
       }
     } catch (error) {
-      console.error('❌ Error loading bucket details:', error);
+      console.error('Error loading details:', error);
       setDetails([]);
     } finally {
       setDetailsLoading(false);
@@ -158,19 +103,12 @@ const BucketHeaderRow: React.FC<BucketHeaderRowProps> = ({
   };
 
   const handleToggle = () => {
-    console.log('🔘 Toggle clicked:', { 
-      currentOpen: open, 
-      willBeOpen: !open, 
-      headerId: header.pkid,
-      headerGroup: header.bucket_group 
-    });
     setOpen(!open);
   };
 
   // Load details when row expands
   React.useEffect(() => {
     if (open && details.length === 0) {
-      console.log('🔄 Row expanded, loading details via useEffect...');
       loadDetails();
     }
   }, [open]);
@@ -180,8 +118,8 @@ const BucketHeaderRow: React.FC<BucketHeaderRowProps> = ({
     return basis?.paramdesc || basisCode;
   };
 
-  const formatRange = (start: number, end: number | null): string => {
-    if (end === null) return 'N/A';
+  const formatRange = (start: number, end?: number | null): string => {
+    if (end === null || end === undefined) return `${start.toLocaleString()} - ∞`;
     if (end === 9999) return `${start.toLocaleString()} - ∞`;
     return `${start.toLocaleString()} - ${end.toLocaleString()}`;
   };
@@ -201,11 +139,11 @@ const BucketHeaderRow: React.FC<BucketHeaderRowProps> = ({
         </TableCell>
         <TableCell>
           <Typography variant="body2">
-            {header.bucket_desc}
+            {header.bucket_group_desc || header.bucket_desc || '-'}
           </Typography>
         </TableCell>
         <TableCell>
-          <Chip 
+          <Chip
             label={getBasisDescription(header.basis)}
             size="small"
             color={header.basis === 'D' ? 'primary' : 'info'}
@@ -213,32 +151,27 @@ const BucketHeaderRow: React.FC<BucketHeaderRowProps> = ({
           />
         </TableCell>
         <TableCell align="center">
-          <Typography variant="body2" fontWeight="medium">
-            {header.bucket_default}
-          </Typography>
-        </TableCell>
-        <TableCell align="center">
           <Chip
-            label={header.closed_flag ? 'Yes' : 'No'}
+            label={header.include_close ? 'Yes' : 'No'}
             size="small"
-            color={header.closed_flag ? 'success' : 'default'}
+            color={header.include_close ? 'success' : 'default'}
             variant="outlined"
           />
         </TableCell>
         <TableCell align="center">
           <Chip
-            label={header.wo_flag ? 'Yes' : 'No'}
+            label={header.include_wo ? 'Yes' : 'No'}
             size="small"
-            color={header.wo_flag ? 'warning' : 'default'}
+            color={header.include_wo ? 'warning' : 'default'}
             variant="outlined"
           />
         </TableCell>
         <TableCell align="center">
           <Chip
-            label={header.details_count?.toString() || '0'}
+            label={header.active_flag ? 'Active' : 'Inactive'}
             size="small"
-            color="primary"
-            variant="filled"
+            color={header.active_flag ? 'success' : 'default'}
+            variant="outlined"
           />
         </TableCell>
         <TableCell>
@@ -259,12 +192,12 @@ const BucketHeaderRow: React.FC<BucketHeaderRowProps> = ({
 
       {/* Expandable Details Row */}
       <TableRow>
-        <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={9}>
+        <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={8}>
           <Collapse in={open} timeout="auto" unmountOnExit>
             <Box sx={{ margin: 2, p: 2, backgroundColor: '#f8f9fa', borderRadius: 1 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h6" gutterBottom component="div" color="primary">
-                  Bucket Details - {header.bucket_desc}
+                  Bucket Details
                 </Typography>
                 <Button
                   size="small"
@@ -273,7 +206,7 @@ const BucketHeaderRow: React.FC<BucketHeaderRowProps> = ({
                   variant="contained"
                   color="primary"
                 >
-                  Add Bucket
+                  Add Detail
                 </Button>
               </Box>
 
@@ -286,25 +219,17 @@ const BucketHeaderRow: React.FC<BucketHeaderRowProps> = ({
                   <Table size="small">
                     <TableHead>
                       <TableRow sx={{ backgroundColor: '#e3f2fd' }}>
-                        <TableCell><strong>Bucket ID</strong></TableCell>
-                        <TableCell><strong>Bucket Name</strong></TableCell>
+                        <TableCell><strong>Name</strong></TableCell>
                         <TableCell><strong>Range Start</strong></TableCell>
                         <TableCell><strong>Range End</strong></TableCell>
-                        <TableCell><strong>Range Display</strong></TableCell>
+                        <TableCell><strong>Display</strong></TableCell>
+                        <TableCell align="center"><strong>Status</strong></TableCell>
                         <TableCell align="center"><strong>Actions</strong></TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
                       {details.map((detail) => (
-                        <TableRow key={detail.pkid} hover>
-                          <TableCell>
-                            <Chip 
-                              label={detail.bucket_id} 
-                              size="small" 
-                              color="primary" 
-                              variant="outlined" 
-                            />
-                          </TableCell>
+                        <TableRow key={detail.id} hover>
                           <TableCell>
                             <Typography variant="body2" fontWeight="medium">
                               {detail.bucket_name}
@@ -312,14 +237,12 @@ const BucketHeaderRow: React.FC<BucketHeaderRowProps> = ({
                           </TableCell>
                           <TableCell>
                             <Typography variant="body2">
-                              {detail.range_start.toLocaleString()}
+                              {detail.range_start}
                             </Typography>
                           </TableCell>
                           <TableCell>
                             <Typography variant="body2">
-                              {detail.range_end === null ? 'N/A' : 
-                               detail.range_end === 9999 ? '∞' : 
-                               detail.range_end.toLocaleString()}
+                              {detail.range_end ?? '∞'}
                             </Typography>
                           </TableCell>
                           <TableCell>
@@ -328,13 +251,21 @@ const BucketHeaderRow: React.FC<BucketHeaderRowProps> = ({
                             </Typography>
                           </TableCell>
                           <TableCell align="center">
+                            <Chip
+                              label={detail.active_flag ? 'Active' : 'Inactive'}
+                              size="small"
+                              color={detail.active_flag ? 'success' : 'default'}
+                              variant="outlined"
+                            />
+                          </TableCell>
+                          <TableCell align="center">
                             <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
-                              <Tooltip title="Edit Bucket">
+                              <Tooltip title="Edit Detail">
                                 <IconButton size="small" onClick={() => onEditDetail(detail)} color="primary">
                                   <EditIcon fontSize="small" />
                                 </IconButton>
                               </Tooltip>
-                              <Tooltip title="Delete Bucket">
+                              <Tooltip title="Delete Detail">
                                 <IconButton size="small" onClick={() => onDeleteDetail(detail)} color="error">
                                   <DeleteIcon fontSize="small" />
                                 </IconButton>
@@ -348,7 +279,7 @@ const BucketHeaderRow: React.FC<BucketHeaderRowProps> = ({
                 </TableContainer>
               ) : (
                 <Alert severity="info" sx={{ mt: 1 }}>
-                  No bucket details found. Click "Add Bucket" to create the first bucket.
+                  No bucket details found. Click "Add Detail" to create one.
                 </Alert>
               )}
             </Box>
@@ -365,28 +296,26 @@ const BucketHeaderRow: React.FC<BucketHeaderRowProps> = ({
 
 export default function BucketParameterPage() {
   const router = useRouter();
-  
+
   // Data State
-  const [bucketHeaders, setBucketHeaders] = useState<BucketHeader[]>([]);
-  const [basisOptions, setBasisOptions] = useState<BasisOption[]>([]);
+  const [bucketHeaders, setBucketHeaders] = useState<BucketParameterHeader[]>([]);
+  const [basisOptions, setBasisOptions] = useState<{ value1: string, paramdesc: string }[]>([]);
   const [loading, setLoading] = useState(false);
-  
+
   // Filter State
   const [searchTerm, setSearchTerm] = useState('');
   const [filterBasis, setFilterBasis] = useState('');
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
-  
+
   // Dialog States
   const [headerDialogOpen, setHeaderDialogOpen] = useState(false);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  
+
   // Form States
-  const [selectedHeader, setSelectedHeader] = useState<BucketHeader | null>(null);
-  const [headerFormData, setHeaderFormData] = useState<Partial<BucketHeader>>({});
-  const [detailFormData, setDetailFormData] = useState<Partial<BucketDetail>>({});
-  
+  const [selectedHeader, setSelectedHeader] = useState<BucketParameterHeader | null>(null);
+  const [headerFormData, setHeaderFormData] = useState<Partial<BucketParameterHeader>>({});
+  const [detailFormData, setDetailFormData] = useState<Partial<BucketParameterDetail>>({});
+
   // Error State
   const [error, setError] = useState<string | null>(null);
 
@@ -396,17 +325,12 @@ export default function BucketParameterPage() {
 
   const loadBasisOptions = useCallback(async () => {
     try {
-      const response = await api.banking.bucketParameter.getBasisOptions();
+      const response = await bucketParameterAPI.getBasisOptions();
       if (response.success && response.data) {
         setBasisOptions(response.data);
       }
     } catch (error) {
       console.error('Error loading basis options:', error);
-      // Fallback to basic options if API fails
-      setBasisOptions([
-        { param_seq: 1, value1: 'D', paramdesc: 'Day Past Due' },
-        { param_seq: 2, value1: 'R', paramdesc: 'Rating' }
-      ]);
     }
   }, []);
 
@@ -415,127 +339,118 @@ export default function BucketParameterPage() {
     setError(null);
     try {
       const params = {
-        page,
-        limit,
         search: searchTerm || undefined,
         basis: filterBasis || undefined
       };
 
-      const response = await api.banking.bucketParameter.getHeaders(params);
+      const response = await bucketParameterAPI.getHeaders(params);
       if (response.success && response.data) {
         setBucketHeaders(response.data);
       } else {
-        setError('Failed to load bucket parameters from database');
-        setBucketHeaders([]);
+        setError('Failed to load buckets from database');
       }
     } catch (error: any) {
       console.error('Error loading bucket headers:', error);
-      setError(error.response?.data?.error || 'Failed to connect to database');
-      setBucketHeaders([]);
+      setError(error.message || 'Failed to connect to database');
     } finally {
       setLoading(false);
     }
-  }, [page, limit, searchTerm, filterBasis]);
+  }, [searchTerm, filterBasis]);
 
   // ============================================================================
   // EVENT HANDLERS
   // ============================================================================
 
   const handleSearch = () => {
-    setPage(1); // Reset to first page
     loadBucketHeaders();
   };
 
   const handleRefresh = () => {
     setSearchTerm('');
     setFilterBasis('');
-    setPage(1);
     loadBucketHeaders();
   };
 
   const handleAddHeader = () => {
     setHeaderFormData({
       bucket_group: '',
-      bucket_desc: '',
-      basis: '',
-      bucket_default: 1,
-      closed_flag: false,
-      wo_flag: false
+      bucket_group_desc: '',
+      basis: 'D',
+      include_close: false,
+      include_wo: false,
+      active_flag: true
     });
     setSelectedHeader(null);
     setEditMode(false);
     setHeaderDialogOpen(true);
   };
 
-  const handleEditHeader = (header: BucketHeader) => {
+  const handleEditHeader = (header: BucketParameterHeader) => {
     setHeaderFormData({ ...header });
     setSelectedHeader(header);
     setEditMode(true);
     setHeaderDialogOpen(true);
   };
 
-  const handleDeleteHeader = async (header: BucketHeader) => {
-    if (!confirm(`Are you sure you want to delete bucket group "${header.bucket_group}"?\nThis will also delete all associated bucket details.`)) {
+  const handleDeleteHeader = async (header: BucketParameterHeader) => {
+    if (!confirm(`Delete bucket group "${header.bucket_group}"? This will delete all details.`)) {
       return;
     }
 
     try {
-      const response = await api.banking.bucketParameter.deleteHeader(header.pkid);
+      const response = await bucketParameterAPI.deleteHeader(header.id);
       if (response.success) {
         await loadBucketHeaders();
       } else {
         alert('Failed to delete bucket parameter');
       }
     } catch (error: any) {
-      console.error('Error deleting bucket header:', error);
-      alert(error.response?.data?.error || 'Error deleting bucket parameter');
+      alert(error.message || 'Error deleting bucket parameter');
     }
   };
 
-  const handleAddDetail = (header: BucketHeader) => {
-    const maxBucketId = Math.max(0, ...(header.details_count ? [header.details_count] : [0]));
-    
+  const handleAddDetail = (header: BucketParameterHeader) => {
     setDetailFormData({
-      pkid_header: header.pkid,
-      bucket_id: maxBucketId + 1,
+      bucket_id: header.id,
       bucket_name: '',
       range_start: 0,
-      range_end: 0
+      range_end: undefined,
+      active_flag: true
     });
     setSelectedHeader(header);
     setEditMode(false);
     setDetailDialogOpen(true);
   };
 
-  const handleEditDetail = (detail: BucketDetail) => {
+  const handleEditDetail = (detail: BucketParameterDetail) => {
     setDetailFormData({ ...detail });
     setEditMode(true);
     setDetailDialogOpen(true);
   };
 
-  const handleDeleteDetail = async (detail: BucketDetail) => {
-    if (!confirm(`Are you sure you want to delete bucket "${detail.bucket_name}"?`)) {
+  const handleDeleteDetail = async (detail: BucketParameterDetail) => {
+    if (!confirm(`Delete bucket detail "${detail.bucket_name}"?`)) {
       return;
     }
 
     try {
-      const response = await api.banking.bucketParameter.deleteDetail(detail.pkid);
-      if (response.success) {
-        await loadBucketHeaders();
+      const response = await bucketParameterAPI.deleteDetail(detail.id);
+      if (response.success && selectedHeader) {
+        alert('Deleted successfully');
+        loadBucketHeaders();
       } else {
-        alert('Failed to delete bucket detail');
+        alert('Failed to delete detail');
       }
     } catch (error: any) {
-      console.error('Error deleting bucket detail:', error);
-      alert(error.response?.data?.error || 'Error deleting bucket detail');
+      alert(error.message || 'Error deleting detail');
     }
   };
 
   const handleSaveHeader = async () => {
     try {
-      const response = editMode 
-        ? await api.banking.bucketParameter.updateHeader(selectedHeader!.pkid, headerFormData)
-        : await api.banking.bucketParameter.createHeader(headerFormData as any);
+      const response = editMode
+        ? await bucketParameterAPI.updateHeader(selectedHeader!.id, headerFormData)
+        : await bucketParameterAPI.createHeader(headerFormData as any);
 
       if (response.success) {
         setHeaderDialogOpen(false);
@@ -544,29 +459,24 @@ export default function BucketParameterPage() {
         alert('Failed to save bucket parameter');
       }
     } catch (error: any) {
-      console.error('Error saving bucket header:', error);
-      alert(error.response?.data?.error || 'Error saving bucket parameter');
+      alert(error.message || 'Error saving bucket parameter');
     }
   };
 
   const handleSaveDetail = async () => {
     try {
       const response = editMode
-        ? await api.banking.bucketParameter.updateDetail(detailFormData.pkid!, detailFormData)
-        : await api.banking.bucketParameter.createDetail(
-            detailFormData.pkid_header!,
-            detailFormData as any
-          );
+        ? await bucketParameterAPI.updateDetail(detailFormData.id!, detailFormData)
+        : await bucketParameterAPI.createDetail(selectedHeader!.id, detailFormData as any);
 
       if (response.success) {
         setDetailDialogOpen(false);
-        await loadBucketHeaders();
+        window.location.reload();
       } else {
         alert('Failed to save bucket detail');
       }
     } catch (error: any) {
-      console.error('Error saving bucket detail:', error);
-      alert(error.response?.data?.error || 'Error saving bucket detail');
+      alert(error.message || 'Error saving bucket detail');
     }
   };
 
@@ -576,11 +486,8 @@ export default function BucketParameterPage() {
 
   useEffect(() => {
     loadBasisOptions();
-  }, [loadBasisOptions]);
-
-  useEffect(() => {
     loadBucketHeaders();
-  }, [loadBucketHeaders]);
+  }, [loadBasisOptions, loadBucketHeaders]);
 
   // ============================================================================
   // RENDER
@@ -588,11 +495,10 @@ export default function BucketParameterPage() {
 
   return (
     <Container maxWidth="xl">
-      {/* Breadcrumb Navigation */}
       <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
-        <Link 
-          underline="hover" 
-          color="inherit" 
+        <Link
+          underline="hover"
+          color="inherit"
           href="/banking/dashboard"
           onClick={(e) => {
             e.preventDefault();
@@ -609,7 +515,6 @@ export default function BucketParameterPage() {
         </Typography>
       </Breadcrumbs>
 
-      {/* Page Header */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -620,7 +525,7 @@ export default function BucketParameterPage() {
                   Bucket Parameter
                 </Typography>
                 <Typography variant="body1" color="text.secondary">
-                  Configure IFRS9 bucket parameters for DPD aging and credit rating classification
+                  Configure IFRS9 bucket parameters for DPD aging and credit rating
                 </Typography>
               </Box>
             </Box>
@@ -646,7 +551,6 @@ export default function BucketParameterPage() {
         </CardContent>
       </Card>
 
-      {/* Search and Filter Controls */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -683,38 +587,18 @@ export default function BucketParameterPage() {
             >
               Search
             </Button>
-            <Button
-              variant="outlined"
-              startIcon={<FilterIcon />}
-              onClick={handleRefresh}
-            >
-              Clear
-            </Button>
           </Box>
         </CardContent>
       </Card>
 
-      {/* Error Alert */}
       {error && (
         <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
-          <strong>Database Error:</strong> {error}
+          <strong>Error:</strong> {error}
         </Alert>
       )}
 
-      {/* Main Data Table */}
       <Card>
         <CardContent>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography variant="h6" color="primary">
-              Bucket Parameter Groups ({bucketHeaders.length})
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Live data from DS2 FRS9PRO database
-            </Typography>
-          </Box>
-
-          <Divider sx={{ mb: 2 }} />
-
           {loading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
               <CircularProgress />
@@ -728,17 +612,16 @@ export default function BucketParameterPage() {
                     <TableCell><strong>Bucket Group</strong></TableCell>
                     <TableCell><strong>Description</strong></TableCell>
                     <TableCell><strong>Basis</strong></TableCell>
-                    <TableCell align="center"><strong>Default</strong></TableCell>
                     <TableCell align="center"><strong>Include Closed</strong></TableCell>
                     <TableCell align="center"><strong>Include WO</strong></TableCell>
-                    <TableCell align="center"><strong>Buckets</strong></TableCell>
+                    <TableCell align="center"><strong>Status</strong></TableCell>
                     <TableCell><strong>Actions</strong></TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {bucketHeaders.map((header) => (
                     <BucketHeaderRow
-                      key={header.pkid}
+                      key={header.id}
                       header={header}
                       basisOptions={basisOptions}
                       onEdit={handleEditHeader}
@@ -753,7 +636,7 @@ export default function BucketParameterPage() {
             </TableContainer>
           ) : (
             <Alert severity="info">
-              No bucket parameters found. Click "Add Bucket Group" to create the first bucket parameter.
+              No bucket parameters found. Click "Add Bucket Group" to create one.
             </Alert>
           )}
         </CardContent>
@@ -773,7 +656,6 @@ export default function BucketParameterPage() {
                   label="Bucket Group ID"
                   value={headerFormData.bucket_group || ''}
                   onChange={(e) => setHeaderFormData(prev => ({ ...prev, bucket_group: e.target.value }))}
-                  helperText="Unique identifier for the bucket group"
                   required
                 />
               </Grid>
@@ -796,86 +678,67 @@ export default function BucketParameterPage() {
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  label="Bucket Group Description"
-                  value={headerFormData.bucket_desc || ''}
-                  onChange={(e) => setHeaderFormData(prev => ({ ...prev, bucket_desc: e.target.value }))}
-                  multiline
-                  rows={2}
-                  helperText="Descriptive name for the bucket group"
-                  required
+                  label="Description"
+                  value={headerFormData.bucket_group_desc || ''}
+                  onChange={(e) => setHeaderFormData(prev => ({ ...prev, bucket_group_desc: e.target.value }))}
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  type="number"
-                  label="Default Bucket ID"
-                  value={headerFormData.bucket_default || ''}
-                  onChange={(e) => setHeaderFormData(prev => ({ ...prev, bucket_default: parseInt(e.target.value) || 1 }))}
-                  helperText="Default bucket ID for accounts that don't match any range"
-                  inputProps={{ min: 1 }}
+              <Grid item xs={12} md={4}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={headerFormData.include_close || false}
+                      onChange={(e) => setHeaderFormData(prev => ({ ...prev, include_close: e.target.checked }))}
+                    />
+                  }
+                  label="Include Closed"
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
-                <Box sx={{ pt: 1 }}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={headerFormData.closed_flag || false}
-                        onChange={(e) => setHeaderFormData(prev => ({ ...prev, closed_flag: e.target.checked }))}
-                      />
-                    }
-                    label="Include Closed Accounts"
-                  />
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={headerFormData.wo_flag || false}
-                        onChange={(e) => setHeaderFormData(prev => ({ ...prev, wo_flag: e.target.checked }))}
-                      />
-                    }
-                    label="Include Write-off Accounts"
-                  />
-                </Box>
+              <Grid item xs={12} md={4}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={headerFormData.include_wo || false}
+                      onChange={(e) => setHeaderFormData(prev => ({ ...prev, include_wo: e.target.checked }))}
+                    />
+                  }
+                  label="Include WO"
+                />
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={headerFormData.active_flag ?? true}
+                      onChange={(e) => setHeaderFormData(prev => ({ ...prev, active_flag: e.target.checked }))}
+                    />
+                  }
+                  label="Active"
+                />
               </Grid>
             </Grid>
           </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setHeaderDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleSaveHeader} variant="contained">
-            {editMode ? 'Update' : 'Create'}
-          </Button>
+          <Button variant="contained" onClick={handleSaveHeader}>Save</Button>
         </DialogActions>
       </Dialog>
 
       {/* Detail Dialog */}
-      <Dialog open={detailDialogOpen} onClose={() => setDetailDialogOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog open={detailDialogOpen} onClose={() => setDetailDialogOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle>
           {editMode ? 'Edit Bucket Detail' : 'Add Bucket Detail'}
         </DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 2 }}>
             <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  type="number"
-                  label="Bucket ID"
-                  value={detailFormData.bucket_id || ''}
-                  onChange={(e) => setDetailFormData(prev => ({ ...prev, bucket_id: parseInt(e.target.value) || 1 }))}
-                  helperText="Sequential bucket identifier"
-                  inputProps={{ min: 1 }}
-                  required
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid item xs={12}>
                 <TextField
                   fullWidth
                   label="Bucket Name"
                   value={detailFormData.bucket_name || ''}
                   onChange={(e) => setDetailFormData(prev => ({ ...prev, bucket_name: e.target.value }))}
-                  helperText="Descriptive name for this bucket"
                   required
                 />
               </Grid>
@@ -884,9 +747,8 @@ export default function BucketParameterPage() {
                   fullWidth
                   type="number"
                   label="Range Start"
-                  value={detailFormData.range_start ?? ''}
-                  onChange={(e) => setDetailFormData(prev => ({ ...prev, range_start: parseInt(e.target.value) || 0 }))}
-                  inputProps={{ min: 0 }}
+                  value={detailFormData.range_start || 0}
+                  onChange={(e) => setDetailFormData(prev => ({ ...prev, range_start: Number(e.target.value) }))}
                   required
                 />
               </Grid>
@@ -894,38 +756,28 @@ export default function BucketParameterPage() {
                 <TextField
                   fullWidth
                   type="number"
-                  label="Range End"
-                  value={detailFormData.range_end ?? ''}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setDetailFormData(prev => ({ 
-                      ...prev, 
-                      range_end: value === '' ? null : parseInt(value) || 0 
-                    }));
-                  }}
-                  inputProps={{ min: 0 }}
-                  helperText="Use 9999 for unlimited upper bound, leave empty for N/A"
+                  label="Range End (Leave empty for infinity)"
+                  value={detailFormData.range_end || ''}
+                  onChange={(e) => setDetailFormData(prev => ({ ...prev, range_end: e.target.value ? Number(e.target.value) : undefined }))}
                 />
               </Grid>
-
-              {/* Range validation warning */}
-              {detailFormData.range_start !== undefined && 
-               detailFormData.range_end !== null && detailFormData.range_end !== undefined &&
-               detailFormData.range_start > detailFormData.range_end && (
-                <Grid item xs={12}>
-                  <Alert severity="warning">
-                    Range start cannot be greater than range end
-                  </Alert>
-                </Grid>
-              )}
+              <Grid item xs={12}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={detailFormData.active_flag ?? true}
+                      onChange={(e) => setDetailFormData(prev => ({ ...prev, active_flag: e.target.checked }))}
+                    />
+                  }
+                  label="Active"
+                />
+              </Grid>
             </Grid>
           </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDetailDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleSaveDetail} variant="contained">
-            {editMode ? 'Update' : 'Create'}
-          </Button>
+          <Button variant="contained" onClick={handleSaveDetail}>Save</Button>
         </DialogActions>
       </Dialog>
     </Container>

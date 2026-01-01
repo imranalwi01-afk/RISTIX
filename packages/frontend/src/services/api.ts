@@ -22,6 +22,12 @@ import { sessionControlService } from './session-control.service';
 
 // Import Individual Impairment API (will be initialized later to avoid circular dependency)
 import { individualImpairmentAPI as individualImpairmentAPIService } from './api.individual-impairment';
+import { pdConfigurationsApi } from './api/pd-configurations.api';
+import { lgdConfigurationsApi } from './api/lgd-configurations.api';
+import { eadConfigurationsApi } from './api/ead-configurations.api';
+import { populationSegmentsApi } from './api/population-segments.api';
+import { flScalarAPI } from './api/fl-scalar.api';
+import { eclConfigurationsApi } from './api/ecl-configurations.api';
 
 // ✅ ENVIRONMENT-AWARE CONFIG: Use environment loader with auto-detection
 // ⚠️ NO HARDCODED VALUES: URLs will be set exclusively by environment loader
@@ -513,6 +519,14 @@ export const bankingAPI = {
     return response.data;
   },
 
+  // New Standardized APIs
+  pdConfigurations: pdConfigurationsApi,
+  lgdConfigurations: lgdConfigurationsApi,
+  eadConfigurations: eadConfigurationsApi,
+  populationSegments: populationSegmentsApi,
+  flScalar: flScalarAPI,
+  eclConfigurations: eclConfigurationsApi,
+
   // Application setup parameters (FRS9_PARAM_COMMONH - Type A)
   applicationSetup: {
     getAll: async () => {
@@ -671,141 +685,66 @@ export const bankingAPI = {
 
   // Segmentation Configuration (FRS9_PARAM_SEGMENTH + FRS9_PARAM_SEGMENTD)
   segmentation: {
-    // Enhanced header operations with performance optimization
+    // Header Operations
     getHeaders: async (params?: { page?: number; limit?: number; search?: string }) => {
-      console.log('🎯 Fetching segmentation headers from DS2 FRS9PRO database', params);
-
-      // Performance enhancement: Set optimal defaults based on technical specs
-      const optimizedParams = {
-        limit: params?.limit || 50,  // Optimal batch size for DS2 PostgreSQL 16
-        page: params?.page || 1,
-        search: params?.search,
-        cache: true,  // Enable backend caching for better performance
-        ...params
-      };
-
-      const response = await apiClient.get('/banking/segmentation', { params: optimizedParams });
-
-      // Enhanced logging for monitoring (as per 008-002 specs)
-      if (response.data?.success) {
-        console.log('✅ DS2 FRS9PRO Query Performance:', {
-          records: response.data.data?.length || 0,
-          total: response.data.pagination?.total || response.data.total,
-          queryTime: response.data.meta?.queryTime || 'N/A',
-          source: 'DS2 FRS9PRO (PRIMARY)'
-        });
-      }
-
-      return response.data;
-    },
-
-    createHeader: async (headerData: any) => {
-      console.log('➕ Creating segmentation header in DS2 database', headerData.group_segment);
-      const response = await apiClient.post('/banking/segmentation', headerData);
-      return response.data;
-    },
-
-    updateHeader: async (id: number, headerData: any) => {
-      console.log(`✏️ Updating segmentation header ${id} in DS2 database`);
-      const response = await apiClient.put(`/banking/segmentation/${id}`, headerData);
-      return response.data;
-    },
-
-    deleteHeader: async (id: number) => {
-      console.log(`🗑️ Deleting segmentation header ${id} from DS2 database`);
-      const response = await apiClient.delete(`/banking/segmentation/${id}`);
+      console.log('🎯 Fetching segmentation headers from DS2 database');
+      const response = await apiClient.get('/banking/setup/segmentation', { params });
       return response.data;
     },
 
     getHeader: async (id: number) => {
       console.log(`📄 Fetching segmentation header ${id} from DS2 database`);
-      const response = await apiClient.get(`/banking/segmentation/${id}`);
+      const response = await apiClient.get(`/banking/setup/segmentation/${id}`);
       return response.data;
     },
 
-    // Detail operations
+    createHeader: async (headerData: any) => {
+      console.log('➕ Creating segmentation header in DS2 database');
+      const response = await apiClient.post('/banking/setup/segmentation', headerData);
+      return response.data;
+    },
+
+    updateHeader: async (id: number, headerData: any) => {
+      console.log(`✏️ Updating segmentation header ${id} in DS2 database`);
+      const response = await apiClient.put(`/banking/setup/segmentation/${id}`, headerData);
+      return response.data;
+    },
+
+    deleteHeader: async (id: number) => {
+      console.log(`🗑️ Deleting segmentation header ${id} from DS2 database`);
+      const response = await apiClient.delete(`/banking/setup/segmentation/${id}`);
+      return response.data;
+    },
+
+    // Detail Operations
     getDetails: async (headerId: number) => {
       console.log(`📋 Fetching segmentation details for header ${headerId} from DS2 database`);
-      const response = await apiClient.get(`/banking/segmentation/${headerId}/details`);
+      const response = await apiClient.get(`/banking/setup/segmentation/${headerId}/details`);
       return response.data;
     },
 
     createDetail: async (headerId: number, detailData: any) => {
       console.log(`➕ Creating segmentation detail for header ${headerId} in DS2 database`);
-      const response = await apiClient.post(`/banking/segmentation/${headerId}/details`, detailData);
+      const response = await apiClient.post(`/banking/setup/segmentation/${headerId}/details`, detailData);
       return response.data;
     },
 
     updateDetail: async (detailId: number, detailData: any) => {
       console.log(`✏️ Updating segmentation detail ${detailId} in DS2 database`);
-      const response = await apiClient.put(`/banking/segmentation/details/${detailId}`, detailData);
+      const response = await apiClient.put(`/banking/setup/segmentation/details/${detailId}`, detailData);
       return response.data;
     },
 
     deleteDetail: async (detailId: number) => {
       console.log(`🗑️ Deleting segmentation detail ${detailId} from DS2 database`);
-      const response = await apiClient.delete(`/banking/segmentation/details/${detailId}`);
+      const response = await apiClient.delete(`/banking/setup/segmentation/details/${detailId}`);
       return response.data;
     },
 
-    // Business Settings Integration (B0012-B0016)
-    getBusinessSettingsTables: async () => {
-      console.log('📋 Fetching tables from Business Setting B0012');
-      const response = await apiClient.get('/banking/segmentation/business-settings/tables');
-      return response.data;
-    },
-
-    getBusinessSettingsColumns: async (tableName: string) => {
-      console.log(`📋 Fetching columns for table ${tableName} from Business Setting B0013`);
-      const response = await apiClient.get(`/banking/segmentation/business-settings/columns/${tableName}`);
-      return response.data;
-    },
-
-    getBusinessSettingsDataType: async (tableName: string, columnName: string) => {
-      console.log(`📋 Fetching data type for ${tableName}.${columnName} from Business Setting B0013`);
-      const response = await apiClient.get(`/banking/segmentation/business-settings/data-type/${tableName}/${columnName}`);
-      return response.data;
-    },
-
-    getBusinessSettingsOperators: async (dataType: string) => {
-      console.log(`📋 Fetching operators for data type ${dataType} from Business Setting B0014`);
-      const response = await apiClient.get(`/banking/segmentation/business-settings/operators/${dataType}`);
-      return response.data;
-    },
-
-    getBusinessSettingsConditions: async () => {
-      console.log('📋 Fetching conditions from Business Setting B0015');
-      const response = await apiClient.get('/banking/segmentation/business-settings/conditions');
-      return response.data;
-    },
-
-    getBusinessSettingsValues: async (tableName: string, columnName: string) => {
-      console.log(`📋 Fetching values for ${tableName}.${columnName} from Business Setting B0016`);
-      const response = await apiClient.get(`/banking/segmentation/business-settings/values/${tableName}/${columnName}`);
-      return response.data;
-    },
-
+    // Metadata
     getSegmentTypes: async () => {
-      console.log('📋 Fetching segment types from DS2 FRS9PRO Business Settings');
-
-      const response = await apiClient.get('/banking/segmentation/business-settings/segment-types', {
-        params: {
-          cache: true,  // Enable backend caching
-          source: 'frs9pro',  // Explicit DS2 routing
-          optimize: true  // Enable query optimization
-        }
-      });
-
-      // Performance monitoring (aligned with 008-002 technical specs)
-      if (response.data?.success) {
-        console.log('✅ DS2 Business Settings Performance:', {
-          segmentTypes: response.data.data?.length || 0,
-          source: 'DS2 FRS9PRO B0012-B0016',
-          cached: response.data.meta?.cached || false,
-          queryTime: response.data.meta?.queryTime || 'N/A'
-        });
-      }
-
+      console.log('📋 Fetching segment types');
+      const response = await apiClient.get('/banking/setup/segmentation/business-settings/segment-types');
       return response.data;
     }
   },
@@ -813,6 +752,68 @@ export const bankingAPI = {
   // ==========================================
   // PD SETUP API - IFRS9 COLLECTIVE IMPAIRMENT PD CONFIGURATION
   // ==========================================
+  // ==========================================
+  // PRODUCT PARAMETER API (frs9_param_product)
+  // ==========================================
+  productParameters: {
+    getAll: async () => {
+      console.log('📋 Fetching product parameters');
+      const response = await apiClient.get('/banking/setup/product-parameters');
+      return response.data;
+    },
+    getById: async (id: number) => {
+      console.log(`📄 Fetching product parameter ${id}`);
+      const response = await apiClient.get(`/banking/setup/product-parameters/${id}`);
+      return response.data;
+    },
+    create: async (data: any) => {
+      console.log('➕ Creating product parameter');
+      const response = await apiClient.post('/banking/setup/product-parameters', data);
+      return response.data;
+    },
+    update: async (id: number, data: any) => {
+      console.log(`✏️ Updating product parameter ${id}`);
+      const response = await apiClient.put(`/banking/setup/product-parameters/${id}`, data);
+      return response.data;
+    },
+    delete: async (id: number) => {
+      console.log(`🗑️ Deleting product parameter ${id}`);
+      const response = await apiClient.delete(`/banking/setup/product-parameters/${id}`);
+      return response.data;
+    }
+  },
+
+  // ==========================================
+  // JOURNAL PARAMETER API (frs9_param_journal)
+  // ==========================================
+  journalParameters: {
+    getAll: async () => {
+      console.log('📋 Fetching journal parameters');
+      const response = await apiClient.get('/banking/setup/journal-parameters');
+      return response.data;
+    },
+    getById: async (id: number) => {
+      console.log(`📄 Fetching journal parameter ${id}`);
+      const response = await apiClient.get(`/banking/setup/journal-parameters/${id}`);
+      return response.data;
+    },
+    create: async (data: any) => {
+      console.log('➕ Creating journal parameter');
+      const response = await apiClient.post('/banking/setup/journal-parameters', data);
+      return response.data;
+    },
+    update: async (id: number, data: any) => {
+      console.log(`✏️ Updating journal parameter ${id}`);
+      const response = await apiClient.put(`/banking/setup/journal-parameters/${id}`, data);
+      return response.data;
+    },
+    delete: async (id: number) => {
+      console.log(`🗑️ Deleting journal parameter ${id}`);
+      const response = await apiClient.delete(`/banking/setup/journal-parameters/${id}`);
+      return response.data;
+    }
+  },
+
   pdSetup: {
     // Get all PD configurations with joined lookup data
     getConfigs: async () => {

@@ -35,16 +35,6 @@ const nextConfig = {
     } : false
   },
 
-  // Modularize imports to reduce bundle size
-  modularizeImports: {
-    '@mui/material': {
-      transform: '@mui/material/{{member}}'
-    },
-    '@mui/icons-material': {
-      transform: '@mui/icons-material/{{member}}'
-    }
-  },
-
   // ============================================================================
   // IMAGE OPTIMIZATION
   // ============================================================================

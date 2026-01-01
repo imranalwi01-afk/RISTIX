@@ -1,12 +1,3 @@
-// packages/frontend/src/app/banking/collective/lgd-setup/page.tsx
-// ============================================================================
-// IFRS9 FRONTEND - LGD SETUP MANAGEMENT PAGE
-// ============================================================================
-// Database: frs9_imp_ca_lgd_config
-// Business Parameter: B0018 (LGD Method), B0019 (Population Type), B0020 (Segment)
-// Legacy Reference: _sources/ifrs9/Views/LGDConfig/Index.cshtml
-// ============================================================================
-
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -19,7 +10,6 @@ import {
   Card,
   CardContent,
   Button,
-  CircularProgress,
   Alert,
   Breadcrumbs,
   Link,
@@ -29,524 +19,218 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  IconButton,
   Chip,
   FormControl,
   InputLabel,
   Select,
   FormControlLabel,
-  Checkbox,
-  Divider,
-  Tabs,
-  Tab,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TablePagination
+  Switch,
+  CircularProgress
 } from '@mui/material';
 import {
-  TrendingDown as LgdIcon,
-  Home as HomeIcon,
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
   Refresh as RefreshIcon,
   Search as SearchIcon,
-  Download as ExportIcon,
-  Upload as ImportIcon,
-  Settings as ConfigIcon
 } from '@mui/icons-material';
 import { DataGrid, GridColDef, GridActionsCellItem } from '@mui/x-data-grid';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs from 'dayjs';
 import { useRouter } from 'next/navigation';
 import { api } from '../../../../services/api';
+import { LGDConfiguration } from '../../../../services/api/lgd-configurations.api';
+import { PopulationSegment } from '../../../../services/api/population-segments.api';
+import { FLScalarWithDetails } from '../../../../services/api/fl-scalar.api';
 
-// Types based on live database structure: frs9_imp_ca_lgd_config
-interface LGDConfig {
-  pkid: number;
-  lgd_model_name: string;
-  segment_id: number;
+// Extended interface for UI display
+interface LGDConfigUI extends LGDConfiguration {
   segment_name?: string;
-  lgd_method: number;
-  lgd_method_name?: string;
-  population_type: number;
-  population_type_name?: string;
-  observation_period: number;
-  historical_month: number;
-  first_npl_date: string | null;
-  workout_period: number;
-  unsecured_lgd_rate: number;
-  secured_lgd_rate: number;
-  lgd_rate: number;
-  is_active: boolean;
-  created_by?: string;
-  created_date?: string;
-  updated_by?: string;
-  updated_date?: string;
+  method_name?: string;
+  scalar_name?: string;
 }
 
-// ============================================================================
-// CRITICAL: NO MOCK DATA - ALL DATA FROM LIVE DS2 FRS9PRO DATABASE
-// ============================================================================
-// Table: frs9_imp_ca_lgd_config
-// Business Parameters: B0022 (LGD Method), B0023 (Population Type), LGD Segments
-// ============================================================================
-
-// ============================================================================
-// BUSINESS PARAMETERS FROM LIVE DATABASE - NO MOCK DATA
-// ============================================================================
-interface BusinessParameters {
-  lgdMethods: Array<{
-    value: number;
-    label: string;
-    code: string;
-    requires_historical: boolean;
-    requires_npl_date: boolean;
-    requires_workout: boolean;
-    allows_lgd_rate: boolean;
-  }>;
-  populationTypes: Array<{
-    value: number;
-    label: string;
-    code: string;
-  }>;
-  segments: Array<{
-    value: number;
-    label: string;
-    code: string;
-  }>;
-}
-
-export default function LGDSetupManagementPage() {
+export default function LGDSetupPage() {
   const router = useRouter();
-  
-  // State management - NO MOCK DATA, EMPTY ARRAYS
+
   const [loading, setLoading] = useState(false);
-  const [lgdConfigs, setLgdConfigs] = useState<LGDConfig[]>([]);
-  const [filteredConfigs, setFilteredConfigs] = useState<LGDConfig[]>([]);
+  const [lgdConfigs, setLgdConfigs] = useState<LGDConfigUI[]>([]);
+  const [filteredConfigs, setFilteredConfigs] = useState<LGDConfigUI[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [businessParams, setBusinessParams] = useState<BusinessParameters | null>(null);
-  const [selectedLgdConfig, setSelectedLgdConfig] = useState<LGDConfig | null>(null);
+
+  // Metadata
+  const [methodOptions, setMethodOptions] = useState<{ value: number, label: string }[]>([]);
+  const [popTypeOptions, setPopTypeOptions] = useState<{ value: string, label: string }[]>([]);
+  const [populationSegments, setPopulationSegments] = useState<PopulationSegment[]>([]);
+  const [flScalars, setFlScalars] = useState<FLScalarWithDetails[]>([]);
+
+  // Dialog & Selection
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [selectedConfig, setSelectedConfig] = useState<LGDConfigUI | null>(null);
+
+  // Form Data
+  const [formData, setFormData] = useState<Partial<LGDConfiguration>>({
+    model_name: '',
+    segment_id: undefined,
+    lgd_method: 1,
+    population_type: 'Monthly',
+    observation_period: '',
+    workout_period: 12,
+    fl_flag: false,
+    fl_scalar_id: undefined,
+    lgd_rate: 0,
+    is_active: true,
+    observation_start_date: undefined
+  });
+
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterMethod, setFilterMethod] = useState<number | ''>('');
-  const [filterSegment, setFilterSegment] = useState<number | ''>('');
-  const [currentTab, setCurrentTab] = useState(0);
 
-  // ============================================================================
-  // REAL API CALLS - DS2 FRS9PRO DATABASE INTEGRATION
-  // ============================================================================
-
-  // Load LGD configurations from live database
-  const loadLGDConfigs = useCallback(async () => {
+  // Load Data
+  const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
-    
     try {
-      console.log('🔍 Loading LGD configurations from DS2 FRS9PRO database...');
-      
-      // ✅ REAL API CALL - DS2 FRS9PRO Database (frs9_imp_ca_lgd_config)
-      const response = await api.banking.lgdSetup.getAll();
-      
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to load LGD configurations from database');
-      }
-      
-      console.log(`✅ Loaded ${response.data.length} LGD configurations from DS2 database:`, {
-        total: response.total,
-        database: response.database_info?.database,
-        host: response.database_info?.host,
-        table: response.database_info?.table
+      const [configsRes, methodsRes, popTypesRes, segmentsRes, flScalarsRes] = await Promise.all([
+        api.banking.lgdConfigurations.getAll(),
+        api.banking.lgdConfigurations.getMethods(),
+        api.banking.lgdConfigurations.getPopulationTypes(),
+        api.banking.populationSegments.getAll({ active_flag: true }),
+        api.banking.flScalar.getAll()
+      ]);
+
+      setMethodOptions(methodsRes);
+      setPopTypeOptions(popTypesRes);
+      setPopulationSegments(segmentsRes);
+      setFlScalars(flScalarsRes);
+
+      const enrichedConfigs = configsRes.map(config => {
+        const segment = segmentsRes.find(s => s.id === config.segment_id);
+        const method = methodsRes.find(m => m.value === config.lgd_method);
+        // Note: flScalarsRes uses 'pkid', config uses 'fl_scalar_id'
+        const scalar = flScalarsRes.find(s => s.pkid === config.fl_scalar_id);
+
+        return {
+          ...config,
+          segment_name: segment?.segment_name || String(config.segment_id || 'Unknown'),
+          method_name: method?.label || String(config.lgd_method),
+          scalar_name: scalar?.scalar_name
+        };
       });
-      
-      // Set real data from database
-      setLgdConfigs(response.data);
-      
+
+      setLgdConfigs(enrichedConfigs);
     } catch (err: any) {
-      const errorMessage = `Failed to load LGD configurations from DS2 database: ${err.message || err}`;
-      setError(errorMessage);
-      console.error('❌ Error loading LGD configurations from DS2 database:', err);
-      
-      // Log detailed error for debugging
-      console.error('🔍 LGD Setup API Error Details:', {
-        error: err,
-        message: err.message,
-        stack: err.stack,
-        api: 'api.banking.lgdSetup.getAll()'
-      });
+      console.error('Failed to load LGD data:', err);
+      setError('Failed to load LGD configurations.');
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Load business parameters from live database
-  const loadBusinessParameters = useCallback(async () => {
-    try {
-      console.log('📊 Loading LGD business parameters from DS2 database...');
-      
-      // ✅ REAL API CALL - Business Parameters from DS2 FRS9PRO
-      const response = await api.banking.lgdSetup.getBusinessParameters();
-      
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to load business parameters');
-      }
-      
-      console.log('✅ Loaded LGD business parameters:', {
-        methods: response.data.lgdMethods.length,
-        populations: response.data.populationTypes.length,
-        segments: response.data.segments.length
-      });
-      
-      setBusinessParams(response.data);
-      
-    } catch (err: any) {
-      console.error('❌ Error loading LGD business parameters:', err);
-      // Use empty fallback for business parameters if API fails
-      setBusinessParams({
-        lgdMethods: [],
-        populationTypes: [],
-        segments: []
-      });
-    }
-  }, []);
-
-  // Load data on component mount
   useEffect(() => {
-    loadLGDConfigs();
-    loadBusinessParameters();
-  }, [loadLGDConfigs, loadBusinessParameters]);
+    loadData();
+  }, [loadData]);
 
-  // Form data state
-  const [formData, setFormData] = useState<Partial<LGDConfig>>({
-    lgd_model_name: '',
-    segment_id: '',
-    lgd_method: '',
-    population_type: '',
-    observation_period: 36,
-    historical_month: 24,
-    first_npl_date: '',
-    workout_period: 12,
-    unsecured_lgd_rate: 0,
-    secured_lgd_rate: 0,
-    lgd_rate: 0,
-    is_active: true
-  });
-
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-
-  // Filter and search functionality
+  // Filtering
   useEffect(() => {
     let filtered = lgdConfigs;
-
-    // Apply search filter
     if (searchTerm) {
-      filtered = filtered.filter(config =>
-        config.lgd_model_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        config.segment_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        config.lgd_method_name?.toLowerCase().includes(searchTerm.toLowerCase())
+      const lower = searchTerm.toLowerCase();
+      filtered = filtered.filter(c =>
+        c.model_name.toLowerCase().includes(lower) ||
+        c.segment_name?.toLowerCase().includes(lower)
       );
     }
-
-    // Apply method filter
-    if (filterMethod !== '') {
-      filtered = filtered.filter(config => config.lgd_method === filterMethod);
-    }
-
-    // Apply segment filter
-    if (filterSegment !== '') {
-      filtered = filtered.filter(config => config.segment_id === filterSegment);
-    }
-
     setFilteredConfigs(filtered);
-  }, [lgdConfigs, searchTerm, filterMethod, filterSegment]);
+  }, [lgdConfigs, searchTerm]);
 
-  // Method-specific field enabling logic (from live business parameters)
-  const getFieldEnablement = (method: number) => {
-    if (!businessParams?.lgdMethods) {
-      return { historical: false, nplDate: false, workout: false, populationType: true, lgdRate: false };
-    }
-    
-    const methodConfig = businessParams.lgdMethods.find(m => m.value === method);
-    if (!methodConfig) return { historical: false, nplDate: false, workout: false, populationType: true, lgdRate: false };
-    
-    return {
-      historical: methodConfig.requires_historical,
-      nplDate: methodConfig.requires_npl_date,
-      workout: methodConfig.requires_workout,
-      populationType: !methodConfig.allows_lgd_rate, // LGD rate method disables population type
-      lgdRate: methodConfig.allows_lgd_rate // Only regulatory method allows direct LGD rate input
-    };
-  };
-
-  // Form validation
-  const validateForm = useCallback(() => {
+  // Validations
+  const validateForm = () => {
     const errors: Record<string, string> = {};
+    if (!formData.model_name?.trim()) errors.model_name = 'Model Name is required';
+    if (!formData.segment_id) errors.segment_id = 'Segment is required';
+    if (!formData.lgd_method) errors.lgd_method = 'Method is required';
 
-    if (!formData.lgd_model_name?.trim()) {
-      errors.lgd_model_name = 'LGD Model Name is required';
-    }
-
-    if (!formData.segment_id) {
-      errors.segment_id = 'Segment is required';
-    }
-
-    if (!formData.lgd_method) {
-      errors.lgd_method = 'LGD Method is required';
-    }
-
-    if (!formData.population_type) {
-      errors.population_type = 'Population Type is required';
-    }
-
-    if (!formData.observation_period || formData.observation_period <= 0) {
-      errors.observation_period = 'Observation Period must be greater than 0';
-    }
-
-    // Method-specific validation
-    if (formData.lgd_method) {
-      const fieldEnablement = getFieldEnablement(formData.lgd_method as number);
-      
-      if (fieldEnablement.historical && (!formData.historical_month || formData.historical_month <= 0)) {
-        errors.historical_month = 'Historical Month is required for this method';
-      }
-
-      if (fieldEnablement.nplDate && !formData.first_npl_date?.trim()) {
-        errors.first_npl_date = 'First NPL Date is required for this method';
-      }
-
-      if (fieldEnablement.workout && (!formData.workout_period || formData.workout_period <= 0)) {
-        errors.workout_period = 'Workout Period is required for this method';
-      }
-
-      if (fieldEnablement.lgdRate && (!formData.lgd_rate || formData.lgd_rate <= 0)) {
-        errors.lgd_rate = 'LGD Rate is required for regulatory method';
-      }
+    if (formData.fl_flag && !formData.fl_scalar_id) {
+      errors.fl_scalar_id = 'FL Scalar is required when FL Flag is active';
     }
 
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
-  }, [formData]);
-
-  // Handle form field changes with method-specific logic
-  const handleFieldChange = (field: string, value: any) => {
-    const updatedFormData = { ...formData, [field]: value };
-
-    // Method-specific field clearing (from legacy logic)
-    if (field === 'lgd_method') {
-      const fieldEnablement = getFieldEnablement(value as number);
-      
-      if (!fieldEnablement.historical) {
-        updatedFormData.historical_month = 0;
-      }
-      
-      if (!fieldEnablement.nplDate) {
-        updatedFormData.first_npl_date = '';
-      }
-      
-      if (!fieldEnablement.workout) {
-        updatedFormData.workout_period = 0;
-      }
-      
-      if (!fieldEnablement.lgdRate) {
-        updatedFormData.lgd_rate = 0;
-      }
-    }
-
-    setFormData(updatedFormData);
-    
-    // Clear validation error for changed field
-    if (formErrors[field]) {
-      setFormErrors(prev => ({ ...prev, [field]: '' }));
-    }
-  };
-
-  // CRUD operations
-  const handleAdd = () => {
-    setSelectedLgdConfig(null);
-    setFormData({
-      lgd_model_name: '',
-      segment_id: '',
-      lgd_method: '',
-      population_type: '',
-      observation_period: 36,
-      historical_month: 24,
-      first_npl_date: '',
-      workout_period: 12,
-      unsecured_lgd_rate: 0,
-      secured_lgd_rate: 0,
-      lgd_rate: 0,
-      is_active: true
-    });
-    setFormErrors({});
-    setIsEditing(false);
-    setIsDialogOpen(true);
-  };
-
-  const handleEdit = (lgdConfig: LGDConfig) => {
-    setSelectedLgdConfig(lgdConfig);
-    setFormData({
-      lgd_model_name: lgdConfig.lgd_model_name,
-      segment_id: lgdConfig.segment_id,
-      lgd_method: lgdConfig.lgd_method,
-      population_type: lgdConfig.population_type,
-      observation_period: lgdConfig.observation_period,
-      historical_month: lgdConfig.historical_month,
-      first_npl_date: lgdConfig.first_npl_date || '',
-      workout_period: lgdConfig.workout_period,
-      unsecured_lgd_rate: lgdConfig.unsecured_lgd_rate,
-      secured_lgd_rate: lgdConfig.secured_lgd_rate,
-      lgd_rate: lgdConfig.lgd_rate,
-      is_active: lgdConfig.is_active
-    });
-    setFormErrors({});
-    setIsEditing(true);
-    setIsDialogOpen(true);
   };
 
   const handleSave = async () => {
-    if (!validateForm()) {
-      return;
-    }
-
+    if (!validateForm()) return;
     setLoading(true);
     try {
-      const isEdit = isEditing && selectedLgdConfig;
-      
-      // ✅ REAL API CALLS - DS2 FRS9PRO Database (frs9_imp_ca_lgd_config)
-      const saveData = {
-        lgd_model_name: formData.lgd_model_name!,
-        segment_id: formData.segment_id as number,
-        lgd_method: formData.lgd_method as number,
-        population_type: formData.population_type as number,
-        observation_period: formData.observation_period as number,
-        observation_start_date: formData.first_npl_date || null,
-        workout_period: formData.workout_period as number,
-        fl_flag: false, // Future enhancement
-        fl_scalar_id: null, // Future enhancement
-        lgd_rate: formData.lgd_rate as number,
-        active_flag: formData.is_active as boolean
+      const payload: any = {
+        modelName: formData.model_name,
+        segmentId: formData.segment_id,
+        lgdMethod: formData.lgd_method,
+        populationType: formData.population_type,
+        observationPeriod: formData.observation_period,
+        workoutPeriod: formData.workout_period,
+        flFlag: formData.fl_flag,
+        flScalarId: formData.fl_scalar_id,
+        lgdRate: formData.lgd_rate,
+        isActive: formData.is_active,
+        observationStartDate: formData.observation_start_date
       };
-      
-      console.log(`${isEdit ? '✏️ Updating' : '➕ Creating'} LGD configuration in DS2 database:`, saveData);
-      
-      let response;
-      if (isEdit) {
-        response = await api.banking.lgdSetup.update(selectedLgdConfig.pkid.toString(), saveData);
+
+      if (isEditing && selectedConfig?.id) {
+        await api.banking.lgdConfigurations.update(String(selectedConfig.id), payload);
       } else {
-        response = await api.banking.lgdSetup.create(saveData);
+        await api.banking.lgdConfigurations.create(payload);
       }
-      
-      if (!response.success) {
-        throw new Error(response.error || `Failed to ${isEdit ? 'update' : 'create'} LGD configuration`);
-      }
-      
-      console.log(`✅ ${isEdit ? 'Updated' : 'Created'} LGD configuration successfully`);
-      
-      // Refresh data from database
-      await loadLGDConfigs();
-      
+
+      await loadData();
       setIsDialogOpen(false);
       setFormData({});
-      setSelectedLgdConfig(null);
-
-    } catch (error: any) {
-      console.error('❌ Error saving LGD configuration:', error);
-      setError(`Failed to save LGD configuration: ${error.message || error}`);
+      setSelectedConfig(null);
+    } catch (err: any) {
+      console.error('Save failed:', err);
+      setError('Failed to save configuration.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDelete = async (lgdConfig: LGDConfig) => {
-    if (!confirm(`Are you sure you want to delete LGD configuration "${lgdConfig.lgd_model_name}"?`)) {
-      return;
-    }
-
+  const handleDelete = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this configuration?')) return;
     setLoading(true);
     try {
-      console.log(`🗑️ Deleting LGD configuration ${lgdConfig.pkid} from DS2 database`);
-      
-      // ✅ REAL API CALL - Delete from DS2 FRS9PRO Database
-      const response = await api.banking.lgdSetup.delete(lgdConfig.pkid.toString());
-      
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to delete LGD configuration');
-      }
-      
-      console.log(`✅ Deleted LGD configuration ${lgdConfig.pkid} successfully`);
-      
-      // Refresh data from database
-      await loadLGDConfigs();
-      
-    } catch (error: any) {
-      console.error('❌ Error deleting LGD configuration:', error);
-      setError(`Failed to delete LGD configuration: ${error.message || error}`);
+      await api.banking.lgdConfigurations.delete(String(id));
+      await loadData();
+    } catch (err: any) {
+      console.error('Delete failed:', err);
+      setError('Failed to delete configuration.');
     } finally {
       setLoading(false);
     }
   };
 
-  // DataGrid columns
   const columns: GridColDef[] = [
+    { field: 'model_name', headerName: 'Model Name', width: 200 },
+    { field: 'segment_name', headerName: 'Segment', width: 150 },
+    { field: 'method_name', headerName: 'Method', width: 150 },
+    { field: 'population_type', headerName: 'Pop Type', width: 120 },
     {
-      field: 'lgd_model_name',
-      headerName: 'Model Name',
-      width: 200,
-      renderCell: (params) => (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <LgdIcon color="primary" fontSize="small" />
-          <Typography variant="body2" fontWeight="medium">
-            {params.value}
-          </Typography>
-        </Box>
-      )
-    },
-    {
-      field: 'segment_name',
-      headerName: 'Segment',
-      width: 150,
-      renderCell: (params) => (
-        <Chip
-          label={params.value}
-          size="small"
-          color="default"
-          variant="outlined"
-        />
-      )
-    },
-    {
-      field: 'lgd_method_name',
-      headerName: 'LGD Method',
-      width: 150,
-      renderCell: (params) => (
-        <Chip
-          label={params.value}
-          size="small"
-          color="primary"
-          variant="outlined"
-        />
-      )
-    },
-    {
-      field: 'population_type_name',
-      headerName: 'Population Type',
-      width: 130
-    },
-    {
-      field: 'observation_period',
-      headerName: 'Observation Period',
-      width: 130,
-      renderCell: (params) => `${params.value} months`
-    },
-    {
-      field: 'lgd_rate',
-      headerName: 'LGD Rate',
+      field: 'fl_flag',
+      headerName: 'FL Flag',
       width: 100,
-      renderCell: (params) => `${(params.value * 100).toFixed(2)}%`
+      renderCell: (params) => (
+        <Chip
+          label={params.value ? 'Yes' : 'No'}
+          size="small"
+          color={params.value ? 'primary' : 'default'}
+          variant={params.value ? 'filled' : 'outlined'}
+        />
+      )
     },
+    { field: 'scalar_name', headerName: 'FL Scalar', width: 150 },
     {
       field: 'is_active',
       headerName: 'Status',
@@ -554,9 +238,8 @@ export default function LGDSetupManagementPage() {
       renderCell: (params) => (
         <Chip
           label={params.value ? 'Active' : 'Inactive'}
+          color={params.value ? 'success' : 'default'}
           size="small"
-          color={params.value ? 'success' : 'error'}
-          variant="outlined"
         />
       )
     },
@@ -564,486 +247,215 @@ export default function LGDSetupManagementPage() {
       field: 'actions',
       type: 'actions',
       headerName: 'Actions',
-      width: 120,
+      width: 100,
       getActions: (params) => [
         <GridActionsCellItem
           key="edit"
           icon={<EditIcon />}
           label="Edit"
-          onClick={() => handleEdit(params.row)}
-          color="primary"
+          onClick={() => {
+            setSelectedConfig(params.row);
+            setFormData(params.row);
+            setIsEditing(true);
+            setIsDialogOpen(true);
+          }}
         />,
         <GridActionsCellItem
           key="delete"
           icon={<DeleteIcon />}
           label="Delete"
-          onClick={() => handleDelete(params.row)}
-          color="error"
+          onClick={() => handleDelete(params.row.id!)}
         />
       ]
     }
   ];
 
-  const currentFieldEnablement = formData.lgd_method ? getFieldEnablement(formData.lgd_method as number) : {
-    historical: false,
-    nplDate: false,
-    workout: false,
-    populationType: true,
-    lgdRate: false
-  };
-
   return (
     <Container maxWidth="xl">
-      {/* Error Alert */}
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
-          <Typography variant="body2">{error}</Typography>
-        </Alert>
-      )}
-
-      {/* Breadcrumb Navigation */}
-      <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
-        <Link 
-          underline="hover" 
-          color="inherit" 
-          href="/banking/dashboard"
-          onClick={(e) => {
-            e.preventDefault();
-            router.push('/banking/dashboard');
-          }}
-          sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
-        >
-          <HomeIcon sx={{ mr: 0.5, fontSize: 16 }} />
-          Banking Dashboard
-        </Link>
-        <Typography color="text.primary" sx={{ display: 'flex', alignItems: 'center' }}>
-          <LgdIcon sx={{ mr: 0.5, fontSize: 16 }} />
-          LGD Setup Management
-        </Typography>
+      <Breadcrumbs sx={{ mb: 2 }}>
+        <Link href="/banking/dashboard" underline="hover" color="inherit">Dashboard</Link>
+        <Typography color="text.primary">LGD Setup</Typography>
       </Breadcrumbs>
 
-      {/* Page Header */}
-      <Box sx={{ mb: 4 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <LgdIcon sx={{ mr: 2, fontSize: 32, color: 'primary.main' }} />
-            <Box>
-              <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
-                LGD Setup Management
-              </Typography>
-              <Typography variant="subtitle1" color="text.secondary">
-                Loss Given Default model configuration and management
-              </Typography>
-            </Box>
-          </Box>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button
-              variant="outlined"
-              startIcon={<RefreshIcon />}
-              onClick={() => {
-                loadLGDConfigs();
-                loadBusinessParameters();
-              }}
-              disabled={loading}
-            >
-              Refresh
-            </Button>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleAdd}
-              disabled={loading || !businessParams}
-            >
-              Add LGD Configuration
-            </Button>
-          </Box>
+      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Typography variant="h4" component="h1">LGD Setup Management</Typography>
+        <Box>
+          <Button startIcon={<RefreshIcon />} onClick={loadData} disabled={loading} sx={{ mr: 1 }}>Refresh</Button>
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => {
+            setSelectedConfig(null);
+            setFormData({
+              is_active: true,
+              lgd_method: 1,
+              population_type: 'Monthly',
+              workout_period: 12,
+              fl_flag: false
+            });
+            setIsEditing(false);
+            setIsDialogOpen(true);
+          }}>Add Configuration</Button>
         </Box>
-
-        {/* Statistics Cards */}
-        <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid item xs={12} sm={3}>
-            <Card>
-              <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                <Typography variant="h4" color="primary.main" fontWeight="bold">
-                  {lgdConfigs.length}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Total Configurations
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={3}>
-            <Card>
-              <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                <Typography variant="h4" color="success.main" fontWeight="bold">
-                  {lgdConfigs.filter(c => c.is_active).length}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Active Models
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={3}>
-            <Card>
-              <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                <Typography variant="h4" color="info.main" fontWeight="bold">
-                  {businessParams?.segments.length || 0}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Available Segments
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={3}>
-            <Card>
-              <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                <Typography variant="h4" color="warning.main" fontWeight="bold">
-                  {businessParams?.lgdMethods.length || 0}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  LGD Methods
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
       </Box>
 
-      {/* Filters and Search */}
+      {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
+
       <Card sx={{ mb: 3 }}>
         <CardContent>
-          <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <SearchIcon />
-            Search and Filters
-          </Typography>
-          <Grid container spacing={2} alignItems="center">
+          <Grid container spacing={2}>
             <Grid item xs={12} md={4}>
               <TextField
                 fullWidth
-                label="Search LGD Configurations"
-                placeholder="Search by model name, segment, method..."
+                label="Search"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                InputProps={{
-                  startAdornment: <SearchIcon color="action" sx={{ mr: 1 }} />
-                }}
+                InputProps={{ startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} /> }}
               />
-            </Grid>
-            <Grid item xs={12} md={3}>
-              <FormControl fullWidth>
-                <InputLabel>Filter by Method</InputLabel>
-                <Select
-                  value={filterMethod}
-                  label="Filter by Method"
-                  onChange={(e) => setFilterMethod(e.target.value as number | '')}
-                >
-                  <MenuItem value="">All Methods</MenuItem>
-                  {businessParams?.lgdMethods.map((method) => (
-                    <MenuItem key={method.value} value={method.value}>
-                      {method.label}
-                    </MenuItem>
-                  )) || []}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={3}>
-              <FormControl fullWidth>
-                <InputLabel>Filter by Segment</InputLabel>
-                <Select
-                  value={filterSegment}
-                  label="Filter by Segment"
-                  onChange={(e) => setFilterSegment(e.target.value as number | '')}
-                >
-                  <MenuItem value="">All Segments</MenuItem>
-                  {businessParams?.segments.map((segment) => (
-                    <MenuItem key={segment.value} value={segment.value}>
-                      {segment.label}
-                    </MenuItem>
-                  )) || []}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={2}>
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <Button
-                  variant="outlined"
-                  startIcon={<ExportIcon />}
-                  size="small"
-                >
-                  Export
-                </Button>
-              </Box>
             </Grid>
           </Grid>
         </CardContent>
       </Card>
 
-      {/* Main Data Grid */}
       <Card>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
-            LGD Configurations ({filteredConfigs.length})
-          </Typography>
-          <Box sx={{ height: 600, width: '100%' }}>
-            <DataGrid
-              rows={filteredConfigs}
-              columns={columns}
-              getRowId={(row) => row.pkid}
-              loading={loading}
-              pageSizeOptions={[10, 25, 50, 100]}
-              initialState={{
-                pagination: { paginationModel: { pageSize: 25 } }
-              }}
-              disableRowSelectionOnClick
-              sx={{
-                '& .MuiDataGrid-row:hover': {
-                  backgroundColor: 'action.hover'
-                }
-              }}
-            />
-          </Box>
-        </CardContent>
+        <Box sx={{ height: 600, width: '100%' }}>
+          <DataGrid
+            rows={filteredConfigs}
+            columns={columns}
+            loading={loading}
+            getRowId={(row) => row.id || Math.random().toString()}
+            disableRowSelectionOnClick
+          />
+        </Box>
       </Card>
 
-      {/* Add/Edit Dialog */}
-      <Dialog 
-        open={isDialogOpen} 
-        onClose={() => setIsDialogOpen(false)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <LgdIcon />
-          {isEditing ? 'Edit LGD Configuration' : 'Add LGD Configuration'}
-        </DialogTitle>
+      <Dialog open={isDialogOpen} onClose={() => setIsDialogOpen(false)} maxWidth="lg" fullWidth>
+        <DialogTitle>{selectedConfig ? 'Edit LGD Configuration' : 'New LGD Configuration'}</DialogTitle>
         <DialogContent dividers>
-          <Grid container spacing={3}>
-            {/* Basic Information */}
-            <Grid item xs={12}>
-              <Typography variant="h6" color="primary" gutterBottom>
-                Basic Information
-              </Typography>
-            </Grid>
-            
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="LGD Model Name"
-                value={formData.lgd_model_name || ''}
-                onChange={(e) => handleFieldChange('lgd_model_name', e.target.value)}
-                error={!!formErrors.lgd_model_name}
-                helperText={formErrors.lgd_model_name}
-                required
-              />
-            </Grid>
+          <LocalizationProvider dateAdapter={AdapterDayjs}>
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Model Name"
+                  value={formData.model_name || ''}
+                  onChange={(e) => setFormData({ ...formData, model_name: e.target.value })}
+                  error={!!formErrors.model_name}
+                  helperText={formErrors.model_name}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth error={!!formErrors.segment_id}>
+                  <InputLabel>Population Segment</InputLabel>
+                  <Select
+                    value={formData.segment_id || ''}
+                    label="Population Segment"
+                    onChange={(e) => setFormData({ ...formData, segment_id: Number(e.target.value) })}
+                  >
+                    {populationSegments.map(s => (
+                      <MenuItem key={s.id} value={s.id}>{s.segment_name}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
 
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth error={!!formErrors.segment_id} required>
-                <InputLabel>Segment</InputLabel>
-                <Select
-                  value={formData.segment_id || ''}
-                  label="Segment"
-                  onChange={(e) => handleFieldChange('segment_id', e.target.value)}
-                >
-                  {businessParams?.segments.map((segment) => (
-                    <MenuItem key={segment.value} value={segment.value}>
-                      {segment.label}
-                    </MenuItem>
-                  )) || []}
-                </Select>
-                {formErrors.segment_id && (
-                  <Typography variant="caption" color="error" sx={{ ml: 1.5, mt: 0.5 }}>
-                    {formErrors.segment_id}
-                  </Typography>
-                )}
-              </FormControl>
-            </Grid>
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth error={!!formErrors.lgd_method}>
+                  <InputLabel>Method</InputLabel>
+                  <Select
+                    value={formData.lgd_method || 1}
+                    label="Method"
+                    onChange={(e) => setFormData({ ...formData, lgd_method: Number(e.target.value) })}
+                  >
+                    {methodOptions.map(m => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
+                  </Select>
+                </FormControl>
+              </Grid>
 
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth error={!!formErrors.lgd_method} required>
-                <InputLabel>LGD Method</InputLabel>
-                <Select
-                  value={formData.lgd_method || ''}
-                  label="LGD Method"
-                  onChange={(e) => handleFieldChange('lgd_method', e.target.value)}
-                >
-                  {businessParams?.lgdMethods.map((method) => (
-                    <MenuItem key={method.value} value={method.value}>
-                      {method.label}
-                    </MenuItem>
-                  )) || []}
-                </Select>
-                {formErrors.lgd_method && (
-                  <Typography variant="caption" color="error" sx={{ ml: 1.5, mt: 0.5 }}>
-                    {formErrors.lgd_method}
-                  </Typography>
-                )}
-              </FormControl>
-            </Grid>
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Population Type</InputLabel>
+                  <Select
+                    value={formData.population_type || 'Monthly'}
+                    label="Population Type"
+                    onChange={(e) => setFormData({ ...formData, population_type: e.target.value })}
+                  >
+                    {popTypeOptions.map(m => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
+                  </Select>
+                </FormControl>
+              </Grid>
 
-            <Grid item xs={12} md={6}>
-              <FormControl 
-                fullWidth 
-                error={!!formErrors.population_type} 
-                required
-                disabled={!currentFieldEnablement.populationType}
-              >
-                <InputLabel>Population Type</InputLabel>
-                <Select
-                  value={formData.population_type || ''}
-                  label="Population Type"
-                  onChange={(e) => handleFieldChange('population_type', e.target.value)}
-                >
-                  {businessParams?.populationTypes.map((type) => (
-                    <MenuItem key={type.value} value={type.value}>
-                      {type.label}
-                    </MenuItem>
-                  )) || []}
-                </Select>
-                {formErrors.population_type && (
-                  <Typography variant="caption" color="error" sx={{ ml: 1.5, mt: 0.5 }}>
-                    {formErrors.population_type}
-                  </Typography>
-                )}
-              </FormControl>
-            </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Observation Period"
+                  value={formData.observation_period || ''}
+                  onChange={(e) => setFormData({ ...formData, observation_period: e.target.value })}
+                  helperText="e.g. 2020-2023 or 24 months"
+                />
+              </Grid>
 
-            <Grid item xs={12}>
-              <Divider />
-              <Typography variant="h6" color="primary" sx={{ mt: 2, mb: 1 }}>
-                Method-Specific Parameters
-              </Typography>
-            </Grid>
+              <Grid item xs={12} md={6}>
+                <DatePicker
+                  label="Observation Start Date"
+                  value={formData.observation_start_date ? dayjs(formData.observation_start_date) : null}
+                  onChange={(date) => setFormData({ ...formData, observation_start_date: date ? dayjs(date).format('YYYY-MM-DD') : undefined })}
+                  slotProps={{ textField: { fullWidth: true } }}
+                />
+              </Grid>
 
-            <Grid item xs={12} md={4}>
-              <TextField
-                fullWidth
-                label="Observation Period (Months)"
-                type="number"
-                value={formData.observation_period || ''}
-                onChange={(e) => handleFieldChange('observation_period', Number(e.target.value))}
-                error={!!formErrors.observation_period}
-                helperText={formErrors.observation_period}
-                required
-                inputProps={{ min: 1, max: 120 }}
-              />
-            </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Workout Period (Months)"
+                  value={formData.workout_period || ''}
+                  onChange={(e) => setFormData({ ...formData, workout_period: Number(e.target.value) })}
+                />
+              </Grid>
 
-            <Grid item xs={12} md={4}>
-              <TextField
-                fullWidth
-                label="Historical Month"
-                type="number"
-                value={formData.historical_month || ''}
-                onChange={(e) => handleFieldChange('historical_month', Number(e.target.value))}
-                error={!!formErrors.historical_month}
-                helperText={formErrors.historical_month}
-                disabled={!currentFieldEnablement.historical}
-                inputProps={{ min: 0, max: 120 }}
-              />
-            </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="LGD Rate (%)"
+                  value={formData.lgd_rate || 0}
+                  onChange={(e) => setFormData({ ...formData, lgd_rate: Number(e.target.value) })}
+                  inputProps={{ step: 0.001 }}
+                />
+              </Grid>
 
-            <Grid item xs={12} md={4}>
-              <TextField
-                fullWidth
-                label="Workout Period (Months)"
-                type="number"
-                value={formData.workout_period || ''}
-                onChange={(e) => handleFieldChange('workout_period', Number(e.target.value))}
-                error={!!formErrors.workout_period}
-                helperText={formErrors.workout_period}
-                disabled={!currentFieldEnablement.workout}
-                inputProps={{ min: 0, max: 60 }}
-              />
-            </Grid>
+              <Grid item xs={12} md={6} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <FormControlLabel
+                  control={<Switch checked={!!formData.is_active} onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })} />}
+                  label="Active"
+                />
+                <FormControlLabel
+                  control={<Switch checked={!!formData.fl_flag} onChange={(e) => setFormData({ ...formData, fl_flag: e.target.checked })} />}
+                  label="FL Flag"
+                />
+              </Grid>
 
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="First NPL Date"
-                type="date"
-                value={formData.first_npl_date || ''}
-                onChange={(e) => handleFieldChange('first_npl_date', e.target.value)}
-                error={!!formErrors.first_npl_date}
-                helperText={formErrors.first_npl_date}
-                disabled={!currentFieldEnablement.nplDate}
-                InputLabelProps={{ shrink: true }}
-              />
-            </Grid>
+              {formData.fl_flag && (
+                <Grid item xs={12} md={6}>
+                  <FormControl fullWidth error={!!formErrors.fl_scalar_id}>
+                    <InputLabel>FL Scalar</InputLabel>
+                    <Select
+                      value={formData.fl_scalar_id || ''}
+                      label="FL Scalar"
+                      onChange={(e) => setFormData({ ...formData, fl_scalar_id: Number(e.target.value) })}
+                    >
+                      {flScalars.map(s => (
+                        <MenuItem key={s.pkid} value={s.pkid}>{s.scalar_name}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+              )}
 
-            <Grid item xs={12}>
-              <Divider />
-              <Typography variant="h6" color="primary" sx={{ mt: 2, mb: 1 }}>
-                LGD Rates
-              </Typography>
             </Grid>
-
-            <Grid item xs={12} md={4}>
-              <TextField
-                fullWidth
-                label="Unsecured LGD Rate"
-                type="number"
-                value={formData.unsecured_lgd_rate || ''}
-                onChange={(e) => handleFieldChange('unsecured_lgd_rate', Number(e.target.value))}
-                inputProps={{ min: 0, max: 1, step: 0.01 }}
-                helperText="Enter as decimal (0.45 for 45%)"
-              />
-            </Grid>
-
-            <Grid item xs={12} md={4}>
-              <TextField
-                fullWidth
-                label="Secured LGD Rate"
-                type="number"
-                value={formData.secured_lgd_rate || ''}
-                onChange={(e) => handleFieldChange('secured_lgd_rate', Number(e.target.value))}
-                inputProps={{ min: 0, max: 1, step: 0.01 }}
-                helperText="Enter as decimal (0.25 for 25%)"
-              />
-            </Grid>
-
-            <Grid item xs={12} md={4}>
-              <TextField
-                fullWidth
-                label="LGD Rate"
-                type="number"
-                value={formData.lgd_rate || ''}
-                onChange={(e) => handleFieldChange('lgd_rate', Number(e.target.value))}
-                error={!!formErrors.lgd_rate}
-                helperText={formErrors.lgd_rate || "Enter as decimal (0.35 for 35%)"}
-                disabled={!currentFieldEnablement.lgdRate}
-                inputProps={{ min: 0, max: 1, step: 0.01 }}
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={formData.is_active || false}
-                    onChange={(e) => handleFieldChange('is_active', e.target.checked)}
-                  />
-                }
-                label="Active Configuration"
-              />
-            </Grid>
-          </Grid>
+          </LocalizationProvider>
         </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setIsDialogOpen(false)}>
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            onClick={handleSave}
-            disabled={loading}
-            startIcon={loading ? <CircularProgress size={16} /> : null}
-          >
-            {isEditing ? 'Update' : 'Create'} Configuration
-          </Button>
+        <DialogActions>
+          <Button onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleSave} disabled={loading}>{selectedConfig ? 'Update' : 'Create'}</Button>
         </DialogActions>
       </Dialog>
     </Container>

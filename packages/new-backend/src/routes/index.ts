@@ -9,6 +9,21 @@ import { tenantsRoutes } from './tenants.routes'
 import { platformAdminRoutes } from './platform-admin.routes'
 import { approvalRoutes } from './approval.routes'
 import { menuRoutes } from './menu.routes'
+import productSegmentsRoutes from './product-segments.routes'
+import ruleBaseSettingsRoutes from './rule-base-settings.routes'
+import bucketParametersRoutes from './bucket-parameters.routes'
+import flScalarRoutes from './fl-scalar.routes'
+import pdConfigurationsRoutes from './pd-configurations.routes'
+import lgdConfigurationsRoutes from './lgd-configurations.routes'
+import eadConfigurationsRoutes from './ead-configurations.routes'
+import eclConfigurationsRoutes from './ecl-configurations.routes'
+import populationSegmentsRoutes from './population-segments.routes'
+import { appSettingsRoutes } from './app-settings.routes'
+import { businessSettingsRoutes } from './business-settings.routes'
+import { businessSetupRoutes } from './business-setup.routes'
+import { productParameterRoutes } from './product-parameters.routes'
+import { journalParameterRoutes } from './journal-parameters.routes'
+import { segmentationRoutes } from './segmentation.routes'
 
 /**
  * Main API router
@@ -26,3 +41,18 @@ routes.route('/approvals', approvalRoutes)
 routes.route('/rbac', rbacRoutes)
 routes.route('/audit', auditRoutes)
 routes.route('/menu', menuRoutes)
+routes.route('/banking/parameters/product-segments', productSegmentsRoutes)
+routes.route('/banking/collective/rule-base', ruleBaseSettingsRoutes)
+routes.route('/banking/collective/bucket', bucketParametersRoutes)
+routes.route('/banking/collective/fl-scalar', flScalarRoutes)
+routes.route('/banking/parameters/pd-configurations', pdConfigurationsRoutes)
+routes.route('/banking/parameters/lgd-configurations', lgdConfigurationsRoutes)
+routes.route('/banking/parameters/ead-configurations', eadConfigurationsRoutes)
+routes.route('/banking/collective/ecl-config', eclConfigurationsRoutes)
+routes.route('/banking/parameters/population-segments', populationSegmentsRoutes)
+routes.route('/banking/setup/application', appSettingsRoutes)
+routes.route('/banking/setup/business', businessSetupRoutes)
+routes.route('/banking/setup/product-parameters', productParameterRoutes)
+routes.route('/banking/setup/journal-parameters', journalParameterRoutes)
+routes.route('/banking/setup/segmentation', segmentationRoutes)
+routes.route('/banking/parameters/business-settings', businessSettingsRoutes)

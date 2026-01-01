@@ -10,7 +10,6 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { frontendEnvironmentLoader } from '../../../../config/environment-loader-frontend';
 import {
   Box,
   Typography,
@@ -104,114 +103,6 @@ interface ECLConfigDetail {
   createdby?: string;
   createddate?: string;
 }
-
-// API service for ECL Configuration - Use centralized dual-mode configuration
-const getApiBaseUrl = () => {
-  try {
-    // Use centralized environment loader first
-    const config = frontendEnvironmentLoader.getConfiguration();
-    console.log('✅ ECL Config Page: Using centralized API base URL:', config.api.base);
-    return config.api.base;
-  } catch (error) {
-    console.warn('⚠️ ECL Config Page: Failed to load centralized API base URL, using fallback:', error);
-
-    // Fallback to hostname detection
-    const isProductionDomain = typeof window !== 'undefined' && window.location.hostname.includes('danafin.com');
-    const fallbackUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL ||
-      (isProductionDomain ? 'https://iaf-ifrs-be.danafin.com/api/v1' : 'https://bifrs9-iaf.ifrspro.id/api/v1');
-
-    console.log('🔧 ECL Config Page: Using fallback API base URL:', fallbackUrl);
-    return fallbackUrl;
-  }
-};
-
-const API_BASE_URL = getApiBaseUrl();
-
-const eclConfigurationAPI = {
-  getHeaders: async (): Promise<ECLConfigHeader[]> => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/banking/collective/ecl-config`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      return result.success ? result.data : [];
-    } catch (error) {
-      console.error('Error fetching ECL configurations:', error);
-      throw error;
-    }
-  },
-
-  createHeader: async (data: Partial<ECLConfigHeader>): Promise<ECLConfigHeader> => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/banking/collective/ecl-config`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      return result.data;
-    } catch (error) {
-      console.error('Error creating ECL configuration:', error);
-      throw error;
-    }
-  },
-
-  updateHeader: async (pkid: number, data: Partial<ECLConfigHeader>): Promise<ECLConfigHeader> => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/banking/collective/ecl-config/${pkid}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      return result.data;
-    } catch (error) {
-      console.error('Error updating ECL configuration:', error);
-      throw error;
-    }
-  },
-
-  deleteHeader: async (pkid: number): Promise<void> => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/banking/collective/ecl-config/${pkid}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-    } catch (error) {
-      console.error('Error deleting ECL configuration:', error);
-      throw error;
-    }
-  }
-};
-
 // Business parameters from live system
 const mockModules = [
   { value: "1", label: "Commercial Module", code: "COMM" },
@@ -263,9 +154,154 @@ const mockPeriodTypes = [
   { value: 4, label: "Annual", code: "ANNUAL" }
 ];
 
+// API service for ECL Configuration - Use centralized api service
+import { api } from '../../../../services/api';
+
+// Alias to match existing usage patterns in this file
+const eclConfigurationAPI = {
+  getHeaders: async (): Promise<ECLConfigHeader[]> => {
+    try {
+      const data = await api.banking.eclConfigurations.getAll();
+      console.log('🔍 [ECL-API] Raw API Response:', JSON.stringify(data, null, 2));
+
+      // Handle case where data might be nested in { data: [...] } if API client behaves unexpectedly
+      const resultData = Array.isArray(data) ? data : (data as any).data || [];
+
+      if (!Array.isArray(resultData)) {
+        console.error('❌ [ECL-API] Expected array but got:', typeof resultData);
+        return [];
+      }
+
+      // Transform to match expected structure
+      const transformed = resultData.map((item: any) => {
+        // Lookup module name from mockModules
+        const moduleInfo = mockModules.find(m => m.value === String(item.module));
+
+        return {
+          pkid: Number(item.id), // Ensure number
+          ecl_model_name: item.model_name,
+          module: String(item.module),
+          module_name: moduleInfo?.label || `Module ${item.module}`,
+          effective_date: item.effective_date,
+          active_flag: item.active_flag ?? true,
+          last_run_period: item.last_run_period,
+          last_run_status: item.last_run_status,
+          last_run_date: item.last_run_date,
+          createdby: item.created_by,
+          createddate: item.created_date,
+          details: []
+        };
+      });
+      console.log('✅ [ECL-API] Transformed Data:', transformed.length, 'records');
+      return transformed;
+    } catch (error) {
+      console.error('Error fetching ECL configurations:', error);
+      throw error;
+    }
+  },
+
+  createHeader: async (data: Partial<ECLConfigHeader>): Promise<ECLConfigHeader> => {
+    try {
+      const result = await api.banking.eclConfigurations.create({
+        modelName: data.ecl_model_name || '',
+        effectiveDate: data.effective_date || new Date().toISOString(),
+        activeFlag: data.active_flag ?? true,
+        module: data.module,
+        details: (data.details || []).map(d => ({
+          pfSegmentId: d.pf_segment_id,
+          stageRuleId: d.stage_rule_id,
+          pdModelId: d.pd_model_id,
+          lgdModelId: d.lgd_model_id,
+          eadModelId: d.ead_model_id,
+          overlayRate: d.overlay_rate,
+          periodType: d.period_type,
+          periodDate: d.period_date
+        }))
+      });
+      return {
+        pkid: result.id,
+        ecl_model_name: result.model_name,
+        module: result.module,
+        effective_date: result.effective_date,
+        active_flag: result.active_flag,
+        details: result.details?.map((d: any) => ({
+          pkid: d.id,
+          ecl_model_id: result.id,
+          pf_segment_id: d.pf_segment_id,
+          stage_rule_id: d.stage_rule_id,
+          pd_model_id: d.pd_model_id,
+          lgd_model_id: d.lgd_model_id,
+          ead_model_id: d.ead_model_id,
+          overlay_rate: d.overlay_rate,
+          period_type: d.period_type,
+          period_date: d.period_date
+        })) || []
+      };
+    } catch (error) {
+      console.error('Error creating ECL configuration:', error);
+      throw error;
+    }
+  },
+
+  updateHeader: async (pkid: number, data: Partial<ECLConfigHeader>): Promise<ECLConfigHeader> => {
+    try {
+      const result = await api.banking.eclConfigurations.update(pkid, {
+        modelName: data.ecl_model_name,
+        effectiveDate: data.effective_date,
+        activeFlag: data.active_flag,
+        module: data.module,
+        details: (data.details || []).map(d => ({
+          pfSegmentId: d.pf_segment_id,
+          stageRuleId: d.stage_rule_id,
+          pdModelId: d.pd_model_id,
+          lgdModelId: d.lgd_model_id,
+          eadModelId: d.ead_model_id,
+          overlayRate: d.overlay_rate,
+          periodType: d.period_type,
+          periodDate: d.period_date
+        }))
+      });
+      return {
+        pkid: result.id,
+        ecl_model_name: result.model_name,
+        module: result.module,
+        effective_date: result.effective_date,
+        active_flag: result.active_flag,
+        details: result.details?.map((d: any) => ({
+          pkid: d.id,
+          ecl_model_id: result.id,
+          pf_segment_id: d.pf_segment_id,
+          stage_rule_id: d.stage_rule_id,
+          pd_model_id: d.pd_model_id,
+          lgd_model_id: d.lgd_model_id,
+          ead_model_id: d.ead_model_id,
+          overlay_rate: d.overlay_rate,
+          period_type: d.period_type,
+          period_date: d.period_date
+        })) || []
+      };
+    } catch (error) {
+      console.error('Error updating ECL configuration:', error);
+      throw error;
+    }
+  },
+
+  deleteHeader: async (pkid: number): Promise<void> => {
+    try {
+      await api.banking.eclConfigurations.delete(pkid);
+    } catch (error) {
+      console.error('Error deleting ECL configuration:', error);
+      throw error;
+    }
+  }
+};
+
+// Business parameters from live system
+
+
 export default function ECLConfigurationPage() {
   const router = useRouter();
-  
+
   // State management
   const [loading, setLoading] = useState(false);
   const [eclConfigs, setEclConfigs] = useState<ECLConfigHeader[]>([]);
@@ -328,7 +364,7 @@ export default function ECLConfigurationPage() {
     // Apply search filter
     if (searchTerm) {
       filtered = filtered.filter(config =>
-        config.ecl_model_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        config.ecl_model_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         config.module_name?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
@@ -369,7 +405,7 @@ export default function ECLConfigurationPage() {
   // Handle form field changes
   const handleHeaderFieldChange = (field: string, value: any) => {
     setHeaderFormData(prev => ({ ...prev, [field]: value }));
-    
+
     // Clear validation error for changed field
     if (formErrors[field]) {
       setFormErrors(prev => ({ ...prev, [field]: '' }));
@@ -382,8 +418,8 @@ export default function ECLConfigurationPage() {
 
   // Add detail configuration
   const handleAddDetail = () => {
-    if (!detailFormData.pf_segment_id || !detailFormData.pd_model_id || 
-        !detailFormData.lgd_model_id || !detailFormData.ead_model_id) {
+    if (!detailFormData.pf_segment_id || !detailFormData.pd_model_id ||
+      !detailFormData.lgd_model_id || !detailFormData.ead_model_id) {
       return;
     }
 
@@ -514,7 +550,7 @@ export default function ECLConfigurationPage() {
       };
 
       let savedConfig: ECLConfigHeader;
-      
+
       if (isEditing && selectedEclConfig) {
         savedConfig = await eclConfigurationAPI.updateHeader(selectedEclConfig.pkid, saveData);
         console.log('✅ [ECL-CONFIG] Updated ECL configuration:', savedConfig.pkid);
@@ -549,7 +585,7 @@ export default function ECLConfigurationPage() {
     try {
       await eclConfigurationAPI.deleteHeader(eclConfig.pkid);
       console.log('✅ [ECL-CONFIG] Deleted ECL configuration:', eclConfig.pkid);
-      
+
       // Reload all configurations to get the latest data
       await loadEclConfigurations();
     } catch (error) {
@@ -570,7 +606,7 @@ export default function ECLConfigurationPage() {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <EclIcon color="primary" fontSize="small" />
           <Typography variant="body2" fontWeight="medium">
-            {params.value}
+            {params.value || 'Unnamed Model'}
           </Typography>
         </Box>
       )
@@ -581,7 +617,7 @@ export default function ECLConfigurationPage() {
       width: 150,
       renderCell: (params) => (
         <Chip
-          label={params.value}
+          label={params.value || params.row.module || 'Unknown'}
           size="small"
           color="primary"
           variant="outlined"
@@ -592,7 +628,11 @@ export default function ECLConfigurationPage() {
       field: 'effective_date',
       headerName: 'Effective Date',
       width: 130,
-      renderCell: (params) => new Date(params.value).toLocaleDateString()
+      renderCell: (params) => {
+        if (!params.value) return '-';
+        const date = new Date(params.value);
+        return isNaN(date.getTime()) ? params.value : date.toLocaleDateString();
+      }
     },
     {
       field: 'details',
@@ -674,9 +714,9 @@ export default function ECLConfigurationPage() {
     <Container maxWidth="xl">
       {/* Breadcrumb Navigation */}
       <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
-        <Link 
-          underline="hover" 
-          color="inherit" 
+        <Link
+          underline="hover"
+          color="inherit"
           href="/banking/dashboard"
           onClick={(e) => {
             e.preventDefault();
@@ -881,8 +921,8 @@ export default function ECLConfigurationPage() {
       </Card>
 
       {/* Add/Edit Dialog */}
-      <Dialog 
-        open={isDialogOpen} 
+      <Dialog
+        open={isDialogOpen}
         onClose={() => setIsDialogOpen(false)}
         maxWidth="lg"
         fullWidth
@@ -971,7 +1011,7 @@ export default function ECLConfigurationPage() {
               <Typography variant="h6" color="primary" gutterBottom>
                 Add Segment Configuration
               </Typography>
-              
+
               <Grid container spacing={3} sx={{ mb: 3 }}>
                 <Grid item xs={12} md={4}>
                   <FormControl fullWidth required>
@@ -1074,8 +1114,8 @@ export default function ECLConfigurationPage() {
                     variant="contained"
                     startIcon={<AddIcon />}
                     onClick={handleAddDetail}
-                    disabled={!detailFormData.pf_segment_id || !detailFormData.pd_model_id || 
-                             !detailFormData.lgd_model_id || !detailFormData.ead_model_id}
+                    disabled={!detailFormData.pf_segment_id || !detailFormData.pd_model_id ||
+                      !detailFormData.lgd_model_id || !detailFormData.ead_model_id}
                   >
                     Add Segment Configuration
                   </Button>
@@ -1100,8 +1140,8 @@ export default function ECLConfigurationPage() {
                     <Typography variant="subtitle2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <Chip label={index + 1} size="small" />
                       {detail.pf_segment_name} - PD: {detail.pd_model_name}
-                      <IconButton 
-                        size="small" 
+                      <IconButton
+                        size="small"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleRemoveDetail(detail.pkid);
