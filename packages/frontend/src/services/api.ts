@@ -28,6 +28,8 @@ import { eadConfigurationsApi } from './api/ead-configurations.api';
 import { populationSegmentsApi } from './api/population-segments.api';
 import { flScalarAPI } from './api/fl-scalar.api';
 import { eclConfigurationsApi } from './api/ecl-configurations.api';
+import { impairmentApi } from './api/impairment.api';
+
 
 // ✅ ENVIRONMENT-AWARE CONFIG: Use environment loader with auto-detection
 // ⚠️ NO HARDCODED VALUES: URLs will be set exclusively by environment loader
@@ -526,6 +528,7 @@ export const bankingAPI = {
   populationSegments: populationSegmentsApi,
   flScalar: flScalarAPI,
   eclConfigurations: eclConfigurationsApi,
+  impairment: impairmentApi,
 
   // Application setup parameters (FRS9_PARAM_COMMONH - Type A)
   applicationSetup: {

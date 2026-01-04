@@ -117,4 +117,7 @@ export {
     frs9ImpCaEadConfig,
     frs9ImpCaEclConfigh,
     frs9ImpCaEclConfigd,
+    frs9ImpCaEclSum,
+    frs9ImpCaResultH,
+    frs9ImpCaResultD,
 } from './introspected/schema'

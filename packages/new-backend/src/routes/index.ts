@@ -1,3 +1,4 @@
+
 import { Hono } from 'hono'
 import type { AppContext } from '../app'
 import { healthRoutes } from './health.routes'
@@ -24,6 +25,7 @@ import { businessSetupRoutes } from './business-setup.routes'
 import { productParameterRoutes } from './product-parameters.routes'
 import { journalParameterRoutes } from './journal-parameters.routes'
 import { segmentationRoutes } from './segmentation.routes'
+import impairmentRoutes from './impairment.routes'
 
 /**
  * Main API router
@@ -56,3 +58,4 @@ routes.route('/banking/setup/product-parameters', productParameterRoutes)
 routes.route('/banking/setup/journal-parameters', journalParameterRoutes)
 routes.route('/banking/setup/segmentation', segmentationRoutes)
 routes.route('/banking/parameters/business-settings', businessSettingsRoutes)
+routes.route('/banking/ifrs9/impairment-module', impairmentRoutes)
