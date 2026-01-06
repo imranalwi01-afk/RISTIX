@@ -16,7 +16,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 // ✅ REAL-TIME DB SYNC: Import health monitoring hook
-import { useBackendHealth } from '../../hooks/useBackendHealth'; 
+import { useBackendHealth } from '../../hooks/useBackendHealth';
 
 
 import {
@@ -480,10 +480,10 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
         icon: <History />,
         description: 'Audit trail for overrides',
         children: [
-           { id: 'hist-customer', label: 'Customer Details', href: '/banking/individual/history/customer', icon: <Person /> },
-           { id: 'hist-provision', label: 'IA Provision', href: '/banking/individual/history/provision', icon: <AccountBalance /> },
-           { id: 'hist-dcf', label: 'DCF Upload', href: '/banking/individual/history/dcf-upload', icon: <CloudUpload /> },
-           { id: 'hist-collateral', label: 'Collateral', href: '/banking/individual/history/collateral', icon: <Security /> }
+          { id: 'hist-customer', label: 'Customer Details', href: '/banking/individual/history/customer', icon: <Person /> },
+          { id: 'hist-provision', label: 'IA Provision', href: '/banking/individual/history/provision', icon: <AccountBalance /> },
+          { id: 'hist-dcf', label: 'DCF Upload', href: '/banking/individual/history/dcf-upload', icon: <CloudUpload /> },
+          { id: 'hist-collateral', label: 'Collateral', href: '/banking/individual/history/collateral', icon: <Security /> }
         ]
       }
     ]
@@ -844,7 +844,19 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
   };
 
   const handleFlyoutItemClick = (child: HierarchicalMenuItem) => {
-    handleMenuItemClick(child);
+    // Adapter to convert HierarchicalMenuItem to MenuItem
+    const menuItem: MenuItem = {
+      ...child,
+      label: child.title, // Map title to label
+      code: child.key || child.id,
+      href: child.url || undefined,
+      icon: <Menu />, // Dummy icon since handleMenuItemClick only uses it for routing
+      level: 3, // Safe default
+      roles: child.user_types,
+      banking_modes: child.banking_types as any,
+      children: child.children as any
+    };
+    handleMenuItemClick(menuItem);
     handleFlyoutClose();
   };
   // 🔼 END FLYOUT STATE
@@ -857,25 +869,24 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
       try {
         const cached = localStorage.getItem('cached_menu_structure');
         if (cached) {
-          console.log('⚡ [CACHE] Loaded menu from local cache');
           return JSON.parse(cached);
         }
       } catch (e) {
-        console.warn('⚠️ Failed to load menu cache:', e);
+        // silent fail for cache
       }
     }
     return [];
   });
-  
+
   // Only show loading if we didn't find anything in cache
   const [isLoading, setIsLoading] = useState(() => {
-     if (typeof window !== 'undefined') {
-        const hasCache = !!localStorage.getItem('cached_menu_structure');
-        return !hasCache; // If cache exists, we are NOT loading (visually)
-     }
-     return true;
+    if (typeof window !== 'undefined') {
+      const hasCache = !!localStorage.getItem('cached_menu_structure');
+      return !hasCache; // If cache exists, we are NOT loading (visually)
+    }
+    return true;
   });
-  
+
   const [menuError, setMenuError] = useState<string | null>(null);
 
   // Use hierarchical menu state management
@@ -886,21 +897,9 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
     // ✅ PREVENT UNNECESSARY 401s: Don't fetch menu if user role is not yet loaded OR token is missing
     const token = getAuthToken();
     if ((!userRole && (!roleCodes || roleCodes.length === 0)) || !token) {
-      console.log('⏳ [MENU] Waiting for auth token and user roles before fetching menu...', { 
-        hasToken: !!token, 
-        hasUserRole: !!userRole,
-        hasRoleCodes: !!(roleCodes && roleCodes.length > 0)
-      });
       return;
     }
 
-    console.log('🎯 Menu component useEffect triggered:', {
-      bankingMode,
-      userRole,
-      roleCodes,
-      pathname,
-      currentMenuItems: hierarchicalMenu.length
-    });
     loadHierarchicalMenuFromDatabase();
   }, [bankingMode, userRole, roleCodes]); // Include roleCodes in dependencies
 
@@ -914,60 +913,32 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
       }
       setMenuError(null);
 
-      console.log('🔄 [DATABASE-DRIVEN] Loading menu from database...', {
-        bankingMode,
-        userRole,
-        roleCodes
-      });
-
       let response;
-      
+
       // ✅ PERF: Check for pre-fetched raw data from Login (AuthProvider)
       const preFetched = localStorage.getItem('temp_raw_menu');
       if (preFetched) {
-          console.log('⚡ [PERF] Found pre-fetched menu data, skipping API call');
-          try {
-              response = { success: true, data: JSON.parse(preFetched) };
-              // Clear it so we don't use stale data later (e.g. if user role changes)
-              localStorage.removeItem('temp_raw_menu'); 
-          } catch (e) {
-              console.warn('⚠️ Failed to parse pre-fetched menu:', e);
-              localStorage.removeItem('temp_raw_menu');
-          }
+        try {
+          response = { success: true, data: JSON.parse(preFetched) };
+          // Clear it so we don't use stale data later (e.g. if user role changes)
+          localStorage.removeItem('temp_raw_menu');
+        } catch (e) {
+          localStorage.removeItem('temp_raw_menu');
+        }
       }
 
       // If no pre-fetched data, call API as normal
       if (!response) {
-          // Get hierarchical menu data from API
-          response = await menuApi.getMenuTree({
-            bankingMode,
-            includeInactive: false
-          });
+        // Get hierarchical menu data from API
+        response = await menuApi.getMenuTree({
+          bankingMode,
+          includeInactive: false
+        });
       }
 
-      console.log('📊 [DATABASE-DRIVEN] Menu API Response:', {
-        success: response.success,
-        dataLength: response.data?.length || 0,
-        dataType: Array.isArray(response.data) ? 'array' : typeof response.data,
-        dataSample: Array.isArray(response.data) ? response.data.slice(0, 3) : response.data
-      });
-
       if (response.success && response.data && Array.isArray(response.data) && response.data.length > 0) {
-        console.log('✅ [DATABASE-DRIVEN] Raw hierarchical menu data loaded:', {
-          totalItems: response.data.length,
-          hierarchicalStructure: response.data.map((item: any) => ({
-            id: item.id,
-            title: item.title,
-            parent_id: item.parent_id,
-            hasChildren: !!(item.children && item.children.length > 0),
-            childrenCount: item.children ? item.children.length : 0
-          }))
-        });
-
         // Check if data is hierarchical or flat
         const hasChildren = response.data.some((item: any) => item.children && Array.isArray(item.children) && item.children.length > 0);
-
-        console.log(`🔍 [DATABASE-DRIVEN] Backend data hierarchical check: ${hasChildren}`);
 
         // Transform to HierarchicalMenuItem format if needed
         const hierarchical = response.data.map((item: any): HierarchicalMenuItem => {
@@ -1003,40 +974,22 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
 
         // Validate the hierarchical structure
         const validation = validateMenuHierarchy(hierarchical);
-        console.log('✅ [DATABASE-DRIVEN] Menu validation result:', validation);
 
         if (!validation.isValid) {
-          console.warn('⚠️ [DATABASE-DRIVEN] Validation issues:', validation.issues);
         }
 
         // Filter by role and banking mode
         const filtered = filterHierarchicalMenu(hierarchical, userRole, bankingMode, roleCodes);
 
-        console.log('🎯 [DATABASE-DRIVEN] Filtered menu result:', {
-          originalCount: hierarchical.length,
-          filteredCount: filtered.length,
-          categories: filtered.map(item => ({
-            key: item.key,
-            title: item.title,
-            childrenCount: item.children?.length || 0
-          }))
-        });
-
-        console.log('📋 [FINAL] Setting hierarchical menu:', {
-          totalItems: filtered.length,
-          rootItems: filtered.map(item => ({ key: item.key, title: item.title, childrenCount: item.children?.length || 0 }))
-        });
-
         setHierarchicalMenu(filtered);
-        
+
         // ✅ CACHE UPDATE: Save the fresh data to cache for next time
         if (typeof window !== 'undefined') {
-           try {
-             localStorage.setItem('cached_menu_structure', JSON.stringify(filtered));
-             console.log('💾 [CACHE] Updated menu cache with fresh data');
-           } catch (e) {
-             console.warn('⚠️ Failed to update menu cache:', e);
-           }
+          try {
+            localStorage.setItem('cached_menu_structure', JSON.stringify(filtered));
+          } catch (e) {
+            // silent fail
+          }
         }
 
         // Auto-expand first section for better UX
@@ -1045,14 +998,12 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
         }
 
       } else {
-        console.warn('⚠️ [DATABASE-DRIVEN] No menu data available - USING FALLBACK');
         useStaticFallback();
       }
     } catch (error) {
-      console.warn('❌ [DATABASE-DRIVEN] Failed to load menu (using static fallback):', error);
       // ✅ FORCE FALLBACK WITHOUT SHOWING ERROR UI
       // We want the user to always see a menu, even if the database one fails
-      setMenuError(null); 
+      setMenuError(null);
       useStaticFallback();
     } finally {
       setIsLoading(false);
@@ -1061,7 +1012,6 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
 
   // Static fallback function
   const useStaticFallback = () => {
-    console.log('🔄 [FALLBACK] Using static menu structure...');
     const fallbackMenu = convertStaticToDatabaseFormat(BANKING_MENU_STRUCTURE);
     const hierarchicalFallback = transformFlatToHierarchical(fallbackMenu);
     const filtered = filterHierarchicalMenu(hierarchicalFallback, userRole, bankingMode, roleCodes);
@@ -1181,16 +1131,6 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
           color: (item.badge_info.color as any) || 'primary'
         };
       }
-
-      console.log('🔄 [DATABASE-DRIVEN] Converted menu item:', {
-        id: item.id,
-        title: item.title,
-        icon: item.icon,
-        convertedIcon: '✅ Preserved',
-        hasChildren: !!(item.children && item.children.length > 0),
-        level: menuItem.level,
-        parent_id: item.parent_id
-      });
 
       return menuItem;
     });
@@ -1465,60 +1405,34 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
   };
 
   const isItemVisible = (item: HierarchicalMenuItem): boolean => {
-    // 🔍 DEBUG: Add comprehensive logging for all menu items
-    console.log(`🔍 [MENU DEBUG] Checking visibility for ${item.id}:`, {
-      userRole,
-      bankingMode,
-      itemRoles: item.user_types,
-      itemBankingModes: item.banking_types,
-      hasRoles: !!(item.user_types && item.user_types.length > 0),
-      hasBankingModes: !!(item.banking_types)
-    });
+
 
     // 🔒 TEMPORARILY HIDE PORTFOLIO MANAGEMENT SECTION
     if (item.id === 'portfolio-management' || item.id?.startsWith('portfolio-')) {
-      console.log(`🚫 Menu item filtered out (portfolio): ${item.id}`);
       return false;
     }
 
     // Banking mode filter
     if (item.banking_types && !item.banking_types.includes(bankingMode)) {
-      console.log(`🚫 Menu item filtered out (banking mode): ${item.id}, required: ${item.banking_types}, current: ${bankingMode}`);
       return false;
     }
 
     // Enhanced role-based filter with IAF role support
     if (item.user_types && item.user_types.length > 0) {
-      console.log(`🔍 [ROLE DEBUG] Checking role access for ${item.id}:`, {
-        itemRoles: item.user_types,
-        userRole: userRole,
-        hasUserRole: !!userRole
-      });
-
       // If no user role provided, hide items that require specific roles
       if (!userRole) {
-        console.log(`🚫 Menu item filtered out (no user role): ${item.id}`);
         return false;
       }
 
       // Parse user roles (support comma-separated multiple roles)
       const userRoles = userRole.split(',').map(role => role.trim().toLowerCase());
-      console.log(`🔍 [ROLE DEBUG] Parsed user roles:`, userRoles);
 
       // Check if user has any of the required roles
       const hasRequiredRole = item.user_types.some(requiredRole => {
         const normalizedRequiredRole = requiredRole.toLowerCase();
 
-        console.log(`🔍 [ROLE MATCH DEBUG] Checking ${item.id}:`, {
-          requiredRole,
-          normalizedRequiredRole,
-          userRoles,
-          exactMatch: userRoles.includes(normalizedRequiredRole)
-        });
-
         // Exact match
         if (userRoles.includes(normalizedRequiredRole)) {
-          console.log(`✅ [ROLE MATCH] Exact match found for ${item.id}: ${normalizedRequiredRole}`);
           return true;
         }
 
@@ -1539,7 +1453,6 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
         // Check IAF role mappings
         const mappedRoles = iafRoleMapping[normalizedRequiredRole];
         if (mappedRoles && mappedRoles.some(mappedRole => userRoles.includes(mappedRole))) {
-          console.log(`✅ [IAF ROLE MATCH] Mapped role found for ${item.id}: ${normalizedRequiredRole}`);
           return true;
         }
 
@@ -1580,17 +1493,8 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
         });
       });
 
-      console.log(`🔍 [ROLE RESULT] Final role check for ${item.id}:`, {
-        hasRequiredRole,
-        userRole,
-        itemRoles: item.user_types
-      });
-
       if (!hasRequiredRole) {
-        console.log(`🚫 Menu item filtered out (role mismatch): ${item.id}`);
         return false;
-      } else {
-        console.log(`✅ Menu item passed role check: ${item.id}`);
       }
     }
 
@@ -1617,7 +1521,6 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
     }
 
     // Show all items that pass the filters
-    console.log(`✅ [FINAL RESULT] Menu item VISIBLE: ${item.id}, userRole: ${userRole}, bankingMode: ${bankingMode}`);
     return true;
   };
 
@@ -1662,8 +1565,6 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
       return null;
     }
 
-    console.log(`🎨 [HIERARCHICAL] Rendering menu item: ${item.key}, level: ${level}, expanded: ${menuState.isExpanded(item.id)}`);
-
     const hasChildren = item.children && item.children.length > 0;
     const isActive = menuState.isActive(item.id);
     const isExpanded = menuState.isExpanded(item.id);
@@ -1690,8 +1591,8 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
             <ListItemButton
               onClick={(e) => {
                 if (collapsed && hasChildren) {
-                   // 🔽 Open Flyout in collapsed mode
-                   handleFlyoutOpen(e, item);
+                  // 🔽 Open Flyout in collapsed mode
+                  handleFlyoutOpen(e, item);
                 } else if (hasChildren && visibleChildren.length > 0) {
                   menuState.toggleExpansion(item.id);
                 } else if (item.url) {
@@ -1708,15 +1609,15 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
                 py: 0.5,
                 position: 'relative',
                 transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                
+
                 // 🎨 ACTIVE STATE STYLING (PREMIUM DARK)
                 backgroundColor: isActive
                   ? 'rgba(255, 255, 255, 0.15)'
                   : 'transparent',
-                background: isActive 
+                background: isActive
                   ? 'linear-gradient(90deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.05) 100%)'
                   : 'transparent',
-                
+
                 // Left active indicator
                 '&::before': {
                   content: '""',
@@ -1750,12 +1651,12 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
                   justifyContent: 'center',
                   color: isActive ? '#ffffff' : 'rgba(255, 255, 255, 0.7)',
                   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                  
+
                   // 🎨 GLOW EFFECT FOR ICONS
-                  filter: isActive 
-                    ? 'drop-shadow(0 0 5px rgba(255, 255, 255, 0.5))' 
+                  filter: isActive
+                    ? 'drop-shadow(0 0 5px rgba(255, 255, 255, 0.5))'
                     : 'none',
-                  
+
                   transform: isActive ? 'scale(1.1)' : 'scale(1)',
 
                   '& svg': {
@@ -1775,7 +1676,7 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
                         variant={level === 0 ? 'body2' : 'caption'}
                         sx={{
                           fontWeight: isActive ? 600 : 500,
-                        color: isActive ? '#ffffff' : 'rgba(255, 255, 255, 0.9)',
+                          color: isActive ? '#ffffff' : 'rgba(255, 255, 255, 0.9)',
                           fontSize: level === 0 ? '0.825rem' : '0.75rem',
                           lineHeight: 1.3
                         }}
@@ -2049,9 +1950,9 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
               variant="caption"
               align="center"
               display="block"
-              sx={{ 
-                fontSize: '0.7rem', 
-                color: 'rgba(255, 255, 255, 0.9)', 
+              sx={{
+                fontSize: '0.7rem',
+                color: 'rgba(255, 255, 255, 0.9)',
                 fontWeight: 500,
                 letterSpacing: '0.02em',
                 mb: 0.5
@@ -2063,8 +1964,8 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
               variant="caption"
               align="center"
               display="block"
-              sx={{ 
-                fontSize: '0.65rem', 
+              sx={{
+                fontSize: '0.65rem',
                 mb: 1.5,
                 color: 'rgba(255, 255, 255, 0.7)'
               }}
@@ -2091,7 +1992,7 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
                   }
                 }}
               />
-              
+
 
             </Box>
           </>
