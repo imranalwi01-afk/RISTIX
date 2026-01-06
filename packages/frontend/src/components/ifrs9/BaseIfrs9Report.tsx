@@ -43,6 +43,7 @@ export interface BaseIfrs9ReportProps {
   optionalParams?: string[];
   supportsPagination?: boolean;
   supportsCharts?: boolean;
+  onDataLoaded?: (data: any[]) => void;
   children?: React.ReactNode;
 }
 
@@ -85,12 +86,15 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
   optionalParams = [],
   supportsPagination = false,
   supportsCharts = false,
+  onDataLoaded,
   children
 }) => {
   const { user } = useAuth();
   
-  // Extract tenant from user data
-  const tenant = user?.tenantId ? { id: user.tenantId, slug: user.tenantSlug } : null;
+  // Extract tenant from user data - Memoized to prevent infinite loops
+  const tenant = React.useMemo(() => 
+    user?.tenantId ? { id: user.tenantId, slug: user.tenantSlug } : null
+  , [user?.tenantId, user?.tenantSlug]);
   
   // State management
   const [data, setData] = useState<any[]>([]);
@@ -261,6 +265,11 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
         // Handle pagination
         if (response.pagination) {
           setPagination(response.pagination);
+        }
+        
+        // Notify parent component
+        if (onDataLoaded) {
+          onDataLoaded(response.data || []);
         }
       } else {
         setError('Failed to fetch report data');

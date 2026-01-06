@@ -63,6 +63,8 @@ import {
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { bankingAPI } from '../../../../services/api';
+import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
+
 
 // =====================================================
 // INTERFACES MATCHING DS2 FRS9PRO DATABASE SCHEMA
@@ -296,8 +298,8 @@ function ExpandableRow({
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {details.map((detail) => (
-                        <TableRow key={detail.pkid} hover>
+                      {details.map((detail, index) => (
+                        <TableRow key={detail.pkid ? `detail-${detail.pkid}` : `detail-idx-${index}`} hover>
                           <TableCell>
                             <Chip label={detail.query_group} size="small" color="info" />
                           </TableCell>
@@ -747,7 +749,8 @@ export default function RuleBaseSettingPage() {
   }
 
   return (
-    <Container maxWidth="xl">
+    <Container maxWidth="xl" sx={{ position: 'relative' }}>
+        <FullstackIndicator />
       {/* Breadcrumb Navigation */}
       <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
         <Link 
@@ -976,9 +979,9 @@ export default function RuleBaseSettingPage() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredHeaders.map((header) => (
+                  {filteredHeaders.map((header, index) => (
                     <ExpandableRow
-                      key={header.pkid}
+                      key={header.pkid ? `row-${header.pkid}` : `row-idx-${index}`}
                       header={header}
                       onEditHeader={handleEditHeader}
                       onDeleteHeader={handleDeleteHeader}

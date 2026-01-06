@@ -1,8 +1,3 @@
-// packages/frontend/src/app/page.tsx
-// ============================================================================
-// 🏢 IAF IFRS9 PLATFORM - CLEAN LANDING PAGE
-// ============================================================================
-
 'use client';
 
 import React from 'react';
@@ -11,11 +6,17 @@ import {
   Box,
   Typography,
   Button,
-  Card,
-  CardContent
+  Container,
+  Paper,
+  Fade,
+  useTheme
 } from '@mui/material';
 import {
-  Login as LoginIcon
+  Login as LoginIcon,
+  ArrowForward as ArrowForwardIcon,
+  Security as SecurityIcon,
+  Speed as SpeedIcon,
+  Analytics as AnalyticsIcon
 } from '@mui/icons-material';
 
 export default function HomePage() {
@@ -28,85 +29,173 @@ export default function HomePage() {
   return (
     <Box sx={{
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #1565C0 0%, #1976D2 100%)',
       display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      p: 2
+      flexDirection: 'column',
+      position: 'relative',
+      overflow: 'hidden',
+      color: 'white',
+      // Shared Mesh Gradient Config
+      background: 'linear-gradient(-45deg, #0D47A1, #1565C0, #1976D2, #64B5F6)',
+      backgroundSize: '400% 400%',
+      animation: 'gradient 15s ease infinite',
+      '@keyframes gradient': {
+        '0%': { backgroundPosition: '0% 50%' },
+        '50%': { backgroundPosition: '100% 50%' },
+        '100%': { backgroundPosition: '0% 50%' },
+      }
     }}>
-      <Card sx={{ maxWidth: 600, width: '100%', boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)' }}>
-        <CardContent sx={{ p: 6, textAlign: 'center' }}>
-          {/* Header */}
-          <Box sx={{ mb: 6 }}>
-            {/* IAF Logo */}
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mb: 4 }}>
-              <img
-                src="/images/logo-iaf.png"
-                alt="Indonesia Airawata Finance"
-                style={{
-                  width: '200px',
-                  height: 'auto',
-                  maxHeight: '140px',
-                  objectFit: 'contain'
-                }}
-              />
-            </Box>
+      {/* Mesh Overlay Effect */}
+      <Box sx={{
+        position: 'absolute',
+        top: 0, 
+        left: 0,
+        right: 0,
+        bottom: 0,
+        opacity: 0.4,
+        backgroundImage: 'radial-gradient(circle at 20% 50%, rgba(255,255,255,0.1) 0%, transparent 25%), radial-gradient(circle at 80% 30%, rgba(255,255,255,0.15) 0%, transparent 20%)',
+        zIndex: 1
+      }} />
 
-            <Typography variant="h3" component="h1" gutterBottom fontWeight="bold" sx={{ color: '#1976D2' }}>
-              IFRS 9 Platform
-            </Typography>
-
-            <Typography variant="h5" gutterBottom sx={{ color: '#1976D2', mb: 3 }}>
-              Indonesia Airawata Finance
-            </Typography>
-
-            <Typography variant="body1" sx={{
-              color: '#424242',
-              maxWidth: 500,
-              mx: 'auto',
-              fontSize: '1.1rem',
-              lineHeight: 1.6
-            }}>
-              Advanced IFRS 9 Expected Credit Loss Management System.
-            </Typography>
-          </Box>
-
-          {/* Single Login Button */}
-          <Box sx={{ mt: 6 }}>
-            <Button
-              variant="contained"
-              size="large"
-              startIcon={<LoginIcon />}
-              onClick={handleLogin}
-              sx={{
-                px: 8,
-                py: 2.5,
-                fontSize: '1.2rem',
-                fontWeight: 'bold',
-                backgroundColor: '#1976D2',
-                color: 'white',
-                '&:hover': {
-                  backgroundColor: '#1565C0',
-                  transform: 'scale(1.02)',
-                  transition: 'all 0.2s ease-in-out'
-                },
+      {/* Navbar / Top Bar */}
+      <Box sx={{ 
+        position: 'absolute', 
+        top: 0, 
+        left: 0, 
+        right: 0, 
+        p: 3, 
+        display: 'flex', 
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        zIndex: 10
+      }}>
+        {/* Brand Logo - Preserved */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+             <Box sx={{ 
+                bgcolor: 'white', 
+                p: 1, 
                 borderRadius: 2,
-                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
-                textTransform: 'none'
-              }}
-            >
-              Login to Platform
-            </Button>
-          </Box>
+                boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+             }}>
+                 <img
+                    src="/images/logo-iaf.png"
+                    alt="Indonesia Airawata Finance"
+                    style={{
+                    height: '32px',
+                    width: 'auto',
+                    objectFit: 'contain'
+                    }}
+                />
+             </Box>
+             <Typography variant="h6" sx={{ fontWeight: 700, letterSpacing: 0.5, display: { xs: 'none', md: 'block' } }}>
+                Indonesia Airawata Finance
+             </Typography>
+        </Box>
+      </Box>
 
-          {/* Footer */}
-          <Box sx={{ mt: 8, color: '#757575' }}>
-            <Typography variant="body2">
-              © 2025 Indonesia Airawata Finance. All rights reserved.
-            </Typography>
-          </Box>
-        </CardContent>
-      </Card>
+      {/* Main Hero Section */}
+      <Container maxWidth="lg" sx={{ 
+        flex: 1, 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        position: 'relative',
+        zIndex: 5
+      }}>
+        <Fade in timeout={1000}>
+            <Box sx={{ textAlign: 'center', maxWidth: 800 }}>
+                {/* Glass Badge */}
+                <Box sx={{ 
+                    display: 'inline-flex', 
+                    alignItems: 'center', 
+                    mb: 4, 
+                    bgcolor: 'rgba(255,255,255,0.15)', 
+                    backdropFilter: 'blur(10px)',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    px: 3, py: 1, 
+                    borderRadius: '50px' 
+                }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, letterSpacing: 1.5 }}>
+                        ENTERPRISE RISK PLATFORM
+                    </Typography>
+                </Box>
+
+                <Typography variant="h1" sx={{ 
+                    fontWeight: 800, 
+                    mb: 3, 
+                    lineHeight: 1.1,
+                    fontSize: { xs: '2.5rem', md: '4.5rem' },
+                    textShadow: '0 10px 30px rgba(0,0,0,0.2)'
+                }}>
+                    IFRS 9 Expected<br/>
+                    <span style={{ color: '#90CAF9' }}>Credit Loss Engine</span>
+                </Typography>
+
+                <Typography variant="h5" sx={{ 
+                    mb: 6, 
+                    opacity: 0.9, 
+                    maxWidth: 600, 
+                    mx: 'auto', 
+                    lineHeight: 1.6,
+                    fontWeight: 400
+                }}>
+                    A comprehensive, compliance-ready solution for automated impairment calculation, staging, and reporting.
+                </Typography>
+
+                <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
+                    <Button
+                        variant="contained"
+                        size="large"
+                        onClick={handleLogin}
+                        endIcon={<ArrowForwardIcon />}
+                        sx={{
+                            px: 5,
+                            py: 2,
+                            fontSize: '1.1rem',
+                            fontWeight: 700,
+                            borderRadius: '50px',
+                            backgroundColor: 'white',
+                            color: '#1565C0',
+                            boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
+                            '&:hover': {
+                                backgroundColor: '#f5f5f5',
+                                transform: 'translateY(-2px)',
+                                boxShadow: '0 15px 35px rgba(0,0,0,0.3)',
+                            },
+                             textTransform: 'none'
+                        }}
+                    >
+                        Access Platform
+                    </Button>
+                </Box>
+            </Box>
+        </Fade>
+      </Container>
+      
+      {/* Features strip */}
+       <Box sx={{ 
+        bgcolor: 'rgba(0,0,0,0.2)', 
+        backdropFilter: 'blur(10px)',
+        py: 4,
+        zIndex: 5
+       }}>
+         <Container maxWidth="lg">
+            <Box sx={{ display: 'flex', justifyContent: 'center', gap: { xs: 4, md: 8 }, flexWrap: 'wrap' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, opacity: 0.8 }}>
+                    <SecurityIcon />
+                    <Typography fontWeight={600}>Enterprise Security</Typography>
+                </Box>
+                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, opacity: 0.8 }}>
+                    <SpeedIcon />
+                    <Typography fontWeight={600}>Real-time Calculation</Typography>
+                </Box>
+                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, opacity: 0.8 }}>
+                    <AnalyticsIcon />
+                    <Typography fontWeight={600}>Advanced Analytics</Typography>
+                </Box>
+            </Box>
+         </Container>
+       </Box>
+
     </Box>
   );
 }

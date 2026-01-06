@@ -307,13 +307,17 @@ const ECLMovementReport: React.FC = () => {
     </Card>
   );
 
+  // Memoize params to prevent infinite loops (loading flicker)
+  const requiredParams = React.useMemo(() => ['prc_date'], []);
+  const optionalParams = React.useMemo(() => ['segment_id', 'stage'], []);
+
   return (
     <BaseIfrs9Report
       title="ECL Movement Report"
       description="ECL movement analysis using stored procedures with detailed breakdown of provisions, releases, and transfers"
       reportType="ecl-movement"
-      requiredParams={['prc_date']}
-      optionalParams={['segment_id', 'stage']}
+      requiredParams={requiredParams}
+      optionalParams={optionalParams}
       supportsPagination={false}
       supportsCharts={true}
     >

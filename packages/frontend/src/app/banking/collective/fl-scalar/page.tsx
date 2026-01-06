@@ -55,6 +55,7 @@ import {
   Timeline as TimelineIcon,
   TrendingUp as TrendingUpIcon,
 } from '@mui/icons-material';
+import { FullstackIndicator } from '../../../../components/common/feedback/FullstackIndicator';
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -785,6 +786,7 @@ export default function FLScalarManagementPage() {
           )}
         </DialogActions>
       </Dialog>
+      <FullstackIndicator />
     </Box>
   );
 }

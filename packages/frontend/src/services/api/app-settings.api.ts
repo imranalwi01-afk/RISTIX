@@ -44,7 +44,7 @@ export interface UpdateAppSettingsDetailDto extends Partial<CreateAppSettingsDet
 // API SERVICE
 // ============================================================================
 
-const BASE_URL = '/banking/parameters/app-settings';
+const BASE_URL = '/banking/setup/application';
 
 export const appSettingsApi = {
     /**

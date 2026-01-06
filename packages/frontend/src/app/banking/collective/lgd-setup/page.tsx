@@ -44,6 +44,7 @@ import { api } from '../../../../services/api';
 import { LGDConfiguration } from '../../../../services/api/lgd-configurations.api';
 import { PopulationSegment } from '../../../../services/api/population-segments.api';
 import { FLScalarWithDetails } from '../../../../services/api/fl-scalar.api';
+import { FullstackIndicator } from '../../../../components/common/feedback/FullstackIndicator';
 
 // Extended interface for UI display
 interface LGDConfigUI extends LGDConfiguration {
@@ -458,6 +459,7 @@ export default function LGDSetupPage() {
           <Button variant="contained" onClick={handleSave} disabled={loading}>{selectedConfig ? 'Update' : 'Create'}</Button>
         </DialogActions>
       </Dialog>
+      <FullstackIndicator />
     </Container>
   );
 }

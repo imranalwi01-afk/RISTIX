@@ -64,6 +64,8 @@ import {
 import { DataGrid, GridColDef, GridActionsCellItem, GridRowParams } from '@mui/x-data-grid';
 import { api, handleAPIError } from '../../../../services/api';
 import EnhancedSegmentationDetailModal from '../../segmentation/components/EnhancedSegmentationDetailModal';
+import { ConditionBuilder } from '@/components/common/rules/ConditionBuilder';
+import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -856,6 +858,7 @@ export default function SegmentationConfigurationPage() {
 
   return (
     <Container maxWidth="xl">
+      <FullstackIndicator />
       {/* Page Header */}
       <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Box>

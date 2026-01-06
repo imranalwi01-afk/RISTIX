@@ -3,34 +3,34 @@
 import React from 'react';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { StyledEngineProvider } from '@mui/material/styles';
+import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
 import CssBaseline from '@mui/material/CssBaseline';
-import { AuthProvider } from '../providers/AuthProvider';
-import { store, persistor } from '../store';
 
-// Create a default theme
-const defaultTheme = createTheme({
-  palette: {
-    primary: {
-      main: '#1976d2',
-    },
-    secondary: {
-      main: '#dc004e',
-    },
-  },
-});
+// ✅ Import our custom providers
+import { AuthProvider } from '../providers/AuthProvider';
+import { ConfigurationProvider } from '../providers/ConfigurationProvider';
+import { BankingThemeProvider } from '../providers/BankingThemeProvider';
+
+import { store, persistor } from '../store';
 
 export default function ClientProviders({ children }: { children: React.ReactNode }) {
   return (
-    <Provider store={store}>
-      <PersistGate loading={null} persistor={persistor}>
-        <ThemeProvider theme={defaultTheme}>
-          <CssBaseline />
-          <AuthProvider>
-            {children}
-          </AuthProvider>
-        </ThemeProvider>
-      </PersistGate>
-    </Provider>
+    <AppRouterCacheProvider options={{ enableCssLayer: true }}>
+      <StyledEngineProvider injectFirst>
+        <Provider store={store}>
+          <PersistGate loading={null} persistor={persistor}>
+            <ConfigurationProvider>
+              <AuthProvider>
+                <BankingThemeProvider>
+                  <CssBaseline />
+                  {children}
+                </BankingThemeProvider>
+              </AuthProvider>
+            </ConfigurationProvider>
+          </PersistGate>
+        </Provider>
+      </StyledEngineProvider>
+    </AppRouterCacheProvider>
   );
 }

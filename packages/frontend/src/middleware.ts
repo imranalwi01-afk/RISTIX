@@ -44,7 +44,9 @@ const PUBLIC_ROUTES = [
   '/reset-password',
   '/verify-email',
   '/api/auth',
-  '/logout'  // ✅ ENHANCED: Allow logout route without auth checks
+  '/logout',  // ✅ ENHANCED: Allow logout route without auth checks
+  '/showcase', // ✅ Allow showcase page publicly
+  '/system/health' // ✅ EXPLICIT: Allow health check proxy to bypass auth
 ];
 
 // ✅ Default redirects

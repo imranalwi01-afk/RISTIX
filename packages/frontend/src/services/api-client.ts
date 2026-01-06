@@ -11,7 +11,7 @@ import { frontendEnvironmentLoader } from '../config/environment-loader-frontend
 
 // Initialize configuration
 const config = frontendEnvironmentLoader.getConfiguration();
-const baseURL = config?.api?.base || config?.api?.backend || '/api/v1';
+const baseURL = config?.api?.base || config?.api?.backend || 'http://localhost:3000/api/v1';
 
 console.log('🔧 [API CLIENT] Initializing shared axios client with baseURL:', baseURL);
 
@@ -27,5 +27,42 @@ export const apiClient: AxiosInstance = axios.create({
   responseType: 'json',
   maxRedirects: 5,
 });
+
+
+
+// ✅ Add request interceptor to inject auth token and tenant
+apiClient.interceptors.request.use(
+  (config) => {
+    // Get token from storage
+    const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+    
+    // Get tenant from storage or user data
+    let tenantId = null;
+    if (typeof window !== 'undefined') {
+      const userDataStr = localStorage.getItem('user_data');
+      if (userDataStr) {
+        try {
+          const userData = JSON.parse(userDataStr);
+          tenantId = userData.tenantId;
+        } catch (e) {
+          console.error('Error parsing user data for tenant', e);
+        }
+      }
+    }
+
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    if (tenantId) {
+      config.headers['X-Tenant-ID'] = tenantId;
+    }
+
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
 
 export default apiClient;

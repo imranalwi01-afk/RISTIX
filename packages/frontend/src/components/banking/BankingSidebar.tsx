@@ -10,9 +10,15 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
+
+// ✅ REAL-TIME DB SYNC: Import health monitoring hook
+import { useBackendHealth } from '../../hooks/useBackendHealth'; 
+
+
 import {
   Box,
   List,
@@ -28,7 +34,8 @@ import {
   Badge,
   Tooltip,
   alpha,
-  useTheme
+  useTheme,
+  CircularProgress // ✅ Import CircularProgress
 } from '@mui/material';
 import {
   // Core Navigation & Layout
@@ -118,6 +125,8 @@ import {
   Description,
 } from '@mui/icons-material';
 
+import { Menu as MuiMenu, MenuItem as MuiMenuItem } from '@mui/material'; // ✅ Import Menu components
+
 // Import menu service for database-driven menus
 import { menuApi } from '@/services/api/menu.api';
 
@@ -135,6 +144,8 @@ import {
 
 // Import menu state management hook
 import { useMenuState } from '@/hooks/useMenuState';
+import { getAuthToken } from '@/utils/auth-token'; // ✅ Import token utility
+import { MenuSkeleton } from '../common/MenuSkeleton'; // ✅ Import Skeleton loader
 
 // Database menu item structure (from API)
 interface DatabaseMenuItem {
@@ -227,7 +238,7 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
         id: 'application-configuration',
         code: 'application-configuration',
         label: 'Application Configuration',
-        href: '/banking/setup/application',
+        href: '/banking/parameters/application-v2',
         icon: <Settings />,
         description: 'System-wide Application Settings',
         sort_order: 3,
@@ -240,7 +251,7 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
         id: 'business-configuration',
         code: 'business-configuration',
         label: 'Business Configuration',
-        href: '/banking/setup/business',
+        href: '/banking/parameters/business-v2',
         icon: <Business />,
         description: 'Business Rules & Parameters',
         sort_order: 4,
@@ -430,41 +441,51 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
         icon: <Assessment />,
         description: '/IFRS9N/IndividualImpairment/AssesmentOverride'
       },
-      // 🚫 DISABLED: Override Trigger menu item - Temporarily hidden as per user request
-      // {
-      //   id: 'override-trigger',
-      //   label: 'Override Trigger',
-      //   href: '/banking/individual/override-trigger',
-      //   icon: <NotificationImportant />,
-      //   description: '/IndividualImpairment/OverrideTrigger'
-      // },
-
-      // 🚫 DISABLED: DCF Scenario menu item - Temporarily hidden as per user request
-      // {
-      //   id: 'dcf-scenario',
-      //   label: 'DCF Scenario',
-      //   href: '/banking/individual/dcf',
-      //   icon: <Timeline />,
-      //   description: '/IndividualImpairment/DCFScenario'
-      // },
-
-      // 🚫 DISABLED: IA Provision menu item - Temporarily hidden as per user request
-      // {
-      //   id: 'ia-provision',
-      //   label: 'IA Provision',
-      //   href: '/banking/individual/provision',
-      //   icon: <AccountBalance />,
-      //   description: '/IndividualImpairment/IAProvision'
-      // },
-
-      // 🚫 DISABLED: Override History menu item - Temporarily hidden as per user request
-      // {
-      //   id: 'override-history',
-      //   label: 'Override History',
-      //   href: '/banking/individual/history',
-      //   icon: <History />,
-      //   description: '/IndividualImpairment/OverrideHistory'
-      // }
+      {
+        id: 'list-individual-report',
+        label: 'List of Individual Report',
+        href: '/banking/individual/reports',
+        icon: <TableChart />,
+        description: 'View and download individual reports',
+        isNew: true
+      },
+      {
+        id: 'review-scenario',
+        label: 'Review Scenario Details',
+        href: '/banking/individual/review/scenario',
+        icon: <Approval />,
+        description: 'Analyze and approve scenarios',
+        isNew: true
+      },
+      {
+        id: 'review-dcf-upload',
+        label: 'Review DCF Upload',
+        href: '/banking/individual/review/dcf-upload-report',
+        icon: <CloudUpload />,
+        description: 'Validation results for DCF uploads',
+        isNew: true
+      },
+      {
+        id: 'ia-dcf-detail',
+        label: 'Review IA DCF Detail',
+        href: '/banking/individual/review/ia-dcf-detail',
+        icon: <ShowChart />,
+        description: 'Detail view of cash flow projections',
+        isNew: true
+      },
+      {
+        id: 'override-history',
+        label: 'Override History',
+        href: '/banking/individual/history',
+        icon: <History />,
+        description: 'Audit trail for overrides',
+        children: [
+           { id: 'hist-customer', label: 'Customer Details', href: '/banking/individual/history/customer', icon: <Person /> },
+           { id: 'hist-provision', label: 'IA Provision', href: '/banking/individual/history/provision', icon: <AccountBalance /> },
+           { id: 'hist-dcf', label: 'DCF Upload', href: '/banking/individual/history/dcf-upload', icon: <CloudUpload /> },
+           { id: 'hist-collateral', label: 'Collateral', href: '/banking/individual/history/collateral', icon: <Security /> }
+        ]
+      }
     ]
   },
 
@@ -519,8 +540,8 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
         status: 'disabled'
       },
       {
-        id: 'stress-testing',
-        label: 'Stress Testing',
+        id: 'forecast',
+        label: 'Forecast',
         href: '/banking/ifrs9/scenarios',
         icon: <AutoGraph />,
         description: 'Economic Scenario Analysis',
@@ -805,9 +826,56 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
   const pathname = usePathname();
   const router = useRouter();
 
+  // ✅ REAL-TIME DB SYNC: Monitor backend health
+  const { isOnline, latency, isChecking, checkNow } = useBackendHealth(15000); // Check every 15s
+
+  // 🔽 FLYOUT MENU STATE
+  const [flyoutAnchorEl, setFlyoutAnchorEl] = useState<null | HTMLElement>(null);
+  const [flyoutItem, setFlyoutItem] = useState<HierarchicalMenuItem | null>(null);
+
+  const handleFlyoutOpen = (event: React.MouseEvent<HTMLElement>, item: HierarchicalMenuItem) => {
+    setFlyoutAnchorEl(event.currentTarget);
+    setFlyoutItem(item);
+  };
+
+  const handleFlyoutClose = () => {
+    setFlyoutAnchorEl(null);
+    setFlyoutItem(null);
+  };
+
+  const handleFlyoutItemClick = (child: HierarchicalMenuItem) => {
+    handleMenuItemClick(child);
+    handleFlyoutClose();
+  };
+  // 🔼 END FLYOUT STATE
+
   // Database-driven menu state
-  const [hierarchicalMenu, setHierarchicalMenu] = useState<HierarchicalMenuItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // Database-driven menu state - ✅ CACHE FIRST STRATEGY
+  const [hierarchicalMenu, setHierarchicalMenu] = useState<HierarchicalMenuItem[]>(() => {
+    // Try to load from cache immediately for instant render
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('cached_menu_structure');
+        if (cached) {
+          console.log('⚡ [CACHE] Loaded menu from local cache');
+          return JSON.parse(cached);
+        }
+      } catch (e) {
+        console.warn('⚠️ Failed to load menu cache:', e);
+      }
+    }
+    return [];
+  });
+  
+  // Only show loading if we didn't find anything in cache
+  const [isLoading, setIsLoading] = useState(() => {
+     if (typeof window !== 'undefined') {
+        const hasCache = !!localStorage.getItem('cached_menu_structure');
+        return !hasCache; // If cache exists, we are NOT loading (visually)
+     }
+     return true;
+  });
+  
   const [menuError, setMenuError] = useState<string | null>(null);
 
   // Use hierarchical menu state management
@@ -815,6 +883,17 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
 
   // Load menu from database on component mount and when dependencies change
   useEffect(() => {
+    // ✅ PREVENT UNNECESSARY 401s: Don't fetch menu if user role is not yet loaded OR token is missing
+    const token = getAuthToken();
+    if ((!userRole && (!roleCodes || roleCodes.length === 0)) || !token) {
+      console.log('⏳ [MENU] Waiting for auth token and user roles before fetching menu...', { 
+        hasToken: !!token, 
+        hasUserRole: !!userRole,
+        hasRoleCodes: !!(roleCodes && roleCodes.length > 0)
+      });
+      return;
+    }
+
     console.log('🎯 Menu component useEffect triggered:', {
       bankingMode,
       userRole,
@@ -828,7 +907,11 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
   // Load hierarchical menu from database API - IMPROVED ERROR HANDLING
   const loadHierarchicalMenuFromDatabase = async () => {
     try {
-      setIsLoading(true);
+      // ✅ OPTIMISTIC UI: Don't set loading to true if we already have content
+      // This prevents the "flash of loading spinner" if cache exists
+      if (hierarchicalMenu.length === 0) {
+        setIsLoading(true);
+      }
       setMenuError(null);
 
       console.log('🔄 [DATABASE-DRIVEN] Loading menu from database...', {
@@ -837,11 +920,30 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
         roleCodes
       });
 
-      // Get hierarchical menu data from API
-      const response = await menuApi.getMenuTree({
-        bankingMode,
-        includeInactive: false
-      });
+      let response;
+      
+      // ✅ PERF: Check for pre-fetched raw data from Login (AuthProvider)
+      const preFetched = localStorage.getItem('temp_raw_menu');
+      if (preFetched) {
+          console.log('⚡ [PERF] Found pre-fetched menu data, skipping API call');
+          try {
+              response = { success: true, data: JSON.parse(preFetched) };
+              // Clear it so we don't use stale data later (e.g. if user role changes)
+              localStorage.removeItem('temp_raw_menu'); 
+          } catch (e) {
+              console.warn('⚠️ Failed to parse pre-fetched menu:', e);
+              localStorage.removeItem('temp_raw_menu');
+          }
+      }
+
+      // If no pre-fetched data, call API as normal
+      if (!response) {
+          // Get hierarchical menu data from API
+          response = await menuApi.getMenuTree({
+            bankingMode,
+            includeInactive: false
+          });
+      }
 
       console.log('📊 [DATABASE-DRIVEN] Menu API Response:', {
         success: response.success,
@@ -926,6 +1028,16 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
         });
 
         setHierarchicalMenu(filtered);
+        
+        // ✅ CACHE UPDATE: Save the fresh data to cache for next time
+        if (typeof window !== 'undefined') {
+           try {
+             localStorage.setItem('cached_menu_structure', JSON.stringify(filtered));
+             console.log('💾 [CACHE] Updated menu cache with fresh data');
+           } catch (e) {
+             console.warn('⚠️ Failed to update menu cache:', e);
+           }
+        }
 
         // Auto-expand first section for better UX
         if (filtered.length > 0 && filtered[0].children && filtered[0].children.length > 0) {
@@ -934,15 +1046,13 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
 
       } else {
         console.warn('⚠️ [DATABASE-DRIVEN] No menu data available - USING FALLBACK');
-        // Use static fallback when API fails
         useStaticFallback();
       }
     } catch (error) {
-      console.error('❌ [DATABASE-DRIVEN] Failed to load menu - USING FALLBACK:', {
-        error: error.message,
-        stack: error.stack
-      });
-      setMenuError('Failed to load menu from database, using fallback');
+      console.warn('❌ [DATABASE-DRIVEN] Failed to load menu (using static fallback):', error);
+      // ✅ FORCE FALLBACK WITHOUT SHOWING ERROR UI
+      // We want the user to always see a menu, even if the database one fails
+      setMenuError(null); 
       useStaticFallback();
     } finally {
       setIsLoading(false);
@@ -1578,8 +1688,11 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
             arrow
           >
             <ListItemButton
-              onClick={() => {
-                if (hasChildren && visibleChildren.length > 0) {
+              onClick={(e) => {
+                if (collapsed && hasChildren) {
+                   // 🔽 Open Flyout in collapsed mode
+                   handleFlyoutOpen(e, item);
+                } else if (hasChildren && visibleChildren.length > 0) {
                   menuState.toggleExpansion(item.id);
                 } else if (item.url) {
                   menuState.navigateToMenu(item);
@@ -1588,31 +1701,66 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
               }}
               sx={{
                 minHeight: level === 0 ? 48 : 40,
-                borderRadius: collapsed ? 0 : 1,
-                mx: collapsed ? 0 : 0.5,
-                mb: 0.25,
-                px: collapsed ? 1 : 1,
+                borderRadius: collapsed ? 0 : '0 24px 24px 0',
+                mx: collapsed ? 0 : 0,
+                mb: 0.5,
+                px: collapsed ? 1 : 1.5,
                 py: 0.5,
+                position: 'relative',
+                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                
+                // 🎨 ACTIVE STATE STYLING (PREMIUM DARK)
                 backgroundColor: isActive
-                  ? alpha(theme.palette.primary.main, 0.1)
+                  ? 'rgba(255, 255, 255, 0.15)'
                   : 'transparent',
-                borderLeft: isActive
-                  ? `3px solid ${theme.palette.primary.main}`
-                  : '3px solid transparent',
-                justifyContent: collapsed ? 'center' : 'flex-start',
-                '&:hover': {
-                  backgroundColor: alpha(theme.palette.primary.main, 0.05),
+                background: isActive 
+                  ? 'linear-gradient(90deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.05) 100%)'
+                  : 'transparent',
+                
+                // Left active indicator
+                '&::before': {
+                  content: '""',
+                  position: 'absolute',
+                  left: 0,
+                  top: 6,
+                  bottom: 6,
+                  width: 4,
+                  borderRadius: '0 4px 4px 0',
+                  backgroundColor: '#ffffff',
+                  opacity: isActive ? 1 : 0,
+                  transition: 'opacity 0.2s ease',
+                  boxShadow: isActive ? '0 0 8px rgba(255, 255, 255, 0.5)' : 'none'
                 },
-                transition: 'all 0.15s ease-in-out'
+
+                justifyContent: collapsed ? 'center' : 'flex-start',
+
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  transform: collapsed ? 'none' : 'translateX(4px)',
+                  '& .MuiListItemIcon-root': {
+                    color: '#ffffff',
+                    transform: 'scale(1.1)'
+                  }
+                }
               }}
             >
               <ListItemIcon
                 sx={{
                   minWidth: collapsed ? 'unset' : 28,
                   justifyContent: 'center',
-                  color: isActive ? 'primary.main' : 'text.secondary',
+                  color: isActive ? '#ffffff' : 'rgba(255, 255, 255, 0.7)',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  
+                  // 🎨 GLOW EFFECT FOR ICONS
+                  filter: isActive 
+                    ? 'drop-shadow(0 0 5px rgba(255, 255, 255, 0.5))' 
+                    : 'none',
+                  
+                  transform: isActive ? 'scale(1.1)' : 'scale(1)',
+
                   '& svg': {
-                    fontSize: collapsed ? '1.2rem' : '1.1rem'
+                    fontSize: collapsed ? '1.4rem' : '1.3rem', // Slightly larger styling
+                    transition: 'all 0.3s ease'
                   }
                 }}
               >
@@ -1627,7 +1775,7 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
                         variant={level === 0 ? 'body2' : 'caption'}
                         sx={{
                           fontWeight: isActive ? 600 : 500,
-                          color: isActive ? 'primary.main' : 'text.primary',
+                        color: isActive ? '#ffffff' : 'rgba(255, 255, 255, 0.9)',
                           fontSize: level === 0 ? '0.825rem' : '0.75rem',
                           lineHeight: 1.3
                         }}
@@ -1664,11 +1812,11 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
                       )}
                     </Box>
                   }
-                  secondary={level === 0 && item.description ? (
+                  secondary={level === 0 && item.description && !item.description.endsWith('Root') ? (
                     <Typography
                       variant="caption"
                       sx={{
-                        color: 'text.secondary',
+                        color: 'rgba(255, 255, 255, 0.6)',
                         fontSize: '0.65rem',
                         lineHeight: 1.2,
                         mt: 0.25
@@ -1689,7 +1837,7 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
               {/* Expand/collapse indicator for items with children */}
               {hasChildren && visibleChildren.length > 0 && !collapsed && (
                 <Box sx={{
-                  color: 'text.secondary',
+                  color: 'rgba(255, 255, 255, 0.7)',
                   '& svg': {
                     fontSize: '1rem'
                   }
@@ -1718,8 +1866,8 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
       sx={{
         width,
         height: '100%',
-        backgroundColor: 'background.paper',
-        borderRight: `1px solid ${theme.palette.divider}`,
+        background: 'linear-gradient(180deg, #1565C0 0%, #0D47A1 100%)', // ✅ PREMIUM GRADIENT
+        borderRight: 'none',
         overflow: 'auto',
         transition: theme.transitions.create('width', {
           easing: theme.transitions.easing.sharp,
@@ -1733,14 +1881,14 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
           background: 'transparent',
         },
         '&::-webkit-scrollbar-thumb': {
-          background: alpha(theme.palette.primary.main, 0.3),
+          background: 'rgba(255, 255, 255, 0.3)',
           borderRadius: '2px',
           '&:hover': {
-            background: alpha(theme.palette.primary.main, 0.5),
+            background: 'rgba(255, 255, 255, 0.5)',
           },
         },
         scrollbarWidth: 'thin',
-        scrollbarColor: `${alpha(theme.palette.primary.main, 0.3)} transparent`,
+        scrollbarColor: 'rgba(255, 255, 255, 0.3) transparent',
       }}
     >
       {/* Header height matches AppBar exactly */}
@@ -1753,11 +1901,10 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
           alignItems: 'center',
           justifyContent: collapsed ? 'center' : 'flex-start',
           textAlign: collapsed ? 'center' : 'left',
-          backgroundColor: bankingMode === 'syariah'
-            ? 'success.main'
-            : '#1976D2', // IAF Corporate Blue
+          backgroundColor: 'rgba(0, 0, 0, 0.1)',
           color: 'white',
-          borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`
+          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+          backdropFilter: 'blur(10px)' // ✅ GLASSMORPHISM
         }}
       >
         {collapsed ? (
@@ -1790,7 +1937,8 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
               fontWeight: 600,
               fontSize: '0.85rem',
               lineHeight: 1.2,
-              mb: 0
+              mb: 0,
+              letterSpacing: '0.02em'
             }}
           >
             IAF IFRS 9 Platform
@@ -1801,22 +1949,8 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
       {/* Navigation Menu */}
       <List sx={{ p: collapsed ? 0.25 : 0.5 }}>
         {isLoading ? (
-          // Loading state
-          <Box sx={{ p: 2, textAlign: 'center' }}>
-            <Refresh sx={{
-              fontSize: 24,
-              color: 'text.secondary',
-              mb: 1,
-              '@keyframes spin': {
-                '0%': { transform: 'rotate(0deg)' },
-                '100%': { transform: 'rotate(360deg)' }
-              },
-              animation: 'spin 1s linear infinite'
-            }} />
-            <Typography variant="caption" color="text.secondary">
-              Loading menu...
-            </Typography>
-          </Box>
+          // Loading state - Skeleton
+          <MenuSkeleton />
         ) : menuError ? (
           // Error state with retry button
           <Box sx={{ p: 2, textAlign: 'center' }}>
@@ -1867,44 +2001,18 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
       <Box
         sx={{
           mt: 'auto',
-          px: collapsed ? 1 : 1.5,
-          py: collapsed ? 1 : 1.5,
-          borderTop: `1px solid ${theme.palette.divider}`,
-          backgroundColor: alpha(theme.palette.background.paper, 0.8)
+          px: collapsed ? 1 : 2,
+          py: collapsed ? 1 : 2.5,
+          borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+          // background: 'rgba(0, 0, 0, 0.2)', // Removed to match menu color
+          // backdropFilter: 'blur(10px)'
         }}
       >
-        {collapsed ? (
-          /* Collapsed: Just IAF logo centered */
-          <Link href={getTopLevelRoute()} style={{ textDecoration: 'none' }}>
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                cursor: 'pointer',
-                '&:hover': {
-                  '& img': {
-                    transform: 'scale(1.05)',
-                  }
-                }
-              }}
-            >
-              <img
-                src="/images/logo-iaf.png"
-                alt="IAF"
-                style={{
-                  height: '24px',
-                  width: 'auto',
-                  objectFit: 'contain',
-                  transition: 'transform 0.2s ease'
-                }}
-              />
-            </Box>
-          </Link>
-        ) : (
+        {collapsed ? null : (
           /* Expanded: Full footer with logo and info */
           <>
             {/* IAF Logo Section */}
+            {/* ... (previous expanded logo code) ... */}
             <Link href={getTopLevelRoute()} style={{ textDecoration: 'none' }}>
               <Box
                 sx={{
@@ -1912,8 +2020,8 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
                   flexDirection: 'column',
                   alignItems: 'center',
                   gap: 1,
-                  mb: 1,
-                  mt: 2,
+                  mb: 2,
+                  mt: 0.5,
                   cursor: 'pointer',
                   '&:hover': {
                     '& img': {
@@ -1926,79 +2034,65 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
                   src="/images/logo-iaf.png"
                   alt="Indonesia Airawata Finance"
                   style={{
-                    height: '32px',
-                    width: 'auto',
+                    height: 'auto',
+                    width: '100%',
+                    maxWidth: '180px',
+                    maxHeight: '48px',
                     objectFit: 'contain',
-                    transition: 'transform 0.2s ease'
+                    transition: 'transform 0.2s ease',
                   }}
                 />
-                <Typography
-                  variant="caption"
-                  color="primary.main"
-                  align="center"
-                  display="block"
-                  sx={{
-                    fontSize: '0.7rem',
-                    fontWeight: 600,
-                    color: '#1976D2' // IAF Blue
-                  }}
-                >
-                  Indonesia Airawata Finance
-                </Typography>
               </Box>
             </Link>
 
             <Typography
               variant="caption"
-              color="text.secondary"
               align="center"
               display="block"
-              sx={{ fontSize: '0.65rem' }}
+              sx={{ 
+                fontSize: '0.7rem', 
+                color: 'rgba(255, 255, 255, 0.9)', 
+                fontWeight: 500,
+                letterSpacing: '0.02em',
+                mb: 0.5
+              }}
             >
               IFRS 9 Platform v2.0
             </Typography>
             <Typography
               variant="caption"
-              color="text.secondary"
               align="center"
               display="block"
-              sx={{ fontSize: '0.6rem', mb: 0.5 }}
+              sx={{ 
+                fontSize: '0.65rem', 
+                mb: 1.5,
+                color: 'rgba(255, 255, 255, 0.7)'
+              }}
             >
-              {/* ✅ SURGICAL FIX: Dynamic banking mode display */}
               {getBankingModeLabel()}
             </Typography>
 
             {/* Quick Status Indicators */}
-            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.5, mt: 0.5 }}>
-              {/* ✅ SURGICAL FIX: Dynamic banking mode chip */}
+            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, mt: 0.5 }}>
               <Chip
                 icon={getBankingModeIcon()}
                 label={bankingMode === 'syariah' ? 'Halal' : 'Compliant'}
                 size="small"
-                color={getBankingModeColor() as any}
-                variant="outlined"
+                variant="filled"
                 sx={{
-                  fontSize: '0.55rem',
-                  height: 18,
+                  fontSize: '0.6rem',
+                  height: 20,
+                  backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                  color: 'white',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
                   '& .MuiChip-icon': {
-                    fontSize: '0.7rem'
+                    fontSize: '0.8rem',
+                    color: '#fff'
                   }
                 }}
               />
-              <Chip
-                icon={<CheckCircle />}
-                label="Online"
-                size="small"
-                color="primary"
-                variant="outlined"
-                sx={{
-                  fontSize: '0.55rem',
-                  height: 18,
-                  '& .MuiChip-icon': {
-                    fontSize: '0.7rem'
-                  }
-                }}
-              />
+              
+
             </Box>
           </>
         )}

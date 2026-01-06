@@ -63,27 +63,36 @@ import {
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { DataGrid, GridColDef, GridActionsCellItem } from '@mui/x-data-grid';
+import { bankingAPI } from '@/services/api';
 
 // Types and interfaces
 interface ApprovalRequest {
   id: string;
+  // UI Fields (Mapped)
   requestType: string;
   requestTitle: string;
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  dueDate?: string;
+  // Backend Fields
+  tenantId: string;
+  entityType?: string; // Mapped to requestType
+  entityId?: string;
+  title?: string; // Mapped to requestTitle
   description?: string;
+  requestData?: any;
   requestedBy: string;
   requestedByName: string;
   requestedAt: string;
   status: 'pending' | 'approved' | 'rejected' | 'info_requested' | 'delegated' | 'cancelled';
-  priority: 'low' | 'medium' | 'high' | 'critical';
+  impactLevel?: 'low' | 'medium' | 'high' | 'critical'; // Mapped to priority
   approvalsRequired: number;
   approvalsReceived: number;
   currentApprovers: string[];
-  dueDate?: string;
-  bankingType?: 'conventional' | 'syariah';
-  entityType?: string;
-  entityId?: string;
+  expiresAt?: string; // Mapped to dueDate
+  bankingType?: 'conventional' | 'syariah' | 'dual';
   riskLevel?: 'low' | 'medium' | 'high' | 'critical';
   complianceRelevant?: boolean;
+  currentLevel?: number;
 }
 
 interface ApprovalStatistics {
@@ -146,108 +155,40 @@ export default function ApprovalManagementPage() {
     severity: 'success' as 'success' | 'error' | 'info' | 'warning'
   });
 
-  // Mock data - replace with actual API calls
-  const mockApprovalRequests: ApprovalRequest[] = [
-    {
-      id: 'approval_001',
-      requestType: 'user_creation',
-      requestTitle: 'Create New Banking User - Ahmad Hassan',
-      description: 'New user creation request for IFRS9 Manager role',
-      requestedBy: 'admin_001',
-      requestedByName: 'Michael Zhang',
-      requestedAt: '2025-01-11T08:30:00Z',
-      status: 'pending',
-      priority: 'medium',
-      approvalsRequired: 2,
-      approvalsReceived: 1,
-      currentApprovers: ['cro_001', 'compliance_001'],
-      dueDate: '2025-01-13T17:00:00Z',
-      bankingType: 'syariah',
-      entityType: 'User',
-      riskLevel: 'medium',
-      complianceRelevant: true
-    },
-    {
-      id: 'approval_002',
-      requestType: 'parameter_modification',
-      requestTitle: 'Update ECL Calculation Parameters',
-      description: 'Modify ECL parameters for Stage 2 classification',
-      requestedBy: 'risk_001',
-      requestedByName: 'Sarah Chen',
-      requestedAt: '2025-01-11T10:15:00Z',
-      status: 'info_requested',
-      priority: 'high',
-      approvalsRequired: 3,
-      approvalsReceived: 1,
-      currentApprovers: ['cro_001', 'ifrs_manager_001', 'compliance_001'],
-      dueDate: '2025-01-12T17:00:00Z',
-      bankingType: 'conventional',
-      entityType: 'ECLParameter',
-      entityId: 'ecl_param_001',
-      riskLevel: 'high',
-      complianceRelevant: true
-    },
-    {
-      id: 'approval_003',
-      requestType: 'role_assignment',
-      requestTitle: 'Assign DPS Board Member Role',
-      description: 'Assign Dewan Pengawas Syariah role to Dr. Omar Al-Fiqh',
-      requestedBy: 'admin_002',
-      requestedByName: 'Jennifer Smith',
-      requestedAt: '2025-01-11T14:20:00Z',
-      status: 'approved',
-      priority: 'critical',
-      approvalsRequired: 2,
-      approvalsReceived: 2,
-      currentApprovers: [],
-      bankingType: 'syariah',
-      entityType: 'Role',
-      riskLevel: 'critical',
-      complianceRelevant: true
-    },
-    {
-      id: 'approval_004',
-      requestType: 'data_upload',
-      requestTitle: 'Upload Q4 2024 Portfolio Data',
-      description: 'Upload quarterly portfolio data for IFRS9 calculations',
-      requestedBy: 'data_admin_001',
-      requestedByName: 'Lina Kusuma',
-      requestedAt: '2025-01-10T16:45:00Z',
-      status: 'rejected',
-      priority: 'medium',
-      approvalsRequired: 1,
-      approvalsReceived: 1,
-      currentApprovers: [],
-      bankingType: 'conventional',
-      entityType: 'DataUpload',
-      riskLevel: 'medium'
-    }
-  ];
 
-  const mockStatistics: ApprovalStatistics = {
-    totalRequests: 248,
-    pendingRequests: 12,
-    approvedRequests: 196,
-    rejectedRequests: 32,
-    averageApprovalTime: 2.3, // days
-    overdueRequests: 3
-  };
 
   // Load data
   useEffect(() => {
     loadApprovalRequests();
-    loadStatistics();
+    // Statistics loaded after requests since we calculate them client-side
   }, []);
 
   const loadApprovalRequests = async () => {
     try {
       setLoading(true);
       
-      // Mock API call - replace with actual backend call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Fetch both pending and history to get a full picture
+      // In a real app we might separate these calls or have a unified list endpoint
+      // For now we use getApprovalHistory to list all requests visible to tenant
+      const response = await bankingAPI.approval.getApprovalHistory();
       
-      setApprovalRequests(mockApprovalRequests);
-      setFilteredRequests(mockApprovalRequests);
+      // Transform backend data to frontend model
+      const requests = response.map((req: any) => ({
+        ...req,
+        // UI Mappings
+        requestTitle: req.title,
+        requestType: req.entityType,
+        priority: req.impactLevel || 'medium',
+        dueDate: req.expiresAt,
+        requestedAt: req.createdAt,
+        // Placeholders/Joins
+        requestedByName: req.requester?.email || req.requestedBy, // Use joined email if available, else ID
+        bankingType: req.matrix?.bankingMode || 'conventional', // Try to get from joined matrix
+      }));
+
+      setApprovalRequests(requests);
+      setFilteredRequests(requests);
+      calculateStatistics(requests);
     } catch (error) {
       console.error('Error loading approval requests:', error);
       showSnackbar('Failed to load approval requests', 'error');
@@ -256,16 +197,28 @@ export default function ApprovalManagementPage() {
     }
   };
 
+  const calculateStatistics = (requests: ApprovalRequest[]) => {
+    const total = requests.length;
+    const pending = requests.filter(r => r.status === 'pending').length;
+    const approved = requests.filter(r => r.status === 'approved').length;
+    const rejected = requests.filter(r => r.status === 'rejected').length;
+    const overdue = requests.filter(r => r.expiresAt && new Date(r.expiresAt) < new Date() && r.status === 'pending').length;
+
+    // Mock avg time calculation for now
+    const avgTime = 2.5; 
+
+    setStatistics({
+      totalRequests: total,
+      pendingRequests: pending,
+      approvedRequests: approved,
+      rejectedRequests: rejected,
+      averageApprovalTime: avgTime,
+      overdueRequests: overdue
+    });
+  };
+
   const loadStatistics = async () => {
-    try {
-      // Mock API call - replace with actual backend call
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      setStatistics(mockStatistics);
-    } catch (error) {
-      console.error('Error loading statistics:', error);
-      showSnackbar('Failed to load approval statistics', 'error');
-    }
+    // Deprecated: Statistics now calculated from loadApprovalRequests
   };
 
   // Filter and search logic
@@ -364,31 +317,47 @@ export default function ApprovalManagementPage() {
       const { request, action, reason, delegateTo } = actionDialog;
       if (!request || !action) return;
 
-      // Mock API call - replace with actual backend call
-      const actionData: ApprovalAction = {
-        approvalId: request.id,
-        action,
-        reason,
-        delegateTo: action === 'delegate' ? delegateTo : undefined
-      };
-
-      console.log('Submitting approval action:', actionData);
+      console.log(`Submitting approval action: ${action} for request ${request.id}`);
       
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      let response;
+      
+      switch (action) {
+        case 'approve':
+          response = await bankingAPI.approval.approveRequest(request.id, { comment: reason });
+          break;
+        case 'reject':
+          response = await bankingAPI.approval.rejectRequest(request.id, { comment: reason });
+          break;
+        case 'delegate':
+          response = await bankingAPI.approval.delegateRequest(request.id, { 
+            delegatedTo: delegateTo, 
+            reason 
+          });
+          break;
+        case 'request_info':
+          // Not yet implemented on backend explicitly but can be added or handled as comment
+          showSnackbar('Request Info action is not fully supported yet by backend', 'warning');
+          return;
+      }
 
-      // Update local state
+      console.log('Action successful:', response);
+
+      // Update local state for immediate feedback
       setApprovalRequests(prev => prev.map(req => 
         req.id === request.id 
-          ? { ...req, status: action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : req.status }
+          ? { 
+              ...req, 
+              status: response?.status || (action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : 'pending')
+            }
           : req
       ));
 
       showSnackbar(`Request ${action}d successfully`, 'success');
       setActionDialog({ open: false, reason: '', delegateTo: '' });
       
-      // Refresh data
+      // Refresh list to get full updated state
       loadApprovalRequests();
-      loadStatistics();
+      
     } catch (error) {
       console.error('Error submitting approval action:', error);
       showSnackbar('Failed to process approval action', 'error');

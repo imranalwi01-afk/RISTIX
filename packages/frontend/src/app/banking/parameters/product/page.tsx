@@ -85,6 +85,8 @@ interface ProductForm {
   activeFlag: boolean;
 }
 
+import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
+
 export default function ProductParametersPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -114,8 +116,8 @@ export default function ProductParametersPage() {
       const result = await api.banking.businessSetup.getAll();
 
       if (result.success && result.data) {
-        // Extract Currency options from B0001
-        const currencyParam = result.data.find((param: any) => param.param_code === 'B0001');
+        // Extract Currency options from B0003
+        const currencyParam = result.data.find((param: any) => param.param_code === 'B0003');
         if (currencyParam && currencyParam.details) {
           const currencies = currencyParam.details.map((detail: any) => ({
             value: detail.value1 || detail.param_value,
@@ -124,52 +126,33 @@ export default function ProductParametersPage() {
           setCurrencyOptions(currencies);
         } else {
           setCurrencyOptions([
-            { value: 'ALL', label: 'ALL' },
             { value: 'IDR', label: 'Indonesian Rupiah' },
             { value: 'USD', label: 'US Dollar' },
             { value: 'EUR', label: 'Euro' }
           ]);
         }
 
-        // Extract Amortization Type options from B0002
-        const amortParam = result.data.find((param: any) => param.param_code === 'B0002');
-        if (amortParam && amortParam.details) {
-          const amortTypes = amortParam.details.map((detail: any) => ({
-            value: detail.value1 || detail.param_value,
-            label: detail.paramdesc || detail.param_desc || detail.value1 || detail.param_value
+        // Amortization Type (B0002 or Static)
+        // Note: B0002 is technically Product Type, but we can verify if it contains Amortization types.
+        // For now, we will use static standard IFRS9 Amortization types.
+        setAmortizationOptions([
+             { value: 'EIR', label: 'Effective Interest Rate' },
+             { value: 'Straight', label: 'Straight Line' }
+        ]);
+
+        // Extract Instrument Class options from B0005 (Dynamic DB-Driven)
+        const instrParam = result.data.find((param: any) => param.param_code === 'B0005');
+        if (instrParam && instrParam.details) {
+          console.log('✅ Found Dynamic Instrument Class options (B0005):', instrParam.details.length);
+          const instrClasses = instrParam.details.map((detail: any) => ({
+            value: detail.value1, // 'A' or 'L'
+            label: detail.paramdesc // 'Asset' or 'Liabilities'
           }));
-          setAmortizationOptions(amortTypes);
+          setInstrumentClassOptions(instrClasses);
         } else {
-          setAmortizationOptions([
-            { value: 'EIR', label: 'Effective Interest Rate' },
-            { value: 'Straight', label: 'Straight Line' }
-          ]);
-        }
-
-        // Load Instrument Class options directly from our dedicated API
-        try {
-          console.log('🔍 [PROD-FIX] Loading instrument class options from dedicated API...');
-          const response = await fetch('/api/v1/banking/setup/product-parameters/instrument-class-options', {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`
-            }
-          });
-
-          if (response.ok) {
-            const instrumentResult = await response.json();
-            if (instrumentResult.success && instrumentResult.data) {
-              const instrClasses = instrumentResult.data.map((option: any) => ({
-                value: option.id,
-                label: option.name
-              }));
-              setInstrumentClassOptions(instrClasses);
-            }
-          }
-        } catch (apiError) {
-          console.error('❌ [PROD-FIX] Failed to load instrument class options from API:', apiError);
-          setInstrumentClassOptions([
+           // Fallback only if database fetch fails completely - this shouldn't happen now
+           console.warn('⚠️ B0005 not found in response, falling back to static list');
+           setInstrumentClassOptions([
             { value: 'A', label: 'Asset' },
             { value: 'L', label: 'Liabilities' }
           ]);
@@ -275,62 +258,97 @@ export default function ProductParametersPage() {
   // ============================================================================
   const columns: GridColDef[] = [
     {
+      field: 'dataSource',
+      headerName: 'Data Source',
+      width: 150
+    },
+    {
+      field: 'prdGroup',
+      headerName: 'Product Group',
+      width: 150
+    },
+    {
+      field: 'prdType',
+      headerName: 'Product Type',
+      width: 150
+    },
+    {
       field: 'prdCode',
       headerName: 'Product Code',
-      width: 120,
+      width: 150,
       renderCell: (params) => (
         <Chip label={params?.value || '-'} color="primary" variant="outlined" size="small" />
       )
     },
     {
       field: 'prdDesc',
-      headerName: 'Description',
+      headerName: 'Product Desc',
       width: 250,
       flex: 1
     },
     {
-      field: 'prdGroup',
-      headerName: 'Group',
-      width: 120
-    },
-    {
-      field: 'prdType',
-      headerName: 'Type',
-      width: 100
-    },
-    {
       field: 'currency',
       headerName: 'Currency',
-      width: 80,
+      width: 100,
       renderCell: (params) => (
         <Chip label={params?.value || '-'} size="small" />
       )
     },
     {
       field: 'amortizationType',
-      headerName: 'Amort. Type',
-      width: 100,
+      headerName: 'Amortization Type',
+      width: 150,
       renderCell: (params) => params?.value || '-'
+    },
+    {
+      field: 'alFlag',
+      headerName: 'Instrument Class',
+      width: 150,
+      renderCell: (params) => {
+        const map: any = { 'A': 'Asset', 'L': 'Liabilities' };
+        return map[params?.value] || params?.value || '-';
+      }
+    },
+    {
+      field: 'impairedFlag',
+      headerName: 'Impaired Flag',
+      width: 120,
+      type: 'boolean'
+    },
+    {
+      field: 'bmFlag',
+      headerName: 'Below Market Flag',
+      width: 150,
+      type: 'boolean'
     },
     {
       field: 'expectedLife',
       headerName: 'Expected Life',
-      width: 100,
+      width: 120,
       type: 'number',
       renderCell: (params) => params?.value || '-'
     },
     {
       field: 'borrowingRate',
       headerName: 'Borrowing Rate',
-      width: 120,
+      width: 130,
+      type: 'number',
+      renderCell: (params) =>
+        params?.value ? `${(params.value * 100).toFixed(2)}%` : '-'
+    },
+    {
+      field: 'marketRate',
+      headerName: 'Market Rate',
+      width: 130,
       type: 'number',
       renderCell: (params) =>
         params?.value ? `${(params.value * 100).toFixed(2)}%` : '-'
     },
     {
       field: 'activeFlag',
-      headerName: 'Active',
-      width: 80,
+      headerName: 'Is Active',
+      width: 100,
+      type: 'boolean',
       renderCell: (params) => (
         <Chip
           label={params?.value ? 'Active' : 'Inactive'}
@@ -502,7 +520,8 @@ export default function ProductParametersPage() {
 
   if (loading && data.length === 0) {
     return (
-      <Container maxWidth="xl">
+      <Container maxWidth="xl" sx={{ position: 'relative' }}>
+        <FullstackIndicator />
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
           <CircularProgress size={48} />
         </Box>

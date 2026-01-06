@@ -56,7 +56,7 @@ import {
   ListItemIcon,
   Tabs,
   Tab
-} from '@mui/material';
+} from '@mui/icons-material';
 
 import {
   Calculate as CalculateIcon,
@@ -86,16 +86,64 @@ import {
 } from '@mui/icons-material';
 
 // API Service Integration
-// API Service Integration
-import { api } from '../../../../services/api';
+import { useApi } from '@/hooks/useApi';
 import { useAuth } from '@/providers/AuthProvider';
-import { ImpairmentCalculation, ImpairmentConfiguration } from '../../../../services/api/impairment.api';
 
-// Types imported from API service
+// Types for Impairment Module
+interface ImpairmentCalculation {
+  id: string;
+  calculationName: string;
+  calculationType: 'ECL' | 'PD' | 'LGD' | 'EAD' | 'STAGING';
+  portfolioId: string;
+  portfolioName: string;
+  calculationDate: string;
+  reportingDate: string;
+  currency: string;
+  totalExposure: number;
+  totalECL: number;
+  coverageRatio: number;
+  stage1Exposure: number;
+  stage2Exposure: number;
+  stage3Exposure: number;
+  stage1ECL: number;
+  stage2ECL: number;
+  stage3ECL: number;
+  modelVersion: string;
+  assumptions: string;
+  status: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED';
+  progress: number;
+  errorMessage?: string;
+  createdBy: string;
+  createdAt: string;
+  completedAt?: string;
+}
+
+interface ImpairmentConfiguration {
+  id: string;
+  configName: string;
+  configType: 'ECL_MODEL' | 'PD_MODEL' | 'LGD_MODEL' | 'EAD_MODEL';
+  isActive: boolean;
+  parameters: Record<string, any>;
+  modelVersion: string;
+  lastUpdated: string;
+  updatedBy: string;
+}
+
+interface ApiResponse<T> {
+  success: boolean;
+  data: T[];
+  message?: string;
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
 
 export default function ImpairmentModulePage() {
   const { user } = useAuth();
-  // const { get, post, put, del } = useApi(); // Replaced by centralized API
+  const { get, post, put, del } = useApi();
 
   // State Management
   const [calculations, setCalculations] = useState<ImpairmentCalculation[]>([]);
@@ -131,10 +179,16 @@ export default function ImpairmentModulePage() {
       setLoading(true);
       setError(null);
 
-      // Use centralized API
-      const response = await api.banking.impairment.getCalculations(page + 1, rowsPerPage);
+      const params = new URLSearchParams({
+        page: (page + 1).toString(),
+        limit: rowsPerPage.toString()
+      });
 
-      if (response.success && response.data) {
+      const response = await get<ApiResponse<ImpairmentCalculation>>(
+        `/api/v1/ifrs9/impairment-module/calculations?${params}`
+      );
+
+      if (response.success) {
         setCalculations(response.data);
         setTotalCount(response.pagination?.total || 0);
       } else {
@@ -145,19 +199,21 @@ export default function ImpairmentModulePage() {
     } finally {
       setLoading(false);
     }
-  }, [page, rowsPerPage]);
+  }, [get, page, rowsPerPage]);
 
   const loadConfigurations = useCallback(async () => {
     try {
-      const response = await api.banking.impairment.getConfigurations();
+      const response = await get<ApiResponse<ImpairmentConfiguration>>(
+        '/api/v1/ifrs9/impairment-module/configurations'
+      );
 
-      if (response.success && response.data) {
+      if (response.success) {
         setConfigurations(response.data);
       }
     } catch (err) {
       console.error('Failed to load configurations:', err);
     }
-  }, []);
+  }, [get]);
 
   useEffect(() => {
     loadCalculations();
@@ -168,7 +224,7 @@ export default function ImpairmentModulePage() {
   const handleRunCalculation = async () => {
     try {
       setError(null);
-      const response = await api.banking.impairment.runCalculation(calculationForm);
+      const response = await post('/api/v1/ifrs9/impairment-module/run-calculation', calculationForm);
 
       if (response.success) {
         setSuccess('Impairment calculation started successfully');

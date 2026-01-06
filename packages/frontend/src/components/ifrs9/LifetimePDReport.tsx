@@ -243,6 +243,11 @@ const LifetimePDReport: React.FC = () => {
     );
   };
 
+
+  // Memoize params to prevent infinite loops
+  const yearlyRequiredParams = React.useMemo(() => ['prc_date'], []);
+  const yearlyOptionalParams = React.useMemo(() => ['pd_config_id', 'segment_id', 'fl_flag'], []);
+  
   return (
     <Box>
       <Typography variant="h4" gutterBottom>
@@ -265,10 +270,11 @@ const LifetimePDReport: React.FC = () => {
         <BaseIfrs9Report
           title=""
           reportType="lifetime-pd-yearly"
-          requiredParams={['prc_date']}
-          optionalParams={['pd_config_id', 'segment_id', 'fl_flag']}
+          requiredParams={yearlyRequiredParams}
+          optionalParams={yearlyOptionalParams}
           supportsPagination={false}
           supportsCharts={true}
+          onDataLoaded={handleYearlyDataLoaded}
         >
           <Box>
             <PDChart data={chartData} type="yearly" />
@@ -286,10 +292,11 @@ const LifetimePDReport: React.FC = () => {
         <BaseIfrs9Report
           title=""
           reportType="lifetime-pd-monthly"
-          requiredParams={['prc_date']}
-          optionalParams={['pd_config_id', 'segment_id', 'fl_flag']}
+          requiredParams={yearlyRequiredParams}
+          optionalParams={yearlyOptionalParams}
           supportsPagination={false}
           supportsCharts={true}
+          onDataLoaded={handleMonthlyDataLoaded}
         >
           <Box>
             <PDChart data={chartData} type="monthly" />
