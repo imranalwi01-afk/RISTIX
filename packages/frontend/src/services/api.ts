@@ -18,6 +18,7 @@ import { getAuthToken } from '../utils/auth-token';
 // ============================================================================
 import { frontendEnvironmentLoader } from '../config/environment-loader-frontend';
 import { apiClient } from './api-client';
+export { apiClient };
 import { sessionControlService } from './session-control.service';
 
 // Import Individual Impairment API (will be initialized later to avoid circular dependency)

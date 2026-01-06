@@ -41,14 +41,14 @@ COPY --from=builder /app/server ./server
 RUN chmod +x ./server
 
 ENV NODE_ENV=production
-ENV PORT=3000
+ENV PORT=4232
 ENV HOST=0.0.0.0
 
-EXPOSE 3000
+EXPOSE 4232
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:3000/api/health || exit 1
+    CMD curl -f http://localhost:4232/api/health || exit 1
 
 # Run the standalone executable
 CMD ["./server"]

@@ -6,6 +6,31 @@ import { eq, and, sql } from 'drizzle-orm'
 export const businessSettingsRoutes = new Hono()
 
 /**
+ * GET / : List Business Settings (Param details)
+ * Supports filtering by code: ?code=B0001
+ */
+businessSettingsRoutes.get('/', async (c) => {
+    const code = c.req.query('code');
+    try {
+        // If code provided, return details for that specific parameter
+        if (code) {
+            const results = await db
+                .select()
+                .from(frs9ParamCommond)
+                .where(eq(frs9ParamCommond.paramCode, code))
+                .orderBy(frs9ParamCommond.paramSeq);
+            return c.json({ success: true, data: results });
+        }
+
+        // Otherwise return nothing or list all logic if needed (limiting to avoid massive dump)
+        return c.json({ success: true, data: [] });
+    } catch (error) {
+        console.error('Error fetching business settings:', error);
+        return c.json({ error: 'Failed to fetch business settings' }, 500);
+    }
+})
+
+/**
  * B0012: Table Dropdown
  * Returns distinct VALUE1 from frs9_param_commond where param_code = 'B0012'
  */

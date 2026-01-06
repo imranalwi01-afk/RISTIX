@@ -7,8 +7,6 @@
 #   docker-compose -f docker-compose.dev.yml logs -f new-backend
 # ============================================================================
 
-version: '3.8'
-
 services:
   # ============================================================================
   # 🗄️ POSTGRESQL DATABASE (Development)
@@ -70,7 +68,7 @@ services:
 
       # JWT
       JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-change-in-production}
-      JWT_EXPIRES_IN: 24h
+      JWT_EXPIRES_IN: 1h
 
       # Redis
       REDIS_URL: redis://redis:6379
@@ -78,7 +76,7 @@ services:
       # Logging
       LOG_LEVEL: debug
     ports:
-      - "3000:3000"
+      - "4232:4232"
     depends_on:
       postgres:
         condition: service_healthy
@@ -89,25 +87,24 @@ services:
     volumes:
       - ./packages/new-backend/src:/app/src:ro
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:3000/api/health" ]
+      test: [ "CMD", "curl", "-f", "http://localhost:4232/api/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
     # For hot reload during development, uncomment:
-    # command: bun run --watch src/index.ts
-
+    command: [ "bun", "run", "dev" ]
     # ============================================================================
     # 🌐 FRONTEND SERVICE (Optional - can run separately)
     # ============================================================================
   frontend:
     build:
-      context: ./packages/frontend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: packages/frontend/Dockerfile
     container_name: ifrs9-frontend-dev
     environment:
       NODE_ENV: development
-      NEXT_PUBLIC_BACKEND_URL: http://localhost:3000/api
-      NEXT_PUBLIC_API_BASE_URL: http://localhost:3000/api
+      NEXT_PUBLIC_BACKEND_URL: http://localhost:4232/api
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:4232/api
     ports:
       - "4231:4231"
     depends_on:

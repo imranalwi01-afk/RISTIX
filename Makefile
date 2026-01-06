@@ -47,6 +47,10 @@ restart: ## Restart all services
 build: ## Rebuild all images
 	$(COMPOSE) build
 
+.PHONY: bund
+bund: ## Bundle the backend using bun (inside container)
+	$(COMPOSE) exec $(BACKEND_SERVICE) bun run build
+
 .PHONY: build-no-cache
 build-no-cache: ## Rebuild all images without cache
 	$(COMPOSE) build --no-cache

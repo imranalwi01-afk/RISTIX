@@ -6,7 +6,7 @@ import { z } from 'zod'
 const envSchema = z.object({
     // Server
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-    PORT: z.coerce.number().default(3001),
+    PORT: z.coerce.number().default(4232),
     HOST: z.string().default('0.0.0.0'),
 
     // Database
@@ -14,7 +14,7 @@ const envSchema = z.object({
 
     // JWT
     JWT_SECRET: z.string().min(32),
-    JWT_EXPIRES_IN: z.string().default('24h'),
+    JWT_EXPIRES_IN: z.string().default('1h'),
 
     // Redis (optional)
     REDIS_URL: z.string().url().optional(),

@@ -54,7 +54,7 @@ import {
   ListItemIcon,
   Tabs,
   Tab
-} from '@mui/icons-material';
+} from '@mui/material';
 
 import {
   Calculate as CalculateIcon,
@@ -516,8 +516,8 @@ export default function AmortizationModulePage() {
                       <Typography variant="h5">
                         {calculations.length > 0
                           ? formatPercentage(
-                              calculations.reduce((sum, calc) => sum + (calc.effectiveInterestRate || 0), 0) / calculations.length
-                            )
+                            calculations.reduce((sum, calc) => sum + (calc.effectiveInterestRate || 0), 0) / calculations.length
+                          )
                           : '0%'
                         }
                       </Typography>

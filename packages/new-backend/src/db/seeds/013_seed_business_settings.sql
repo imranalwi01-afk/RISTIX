@@ -2,16 +2,34 @@
 -- Required for Segmentation Configuration (B0012, B0013, B0014, B0015)
 
 -- Clear existing Business Settings data to prevent duplicates
-DELETE FROM ifrs9.frs9_param_commond WHERE param_code IN ('B0012', 'B0013', 'B0014', 'B0015', 'B0016');
-DELETE FROM ifrs9.frs9_param_commonh WHERE param_code IN ('B0012', 'B0013', 'B0014', 'B0015', 'B0016');
+DELETE FROM ifrs9.frs9_param_commond WHERE param_code IN ('B0001', 'B0002', 'B0003', 'B0012', 'B0013', 'B0014', 'B0015', 'B0016');
+DELETE FROM ifrs9.frs9_param_commonh WHERE param_code IN ('B0001', 'B0002', 'B0003', 'B0012', 'B0013', 'B0014', 'B0015', 'B0016');
 
 -- Insert Headers (frs9_param_commonh) with param_type = 'B'
 INSERT INTO ifrs9.frs9_param_commonh (param_code, param_name, param_usage, param_type, banking_type, is_active, requires_approval, createdby, createddate, createdhost) VALUES
+('B0001', 'Currency Configuration', 'List of available currencies', 'B', 'conventional', true, false, 'SYSTEM', NOW(), 'localhost'),
+('B0002', 'Amortization Type', 'Amortization methods', 'B', 'conventional', true, false, 'SYSTEM', NOW(), 'localhost'),
+('B0003', 'Instrument Class', 'Asset / Liability classification', 'B', 'conventional', true, false, 'SYSTEM', NOW(), 'localhost'),
 ('B0012', 'Tables Configuration', 'List of tables available for segmentation', 'B', 'conventional', true, false, 'SYSTEM', NOW(), 'localhost'),
 ('B0013', 'Columns Configuration', 'List of columns available for segmentation', 'B', 'conventional', true, false, 'SYSTEM', NOW(), 'localhost'),
 ('B0014', 'Operators Configuration', 'List of operators available for segmentation', 'B', 'conventional', true, false, 'SYSTEM', NOW(), 'localhost'),
 ('B0015', 'Conditions Configuration', 'List of logic conditions available for segmentation', 'B', 'conventional', true, false, 'SYSTEM', NOW(), 'localhost'),
 ('B0016', 'Column Values Configuration', 'List of predefined values for columns', 'B', 'conventional', true, false, 'SYSTEM', NOW(), 'localhost');
+
+
+-- 0. B0001, B0002, B0003: Product Parameters
+INSERT INTO ifrs9.frs9_param_commond (param_code, param_seq, value1, value2, value3, paramdesc, createdby, createddate, createdhost) VALUES
+-- B0001: Currency
+('B0001', 1, 'IDR', 'Indonesian Rupiah', '', 'IDR Currency', 'SYSTEM', NOW(), 'localhost'),
+('B0001', 2, 'USD', 'US Dollar', '', 'USD Currency', 'SYSTEM', NOW(), 'localhost'),
+
+-- B0002: Amortization Type
+('B0002', 1, 'EIR', 'Effective Interest Rate', '', 'EIR Method', 'SYSTEM', NOW(), 'localhost'),
+('B0002', 2, 'SL', 'Straight Line', '', 'Straight Line Method', 'SYSTEM', NOW(), 'localhost'),
+
+-- B0003: Instrument Class (AL_FLAG)
+('B0003', 1, 'A', 'Asset', '', 'Asset', 'SYSTEM', NOW(), 'localhost'),
+('B0003', 2, 'L', 'Liability', '', 'Liability', 'SYSTEM', NOW(), 'localhost');
 
 
 -- 1. B0012: Tables

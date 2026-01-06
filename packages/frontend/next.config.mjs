@@ -3,9 +3,11 @@ const nextConfig = {
   // ============================================================================
   // PERFORMANCE OPTIMIZATIONS
   // ============================================================================
+  // Enable standalone output for Docker
+  output: 'standalone',
 
   // Enable SWC minification for faster builds
-  swcMinify: true,
+
 
   // Optimize package imports to reduce bundle size
   experimental: {

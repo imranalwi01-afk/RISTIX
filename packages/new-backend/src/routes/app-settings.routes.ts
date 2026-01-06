@@ -3,7 +3,7 @@ import { zValidator } from '@hono/zod-validator'
 import { z } from 'zod'
 import { db } from '../config'
 import { frs9ParamCommonh, frs9ParamCommond } from '../db/schema'
-import { eq, sql } from 'drizzle-orm'
+import { eq, and, sql } from 'drizzle-orm'
 
 export const appSettingsRoutes = new Hono()
 
@@ -28,12 +28,17 @@ const detailSchema = z.object({
 
 // GET /app-settings - List all settings with details
 appSettingsRoutes.get('/', async (c) => {
+    const code = c.req.query('code');
     try {
         const settings = await db.query.frs9ParamCommonh.findMany({
-            where: eq(frs9ParamCommonh.paramType, 'A'),
+            where: and(
+                eq(frs9ParamCommonh.paramType, 'A'),
+                code ? eq(frs9ParamCommonh.paramCode, code) : undefined
+            ),
             with: {
                 details: true
-            }
+            },
+            orderBy: frs9ParamCommonh.paramCode
         });
         return c.json({ success: true, data: settings });
     } catch (error) {
