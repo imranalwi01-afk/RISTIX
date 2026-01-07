@@ -56,16 +56,13 @@ export interface HierarchicalMenuItem {
 export const transformFlatToHierarchical = (
   items: any[]
 ): HierarchicalMenuItem[] => {
-  console.log('🔧 [MENU HIERARCHY] Transforming menu data to hierarchical structure:', {
-    totalItems: items.length,
-    sampleItems: items.slice(0, 3)
-  });
+
 
   // Check if data is already hierarchical
   const hasHierarchy = items.some(item => item.children && Array.isArray(item.children));
 
   if (hasHierarchy) {
-    console.log('🔧 [MENU HIERARCHY] Data is already hierarchical, ensuring compatibility...');
+
     // Data is already hierarchical, ensure field compatibility recursively
     const ensureCompatibility = (item: any): HierarchicalMenuItem => {
       const result: HierarchicalMenuItem = {
@@ -83,9 +80,9 @@ export const transformFlatToHierarchical = (
         expanded: false,
         active: false,
         visible: true,
-        permissions: item.user_types || item.roles || [],
-        banking_modes: item.banking_types || item.banking_modes || [],
-        user_types: item.user_types || item.roles || [],
+        permissions: item.requiredPermissions || item.user_types || item.roles || [],
+        banking_modes: item.bankingTypes || item.banking_types || item.banking_modes || [],
+        user_types: item.requiredPermissions || item.user_types || item.roles || [],
         tenant_types: [],
         metadata: item.metadata || {}
       };
@@ -101,7 +98,7 @@ export const transformFlatToHierarchical = (
     return items.map(item => ensureCompatibility(item));
   }
 
-  console.log('🔧 [MENU HIERARCHY] Data is flat, building hierarchy...');
+
   // Data is flat, build hierarchy
   const itemMap = new Map<string, HierarchicalMenuItem>();
   const rootItems: HierarchicalMenuItem[] = [];
@@ -123,9 +120,9 @@ export const transformFlatToHierarchical = (
       expanded: false,
       active: false,
       visible: true,
-      permissions: item.user_types || item.roles || [],
-      banking_modes: item.banking_types || item.banking_modes || [],
-      user_types: item.user_types || item.roles || [],
+      permissions: item.requiredPermissions || item.user_types || item.roles || [],
+      banking_modes: item.bankingTypes || item.banking_types || item.banking_modes || [],
+      user_types: item.requiredPermissions || item.user_types || item.roles || [],
       tenant_types: [],
       metadata: item.metadata || {}
     };
@@ -185,16 +182,7 @@ export const transformFlatToHierarchical = (
 
   const sortedHierarchy = sortHierarchy(rootItems);
 
-  console.log('✅ [MENU HIERARCHY] Transformation completed:', {
-    rootItems: sortedHierarchy.length,
-    totalProcessed: items.length,
-    hierarchyTree: sortedHierarchy.map(item => ({
-      key: item.key,
-      title: item.title,
-      level: item.level,
-      childrenCount: item.children?.length || 0
-    }))
-  });
+
 
   return sortedHierarchy;
 };
@@ -257,12 +245,7 @@ export const filterHierarchicalMenu = (
   bankingMode: 'conventional' | 'syariah' | 'dual',
   roleCodes?: string[] // ✅ Add roleCodes parameter for accurate menu filtering
 ): HierarchicalMenuItem[] => {
-  console.log('🔍 [MENU FILTER] Filtering hierarchical menu:', {
-    userRole,
-    roleCodes,
-    bankingMode,
-    totalItems: hierarchicalItems.length
-  });
+
 
   const filterItems = (items: HierarchicalMenuItem[]): HierarchicalMenuItem[] => {
     return items
@@ -276,7 +259,7 @@ export const filterHierarchicalMenu = (
         // Banking mode filter - handle both banking_modes and banking_types field names
         const bankingModes = item.banking_modes || item.banking_types || [];
         if (bankingModes.length > 0 && !bankingModes.includes(bankingMode)) {
-          console.log(`🚫 [MENU FILTER] Item filtered by banking mode: ${item.key}, required: ${bankingModes}, current: ${bankingMode}`);
+
           return false;
         }
 
@@ -285,11 +268,7 @@ export const filterHierarchicalMenu = (
           // Use roleCodes if available, otherwise fall back to userRole
           const effectiveRoles = roleCodes && roleCodes.length > 0 ? roleCodes : (userRole ? [userRole] : []);
 
-          console.log(`🔍 [MENU FILTER] Checking role access for ${item.key}:`, {
-            itemPermissions: item.permissions,
-            effectiveRoles,
-            hasRoleCodes: !!(roleCodes && roleCodes.length > 0)
-          });
+
 
           const hasPermission = item.permissions.some(permission => {
             // Normalize role comparison
@@ -301,7 +280,7 @@ export const filterHierarchicalMenu = (
 
               // Exact match
               if (normalizedPermission === normalizedEffectiveRole) {
-                console.log(`✅ [ROLE MATCH] Exact match found: ${normalizedPermission}`);
+
                 return true;
               }
 
@@ -336,11 +315,11 @@ export const filterHierarchicalMenu = (
               // Check if effective role matches permission or has higher privileges
               for (const [higherRole, lowerRoles] of Object.entries(roleHierarchy)) {
                 if (normalizedPermission === higherRole && lowerRoles.includes(normalizedEffectiveRole)) {
-                  console.log(`✅ [ROLE HIERARCHY] Higher role match: ${higherRole} -> ${normalizedEffectiveRole}`);
+                  // console.log(`✅ [ROLE HIERARCHY] Higher role match: ${higherRole} -> ${normalizedEffectiveRole}`);
                   return true;
                 }
                 if (lowerRoles.includes(normalizedPermission) && higherRole === normalizedEffectiveRole) {
-                  console.log(`✅ [ROLE HIERARCHY] Lower role match: ${normalizedEffectiveRole} -> ${lowerRoles.join(', ')}`);
+                  // console.log(`✅ [ROLE HIERARCHY] Lower role match: ${normalizedEffectiveRole} -> ${lowerRoles.join(', ')}`);
                   return true;
                 }
               }
@@ -350,10 +329,8 @@ export const filterHierarchicalMenu = (
           });
 
           if (!hasPermission) {
-            console.log(`🚫 [MENU FILTER] Item filtered by role: ${item.key}, required: ${item.permissions}, effective roles: ${effectiveRoles.join(', ')}`);
+            // console.log(`🚫 [MENU FILTER] Item filtered by role: ${item.key}, required: ${item.permissions}, effective roles: ${effectiveRoles.join(', ')}`);
             return false;
-          } else {
-            console.log(`✅ [MENU FILTER] Item passed role check: ${item.key}`);
           }
         }
 
@@ -367,7 +344,7 @@ export const filterHierarchicalMenu = (
 
         // If this is a group but has no visible children, hide it
         if (item.type === 'group' && (!filteredChildren || filteredChildren.length === 0)) {
-          console.log(`🚫 [MENU FILTER] Group filtered (no visible children): ${item.key}`);
+
           return null;
         }
 
@@ -381,15 +358,7 @@ export const filterHierarchicalMenu = (
 
   const filteredItems = filterItems(hierarchicalItems);
 
-  console.log('✅ [MENU FILTER] Filtering completed:', {
-    originalCount: hierarchicalItems.length,
-    filteredCount: filteredItems.length,
-    visibleItems: filteredItems.map(item => ({
-      key: item.key,
-      title: item.title,
-      hasChildren: !!(item.children && item.children.length > 0)
-    }))
-  });
+
 
   return filteredItems;
 };

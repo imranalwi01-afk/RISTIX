@@ -128,7 +128,7 @@ import {
 import { Menu as MuiMenu, MenuItem as MuiMenuItem } from '@mui/material'; // ✅ Import Menu components
 
 // Import menu service for database-driven menus
-import { menuApi } from '@/services/api/menu.api';
+import { useGetMenuTreeQuery } from '@/store/api/menuApi';
 
 // Import centralized menu configuration
 import { menuConfig, getMenuIcon } from '@/config/menu-config';
@@ -853,8 +853,14 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
       icon: <Menu />, // Dummy icon since handleMenuItemClick only uses it for routing
       level: 3, // Safe default
       roles: child.user_types,
-      banking_modes: child.banking_types as any,
-      children: child.children as any
+      banking_modes: child.banking_types as ('conventional' | 'syariah' | 'dual')[],
+      children: child.children ? child.children.map(c => ({
+        ...c,
+        label: c.title,
+        code: c.key,
+        icon: <Menu />, // Fix: provide ReactElement instead of string from database
+        banking_modes: c.banking_types as ('conventional' | 'syariah' | 'dual')[]
+      })) : undefined
     };
     handleMenuItemClick(menuItem);
     handleFlyoutClose();
@@ -879,139 +885,81 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
   });
 
   // Only show loading if we didn't find anything in cache
-  const [isLoading, setIsLoading] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const hasCache = !!localStorage.getItem('cached_menu_structure');
-      return !hasCache; // If cache exists, we are NOT loading (visually)
-    }
-    return true;
-  });
+
 
   const [menuError, setMenuError] = useState<string | null>(null);
 
   // Use hierarchical menu state management
   const menuState = useMenuState(hierarchicalMenu);
 
-  // Load menu from database on component mount and when dependencies change
+  // ✅ RTK Query: Auto-fetch and cache
+  // Only skip if no token is available or user role is not yet loaded
+  const shouldSkip = !getAuthToken() || (!userRole && (!roleCodes || roleCodes.length === 0));
+
+  const { data: menuData, isLoading: isMenuLoading, error: menuQueryError } = useGetMenuTreeQuery(
+    { bankingMode, includeInactive: false },
+    { skip: shouldSkip }
+  );
+
+  // Sync RTK Query data to local state for filtering/processing
   useEffect(() => {
-    // ✅ PREVENT UNNECESSARY 401s: Don't fetch menu if user role is not yet loaded OR token is missing
-    const token = getAuthToken();
-    if ((!userRole && (!roleCodes || roleCodes.length === 0)) || !token) {
-      return;
+    if (shouldSkip) return;
+
+    if (menuData && Array.isArray(menuData) && menuData.length > 0) {
+      processMenuData(menuData);
+    } else if (menuQueryError || (!isMenuLoading && (!menuData || menuData.length === 0))) {
+      // Use fallback on error or empty data
+      applyStaticFallback();
     }
+  }, [menuData, isMenuLoading, menuQueryError, shouldSkip, bankingMode, userRole, roleCodes]);
 
-    loadHierarchicalMenuFromDatabase();
-  }, [bankingMode, userRole, roleCodes]); // Include roleCodes in dependencies
-
-  // Load hierarchical menu from database API - IMPROVED ERROR HANDLING
-  const loadHierarchicalMenuFromDatabase = async () => {
-    try {
-      // ✅ OPTIMISTIC UI: Don't set loading to true if we already have content
-      // This prevents the "flash of loading spinner" if cache exists
-      if (hierarchicalMenu.length === 0) {
-        setIsLoading(true);
-      }
-      setMenuError(null);
-
-      let response;
-
-      // ✅ PERF: Check for pre-fetched raw data from Login (AuthProvider)
-      const preFetched = localStorage.getItem('temp_raw_menu');
-      if (preFetched) {
-        try {
-          response = { success: true, data: JSON.parse(preFetched) };
-          // Clear it so we don't use stale data later (e.g. if user role changes)
-          localStorage.removeItem('temp_raw_menu');
-        } catch (e) {
-          localStorage.removeItem('temp_raw_menu');
+  const processMenuData = (data: any[]) => {
+    // Transform to HierarchicalMenuItem format if needed
+    const hierarchical = data.map((item: any): HierarchicalMenuItem => {
+      const mapToHierarchical = (dbItem: any, level: number): HierarchicalMenuItem => ({
+        id: dbItem.id,
+        key: dbItem.menu_key || dbItem.key || dbItem.id,
+        title: dbItem.title || dbItem.label || 'Unknown',
+        description: dbItem.description,
+        icon: dbItem.icon || 'dashboard',
+        url: dbItem.url || dbItem.href || null,
+        type: dbItem.type || (dbItem.children && dbItem.children.length > 0 ? 'group' : 'item'),
+        level: level,
+        sort_order: dbItem.sort_order || 0,
+        parent_id: dbItem.parent_id || null,
+        expanded: false,
+        active: dbItem.is_active !== false,
+        visible: true,
+        permissions: dbItem.user_types || dbItem.roles || [],
+        banking_modes: dbItem.banking_types || dbItem.banking_modes || ['conventional', 'syariah', 'dual'],
+        user_types: dbItem.user_types || dbItem.roles || [],
+        tenant_types: [],
+        children: dbItem.children && dbItem.children.length > 0
+          ? dbItem.children.map((child: any) => mapToHierarchical(child, level + 1))
+          : [],
+        metadata: {
+          badge_info: dbItem.badge_info,
+          isNew: dbItem.isNew,
+          requiresSetup: dbItem.requiresSetup || dbItem.requires_setup
         }
-      }
+      });
+      return mapToHierarchical(item, item.parent_id ? 2 : 1);
+    });
 
-      // If no pre-fetched data, call API as normal
-      if (!response) {
-        // Get hierarchical menu data from API
-        response = await menuApi.getMenuTree({
-          bankingMode,
-          includeInactive: false
-        });
-      }
+    // Filter by role and banking mode
+    const filtered = filterHierarchicalMenu(hierarchical, userRole, bankingMode, roleCodes);
+    setHierarchicalMenu(filtered);
 
-      if (response.success && response.data && Array.isArray(response.data) && response.data.length > 0) {
-        // Check if data is hierarchical or flat
-        const hasChildren = response.data.some((item: any) => item.children && Array.isArray(item.children) && item.children.length > 0);
-
-        // Transform to HierarchicalMenuItem format if needed
-        const hierarchical = response.data.map((item: any): HierarchicalMenuItem => {
-          const mapToHierarchical = (dbItem: any, level: number): HierarchicalMenuItem => ({
-            id: dbItem.id,
-            key: dbItem.menu_key || dbItem.key || dbItem.id,
-            title: dbItem.title || dbItem.label || 'Unknown',
-            description: dbItem.description,
-            icon: dbItem.icon || 'dashboard',
-            url: dbItem.url || dbItem.href || null,
-            type: dbItem.type || (dbItem.children && dbItem.children.length > 0 ? 'group' : 'item'),
-            level: level,
-            sort_order: dbItem.sort_order || 0,
-            parent_id: dbItem.parent_id || null,
-            expanded: false,
-            active: dbItem.is_active !== false,
-            visible: true,
-            permissions: dbItem.user_types || dbItem.roles || [],
-            banking_modes: dbItem.banking_types || dbItem.banking_modes || ['conventional', 'syariah', 'dual'],
-            user_types: dbItem.user_types || dbItem.roles || [],
-            tenant_types: [],
-            children: dbItem.children && dbItem.children.length > 0
-              ? dbItem.children.map((child: any) => mapToHierarchical(child, level + 1))
-              : [],
-            metadata: {
-              badge_info: dbItem.badge_info,
-              isNew: dbItem.isNew,
-              requiresSetup: dbItem.requiresSetup || dbItem.requires_setup
-            }
-          });
-          return mapToHierarchical(item, item.parent_id ? 2 : 1);
-        });
-
-        // Validate the hierarchical structure
-        const validation = validateMenuHierarchy(hierarchical);
-
-        if (!validation.isValid) {
-        }
-
-        // Filter by role and banking mode
-        const filtered = filterHierarchicalMenu(hierarchical, userRole, bankingMode, roleCodes);
-
-        setHierarchicalMenu(filtered);
-
-        // ✅ CACHE UPDATE: Save the fresh data to cache for next time
-        if (typeof window !== 'undefined') {
-          try {
-            localStorage.setItem('cached_menu_structure', JSON.stringify(filtered));
-          } catch (e) {
-            // silent fail
-          }
-        }
-
-        // Auto-expand first section for better UX
-        if (filtered.length > 0 && filtered[0].children && filtered[0].children.length > 0) {
-          menuState.expandItem(filtered[0].id);
-        }
-
-      } else {
-        useStaticFallback();
-      }
-    } catch (error) {
-      // ✅ FORCE FALLBACK WITHOUT SHOWING ERROR UI
-      // We want the user to always see a menu, even if the database one fails
-      setMenuError(null);
-      useStaticFallback();
-    } finally {
-      setIsLoading(false);
+    // Auto-expand first section for better UX
+    if (filtered.length > 0 && filtered[0].children && filtered[0].children.length > 0) {
+      menuState.expandItem(filtered[0].id);
     }
   };
 
+
+
   // Static fallback function
-  const useStaticFallback = () => {
+  const applyStaticFallback = () => {
     const fallbackMenu = convertStaticToDatabaseFormat(BANKING_MENU_STRUCTURE);
     const hierarchicalFallback = transformFlatToHierarchical(fallbackMenu);
     const filtered = filterHierarchicalMenu(hierarchicalFallback, userRole, bankingMode, roleCodes);
@@ -1849,10 +1797,10 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
 
       {/* Navigation Menu */}
       <List sx={{ p: collapsed ? 0.25 : 0.5 }}>
-        {isLoading ? (
+        {isMenuLoading && hierarchicalMenu.length === 0 ? (
           // Loading state - Skeleton
           <MenuSkeleton />
-        ) : menuError ? (
+        ) : menuQueryError && hierarchicalMenu.length === 0 ? (
           // Error state with retry button
           <Box sx={{ p: 2, textAlign: 'center' }}>
             <ErrorOutline sx={{ fontSize: 24, color: 'error.main', mb: 1 }} />
@@ -1870,31 +1818,8 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
           </Box>
         ) : (
           // Render hierarchical menu items (database-driven or fallback)
-          (() => {
-            console.log(`📋 [HIERARCHICAL] About to render ${hierarchicalMenu.length} menu items:`,
-              hierarchicalMenu.map(item => ({
-                id: item.id,
-                key: item.key,
-                title: item.title,
-                level: item.level,
-                parent_id: item.parent_id,
-                childrenCount: item.children?.length || 0,
-                hasChildren: !!(item.children && item.children.length > 0)
-              }))
-            );
-
-            // Debug: Check if hierarchical structure is preserved
-            const hierarchicalCheck = hierarchicalMenu.some(item => item.children && item.children.length > 0);
-            console.log(`🔍 [HIERARCHY DEBUG] Hierarchical structure preserved: ${hierarchicalCheck}`);
-
-            if (!hierarchicalCheck && hierarchicalMenu.length > 0) {
-              console.warn(`⚠️ [HIERARCHY DEBUG] No hierarchical structure found in ${hierarchicalMenu.length} items - checking parent_id relations:`,
-                hierarchicalMenu.map(item => ({ id: item.id, title: item.title, parent_id: item.parent_id }))
-              );
-            }
-
-            return hierarchicalMenu.map(item => renderHierarchicalMenuItem(item));
-          })()
+          // Render hierarchical menu items (database-driven or fallback)
+          hierarchicalMenu.map(item => renderHierarchicalMenuItem(item))
         )}
       </List>
 

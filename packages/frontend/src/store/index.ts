@@ -8,23 +8,27 @@
 // ✅ FIXED: Redux persist issues with Next.js 15
 // ============================================================================
 
-import { configureStore, combineReducers, createSlice } from '@reduxjs/toolkit';
-import { 
-  persistStore, 
-  persistReducer, 
-  FLUSH, 
-  REHYDRATE, 
-  PAUSE, 
-  PERSIST, 
-  PURGE, 
-  REGISTER 
+import { configureStore, combineReducers, createSlice, isRejectedWithValue, Middleware } from '@reduxjs/toolkit';
+import {
+  persistStore,
+  persistReducer,
+  FLUSH,
+  REHYDRATE,
+  PAUSE,
+  PERSIST,
+  PURGE,
+  REGISTER
 } from 'redux-persist';
 
 // ✅ PRESERVED: Your actual slice imports
-import authReducer from './slices/authSlice';
+import authReducer, { logout } from './slices/authSlice';
 import configurationReducer from './slices/configurationSlice';
 import userSettingsReducer from './slices/userSettingsSlice';
 import dashboardPersonalizationReducer from './slices/dashboardPersonalizationSlice';
+// ✅ RTK Query Imports
+import { menuQueryApi } from './api/menuApi';
+import { portfolioQueryApi } from './api/portfolioApi';
+import { clearAuthTokens } from '../utils/auth-token';
 // ✅ CONDITIONAL: Import these if they exist in your project
 // Using noop reducers for now to avoid require() issues
 const setupReducer = (state = {}, action: any) => state;
@@ -46,7 +50,7 @@ const createSafeStorage = () => {
     const testKey = '__ifrs9_storage_test__';
     window.localStorage.setItem(testKey, 'test');
     window.localStorage.removeItem(testKey);
-    
+
     // Return enhanced localStorage wrapper
     return {
       getItem: (key: string) => {
@@ -76,7 +80,7 @@ const createSafeStorage = () => {
     };
   } catch (error) {
     console.warn('localStorage not available, using memory storage:', error);
-    
+
     // Enhanced memory storage fallback
     const memoryStorage: Record<string, string> = {};
     return {
@@ -95,7 +99,7 @@ const createSafeStorage = () => {
 
 // ✅ SURGICAL FIX: Enhanced UI slice with your existing functionality
 const createUISlice = () => {
-  
+
   interface UiState {
     sidebarOpen: boolean;
     theme: 'light' | 'dark';
@@ -157,6 +161,9 @@ const rootReducer = combineReducers({
   setup: setupReducer,
   parameters: parametersReducer,
   ui: uiSlice.reducer,
+  // ✅ RTK Query Reducers
+  [menuQueryApi.reducerPath]: menuQueryApi.reducer,
+  [portfolioQueryApi.reducerPath]: portfolioQueryApi.reducer,
 });
 
 // ✅ SURGICAL FIX: Enhanced persist configuration
@@ -181,6 +188,26 @@ const persistConfig = {
 // ✅ SURGICAL FIX: Enhanced persisted reducer
 const persistedReducer = persistReducer(persistConfig, rootReducer);
 
+// ✅ SURGICAL FIX: Error Middleware for global error handling (like 401)
+const errorMiddleware: Middleware = (api) => (next) => (action) => {
+  if (isRejectedWithValue(action)) {
+    // Check for 401 Unauthorized
+    if ((action.payload as any)?.status === 401) {
+      console.warn('⚠️ 401 Unauthorized detected. Logging out...');
+
+      // Clear auth state and tokens
+      api.dispatch(logout());
+      clearAuthTokens();
+
+      // Redirect to login if on client side
+      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+    }
+  }
+  return next(action);
+};
+
 // ✅ SURGICAL FIX: Enhanced store configuration
 export const store = configureStore({
   reducer: persistedReducer,
@@ -188,11 +215,11 @@ export const store = configureStore({
     getDefaultMiddleware({
       serializableCheck: {
         ignoredActions: [
-          FLUSH, 
-          REHYDRATE, 
-          PAUSE, 
-          PERSIST, 
-          PURGE, 
+          FLUSH,
+          REHYDRATE,
+          PAUSE,
+          PERSIST,
+          PURGE,
           REGISTER,
           'persist/PERSIST',
           'persist/REHYDRATE',
@@ -203,7 +230,7 @@ export const store = configureStore({
       immutableCheck: {
         ignoredPaths: ['items.dates', '_persist'],
       },
-    }),
+    }).concat(menuQueryApi.middleware as any, portfolioQueryApi.middleware as any, errorMiddleware),
   devTools: process.env.NODE_ENV !== 'production' && {
     name: 'IFRS9 Platform Store',
     trace: true,
@@ -218,7 +245,7 @@ export const persistor = (() => {
     const persistorInstance = persistStore(store, null, () => {
       console.log('✅ Redux persist rehydration complete');
     });
-    
+
     // Enhanced development logging
     if (process.env.NODE_ENV === 'development') {
       try {
@@ -231,19 +258,19 @@ export const persistor = (() => {
         console.warn('⚠️ Redux store logging failed:', error);
       }
     }
-    
+
     return persistorInstance;
   } catch (error) {
     console.warn('⚠️ Redux persistor creation failed:', error);
-    
+
     // Enhanced mock persistor to prevent app crashes
     return {
-      persist: () => {},
+      persist: () => { },
       purge: () => Promise.resolve(),
       flush: () => Promise.resolve(),
-      pause: () => {},
-      resume: () => {},
-      subscribe: () => () => {},
+      pause: () => { },
+      resume: () => { },
+      subscribe: () => () => { },
       getState: () => ({ bootstrapped: false }),
     } as any;
   }
