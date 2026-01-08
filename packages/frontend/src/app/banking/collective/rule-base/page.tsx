@@ -697,9 +697,9 @@ export default function RuleBaseSettingPage() {
         value1: detailFormData.value1?.trim() || '',
         value2: detailFormData.value2?.trim() || '',
         condition: detailFormData.condition || 'AND',
-        detail_type: detailFormData.detail_type?.trim() || '',
-        stage_from: detailFormData.stage_from?.trim() || '',
-        stage_to: detailFormData.stage_to?.trim() || ''
+        detail_type: detailFormData.detail_type ? Number(detailFormData.detail_type) : undefined,
+        stage_from: detailFormData.stage_from ? Number(detailFormData.stage_from) : undefined,
+        stage_to: detailFormData.stage_to ? Number(detailFormData.stage_to) : undefined
       };
 
       if (selectedDetail) {

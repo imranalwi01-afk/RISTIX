@@ -457,7 +457,7 @@ export default function ProductParametersPage() {
     try {
       setLoading(true);
       console.log('🗑️ Deleting product:', product.prdCode);
-      await api.banking.productParameters.delete(product.pkid);
+      await api.banking.productParameters.delete(String(product.pkid));
       console.log('✅ Product deleted successfully');
       setSuccess('Product deleted successfully');
       await loadData();
@@ -507,7 +507,7 @@ export default function ProductParametersPage() {
 
       if (selectedProduct) {
         console.log('✏️ Updating product:', payload.prdCode);
-        await api.banking.productParameters.update(selectedProduct.pkid, payload);
+        await api.banking.productParameters.update(String(selectedProduct.pkid), payload);
         setSuccess('Product updated successfully');
       } else {
         console.log('➕ Creating product:', payload.prdCode);

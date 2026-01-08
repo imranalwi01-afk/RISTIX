@@ -56,7 +56,8 @@ import {
   ListItemIcon,
   Tabs,
   Tab
-} from '@mui/icons-material';
+} from '@mui/material';
+
 
 import {
   Calculate as CalculateIcon,
@@ -144,7 +145,7 @@ interface ApiResponse<T> {
 
 export default function ImpairmentModulePage() {
   const { user } = useAuth();
-  const { get, post, put, del } = useApi();
+  const { apiCall } = useApi();
 
   // State Management
   const [calculations, setCalculations] = useState<ImpairmentCalculation[]>([]);
@@ -188,9 +189,7 @@ export default function ImpairmentModulePage() {
         limit: rowsPerPage.toString()
       });
 
-      const response = await get<ApiResponse<ImpairmentCalculation>>(
-        `/api/v1/ifrs9/impairment-module/calculations?${params}`
-      );
+      const response = await apiCall(`/api/v1/ifrs9/impairment-module/calculations?${params}`) as ApiResponse<ImpairmentCalculation>;
 
       if (response.success) {
         setCalculations(response.data);
@@ -203,13 +202,11 @@ export default function ImpairmentModulePage() {
     } finally {
       setLoading(false);
     }
-  }, [get, page, rowsPerPage]);
+  }, [apiCall, page, rowsPerPage]);
 
   const loadConfigurations = useCallback(async () => {
     try {
-      const response = await get<ApiResponse<ImpairmentConfiguration>>(
-        '/api/v1/ifrs9/impairment-module/configurations'
-      );
+      const response = await apiCall('/api/v1/ifrs9/impairment-module/configurations') as ApiResponse<ImpairmentConfiguration>;
 
       if (response.success) {
         setConfigurations(response.data);
@@ -217,7 +214,7 @@ export default function ImpairmentModulePage() {
     } catch (err) {
       console.error('Failed to load configurations:', err);
     }
-  }, [get]);
+  }, [apiCall]);
 
   // Load currency options from Business Settings
   const loadCurrencyOptions = useCallback(async () => {
@@ -262,7 +259,11 @@ export default function ImpairmentModulePage() {
   const handleRunCalculation = async () => {
     try {
       setError(null);
-      const response = await post('/api/v1/ifrs9/impairment-module/run-calculation', calculationForm);
+      const response = await apiCall('/api/v1/ifrs9/impairment-module/run-calculation', {
+        method: 'POST',
+        body: JSON.stringify(calculationForm),
+        headers: { 'Content-Type': 'application/json' }
+      }) as any;
 
       if (response.success) {
         setSuccess('Impairment calculation started successfully');
@@ -313,7 +314,7 @@ export default function ImpairmentModulePage() {
       <Box>
         <Chip
           label={status}
-          color={colors[status as keyof typeof colors] || 'default'}
+          color={(colors[status as keyof typeof colors] as any) || 'default'}
           size="small"
           icon={status === 'RUNNING' ? <SpeedIcon /> : undefined}
         />
@@ -354,7 +355,8 @@ export default function ImpairmentModulePage() {
     <Container maxWidth="xl" sx={{ py: 3 }}>
       {/* Header */}
       <Box mb={3}>
-        <Breadcrumbs aria-label="breadcrumb" mb={2}>
+        {/* Breadcrumb Navigation */}
+        <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
           <Link color="inherit" href="/banking">
             Banking
           </Link>
@@ -664,7 +666,7 @@ export default function ImpairmentModulePage() {
                   </ListItemIcon>
                   <ListItemText
                     primary={config.configName}
-                    secondary={`${config.configType} - Version ${config.modelVersion}`}
+                    secondary={`${config.configType} - Version ${config.modelVersion} `}
                   />
                   <Box display="flex" alignItems="center" gap={2}>
                     <Chip

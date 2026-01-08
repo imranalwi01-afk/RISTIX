@@ -636,7 +636,7 @@ export default function IndividualAssessmentPage() {
 
     setLoading(true);
     try {
-      const response = await individualImpairmentAPI.assessment.create(selectedAccount.account_id, assessmentData);
+      const response = await individualImpairmentAPI.assessment.create(assessmentData);
       if (response.success) {
         setAssessment(response.data);
         fetchWatchlist(); // Refresh watchlist to update status

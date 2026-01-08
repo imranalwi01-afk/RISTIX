@@ -731,36 +731,6 @@ export const bankingAPI = {
   // ==========================================
   // PD SETUP API - IFRS9 COLLECTIVE IMPAIRMENT PD CONFIGURATION
   // ==========================================
-  // ==========================================
-  // PRODUCT PARAMETER API (frs9_param_product)
-  // ==========================================
-  productParameters: {
-    getAll: async () => {
-      console.log('📋 Fetching product parameters');
-      const response = await apiClient.get('/banking/setup/product-parameters');
-      return response.data;
-    },
-    getById: async (id: number) => {
-      console.log(`📄 Fetching product parameter ${id}`);
-      const response = await apiClient.get(`/banking/setup/product-parameters/${id}`);
-      return response.data;
-    },
-    create: async (data: any) => {
-      console.log('➕ Creating product parameter');
-      const response = await apiClient.post('/banking/setup/product-parameters', data);
-      return response.data;
-    },
-    update: async (id: number, data: any) => {
-      console.log(`✏️ Updating product parameter ${id}`);
-      const response = await apiClient.put(`/banking/setup/product-parameters/${id}`, data);
-      return response.data;
-    },
-    delete: async (id: number) => {
-      console.log(`🗑️ Deleting product parameter ${id}`);
-      const response = await apiClient.delete(`/banking/setup/product-parameters/${id}`);
-      return response.data;
-    }
-  },
 
   // ==========================================
   // JOURNAL PARAMETER API (frs9_param_journal)
@@ -945,52 +915,6 @@ export const bankingAPI = {
     getDebugInfo: async () => {
       console.log('🔍 Fetching business settings debug information');
       const response = await apiClient.get('/banking/business-settings/debug');
-      return response.data;
-    }
-  },
-
-  // FL SCALAR API - IFRS9 FORWARD LOOKING ADJUSTMENT SCALARS
-  // =========================================================
-  flScalar: {
-    // Get all FL Scalars with weighted details
-    getAll: async () => {
-      console.log('🔮 Fetching FL Scalars from DS2 FRS9PRO database (frs9_imp_ca_fl_scalarh/d)');
-      const response = await apiClient.get('/banking/collective/fl-scalar');
-      return response.data;
-    },
-
-    // Get single FL Scalar by ID with details
-    getById: async (id: string) => {
-      console.log(`📊 Fetching FL Scalar ${id} from DS2 database`);
-      const response = await apiClient.get(`/banking/collective/fl-scalar/${id}`);
-      return response.data;
-    },
-
-    // Create new FL Scalar with details
-    create: async (scalarData: any) => {
-      console.log('➕ Creating FL Scalar in DS2 database');
-      const response = await apiClient.post('/banking/collective/fl-scalar', scalarData);
-      return response.data;
-    },
-
-    // Update FL Scalar
-    update: async (id: string, scalarData: any) => {
-      console.log(`✏️ Updating FL Scalar ${id} in DS2 database`);
-      const response = await apiClient.put(`/banking/collective/fl-scalar/${id}`, scalarData);
-      return response.data;
-    },
-
-    // Delete FL Scalar
-    delete: async (id: string) => {
-      console.log(`🗑️ Deleting FL Scalar ${id} from DS2 database`);
-      const response = await apiClient.delete(`/banking/collective/fl-scalar/${id}`);
-      return response.data;
-    },
-
-    // Health check for FL Scalar service
-    health: async () => {
-      console.log('🏥 Checking FL Scalar DS2 database connection');
-      const response = await apiClient.get('/banking/collective/fl-scalar/health');
       return response.data;
     }
   },

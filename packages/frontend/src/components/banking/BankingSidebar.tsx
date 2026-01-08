@@ -855,12 +855,14 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
       roles: child.user_types,
       banking_modes: child.banking_types as ('conventional' | 'syariah' | 'dual')[],
       children: child.children ? child.children.map(c => ({
-        ...c,
+        id: c.id,
         label: c.title,
         code: c.key,
         icon: <Menu />, // Fix: provide ReactElement instead of string from database
-        banking_modes: c.banking_types as ('conventional' | 'syariah' | 'dual')[]
-      })) : undefined
+        banking_modes: c.banking_types as ('conventional' | 'syariah' | 'dual')[],
+        roles: c.user_types,
+        href: c.url || undefined
+      } as MenuItem)) : undefined
     };
     handleMenuItemClick(menuItem);
     handleFlyoutClose();
@@ -1811,7 +1813,7 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
               variant="caption"
               color="primary"
               sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
-              onClick={loadHierarchicalMenuFromDatabase}
+              onClick={() => window.location.reload()}
             >
               Retry
             </Typography>
