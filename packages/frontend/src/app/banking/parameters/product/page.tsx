@@ -116,8 +116,8 @@ export default function ProductParametersPage() {
       const result = await api.banking.businessSetup.getAll();
 
       if (result.success && result.data) {
-        // Extract Currency options from B0003
-        const currencyParam = result.data.find((param: any) => param.param_code === 'B0003');
+        // Extract Currency options from B0001
+        const currencyParam = result.data.find((param: any) => param.param_code === 'B0001');
         if (currencyParam && currencyParam.details) {
           const currencies = currencyParam.details.map((detail: any) => ({
             value: detail.value1 || detail.param_value,
@@ -132,27 +132,36 @@ export default function ProductParametersPage() {
           ]);
         }
 
-        // Amortization Type (B0002 or Static)
-        // Note: B0002 is technically Product Type, but we can verify if it contains Amortization types.
-        // For now, we will use static standard IFRS9 Amortization types.
-        setAmortizationOptions([
-             { value: 'EIR', label: 'Effective Interest Rate' },
-             { value: 'Straight', label: 'Straight Line' }
-        ]);
+        // Amortization Type (B0002)
+        const amortizationParam = result.data.find((param: any) => param.param_code === 'B0002');
+        if (amortizationParam && amortizationParam.details) {
+          console.log('✅ Found Dynamic Amortization Type options (B0002):', amortizationParam.details.length);
+          const amortTypes = amortizationParam.details.map((detail: any) => ({
+            value: detail.value1,
+            label: detail.paramdesc || detail.value1
+          }));
+          setAmortizationOptions(amortTypes);
+        } else {
+          console.warn('⚠️ B0002 not found for Amortization Type, falling back to static list');
+          setAmortizationOptions([
+            { value: 'EIR', label: 'Effective Interest Rate' },
+            { value: 'Straight', label: 'Straight Line' }
+          ]);
+        }
 
-        // Extract Instrument Class options from B0005 (Dynamic DB-Driven)
-        const instrParam = result.data.find((param: any) => param.param_code === 'B0005');
+        // Extract Instrument Class options from B0003 (Dynamic DB-Driven)
+        const instrParam = result.data.find((param: any) => param.param_code === 'B0003');
         if (instrParam && instrParam.details) {
-          console.log('✅ Found Dynamic Instrument Class options (B0005):', instrParam.details.length);
+          console.log('✅ Found Dynamic Instrument Class options (B0003):', instrParam.details.length);
           const instrClasses = instrParam.details.map((detail: any) => ({
             value: detail.value1, // 'A' or 'L'
             label: detail.paramdesc // 'Asset' or 'Liabilities'
           }));
           setInstrumentClassOptions(instrClasses);
         } else {
-           // Fallback only if database fetch fails completely - this shouldn't happen now
-           console.warn('⚠️ B0005 not found in response, falling back to static list');
-           setInstrumentClassOptions([
+          // Fallback only if database fetch fails completely - this shouldn't happen now
+          console.warn('⚠️ B0003 not found in response, falling back to static list');
+          setInstrumentClassOptions([
             { value: 'A', label: 'Asset' },
             { value: 'L', label: 'Liabilities' }
           ]);

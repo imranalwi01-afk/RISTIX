@@ -2,7 +2,7 @@ import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { z } from 'zod'
 import { db } from '../config'
-import { frs9ParamJournal } from '../db/schema'
+import { frs9ParamJournal, frs9ParamCommonh } from '../db/schema'
 import { eq, desc } from 'drizzle-orm'
 
 export const journalParameterRoutes = new Hono()
@@ -20,51 +20,80 @@ const journalParamSchema = z.object({
     createdby: z.string().max(50).default('SYSTEM'),
 })
 
-// Options Endpoints
-journalParameterRoutes.get('/gl-group-options', (c) => c.json({
-    success: true,
-    data: [
-        { id: 'ASSETS', name: 'Assets' },
-        { id: 'LIABILITIES', name: 'Liabilities' },
-        { id: 'EQUITY', name: 'Equity' },
-        { id: 'INCOME', name: 'Income' },
-        { id: 'EXPENSE', name: 'Expense' }
-    ]
-}))
+// Helper to get options from business settings (frs9_param_commonh - Type B)
+const getOptionsFromParam = async (paramCode: string) => {
+    try {
+        const param = await db.query.frs9ParamCommonh.findFirst({
+            where: (t, { and, eq }) => and(eq(t.paramType, 'B'), eq(t.paramCode, paramCode)),
+            with: { details: true }
+        });
 
-journalParameterRoutes.get('/currency-options', (c) => c.json({
-    success: true,
-    data: [
-        { id: 'IDR', name: 'Indonesian Rupiah' },
-        { id: 'USD', name: 'US Dollar' },
-        { id: 'EUR', name: 'Euro' }
-    ]
-}))
+        if (!param || !param.details) return [];
 
-journalParameterRoutes.get('/journal-type-options', (c) => c.json({
-    success: true,
-    data: [
-        { id: 'ACCRUAL', name: 'Accrual' },
-        { id: 'PAYMENT', name: 'Payment' },
-        { id: 'REVERSAL', name: 'Reversal' }
-    ]
-}))
+        return param.details.map(d => ({
+            id: d.value1 || d.param_value || '',
+            name: d.paramdesc || d.param_desc || d.value1 || ''
+        }));
+    } catch (error) {
+        console.error(`Error fetching param options for ${paramCode}:`, error);
+        return [];
+    }
+};
 
-journalParameterRoutes.get('/journal-code-options', (c) => c.json({
-    success: true,
-    data: [
-        { id: 'J001', name: 'J001 - Standard Accrual' },
-        { id: 'J002', name: 'J002 - Payment' }
-    ]
-}))
+// Options Endpoints - Using DB Lookups based on Spec
+// B0004: GL Group (GL01, GL02, etc.)
+journalParameterRoutes.get('/gl-group-options', async (c) => {
+    const options = await getOptionsFromParam('B0004');
+    return c.json({
+        success: true, data: options.length > 0 ? options : [
+            { id: 'ASSETS', name: 'Assets (Fallback)' },
+            { id: 'LIABILITIES', name: 'Liabilities (Fallback)' }
+        ]
+    });
+})
 
-journalParameterRoutes.get('/dbcr-options', (c) => c.json({
-    success: true,
-    data: [
-        { id: 'D', name: 'Debit' },
-        { id: 'C', name: 'Credit' }
-    ]
-}))
+// B0001: Currency (IDR, USD, etc.)
+journalParameterRoutes.get('/currency-options', async (c) => {
+    const options = await getOptionsFromParam('B0001');
+    return c.json({
+        success: true, data: options.length > 0 ? options : [
+            { id: 'IDR', name: 'IDR (Fallback)' },
+            { id: 'USD', name: 'USD (Fallback)' }
+        ]
+    });
+})
+
+// B0006: Journal Type (IMPC, IMPI, etc.)
+journalParameterRoutes.get('/journal-type-options', async (c) => {
+    const options = await getOptionsFromParam('B0006');
+    return c.json({
+        success: true, data: options.length > 0 ? options : [
+            { id: 'ACCRUAL', name: 'Accrual (Fallback)' },
+            { id: 'PAYMENT', name: 'Payment (Fallback)' }
+        ]
+    });
+})
+
+// B0008: Journal Code (GL, etc.)
+journalParameterRoutes.get('/journal-code-options', async (c) => {
+    const options = await getOptionsFromParam('B0008');
+    return c.json({
+        success: true, data: options.length > 0 ? options : [
+            { id: 'J001', name: 'Standard Accrual (Fallback)' }
+        ]
+    });
+})
+
+// B0007: DB/CR (D, C)
+journalParameterRoutes.get('/dbcr-options', async (c) => {
+    const options = await getOptionsFromParam('B0007');
+    return c.json({
+        success: true, data: options.length > 0 ? options : [
+            { id: 'D', name: 'Debit (Fallback)' },
+            { id: 'C', name: 'Credit (Fallback)' }
+        ]
+    });
+})
 
 // GET / - List all journal parameters
 journalParameterRoutes.get('/', async (c) => {

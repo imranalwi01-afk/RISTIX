@@ -88,6 +88,7 @@ import {
 // API Service Integration
 import { useApi } from '@/hooks/useApi';
 import { useAuth } from '@/providers/AuthProvider';
+import { bankingAPI } from '@/services/api';
 
 // Types for Impairment Module
 interface ImpairmentCalculation {
@@ -156,6 +157,9 @@ export default function ImpairmentModulePage() {
   const [totalCount, setTotalCount] = useState(0);
   const [currentTab, setCurrentTab] = useState(0);
 
+  // Currency options from Business Settings (B0001)
+  const [currencyOptions, setCurrencyOptions] = useState<Array<{ id: string; name: string }>>([]);
+
   // Dialog States
   const [runCalculationDialogOpen, setRunCalculationDialogOpen] = useState(false);
   const [configDialogOpen, setConfigDialogOpen] = useState(false);
@@ -215,10 +219,44 @@ export default function ImpairmentModulePage() {
     }
   }, [get]);
 
+  // Load currency options from Business Settings
+  const loadCurrencyOptions = useCallback(async () => {
+    try {
+      const response = await bankingAPI.businessSetup.getAll();
+      if (response.success && response.data) {
+        // Find B0001 (Currency) parameter
+        const currencyParam = response.data.find((param: any) => param.param_code === 'B0001');
+        if (currencyParam && currencyParam.details) {
+          const options = currencyParam.details.map((detail: any) => ({
+            id: detail.value1 || detail.param_value || '',
+            name: detail.paramdesc || detail.param_desc || detail.value1 || ''
+          }));
+          setCurrencyOptions(options);
+        } else {
+          // Fallback to static list if B0001 not found
+          setCurrencyOptions([
+            { id: 'IDR', name: 'IDR - Indonesian Rupiah' },
+            { id: 'USD', name: 'USD - US Dollar' },
+            { id: 'EUR', name: 'EUR - Euro' }
+          ]);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load currency options:', err);
+      // Fallback to static list on error
+      setCurrencyOptions([
+        { id: 'IDR', name: 'IDR - Indonesian Rupiah' },
+        { id: 'USD', name: 'USD - US Dollar' },
+        { id: 'EUR', name: 'EUR - Euro' }
+      ]);
+    }
+  }, []);
+
   useEffect(() => {
     loadCalculations();
     loadConfigurations();
-  }, [loadCalculations, loadConfigurations]);
+    loadCurrencyOptions();
+  }, [loadCalculations, loadConfigurations, loadCurrencyOptions]);
 
   // Form Handlers
   const handleRunCalculation = async () => {
@@ -748,9 +786,15 @@ export default function ImpairmentModulePage() {
                     label="Currency"
                     onChange={(e) => handleCalculationInputChange('currency', e.target.value)}
                   >
-                    <MenuItem value="IDR">IDR - Indonesian Rupiah</MenuItem>
-                    <MenuItem value="USD">USD - US Dollar</MenuItem>
-                    <MenuItem value="EUR">EUR - Euro</MenuItem>
+                    {currencyOptions.length > 0 ? (
+                      currencyOptions.map((currency) => (
+                        <MenuItem key={currency.id} value={currency.id}>
+                          {currency.name}
+                        </MenuItem>
+                      ))
+                    ) : (
+                      <MenuItem value="IDR">IDR - Indonesian Rupiah (Loading...)</MenuItem>
+                    )}
                   </Select>
                 </FormControl>
               </Grid>

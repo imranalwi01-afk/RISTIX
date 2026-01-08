@@ -660,32 +660,7 @@ export const bankingAPI = {
     }
   },
 
-  // Journal parameters (FRS9_PARAM_JOURNAL)
-  journalParameters: {
-    getAll: async (params?: { page?: number; limit?: number; search?: string }) => {
-      console.log('📝 Fetching journal parameters from DS2 database', params);
-      const response = await apiClient.get('/banking/parameters/journal', { params });
-      return response.data;
-    },
 
-    create: async (journalData: any) => {
-      console.log('➕ Creating journal parameter in DS2 database', journalData.gl_code);
-      const response = await apiClient.post('/banking/parameters/journal', journalData);
-      return response.data;
-    },
-
-    update: async (glCode: string, journalData: any) => {
-      console.log(`✏️ Updating journal parameter ${glCode} in DS2 database`);
-      const response = await apiClient.put(`/banking/parameters/journal/${glCode}`, journalData);
-      return response.data;
-    },
-
-    delete: async (glCode: string) => {
-      console.log(`🗑️ Deleting journal parameter ${glCode} from DS2 database`);
-      const response = await apiClient.delete(`/banking/parameters/journal/${glCode}`);
-      return response.data;
-    }
-  },
 
   // Segmentation Configuration (FRS9_PARAM_SEGMENTH + FRS9_PARAM_SEGMENTD)
   segmentation: {
@@ -814,6 +789,32 @@ export const bankingAPI = {
     delete: async (id: number) => {
       console.log(`🗑️ Deleting journal parameter ${id}`);
       const response = await apiClient.delete(`/banking/setup/journal-parameters/${id}`);
+      return response.data;
+    },
+    // Options for dropdowns
+    getGlGroupOptions: async () => {
+      console.log('📋 Fetching GL Group options');
+      const response = await apiClient.get('/banking/setup/journal-parameters/gl-group-options');
+      return response.data;
+    },
+    getCurrencyOptions: async () => {
+      console.log('📋 Fetching Currency options');
+      const response = await apiClient.get('/banking/setup/journal-parameters/currency-options');
+      return response.data;
+    },
+    getJournalTypeOptions: async () => {
+      console.log('📋 Fetching Journal Type options');
+      const response = await apiClient.get('/banking/setup/journal-parameters/journal-type-options');
+      return response.data;
+    },
+    getJournalCodeOptions: async () => {
+      console.log('📋 Fetching Journal Code options');
+      const response = await apiClient.get('/banking/setup/journal-parameters/journal-code-options');
+      return response.data;
+    },
+    getDbcrOptions: async () => {
+      console.log('📋 Fetching DB/CR options');
+      const response = await apiClient.get('/banking/setup/journal-parameters/dbcr-options');
       return response.data;
     }
   },
