@@ -13,6 +13,9 @@ import {
 } from '@/lib/errors'
 import { AuthRepository } from '@/repositories/auth.repository'
 import { TenantRepository } from '@/repositories/tenant.repository'
+import { db } from '@/config'
+import { eq } from 'drizzle-orm'
+import { userRoles } from '@/db/schema'
 
 // =============================================================================
 // TYPES
@@ -37,6 +40,8 @@ export interface JwtPayload {
     tenantId?: string
     jti: string // token id
     type: 'access' | 'refresh'
+    roles?: string[]
+    role?: string
 }
 
 // =============================================================================
@@ -56,10 +61,14 @@ const REFRESH_TOKEN_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
 /**
  * Generate a new JWT access token
  */
+/**
+ * Generate a new JWT access token
+ */
 const generateAccessToken = async (
     user: User,
     tokenId: string,
-    tenantId?: string
+    tenantId?: string,
+    roles: string[] = []
 ): Promise<string> => {
     return new jose.SignJWT({
         sub: user.id,
@@ -67,6 +76,9 @@ const generateAccessToken = async (
         tenantId: tenantId ?? user.tenantId,
         jti: tokenId,
         type: 'access',
+        roles, // ✅ Include roles
+        role: roles[0], // ✅ Include primary role for backward compatibility
+        isPlatformAdmin: user.isPlatformAdmin // ✅ Include platform admin flag
     })
         .setProtectedHeader({ alg: 'HS256' })
         .setIssuedAt()
@@ -80,7 +92,8 @@ const generateAccessToken = async (
 const generateRefreshToken = async (
     user: User,
     tokenId: string,
-    tenantId?: string
+    tenantId?: string,
+    roles: string[] = []
 ): Promise<string> => {
     return new jose.SignJWT({
         sub: user.id,
@@ -88,6 +101,8 @@ const generateRefreshToken = async (
         tenantId: tenantId ?? user.tenantId,
         jti: tokenId,
         type: 'refresh',
+        roles, // ✅ Include roles
+        isPlatformAdmin: user.isPlatformAdmin, // ✅ Include platform admin flag
     })
         .setProtectedHeader({ alg: 'HS256' })
         .setIssuedAt()
@@ -142,7 +157,9 @@ export const login = (
                 if (!input.tenantId) return undefined
                 // If it's a UUID, return as is
                 const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-                if (uuidRegex.test(input.tenantId)) return input.tenantId
+                if (uuidRegex.test(input.tenantId)) {
+                    return input.tenantId
+                }
 
                 // Otherwise lookup by slug
                 const tenant = await TenantRepository.findBySlug(input.tenantId)
@@ -198,9 +215,19 @@ export const login = (
                     const refreshTokenId = crypto.randomUUID()
                     const now = new Date()
 
+                    // Fetch user roles
+                    const userRolesList = await db.query.userRoles.findMany({
+                        where: eq(userRoles.userId, user.id),
+                        with: {
+                            role: true
+                        }
+                    })
+
+                    const roles = userRolesList.map(ur => ur.role.roleName) // Or roleCode if preferred
+
                     const [accessToken, refreshToken] = await Promise.all([
-                        generateAccessToken(user, accessTokenId, resolvedTenantId),
-                        generateRefreshToken(user, refreshTokenId, resolvedTenantId),
+                        generateAccessToken(user, accessTokenId, resolvedTenantId, roles),
+                        generateRefreshToken(user, refreshTokenId, resolvedTenantId, roles),
                     ])
 
                     // Create session record
@@ -220,7 +247,10 @@ export const login = (
                     await AuthRepository.updateLastLogin(user.id)
 
                     return {
-                        user,
+                        user: {
+                            ...user,
+                            roles // Return roles in user object too if needed by frontend immediately
+                        },
                         tokens: {
                             accessToken,
                             refreshToken,

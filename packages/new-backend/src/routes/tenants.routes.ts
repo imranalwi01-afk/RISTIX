@@ -13,6 +13,17 @@ export const tenantsRoutes = new Hono<AppContext>()
 // Apply auth middleware
 tenantsRoutes.use('*', authMiddleware)
 
+/**
+ * Middleware to check if user is platform admin
+ */
+const requirePlatformAdmin = async (c: any, next: any) => {
+    const isPlatformAdmin = c.get('isSystemUser')
+    if (!isPlatformAdmin) {
+        return c.json({ success: false, error: 'Unauthorized: Platform Admin access required' }, 403)
+    }
+    await next()
+}
+
 // =============================================================================
 // SCHEMA DEFINITIONS
 // =============================================================================
@@ -41,16 +52,21 @@ const updateTenantSchema = z.object({
 
 /**
  * GET /tenants - List all tenants (react-admin compatible)
+ * Restricted to Platform Admins
  */
-tenantsRoutes.get('/', async (c) => {
+tenantsRoutes.get('/', requirePlatformAdmin, async (c) => {
     const pagination = parsePaginationParams(c)
     const filters = parseFilterParams(c)
+
+    // Platform admins can request system tenant
+    const includeSystem = filters.includeSystem === 'true' || c.req.query('mode') === 'admin'
 
     const effect = tenantsService.getTenants({
         pagination,
         search: filters.q as string | undefined,
         bankingMode: filters.bankingMode as string | undefined,
         includeInactive: filters.includeInactive === 'true',
+        includeSystem
     })
 
     const result = await Effect.runPromise(effect)
@@ -59,8 +75,9 @@ tenantsRoutes.get('/', async (c) => {
 
 /**
  * POST /tenants - Create a new tenant
+ * Restricted to Platform Admins
  */
-tenantsRoutes.post('/', zValidator('json', createTenantSchema), async (c) => {
+tenantsRoutes.post('/', requirePlatformAdmin, zValidator('json', createTenantSchema), async (c) => {
     const body = c.req.valid('json')
 
     const effect = pipe(
@@ -114,8 +131,9 @@ tenantsRoutes.get('/:id', async (c) => {
 
 /**
  * PUT /tenants/:id - Update tenant
+ * Restricted to Platform Admins
  */
-tenantsRoutes.put('/:id', zValidator('json', updateTenantSchema), async (c) => {
+tenantsRoutes.put('/:id', requirePlatformAdmin, zValidator('json', updateTenantSchema), async (c) => {
     const { id } = c.req.param()
     const body = c.req.valid('json')
 
@@ -126,8 +144,9 @@ tenantsRoutes.put('/:id', zValidator('json', updateTenantSchema), async (c) => {
 
 /**
  * DELETE /tenants/:id - Delete tenant (soft delete)
+ * Restricted to Platform Admins
  */
-tenantsRoutes.delete('/:id', async (c) => {
+tenantsRoutes.delete('/:id', requirePlatformAdmin, async (c) => {
     const { id } = c.req.param()
 
     const effect = tenantsService.deleteTenant(id)

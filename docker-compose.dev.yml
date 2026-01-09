@@ -87,6 +87,8 @@ services:
       - ifrs9-dev
     volumes:
       - ./packages/new-backend/src:/app/src:ro
+      - ./packages/new-backend/package.json:/app/package.json
+      - ./packages/new-backend/bun.lockb:/app/bun.lockb
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:4232/api/health" ]
       interval: 30s

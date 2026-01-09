@@ -382,4 +382,4 @@ function convertToCSV(data: any[]): string {
     return [headers.join(','), ...rows].join('\n')
 }
 
-export default app
+export const auditRoutes = app

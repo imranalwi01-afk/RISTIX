@@ -1,6 +1,7 @@
 // Core entities
 export * from './core'
 export * from './menu.schema'
+export * from './consultants.schema'
 
 // RBAC (Role-Based Access Control) - excluding coreSchema which is already exported from core
 export {

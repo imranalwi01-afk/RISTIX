@@ -65,6 +65,7 @@ authRoutes.post('/login', zValidator('json', loginSchema), async (c) => {
                         firstName: user.firstName,
                         lastName: user.lastName,
                         tenantId: user.tenantId,
+                        isPlatformAdmin: user.isPlatformAdmin, // ✅ Added missing field
                         permissions,
                         roles: userRoles.map((ur: any) => ur.role?.roleName ?? 'UNKNOWN'),
                     },
@@ -76,7 +77,10 @@ authRoutes.post('/login', zValidator('json', loginSchema), async (c) => {
         ),
         Effect.tapError((error) => {
             // Log failed login
-            auditService.logAuth.loginFailed(body.email, body.tenantId || 'unknown', ip, error.message)
+            const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+            const tenantIdForLog = body.tenantId && uuidRegex.test(body.tenantId) ? body.tenantId : undefined
+
+            auditService.logAuth.loginFailed(body.email, tenantIdForLog, ip, error.message)
             return Effect.succeed(void 0)
         })
     )
@@ -117,8 +121,13 @@ authRoutes.get('/status', (c) => {
  * GET /auth/login-data - Get login data (tenants)
  */
 authRoutes.get('/login-data', async (c) => {
+    const mode = c.req.query('mode')
+
+    // Only include system tenant if specific mode is requested
+    const includeSystem = mode === 'admin'
+
     const effect = pipe(
-        tenantService.getTenants(),
+        tenantService.getTenants({ includeSystem }),
         Effect.map((result) => ({
             tenants: result.data.map((t: any) => ({
                 id: t.id,
@@ -141,9 +150,21 @@ authRoutes.get('/login-data', async (c) => {
 
 // Apply auth middleware to protected routes
 authRoutes.use('/me', authMiddleware)
+authRoutes.use('/verify', authMiddleware)
 authRoutes.use('/logout', authMiddleware)
 
 import * as rbacService from '../services/rbac.service'
+
+/**
+ * GET /auth/verify - Verify token validity
+ */
+authRoutes.get('/verify', (c) => {
+    return c.json({
+        success: true,
+        message: 'Token is valid',
+        user: c.get('user'),
+    })
+})
 
 /**
  * GET /auth/me - Get current user info

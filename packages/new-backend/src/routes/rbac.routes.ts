@@ -85,6 +85,7 @@ rbacRoutes.post('/roles', zValidator('json', createRoleSchema), async (c) => {
 
     const effect = rbacService.createRole({
         ...body,
+        roleCode: body.roleName, // Use roleName as roleCode
         tenantId,
         createdBy: userId,
     })

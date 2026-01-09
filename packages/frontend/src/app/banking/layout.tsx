@@ -59,6 +59,7 @@ import BankingSidebar from '../../components/banking/BankingSidebar';
 import { getAuthToken } from '../../utils/auth-token'; // Removed clearAuthTokens, not needed
 import { useBankingTheme } from '../../providers/BankingThemeProvider';
 import { useAuth } from '../../providers/AuthProvider'; // ✅ Import useAuth for robust logout
+import { TenantSwitcher } from '../../components/admin/TenantSwitcher'; // ✅ Import Tenant Switcher
 
 const DRAWER_WIDTH = 280;
 const DRAWER_WIDTH_COLLAPSED = 60;
@@ -121,7 +122,7 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
 
       // Ensure role is a string if it somehow came as an array from other fields
       if (Array.isArray(role)) {
-          role = role[0] || '';
+        role = role[0] || '';
       }
 
       // 🔧 FORCE IAF ROLES FOR ADMIN USERS
@@ -227,8 +228,8 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
         window.location.href = '/login';
       }
     } catch (error) {
-       console.error('Logout error:', error);
-       window.location.href = '/login';
+      console.error('Logout error:', error);
+      window.location.href = '/login';
     }
   };
 
@@ -364,12 +365,15 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
           </Typography>
         </Box>
 
-        {/* ✅ ADD: Theme Toggle Button */}
+        {/* Theme Toggle Button */}
         <Tooltip title={`Switch to ${colorMode === 'dark' ? 'Light' : 'Dark'} Mode`}>
-           <IconButton onClick={toggleColorMode} color="inherit" size="small" sx={{ ml: 1 }}>
-              {colorMode === 'dark' ? <Brightness7 /> : <Brightness4 />}
-           </IconButton>
+          <IconButton onClick={toggleColorMode} color="inherit" size="small" sx={{ ml: 1 }}>
+            {colorMode === 'dark' ? <Brightness7 /> : <Brightness4 />}
+          </IconButton>
         </Tooltip>
+
+        {/* ✅ ADD: Tenant Switcher for Platform Admins */}
+        <TenantSwitcher />
 
         {/* 🚨 DISABLED: Notifications - Per IAF IFRS9 Step 02 Requirements */}
         {/* Notifications icon has been disabled as per requirements */}
@@ -581,15 +585,15 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
         onClose={handleProfileMenuClose}
         TransitionProps={{ timeout: 200 }} // Smooth transition
         PaperProps={{
-          sx: { 
-            width: 260, 
+          sx: {
+            width: 260,
             mt: 1.5,
             borderRadius: 3, // More rounded
             boxShadow: '0 4px 20px rgba(0,0,0,0.15)', // Softer shadow
             overflow: 'hidden',
             border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-            backgroundImage: colorMode === 'dark' 
-              ? 'linear-gradient(rgba(30, 41, 59, 0.95), rgba(30, 41, 59, 0.95))' 
+            backgroundImage: colorMode === 'dark'
+              ? 'linear-gradient(rgba(30, 41, 59, 0.95), rgba(30, 41, 59, 0.95))'
               : 'rgba(255, 255, 255, 0.95)',
             backdropFilter: 'blur(20px)',
           }
@@ -597,43 +601,43 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
         MenuListProps={{ disablePadding: true }} // Allow full-width header
       >
         {/* Modern Menu Header */}
-        <Box sx={{ 
-          p: 2.5, 
-          background: colorMode === 'dark' 
+        <Box sx={{
+          p: 2.5,
+          background: colorMode === 'dark'
             ? `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.2)} 0%, ${alpha(theme.palette.primary.dark, 0.3)} 100%)`
             : `linear-gradient(135deg, ${alpha(theme.palette.primary.light, 0.1)} 0%, ${alpha(theme.palette.primary.main, 0.05)} 100%)`,
           borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`
         }}>
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
-             <Avatar sx={{
-                width: 48,
-                height: 48,
-                bgcolor: theme.palette.primary.main,
-                color: '#fff',
-                fontSize: '1.2rem',
-                fontWeight: 700,
-                boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.4)}`
-              }}>
-                {userName.charAt(0).toUpperCase()}
-              </Avatar>
-              <Box sx={{ ml: 2 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
-                  {userName}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                  {(typeof userRole === 'string' ? userRole : String(userRole || '')).replace(/_/g, ' ')}
-                </Typography>
-              </Box>
+            <Avatar sx={{
+              width: 48,
+              height: 48,
+              bgcolor: theme.palette.primary.main,
+              color: '#fff',
+              fontSize: '1.2rem',
+              fontWeight: 700,
+              boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.4)}`
+            }}>
+              {userName.charAt(0).toUpperCase()}
+            </Avatar>
+            <Box sx={{ ml: 2 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+                {userName}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                {(typeof userRole === 'string' ? userRole : String(userRole || '')).replace(/_/g, ' ')}
+              </Typography>
+            </Box>
           </Box>
-          
+
           {/* ✅ SURGICAL FIX: Dynamic banking mode chip */}
           <Chip
             size="small"
-            label={getBankingModeLabel()} 
+            label={getBankingModeLabel()}
             color={getBankingModeColor() as any}
-            sx={{ 
-              height: 24, 
-              fontSize: '0.75rem', 
+            sx={{
+              height: 24,
+              fontSize: '0.75rem',
               fontWeight: 600,
               width: '100%',
               justifyContent: 'flex-start',
@@ -645,27 +649,27 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
         </Box>
 
         <Box sx={{ p: 1 }}>
-          <MenuItem 
-            onClick={() => { handleProfileMenuClose(); router.push('/banking/settings/profile'); }} 
-            sx={{ 
-              py: 1.5, 
-              borderRadius: 2, 
+          <MenuItem
+            onClick={() => { handleProfileMenuClose(); router.push('/banking/settings/profile'); }}
+            sx={{
+              py: 1.5,
+              borderRadius: 2,
               mb: 0.5,
               transition: 'all 0.2s',
-              '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.08), transform: 'translateX(4px)' } 
+              '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.08), transform: 'translateX(4px)' }
             }}
           >
             <AccountCircle sx={{ mr: 2, fontSize: '1.2rem', color: 'text.secondary' }} />
             <Typography variant="body2" fontWeight={500}>Profile Settings</Typography>
           </MenuItem>
 
-          <MenuItem 
-            onClick={() => { handleProfileMenuClose(); router.push('/banking/settings/preferences'); }} 
-            sx={{ 
-              py: 1.5, 
-              borderRadius: 2, 
+          <MenuItem
+            onClick={() => { handleProfileMenuClose(); router.push('/banking/settings/preferences'); }}
+            sx={{
+              py: 1.5,
+              borderRadius: 2,
               transition: 'all 0.2s',
-              '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.08), transform: 'translateX(4px)' } 
+              '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.08), transform: 'translateX(4px)' }
             }}
           >
             <Settings sx={{ mr: 2, fontSize: '1.2rem', color: 'text.secondary' }} />
@@ -674,14 +678,14 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
 
           <Divider sx={{ my: 1, borderColor: alpha(theme.palette.divider, 0.1) }} />
 
-          <MenuItem 
-            onClick={handleLogout} 
-            sx={{ 
-              color: 'error.main', 
-              py: 1.5, 
+          <MenuItem
+            onClick={handleLogout}
+            sx={{
+              color: 'error.main',
+              py: 1.5,
               borderRadius: 2,
               transition: 'all 0.2s',
-              '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.08), transform: 'translateX(4px)' } 
+              '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.08), transform: 'translateX(4px)' }
             }}
           >
             <ExitToApp sx={{ mr: 2, fontSize: '1.2rem' }} />

@@ -50,7 +50,6 @@ export const createJobApprovalRequest = async (params: {
 
     // Create approval request
     const approvalRequest = await approvalService.createApprovalRequest({
-        matrixId: definition.approvalMatrixId,
         tenantId,
         entityType: 'job_execution',
         entityId: executionId,
@@ -62,6 +61,7 @@ export const createJobApprovalRequest = async (params: {
         requestData: {
             jobDefinitionId,
             jobType: definition.jobType,
+            approvalMatrixId: definition.approvalMatrixId, // Store in requestData
             parameters
         }
     })

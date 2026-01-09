@@ -45,7 +45,7 @@ const getRoleBasedRedirectUrl = (user: any): string => {
     console.log(`🔍 Determining redirect for user: ${email} with role: ${role}, tenant: ${tenantId}`);
 
     // Platform administrators
-    if (role.includes('PLATFORM_') || role.includes('SUPER_ADMIN')) {
+    if (user?.isPlatformAdmin === true || role.includes('PLATFORM_') || role.includes('SUPER_ADMIN')) {
       console.log('📊 Platform admin user detected - redirecting to React Admin');
       return '/platform/admin';
     }
@@ -567,20 +567,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           // We store raw data to 'temp_raw_menu' so BankingSidebar can pick it up immediately
           // avoiding a second network request.
           if (roleBasedUrl.includes('banking') && token) {
-             const detectedMode = detectedBankingMode || 'conventional';
-             // Run in background, don't await
-             import('../services/api/menu.api').then(({ menuApi }) => {
-                 console.log('⚡ [PERF] Pre-fetching menu data for:', detectedMode);
-                 menuApi.getMenuTree({
-                    bankingMode: detectedMode,
-                    includeInactive: false
-                 }).then(response => {
-                    if (response.success && response.data) {
-                        localStorage.setItem('temp_raw_menu', JSON.stringify(response.data));
-                        console.log('⚡ [PERF] Menu data pre-fetched and cached to temp storage');
-                    }
-                 }).catch(err => console.warn('⚠️ Menu pre-fetch failed:', err));
-             });
+            const detectedMode = detectedBankingMode || 'conventional';
+            // Run in background, don't await
+            import('../services/api/menu.api').then(({ menuApi }) => {
+              console.log('⚡ [PERF] Pre-fetching menu data for:', detectedMode);
+              menuApi.getMenuTree({
+                bankingMode: detectedMode,
+                includeInactive: false
+              }).then(response => {
+                if (response.success && response.data) {
+                  localStorage.setItem('temp_raw_menu', JSON.stringify(response.data));
+                  console.log('⚡ [PERF] Menu data pre-fetched and cached to temp storage');
+                }
+              }).catch(err => console.warn('⚠️ Menu pre-fetch failed:', err));
+            });
           }
 
           setTimeout(() => {

@@ -87,7 +87,7 @@ export const logAuth = {
         })
     },
 
-    loginFailed: async (email: string, tenantId: string, ipAddress?: string, reason?: string) => {
+    loginFailed: async (email: string, tenantId?: string, ipAddress?: string, reason?: string) => {
         await logAuditEvent({
             tenantId,
             eventType: 'auth',

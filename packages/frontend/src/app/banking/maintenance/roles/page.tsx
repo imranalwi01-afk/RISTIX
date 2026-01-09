@@ -1195,7 +1195,7 @@ const RoleManagementPage: React.FC = () => {
                   <Typography variant="h6" color="error.main">
                     {roles.reduce((sum, role) =>
                       sum + role.permissions.filter(p =>
-                        permissions.find(perm => perm.id === p)?.riskLevel === 'CRITICAL'
+                        permissions.find(perm => perm.id === (typeof p === 'string' ? p : p.id))?.riskLevel === 'CRITICAL'
                       ).length, 0
                     )}
                   </Typography>
@@ -1207,7 +1207,7 @@ const RoleManagementPage: React.FC = () => {
                   <Typography variant="h6" color="warning.main">
                     {roles.reduce((sum, role) =>
                       sum + role.permissions.filter(p =>
-                        permissions.find(perm => perm.id === p)?.requiresApproval
+                        permissions.find(perm => perm.id === (typeof p === 'string' ? p : p.id))?.requiresApproval
                       ).length, 0
                     )}
                   </Typography>

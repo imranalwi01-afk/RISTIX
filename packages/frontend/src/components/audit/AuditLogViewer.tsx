@@ -33,7 +33,7 @@ import {
     Download as DownloadIcon,
     FilterList as FilterListIcon
 } from '@mui/icons-material'
-import { api } from '@/lib/api'
+import { api } from '@/services/api'
 import { format } from 'date-fns'
 
 interface AuditLog {
@@ -87,7 +87,7 @@ export const AuditLogViewer: React.FC = () => {
                 ...(endDate && { endDate })
             })
 
-            const response = await api.get(`/audit/logs?${params}`)
+            const response = await api.client.get(`/audit/logs?${params}`)
             setLogs(response.data.data)
             setTotal(response.data.pagination.total)
         } catch (error) {
@@ -104,7 +104,7 @@ export const AuditLogViewer: React.FC = () => {
 
     const handleExport = async () => {
         try {
-            const response = await api.post('/audit/export', {
+            const response = await api.client.post('/audit/export', {
                 format: 'csv',
                 filters: {
                     ...(eventType && { eventType }),

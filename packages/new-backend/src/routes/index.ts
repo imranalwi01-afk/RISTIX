@@ -29,6 +29,8 @@ import impairmentRoutes from './impairment.routes'
 import amortizationRoutes from './amortization.routes'
 import reportsRoutes from './reports.routes'
 import jobsRoutes from './jobs.routes'
+import { consultantsRoutes } from './consultants.routes'
+import { platformUsersRoutes } from './platform-users.routes'
 
 /**
  * Main API router
@@ -46,6 +48,8 @@ routes.route('/approvals', approvalRoutes)
 routes.route('/rbac', rbacRoutes)
 routes.route('/audit', auditRoutes)
 routes.route('/menu', menuRoutes)
+routes.route('/consultants', consultantsRoutes)
+routes.route('/platform-users', platformUsersRoutes)
 routes.route('/banking/parameters/product-segments', productSegmentsRoutes)
 routes.route('/banking/collective/rule-base', ruleBaseSettingsRoutes)
 routes.route('/banking/collective/bucket', bucketParametersRoutes)
