@@ -7,6 +7,7 @@ import { runEffect } from '../lib/effect'
 import * as authService from '../services/auth.service'
 import * as tenantService from '../services/tenants.service'
 import { authMiddleware } from '../middleware'
+import * as auditService from '../services/audit.service'
 
 export const authRoutes = new Hono<AppContext>()
 
@@ -52,6 +53,11 @@ authRoutes.post('/login', zValidator('json', loginSchema), async (c) => {
                     rbacService.getUserPermissions(user.id, user.tenantId),
                     rbacService.getUserRoles(user.id, user.tenantId)
                 ]),
+                Effect.tap(() => {
+                    // Log successful login
+                    auditService.logAuth.login(user.id, user.tenantId, ip, userAgent)
+                    return Effect.succeed(void 0)
+                }),
                 Effect.map(([permissions, userRoles]) => ({
                     user: {
                         id: user.id,
@@ -67,9 +73,13 @@ authRoutes.post('/login', zValidator('json', loginSchema), async (c) => {
                     token: tokens.accessToken, // For legacy compatibility
                 }))
             )
-        )
+        ),
+        Effect.tapError((error) => {
+            // Log failed login
+            auditService.logAuth.loginFailed(body.email, body.tenantId || 'unknown', ip, error.message)
+            return Effect.succeed(void 0)
+        })
     )
-
 
     return runEffect(c, effect)
 })
@@ -176,12 +186,23 @@ authRoutes.get('/me/permissions', async (c) => {
  */
 authRoutes.post('/logout', async (c) => {
     const tokenId = c.get('tokenId')
+    const userId = c.get('userId')
+    const tenantId = c.get('tenantId')
+    const ip = c.req.header('x-forwarded-for') || c.req.header('x-real-ip')
+
     if (!tokenId) {
         return c.json({ success: true, message: 'Logged out' })
     }
 
     const effect = pipe(
         authService.logout(tokenId, 'user_logout'),
+        Effect.tap(() => {
+            // Log logout
+            if (userId && tenantId) {
+                auditService.logAuth.logout(userId, tenantId, ip)
+            }
+            return Effect.succeed(void 0)
+        }),
         Effect.map(() => ({
             success: true,
             message: 'Logged out successfully',

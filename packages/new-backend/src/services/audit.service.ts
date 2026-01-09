@@ -1,292 +1,442 @@
-import { Effect, pipe } from 'effect'
-import { eq, and, asc, desc, gte, lte, sql, count } from 'drizzle-orm'
-import { db } from '@/config'
-import { AuditRepository } from '@/repositories/audit.repository'
-import {
-    auditLogs,
-    type NewUserActivityLog,
-    type NewDataAccessLog,
-    type NewCalculationAuditLog,
-} from '@/db/schema'
-import { DatabaseError, NotFoundError } from '@/lib/errors'
-import { dbOperation } from '@/lib/effect'
-
-// =============================================================================
-// AUDIT LOG OPERATIONS
-// =============================================================================
-
-export interface CreateAuditLogInput {
-    userId?: string
-    sessionId?: string
-    eventType: string
-    action: string
-    description?: string
-    entityType?: string
-    entityId?: string
-    entityName?: string
-    oldValues?: Record<string, unknown>
-    newValues?: Record<string, unknown>
-    changedFields?: string[]
-    ipAddress?: string
-    userAgent?: string
-    requestPath?: string
-    requestMethod?: string
-    applicationName?: string
-    moduleName?: string
-    functionName?: string
-    businessDate?: Date
-    riskLevel?: 'low' | 'medium' | 'high' | 'critical'
-    complianceCategory?: string
-    executionTimeMs?: number
-    tenantId?: string
-}
+import { db } from '../config/database'
+import { auditLogs, userActivityLogs, dataAccessLogs, calculationAuditLogs } from '../db/schema'
+import type { NewAuditLog, NewUserActivityLog, NewDataAccessLog, NewCalculationAuditLog } from '../db/schema'
 
 /**
- * Create an audit log entry
+ * Core audit logging function
  */
-export const createAuditLog = (input: CreateAuditLogInput) =>
-    dbOperation('insert', () => {
-        const changedFields = input.changedFields || extractChangedFields(input.oldValues, input.newValues)
-        const oldValues = maskSensitiveData(input.oldValues)
-        const newValues = maskSensitiveData(input.newValues)
-
-        return AuditRepository.createAuditLog({
-            ...input,
-            oldValues,
-            newValues,
-            changedFields,
-            correlationId: crypto.randomUUID(),
-            timestamp: new Date(),
-            createdAt: new Date(),
+export const logAuditEvent = async (params: Partial<NewAuditLog>): Promise<void> => {
+    try {
+        await db.insert(auditLogs).values({
+            eventType: params.eventType || 'unknown',
+            action: params.action || 'unknown',
+            ...params
         })
-    })
-
-/**
- * Generate a compliance report (Placeholder)
- */
-export const generateComplianceReport = (
-    tenantId: string,
-    reportType: 'GDPR' | 'SOX' | 'BASEL' | 'AAOIFI',
-    startDate: Date,
-    endDate: Date
-): Effect.Effect<any, DatabaseError> =>
-    dbOperation('query', async () => {
-        console.log(`[AuditService] Generating ${reportType} report for tenant ${tenantId}`)
-        return {
-            reportType,
-            generatedAt: new Date(),
-            period: { startDate, endDate },
-            data: [], // Actual query would go here
-            summary: { status: 'mock' }
-        }
-    })
-
-/**
- * Query audit logs with filters
- */
-export interface QueryAuditLogsOptions {
-    tenantId?: string
-    userId?: string
-    eventType?: string
-    action?: string
-    entityType?: string
-    entityId?: string
-    riskLevel?: string
-    startDate?: Date
-    endDate?: Date
-    limit?: number
-    offset?: number
+    } catch (error) {
+        // Don't throw - audit logging should never break the main flow
+        console.error('[Audit] Failed to log event:', error)
+    }
 }
-
-export const queryAuditLogs = (options: QueryAuditLogsOptions) =>
-    dbOperation('query', () =>
-        AuditRepository.findAuditLogs(options)
-    )
-
-/**
- * Get audit log by ID
- */
-export const getAuditLogById = (logId: string) =>
-    pipe(
-        dbOperation('query', () =>
-            AuditRepository.findAuditLogById(logId)
-        ),
-        Effect.flatMap((log) =>
-            log
-                ? Effect.succeed(log)
-                : Effect.fail(new NotFoundError({ resource: 'AuditLog', id: logId }))
-        )
-    )
-
-// =============================================================================
-// USER ACTIVITY LOG OPERATIONS
-// =============================================================================
 
 /**
  * Log user activity
  */
-export const logUserActivity = (input: NewUserActivityLog) =>
-    dbOperation('insert', () =>
-        AuditRepository.createUserActivityLog({
-            ...input,
-            timestamp: new Date(),
+export const logUserActivity = async (params: Partial<NewUserActivityLog>): Promise<void> => {
+    try {
+        await db.insert(userActivityLogs).values({
+            userId: params.userId!,
+            activityType: params.activityType!,
+            ...params
         })
-    )
-
-/**
- * Get user activity logs
- */
-export const getUserActivityLogs = (
-    userId: string,
-    options?: { tenantId?: string; limit?: number; offset?: number; startDate?: Date; endDate?: Date }
-) =>
-    dbOperation('query', () =>
-        AuditRepository.findUserActivityLogs({
-            userId,
-            ...options,
-            activityType: undefined // or pass if needed
-        })
-    )
-
-// =============================================================================
-// DATA ACCESS LOG OPERATIONS
-// =============================================================================
+    } catch (error) {
+        console.error('[Audit] Failed to log user activity:', error)
+    }
+}
 
 /**
  * Log data access
  */
-export const logDataAccess = (input: NewDataAccessLog) =>
-    dbOperation('insert', () =>
-        AuditRepository.createDataAccessLog({
-            ...input,
-            timestamp: new Date(),
+export const logDataAccess = async (params: Partial<NewDataAccessLog>): Promise<void> => {
+    try {
+        await db.insert(dataAccessLogs).values({
+            userId: params.userId!,
+            accessType: params.accessType!,
+            resourceType: params.resourceType!,
+            ...params
         })
-    )
-
-// =============================================================================
-// CALCULATION AUDIT LOG OPERATIONS
-// =============================================================================
+    } catch (error) {
+        console.error('[Audit] Failed to log data access:', error)
+    }
+}
 
 /**
- * Log calculation audit
+ * Log calculation execution
  */
-export const logCalculationAudit = (input: NewCalculationAuditLog) =>
-    dbOperation('insert', () =>
-        AuditRepository.createCalculationAuditLog({
-            ...input,
-            timestamp: new Date(),
+export const logCalculation = async (params: Partial<NewCalculationAuditLog>): Promise<void> => {
+    try {
+        await db.insert(calculationAuditLogs).values({
+            userId: params.userId!,
+            calculationType: params.calculationType!,
+            calculationDate: params.calculationDate!,
+            status: params.status!,
+            ...params
         })
-    )
+    } catch (error) {
+        console.error('[Audit] Failed to log calculation:', error)
+    }
+}
 
 // =============================================================================
-// AUDIT STATISTICS
+// HELPER FUNCTIONS FOR COMMON EVENTS
 // =============================================================================
 
-export interface AuditStatistics {
-    totalLogs: number
-    todayLogs: number
-    highRiskEvents: number
-    criticalEvents: number
-    eventTypeBreakdown: Record<string, number>
+/**
+ * Log authentication events
+ */
+export const logAuth = {
+    login: async (userId: string, tenantId: string, ipAddress?: string, userAgent?: string) => {
+        await logAuditEvent({
+            tenantId,
+            userId,
+            eventType: 'auth',
+            action: 'login',
+            description: 'User logged in successfully',
+            ipAddress,
+            userAgent,
+            riskLevel: 'low'
+        })
+    },
+
+    loginFailed: async (email: string, tenantId: string, ipAddress?: string, reason?: string) => {
+        await logAuditEvent({
+            tenantId,
+            eventType: 'auth',
+            action: 'login_failed',
+            description: `Login failed for ${email}: ${reason || 'Invalid credentials'}`,
+            ipAddress,
+            riskLevel: 'medium',
+            entityType: 'user',
+            entityName: email
+        })
+    },
+
+    logout: async (userId: string, tenantId: string, ipAddress?: string) => {
+        await logAuditEvent({
+            tenantId,
+            userId,
+            eventType: 'auth',
+            action: 'logout',
+            description: 'User logged out',
+            ipAddress,
+            riskLevel: 'low'
+        })
+    },
+
+    sessionExpired: async (userId: string, tenantId: string) => {
+        await logAuditEvent({
+            tenantId,
+            userId,
+            eventType: 'auth',
+            action: 'session_expired',
+            description: 'User session expired',
+            riskLevel: 'low'
+        })
+    }
 }
 
 /**
- * Get audit statistics for a tenant
+ * Log data modification events
  */
-export const getAuditStatistics = (tenantId: string) =>
-    dbOperation('query', async () => {
-        const summary = await AuditRepository.getAuditSummary(tenantId)
-        const activityStats = await AuditRepository.getActivityStats(tenantId, 30)
+export const logDataChange = {
+    create: async (
+        resource: string,
+        resourceId: string,
+        newValues: any,
+        userId: string,
+        tenantId: string
+    ) => {
+        await logAuditEvent({
+            tenantId,
+            userId,
+            eventType: 'data',
+            action: 'create',
+            entityType: resource,
+            entityId: resourceId,
+            newValues,
+            description: `Created ${resource} ${resourceId}`,
+            riskLevel: 'medium'
+        })
+    },
 
-        const eventTypeBreakdown: Record<string, number> = {}
-        for (const stat of activityStats) {
-            if (stat.action) {
-                eventTypeBreakdown[stat.action] = stat.count
-            }
-        }
+    update: async (
+        resource: string,
+        resourceId: string,
+        oldValues: any,
+        newValues: any,
+        userId: string,
+        tenantId: string
+    ) => {
+        const changedFields = Object.keys(newValues).filter(
+            key => JSON.stringify(oldValues[key]) !== JSON.stringify(newValues[key])
+        )
 
-        return {
-            totalLogs: summary.totalLogs,
-            todayLogs: summary.todayLogs,
-            highRiskEvents: summary.highRiskEvents,
-            criticalEvents: summary.criticalEvents,
-            eventTypeBreakdown,
-        }
-    })
+        await logAuditEvent({
+            tenantId,
+            userId,
+            eventType: 'data',
+            action: 'update',
+            entityType: resource,
+            entityId: resourceId,
+            oldValues,
+            newValues,
+            changedFields,
+            description: `Updated ${resource} ${resourceId} (${changedFields.length} fields changed)`,
+            riskLevel: 'medium'
+        })
+    },
 
-// =============================================================================
-// AUDIT MIDDLEWARE HELPER
-// =============================================================================
-
-/**
- * Helper to create common audit context from request
- */
-export interface AuditContext {
-    userId?: string
-    tenantId?: string
-    sessionId?: string
-    ipAddress?: string
-    userAgent?: string
-    requestPath?: string
-    requestMethod?: string
-}
-
-export const createAuditFromContext = (
-    context: AuditContext,
-    eventType: string,
-    action: string,
-    details?: Partial<CreateAuditLogInput>
-) =>
-    createAuditLog({
-        ...context,
-        eventType,
-        action,
-        applicationName: 'ifrs9-new-backend',
-        ...details,
-    })
-// =============================================================================
-// INTERNAL HELPERS
-// =============================================================================
-
-/**
- * Mask sensitive data fields (PII protection)
- */
-function maskSensitiveData(data: Record<string, any> | undefined | null): Record<string, any> | undefined | null {
-    if (!data) return data
-
-    const sensitiveFields = [
-        'password', 'ssn', 'account_number', 'card_number',
-        'phone', 'email', 'national_id', 'passport', 'secret', 'token'
-    ]
-
-    const masked = { ...data }
-    sensitiveFields.forEach(field => {
-        if (masked[field]) {
-            masked[field] = '***MASKED***'
-        }
-    })
-
-    return masked
+    delete: async (
+        resource: string,
+        resourceId: string,
+        oldValues: any,
+        userId: string,
+        tenantId: string
+    ) => {
+        await logAuditEvent({
+            tenantId,
+            userId,
+            eventType: 'data',
+            action: 'delete',
+            entityType: resource,
+            entityId: resourceId,
+            oldValues,
+            description: `Deleted ${resource} ${resourceId}`,
+            riskLevel: 'high'
+        })
+    }
 }
 
 /**
- * Extract list of changed fields between two objects
+ * Log permission changes
  */
-function extractChangedFields(
-    oldValues: Record<string, any> | undefined | null,
-    newValues: Record<string, any> | undefined | null
-): string[] {
-    if (!oldValues || !newValues) return []
+export const logPermission = {
+    roleAssigned: async (
+        userId: string,
+        roleId: string,
+        roleName: string,
+        assignedBy: string,
+        tenantId: string
+    ) => {
+        await logAuditEvent({
+            tenantId,
+            userId: assignedBy,
+            eventType: 'permission',
+            action: 'role_assigned',
+            entityType: 'user_role',
+            entityId: userId,
+            entityName: roleName,
+            newValues: { userId, roleId, roleName },
+            description: `Assigned role "${roleName}" to user`,
+            riskLevel: 'high'
+        })
+    },
 
-    const changedFields: string[] = []
-    const allKeys = new Set([...Object.keys(oldValues), ...Object.keys(newValues)])
+    roleRevoked: async (
+        userId: string,
+        roleId: string,
+        roleName: string,
+        revokedBy: string,
+        tenantId: string
+    ) => {
+        await logAuditEvent({
+            tenantId,
+            userId: revokedBy,
+            eventType: 'permission',
+            action: 'role_revoked',
+            entityType: 'user_role',
+            entityId: userId,
+            entityName: roleName,
+            oldValues: { userId, roleId, roleName },
+            description: `Revoked role "${roleName}" from user`,
+            riskLevel: 'high'
+        })
+    },
 
-    allKeys.forEach(key => {
-        // Simple comparison, could be deep if needed
-        if (JSON.stringify(oldValues[key]) !== JSON.stringify(newValues[key])) {
-            changedFields.push(key)
-        }
-    })
+    permissionsUpdated: async (
+        roleId: string,
+        roleName: string,
+        oldPermissions: any,
+        newPermissions: any,
+        updatedBy: string,
+        tenantId: string
+    ) => {
+        await logAuditEvent({
+            tenantId,
+            userId: updatedBy,
+            eventType: 'permission',
+            action: 'permissions_updated',
+            entityType: 'role',
+            entityId: roleId,
+            entityName: roleName,
+            oldValues: oldPermissions,
+            newValues: newPermissions,
+            description: `Updated permissions for role "${roleName}"`,
+            riskLevel: 'critical'
+        })
+    }
+}
 
-    return changedFields
+/**
+ * Log job events
+ */
+export const logJob = {
+    created: async (jobId: string, jobName: string, jobType: string, userId: string, tenantId: string) => {
+        await logAuditEvent({
+            tenantId,
+            userId,
+            eventType: 'job',
+            action: 'job_created',
+            entityType: 'job_definition',
+            entityId: jobId,
+            entityName: jobName,
+            newValues: { jobType },
+            description: `Created job definition "${jobName}"`,
+            riskLevel: 'medium'
+        })
+    },
+
+    triggered: async (
+        executionId: string,
+        jobName: string,
+        jobType: string,
+        userId: string,
+        tenantId: string,
+        parameters?: any
+    ) => {
+        await logAuditEvent({
+            tenantId,
+            userId,
+            eventType: 'job',
+            action: 'job_triggered',
+            entityType: 'job_execution',
+            entityId: executionId,
+            entityName: jobName,
+            newValues: { jobType, parameters },
+            description: `Triggered job "${jobName}"`,
+            riskLevel: jobType.includes('ECL') ? 'high' : 'medium'
+        })
+    },
+
+    completed: async (executionId: string, jobName: string, duration: number, tenantId: string) => {
+        await logAuditEvent({
+            tenantId,
+            eventType: 'job',
+            action: 'job_completed',
+            entityType: 'job_execution',
+            entityId: executionId,
+            entityName: jobName,
+            executionTimeMs: duration,
+            description: `Job "${jobName}" completed successfully`,
+            riskLevel: 'low'
+        })
+    },
+
+    failed: async (executionId: string, jobName: string, error: string, tenantId: string) => {
+        await logAuditEvent({
+            tenantId,
+            eventType: 'job',
+            action: 'job_failed',
+            entityType: 'job_execution',
+            entityId: executionId,
+            entityName: jobName,
+            newValues: { error },
+            description: `Job "${jobName}" failed: ${error}`,
+            riskLevel: 'high'
+        })
+    }
+}
+
+/**
+ * Log approval events
+ */
+export const logApproval = {
+    requested: async (
+        requestId: string,
+        title: string,
+        requestedBy: string,
+        tenantId: string
+    ) => {
+        await logAuditEvent({
+            tenantId,
+            userId: requestedBy,
+            eventType: 'approval',
+            action: 'approval_requested',
+            entityType: 'approval_request',
+            entityId: requestId,
+            entityName: title,
+            description: `Created approval request: ${title}`,
+            riskLevel: 'medium'
+        })
+    },
+
+    approved: async (
+        requestId: string,
+        title: string,
+        approvedBy: string,
+        tenantId: string,
+        comment?: string
+    ) => {
+        await logAuditEvent({
+            tenantId,
+            userId: approvedBy,
+            eventType: 'approval',
+            action: 'approval_granted',
+            entityType: 'approval_request',
+            entityId: requestId,
+            entityName: title,
+            newValues: { comment },
+            description: `Approved: ${title}`,
+            riskLevel: 'high'
+        })
+    },
+
+    rejected: async (
+        requestId: string,
+        title: string,
+        rejectedBy: string,
+        tenantId: string,
+        reason?: string
+    ) => {
+        await logAuditEvent({
+            tenantId,
+            userId: rejectedBy,
+            eventType: 'approval',
+            action: 'approval_rejected',
+            entityType: 'approval_request',
+            entityId: requestId,
+            entityName: title,
+            newValues: { reason },
+            description: `Rejected: ${title}`,
+            riskLevel: 'high'
+        })
+    }
+}
+
+/**
+ * Log system events
+ */
+export const logSystem = {
+    configChanged: async (
+        configKey: string,
+        oldValue: any,
+        newValue: any,
+        userId: string,
+        tenantId: string
+    ) => {
+        await logAuditEvent({
+            tenantId,
+            userId,
+            eventType: 'system',
+            action: 'config_changed',
+            entityType: 'system_config',
+            entityId: configKey,
+            oldValues: { [configKey]: oldValue },
+            newValues: { [configKey]: newValue },
+            description: `System configuration changed: ${configKey}`,
+            riskLevel: 'critical'
+        })
+    },
+
+    backupCreated: async (backupId: string, userId: string, tenantId: string) => {
+        await logAuditEvent({
+            tenantId,
+            userId,
+            eventType: 'system',
+            action: 'backup_created',
+            entityType: 'backup',
+            entityId: backupId,
+            description: 'Database backup created',
+            riskLevel: 'medium'
+        })
+    }
 }

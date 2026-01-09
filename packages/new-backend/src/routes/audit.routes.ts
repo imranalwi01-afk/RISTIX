@@ -1,285 +1,385 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { z } from 'zod'
-import { Effect, pipe } from 'effect'
 import type { AppContext } from '../app'
 import { authMiddleware, tenantMiddleware } from '../middleware'
-import { runEffect } from '../lib/effect'
-import * as auditService from '../services/audit.service'
+import { db } from '../config/database'
+import { auditLogs, userActivityLogs, dataAccessLogs } from '../db/schema'
+import { eq, and, desc, gte, lte, like, sql, or } from 'drizzle-orm'
 
-export const auditRoutes = new Hono<AppContext>()
+const app = new Hono<AppContext>()
 
-// Apply auth and tenant middleware to all routes
-auditRoutes.use('*', authMiddleware)
-auditRoutes.use('*', tenantMiddleware)
-
-// =============================================================================
-// SCHEMA DEFINITIONS
-// =============================================================================
-
-const queryAuditLogsSchema = z.object({
-    userId: z.string().uuid().optional(),
-    eventType: z.string().optional(),
-    action: z.string().optional(),
-    entityType: z.string().optional(),
-    entityId: z.string().optional(),
-    riskLevel: z.enum(['low', 'medium', 'high', 'critical']).optional(),
-    startDate: z.string().datetime().optional(),
-    endDate: z.string().datetime().optional(),
-    limit: z.coerce.number().int().min(1).max(100).default(50),
-    offset: z.coerce.number().int().min(0).default(0),
-})
-
-const createAuditLogSchema = z.object({
-    eventType: z.string().min(1).max(100),
-    action: z.string().min(1).max(100),
-    description: z.string().optional(),
-    entityType: z.string().max(100).optional(),
-    entityId: z.string().max(255).optional(),
-    entityName: z.string().max(200).optional(),
-    oldValues: z.record(z.unknown()).optional(),
-    newValues: z.record(z.unknown()).optional(),
-    riskLevel: z.enum(['low', 'medium', 'high', 'critical']).default('low'),
-    complianceCategory: z.string().max(50).optional(),
-})
+// Apply auth middleware
+app.use('*', authMiddleware)
+app.use('*', tenantMiddleware)
 
 // =============================================================================
-// AUDIT LOG ROUTES
+// AUDIT LOGS
 // =============================================================================
 
 /**
- * GET /logs - Query audit logs
+ * GET /logs - Get audit logs (paginated and filtered)
  */
-auditRoutes.get('/logs', zValidator('query', queryAuditLogsSchema), async (c) => {
+app.get('/logs', zValidator('query', z.object({
+    page: z.string().optional().default('1'),
+    limit: z.string().optional().default('50'),
+    eventType: z.string().optional(),
+    action: z.string().optional(),
+    userId: z.string().optional(),
+    entityType: z.string().optional(),
+    entityId: z.string().optional(),
+    riskLevel: z.string().optional(),
+    startDate: z.string().optional(),
+    endDate: z.string().optional(),
+    search: z.string().optional()
+})), async (c) => {
     const tenantId = c.get('tenantId')!
     const query = c.req.valid('query')
 
-    const effect = auditService.queryAuditLogs({
-        tenantId,
-        userId: query.userId,
-        eventType: query.eventType,
-        action: query.action,
-        entityType: query.entityType,
-        entityId: query.entityId,
-        riskLevel: query.riskLevel,
-        startDate: query.startDate ? new Date(query.startDate) : undefined,
-        endDate: query.endDate ? new Date(query.endDate) : undefined,
-        limit: query.limit,
-        offset: query.offset,
-    })
+    const page = parseInt(query.page)
+    const limit = parseInt(query.limit)
+    const offset = (page - 1) * limit
 
-    return runEffect(c, effect)
-})
+    // Build where conditions
+    const conditions = [eq(auditLogs.tenantId, tenantId)]
 
-/**
- * GET /logs/:logId - Get audit log by ID
- */
-auditRoutes.get('/logs/:logId', async (c) => {
-    const { logId } = c.req.param()
+    if (query.eventType) {
+        conditions.push(eq(auditLogs.eventType, query.eventType))
+    }
 
-    const effect = auditService.getAuditLogById(logId)
+    if (query.action) {
+        conditions.push(eq(auditLogs.action, query.action))
+    }
 
-    return runEffect(c, effect)
-})
+    if (query.userId) {
+        conditions.push(eq(auditLogs.userId, query.userId))
+    }
 
-/**
- * POST /logs - Create audit log (for internal/admin use)
- */
-auditRoutes.post('/logs', zValidator('json', createAuditLogSchema), async (c) => {
-    const tenantId = c.get('tenantId')!
-    const userId = c.get('userId')
-    const body = c.req.valid('json')
+    if (query.entityType) {
+        conditions.push(eq(auditLogs.entityType, query.entityType))
+    }
 
-    const effect = auditService.createAuditLog({
-        ...body,
-        tenantId,
-        userId,
-        ipAddress: c.req.header('x-forwarded-for') || c.req.header('x-real-ip'),
-        userAgent: c.req.header('user-agent'),
-        requestPath: c.req.path,
-        requestMethod: c.req.method,
-    })
+    if (query.entityId) {
+        conditions.push(eq(auditLogs.entityId, query.entityId))
+    }
 
-    return runEffect(c, effect)
-})
+    if (query.riskLevel) {
+        conditions.push(eq(auditLogs.riskLevel, query.riskLevel))
+    }
 
-// =============================================================================
-// USER ACTIVITY ROUTES
-// =============================================================================
+    if (query.startDate) {
+        conditions.push(gte(auditLogs.timestamp, new Date(query.startDate)))
+    }
 
-/**
- * GET /users/:userId/activity - Get user activity logs
- */
-auditRoutes.get('/users/:userId/activity', async (c) => {
-    const { userId } = c.req.param()
-    const tenantId = c.get('tenantId')!
-    const limit = parseInt(c.req.query('limit') || '50')
-    const offset = parseInt(c.req.query('offset') || '0')
-    const startDate = c.req.query('startDate')
-    const endDate = c.req.query('endDate')
+    if (query.endDate) {
+        conditions.push(lte(auditLogs.timestamp, new Date(query.endDate)))
+    }
 
-    const effect = pipe(
-        auditService.getUserActivityLogs(userId, {
-            tenantId,
+    if (query.search) {
+        conditions.push(
+            or(
+                like(auditLogs.description, `%${query.search}%`),
+                like(auditLogs.entityName, `%${query.search}%`)
+            )!
+        )
+    }
+
+    const whereClause = and(...conditions)
+
+    // Get total count
+    const [{ count }] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(auditLogs)
+        .where(whereClause)
+
+    // Get logs
+    const logs = await db
+        .select()
+        .from(auditLogs)
+        .where(whereClause)
+        .orderBy(desc(auditLogs.timestamp))
+        .limit(limit)
+        .offset(offset)
+
+    return c.json({
+        data: logs,
+        pagination: {
+            page,
             limit,
-            offset,
-            startDate: startDate ? new Date(startDate) : undefined,
-            endDate: endDate ? new Date(endDate) : undefined,
-        }),
-        Effect.map((activities) => activities)
+            total: Number(count),
+            totalPages: Math.ceil(Number(count) / limit)
+        }
+    })
+})
+
+/**
+ * GET /logs/:id - Get specific audit log
+ */
+app.get('/logs/:id', async (c) => {
+    const { id } = c.req.param()
+    const tenantId = c.get('tenantId')!
+
+    const [log] = await db
+        .select()
+        .from(auditLogs)
+        .where(and(
+            eq(auditLogs.id, id),
+            eq(auditLogs.tenantId, tenantId)
+        ))
+        .limit(1)
+
+    if (!log) {
+        return c.json({ error: 'Audit log not found' }, 404)
+    }
+
+    return c.json(log)
+})
+
+/**
+ * GET /stats - Get audit statistics
+ */
+app.get('/stats', zValidator('query', z.object({
+    startDate: z.string().optional(),
+    endDate: z.string().optional()
+})), async (c) => {
+    const tenantId = c.get('tenantId')!
+    const { startDate, endDate } = c.req.valid('query')
+
+    const conditions = [eq(auditLogs.tenantId, tenantId)]
+
+    if (startDate) {
+        conditions.push(gte(auditLogs.timestamp, new Date(startDate)))
+    }
+
+    if (endDate) {
+        conditions.push(lte(auditLogs.timestamp, new Date(endDate)))
+    }
+
+    const whereClause = and(...conditions)
+
+    // Get stats by event type
+    const eventTypeStats = await db
+        .select({
+            eventType: auditLogs.eventType,
+            count: sql<number>`count(*)`
+        })
+        .from(auditLogs)
+        .where(whereClause)
+        .groupBy(auditLogs.eventType)
+
+    // Get stats by risk level
+    const riskLevelStats = await db
+        .select({
+            riskLevel: auditLogs.riskLevel,
+            count: sql<number>`count(*)`
+        })
+        .from(auditLogs)
+        .where(whereClause)
+        .groupBy(auditLogs.riskLevel)
+
+    // Get top users
+    const topUsers = await db
+        .select({
+            userId: auditLogs.userId,
+            count: sql<number>`count(*)`
+        })
+        .from(auditLogs)
+        .where(whereClause)
+        .groupBy(auditLogs.userId)
+        .orderBy(desc(sql`count(*)`))
+        .limit(10)
+
+    // Get total count
+    const [{ total }] = await db
+        .select({ total: sql<number>`count(*)` })
+        .from(auditLogs)
+        .where(whereClause)
+
+    return c.json({
+        total: Number(total),
+        byEventType: eventTypeStats.map(s => ({ ...s, count: Number(s.count) })),
+        byRiskLevel: riskLevelStats.map(s => ({ ...s, count: Number(s.count) })),
+        topUsers: topUsers.map(u => ({ ...u, count: Number(u.count) }))
+    })
+})
+
+/**
+ * POST /export - Export audit logs
+ */
+app.post('/export', zValidator('json', z.object({
+    format: z.enum(['csv', 'json']).default('csv'),
+    filters: z.object({
+        eventType: z.string().optional(),
+        startDate: z.string().optional(),
+        endDate: z.string().optional()
+    }).optional()
+})), async (c) => {
+    const tenantId = c.get('tenantId')!
+    const { format, filters } = c.req.valid('json')
+
+    const conditions = [eq(auditLogs.tenantId, tenantId)]
+
+    if (filters?.eventType) {
+        conditions.push(eq(auditLogs.eventType, filters.eventType))
+    }
+
+    if (filters?.startDate) {
+        conditions.push(gte(auditLogs.timestamp, new Date(filters.startDate)))
+    }
+
+    if (filters?.endDate) {
+        conditions.push(lte(auditLogs.timestamp, new Date(filters.endDate)))
+    }
+
+    const logs = await db
+        .select()
+        .from(auditLogs)
+        .where(and(...conditions))
+        .orderBy(desc(auditLogs.timestamp))
+        .limit(10000) // Max export limit
+
+    if (format === 'json') {
+        return c.json(logs)
+    } else {
+        // CSV format
+        const csv = convertToCSV(logs)
+        return c.text(csv, 200, {
+            'Content-Type': 'text/csv',
+            'Content-Disposition': `attachment; filename="audit-logs-${new Date().toISOString()}.csv"`
+        })
+    }
+})
+
+// =============================================================================
+// USER ACTIVITY LOGS
+// =============================================================================
+
+/**
+ * GET /activity - Get user activity logs
+ */
+app.get('/activity', zValidator('query', z.object({
+    page: z.string().optional().default('1'),
+    limit: z.string().optional().default('50'),
+    userId: z.string().optional(),
+    activityType: z.string().optional()
+})), async (c) => {
+    const tenantId = c.get('tenantId')!
+    const query = c.req.valid('query')
+
+    const page = parseInt(query.page)
+    const limit = parseInt(query.limit)
+    const offset = (page - 1) * limit
+
+    const conditions = [eq(userActivityLogs.tenantId, tenantId)]
+
+    if (query.userId) {
+        conditions.push(eq(userActivityLogs.userId, query.userId))
+    }
+
+    if (query.activityType) {
+        conditions.push(eq(userActivityLogs.activityType, query.activityType))
+    }
+
+    const whereClause = and(...conditions)
+
+    const [{ count }] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(userActivityLogs)
+        .where(whereClause)
+
+    const activities = await db
+        .select()
+        .from(userActivityLogs)
+        .where(whereClause)
+        .orderBy(desc(userActivityLogs.timestamp))
+        .limit(limit)
+        .offset(offset)
+
+    return c.json({
+        data: activities,
+        pagination: {
+            page,
+            limit,
+            total: Number(count),
+            totalPages: Math.ceil(Number(count) / limit)
+        }
+    })
+})
+
+// =============================================================================
+// DATA ACCESS LOGS
+// =============================================================================
+
+/**
+ * GET /data-access - Get data access logs
+ */
+app.get('/data-access', zValidator('query', z.object({
+    page: z.string().optional().default('1'),
+    limit: z.string().optional().default('50'),
+    userId: z.string().optional(),
+    resourceType: z.string().optional()
+})), async (c) => {
+    const tenantId = c.get('tenantId')!
+    const query = c.req.valid('query')
+
+    const page = parseInt(query.page)
+    const limit = parseInt(query.limit)
+    const offset = (page - 1) * limit
+
+    const conditions = [eq(dataAccessLogs.tenantId, tenantId)]
+
+    if (query.userId) {
+        conditions.push(eq(dataAccessLogs.userId, query.userId))
+    }
+
+    if (query.resourceType) {
+        conditions.push(eq(dataAccessLogs.resourceType, query.resourceType))
+    }
+
+    const whereClause = and(...conditions)
+
+    const [{ count }] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(dataAccessLogs)
+        .where(whereClause)
+
+    const accessLogs = await db
+        .select()
+        .from(dataAccessLogs)
+        .where(whereClause)
+        .orderBy(desc(dataAccessLogs.timestamp))
+        .limit(limit)
+        .offset(offset)
+
+    return c.json({
+        data: accessLogs,
+        pagination: {
+            page,
+            limit,
+            total: Number(count),
+            totalPages: Math.ceil(Number(count) / limit)
+        }
+    })
+})
+
+// =============================================================================
+// HELPER FUNCTIONS
+// =============================================================================
+
+function convertToCSV(data: any[]): string {
+    if (data.length === 0) return ''
+
+    const headers = Object.keys(data[0])
+    const rows = data.map(row =>
+        headers.map(header => {
+            const value = row[header]
+            if (value === null || value === undefined) return ''
+            if (typeof value === 'object') return JSON.stringify(value)
+            return `"${String(value).replace(/"/g, '""')}"`
+        }).join(',')
     )
 
-    return runEffect(c, effect)
-})
+    return [headers.join(','), ...rows].join('\n')
+}
 
-/**
- * POST /activity - Log user activity
- */
-auditRoutes.post(
-    '/activity',
-    zValidator(
-        'json',
-        z.object({
-            activityType: z.string().min(1).max(100),
-            description: z.string().optional(),
-            metadata: z.record(z.unknown()).optional(),
-        })
-    ),
-    async (c) => {
-        const tenantId = c.get('tenantId')!
-        const userId = c.get('userId')!
-        const body = c.req.valid('json')
-
-        const effect = auditService.logUserActivity({
-            userId,
-            tenantId,
-            activityType: body.activityType,
-            description: body.description,
-            metadata: body.metadata,
-            ipAddress: c.req.header('x-forwarded-for') || c.req.header('x-real-ip'),
-            userAgent: c.req.header('user-agent'),
-            sessionId: c.req.header('x-session-id'),
-        })
-
-        return runEffect(c, effect)
-    }
-)
-
-// =============================================================================
-// DATA ACCESS LOG ROUTES
-// =============================================================================
-
-/**
- * POST /data-access - Log data access
- */
-auditRoutes.post(
-    '/data-access',
-    zValidator(
-        'json',
-        z.object({
-            accessType: z.enum(['read', 'export', 'print']),
-            resourceType: z.string().min(1).max(100),
-            resourceId: z.string().max(255).optional(),
-            recordCount: z.number().int().optional(),
-            purpose: z.string().optional(),
-        })
-    ),
-    async (c) => {
-        const tenantId = c.get('tenantId')!
-        const userId = c.get('userId')!
-        const body = c.req.valid('json')
-
-        const effect = auditService.logDataAccess({
-            userId,
-            tenantId,
-            accessType: body.accessType,
-            resourceType: body.resourceType,
-            resourceId: body.resourceId,
-            recordCount: body.recordCount,
-            purpose: body.purpose,
-            ipAddress: c.req.header('x-forwarded-for') || c.req.header('x-real-ip'),
-        })
-
-        return runEffect(c, effect)
-    }
-)
-
-// =============================================================================
-// CALCULATION AUDIT ROUTES
-// =============================================================================
-
-/**
- * POST /calculation - Log calculation audit
- */
-auditRoutes.post(
-    '/calculation',
-    zValidator(
-        'json',
-        z.object({
-            calculationType: z.string().min(1).max(100),
-            calculationDate: z.string().datetime(),
-            parameters: z.record(z.unknown()).optional(),
-            inputSummary: z.record(z.unknown()).optional(),
-            outputSummary: z.record(z.unknown()).optional(),
-            status: z.enum(['started', 'completed', 'failed']),
-            errorMessage: z.string().optional(),
-            executionTimeMs: z.number().int().optional(),
-            recordsProcessed: z.number().int().optional(),
-        })
-    ),
-    async (c) => {
-        const tenantId = c.get('tenantId')!
-        const userId = c.get('userId')!
-        const body = c.req.valid('json')
-
-        const effect = auditService.logCalculationAudit({
-            userId,
-            tenantId,
-            calculationType: body.calculationType,
-            calculationDate: new Date(body.calculationDate),
-            parameters: body.parameters,
-            inputSummary: body.inputSummary,
-            outputSummary: body.outputSummary,
-            status: body.status,
-            errorMessage: body.errorMessage,
-            executionTimeMs: body.executionTimeMs,
-            recordsProcessed: body.recordsProcessed,
-        })
-
-        return runEffect(c, effect)
-    }
-)
-
-// =============================================================================
-// STATISTICS AND REPORTING
-// =============================================================================
-
-/**
- * GET /statistics - Get audit statistics
- */
-auditRoutes.get('/statistics', async (c) => {
-    const tenantId = c.get('tenantId')!
-
-    const effect = auditService.getAuditStatistics(tenantId)
-
-    return runEffect(c, effect)
-})
-
-/**
- * GET /export - Export audit logs (placeholder)
- */
-auditRoutes.get('/export', async (c) => {
-    const tenantId = c.get('tenantId')!
-    const format = c.req.query('format') || 'csv'
-
-    // TODO: Implement actual export logic
-    return c.json({
-        success: true,
-        message: 'Export is being prepared',
-        data: {
-            format,
-            status: 'pending',
-            downloadUrl: `/api/audit/export/download/${Date.now()}`,
-        },
-    })
-})
+export default app

@@ -1,8 +1,8 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { z } from 'zod'
-import { db } from '@/config'
-import { frs9ImpCaPdConfig, frs9ParamSegmenth } from '@/db/schema'
+import { legacyDb as db } from '@/config'
+import { frs9ImpCaPdConfig } from '@/db/schema'
 import { eq, and, desc, like, or } from 'drizzle-orm'
 import type { AppContext } from '@/app'
 import { authMiddleware } from '../middleware'
@@ -10,7 +10,6 @@ import { authMiddleware } from '../middleware'
 const app = new Hono<AppContext>()
 
 app.use('*', authMiddleware)
-// Tenant middleware removed for legacy table support
 
 // ============================================================================
 // VALIDATION SCHEMAS
@@ -37,16 +36,20 @@ const updatePdConfigSchema = createPdConfigSchema.partial()
 // HELPER FUNCTIONS
 // ============================================================================
 
-const transformPdConfig = (config: any, segmentName?: string) => ({
+const transformPdConfig = (config: typeof frs9ImpCaPdConfig.$inferSelect) => ({
     id: config.pkid,
     model_name: config.pdModelName,
     population_segment_id: config.segmentId,
-    population_segment_desc: segmentName || '', // Fetch if possible or leave empty
+    // population_segment_desc: segmentName || '',
     selected_method: parseInt(config.pdMethod || '0'),
     migration_interval: config.interval,
     population_type: parseInt(config.populationType || '0'),
     historical_month: config.observationPeriod,
-    first_historical_date: config.observationStartDate ? new Date(config.observationStartDate).toISOString().split('T')[0] : null,
+    // first_historical_date format: Date -> YYYY-MM-DD ?
+    // The previous implementation used new Date(config.observationStartDate).toISOString().split('T')[0]
+    // But config.observationStartDate is string in type? Or Date?
+    // Drizzle timestamp({ mode: 'string' }) returns string.
+    first_historical_date: config.observationStartDate ? config.observationStartDate.split('T')[0] : null,
     multiplication: config.multiplication,
     fl_flag: config.flFlag,
     fl_scalar_id: config.flScalarId,
@@ -96,11 +99,6 @@ app.get('/', async (c) => {
             .where(and(...conditions))
             .orderBy(desc(frs9ImpCaPdConfig.createddate))
 
-        // Optional: Join with segment table to get names?
-        // Ideally yes, but let's keep it simple first. Frontend often matches IDs itself.
-        // Frontend "enrichedConfigs" logic:
-        // const segment = segmentsRes.find(s => s.id === config.population_segment_id);
-
         return c.json({
             success: true,
             data: configs.map(c => transformPdConfig(c)),
@@ -135,7 +133,7 @@ app.get('/:id', async (c) => {
 // POST /api/v1/banking/parameters/pd-configurations
 app.post('/', zValidator('json', createPdConfigSchema), async (c) => {
     try {
-        const userId = 'SYSTEM'
+        const userId = c.get('userId') as string
         const data = c.req.valid('json')
 
         const [config] = await db
@@ -147,6 +145,7 @@ app.post('/', zValidator('json', createPdConfigSchema), async (c) => {
                 interval: data.migration_interval,
                 populationType: String(data.population_type),
                 observationPeriod: data.historical_month,
+                // observationStartDate: timestamp string
                 observationStartDate: data.first_historical_date ? new Date(data.first_historical_date).toISOString() : null,
                 multiplication: data.multiplication,
                 flFlag: data.fl_flag,
@@ -174,7 +173,7 @@ app.put('/:id', zValidator('json', updatePdConfigSchema), async (c) => {
     try {
         const id = Number(c.req.param('id'))
         if (isNaN(id)) return c.json({ error: 'Invalid ID' }, 400);
-        const userId = 'SYSTEM'
+        const userId = c.get('userId')
         const data = c.req.valid('json')
 
         const updateData: any = {
@@ -238,7 +237,7 @@ app.get('/metadata/methods', async (c) => {
         data: [
             { value: 1, label: 'NOA Migration' },
             { value: 3, label: 'Proxy PD' },
-        ]
+        ],
     })
 })
 
@@ -248,7 +247,7 @@ app.get('/metadata/population-types', async (c) => {
         success: true,
         data: [
             { value: 2, label: 'Window Moving Period' },
-        ]
+        ],
     })
 })
 

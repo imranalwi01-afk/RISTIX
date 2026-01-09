@@ -23,6 +23,10 @@ help: ## Show this help message
 up: ## Start backend, db, and redis in detached mode
 	$(COMPOSE) up -d
 
+.PHONY: dev
+dev: ## Alias for up
+	$(COMPOSE) up -d
+
 .PHONY: up-full
 up-full: ## Start ALL services including frontend
 	$(COMPOSE) --profile with-frontend up -d

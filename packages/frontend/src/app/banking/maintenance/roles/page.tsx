@@ -64,6 +64,7 @@ import {
 import { useTheme } from '@mui/material/styles';
 import { format, parseISO } from 'date-fns';
 import { api } from '../../../../services/api';
+import { RolePermissionsEditor } from '../../../../components/rbac/RolePermissionsEditor';
 
 // Types and Interfaces
 interface Role {
@@ -138,7 +139,7 @@ const RoleManagementPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<RoleFilters>({});
-  
+
   // Dialog states
   const [roleDialog, setRoleDialog] = useState<{
     open: boolean;
@@ -185,7 +186,7 @@ const RoleManagementPage: React.FC = () => {
   // Group permissions by category
   const groupPermissionsByCategory = (permissions: Permission[]): PermissionCategory[] => {
     const categories: { [key: string]: PermissionCategory } = {};
-    
+
     permissions.forEach(permission => {
       if (!categories[permission.category]) {
         categories[permission.category] = {
@@ -196,7 +197,7 @@ const RoleManagementPage: React.FC = () => {
       }
       categories[permission.category].permissions.push(permission);
     });
-    
+
     return Object.values(categories);
   };
 
@@ -204,10 +205,10 @@ const RoleManagementPage: React.FC = () => {
   const fetchRoles = useCallback(async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       console.log('🔒 Fetching roles from real tenant database...');
-      
+
       // Build query parameters from filters
       const params: any = {};
       if (filters.searchTerm) params.search = filters.searchTerm;
@@ -215,27 +216,27 @@ const RoleManagementPage: React.FC = () => {
       if (filters.level && filters.level !== 'all') params.level = filters.level;
       if (filters.bankingAccess && filters.bankingAccess !== 'all') params.bankingAccess = filters.bankingAccess;
       if (filters.isActive !== undefined) params.isActive = filters.isActive;
-      
+
       // Fetch roles and permissions from real API
       const [rolesResponse, permissionsResponse] = await Promise.all([
         api.roles.getAll(params),
         api.roles.getPermissions()
       ]);
-      
+
       console.log('✅ Real API responses received:', {
         rolesCount: rolesResponse.data?.length || 0,
         permissionsCount: permissionsResponse.data?.length || 0
       });
-      
+
       // Set data from real API responses
       setRoles(rolesResponse.data || []);
       setPermissions(permissionsResponse.data || []);
       setPermissionCategories(groupPermissionsByCategory(permissionsResponse.data || []));
-      
+
     } catch (error) {
       console.error('❌ Error fetching roles from real database:', error);
       setError('Failed to fetch roles from database. Please check your connection and try again.');
-      
+
       // NO FALLBACK TO MOCK DATA - Use empty arrays instead
       setRoles([]);
       setPermissions([]);
@@ -322,7 +323,7 @@ const RoleManagementPage: React.FC = () => {
   const handleSaveRole = async () => {
     try {
       console.log('🔒 Saving role to tenant database...');
-      
+
       // Prepare role data for API - map form fields to API expected format
       const roleData = {
         name: roleForm.name,
@@ -343,7 +344,7 @@ const RoleManagementPage: React.FC = () => {
         console.log('✏️ Updating existing role with real API call');
         await api.roles.update(roleDialog.role.id, roleData);
       }
-      
+
       // Close dialog and refresh data from database
       setRoleDialog({ open: false, mode: 'create', role: null });
       await fetchRoles(); // Refresh from real database
@@ -357,10 +358,10 @@ const RoleManagementPage: React.FC = () => {
   const handleToggleRole = async (roleId: string, isActive: boolean) => {
     try {
       console.log(`🔄 ${isActive ? 'Disabling' : 'Enabling'} role in tenant database:`, roleId);
-      
+
       // Use real API call to toggle role status
       await api.roles.update(roleId, { isActive: !isActive });
-      
+
       console.log(`✅ Role ${isActive ? 'disabled' : 'enabled'} successfully`);
       await fetchRoles(); // Refresh from real database
     } catch (error) {
@@ -1408,10 +1409,10 @@ const RoleManagementPage: React.FC = () => {
               if (permissionDialog.role) {
                 console.log('🔒 Updating role permissions in tenant database:', permissionDialog.role.id);
                 console.log('🔧 Selected permissions:', permissionDialog.selectedPermissions);
-                
+
                 // Use real API call to update role permissions
                 await api.roles.updatePermissions(permissionDialog.role.id, permissionDialog.selectedPermissions);
-                
+
                 console.log('✅ Role permissions updated successfully');
                 await fetchRoles(); // Refresh from real database
               }

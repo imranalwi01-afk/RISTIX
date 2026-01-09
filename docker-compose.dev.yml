@@ -65,6 +65,7 @@ services:
 
       # Database
       DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-ifrspro_platform_admin}
+      LEGACY_DATABASE_URL: ${LEGACY_DATABASE_URL:-postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/frs9pro}
 
       # JWT
       JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-change-in-production}

@@ -1,17 +1,17 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { z } from 'zod'
-import { db } from '../config'
-import { frs9ImpCaLgdConfig, populationSegments } from '../db/schema'
+import { legacyDb as db } from '../config'
+import { frs9ImpCaLgdConfig } from '../db/schema'
 import { eq, and, like } from 'drizzle-orm'
 import type { AppContext } from '../app'
-import { authMiddleware, tenantMiddleware } from '../middleware'
+import { authMiddleware } from '../middleware'
 
 const app = new Hono<AppContext>()
 
-// Apply auth and tenant middleware
+// Apply auth middleware
 app.use('*', authMiddleware)
-app.use('*', tenantMiddleware)
+// Tenant middleware not applied for legacy global settings
 
 // ============================================================================
 // VALIDATION SCHEMAS
@@ -21,16 +21,13 @@ const createLgdConfigSchema = z.object({
     modelName: z.string().min(1).max(255),
     segmentId: z.number().int().optional(),
     lgdMethod: z.number().int(),
-    populationType: z.string().optional(), // varchar in legacy schema
-    observationPeriod: z.string().optional(), // varchar in legacy schema
-    // historicalMonth: z.number().int().optional(), // Not in legacy schema, removing
-    // firstNplDate: z.string().optional(), // Not in legacy schema, removing
+    populationType: z.string().optional(),
+    observationPeriod: z.string().optional(),
     workoutPeriod: z.number().int().optional(),
     flFlag: z.boolean().default(false),
     flScalarId: z.number().int().optional(),
     lgdRate: z.number().optional(),
     isActive: z.boolean().default(true),
-    // unsecuredLgd/securedLgd: Not in legacy schema
 })
 
 const updateLgdConfigSchema = createLgdConfigSchema.partial()
@@ -39,15 +36,14 @@ const updateLgdConfigSchema = createLgdConfigSchema.partial()
 // HELPER FUNCTIONS
 // ============================================================================
 
-// Map legacy columns to frontend friendly names (camels)
-const transformLgdConfig = (config: any) => ({
-    id: config.pkid, // Map pkid to id
+const transformLgdConfig = (config: typeof frs9ImpCaLgdConfig.$inferSelect) => ({
+    id: config.pkid,
     model_name: config.lgdModelName,
     segment_id: config.segmentId,
     lgd_method: config.lgdMethod,
     population_type: config.populationType,
     observation_period: config.observationPeriod,
-    observation_start_date: config.observationStartDate,
+    observation_start_date: config.observationStartDate ? new Date(config.observationStartDate).toISOString() : null,
     workout_period: config.workoutPeriod,
     fl_flag: config.flFlag,
     fl_scalar_id: config.flScalarId,
@@ -66,20 +62,6 @@ const transformLgdConfig = (config: any) => ({
 // GET /api/v1/banking/parameters/lgd-configurations
 app.get('/', async (c) => {
     try {
-        // tenantId is not in legacy schema?
-        // Legacy schema: createdby, updatedby, but NO tenantId column.
-        // If we want multi-tenancy, we usually rely on tenantId column.
-        // Assuming legacy schema is shared or we filter by something else?
-        // Or should I add tenantId to legacy schema too?
-        // For now, I will ignore tenantId filtering if the column doesn't exist, OR strictly filter by createdby?
-        // The user said "Migrate PD to new schema" but "LGD to legacy".
-        // Legacy tables usually don't have tenantId.
-        // I will just select all for now, or filter if I can.
-        // Wait, standard practice for SaaS is tenant isolation.
-        // I will assume I create a migration later to add tenantId if needed, 
-        // OR I just return all (Global admin style for now) but that breaks isolation.
-        // I'll filter by 'active_flag'.
-
         const { search, lgd_method, is_active } = c.req.query()
         const conditions = []
 
@@ -117,7 +99,7 @@ app.get('/', async (c) => {
 // GET /api/v1/banking/parameters/lgd-configurations/:id
 app.get('/:id', async (c) => {
     try {
-        const id = parseInt(c.req.param('id')) // pkid is smallint
+        const id = parseInt(c.req.param('id'))
         if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
 
         const [config] = await db
@@ -142,13 +124,6 @@ app.post('/', zValidator('json', createLgdConfigSchema), async (c) => {
         const userId = c.get('userId') as string
         const data = c.req.valid('json')
 
-        // Ensure population segment exists (check new table)
-        // const [segment] = await db
-        //     .select()
-        //     .from(populationSegments)
-        //     .where(eq(populationSegments.id, data.populationSegmentId))
-        // if (!segment) return c.json({ success: false, message: 'Invalid population segment' }, 400)
-
         const [config] = await db
             .insert(frs9ImpCaLgdConfig)
             .values({
@@ -163,7 +138,11 @@ app.post('/', zValidator('json', createLgdConfigSchema), async (c) => {
                 lgdRate: data.lgdRate,
                 activeFlag: data.isActive,
                 createdby: userId,
-                // createdhost?
+                createdhost: 'localhost',
+                createddate: new Date().toISOString(),
+                updatedby: userId,
+                updatedhost: 'localhost',
+                updateddate: new Date().toISOString(),
             })
             .returning()
 
@@ -201,7 +180,8 @@ app.put('/:id', zValidator('json', updateLgdConfigSchema), async (c) => {
                 lgdRate: data.lgdRate,
                 activeFlag: data.isActive,
                 updatedby: userId,
-                updateddate: new Date().toISOString(), // string
+                updateddate: new Date().toISOString(),
+                updatedhost: 'localhost',
             })
             .where(eq(frs9ImpCaLgdConfig.pkid, id))
             .returning()
@@ -243,7 +223,7 @@ app.delete('/:id', async (c) => {
     }
 })
 
-// METADATA (Keep same)
+// METADATA
 app.get('/metadata/methods', async (c) => {
     return c.json({
         success: true,

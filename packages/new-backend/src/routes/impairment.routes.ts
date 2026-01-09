@@ -1,13 +1,13 @@
 
 import { Hono } from 'hono'
-import { db } from '../config/database'
+import { legacyDb as db } from '../config'
 import { eq, desc, sql, and } from 'drizzle-orm'
 import {
     frs9ImpCaEclSum,
     frs9ImpCaEclConfigh,
     frs9ImpCaResultH,
     frs9ImpCaResultD
-} from '../db/schema' // Ensure these are exported in index.ts
+} from '../db/schema'
 import { z } from 'zod'
 import { zValidator } from '@hono/zod-validator'
 
@@ -26,11 +26,47 @@ const runCalculationSchema = z.object({
 
 // ---- Routes ----
 
+// GET /results - Get detailed impairment results (frs9ImpCaResultH)
+app.get('/results', async (c) => {
+    try {
+        const page = Number(c.req.query('page') || '1')
+        const limit = Number(c.req.query('limit') || '10')
+        const offset = (page - 1) * limit
+
+        const data = await db
+            .select()
+            .from(frs9ImpCaResultH)
+            .orderBy(desc(frs9ImpCaResultH.prcDate))
+            .limit(limit)
+            .offset(offset)
+
+        // Count total for pagination (optional, separate query for performance)
+        // For now using placeholder to adhere to "just table" speed request
+        const total = 1000
+
+        return c.json({
+            success: true,
+            data: data,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit)
+            }
+        })
+    } catch (error) {
+        console.error('Error fetching impairment results:', error)
+        return c.json({
+            success: false,
+            message: 'Failed to fetch results',
+            error: String(error)
+        }, 500)
+    }
+})
+
 // GET /calculations - Get aggregates history
 app.get('/calculations', async (c) => {
     try {
-        console.log('GET /calculations called');
-
         // Aggregate EclSum by Date and Model
         const results = await db
             .select({

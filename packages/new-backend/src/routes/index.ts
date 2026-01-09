@@ -26,6 +26,9 @@ import { productParameterRoutes } from './product-parameters.routes'
 import { journalParameterRoutes } from './journal-parameters.routes'
 import { segmentationRoutes } from './segmentation.routes'
 import impairmentRoutes from './impairment.routes'
+import amortizationRoutes from './amortization.routes'
+import reportsRoutes from './reports.routes'
+import jobsRoutes from './jobs.routes'
 
 /**
  * Main API router
@@ -47,9 +50,9 @@ routes.route('/banking/parameters/product-segments', productSegmentsRoutes)
 routes.route('/banking/collective/rule-base', ruleBaseSettingsRoutes)
 routes.route('/banking/collective/bucket', bucketParametersRoutes)
 routes.route('/banking/collective/fl-scalar', flScalarRoutes)
-routes.route('/banking/parameters/pd-configurations', pdConfigurationsRoutes)
-routes.route('/banking/parameters/lgd-configurations', lgdConfigurationsRoutes)
-routes.route('/banking/parameters/ead-configurations', eadConfigurationsRoutes)
+routes.route('/banking/collective/pd-configurations', pdConfigurationsRoutes)
+routes.route('/banking/collective/lgd-configurations', lgdConfigurationsRoutes)
+routes.route('/banking/collective/ead-configurations', eadConfigurationsRoutes)
 routes.route('/banking/collective/ecl-config', eclConfigurationsRoutes)
 routes.route('/banking/parameters/population-segments', populationSegmentsRoutes)
 routes.route('/banking/parameters/app-settings', appSettingsRoutes)
@@ -60,3 +63,9 @@ routes.route('/banking/setup/journal-parameters', journalParameterRoutes)
 routes.route('/banking/setup/segmentation', segmentationRoutes)
 routes.route('/banking/parameters/business-settings', businessSettingsRoutes)
 routes.route('/banking/ifrs9/impairment-module', impairmentRoutes)
+routes.route('/banking/ifrs9/amortization-module', amortizationRoutes)
+routes.route('/banking/reports', reportsRoutes)
+routes.route('/jobs', jobsRoutes)
+routes.route('/roles', rbacRoutes) // Alias for frontend compatibility
+routes.route('/user', usersRoutes) // Alias for frontend compatibility (singular)
+routes.route('/approval', approvalRoutes) // Alias for frontend compatibility (singular)

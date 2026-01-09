@@ -7,6 +7,11 @@ import { authMiddleware, requirePermission, tenantMiddleware } from '../middlewa
 import { runEffect } from '../lib/effect'
 import * as rbacService from '../services/rbac.service'
 import type { Role, UserRole } from '../db/schema'
+import { PERMISSION_GROUPS, isValidPermission } from '../config/permissions'
+import { db } from '../config/database'
+import { roles } from '../db/schema'
+import { eq } from 'drizzle-orm'
+import * as auditService from '../services/audit.service'
 
 export const rbacRoutes = new Hono<AppContext>()
 
@@ -275,5 +280,105 @@ rbacRoutes.post(
         )
 
         return runEffect(c, effect)
+    }
+)
+
+// =============================================================================
+// PERMISSION MANAGEMENT ENDPOINTS
+// =============================================================================
+
+/**
+ * GET /permissions - Get all available permissions grouped
+ */
+rbacRoutes.get('/permissions', async (c) => {
+    return c.json(PERMISSION_GROUPS)
+})
+
+/**
+ * GET /roles/:id/permissions - Get role permissions
+ */
+rbacRoutes.get('/roles/:id/permissions', async (c) => {
+    const { id } = c.req.param()
+
+    const [role] = await db
+        .select()
+        .from(roles)
+        .where(eq(roles.id, id))
+        .limit(1)
+
+    if (!role) {
+        return c.json({ error: 'Role not found' }, 404)
+    }
+
+    return c.json({
+        roleId: role.id,
+        roleName: role.roleName,
+        permissions: role.permissions || {}
+    })
+})
+
+/**
+ * PUT /roles/:id/permissions - Update role permissions
+ */
+rbacRoutes.put(
+    '/roles/:id/permissions',
+    zValidator('json', z.object({
+        permissions: z.record(z.boolean())
+    })),
+    async (c) => {
+        const { id } = c.req.param()
+        const { permissions } = c.req.valid('json')
+        const userId = c.get('userId')
+        const tenantId = c.get('tenantId')
+
+        // Validate all permissions exist
+        const invalidPerms = Object.keys(permissions).filter(p => !isValidPermission(p))
+        if (invalidPerms.length > 0) {
+            return c.json({
+                error: 'Invalid permissions',
+                invalidPermissions: invalidPerms
+            }, 400)
+        }
+
+        // Check if role exists
+        const [existingRole] = await db
+            .select()
+            .from(roles)
+            .where(eq(roles.id, id))
+            .limit(1)
+
+        if (!existingRole) {
+            return c.json({ error: 'Role not found' }, 404)
+        }
+
+        // Prevent modification of system roles
+        if (existingRole.isSystemRole) {
+            return c.json({ error: 'Cannot modify system role permissions' }, 403)
+        }
+
+        // Update role
+        const [updated] = await db
+            .update(roles)
+            .set({
+                permissions,
+                updatedBy: userId,
+                updatedAt: new Date()
+            })
+            .where(eq(roles.id, id))
+            .returning()
+
+        // Log permission update
+        if (userId && tenantId) {
+            await auditService.logPermission.permissionsUpdated(
+                id,
+                existingRole.roleName,
+                existingRole.permissions,
+                permissions,
+                userId,
+                tenantId
+            )
+        }
+
+        return c.json(updated)
     }
 )
