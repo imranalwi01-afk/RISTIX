@@ -38,6 +38,7 @@ import {
   Refresh as RefreshIcon,
   Search as SearchIcon,
 } from '@mui/icons-material';
+import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 import { DataGrid, GridColDef, GridActionsCellItem } from '@mui/x-data-grid';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -54,7 +55,7 @@ interface PDConfigUI extends PDConfiguration {
   method_name?: string;
 }
 
-export default function PDSetupPage() {
+const PdSetupPage = () => {
   const router = useRouter();
 
   const [loading, setLoading] = useState(false);
@@ -309,7 +310,8 @@ export default function PDSetupPage() {
       </Card>
 
       <Card>
-        <Box sx={{ height: 600, width: '100%' }}>
+        <Box sx={{ height: 'calc(100vh - 100px)', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+        <FullstackIndicator />
           <DataGrid
             rows={filteredConfigs}
             columns={columns}
@@ -462,3 +464,5 @@ export default function PDSetupPage() {
     </Container>
   );
 }
+
+export default PdSetupPage;

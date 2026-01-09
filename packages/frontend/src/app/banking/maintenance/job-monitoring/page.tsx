@@ -39,7 +39,7 @@ import {
   FormControlLabel
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { DataGrid, GridColDef, GridRowParams, GridValueGetterParams, GridRenderCellParams } from '@mui/x-data-grid';
+import { DataGrid, GridColDef, GridRowParams, GridRenderCellParams } from '@mui/x-data-grid';
 import {
   Visibility as VisibilityIcon,
   Download as DownloadIcon,
@@ -71,6 +71,7 @@ import {
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import { format, parseISO, subDays, addMinutes, differenceInMinutes } from 'date-fns';
+import { bankingAPI } from '@/services/api';
 
 // Types and Interfaces
 interface JobExecution {
@@ -202,150 +203,7 @@ const JobMonitoringPage: React.FC = () => {
     action: null,
   });
 
-  // Mock data
-  const mockJobExecutions: JobExecution[] = [
-    {
-      id: 'exec-001',
-      jobId: 'job-001',
-      jobName: 'IFRS9 ECL Calculation - Monthly',
-      jobType: 'IFRS9_CALCULATION',
-      status: 'RUNNING',
-      priority: 'HIGH',
-      startTime: new Date().toISOString(),
-      progress: 65,
-      userId: 'user-001',
-      userName: 'Sarah Chen',
-      tenantId: 'tenant-001',
-      tenantName: 'Metro Bank',
-      resourceUsage: {
-        cpuUsage: 78,
-        memoryUsage: 1024,
-        diskUsage: 45
-      },
-      performanceMetrics: {
-        recordsProcessed: 156000,
-        throughput: 2400,
-        averageResponseTime: 250
-      },
-      isScheduled: true,
-      scheduleExpression: '0 0 1 * *',
-      retryCount: 0,
-      maxRetries: 3,
-      tags: ['monthly', 'ecl', 'critical']
-    },
-    {
-      id: 'exec-002',
-      jobId: 'job-002',
-      jobName: 'Portfolio Data ETL Process',
-      jobType: 'ETL_PROCESS',
-      status: 'COMPLETED',
-      priority: 'NORMAL',
-      startTime: new Date(Date.now() - 1800000).toISOString(),
-      endTime: new Date(Date.now() - 300000).toISOString(),
-      duration: 1500000,
-      progress: 100,
-      userId: 'user-002',
-      userName: 'Ahmad Hassan',
-      tenantId: 'tenant-002',
-      tenantName: 'Syariah Bank',
-      resourceUsage: {
-        cpuUsage: 35,
-        memoryUsage: 512,
-        diskUsage: 28
-      },
-      performanceMetrics: {
-        recordsProcessed: 89000,
-        throughput: 3600,
-        averageResponseTime: 150
-      },
-      isScheduled: true,
-      scheduleExpression: '0 */4 * * *',
-      retryCount: 0,
-      maxRetries: 2,
-      tags: ['etl', 'portfolio', 'automated']
-    },
-    {
-      id: 'exec-003',
-      jobId: 'job-003',
-      jobName: 'Data Validation Report',
-      jobType: 'DATA_VALIDATION',
-      status: 'FAILED',
-      priority: 'NORMAL',
-      startTime: new Date(Date.now() - 3600000).toISOString(),
-      endTime: new Date(Date.now() - 3300000).toISOString(),
-      duration: 300000,
-      progress: 45,
-      userId: 'user-003',
-      userName: 'Lisa Rodriguez',
-      tenantId: 'tenant-001',
-      tenantName: 'Metro Bank',
-      errorMessage: 'Data quality check failed',
-      errorDetails: 'Invalid data format detected in column OUTSTANDING_AMOUNT',
-      resourceUsage: {
-        cpuUsage: 15,
-        memoryUsage: 256,
-        diskUsage: 12
-      },
-      performanceMetrics: {
-        recordsProcessed: 23000,
-        throughput: 1200,
-        averageResponseTime: 200
-      },
-      isScheduled: false,
-      retryCount: 1,
-      maxRetries: 3,
-      tags: ['validation', 'manual', 'quality']
-    }
-  ];
 
-  const mockJobDefinitions: JobDefinition[] = [
-    {
-      id: 'job-001',
-      name: 'IFRS9 ECL Calculation - Monthly',
-      description: 'Monthly Expected Credit Loss calculation for all portfolios',
-      type: 'IFRS9_CALCULATION',
-      isEnabled: true,
-      scheduleExpression: '0 0 1 * *',
-      parameters: { includeStressTest: true, reportFormat: 'PDF' },
-      maxRetries: 3,
-      timeout: 7200000,
-      priority: 'HIGH',
-      createdBy: 'system',
-      lastModified: new Date().toISOString(),
-      nextRunTime: addMinutes(new Date(), 120).toISOString(),
-      lastRunStatus: 'RUNNING',
-      lastRunTime: new Date().toISOString()
-    },
-    {
-      id: 'job-002',
-      name: 'Portfolio Data ETL Process',
-      description: 'Extract, transform, and load portfolio data from core banking',
-      type: 'ETL_PROCESS',
-      isEnabled: true,
-      scheduleExpression: '0 */4 * * *',
-      parameters: { sourceSystem: 'CoreBanking', batchSize: 1000 },
-      maxRetries: 2,
-      timeout: 3600000,
-      priority: 'NORMAL',
-      createdBy: 'admin',
-      lastModified: new Date(Date.now() - 86400000).toISOString(),
-      nextRunTime: addMinutes(new Date(), 240).toISOString(),
-      lastRunStatus: 'COMPLETED',
-      lastRunTime: new Date(Date.now() - 1800000).toISOString()
-    }
-  ];
-
-  const mockSystemMetrics: SystemMetrics = {
-    cpuUsage: 45,
-    memoryUsage: 68,
-    diskUsage: 34,
-    activeJobs: 3,
-    queuedJobs: 8,
-    completedJobsToday: 156,
-    failedJobsToday: 12,
-    averageExecutionTime: 1250000,
-    throughputPerHour: 45000
-  };
 
   // Fetch data
   const fetchJobExecutions = useCallback(async () => {
@@ -353,21 +211,18 @@ const JobMonitoringPage: React.FC = () => {
     setError(null);
     
     try {
-      // In real implementation, call API
-      // const response = await api.get('/api/v1/jobs/executions', { params: filters });
+      const [executions, definitions, metrics] = await Promise.all([
+        bankingAPI.jobs.getExecutions(),
+        bankingAPI.jobs.getDefinitions(),
+        bankingAPI.jobs.getMetrics()
+      ]);
       
-      // Mock implementation
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setJobExecutions(mockJobExecutions);
-      setJobDefinitions(mockJobDefinitions);
-      setSystemMetrics(mockSystemMetrics);
+      setJobExecutions(executions as any); // Casting for now to avoid strict type mismatch if any
+      setJobDefinitions(definitions as any);
+      setSystemMetrics(metrics as any);
     } catch (error) {
       console.error('Error fetching job data:', error);
       setError('Failed to fetch job data. Please try again.');
-      // Fallback to mock data
-      setJobExecutions(mockJobExecutions);
-      setJobDefinitions(mockJobDefinitions);
-      setSystemMetrics(mockSystemMetrics);
     } finally {
       setLoading(false);
     }
@@ -430,9 +285,12 @@ const JobMonitoringPage: React.FC = () => {
     if (!jobControlDialog.job || !jobControlDialog.action) return;
 
     try {
-      // In real implementation, call API
-      // await api.post(`/api/v1/jobs/${jobControlDialog.job.jobId}/${jobControlDialog.action}`);
-      console.log(`${jobControlDialog.action} job:`, jobControlDialog.job.jobName);
+      if (jobControlDialog.action === 'start' || jobControlDialog.action === 'restart') {
+         // Pass jobId to runJob. If job object has jobId, use it.
+         await bankingAPI.jobs.runJob(jobControlDialog.job.jobId || jobControlDialog.job.id);
+      } else if (jobControlDialog.action === 'stop' || jobControlDialog.action === 'pause') {
+         await bankingAPI.jobs.controlJob(jobControlDialog.job.id, jobControlDialog.action);
+      }
       
       setJobControlDialog({ open: false, job: null, action: null });
       fetchJobExecutions();
@@ -443,9 +301,7 @@ const JobMonitoringPage: React.FC = () => {
 
   const toggleJobDefinition = async (jobId: string, enabled: boolean) => {
     try {
-      // In real implementation, call API
-      // await api.patch(`/api/v1/jobs/definitions/${jobId}`, { isEnabled: enabled });
-      console.log(`${enabled ? 'Enable' : 'Disable'} job:`, jobId);
+      await bankingAPI.jobs.toggleJob(jobId, enabled);
       
       setJobDefinitions(prev => 
         prev.map(job => 

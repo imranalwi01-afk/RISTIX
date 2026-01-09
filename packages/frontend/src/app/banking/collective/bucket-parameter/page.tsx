@@ -57,6 +57,8 @@ import {
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { bucketParameterAPI, BucketParameterHeader, BucketParameterDetail } from '../../../../services/api.bucketparameter';
+import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
+
 
 // ============================================================================
 // EXPANDABLE ROW COMPONENT
@@ -494,7 +496,8 @@ export default function BucketParameterPage() {
   // ============================================================================
 
   return (
-    <Container maxWidth="xl">
+    <Container maxWidth="xl" sx={{ position: 'relative' }}>
+      <FullstackIndicator />
       <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
         <Link
           underline="hover"

@@ -10,9 +10,15 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
+
+// ✅ REAL-TIME DB SYNC: Import health monitoring hook
+import { useBackendHealth } from '../../hooks/useBackendHealth';
+
+
 import {
   Box,
   List,
@@ -28,7 +34,8 @@ import {
   Badge,
   Tooltip,
   alpha,
-  useTheme
+  useTheme,
+  CircularProgress // ✅ Import CircularProgress
 } from '@mui/material';
 import {
   // Core Navigation & Layout
@@ -118,8 +125,10 @@ import {
   Description,
 } from '@mui/icons-material';
 
+import { Menu as MuiMenu, MenuItem as MuiMenuItem } from '@mui/material'; // ✅ Import Menu components
+
 // Import menu service for database-driven menus
-import { menuApi } from '@/services/api/menu.api';
+import { useGetMenuTreeQuery } from '@/store/api/menuApi';
 
 // Import centralized menu configuration
 import { menuConfig, getMenuIcon } from '@/config/menu-config';
@@ -135,6 +144,8 @@ import {
 
 // Import menu state management hook
 import { useMenuState } from '@/hooks/useMenuState';
+import { getAuthToken } from '@/utils/auth-token'; // ✅ Import token utility
+import { MenuSkeleton } from '../common/MenuSkeleton'; // ✅ Import Skeleton loader
 
 // Database menu item structure (from API)
 interface DatabaseMenuItem {
@@ -430,41 +441,51 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
         icon: <Assessment />,
         description: '/IFRS9N/IndividualImpairment/AssesmentOverride'
       },
-      // 🚫 DISABLED: Override Trigger menu item - Temporarily hidden as per user request
-      // {
-      //   id: 'override-trigger',
-      //   label: 'Override Trigger',
-      //   href: '/banking/individual/override-trigger',
-      //   icon: <NotificationImportant />,
-      //   description: '/IndividualImpairment/OverrideTrigger'
-      // },
-
-      // 🚫 DISABLED: DCF Scenario menu item - Temporarily hidden as per user request
-      // {
-      //   id: 'dcf-scenario',
-      //   label: 'DCF Scenario',
-      //   href: '/banking/individual/dcf',
-      //   icon: <Timeline />,
-      //   description: '/IndividualImpairment/DCFScenario'
-      // },
-
-      // 🚫 DISABLED: IA Provision menu item - Temporarily hidden as per user request
-      // {
-      //   id: 'ia-provision',
-      //   label: 'IA Provision',
-      //   href: '/banking/individual/provision',
-      //   icon: <AccountBalance />,
-      //   description: '/IndividualImpairment/IAProvision'
-      // },
-
-      // 🚫 DISABLED: Override History menu item - Temporarily hidden as per user request
-      // {
-      //   id: 'override-history',
-      //   label: 'Override History',
-      //   href: '/banking/individual/history',
-      //   icon: <History />,
-      //   description: '/IndividualImpairment/OverrideHistory'
-      // }
+      {
+        id: 'list-individual-report',
+        label: 'List of Individual Report',
+        href: '/banking/individual/reports',
+        icon: <TableChart />,
+        description: 'View and download individual reports',
+        isNew: true
+      },
+      {
+        id: 'review-scenario',
+        label: 'Review Scenario Details',
+        href: '/banking/individual/review/scenario',
+        icon: <Approval />,
+        description: 'Analyze and approve scenarios',
+        isNew: true
+      },
+      {
+        id: 'review-dcf-upload',
+        label: 'Review DCF Upload',
+        href: '/banking/individual/review/dcf-upload-report',
+        icon: <CloudUpload />,
+        description: 'Validation results for DCF uploads',
+        isNew: true
+      },
+      {
+        id: 'ia-dcf-detail',
+        label: 'Review IA DCF Detail',
+        href: '/banking/individual/review/ia-dcf-detail',
+        icon: <ShowChart />,
+        description: 'Detail view of cash flow projections',
+        isNew: true
+      },
+      {
+        id: 'override-history',
+        label: 'Override History',
+        href: '/banking/individual/history',
+        icon: <History />,
+        description: 'Audit trail for overrides',
+        children: [
+          { id: 'hist-customer', label: 'Customer Details', href: '/banking/individual/history/customer', icon: <Person /> },
+          { id: 'hist-provision', label: 'IA Provision', href: '/banking/individual/history/provision', icon: <AccountBalance /> },
+          { id: 'hist-dcf', label: 'DCF Upload', href: '/banking/individual/history/dcf-upload', icon: <CloudUpload /> },
+          { id: 'hist-collateral', label: 'Collateral', href: '/banking/individual/history/collateral', icon: <Security /> }
+        ]
+      }
     ]
   },
 
@@ -519,8 +540,8 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
         status: 'disabled'
       },
       {
-        id: 'stress-testing',
-        label: 'Stress Testing',
+        id: 'forecast',
+        label: 'Forecast',
         href: '/banking/ifrs9/scenarios',
         icon: <AutoGraph />,
         description: 'Economic Scenario Analysis',
@@ -805,153 +826,152 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
   const pathname = usePathname();
   const router = useRouter();
 
+  // ✅ REAL-TIME DB SYNC: Monitor backend health
+  const { isOnline, latency, isChecking, checkNow } = useBackendHealth(15000); // Check every 15s
+
+  // 🔽 FLYOUT MENU STATE
+  const [flyoutAnchorEl, setFlyoutAnchorEl] = useState<null | HTMLElement>(null);
+  const [flyoutItem, setFlyoutItem] = useState<HierarchicalMenuItem | null>(null);
+
+  const handleFlyoutOpen = (event: React.MouseEvent<HTMLElement>, item: HierarchicalMenuItem) => {
+    setFlyoutAnchorEl(event.currentTarget);
+    setFlyoutItem(item);
+  };
+
+  const handleFlyoutClose = () => {
+    setFlyoutAnchorEl(null);
+    setFlyoutItem(null);
+  };
+
+  const handleFlyoutItemClick = (child: HierarchicalMenuItem) => {
+    // Adapter to convert HierarchicalMenuItem to MenuItem
+    const menuItem: MenuItem = {
+      ...child,
+      label: child.title, // Map title to label
+      code: child.key || child.id,
+      href: child.url || undefined,
+      icon: <Menu />, // Dummy icon since handleMenuItemClick only uses it for routing
+      level: 3, // Safe default
+      roles: child.user_types,
+      banking_modes: child.banking_types as ('conventional' | 'syariah' | 'dual')[],
+      children: child.children ? child.children.map(c => ({
+        id: c.id,
+        label: c.title,
+        code: c.key,
+        icon: <Menu />, // Fix: provide ReactElement instead of string from database
+        banking_modes: c.banking_types as ('conventional' | 'syariah' | 'dual')[],
+        roles: c.user_types,
+        href: c.url || undefined
+      } as MenuItem)) : undefined
+    };
+    handleMenuItemClick(menuItem);
+    handleFlyoutClose();
+  };
+  // 🔼 END FLYOUT STATE
+
   // Database-driven menu state
-  const [hierarchicalMenu, setHierarchicalMenu] = useState<HierarchicalMenuItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // Database-driven menu state - ✅ CACHE FIRST STRATEGY
+  const [hierarchicalMenu, setHierarchicalMenu] = useState<HierarchicalMenuItem[]>(() => {
+    // Try to load from cache immediately for instant render
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('cached_menu_structure');
+        if (cached) {
+          return JSON.parse(cached);
+        }
+      } catch (e) {
+        // silent fail for cache
+      }
+    }
+    return [];
+  });
+
+  // Only show loading if we didn't find anything in cache
+
+
   const [menuError, setMenuError] = useState<string | null>(null);
 
   // Use hierarchical menu state management
   const menuState = useMenuState(hierarchicalMenu);
 
-  // Load menu from database on component mount and when dependencies change
+  // ✅ RTK Query: Auto-fetch and cache
+  // Only skip if no token is available or user role is not yet loaded
+  const shouldSkip = !getAuthToken() || (!userRole && (!roleCodes || roleCodes.length === 0));
+
+  const { data: menuData, isLoading: isMenuLoading, error: menuQueryError } = useGetMenuTreeQuery(
+    { bankingMode, includeInactive: false },
+    { skip: shouldSkip }
+  );
+
+  // Sync RTK Query data to local state for filtering/processing
   useEffect(() => {
-    console.log('🎯 Menu component useEffect triggered:', {
-      bankingMode,
-      userRole,
-      roleCodes,
-      pathname,
-      currentMenuItems: hierarchicalMenu.length
+    if (shouldSkip) return;
+
+    if (menuData && Array.isArray(menuData) && menuData.length > 0) {
+      processMenuData(menuData);
+    } else if (menuQueryError || (!isMenuLoading && (!menuData || menuData.length === 0))) {
+      // Use fallback on error or empty data
+      applyStaticFallback();
+    }
+  }, [menuData, isMenuLoading, menuQueryError, shouldSkip, bankingMode, userRole, roleCodes]);
+
+  const processMenuData = (data: any[]) => {
+    // Transform to HierarchicalMenuItem format if needed
+    const hierarchical = data.map((item: any): HierarchicalMenuItem => {
+      const mapToHierarchical = (dbItem: any, level: number): HierarchicalMenuItem => {
+        // ✅ URL OVERRIDE: Fix paths for legacy setup pages
+        let itemUrl = dbItem.url || dbItem.href || null;
+        if (dbItem.menu_key === 'application-configuration' || dbItem.key === 'application-configuration') {
+          itemUrl = '/banking/setup/application';
+        } else if (dbItem.menu_key === 'business-configuration' || dbItem.key === 'business-configuration') {
+          itemUrl = '/banking/setup/business';
+        }
+
+        return {
+          id: dbItem.id,
+          key: dbItem.menu_key || dbItem.key || dbItem.id,
+          title: dbItem.title || dbItem.label || 'Unknown',
+          description: dbItem.description,
+          icon: dbItem.icon || 'dashboard',
+          url: itemUrl,
+          type: dbItem.type || (dbItem.children && dbItem.children.length > 0 ? 'group' : 'item'),
+          level: level,
+          sort_order: dbItem.sort_order || 0,
+          parent_id: dbItem.parent_id || null,
+          expanded: false,
+          active: dbItem.is_active !== false,
+          visible: true,
+          permissions: dbItem.user_types || dbItem.roles || [],
+          banking_modes: dbItem.banking_types || dbItem.banking_modes || ['conventional', 'syariah', 'dual'],
+          user_types: dbItem.user_types || dbItem.roles || [],
+          tenant_types: [],
+          children: dbItem.children && dbItem.children.length > 0
+            ? dbItem.children.map((child: any) => mapToHierarchical(child, level + 1))
+            : [],
+          metadata: {
+            badge_info: dbItem.badge_info,
+            isNew: dbItem.isNew,
+            requiresSetup: dbItem.requiresSetup || dbItem.requires_setup
+          }
+        };
+      };
+      return mapToHierarchical(item, item.parent_id ? 2 : 1);
     });
-    loadHierarchicalMenuFromDatabase();
-  }, [bankingMode, userRole, roleCodes]); // Include roleCodes in dependencies
 
-  // Load hierarchical menu from database API - IMPROVED ERROR HANDLING
-  const loadHierarchicalMenuFromDatabase = async () => {
-    try {
-      setIsLoading(true);
-      setMenuError(null);
+    // Filter by role and banking mode
+    const filtered = filterHierarchicalMenu(hierarchical, userRole, bankingMode, roleCodes);
+    setHierarchicalMenu(filtered);
 
-      console.log('🔄 [DATABASE-DRIVEN] Loading menu from database...', {
-        bankingMode,
-        userRole,
-        roleCodes
-      });
-
-      // Get hierarchical menu data from API
-      const response = await menuApi.getMenuTree({
-        bankingMode,
-        includeInactive: false
-      });
-
-      console.log('📊 [DATABASE-DRIVEN] Menu API Response:', {
-        success: response.success,
-        dataLength: response.data?.length || 0,
-        dataType: Array.isArray(response.data) ? 'array' : typeof response.data,
-        dataSample: Array.isArray(response.data) ? response.data.slice(0, 3) : response.data
-      });
-
-      if (response.success && response.data && Array.isArray(response.data) && response.data.length > 0) {
-        console.log('✅ [DATABASE-DRIVEN] Raw hierarchical menu data loaded:', {
-          totalItems: response.data.length,
-          hierarchicalStructure: response.data.map((item: any) => ({
-            id: item.id,
-            title: item.title,
-            parent_id: item.parent_id,
-            hasChildren: !!(item.children && item.children.length > 0),
-            childrenCount: item.children ? item.children.length : 0
-          }))
-        });
-
-        // Check if data is hierarchical or flat
-        const hasChildren = response.data.some((item: any) => item.children && Array.isArray(item.children) && item.children.length > 0);
-
-        console.log(`🔍 [DATABASE-DRIVEN] Backend data hierarchical check: ${hasChildren}`);
-
-        // Transform to HierarchicalMenuItem format if needed
-        const hierarchical = response.data.map((item: any): HierarchicalMenuItem => {
-          const mapToHierarchical = (dbItem: any, level: number): HierarchicalMenuItem => ({
-            id: dbItem.id,
-            key: dbItem.menu_key || dbItem.key || dbItem.id,
-            title: dbItem.title || dbItem.label || 'Unknown',
-            description: dbItem.description,
-            icon: dbItem.icon || 'dashboard',
-            url: dbItem.url || dbItem.href || null,
-            type: dbItem.type || (dbItem.children && dbItem.children.length > 0 ? 'group' : 'item'),
-            level: level,
-            sort_order: dbItem.sort_order || 0,
-            parent_id: dbItem.parent_id || null,
-            expanded: false,
-            active: dbItem.is_active !== false,
-            visible: true,
-            permissions: dbItem.user_types || dbItem.roles || [],
-            banking_modes: dbItem.banking_types || dbItem.banking_modes || ['conventional', 'syariah', 'dual'],
-            user_types: dbItem.user_types || dbItem.roles || [],
-            tenant_types: [],
-            children: dbItem.children && dbItem.children.length > 0
-              ? dbItem.children.map((child: any) => mapToHierarchical(child, level + 1))
-              : [],
-            metadata: {
-              badge_info: dbItem.badge_info,
-              isNew: dbItem.isNew,
-              requiresSetup: dbItem.requiresSetup || dbItem.requires_setup
-            }
-          });
-          return mapToHierarchical(item, item.parent_id ? 2 : 1);
-        });
-
-        // Validate the hierarchical structure
-        const validation = validateMenuHierarchy(hierarchical);
-        console.log('✅ [DATABASE-DRIVEN] Menu validation result:', validation);
-
-        if (!validation.isValid) {
-          console.warn('⚠️ [DATABASE-DRIVEN] Validation issues:', validation.issues);
-        }
-
-        // Filter by role and banking mode
-        const filtered = filterHierarchicalMenu(hierarchical, userRole, bankingMode, roleCodes);
-
-        console.log('🎯 [DATABASE-DRIVEN] Filtered menu result:', {
-          originalCount: hierarchical.length,
-          filteredCount: filtered.length,
-          categories: filtered.map(item => ({
-            key: item.key,
-            title: item.title,
-            childrenCount: item.children?.length || 0
-          }))
-        });
-
-        console.log('📋 [FINAL] Setting hierarchical menu:', {
-          totalItems: filtered.length,
-          rootItems: filtered.map(item => ({ key: item.key, title: item.title, childrenCount: item.children?.length || 0 }))
-        });
-
-        setHierarchicalMenu(filtered);
-
-        // Auto-expand first section for better UX
-        if (filtered.length > 0 && filtered[0].children && filtered[0].children.length > 0) {
-          menuState.expandItem(filtered[0].id);
-        }
-
-      } else {
-        console.warn('⚠️ [DATABASE-DRIVEN] No menu data available - USING FALLBACK');
-        // Use static fallback when API fails
-        useStaticFallback();
-      }
-    } catch (error) {
-      console.error('❌ [DATABASE-DRIVEN] Failed to load menu - USING FALLBACK:', {
-        error: error.message,
-        stack: error.stack
-      });
-      setMenuError('Failed to load menu from database, using fallback');
-      useStaticFallback();
-    } finally {
-      setIsLoading(false);
+    // Auto-expand first section for better UX
+    if (filtered.length > 0 && filtered[0].children && filtered[0].children.length > 0) {
+      menuState.expandItem(filtered[0].id);
     }
   };
 
+
+
   // Static fallback function
-  const useStaticFallback = () => {
-    console.log('🔄 [FALLBACK] Using static menu structure...');
+  const applyStaticFallback = () => {
     const fallbackMenu = convertStaticToDatabaseFormat(BANKING_MENU_STRUCTURE);
     const hierarchicalFallback = transformFlatToHierarchical(fallbackMenu);
     const filtered = filterHierarchicalMenu(hierarchicalFallback, userRole, bankingMode, roleCodes);
@@ -1071,16 +1091,6 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
           color: (item.badge_info.color as any) || 'primary'
         };
       }
-
-      console.log('🔄 [DATABASE-DRIVEN] Converted menu item:', {
-        id: item.id,
-        title: item.title,
-        icon: item.icon,
-        convertedIcon: '✅ Preserved',
-        hasChildren: !!(item.children && item.children.length > 0),
-        level: menuItem.level,
-        parent_id: item.parent_id
-      });
 
       return menuItem;
     });
@@ -1355,60 +1365,34 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
   };
 
   const isItemVisible = (item: HierarchicalMenuItem): boolean => {
-    // 🔍 DEBUG: Add comprehensive logging for all menu items
-    console.log(`🔍 [MENU DEBUG] Checking visibility for ${item.id}:`, {
-      userRole,
-      bankingMode,
-      itemRoles: item.user_types,
-      itemBankingModes: item.banking_types,
-      hasRoles: !!(item.user_types && item.user_types.length > 0),
-      hasBankingModes: !!(item.banking_types)
-    });
+
 
     // 🔒 TEMPORARILY HIDE PORTFOLIO MANAGEMENT SECTION
     if (item.id === 'portfolio-management' || item.id?.startsWith('portfolio-')) {
-      console.log(`🚫 Menu item filtered out (portfolio): ${item.id}`);
       return false;
     }
 
     // Banking mode filter
     if (item.banking_types && !item.banking_types.includes(bankingMode)) {
-      console.log(`🚫 Menu item filtered out (banking mode): ${item.id}, required: ${item.banking_types}, current: ${bankingMode}`);
       return false;
     }
 
     // Enhanced role-based filter with IAF role support
     if (item.user_types && item.user_types.length > 0) {
-      console.log(`🔍 [ROLE DEBUG] Checking role access for ${item.id}:`, {
-        itemRoles: item.user_types,
-        userRole: userRole,
-        hasUserRole: !!userRole
-      });
-
       // If no user role provided, hide items that require specific roles
       if (!userRole) {
-        console.log(`🚫 Menu item filtered out (no user role): ${item.id}`);
         return false;
       }
 
       // Parse user roles (support comma-separated multiple roles)
       const userRoles = userRole.split(',').map(role => role.trim().toLowerCase());
-      console.log(`🔍 [ROLE DEBUG] Parsed user roles:`, userRoles);
 
       // Check if user has any of the required roles
       const hasRequiredRole = item.user_types.some(requiredRole => {
         const normalizedRequiredRole = requiredRole.toLowerCase();
 
-        console.log(`🔍 [ROLE MATCH DEBUG] Checking ${item.id}:`, {
-          requiredRole,
-          normalizedRequiredRole,
-          userRoles,
-          exactMatch: userRoles.includes(normalizedRequiredRole)
-        });
-
         // Exact match
         if (userRoles.includes(normalizedRequiredRole)) {
-          console.log(`✅ [ROLE MATCH] Exact match found for ${item.id}: ${normalizedRequiredRole}`);
           return true;
         }
 
@@ -1429,7 +1413,6 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
         // Check IAF role mappings
         const mappedRoles = iafRoleMapping[normalizedRequiredRole];
         if (mappedRoles && mappedRoles.some(mappedRole => userRoles.includes(mappedRole))) {
-          console.log(`✅ [IAF ROLE MATCH] Mapped role found for ${item.id}: ${normalizedRequiredRole}`);
           return true;
         }
 
@@ -1470,17 +1453,8 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
         });
       });
 
-      console.log(`🔍 [ROLE RESULT] Final role check for ${item.id}:`, {
-        hasRequiredRole,
-        userRole,
-        itemRoles: item.user_types
-      });
-
       if (!hasRequiredRole) {
-        console.log(`🚫 Menu item filtered out (role mismatch): ${item.id}`);
         return false;
-      } else {
-        console.log(`✅ Menu item passed role check: ${item.id}`);
       }
     }
 
@@ -1507,7 +1481,6 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
     }
 
     // Show all items that pass the filters
-    console.log(`✅ [FINAL RESULT] Menu item VISIBLE: ${item.id}, userRole: ${userRole}, bankingMode: ${bankingMode}`);
     return true;
   };
 
@@ -1552,8 +1525,6 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
       return null;
     }
 
-    console.log(`🎨 [HIERARCHICAL] Rendering menu item: ${item.key}, level: ${level}, expanded: ${menuState.isExpanded(item.id)}`);
-
     const hasChildren = item.children && item.children.length > 0;
     const isActive = menuState.isActive(item.id);
     const isExpanded = menuState.isExpanded(item.id);
@@ -1578,8 +1549,11 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
             arrow
           >
             <ListItemButton
-              onClick={() => {
-                if (hasChildren && visibleChildren.length > 0) {
+              onClick={(e) => {
+                if (collapsed && hasChildren) {
+                  // 🔽 Open Flyout in collapsed mode
+                  handleFlyoutOpen(e, item);
+                } else if (hasChildren && visibleChildren.length > 0) {
                   menuState.toggleExpansion(item.id);
                 } else if (item.url) {
                   menuState.navigateToMenu(item);
@@ -1588,31 +1562,66 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
               }}
               sx={{
                 minHeight: level === 0 ? 48 : 40,
-                borderRadius: collapsed ? 0 : 1,
-                mx: collapsed ? 0 : 0.5,
-                mb: 0.25,
-                px: collapsed ? 1 : 1,
+                borderRadius: collapsed ? 0 : '0 24px 24px 0',
+                mx: collapsed ? 0 : 0,
+                mb: 0.5,
+                px: collapsed ? 1 : 1.5,
                 py: 0.5,
+                position: 'relative',
+                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+
+                // 🎨 ACTIVE STATE STYLING (PREMIUM DARK)
                 backgroundColor: isActive
-                  ? alpha(theme.palette.primary.main, 0.1)
+                  ? 'rgba(255, 255, 255, 0.15)'
                   : 'transparent',
-                borderLeft: isActive
-                  ? `3px solid ${theme.palette.primary.main}`
-                  : '3px solid transparent',
-                justifyContent: collapsed ? 'center' : 'flex-start',
-                '&:hover': {
-                  backgroundColor: alpha(theme.palette.primary.main, 0.05),
+                background: isActive
+                  ? 'linear-gradient(90deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.05) 100%)'
+                  : 'transparent',
+
+                // Left active indicator
+                '&::before': {
+                  content: '""',
+                  position: 'absolute',
+                  left: 0,
+                  top: 6,
+                  bottom: 6,
+                  width: 4,
+                  borderRadius: '0 4px 4px 0',
+                  backgroundColor: '#ffffff',
+                  opacity: isActive ? 1 : 0,
+                  transition: 'opacity 0.2s ease',
+                  boxShadow: isActive ? '0 0 8px rgba(255, 255, 255, 0.5)' : 'none'
                 },
-                transition: 'all 0.15s ease-in-out'
+
+                justifyContent: collapsed ? 'center' : 'flex-start',
+
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  transform: collapsed ? 'none' : 'translateX(4px)',
+                  '& .MuiListItemIcon-root': {
+                    color: '#ffffff',
+                    transform: 'scale(1.1)'
+                  }
+                }
               }}
             >
               <ListItemIcon
                 sx={{
                   minWidth: collapsed ? 'unset' : 28,
                   justifyContent: 'center',
-                  color: isActive ? 'primary.main' : 'text.secondary',
+                  color: isActive ? '#ffffff' : 'rgba(255, 255, 255, 0.7)',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+
+                  // 🎨 GLOW EFFECT FOR ICONS
+                  filter: isActive
+                    ? 'drop-shadow(0 0 5px rgba(255, 255, 255, 0.5))'
+                    : 'none',
+
+                  transform: isActive ? 'scale(1.1)' : 'scale(1)',
+
                   '& svg': {
-                    fontSize: collapsed ? '1.2rem' : '1.1rem'
+                    fontSize: collapsed ? '1.4rem' : '1.3rem', // Slightly larger styling
+                    transition: 'all 0.3s ease'
                   }
                 }}
               >
@@ -1627,7 +1636,7 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
                         variant={level === 0 ? 'body2' : 'caption'}
                         sx={{
                           fontWeight: isActive ? 600 : 500,
-                          color: isActive ? 'primary.main' : 'text.primary',
+                          color: isActive ? '#ffffff' : 'rgba(255, 255, 255, 0.9)',
                           fontSize: level === 0 ? '0.825rem' : '0.75rem',
                           lineHeight: 1.3
                         }}
@@ -1664,11 +1673,11 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
                       )}
                     </Box>
                   }
-                  secondary={level === 0 && item.description ? (
+                  secondary={level === 0 && item.description && !item.description.endsWith('Root') ? (
                     <Typography
                       variant="caption"
                       sx={{
-                        color: 'text.secondary',
+                        color: 'rgba(255, 255, 255, 0.6)',
                         fontSize: '0.65rem',
                         lineHeight: 1.2,
                         mt: 0.25
@@ -1689,7 +1698,7 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
               {/* Expand/collapse indicator for items with children */}
               {hasChildren && visibleChildren.length > 0 && !collapsed && (
                 <Box sx={{
-                  color: 'text.secondary',
+                  color: 'rgba(255, 255, 255, 0.7)',
                   '& svg': {
                     fontSize: '1rem'
                   }
@@ -1718,8 +1727,8 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
       sx={{
         width,
         height: '100%',
-        backgroundColor: 'background.paper',
-        borderRight: `1px solid ${theme.palette.divider}`,
+        background: 'linear-gradient(180deg, #1565C0 0%, #0D47A1 100%)', // ✅ PREMIUM GRADIENT
+        borderRight: 'none',
         overflow: 'auto',
         transition: theme.transitions.create('width', {
           easing: theme.transitions.easing.sharp,
@@ -1733,14 +1742,14 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
           background: 'transparent',
         },
         '&::-webkit-scrollbar-thumb': {
-          background: alpha(theme.palette.primary.main, 0.3),
+          background: 'rgba(255, 255, 255, 0.3)',
           borderRadius: '2px',
           '&:hover': {
-            background: alpha(theme.palette.primary.main, 0.5),
+            background: 'rgba(255, 255, 255, 0.5)',
           },
         },
         scrollbarWidth: 'thin',
-        scrollbarColor: `${alpha(theme.palette.primary.main, 0.3)} transparent`,
+        scrollbarColor: 'rgba(255, 255, 255, 0.3) transparent',
       }}
     >
       {/* Header height matches AppBar exactly */}
@@ -1753,11 +1762,10 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
           alignItems: 'center',
           justifyContent: collapsed ? 'center' : 'flex-start',
           textAlign: collapsed ? 'center' : 'left',
-          backgroundColor: bankingMode === 'syariah'
-            ? 'success.main'
-            : '#1976D2', // IAF Corporate Blue
+          backgroundColor: 'rgba(0, 0, 0, 0.1)',
           color: 'white',
-          borderBottom: `1px solid ${alpha(theme.palette.common.white, 0.1)}`
+          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+          backdropFilter: 'blur(10px)' // ✅ GLASSMORPHISM
         }}
       >
         {collapsed ? (
@@ -1790,7 +1798,8 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
               fontWeight: 600,
               fontSize: '0.85rem',
               lineHeight: 1.2,
-              mb: 0
+              mb: 0,
+              letterSpacing: '0.02em'
             }}
           >
             IAF IFRS 9 Platform
@@ -1800,24 +1809,10 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
 
       {/* Navigation Menu */}
       <List sx={{ p: collapsed ? 0.25 : 0.5 }}>
-        {isLoading ? (
-          // Loading state
-          <Box sx={{ p: 2, textAlign: 'center' }}>
-            <Refresh sx={{
-              fontSize: 24,
-              color: 'text.secondary',
-              mb: 1,
-              '@keyframes spin': {
-                '0%': { transform: 'rotate(0deg)' },
-                '100%': { transform: 'rotate(360deg)' }
-              },
-              animation: 'spin 1s linear infinite'
-            }} />
-            <Typography variant="caption" color="text.secondary">
-              Loading menu...
-            </Typography>
-          </Box>
-        ) : menuError ? (
+        {isMenuLoading && hierarchicalMenu.length === 0 ? (
+          // Loading state - Skeleton
+          <MenuSkeleton />
+        ) : menuQueryError && hierarchicalMenu.length === 0 ? (
           // Error state with retry button
           <Box sx={{ p: 2, textAlign: 'center' }}>
             <ErrorOutline sx={{ fontSize: 24, color: 'error.main', mb: 1 }} />
@@ -1828,38 +1823,15 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
               variant="caption"
               color="primary"
               sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
-              onClick={loadHierarchicalMenuFromDatabase}
+              onClick={() => window.location.reload()}
             >
               Retry
             </Typography>
           </Box>
         ) : (
           // Render hierarchical menu items (database-driven or fallback)
-          (() => {
-            console.log(`📋 [HIERARCHICAL] About to render ${hierarchicalMenu.length} menu items:`,
-              hierarchicalMenu.map(item => ({
-                id: item.id,
-                key: item.key,
-                title: item.title,
-                level: item.level,
-                parent_id: item.parent_id,
-                childrenCount: item.children?.length || 0,
-                hasChildren: !!(item.children && item.children.length > 0)
-              }))
-            );
-
-            // Debug: Check if hierarchical structure is preserved
-            const hierarchicalCheck = hierarchicalMenu.some(item => item.children && item.children.length > 0);
-            console.log(`🔍 [HIERARCHY DEBUG] Hierarchical structure preserved: ${hierarchicalCheck}`);
-
-            if (!hierarchicalCheck && hierarchicalMenu.length > 0) {
-              console.warn(`⚠️ [HIERARCHY DEBUG] No hierarchical structure found in ${hierarchicalMenu.length} items - checking parent_id relations:`,
-                hierarchicalMenu.map(item => ({ id: item.id, title: item.title, parent_id: item.parent_id }))
-              );
-            }
-
-            return hierarchicalMenu.map(item => renderHierarchicalMenuItem(item));
-          })()
+          // Render hierarchical menu items (database-driven or fallback)
+          hierarchicalMenu.map(item => renderHierarchicalMenuItem(item))
         )}
       </List>
 
@@ -1867,44 +1839,18 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
       <Box
         sx={{
           mt: 'auto',
-          px: collapsed ? 1 : 1.5,
-          py: collapsed ? 1 : 1.5,
-          borderTop: `1px solid ${theme.palette.divider}`,
-          backgroundColor: alpha(theme.palette.background.paper, 0.8)
+          px: collapsed ? 1 : 2,
+          py: collapsed ? 1 : 2.5,
+          borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+          // background: 'rgba(0, 0, 0, 0.2)', // Removed to match menu color
+          // backdropFilter: 'blur(10px)'
         }}
       >
-        {collapsed ? (
-          /* Collapsed: Just IAF logo centered */
-          <Link href={getTopLevelRoute()} style={{ textDecoration: 'none' }}>
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                cursor: 'pointer',
-                '&:hover': {
-                  '& img': {
-                    transform: 'scale(1.05)',
-                  }
-                }
-              }}
-            >
-              <img
-                src="/images/logo-iaf.png"
-                alt="IAF"
-                style={{
-                  height: '24px',
-                  width: 'auto',
-                  objectFit: 'contain',
-                  transition: 'transform 0.2s ease'
-                }}
-              />
-            </Box>
-          </Link>
-        ) : (
+        {collapsed ? null : (
           /* Expanded: Full footer with logo and info */
           <>
             {/* IAF Logo Section */}
+            {/* ... (previous expanded logo code) ... */}
             <Link href={getTopLevelRoute()} style={{ textDecoration: 'none' }}>
               <Box
                 sx={{
@@ -1912,8 +1858,8 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
                   flexDirection: 'column',
                   alignItems: 'center',
                   gap: 1,
-                  mb: 1,
-                  mt: 2,
+                  mb: 2,
+                  mt: 0.5,
                   cursor: 'pointer',
                   '&:hover': {
                     '& img': {
@@ -1926,79 +1872,65 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
                   src="/images/logo-iaf.png"
                   alt="Indonesia Airawata Finance"
                   style={{
-                    height: '32px',
-                    width: 'auto',
+                    height: 'auto',
+                    width: '100%',
+                    maxWidth: '180px',
+                    maxHeight: '48px',
                     objectFit: 'contain',
-                    transition: 'transform 0.2s ease'
+                    transition: 'transform 0.2s ease',
                   }}
                 />
-                <Typography
-                  variant="caption"
-                  color="primary.main"
-                  align="center"
-                  display="block"
-                  sx={{
-                    fontSize: '0.7rem',
-                    fontWeight: 600,
-                    color: '#1976D2' // IAF Blue
-                  }}
-                >
-                  Indonesia Airawata Finance
-                </Typography>
               </Box>
             </Link>
 
             <Typography
               variant="caption"
-              color="text.secondary"
               align="center"
               display="block"
-              sx={{ fontSize: '0.65rem' }}
+              sx={{
+                fontSize: '0.7rem',
+                color: 'rgba(255, 255, 255, 0.9)',
+                fontWeight: 500,
+                letterSpacing: '0.02em',
+                mb: 0.5
+              }}
             >
               IFRS 9 Platform v2.0
             </Typography>
             <Typography
               variant="caption"
-              color="text.secondary"
               align="center"
               display="block"
-              sx={{ fontSize: '0.6rem', mb: 0.5 }}
+              sx={{
+                fontSize: '0.65rem',
+                mb: 1.5,
+                color: 'rgba(255, 255, 255, 0.7)'
+              }}
             >
-              {/* ✅ SURGICAL FIX: Dynamic banking mode display */}
               {getBankingModeLabel()}
             </Typography>
 
             {/* Quick Status Indicators */}
-            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.5, mt: 0.5 }}>
-              {/* ✅ SURGICAL FIX: Dynamic banking mode chip */}
+            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, mt: 0.5 }}>
               <Chip
                 icon={getBankingModeIcon()}
                 label={bankingMode === 'syariah' ? 'Halal' : 'Compliant'}
                 size="small"
-                color={getBankingModeColor() as any}
-                variant="outlined"
+                variant="filled"
                 sx={{
-                  fontSize: '0.55rem',
-                  height: 18,
+                  fontSize: '0.6rem',
+                  height: 20,
+                  backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                  color: 'white',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
                   '& .MuiChip-icon': {
-                    fontSize: '0.7rem'
+                    fontSize: '0.8rem',
+                    color: '#fff'
                   }
                 }}
               />
-              <Chip
-                icon={<CheckCircle />}
-                label="Online"
-                size="small"
-                color="primary"
-                variant="outlined"
-                sx={{
-                  fontSize: '0.55rem',
-                  height: 18,
-                  '& .MuiChip-icon': {
-                    fontSize: '0.7rem'
-                  }
-                }}
-              />
+
+
             </Box>
           </>
         )}

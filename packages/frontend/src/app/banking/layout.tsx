@@ -32,7 +32,8 @@ import {
   useMediaQuery,
   Paper,
   Breadcrumbs,
-  Link
+  Link,
+  Divider // ✅ Added Divider
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -40,8 +41,8 @@ import {
   Notifications,
   Settings,
   ExitToApp,
-  Brightness4,
-  Brightness7,
+  Brightness4, // Moon
+  Brightness7, // Sun
   SwapHoriz,
   Business,
   Security,
@@ -55,7 +56,9 @@ import {
 
 // Import our enhanced sidebar
 import BankingSidebar from '../../components/banking/BankingSidebar';
-import { getAuthToken, clearAuthTokens } from '../../utils/auth-token';
+import { getAuthToken } from '../../utils/auth-token'; // Removed clearAuthTokens, not needed
+import { useBankingTheme } from '../../providers/BankingThemeProvider';
+import { useAuth } from '../../providers/AuthProvider'; // ✅ Import useAuth for robust logout
 
 const DRAWER_WIDTH = 280;
 const DRAWER_WIDTH_COLLAPSED = 60;
@@ -68,7 +71,10 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
   const router = useRouter();
 
   // ✅ ADD: Get banking mode from Redux store
-  const bankingMode = useSelector((state: RootState) => state.configuration.bankingMode);
+  const { bankingMode: themeBankingMode, colorMode, toggleColorMode } = useBankingTheme(); // ✅ Renamed to avoid collisions
+  // ✅ SURGICAL FIX: Use robust logout from AuthProvider
+  const { logout } = useAuth();
+  const reduxBankingMode = useSelector((state: RootState) => state.configuration.bankingMode);
 
   // ✅ ADD: Get user data from Redux auth state
   const authState = useSelector((state: RootState) => state.auth);
@@ -109,9 +115,14 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
       let role = authState.user.role ||
         authState.user.userRole ||
         authState.user.roleName ||
-        authState.user.roles?.[0] ||
+        (Array.isArray(authState.user.roles) ? authState.user.roles[0] : authState.user.roles) ||
         authState.user.userType ||
         '';
+
+      // Ensure role is a string if it somehow came as an array from other fields
+      if (Array.isArray(role)) {
+          role = role[0] || '';
+      }
 
       // 🔧 FORCE IAF ROLES FOR ADMIN USERS
       if (authState.user?.email === 'admin@iaf.co.id') {
@@ -159,12 +170,17 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
             permissions: parsedUser.permissions
           });
 
-          const role = parsedUser.role ||
+          let role = parsedUser.role ||
             parsedUser.userRole ||
             parsedUser.roleName ||
-            parsedUser.roles?.[0] ||
+            (Array.isArray(parsedUser.roles) ? parsedUser.roles[0] : parsedUser.roles) ||
             parsedUser.userType ||
             '';
+
+          // Ensure role is a string
+          if (Array.isArray(role)) {
+            role = role[0] || '';
+          }
 
           console.log('🎯 Extracted user role (localStorage fallback):', role);
           setUserRole(role);
@@ -201,15 +217,24 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
     handleProfileMenuClose();
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     handleProfileMenuClose();
-    clearAuthTokens();
-    window.location.href = '/login';
+    try {
+      console.log('🚪 Initiating secure logout via AuthProvider...');
+      if (logout) {
+        await logout();
+      } else {
+        window.location.href = '/login';
+      }
+    } catch (error) {
+       console.error('Logout error:', error);
+       window.location.href = '/login';
+    }
   };
 
   // ✅ SURGICAL FIX: Dynamic banking mode functions based on Redux state
   const getBankingModeIcon = () => {
-    switch (bankingMode) {
+    switch (themeBankingMode) {
       case 'syariah': return <Mosque />;
       case 'dual': return <SwapHoriz />;
       default: return <AccountBalance />;
@@ -217,7 +242,7 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
   };
 
   const getBankingModeColor = () => {
-    switch (bankingMode) {
+    switch (themeBankingMode) {
       case 'syariah': return 'success';
       case 'dual': return 'warning';
       default: return 'primary';
@@ -225,7 +250,7 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
   };
 
   const getBankingModeLabel = () => {
-    switch (bankingMode) {
+    switch (themeBankingMode) {
       case 'syariah': return 'Islamic Banking';
       case 'dual': return 'Dual Banking';
       default: return 'Conventional Banking';
@@ -271,13 +296,9 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
       sx={{
         width: { md: `calc(100% - ${currentDrawerWidth}px)` },
         ml: { md: `${currentDrawerWidth}px` },
-        background: `linear-gradient(135deg, ${bankingMode === 'syariah'
-            ? theme.palette.success.main
-            : theme.palette.primary.main
-          } 0%, ${bankingMode === 'syariah'
-            ? theme.palette.success.dark
-            : theme.palette.primary.dark
-          } 100%)`,
+        background: colorMode === 'dark' ? 'rgba(15, 23, 42, 0.75)' : 'rgba(255, 255, 255, 0.85)', // ✅ Improved Glass
+        backdropFilter: 'blur(16px)', // Stronger blur
+        borderBottom: `1px solid ${colorMode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)'}`,
         boxShadow: theme.shadows[1],
         zIndex: theme.zIndex.drawer + 1,
         transition: theme.transitions.create(['width', 'margin'], {
@@ -296,12 +317,11 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
       >
         {/* Mobile menu button */}
         <IconButton
-          color="inherit"
           aria-label="open drawer"
           edge="start"
           onClick={handleDrawerToggle}
           size="small"
-          sx={{ mr: 1.5, display: { md: 'none' } }}
+          sx={{ mr: 1.5, display: { md: 'none' }, color: colorMode === 'dark' ? 'inherit' : '#1565C0' }}
         >
           <MenuIcon fontSize="small" />
         </IconButton>
@@ -309,15 +329,15 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
         {/* Desktop sidebar toggle button */}
         <Tooltip title={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}>
           <IconButton
-            color="inherit"
             onClick={handleSidebarToggle}
             size="small"
             sx={{
               mr: 1.5,
               display: { xs: 'none', md: 'inline-flex' },
-              backgroundColor: alpha(theme.palette.common.white, 0.1),
+              color: colorMode === 'dark' ? 'inherit' : '#1565C0',
+              backgroundColor: alpha(theme.palette.primary.main, 0.05),
               '&:hover': {
-                backgroundColor: alpha(theme.palette.common.white, 0.2),
+                backgroundColor: alpha(theme.palette.primary.main, 0.1),
                 transform: 'scale(1.05)'
               },
               transition: 'all 0.2s ease-in-out'
@@ -334,14 +354,22 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
             noWrap
             component="div"
             sx={{
-              fontWeight: 600,
+              fontWeight: 700,
               fontSize: '1rem',
-              lineHeight: 1.2
+              lineHeight: 1.2,
+              color: colorMode === 'dark' ? 'inherit' : '#1565C0'
             }}
           >
             IFRS 9 | i9 model platform
           </Typography>
         </Box>
+
+        {/* ✅ ADD: Theme Toggle Button */}
+        <Tooltip title={`Switch to ${colorMode === 'dark' ? 'Light' : 'Dark'} Mode`}>
+           <IconButton onClick={toggleColorMode} color="inherit" size="small" sx={{ ml: 1 }}>
+              {colorMode === 'dark' ? <Brightness7 /> : <Brightness4 />}
+           </IconButton>
+        </Tooltip>
 
         {/* 🚨 DISABLED: Notifications - Per IAF IFRS9 Step 02 Requirements */}
         {/* Notifications icon has been disabled as per requirements */}
@@ -360,7 +388,9 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
             <Avatar sx={{
               width: 28,
               height: 28,
-              bgcolor: 'rgba(255,255,255,0.2)',
+              bgcolor: alpha(theme.palette.primary.main, 0.1),
+              color: theme.palette.primary.main,
+              fontWeight: 600,
               fontSize: '0.875rem'
             }}>
               {userName.charAt(0).toUpperCase()}
@@ -451,7 +481,7 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
   const drawer = (
     <BankingSidebar
       width={sidebarCollapsed ? DRAWER_WIDTH_COLLAPSED : DRAWER_WIDTH}
-      bankingMode={bankingMode} // ✅ FIXED: Pass dynamic banking mode
+      bankingMode={themeBankingMode || 'conventional'} // ✅ FIXED: Use renamed variable with fallback
       userRole={userRole}
       roleCodes={authState.user?.roleCodes || []} // ✅ Pass roleCodes for menu compatibility
       collapsed={sidebarCollapsed}
@@ -467,8 +497,8 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
 
   // Debugging: Log userRole and roleCodes being passed to BankingSidebar
   React.useEffect(() => {
-    console.log('🚀 BankingSidebar props:', { userRole, roleCodes: authState.user?.roleCodes, bankingMode, userName });
-  }, [userRole, authState.user?.roleCodes, bankingMode, userName]);
+    console.log('🚀 BankingSidebar props:', { userRole, roleCodes: authState.user?.roleCodes, bankingMode: themeBankingMode, userName });
+  }, [userRole, authState.user?.roleCodes, themeBankingMode, userName]);
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
@@ -507,7 +537,7 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
         >
           <BankingSidebar
             width={DRAWER_WIDTH}
-            bankingMode={bankingMode} // ✅ FIXED: Pass dynamic banking mode
+            bankingMode={themeBankingMode || 'conventional'} // ✅ FIXED: Use renamed variable
             userRole={userRole}
             roleCodes={authState.user?.roleCodes || []} // ✅ Pass roleCodes for menu compatibility
             collapsed={false}
@@ -540,7 +570,7 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
         </Drawer>
       </Box>
 
-      {/* User Profile Menu */}
+      {/* User Profile Menu - Modernized */}
       <Menu
         id="user-menu"
         anchorEl={anchorEl}
@@ -549,43 +579,115 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
         open={Boolean(anchorEl)}
         onClose={handleProfileMenuClose}
+        TransitionProps={{ timeout: 200 }} // Smooth transition
         PaperProps={{
-          sx: { width: 240, mt: 1 }
+          sx: { 
+            width: 260, 
+            mt: 1.5,
+            borderRadius: 3, // More rounded
+            boxShadow: '0 4px 20px rgba(0,0,0,0.15)', // Softer shadow
+            overflow: 'hidden',
+            border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+            backgroundImage: colorMode === 'dark' 
+              ? 'linear-gradient(rgba(30, 41, 59, 0.95), rgba(30, 41, 59, 0.95))' 
+              : 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(20px)',
+          }
         }}
+        MenuListProps={{ disablePadding: true }} // Allow full-width header
       >
-        <Box sx={{ p: 1.5, bgcolor: 'background.default' }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.875rem' }}>
-            {userName}
-          </Typography>
-          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-            {userRole.replace(/_/g, ' ')}
-          </Typography>
+        {/* Modern Menu Header */}
+        <Box sx={{ 
+          p: 2.5, 
+          background: colorMode === 'dark' 
+            ? `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.2)} 0%, ${alpha(theme.palette.primary.dark, 0.3)} 100%)`
+            : `linear-gradient(135deg, ${alpha(theme.palette.primary.light, 0.1)} 0%, ${alpha(theme.palette.primary.main, 0.05)} 100%)`,
+          borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+             <Avatar sx={{
+                width: 48,
+                height: 48,
+                bgcolor: theme.palette.primary.main,
+                color: '#fff',
+                fontSize: '1.2rem',
+                fontWeight: 700,
+                boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.4)}`
+              }}>
+                {userName.charAt(0).toUpperCase()}
+              </Avatar>
+              <Box sx={{ ml: 2 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+                  {userName}
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                  {(typeof userRole === 'string' ? userRole : String(userRole || '')).replace(/_/g, ' ')}
+                </Typography>
+              </Box>
+          </Box>
+          
           {/* ✅ SURGICAL FIX: Dynamic banking mode chip */}
           <Chip
             size="small"
-            label={getBankingModeLabel()} // ✅ FIXED: Dynamic label
-            color={getBankingModeColor() as any} // ✅ FIXED: Dynamic color
-            sx={{ mt: 0.5, height: 20, fontSize: '0.7rem' }}
+            label={getBankingModeLabel()} 
+            color={getBankingModeColor() as any}
+            sx={{ 
+              height: 24, 
+              fontSize: '0.75rem', 
+              fontWeight: 600,
+              width: '100%',
+              justifyContent: 'flex-start',
+              pl: 1,
+              '& .MuiChip-label': { pl: 1 }
+            }}
+            icon={React.cloneElement(getBankingModeIcon() as React.ReactElement, { style: { fontSize: 14 } })}
           />
         </Box>
 
-        <MenuItem onClick={() => { handleProfileMenuClose(); router.push('/banking/settings/profile'); }} sx={{ py: 1 }}>
-          <AccountCircle sx={{ mr: 1.5, fontSize: '1.2rem' }} />
-          <Typography variant="body2">Profile Settings</Typography>
-        </MenuItem>
+        <Box sx={{ p: 1 }}>
+          <MenuItem 
+            onClick={() => { handleProfileMenuClose(); router.push('/banking/settings/profile'); }} 
+            sx={{ 
+              py: 1.5, 
+              borderRadius: 2, 
+              mb: 0.5,
+              transition: 'all 0.2s',
+              '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.08), transform: 'translateX(4px)' } 
+            }}
+          >
+            <AccountCircle sx={{ mr: 2, fontSize: '1.2rem', color: 'text.secondary' }} />
+            <Typography variant="body2" fontWeight={500}>Profile Settings</Typography>
+          </MenuItem>
 
-        <MenuItem onClick={() => { handleProfileMenuClose(); router.push('/banking/settings/preferences'); }} sx={{ py: 1 }}>
-          <Settings sx={{ mr: 1.5, fontSize: '1.2rem' }} />
-          <Typography variant="body2">Preferences</Typography>
-        </MenuItem>
+          <MenuItem 
+            onClick={() => { handleProfileMenuClose(); router.push('/banking/settings/preferences'); }} 
+            sx={{ 
+              py: 1.5, 
+              borderRadius: 2, 
+              transition: 'all 0.2s',
+              '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.08), transform: 'translateX(4px)' } 
+            }}
+          >
+            <Settings sx={{ mr: 2, fontSize: '1.2rem', color: 'text.secondary' }} />
+            <Typography variant="body2" fontWeight={500}>Preferences</Typography>
+          </MenuItem>
 
-        {/* 🚨 DISABLED: Theme Settings - Per IAF IFRS9 Step 02 Requirements */}
-        {/* Theme Settings menu item has been disabled as per requirements */}
+          <Divider sx={{ my: 1, borderColor: alpha(theme.palette.divider, 0.1) }} />
 
-        <MenuItem onClick={handleLogout} sx={{ color: 'error.main', py: 1 }}>
-          <ExitToApp sx={{ mr: 1.5, fontSize: '1.2rem' }} />
-          <Typography variant="body2">Logout</Typography>
-        </MenuItem>
+          <MenuItem 
+            onClick={handleLogout} 
+            sx={{ 
+              color: 'error.main', 
+              py: 1.5, 
+              borderRadius: 2,
+              transition: 'all 0.2s',
+              '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.08), transform: 'translateX(4px)' } 
+            }}
+          >
+            <ExitToApp sx={{ mr: 2, fontSize: '1.2rem' }} />
+            <Typography variant="body2" fontWeight={600}>Sign Out</Typography>
+          </MenuItem>
+        </Box>
       </Menu>
 
       {/* 🚨 DISABLED: Notifications Menu - Per IAF IFRS9 Step 02 Requirements */}

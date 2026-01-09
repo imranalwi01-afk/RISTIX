@@ -961,6 +961,11 @@ export class SessionControlService {
             if (refreshed) {
               this.log('401 handled successfully via token refresh');
               return true; // Error handled by token refresh
+            } else {
+              // 🚨 CRITICAL FIX: If token refresh fails on 401, session is dead. Force logout immediately.
+              this.log('Authentication failed: Token refresh failed on 401 error. Forcing logout.');
+              await this.logout('token_refresh_failed_on_401');
+              return true;
             }
           }
 
@@ -973,18 +978,10 @@ export class SessionControlService {
             }, config.unauthorized401.gracePeriod);
             return true;
           } else {
-            // 🔧 FIXED: Don't auto-logout, instead handle gracefully
-            this.log(`401 handled gracefully - auto-logout disabled or retries not exhausted (${this.state.refreshFailureCount}/${config.unauthorized401.maxRetries})`);
-            this.broadcastEvent({
-              type: 'network_warning',
-              timestamp: Date.now(),
-              data: {
-                message: 'Authentication issue detected, but you can continue using the application',
-                autoLogoutDisabled: true,
-                isGracefulHandling: true
-              }
-            });
-            return true; // Mark as handled to prevent error propagation
+            // 🔧 FIXED: Force logout if retries are disabled or exhausted to prevent infinite loops
+            this.log(`401 error unrecoverable - forcing logout`);
+            await this.logout('http_401_unrecoverable');
+            return true; 
           }
         }
         break;

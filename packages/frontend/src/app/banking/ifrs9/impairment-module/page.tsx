@@ -58,6 +58,7 @@ import {
   Tab
 } from '@mui/material';
 
+
 import {
   Calculate as CalculateIcon,
   Refresh as RefreshIcon,
@@ -86,16 +87,65 @@ import {
 } from '@mui/icons-material';
 
 // API Service Integration
-// API Service Integration
-import { api } from '../../../../services/api';
+import { useApi } from '@/hooks/useApi';
 import { useAuth } from '@/providers/AuthProvider';
-import { ImpairmentCalculation, ImpairmentConfiguration } from '../../../../services/api/impairment.api';
+import { bankingAPI } from '@/services/api';
 
-// Types imported from API service
+// Types for Impairment Module
+interface ImpairmentCalculation {
+  id: string;
+  calculationName: string;
+  calculationType: 'ECL' | 'PD' | 'LGD' | 'EAD' | 'STAGING';
+  portfolioId: string;
+  portfolioName: string;
+  calculationDate: string;
+  reportingDate: string;
+  currency: string;
+  totalExposure: number;
+  totalECL: number;
+  coverageRatio: number;
+  stage1Exposure: number;
+  stage2Exposure: number;
+  stage3Exposure: number;
+  stage1ECL: number;
+  stage2ECL: number;
+  stage3ECL: number;
+  modelVersion: string;
+  assumptions: string;
+  status: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED';
+  progress: number;
+  errorMessage?: string;
+  createdBy: string;
+  createdAt: string;
+  completedAt?: string;
+}
+
+interface ImpairmentConfiguration {
+  id: string;
+  configName: string;
+  configType: 'ECL_MODEL' | 'PD_MODEL' | 'LGD_MODEL' | 'EAD_MODEL';
+  isActive: boolean;
+  parameters: Record<string, any>;
+  modelVersion: string;
+  lastUpdated: string;
+  updatedBy: string;
+}
+
+interface ApiResponse<T> {
+  success: boolean;
+  data: T[];
+  message?: string;
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
 
 export default function ImpairmentModulePage() {
   const { user } = useAuth();
-  // const { get, post, put, del } = useApi(); // Replaced by centralized API
+  const { apiCall } = useApi();
 
   // State Management
   const [calculations, setCalculations] = useState<ImpairmentCalculation[]>([]);
@@ -107,6 +157,9 @@ export default function ImpairmentModulePage() {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
   const [currentTab, setCurrentTab] = useState(0);
+
+  // Currency options from Business Settings (B0001)
+  const [currencyOptions, setCurrencyOptions] = useState<Array<{ id: string; name: string }>>([]);
 
   // Dialog States
   const [runCalculationDialogOpen, setRunCalculationDialogOpen] = useState(false);
@@ -131,10 +184,14 @@ export default function ImpairmentModulePage() {
       setLoading(true);
       setError(null);
 
-      // Use centralized API
-      const response = await api.banking.impairment.getCalculations(page + 1, rowsPerPage);
+      const params = new URLSearchParams({
+        page: (page + 1).toString(),
+        limit: rowsPerPage.toString()
+      });
 
-      if (response.success && response.data) {
+      const response = await apiCall(`/api/v1/ifrs9/impairment-module/calculations?${params}`) as ApiResponse<ImpairmentCalculation>;
+
+      if (response.success) {
         setCalculations(response.data);
         setTotalCount(response.pagination?.total || 0);
       } else {
@@ -145,30 +202,68 @@ export default function ImpairmentModulePage() {
     } finally {
       setLoading(false);
     }
-  }, [page, rowsPerPage]);
+  }, [apiCall, page, rowsPerPage]);
 
   const loadConfigurations = useCallback(async () => {
     try {
-      const response = await api.banking.impairment.getConfigurations();
+      const response = await apiCall('/api/v1/ifrs9/impairment-module/configurations') as ApiResponse<ImpairmentConfiguration>;
 
-      if (response.success && response.data) {
+      if (response.success) {
         setConfigurations(response.data);
       }
     } catch (err) {
       console.error('Failed to load configurations:', err);
+    }
+  }, [apiCall]);
+
+  // Load currency options from Business Settings
+  const loadCurrencyOptions = useCallback(async () => {
+    try {
+      const response = await bankingAPI.businessSetup.getAll();
+      if (response.success && response.data) {
+        // Find B0001 (Currency) parameter
+        const currencyParam = response.data.find((param: any) => param.param_code === 'B0001');
+        if (currencyParam && currencyParam.details) {
+          const options = currencyParam.details.map((detail: any) => ({
+            id: detail.value1 || detail.param_value || '',
+            name: detail.paramdesc || detail.param_desc || detail.value1 || ''
+          }));
+          setCurrencyOptions(options);
+        } else {
+          // Fallback to static list if B0001 not found
+          setCurrencyOptions([
+            { id: 'IDR', name: 'IDR - Indonesian Rupiah' },
+            { id: 'USD', name: 'USD - US Dollar' },
+            { id: 'EUR', name: 'EUR - Euro' }
+          ]);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load currency options:', err);
+      // Fallback to static list on error
+      setCurrencyOptions([
+        { id: 'IDR', name: 'IDR - Indonesian Rupiah' },
+        { id: 'USD', name: 'USD - US Dollar' },
+        { id: 'EUR', name: 'EUR - Euro' }
+      ]);
     }
   }, []);
 
   useEffect(() => {
     loadCalculations();
     loadConfigurations();
-  }, [loadCalculations, loadConfigurations]);
+    loadCurrencyOptions();
+  }, [loadCalculations, loadConfigurations, loadCurrencyOptions]);
 
   // Form Handlers
   const handleRunCalculation = async () => {
     try {
       setError(null);
-      const response = await api.banking.impairment.runCalculation(calculationForm);
+      const response = await apiCall('/api/v1/ifrs9/impairment-module/run-calculation', {
+        method: 'POST',
+        body: JSON.stringify(calculationForm),
+        headers: { 'Content-Type': 'application/json' }
+      }) as any;
 
       if (response.success) {
         setSuccess('Impairment calculation started successfully');
@@ -219,7 +314,7 @@ export default function ImpairmentModulePage() {
       <Box>
         <Chip
           label={status}
-          color={colors[status as keyof typeof colors] || 'default'}
+          color={(colors[status as keyof typeof colors] as any) || 'default'}
           size="small"
           icon={status === 'RUNNING' ? <SpeedIcon /> : undefined}
         />
@@ -260,7 +355,8 @@ export default function ImpairmentModulePage() {
     <Container maxWidth="xl" sx={{ py: 3 }}>
       {/* Header */}
       <Box mb={3}>
-        <Breadcrumbs aria-label="breadcrumb" mb={2}>
+        {/* Breadcrumb Navigation */}
+        <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
           <Link color="inherit" href="/banking">
             Banking
           </Link>
@@ -570,7 +666,7 @@ export default function ImpairmentModulePage() {
                   </ListItemIcon>
                   <ListItemText
                     primary={config.configName}
-                    secondary={`${config.configType} - Version ${config.modelVersion}`}
+                    secondary={`${config.configType} - Version ${config.modelVersion} `}
                   />
                   <Box display="flex" alignItems="center" gap={2}>
                     <Chip
@@ -692,9 +788,15 @@ export default function ImpairmentModulePage() {
                     label="Currency"
                     onChange={(e) => handleCalculationInputChange('currency', e.target.value)}
                   >
-                    <MenuItem value="IDR">IDR - Indonesian Rupiah</MenuItem>
-                    <MenuItem value="USD">USD - US Dollar</MenuItem>
-                    <MenuItem value="EUR">EUR - Euro</MenuItem>
+                    {currencyOptions.length > 0 ? (
+                      currencyOptions.map((currency) => (
+                        <MenuItem key={currency.id} value={currency.id}>
+                          {currency.name}
+                        </MenuItem>
+                      ))
+                    ) : (
+                      <MenuItem value="IDR">IDR - Indonesian Rupiah (Loading...)</MenuItem>
+                    )}
                   </Select>
                 </FormControl>
               </Grid>

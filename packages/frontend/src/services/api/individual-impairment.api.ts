@@ -1,0 +1,96 @@
+
+import { apiClient } from '../api-client';
+
+export interface AuditTrail {
+  id: string;
+  entityType: string;
+  entityId: string;
+  action: string;
+  fieldChanged?: string;
+  oldValue?: string;
+  newValue?: string;
+  reason?: string;
+  performedAt: string;
+  performedBy?: string;
+}
+
+export interface HistoryParams {
+  entityType?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export const individualImpairmentAPI = {
+  // WATCHLIST
+  getWatchlist: async (params?: { segment?: string; status?: string }) => {
+    const response = await apiClient.get('/banking/individual/impairment/watchlist', { params });
+    return response.data;
+  },
+  addToWatchlist: async (data: any) => {
+    const response = await apiClient.post('/banking/individual/impairment/watchlist', data);
+    return response.data;
+  },
+  removeFromWatchlist: async (id: string) => {
+    const response = await apiClient.delete(`/banking/individual/impairment/watchlist/${id}`);
+    return response.data;
+  },
+
+  // OVERRIDES
+  getOverrides: async (params?: { status?: string }) => {
+    const response = await apiClient.get('/banking/individual/impairment/overrides', { params });
+    return response.data;
+  },
+  createOverride: async (data: any) => {
+    const response = await apiClient.post('/banking/individual/impairment/overrides', data);
+    return response.data;
+  },
+
+  // HISTORY
+  getHistory: async (params: HistoryParams) => {
+    console.log('📜 Fetching individual impairment history', params);
+    const response = await apiClient.get('/banking/individual/impairment/history', { params });
+    return response.data;
+  },
+
+  // REPORTS
+  getReports: async (params?: { reportPeriod?: string }) => {
+    const response = await apiClient.get('/banking/individual/impairment/reports', { params });
+    return response.data;
+  },
+  createReport: async (data: any) => {
+    const response = await apiClient.post('/banking/individual/impairment/reports', data);
+    return response.data;
+  },
+
+  // SCENARIOS
+  getScenarios: async (params?: { status?: string }) => {
+    const response = await apiClient.get('/banking/individual/impairment/scenarios', { params });
+    return response.data;
+  },
+  createScenario: async (data: any) => {
+    const response = await apiClient.post('/banking/individual/impairment/scenarios', data);
+    return response.data;
+  },
+  updateScenarioStatus: async (id: string, status: string) => {
+    const response = await apiClient.put(`/banking/individual/impairment/scenarios/${id}/status`, { status });
+    return response.data;
+  },
+
+  // DCF
+  getDcfUploads: async () => {
+    const response = await apiClient.get('/banking/individual/impairment/dcf-uploads');
+    return response.data;
+  },
+  getDcfCashflows: async (uploadId: string) => {
+    const response = await apiClient.get(`/banking/individual/impairment/dcf-uploads/${uploadId}/cashflows`);
+    return response.data;
+  },
+  createBatchUpload: async (data: any) => {
+    const response = await apiClient.post('/banking/individual/impairment/dcf-uploads', data);
+    return response.data;
+  },
+  getDcfCalculations: async () => {
+    const response = await apiClient.get('/banking/individual/impairment/dcf-calculations');
+    return response.data;
+  }
+};

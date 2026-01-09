@@ -185,7 +185,7 @@ const PlatformNavigation: React.FC<PlatformNavigationProps> = ({
   };
 
   const getStatusColor = () => {
-    if (!isOnline) return '#f44336'; // Red for offline
+    // if (!isOnline) return '#f44336'; // Red for offline - REMOVED
     if (currentView === 'admin') return '#2e7d32'; // Green for React Admin
     return '#1976d2'; // Blue for classic
   };
@@ -221,17 +221,7 @@ const PlatformNavigation: React.FC<PlatformNavigationProps> = ({
             }}
           />
 
-          {!isOnline && (
-            <Chip
-              label="Offline"
-              size="small"
-              sx={{
-                backgroundColor: '#f44336',
-                color: 'white',
-                fontSize: '0.7rem',
-              }}
-            />
-          )}
+
         </Box>
 
         {/* ============================================================================ */}
@@ -299,8 +289,7 @@ const PlatformNavigation: React.FC<PlatformNavigationProps> = ({
             </Box>
           </Box>
 
-          {/* Platform Status Indicator */}
-          <Box sx={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: getStatusColor(), mr: 1 }} />
+
 
           {/* Menu Button */}
           <IconButton

@@ -32,7 +32,7 @@ appSettingsRoutes.get('/', async (c) => {
     try {
         const settings = await db.query.frs9ParamCommonh.findMany({
             where: and(
-                eq(frs9ParamCommonh.paramType, 'A'),
+                eq(frs9ParamCommonh.paramType, 'S'),
                 code ? eq(frs9ParamCommonh.paramCode, code) : undefined
             ),
             with: {

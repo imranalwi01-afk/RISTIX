@@ -340,13 +340,17 @@ const ECLResultReport: React.FC = () => {
     </Grid>
   );
 
+  // Memoize params to prevent infinite loops (loading flicker)
+  const requiredParams = React.useMemo(() => ['prc_date'], []);
+  const optionalParams = React.useMemo(() => ['segment_id', 'stage'], []);
+
   return (
     <BaseIfrs9Report
       title="ECL Result Report"
       description="Expected Credit Loss results aggregated by segment and stage with comprehensive risk analysis"
       reportType="ecl-result"
-      requiredParams={['prc_date']}
-      optionalParams={['segment_id', 'stage']}
+      requiredParams={requiredParams}
+      optionalParams={optionalParams}
       supportsPagination={false}
       supportsCharts={true}
     >

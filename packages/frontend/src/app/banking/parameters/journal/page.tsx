@@ -50,6 +50,8 @@ import { api, handleAPIError } from '../../../../services/api';
 // Shared components
 import PageHeader from '@/components/banking/shared/PageHeader';
 import EmptyState from '@/components/banking/shared/EmptyState';
+import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
+
 
 // ✅ FIXED: Interface uses camelCase to match backend Drizzle schema
 interface JournalParameter {
@@ -282,11 +284,11 @@ export default function JournalParametersPage() {
       console.log('🔄 Loading dropdown options from FRS9PRO database...');
 
       const [glGroup, currency, journalType, journalCode, dbcr] = await Promise.all([
-        fetch('/api/v1/banking/setup/journal-parameters/gl-group-options', { headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`, 'Content-Type': 'application/json' } }).then(res => res.json()),
-        fetch('/api/v1/banking/setup/journal-parameters/currency-options', { headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`, 'Content-Type': 'application/json' } }).then(res => res.json()),
-        fetch('/api/v1/banking/setup/journal-parameters/journal-type-options', { headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`, 'Content-Type': 'application/json' } }).then(res => res.json()),
-        fetch('/api/v1/banking/setup/journal-parameters/journal-code-options', { headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`, 'Content-Type': 'application/json' } }).then(res => res.json()),
-        fetch('/api/v1/banking/setup/journal-parameters/dbcr-options', { headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`, 'Content-Type': 'application/json' } }).then(res => res.json())
+        api.banking.journalParameters.getGlGroupOptions(),
+        api.banking.journalParameters.getCurrencyOptions(),
+        api.banking.journalParameters.getJournalTypeOptions(),
+        api.banking.journalParameters.getJournalCodeOptions(),
+        api.banking.journalParameters.getDbcrOptions()
       ]);
 
       if (glGroup.success && glGroup.data) setGlGroupOptions(glGroup.data);
@@ -297,6 +299,7 @@ export default function JournalParametersPage() {
 
     } catch (error) {
       console.error('❌ Failed to load dropdown options:', error);
+      // Fallbacks if API fails
       setGlGroupOptions([{ id: 'ASSETS', name: 'Assets' }, { id: 'LIABILITIES', name: 'Liabilities' }]);
       setCurrencyOptions([{ id: 'IDR', name: 'Indonesian Rupiah' }, { id: 'USD', name: 'US Dollar' }]);
       setDbcrOptions([{ id: 'D', name: 'Debit' }, { id: 'C', name: 'Credit' }]);
@@ -427,7 +430,8 @@ export default function JournalParametersPage() {
   }
 
   return (
-    <Container maxWidth="xl">
+    <Container maxWidth="xl" sx={{ position: 'relative' }}>
+      <FullstackIndicator />
       <PageHeader
         title="Journal Parameters"
         subtitle="Journal entry and accounting parameter configuration"

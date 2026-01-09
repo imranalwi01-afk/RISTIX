@@ -562,6 +562,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           const roleBasedUrl = getRoleBasedRedirectUrl(userData)
           console.log(`🚀 Login successful - preparing redirect to: ${roleBasedUrl}`)
 
+          // ✅ PERFORMANCE OPTIMIZATION: Pre-fetch menu data while user sees the "Login Success" state
+          // We fetch it here in parallel with 150ms timeout, effectively making it "free" time
+          // We store raw data to 'temp_raw_menu' so BankingSidebar can pick it up immediately
+          // avoiding a second network request.
+          if (roleBasedUrl.includes('banking') && token) {
+             const detectedMode = detectedBankingMode || 'conventional';
+             // Run in background, don't await
+             import('../services/api/menu.api').then(({ menuApi }) => {
+                 console.log('⚡ [PERF] Pre-fetching menu data for:', detectedMode);
+                 menuApi.getMenuTree({
+                    bankingMode: detectedMode,
+                    includeInactive: false
+                 }).then(response => {
+                    if (response.success && response.data) {
+                        localStorage.setItem('temp_raw_menu', JSON.stringify(response.data));
+                        console.log('⚡ [PERF] Menu data pre-fetched and cached to temp storage');
+                    }
+                 }).catch(err => console.warn('⚠️ Menu pre-fetch failed:', err));
+             });
+          }
+
           setTimeout(() => {
             try {
               console.log(`🚀 Executing navigation to: ${roleBasedUrl}`);

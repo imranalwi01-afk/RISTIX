@@ -68,35 +68,17 @@ import {
   AccountBalance as SyariahIcon
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
-import { getAuthToken } from '@/utils/auth-token';
 import {
-  getProducts,
-  deleteProduct,
-  createProduct,
-  updateProduct
-} from '../../../../services/api/portfolio.api';
+  useGetProductsQuery,
+  useDeleteProductMutation,
+  useCreateProductMutation,
+  useUpdateProductMutation,
+  BankingProduct // Use the type from our new API definition
+} from '../../../../store/api/portfolioApi';
 
-// Define types for product data
-interface BankingProduct {
-  id: string;
-  product_code: string;
-  product_name: string;
-  product_type: string;
-  product_category: string;
-  banking_type: 'conventional' | 'syariah';
-  interest_rate_min?: number;
-  interest_rate_max?: number;
-  profit_rate_min?: number;
-  profit_rate_max?: number;
-  tenor_min: number;
-  tenor_max: number;
-  loan_amount_min: number;
-  loan_amount_max: number;
-  collateral_required: boolean;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
+// Types are now imported from portfolioApi, so we can remove the local interface if they match
+// But for now, let's keep the local ProductFilters
+// BankingProduct is imported above
 
 interface ProductFilters {
   search: string;
@@ -163,129 +145,60 @@ export default function ProductManagementPage() {
     avg_interest_rate: 0
   });
 
-  useEffect(() => {
-    loadProducts();
-  }, []);
+
 
   useEffect(() => {
     applyFilters();
   }, [products, filters]);
 
-  const loadProducts = async () => {
-    setLoading(true);
-    try {
-      // Get current user token from localStorage
-      const token = getAuthToken();
-      if (!token) {
-        throw new Error('No authentication token found');
+  // ✅ RTK Query Hooks
+  const { data: queryData, isLoading, error } = useGetProductsQuery();
+  const [deleteProduct, { isLoading: isDeleting }] = useDeleteProductMutation();
+  // const [createProduct] = useCreateProductMutation(); // Will be used in Add/Edit implementation
+  // const [updateProduct] = useUpdateProductMutation(); // Will be used in Add/Edit implementation
+
+  // Sync RTK Query data to local state
+  useEffect(() => {
+    if (queryData?.success && queryData.data) {
+      const apiProducts = queryData.data;
+      setProducts(apiProducts);
+      setPagination(prev => ({
+        ...prev,
+        total: apiProducts.length // Client-side pagination for now as API returns all
+      }));
+
+      // Calculate statistics
+      const activeProducts = apiProducts.filter((p: BankingProduct) => p.is_active);
+      const conventionalProducts = apiProducts.filter((p: BankingProduct) => p.banking_type === 'conventional');
+      const syariahProducts = apiProducts.filter((p: BankingProduct) => p.banking_type === 'syariah');
+
+      let avgRate = 0;
+      const productsWithRates = apiProducts.filter((p: BankingProduct) =>
+        (p.interest_rate_min !== undefined && p.interest_rate_max !== undefined) ||
+        (p.profit_rate_min !== undefined && p.profit_rate_max !== undefined)
+      );
+
+      if (productsWithRates.length > 0) {
+        const totalRate = productsWithRates.reduce((sum: number, p: BankingProduct) => {
+          const minRate = p.interest_rate_min || p.profit_rate_min || 0;
+          const maxRate = p.interest_rate_max || p.profit_rate_max || 0;
+          return sum + (minRate + maxRate) / 2;
+        }, 0);
+        avgRate = totalRate / productsWithRates.length;
       }
-
-      // Call the real API
-      const response = await fetch('/api/v1/banking/portfolio/products', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-
-      if (result.success) {
-        setProducts(result.data || []);
-        setPagination(prev => ({
-          ...prev,
-          total: result.pagination?.total || 0
-        }));
-
-        // Calculate statistics
-        const activeProducts = result.data.filter((p: BankingProduct) => p.is_active);
-        const conventionalProducts = result.data.filter((p: BankingProduct) => p.banking_type === 'conventional');
-        const syariahProducts = result.data.filter((p: BankingProduct) => p.banking_type === 'syariah');
-
-        let avgRate = 0;
-        const productsWithRates = result.data.filter((p: BankingProduct) =>
-          (p.interest_rate_min !== undefined && p.interest_rate_max !== undefined) ||
-          (p.profit_rate_min !== undefined && p.profit_rate_max !== undefined)
-        );
-
-        if (productsWithRates.length > 0) {
-          const totalRate = productsWithRates.reduce((sum: number, p: BankingProduct) => {
-            const minRate = p.interest_rate_min || p.profit_rate_min || 0;
-            const maxRate = p.interest_rate_max || p.profit_rate_max || 0;
-            return sum + (minRate + maxRate) / 2;
-          }, 0);
-          avgRate = totalRate / productsWithRates.length;
-        }
-
-        setStats({
-          total_products: result.data.length,
-          active_products: activeProducts.length,
-          conventional_products: conventionalProducts.length,
-          syariah_products: syariahProducts.length,
-          avg_interest_rate: avgRate * 100 // Convert to percentage
-        });
-      } else {
-        throw new Error(result.error || 'Failed to load products');
-      }
-    } catch (error) {
-      console.error('Error loading products:', error);
-      // Use mock data as fallback
-      const mockProducts: BankingProduct[] = [
-        {
-          id: 'prod_001',
-          product_code: 'KKB001',
-          product_name: 'Kredit Kendaraan Bermotor',
-          product_type: 'KREDIT_KONSUMTIF',
-          product_category: 'CONSUMER_LOAN',
-          banking_type: 'conventional',
-          interest_rate_min: 0.065,
-          interest_rate_max: 0.095,
-          tenor_min: 12,
-          tenor_max: 60,
-          loan_amount_min: 50000000,
-          loan_amount_max: 500000000,
-          collateral_required: true,
-          is_active: true,
-          created_at: '2024-01-01T00:00:00.000Z',
-          updated_at: '2025-01-09T00:00:00.000Z'
-        },
-        {
-          id: 'prod_002',
-          product_code: 'MUR001',
-          product_name: 'Pembiayaan Mobil Murabaha',
-          product_type: 'MURABAHA',
-          product_category: 'ISLAMIC_FINANCING',
-          banking_type: 'syariah',
-          profit_rate_min: 0.060,
-          profit_rate_max: 0.090,
-          tenor_min: 12,
-          tenor_max: 48,
-          loan_amount_min: 50000000,
-          loan_amount_max: 800000000,
-          collateral_required: true,
-          is_active: true,
-          created_at: '2024-01-01T00:00:00.000Z',
-          updated_at: '2025-01-09T00:00:00.000Z'
-        }
-      ];
-      setProducts(mockProducts);
-      setPagination(prev => ({ ...prev, total: mockProducts.length }));
 
       setStats({
-        total_products: mockProducts.length,
-        active_products: mockProducts.filter(p => p.is_active).length,
-        conventional_products: mockProducts.filter(p => p.banking_type === 'conventional').length,
-        syariah_products: mockProducts.filter(p => p.banking_type === 'syariah').length,
-        avg_interest_rate: 7.5
+        total_products: apiProducts.length,
+        active_products: activeProducts.length,
+        conventional_products: conventionalProducts.length,
+        syariah_products: syariahProducts.length,
+        avg_interest_rate: avgRate * 100 // Convert to percentage
       });
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [queryData]);
+
+  // Derived loading state
+  const loading = isLoading;
 
   const applyFilters = () => {
     let filtered = [...products];
@@ -359,17 +272,9 @@ export default function ProductManagementPage() {
     if (!selectedProduct) return;
 
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(`/api/v1/banking/portfolio/products/${selectedProduct.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        setProducts(products.filter(p => p.id !== selectedProduct.id));
+      const result = await deleteProduct(selectedProduct.id).unwrap();
+      if (result.success) {
+        // Tag invalidation handles the refresh automatically!
         setDeleteDialogOpen(false);
         setSelectedProduct(null);
       }
