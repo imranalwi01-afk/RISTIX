@@ -238,7 +238,7 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
         id: 'application-configuration',
         code: 'application-configuration',
         label: 'Application Configuration',
-        href: '/banking/parameters/application-v2',
+        href: '/banking/setup/application',
         icon: <Settings />,
         description: 'System-wide Application Settings',
         sort_order: 3,
@@ -251,7 +251,7 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
         id: 'business-configuration',
         code: 'business-configuration',
         label: 'Business Configuration',
-        href: '/banking/parameters/business-v2',
+        href: '/banking/setup/business',
         icon: <Business />,
         description: 'Business Rules & Parameters',
         sort_order: 4,
@@ -918,33 +918,43 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
   const processMenuData = (data: any[]) => {
     // Transform to HierarchicalMenuItem format if needed
     const hierarchical = data.map((item: any): HierarchicalMenuItem => {
-      const mapToHierarchical = (dbItem: any, level: number): HierarchicalMenuItem => ({
-        id: dbItem.id,
-        key: dbItem.menu_key || dbItem.key || dbItem.id,
-        title: dbItem.title || dbItem.label || 'Unknown',
-        description: dbItem.description,
-        icon: dbItem.icon || 'dashboard',
-        url: dbItem.url || dbItem.href || null,
-        type: dbItem.type || (dbItem.children && dbItem.children.length > 0 ? 'group' : 'item'),
-        level: level,
-        sort_order: dbItem.sort_order || 0,
-        parent_id: dbItem.parent_id || null,
-        expanded: false,
-        active: dbItem.is_active !== false,
-        visible: true,
-        permissions: dbItem.user_types || dbItem.roles || [],
-        banking_modes: dbItem.banking_types || dbItem.banking_modes || ['conventional', 'syariah', 'dual'],
-        user_types: dbItem.user_types || dbItem.roles || [],
-        tenant_types: [],
-        children: dbItem.children && dbItem.children.length > 0
-          ? dbItem.children.map((child: any) => mapToHierarchical(child, level + 1))
-          : [],
-        metadata: {
-          badge_info: dbItem.badge_info,
-          isNew: dbItem.isNew,
-          requiresSetup: dbItem.requiresSetup || dbItem.requires_setup
+      const mapToHierarchical = (dbItem: any, level: number): HierarchicalMenuItem => {
+        // ✅ URL OVERRIDE: Fix paths for legacy setup pages
+        let itemUrl = dbItem.url || dbItem.href || null;
+        if (dbItem.menu_key === 'application-configuration' || dbItem.key === 'application-configuration') {
+          itemUrl = '/banking/setup/application';
+        } else if (dbItem.menu_key === 'business-configuration' || dbItem.key === 'business-configuration') {
+          itemUrl = '/banking/setup/business';
         }
-      });
+
+        return {
+          id: dbItem.id,
+          key: dbItem.menu_key || dbItem.key || dbItem.id,
+          title: dbItem.title || dbItem.label || 'Unknown',
+          description: dbItem.description,
+          icon: dbItem.icon || 'dashboard',
+          url: itemUrl,
+          type: dbItem.type || (dbItem.children && dbItem.children.length > 0 ? 'group' : 'item'),
+          level: level,
+          sort_order: dbItem.sort_order || 0,
+          parent_id: dbItem.parent_id || null,
+          expanded: false,
+          active: dbItem.is_active !== false,
+          visible: true,
+          permissions: dbItem.user_types || dbItem.roles || [],
+          banking_modes: dbItem.banking_types || dbItem.banking_modes || ['conventional', 'syariah', 'dual'],
+          user_types: dbItem.user_types || dbItem.roles || [],
+          tenant_types: [],
+          children: dbItem.children && dbItem.children.length > 0
+            ? dbItem.children.map((child: any) => mapToHierarchical(child, level + 1))
+            : [],
+          metadata: {
+            badge_info: dbItem.badge_info,
+            isNew: dbItem.isNew,
+            requiresSetup: dbItem.requiresSetup || dbItem.requires_setup
+          }
+        };
+      };
       return mapToHierarchical(item, item.parent_id ? 2 : 1);
     });
 
