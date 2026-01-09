@@ -3,6 +3,8 @@
 
 import { configureStore, createSlice } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
+import { menuQueryApi } from './api/menuApi';
+import { portfolioQueryApi } from './api/portfolioApi';
 
 // ✅ Auth Slice
 interface AuthState {
@@ -141,13 +143,15 @@ export const store = configureStore({
     banking: bankingSlice.reducer,
     theme: themeSlice.reducer,
     tenant: tenantSlice.reducer,
+    [menuQueryApi.reducerPath]: menuQueryApi.reducer,
+    [portfolioQueryApi.reducerPath]: portfolioQueryApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
         ignoredActions: ['persist/PERSIST', 'persist/REHYDRATE'],
       },
-    }),
+    }).concat(menuQueryApi.middleware).concat(portfolioQueryApi.middleware),
   devTools: process.env.NODE_ENV !== 'production',
 });
 

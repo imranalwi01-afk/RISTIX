@@ -63,6 +63,8 @@ import {
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { bankingAPI } from '../../../../services/api';
+import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
+
 
 // =====================================================
 // INTERFACES MATCHING DS2 FRS9PRO DATABASE SCHEMA
@@ -119,14 +121,14 @@ interface ExpandableRowProps {
   loading: boolean;
 }
 
-function ExpandableRow({ 
-  header, 
-  onEditHeader, 
-  onDeleteHeader, 
-  onCreateDetail, 
-  onEditDetail, 
+function ExpandableRow({
+  header,
+  onEditHeader,
+  onDeleteHeader,
+  onCreateDetail,
+  onEditDetail,
   onDeleteDetail,
-  loading 
+  loading
 }: ExpandableRowProps) {
   const [open, setOpen] = useState(false);
   const [details, setDetails] = useState<RuleBaseDetail[]>([]);
@@ -143,7 +145,7 @@ function ExpandableRow({
     setLoadingDetails(true);
     try {
       console.log(`🔍 Loading Rule Base Setting details for rule ${header.pkid}`);
-      
+
       const response = await bankingAPI.ruleBaseSetting.getDetails(header.pkid);
       if (response.success) {
         setDetails(response.data);
@@ -183,8 +185,8 @@ function ExpandableRow({
           </Typography>
         </TableCell>
         <TableCell>
-          <Chip 
-            label={header.rule_type} 
+          <Chip
+            label={header.rule_type}
             size="small"
             color={header.rule_type === 'STAGE' ? 'primary' : header.rule_type === 'DEFAULT' ? 'warning' : 'info'}
           />
@@ -205,30 +207,30 @@ function ExpandableRow({
           </Typography>
         </TableCell>
         <TableCell align="center">
-          <Chip 
-            label={header.seq} 
-            size="small" 
+          <Chip
+            label={header.seq}
+            size="small"
             variant="outlined"
           />
         </TableCell>
         <TableCell>
-          <Chip 
+          <Chip
             label={header.active_flag ? 'Active' : 'Inactive'}
             size="small"
             color={header.active_flag ? 'success' : 'default'}
           />
         </TableCell>
         <TableCell>
-          <Chip 
-            label={details.length || 0} 
-            size="small" 
+          <Chip
+            label={details.length || 0}
+            size="small"
             color="info"
           />
         </TableCell>
         <TableCell>
           <Tooltip title="Edit Rule Header">
-            <IconButton 
-              size="small" 
+            <IconButton
+              size="small"
               color="primary"
               onClick={() => onEditHeader(header)}
               disabled={loading}
@@ -237,8 +239,8 @@ function ExpandableRow({
             </IconButton>
           </Tooltip>
           <Tooltip title="Delete Rule Header">
-            <IconButton 
-              size="small" 
+            <IconButton
+              size="small"
               color="error"
               onClick={() => onDeleteHeader(header)}
               disabled={loading}
@@ -258,9 +260,9 @@ function ExpandableRow({
                 <Typography variant="h6" gutterBottom component="div" sx={{ fontWeight: 'bold' }}>
                   Rule Details for: {header.rule_name}
                 </Typography>
-                <Button 
-                  size="small" 
-                  startIcon={<AddIcon />} 
+                <Button
+                  size="small"
+                  startIcon={<AddIcon />}
                   onClick={() => onCreateDetail(header.pkid)}
                   disabled={loading}
                   variant="outlined"
@@ -296,8 +298,8 @@ function ExpandableRow({
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {details.map((detail) => (
-                        <TableRow key={detail.pkid} hover>
+                      {details.map((detail, index) => (
+                        <TableRow key={detail.pkid ? `detail-${detail.pkid}` : `detail-idx-${index}`} hover>
                           <TableCell>
                             <Chip label={detail.query_group} size="small" color="info" />
                           </TableCell>
@@ -335,9 +337,9 @@ function ExpandableRow({
                             </Typography>
                           </TableCell>
                           <TableCell>
-                            <Chip 
-                              label={detail.condition} 
-                              size="small" 
+                            <Chip
+                              label={detail.condition}
+                              size="small"
                               color={detail.condition === 'AND' ? 'primary' : 'secondary'}
                             />
                           </TableCell>
@@ -348,8 +350,8 @@ function ExpandableRow({
                           </TableCell>
                           <TableCell>
                             <Tooltip title="Edit Detail">
-                              <IconButton 
-                                size="small" 
+                              <IconButton
+                                size="small"
                                 color="primary"
                                 onClick={() => onEditDetail(detail)}
                                 disabled={loading}
@@ -358,8 +360,8 @@ function ExpandableRow({
                               </IconButton>
                             </Tooltip>
                             <Tooltip title="Delete Detail">
-                              <IconButton 
-                                size="small" 
+                              <IconButton
+                                size="small"
                                 color="error"
                                 onClick={() => onDeleteDetail(detail)}
                                 disabled={loading}
@@ -388,42 +390,42 @@ function ExpandableRow({
 
 export default function RuleBaseSettingPage() {
   const router = useRouter();
-  
+
   // State Management - Live Database Integration
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [headers, setHeaders] = useState<RuleBaseHeader[]>([]);
   const [filteredHeaders, setFilteredHeaders] = useState<RuleBaseHeader[]>([]);
-  
+
   // Filter and Search States
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRuleType, setFilterRuleType] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterCreatedBy, setFilterCreatedBy] = useState('');
-  
+
   // Dialog States
   const [headerDialogOpen, setHeaderDialogOpen] = useState(false);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedHeader, setSelectedHeader] = useState<RuleBaseHeader | null>(null);
   const [selectedDetail, setSelectedDetail] = useState<RuleBaseDetail | null>(null);
   const [selectedHeaderId, setSelectedHeaderId] = useState<number | null>(null);
-  
+
   // Form States
   const [headerFormData, setHeaderFormData] = useState<Partial<RuleBaseHeader>>({});
   const [detailFormData, setDetailFormData] = useState<Partial<RuleBaseDetail>>({});
-  
+
   // Dropdown Options - Live Database Metadata
-  const [ruleTypes, setRuleTypes] = useState<{label: string, value: string}[]>([]);
-  const [conditions, setConditions] = useState<{label: string, value: string}[]>([]);
-  const [stages, setStages] = useState<{label: string, value: string}[]>([]);
+  const [ruleTypes, setRuleTypes] = useState<{ label: string, value: string }[]>([]);
+  const [conditions, setConditions] = useState<{ label: string, value: string }[]>([]);
+  const [stages, setStages] = useState<{ label: string, value: string }[]>([]);
 
   // Filter functions
   const applyFilters = () => {
     let filtered = headers;
-    
+
     if (searchTerm) {
-      filtered = filtered.filter(h => 
+      filtered = filtered.filter(h =>
         h.rule_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         h.rule_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
         h.updated_table.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -431,21 +433,21 @@ export default function RuleBaseSettingPage() {
         h.value.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
-    
+
     if (filterRuleType) {
       filtered = filtered.filter(h => h.rule_type === filterRuleType);
     }
-    
+
     if (filterStatus === 'active') {
       filtered = filtered.filter(h => h.active_flag === true);
     } else if (filterStatus === 'inactive') {
       filtered = filtered.filter(h => h.active_flag === false);
     }
-    
+
     if (filterCreatedBy) {
       filtered = filtered.filter(h => h.createdby === filterCreatedBy);
     }
-    
+
     setFilteredHeaders(filtered);
   };
 
@@ -464,15 +466,15 @@ export default function RuleBaseSettingPage() {
   const loadHeaders = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       console.log('🔄 Loading Rule Base Setting headers from DS2 FRS9PRO database...');
-      
+
       const result = await bankingAPI.ruleBaseSetting.getHeaders({
         page: 1,
         limit: 100
       });
-      
+
       if (result.success && result.data) {
         console.log('✅ Successfully loaded rule headers:', result.data.length);
         setHeaders(result.data);
@@ -481,7 +483,7 @@ export default function RuleBaseSettingPage() {
       } else {
         throw new Error(result.error || 'Failed to load rule base settings');
       }
-      
+
     } catch (error: any) {
       console.error('❌ Failed to load rule base settings:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
@@ -497,28 +499,28 @@ export default function RuleBaseSettingPage() {
   const loadMetadata = async () => {
     try {
       console.log('🔄 Loading Rule Base Setting metadata from DS2 database...');
-      
+
       // Load all metadata in parallel
       const [ruleTypesRes, conditionsRes, stagesRes] = await Promise.all([
         bankingAPI.ruleBaseSetting.getRuleTypes(),
-        bankingAPI.ruleBaseSetting.getConditions(), 
+        bankingAPI.ruleBaseSetting.getConditions(),
         bankingAPI.ruleBaseSetting.getStages()
       ]);
-      
+
       if (ruleTypesRes.success) {
-        setRuleTypes(ruleTypesRes.data.map((item: any) => ({ label: item.name, value: item.value })));
+        setRuleTypes(ruleTypesRes.data.map((item: any) => ({ label: item.label || item.name, value: item.value })));
       }
-      
+
       if (conditionsRes.success) {
-        setConditions(conditionsRes.data.map((item: any) => ({ label: item.name, value: item.value })));
+        setConditions(conditionsRes.data.map((item: any) => ({ label: item.label || item.name, value: item.value })));
       }
-      
+
       if (stagesRes.success) {
-        setStages(stagesRes.data.map((item: any) => ({ label: item.name, value: item.value })));
+        setStages(stagesRes.data.map((item: any) => ({ label: item.label || item.name, value: item.value })));
       }
-      
+
       console.log('✅ Rule Base Setting metadata loaded successfully');
-      
+
     } catch (error) {
       console.error('❌ Error loading metadata:', error);
     }
@@ -572,11 +574,11 @@ export default function RuleBaseSettingPage() {
     try {
       setLoading(true);
       setError(null);
-      
+
       await bankingAPI.ruleBaseSetting.deleteHeader(header.pkid);
       setSuccess('Rule header deleted successfully');
       await loadHeaders();
-      
+
     } catch (error: any) {
       console.error('❌ Failed to delete rule header:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
@@ -595,7 +597,7 @@ export default function RuleBaseSettingPage() {
     try {
       setLoading(true);
       setError(null);
-      
+
       const payload = {
         rule_name: headerFormData.rule_name!.trim(),
         rule_type: headerFormData.rule_type!.trim(),
@@ -605,7 +607,7 @@ export default function RuleBaseSettingPage() {
         seq: headerFormData.seq || 1,
         active_flag: headerFormData.active_flag !== false
       };
-      
+
       if (selectedHeader) {
         // Update existing header
         await bankingAPI.ruleBaseSetting.updateHeader(selectedHeader.pkid, payload);
@@ -615,10 +617,10 @@ export default function RuleBaseSettingPage() {
         await bankingAPI.ruleBaseSetting.createHeader(payload);
         setSuccess('Rule header created successfully');
       }
-      
+
       setHeaderDialogOpen(false);
       await loadHeaders();
-      
+
     } catch (error: any) {
       console.error('❌ Failed to save rule header:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
@@ -661,11 +663,11 @@ export default function RuleBaseSettingPage() {
     try {
       setLoading(true);
       setError(null);
-      
+
       await bankingAPI.ruleBaseSetting.deleteDetail(detail.pkid);
       setSuccess('Rule detail deleted successfully');
       await loadHeaders();
-      
+
     } catch (error: any) {
       console.error('❌ Failed to delete rule detail:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
@@ -684,7 +686,7 @@ export default function RuleBaseSettingPage() {
     try {
       setLoading(true);
       setError(null);
-      
+
       const payload = {
         query_group: detailFormData.query_group || 1,
         seq: detailFormData.seq || 1,
@@ -695,11 +697,11 @@ export default function RuleBaseSettingPage() {
         value1: detailFormData.value1?.trim() || '',
         value2: detailFormData.value2?.trim() || '',
         condition: detailFormData.condition || 'AND',
-        detail_type: detailFormData.detail_type?.trim() || '',
-        stage_from: detailFormData.stage_from?.trim() || '',
-        stage_to: detailFormData.stage_to?.trim() || ''
+        detail_type: detailFormData.detail_type ? Number(detailFormData.detail_type) : undefined,
+        stage_from: detailFormData.stage_from ? Number(detailFormData.stage_from) : undefined,
+        stage_to: detailFormData.stage_to ? Number(detailFormData.stage_to) : undefined
       };
-      
+
       if (selectedDetail) {
         // Update existing detail
         await bankingAPI.ruleBaseSetting.updateDetail(selectedDetail.pkid, payload);
@@ -709,10 +711,10 @@ export default function RuleBaseSettingPage() {
         await bankingAPI.ruleBaseSetting.createDetail(selectedHeaderId!, payload);
         setSuccess('Rule detail created successfully');
       }
-      
+
       setDetailDialogOpen(false);
       await loadHeaders();
-      
+
     } catch (error: any) {
       console.error('❌ Failed to save rule detail:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
@@ -747,11 +749,12 @@ export default function RuleBaseSettingPage() {
   }
 
   return (
-    <Container maxWidth="xl">
+    <Container maxWidth="xl" sx={{ position: 'relative' }}>
+      <FullstackIndicator />
       {/* Breadcrumb Navigation */}
       <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
-        <Link 
-          underline="hover" 
+        <Link
+          underline="hover"
           color="inherit"
           href="/banking/dashboard"
           onClick={(e) => {
@@ -763,8 +766,8 @@ export default function RuleBaseSettingPage() {
           <HomeIcon sx={{ mr: 0.5, fontSize: 16 }} />
           Banking Dashboard
         </Link>
-        <Link 
-          underline="hover" 
+        <Link
+          underline="hover"
           color="inherit"
           href="/banking/collective"
           onClick={(e) => {
@@ -781,14 +784,14 @@ export default function RuleBaseSettingPage() {
       </Breadcrumbs>
 
       {/* Error Display */}
-      <Snackbar 
-        open={!!error} 
-        autoHideDuration={6000} 
+      <Snackbar
+        open={!!error}
+        autoHideDuration={6000}
         onClose={() => setError(null)}
       >
-        <Alert 
-          onClose={() => setError(null)} 
-          severity="error" 
+        <Alert
+          onClose={() => setError(null)}
+          severity="error"
           sx={{ width: '100%' }}
         >
           {error}
@@ -796,14 +799,14 @@ export default function RuleBaseSettingPage() {
       </Snackbar>
 
       {/* Success Display */}
-      <Snackbar 
-        open={!!success} 
-        autoHideDuration={4000} 
+      <Snackbar
+        open={!!success}
+        autoHideDuration={4000}
         onClose={() => setSuccess(null)}
       >
-        <Alert 
-          onClose={() => setSuccess(null)} 
-          severity="success" 
+        <Alert
+          onClose={() => setSuccess(null)}
+          severity="success"
           sx={{ width: '100%' }}
         >
           {success}
@@ -823,7 +826,7 @@ export default function RuleBaseSettingPage() {
             IFRS 9 Rule-based collective impairment configuration.
           </Typography>
         </Box>
-        
+
         <Box sx={{ display: 'flex', gap: 1 }}>
           <Tooltip title="Refresh Data">
             <IconButton onClick={loadHeaders} color="primary" disabled={loading}>
@@ -849,14 +852,14 @@ export default function RuleBaseSettingPage() {
             <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
               Search & Filter Rule Base Settings
             </Typography>
-            <Chip 
-              label={`${filteredHeaders.length} of ${headers.length} rules`} 
-              size="small" 
-              color="primary" 
+            <Chip
+              label={`${filteredHeaders.length} of ${headers.length} rules`}
+              size="small"
+              color="primary"
               sx={{ ml: 2 }}
             />
           </Box>
-          
+
           <Grid container spacing={2}>
             <Grid item xs={12} md={3}>
               <TextField
@@ -871,7 +874,7 @@ export default function RuleBaseSettingPage() {
                 size="small"
               />
             </Grid>
-            
+
             <Grid item xs={12} md={2}>
               <FormControl fullWidth size="small">
                 <InputLabel>Rule Type</InputLabel>
@@ -887,7 +890,7 @@ export default function RuleBaseSettingPage() {
                 </Select>
               </FormControl>
             </Grid>
-            
+
             <Grid item xs={12} md={2}>
               <FormControl fullWidth size="small">
                 <InputLabel>Status</InputLabel>
@@ -902,7 +905,7 @@ export default function RuleBaseSettingPage() {
                 </Select>
               </FormControl>
             </Grid>
-            
+
             <Grid item xs={12} md={2}>
               <FormControl fullWidth size="small">
                 <InputLabel>Created By</InputLabel>
@@ -918,7 +921,7 @@ export default function RuleBaseSettingPage() {
                 </Select>
               </FormControl>
             </Grid>
-            
+
             <Grid item xs={12} md={3}>
               <Box sx={{ display: 'flex', gap: 1, height: '40px' }}>
                 <Button
@@ -951,7 +954,7 @@ export default function RuleBaseSettingPage() {
           {filteredHeaders.length === 0 ? (
             <Box sx={{ p: 4, textAlign: 'center' }}>
               <Alert severity="info">
-                {headers.length === 0 
+                {headers.length === 0
                   ? 'No rule base settings found. Click "Add Rule" to create your first rule.'
                   : 'No rules match your current filters. Try adjusting your search criteria.'
                 }
@@ -976,9 +979,9 @@ export default function RuleBaseSettingPage() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredHeaders.map((header) => (
+                  {filteredHeaders.map((header, index) => (
                     <ExpandableRow
-                      key={header.pkid}
+                      key={header.pkid ? `row-${header.pkid}` : `row-idx-${index}`}
                       header={header}
                       onEditHeader={handleEditHeader}
                       onDeleteHeader={handleDeleteHeader}
@@ -1021,10 +1024,19 @@ export default function RuleBaseSettingPage() {
                 onChange={(e) => setHeaderFormData(prev => ({ ...prev, rule_type: e.target.value }))}
                 label="Rule Type"
               >
-                <MenuItem value="STAGE">STAGE</MenuItem>
-                <MenuItem value="DEFAULT">DEFAULT</MenuItem>
-                <MenuItem value="GL">GL</MenuItem>
-                <MenuItem value="SICR">SICR</MenuItem>
+                {ruleTypes.length > 0 ? (
+                  ruleTypes.map((type) => (
+                    <MenuItem key={type.value} value={type.value}>{type.label}</MenuItem>
+                  ))
+                ) : (
+                  // Fallback if metadata fails
+                  [
+                    <MenuItem key="STAGE" value="STAGE">STAGE</MenuItem>,
+                    <MenuItem key="DEFAULT" value="DEFAULT">DEFAULT</MenuItem>,
+                    <MenuItem key="GL" value="GL">GL</MenuItem>,
+                    <MenuItem key="CUSTOM" value="CUSTOM">CUSTOM</MenuItem>
+                  ]
+                )}
               </Select>
             </FormControl>
             <TextField
@@ -1182,8 +1194,16 @@ export default function RuleBaseSettingPage() {
                 onChange={(e) => setDetailFormData(prev => ({ ...prev, condition: e.target.value as 'AND' | 'OR' }))}
                 label="Condition"
               >
-                <MenuItem value="AND">AND</MenuItem>
-                <MenuItem value="OR">OR</MenuItem>
+                {conditions.length > 0 ? (
+                  conditions.map((cond) => (
+                    <MenuItem key={cond.value} value={cond.value}>{cond.label}</MenuItem>
+                  ))
+                ) : (
+                  [
+                    <MenuItem key="AND" value="AND">AND</MenuItem>,
+                    <MenuItem key="OR" value="OR">OR</MenuItem>
+                  ]
+                )}
               </Select>
             </FormControl>
             <TextField

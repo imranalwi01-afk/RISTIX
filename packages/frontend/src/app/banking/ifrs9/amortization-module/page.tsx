@@ -159,7 +159,7 @@ interface ApiResponse<T> {
 
 export default function AmortizationModulePage() {
   const { user } = useAuth();
-  const { get, post, put, del } = useApi();
+  const { apiCall } = useApi();
 
   // State Management
   const [calculations, setCalculations] = useState<AmortizationCalculation[]>([]);
@@ -204,9 +204,7 @@ export default function AmortizationModulePage() {
         limit: rowsPerPage.toString()
       });
 
-      const response = await get<ApiResponse<AmortizationCalculation>>(
-        `/api/v1/ifrs9/amortization-module/calculations?${params}`
-      );
+      const response = await apiCall(`/api/v1/ifrs9/amortization-module/calculations?${params}`) as ApiResponse<AmortizationCalculation>;
 
       if (response.success) {
         setCalculations(response.data);
@@ -219,13 +217,11 @@ export default function AmortizationModulePage() {
     } finally {
       setLoading(false);
     }
-  }, [get, page, rowsPerPage]);
+  }, [apiCall, page, rowsPerPage]);
 
   const loadConfigurations = useCallback(async () => {
     try {
-      const response = await get<ApiResponse<AmortizationConfiguration>>(
-        '/api/v1/ifrs9/amortization-module/configurations'
-      );
+      const response = await apiCall('/api/v1/ifrs9/amortization-module/configurations') as ApiResponse<AmortizationConfiguration>;
 
       if (response.success) {
         setConfigurations(response.data);
@@ -233,7 +229,7 @@ export default function AmortizationModulePage() {
     } catch (err) {
       console.error('Failed to load configurations:', err);
     }
-  }, [get]);
+  }, [apiCall]);
 
   useEffect(() => {
     loadCalculations();
@@ -244,7 +240,11 @@ export default function AmortizationModulePage() {
   const handleRunCalculation = async () => {
     try {
       setError(null);
-      const response = await post('/api/v1/ifrs9/amortization-module/run-calculation', calculationForm);
+      const response = await apiCall('/api/v1/ifrs9/amortization-module/run-calculation', {
+        method: 'POST',
+        body: JSON.stringify(calculationForm),
+        headers: { 'Content-Type': 'application/json' }
+      }) as any;
 
       if (response.success) {
         setSuccess('Amortization calculation started successfully');
@@ -283,9 +283,7 @@ export default function AmortizationModulePage() {
 
   const loadSchedule = async (calculationId: string) => {
     try {
-      const response = await get<ApiResponse<AmortizationSchedule>>(
-        `/api/v1/ifrs9/amortization-module/calculations/${calculationId}/schedule`
-      );
+      const response = await apiCall(`/api/v1/ifrs9/amortization-module/calculations/${calculationId}/schedule`) as ApiResponse<AmortizationSchedule>;
 
       if (response.success) {
         setSchedules(response.data);
@@ -311,7 +309,7 @@ export default function AmortizationModulePage() {
       <Box>
         <Chip
           label={status}
-          color={colors[status as keyof typeof colors] || 'default'}
+          color={(colors[status as keyof typeof colors] as any) || 'default'}
           size="small"
           icon={status === 'RUNNING' ? <SpeedIcon /> : undefined}
         />
@@ -333,7 +331,7 @@ export default function AmortizationModulePage() {
       STRAIGHT_LINE: 'secondary',
       DECLINING_BALANCE: 'warning'
     };
-    return <Chip label={method} color={colors[method as keyof typeof colors] || 'default'} size="small" />;
+    return <Chip label={method} color={(colors[method as keyof typeof colors] as any) || 'default'} size="small" />;
   };
 
   const formatCurrency = (amount: number, currency: string = 'IDR') => {
@@ -354,7 +352,7 @@ export default function AmortizationModulePage() {
     <Container maxWidth="xl" sx={{ py: 3 }}>
       {/* Header */}
       <Box mb={3}>
-        <Breadcrumbs aria-label="breadcrumb" mb={2}>
+        <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
           <Link color="inherit" href="/banking">
             Banking
           </Link>

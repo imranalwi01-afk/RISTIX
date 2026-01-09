@@ -38,6 +38,8 @@ import { DataGrid, GridColDef, GridActionsCellItem } from '@mui/x-data-grid';
 import { useRouter } from 'next/navigation';
 import { api } from '../../../../services/api';
 import { EADConfiguration } from '../../../../services/api/ead-configurations.api';
+import { FLScalarWithDetails } from '../../../../services/api/fl-scalar.api';
+import { FullstackIndicator } from '../../../../components/common/feedback/FullstackIndicator';
 import { PopulationSegment } from '../../../../services/api/population-segments.api';
 
 // Extended interface for UI display
@@ -344,6 +346,7 @@ export default function EADSetupPage() {
           <Button variant="contained" onClick={handleSave} disabled={loading}>{selectedConfig ? 'Update' : 'Create'}</Button>
         </DialogActions>
       </Dialog>
+      <FullstackIndicator />
     </Container>
   );
 }

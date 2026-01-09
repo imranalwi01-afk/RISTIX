@@ -724,8 +724,8 @@ export default function ImpairmentPage() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {data.map((row) => (
-                    <TableRow key={row.pkid}>
+                  {data.map((row, index) => (
+                    <TableRow key={`${row.pkid}-${index}`}>
                       <TableCell>{row.account_number}</TableCell>
                       <TableCell>{row.cif_name}</TableCell>
                       <TableCell>{row.cif_number}</TableCell>

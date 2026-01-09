@@ -328,6 +328,7 @@ export default function LGDConfigurationsPage() {
                             value={formData.populationType || ''}
                             onChange={(e) => setFormData(prev => ({ ...prev, populationType: e.target.value }))}
                             fullWidth
+                            disabled={formData.lgdMethod === 1} // Disabled for Linear? Adjust as needed
                         >
                             <MenuItem value=""><em>None</em></MenuItem>
                             {populationTypes.map((pt) => (
@@ -342,6 +343,7 @@ export default function LGDConfigurationsPage() {
                             value={formData.observationPeriod || ''}
                             onChange={(e) => setFormData(prev => ({ ...prev, observationPeriod: e.target.value }))}
                             fullWidth
+                            disabled={formData.lgdMethod === 1}
                         />
 
                         <TextField
@@ -350,6 +352,7 @@ export default function LGDConfigurationsPage() {
                             value={formData.workoutPeriod || ''}
                             onChange={(e) => setFormData(prev => ({ ...prev, workoutPeriod: Number(e.target.value) }))}
                             fullWidth
+                            disabled={formData.lgdMethod !== 2} // Only enabled for Workout Method
                         />
 
                         <Box sx={{ gridColumn: 'span 2' }}>

@@ -45,8 +45,16 @@ const EADModelReport: React.FC = () => {
     eadTrend: [] as any[],
     productDistribution: [] as any[]
   });
+  
+  const [pivotData, setPivotData] = useState<any[]>([]);
+  const [pivotColumns, setPivotColumns] = useState<string[]>([]);
 
   const handleDataLoaded = (data: any[]) => {
+    // Process Pivot
+    const { pivotData: pData, columns: pCols } = processEADPivotData(data);
+    setPivotData(pData);
+    setPivotColumns(pCols);
+
     if (data && data.length > 0) {
       const stats = data.reduce((acc, row) => {
         acc.totalAccounts += 1;
@@ -326,21 +334,120 @@ const EADModelReport: React.FC = () => {
     </Card>
   );
 
+  // Memoize params to prevent infinite loops (loading flicker)
+  const requiredParams = React.useMemo(() => ['prc_date'], []);
+  const optionalParams = React.useMemo(() => ['ead_config_id', 'segment_id'], []);
+
   return (
     <BaseIfrs9Report
       title="EAD Model Report"
       description="Exposure at Default model with payment averages, credit conversion factors, and utilization analysis"
       reportType="ead-model"
-      requiredParams={['prc_date']}
-      optionalParams={['ead_config_id', 'segment_id']}
+      requiredParams={requiredParams}
+      optionalParams={optionalParams}
       supportsPagination={false}
       supportsCharts={true}
+      onDataLoaded={handleDataLoaded}
     >
       <SummaryCards />
       <ModelParametersCard />
+      <SummaryCards />
+      <ModelParametersCard />
       <EADCharts />
+
+      {/* Pivot Table Section */}
+      <Card sx={{ mt: 3 }}>
+        <CardContent>
+             <Typography variant="h6" gutterBottom>
+              Payment Average by Tenor (Pivoted)
+            </Typography>
+            <EADPivotTable 
+              data={pivotData} 
+              columns={pivotColumns}
+            />
+        </CardContent>
+      </Card>
     </BaseIfrs9Report>
   );
+};
+
+// --- Pivot Components & Logic ---
+
+const processEADPivotData = (data: any[]) => {
+    if (!data || data.length === 0) return { pivotData: [], columns: [] };
+
+    const firstRow = data[0];
+    const baseColumns = ['account_id', 'product_type', 'segment_name', 'tenor'];
+    
+    // For EAD, we might want payment averages across sequences or time buckets
+    // Regex for tenor_X or month_X columns
+    const dynamicColumns = Object.keys(firstRow).filter(key => 
+        key.match(/^(tenor|month|paym)_\d+$/)
+    ).sort();
+
+    const pivotCols = dynamicColumns.length > 0 ? dynamicColumns : Object.keys(firstRow).filter(k => !baseColumns.includes(k) && typeof firstRow[k] === 'number');
+    const allColumns = [...baseColumns.filter(k => k in firstRow), ...pivotCols];
+    
+    return {
+      pivotData: data,
+      columns: allColumns
+    };
+};
+
+const EADPivotTable = ({ data, columns }: { data: any[], columns: string[] }) => {
+    if (!data || data.length === 0) return null;
+
+    const baseColumns = columns.filter(col => !col.match(/^(tenor|month|paym)_\d+$/));
+    const dynamicColumns = columns.filter(col => col.match(/^(tenor|month|paym)_\d+$/));
+
+    const finalBase = dynamicColumns.length > 0 ? baseColumns : columns;
+    const finalDynamic = dynamicColumns.length > 0 ? dynamicColumns : [];
+
+    return (
+      <Box sx={{ width: '100%', overflow: 'hidden' }}>
+        <Box sx={{ maxHeight: 600, overflow: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+            <thead style={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: '#2e7d32', color: 'white' }}>
+              <tr>
+                {finalBase.map(col => (
+                  <th key={col} style={{ padding: '10px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>
+                    {col.replace(/_/g, ' ').toUpperCase()}
+                  </th>
+                ))}
+                {finalDynamic.map(col => (
+                  <th key={col} style={{ padding: '10px', textAlign: 'right', borderBottom: '1px solid #ddd', minWidth: 80 }}>
+                    {col.replace(/^(tenor|month|paym)_/, '').toUpperCase()}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {data.slice(0, 100).map((row, index) => (
+                <tr key={index} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                  {finalBase.map(col => (
+                    <td key={col} style={{ padding: '8px' }}>
+                      {row[col] || '-'}
+                    </td>
+                  ))}
+                  {finalDynamic.map(col => (
+                    <td key={col} style={{ padding: '8px', textAlign: 'right' }}>
+                         {row[col] !== null && row[col] !== undefined ? (
+                            new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(row[col])
+                         ) : '-'}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Box>
+        {data.length > 100 && (
+           <Typography variant="caption" sx={{ display: 'block', mt: 1, color: 'text.secondary' }}>
+             Showing first 100 rows. Export to see full data.
+           </Typography>
+        )}
+      </Box>
+    );
 };
 
 export default EADModelReport;

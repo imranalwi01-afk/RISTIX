@@ -63,6 +63,10 @@ export interface EnvironmentConfig {
     sessionTimeout: number;
     maxLoginAttempts: number;
   };
+  // ✅ ADDED: Theme configuration
+  theme: {
+    defaultTheme: 'light' | 'dark';
+  };
 }
 
 // ✅ Get complete environment configuration
@@ -93,7 +97,11 @@ export const getEnvironmentConfig = (): EnvironmentConfig => {
     security: {
       jwtExpiry: parseInt(getConfigValue('JWT_EXPIRY', '3600000')), // 1 hour
       sessionTimeout: parseInt(getConfigValue('SESSION_TIMEOUT', '1800000')), // 30 minutes
+      sessionTimeout: parseInt(getConfigValue('SESSION_TIMEOUT', '1800000')), // 30 minutes
       maxLoginAttempts: parseInt(getConfigValue('MAX_LOGIN_ATTEMPTS', '5'))
+    },
+    theme: {
+      defaultTheme: getConfigValue('THEME_DEFAULT', 'light') as 'light' | 'dark'
     }
   };
 };

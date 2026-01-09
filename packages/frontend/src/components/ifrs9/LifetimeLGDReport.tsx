@@ -38,8 +38,16 @@ const LifetimeLGDReport: React.FC = () => {
     avgRecoveryRate: 0,
     lgdDistribution: [] as any[]
   });
+  
+  const [pivotData, setPivotData] = useState<any[]>([]);
+  const [pivotColumns, setPivotColumns] = useState<string[]>([]);
 
   const handleDataLoaded = (data: any[]) => {
+    // Process Pivot Data
+    const { pivotData: pData, columns: pCols } = processPivotData(data);
+    setPivotData(pData);
+    setPivotColumns(pCols);
+
     if (data && data.length > 0) {
       const stats = data.reduce((acc, row) => {
         acc.totalAccounts += 1;
@@ -215,20 +223,122 @@ const LifetimeLGDReport: React.FC = () => {
     </Grid>
   );
 
+  // Memoize params to prevent infinite loops (loading flicker)
+  const requiredParams = React.useMemo(() => ['prc_date'], []);
+  const optionalParams = React.useMemo(() => ['lgd_config_id', 'segment_id'], []);
+
   return (
     <BaseIfrs9Report
       title="Lifetime LGD Report"
       description="Loss Given Default data with recovery information and account-level LGD calculations"
       reportType="lifetime-lgd"
-      requiredParams={['prc_date']}
-      optionalParams={['lgd_config_id', 'segment_id']}
+      requiredParams={requiredParams}
+      optionalParams={optionalParams}
       supportsPagination={true}
       supportsCharts={true}
+      onDataLoaded={handleDataLoaded}
     >
       <SummaryCards />
+      <SummaryCards />
       <LGDCharts />
+      
+      {/* Pivot Table Section */}
+      <Card sx={{ mt: 3 }}>
+        <CardContent>
+             <Typography variant="h6" gutterBottom>
+              Recovery Sequence Analysis (Pivot)
+            </Typography>
+            <PivotTable 
+              data={pivotData} 
+              columns={pivotColumns}
+            />
+        </CardContent>
+      </Card>
     </BaseIfrs9Report>
   );
+};
+
+// --- Pivot Components & Logic ---
+
+const processPivotData = (data: any[]) => {
+    if (!data || data.length === 0) return { pivotData: [], columns: [] };
+
+    const firstRow = data[0];
+    const baseColumns = ['account_id', 'customer_name', 'segment_name', 'product_type'];
+    
+    // Detect dynamic sequence columns (e.g. seq_1, seq_2 or period_1...)
+    // Assuming backend returns seq_X for sequences or similar
+    // We will look for keys starting with 'seq_' or 'recovery_'
+    const dynamicColumns = Object.keys(firstRow).filter(key => 
+        key.match(/^(seq|recovery|period)_\d+$/)
+    ).sort();
+
+    // If no dynamic columns found, fallback to standard numeric columns excluding base
+    const pivotCols = dynamicColumns.length > 0 ? dynamicColumns : Object.keys(firstRow).filter(k => !baseColumns.includes(k) && typeof firstRow[k] === 'number');
+
+    const allColumns = [...baseColumns.filter(k => k in firstRow), ...pivotCols];
+    
+    return {
+      pivotData: data,
+      columns: allColumns
+    };
+};
+
+const PivotTable = ({ data, columns }: { data: any[], columns: string[] }) => {
+    if (!data || data.length === 0) return null;
+
+    const baseColumns = columns.filter(col => !col.match(/^(seq|recovery|period)_\d+$/));
+    const dynamicColumns = columns.filter(col => col.match(/^(seq|recovery|period)_\d+$/));
+
+    // Fallback if regex didn't catch anything (standard grid)
+    const finalBase = dynamicColumns.length > 0 ? baseColumns : columns;
+    const finalDynamic = dynamicColumns.length > 0 ? dynamicColumns : [];
+
+    return (
+      <Box sx={{ width: '100%', overflow: 'hidden' }}>
+        <Box sx={{ maxHeight: 600, overflow: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+            <thead style={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: '#1976d2', color: 'white' }}>
+              <tr>
+                {finalBase.map(col => (
+                  <th key={col} style={{ padding: '10px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>
+                    {col.replace(/_/g, ' ').toUpperCase()}
+                  </th>
+                ))}
+                {finalDynamic.map(col => (
+                  <th key={col} style={{ padding: '10px', textAlign: 'right', borderBottom: '1px solid #ddd', minWidth: 80 }}>
+                    {col.replace(/^(seq|recovery|period)_/, '').toUpperCase()}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {data.slice(0, 100).map((row, index) => (
+                <tr key={index} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                  {finalBase.map(col => (
+                    <td key={col} style={{ padding: '8px' }}>
+                      {row[col] || '-'}
+                    </td>
+                  ))}
+                  {finalDynamic.map(col => (
+                    <td key={col} style={{ padding: '8px', textAlign: 'right' }}>
+                         {row[col] !== null && row[col] !== undefined ? (
+                            new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(row[col])
+                         ) : '-'}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Box>
+        {data.length > 100 && (
+           <Typography variant="caption" sx={{ display: 'block', mt: 1, color: 'text.secondary' }}>
+             Showing first 100 rows. Export to see full data.
+           </Typography>
+        )}
+      </Box>
+    );
 };
 
 export default LifetimeLGDReport;

@@ -122,6 +122,37 @@ usersRoutes.get('/profile', async (c) => {
     return runEffect(c, effect)
 })
 
+
+/**
+ * GET /users/:id/dashboard/personalization - Get user dashboard settings (Stub)
+ */
+usersRoutes.get('/:id/dashboard/personalization', async (c) => {
+    const { id } = c.req.param()
+    return c.json({
+        success: true,
+        data: {
+            personalization: {
+                userId: id,
+                defaultView: 'default',
+                widgetConfig: {},
+                customSettings: {},
+                themePreferences: {},
+                notificationSettings: {}
+            }
+        }
+    })
+})
+
+/**
+ * PUT /users/:id/dashboard/personalization - Update user dashboard settings (Stub)
+ */
+usersRoutes.put('/:id/dashboard/personalization', async (c) => {
+    return c.json({
+        success: true,
+        data: { message: 'Settings saved (mock)' }
+    })
+})
+
 /**
  * GET /users/:id - Get user by ID
  */

@@ -15,12 +15,23 @@ const getBaseUrl = (): string => {
     console.warn('⚠️ Failed to load centralized API base URL, using fallback:', error);
 
     // Fallback to environment variables with hostname detection
-    const isProductionDomain = typeof window !== 'undefined' && window.location.hostname.includes('danafin.com');
-    const fallbackUrl = process.env.NEXT_PUBLIC_API_BASE_URL ||
-      process.env.NEXT_PUBLIC_API_URL ||
-      (isProductionDomain ? 'https://iaf-ifrs-be.danafin.com/api/v1' : 'https://iaf-ifrs-be.ifrspro.id/api/v1');
+    const isProductionDomain = typeof window !== 'undefined' && (window.location.hostname.includes('danafin.com') || window.location.hostname.includes('ifrspro.id'));
+    const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    
+    let fallbackUrl = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL;
 
-    console.log('🔧 Using fallback API base URL:', fallbackUrl);
+    if (isLocalhost) {
+        console.log('🔧 Localhost detected: Forcing local API URL');
+        fallbackUrl = 'http://localhost:3000/api/v1';
+    } else if (!fallbackUrl) {
+      if (isProductionDomain) {
+        fallbackUrl = 'https://iaf-ifrs-be.ifrspro.id/api/v1';
+      } else {
+        fallbackUrl = 'https://iaf-ifrs-be.ifrspro.id/api/v1';
+      }
+    }
+
+    console.log('🔧 Resolved API Base URL:', fallbackUrl);
     return fallbackUrl;
   }
 };
@@ -91,7 +102,8 @@ export class ApiClient {
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      console.error(`API Error: ${response.status} ${response.statusText} for URL: ${url}`);
+      throw new Error(`HTTP ${response.status}: ${response.statusText} for URL ${url}`);
     }
 
     return response.json();
