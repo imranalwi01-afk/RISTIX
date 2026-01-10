@@ -54,9 +54,41 @@ const ROUTE_PERMISSION_MAP: Record<string, string> = {
   '/banking/tools': 'MANAGE_IFRS9_CONFIG'
 };
 
-// ===================================
-// ... (SKIP PUBLIC_ROUTES etc) ...
-// ===================================
+// ✅ SURGICAL ENHANCEMENT: Banking mode URL patterns
+const BANKING_MODE_PATTERNS = {
+  syariah: [
+    '/banking/syariah',
+    '/banking/islamic',
+    '/syariah',
+    '/islamic'
+  ],
+  conventional: [
+    '/banking/conventional',
+    '/conventional'
+  ]
+};
+
+// ✅ Public routes that don't require authentication
+const PUBLIC_ROUTES = [
+  '/',
+  '/login',
+  '/register',
+  '/forgot-password',
+  '/reset-password',
+  '/verify-email',
+  '/api/auth',
+  '/logout',  // ✅ ENHANCED: Allow logout route without auth checks
+  '/showcase', // ✅ Allow showcase page publicly
+  '/system/health' // ✅ EXPLICIT: Allow health check proxy to bypass auth
+];
+
+// ✅ Default redirects
+const STAKEHOLDER_REDIRECTS: Record<string, string> = {
+  banking: '/banking/dashboard',
+  platform: '/platform/admin',
+  consultant: '/consultant/dashboard',
+  regulator: '/regulator/dashboard'
+};
 
 // ✅ SURGICAL FIX: Enhanced token validation that doesn't break navigation
 function validateTokenBasic(token: string): { isValid: boolean; user?: any } {
@@ -114,7 +146,61 @@ function validateTokenBasic(token: string): { isValid: boolean; user?: any } {
   }
 }
 
-// ... (SKIP getStakeholderType, detectBankingModeFromURL) ...
+// ✅ SURGICAL FIX: Enhanced stakeholder detection
+function getStakeholderType(user: any): string | null {
+  // Check explicit Platform Admin flag first
+  if (user?.isPlatformAdmin === true) {
+    return 'platform';
+  }
+
+  const userRole = user?.role || '';
+  if (!userRole) return 'banking'; // Default fallback
+
+  const role = userRole.toLowerCase();
+
+  if (role.includes('bank_') || role.includes('syariah_') || role.includes('dps_')) {
+    return 'banking';
+  }
+  if (role.includes('platform_') || role === 'platform_super_admin' || role === 'platform_admin') {
+    return 'platform';
+  }
+  if (role.includes('consultant') || role === 'consultant') {
+    return 'consultant';
+  }
+  if (role.includes('central_bank') || role.includes('banking_supervision') ||
+    role.includes('ifrs_supervisor') || role.includes('islamic_banking_director') ||
+    role.includes('syariah_compliance_auditor') || role.includes('market_risk') ||
+    role === 'regulator') {
+    return 'regulator';
+  }
+
+  // ✅ SURGICAL FIX: Default to banking for unknown roles
+  return 'banking';
+}
+
+// ✅ SURGICAL ENHANCEMENT: Banking mode detection from URL
+function detectBankingModeFromURL(pathname: string): 'conventional' | 'syariah' | null {
+  // Check for syariah patterns
+  for (const pattern of BANKING_MODE_PATTERNS.syariah) {
+    if (pathname.startsWith(pattern) || pathname.includes('/syariah/') || pathname.includes('/islamic/')) {
+      return 'syariah';
+    }
+  }
+
+  // Check for conventional patterns
+  for (const pattern of BANKING_MODE_PATTERNS.conventional) {
+    if (pathname.startsWith(pattern) || pathname.includes('/conventional/')) {
+      return 'conventional';
+    }
+  }
+
+  // Check for general banking URLs - default to conventional
+  if (pathname.startsWith('/banking')) {
+    return 'conventional';
+  }
+
+  return null;
+}
 
 // ✅ SURGICAL FIX: Permission-Based Route Access Check
 function hasRouteAccess(user: any, pathname: string): boolean {
