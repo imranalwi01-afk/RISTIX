@@ -198,4 +198,111 @@ app.post('/run-calculation', zValidator('json', runCalculationSchema), async (c)
     }
 })
 
+// GET /ecl-details - Get detailed ECL breakdown by account
+app.get('/ecl-details', async (c) => {
+    try {
+        const page = Number(c.req.query('page') || '1')
+        const limit = Number(c.req.query('limit') || '20')
+        const offset = (page - 1) * limit
+        const accountId = c.req.query('accountId')
+
+        let query = db.select().from(frs9ImpCaResultD)
+
+        if (accountId) {
+            query = query.where(eq(frs9ImpCaResultD.accountId, Number(accountId))) as any
+        }
+
+        const data = await query
+            .orderBy(desc(frs9ImpCaResultD.prcDate))
+            .limit(limit)
+            .offset(offset)
+
+        return c.json({
+            success: true,
+            data: data,
+            pagination: {
+                page,
+                limit,
+                total: data.length,
+                totalPages: Math.ceil(data.length / limit)
+            }
+        })
+    } catch (error) {
+        console.error('Error fetching ECL details:', error)
+        return c.json({
+            success: false,
+            message: 'Failed to fetch ECL details',
+            error: String(error)
+        }, 500)
+    }
+})
+
+// GET /staging-analysis - Get stage transition analysis
+app.get('/staging-analysis', async (c) => {
+    try {
+        const results = await db
+            .select({
+                prcDate: frs9ImpCaEclSum.prcDate,
+                stage: frs9ImpCaEclSum.stage,
+                segmentId: frs9ImpCaEclSum.segmentId,
+                totalOutstanding: sql<number>`SUM(COALESCE(${frs9ImpCaEclSum.outstanding}, 0))`,
+                totalECL: sql<number>`SUM(COALESCE(${frs9ImpCaEclSum.eclAmtCaOnbs}, 0) + COALESCE(${frs9ImpCaEclSum.eclAmtCaOffbs}, 0))`,
+                avgOutstanding: sql<number>`AVG(COALESCE(${frs9ImpCaEclSum.outstanding}, 0))`
+            })
+            .from(frs9ImpCaEclSum)
+            .groupBy(frs9ImpCaEclSum.prcDate, frs9ImpCaEclSum.stage, frs9ImpCaEclSum.segmentId)
+            .orderBy(desc(frs9ImpCaEclSum.prcDate), frs9ImpCaEclSum.stage)
+            .limit(100)
+
+        return c.json({
+            success: true,
+            data: results
+        })
+    } catch (error) {
+        console.error('Error fetching staging analysis:', error)
+        return c.json({
+            success: false,
+            message: 'Failed to fetch staging analysis',
+            error: String(error)
+        }, 500)
+    }
+})
+
+// GET /provision-summary - Get provision summary
+app.get('/provision-summary', async (c) => {
+    try {
+        const prcDate = c.req.query('prcDate')
+
+        const results = await db
+            .select({
+                prcDate: frs9ImpCaEclSum.prcDate,
+                totalAccounts: sql<number>`COUNT(*)`,
+                totalOutstanding: sql<number>`SUM(COALESCE(${frs9ImpCaEclSum.outstanding}, 0))`,
+                totalECLOnBalance: sql<number>`SUM(COALESCE(${frs9ImpCaEclSum.eclAmtCaOnbs}, 0))`,
+                totalECLOffBalance: sql<number>`SUM(COALESCE(${frs9ImpCaEclSum.eclAmtCaOffbs}, 0))`,
+                totalECL: sql<number>`SUM(COALESCE(${frs9ImpCaEclSum.eclAmtCaOnbs}, 0) + COALESCE(${frs9ImpCaEclSum.eclAmtCaOffbs}, 0))`,
+                stage1Provision: sql<number>`SUM(CASE WHEN ${frs9ImpCaEclSum.stage} = '1' THEN COALESCE(${frs9ImpCaEclSum.eclAmtCaOnbs}, 0) + COALESCE(${frs9ImpCaEclSum.eclAmtCaOffbs}, 0) ELSE 0 END)`,
+                stage2Provision: sql<number>`SUM(CASE WHEN ${frs9ImpCaEclSum.stage} = '2' THEN COALESCE(${frs9ImpCaEclSum.eclAmtCaOnbs}, 0) + COALESCE(${frs9ImpCaEclSum.eclAmtCaOffbs}, 0) ELSE 0 END)`,
+                stage3Provision: sql<number>`SUM(CASE WHEN ${frs9ImpCaEclSum.stage} = '3' THEN COALESCE(${frs9ImpCaEclSum.eclAmtCaOnbs}, 0) + COALESCE(${frs9ImpCaEclSum.eclAmtCaOffbs}, 0) ELSE 0 END)`,
+                coverageRatio: sql<number>`CASE WHEN SUM(COALESCE(${frs9ImpCaEclSum.outstanding}, 0)) > 0 THEN (SUM(COALESCE(${frs9ImpCaEclSum.eclAmtCaOnbs}, 0) + COALESCE(${frs9ImpCaEclSum.eclAmtCaOffbs}, 0)) / SUM(COALESCE(${frs9ImpCaEclSum.outstanding}, 0))) * 100 ELSE 0 END`
+            })
+            .from(frs9ImpCaEclSum)
+            .groupBy(frs9ImpCaEclSum.prcDate)
+            .orderBy(desc(frs9ImpCaEclSum.prcDate))
+            .limit(prcDate ? 1 : 12)
+
+        return c.json({
+            success: true,
+            data: results
+        })
+    } catch (error) {
+        console.error('Error fetching provision summary:', error)
+        return c.json({
+            success: false,
+            message: 'Failed to fetch provision summary',
+            error: String(error)
+        }, 500)
+    }
+})
+
 export default app

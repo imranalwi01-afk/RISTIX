@@ -44,7 +44,7 @@ export interface UpdateLGDConfigurationDto extends Partial<CreateLGDConfiguratio
 // API SERVICE
 // ============================================================================
 
-const BASE_URL = '/banking/parameters/lgd-configurations';
+const BASE_URL = '/banking/collective/lgd-configurations';
 
 export const lgdConfigurationsApi = {
     /**

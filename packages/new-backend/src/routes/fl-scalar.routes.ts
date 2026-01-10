@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { z } from 'zod'
-import { db } from '@/config'
+import { legacyDb as db } from '@/config'
 import { frs9ImpCaFlScalarh, frs9ImpCaFlScalard } from '@/db/schema'
 import { eq, desc, inArray } from 'drizzle-orm'
 import type { AppContext } from '@/app'

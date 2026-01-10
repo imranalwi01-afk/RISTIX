@@ -30,6 +30,7 @@ import reportsRoutes from './reports.routes'
 import jobsRoutes from './jobs.routes'
 import { consultantsRoutes } from './consultants.routes'
 import { platformUsersRoutes } from './platform-users.routes'
+import individualImpairmentRoutes from './individual-impairment.routes'
 
 /**
  * Main API router
@@ -63,10 +64,12 @@ routes.route('/banking/parameters/product', productParameterRoutes)
 routes.route('/banking/setup/journal-parameters', journalParameterRoutes)
 routes.route('/banking/setup/application', appSettingsRoutes)
 routes.route('/banking/setup/business', businessSettingsRoutes)
+routes.route('/banking/setup/segmentation', segmentationRoutes)
 // routes.route('/banking/parameters/business-settings', businessSettingsRoutes) // Deprecated or kept as alias? Let's keep one source of truth for now.
+routes.route('/banking/individual/impairment', individualImpairmentRoutes)
 routes.route('/banking/ifrs9/impairment-module', impairmentRoutes)
 routes.route('/banking/ifrs9/amortization-module', amortizationRoutes)
-routes.route('/banking/reports', reportsRoutes)
+routes.route('/ifrs9/reports', reportsRoutes)
 routes.route('/jobs', jobsRoutes)
 routes.route('/roles', rbacRoutes) // Alias for frontend compatibility
 routes.route('/user', usersRoutes) // Alias for frontend compatibility (singular)

@@ -31,7 +31,7 @@ export const LgdConfigurationsRepository = {
             return await db
                 .select()
                 .from(frs9ImpCaLgdConfig)
-                .where(and(...conditions))
+                .where(conditions.length > 0 ? and(...conditions) : undefined)
                 .orderBy(asc(frs9ImpCaLgdConfig.lgdModelName))
         })
     },
