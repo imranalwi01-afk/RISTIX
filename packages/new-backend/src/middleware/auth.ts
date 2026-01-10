@@ -2,7 +2,7 @@ import { createMiddleware } from 'hono/factory'
 import { verifyToken } from '../services/auth.service'
 import { AuthRepository } from '../repositories/auth.repository'
 import { TenantRepository } from '../repositories/tenant.repository'
-import { AuthenticationError, AuthorizationError } from '../lib/errors'
+import { AuthenticationError, AuthorizationError } from '@lib/errors'
 import { Effect, pipe } from 'effect'
 import type { AppContext } from '../app'
 

@@ -139,6 +139,12 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
         }
       }
 
+      // ✅ FIX: Normalize verbose roles to codes
+      if (role === 'IAF Tenant Super Administrator' || role === 'IAF Tenant Administrator') {
+        role = role === 'IAF Tenant Super Administrator' ? 'IAF_TENANT_SUPERADMIN' : 'IAF_TENANT_ADMIN';
+        console.log('🔧 NORMALIZED ROLE: Converted verbose role to code', role);
+      }
+
       console.log('🎯 Redux extracted user role:', role);
       setUserRole(role);
       setUserName(authState.user.fullName || authState.user.email || authState.user.username || 'User');
@@ -488,6 +494,7 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
       bankingMode={themeBankingMode || 'conventional'} // ✅ FIXED: Use renamed variable with fallback
       userRole={userRole}
       roleCodes={authState.user?.roleCodes || []} // ✅ Pass roleCodes for menu compatibility
+      userPermissions={authState.user?.permissions || []} // ✅ Pass userPermissions for granular menu filtering
       collapsed={sidebarCollapsed}
       appBarHeight={COMPACT_APPBAR_HEIGHT}
       onMenuClick={(menuId, href) => {
@@ -501,8 +508,14 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
 
   // Debugging: Log userRole and roleCodes being passed to BankingSidebar
   React.useEffect(() => {
-    console.log('🚀 BankingSidebar props:', { userRole, roleCodes: authState.user?.roleCodes, bankingMode: themeBankingMode, userName });
-  }, [userRole, authState.user?.roleCodes, themeBankingMode, userName]);
+    console.log('🚀 BankingSidebar props:', {
+      userRole,
+      roleCodes: authState.user?.roleCodes,
+      permissions: authState.user?.permissions, // ✅ Log permissions
+      bankingMode: themeBankingMode,
+      userName
+    });
+  }, [userRole, authState.user?.roleCodes, authState.user?.permissions, themeBankingMode, userName]);
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
@@ -544,6 +557,7 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
             bankingMode={themeBankingMode || 'conventional'} // ✅ FIXED: Use renamed variable
             userRole={userRole}
             roleCodes={authState.user?.roleCodes || []} // ✅ Pass roleCodes for menu compatibility
+            userPermissions={authState.user?.permissions || []} // ✅ Pass userPermissions
             collapsed={false}
             appBarHeight={COMPACT_APPBAR_HEIGHT}
             onMenuClick={(menuId, href) => {

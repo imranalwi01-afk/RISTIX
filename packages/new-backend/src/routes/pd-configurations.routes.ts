@@ -1,13 +1,10 @@
-import { Hono } from 'hono'
-import { zValidator } from '@hono/zod-validator'
-import { z } from 'zod'
-import { legacyDb as db } from '@/config'
-import { frs9ImpCaPdConfig } from '@/db/schema'
-import { eq, and, desc, like, or } from 'drizzle-orm'
-import type { AppContext } from '@/app'
+import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
+import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
+import { PdConfigurationsService } from '../services/pd-configurations.service'
+import { runEffect } from '../lib/effect/runtime'
 
-const app = new Hono<AppContext>()
+const app = new OpenAPIHono<AppContext>()
 
 app.use('*', authMiddleware)
 
@@ -15,240 +12,214 @@ app.use('*', authMiddleware)
 // VALIDATION SCHEMAS
 // ============================================================================
 
-const createPdConfigSchema = z.object({
+const PdConfigSchema = z.object({
+    id: z.number(),
+    model_name: z.string().nullable(),
+    population_segment_id: z.number().nullable(),
+    selected_method: z.number().nullable(),
+    migration_interval: z.number().nullable(),
+    population_type: z.number().nullable(),
+    historical_month: z.number().nullable(),
+    first_historical_date: z.string().nullable(),
+    multiplication: z.string().nullable(),
+    fl_flag: z.boolean().nullable(),
+    fl_scalar_id: z.number().nullable(),
+    ia_flag: z.boolean().nullable(),
+    bucket: z.string().nullable(),
+    is_active: z.boolean().nullable(),
+    created_by: z.string().nullable(),
+    updated_by: z.string().nullable(),
+    created_date: z.string().nullable(),
+    updated_date: z.string().nullable(),
+}).openapi('PdConfig')
+
+const CreatePdConfigSchema = z.object({
     model_name: z.string().min(1).max(250),
     population_segment_id: z.union([z.number(), z.string().transform(val => parseInt(val))]),
     selected_method: z.number().int(),
     migration_interval: z.number().int(),
     population_type: z.number().int(),
     historical_month: z.number().int(),
-    first_historical_date: z.string().optional(), // YYYY-MM-DD
+    first_historical_date: z.string().optional(),
     multiplication: z.number().int().optional(),
     fl_flag: z.boolean().default(false),
     ia_flag: z.boolean().default(false),
-    bucket: z.string().max(30).optional(), // bucketGroup
+    bucket: z.string().max(30).optional(),
     is_active: z.boolean().default(true)
-})
+}).openapi('CreatePdConfigInput')
 
-const updatePdConfigSchema = createPdConfigSchema.partial()
+const UpdatePdConfigSchema = CreatePdConfigSchema.partial().openapi('UpdatePdConfigInput')
 
-// ============================================================================
-// HELPER FUNCTIONS
-// ============================================================================
+const PdListResponse = z.object({
+    success: z.boolean(),
+    data: z.array(PdConfigSchema)
+}).openapi('PdListResponse')
 
-const transformPdConfig = (config: typeof frs9ImpCaPdConfig.$inferSelect) => ({
-    id: config.pkid,
-    model_name: config.pdModelName,
-    population_segment_id: config.segmentId,
-    // population_segment_desc: segmentName || '',
-    selected_method: parseInt(config.pdMethod || '0'),
-    migration_interval: config.interval,
-    population_type: parseInt(config.populationType || '0'),
-    historical_month: config.observationPeriod,
-    // first_historical_date format: Date -> YYYY-MM-DD ?
-    // The previous implementation used new Date(config.observationStartDate).toISOString().split('T')[0]
-    // But config.observationStartDate is string in type? Or Date?
-    // Drizzle timestamp({ mode: 'string' }) returns string.
-    first_historical_date: config.observationStartDate ? config.observationStartDate.split('T')[0] : null,
-    multiplication: config.multiplication,
-    fl_flag: config.flFlag,
-    fl_scalar_id: config.flScalarId,
-    ia_flag: config.iaFlag,
-    bucket: config.bucketGroup,
-    is_active: config.activeFlag,
-    created_by: config.createdby,
-    updated_by: config.updatedby,
-    created_date: config.createddate,
-    updated_date: config.updateddate,
-})
+const PdResponse = z.object({
+    success: z.boolean(),
+    data: PdConfigSchema
+}).openapi('PdResponse')
+
+const MetadataResponse = z.object({
+    success: z.boolean(),
+    data: z.array(z.object({ value: z.number(), label: z.string() }))
+}).openapi('MetadataResponse')
+
+const ErrorResponse = z.object({
+    success: z.boolean(),
+    message: z.string()
+}).openapi('ErrorResponse')
 
 // ============================================================================
 // ROUTES
 // ============================================================================
 
 // GET /api/v1/banking/parameters/pd-configurations
-app.get('/', async (c) => {
-    try {
-        const { search, selected_method, bucket, is_active } = c.req.query()
-        const conditions = []
-
-        if (search) {
-            conditions.push(
-                or(
-                    like(frs9ImpCaPdConfig.pdModelName, `%${search}%`),
-                    // like(frs9ImpCaPdConfig.bucketGroup, `%${search}%`) // optional
-                )!
-            )
+app.openapi(
+    createRoute({
+        method: 'get',
+        path: '/',
+        tags: ['PD Configurations'],
+        summary: 'List PD Configurations',
+        request: {
+            query: z.object({
+                search: z.string().optional(),
+                selected_method: z.string().optional(),
+                bucket: z.string().optional(),
+                is_active: z.string().optional(),
+            })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: PdListResponse } }, description: 'List of PD configurations' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Server Error' }
         }
-
-        if (selected_method) {
-            conditions.push(eq(frs9ImpCaPdConfig.pdMethod, String(selected_method)))
-        }
-
-        if (bucket) {
-            conditions.push(eq(frs9ImpCaPdConfig.bucketGroup, bucket))
-        }
-
-        if (is_active !== undefined) {
-            conditions.push(eq(frs9ImpCaPdConfig.activeFlag, is_active === 'true'))
-        }
-
-        const configs = await db
-            .select()
-            .from(frs9ImpCaPdConfig)
-            .where(and(...conditions))
-            .orderBy(desc(frs9ImpCaPdConfig.createddate))
-
-        return c.json({
-            success: true,
-            data: configs.map(c => transformPdConfig(c)),
-        })
-    } catch (error) {
-        console.error('Error fetching PD configurations:', error)
-        return c.json({ success: false, message: 'Failed to fetch PD configurations' }, 500)
+    }),
+    async (c) => {
+        const query = c.req.valid('query')
+        return runEffect(c, PdConfigurationsService.list({
+            ...query,
+            is_active: query.is_active ? query.is_active === 'true' : undefined
+        }) as any) as any
     }
-})
+)
 
 // GET /api/v1/banking/parameters/pd-configurations/:id
-app.get('/:id', async (c) => {
-    try {
-        const id = Number(c.req.param('id'))
-        if (isNaN(id)) return c.json({ error: 'Invalid ID' }, 400);
-
-        const [config] = await db
-            .select()
-            .from(frs9ImpCaPdConfig)
-            .where(eq(frs9ImpCaPdConfig.pkid, id))
-
-        if (!config) {
-            return c.json({ success: false, message: 'PD configuration not found' }, 404)
+app.openapi(
+    createRoute({
+        method: 'get',
+        path: '/{id}',
+        tags: ['PD Configurations'],
+        summary: 'Get PD Configuration',
+        request: {
+            params: z.object({ id: z.string().transform(Number) })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: PdResponse } }, description: 'PD Configuration details' },
+            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' }
         }
-
-        return c.json({ success: true, data: transformPdConfig(config) })
-    } catch (error) {
-        return c.json({ success: false, message: 'Failed to fetch PD configuration' }, 500)
+    }),
+    async (c) => {
+        const { id } = c.req.valid('param')
+        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
+        return runEffect(c, PdConfigurationsService.get(id) as any) as any
     }
-})
+)
 
 // POST /api/v1/banking/parameters/pd-configurations
-app.post('/', zValidator('json', createPdConfigSchema), async (c) => {
-    try {
-        const userId = c.get('userId') as string
+app.openapi(
+    createRoute({
+        method: 'post',
+        path: '/',
+        tags: ['PD Configurations'],
+        summary: 'Create PD Configuration',
+        request: {
+            body: { content: { 'application/json': { schema: CreatePdConfigSchema } } }
+        },
+        responses: {
+            201: { content: { 'application/json': { schema: PdResponse } }, description: 'Created' }
+        }
+    }),
+    async (c) => {
         const data = c.req.valid('json')
-
-        const [config] = await db
-            .insert(frs9ImpCaPdConfig)
-            .values({
-                pdModelName: data.model_name,
-                segmentId: data.population_segment_id,
-                pdMethod: String(data.selected_method),
-                interval: data.migration_interval,
-                populationType: String(data.population_type),
-                observationPeriod: data.historical_month,
-                // observationStartDate: timestamp string
-                observationStartDate: data.first_historical_date ? new Date(data.first_historical_date).toISOString() : null,
-                multiplication: data.multiplication,
-                flFlag: data.fl_flag,
-                iaFlag: data.ia_flag,
-                bucketGroup: data.bucket,
-                activeFlag: data.is_active,
-                createdby: userId,
-                createdhost: 'localhost',
-                createddate: new Date().toISOString(),
-                updatedby: userId,
-                updatedhost: 'localhost',
-                updateddate: new Date().toISOString()
-            })
-            .returning()
-
-        return c.json({ success: true, data: transformPdConfig(config) }, 201)
-    } catch (error) {
-        console.error('Error creating PD configuration:', error)
-        return c.json({ success: false, message: 'Failed to create PD configuration' }, 500)
+        const userId = c.get('userId') as string || 'system'
+        return runEffect(c, PdConfigurationsService.create(data, userId) as any) as any
     }
-})
+)
 
 // PUT /api/v1/banking/parameters/pd-configurations/:id
-app.put('/:id', zValidator('json', updatePdConfigSchema), async (c) => {
-    try {
-        const id = Number(c.req.param('id'))
-        if (isNaN(id)) return c.json({ error: 'Invalid ID' }, 400);
-        const userId = c.get('userId')
+app.openapi(
+    createRoute({
+        method: 'put',
+        path: '/{id}',
+        tags: ['PD Configurations'],
+        summary: 'Update PD Configuration',
+        request: {
+            params: z.object({ id: z.string().transform(Number) }),
+            body: { content: { 'application/json': { schema: UpdatePdConfigSchema } } }
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: PdResponse } }, description: 'Updated' }
+        }
+    }),
+    async (c) => {
+        const { id } = c.req.valid('param')
         const data = c.req.valid('json')
-
-        const updateData: any = {
-            updatedby: userId,
-            updateddate: new Date().toISOString(),
-            updatedhost: 'localhost'
-        }
-
-        if (data.model_name) updateData.pdModelName = data.model_name
-        if (data.population_segment_id) updateData.segmentId = data.population_segment_id
-        if (data.selected_method) updateData.pdMethod = String(data.selected_method)
-        if (data.migration_interval) updateData.interval = data.migration_interval
-        if (data.population_type) updateData.populationType = String(data.population_type)
-        if (data.historical_month) updateData.observationPeriod = data.historical_month
-        if (data.first_historical_date) updateData.observationStartDate = new Date(data.first_historical_date).toISOString()
-        if (data.multiplication !== undefined) updateData.multiplication = data.multiplication
-        if (data.fl_flag !== undefined) updateData.flFlag = data.fl_flag
-        if (data.ia_flag !== undefined) updateData.iaFlag = data.ia_flag
-        if (data.bucket) updateData.bucketGroup = data.bucket
-        if (data.is_active !== undefined) updateData.activeFlag = data.is_active
-
-        const [updated] = await db
-            .update(frs9ImpCaPdConfig)
-            .set(updateData)
-            .where(eq(frs9ImpCaPdConfig.pkid, id))
-            .returning()
-
-        if (!updated) {
-            return c.json({ success: false, message: 'PD configuration not found' }, 404)
-        }
-
-        return c.json({ success: true, data: transformPdConfig(updated) })
-    } catch (error) {
-        console.error('Error updating PD configuration:', error)
-        return c.json({ success: false, message: 'Failed to update PD configuration' }, 500)
+        const userId = c.get('userId') as string || 'system'
+        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
+        return runEffect(c, PdConfigurationsService.update(id, data, userId) as any) as any
     }
-})
+)
 
 // DELETE /api/v1/banking/parameters/pd-configurations/:id
-app.delete('/:id', async (c) => {
-    try {
-        const id = Number(c.req.param('id'))
-        if (isNaN(id)) return c.json({ error: 'Invalid ID' }, 400);
-
-        await db.delete(frs9ImpCaPdConfig).where(eq(frs9ImpCaPdConfig.pkid, id))
-
-        return c.json({ success: true, message: 'Deleted' })
-    } catch (error) {
-        return c.json({ success: false, message: 'Failed to delete PD configuration' }, 500)
+app.openapi(
+    createRoute({
+        method: 'delete',
+        path: '/{id}',
+        tags: ['PD Configurations'],
+        summary: 'Delete PD Configuration',
+        request: {
+            params: z.object({ id: z.string().transform(Number) })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Deleted' }
+        }
+    }),
+    async (c) => {
+        const { id } = c.req.valid('param')
+        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
+        return runEffect(c, PdConfigurationsService.delete(id) as any) as any
     }
-})
+)
 
-// ============================================================================
-// METADATA ENDPOINTS
-// ============================================================================
+// Metadata endpoints
+app.openapi(
+    createRoute({
+        method: 'get',
+        path: '/metadata/methods',
+        tags: ['PD Configurations'],
+        summary: 'Get Metadata Methods',
+        responses: {
+            200: { content: { 'application/json': { schema: MetadataResponse } }, description: 'Metadata' }
+        }
+    }),
+    async (c) => {
+        return runEffect(c, PdConfigurationsService.getMethods() as any) as any
+    }
+)
 
-// GET /api/v1/banking/parameters/pd-configurations/metadata/methods
-app.get('/metadata/methods', async (c) => {
-    return c.json({
-        success: true,
-        data: [
-            { value: 1, label: 'NOA Migration' },
-            { value: 3, label: 'Proxy PD' },
-        ],
-    })
-})
-
-// GET /api/v1/banking/parameters/pd-configurations/metadata/population-types
-app.get('/metadata/population-types', async (c) => {
-    return c.json({
-        success: true,
-        data: [
-            { value: 2, label: 'Window Moving Period' },
-        ],
-    })
-})
+app.openapi(
+    createRoute({
+        method: 'get',
+        path: '/metadata/population-types',
+        tags: ['PD Configurations'],
+        summary: 'Get Metadata Population Types',
+        responses: {
+            200: { content: { 'application/json': { schema: MetadataResponse } }, description: 'Metadata' }
+        }
+    }),
+    async (c) => {
+        return runEffect(c, PdConfigurationsService.getPopulationTypes() as any) as any
+    }
+)
 
 export default app

@@ -1,14 +1,18 @@
-import { Hono } from 'hono'
-import { zValidator } from '@hono/zod-validator'
-import { z } from 'zod'
-import { db } from '../config'
-import { frs9ParamJournal, frs9ParamCommonh } from '../db/schema'
-import { eq, desc } from 'drizzle-orm'
+import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
+import type { AppContext } from '../app'
+import { authMiddleware } from '../middleware'
+import { JournalParametersService } from '../services/journal-parameters.service'
+import { runEffect } from '../lib/effect/runtime'
 
-export const journalParameterRoutes = new Hono()
+const app = new OpenAPIHono<AppContext>()
 
-// Schema definitions
-const journalParamSchema = z.object({
+app.use('*', authMiddleware)
+
+// ============================================================================
+// VALIDATION SCHEMAS
+// ============================================================================
+
+const JournalParamSchema = z.object({
     glGroup: z.string().max(20).optional(),
     currency: z.string().length(3).optional(),
     glType: z.string().max(20).optional(),
@@ -18,160 +22,193 @@ const journalParamSchema = z.object({
     glDesc: z.string().max(255).optional(),
     activeFlag: z.boolean().default(true),
     createdby: z.string().max(50).default('SYSTEM'),
+}).openapi('CreateJournalParamInput')
+
+const UpdateJournalParamSchema = JournalParamSchema.partial().openapi('UpdateJournalParamInput')
+
+const JournalParamResponse = z.object({
+    id: z.number(),
+    glGroup: z.string().nullable(),
+    currency: z.string().nullable(),
+    glType: z.string().nullable(),
+    glCode: z.string().nullable(),
+    glNumber: z.string().nullable(),
+    dbcr: z.string().nullable(),
+    glDesc: z.string().nullable(),
+    activeFlag: z.boolean().nullable(),
+    createdby: z.string().nullable(),
+    createddate: z.string().nullable(),
+    updatedby: z.string().nullable(),
+    updateddate: z.string().nullable(),
+}).openapi('JournalParamResponse')
+
+const JournalListResponse = z.object({
+    success: z.boolean(),
+    data: z.array(JournalParamResponse)
+}).openapi('JournalListResponse')
+
+const JournalDetailResponse = z.object({
+    success: z.boolean(),
+    data: JournalParamResponse
+}).openapi('JournalDetailResponse')
+
+const OptionSchema = z.object({
+    id: z.string(),
+    name: z.string(),
 })
 
-// Helper to get options from business settings (frs9_param_commonh - Type B)
-const getOptionsFromParam = async (paramCode: string) => {
-    try {
-        const param = await db.query.frs9ParamCommonh.findFirst({
-            where: (t, { and, eq }) => and(eq(t.paramType, 'B'), eq(t.paramCode, paramCode)),
-            with: { details: true }
-        });
+const OptionListResponse = z.object({
+    success: z.boolean(),
+    data: z.array(OptionSchema)
+}).openapi('OptionListResponse')
 
-        if (!param || !param.details) return [];
+const ErrorResponse = z.object({
+    success: z.boolean(),
+    message: z.string(),
+    error: z.string().optional()
+}).openapi('ErrorResponse')
 
-        return param.details.map(d => ({
-            id: d.value1 || d.param_value || '',
-            name: d.paramdesc || d.param_desc || d.value1 || ''
-        }));
-    } catch (error) {
-        console.error(`Error fetching param options for ${paramCode}:`, error);
-        return [];
+// ============================================================================
+// ROUTES
+// ============================================================================
+
+// GET /api/v1/banking/collective/journal
+app.openapi(
+    createRoute({
+        method: 'get',
+        path: '/',
+        tags: ['Journal Parameters'],
+        summary: 'List Journal Parameters',
+        responses: {
+            200: { content: { 'application/json': { schema: JournalListResponse } }, description: 'List Journals' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        return runEffect(c, JournalParametersService.list() as any) as any
     }
-};
+)
 
-// Options Endpoints - Using DB Lookups based on Spec
-// B0004: GL Group (GL01, GL02, etc.)
-journalParameterRoutes.get('/gl-group-options', async (c) => {
-    const options = await getOptionsFromParam('B0004');
-    return c.json({
-        success: true, data: options.length > 0 ? options : [
-            { id: 'ASSETS', name: 'Assets (Fallback)' },
-            { id: 'LIABILITIES', name: 'Liabilities (Fallback)' }
-        ]
-    });
-})
-
-// B0001: Currency (IDR, USD, etc.)
-journalParameterRoutes.get('/currency-options', async (c) => {
-    const options = await getOptionsFromParam('B0001');
-    return c.json({
-        success: true, data: options.length > 0 ? options : [
-            { id: 'IDR', name: 'IDR (Fallback)' },
-            { id: 'USD', name: 'USD (Fallback)' }
-        ]
-    });
-})
-
-// B0006: Journal Type (IMPC, IMPI, etc.)
-journalParameterRoutes.get('/journal-type-options', async (c) => {
-    const options = await getOptionsFromParam('B0006');
-    return c.json({
-        success: true, data: options.length > 0 ? options : [
-            { id: 'ACCRUAL', name: 'Accrual (Fallback)' },
-            { id: 'PAYMENT', name: 'Payment (Fallback)' }
-        ]
-    });
-})
-
-// B0008: Journal Code (GL, etc.)
-journalParameterRoutes.get('/journal-code-options', async (c) => {
-    const options = await getOptionsFromParam('B0008');
-    return c.json({
-        success: true, data: options.length > 0 ? options : [
-            { id: 'J001', name: 'Standard Accrual (Fallback)' }
-        ]
-    });
-})
-
-// B0007: DB/CR (D, C)
-journalParameterRoutes.get('/dbcr-options', async (c) => {
-    const options = await getOptionsFromParam('B0007');
-    return c.json({
-        success: true, data: options.length > 0 ? options : [
-            { id: 'D', name: 'Debit (Fallback)' },
-            { id: 'C', name: 'Credit (Fallback)' }
-        ]
-    });
-})
-
-// GET / - List all journal parameters
-journalParameterRoutes.get('/', async (c) => {
-    try {
-        const result = await db.select().from(frs9ParamJournal).orderBy(desc(frs9ParamJournal.createddate));
-        return c.json({ success: true, data: result });
-    } catch (error) {
-        console.error('Error fetching journal parameters:', error);
-        return c.json({ error: 'Failed to fetch journal parameters' }, 500);
+// GET /api/v1/banking/collective/journal/:id
+app.openapi(
+    createRoute({
+        method: 'get',
+        path: '/{id}',
+        tags: ['Journal Parameters'],
+        summary: 'Get Journal Parameter',
+        request: {
+            params: z.object({ id: z.string().transform(Number) })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: JournalDetailResponse } }, description: 'Journal Detail' },
+            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        const { id } = c.req.valid('param')
+        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
+        return runEffect(c, JournalParametersService.get(id) as any) as any
     }
-})
+)
 
-// GET /:id - Get by ID
-journalParameterRoutes.get('/:id', async (c) => {
-    const id = Number(c.req.param('id'));
-    if (isNaN(id)) return c.json({ error: 'Invalid ID' }, 400);
-
-    try {
-        const [item] = await db.select().from(frs9ParamJournal).where(eq(frs9ParamJournal.pkid, id));
-        if (!item) return c.json({ error: 'Journal parameter not found' }, 404);
-        return c.json({ success: true, data: item });
-    } catch (error) {
-        return c.json({ error: 'Failed to fetch journal parameter' }, 500);
+// POST /api/v1/banking/collective/journal
+app.openapi(
+    createRoute({
+        method: 'post',
+        path: '/',
+        tags: ['Journal Parameters'],
+        summary: 'Create Journal Parameter',
+        request: {
+            body: { content: { 'application/json': { schema: JournalParamSchema } } }
+        },
+        responses: {
+            201: { content: { 'application/json': { schema: JournalDetailResponse } }, description: 'Created' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        const data = c.req.valid('json')
+        const userId = c.get('userId') as string || 'system'
+        return runEffect(c, JournalParametersService.create(data, userId) as any) as any
     }
-})
+)
 
-// POST / - Create
-journalParameterRoutes.post('/', zValidator('json', journalParamSchema), async (c) => {
-    const data = c.req.valid('json');
-    try {
-        const [newItem] = await db.insert(frs9ParamJournal).values({
-            ...data,
-            createdhost: 'localhost',
-            createddate: new Date().toISOString()
-        }).returning();
-        return c.json({ success: true, data: newItem }, 201);
-    } catch (error) {
-        console.error('Error creating journal parameter:', error);
-        return c.json({ error: 'Failed to create journal parameter' }, 500);
+// PUT /api/v1/banking/collective/journal/:id
+app.openapi(
+    createRoute({
+        method: 'put',
+        path: '/{id}',
+        tags: ['Journal Parameters'],
+        summary: 'Update Journal Parameter',
+        request: {
+            params: z.object({ id: z.string().transform(Number) }),
+            body: { content: { 'application/json': { schema: UpdateJournalParamSchema } } }
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: JournalDetailResponse } }, description: 'Updated' },
+            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        const { id } = c.req.valid('param')
+        const data = c.req.valid('json')
+        const userId = c.get('userId') as string || 'system'
+        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
+        return runEffect(c, JournalParametersService.update(id, data, userId) as any) as any
     }
-})
+)
 
-// PUT /:id - Update
-journalParameterRoutes.put('/:id', zValidator('json', journalParamSchema.partial()), async (c) => {
-    const id = Number(c.req.param('id'));
-    if (isNaN(id)) return c.json({ error: 'Invalid ID' }, 400);
-
-    const data = c.req.valid('json');
-
-    try {
-        const [updated] = await db.update(frs9ParamJournal)
-            .set({
-                ...data,
-                updateddate: new Date().toISOString(),
-                updatedhost: 'localhost', // placeholder
-                updatedby: data.createdby || 'SYSTEM'
-            })
-            .where(eq(frs9ParamJournal.pkid, id))
-            .returning();
-
-        if (!updated) return c.json({ error: 'Journal parameter not found' }, 404);
-        return c.json({ success: true, data: updated });
-    } catch (error) {
-        console.error('Error updating journal parameter:', error);
-        return c.json({ error: 'Failed to update journal parameter' }, 500);
+// DELETE /api/v1/banking/collective/journal/:id
+app.openapi(
+    createRoute({
+        method: 'delete',
+        path: '/{id}',
+        tags: ['Journal Parameters'],
+        summary: 'Delete Journal Parameter',
+        request: {
+            params: z.object({ id: z.string().transform(Number) })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Deleted' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Invalid ID' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        const { id } = c.req.valid('param')
+        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
+        return runEffect(c, JournalParametersService.delete(id) as any) as any
     }
-})
+)
 
-// DELETE /:id
-journalParameterRoutes.delete('/:id', async (c) => {
-    const id = Number(c.req.param('id'));
-    if (isNaN(id)) return c.json({ error: 'Invalid ID' }, 400);
+// ============================================================================
+// LOOKUP ROUTES
+// ============================================================================
 
-    try {
-        await db.delete(frs9ParamJournal).where(eq(frs9ParamJournal.pkid, id));
-        return c.json({ success: true, message: 'Deleted successfully' });
-    } catch (error) {
-        console.error('Error deleting journal parameter:', error);
-        return c.json({ error: 'Failed to delete journal parameter' }, 500);
-    }
-})
+const createLookupRoute = (path: string, summary: string, provider: () => any) => {
+    app.openapi(
+        createRoute({
+            method: 'get',
+            path: path,
+            tags: ['Journal Parameters'],
+            summary: summary,
+            responses: {
+                200: { content: { 'application/json': { schema: OptionListResponse } }, description: 'Options' },
+                500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+            }
+        }),
+        async (c) => {
+            return runEffect(c, provider() as any) as any
+        }
+    )
+}
+
+createLookupRoute('/gl-group-options', 'Get GL Group Options', JournalParametersService.getGlGroupOptions)
+createLookupRoute('/currency-options', 'Get Currency Options', JournalParametersService.getCurrencyOptions)
+createLookupRoute('/journal-type-options', 'Get Journal Type Options', JournalParametersService.getJournalTypeOptions)
+createLookupRoute('/journal-code-options', 'Get Journal Code Options', JournalParametersService.getJournalCodeOptions)
+createLookupRoute('/dbcr-options', 'Get DB/CR Options', JournalParametersService.getDbCrOptions)
+
+export default app

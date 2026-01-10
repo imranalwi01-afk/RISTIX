@@ -1,5 +1,5 @@
 
-import { Hono } from 'hono'
+import { OpenAPIHono } from '@hono/zod-openapi'
 import type { AppContext } from '../app'
 import { healthRoutes } from './health.routes'
 import { rbacRoutes } from './rbac.routes'
@@ -19,11 +19,10 @@ import lgdConfigurationsRoutes from './lgd-configurations.routes'
 import eadConfigurationsRoutes from './ead-configurations.routes'
 import eclConfigurationsRoutes from './ecl-configurations.routes'
 import populationSegmentsRoutes from './population-segments.routes'
-import { appSettingsRoutes } from './app-settings.routes'
-import { businessSettingsRoutes } from './business-settings.routes'
-import { businessSetupRoutes } from './business-setup.routes'
-import { productParameterRoutes } from './product-parameters.routes'
-import { journalParameterRoutes } from './journal-parameters.routes'
+import appSettingsRoutes from './app-settings.routes'
+import businessSettingsRoutes from './business-settings.routes'
+import productParameterRoutes from './product-parameters.routes'
+import journalParameterRoutes from './journal-parameters.routes'
 import { segmentationRoutes } from './segmentation.routes'
 import impairmentRoutes from './impairment.routes'
 import amortizationRoutes from './amortization.routes'
@@ -36,7 +35,7 @@ import { platformUsersRoutes } from './platform-users.routes'
  * Main API router
  * All routes are mounted under /api
  */
-export const routes = new Hono<AppContext>()
+export const routes = new OpenAPIHono<AppContext>()
 
 // Mount route groups
 routes.route('/health', healthRoutes)
@@ -61,11 +60,8 @@ routes.route('/banking/collective/ecl-config', eclConfigurationsRoutes)
 routes.route('/banking/parameters/population-segments', populationSegmentsRoutes)
 routes.route('/banking/parameters/app-settings', appSettingsRoutes)
 routes.route('/banking/setup/application', appSettingsRoutes)
-routes.route('/banking/setup/business', businessSetupRoutes)
-routes.route('/banking/setup/product-parameters', productParameterRoutes)
-routes.route('/banking/setup/journal-parameters', journalParameterRoutes)
-routes.route('/banking/setup/segmentation', segmentationRoutes)
-routes.route('/banking/parameters/business-settings', businessSettingsRoutes)
+routes.route('/banking/setup/business', businessSettingsRoutes)
+// routes.route('/banking/parameters/business-settings', businessSettingsRoutes) // Deprecated or kept as alias? Let's keep one source of truth for now.
 routes.route('/banking/ifrs9/impairment-module', impairmentRoutes)
 routes.route('/banking/ifrs9/amortization-module', amortizationRoutes)
 routes.route('/banking/reports', reportsRoutes)

@@ -2,7 +2,7 @@ import { db } from '../config/database'
 import { consultants, NewConsultant } from '../db/schema'
 import { eq, desc, asc, ilike, and, sql } from 'drizzle-orm'
 import { Effect } from 'effect'
-import { DatabaseError, NotFoundError } from '../lib/errors'
+import { DatabaseError, NotFoundError } from '@lib/errors'
 
 // =============================================================================
 // CONSULTANT SERVICE

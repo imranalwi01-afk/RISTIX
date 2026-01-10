@@ -13,9 +13,7 @@ import {
 } from '@/lib/errors'
 import { AuthRepository } from '@/repositories/auth.repository'
 import { TenantRepository } from '@/repositories/tenant.repository'
-import { db } from '@/config'
-import { eq } from 'drizzle-orm'
-import { userRoles } from '@/db/schema'
+import { userRolesRepository } from '@/repositories/rbac.repository'
 
 // =============================================================================
 // TYPES
@@ -42,6 +40,7 @@ export interface JwtPayload {
     type: 'access' | 'refresh'
     roles?: string[]
     role?: string
+    permissions?: string[] // ✅ Add permissions field
 }
 
 // =============================================================================
@@ -68,7 +67,8 @@ const generateAccessToken = async (
     user: User,
     tokenId: string,
     tenantId?: string,
-    roles: string[] = []
+    roles: string[] = [],
+    permissions: string[] = [] // ✅ Add permissions param
 ): Promise<string> => {
     return new jose.SignJWT({
         sub: user.id,
@@ -78,6 +78,7 @@ const generateAccessToken = async (
         type: 'access',
         roles, // ✅ Include roles
         role: roles[0], // ✅ Include primary role for backward compatibility
+        permissions, // ✅ Include permissions
         isPlatformAdmin: user.isPlatformAdmin // ✅ Include platform admin flag
     })
         .setProtectedHeader({ alg: 'HS256' })
@@ -93,7 +94,8 @@ const generateRefreshToken = async (
     user: User,
     tokenId: string,
     tenantId?: string,
-    roles: string[] = []
+    roles: string[] = [],
+    permissions: string[] = [] // ✅ Add permissions param
 ): Promise<string> => {
     return new jose.SignJWT({
         sub: user.id,
@@ -102,6 +104,7 @@ const generateRefreshToken = async (
         jti: tokenId,
         type: 'refresh',
         roles, // ✅ Include roles
+        permissions, // ✅ Include permissions
         isPlatformAdmin: user.isPlatformAdmin, // ✅ Include platform admin flag
     })
         .setProtectedHeader({ alg: 'HS256' })
@@ -207,27 +210,43 @@ export const login = (
                     }),
             })
         ),
-        // Generate tokens and create session
+        // Load user roles
         Effect.flatMap(({ user, resolvedTenantId }) =>
+            pipe(
+                userRolesRepository.findByUser(user.id, resolvedTenantId ?? user.tenantId),
+                Effect.map((userRolesList) => {
+                    const roles = userRolesList.map((ur) => ur.role.roleName)
+
+                    // ✅ Extract and flatten permissions from all roles
+                    const permissionSet = new Set<string>()
+                    userRolesList.forEach(ur => {
+                        // Add table-based permissions
+                        if (ur.role.rolePermissions) {
+                            ur.role.rolePermissions.forEach(rp => {
+                                if (rp.permission && rp.permission.code) {
+                                    permissionSet.add(rp.permission.code)
+                                }
+                            })
+                        }
+                    })
+
+                    const permissions = Array.from(permissionSet)
+
+                    return { user, resolvedTenantId, roles, permissions }
+                })
+            )
+        ),
+        // Generate tokens and create session
+        Effect.flatMap(({ user, resolvedTenantId, roles, permissions }) =>
             Effect.tryPromise({
                 try: async () => {
                     const accessTokenId = crypto.randomUUID()
                     const refreshTokenId = crypto.randomUUID()
                     const now = new Date()
 
-                    // Fetch user roles
-                    const userRolesList = await db.query.userRoles.findMany({
-                        where: eq(userRoles.userId, user.id),
-                        with: {
-                            role: true
-                        }
-                    })
-
-                    const roles = userRolesList.map(ur => ur.role.roleName) // Or roleCode if preferred
-
                     const [accessToken, refreshToken] = await Promise.all([
-                        generateAccessToken(user, accessTokenId, resolvedTenantId, roles),
-                        generateRefreshToken(user, refreshTokenId, resolvedTenantId, roles),
+                        generateAccessToken(user, accessTokenId, resolvedTenantId, roles, permissions),
+                        generateRefreshToken(user, refreshTokenId, resolvedTenantId, roles, permissions),
                     ])
 
                     // Create session record
@@ -240,7 +259,7 @@ export const login = (
                         userAgent: metadata?.userAgent,
                         expiresAt: new Date(now.getTime() + ACCESS_TOKEN_EXPIRY_MS),
                         refreshExpiresAt: new Date(now.getTime() + REFRESH_TOKEN_EXPIRY_MS),
-                        isActive: true
+                        isActive: true,
                     })
 
                     // Update last login
@@ -249,7 +268,8 @@ export const login = (
                     return {
                         user: {
                             ...user,
-                            roles // Return roles in user object too if needed by frontend immediately
+                            roles, // Return roles in user object too if needed by frontend immediately
+                            permissions // ✅ Return permissions to frontend
                         },
                         tokens: {
                             accessToken,

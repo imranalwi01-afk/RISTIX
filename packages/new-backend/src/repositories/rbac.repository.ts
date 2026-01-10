@@ -8,6 +8,8 @@ import {
     type NewRole,
     type UserRole,
     type NewUserRole,
+    type RolePermission,
+    type Permission,
 } from '@/db/schema'
 import { DatabaseError, NotFoundError, ValidationError, BusinessError } from '@/lib/errors'
 import { dbOperation } from '@/lib/effect'
@@ -216,7 +218,7 @@ export class UserRolesRepository {
         userId: string,
         tenantId: string,
         options?: UserRolesQueryOptions
-    ): Effect.Effect<Array<UserRole & { role: Role }>, DatabaseError> {
+    ): Effect.Effect<Array<UserRole & { role: Role & { rolePermissions: Array<RolePermission & { permission: Permission }> } }>, DatabaseError> {
         return queryEffect(async () => {
             const now = new Date()
             const conditions = [
@@ -235,9 +237,17 @@ export class UserRolesRepository {
             return db.query.userRoles.findMany({
                 where: and(...conditions),
                 with: {
-                    role: true,
+                    role: {
+                        with: {
+                            rolePermissions: {
+                                with: {
+                                    permission: true
+                                }
+                            }
+                        }
+                    },
                 },
-            }) as Promise<Array<UserRole & { role: Role }>>
+            }) as Promise<Array<UserRole & { role: Role & { rolePermissions: Array<RolePermission & { permission: Permission }> } }>>
         })
     }
 

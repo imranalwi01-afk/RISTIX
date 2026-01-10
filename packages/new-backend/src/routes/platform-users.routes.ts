@@ -14,7 +14,7 @@ import {
     NotFoundError,
     ValidationError,
     AuthenticationError
-} from '../lib/errors'
+} from '@lib/errors'
 import * as usersService from '../services/users.service'
 
 export const platformUsersRoutes = new Hono<AppContext>()
