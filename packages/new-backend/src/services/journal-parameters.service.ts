@@ -9,10 +9,7 @@ export const JournalParametersService = {
     list: () => {
         return pipe(
             JournalParametersRepository.findAll(),
-            Effect.map(journals => ({
-                success: true,
-                data: journals.map(transformJournal)
-            }))
+            Effect.map(journals => journals.map(transformJournal))
         )
     },
 
@@ -21,10 +18,7 @@ export const JournalParametersService = {
             JournalParametersRepository.findById(BigInt(id)),
             Effect.flatMap(journal =>
                 journal
-                    ? Effect.succeed({
-                        success: true,
-                        data: transformJournal(journal)
-                    })
+                    ? Effect.succeed(transformJournal(journal))
                     : Effect.fail(new NotFoundError({ resource: 'Journal Parameter', id: String(id) }))
             )
         )
@@ -43,10 +37,7 @@ export const JournalParametersService = {
         }
         return pipe(
             JournalParametersRepository.create(payload as any),
-            Effect.map(journal => ({
-                success: true,
-                data: transformJournal(journal)
-            }))
+            Effect.map(journal => transformJournal(journal))
         )
     },
 
@@ -62,10 +53,7 @@ export const JournalParametersService = {
             JournalParametersRepository.update(BigInt(id), payload as any),
             Effect.flatMap(updated =>
                 updated
-                    ? Effect.succeed({
-                        success: true,
-                        data: transformJournal(updated)
-                    })
+                    ? Effect.succeed(transformJournal(updated))
                     : Effect.fail(new NotFoundError({ resource: 'Journal Parameter', id: String(id) }))
             )
         )
@@ -76,7 +64,7 @@ export const JournalParametersService = {
             JournalParametersRepository.delete(BigInt(id)),
             Effect.flatMap(deleted =>
                 deleted
-                    ? Effect.succeed({ success: true, message: 'Deleted successfully' })
+                    ? Effect.succeed({ message: 'Deleted successfully' })
                     : Effect.fail(new NotFoundError({ resource: 'Journal Parameter', id: String(id) }))
             )
         )
@@ -87,14 +75,11 @@ export const JournalParametersService = {
         return pipe(
             ParametersRepository.findHeaderByCode(paramCode),
             Effect.map((param: any) => {
-                if (!param || !param.details) return { success: true, data: [] }
-                return {
-                    success: true,
-                    data: param.details.map((d: any) => ({
-                        id: String(d.value1 || d.paramValue || ''),
-                        name: String(d.paramdesc || d.paramDesc || d.value1 || '')
-                    }))
-                }
+                if (!param || !param.details) return []
+                return param.details.map((d: any) => ({
+                    id: String(d.value1 || d.paramValue || ''),
+                    name: String(d.paramdesc || d.paramDesc || d.value1 || '')
+                }))
             })
         )
     },

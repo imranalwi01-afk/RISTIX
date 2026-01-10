@@ -276,7 +276,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // ✅ SURGICAL FIX: Sync tokens to cookie whenever auth state changes
   useEffect(() => {
-    syncTokenToCookie(authState?.token);
+    syncTokenToCookie(authState?.token || null);
   }, [authState?.token]);
 
   // ✅ SURGICAL ENHANCEMENT: Sync banking mode when user changes
@@ -812,7 +812,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (response.ok) {
         const parsedUser = JSON.parse(userData)
 
-        if (!authState.isAuthenticated) {
+        if (!authState?.isAuthenticated) {
           dispatch(initializeAuth({
             user: parsedUser,
             token,
@@ -829,7 +829,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.error('❌ Auth check error:', error)
       return false
     }
-  }, [dispatch, authState.isAuthenticated])
+  }, [dispatch, authState?.isAuthenticated])
 
   const clearErrorHandler = useCallback(() => {
     dispatch(clearError())
@@ -839,10 +839,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // CONTEXT VALUE
   // ============================================================================
   const contextValue: AuthContextType = {
-    user: authState.user,
-    isAuthenticated: authState.isAuthenticated,
-    isLoading: authState.isLoading || localLoading,
-    error: authState.error,
+    user: authState?.user || null,
+    isAuthenticated: authState?.isAuthenticated || false,
+    isLoading: authState?.isLoading || localLoading,
+    error: authState?.error || null,
     login,
     logout,
     clearError: clearErrorHandler,
