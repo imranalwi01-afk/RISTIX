@@ -1,5 +1,5 @@
 import { pgTable, date, varchar, numeric, integer, bigserial, timestamp, serial, bigint, doublePrecision, smallint, smallserial, boolean, char, text, check, pgView, pgSchema } from "drizzle-orm/pg-core"
-import { sql } from "drizzle-orm"
+import { sql, relations } from "drizzle-orm"
 
 
 // Legacy tables are in public schema of the legacy DB
@@ -1482,6 +1482,18 @@ export const frs9ParamCommonh = pgTable("frs9_param_commonh", {
 }, (table) => [
 	check("chk_banking_type", sql`(banking_type)::text = ANY (ARRAY[('conventional'::character varying)::text, ('syariah'::character varying)::text, ('dual'::character varying)::text])`),
 ]);
+
+// Relation definitions
+export const frs9ParamCommonhRelations = relations(frs9ParamCommonh, ({ many }) => ({
+	details: many(frs9ParamCommond),
+}));
+
+export const frs9ParamCommondRelations = relations(frs9ParamCommond, ({ one }) => ({
+	header: one(frs9ParamCommonh, {
+		fields: [frs9ParamCommond.paramCode],
+		references: [frs9ParamCommonh.paramCode],
+	}),
+}));
 
 export const frs9ParamJournal = pgTable("frs9_param_journal", {
 	pkid: smallserial().notNull(),

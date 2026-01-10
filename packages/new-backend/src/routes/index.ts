@@ -59,6 +59,8 @@ routes.route('/banking/collective/ead-configurations', eadConfigurationsRoutes)
 routes.route('/banking/collective/ecl-config', eclConfigurationsRoutes)
 routes.route('/banking/parameters/population-segments', populationSegmentsRoutes)
 routes.route('/banking/parameters/app-settings', appSettingsRoutes)
+routes.route('/banking/parameters/product', productParameterRoutes)
+routes.route('/banking/setup/journal-parameters', journalParameterRoutes)
 routes.route('/banking/setup/application', appSettingsRoutes)
 routes.route('/banking/setup/business', businessSettingsRoutes)
 // routes.route('/banking/parameters/business-settings', businessSettingsRoutes) // Deprecated or kept as alias? Let's keep one source of truth for now.

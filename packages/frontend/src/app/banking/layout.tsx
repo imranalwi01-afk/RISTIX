@@ -75,7 +75,7 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
   const { bankingMode: themeBankingMode, colorMode, toggleColorMode } = useBankingTheme(); // ✅ Renamed to avoid collisions
   // ✅ SURGICAL FIX: Use robust logout from AuthProvider
   const { logout } = useAuth();
-  const reduxBankingMode = useSelector((state: RootState) => state.configuration.bankingMode);
+  const reduxBankingMode = useSelector((state: RootState) => state.configuration?.bankingMode);
 
   // ✅ ADD: Get user data from Redux auth state
   const authState = useSelector((state: RootState) => state.auth);
@@ -204,8 +204,10 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
         console.log('📦 All localStorage items:');
         for (let i = 0; i < localStorage.length; i++) {
           const key = localStorage.key(i);
-          const value = localStorage.getItem(key);
-          console.log(`  ${key}: ${value ? value.substring(0, 100) + (value.length > 100 ? '...' : '') : 'null'}`);
+          if (key) {
+            const value = localStorage.getItem(key);
+            console.log(`  ${key}: ${value ? value.substring(0, 100) + (value.length > 100 ? '...' : '') : 'null'}`);
+          }
         }
       }
     }
@@ -266,8 +268,8 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
 
   // Generate breadcrumbs from pathname
   const generateBreadcrumbs = () => {
-    const pathSegments = pathname.split('/').filter(segment => segment !== '');
-    const breadcrumbs = [];
+    const pathSegments = (pathname || '').split('/').filter(segment => segment !== '');
+    const breadcrumbs: { label: string; href?: string; icon?: React.ReactNode; isLast?: boolean }[] = [];
 
     breadcrumbs.push({
       label: 'Banking Dashboard',
@@ -493,8 +495,8 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
       width={sidebarCollapsed ? DRAWER_WIDTH_COLLAPSED : DRAWER_WIDTH}
       bankingMode={themeBankingMode || 'conventional'} // ✅ FIXED: Use renamed variable with fallback
       userRole={userRole}
-      roleCodes={authState.user?.roleCodes || []} // ✅ Pass roleCodes for menu compatibility
-      userPermissions={authState.user?.permissions || []} // ✅ Pass userPermissions for granular menu filtering
+      roleCodes={authState?.user?.roleCodes || []} // ✅ Pass roleCodes for menu compatibility
+      userPermissions={authState?.user?.permissions || []} // ✅ Pass userPermissions for granular menu filtering
       collapsed={sidebarCollapsed}
       appBarHeight={COMPACT_APPBAR_HEIGHT}
       onMenuClick={(menuId, href) => {
@@ -510,12 +512,12 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
   React.useEffect(() => {
     console.log('🚀 BankingSidebar props:', {
       userRole,
-      roleCodes: authState.user?.roleCodes,
-      permissions: authState.user?.permissions, // ✅ Log permissions
+      roleCodes: authState?.user?.roleCodes,
+      permissions: authState?.user?.permissions, // ✅ Log permissions
       bankingMode: themeBankingMode,
       userName
     });
-  }, [userRole, authState.user?.roleCodes, authState.user?.permissions, themeBankingMode, userName]);
+  }, [userRole, authState?.user?.roleCodes, authState?.user?.permissions, themeBankingMode, userName]);
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
@@ -556,8 +558,8 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
             width={DRAWER_WIDTH}
             bankingMode={themeBankingMode || 'conventional'} // ✅ FIXED: Use renamed variable
             userRole={userRole}
-            roleCodes={authState.user?.roleCodes || []} // ✅ Pass roleCodes for menu compatibility
-            userPermissions={authState.user?.permissions || []} // ✅ Pass userPermissions
+            roleCodes={authState?.user?.roleCodes || []} // ✅ Pass roleCodes for menu compatibility
+            userPermissions={authState?.user?.permissions || []} // ✅ Pass userPermissions
             collapsed={false}
             appBarHeight={COMPACT_APPBAR_HEIGHT}
             onMenuClick={(menuId, href) => {

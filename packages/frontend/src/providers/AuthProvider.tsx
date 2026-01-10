@@ -188,6 +188,10 @@ interface User {
   fullName?: string
   role: string
   roles?: string[]
+  roleCodes?: string[]
+  userRole?: string
+  roleName?: string
+  userType?: string
   tenantId?: string
   tenantSlug?: string
   bankingType?: string
@@ -272,26 +276,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // ✅ SURGICAL FIX: Sync tokens to cookie whenever auth state changes
   useEffect(() => {
-    syncTokenToCookie(authState.token);
-  }, [authState.token]);
+    syncTokenToCookie(authState?.token);
+  }, [authState?.token]);
 
   // ✅ SURGICAL ENHANCEMENT: Sync banking mode when user changes
   useEffect(() => {
-    if (authState.user) {
+    if (authState?.user) {
       const detectedBankingMode = detectBankingModeFromUser(authState.user);
       if (detectedBankingMode) {
         console.log(`🎨 AuthProvider: Detected banking mode "${detectedBankingMode}" from user data`);
         dispatch(setBankingMode(detectedBankingMode));
       }
     }
-  }, [authState.user, dispatch]);
+  }, [authState?.user, dispatch]);
 
   // ============================================================================
   // INITIALIZE AUTHENTICATION STATE
   // ============================================================================
   useEffect(() => {
     // ✅ SURGICAL FIX: Prevent infinite loop by checking if already initialized
-    if (authState.isInitialized) {
+    if (authState?.isInitialized) {
       setLocalLoading(false);
       return;
     }
@@ -305,7 +309,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const userData = localStorage.getItem('user_data')
         const refreshToken = localStorage.getItem('refresh_token')
 
-        if (token && userData && !authState.isAuthenticated) {
+        if (token && userData && !authState?.isAuthenticated) {
           const parsedUser = JSON.parse(userData)
           console.log('✅ Found stored auth data for:', parsedUser.email)
 

@@ -69,6 +69,34 @@ const ErrorResponse = z.object({
 }).openapi('ErrorResponse')
 
 // ============================================================================
+// LOOKUP ROUTES (Must be defined BEFORE parameterized routes)
+// ============================================================================
+
+const createLookupRoute = (path: string, summary: string, provider: () => any) => {
+    app.openapi(
+        createRoute({
+            method: 'get',
+            path: path,
+            tags: ['Journal Parameters'],
+            summary: summary,
+            responses: {
+                200: { content: { 'application/json': { schema: OptionListResponse } }, description: 'Options' },
+                500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+            }
+        }),
+        async (c) => {
+            return runEffect(c, provider() as any) as any
+        }
+    )
+}
+
+createLookupRoute('/gl-group-options', 'Get GL Group Options', JournalParametersService.getGlGroupOptions)
+createLookupRoute('/currency-options', 'Get Currency Options', JournalParametersService.getCurrencyOptions)
+createLookupRoute('/journal-type-options', 'Get Journal Type Options', JournalParametersService.getJournalTypeOptions)
+createLookupRoute('/journal-code-options', 'Get Journal Code Options', JournalParametersService.getJournalCodeOptions)
+createLookupRoute('/dbcr-options', 'Get DB/CR Options', JournalParametersService.getDbCrOptions)
+
+// ============================================================================
 // ROUTES
 // ============================================================================
 
@@ -183,32 +211,6 @@ app.openapi(
     }
 )
 
-// ============================================================================
-// LOOKUP ROUTES
-// ============================================================================
-
-const createLookupRoute = (path: string, summary: string, provider: () => any) => {
-    app.openapi(
-        createRoute({
-            method: 'get',
-            path: path,
-            tags: ['Journal Parameters'],
-            summary: summary,
-            responses: {
-                200: { content: { 'application/json': { schema: OptionListResponse } }, description: 'Options' },
-                500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
-            }
-        }),
-        async (c) => {
-            return runEffect(c, provider() as any) as any
-        }
-    )
-}
-
-createLookupRoute('/gl-group-options', 'Get GL Group Options', JournalParametersService.getGlGroupOptions)
-createLookupRoute('/currency-options', 'Get Currency Options', JournalParametersService.getCurrencyOptions)
-createLookupRoute('/journal-type-options', 'Get Journal Type Options', JournalParametersService.getJournalTypeOptions)
-createLookupRoute('/journal-code-options', 'Get Journal Code Options', JournalParametersService.getJournalCodeOptions)
-createLookupRoute('/dbcr-options', 'Get DB/CR Options', JournalParametersService.getDbCrOptions)
+// Lookup routes moved to top to prevent shadowing
 
 export default app

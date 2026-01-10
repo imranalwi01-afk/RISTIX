@@ -103,26 +103,7 @@ export {
 
 export * from './legacy'
 
-export {
-    frs9ParamProduct,
-    frs9ParamJournal,
-    frs9ParamSegmenth,
-    frs9ParamSegmentd,
-    frs9ParamScenarioRulesh,
-    frs9ParamScenarioRulesd,
-    frs9ParamBucketh,
-    frs9ParamBucketd,
-    frs9ImpCaPdConfig,
-    frs9ImpCaFlScalarh,
-    frs9ImpCaFlScalard,
-    frs9ImpCaLgdConfig,
-    frs9ImpCaEadConfig,
-    frs9ImpCaEclConfigh,
-    frs9ImpCaEclConfigd,
-    frs9ImpCaEclSum,
-    frs9ImpCaResultH,
-    frs9ImpCaResultD,
-} from './introspected/schema'
+
 
 // Jobs / Queue
 export {
