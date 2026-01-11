@@ -493,11 +493,11 @@ export default function ECLConfigurationPage() {
       details: []
     });
     setDetailFormData({
-      pf_segment_id: '',
-      stage_rule_id: '',
-      pd_model_id: '',
-      lgd_model_id: '',
-      ead_model_id: '',
+      pf_segment_id: 0,
+      stage_rule_id: 0,
+      pd_model_id: 0,
+      lgd_model_id: 0,
+      ead_model_id: 0,
       overlay_rate: 100,
       period_type: 1,
       period_date: ''
@@ -518,11 +518,11 @@ export default function ECLConfigurationPage() {
       details: [...eclConfig.details]
     });
     setDetailFormData({
-      pf_segment_id: '',
-      stage_rule_id: '',
-      pd_model_id: '',
-      lgd_model_id: '',
-      ead_model_id: '',
+      pf_segment_id: 0,
+      stage_rule_id: 0,
+      pd_model_id: 0,
+      lgd_model_id: 0,
+      ead_model_id: 0,
       overlay_rate: 100,
       period_type: 1,
       period_date: ''
