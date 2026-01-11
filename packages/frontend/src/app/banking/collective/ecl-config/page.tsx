@@ -221,7 +221,7 @@ const eclConfigurationAPI = {
       return {
         pkid: result.id,
         ecl_model_name: result.model_name,
-        module: result.module,
+        module: result.module || '',
         effective_date: result.effective_date,
         active_flag: result.active_flag,
         details: result.details?.map((d: any) => ({
@@ -264,7 +264,7 @@ const eclConfigurationAPI = {
       return {
         pkid: result.id,
         ecl_model_name: result.model_name,
-        module: result.module,
+        module: result.module || '',
         effective_date: result.effective_date,
         active_flag: result.active_flag,
         details: result.details?.map((d: any) => ({
@@ -324,11 +324,11 @@ export default function ECLConfigurationPage() {
   });
 
   const [detailFormData, setDetailFormData] = useState<Partial<ECLConfigDetail>>({
-    pf_segment_id: '',
-    stage_rule_id: '',
-    pd_model_id: '',
-    lgd_model_id: '',
-    ead_model_id: '',
+    pf_segment_id: undefined,
+    stage_rule_id: undefined,
+    pd_model_id: undefined,
+    lgd_model_id: undefined,
+    ead_model_id: undefined,
     overlay_rate: 100,
     period_type: 1,
     period_date: ''
@@ -446,7 +446,7 @@ export default function ECLConfigurationPage() {
       overlay_rate: detailFormData.overlay_rate as number,
       period_type: detailFormData.period_type as number,
       period_type_name: periodTypeInfo?.label,
-      period_date: detailFormData.period_date || null,
+      period_date: detailFormData.period_date || undefined,
       createdby: "current_user",
       createddate: new Date().toISOString().split('T')[0]
     };
@@ -458,11 +458,11 @@ export default function ECLConfigurationPage() {
 
     // Reset detail form
     setDetailFormData({
-      pf_segment_id: '',
-      stage_rule_id: '',
-      pd_model_id: '',
-      lgd_model_id: '',
-      ead_model_id: '',
+      pf_segment_id: undefined,
+      stage_rule_id: undefined,
+      pd_model_id: undefined,
+      lgd_model_id: undefined,
+      ead_model_id: undefined,
       overlay_rate: 100,
       period_type: 1,
       period_date: ''
