@@ -324,11 +324,11 @@ export default function ECLConfigurationPage() {
   });
 
   const [detailFormData, setDetailFormData] = useState<Partial<ECLConfigDetail>>({
-    pf_segment_id: undefined,
-    stage_rule_id: undefined,
-    pd_model_id: undefined,
-    lgd_model_id: undefined,
-    ead_model_id: undefined,
+    pf_segment_id: 0,
+    stage_rule_id: 0,
+    pd_model_id: 0,
+    lgd_model_id: 0,
+    ead_model_id: 0,
     overlay_rate: 100,
     period_type: 1,
     period_date: ''
@@ -458,11 +458,11 @@ export default function ECLConfigurationPage() {
 
     // Reset detail form
     setDetailFormData({
-      pf_segment_id: undefined,
-      stage_rule_id: undefined,
-      pd_model_id: undefined,
-      lgd_model_id: undefined,
-      ead_model_id: undefined,
+      pf_segment_id: 0,
+      stage_rule_id: 0,
+      pd_model_id: 0,
+      lgd_model_id: 0,
+      ead_model_id: 0,
       overlay_rate: 100,
       period_type: 1,
       period_date: ''

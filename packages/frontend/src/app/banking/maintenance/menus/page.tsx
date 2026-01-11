@@ -368,7 +368,7 @@ const MenuManagement: React.FC = () => {
           console.log('✅ Flattened hierarchical menu items:', uiMenus.length);
         } else {
           // 📋 Process flat data (backend returns flat array)
-          uiMenus = response.data.map((dbMenu: DatabaseMenuItem) => ({
+          uiMenus = (response.data as any[]).map((dbMenu: DatabaseMenuItem) => ({
             id: dbMenu.id,
             label: dbMenu.label,
             href: dbMenu.href,
@@ -448,7 +448,7 @@ const MenuManagement: React.FC = () => {
         href: '/banking/dashboard',
         icon: 'Dashboard',
         description: 'IFRS 9 Pro System Overview',
-        parentId: null,
+        parentId: undefined,
         order: 1,
         isActive: true,
         roles: ['BANK_CRO', 'BANK_IFRS_MANAGER', 'BANK_RISK_ANALYST', 'BANK_PORTFOLIO_MANAGER', 'BANK_DATA_ADMIN'],
@@ -468,7 +468,7 @@ const MenuManagement: React.FC = () => {
         label: 'General Setup',
         icon: 'Settings',
         description: 'System Configuration',
-        parentId: null,
+        parentId: undefined,
         order: 2,
         isActive: true,
         roles: ['BANK_CRO', 'BANK_IFRS_MANAGER'],
