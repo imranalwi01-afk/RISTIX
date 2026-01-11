@@ -74,8 +74,8 @@ INSERT INTO core.menu_items (menu_key, title, description, url, icon, menu_type,
 
 -- 1. General Setup Children
 INSERT INTO core.menu_items (menu_key, title, description, url, icon, menu_type, sort_order, is_active, banking_types) VALUES
-('general_setup.app_setting', 'Application Setting', 'Application Setting', '/banking/parameters/app-settings', 'SettingsApplications', 'item', 1, true, ARRAY['conventional', 'syariah', 'dual']),
-('general_setup.business_setting', 'Business Setting', 'Business Setting', '/banking/parameters/business-settings', 'Business', 'item', 2, true, ARRAY['conventional', 'syariah', 'dual']);
+('general_setup.app_setting', 'Application Setting', 'Application Setting', '/banking/setup/application', 'SettingsApplications', 'item', 1, true, ARRAY['conventional', 'syariah', 'dual']),
+('general_setup.business_setting', 'Business Setting', 'Business Setting', '/banking/setup/business', 'Business', 'item', 2, true, ARRAY['conventional', 'syariah', 'dual']);
 
 -- 2. Parameter Setup Children
 INSERT INTO core.menu_items (menu_key, title, description, url, icon, menu_type, sort_order, is_active, banking_types) VALUES
@@ -84,14 +84,14 @@ INSERT INTO core.menu_items (menu_key, title, description, url, icon, menu_type,
 
 -- 3. Collective Impairment Children
 INSERT INTO core.menu_items (menu_key, title, description, url, icon, menu_type, sort_order, is_active, banking_types) VALUES
-('collective.segmentation', 'Segmentation Configuration', 'Segmentation Configuration', '/banking/parameters/population-segments', 'Category', 'item', 1, true, ARRAY['conventional', 'syariah', 'dual']),
+('collective.segmentation', 'Segmentation Configuration', 'Segmentation Configuration', '/banking/collective/segmentation', 'Category', 'item', 1, true, ARRAY['conventional', 'syariah', 'dual']),
 ('collective.rule_base', 'Rule Base Setting', 'Rule Base Setting', '/banking/collective/rule-base', 'Rule', 'item', 2, true, ARRAY['conventional', 'syariah', 'dual']),
 ('collective.bucket', 'Bucket Parameter', 'Bucket Parameter', '/banking/collective/bucket', 'Bucket', 'item', 3, true, ARRAY['conventional', 'syariah', 'dual']),
-('collective.pd_setup', 'PD Setup Management', 'PD Setup Management', '/banking/parameters/pd-configurations', 'ModelTraining', 'item', 4, true, ARRAY['conventional', 'syariah', 'dual']),
-('collective.fl_scalar', 'FL Scalar', 'FL Scalar', '/banking/parameters/fl-scalar', 'TrendingUp', 'item', 5, true, ARRAY['conventional', 'syariah', 'dual']),
-('collective.lgd_setup', 'LGD Setup Management', 'LGD Setup Management', '/banking/parameters/lgd-configurations', 'DonutLarge', 'item', 6, true, ARRAY['conventional', 'syariah', 'dual']),
-('collective.ead_setup', 'EAD Setup Management', 'EAD Setup Management', '/banking/parameters/ead-configurations', 'Money', 'item', 7, true, ARRAY['conventional', 'syariah', 'dual']),
-('collective.ecl_config', 'ECL Configuration', 'ECL Configuration', '/banking/parameters/ecl-configurations', 'Functions', 'item', 8, true, ARRAY['conventional', 'syariah', 'dual']);
+('collective.pd_setup', 'PD Setup Management', 'PD Setup Management', '/banking/collective/pd-setup', 'ModelTraining', 'item', 4, true, ARRAY['conventional', 'syariah', 'dual']),
+('collective.fl_scalar', 'FL Scalar', 'FL Scalar', '/banking/collective/fl-scalar', 'TrendingUp', 'item', 5, true, ARRAY['conventional', 'syariah', 'dual']),
+('collective.lgd_setup', 'LGD Setup Management', 'LGD Setup Management', '/banking/collective/lgd-setup', 'DonutLarge', 'item', 6, true, ARRAY['conventional', 'syariah', 'dual']),
+('collective.ead_setup', 'EAD Setup Management', 'EAD Setup Management', '/banking/collective/ead-setup', 'Money', 'item', 7, true, ARRAY['conventional', 'syariah', 'dual']),
+('collective.ecl_config', 'ECL Configuration', 'ECL Configuration', '/banking/collective/ecl-config', 'Functions', 'item', 8, true, ARRAY['conventional', 'syariah', 'dual']);
 
 -- 4. Individual Impairment Children
 INSERT INTO core.menu_items (menu_key, title, description, url, icon, menu_type, sort_order, is_active, banking_types) VALUES
