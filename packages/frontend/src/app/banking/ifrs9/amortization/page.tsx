@@ -96,6 +96,10 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
+import { amortizationAPI } from '@/services/api.amortization';
+
+// ... imports
+
 export default function AmortizationPage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -108,67 +112,7 @@ export default function AmortizationPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  // Mock data - in real implementation, this would come from API
-  const mockData: AmortizationData[] = [
-    {
-      id: '1',
-      accountNumber: 'ACC-001',
-      customerName: 'PT. Maju Bersama',
-      contractNumber: 'CON-001',
-      productType: 'Kredit Modal Kerja',
-      originalBalance: 500000000,
-      currentBalance: 425000000,
-      interestRate: 12.5,
-      effectiveInterestRate: 13.2,
-      amortizationMethod: 'Effective',
-      remainingTerm: 24,
-      originalTerm: 36,
-      nextPaymentDate: '2025-02-05',
-      nextPaymentAmount: 18750000,
-      status: 'active'
-    },
-    {
-      id: '2',
-      accountNumber: 'ACC-002',
-      customerName: 'CV. Jaya Abadi',
-      contractNumber: 'CON-002',
-      productType: 'Kredit Investasi',
-      originalBalance: 750000000,
-      currentBalance: 600000000,
-      interestRate: 14.0,
-      effectiveInterestRate: 14.8,
-      amortizationMethod: 'Straight-line',
-      remainingTerm: 18,
-      originalTerm: 48,
-      nextPaymentDate: '2025-02-10',
-      nextPaymentAmount: 20833333,
-      status: 'active'
-    }
-  ];
-
-  // Mock amortization schedule
-  const mockSchedule: AmortizationSchedule[] = [
-    {
-      period: 1,
-      paymentDate: '2025-01-05',
-      beginningBalance: 500000000,
-      payment: 18750000,
-      interest: 5500000,
-      principal: 13250000,
-      endingBalance: 486750000,
-      cumulativeInterest: 5500000
-    },
-    {
-      period: 2,
-      paymentDate: '2025-02-05',
-      beginningBalance: 486750000,
-      payment: 18750000,
-      interest: 5354250,
-      principal: 13395750,
-      endingBalance: 473354250,
-      cumulativeInterest: 10854250
-    }
-  ];
+  // Mock data removed
 
   useEffect(() => {
     loadData();
@@ -177,9 +121,28 @@ export default function AmortizationPage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setData(mockData);
+      const result = await amortizationAPI.getAll({ page: 1, limit: 100 });
+
+      if (result.success && Array.isArray(result.data)) {
+        const mappedData: AmortizationData[] = result.data.map((item: any) => ({
+          id: String(item.id),
+          accountNumber: item.accountNumber || `ACC-${item.accountId}`,
+          customerName: item.customerName || 'Unknown Customer',
+          contractNumber: String(item.accountId),
+          productType: 'Loan', // Default
+          originalBalance: Number(item.nLoanAmt || 0),
+          currentBalance: Number(item.nOsprn || 0),
+          interestRate: Number(item.nIntRate || 0),
+          effectiveInterestRate: Number(item.nEffIntRate || 0),
+          amortizationMethod: 'Effective Interest',
+          remainingTerm: Number(item.counterRest || 0),
+          originalTerm: Number(item.paymentterm || 0),
+          nextPaymentDate: item.pmtDate || '',
+          nextPaymentAmount: Number(item.nInstallment || 0),
+          status: 'active'
+        }));
+        setData(mappedData);
+      }
     } catch (error) {
       console.error('Error loading amortization data:', error);
     } finally {
@@ -194,7 +157,7 @@ export default function AmortizationPage() {
 
   const handleViewSchedule = (record: AmortizationData) => {
     setSelectedRecord(record);
-    setAmortizationSchedule(mockSchedule);
+    setAmortizationSchedule([]);
     setScheduleDialogOpen(true);
   };
 
@@ -209,7 +172,7 @@ export default function AmortizationPage() {
 
   const filteredData = data.filter(item => {
     const matchesSearch = item.accountNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.customerName.toLowerCase().includes(searchTerm.toLowerCase());
+      item.customerName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
     return matchesSearch && matchesStatus;
   });

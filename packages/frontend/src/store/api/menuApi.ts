@@ -30,6 +30,7 @@ export const menuQueryApi = createApi({
                 url: '/menu/hierarchy', // Updated to match new-backend
                 params: undefined, // Backend does not use query params, it filters by auth token/context
             }),
+            transformResponse: (response: { data: any[] }) => response.data, // ✅ Unwrap the 'data' property
             providesTags: ['Menu'],
             // Keep unused data for 5 minutes
             keepUnusedDataFor: 300,

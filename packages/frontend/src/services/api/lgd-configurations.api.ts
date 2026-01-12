@@ -44,7 +44,7 @@ export interface UpdateLGDConfigurationDto extends Partial<CreateLGDConfiguratio
 // API SERVICE
 // ============================================================================
 
-const BASE_URL = '/banking/parameters/lgd-configurations';
+const BASE_URL = '/banking/collective/lgd-configurations';
 
 export const lgdConfigurationsApi = {
     /**
@@ -61,54 +61,23 @@ export const lgdConfigurationsApi = {
         if (params?.is_active !== undefined) queryParams.append('is_active', params.is_active.toString());
 
         const url = queryParams.toString() ? `${BASE_URL}?${queryParams}` : BASE_URL;
-        // Generic Type <T> determines response.data type.
-        // If Response is { success, data: T[] }, we pass T[] as Inner Type? 
-        // NO, we established existing apiClient expects ResponseType as T.
-        // Wait, if I change it to `apiClient.get<LGDConfiguration[]>`...
-        // Does apiClient wrap it?
-        // Step 2884: `async get<T>(...): Promise<ApiResponse<T>>`.
-        // If `ApiResponse<T> = T`, then passing `LGDConfiguration[]` means response is ARRAY. 
-        // But backend returns Object `{ success: true, data: [...] }`.
-        // So passing `LGDConfiguration[]` expects backend to return Array. It does NOT.
 
-        // This means `ApiResponse<T>` MUST be `{ success: boolean; data: T }`.
-        // If so, `get<LGDConfiguration[]>` returns `Promise<{ success: boolean; data: LGDConfiguration[] }>`.
-        // Then `response.data` is `LGDConfiguration[]`.
-        // This is CORRECT.
-
-        // BUT, if `ApiResponse<T> = T`.
-        // Then I MUST pass `{ success: boolean; data: LGDConfiguration[] }`.
-        // And `response` is `{ success: boolean; data: ... }`.
-        // And `response.data` works.
-
-        // The LINT error said: `Type '{ success: boolean; data: LGDConfiguration[]; }' is missing ... from type 'LGDConfiguration[]'`.
-        // This implies TS expected `LGDConfiguration[]` but got `{ success: ..., data: ... }`.
-        // This happens if function return type is `Promise<LGDConfiguration[]>` (it is),
-        // AND I returned `response.data`.
-        // If `response.data` IS the object `{ success: ..., data: ... }`, then `response` was double wrapped!
-        // This confirms `apiClient` wraps `T` in response structure?
-        // OR `apiClient` returns `any` and I casted it?
-
-        // I will assume `apiClient.get<T>` returns `Promise<{ success: boolean; data: T }>` (wrapping).
-        // So I pass `LGDConfiguration[]`.
-
-        const response = await apiClient.get<LGDConfiguration[]>(url);
-        // If wrapped: response is { success, data: LGDConfiguration[] }. response.data is Array.
-        return response.data!;
+        const response = await apiClient.get<any>(url);
+        return response.data || [];
     },
 
     async getById(id: string): Promise<LGDConfiguration> {
-        const response = await apiClient.get<LGDConfiguration>(`${BASE_URL}/${id}`);
+        const response = await apiClient.get<any>(`${BASE_URL}/${id}`);
         return response.data!;
     },
 
     async create(data: CreateLGDConfigurationDto): Promise<LGDConfiguration> {
-        const response = await apiClient.post<LGDConfiguration>(BASE_URL, data);
+        const response = await apiClient.post<any>(BASE_URL, data);
         return response.data!;
     },
 
     async update(id: string, data: UpdateLGDConfigurationDto): Promise<LGDConfiguration> {
-        const response = await apiClient.put<LGDConfiguration>(`${BASE_URL}/${id}`, data);
+        const response = await apiClient.put<any>(`${BASE_URL}/${id}`, data);
         return response.data!;
     },
 
@@ -117,16 +86,16 @@ export const lgdConfigurationsApi = {
     },
 
     async getMethods(): Promise<Array<{ value: number; label: string }>> {
-        const response = await apiClient.get<Array<{ value: number; label: string }>>(
+        const response = await apiClient.get<any>(
             `${BASE_URL}/metadata/methods`
         );
-        return response.data!;
+        return response.data || [];
     },
 
     async getPopulationTypes(): Promise<Array<{ value: string; label: string }>> {
-        const response = await apiClient.get<Array<{ value: string; label: string }>>(
+        const response = await apiClient.get<any>(
             `${BASE_URL}/metadata/population-types`
         );
-        return response.data!;
+        return response.data || [];
     },
 };

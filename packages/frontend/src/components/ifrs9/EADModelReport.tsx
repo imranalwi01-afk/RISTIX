@@ -45,7 +45,7 @@ const EADModelReport: React.FC = () => {
     eadTrend: [] as any[],
     productDistribution: [] as any[]
   });
-  
+
   const [pivotData, setPivotData] = useState<any[]>([]);
   const [pivotColumns, setPivotColumns] = useState<string[]>([]);
 
@@ -57,10 +57,14 @@ const EADModelReport: React.FC = () => {
 
     if (data && data.length > 0) {
       const stats = data.reduce((acc, row) => {
+        const ead = Number(row.outstanding) || 0;
+        const plafond = Number(row.plafond) || 0;
+        const utilization = plafond > 0 ? ead / plafond : 0;
+
         acc.totalAccounts += 1;
-        acc.avgEAD += row.ead_amount || 0;
-        acc.avgCCF += row.ccf_rate || 0;
-        acc.avgUtilization += row.utilization_rate || 0;
+        acc.avgEAD += ead;
+        acc.avgCCF += 0; // Not available in result
+        acc.avgUtilization += utilization;
         return acc;
       }, {
         totalAccounts: 0,
@@ -70,19 +74,24 @@ const EADModelReport: React.FC = () => {
         eadTrend: [],
         productDistribution: []
       });
-      
+
       stats.avgEAD = stats.avgEAD / data.length;
       stats.avgCCF = stats.avgCCF / data.length;
       stats.avgUtilization = stats.avgUtilization / data.length;
-      
+
       // Create trend data (sample - would be from time series data)
-      const trendData = data.slice(0, 12).map((row, index) => ({
-        month: `M${index + 1}`,
-        ead: row.ead_amount || 0,
-        ccf: row.ccf_rate || 0,
-        utilization: row.utilization_rate || 0
-      }));
-      
+      // Create trend data (sample - would be from time series data)
+      const trendData = data.slice(0, 12).map((row, index) => {
+        const ead = Number(row.outstanding) || 0;
+        const plafond = Number(row.plafond) || 0;
+        return {
+          month: `M${index + 1}`,
+          ead: ead,
+          ccf: 0,
+          utilization: plafond > 0 ? ead / plafond : 0
+        };
+      });
+
       // Product distribution
       const productMap = new Map();
       data.forEach(row => {
@@ -93,13 +102,13 @@ const EADModelReport: React.FC = () => {
           productMap.set(product, 1);
         }
       });
-      
+
       const productDist = Array.from(productMap.entries()).map(([product, count]) => ({
         product,
         count,
         percentage: (count / data.length) * 100
       }));
-      
+
       stats.eadTrend = trendData;
       stats.productDistribution = productDist;
       setSummaryStats(stats);
@@ -198,7 +207,7 @@ const EADModelReport: React.FC = () => {
                 <XAxis dataKey="month" />
                 <YAxis yAxisId="left" />
                 <YAxis yAxisId="right" orientation="right" />
-                <Tooltip 
+                <Tooltip
                   formatter={(value: any, name: string) => {
                     if (name === 'ead') {
                       return [new Intl.NumberFormat('id-ID', {
@@ -263,9 +272,9 @@ const EADModelReport: React.FC = () => {
                   {summaryStats.productDistribution.map((row, index) => (
                     <TableRow key={index}>
                       <TableCell>
-                        <Chip 
-                          size="small" 
-                          label={row.product} 
+                        <Chip
+                          size="small"
+                          label={row.product}
                           color="primary"
                           variant="outlined"
                         />
@@ -358,13 +367,13 @@ const EADModelReport: React.FC = () => {
       {/* Pivot Table Section */}
       <Card sx={{ mt: 3 }}>
         <CardContent>
-             <Typography variant="h6" gutterBottom>
-              Payment Average by Tenor (Pivoted)
-            </Typography>
-            <EADPivotTable 
-              data={pivotData} 
-              columns={pivotColumns}
-            />
+          <Typography variant="h6" gutterBottom>
+            Payment Average by Tenor (Pivoted)
+          </Typography>
+          <EADPivotTable
+            data={pivotData}
+            columns={pivotColumns}
+          />
         </CardContent>
       </Card>
     </BaseIfrs9Report>
@@ -374,80 +383,80 @@ const EADModelReport: React.FC = () => {
 // --- Pivot Components & Logic ---
 
 const processEADPivotData = (data: any[]) => {
-    if (!data || data.length === 0) return { pivotData: [], columns: [] };
+  if (!data || data.length === 0) return { pivotData: [], columns: [] };
 
-    const firstRow = data[0];
-    const baseColumns = ['account_id', 'product_type', 'segment_name', 'tenor'];
-    
-    // For EAD, we might want payment averages across sequences or time buckets
-    // Regex for tenor_X or month_X columns
-    const dynamicColumns = Object.keys(firstRow).filter(key => 
-        key.match(/^(tenor|month|paym)_\d+$/)
-    ).sort();
+  const firstRow = data[0];
+  const baseColumns = ['accountId', 'cifName', 'segmentId', 'tenor'];
 
-    const pivotCols = dynamicColumns.length > 0 ? dynamicColumns : Object.keys(firstRow).filter(k => !baseColumns.includes(k) && typeof firstRow[k] === 'number');
-    const allColumns = [...baseColumns.filter(k => k in firstRow), ...pivotCols];
-    
-    return {
-      pivotData: data,
-      columns: allColumns
-    };
+  // For EAD, we might want payment averages across sequences or time buckets
+  // Regex for tenor_X or month_X columns
+  const dynamicColumns = Object.keys(firstRow).filter(key =>
+    key.match(/^(tenor|month|paym)_\d+$/)
+  ).sort();
+
+  const pivotCols = dynamicColumns.length > 0 ? dynamicColumns : Object.keys(firstRow).filter(k => !baseColumns.includes(k) && typeof firstRow[k] === 'number');
+  const allColumns = [...baseColumns.filter(k => k in firstRow), ...pivotCols];
+
+  return {
+    pivotData: data,
+    columns: allColumns
+  };
 };
 
 const EADPivotTable = ({ data, columns }: { data: any[], columns: string[] }) => {
-    if (!data || data.length === 0) return null;
+  if (!data || data.length === 0) return null;
 
-    const baseColumns = columns.filter(col => !col.match(/^(tenor|month|paym)_\d+$/));
-    const dynamicColumns = columns.filter(col => col.match(/^(tenor|month|paym)_\d+$/));
+  const baseColumns = columns.filter(col => !col.match(/^(tenor|month|paym)_\d+$/));
+  const dynamicColumns = columns.filter(col => col.match(/^(tenor|month|paym)_\d+$/));
 
-    const finalBase = dynamicColumns.length > 0 ? baseColumns : columns;
-    const finalDynamic = dynamicColumns.length > 0 ? dynamicColumns : [];
+  const finalBase = dynamicColumns.length > 0 ? baseColumns : columns;
+  const finalDynamic = dynamicColumns.length > 0 ? dynamicColumns : [];
 
-    return (
-      <Box sx={{ width: '100%', overflow: 'hidden' }}>
-        <Box sx={{ maxHeight: 600, overflow: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
-            <thead style={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: '#2e7d32', color: 'white' }}>
-              <tr>
+  return (
+    <Box sx={{ width: '100%', overflow: 'hidden' }}>
+      <Box sx={{ maxHeight: 600, overflow: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+          <thead style={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: '#2e7d32', color: 'white' }}>
+            <tr>
+              {finalBase.map(col => (
+                <th key={col} style={{ padding: '10px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>
+                  {col.replace(/_/g, ' ').toUpperCase()}
+                </th>
+              ))}
+              {finalDynamic.map(col => (
+                <th key={col} style={{ padding: '10px', textAlign: 'right', borderBottom: '1px solid #ddd', minWidth: 80 }}>
+                  {col.replace(/^(tenor|month|paym)_/, '').toUpperCase()}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {data.slice(0, 100).map((row, index) => (
+              <tr key={index} style={{ borderBottom: '1px solid #f0f0f0' }}>
                 {finalBase.map(col => (
-                  <th key={col} style={{ padding: '10px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>
-                    {col.replace(/_/g, ' ').toUpperCase()}
-                  </th>
+                  <td key={col} style={{ padding: '8px' }}>
+                    {row[col] || '-'}
+                  </td>
                 ))}
                 {finalDynamic.map(col => (
-                  <th key={col} style={{ padding: '10px', textAlign: 'right', borderBottom: '1px solid #ddd', minWidth: 80 }}>
-                    {col.replace(/^(tenor|month|paym)_/, '').toUpperCase()}
-                  </th>
+                  <td key={col} style={{ padding: '8px', textAlign: 'right' }}>
+                    {row[col] !== null && row[col] !== undefined ? (
+                      new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(row[col])
+                    ) : '-'}
+                  </td>
                 ))}
               </tr>
-            </thead>
-            <tbody>
-              {data.slice(0, 100).map((row, index) => (
-                <tr key={index} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                  {finalBase.map(col => (
-                    <td key={col} style={{ padding: '8px' }}>
-                      {row[col] || '-'}
-                    </td>
-                  ))}
-                  {finalDynamic.map(col => (
-                    <td key={col} style={{ padding: '8px', textAlign: 'right' }}>
-                         {row[col] !== null && row[col] !== undefined ? (
-                            new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(row[col])
-                         ) : '-'}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Box>
-        {data.length > 100 && (
-           <Typography variant="caption" sx={{ display: 'block', mt: 1, color: 'text.secondary' }}>
-             Showing first 100 rows. Export to see full data.
-           </Typography>
-        )}
+            ))}
+          </tbody>
+        </table>
       </Box>
-    );
+      {data.length > 100 && (
+        <Typography variant="caption" sx={{ display: 'block', mt: 1, color: 'text.secondary' }}>
+          Showing first 100 rows. Export to see full data.
+        </Typography>
+      )}
+    </Box>
+  );
 };
 
 export default EADModelReport;

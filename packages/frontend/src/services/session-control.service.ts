@@ -403,8 +403,12 @@ export class SessionControlService {
 
           this.log('Token refresh successful', {
             newTokenLength: data.data.token.length,
-            hasNewRefreshToken: !!data.data.refreshToken
+            hasNewRefreshToken: !!data.data.refreshToken,
+            newExpiry: data.data.expiresIn ? new Date(Date.now() + (data.data.expiresIn * 1000)).toISOString() : 'N/A'
           });
+
+          // Restart the refresh timer with the new expiry time
+          this.startTokenRefreshTimer();
 
           return { success: true, token: data.data.token };
         } else {
@@ -419,7 +423,15 @@ export class SessionControlService {
           errorText
         });
 
-        // Increment failure count
+        // If 401, the refresh token is invalid/expired - logout immediately
+        if (response.status === 401) {
+          this.log('Refresh token invalid or expired (401), logging out');
+          // Don't increment failure count for 401 - just logout
+          setTimeout(() => this.logout('refresh_token_expired', { skipAPI: true }), 100);
+          return { success: false, error: 'Refresh token expired' };
+        }
+
+        // Increment failure count for other errors
         this.state.refreshFailureCount = (this.state.refreshFailureCount || 0) + 1;
 
         return { success: false, error: `HTTP ${response.status}: ${response.statusText}` };
@@ -566,16 +578,42 @@ export class SessionControlService {
   private startTokenRefreshTimer(): void {
     this.clearTimer('tokenRefresh');
 
-    if (!this.shouldRefreshToken()) {
+    if (!this.config.tokenManagement.refreshToken.enabled || !this.state.tokenExpiry) {
       return;
     }
 
-    const checkInterval = 30000; // Check every 30 seconds
-    this.timers.tokenRefresh = setInterval(() => {
+    const now = Date.now();
+    const threshold = this.config.tokenManagement.refreshToken.refreshThreshold * 1000;
+    const refreshAt = this.state.tokenExpiry - threshold;
+    const timeUntilRefresh = refreshAt - now;
+
+    this.log('Setting up token refresh timer', {
+      tokenExpiry: new Date(this.state.tokenExpiry).toISOString(),
+      refreshAt: new Date(refreshAt).toISOString(),
+      timeUntilRefresh: Math.round(timeUntilRefresh / 1000) + 's',
+      refreshThreshold: threshold / 1000 + 's'
+    });
+
+    // If we're already past the refresh time, refresh immediately
+    if (timeUntilRefresh <= 0) {
+      this.log('Token refresh needed immediately');
+      this.refreshTokenWithRetry();
+      return;
+    }
+
+    // Set a timer to refresh at the calculated time
+    this.timers.tokenRefresh = setTimeout(() => {
+      this.log('Token refresh timer triggered');
+      this.refreshTokenWithRetry();
+    }, timeUntilRefresh);
+
+    // Also set up a periodic check every 30 seconds as a fallback
+    this.timers.tokenRefreshCheck = setInterval(() => {
       if (this.shouldRefreshToken()) {
+        this.log('Periodic check detected token needs refresh');
         this.refreshTokenWithRetry();
       }
-    }, checkInterval);
+    }, 30000);
   }
 
   private startActivityTimer(): void {
@@ -600,6 +638,7 @@ export class SessionControlService {
   private clearTimer(name: string): void {
     if (this.timers[name]) {
       clearTimeout(this.timers[name]);
+      clearInterval(this.timers[name]);
       delete this.timers[name];
     }
   }
@@ -981,7 +1020,7 @@ export class SessionControlService {
             // 🔧 FIXED: Force logout if retries are disabled or exhausted to prevent infinite loops
             this.log(`401 error unrecoverable - forcing logout`);
             await this.logout('http_401_unrecoverable');
-            return true; 
+            return true;
           }
         }
         break;

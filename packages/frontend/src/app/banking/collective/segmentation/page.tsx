@@ -40,7 +40,8 @@ import {
   InputLabel,
   Select,
   InputAdornment,
-  Paper
+  Paper,
+  Checkbox
 } from '@mui/material';
 import {
   AccountTree as PageIcon,
@@ -64,7 +65,7 @@ import {
 import { DataGrid, GridColDef, GridActionsCellItem, GridRowParams } from '@mui/x-data-grid';
 import { api, handleAPIError } from '../../../../services/api';
 import EnhancedSegmentationDetailModal from '../../segmentation/components/EnhancedSegmentationDetailModal';
-import { ConditionBuilder } from '@/components/common/rules/ConditionBuilder';
+import { ConditionBuilder } from '@/components/common/forms/ConditionBuilder';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 
 // ============================================================================
@@ -120,7 +121,7 @@ const initialDemoData: SegmentationHeader[] = [
   },
   {
     id: 2,
-    group_segment: 'SME Banking', 
+    group_segment: 'SME Banking',
     segment: 'Small Medium Enterprise',
     sub_segment: 'Trading',
     segment_type: 'BUSINESS_SEGMENT',
@@ -135,7 +136,7 @@ const initialDemoData: SegmentationHeader[] = [
     group_segment: 'Retail Banking',
     segment: 'Personal Banking',
     sub_segment: 'Consumer Finance',
-    segment_type: 'PRODUCT_SEGMENT', 
+    segment_type: 'PRODUCT_SEGMENT',
     seq: 3,
     active_flag: false,
     detail_count: 4,
@@ -165,7 +166,7 @@ export default function SegmentationConfigurationPage() {
   const [backendUnavailable, setBackendUnavailable] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [autoSync, setAutoSync] = useState(true);
-  
+
   // ============================================================================
   // SEARCH & FILTER STATE MANAGEMENT
   // ============================================================================
@@ -176,7 +177,7 @@ export default function SegmentationConfigurationPage() {
   const [sortField, setSortField] = useState<keyof SegmentationHeader>('seq');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [syncing, setSyncing] = useState(false);
-  
+
   const [formData, setFormData] = useState<SegmentationHeaderForm>({
     group_segment: '',
     segment: '',
@@ -194,7 +195,7 @@ export default function SegmentationConfigurationPage() {
   useEffect(() => {
     const savedData = localStorage.getItem(STORAGE_KEY);
     const savedSettings = localStorage.getItem(SETTINGS_KEY);
-    
+
     if (savedData) {
       try {
         const parsedData = JSON.parse(savedData);
@@ -208,7 +209,7 @@ export default function SegmentationConfigurationPage() {
       setData([...initialDemoData]);
       saveDataToStorage([...initialDemoData]);
     }
-    
+
     if (savedSettings) {
       try {
         const settings = JSON.parse(savedSettings);
@@ -217,7 +218,7 @@ export default function SegmentationConfigurationPage() {
         console.error('Failed to parse saved settings:', error);
       }
     }
-    
+
     // Load from backend after initial localStorage load
     setTimeout(() => loadData(), 500);
   }, []);
@@ -226,8 +227,8 @@ export default function SegmentationConfigurationPage() {
   const saveDataToStorage = (dataToSave: SegmentationHeader[]) => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify({ 
-        autoSync, 
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify({
+        autoSync,
         lastSync: new Date().toISOString(),
         lastModified: new Date().toISOString()
       }));
@@ -256,21 +257,21 @@ export default function SegmentationConfigurationPage() {
       console.log('⚠️ Load already in progress, skipping duplicate call');
       return;
     }
-    
+
     loadingRef.current = true;
     setLoading(true);
     setError(null);
-    
+
     try {
       console.log('🔄 Loading segmentation headers from database...');
-      
+
       // Load segmentation headers with enhanced pagination
       const result = await api.banking.segmentation.getHeaders({ limit: 50 });
-      
+
       if (result.success && result.data) {
         console.log('✅ Successfully loaded segmentation data:', result.data.length, 'headers from FRS9PRO');
         console.log('📊 Total records available:', result.pagination?.total || result.total || result.data.length);
-        
+
         setData(prevData => {
           if (JSON.stringify(prevData) === JSON.stringify(result.data)) {
             console.log('📝 Data unchanged, skipping update');
@@ -285,13 +286,13 @@ export default function SegmentationConfigurationPage() {
       } else {
         throw new Error(result.message || 'Failed to load segmentation headers');
       }
-      
+
     } catch (error: any) {
       console.error('❌ Failed to load segmentation headers:', error);
-      
+
       const errorInfo = handleAPIError(error);
       let errorMessage = 'Failed to load segmentation headers from database.';
-      
+
       if (error.response?.status === 404) {
         setBackendUnavailable(true);
         errorMessage = '⚠️ Working in offline mode (backend routes not available). All changes are saved locally.';
@@ -304,9 +305,9 @@ export default function SegmentationConfigurationPage() {
         setBackendUnavailable(true);
         errorMessage = `⚠️ Server error (${errorInfo.status}). Working in offline mode.`;
       }
-      
+
       showMessage(errorMessage, 'error');
-      
+
     } finally {
       setLoading(false);
       loadingRef.current = false;
@@ -317,7 +318,7 @@ export default function SegmentationConfigurationPage() {
     try {
       console.log('🔄 Loading segment types...');
       const result = await api.banking.segmentation.getSegmentTypes();
-      
+
       if (result.success && result.data) {
         console.log('✅ Loaded segment types from backend:', result.data.length);
         setSegmentTypes(result.data);
@@ -325,7 +326,7 @@ export default function SegmentationConfigurationPage() {
       }
     } catch (error: any) {
       console.error('❌ Failed to load segment types from backend:', error);
-      
+
       // Check if it's a 404 error (backend routes missing)
       if (error.response?.status === 404) {
         console.log('⚠️ Backend segmentation routes not available (404) - using fallback data');
@@ -402,8 +403,8 @@ export default function SegmentationConfigurationPage() {
       }
 
       if (typeof aValue === 'boolean' && typeof bValue === 'boolean') {
-        return sortDirection === 'asc' ? 
-          (aValue === bValue ? 0 : aValue ? 1 : -1) : 
+        return sortDirection === 'asc' ?
+          (aValue === bValue ? 0 : aValue ? 1 : -1) :
           (aValue === bValue ? 0 : aValue ? -1 : 1);
       }
 
@@ -443,7 +444,7 @@ export default function SegmentationConfigurationPage() {
     const filtered = filteredData.length;
     const active = filteredData.filter(item => item.active_flag).length;
     const inactive = filtered - active;
-    
+
     return { total, filtered, active, inactive };
   };
 
@@ -453,101 +454,167 @@ export default function SegmentationConfigurationPage() {
 
   const columns: GridColDef[] = [
     {
-      field: 'group_segment',
-      headerName: 'Group Segment',
-      width: 200,
-      renderCell: (params) => (
-        <Chip label={params?.value || '-'} color="primary" variant="outlined" size="small" />
-      )
-    },
-    {
-      field: 'segment',
-      headerName: 'Segment',
-      width: 180,
-      flex: 1
-    },
-    {
-      field: 'sub_segment',
-      headerName: 'Sub Segment',
-      width: 150,
-      renderCell: (params) => params?.value || '-'
-    },
-    {
-      field: 'segment_type',
-      headerName: 'Segment Type',
-      width: 160,
-      renderCell: (params) => {
-        const type = segmentTypes.find(t => t.type_code === params?.value);
-        return (
-          <Chip 
-            label={type?.type_name || params?.value || '-'} 
-            size="small"
-            color="secondary"
-            variant="outlined"
-          />
-        );
-      }
-    },
-    {
-      field: 'seq',
-      headerName: 'Sequence',
-      width: 100,
-      type: 'number',
-      renderCell: (params) => params?.value || '-'
-    },
-    {
-      field: 'detail_count',
-      headerName: 'Rules',
-      width: 80,
-      renderCell: (params) => (
-        <Badge badgeContent={params?.value || 0} color="info">
-          <SettingsIcon fontSize="small" />
-        </Badge>
-      )
-    },
-    {
-      field: 'active_flag',
-      headerName: 'Active',
-      width: 100,
-      renderCell: (params) => (
-        <Chip 
-          label={params?.value ? 'Active' : 'Inactive'} 
-          color={params?.value ? 'success' : 'default'} 
-          size="small" 
-        />
-      )
-    },
-    {
       field: 'actions',
       type: 'actions',
-      headerName: 'Actions',
-      width: 150,
+      headerName: 'Action',
+      width: 120,
+      renderHeader: () => (
+        <Box>
+          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Action</Typography>
+          <Button size="small" sx={{ textTransform: 'none', minWidth: 'auto', p: 0, color: 'primary.main' }} onClick={clearFilters}>
+            Clear
+          </Button>
+        </Box>
+      ),
       getActions: (params: GridRowParams) => {
         if (!params.row) return [];
         return [
           <GridActionsCellItem
-            icon={<ViewDetailIcon />}
-            label="View Details"
+            icon={<ViewDetailIcon fontSize="small" />}
+            label="View"
             onClick={() => handleViewDetails(params.row)}
             key="details"
             disabled={backendUnavailable}
+            showInMenu={false}
           />,
           <GridActionsCellItem
-            icon={<EditIcon />}
+            icon={<EditIcon fontSize="small" />}
             label="Edit"
             onClick={() => handleEdit(params.row)}
             key="edit"
             disabled={backendUnavailable}
+            showInMenu={false}
           />,
           <GridActionsCellItem
-            icon={<DeleteIcon />}
+            icon={<DeleteIcon fontSize="small" />}
             label="Delete"
             onClick={() => handleDelete(params.row)}
             key="delete"
             disabled={backendUnavailable}
+            showInMenu={false}
           />
         ];
       }
+    },
+    {
+      field: 'groupSegment',
+      headerName: 'Group Segment',
+      flex: 1,
+      minWidth: 200,
+      renderHeader: (params) => (
+        <Box sx={{ width: '100%' }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Group Segment</Typography>
+          <TextField
+            placeholder="Search"
+            variant="standard"
+            fullWidth
+            size="small"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            InputProps={{ disableUnderline: false }}
+            sx={{ mt: 0.5, '& input': { fontSize: '0.875rem' } }}
+          />
+        </Box>
+      ),
+      sortable: true
+    },
+    {
+      field: 'segment',
+      headerName: 'Segment',
+      flex: 1,
+      minWidth: 200,
+      renderHeader: (params) => (
+        <Box sx={{ width: '100%' }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Segment</Typography>
+          <TextField
+            placeholder="Search"
+            variant="standard"
+            fullWidth
+            size="small"
+            InputProps={{ disableUnderline: false }}
+            sx={{ mt: 0.5, '& input': { fontSize: '0.875rem' } }}
+            disabled
+          />
+        </Box>
+      ),
+    },
+    {
+      field: 'subSegment',
+      headerName: 'Sub Segment',
+      flex: 1,
+      minWidth: 200,
+      renderHeader: (params) => (
+        <Box sx={{ width: '100%' }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Sub Segment</Typography>
+          <TextField
+            placeholder="Search"
+            variant="standard"
+            fullWidth
+            size="small"
+            InputProps={{ disableUnderline: false }}
+            sx={{ mt: 0.5, '& input': { fontSize: '0.875rem' } }}
+            disabled
+          />
+        </Box>
+      ),
+      renderCell: (params) => params.value || '-'
+    },
+    {
+      field: 'segmentType',
+      headerName: 'Segment Type',
+      flex: 1,
+      minWidth: 200,
+      renderHeader: (params) => (
+        <Box sx={{ width: '100%' }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Segment Type</Typography>
+          <TextField
+            placeholder="Search"
+            variant="standard"
+            fullWidth
+            size="small"
+            InputProps={{ disableUnderline: false }}
+            sx={{ mt: 0.5, '& input': { fontSize: '0.875rem' } }}
+            disabled
+          />
+        </Box>
+      ),
+      renderCell: (params) => {
+        const type = segmentTypes.find(t => t.type_code === params.value);
+        return type?.type_name || params.value || '-';
+      }
+    },
+    {
+      field: 'activeFlag',
+      headerName: 'Is Active',
+      width: 100,
+      headerAlign: 'center',
+      align: 'center',
+      renderHeader: (params) => (
+        <Box sx={{ width: '100%', textAlign: 'center' }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Is Active</Typography>
+          <TextField
+            placeholder="Search"
+            variant="standard"
+            fullWidth
+            size="small"
+            InputProps={{ disableUnderline: false }}
+            sx={{ mt: 0.5, '& input': { fontSize: '0.875rem', textAlign: 'center' } }}
+            disabled
+          />
+        </Box>
+      ),
+      renderCell: (params) => (
+        <Checkbox
+          checked={!!params.value}
+          disabled={backendUnavailable}
+          sx={{
+            color: '#d32f2f',
+            '&.Mui-checked': {
+              color: '#d32f2f',
+            },
+          }}
+        />
+      )
     }
   ];
 
@@ -564,16 +631,16 @@ export default function SegmentationConfigurationPage() {
         version: '1.0.0',
         count: data.length
       };
-      
+
       const dataStr = JSON.stringify(exportData, null, 2);
-      const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+      const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
       const exportFileDefaultName = `ifrs9_segmentation_${new Date().toISOString().split('T')[0]}.json`;
-      
+
       const linkElement = document.createElement('a');
       linkElement.setAttribute('href', dataUri);
       linkElement.setAttribute('download', exportFileDefaultName);
       linkElement.click();
-      
+
       showMessage(`📥 Data exported successfully (${data.length} records)`);
     } catch (error) {
       console.error('Export failed:', error);
@@ -611,18 +678,18 @@ export default function SegmentationConfigurationPage() {
         const existingIds = new Set(data.map(item => item.id));
         const newData = importedData.filter(item => !existingIds.has(item.id));
         const mergedData = [...data, ...newData];
-        
+
         setData(mergedData);
         saveDataToStorage(mergedData);
         showMessage(`📤 Imported ${newData.length} new records successfully`);
-        
+
       } catch (error) {
         console.error('Import failed:', error);
         showMessage('❌ Import failed - invalid file format', 'error');
       }
     };
     reader.readAsText(file);
-    
+
     // Clear the input
     event.target.value = '';
   };
@@ -708,7 +775,7 @@ export default function SegmentationConfigurationPage() {
     try {
       setLoading(true);
       console.log('🗑️ Deleting segmentation header:', header.id);
-      
+
       // Try backend delete first if available and auto-sync is enabled
       if (!backendUnavailable && autoSync) {
         try {
@@ -728,7 +795,7 @@ export default function SegmentationConfigurationPage() {
       setData(updatedData);
       saveDataToStorage(updatedData);
       showMessage('📱 Deleted locally (will sync when backend is available)');
-      
+
     } catch (error: any) {
       console.error('❌ Failed to delete segmentation header:', error);
       showMessage('❌ Failed to delete segmentation', 'error');
@@ -739,8 +806,8 @@ export default function SegmentationConfigurationPage() {
 
   const handleSave = async () => {
     // Validate required fields
-    const errors = [];
-    
+    const errors: string[] = [];
+
     if (!formData.group_segment.trim()) {
       errors.push('Group Segment is required');
     }
@@ -750,7 +817,7 @@ export default function SegmentationConfigurationPage() {
     if (!formData.segment_type.trim()) {
       errors.push('Segment Type is required');
     }
-    
+
     if (errors.length > 0) {
       showMessage(errors.join(', '), 'error');
       return;
@@ -759,7 +826,7 @@ export default function SegmentationConfigurationPage() {
     try {
       setLoading(true);
       setError(null);
-      
+
       const payload = {
         group_segment: formData.group_segment.trim(),
         segment: formData.segment.trim(),
@@ -796,8 +863,8 @@ export default function SegmentationConfigurationPage() {
       // Local storage save (offline mode)
       if (selectedHeader) {
         // Update existing
-        const updatedData = data.map(item => 
-          item.id === selectedHeader.id 
+        const updatedData = data.map(item =>
+          item.id === selectedHeader.id
             ? { ...item, ...payload, updated_by: 'user', updated_date: new Date().toISOString() }
             : item
         );
@@ -819,9 +886,9 @@ export default function SegmentationConfigurationPage() {
         saveDataToStorage(updatedData);
         showMessage('📱 Created locally (will sync when backend is available)');
       }
-      
+
       setDialogOpen(false);
-      
+
     } catch (error: any) {
       console.error('❌ Failed to save segmentation header:', error);
       showMessage('❌ Failed to save segmentation', 'error');
@@ -872,7 +939,7 @@ export default function SegmentationConfigurationPage() {
             Master-detail configuration for portfolio segmentation rules and criteria
           </Typography>
         </Box>
-        
+
         <Stack direction="row" spacing={1} alignItems="center">
           <input
             accept=".json"
@@ -888,29 +955,29 @@ export default function SegmentationConfigurationPage() {
               </IconButton>
             </Tooltip>
           </label>
-          
+
           <Tooltip title="Export to JSON file">
             <IconButton onClick={handleExport} color="info">
               <DownloadIcon />
             </IconButton>
           </Tooltip>
-          
+
           <Tooltip title={backendUnavailable ? "Try to reconnect to backend" : "Sync with backend"}>
-            <IconButton 
-              onClick={handleManualSync} 
-              color={backendUnavailable ? "warning" : "primary"} 
+            <IconButton
+              onClick={handleManualSync}
+              color={backendUnavailable ? "warning" : "primary"}
               disabled={syncing}
             >
               {syncing ? <CircularProgress size={20} /> : <SyncIcon />}
             </IconButton>
           </Tooltip>
-          
+
           <Tooltip title="Refresh Data">
             <IconButton onClick={loadData} color="primary" disabled={loading}>
               <RefreshIcon />
             </IconButton>
           </Tooltip>
-          
+
           <Button
             variant="contained"
             startIcon={<AddIcon />}
@@ -924,8 +991,8 @@ export default function SegmentationConfigurationPage() {
 
       {/* Backend Status Alert */}
       {backendUnavailable && (
-        <Alert 
-          severity="info" 
+        <Alert
+          severity="info"
           sx={{ mb: 2 }}
           icon={<CloudOffIcon />}
           action={
@@ -941,9 +1008,9 @@ export default function SegmentationConfigurationPage() {
                 label="Auto Sync"
                 sx={{ mr: 1, color: 'inherit' }}
               />
-              <Button 
-                color="inherit" 
-                size="small" 
+              <Button
+                color="inherit"
+                size="small"
                 onClick={handleRetryConnection}
                 disabled={syncing}
                 startIcon={syncing ? <CircularProgress size={12} /> : <SyncIcon />}
@@ -973,28 +1040,28 @@ export default function SegmentationConfigurationPage() {
             <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               Segmentation Rules
               {backendUnavailable && (
-                <Chip 
-                  label="OFFLINE" 
-                  size="small" 
-                  color="warning" 
+                <Chip
+                  label="OFFLINE"
+                  size="small"
+                  color="warning"
                   icon={<CloudOffIcon />}
                 />
               )}
-              <Chip 
-                label={`${filteredData.length} of ${data.length} records`} 
-                size="small" 
-                variant="outlined" 
+              <Chip
+                label={`${filteredData.length} of ${data.length} records`}
+                size="small"
+                variant="outlined"
               />
               {(searchTerm || filterType || filterStatus !== 'all') && (
-                <Chip 
-                  label="FILTERED" 
-                  size="small" 
-                  color="primary" 
+                <Chip
+                  label="FILTERED"
+                  size="small"
+                  color="primary"
                   icon={<FilterIcon />}
                 />
               )}
             </Typography>
-            
+
             {data.length > 0 && (
               <Typography variant="caption" color="text.secondary">
                 Last updated: {new Date().toLocaleTimeString()}
@@ -1087,15 +1154,15 @@ export default function SegmentationConfigurationPage() {
               <Grid item xs={12} md={1}>
                 <Stack direction="row" spacing={1}>
                   <Tooltip title={`Sort ${sortDirection === 'asc' ? 'Descending' : 'Ascending'}`}>
-                    <IconButton 
-                      size="small" 
+                    <IconButton
+                      size="small"
                       onClick={() => setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')}
                       color="primary"
                     >
                       <SortIcon sx={{ transform: sortDirection === 'desc' ? 'rotate(180deg)' : 'none' }} />
                     </IconButton>
                   </Tooltip>
-                  
+
                   {(searchTerm || filterType || filterStatus !== 'all' || sortField !== 'seq' || sortDirection !== 'asc') && (
                     <Tooltip title="Clear All Filters">
                       <IconButton size="small" onClick={clearFilters} color="secondary">
@@ -1119,7 +1186,7 @@ export default function SegmentationConfigurationPage() {
               </Box>
             )}
           </Paper>
-          
+
           <Box sx={{ height: 600, width: '100%' }}>
             <DataGrid
               rows={filteredData}
@@ -1138,11 +1205,11 @@ export default function SegmentationConfigurationPage() {
                 },
                 noRowsOverlay: {
                   children: (
-                    <Box 
-                      sx={{ 
-                        display: 'flex', 
-                        flexDirection: 'column', 
-                        alignItems: 'center', 
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
                         justifyContent: 'center',
                         height: '100%',
                         gap: 2
@@ -1153,16 +1220,16 @@ export default function SegmentationConfigurationPage() {
                         No Segmentation Configuration Found
                       </Typography>
                       <Typography variant="body2" color="text.secondary" textAlign="center">
-                        {backendUnavailable ? 
+                        {backendUnavailable ?
                           'Working in offline mode. Click "Add Segmentation" to create your first rule.' :
-                          error ? 'Failed to load data from database. Check your connection and try refreshing.' : 
-                          'No segmentation rules configured yet. Click "Add Segmentation" to create the first one.'
+                          error ? 'Failed to load data from database. Check your connection and try refreshing.' :
+                            'No segmentation rules configured yet. Click "Add Segmentation" to create the first one.'
                         }
                       </Typography>
                       {backendUnavailable && (
-                        <Button 
-                          variant="outlined" 
-                          startIcon={<AddIcon />} 
+                        <Button
+                          variant="outlined"
+                          startIcon={<AddIcon />}
                           onClick={handleCreate}
                           sx={{ mt: 1 }}
                         >
@@ -1197,7 +1264,7 @@ export default function SegmentationConfigurationPage() {
               error={!formData.group_segment.trim()}
               helperText={!formData.group_segment.trim() ? 'Group Segment is required' : 'Group classification name (max 150 characters)'}
             />
-            
+
             {/* Segment - REQUIRED */}
             <TextField
               label="Segment *"
@@ -1210,7 +1277,7 @@ export default function SegmentationConfigurationPage() {
               error={!formData.segment.trim()}
               helperText={!formData.segment.trim() ? 'Segment is required' : 'Main segment name (max 150 characters)'}
             />
-            
+
             {/* Sub Segment - OPTIONAL */}
             <TextField
               label="Sub Segment"
@@ -1221,7 +1288,7 @@ export default function SegmentationConfigurationPage() {
               placeholder="Sub Segment (optional)"
               helperText="Optional sub-segment for detailed classification (max 150 characters)"
             />
-            
+
             {/* Segment Type - REQUIRED */}
             <TextField
               label="Segment Type *"
@@ -1240,7 +1307,7 @@ export default function SegmentationConfigurationPage() {
                 </MenuItem>
               ))}
             </TextField>
-            
+
             {/* Sequence - OPTIONAL */}
             <TextField
               label="Sequence"
@@ -1252,7 +1319,7 @@ export default function SegmentationConfigurationPage() {
               helperText="Optional display order sequence"
               slotProps={{ htmlInput: { min: 1 } }}
             />
-            
+
             {/* Active Flag */}
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <FormControlLabel
@@ -1271,17 +1338,17 @@ export default function SegmentationConfigurationPage() {
           <Button onClick={() => setDialogOpen(false)} disabled={loading}>
             Cancel
           </Button>
-          <Button 
-            onClick={handleSave} 
+          <Button
+            onClick={handleSave}
             variant="contained"
             disabled={loading || !formData.group_segment.trim() || !formData.segment.trim() || !formData.segment_type.trim()}
             startIcon={loading ? <CircularProgress size={16} /> : (backendUnavailable ? <SaveIcon /> : null)}
             color={backendUnavailable ? 'warning' : 'primary'}
           >
-            {loading ? 'Saving...' : 
-             backendUnavailable ? 
-             (selectedHeader ? 'Save Locally' : 'Create Locally') :
-             (selectedHeader ? 'Update' : 'Create')}
+            {loading ? 'Saving...' :
+              backendUnavailable ?
+                (selectedHeader ? 'Save Locally' : 'Create Locally') :
+                (selectedHeader ? 'Update' : 'Create')}
           </Button>
         </DialogActions>
       </Dialog>
@@ -1297,9 +1364,9 @@ export default function SegmentationConfigurationPage() {
       )}
 
       {/* Success/Error Snackbars */}
-      <Snackbar 
-        open={!!success} 
-        autoHideDuration={4000} 
+      <Snackbar
+        open={!!success}
+        autoHideDuration={4000}
         onClose={() => setSuccess(null)}
         anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
@@ -1308,9 +1375,9 @@ export default function SegmentationConfigurationPage() {
         </Alert>
       </Snackbar>
 
-      <Snackbar 
-        open={!!error} 
-        autoHideDuration={6000} 
+      <Snackbar
+        open={!!error}
+        autoHideDuration={6000}
         onClose={() => setError(null)}
         anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
       >

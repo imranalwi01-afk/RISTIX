@@ -251,6 +251,41 @@ export class MenuApiService {
     const response = await menuApiClient.get('/menu/info');
     return response.data;
   }
+
+  /**
+   * Create a new menu item (Admin only)
+   */
+  async createMenuItem(menuItem: any): Promise<MenuApiResponse<any>> {
+    const response = await menuApiClient.post('/menu/admin/items', menuItem);
+    return response.data;
+  }
+
+  /**
+   * Update an existing menu item (Admin only)
+   */
+  async updateMenuItem(id: string, menuItem: any): Promise<MenuApiResponse<any>> {
+    const response = await menuApiClient.put(`/menu/admin/items/${id}`, menuItem);
+    return response.data;
+  }
+
+  /**
+   * Delete a menu item (Admin only)
+   */
+  async deleteMenuItem(id: string): Promise<MenuApiResponse<void>> {
+    const response = await menuApiClient.delete(`/menu/admin/items/${id}`);
+    return response.data;
+  }
+
+  /**
+   * Initialize menu structure from seed data (Admin only)
+   */
+  async initializeMenuStructure(): Promise<MenuApiResponse<{
+    message: string;
+    items_created: number;
+  }>> {
+    const response = await menuApiClient.post('/menu/admin/initialize');
+    return response.data;
+  }
 }
 
 // Create singleton instance
@@ -271,7 +306,12 @@ export const menuApi = {
   getMenuAnalytics: (params?: Parameters<MenuApiService['getMenuAnalytics']>[0]) =>
     menuApiService.getMenuAnalytics(params),
   getMenuHealth: () => menuApiService.getMenuHealth(),
-  getMenuInfo: () => menuApiService.getMenuInfo()
+  getMenuInfo: () => menuApiService.getMenuInfo(),
+  // CRUD methods
+  createMenuItem: (menuItem: any) => menuApiService.createMenuItem(menuItem),
+  updateMenuItem: (id: string, menuItem: any) => menuApiService.updateMenuItem(id, menuItem),
+  deleteMenuItem: (id: string) => menuApiService.deleteMenuItem(id),
+  initializeMenuStructure: () => menuApiService.initializeMenuStructure()
 };
 
 export default menuApiService;

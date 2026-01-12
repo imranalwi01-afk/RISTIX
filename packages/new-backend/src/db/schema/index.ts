@@ -1,6 +1,7 @@
 // Core entities
 export * from './core'
 export * from './menu.schema'
+export * from './consultants.schema'
 
 // RBAC (Role-Based Access Control) - excluding coreSchema which is already exported from core
 export {
@@ -80,44 +81,32 @@ export {
 } from './approval.schema'
 
 // IFRS9 (Banking-specific tables)
-export {
-    ifrs9Schema,
-    productSegments,
-    productSegmentsRelations,
-    ruleBaseSettingHeaders,
-    ruleBaseSettingDetails,
-    ruleBaseSettingHeadersRelations,
-    ruleBaseSettingDetailsRelations,
-    bucketParameters,
-    bucketParametersRelations,
-    bucketParameterDetails,
-    bucketParameterDetailsRelations,
-    pdConfigurations,
-    pdConfigurationsRelations,
-    populationSegments,
-    lgdConfigurations,
-    eadConfigurations,
-} from './ifrs9.schema'
+// IFRS9 (Banking-specific tables) - Replaced by legacy schema
+// export {
+//     ifrs9Schema,
+//     productSegments,
+//     productSegmentsRelations,
+//     ruleBaseSettingHeaders,
+//     ruleBaseSettingDetails,
+//     ruleBaseSettingHeadersRelations,
+//     ruleBaseSettingDetailsRelations,
+//     bucketParameters,
+//     bucketParametersRelations,
+//     bucketParameterDetails,
+//     bucketParameterDetailsRelations,
+//     pdConfigurations,
+//     pdConfigurationsRelations,
+//     populationSegments,
+//     lgdConfigurations,
+//     eadConfigurations,
+// } from './ifrs9.schema'
 
 export * from './legacy'
 
+
+
+// Jobs / Queue
 export {
-    frs9ParamProduct,
-    frs9ParamJournal,
-    frs9ParamSegmenth,
-    frs9ParamSegmentd,
-    frs9ParamScenarioRulesh,
-    frs9ParamScenarioRulesd,
-    frs9ParamBucketh,
-    frs9ParamBucketd,
-    frs9ImpCaPdConfig,
-    frs9ImpCaFlScalarh,
-    frs9ImpCaFlScalard,
-    frs9ImpCaLgdConfig,
-    frs9ImpCaEadConfig,
-    frs9ImpCaEclConfigh,
-    frs9ImpCaEclConfigd,
-    frs9ImpCaEclSum,
-    frs9ImpCaResultH,
-    frs9ImpCaResultD,
-} from './introspected/schema'
+    jobDefinitions,
+    jobExecutions,
+} from './jobs.schema'

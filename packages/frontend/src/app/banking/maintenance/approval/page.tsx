@@ -113,21 +113,21 @@ interface ApprovalAction {
 
 export default function ApprovalManagementPage() {
   const router = useRouter();
-  
+
   // State management
   const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading] = useState(true);
   const [approvalRequests, setApprovalRequests] = useState<ApprovalRequest[]>([]);
   const [statistics, setStatistics] = useState<ApprovalStatistics | null>(null);
   const [filteredRequests, setFilteredRequests] = useState<ApprovalRequest[]>([]);
-  
+
   // Filter and search state
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [bankingTypeFilter, setBankingTypeFilter] = useState('all');
   const [requestTypeFilter, setRequestTypeFilter] = useState('all');
-  
+
   // Dialog states
   const [actionDialog, setActionDialog] = useState<{
     open: boolean;
@@ -140,14 +140,14 @@ export default function ApprovalManagementPage() {
     reason: '',
     delegateTo: ''
   });
-  
+
   const [detailDialog, setDetailDialog] = useState<{
     open: boolean;
     request?: ApprovalRequest;
   }>({
     open: false
   });
-  
+
   // Snackbar state
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -166,24 +166,44 @@ export default function ApprovalManagementPage() {
   const loadApprovalRequests = async () => {
     try {
       setLoading(true);
-      
+
       // Fetch both pending and history to get a full picture
       // In a real app we might separate these calls or have a unified list endpoint
       // For now we use getApprovalHistory to list all requests visible to tenant
       const response = await bankingAPI.approval.getApprovalHistory();
-      
+
+      console.log('Approval response:', response);
+
+      // Handle different response formats
+      let requestsData = [];
+      if (Array.isArray(response)) {
+        requestsData = response;
+      } else if (response && Array.isArray(response.data)) {
+        requestsData = response.data;
+      } else if (response && response.requests && Array.isArray(response.requests)) {
+        requestsData = response.requests;
+      } else {
+        console.warn('Unexpected response format:', response);
+        requestsData = [];
+      }
+
       // Transform backend data to frontend model
-      const requests = response.map((req: any) => ({
+      const requests = requestsData.map((req: any) => ({
         ...req,
         // UI Mappings
-        requestTitle: req.title,
-        requestType: req.entityType,
-        priority: req.impactLevel || 'medium',
-        dueDate: req.expiresAt,
-        requestedAt: req.createdAt,
+        requestTitle: req.title || req.requestTitle || 'Untitled Request',
+        requestType: req.entityType || req.requestType || 'unknown',
+        priority: req.impactLevel || req.priority || 'medium',
+        dueDate: req.expiresAt || req.dueDate,
+        requestedAt: req.createdAt || req.requestedAt || new Date().toISOString(),
         // Placeholders/Joins
-        requestedByName: req.requester?.email || req.requestedBy, // Use joined email if available, else ID
-        bankingType: req.matrix?.bankingMode || 'conventional', // Try to get from joined matrix
+        requestedByName: req.requester?.email || req.requestedByName || req.requestedBy || 'Unknown',
+        bankingType: req.matrix?.bankingMode || req.bankingType || 'conventional',
+        // Ensure required fields have defaults
+        approvalsRequired: req.approvalsRequired || 1,
+        approvalsReceived: req.approvalsReceived || 0,
+        currentApprovers: req.currentApprovers || [],
+        status: req.status || 'pending'
       }));
 
       setApprovalRequests(requests);
@@ -191,7 +211,11 @@ export default function ApprovalManagementPage() {
       calculateStatistics(requests);
     } catch (error) {
       console.error('Error loading approval requests:', error);
-      showSnackbar('Failed to load approval requests', 'error');
+      showSnackbar(`Failed to load approval requests: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+      // Set empty data on error
+      setApprovalRequests([]);
+      setFilteredRequests([]);
+      calculateStatistics([]);
     } finally {
       setLoading(false);
     }
@@ -205,7 +229,7 @@ export default function ApprovalManagementPage() {
     const overdue = requests.filter(r => r.expiresAt && new Date(r.expiresAt) < new Date() && r.status === 'pending').length;
 
     // Mock avg time calculation for now
-    const avgTime = 2.5; 
+    const avgTime = 2.5;
 
     setStatistics({
       totalRequests: total,
@@ -318,9 +342,9 @@ export default function ApprovalManagementPage() {
       if (!request || !action) return;
 
       console.log(`Submitting approval action: ${action} for request ${request.id}`);
-      
+
       let response;
-      
+
       switch (action) {
         case 'approve':
           response = await bankingAPI.approval.approveRequest(request.id, { comment: reason });
@@ -329,9 +353,9 @@ export default function ApprovalManagementPage() {
           response = await bankingAPI.approval.rejectRequest(request.id, { comment: reason });
           break;
         case 'delegate':
-          response = await bankingAPI.approval.delegateRequest(request.id, { 
-            delegatedTo: delegateTo, 
-            reason 
+          response = await bankingAPI.approval.delegateRequest(request.id, {
+            delegatedTo: delegateTo,
+            reason
           });
           break;
         case 'request_info':
@@ -343,21 +367,21 @@ export default function ApprovalManagementPage() {
       console.log('Action successful:', response);
 
       // Update local state for immediate feedback
-      setApprovalRequests(prev => prev.map(req => 
-        req.id === request.id 
-          ? { 
-              ...req, 
-              status: response?.status || (action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : 'pending')
-            }
+      setApprovalRequests(prev => prev.map(req =>
+        req.id === request.id
+          ? {
+            ...req,
+            status: response?.status || (action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : 'pending')
+          }
           : req
       ));
 
       showSnackbar(`Request ${action}d successfully`, 'success');
       setActionDialog({ open: false, reason: '', delegateTo: '' });
-      
+
       // Refresh list to get full updated state
       loadApprovalRequests();
-      
+
     } catch (error) {
       console.error('Error submitting approval action:', error);
       showSnackbar('Failed to process approval action', 'error');
@@ -527,7 +551,7 @@ export default function ApprovalManagementPage() {
               ),
             }}
           />
-          
+
           <FormControl size="small" sx={{ minWidth: 120 }}>
             <InputLabel>Status</InputLabel>
             <Select
@@ -681,8 +705,8 @@ export default function ApprovalManagementPage() {
 
         <Grid size={{ xs: 12 }}>
           <Card>
-            <CardHeader 
-              title="Approval Summary" 
+            <CardHeader
+              title="Approval Summary"
               subheader="Current month overview"
             />
             <CardContent>
@@ -734,9 +758,9 @@ export default function ApprovalManagementPage() {
       {/* Header */}
       <Box sx={{ mb: 3 }}>
         <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 1 }}>
-          <Link 
-            underline="hover" 
-            color="inherit" 
+          <Link
+            underline="hover"
+            color="inherit"
             href="/banking/dashboard"
             onClick={(e) => {
               e.preventDefault();
@@ -793,24 +817,24 @@ export default function ApprovalManagementPage() {
           onChange={(e, newValue) => setActiveTab(newValue)}
           aria-label="approval management tabs"
         >
-          <Tab 
-            icon={<PendingIcon />} 
-            label="Pending Approvals" 
+          <Tab
+            icon={<PendingIcon />}
+            label="Pending Approvals"
             iconPosition="start"
           />
-          <Tab 
-            icon={<StatsIcon />} 
-            label="Statistics" 
+          <Tab
+            icon={<StatsIcon />}
+            label="Statistics"
             iconPosition="start"
           />
-          <Tab 
-            icon={<HistoryIcon />} 
-            label="History" 
+          <Tab
+            icon={<HistoryIcon />}
+            label="History"
             iconPosition="start"
           />
-          <Tab 
-            icon={<MatrixIcon />} 
-            label="Approval Matrix" 
+          <Tab
+            icon={<MatrixIcon />}
+            label="Approval Matrix"
             iconPosition="start"
           />
         </Tabs>
@@ -845,7 +869,7 @@ export default function ApprovalManagementPage() {
             <Typography variant="subtitle2" gutterBottom>
               Request: {actionDialog.request?.requestTitle}
             </Typography>
-            
+
             <TextField
               label="Reason/Comments"
               multiline
@@ -856,7 +880,7 @@ export default function ApprovalManagementPage() {
               sx={{ mt: 2 }}
               required
             />
-            
+
             {actionDialog.action === 'delegate' && (
               <TextField
                 label="Delegate To (User ID)"
@@ -873,8 +897,8 @@ export default function ApprovalManagementPage() {
           <Button onClick={() => setActionDialog({ open: false, reason: '', delegateTo: '' })}>
             Cancel
           </Button>
-          <Button 
-            onClick={submitApprovalAction} 
+          <Button
+            onClick={submitApprovalAction}
             variant="contained"
             disabled={!actionDialog.reason || (actionDialog.action === 'delegate' && !actionDialog.delegateTo)}
           >
@@ -931,7 +955,7 @@ export default function ApprovalManagementPage() {
                 {detailDialog.request.dueDate && (
                   <Grid size={6}>
                     <Typography variant="subtitle2">Due Date:</Typography>
-                    <Typography 
+                    <Typography
                       variant="body2"
                       color={isOverdue(detailDialog.request.dueDate) ? 'error' : 'inherit'}
                     >

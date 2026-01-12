@@ -1,2 +1,2 @@
 export { env, isProduction, isDevelopment } from './env'
-export { db, closeDatabase, connection } from './database'
+export { db, legacyDb, closeDatabase, connection } from './database'
