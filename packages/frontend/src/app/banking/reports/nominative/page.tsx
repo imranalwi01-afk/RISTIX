@@ -18,7 +18,12 @@ import {
   Grid,
   Card,
   CardContent,
-  Button,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   CircularProgress,
   Alert,
   Breadcrumbs,
@@ -27,51 +32,65 @@ import {
 } from '@mui/material';
 import {
   Assessment as PageIcon,
-  Home as HomeIcon,
-  ArrowBack as BackIcon
+  Home as HomeIcon
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
+import { reportsAPI } from '@/services/api.reports';
+
+interface NominativeItem {
+  prcDate: string;
+  accountId: number;
+  facilityNumber: string;
+  cifNumber: string;
+  stage: number;
+  outstanding: number;
+  eclFinal: number;
+  bucketId: number;
+}
 
 export default function NominativeReportsPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<NominativeItem[]>([]);
 
   useEffect(() => {
-    // Initialize page data
-    const initializePage = async () => {
-      setLoading(true);
-      try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 500));
-        setData({}); // Set actual data here
-      } catch (error) {
-        console.error('Error loading Nominative Reports data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    initializePage();
+    loadData();
   }, []);
 
-  if (loading) {
-    return (
-      <Container maxWidth="xl">
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
-          <CircularProgress />
-        </Box>
-      </Container>
-    );
-  }
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const result = await reportsAPI.getNominativeReport({ page: 1, limit: 100 });
+      if (result.success && Array.isArray(result.data)) {
+        setData(result.data);
+      }
+    } catch (error) {
+      console.error('Error loading Nominative Reports data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0
+    }).format(amount);
+  };
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return '-';
+    return new Date(dateString).toLocaleDateString();
+  };
 
   return (
     <Container maxWidth="xl">
       {/* Breadcrumb Navigation */}
       <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
-        <Link 
-          underline="hover" 
-          color="inherit" 
+        <Link
+          underline="hover"
+          color="inherit"
           href="/dashboard"
           onClick={(e) => {
             e.preventDefault();
@@ -97,7 +116,7 @@ export default function NominativeReportsPage() {
           </Typography>
         </Box>
         <Typography variant="subtitle1" color="text.secondary">
-          Detailed nominative reporting and account-level analysis
+          Detailed ECL calculation results per account
         </Typography>
       </Box>
 
@@ -106,38 +125,52 @@ export default function NominativeReportsPage() {
         <Grid item xs={12}>
           <Card>
             <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Nominative Reports Overview
-              </Typography>
-              <Typography variant="body2" color="text.secondary" paragraph>
-                This page provides detailed nominative reporting and account-level analysis. The interface will be enhanced with 
-                specific functionality based on business requirements.
-              </Typography>
-              
-              <Alert severity="info" sx={{ mt: 2 }}>
-                <Typography variant="body2">
-                  <strong>Development Note:</strong> This is a foundation page structure. 
-                  Specific nominative Reports functionality will be implemented based on 
-                  detailed requirements and API integration.
-                </Typography>
-              </Alert>
-
-              <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
-                <Button 
-                  variant="contained" 
-                  startIcon={<PageIcon />}
-                  disabled
-                >
-                  Configure Nominative Reports
-                </Button>
-                <Button 
-                  variant="outlined" 
-                  startIcon={<BackIcon />}
-                  onClick={() => router.back()}
-                >
-                  Back
-                </Button>
-              </Box>
+              {loading ? (
+                <Box display="flex" justifyContent="center" p={4}>
+                  <CircularProgress />
+                </Box>
+              ) : (
+                <TableContainer component={Paper}>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Process Date</TableCell>
+                        <TableCell>Facility Number</TableCell>
+                        <TableCell>CIF Number</TableCell>
+                        <TableCell>Bucket</TableCell>
+                        <TableCell>Stage</TableCell>
+                        <TableCell align="right">Outstanding</TableCell>
+                        <TableCell align="right">ECL Final</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {data.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={7} align="center">No data available</TableCell>
+                        </TableRow>
+                      ) : (
+                        data.map((row, index) => (
+                          <TableRow key={`${row.accountId}-${index}`}>
+                            <TableCell>{formatDate(row.prcDate)}</TableCell>
+                            <TableCell>{row.facilityNumber || '-'}</TableCell>
+                            <TableCell>{row.cifNumber || '-'}</TableCell>
+                            <TableCell>{row.bucketId}</TableCell>
+                            <TableCell>
+                              <Chip
+                                label={`Stage ${row.stage}`}
+                                color={row.stage === 3 ? 'error' : row.stage === 2 ? 'warning' : 'success'}
+                                size="small"
+                              />
+                            </TableCell>
+                            <TableCell align="right">{formatCurrency(row.outstanding)}</TableCell>
+                            <TableCell align="right">{formatCurrency(row.eclFinal)}</TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
             </CardContent>
           </Card>
         </Grid>

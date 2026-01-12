@@ -1,27 +1,54 @@
 import { Hono } from 'hono'
 import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
+import { Effect } from 'effect'
+import { IndividualImpairmentService } from '../services/individual-impairment.service'
 
 const app = new Hono<AppContext>()
 
 app.use('*', authMiddleware)
 
-// GET /watchlist - Stub endpoint returning empty data
+
+// GET /watchlist - Real implementation
 app.get('/watchlist', async (c) => {
     try {
-        const page = Number(c.req.query('page') || '1')
-        const limit = Number(c.req.query('limit') || '20')
+        const query = c.req.query()
+        const page = Number(query['page'] || '1')
+        const limit = Number(query['limit'] || '20')
+        const search = query['search']
 
-        return c.json({
-            success: true,
-            data: [],
-            pagination: {
-                page,
-                limit,
-                total: 0,
-                totalPages: 0
-            }
+        // Parse nested params manually since Hono/Zod combination is strict
+        const filter = {
+            stage: query['filter[stage]'] ? Number(query['filter[stage]']) : undefined,
+            impaired_flag: query['filter[impaired_flag]'] as 'I' | 'N' | undefined,
+            assessment_status: query['filter[assessment_status]']
+        }
+
+        const sort = {
+            field: query['sort[field]'],
+            order: query['sort[order]'] as 'asc' | 'desc' | undefined
+        }
+
+        const program = IndividualImpairmentService.getWatchlist({
+            page,
+            limit,
+            search,
+            filter,
+            sort
         })
+
+        const result = await Effect.runPromiseExit(program)
+
+        if (result._tag === 'Success') {
+            return c.json(result.value)
+        } else {
+            console.error('Error fetching watchlist:', result.cause)
+            return c.json({
+                success: false,
+                message: 'Failed to fetch watchlist',
+                error: String(result.cause)
+            }, 500)
+        }
     } catch (error) {
         console.error('Error fetching watchlist:', error)
         return c.json({

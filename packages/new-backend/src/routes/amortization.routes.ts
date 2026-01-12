@@ -7,7 +7,7 @@ import {
     frs9EventChanges,
     frs9AmortJournalData
 } from '../db/schema'
-import { desc, eq } from 'drizzle-orm'
+import { desc, eq, getTableColumns } from 'drizzle-orm'
 import { z } from 'zod'
 import { zValidator } from '@hono/zod-validator'
 
@@ -36,8 +36,13 @@ app.get('/', async (c) => {
         const offset = (page - 1) * limit
 
         const data = await db
-            .select()
+            .select({
+                ...getTableColumns(frs9EirEcf),
+                accountNumber: frs9AccountId.accountNumber,
+                customerName: frs9AccountId.cifName
+            })
             .from(frs9EirEcf)
+            .leftJoin(frs9AccountId, eq(frs9EirEcf.accountId, frs9AccountId.accountId as any)) // Cast to avoid type mismatch number vs bigint
             .orderBy(desc(frs9EirEcf.id))
             .limit(limit)
             .offset(offset)

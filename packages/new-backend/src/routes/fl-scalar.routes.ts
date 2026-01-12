@@ -94,9 +94,13 @@ app.get('/', async (c) => {
                 tables: ['frs9_imp_ca_fl_scalarh', 'frs9_imp_ca_fl_scalard']
             }
         })
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error fetching FL scalars:', error)
-        return c.json({ success: false, message: 'Failed to fetch FL scalars' }, 500)
+        return c.json({
+            success: false,
+            message: `Failed to load FL Scalars from database: ${error.message}`,
+            details: error.stack
+        }, 500)
     }
 })
 
