@@ -1,0 +1,138 @@
+# docker-compose.prod.yml
+# ============================================================================
+# 🚀 IFRS9 PRODUCTION DEPLOYMENT
+# ============================================================================
+# Optimized for stability and performance.
+# - No source code volumes (mounts)
+# - Restart policy: always
+# - Minimal logging (unless overridden)
+# ============================================================================
+
+services:
+  # ============================================================================
+  # 🗄️ POSTGRESQL DATABASE (Production)
+  # ============================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: ifrs9-postgres-prod
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-ifrspro_platform_admin}
+    volumes:
+      - postgres-prod-data:/var/lib/postgresql/data
+    networks:
+      - ifrs9-prod
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    profiles:
+      - db
+      - full
+
+  # ============================================================================
+  # 📊 REDIS (Production)
+  # ============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: ifrs9-redis-prod
+    restart: always
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-prod-data:/data
+    networks:
+      - ifrs9-prod
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    profiles:
+      - db
+      - full
+
+  # ============================================================================
+  # 🚀 NEW BACKEND SERVICE (Production)
+  # ============================================================================
+  new-backend:
+    build:
+      context: ./packages/new-backend
+      dockerfile: Dockerfile
+    container_name: ifrs9-new-backend-prod
+    restart: always
+    environment:
+      NODE_ENV: production
+      PORT: 4232
+      HOST: 0.0.0.0
+
+      # Database
+      DATABASE_URL: ${DATABASE_URL:-postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-ifrspro_platform_admin}}
+      LEGACY_DATABASE_URL: ${LEGACY_DATABASE_URL}
+
+      # JWT
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-24h}
+
+      # Redis
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+
+      # Logging
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "4232:4232"
+    networks:
+      - ifrs9-prod
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    profiles:
+      - app
+      - full
+
+  # ============================================================================
+  # 🌐 FRONTEND SERVICE (Production)
+  # ============================================================================
+  frontend:
+    build:
+      context: .
+      dockerfile: packages/frontend/Dockerfile
+    container_name: ifrs9-frontend-prod
+    restart: always
+    environment:
+      NODE_ENV: production
+      PORT: 4231
+      HOSTNAME: "0.0.0.0"
+
+      # Public URLs (Must be set in CI/CD or .env for build time)
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL}
+    ports:
+      - "4231:4231"
+    networks:
+      - ifrs9-prod
+    depends_on:
+      - new-backend
+    profiles:
+      - app
+      - full
+
+# ============================================================================
+# 📁 VOLUMES
+# ============================================================================
+volumes:
+  postgres-prod-data:
+    driver: local
+  redis-prod-data:
+    driver: local
+
+# ============================================================================
+# 🌐 NETWORKS
+# ============================================================================
+networks:
+  ifrs9-prod:
+    driver: bridge
