@@ -1,13 +1,40 @@
-import { Hono } from 'hono'
-import { zValidator } from '@hono/zod-validator'
-import { z } from 'zod'
-import { db } from '../config'
-import { frs9ParamCommonh, frs9ParamCommond } from '../db/schema'
-import { eq, and, sql } from 'drizzle-orm'
+import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
+import type { AppContext } from '../app'
+import { authMiddleware } from '../middleware'
+import { ParametersService } from '../services/parameters.service'
+import { runEffect } from '../lib/effect/runtime'
 
-export const appSettingsRoutes = new Hono()
+const app = new OpenAPIHono<AppContext>()
 
-const settingSchema = z.object({
+app.use('*', authMiddleware)
+
+// ============================================================================
+// VALIDATION SCHEMAS
+// ============================================================================
+
+const AppSettingDetailSchema = z.object({
+    id: z.number(),
+    param_code: z.string(),
+    param_seq: z.number(),
+    value1: z.string().nullable(),
+    value2: z.string().nullable(),
+    value3: z.string().nullable(),
+    param_desc: z.string().nullable(),
+    is_active: z.boolean().nullable(),
+}).openapi('AppSettingDetail')
+
+const AppSettingSchema = z.object({
+    param_code: z.string(),
+    param_name: z.string().nullable(),
+    param_usage: z.string().nullable(),
+    param_type: z.string().nullable(),
+    banking_type: z.string().nullable(),
+    is_active: z.boolean().nullable(),
+    requires_approval: z.boolean().nullable(),
+    details: z.array(AppSettingDetailSchema).optional(),
+}).openapi('AppSetting')
+
+const CreateAppSettingSchema = z.object({
     paramCode: z.string().max(10),
     paramName: z.string().max(255),
     paramUsage: z.string().max(255).optional(),
@@ -15,120 +42,186 @@ const settingSchema = z.object({
     bankingType: z.enum(['conventional', 'syariah', 'dual']).default('conventional'),
     isActive: z.boolean().default(true),
     requiresApproval: z.boolean().default(false),
-})
+}).openapi('CreateAppSettingInput')
 
-const detailSchema = z.object({
+const UpdateAppSettingSchema = CreateAppSettingSchema.partial().openapi('UpdateAppSettingInput')
+
+const CreateAppSettingDetailSchema = z.object({
     paramCode: z.string().max(50),
     paramSeq: z.number().int(),
     value1: z.string().max(100),
     value2: z.string().max(100),
     value3: z.string().max(50),
     paramdesc: z.string().max(1000),
-})
+}).openapi('CreateAppSettingDetailInput')
 
-// GET /app-settings - List all settings with details
-appSettingsRoutes.get('/', async (c) => {
-    const code = c.req.query('code');
-    try {
-        const settings = await db.query.frs9ParamCommonh.findMany({
-            where: and(
-                eq(frs9ParamCommonh.paramType, 'S'),
-                code ? eq(frs9ParamCommonh.paramCode, code) : undefined
-            ),
-            with: {
-                details: true
-            },
-            orderBy: frs9ParamCommonh.paramCode
-        });
-        return c.json({ success: true, data: settings });
-    } catch (error) {
-        console.error('Error fetching app settings:', error);
-        return c.json({ error: 'Failed to fetch settings' }, 500);
-    }
-})
+const AppSettingListResponse = z.object({
+    success: z.boolean(),
+    data: z.array(AppSettingSchema)
+}).openapi('AppSettingListResponse')
 
-// GET /app-settings/:code - Get specific setting
-appSettingsRoutes.get('/:code', async (c) => {
-    const code = c.req.param('code');
-    const setting = await db.query.frs9ParamCommonh.findFirst({
-        where: eq(frs9ParamCommonh.paramCode, code),
-        with: {
-            details: true
+const AppSettingResponse = z.object({
+    success: z.boolean(),
+    data: AppSettingSchema
+}).openapi('AppSettingResponse')
+
+const AppSettingDetailResponse = z.object({
+    success: z.boolean(),
+    data: AppSettingDetailSchema,
+    message: z.string().optional()
+}).openapi('AppSettingDetailResponse')
+
+const ErrorResponse = z.object({
+    success: z.boolean(),
+    message: z.string(),
+    error: z.string().optional()
+}).openapi('ErrorResponse')
+
+// ============================================================================
+// ENDPOINTS
+// ============================================================================
+
+// GET /api/v1/app-settings
+app.openapi(
+    createRoute({
+        method: 'get',
+        path: '/',
+        tags: ['Application Settings'],
+        summary: 'List Application Settings',
+        request: {
+            query: z.object({
+                code: z.string().optional()
+            })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: AppSettingListResponse } }, description: 'List Settings' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
-    });
-
-    if (!setting) {
-        return c.json({ error: 'Setting not found' }, 404);
+    }),
+    async (c) => {
+        const { code } = c.req.valid('query')
+        return runEffect(c, ParametersService.listAppSettings(code)) as any
     }
-    return c.json({ success: true, data: setting });
-})
+)
 
-// POST /app-settings - Create new setting header
-appSettingsRoutes.post('/', zValidator('json', settingSchema), async (c) => {
-    const data = c.req.valid('json');
-    try {
-        const [newSetting] = await db.insert(frs9ParamCommonh).values(data).returning();
-        return c.json({ success: true, data: newSetting }, 201);
-    } catch (error: any) {
-        console.error('Error creating setting:', error);
-        if (error.code === '23505') { // Unique violation
-            return c.json({ error: 'Param code already exists' }, 409);
+// GET /api/v1/app-settings/:code
+app.openapi(
+    createRoute({
+        method: 'get',
+        path: '/{code}',
+        tags: ['Application Settings'],
+        summary: 'Get Application Setting',
+        request: {
+            params: z.object({ code: z.string() })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: AppSettingResponse } }, description: 'Setting Detail' },
+            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
-        return c.json({ error: 'Failed to create setting' }, 500);
+    }),
+    async (c) => {
+        const { code } = c.req.valid('param');
+        return runEffect(c, ParametersService.getAppSetting(code) as any) as any
     }
-})
+)
 
-// PUT /app-settings/:code - Update setting header
-appSettingsRoutes.put('/:code', zValidator('json', settingSchema.partial()), async (c) => {
-    const code = c.req.param('code');
-    const data = c.req.valid('json');
-
-    try {
-        const [updated] = await db.update(frs9ParamCommonh)
-            .set(data)
-            .where(eq(frs9ParamCommonh.paramCode, code))
-            .returning();
-
-        if (!updated) {
-            return c.json({ error: 'Setting not found' }, 404);
+// POST /api/v1/app-settings
+app.openapi(
+    createRoute({
+        method: 'post',
+        path: '/',
+        tags: ['Application Settings'],
+        summary: 'Create Application Setting',
+        request: {
+            body: { content: { 'application/json': { schema: CreateAppSettingSchema } } }
+        },
+        responses: {
+            201: { content: { 'application/json': { schema: AppSettingResponse } }, description: 'Created' },
+            409: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Conflict' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
-        return c.json({ success: true, data: updated });
-    } catch (error) {
-        console.error('Error updating setting:', error);
-        return c.json({ error: 'Failed to update setting' }, 500);
-    }
-})
+    }),
+    async (c) => {
+        const data = c.req.valid('json');
+        const userId = c.get('userId') as string || 'system';
 
-// POST /app-settings/details - Create/Add detail to a setting
-appSettingsRoutes.post('/details', zValidator('json', detailSchema), async (c) => {
-    const data = c.req.valid('json');
-    try {
-        // Verify header exists
-        const header = await db.query.frs9ParamCommonh.findFirst({
-            where: eq(frs9ParamCommonh.paramCode, data.paramCode)
-        });
-        if (!header) {
-            return c.json({ error: 'Parent setting header not found' }, 404);
+        return runEffect(c, ParametersService.createAppSetting(data, userId)) as any
+    }
+)
+
+// PUT /api/v1/app-settings/:code
+app.openapi(
+    createRoute({
+        method: 'put',
+        path: '/{code}',
+        tags: ['Application Settings'],
+        summary: 'Update Application Setting',
+        request: {
+            params: z.object({ code: z.string() }),
+            body: { content: { 'application/json': { schema: UpdateAppSettingSchema } } }
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: AppSettingResponse } }, description: 'Updated' },
+            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
+    }),
+    async (c) => {
+        const { code } = c.req.valid('param');
+        const data = c.req.valid('json');
+        const userId = c.get('userId') as string || 'system';
 
-        const [newDetail] = await db.insert(frs9ParamCommond).values(data).returning();
-        return c.json({ success: true, data: newDetail }, 201);
-    } catch (error) {
-        console.error('Error creating detail:', error);
-        return c.json({ error: 'Failed to create detail' }, 500);
+        return runEffect(c, ParametersService.updateAppSetting(code, data, userId) as any) as any
     }
-})
+)
 
-// DELETE /app-settings/details/:id
-appSettingsRoutes.delete('/details/:id', async (c) => {
-    const id = Number(c.req.param('id'));
-    if (isNaN(id)) return c.json({ error: 'Invalid ID' }, 400);
+// POST /api/v1/app-settings/details
+app.openapi(
+    createRoute({
+        method: 'post',
+        path: '/details',
+        tags: ['Application Settings'],
+        summary: 'Create Application Setting Detail',
+        request: {
+            body: { content: { 'application/json': { schema: CreateAppSettingDetailSchema } } }
+        },
+        responses: {
+            201: { content: { 'application/json': { schema: AppSettingDetailResponse } }, description: 'Created' },
+            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Parent Not Found' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        const data = c.req.valid('json');
+        const userId = c.get('userId') as string || 'system';
 
-    try {
-        await db.delete(frs9ParamCommond).where(eq(frs9ParamCommond.pkid, id));
-        return c.json({ message: 'Detail deleted' });
-    } catch (error) {
-        console.error('Error deleting detail:', error);
-        return c.json({ error: 'Failed to delete detail' }, 500);
+        return runEffect(c, ParametersService.createAppSettingDetail(data, userId) as any) as any
     }
-})
+)
+
+// DELETE /api/v1/app-settings/details/:id
+app.openapi(
+    createRoute({
+        method: 'delete',
+        path: '/details/{id}',
+        tags: ['Application Settings'],
+        summary: 'Delete Application Setting Detail',
+        request: {
+            params: z.object({ id: z.string().transform(Number) })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Deleted' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Invalid ID' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        const id = c.req.valid('param').id;
+        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400);
+
+        return runEffect(c, ParametersService.deleteAppSettingDetail(id) as any) as any
+    }
+)
+
+export default app

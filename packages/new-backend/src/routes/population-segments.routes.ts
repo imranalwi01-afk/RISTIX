@@ -1,24 +1,24 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { z } from 'zod'
-import { db } from '@/config'
-import { populationSegments } from '@/db/schema'
+import { legacyDb as db } from '@/config'
+import { frs9ParamSegmenth } from '@/db/schema'
 import { eq, and, like, desc } from 'drizzle-orm'
 import type { AppContext } from '@/app'
-import { authMiddleware, tenantMiddleware } from '../middleware'
+import { authMiddleware } from '../middleware'
 
 const app = new Hono<AppContext>()
 
 app.use('*', authMiddleware)
-app.use('*', tenantMiddleware)
+// Legacy tables do not support tenant isolation yet
 
 // ============================================================================
 // VALIDATION SCHEMAS
 // ============================================================================
 
 const createSegmentSchema = z.object({
-    segmentName: z.string().min(1).max(255),
-    description: z.string().max(500).optional(),
+    segmentName: z.string().min(1).max(150), // Limited to 150 chars in legacy
+    description: z.string().optional(), // Not supported in legacy, but kept for API validation compatibility
     activeFlag: z.boolean().default(true),
 })
 
@@ -28,15 +28,15 @@ const updateSegmentSchema = createSegmentSchema.partial()
 // HELPER FUNCTIONS
 // ============================================================================
 
-const transformSegment = (segment: any) => ({
-    id: segment.id,
-    segment_name: segment.segmentName,
-    description: segment.description,
+const transformSegment = (segment: typeof frs9ParamSegmenth.$inferSelect) => ({
+    id: segment.pkid,
+    segment_name: segment.segment,
+    description: segment.subSegment || '', // Mapping subSegment to description as a fallback or just empty
     active_flag: segment.activeFlag,
-    created_by: segment.createdBy,
-    updated_by: segment.updatedBy,
-    created_date: segment.createdAt,
-    updated_date: segment.updatedAt,
+    created_by: segment.createdby,
+    updated_by: segment.updatedby,
+    created_date: segment.createddate,
+    updated_date: segment.updateddate,
 })
 
 // ============================================================================
@@ -45,24 +45,22 @@ const transformSegment = (segment: any) => ({
 
 app.get('/', async (c) => {
     try {
-        const tenantId = c.get('tenantId') as string
         const { search, active_flag } = c.req.query()
-
-        const conditions = [eq(populationSegments.tenantId, tenantId)]
+        const conditions = []
 
         if (search) {
-            conditions.push(like(populationSegments.segmentName, `%${search}%`))
+            conditions.push(like(frs9ParamSegmenth.segment, `%${search}%`))
         }
 
         if (active_flag !== undefined) {
-            conditions.push(eq(populationSegments.activeFlag, active_flag === 'true'))
+            conditions.push(eq(frs9ParamSegmenth.activeFlag, active_flag === 'true'))
         }
 
         const segments = await db
             .select()
-            .from(populationSegments)
+            .from(frs9ParamSegmenth)
             .where(and(...conditions))
-            .orderBy(populationSegments.segmentName)
+            .orderBy(frs9ParamSegmenth.segment)
 
         return c.json({
             success: true,
@@ -79,13 +77,13 @@ app.get('/', async (c) => {
 
 app.get('/:id', async (c) => {
     try {
-        const id = c.req.param('id')
-        const tenantId = c.get('tenantId') as string
+        const id = Number(c.req.param('id'))
+        if (isNaN(id)) return c.json({ error: 'Invalid ID' }, 400);
 
         const [segment] = await db
             .select()
-            .from(populationSegments)
-            .where(and(eq(populationSegments.id, id), eq(populationSegments.tenantId, tenantId)))
+            .from(frs9ParamSegmenth)
+            .where(eq(frs9ParamSegmenth.pkid, id))
 
         if (!segment) {
             return c.json({
@@ -99,7 +97,6 @@ app.get('/:id', async (c) => {
             data: transformSegment(segment),
         })
     } catch (error) {
-        console.error('Error fetching population segment:', error)
         return c.json({
             success: false,
             message: 'Failed to fetch population segment',
@@ -109,17 +106,23 @@ app.get('/:id', async (c) => {
 
 app.post('/', zValidator('json', createSegmentSchema), async (c) => {
     try {
-        const tenantId = c.get('tenantId') as string
         const userId = c.get('userId') as string
         const data = c.req.valid('json')
 
+        // Legacy table requires createdhost, we'll mock it
         const [segment] = await db
-            .insert(populationSegments)
+            .insert(frs9ParamSegmenth)
             .values({
-                ...data,
-                tenantId,
-                createdBy: userId,
-                updatedBy: userId,
+                segment: data.segmentName,
+                // description not supported, maybe map to subSegment? 
+                // Leaving subSegment empty for now or null
+                activeFlag: data.activeFlag,
+                createdby: userId,
+                createdhost: 'localhost',
+                createddate: new Date().toISOString(),
+                updatedby: userId,
+                updatedhost: 'localhost',
+                updateddate: new Date().toISOString(),
             })
             .returning()
 
@@ -139,19 +142,25 @@ app.post('/', zValidator('json', createSegmentSchema), async (c) => {
 
 app.put('/:id', zValidator('json', updateSegmentSchema), async (c) => {
     try {
-        const id = c.req.param('id')
-        const tenantId = c.get('tenantId') as string
+        const id = Number(c.req.param('id'))
+        if (isNaN(id)) return c.json({ error: 'Invalid ID' }, 400);
+
         const userId = c.get('userId') as string
         const data = c.req.valid('json')
 
+        const updateData: any = {
+            updatedby: userId,
+            updatedhost: 'localhost',
+            updateddate: new Date().toISOString(),
+        }
+
+        if (data.segmentName) updateData.segment = data.segmentName
+        if (data.activeFlag !== undefined) updateData.activeFlag = data.activeFlag
+
         const [updated] = await db
-            .update(populationSegments)
-            .set({
-                ...data,
-                updatedBy: userId,
-                updatedAt: new Date(),
-            })
-            .where(and(eq(populationSegments.id, id), eq(populationSegments.tenantId, tenantId)))
+            .update(frs9ParamSegmenth)
+            .set(updateData)
+            .where(eq(frs9ParamSegmenth.pkid, id))
             .returning()
 
         if (!updated) {
@@ -177,12 +186,12 @@ app.put('/:id', zValidator('json', updateSegmentSchema), async (c) => {
 
 app.delete('/:id', async (c) => {
     try {
-        const id = c.req.param('id')
-        const tenantId = c.get('tenantId') as string
+        const id = Number(c.req.param('id'))
+        if (isNaN(id)) return c.json({ error: 'Invalid ID' }, 400);
 
         const [deleted] = await db
-            .delete(populationSegments)
-            .where(and(eq(populationSegments.id, id), eq(populationSegments.tenantId, tenantId)))
+            .delete(frs9ParamSegmenth)
+            .where(eq(frs9ParamSegmenth.pkid, id))
             .returning()
 
         if (!deleted) {

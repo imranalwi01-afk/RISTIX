@@ -11,6 +11,7 @@ const envSchema = z.object({
 
     // Database
     DATABASE_URL: z.string().url(),
+    LEGACY_DATABASE_URL: z.string().url(),
 
     // JWT
     JWT_SECRET: z.string().min(32),
@@ -29,6 +30,35 @@ export type Env = z.infer<typeof envSchema>
  * Parse and validate environment variables
  */
 function parseEnv(): Env {
+    // Manual fallback: Read .env if LEGACY_DATABASE_URL is missing
+    // This handles cases where bun might not load .env from the expected location or cache issues
+    if (!process.env.LEGACY_DATABASE_URL) {
+        try {
+            // Use dynamic import or require to avoid top-level node types issues if strict
+            const fs = require('fs')
+            const path = require('path')
+            const envPath = path.resolve(process.cwd(), '.env')
+
+            if (fs.existsSync(envPath)) {
+                console.log('📝 Manually loading .env from:', envPath)
+                const content = fs.readFileSync(envPath, 'utf-8')
+                content.split('\n').forEach((line: string) => {
+                    const match = line.match(/^\s*([\w_]+)\s*=\s*(.*)?\s*$/)
+                    if (match) {
+                        const key = match[1]
+                        const value = match[2] ? match[2].trim() : ''
+                        // Only set if not already defined
+                        if (!process.env[key]) {
+                            process.env[key] = value
+                        }
+                    }
+                })
+            }
+        } catch (e) {
+            console.warn('⚠️ Failed to manually load .env file:', e)
+        }
+    }
+
     const result = envSchema.safeParse(process.env)
 
     if (!result.success) {

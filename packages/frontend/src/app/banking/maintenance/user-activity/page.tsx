@@ -35,7 +35,7 @@ import {
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { DataGrid, GridColDef, GridRowParams, GridValueGetterParams, GridRenderCellParams } from '@mui/x-data-grid';
+import { DataGrid, GridColDef, GridRowParams, GridValueGetter, GridRenderCellParams } from '@mui/x-data-grid';
 import {
   Visibility as VisibilityIcon,
   Download as DownloadIcon,
@@ -151,7 +151,7 @@ const UserActivityPage: React.FC = () => {
     dateFrom: subDays(new Date(), 7),
     dateTo: new Date(),
   });
-  
+
   // Dialog states
   const [detailsDialog, setDetailsDialog] = useState<{
     open: boolean;
@@ -160,7 +160,7 @@ const UserActivityPage: React.FC = () => {
     open: false,
     activity: null,
   });
-  
+
   const [exportDialog, setExportDialog] = useState(false);
 
   // Mock data - in real implementation, this would come from the API
@@ -290,12 +290,12 @@ const UserActivityPage: React.FC = () => {
   const fetchActivities = useCallback(async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       // In real implementation, call API with filters
       // const response = await api.get('/api/v1/audit/logs', { params: filters });
       // setActivities(response.data.data);
-      
+
       // Mock implementation
       await new Promise(resolve => setTimeout(resolve, 1000));
       setActivities(mockActivities);
@@ -474,8 +474,8 @@ const UserActivityPage: React.FC = () => {
           label={params.row.actionResult}
           size="small"
           color={getActionResultColor(params.row.actionResult) as any}
-          icon={params.row.actionResult === 'SUCCESS' ? <CheckCircleIcon /> : 
-                params.row.actionResult === 'FAILURE' ? <ErrorIcon /> : <WarningIcon />}
+          icon={params.row.actionResult === 'SUCCESS' ? <CheckCircleIcon /> :
+            params.row.actionResult === 'FAILURE' ? <ErrorIcon /> : <WarningIcon />}
         />
       ),
     },
@@ -602,539 +602,539 @@ const UserActivityPage: React.FC = () => {
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <Box sx={{ flexGrow: 1, p: 3 }}>
-      {/* Header */}
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" gutterBottom>
-          User Activity Monitoring
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Monitor and track user activities, access patterns, and compliance events across the platform
-        </Typography>
-      </Box>
+        {/* Header */}
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h4" gutterBottom>
+            User Activity Monitoring
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Monitor and track user activities, access patterns, and compliance events across the platform
+          </Typography>
+        </Box>
 
-      {/* Error Alert */}
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
-
-      {/* Tabs */}
-      <Paper sx={{ mb: 3 }}>
-        <Tabs
-          value={currentTab}
-          onChange={handleTabChange}
-          indicatorColor="primary"
-          textColor="primary"
-          variant="fullWidth"
-        >
-          <Tab
-            label="Activity Logs"
-            icon={<AssignmentIcon />}
-            iconPosition="start"
-          />
-          <Tab
-            label="Statistics"
-            icon={<AnalyticsIcon />}
-            iconPosition="start"
-          />
-          <Tab
-            label="Real-time Monitor"
-            icon={<TimelineIcon />}
-            iconPosition="start"
-          />
-          <Tab
-            label="Compliance Report"
-            icon={<SecurityIcon />}
-            iconPosition="start"
-          />
-        </Tabs>
-      </Paper>
-
-      {/* Activity Logs Tab */}
-      <TabPanel value={currentTab} index={0}>
-        {/* Filters */}
-        <Card sx={{ mb: 3 }}>
-          <CardHeader
-            title="Filters"
-            action={
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <Button
-                  variant="outlined"
-                  startIcon={<ClearIcon />}
-                  onClick={handleClearFilters}
-                  size="small"
-                >
-                  Clear
-                </Button>
-                <Button
-                  variant="contained"
-                  startIcon={<RefreshIcon />}
-                  onClick={handleRefresh}
-                  disabled={loading}
-                  size="small"
-                >
-                  Refresh
-                </Button>
-                <Button
-                  variant="outlined"
-                  startIcon={<DownloadIcon />}
-                  onClick={() => setExportDialog(true)}
-                  size="small"
-                >
-                  Export
-                </Button>
-              </Box>
-            }
-          />
-          <CardContent>
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={3}>
-                <DatePicker
-                  label="From Date"
-                  value={filters.dateFrom}
-                  onChange={(date) => handleFilterChange('dateFrom', date)}
-                  slotProps={{ textField: { fullWidth: true, size: 'small' } }}
-                />
-              </Grid>
-              <Grid item xs={12} md={3}>
-                <DatePicker
-                  label="To Date"
-                  value={filters.dateTo}
-                  onChange={(date) => handleFilterChange('dateTo', date)}
-                  slotProps={{ textField: { fullWidth: true, size: 'small' } }}
-                />
-              </Grid>
-              <Grid item xs={12} md={2}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Activity Type</InputLabel>
-                  <Select
-                    value={filters.activityType || ''}
-                    onChange={(e) => handleFilterChange('activityType', e.target.value)}
-                    label="Activity Type"
-                  >
-                    <MenuItem value="">All</MenuItem>
-                    <MenuItem value="DATA_ACCESS">Data Access</MenuItem>
-                    <MenuItem value="CONFIGURATION_CHANGE">Configuration</MenuItem>
-                    <MenuItem value="FILE_UPLOAD">File Upload</MenuItem>
-                    <MenuItem value="APPROVAL_ACTION">Approval</MenuItem>
-                    <MenuItem value="USER_MANAGEMENT">User Management</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} md={2}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Result</InputLabel>
-                  <Select
-                    value={filters.actionResult || ''}
-                    onChange={(e) => handleFilterChange('actionResult', e.target.value)}
-                    label="Result"
-                  >
-                    <MenuItem value="">All</MenuItem>
-                    <MenuItem value="SUCCESS">Success</MenuItem>
-                    <MenuItem value="FAILURE">Failure</MenuItem>
-                    <MenuItem value="PARTIAL">Partial</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} md={2}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Risk Level</InputLabel>
-                  <Select
-                    value={filters.riskLevel || ''}
-                    onChange={(e) => handleFilterChange('riskLevel', e.target.value)}
-                    label="Risk Level"
-                  >
-                    <MenuItem value="">All</MenuItem>
-                    <MenuItem value="LOW">Low</MenuItem>
-                    <MenuItem value="MEDIUM">Medium</MenuItem>
-                    <MenuItem value="HIGH">High</MenuItem>
-                    <MenuItem value="CRITICAL">Critical</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Search"
-                  placeholder="Search by user, action, or module..."
-                  value={filters.searchTerm || ''}
-                  onChange={(e) => handleFilterChange('searchTerm', e.target.value)}
-                  InputProps={{
-                    startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />,
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12} md={3}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Banking Type</InputLabel>
-                  <Select
-                    value={filters.bankingType || ''}
-                    onChange={(e) => handleFilterChange('bankingType', e.target.value)}
-                    label="Banking Type"
-                  >
-                    <MenuItem value="">All</MenuItem>
-                    <MenuItem value="conventional">Conventional</MenuItem>
-                    <MenuItem value="syariah">Syariah</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} md={3}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="IP Address"
-                  placeholder="192.168.1.100"
-                  value={filters.ipAddress || ''}
-                  onChange={(e) => handleFilterChange('ipAddress', e.target.value)}
-                />
-              </Grid>
-            </Grid>
-          </CardContent>
-        </Card>
-
-        {/* Activity Logs DataGrid */}
-        <Card>
-          <CardHeader
-            title={`User Activities (${activities.length})`}
-            subheader={`Last updated: ${format(new Date(), 'MMM dd, yyyy HH:mm')}`}
-          />
-          <CardContent>
-            <DataGrid
-              rows={activities}
-              columns={columns}
-              loading={loading}
-              pageSizeOptions={[10, 25, 50, 100]}
-              initialState={{
-                pagination: {
-                  paginationModel: { pageSize: 25 },
-                },
-              }}
-              checkboxSelection
-              disableRowSelectionOnClick
-              sx={{ height: 600 }}
-              onRowDoubleClick={(params: GridRowParams) => handleViewDetails(params.row)}
-            />
-          </CardContent>
-        </Card>
-      </TabPanel>
-
-      {/* Statistics Tab */}
-      <TabPanel value={currentTab} index={1}>
-        {statistics && (
-          <Grid container spacing={3}>
-            {/* Key Metrics */}
-            <Grid item xs={12}>
-              <Typography variant="h6" gutterBottom>
-                Key Metrics
-              </Typography>
-            </Grid>
-            <Grid item xs={12} md={3}>
-              <StatCard
-                title="Total Activities"
-                value={statistics.totalActivities.toLocaleString()}
-                icon={<AssignmentIcon fontSize="large" />}
-                color={theme.palette.primary.main}
-                trend={{ value: 12, direction: 'up' }}
-                subtitle="Last 7 days"
-              />
-            </Grid>
-            <Grid item xs={12} md={3}>
-              <StatCard
-                title="Success Rate"
-                value={`${((statistics.successfulActivities / statistics.totalActivities) * 100).toFixed(1)}%`}
-                icon={<CheckCircleIcon fontSize="large" />}
-                color={theme.palette.success.main}
-                trend={{ value: 2, direction: 'up' }}
-                subtitle={`${statistics.successfulActivities} successful`}
-              />
-            </Grid>
-            <Grid item xs={12} md={3}>
-              <StatCard
-                title="High Risk Activities"
-                value={statistics.criticalRiskActivities + statistics.highRiskActivities}
-                icon={<WarningIcon fontSize="large" />}
-                color={theme.palette.error.main}
-                trend={{ value: 5, direction: 'down' }}
-                subtitle="Critical + High risk"
-              />
-            </Grid>
-            <Grid item xs={12} md={3}>
-              <StatCard
-                title="Avg Response Time"
-                value={`${statistics.avgResponseTime}ms`}
-                icon={<ScheduleIcon fontSize="large" />}
-                color={theme.palette.info.main}
-                trend={{ value: 8, direction: 'down' }}
-                subtitle="Performance metric"
-              />
-            </Grid>
-
-            {/* Additional Stats */}
-            <Grid item xs={12} md={3}>
-              <StatCard
-                title="Unique Users"
-                value={statistics.uniqueUsers}
-                icon={<PersonIcon fontSize="large" />}
-                color={theme.palette.secondary.main}
-                subtitle="Active users"
-              />
-            </Grid>
-            <Grid item xs={12} md={3}>
-              <StatCard
-                title="Unique Sessions"
-                value={statistics.uniqueSessions}
-                icon={<ComputerIcon fontSize="large" />}
-                color={theme.palette.primary.main}
-                subtitle="Active sessions"
-              />
-            </Grid>
-            <Grid item xs={12} md={3}>
-              <StatCard
-                title="Compliance Events"
-                value={statistics.complianceRelevantActivities}
-                icon={<SecurityIcon fontSize="large" />}
-                color={theme.palette.warning.main}
-                subtitle="Requires audit"
-              />
-            </Grid>
-            <Grid item xs={12} md={3}>
-              <StatCard
-                title="Failed Activities"
-                value={statistics.failedActivities}
-                icon={<ErrorIcon fontSize="large" />}
-                color={theme.palette.error.main}
-                subtitle="Needs attention"
-              />
-            </Grid>
-
-            {/* Top Modules */}
-            <Grid item xs={12} md={6}>
-              <Card>
-                <CardHeader title="Top Modules" />
-                <CardContent>
-                  <Stack spacing={2}>
-                    {statistics.topModules.map((module, index) => (
-                      <Box key={module.module} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Typography variant="body2" sx={{ minWidth: 20 }}>
-                          #{index + 1}
-                        </Typography>
-                        <Box sx={{ flexGrow: 1 }}>
-                          <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                            {module.module}
-                          </Typography>
-                          <LinearProgress
-                            variant="determinate"
-                            value={(module.count / statistics.topModules[0].count) * 100}
-                            sx={{ mt: 0.5 }}
-                          />
-                        </Box>
-                        <Typography variant="body2" color="text.secondary">
-                          {module.count}
-                        </Typography>
-                      </Box>
-                    ))}
-                  </Stack>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            {/* Top Users */}
-            <Grid item xs={12} md={6}>
-              <Card>
-                <CardHeader title="Most Active Users" />
-                <CardContent>
-                  <Stack spacing={2}>
-                    {statistics.topUsers.map((user, index) => (
-                      <Box key={user.userId} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Typography variant="body2" sx={{ minWidth: 20 }}>
-                          #{index + 1}
-                        </Typography>
-                        <Avatar sx={{ width: 32, height: 32, fontSize: '0.875rem' }}>
-                          {user.userName.split(' ').map(n => n[0]).join('')}
-                        </Avatar>
-                        <Box sx={{ flexGrow: 1 }}>
-                          <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                            {user.userName}
-                          </Typography>
-                          <LinearProgress
-                            variant="determinate"
-                            value={(user.count / statistics.topUsers[0].count) * 100}
-                            sx={{ mt: 0.5 }}
-                          />
-                        </Box>
-                        <Typography variant="body2" color="text.secondary">
-                          {user.count}
-                        </Typography>
-                      </Box>
-                    ))}
-                  </Stack>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
+        {/* Error Alert */}
+        {error && (
+          <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+            {error}
+          </Alert>
         )}
-      </TabPanel>
 
-      {/* Real-time Monitor Tab */}
-      <TabPanel value={currentTab} index={2}>
-        <Box sx={{ textAlign: 'center', py: 8 }}>
-          <TimelineIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-          <Typography variant="h6" gutterBottom>
-            Real-time Activity Monitor
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Live activity monitoring dashboard coming soon...
-          </Typography>
-        </Box>
-      </TabPanel>
+        {/* Tabs */}
+        <Paper sx={{ mb: 3 }}>
+          <Tabs
+            value={currentTab}
+            onChange={handleTabChange}
+            indicatorColor="primary"
+            textColor="primary"
+            variant="fullWidth"
+          >
+            <Tab
+              label="Activity Logs"
+              icon={<AssignmentIcon />}
+              iconPosition="start"
+            />
+            <Tab
+              label="Statistics"
+              icon={<AnalyticsIcon />}
+              iconPosition="start"
+            />
+            <Tab
+              label="Real-time Monitor"
+              icon={<TimelineIcon />}
+              iconPosition="start"
+            />
+            <Tab
+              label="Compliance Report"
+              icon={<SecurityIcon />}
+              iconPosition="start"
+            />
+          </Tabs>
+        </Paper>
 
-      {/* Compliance Report Tab */}
-      <TabPanel value={currentTab} index={3}>
-        <Box sx={{ textAlign: 'center', py: 8 }}>
-          <SecurityIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-          <Typography variant="h6" gutterBottom>
-            Compliance Report Generator
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Automated compliance reporting tools coming soon...
-          </Typography>
-        </Box>
-      </TabPanel>
-
-      {/* Activity Details Dialog */}
-      <Dialog
-        open={detailsDialog.open}
-        onClose={() => setDetailsDialog({ open: false, activity: null })}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>
-          Activity Details
-        </DialogTitle>
-        <DialogContent>
-          {detailsDialog.activity && (
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" gutterBottom>
-                  User Information
-                </Typography>
-                <Box sx={{ mb: 2 }}>
-                  <Typography variant="body2"><strong>Name:</strong> {detailsDialog.activity.userName}</Typography>
-                  <Typography variant="body2"><strong>Email:</strong> {detailsDialog.activity.userEmail}</Typography>
-                  <Typography variant="body2"><strong>User ID:</strong> {detailsDialog.activity.userId}</Typography>
-                  <Typography variant="body2"><strong>Session ID:</strong> {detailsDialog.activity.sessionId}</Typography>
+        {/* Activity Logs Tab */}
+        <TabPanel value={currentTab} index={0}>
+          {/* Filters */}
+          <Card sx={{ mb: 3 }}>
+            <CardHeader
+              title="Filters"
+              action={
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Button
+                    variant="outlined"
+                    startIcon={<ClearIcon />}
+                    onClick={handleClearFilters}
+                    size="small"
+                  >
+                    Clear
+                  </Button>
+                  <Button
+                    variant="contained"
+                    startIcon={<RefreshIcon />}
+                    onClick={handleRefresh}
+                    disabled={loading}
+                    size="small"
+                  >
+                    Refresh
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    startIcon={<DownloadIcon />}
+                    onClick={() => setExportDialog(true)}
+                    size="small"
+                  >
+                    Export
+                  </Button>
                 </Box>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" gutterBottom>
-                  Activity Information
-                </Typography>
-                <Box sx={{ mb: 2 }}>
-                  <Typography variant="body2"><strong>Type:</strong> {detailsDialog.activity.activityType}</Typography>
-                  <Typography variant="body2"><strong>Action:</strong> {detailsDialog.activity.actionPerformed}</Typography>
-                  <Typography variant="body2"><strong>Module:</strong> {detailsDialog.activity.moduleAccessed}</Typography>
-                  <Typography variant="body2"><strong>Result:</strong> {detailsDialog.activity.actionResult}</Typography>
-                </Box>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" gutterBottom>
-                  Technical Details
-                </Typography>
-                <Box sx={{ mb: 2 }}>
-                  <Typography variant="body2"><strong>IP Address:</strong> {detailsDialog.activity.ipAddress}</Typography>
-                  <Typography variant="body2"><strong>Location:</strong> {detailsDialog.activity.location}</Typography>
-                  <Typography variant="body2"><strong>Device:</strong> {detailsDialog.activity.deviceType}</Typography>
-                  <Typography variant="body2"><strong>Browser:</strong> {detailsDialog.activity.browserName}</Typography>
-                </Box>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" gutterBottom>
-                  Risk & Compliance
-                </Typography>
-                <Box sx={{ mb: 2 }}>
-                  <Typography variant="body2"><strong>Risk Level:</strong> {detailsDialog.activity.riskLevel}</Typography>
-                  <Typography variant="body2"><strong>Banking Type:</strong> {detailsDialog.activity.bankingType || 'N/A'}</Typography>
-                  <Typography variant="body2"><strong>Compliance Relevant:</strong> {detailsDialog.activity.complianceRelevant ? 'Yes' : 'No'}</Typography>
-                  <Typography variant="body2"><strong>Response Time:</strong> {detailsDialog.activity.responseTimeMs}ms</Typography>
-                </Box>
-              </Grid>
-              {detailsDialog.activity.errorMessage && (
-                <Grid item xs={12}>
-                  <Typography variant="subtitle2" gutterBottom>
-                    Error Details
-                  </Typography>
-                  <Alert severity="error">
-                    {detailsDialog.activity.errorMessage}
-                  </Alert>
+              }
+            />
+            <CardContent>
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={3}>
+                  <DatePicker
+                    label="From Date"
+                    value={filters.dateFrom}
+                    onChange={(date) => handleFilterChange('dateFrom', date)}
+                    slotProps={{ textField: { fullWidth: true, size: 'small' } }}
+                  />
                 </Grid>
-              )}
-              {detailsDialog.activity.metadata && (
-                <Grid item xs={12}>
-                  <Typography variant="subtitle2" gutterBottom>
-                    Additional Metadata
-                  </Typography>
-                  <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
-                    <pre style={{ margin: 0, fontSize: '0.875rem' }}>
-                      {JSON.stringify(detailsDialog.activity.metadata, null, 2)}
-                    </pre>
-                  </Paper>
+                <Grid item xs={12} md={3}>
+                  <DatePicker
+                    label="To Date"
+                    value={filters.dateTo}
+                    onChange={(date) => handleFilterChange('dateTo', date)}
+                    slotProps={{ textField: { fullWidth: true, size: 'small' } }}
+                  />
                 </Grid>
-              )}
+                <Grid item xs={12} md={2}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Activity Type</InputLabel>
+                    <Select
+                      value={filters.activityType || ''}
+                      onChange={(e) => handleFilterChange('activityType', e.target.value)}
+                      label="Activity Type"
+                    >
+                      <MenuItem value="">All</MenuItem>
+                      <MenuItem value="DATA_ACCESS">Data Access</MenuItem>
+                      <MenuItem value="CONFIGURATION_CHANGE">Configuration</MenuItem>
+                      <MenuItem value="FILE_UPLOAD">File Upload</MenuItem>
+                      <MenuItem value="APPROVAL_ACTION">Approval</MenuItem>
+                      <MenuItem value="USER_MANAGEMENT">User Management</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} md={2}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Result</InputLabel>
+                    <Select
+                      value={filters.actionResult || ''}
+                      onChange={(e) => handleFilterChange('actionResult', e.target.value)}
+                      label="Result"
+                    >
+                      <MenuItem value="">All</MenuItem>
+                      <MenuItem value="SUCCESS">Success</MenuItem>
+                      <MenuItem value="FAILURE">Failure</MenuItem>
+                      <MenuItem value="PARTIAL">Partial</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} md={2}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Risk Level</InputLabel>
+                    <Select
+                      value={filters.riskLevel || ''}
+                      onChange={(e) => handleFilterChange('riskLevel', e.target.value)}
+                      label="Risk Level"
+                    >
+                      <MenuItem value="">All</MenuItem>
+                      <MenuItem value="LOW">Low</MenuItem>
+                      <MenuItem value="MEDIUM">Medium</MenuItem>
+                      <MenuItem value="HIGH">High</MenuItem>
+                      <MenuItem value="CRITICAL">Critical</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    label="Search"
+                    placeholder="Search by user, action, or module..."
+                    value={filters.searchTerm || ''}
+                    onChange={(e) => handleFilterChange('searchTerm', e.target.value)}
+                    InputProps={{
+                      startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />,
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12} md={3}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Banking Type</InputLabel>
+                    <Select
+                      value={filters.bankingType || ''}
+                      onChange={(e) => handleFilterChange('bankingType', e.target.value)}
+                      label="Banking Type"
+                    >
+                      <MenuItem value="">All</MenuItem>
+                      <MenuItem value="conventional">Conventional</MenuItem>
+                      <MenuItem value="syariah">Syariah</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} md={3}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    label="IP Address"
+                    placeholder="192.168.1.100"
+                    value={filters.ipAddress || ''}
+                    onChange={(e) => handleFilterChange('ipAddress', e.target.value)}
+                  />
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
+
+          {/* Activity Logs DataGrid */}
+          <Card>
+            <CardHeader
+              title={`User Activities (${activities.length})`}
+              subheader={`Last updated: ${format(new Date(), 'MMM dd, yyyy HH:mm')}`}
+            />
+            <CardContent>
+              <DataGrid
+                rows={activities}
+                columns={columns}
+                loading={loading}
+                pageSizeOptions={[10, 25, 50, 100]}
+                initialState={{
+                  pagination: {
+                    paginationModel: { pageSize: 25 },
+                  },
+                }}
+                checkboxSelection
+                disableRowSelectionOnClick
+                sx={{ height: 600 }}
+                onRowDoubleClick={(params: GridRowParams) => handleViewDetails(params.row)}
+              />
+            </CardContent>
+          </Card>
+        </TabPanel>
+
+        {/* Statistics Tab */}
+        <TabPanel value={currentTab} index={1}>
+          {statistics && (
+            <Grid container spacing={3}>
+              {/* Key Metrics */}
+              <Grid item xs={12}>
+                <Typography variant="h6" gutterBottom>
+                  Key Metrics
+                </Typography>
+              </Grid>
+              <Grid item xs={12} md={3}>
+                <StatCard
+                  title="Total Activities"
+                  value={statistics.totalActivities.toLocaleString()}
+                  icon={<AssignmentIcon fontSize="large" />}
+                  color={theme.palette.primary.main}
+                  trend={{ value: 12, direction: 'up' }}
+                  subtitle="Last 7 days"
+                />
+              </Grid>
+              <Grid item xs={12} md={3}>
+                <StatCard
+                  title="Success Rate"
+                  value={`${((statistics.successfulActivities / statistics.totalActivities) * 100).toFixed(1)}%`}
+                  icon={<CheckCircleIcon fontSize="large" />}
+                  color={theme.palette.success.main}
+                  trend={{ value: 2, direction: 'up' }}
+                  subtitle={`${statistics.successfulActivities} successful`}
+                />
+              </Grid>
+              <Grid item xs={12} md={3}>
+                <StatCard
+                  title="High Risk Activities"
+                  value={statistics.criticalRiskActivities + statistics.highRiskActivities}
+                  icon={<WarningIcon fontSize="large" />}
+                  color={theme.palette.error.main}
+                  trend={{ value: 5, direction: 'down' }}
+                  subtitle="Critical + High risk"
+                />
+              </Grid>
+              <Grid item xs={12} md={3}>
+                <StatCard
+                  title="Avg Response Time"
+                  value={`${statistics.avgResponseTime}ms`}
+                  icon={<ScheduleIcon fontSize="large" />}
+                  color={theme.palette.info.main}
+                  trend={{ value: 8, direction: 'down' }}
+                  subtitle="Performance metric"
+                />
+              </Grid>
+
+              {/* Additional Stats */}
+              <Grid item xs={12} md={3}>
+                <StatCard
+                  title="Unique Users"
+                  value={statistics.uniqueUsers}
+                  icon={<PersonIcon fontSize="large" />}
+                  color={theme.palette.secondary.main}
+                  subtitle="Active users"
+                />
+              </Grid>
+              <Grid item xs={12} md={3}>
+                <StatCard
+                  title="Unique Sessions"
+                  value={statistics.uniqueSessions}
+                  icon={<ComputerIcon fontSize="large" />}
+                  color={theme.palette.primary.main}
+                  subtitle="Active sessions"
+                />
+              </Grid>
+              <Grid item xs={12} md={3}>
+                <StatCard
+                  title="Compliance Events"
+                  value={statistics.complianceRelevantActivities}
+                  icon={<SecurityIcon fontSize="large" />}
+                  color={theme.palette.warning.main}
+                  subtitle="Requires audit"
+                />
+              </Grid>
+              <Grid item xs={12} md={3}>
+                <StatCard
+                  title="Failed Activities"
+                  value={statistics.failedActivities}
+                  icon={<ErrorIcon fontSize="large" />}
+                  color={theme.palette.error.main}
+                  subtitle="Needs attention"
+                />
+              </Grid>
+
+              {/* Top Modules */}
+              <Grid item xs={12} md={6}>
+                <Card>
+                  <CardHeader title="Top Modules" />
+                  <CardContent>
+                    <Stack spacing={2}>
+                      {statistics.topModules.map((module, index) => (
+                        <Box key={module.module} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                          <Typography variant="body2" sx={{ minWidth: 20 }}>
+                            #{index + 1}
+                          </Typography>
+                          <Box sx={{ flexGrow: 1 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                              {module.module}
+                            </Typography>
+                            <LinearProgress
+                              variant="determinate"
+                              value={(module.count / statistics.topModules[0].count) * 100}
+                              sx={{ mt: 0.5 }}
+                            />
+                          </Box>
+                          <Typography variant="body2" color="text.secondary">
+                            {module.count}
+                          </Typography>
+                        </Box>
+                      ))}
+                    </Stack>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              {/* Top Users */}
+              <Grid item xs={12} md={6}>
+                <Card>
+                  <CardHeader title="Most Active Users" />
+                  <CardContent>
+                    <Stack spacing={2}>
+                      {statistics.topUsers.map((user, index) => (
+                        <Box key={user.userId} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                          <Typography variant="body2" sx={{ minWidth: 20 }}>
+                            #{index + 1}
+                          </Typography>
+                          <Avatar sx={{ width: 32, height: 32, fontSize: '0.875rem' }}>
+                            {user.userName.split(' ').map(n => n[0]).join('')}
+                          </Avatar>
+                          <Box sx={{ flexGrow: 1 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                              {user.userName}
+                            </Typography>
+                            <LinearProgress
+                              variant="determinate"
+                              value={(user.count / statistics.topUsers[0].count) * 100}
+                              sx={{ mt: 0.5 }}
+                            />
+                          </Box>
+                          <Typography variant="body2" color="text.secondary">
+                            {user.count}
+                          </Typography>
+                        </Box>
+                      ))}
+                    </Stack>
+                  </CardContent>
+                </Card>
+              </Grid>
             </Grid>
           )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDetailsDialog({ open: false, activity: null })}>
-            Close
-          </Button>
-        </DialogActions>
-      </Dialog>
+        </TabPanel>
 
-      {/* Export Dialog */}
-      <Dialog
-        open={exportDialog}
-        onClose={() => setExportDialog(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Export User Activities</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" gutterBottom>
-            Choose export format for current filtered activities:
-          </Typography>
-          <Stack spacing={2} sx={{ mt: 2 }}>
-            <Button
-              variant="outlined"
-              startIcon={<CloudDownloadIcon />}
-              onClick={() => handleExport('csv')}
-              fullWidth
-            >
-              Export as CSV
+        {/* Real-time Monitor Tab */}
+        <TabPanel value={currentTab} index={2}>
+          <Box sx={{ textAlign: 'center', py: 8 }}>
+            <TimelineIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+            <Typography variant="h6" gutterBottom>
+              Real-time Activity Monitor
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Live activity monitoring dashboard coming soon...
+            </Typography>
+          </Box>
+        </TabPanel>
+
+        {/* Compliance Report Tab */}
+        <TabPanel value={currentTab} index={3}>
+          <Box sx={{ textAlign: 'center', py: 8 }}>
+            <SecurityIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+            <Typography variant="h6" gutterBottom>
+              Compliance Report Generator
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Automated compliance reporting tools coming soon...
+            </Typography>
+          </Box>
+        </TabPanel>
+
+        {/* Activity Details Dialog */}
+        <Dialog
+          open={detailsDialog.open}
+          onClose={() => setDetailsDialog({ open: false, activity: null })}
+          maxWidth="md"
+          fullWidth
+        >
+          <DialogTitle>
+            Activity Details
+          </DialogTitle>
+          <DialogContent>
+            {detailsDialog.activity && (
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={6}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    User Information
+                  </Typography>
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="body2"><strong>Name:</strong> {detailsDialog.activity.userName}</Typography>
+                    <Typography variant="body2"><strong>Email:</strong> {detailsDialog.activity.userEmail}</Typography>
+                    <Typography variant="body2"><strong>User ID:</strong> {detailsDialog.activity.userId}</Typography>
+                    <Typography variant="body2"><strong>Session ID:</strong> {detailsDialog.activity.sessionId}</Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Activity Information
+                  </Typography>
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="body2"><strong>Type:</strong> {detailsDialog.activity.activityType}</Typography>
+                    <Typography variant="body2"><strong>Action:</strong> {detailsDialog.activity.actionPerformed}</Typography>
+                    <Typography variant="body2"><strong>Module:</strong> {detailsDialog.activity.moduleAccessed}</Typography>
+                    <Typography variant="body2"><strong>Result:</strong> {detailsDialog.activity.actionResult}</Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Technical Details
+                  </Typography>
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="body2"><strong>IP Address:</strong> {detailsDialog.activity.ipAddress}</Typography>
+                    <Typography variant="body2"><strong>Location:</strong> {detailsDialog.activity.location}</Typography>
+                    <Typography variant="body2"><strong>Device:</strong> {detailsDialog.activity.deviceType}</Typography>
+                    <Typography variant="body2"><strong>Browser:</strong> {detailsDialog.activity.browserName}</Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Risk & Compliance
+                  </Typography>
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="body2"><strong>Risk Level:</strong> {detailsDialog.activity.riskLevel}</Typography>
+                    <Typography variant="body2"><strong>Banking Type:</strong> {detailsDialog.activity.bankingType || 'N/A'}</Typography>
+                    <Typography variant="body2"><strong>Compliance Relevant:</strong> {detailsDialog.activity.complianceRelevant ? 'Yes' : 'No'}</Typography>
+                    <Typography variant="body2"><strong>Response Time:</strong> {detailsDialog.activity.responseTimeMs}ms</Typography>
+                  </Box>
+                </Grid>
+                {detailsDialog.activity.errorMessage && (
+                  <Grid item xs={12}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Error Details
+                    </Typography>
+                    <Alert severity="error">
+                      {detailsDialog.activity.errorMessage}
+                    </Alert>
+                  </Grid>
+                )}
+                {detailsDialog.activity.metadata && (
+                  <Grid item xs={12}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Additional Metadata
+                    </Typography>
+                    <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
+                      <pre style={{ margin: 0, fontSize: '0.875rem' }}>
+                        {JSON.stringify(detailsDialog.activity.metadata, null, 2)}
+                      </pre>
+                    </Paper>
+                  </Grid>
+                )}
+              </Grid>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDetailsDialog({ open: false, activity: null })}>
+              Close
             </Button>
-            <Button
-              variant="outlined"
-              startIcon={<CloudDownloadIcon />}
-              onClick={() => handleExport('excel')}
-              fullWidth
-            >
-              Export as Excel
-            </Button>
-            <Button
-              variant="outlined"
-              startIcon={<CloudDownloadIcon />}
-              onClick={() => handleExport('pdf')}
-              fullWidth
-            >
-              Export as PDF Report
-            </Button>
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setExportDialog(false)}>Cancel</Button>
-        </DialogActions>
-      </Dialog>
+          </DialogActions>
+        </Dialog>
+
+        {/* Export Dialog */}
+        <Dialog
+          open={exportDialog}
+          onClose={() => setExportDialog(false)}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>Export User Activities</DialogTitle>
+          <DialogContent>
+            <Typography variant="body2" gutterBottom>
+              Choose export format for current filtered activities:
+            </Typography>
+            <Stack spacing={2} sx={{ mt: 2 }}>
+              <Button
+                variant="outlined"
+                startIcon={<CloudDownloadIcon />}
+                onClick={() => handleExport('csv')}
+                fullWidth
+              >
+                Export as CSV
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<CloudDownloadIcon />}
+                onClick={() => handleExport('excel')}
+                fullWidth
+              >
+                Export as Excel
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<CloudDownloadIcon />}
+                onClick={() => handleExport('pdf')}
+                fullWidth
+              >
+                Export as PDF Report
+              </Button>
+            </Stack>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setExportDialog(false)}>Cancel</Button>
+          </DialogActions>
+        </Dialog>
       </Box>
     </LocalizationProvider>
   );

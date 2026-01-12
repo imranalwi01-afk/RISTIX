@@ -40,14 +40,14 @@ export const populationSegmentsApi = {
         if (params?.active_flag !== undefined) queryParams.append('active_flag', params.active_flag.toString());
 
         const url = queryParams.toString() ? `${BASE_URL}?${queryParams}` : BASE_URL;
-        const response = await apiClient.get<PopulationSegment[]>(url);
-        return response.data!;
+        const response = await apiClient.get<any>(url);
+        return response.data || [];
     },
 
     async getById(id: string): Promise<PopulationSegment | undefined> {
         // Handle potential definition mismatch if API returns 404 as error vs null
         try {
-            const response = await apiClient.get<PopulationSegment>(`${BASE_URL}/${id}`);
+            const response = await apiClient.get<any>(`${BASE_URL}/${id}`);
             return response.data;
         } catch (error) {
             return undefined;
@@ -55,12 +55,12 @@ export const populationSegmentsApi = {
     },
 
     async create(data: CreatePopulationSegmentDto): Promise<PopulationSegment> {
-        const response = await apiClient.post<PopulationSegment>(BASE_URL, data);
+        const response = await apiClient.post<any>(BASE_URL, data);
         return response.data!;
     },
 
     async update(id: string, data: UpdatePopulationSegmentDto): Promise<PopulationSegment> {
-        const response = await apiClient.put<PopulationSegment>(`${BASE_URL}/${id}`, data);
+        const response = await apiClient.put<any>(`${BASE_URL}/${id}`, data);
         return response.data!;
     },
 

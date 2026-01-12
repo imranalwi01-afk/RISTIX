@@ -1,497 +1,423 @@
-import { Hono } from 'hono'
-import { zValidator } from '@hono/zod-validator'
-import { z } from 'zod'
-import { db } from '@/config'
-import { frs9ParamScenarioRulesh, frs9ParamScenarioRulesd } from '@/db/schema'
-import { eq, and, desc, like, or, asc } from 'drizzle-orm'
-import type { AppContext } from '@/app'
-import { authMiddleware, tenantMiddleware } from '../middleware'
+import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
+import type { AppContext } from '../app'
+import { authMiddleware } from '../middleware'
+import { RuleBaseSettingsService } from '../services/rule-base-settings.service'
+import { runEffect } from '../lib/effect/runtime'
 
-const app = new Hono<AppContext>()
+const app = new OpenAPIHono<AppContext>()
 
-// Apply auth and tenant middleware
 app.use('*', authMiddleware)
-// app.use('*', tenantMiddleware) // Legacy tables might not adhere to tenant isolation in the same way, or tenantId is not in schema.
 
 // ============================================================================
 // VALIDATION SCHEMAS
 // ============================================================================
 
-const createHeaderSchema = z.object({
-    ruleName: z.string().min(1).max(150), // Increased max length to match schema (150)
+const CreateHeaderSchema = z.object({
+    ruleName: z.string().min(1).max(150),
     ruleType: z.string().min(1).max(50),
-    updatedTable: z.string().min(1).max(30), // Schema length 30
-    updatedColumn: z.string().min(1).max(30), // Schema length 30
-    value: z.string().optional(), // value is text in schema
+    updatedTable: z.string().min(1).max(30),
+    updatedColumn: z.string().min(1).max(30),
+    value: z.string().optional(),
     seq: z.number().int().default(1),
     activeFlag: z.boolean().default(true),
-    // description: z.string().optional(), // Not in schema
-})
+}).openapi('CreateRuleHeaderInput')
 
-const updateHeaderSchema = createHeaderSchema.partial()
+const UpdateHeaderSchema = CreateHeaderSchema.partial().openapi('UpdateRuleHeaderInput')
 
-const createDetailSchema = z.object({
+const CreateDetailSchema = z.object({
     queryGroup: z.number().int().default(1),
     seq: z.number().int().default(1),
-    tableName: z.string().min(1).max(30), // Schema 30
-    columnName: z.string().min(1).max(30), // Schema 30
-    dataType: z.string().min(1).max(15), // Schema 15
+    tableName: z.string().min(1).max(30),
+    columnName: z.string().min(1).max(30),
+    dataType: z.string().min(1).max(15),
     operator: z.string().max(10).optional(),
     value1: z.string().optional(),
     value2: z.string().optional(),
     condition: z.string().max(3).default('AND'),
-    detailType: z.string().max(50).optional(), // Schema varchar(50)
-    stageFrom: z.string().max(2).optional(), // Schema varchar(2)
-    stageTo: z.string().max(2).optional(), // Schema varchar(2)
+    detailType: z.string().max(50).optional(),
+    stageFrom: z.string().max(2).optional(),
+    stageTo: z.string().max(2).optional(),
+}).openapi('CreateRuleDetailInput')
+
+const UpdateDetailSchema = CreateDetailSchema.partial().openapi('UpdateRuleDetailInput')
+
+const RuleHeaderResponse = z.object({
+    id: z.number(),
+    rule_name: z.string().nullable(),
+    rule_type: z.string().nullable(),
+    updated_table: z.string().nullable(),
+    updated_column: z.string().nullable(),
+    value: z.string().nullable(),
+    seq: z.number().nullable(),
+    active_flag: z.boolean().nullable(),
+    created_by: z.string().nullable(),
+    updated_by: z.string().nullable(),
+    created_date: z.string().nullable(),
+    updated_date: z.string().nullable(),
+}).openapi('RuleHeaderResponse')
+
+const RuleListResponse = z.object({
+    success: z.boolean(),
+    data: z.array(RuleHeaderResponse)
+}).openapi('RuleListResponse')
+
+const RuleDetailResponseSingle = z.object({
+    success: z.boolean(),
+    data: RuleHeaderResponse,
+    message: z.string().optional(),
+}).openapi('RuleDetailResponseSingle')
+
+const RuleDetailSchema = z.object({
+    id: z.number(),
+    rule_id: z.number().nullable(),
+    query_group: z.number().nullable(),
+    seq: z.number().nullable(),
+    table_name: z.string().nullable(),
+    column_name: z.string().nullable(),
+    data_type: z.string().nullable(),
+    operator: z.string().nullable(),
+    value1: z.string().nullable(),
+    value2: z.string().nullable(),
+    condition: z.string().nullable(),
+    detail_type: z.string().nullable(),
+    stage_from: z.string().nullable(),
+    stage_to: z.string().nullable(),
+    created_by: z.string().nullable(),
+    updated_by: z.string().nullable(),
+    created_date: z.string().nullable(),
+    updated_date: z.string().nullable(),
+}).openapi('RuleDetail')
+
+const RuleDetailsListResponse = z.object({
+    success: z.boolean(),
+    data: z.array(RuleDetailSchema)
+}).openapi('RuleDetailsListResponse')
+
+const RuleDetailItemResponse = z.object({
+    success: z.boolean(),
+    data: RuleDetailSchema,
+    message: z.string().optional()
+}).openapi('RuleDetailItemResponse')
+
+const MetadataOptionSchema = z.object({
+    value: z.string(),
+    label: z.string(),
+    supportsMultiple: z.boolean().optional(),
+    requiresNoValues: z.boolean().optional(),
+    requiresValue2: z.boolean().optional(),
 })
 
-const updateDetailSchema = createDetailSchema.partial()
+const MetadataListResponse = z.object({
+    success: z.boolean(),
+    data: z.array(MetadataOptionSchema)
+}).openapi('MetadataListResponse')
+
+const ErrorResponse = z.object({
+    success: z.boolean(),
+    message: z.string(),
+    error: z.string().optional()
+}).openapi('ErrorResponse')
 
 // ============================================================================
-// HELPER FUNCTIONS
-// ============================================================================
-
-// Transform camelCase to snake_case for frontend compatibility (matches existing frontend expectations)
-const transformHeader = (header: typeof frs9ParamScenarioRulesh.$inferSelect) => ({
-    id: header.pkid,
-    rule_name: header.ruleName,
-    rule_type: header.ruleType,
-    updated_table: header.updatedTable,
-    updated_column: header.updatedColumn,
-    value: header.value,
-    seq: header.seq,
-    active_flag: header.activeFlag,
-    // description: header.description,
-    // detail_count: header.detailCount, // Need join for this?
-    created_by: header.createdby,
-    updated_by: header.updatedby,
-    created_date: header.createddate,
-    updated_date: header.updateddate,
-})
-
-const transformDetail = (detail: typeof frs9ParamScenarioRulesd.$inferSelect) => ({
-    id: detail.pkid,
-    rule_id: detail.ruleId,
-    query_group: detail.queryGroup,
-    seq: detail.seq,
-    table_name: detail.tableName,
-    column_name: detail.columnName,
-    data_type: detail.dataType,
-    operator: detail.operator,
-    value1: detail.value1,
-    value2: detail.value2,
-    condition: detail.condition,
-    detail_type: detail.detailType,
-    stage_from: detail.stageFrom,
-    stage_to: detail.stageTo,
-    created_by: detail.createdby,
-    updated_by: detail.updatedby,
-    created_date: detail.createddate,
-    updated_date: detail.updateddate,
-})
-
-// ============================================================================
-// RULE HEADERS ENDPOINTS
+// HEADER ROUTES
 // ============================================================================
 
 // GET /api/v1/banking/collective/rule-base
-app.get('/', async (c) => {
-    try {
-        const { page, limit, search, rule_type, active_flag } = c.req.query()
-
-        const conditions = []
-
-        if (search) {
-            conditions.push(
-                or(
-                    like(frs9ParamScenarioRulesh.ruleName, `%${search}%`),
-                    like(frs9ParamScenarioRulesh.ruleType, `%${search}%`)
-                )!
-            )
+app.openapi(
+    createRoute({
+        method: 'get',
+        path: '/',
+        tags: ['Rule Base Settings'],
+        summary: 'List Rule Headers',
+        request: {
+            query: z.object({
+                search: z.string().optional(),
+                rule_type: z.string().optional(),
+                active_flag: z.enum(['true', 'false']).optional()
+            })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: RuleListResponse } }, description: 'List Rules' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
-
-        if (rule_type) {
-            conditions.push(eq(frs9ParamScenarioRulesh.ruleType, rule_type))
-        }
-
-        if (active_flag !== undefined) {
-            conditions.push(eq(frs9ParamScenarioRulesh.activeFlag, active_flag === 'true'))
-        }
-
-        const headers = await db
-            .select()
-            .from(frs9ParamScenarioRulesh)
-            .where(and(...conditions))
-            .orderBy(desc(frs9ParamScenarioRulesh.createddate))
-
-        return c.json({
-            success: true,
-            data: headers.map(transformHeader),
-        })
-    } catch (error) {
-        console.error('Error fetching rule headers:', error)
-        return c.json({
-            success: false,
-            message: 'Failed to fetch rule headers',
-        }, 500)
+    }),
+    async (c) => {
+        const query = c.req.valid('query')
+        return runEffect(c, RuleBaseSettingsService.listHeaders({
+            ...query,
+            activeFlag: query.active_flag ? query.active_flag === 'true' : undefined
+        }) as any) as any
     }
-})
+)
 
 // GET /api/v1/banking/collective/rule-base/:id
-app.get('/:id', async (c) => {
-    try {
-        const id = Number(c.req.param('id'))
-        if (isNaN(id)) return c.json({ error: 'Invalid ID' }, 400);
-
-        const [header] = await db
-            .select()
-            .from(frs9ParamScenarioRulesh)
-            .where(eq(frs9ParamScenarioRulesh.pkid, id))
-
-        if (!header) {
-            return c.json({
-                success: false,
-                message: 'Rule header not found',
-            }, 404)
+app.openapi(
+    createRoute({
+        method: 'get',
+        path: '/{id}',
+        tags: ['Rule Base Settings'],
+        summary: 'Get Rule Header',
+        request: {
+            params: z.object({ id: z.string().transform(Number) })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: RuleDetailResponseSingle } }, description: 'Rule Header' },
+            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
-
-        return c.json({
-            success: true,
-            data: transformHeader(header),
-        })
-    } catch (error) {
-        console.error('Error fetching rule header:', error)
-        return c.json({
-            success: false,
-            message: 'Failed to fetch rule header',
-        }, 500)
+    }),
+    async (c) => {
+        const { id } = c.req.valid('param')
+        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
+        return runEffect(c, RuleBaseSettingsService.getHeader(id) as any) as any
     }
-})
+)
 
 // POST /api/v1/banking/collective/rule-base
-app.post('/', zValidator('json', createHeaderSchema), async (c) => {
-    try {
-        const userId = 'SYSTEM' // Legacy auth fallback 
-        // const userId = c.get('userId') as string // If auth middleware populates it.
+app.openapi(
+    createRoute({
+        method: 'post',
+        path: '/',
+        tags: ['Rule Base Settings'],
+        summary: 'Create Rule Header',
+        request: {
+            body: { content: { 'application/json': { schema: CreateHeaderSchema } } }
+        },
+        responses: {
+            201: { content: { 'application/json': { schema: RuleDetailResponseSingle } }, description: 'Created' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
         const data = c.req.valid('json')
-
-        const [header] = await db
-            .insert(frs9ParamScenarioRulesh)
-            .values({
-                ...data,
-                createdby: userId,
-                createdhost: 'localhost',
-                createddate: new Date().toISOString(),
-                updatedby: userId,
-                updatedhost: 'localhost',
-                updateddate: new Date().toISOString()
-            })
-            .returning()
-
-        return c.json({
-            success: true,
-            data: transformHeader(header),
-            message: 'Rule header created successfully',
-        }, 201)
-    } catch (error) {
-        console.error('Error creating rule header:', error)
-        return c.json({
-            success: false,
-            message: 'Failed to create rule header',
-        }, 500)
+        const userId = c.get('userId') as string || 'system'
+        return runEffect(c, RuleBaseSettingsService.createHeader(data, userId) as any) as any
     }
-})
+)
 
 // PUT /api/v1/banking/collective/rule-base/:id
-app.put('/:id', zValidator('json', updateHeaderSchema), async (c) => {
-    try {
-        const id = Number(c.req.param('id'))
-        if (isNaN(id)) return c.json({ error: 'Invalid ID' }, 400);
-        const userId = 'SYSTEM'
-        const data = c.req.valid('json')
-
-        const [updated] = await db
-            .update(frs9ParamScenarioRulesh)
-            .set({
-                ...data,
-                updatedby: userId,
-                updateddate: new Date().toISOString(),
-                updatedhost: 'localhost'
-            })
-            .where(eq(frs9ParamScenarioRulesh.pkid, id))
-            .returning()
-
-        if (!updated) {
-            return c.json({
-                success: false,
-                message: 'Rule header not found',
-            }, 404)
+app.openapi(
+    createRoute({
+        method: 'put',
+        path: '/{id}',
+        tags: ['Rule Base Settings'],
+        summary: 'Update Rule Header',
+        request: {
+            params: z.object({ id: z.string().transform(Number) }),
+            body: { content: { 'application/json': { schema: UpdateHeaderSchema } } }
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: RuleDetailResponseSingle } }, description: 'Updated' },
+            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
-
-        return c.json({
-            success: true,
-            data: transformHeader(updated),
-            message: 'Rule header updated successfully',
-        })
-    } catch (error) {
-        console.error('Error updating rule header:', error)
-        return c.json({
-            success: false,
-            message: 'Failed to update rule header',
-        }, 500)
+    }),
+    async (c) => {
+        const { id } = c.req.valid('param')
+        const data = c.req.valid('json')
+        const userId = c.get('userId') as string || 'system'
+        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
+        return runEffect(c, RuleBaseSettingsService.updateHeader(id, data, userId) as any) as any
     }
-})
+)
 
 // DELETE /api/v1/banking/collective/rule-base/:id
-app.delete('/:id', async (c) => {
-    try {
-        const id = Number(c.req.param('id'))
-        if (isNaN(id)) return c.json({ error: 'Invalid ID' }, 400);
-
-        // Transactional delete using runTransaction if possible, or simple awaits
-        await db.transaction(async (tx) => {
-            await tx.delete(frs9ParamScenarioRulesd).where(eq(frs9ParamScenarioRulesd.ruleId, id))
-            await tx.delete(frs9ParamScenarioRulesh).where(eq(frs9ParamScenarioRulesh.pkid, id))
-        })
-
-        return c.json({
-            success: true,
-            message: 'Rule header deleted successfully',
-        })
-    } catch (error) {
-        console.error('Error deleting rule header:', error)
-        return c.json({
-            success: false,
-            message: 'Failed to delete rule header',
-        }, 500)
+app.openapi(
+    createRoute({
+        method: 'delete',
+        path: '/{id}',
+        tags: ['Rule Base Settings'],
+        summary: 'Delete Rule Header',
+        request: {
+            params: z.object({ id: z.string().transform(Number) })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Deleted' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Invalid ID' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        const { id } = c.req.valid('param')
+        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
+        return runEffect(c, RuleBaseSettingsService.deleteHeader(id) as any) as any
     }
-})
+)
 
 // ============================================================================
-// RULE DETAILS ENDPOINTS
+// DETAIL ROUTES
 // ============================================================================
 
 // GET /api/v1/banking/collective/rule-base/:ruleId/details
-app.get('/:ruleId/details', async (c) => {
-    try {
-        const ruleId = Number(c.req.param('ruleId'))
-        if (isNaN(ruleId)) return c.json({ error: 'Invalid ID' }, 400);
-
-        const details = await db
-            .select()
-            .from(frs9ParamScenarioRulesd)
-            .where(eq(frs9ParamScenarioRulesd.ruleId, ruleId))
-            .orderBy(frs9ParamScenarioRulesd.queryGroup, frs9ParamScenarioRulesd.seq)
-
-        return c.json({
-            success: true,
-            data: details.map(transformDetail),
-        })
-    } catch (error) {
-        console.error('Error fetching rule details:', error)
-        return c.json({
-            success: false,
-            message: 'Failed to fetch rule details',
-        }, 500)
+app.openapi(
+    createRoute({
+        method: 'get',
+        path: '/{ruleId}/details',
+        tags: ['Rule Base Settings'],
+        summary: 'List Rule Details',
+        request: {
+            params: z.object({ ruleId: z.string().transform(Number) })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: RuleDetailsListResponse } }, description: 'List Details' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        const { ruleId } = c.req.valid('param')
+        if (isNaN(ruleId)) return c.json({ success: false, message: 'Invalid ID' }, 400)
+        return runEffect(c, RuleBaseSettingsService.listDetails(ruleId) as any) as any
     }
-})
+)
 
 // POST /api/v1/banking/collective/rule-base/:ruleId/details
-app.post('/:ruleId/details', zValidator('json', createDetailSchema), async (c) => {
-    try {
-        const ruleId = Number(c.req.param('ruleId'))
-        if (isNaN(ruleId)) return c.json({ error: 'Invalid ID' }, 400);
-
-        const userId = 'SYSTEM'
-        const data = c.req.valid('json')
-
-        // Ensure mandatory fields are present. Zod checks most, but Schema not-null constraints apply.
-        // value1 is non-nullable in schema.
-        if (!data.value1 && data.value1 !== '') {
-            // Handle if optional in Zod but required in DB? 
-            // Zod schema above has .optional(). Schema has .notNull().
-            // I should make value1 required in Zod or provide default.
-            // Schema: value1: text().notNull()
-            // Schema: value2: text()
-            // Let's rely on Zod but providing empty string if missing?
-            // Better to assume valid input or fail.
+app.openapi(
+    createRoute({
+        method: 'post',
+        path: '/{ruleId}/details',
+        tags: ['Rule Base Settings'],
+        summary: 'Create Rule Detail',
+        request: {
+            params: z.object({ ruleId: z.string().transform(Number) }),
+            body: { content: { 'application/json': { schema: CreateDetailSchema } } }
+        },
+        responses: {
+            201: { content: { 'application/json': { schema: RuleDetailItemResponse } }, description: 'Created' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
-
-        const [detail] = await db
-            .insert(frs9ParamScenarioRulesd)
-            .values({
-                ...data,
-                ruleId,
-                value1: data.value1 || '', // Fallback to empty string for Not Null constraint
-                createdby: userId,
-                createdhost: 'localhost',
-                createddate: new Date().toISOString(),
-                updatedby: userId,
-                updatedhost: 'localhost',
-                updateddate: new Date().toISOString()
-            })
-            .returning()
-
-        return c.json({
-            success: true,
-            data: transformDetail(detail),
-            message: 'Rule detail created successfully',
-        }, 201)
-    } catch (error) {
-        console.error('Error creating rule detail:', error)
-        return c.json({
-            success: false,
-            message: 'Failed to create rule detail',
-        }, 500)
+    }),
+    async (c) => {
+        const { ruleId } = c.req.valid('param')
+        const data = c.req.valid('json')
+        const userId = c.get('userId') as string || 'system'
+        if (isNaN(ruleId)) return c.json({ success: false, message: 'Invalid ID' }, 400)
+        return runEffect(c, RuleBaseSettingsService.createDetail(ruleId, data, userId) as any) as any
     }
-})
+)
 
 // PUT /api/v1/banking/collective/rule-base/details/:detailId
-app.put('/details/:detailId', zValidator('json', updateDetailSchema), async (c) => {
-    try {
-        const detailId = Number(c.req.param('detailId'))
-        if (isNaN(detailId)) return c.json({ error: 'Invalid ID' }, 400);
-        const userId = 'SYSTEM'
-        const data = c.req.valid('json')
-
-        const [updated] = await db
-            .update(frs9ParamScenarioRulesd)
-            .set({
-                ...data,
-                updatedby: userId,
-                updateddate: new Date().toISOString(),
-                updatedhost: 'localhost'
-            })
-            .where(eq(frs9ParamScenarioRulesd.pkid, detailId))
-            .returning()
-
-        if (!updated) {
-            return c.json({
-                success: false,
-                message: 'Rule detail not found',
-            }, 404)
+app.openapi(
+    createRoute({
+        method: 'put',
+        path: '/details/{detailId}',
+        tags: ['Rule Base Settings'],
+        summary: 'Update Rule Detail',
+        request: {
+            params: z.object({ detailId: z.string().transform(Number) }),
+            body: { content: { 'application/json': { schema: UpdateDetailSchema } } }
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: RuleDetailItemResponse } }, description: 'Updated' },
+            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
-
-        return c.json({
-            success: true,
-            data: transformDetail(updated),
-            message: 'Rule detail updated successfully',
-        })
-    } catch (error) {
-        console.error('Error updating rule detail:', error)
-        return c.json({
-            success: false,
-            message: 'Failed to update rule detail',
-        }, 500)
+    }),
+    async (c) => {
+        const { detailId } = c.req.valid('param')
+        const data = c.req.valid('json')
+        const userId = c.get('userId') as string || 'system'
+        if (isNaN(detailId)) return c.json({ success: false, message: 'Invalid ID' }, 400)
+        return runEffect(c, RuleBaseSettingsService.updateDetail(detailId, data, userId) as any) as any
     }
-})
+)
 
 // DELETE /api/v1/banking/collective/rule-base/details/:detailId
-app.delete('/details/:detailId', async (c) => {
-    try {
-        const detailId = Number(c.req.param('detailId'))
-        if (isNaN(detailId)) return c.json({ error: 'Invalid ID' }, 400);
-
-        const [deleted] = await db
-            .delete(frs9ParamScenarioRulesd)
-            .where(eq(frs9ParamScenarioRulesd.pkid, detailId))
-            .returning()
-
-        if (!deleted) {
-            return c.json({
-                success: false,
-                message: 'Rule detail not found',
-            }, 404)
+app.openapi(
+    createRoute({
+        method: 'delete',
+        path: '/details/{detailId}',
+        tags: ['Rule Base Settings'],
+        summary: 'Delete Rule Detail',
+        request: {
+            params: z.object({ detailId: z.string().transform(Number) })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Deleted' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Invalid ID' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
-
-        return c.json({
-            success: true,
-            message: 'Rule detail deleted successfully',
-        })
-    } catch (error) {
-        console.error('Error deleting rule detail:', error)
-        return c.json({
-            success: false,
-            message: 'Failed to delete rule detail',
-        }, 500)
+    }),
+    async (c) => {
+        const { detailId } = c.req.valid('param')
+        if (isNaN(detailId)) return c.json({ success: false, message: 'Invalid ID' }, 400)
+        return runEffect(c, RuleBaseSettingsService.deleteDetail(detailId) as any) as any
     }
-})
+)
 
 // ============================================================================
-// METADATA ENDPOINTS
+// METADATA ROUTES
 // ============================================================================
 
 // GET /api/v1/banking/collective/rule-base/metadata/rule-types
-app.get('/metadata/rule-types', async (c) => {
-    return c.json({
-        success: true,
-        data: [
-            { value: 'DEFAULT', label: 'Default' },
-            { value: 'GL', label: 'GL Grouping' },
-            { value: 'STAGE', label: 'IFRS 9 Stage' },
-            { value: 'CUSTOM', label: 'Custom Rule' },
-        ],
-    })
-})
+app.openapi(
+    createRoute({
+        method: 'get',
+        path: '/metadata/rule-types',
+        tags: ['Rule Base Settings'],
+        summary: 'Get Rule Types',
+        responses: {
+            200: { content: { 'application/json': { schema: MetadataListResponse } }, description: 'Types' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        return runEffect(c, RuleBaseSettingsService.getRuleTypes() as any) as any
+    }
+)
 
 // GET /api/v1/banking/collective/rule-base/metadata/operators/:dataType
-app.get('/metadata/operators/:dataType', async (c) => {
-    const dataType = c.req.param('dataType')
-
-    const operators = {
-        varchar: [
-            { value: '=', label: 'Equals' },
-            { value: '!=', label: 'Not Equals' },
-            { value: 'LIKE', label: 'Like' },
-            { value: 'IN', label: 'In', supportsMultiple: true },
-            { value: 'IS NULL', label: 'Is Null', requiresNoValues: true },
-            { value: 'IS NOT NULL', label: 'Is Not Null', requiresNoValues: true },
-        ],
-        int: [
-            { value: '=', label: 'Equals' },
-            { value: '!=', label: 'Not Equals' },
-            { value: '>', label: 'Greater Than' },
-            { value: '<', label: 'Less Than' },
-            { value: '>=', label: 'Greater or Equal' },
-            { value: '<=', label: 'Less or Equal' },
-            { value: 'BETWEEN', label: 'Between', requiresValue2: true },
-            { value: 'IN', label: 'In', supportsMultiple: true },
-        ],
-        date: [
-            { value: '=', label: 'Equals' },
-            { value: '>', label: 'After' },
-            { value: '<', label: 'Before' },
-            { value: 'BETWEEN', label: 'Between', requiresValue2: true },
-        ],
+app.openapi(
+    createRoute({
+        method: 'get',
+        path: '/metadata/operators/{dataType}',
+        tags: ['Rule Base Settings'],
+        summary: 'Get Operators',
+        request: {
+            params: z.object({ dataType: z.string() })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: MetadataListResponse } }, description: 'Operators' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        const { dataType } = c.req.valid('param')
+        return runEffect(c, RuleBaseSettingsService.getOperators(dataType) as any) as any
     }
-
-    return c.json({
-        success: true,
-        data: operators[dataType as keyof typeof operators] || operators.varchar,
-    })
-})
+)
 
 // GET /api/v1/banking/collective/rule-base/metadata/conditions
-app.get('/metadata/conditions', async (c) => {
-    return c.json({
-        success: true,
-        data: [
-            { value: 'AND', label: 'AND' },
-            { value: 'OR', label: 'OR' },
-        ],
-    })
-})
+app.openapi(
+    createRoute({
+        method: 'get',
+        path: '/metadata/conditions',
+        tags: ['Rule Base Settings'],
+        summary: 'Get Conditions',
+        responses: {
+            200: { content: { 'application/json': { schema: MetadataListResponse } }, description: 'Conditions' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        return runEffect(c, RuleBaseSettingsService.getConditions() as any) as any
+    }
+)
 
 // GET /api/v1/banking/collective/rule-base/metadata/stages
-app.get('/metadata/stages', async (c) => {
-    return c.json({
-        success: true,
-        data: [
-            { value: '1', label: 'Stage 1 - Performing' },
-            { value: '2', label: 'Stage 2 - Underperforming' },
-            { value: '3', label: 'Stage 3 - Non-performing' },
-        ],
-    })
-})
+app.openapi(
+    createRoute({
+        method: 'get',
+        path: '/metadata/stages',
+        tags: ['Rule Base Settings'],
+        summary: 'Get Stages',
+        responses: {
+            200: { content: { 'application/json': { schema: MetadataListResponse } }, description: 'Stages' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        return runEffect(c, RuleBaseSettingsService.getStages() as any) as any
+    }
+)
 
 export default app

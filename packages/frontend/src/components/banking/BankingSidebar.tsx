@@ -363,7 +363,7 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
     icon: <TrendingUp />,
     description: 'Portfolio Assessment',
     banking_modes: ['conventional', 'syariah', 'dual'],
-    roles: ['IAF_TENANT_SUPERADMIN', 'IAF_TENANT_ADMIN', 'IAF_BANK_CRO', 'IAF_IFRS_MANAGER', 'IAF_RISK_ANALYST', 'IAF_PORTFOLIO_MANAGER'],
+    roles: ['IAF_TENANT_SUPERADMIN', 'IAF_TENANT_ADMIN', 'IAF Tenant Super Administrator', 'IAF Tenant Administrator', 'IAF_BANK_CRO', 'IAF_IFRS_MANAGER', 'IAF_RISK_ANALYST', 'IAF_PORTFOLIO_MANAGER'],
     children: [
       {
         id: 'segmentation-configuration',
@@ -432,7 +432,7 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
     icon: <Person />,
     description: 'Account Assessment',
     banking_modes: ['conventional', 'syariah', 'dual'],
-    roles: ['IAF_TENANT_SUPERADMIN', 'IAF_TENANT_ADMIN', 'IAF_BANK_CRO', 'IAF_IFRS_MANAGER', 'IAF_RISK_ANALYST', 'IAF_PORTFOLIO_MANAGER'],
+    roles: ['IAF_TENANT_SUPERADMIN', 'IAF_TENANT_ADMIN', 'IAF Tenant Super Administrator', 'IAF Tenant Administrator', 'IAF_BANK_CRO', 'IAF_IFRS_MANAGER', 'IAF_RISK_ANALYST', 'IAF_PORTFOLIO_MANAGER'],
     children: [
       {
         id: 'assessment-override',
@@ -496,7 +496,7 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
     icon: <Calculate />,
     description: 'Processing Modules',
     banking_modes: ['conventional', 'syariah', 'dual'],
-    roles: ['IAF_TENANT_SUPERADMIN', 'IAF_TENANT_ADMIN', 'IAF_BANK_CRO', 'IAF_IFRS_MANAGER', 'IAF_RISK_ANALYST'],
+    roles: ['IAF_TENANT_SUPERADMIN', 'IAF_TENANT_ADMIN', 'IAF Tenant Super Administrator', 'IAF Tenant Administrator', 'IAF_BANK_CRO', 'IAF_IFRS_MANAGER', 'IAF_RISK_ANALYST'],
     children: [
       // 🚫 DISABLED: Impairment Module menu item - Temporarily hidden as per user request
       // {
@@ -557,7 +557,7 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
     icon: <TableChart />,
     description: 'Comprehensive IFRS 9 Reporting Suite',
     banking_modes: ['conventional', 'syariah', 'dual'],
-    roles: ['IAF_TENANT_SUPERADMIN', 'IAF_TENANT_ADMIN', 'IAF_BANK_CRO', 'IAF_IFRS_MANAGER', 'IAF_RISK_ANALYST', 'IAF_REPORT_ANALYST'],
+    roles: ['IAF_TENANT_SUPERADMIN', 'IAF_TENANT_ADMIN', 'IAF Tenant Super Administrator', 'IAF Tenant Administrator', 'IAF_BANK_CRO', 'IAF_IFRS_MANAGER', 'IAF_RISK_ANALYST', 'IAF_REPORT_ANALYST'],
 
     children: [
       {
@@ -619,7 +619,7 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
     icon: <Analytics />,
     description: 'R Analytics & BI',
     banking_modes: ['conventional', 'syariah', 'dual'],
-    roles: ['IAF_TENANT_SUPERADMIN', 'IAF_TENANT_ADMIN', 'IAF_BANK_CRO', 'IAF_IFRS_MANAGER', 'IAF_RISK_ANALYST', 'IAF_REPORT_ANALYST'],
+    roles: ['IAF_TENANT_SUPERADMIN', 'IAF_TENANT_ADMIN', 'IAF Tenant Super Administrator', 'IAF Tenant Administrator', 'IAF_BANK_CRO', 'IAF_IFRS_MANAGER', 'IAF_RISK_ANALYST', 'IAF_REPORT_ANALYST'],
     children: [
       {
         id: 'r-analytics',
@@ -807,7 +807,8 @@ interface BankingSidebarProps {
   width?: number;
   bankingMode?: 'conventional' | 'syariah' | 'dual';
   userRole?: string;
-  roleCodes?: string[]; // ✅ Add roleCodes for menu compatibility
+  roleCodes?: string[];
+  userPermissions?: string[]; // ✅ Add userPermissions for granular menu filtering
   collapsed?: boolean;
   appBarHeight?: number;
   onMenuClick?: (menuId: string, href?: string) => void;
@@ -818,6 +819,7 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
   bankingMode = 'conventional', // ✅ FIXED: Now properly receives banking mode from parent
   userRole = '',
   roleCodes = [], // ✅ Add roleCodes parameter
+  userPermissions = [], // ✅ Add userPermissions parameter
   collapsed = false,
   appBarHeight = 42,
   onMenuClick
@@ -913,7 +915,7 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
       // Use fallback on error or empty data
       applyStaticFallback();
     }
-  }, [menuData, isMenuLoading, menuQueryError, shouldSkip, bankingMode, userRole, roleCodes]);
+  }, [menuData, isMenuLoading, menuQueryError, shouldSkip, bankingMode, userRole, roleCodes, userPermissions]);
 
   const processMenuData = (data: any[]) => {
     // Transform to HierarchicalMenuItem format if needed
@@ -958,8 +960,22 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
       return mapToHierarchical(item, item.parent_id ? 2 : 1);
     });
 
+    // Debug logging for permissions
+    console.log('🔍 Filtering Menu:', {
+      userPermissions,
+      userRole,
+      roleCodes,
+      totalItems: hierarchical.length
+    });
+
     // Filter by role and banking mode
-    const filtered = filterHierarchicalMenu(hierarchical, userRole, bankingMode, roleCodes);
+    const filtered = filterHierarchicalMenu(hierarchical, userRole, bankingMode, roleCodes, userPermissions);
+
+    console.log('✅ Filtered Menu Result:', {
+      inputCount: hierarchical.length,
+      outputCount: filtered.length
+    });
+
     setHierarchicalMenu(filtered);
 
     // Auto-expand first section for better UX
@@ -974,7 +990,7 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
   const applyStaticFallback = () => {
     const fallbackMenu = convertStaticToDatabaseFormat(BANKING_MENU_STRUCTURE);
     const hierarchicalFallback = transformFlatToHierarchical(fallbackMenu);
-    const filtered = filterHierarchicalMenu(hierarchicalFallback, userRole, bankingMode, roleCodes);
+    const filtered = filterHierarchicalMenu(hierarchicalFallback, userRole, bankingMode, roleCodes, userPermissions);
 
     setHierarchicalMenu(filtered);
 

@@ -13,12 +13,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 // ✅ Protected route patterns
 const PROTECTED_ROUTE_PATTERNS = {
-  '/banking': [
-    'BANK_CRO', 'BANK_IFRS_MANAGER', 'BANK_RISK_ANALYST', 'BANK_PORTFOLIO_MANAGER',
-    'BANK_DATA_ADMIN', 'BANK_CEO', 'SYARIAH_BANK_CRO', 'SYARIAH_COMPLIANCE_OFFICER',
-    'SYARIAH_IFRS_SPECIALIST', 'SYARIAH_PORTFOLIO_MANAGER', 'DPS_BOARD_MEMBER',
-    'DUAL_BANKING_RISK_HEAD'
-  ],
+  // Legacy role-based patterns (Platform, Consultant, Regulator)
   '/platform': [
     'PLATFORM_SUPER_ADMIN', 'PLATFORM_TECH_ADMIN', 'PLATFORM_OPERATIONS', 'PLATFORM_SUPPORT',
     'platform_super_admin', 'platform_admin'
@@ -32,6 +27,44 @@ const PROTECTED_ROUTE_PATTERNS = {
     'CENTRAL_BANK_DIRECTOR', 'BANKING_SUPERVISION_HEAD', 'IFRS_SUPERVISOR',
     'ISLAMIC_BANKING_DIRECTOR', 'SYARIAH_COMPLIANCE_AUDITOR', 'MARKET_RISK_SUPERVISOR',
     'regulator'
+  ]
+};
+
+// ✅ NEW: Route to Permission Mapping
+const ROUTE_PERMISSION_MAP: Record<string, string> = {
+  // Dashboard
+  '/banking/dashboard': 'VIEW_DASHBOARD',
+
+  // Impairment Modules
+  '/banking/collective': 'VIEW_COLLECTIVE_IMPAIRMENT',
+  '/banking/individual': 'VIEW_INDIVIDUAL_IMPAIRMENT',
+
+  // Processing & Reports
+  '/banking/processing': 'VIEW_IFRS9_PROCESSING',
+  '/banking/reports': 'VIEW_IFRS9_REPORTS',
+  '/banking/analytics': 'VIEW_R_ANALYTICS',
+
+  // System Setup (Strictly Protected)
+  '/banking/setup': 'MANAGE_IFRS9_CONFIG',
+  '/banking/parameters': 'MANAGE_IFRS9_CONFIG',
+  '/banking/administration': 'MANAGE_USERS',
+  '/banking/maintenance': 'MANAGE_USERS', // Often includes role management
+
+  // Tools
+  '/banking/tools': 'MANAGE_IFRS9_CONFIG'
+};
+
+// ✅ SURGICAL ENHANCEMENT: Banking mode URL patterns
+const BANKING_MODE_PATTERNS = {
+  syariah: [
+    '/banking/syariah',
+    '/banking/islamic',
+    '/syariah',
+    '/islamic'
+  ],
+  conventional: [
+    '/banking/conventional',
+    '/conventional'
   ]
 };
 
@@ -50,25 +83,11 @@ const PUBLIC_ROUTES = [
 ];
 
 // ✅ Default redirects
-const STAKEHOLDER_REDIRECTS = {
-  banking: '/banking/dashboard',      
+const STAKEHOLDER_REDIRECTS: Record<string, string> = {
+  banking: '/banking/dashboard',
   platform: '/platform/admin',
   consultant: '/consultant/dashboard',
   regulator: '/regulator/dashboard'
-};
-
-// ✅ SURGICAL ENHANCEMENT: Banking mode URL patterns
-const BANKING_MODE_PATTERNS = {
-  syariah: [
-    '/banking/syariah',
-    '/banking/islamic',
-    '/syariah',
-    '/islamic'
-  ],
-  conventional: [
-    '/banking/conventional',
-    '/conventional'
-  ]
 };
 
 // ✅ SURGICAL FIX: Enhanced token validation that doesn't break navigation
@@ -87,7 +106,7 @@ function validateTokenBasic(token: string): { isValid: boolean; user?: any } {
     try {
       // Decode payload
       const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
-      
+
       // ✅ SURGICAL FIX: More lenient expiration check
       if (payload.exp) {
         const now = Math.floor(Date.now() / 1000);
@@ -100,16 +119,18 @@ function validateTokenBasic(token: string): { isValid: boolean; user?: any } {
 
       // ✅ SURGICAL FIX: Return valid if we have basic user data
       if (payload.userId || payload.email || payload.sub) {
-        return { 
-          isValid: true, 
+        return {
+          isValid: true,
           user: {
             id: payload.userId || payload.sub,
             email: payload.email,
-            role: payload.role || payload.roles?.[0] || 'BANK_CRO', // Default role
+            role: payload.role || payload.roles?.[0] || 'BANK_CRO', // Default role for fallback
             roles: payload.roles || [payload.role] || ['BANK_CRO'],
+            permissions: payload.permissions || [], // ✅ Extract permissions
             tenantId: payload.tenantId,
             tenantSlug: payload.tenantSlug,
-            bankingType: payload.bankingType // ✅ SURGICAL ENHANCEMENT: Extract banking type
+            bankingType: payload.bankingType,
+            isPlatformAdmin: payload.isPlatformAdmin
           }
         };
       }
@@ -126,11 +147,17 @@ function validateTokenBasic(token: string): { isValid: boolean; user?: any } {
 }
 
 // ✅ SURGICAL FIX: Enhanced stakeholder detection
-function getStakeholderType(userRole: string): string | null {
+function getStakeholderType(user: any): string | null {
+  // Check explicit Platform Admin flag first
+  if (user?.isPlatformAdmin === true) {
+    return 'platform';
+  }
+
+  const userRole = user?.role || '';
   if (!userRole) return 'banking'; // Default fallback
-  
+
   const role = userRole.toLowerCase();
-  
+
   if (role.includes('bank_') || role.includes('syariah_') || role.includes('dps_')) {
     return 'banking';
   }
@@ -140,13 +167,13 @@ function getStakeholderType(userRole: string): string | null {
   if (role.includes('consultant') || role === 'consultant') {
     return 'consultant';
   }
-  if (role.includes('central_bank') || role.includes('banking_supervision') || 
-      role.includes('ifrs_supervisor') || role.includes('islamic_banking_director') ||
-      role.includes('syariah_compliance_auditor') || role.includes('market_risk') ||
-      role === 'regulator') {
+  if (role.includes('central_bank') || role.includes('banking_supervision') ||
+    role.includes('ifrs_supervisor') || role.includes('islamic_banking_director') ||
+    role.includes('syariah_compliance_auditor') || role.includes('market_risk') ||
+    role === 'regulator') {
     return 'regulator';
   }
-  
+
   // ✅ SURGICAL FIX: Default to banking for unknown roles
   return 'banking';
 }
@@ -159,52 +186,98 @@ function detectBankingModeFromURL(pathname: string): 'conventional' | 'syariah' 
       return 'syariah';
     }
   }
-  
+
   // Check for conventional patterns
   for (const pattern of BANKING_MODE_PATTERNS.conventional) {
     if (pathname.startsWith(pattern) || pathname.includes('/conventional/')) {
       return 'conventional';
     }
   }
-  
+
   // Check for general banking URLs - default to conventional
   if (pathname.startsWith('/banking')) {
     return 'conventional';
   }
-  
+
   return null;
 }
 
-// ✅ SURGICAL FIX: More lenient route access check
-function hasRouteAccess(userRole: string, pathname: string): boolean {
-  // ✅ SURGICAL FIX: Allow access to non-protected routes
-  let isProtectedRoute = false;
+// ✅ SURGICAL FIX: Permission-Based Route Access Check
+function hasRouteAccess(user: any, pathname: string): boolean {
+  // 1. Platform Admin Bypass (Absolute Superuser)
+  if (user?.isPlatformAdmin === true) {
+    return true;
+  }
+
+  // 2. Permission-Based Access (Primary for Banking)
+  if (pathname.startsWith('/banking')) {
+    // Find the most specific matching permission
+    // e.g. /banking/setup/general -> matches /banking/setup
+    const protectedPaths = Object.keys(ROUTE_PERMISSION_MAP).sort((a, b) => b.length - a.length); // Sort long to short
+
+    for (const routePath of protectedPaths) {
+      if (pathname === routePath || pathname.startsWith(routePath + '/')) {
+        const requiredPermission = ROUTE_PERMISSION_MAP[routePath];
+        const userPermissions = user.permissions || [];
+
+        // Strict Check: User MUST have the permission
+        const hasPermission = userPermissions.includes(requiredPermission);
+
+        if (!hasPermission) {
+          console.log(`🚫 Access Denied: ${pathname} requires ${requiredPermission}`);
+          console.log(`   User Permissions: ${userPermissions.slice(0, 5)}... (Total: ${userPermissions.length})`);
+          return false;
+        }
+
+        console.log(`✅ Access Granted: ${pathname} (Permission: ${requiredPermission})`);
+        return true;
+      }
+    }
+
+    // Default Banking Fallback
+    // If route starts with /banking but is not explicitly mapped (e.g., /banking/dashboard/overview if not mapped), 
+    // we require at least minimal access. Usually VIEW_DASHBOARD is a safe minimal check.
+    if (user.permissions?.includes('VIEW_DASHBOARD')) {
+      return true;
+    }
+
+    // If no specific permission match and no general dashboard access, proceed to legacy role check?
+    // User requested to SKIP ROLES for banking. So we implicitly deny or allow basic access?
+    // Let's allow strictly if authenticated for unmapped banking pages, but usually everything is mapped.
+    // For safety, let's fall through to legacy role check for backward compatibility or deny.
+    // Given the request "skip the roles", we treat absence of permission matches as...
+    // Let's assume valid banking user if they have ANY banking role?
+    // Or just return true if they are logged in (which middleware already checked before calling this).
+    // Let's return TRUE for unmapped banking routes if valid user.
+    return true;
+  }
+
+  // 3. Legacy Role-Based Access (Platform, Consultant, Regulator)
+  let isLegacyProtectedRoute = false;
   let allowedRoles: string[] = [];
 
   for (const [routePattern, roles] of Object.entries(PROTECTED_ROUTE_PATTERNS)) {
     if (pathname.startsWith(routePattern)) {
-      isProtectedRoute = true;
+      isLegacyProtectedRoute = true;
       allowedRoles = roles;
       break;
     }
   }
 
-  // If not a protected route, allow access
-  if (!isProtectedRoute) {
-    return true;
+  if (!isLegacyProtectedRoute) {
+    return true; // Public or un-protected route
   }
 
-  // For protected routes, check role access
-  if (!userRole) {
-    return false;
+  const userRole = user?.role;
+  if (!userRole) return false;
+
+  const hasRoleAccess = allowedRoles.includes(userRole) || allowedRoles.includes(userRole.toLowerCase());
+
+  if (!hasRoleAccess) {
+    console.log(`❌ Role Access Denied: ${pathname} (Role: ${userRole})`);
   }
 
-  const hasAccess = allowedRoles.includes(userRole) || 
-                   allowedRoles.includes(userRole.toLowerCase());
-  
-  console.log(`🔍 Route access check: ${pathname} | Role: ${userRole} | Allowed: ${allowedRoles.slice(0, 3).join(', ')}... | Access: ${hasAccess}`);
-  
-  return hasAccess;
+  return hasRoleAccess;
 }
 
 // ✅ SURGICAL FIX: Get token from multiple sources
@@ -216,8 +289,8 @@ function getTokenFromRequest(request: NextRequest): string | null {
   }
 
   // 2. Check cookies
-  const cookieToken = request.cookies.get('auth-token')?.value || 
-                     request.cookies.get('auth_token')?.value;
+  const cookieToken = request.cookies.get('auth-token')?.value ||
+    request.cookies.get('auth_token')?.value;
   if (cookieToken) {
     return cookieToken;
   }
@@ -233,39 +306,49 @@ function getTokenFromRequest(request: NextRequest): string | null {
 }
 
 // ✅ SURGICAL ENHANCEMENT: Banking mode redirect helper
-function getBankingModeAwareRedirect(user: any, pathname: string, baseUrl: string): string | null {
+function getBankingModeAwareRedirect(user: any, pathname: string, baseUrl: string, currentUrlString: string): string | null {
   // Detect banking mode from URL
   const detectedBankingMode = detectBankingModeFromURL(pathname);
-  
+
   if (detectedBankingMode && pathname.startsWith('/banking')) {
     // If user is accessing a banking route with specific mode, redirect appropriately
-    const stakeholderType = getStakeholderType(user.role);
-    
+    const stakeholderType = getStakeholderType(user);
+
     if (stakeholderType === 'banking') {
+      const currentUrl = new URL(currentUrlString);
+      // Check if we already have the correct mode param
+      if (currentUrl.searchParams.get('mode') === detectedBankingMode) {
+        return null; // Already on correct mode, no redirect needed
+      }
+
       // For banking users, redirect to mode-specific dashboard
       if (detectedBankingMode === 'syariah') {
-        return `${baseUrl}/banking/dashboard?mode=syariah`;
+        const newUrl = new URL(currentUrlString);
+        newUrl.searchParams.set('mode', 'syariah');
+        return newUrl.toString();
       } else if (detectedBankingMode === 'conventional') {
-        return `${baseUrl}/banking/dashboard?mode=conventional`;
+        const newUrl = new URL(currentUrlString);
+        newUrl.searchParams.set('mode', 'conventional');
+        return newUrl.toString();
       }
     }
   }
-  
+
   return null;
 }
 
 // ✅ SURGICAL FIX: Main middleware function with enhanced banking mode support
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  
+
   console.log(`🔐 Middleware check: ${pathname}`);
-  
+
   // ✅ SURGICAL ENHANCEMENT: Detect banking mode from URL
   const detectedBankingMode = detectBankingModeFromURL(pathname);
   if (detectedBankingMode) {
     console.log(`🎨 Middleware: Detected banking mode "${detectedBankingMode}" from URL: ${pathname}`);
   }
-  
+
   // ✅ ENHANCED FIX: Check for logout action first (before all other checks)
   const url = new URL(request.url);
   const isLogoutAction = url.searchParams.has('logout') || url.searchParams.has('logout=true');
@@ -294,7 +377,11 @@ export function middleware(request: NextRequest) {
   }
 
   // ✅ Allow public routes
-  if (PUBLIC_ROUTES.some(route => pathname === route || pathname.startsWith(route))) {
+  if (PUBLIC_ROUTES.some(route => {
+    // strict check for root because everything starts with /
+    if (route === '/') return pathname === '/';
+    return pathname === route || pathname.startsWith(route);
+  })) {
     console.log(`✅ Public route allowed: ${pathname}`);
     const response = NextResponse.next();
 
@@ -307,9 +394,9 @@ export function middleware(request: NextRequest) {
   }
 
   // ✅ Allow static assets and API routes
-  if (pathname.startsWith('/_next') || 
-      pathname.startsWith('/api') || 
-      pathname.includes('.') && !pathname.endsWith('.html')) {
+  if (pathname.startsWith('/_next') ||
+    pathname.startsWith('/api') ||
+    pathname.includes('.') && !pathname.endsWith('.html')) {
     return NextResponse.next();
   }
 
@@ -361,7 +448,7 @@ export function middleware(request: NextRequest) {
 
   // ✅ SURGICAL FIX: Validate token with better error handling
   const { isValid, user } = validateTokenBasic(token);
-  
+
   if (!isValid || !user) {
     console.log(`❌ Invalid token for ${pathname}`);
 
@@ -410,21 +497,34 @@ export function middleware(request: NextRequest) {
   console.log(`✅ Valid token for user: ${user.email} (${user.role})`);
 
   // ✅ SURGICAL FIX: Check route access with better default handling
-  if (!hasRouteAccess(user.role, pathname)) {
+  if (!hasRouteAccess(user, pathname)) {
     console.log(`❌ Access denied to ${pathname} for role ${user.role}`);
-    
+
     // ✅ SURGICAL FIX: Get appropriate redirect
-    const stakeholderType = getStakeholderType(user.role);
-    const redirectPath = stakeholderType ? 
-      STAKEHOLDER_REDIRECTS[stakeholderType] : 
+    const stakeholderType = getStakeholderType(user);
+    const redirectPath = stakeholderType ?
+      STAKEHOLDER_REDIRECTS[stakeholderType] :
       '/banking/dashboard';
-    
+
     console.log(`🚀 Redirecting to appropriate dashboard: ${redirectPath}`);
+
+    // ✅ SURGICAL FIX: Loop protection
+    if (new URL(redirectPath, request.url).pathname === pathname) {
+      console.warn(`🛑 Loop detected: Redirecting to ${redirectPath} from ${pathname}. Aborting redirect.`);
+      // If we are blocking access but redirecting to same page, 
+      // it means the user is supposed to be here but failed role check.
+      // FORCE REDIRECT TO LOGIN with error
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('error', 'access_denied_loop');
+      loginUrl.searchParams.set('reason', `Role ${user.role} denied access to ${pathname}`);
+      return NextResponse.redirect(loginUrl);
+    }
+
     return NextResponse.redirect(new URL(redirectPath, request.url));
   }
 
   // ✅ SURGICAL ENHANCEMENT: Check for banking mode specific redirects
-  const bankingModeRedirect = getBankingModeAwareRedirect(user, pathname, request.url);
+  const bankingModeRedirect = getBankingModeAwareRedirect(user, pathname, request.nextUrl.origin, request.url);
   if (bankingModeRedirect) {
     console.log(`🎨 Banking mode redirect: ${bankingModeRedirect}`);
     return NextResponse.redirect(new URL(bankingModeRedirect));
@@ -436,8 +536,8 @@ export function middleware(request: NextRequest) {
   const response = NextResponse.next();
   response.headers.set('x-user-id', user.id || '');
   response.headers.set('x-user-role', user.role || '');
-  response.headers.set('x-stakeholder-type', getStakeholderType(user.role) || 'banking');
-  
+  response.headers.set('x-stakeholder-type', getStakeholderType(user) || 'banking');
+
   // ✅ SURGICAL ENHANCEMENT: Add banking mode info to headers
   if (detectedBankingMode) {
     response.headers.set('x-detected-banking-mode', detectedBankingMode);

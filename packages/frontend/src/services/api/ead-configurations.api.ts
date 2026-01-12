@@ -32,7 +32,7 @@ export interface UpdateEADConfigurationDto extends Partial<CreateEADConfiguratio
 // API SERVICE
 // ============================================================================
 
-const BASE_URL = '/banking/parameters/ead-configurations';
+const BASE_URL = '/banking/collective/ead-configurations';
 
 export const eadConfigurationsApi = {
     /**

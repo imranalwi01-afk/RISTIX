@@ -9,7 +9,7 @@ import {
     BusinessError,
     RateLimitError,
     type CommonError,
-} from '../errors'
+} from '@lib/errors'
 
 /**
  * Run an Effect and convert the result to a Hono response

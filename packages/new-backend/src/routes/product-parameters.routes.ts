@@ -1,14 +1,18 @@
-import { Hono } from 'hono'
-import { zValidator } from '@hono/zod-validator'
-import { z } from 'zod'
-import { db } from '../config'
-import { frs9ParamProduct } from '../db/schema'
-import { eq, desc } from 'drizzle-orm'
+import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
+import type { AppContext } from '../app'
+import { authMiddleware } from '../middleware'
+import { ProductParametersService } from '../services/product-parameters.service'
+import { runEffect } from '../lib/effect/runtime'
 
-export const productParameterRoutes = new Hono()
+const app = new OpenAPIHono<AppContext>()
 
-// Schema definitions
-const productParamSchema = z.object({
+app.use('*', authMiddleware)
+
+// ============================================================================
+// VALIDATION SCHEMAS
+// ============================================================================
+
+const ProductParamSchema = z.object({
     dataSource: z.string().max(20),
     prdGroup: z.string().max(20),
     prdType: z.string().max(20),
@@ -24,97 +28,188 @@ const productParamSchema = z.object({
     marketRate: z.number().optional(),
     activeFlag: z.boolean().default(true),
     createdby: z.string().max(50).default('SYSTEM'),
+}).openapi('CreateProductParamInput')
+
+const UpdateProductParamSchema = ProductParamSchema.partial().openapi('UpdateProductParamInput')
+
+const ProductParamResponse = z.object({
+    id: z.number(),
+    dataSource: z.string().nullable(),
+    prdGroup: z.string().nullable(),
+    prdType: z.string().nullable(),
+    prdCode: z.string().nullable(),
+    prdDesc: z.string().nullable(),
+    currency: z.string().nullable(),
+    amortizationType: z.string().nullable(),
+    alFlag: z.string().nullable(),
+    impairedFlag: z.boolean().nullable(),
+    bmFlag: z.boolean().nullable(),
+    expectedLife: z.number().nullable(),
+    borrowingRate: z.number().nullable(),
+    marketRate: z.number().nullable(),
+    activeFlag: z.boolean().nullable(),
+    createdby: z.string().nullable(),
+    createddate: z.string().nullable(),
+    updatedby: z.string().nullable(),
+    updateddate: z.string().nullable(),
+}).openapi('ProductParamResponse')
+
+const ProductListResponse = z.object({
+    success: z.boolean(),
+    data: z.array(ProductParamResponse)
+}).openapi('ProductListResponse')
+
+const ProductDetailResponse = z.object({
+    success: z.boolean(),
+    data: ProductParamResponse
+}).openapi('ProductDetailResponse')
+
+const OptionSchema = z.object({
+    id: z.string(),
+    name: z.string(),
 })
 
-// GET /instrument-class-options - Get options for instrument class
-productParameterRoutes.get('/instrument-class-options', async (c) => {
-    // Return hardcoded options as per legacy requirement (verified in frontend fallback)
-    return c.json({
-        success: true,
-        data: [
-            { id: 'A', name: 'Asset' },
-            { id: 'L', name: 'Liabilities' }
-        ]
-    });
-})
+const OptionListResponse = z.object({
+    success: z.boolean(),
+    data: z.array(OptionSchema)
+}).openapi('OptionListResponse')
 
-// GET / - List all product parameters
-productParameterRoutes.get('/', async (c) => {
-    try {
-        const result = await db.select().from(frs9ParamProduct).orderBy(desc(frs9ParamProduct.createddate));
-        return c.json({ success: true, data: result });
-    } catch (error) {
-        console.error('Error fetching product parameters:', error);
-        return c.json({ error: 'Failed to fetch product parameters' }, 500);
+const ErrorResponse = z.object({
+    success: z.boolean(),
+    message: z.string(),
+    error: z.string().optional()
+}).openapi('ErrorResponse')
+
+// ============================================================================
+// ROUTES
+// ============================================================================
+
+// GET /api/v1/banking/collective/product/instrument-class-options
+app.openapi(
+    createRoute({
+        method: 'get',
+        path: '/instrument-class-options',
+        tags: ['Product Parameters'],
+        summary: 'Get Instrument Class Options',
+        responses: {
+            200: { content: { 'application/json': { schema: OptionListResponse } }, description: 'Options' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        return runEffect(c, ProductParametersService.getInstrumentClassOptions() as any) as any
     }
-})
+)
 
-// GET /:id - Get by ID
-productParameterRoutes.get('/:id', async (c) => {
-    const id = Number(c.req.param('id'));
-    if (isNaN(id)) return c.json({ error: 'Invalid ID' }, 400);
-
-    try {
-        const [item] = await db.select().from(frs9ParamProduct).where(eq(frs9ParamProduct.pkid, id));
-        if (!item) return c.json({ error: 'Product parameter not found' }, 404);
-        return c.json({ success: true, data: item });
-    } catch (error) {
-        return c.json({ error: 'Failed to fetch product parameter' }, 500);
+// GET /api/v1/banking/collective/product
+app.openapi(
+    createRoute({
+        method: 'get',
+        path: '/',
+        tags: ['Product Parameters'],
+        summary: 'List Product Parameters',
+        responses: {
+            200: { content: { 'application/json': { schema: ProductListResponse } }, description: 'List Products' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        return runEffect(c, ProductParametersService.list() as any) as any
     }
-})
+)
 
-// POST / - Create
-productParameterRoutes.post('/', zValidator('json', productParamSchema), async (c) => {
-    const data = c.req.valid('json');
-    try {
-        const [newItem] = await db.insert(frs9ParamProduct).values({
-            ...data,
-            createdhost: 'localhost',
-            createddate: new Date().toISOString()
-        }).returning();
-        return c.json({ success: true, data: newItem }, 201);
-    } catch (error) {
-        console.error('Error creating product parameter:', error);
-        return c.json({ error: 'Failed to create product parameter' }, 500);
+// GET /api/v1/banking/collective/product/:id
+app.openapi(
+    createRoute({
+        method: 'get',
+        path: '/{id}',
+        tags: ['Product Parameters'],
+        summary: 'Get Product Parameter',
+        request: {
+            params: z.object({ id: z.string().transform(Number) })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: ProductDetailResponse } }, description: 'Product Detail' },
+            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        const { id } = c.req.valid('param')
+        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
+        return runEffect(c, ProductParametersService.get(id) as any) as any
     }
-})
+)
 
-// PUT /:id - Update
-productParameterRoutes.put('/:id', zValidator('json', productParamSchema.partial()), async (c) => {
-    const id = Number(c.req.param('id'));
-    if (isNaN(id)) return c.json({ error: 'Invalid ID' }, 400);
-
-    const data = c.req.valid('json');
-
-    try {
-        const [updated] = await db.update(frs9ParamProduct)
-            .set({
-                ...data,
-                updateddate: new Date().toISOString(),
-                updatedhost: 'localhost', // placeholder
-                updatedby: data.createdby || 'SYSTEM'
-            })
-            .where(eq(frs9ParamProduct.pkid, id))
-            .returning();
-
-        if (!updated) return c.json({ error: 'Product parameter not found' }, 404);
-        return c.json({ success: true, data: updated });
-    } catch (error) {
-        console.error('Error updating product parameter:', error);
-        return c.json({ error: 'Failed to update product parameter' }, 500);
+// POST /api/v1/banking/collective/product
+app.openapi(
+    createRoute({
+        method: 'post',
+        path: '/',
+        tags: ['Product Parameters'],
+        summary: 'Create Product Parameter',
+        request: {
+            body: { content: { 'application/json': { schema: ProductParamSchema } } }
+        },
+        responses: {
+            201: { content: { 'application/json': { schema: ProductDetailResponse } }, description: 'Created' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        const data = c.req.valid('json')
+        const userId = c.get('userId') as string || 'system'
+        return runEffect(c, ProductParametersService.create(data, userId) as any) as any
     }
-})
+)
 
-// DELETE /:id
-productParameterRoutes.delete('/:id', async (c) => {
-    const id = Number(c.req.param('id'));
-    if (isNaN(id)) return c.json({ error: 'Invalid ID' }, 400);
-
-    try {
-        await db.delete(frs9ParamProduct).where(eq(frs9ParamProduct.pkid, id));
-        return c.json({ success: true, message: 'Deleted successfully' });
-    } catch (error) {
-        console.error('Error deleting product parameter:', error);
-        return c.json({ error: 'Failed to delete product parameter' }, 500);
+// PUT /api/v1/banking/collective/product/:id
+app.openapi(
+    createRoute({
+        method: 'put',
+        path: '/{id}',
+        tags: ['Product Parameters'],
+        summary: 'Update Product Parameter',
+        request: {
+            params: z.object({ id: z.string().transform(Number) }),
+            body: { content: { 'application/json': { schema: UpdateProductParamSchema } } }
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: ProductDetailResponse } }, description: 'Updated' },
+            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        const { id } = c.req.valid('param')
+        const data = c.req.valid('json')
+        const userId = c.get('userId') as string || 'system'
+        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
+        return runEffect(c, ProductParametersService.update(id, data, userId) as any) as any
     }
-})
+)
+
+// DELETE /api/v1/banking/collective/product/:id
+app.openapi(
+    createRoute({
+        method: 'delete',
+        path: '/{id}',
+        tags: ['Product Parameters'],
+        summary: 'Delete Product Parameter',
+        request: {
+            params: z.object({ id: z.string().transform(Number) })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Deleted' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Invalid ID' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        const { id } = c.req.valid('param')
+        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
+        return runEffect(c, ProductParametersService.delete(id) as any) as any
+    }
+)
+
+export default app

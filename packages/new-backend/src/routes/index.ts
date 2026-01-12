@@ -1,5 +1,5 @@
 
-import { Hono } from 'hono'
+import { OpenAPIHono } from '@hono/zod-openapi'
 import type { AppContext } from '../app'
 import { healthRoutes } from './health.routes'
 import { rbacRoutes } from './rbac.routes'
@@ -19,19 +19,24 @@ import lgdConfigurationsRoutes from './lgd-configurations.routes'
 import eadConfigurationsRoutes from './ead-configurations.routes'
 import eclConfigurationsRoutes from './ecl-configurations.routes'
 import populationSegmentsRoutes from './population-segments.routes'
-import { appSettingsRoutes } from './app-settings.routes'
-import { businessSettingsRoutes } from './business-settings.routes'
-import { businessSetupRoutes } from './business-setup.routes'
-import { productParameterRoutes } from './product-parameters.routes'
-import { journalParameterRoutes } from './journal-parameters.routes'
+import appSettingsRoutes from './app-settings.routes'
+import businessSettingsRoutes from './business-settings.routes'
+import productParameterRoutes from './product-parameters.routes'
+import journalParameterRoutes from './journal-parameters.routes'
 import { segmentationRoutes } from './segmentation.routes'
 import impairmentRoutes from './impairment.routes'
+import amortizationRoutes from './amortization.routes'
+import reportsRoutes from './reports.routes'
+import jobsRoutes from './jobs.routes'
+import { consultantsRoutes } from './consultants.routes'
+import { platformUsersRoutes } from './platform-users.routes'
+import individualImpairmentRoutes from './individual-impairment.routes'
 
 /**
  * Main API router
  * All routes are mounted under /api
  */
-export const routes = new Hono<AppContext>()
+export const routes = new OpenAPIHono<AppContext>()
 
 // Mount route groups
 routes.route('/health', healthRoutes)
@@ -43,20 +48,29 @@ routes.route('/approvals', approvalRoutes)
 routes.route('/rbac', rbacRoutes)
 routes.route('/audit', auditRoutes)
 routes.route('/menu', menuRoutes)
+routes.route('/consultants', consultantsRoutes)
+routes.route('/platform-users', platformUsersRoutes)
 routes.route('/banking/parameters/product-segments', productSegmentsRoutes)
 routes.route('/banking/collective/rule-base', ruleBaseSettingsRoutes)
 routes.route('/banking/collective/bucket', bucketParametersRoutes)
 routes.route('/banking/collective/fl-scalar', flScalarRoutes)
-routes.route('/banking/parameters/pd-configurations', pdConfigurationsRoutes)
-routes.route('/banking/parameters/lgd-configurations', lgdConfigurationsRoutes)
-routes.route('/banking/parameters/ead-configurations', eadConfigurationsRoutes)
+routes.route('/banking/collective/pd-configurations', pdConfigurationsRoutes)
+routes.route('/banking/collective/lgd-configurations', lgdConfigurationsRoutes)
+routes.route('/banking/collective/ead-configurations', eadConfigurationsRoutes)
 routes.route('/banking/collective/ecl-config', eclConfigurationsRoutes)
 routes.route('/banking/parameters/population-segments', populationSegmentsRoutes)
 routes.route('/banking/parameters/app-settings', appSettingsRoutes)
-routes.route('/banking/setup/application', appSettingsRoutes)
-routes.route('/banking/setup/business', businessSetupRoutes)
-routes.route('/banking/setup/product-parameters', productParameterRoutes)
+routes.route('/banking/parameters/product', productParameterRoutes)
 routes.route('/banking/setup/journal-parameters', journalParameterRoutes)
+routes.route('/banking/setup/application', appSettingsRoutes)
+routes.route('/banking/setup/business', businessSettingsRoutes)
 routes.route('/banking/setup/segmentation', segmentationRoutes)
-routes.route('/banking/parameters/business-settings', businessSettingsRoutes)
+// routes.route('/banking/parameters/business-settings', businessSettingsRoutes) // Deprecated or kept as alias? Let's keep one source of truth for now.
+routes.route('/banking/individual/impairment', individualImpairmentRoutes)
 routes.route('/banking/ifrs9/impairment-module', impairmentRoutes)
+routes.route('/banking/ifrs9/amortization-module', amortizationRoutes)
+routes.route('/ifrs9/reports', reportsRoutes)
+routes.route('/jobs', jobsRoutes)
+routes.route('/roles', rbacRoutes) // Alias for frontend compatibility
+routes.route('/user', usersRoutes) // Alias for frontend compatibility (singular)
+routes.route('/approval', approvalRoutes) // Alias for frontend compatibility (singular)

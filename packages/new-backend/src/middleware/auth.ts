@@ -2,7 +2,7 @@ import { createMiddleware } from 'hono/factory'
 import { verifyToken } from '../services/auth.service'
 import { AuthRepository } from '../repositories/auth.repository'
 import { TenantRepository } from '../repositories/tenant.repository'
-import { AuthenticationError, AuthorizationError } from '../lib/errors'
+import { AuthenticationError, AuthorizationError } from '@lib/errors'
 import { Effect, pipe } from 'effect'
 import type { AppContext } from '../app'
 
@@ -57,7 +57,7 @@ export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
         c.set('user', user)
         c.set('tokenId', payload.jti)
         c.set('tenantId', user.tenantId)
-        c.set('isSystemUser', tenant?.code === 'SYSTEM')
+        c.set('isSystemUser', !!user.isPlatformAdmin) // Use the flag
 
         await next()
     } catch (error: any) {
@@ -81,6 +81,13 @@ export function requirePermission(resource: string, action: string) {
     return createMiddleware<AppContext>(async (c, next) => {
         const user = c.get('user')
         const tenantId = c.get('tenantId')
+        const isPlatformAdmin = c.get('isSystemUser') // Mapped from user.isPlatformAdmin
+
+        // Platform Admins bypass permission checks
+        if (isPlatformAdmin) {
+            await next()
+            return
+        }
 
         if (!user || !tenantId) {
             return c.json({ success: false, error: 'Unauthorized', code: 'UNAUTHORIZED' }, 401)
@@ -107,28 +114,51 @@ export function requirePermission(resource: string, action: string) {
     })
 }
 
-/**
- * Tenant context middleware
- * Handles multi-tenancy and Super Admin switching
- */
+// Tenant context middleware
 export const tenantMiddleware = createMiddleware<AppContext>(async (c, next) => {
     const requestedTenantId = c.req.header('X-Tenant-ID')
-    const userTenantId = c.get('tenantId') // This is currently the user's home tenant ID
-    const isSystemUser = c.get('isSystemUser')
+    const requestedTenantSlug = c.req.header('X-Tenant-Slug')
 
-    if (!requestedTenantId) {
+    const userTenantId = c.get('tenantId') // This is currently the user's home tenant ID
+    const isPlatformAdmin = c.get('isSystemUser') // This is now user.isPlatformAdmin
+
+    // Default case: No switching requested
+    if (!requestedTenantId && !requestedTenantSlug) {
         await next()
         return
     }
 
-    if (requestedTenantId !== userTenantId) {
-        if (isSystemUser) {
-            const targetTenant = await TenantRepository.findById(requestedTenantId)
-            if (!targetTenant) {
-                return c.json({ success: false, error: 'Target tenant not found', code: 'TENANT_NOT_FOUND' }, 404)
+    // Switching requested
+    // Check if effective tenant changes (need to resolve slug first if used)
+    let targetTenantId = requestedTenantId
+
+    if (requestedTenantSlug) {
+        // Resolve slug to ID
+        const targetTenant = await TenantRepository.findBySlug(requestedTenantSlug)
+        if (targetTenant) {
+            targetTenantId = targetTenant.id
+        } else if (!requestedTenantId) {
+            // Slug provided but not found, and no ID fallback
+            return c.json({ success: false, error: 'Target tenant slug not found', code: 'TENANT_NOT_FOUND' }, 404)
+        }
+    }
+
+    if (targetTenantId && targetTenantId !== userTenantId) {
+        if (isPlatformAdmin) {
+            // Validate target tenant exists (if we haven't already from slug fetch)
+            // If we resolved by slug, we know it exists. If passed by ID, verify.
+            if (!requestedTenantSlug) {
+                const targetTenant = await TenantRepository.findById(targetTenantId)
+                if (!targetTenant) {
+                    return c.json({ success: false, error: 'Target tenant not found', code: 'TENANT_NOT_FOUND' }, 404)
+                }
             }
-            c.set('tenantId', requestedTenantId)
+
+            // Switch context
+            c.set('tenantId', targetTenantId)
+            console.log(`🔄 [TENANT] Impersonating tenant: ${targetTenantId}`)
         } else {
+            console.warn(`🛑 [TENANT] Unauthorized impersonation attempt by user ${c.get('userId')}`)
             return c.json(
                 {
                     success: false,

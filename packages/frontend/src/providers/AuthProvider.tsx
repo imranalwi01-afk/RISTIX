@@ -45,7 +45,7 @@ const getRoleBasedRedirectUrl = (user: any): string => {
     console.log(`🔍 Determining redirect for user: ${email} with role: ${role}, tenant: ${tenantId}`);
 
     // Platform administrators
-    if (role.includes('PLATFORM_') || role.includes('SUPER_ADMIN')) {
+    if (user?.isPlatformAdmin === true || role.includes('PLATFORM_') || role.includes('SUPER_ADMIN')) {
       console.log('📊 Platform admin user detected - redirecting to React Admin');
       return '/platform/admin';
     }
@@ -188,6 +188,10 @@ interface User {
   fullName?: string
   role: string
   roles?: string[]
+  roleCodes?: string[]
+  userRole?: string
+  roleName?: string
+  userType?: string
   tenantId?: string
   tenantSlug?: string
   bankingType?: string
@@ -272,26 +276,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // ✅ SURGICAL FIX: Sync tokens to cookie whenever auth state changes
   useEffect(() => {
-    syncTokenToCookie(authState.token);
-  }, [authState.token]);
+    syncTokenToCookie(authState?.token || null);
+  }, [authState?.token]);
 
   // ✅ SURGICAL ENHANCEMENT: Sync banking mode when user changes
   useEffect(() => {
-    if (authState.user) {
+    if (authState?.user) {
       const detectedBankingMode = detectBankingModeFromUser(authState.user);
       if (detectedBankingMode) {
         console.log(`🎨 AuthProvider: Detected banking mode "${detectedBankingMode}" from user data`);
         dispatch(setBankingMode(detectedBankingMode));
       }
     }
-  }, [authState.user, dispatch]);
+  }, [authState?.user, dispatch]);
 
   // ============================================================================
   // INITIALIZE AUTHENTICATION STATE
   // ============================================================================
   useEffect(() => {
     // ✅ SURGICAL FIX: Prevent infinite loop by checking if already initialized
-    if (authState.isInitialized) {
+    if (authState?.isInitialized) {
       setLocalLoading(false);
       return;
     }
@@ -305,7 +309,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const userData = localStorage.getItem('user_data')
         const refreshToken = localStorage.getItem('refresh_token')
 
-        if (token && userData && !authState.isAuthenticated) {
+        if (token && userData && !authState?.isAuthenticated) {
           const parsedUser = JSON.parse(userData)
           console.log('✅ Found stored auth data for:', parsedUser.email)
 
@@ -567,20 +571,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           // We store raw data to 'temp_raw_menu' so BankingSidebar can pick it up immediately
           // avoiding a second network request.
           if (roleBasedUrl.includes('banking') && token) {
-             const detectedMode = detectedBankingMode || 'conventional';
-             // Run in background, don't await
-             import('../services/api/menu.api').then(({ menuApi }) => {
-                 console.log('⚡ [PERF] Pre-fetching menu data for:', detectedMode);
-                 menuApi.getMenuTree({
-                    bankingMode: detectedMode,
-                    includeInactive: false
-                 }).then(response => {
-                    if (response.success && response.data) {
-                        localStorage.setItem('temp_raw_menu', JSON.stringify(response.data));
-                        console.log('⚡ [PERF] Menu data pre-fetched and cached to temp storage');
-                    }
-                 }).catch(err => console.warn('⚠️ Menu pre-fetch failed:', err));
-             });
+            const detectedMode = detectedBankingMode || 'conventional';
+            // Run in background, don't await
+            import('../services/api/menu.api').then(({ menuApi }) => {
+              console.log('⚡ [PERF] Pre-fetching menu data for:', detectedMode);
+              menuApi.getMenuTree({
+                bankingMode: detectedMode,
+                includeInactive: false
+              }).then(response => {
+                if (response.success && response.data) {
+                  localStorage.setItem('temp_raw_menu', JSON.stringify(response.data));
+                  console.log('⚡ [PERF] Menu data pre-fetched and cached to temp storage');
+                }
+              }).catch(err => console.warn('⚠️ Menu pre-fetch failed:', err));
+            });
           }
 
           setTimeout(() => {
@@ -808,7 +812,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (response.ok) {
         const parsedUser = JSON.parse(userData)
 
-        if (!authState.isAuthenticated) {
+        if (!authState?.isAuthenticated) {
           dispatch(initializeAuth({
             user: parsedUser,
             token,
@@ -825,7 +829,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.error('❌ Auth check error:', error)
       return false
     }
-  }, [dispatch, authState.isAuthenticated])
+  }, [dispatch, authState?.isAuthenticated])
 
   const clearErrorHandler = useCallback(() => {
     dispatch(clearError())
@@ -835,10 +839,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // CONTEXT VALUE
   // ============================================================================
   const contextValue: AuthContextType = {
-    user: authState.user,
-    isAuthenticated: authState.isAuthenticated,
-    isLoading: authState.isLoading || localLoading,
-    error: authState.error,
+    user: authState?.user || null,
+    isAuthenticated: authState?.isAuthenticated || false,
+    isLoading: authState?.isLoading || localLoading,
+    error: authState?.error || null,
     login,
     logout,
     clearError: clearErrorHandler,

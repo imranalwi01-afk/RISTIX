@@ -1,10 +1,11 @@
 # docker-compose.dev.yml
 # ============================================================================
-# 🚀 IFRS9 NEW BACKEND - DEVELOPMENT DOCKER COMPOSE
+# 🚀 IFRS9 NEW BACKEND - DEVELOPMENT DOCKER COMPOSE WITH PROFILES
 # ============================================================================
-# Usage:
-#   docker-compose -f docker-compose.dev.yml up -d
-#   docker-compose -f docker-compose.dev.yml logs -f new-backend
+# Profiles allow flexible service combinations:
+#   - db: Run databases only (postgres + redis)
+#   - app: Run application services only (backend + frontend)
+#   - Default (no profile): Run backend with databases
 # ============================================================================
 
 services:
@@ -29,6 +30,9 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    profiles:
+      - db
+      - full
 
   # ============================================================================
   # 📊 REDIS (Development)
@@ -48,6 +52,9 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    profiles:
+      - db
+      - full
 
   # ============================================================================
   # 🚀 NEW BACKEND SERVICE (Hono + Drizzle + Bun)
@@ -63,39 +70,41 @@ services:
       PORT: 4232
       HOST: 0.0.0.0
 
-      # Database
-      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-ifrspro_platform_admin}
+      # Database - Use external DB when running without 'db' profile
+      DATABASE_URL: ${DATABASE_URL:-postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-ifrspro_platform_admin}}
+      LEGACY_DATABASE_URL: ${LEGACY_DATABASE_URL:-postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/frs9pro}
 
       # JWT
       JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-change-in-production}
       JWT_EXPIRES_IN: 1h
 
-      # Redis
-      REDIS_URL: redis://redis:6379
+      # Redis - Use external Redis when running without 'db' profile
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
 
       # Logging
       LOG_LEVEL: debug
     ports:
       - "4232:4232"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
     networks:
       - ifrs9-dev
     volumes:
       - ./packages/new-backend/src:/app/src:ro
+      - ./packages/new-backend/package.json:/app/package.json
+      - ./packages/new-backend/bun.lockb:/app/bun.lockb
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:4232/api/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
-    # For hot reload during development, uncomment:
+    # For hot reload during development
     command: [ "bun", "run", "dev" ]
-    # ============================================================================
-    # 🌐 FRONTEND SERVICE (Optional - can run separately)
-    # ============================================================================
+    profiles:
+      - app
+      - full
+
+  # ============================================================================
+  # 🌐 FRONTEND SERVICE (Optional)
+  # ============================================================================
   frontend:
     build:
       context: .
@@ -107,12 +116,12 @@ services:
       NEXT_PUBLIC_API_BASE_URL: http://localhost:4232/api
     ports:
       - "4231:4231"
-    depends_on:
-      - new-backend
     networks:
       - ifrs9-dev
     profiles:
+      - app
       - with-frontend
+      - full
 
 # ============================================================================
 # 📁 VOLUMES
@@ -131,13 +140,30 @@ networks:
     driver: bridge
 
 # ============================================================================
-# 🚀 DEVELOPMENT COMMANDS
+# 🚀 USAGE EXAMPLES
 # ============================================================================
-# Start backend only (with DB + Redis):
-#   docker-compose -f docker-compose.dev.yml up -d
 #
-# Start with frontend:
-#   docker-compose -f docker-compose.dev.yml --profile with-frontend up -d
+# 1️⃣ Run ONLY databases (postgres + redis):
+#    docker-compose -f docker-compose.dev.yml --profile db up -d
+#    Use this when: Running app locally (pnpm run dev) but need local databases
+#
+# 2️⃣ Run ONLY app services (backend + frontend):
+#    docker-compose -f docker-compose.dev.yml --profile app up -d
+#    Use this when: Using external/remote databases (set DATABASE_URL in .env)
+#
+# 3️⃣ Run EVERYTHING (databases + backend + frontend):
+#    docker-compose -f docker-compose.dev.yml --profile full up -d
+#    Use this when: Full Docker development environment
+#
+# 4️⃣ Run backend with databases (default - no profile needed):
+#    docker-compose -f docker-compose.dev.yml up -d postgres redis new-backend
+#    Use this when: Running frontend locally but backend in Docker
+#
+# 5️⃣ Run backend only (with external databases):
+#    docker-compose -f docker-compose.dev.yml --profile app up -d new-backend
+#    Requires: DATABASE_URL and REDIS_URL in .env pointing to external services
+#
+# 📋 Other useful commands:
 #
 # View logs:
 #   docker-compose -f docker-compose.dev.yml logs -f new-backend
@@ -145,6 +171,10 @@ networks:
 # Run migrations:
 #   docker-compose -f docker-compose.dev.yml exec new-backend bun run db:migrate
 #
-# Stop all:
-#   docker-compose -f docker-compose.dev.yml down
+# Stop all services:
+#   docker-compose -f docker-compose.dev.yml --profile full down
+#
+# Remove volumes (⚠️ deletes data):
+#   docker-compose -f docker-compose.dev.yml down -v
+#
 # ============================================================================
