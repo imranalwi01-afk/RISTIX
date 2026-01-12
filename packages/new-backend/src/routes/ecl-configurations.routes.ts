@@ -1,13 +1,10 @@
-import { Hono } from 'hono'
-import { zValidator } from '@hono/zod-validator'
-import { z } from 'zod'
-import { db } from '@/config'
-import { frs9ImpCaEclConfigh, frs9ImpCaEclConfigd } from '@/db/schema'
-import { eq, desc, inArray } from 'drizzle-orm'
-import type { AppContext } from '@/app'
+import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
+import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
+import { EclConfigurationsService } from '../services/ecl-configurations.service'
+import { runEffect } from '../lib/effect/runtime'
 
-const app = new Hono<AppContext>()
+const app = new OpenAPIHono<AppContext>()
 
 app.use('*', authMiddleware)
 
@@ -15,7 +12,45 @@ app.use('*', authMiddleware)
 // VALIDATION SCHEMAS
 // ============================================================================
 
-const eclDetailSchema = z.object({
+const EclDetailItemSchema = z.object({
+    id: z.number(),
+    pf_segment_id: z.number().nullable(),
+    stage_rule_id: z.number().nullable(),
+    pd_model_id: z.number().nullable(),
+    lgd_model_id: z.number().nullable(),
+    ead_model_id: z.number().nullable(),
+    overlay_rate: z.number().nullable(),
+    period_type: z.number().nullable(),
+    period_date: z.string().nullable(),
+}).openapi('EclDetailItem')
+
+const EclHeaderSchema = z.object({
+    id: z.number(),
+    model_name: z.string().nullable(),
+    module: z.string().nullable(),
+    effective_date: z.string().nullable(),
+    active_flag: z.boolean().nullable(),
+    last_run_period: z.string().nullable(),
+    last_run_status: z.number().nullable(),
+    last_run_date: z.string().nullable(),
+    created_by: z.string().nullable(),
+    created_date: z.string().nullable(),
+}).openapi('EclHeader')
+
+const EclResponse = z.object({
+    success: z.boolean(),
+    data: EclHeaderSchema.extend({
+        details: z.array(EclDetailItemSchema).optional()
+    }),
+    message: z.string().optional()
+}).openapi('EclResponse')
+
+const EclListResponse = z.object({
+    success: z.boolean(),
+    data: z.array(EclHeaderSchema)
+}).openapi('EclListResponse')
+
+const EclDetailInputSchema = z.object({
     pkid: z.number().int().optional(),
     pfSegmentId: z.number().int().optional(),
     stageRuleId: z.number().int().optional(),
@@ -25,265 +60,129 @@ const eclDetailSchema = z.object({
     overlayRate: z.number().optional().default(100),
     periodType: z.number().int().optional(),
     periodDate: z.string().optional(),
-})
+}).openapi('EclDetailInput')
 
-const createEclConfigSchema = z.object({
+const CreateEclConfigSchema = z.object({
     modelName: z.string().min(1).max(50),
     module: z.string().max(10).optional(),
-    effectiveDate: z.string(), // date string
+    effectiveDate: z.string(),
     activeFlag: z.boolean().default(true),
-    details: z.array(eclDetailSchema).optional(),
-})
+    details: z.array(EclDetailInputSchema).optional(),
+}).openapi('CreateEclConfigInput')
 
-const updateEclConfigSchema = createEclConfigSchema.partial()
+const UpdateEclConfigSchema = CreateEclConfigSchema.partial().openapi('UpdateEclConfigInput')
 
-// ============================================================================
-// HELPER FUNCTIONS
-// ============================================================================
-
-const transformHeader = (header: typeof frs9ImpCaEclConfigh.$inferSelect) => ({
-    id: header.pkid,
-    model_name: header.eclModelName,
-    module: header.module,
-    effective_date: header.effectiveDate,
-    active_flag: header.activeFlag,
-    last_run_period: header.lastRunPeriod,
-    last_run_status: header.lastRunStatus,
-    last_run_date: header.lastRunDate,
-    created_by: header.createdby,
-    created_date: header.createddate,
-})
-
-const transformDetail = (detail: typeof frs9ImpCaEclConfigd.$inferSelect) => ({
-    id: detail.pkid,
-    pf_segment_id: detail.pfSegmentId,
-    stage_rule_id: detail.stageRuleId,
-    pd_model_id: detail.pdModelId,
-    lgd_model_id: detail.lgdModelId,
-    ead_model_id: detail.eadModelId,
-    overlay_rate: detail.overlayRate,
-    period_type: detail.periodType,
-    period_date: detail.periodDate,
-})
+const ErrorResponse = z.object({
+    success: z.boolean(),
+    message: z.string()
+}).openapi('ErrorResponse')
 
 // ============================================================================
 // ENDPOINTS
 // ============================================================================
 
 // GET /api/v1/banking/collective/ecl-configurations
-app.get('/', async (c) => {
-    try {
-        const configs = await db
-            .select()
-            .from(frs9ImpCaEclConfigh)
-            .orderBy(desc(frs9ImpCaEclConfigh.createddate))
-
-        // Optional: Fetch details count or summary if needed
-        return c.json({
-            success: true,
-            data: configs.map(transformHeader),
-        })
-    } catch (error) {
-        console.error('Error fetching ECL configs:', error)
-        return c.json({ success: false, message: 'Failed to fetch ECL configurations' }, 500)
-    }
-})
-
-// GET /api/v1/banking/collective/ecl-configurations/:id
-app.get('/:id', async (c) => {
-    try {
-        const id = Number(c.req.param('id'))
-        if (isNaN(id)) return c.json({ error: 'Invalid ID' }, 400);
-
-        const [header] = await db
-            .select()
-            .from(frs9ImpCaEclConfigh)
-            .where(eq(frs9ImpCaEclConfigh.pkid, id))
-
-        if (!header) {
-            return c.json({ success: false, message: 'Configuration not found' }, 404)
+app.openapi(
+    createRoute({
+        method: 'get',
+        path: '/',
+        tags: ['ECL Configurations'],
+        summary: 'List ECL Configurations',
+        responses: {
+            200: { content: { 'application/json': { schema: EclListResponse } }, description: 'List' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
-
-        const details = await db
-            .select()
-            .from(frs9ImpCaEclConfigd)
-            .where(eq(frs9ImpCaEclConfigd.eclModelId, id))
-
-        return c.json({
-            success: true,
-            data: {
-                ...transformHeader(header),
-                details: details.map(transformDetail)
-            }
-        })
-    } catch (error) {
-        console.error('Error fetching ECL config:', error)
-        return c.json({ success: false, message: 'Failed to fetch ECL configuration' }, 500)
+    }),
+    async (c) => {
+        return runEffect(c, EclConfigurationsService.list() as any) as any
     }
-})
+)
 
-// POST /api/v1/banking/collective/ecl-configurations
-app.post('/', zValidator('json', createEclConfigSchema), async (c) => {
-    try {
-        const userId = 'SYSTEM'
+app.openapi(
+    createRoute({
+        method: 'get',
+        path: '/{id}',
+        tags: ['ECL Configurations'],
+        summary: 'Get ECL Configuration',
+        request: {
+            params: z.object({ id: z.string().transform(Number) })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: EclResponse } }, description: 'Detail' },
+            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not found' }
+        }
+    }),
+    async (c) => {
+        const { id } = c.req.valid('param')
+        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
+        return runEffect(c, EclConfigurationsService.get(id) as any) as any
+    }
+)
+
+app.openapi(
+    createRoute({
+        method: 'post',
+        path: '/',
+        tags: ['ECL Configurations'],
+        summary: 'Create ECL Configuration',
+        request: {
+            body: { content: { 'application/json': { schema: CreateEclConfigSchema } } }
+        },
+        responses: {
+            201: { content: { 'application/json': { schema: EclResponse } }, description: 'Created' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
         const data = c.req.valid('json')
-
-        // Transaction
-        const result = await db.transaction(async (tx) => {
-            const [header] = await tx
-                .insert(frs9ImpCaEclConfigh)
-                .values({
-                    eclModelName: data.modelName,
-                    module: data.module,
-                    effectiveDate: data.effectiveDate,
-                    activeFlag: data.activeFlag,
-                    createdby: userId,
-                    createdhost: 'localhost',
-                    createddate: new Date().toISOString(),
-                    updatedby: userId,
-                    updatedhost: 'localhost',
-                    updateddate: new Date().toISOString()
-                })
-                .returning()
-
-            if (data.details && data.details.length > 0) {
-                await tx.insert(frs9ImpCaEclConfigd).values(
-                    data.details.map(d => ({
-                        eclModelId: header.pkid,
-                        pfSegmentId: d.pfSegmentId,
-                        stageRuleId: d.stageRuleId,
-                        pdModelId: d.pdModelId,
-                        lgdModelId: d.lgdModelId,
-                        eadModelId: d.eadModelId,
-                        overlayRate: d.overlayRate,
-                        periodType: d.periodType,
-                        periodDate: d.periodDate,
-                        createdby: userId,
-                        createdhost: 'localhost',
-                        createddate: new Date().toISOString(),
-                        updatedby: userId,
-                        updatedhost: 'localhost',
-                        updateddate: new Date().toISOString()
-                    }))
-                )
-            }
-            return header
-        })
-
-        // Fetch complete object
-        const details = await db
-            .select()
-            .from(frs9ImpCaEclConfigd)
-            .where(eq(frs9ImpCaEclConfigd.eclModelId, result.pkid))
-
-        return c.json({
-            success: true,
-            data: {
-                ...transformHeader(result),
-                details: details.map(transformDetail)
-            },
-            message: 'ECL configuration created successfully',
-        }, 201)
-
-    } catch (error) {
-        console.error('Error creating ECL config:', error)
-        return c.json({ success: false, message: 'Failed to create ECL configuration' }, 500)
+        const userId = c.get('userId') as string || 'system'
+        return runEffect(c, EclConfigurationsService.create(data, userId) as any) as any
     }
-})
+)
 
-// PUT /api/v1/banking/collective/ecl-configurations/:id
-app.put('/:id', zValidator('json', updateEclConfigSchema), async (c) => {
-    try {
-        const id = Number(c.req.param('id'))
-        if (isNaN(id)) return c.json({ error: 'Invalid ID' }, 400);
-        const userId = 'SYSTEM'
+app.openapi(
+    createRoute({
+        method: 'put',
+        path: '/{id}',
+        tags: ['ECL Configurations'],
+        summary: 'Update ECL Configuration',
+        request: {
+            params: z.object({ id: z.string().transform(Number) }),
+            body: { content: { 'application/json': { schema: UpdateEclConfigSchema } } }
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: EclResponse } }, description: 'Updated' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        const { id } = c.req.valid('param')
         const data = c.req.valid('json')
-
-        const result = await db.transaction(async (tx) => {
-            // Update Header
-            const [header] = await tx
-                .update(frs9ImpCaEclConfigh)
-                .set({
-                    eclModelName: data.modelName,
-                    module: data.module,
-                    effectiveDate: data.effectiveDate,
-                    activeFlag: data.activeFlag,
-                    updatedby: userId,
-                    updateddate: new Date().toISOString(),
-                    updatedhost: 'localhost',
-                })
-                .where(eq(frs9ImpCaEclConfigh.pkid, id))
-                .returning()
-
-            if (!header) throw new Error('Header not found')
-
-            // Update Details (Full Replace Strategy for simplicity, or smart update)
-            // For now, let's delete existing for this header and re-insert if details provided
-            if (data.details) {
-                await tx.delete(frs9ImpCaEclConfigd).where(eq(frs9ImpCaEclConfigd.eclModelId, id))
-
-                if (data.details.length > 0) {
-                    await tx.insert(frs9ImpCaEclConfigd).values(
-                        data.details.map(d => ({
-                            eclModelId: header.pkid,
-                            pfSegmentId: d.pfSegmentId,
-                            stageRuleId: d.stageRuleId,
-                            pdModelId: d.pdModelId,
-                            lgdModelId: d.lgdModelId,
-                            eadModelId: d.eadModelId,
-                            overlayRate: d.overlayRate,
-                            periodType: d.periodType,
-                            periodDate: d.periodDate,
-                            createdby: userId,
-                            createdhost: 'localhost',
-                            createddate: new Date().toISOString(),
-                            updatedby: userId,
-                            updatedhost: 'localhost',
-                            updateddate: new Date().toISOString()
-                        }))
-                    )
-                }
-            }
-            return header
-        })
-
-        const details = await db
-            .select()
-            .from(frs9ImpCaEclConfigd)
-            .where(eq(frs9ImpCaEclConfigd.eclModelId, id))
-
-        return c.json({
-            success: true,
-            data: {
-                ...transformHeader(result),
-                details: details.map(transformDetail)
-            },
-            message: 'ECL configuration updated successfully',
-        })
-
-    } catch (error) {
-        console.error('Error updating ECL config:', error)
-        return c.json({ success: false, message: 'Failed to update ECL configuration' }, 500)
+        const userId = c.get('userId') as string || 'system'
+        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
+        return runEffect(c, EclConfigurationsService.update(id, data, userId) as any) as any
     }
-})
+)
 
-// DELETE /api/v1/banking/collective/ecl-configurations/:id
-app.delete('/:id', async (c) => {
-    try {
-        const id = Number(c.req.param('id'))
-        if (isNaN(id)) return c.json({ error: 'Invalid ID' }, 400);
-
-        await db.transaction(async (tx) => {
-            // Delete details first (FK constraint usually handles this if cascade is set, but better safe)
-            await tx.delete(frs9ImpCaEclConfigd).where(eq(frs9ImpCaEclConfigd.eclModelId, id))
-            await tx.delete(frs9ImpCaEclConfigh).where(eq(frs9ImpCaEclConfigh.pkid, id))
-        })
-
-        return c.json({ success: true, message: 'ECL configuration deleted successfully' })
-    } catch (error) {
-        console.error('Error deleting ECL config:', error)
-        return c.json({ success: false, message: 'Failed to delete ECL configuration' }, 500)
+app.openapi(
+    createRoute({
+        method: 'delete',
+        path: '/{id}',
+        tags: ['ECL Configurations'],
+        summary: 'Delete ECL Configuration',
+        request: {
+            params: z.object({ id: z.string().transform(Number) })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Deleted' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        const { id } = c.req.valid('param')
+        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
+        return runEffect(c, EclConfigurationsService.delete(id) as any) as any
     }
-})
+)
 
 export default app

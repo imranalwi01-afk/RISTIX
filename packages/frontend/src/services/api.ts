@@ -30,6 +30,9 @@ import { populationSegmentsApi } from './api/population-segments.api';
 import { flScalarAPI } from './api/fl-scalar.api';
 import { eclConfigurationsApi } from './api/ecl-configurations.api';
 import { impairmentApi } from './api/impairment.api';
+import { approvalAPI } from './api/approval.api';
+import { reportsAPI } from './api.reports';
+
 
 
 // ✅ ENVIRONMENT-AWARE CONFIG: Use environment loader with auto-detection
@@ -530,6 +533,10 @@ export const bankingAPI = {
   flScalar: flScalarAPI,
   eclConfigurations: eclConfigurationsApi,
   impairment: impairmentApi,
+  approval: approvalAPI,
+  ifrs9Reports: reportsAPI,
+
+
 
   // Application setup parameters (FRS9_PARAM_COMMONH - Type A)
   applicationSetup: {

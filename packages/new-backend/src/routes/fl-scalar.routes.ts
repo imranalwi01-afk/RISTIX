@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { z } from 'zod'
-import { db } from '@/config'
+import { legacyDb as db } from '@/config'
 import { frs9ImpCaFlScalarh, frs9ImpCaFlScalard } from '@/db/schema'
 import { eq, desc, inArray } from 'drizzle-orm'
 import type { AppContext } from '@/app'
@@ -94,9 +94,13 @@ app.get('/', async (c) => {
                 tables: ['frs9_imp_ca_fl_scalarh', 'frs9_imp_ca_fl_scalard']
             }
         })
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error fetching FL scalars:', error)
-        return c.json({ success: false, message: 'Failed to fetch FL scalars' }, 500)
+        return c.json({
+            success: false,
+            message: `Failed to load FL Scalars from database: ${error.message}`,
+            details: error.stack
+        }, 500)
     }
 })
 

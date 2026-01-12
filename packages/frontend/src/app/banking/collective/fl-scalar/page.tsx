@@ -182,32 +182,24 @@ export default function FLScalarManagementPage() {
   const loadScalars = useCallback(async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       console.log('🔮 Loading FL Scalars from REAL DS2 FRS9PRO database...');
-      
+
       // ✅ REAL API CALL - DS2 FRS9PRO Database (frs9_imp_ca_fl_scalarh/d)
-      const response = await api.banking.flScalar.getAll();
-      
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to load FL Scalars from database');
-      }
-      
-      console.log(`✅ Loaded ${response.data.length} FL Scalars from DS2 database:`, {
-        total: response.total,
-        database: response.database_info?.database,
-        host: response.database_info?.host,
-        tables: response.database_info?.tables
-      });
-      
+      // ✅ REAL API CALL - DS2 FRS9PRO Database (frs9_imp_ca_fl_scalarh/d)
+      const data = await api.banking.flScalar.getAll();
+
+      console.log(`✅ Loaded ${data.length} FL Scalars from DS2 database`);
+
       // Set real data from database
-      setScalars(response.data);
-      
+      setScalars(data);
+
     } catch (err: any) {
       const errorMessage = `Failed to load FL Scalar configurations from DS2 database: ${err.message || err}`;
       setError(errorMessage);
       console.error('❌ Error loading FL scalars from DS2 database:', err);
-      
+
       // Log detailed error for debugging
       console.error('🔍 FL Scalar API Error Details:', {
         error: err,
@@ -240,7 +232,7 @@ export default function FLScalarManagementPage() {
       }
 
       // Validate scalar values
-      const invalidScalars = scalarDetails.filter(d => 
+      const invalidScalars = scalarDetails.filter(d =>
         d.weighted_scalar === undefined || d.weighted_scalar === null || d.weighted_scalar < 0
       );
       if (invalidScalars.length > 0) {
@@ -255,31 +247,30 @@ export default function FLScalarManagementPage() {
   const handleSave = async () => {
     if (!validateForm()) return;
 
+    const isEdit = dialogState.mode === 'edit';
     setLoading(true);
     try {
-      const isEdit = dialogState.mode === 'edit';
-      
       // ✅ REAL API CALLS - DS2 FRS9PRO Database (frs9_imp_ca_fl_scalarh/d)
-      const saveData = { ...formData, details: scalarDetails };
-      
+      const saveData: any = {
+        ...formData,
+        details: scalarDetails,
+        scalar_name: formData.scalar_name || ''
+      };
+
       console.log(`${isEdit ? '✏️ Updating' : '➕ Creating'} FL Scalar in DS2 database:`, saveData);
-      
-      let response;
+
+      let result;
       if (isEdit) {
-        response = await api.banking.flScalar.update(formData.pkid!.toString(), saveData);
+        result = await api.banking.flScalar.update(formData.pkid!.toString(), saveData);
       } else {
-        response = await api.banking.flScalar.create(saveData);
+        result = await api.banking.flScalar.create(saveData);
       }
-      
-      if (!response.success) {
-        throw new Error(response.error || `Failed to ${isEdit ? 'update' : 'create'} FL Scalar in database`);
-      }
-      
-      console.log(`✅ FL Scalar ${isEdit ? 'updated' : 'created'} successfully in DS2 database:`, response.data);
-      
+
+      console.log(`✅ FL Scalar ${isEdit ? 'updated' : 'created'} successfully in DS2 database:`, result);
+
       // Reload data from database to get fresh data
       await loadScalars();
-      
+
       closeDialog();
     } catch (err: any) {
       const errorMessage = `Failed to ${isEdit ? 'update' : 'create'} FL Scalar in DS2 database: ${err.message || err}`;
@@ -295,22 +286,18 @@ export default function FLScalarManagementPage() {
 
     setLoading(true);
     setError(null);
-    
+
     try {
       console.log(`🗑️ Deleting FL Scalar ${id} from DS2 database...`);
-      
+
       // ✅ REAL API CALL - DS2 FRS9PRO Database (frs9_imp_ca_fl_scalarh/d)
-      const response = await api.banking.flScalar.delete(id.toString());
-      
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to delete FL Scalar from database');
-      }
-      
+      await api.banking.flScalar.delete(id.toString());
+
       console.log(`✅ FL Scalar ${id} deleted successfully from DS2 database`);
-      
+
       // Reload data from database to get fresh data
       await loadScalars();
-      
+
     } catch (err: any) {
       const errorMessage = `Failed to delete FL Scalar from DS2 database: ${err.message || err}`;
       setError(errorMessage);
@@ -338,7 +325,7 @@ export default function FLScalarManagementPage() {
 
   const handleFormChange = (field: keyof FLScalarHeader, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    
+
     // Clear related errors
     if (formErrors[field]) {
       setFormErrors(prev => ({ ...prev, [field]: '' }));
@@ -364,10 +351,10 @@ export default function FLScalarManagementPage() {
   };
 
   const updateScalarDetail = (index: number, field: keyof FLScalarDetail, value: any) => {
-    setScalarDetails(prev => prev.map((detail, i) => 
+    setScalarDetails(prev => prev.map((detail, i) =>
       i === index ? { ...detail, [field]: value } : detail
     ));
-    
+
     // Clear errors when details are modified
     if (formErrors.details) {
       setFormErrors(prev => ({ ...prev, details: '' }));
@@ -741,7 +728,7 @@ export default function FLScalarManagementPage() {
           sx={{
             '& .MuiDataGrid-root': { border: 'none' },
             '& .MuiDataGrid-cell': { borderBottom: '1px solid #f0f0f0' },
-            '& .MuiDataGrid-columnHeaders': { 
+            '& .MuiDataGrid-columnHeaders': {
               backgroundColor: '#fafafa',
               borderBottom: '2px solid #e0e0e0',
             },
@@ -766,7 +753,7 @@ export default function FLScalarManagementPage() {
             {dialogState.mode === 'view' && 'View FL Scalar Configuration'}
           </Box>
         </DialogTitle>
-        
+
         <DialogContent sx={{ pt: 2 }}>
           {renderDialogContent()}
         </DialogContent>

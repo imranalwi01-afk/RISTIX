@@ -84,10 +84,10 @@ import {
 // Import our database-driven menu service
 import { useRouter } from 'next/navigation';
 import { getAuthToken } from '@/utils/auth-token';
-import {
-  getMenuConfigurations,
-  saveMenuConfiguration
-} from '@/services/api/maintenance.api';
+import { menuApi } from '@/services/api/menu.api';
+
+// Alias for backward compatibility with existing code
+const menuService = menuApi;
 
 // Import API service for base URL configuration
 import { api } from '@/services/api';
@@ -136,6 +136,73 @@ interface User {
   email: string;
   roles: string[];
   isActive: boolean;
+}
+
+// Database menu item type (from API response)
+interface DatabaseMenuItem {
+  id: string;
+  label: string;
+  href?: string;
+  icon?: string;
+  description?: string;
+  parent_id?: string;
+  sort_order: number;
+  is_active: boolean;
+  roles?: string[];
+  banking_modes?: ('conventional' | 'syariah' | 'dual')[];
+  created_at?: string;
+  updated_at?: string;
+  code?: string;
+  status?: 'active' | 'warning' | 'error' | 'disabled';
+  is_new?: boolean;
+  requires_setup?: boolean;
+  badge?: {
+    content?: string | number;
+    color?: 'primary' | 'secondary' | 'error' | 'warning' | 'info' | 'success';
+  };
+  target?: '_self' | '_blank';
+  external_url?: string;
+}
+
+// API request types
+interface UpdateMenuItemRequest {
+  label?: string;
+  href?: string;
+  icon?: string;
+  description?: string;
+  parent_id?: string | undefined;
+  banking_modes?: ('conventional' | 'syariah' | 'dual')[];
+  roles?: string[];
+  badge?: {
+    content?: string | number;
+    color?: 'primary' | 'secondary' | 'error' | 'warning' | 'info' | 'success';
+  };
+  status?: 'active' | 'warning' | 'error' | 'disabled';
+  is_new?: boolean;
+  requires_setup?: boolean;
+  target?: '_self' | '_blank';
+  external_url?: string | undefined;
+  is_active?: boolean;
+}
+
+interface CreateMenuItemRequest {
+  code: string;
+  label: string;
+  href?: string | undefined;
+  icon?: string | undefined;
+  description?: string | undefined;
+  parent_id?: string | undefined;
+  banking_modes: ('conventional' | 'syariah' | 'dual')[];
+  roles: string[];
+  badge?: {
+    content?: string | number;
+    color?: 'primary' | 'secondary' | 'error' | 'warning' | 'info' | 'success';
+  };
+  status: 'active' | 'warning' | 'error' | 'disabled';
+  is_new: boolean;
+  requires_setup: boolean;
+  target?: '_self' | '_blank';
+  external_url?: string | undefined;
 }
 
 const MenuManagement: React.FC = () => {
@@ -301,7 +368,7 @@ const MenuManagement: React.FC = () => {
           console.log('✅ Flattened hierarchical menu items:', uiMenus.length);
         } else {
           // 📋 Process flat data (backend returns flat array)
-          uiMenus = response.data.map((dbMenu: DatabaseMenuItem) => ({
+          uiMenus = (response.data as any[]).map((dbMenu: DatabaseMenuItem) => ({
             id: dbMenu.id,
             label: dbMenu.label,
             href: dbMenu.href,
@@ -381,7 +448,7 @@ const MenuManagement: React.FC = () => {
         href: '/banking/dashboard',
         icon: 'Dashboard',
         description: 'IFRS 9 Pro System Overview',
-        parentId: null,
+        parentId: undefined,
         order: 1,
         isActive: true,
         roles: ['BANK_CRO', 'BANK_IFRS_MANAGER', 'BANK_RISK_ANALYST', 'BANK_PORTFOLIO_MANAGER', 'BANK_DATA_ADMIN'],
@@ -401,7 +468,7 @@ const MenuManagement: React.FC = () => {
         label: 'General Setup',
         icon: 'Settings',
         description: 'System Configuration',
-        parentId: null,
+        parentId: undefined,
         order: 2,
         isActive: true,
         roles: ['BANK_CRO', 'BANK_IFRS_MANAGER'],
