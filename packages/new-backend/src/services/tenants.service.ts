@@ -31,10 +31,26 @@ export interface UpdateTenantInput {
 
 /**
  * Get all tenants with pagination
+ * Note: By default, this should exclude the 'system' tenant to prevent confusing regular users.
+ * Platform admins can request it explicitly via specific filter if needed.
  */
 export const getTenants = (options?: any) =>
     Effect.tryPromise({
-        try: () => TenantRepository.findAll(options),
+        try: async () => {
+            const { data, total } = await TenantRepository.findAll(options)
+
+            // If system is included, return everything
+            if (options?.includeSystem) {
+                return { data, total }
+            }
+
+            // Otherwise filter out system tenant
+            const filteredData = data.filter(t => t.code !== 'system')
+            return {
+                data: filteredData,
+                total: filteredData.length
+            }
+        },
         catch: (e) => new DatabaseError({ message: 'Failed to find tenants', operation: 'query' })
     })
 

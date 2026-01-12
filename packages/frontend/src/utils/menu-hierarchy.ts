@@ -243,7 +243,8 @@ export const filterHierarchicalMenu = (
   hierarchicalItems: HierarchicalMenuItem[],
   userRole: string | undefined,
   bankingMode: 'conventional' | 'syariah' | 'dual',
-  roleCodes?: string[] // ✅ Add roleCodes parameter for accurate menu filtering
+  roleCodes?: string[], // ✅ Add roleCodes parameter for accurate menu filtering
+  userPermissions?: string[] // ✅ Add permissions parameter for granular filtering
 ): HierarchicalMenuItem[] => {
 
 
@@ -265,6 +266,21 @@ export const filterHierarchicalMenu = (
 
         // Role-based filter with roleCodes support
         if (item.permissions && item.permissions.length > 0) {
+
+          // ✅ PERMISSION-BASED FILTERING (Primary Strategy)
+          if (userPermissions && userPermissions.length > 0) {
+            const hasExplicitPermission = item.permissions.some(requiredPerm =>
+              userPermissions.some(userPerm => userPerm.toLowerCase() === requiredPerm.toLowerCase())
+            );
+
+            // If we have permissions configured on the user, strictly enforce them
+            // UNLESS the item's permission is actually a Role code (legacy support)
+            // We'll proceed to role check if permission check fails, BUT ideally permission check should be definitive.
+            // For now, let's treat it as: IF permission match OR role match.
+
+            if (hasExplicitPermission) return true;
+          }
+
           // Use roleCodes if available, otherwise fall back to userRole
           const effectiveRoles = roleCodes && roleCodes.length > 0 ? roleCodes : (userRole ? [userRole] : []);
 

@@ -1,268 +1,248 @@
-import { Hono } from 'hono'
-import { zValidator } from '@hono/zod-validator'
-import { z } from 'zod'
-import { db } from '../config'
-import { frs9ImpCaLgdConfig, populationSegments } from '../db/schema'
-import { eq, and, like } from 'drizzle-orm'
+import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
 import type { AppContext } from '../app'
-import { authMiddleware, tenantMiddleware } from '../middleware'
+import { authMiddleware } from '../middleware'
+import { LgdConfigurationsService } from '../services/lgd-configurations.service'
+import { runEffect } from '../lib/effect/runtime'
 
-const app = new Hono<AppContext>()
+const app = new OpenAPIHono<AppContext>()
 
-// Apply auth and tenant middleware
 app.use('*', authMiddleware)
-app.use('*', tenantMiddleware)
 
 // ============================================================================
 // VALIDATION SCHEMAS
 // ============================================================================
 
-const createLgdConfigSchema = z.object({
+const LgdConfigSchema = z.object({
+    id: z.number(),
+    model_name: z.string().nullable(),
+    segment_id: z.number().nullable(),
+    lgd_method: z.union([z.string(), z.number()]).nullable(),
+    population_type: z.string().nullable(),
+    observation_period: z.string().nullable(),
+    observation_start_date: z.string().nullable(),
+    workout_period: z.number().nullable(),
+    fl_flag: z.boolean().nullable(),
+    fl_scalar_id: z.number().nullable(),
+    lgd_rate: z.union([z.string(), z.number()]).nullable(),
+    is_active: z.boolean().nullable(),
+    created_by: z.string().nullable(),
+    updated_by: z.string().nullable(),
+    created_date: z.string().nullable(),
+    updated_date: z.string().nullable(),
+}).openapi('LgdConfig')
+
+const CreateLgdConfigSchema = z.object({
     modelName: z.string().min(1).max(255),
     segmentId: z.number().int().optional(),
     lgdMethod: z.number().int(),
-    populationType: z.string().optional(), // varchar in legacy schema
-    observationPeriod: z.string().optional(), // varchar in legacy schema
-    // historicalMonth: z.number().int().optional(), // Not in legacy schema, removing
-    // firstNplDate: z.string().optional(), // Not in legacy schema, removing
+    populationType: z.string().optional(),
+    observationPeriod: z.string().optional(),
     workoutPeriod: z.number().int().optional(),
     flFlag: z.boolean().default(false),
     flScalarId: z.number().int().optional(),
     lgdRate: z.number().optional(),
     isActive: z.boolean().default(true),
-    // unsecuredLgd/securedLgd: Not in legacy schema
-})
+}).openapi('CreateLgdConfigInput')
 
-const updateLgdConfigSchema = createLgdConfigSchema.partial()
+const UpdateLgdConfigSchema = CreateLgdConfigSchema.partial().openapi('UpdateLgdConfigInput')
 
-// ============================================================================
-// HELPER FUNCTIONS
-// ============================================================================
+const LgdListResponse = z.object({
+    success: z.boolean(),
+    data: z.array(LgdConfigSchema)
+}).openapi('LgdListResponse')
 
-// Map legacy columns to frontend friendly names (camels)
-const transformLgdConfig = (config: any) => ({
-    id: config.pkid, // Map pkid to id
-    model_name: config.lgdModelName,
-    segment_id: config.segmentId,
-    lgd_method: config.lgdMethod,
-    population_type: config.populationType,
-    observation_period: config.observationPeriod,
-    observation_start_date: config.observationStartDate,
-    workout_period: config.workoutPeriod,
-    fl_flag: config.flFlag,
-    fl_scalar_id: config.flScalarId,
-    lgd_rate: config.lgdRate,
-    is_active: config.activeFlag,
-    created_by: config.createdby,
-    updated_by: config.updatedby,
-    created_date: config.createddate,
-    updated_date: config.updateddate,
-})
+const LgdResponse = z.object({
+    success: z.boolean(),
+    data: LgdConfigSchema,
+    message: z.string().optional()
+}).openapi('LgdResponse')
+
+const ErrorResponse = z.object({
+    success: z.boolean(),
+    message: z.string().optional(),
+    error: z.string().optional()
+}).openapi('ErrorResponse')
 
 // ============================================================================
 // ENDPOINTS
 // ============================================================================
 
 // GET /api/v1/banking/parameters/lgd-configurations
-app.get('/', async (c) => {
-    try {
-        // tenantId is not in legacy schema?
-        // Legacy schema: createdby, updatedby, but NO tenantId column.
-        // If we want multi-tenancy, we usually rely on tenantId column.
-        // Assuming legacy schema is shared or we filter by something else?
-        // Or should I add tenantId to legacy schema too?
-        // For now, I will ignore tenantId filtering if the column doesn't exist, OR strictly filter by createdby?
-        // The user said "Migrate PD to new schema" but "LGD to legacy".
-        // Legacy tables usually don't have tenantId.
-        // I will just select all for now, or filter if I can.
-        // Wait, standard practice for SaaS is tenant isolation.
-        // I will assume I create a migration later to add tenantId if needed, 
-        // OR I just return all (Global admin style for now) but that breaks isolation.
-        // I'll filter by 'active_flag'.
-
-        const { search, lgd_method, is_active } = c.req.query()
-        const conditions = []
-
-        if (search) {
-            conditions.push(like(frs9ImpCaLgdConfig.lgdModelName, `%${search}%`))
+app.openapi(
+    createRoute({
+        method: 'get',
+        path: '/',
+        tags: ['LGD Configurations'],
+        summary: 'List LGD Configurations',
+        request: {
+            query: z.object({
+                search: z.string().optional(),
+                lgd_method: z.string().optional(),
+                is_active: z.string().optional(),
+            })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: LgdListResponse } }, description: 'List LGD' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
-
-        if (lgd_method) {
-            conditions.push(eq(frs9ImpCaLgdConfig.lgdMethod, parseInt(lgd_method)))
-        }
-
-        if (is_active !== undefined) {
-            conditions.push(eq(frs9ImpCaLgdConfig.activeFlag, is_active === 'true'))
-        }
-
-        const configs = await db
-            .select()
-            .from(frs9ImpCaLgdConfig)
-            .where(and(...conditions))
-            .orderBy(frs9ImpCaLgdConfig.lgdModelName)
-
-        return c.json({
-            success: true,
-            data: configs.map(transformLgdConfig),
-        })
-    } catch (error) {
-        console.error('Error fetching LGD configurations:', error)
-        return c.json({
-            success: false,
-            message: 'Failed to fetch LGD configurations',
-        }, 500)
+    }),
+    async (c) => {
+        const query = c.req.valid('query')
+        return runEffect(c, LgdConfigurationsService.list(query)) as any
     }
-})
+)
 
 // GET /api/v1/banking/parameters/lgd-configurations/:id
-app.get('/:id', async (c) => {
-    try {
-        const id = parseInt(c.req.param('id')) // pkid is smallint
+app.openapi(
+    createRoute({
+        method: 'get',
+        path: '/{id}',
+        tags: ['LGD Configurations'],
+        summary: 'Get LGD Configuration',
+        request: {
+            params: z.object({ id: z.string().transform(Number) })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: LgdResponse } }, description: 'Detail' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Invalid ID' },
+            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        const id = c.req.valid('param').id
         if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
 
-        const [config] = await db
-            .select()
-            .from(frs9ImpCaLgdConfig)
-            .where(eq(frs9ImpCaLgdConfig.pkid, id))
-
-        if (!config) {
-            return c.json({ success: false, message: 'LGD configuration not found' }, 404)
-        }
-
-        return c.json({ success: true, data: transformLgdConfig(config) })
-    } catch (error) {
-        console.error('Error fetching LGD configuration:', error)
-        return c.json({ success: false, message: 'Failed to fetch LGD configuration' }, 500)
+        return runEffect(c, LgdConfigurationsService.get(id)) as any
     }
-})
+)
 
 // POST /api/v1/banking/parameters/lgd-configurations
-app.post('/', zValidator('json', createLgdConfigSchema), async (c) => {
-    try {
-        const userId = c.get('userId') as string
+app.openapi(
+    createRoute({
+        method: 'post',
+        path: '/',
+        tags: ['LGD Configurations'],
+        summary: 'Create LGD Configuration',
+        request: {
+            body: { content: { 'application/json': { schema: CreateLgdConfigSchema } } }
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: LgdResponse } }, description: 'Created' }, // Note 201->200 if runEffect defaults to 200, check runEffect
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
         const data = c.req.valid('json')
+        const userId = c.get('userId') as string || 'system'
 
-        // Ensure population segment exists (check new table)
-        // const [segment] = await db
-        //     .select()
-        //     .from(populationSegments)
-        //     .where(eq(populationSegments.id, data.populationSegmentId))
-        // if (!segment) return c.json({ success: false, message: 'Invalid population segment' }, 400)
-
-        const [config] = await db
-            .insert(frs9ImpCaLgdConfig)
-            .values({
-                lgdModelName: data.modelName,
-                segmentId: data.segmentId,
-                lgdMethod: data.lgdMethod,
-                populationType: data.populationType,
-                observationPeriod: data.observationPeriod,
-                workoutPeriod: data.workoutPeriod,
-                flFlag: data.flFlag,
-                flScalarId: data.flScalarId,
-                lgdRate: data.lgdRate,
-                activeFlag: data.isActive,
-                createdby: userId,
-                // createdhost?
-            })
-            .returning()
-
-        return c.json({
-            success: true,
-            data: transformLgdConfig(config),
-            message: 'LGD configuration created successfully',
-        }, 201)
-    } catch (error) {
-        console.error('Error creating LGD configuration:', error)
-        return c.json({ success: false, message: 'Failed to create LGD configuration' }, 500)
+        return runEffect(c, LgdConfigurationsService.create(data, userId)) as any
     }
-})
+)
 
 // PUT /api/v1/banking/parameters/lgd-configurations/:id
-app.put('/:id', zValidator('json', updateLgdConfigSchema), async (c) => {
-    try {
-        const id = parseInt(c.req.param('id'))
+app.openapi(
+    createRoute({
+        method: 'put',
+        path: '/{id}',
+        tags: ['LGD Configurations'],
+        summary: 'Update LGD Configuration',
+        request: {
+            params: z.object({ id: z.string().transform(Number) }),
+            body: { content: { 'application/json': { schema: UpdateLgdConfigSchema } } }
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: LgdResponse } }, description: 'Updated' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Invalid ID' },
+            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not found' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        const id = c.req.valid('param').id
         if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
 
-        const userId = c.get('userId') as string
         const data = c.req.valid('json')
+        const userId = c.get('userId') as string || 'system'
 
-        const [updated] = await db
-            .update(frs9ImpCaLgdConfig)
-            .set({
-                lgdModelName: data.modelName,
-                segmentId: data.segmentId,
-                lgdMethod: data.lgdMethod,
-                populationType: data.populationType,
-                observationPeriod: data.observationPeriod,
-                workoutPeriod: data.workoutPeriod,
-                flFlag: data.flFlag,
-                flScalarId: data.flScalarId,
-                lgdRate: data.lgdRate,
-                activeFlag: data.isActive,
-                updatedby: userId,
-                updateddate: new Date().toISOString(), // string
-            })
-            .where(eq(frs9ImpCaLgdConfig.pkid, id))
-            .returning()
-
-        if (!updated) {
-            return c.json({ success: false, message: 'LGD configuration not found' }, 404)
-        }
-
-        return c.json({
-            success: true,
-            data: transformLgdConfig(updated),
-            message: 'LGD configuration updated successfully',
-        })
-    } catch (error) {
-        console.error('Error updating LGD configuration:', error)
-        return c.json({ success: false, message: 'Failed to update LGD configuration' }, 500)
+        return runEffect(c, LgdConfigurationsService.update(id, data, userId)) as any
     }
-})
+)
 
 // DELETE /api/v1/banking/parameters/lgd-configurations/:id
-app.delete('/:id', async (c) => {
-    try {
-        const id = parseInt(c.req.param('id'))
+app.openapi(
+    createRoute({
+        method: 'delete',
+        path: '/{id}',
+        tags: ['LGD Configurations'],
+        summary: 'Delete LGD Configuration',
+        request: {
+            params: z.object({ id: z.string().transform(Number) })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Deleted' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Invalid ID' },
+            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        const id = c.req.valid('param').id
         if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
 
-        const [deleted] = await db
-            .delete(frs9ImpCaLgdConfig)
-            .where(eq(frs9ImpCaLgdConfig.pkid, id))
-            .returning()
-
-        if (!deleted) {
-            return c.json({ success: false, message: 'LGD configuration not found' }, 404)
-        }
-
-        return c.json({ success: true, message: 'LGD configuration deleted successfully' })
-    } catch (error) {
-        console.error('Error deleting LGD configuration:', error)
-        return c.json({ success: false, message: 'Failed to delete LGD configuration' }, 500)
+        return runEffect(c, LgdConfigurationsService.delete(id)) as any
     }
-})
+)
 
-// METADATA (Keep same)
-app.get('/metadata/methods', async (c) => {
-    return c.json({
-        success: true,
-        data: [
-            { value: 1, label: 'Linear' },
-            { value: 2, label: 'Vintage' },
-            { value: 3, label: 'Recovery Rate' },
-        ],
-    })
-})
+// METADATA
+app.openapi(
+    createRoute({
+        method: 'get',
+        path: '/metadata/methods',
+        tags: ['LGD Configurations'],
+        summary: 'Get Metadata Methods',
+        responses: {
+            200: {
+                content: {
+                    'application/json': {
+                        schema: z.object({
+                            success: z.boolean(),
+                            data: z.array(z.object({ value: z.number(), label: z.string() }))
+                        })
+                    }
+                },
+                description: 'Metadata'
+            }
+        }
+    }),
+    async (c) => {
+        return runEffect(c, LgdConfigurationsService.getMethods()) as any
+    }
+)
 
-app.get('/metadata/population-types', async (c) => {
-    return c.json({
-        success: true,
-        data: [
-            { value: 'Monthly', label: 'Monthly' },
-            { value: 'Quarterly', label: 'Quarterly' },
-        ],
-    })
-})
+app.openapi(
+    createRoute({
+        method: 'get',
+        path: '/metadata/population-types',
+        tags: ['LGD Configurations'],
+        summary: 'Get Metadata Population Types',
+        responses: {
+            200: {
+                content: {
+                    'application/json': {
+                        schema: z.object({
+                            success: z.boolean(),
+                            data: z.array(z.object({ value: z.string(), label: z.string() }))
+                        })
+                    }
+                },
+                description: 'Metadata'
+            }
+        }
+    }),
+    async (c) => {
+        return runEffect(c, LgdConfigurationsService.getPopulationTypes()) as any
+    }
+)
 
 export default app

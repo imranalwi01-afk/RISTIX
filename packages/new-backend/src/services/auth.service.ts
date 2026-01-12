@@ -13,6 +13,7 @@ import {
 } from '@/lib/errors'
 import { AuthRepository } from '@/repositories/auth.repository'
 import { TenantRepository } from '@/repositories/tenant.repository'
+import { userRolesRepository } from '@/repositories/rbac.repository'
 
 // =============================================================================
 // TYPES
@@ -37,6 +38,9 @@ export interface JwtPayload {
     tenantId?: string
     jti: string // token id
     type: 'access' | 'refresh'
+    roles?: string[]
+    role?: string
+    permissions?: string[] // ✅ Add permissions field
 }
 
 // =============================================================================
@@ -56,10 +60,15 @@ const REFRESH_TOKEN_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
 /**
  * Generate a new JWT access token
  */
+/**
+ * Generate a new JWT access token
+ */
 const generateAccessToken = async (
     user: User,
     tokenId: string,
-    tenantId?: string
+    tenantId?: string,
+    roles: string[] = [],
+    permissions: string[] = [] // ✅ Add permissions param
 ): Promise<string> => {
     return new jose.SignJWT({
         sub: user.id,
@@ -67,6 +76,10 @@ const generateAccessToken = async (
         tenantId: tenantId ?? user.tenantId,
         jti: tokenId,
         type: 'access',
+        roles, // ✅ Include roles
+        role: roles[0], // ✅ Include primary role for backward compatibility
+        permissions, // ✅ Include permissions
+        isPlatformAdmin: user.isPlatformAdmin // ✅ Include platform admin flag
     })
         .setProtectedHeader({ alg: 'HS256' })
         .setIssuedAt()
@@ -80,7 +93,9 @@ const generateAccessToken = async (
 const generateRefreshToken = async (
     user: User,
     tokenId: string,
-    tenantId?: string
+    tenantId?: string,
+    roles: string[] = [],
+    permissions: string[] = [] // ✅ Add permissions param
 ): Promise<string> => {
     return new jose.SignJWT({
         sub: user.id,
@@ -88,6 +103,9 @@ const generateRefreshToken = async (
         tenantId: tenantId ?? user.tenantId,
         jti: tokenId,
         type: 'refresh',
+        roles, // ✅ Include roles
+        permissions, // ✅ Include permissions
+        isPlatformAdmin: user.isPlatformAdmin, // ✅ Include platform admin flag
     })
         .setProtectedHeader({ alg: 'HS256' })
         .setIssuedAt()
@@ -142,7 +160,9 @@ export const login = (
                 if (!input.tenantId) return undefined
                 // If it's a UUID, return as is
                 const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-                if (uuidRegex.test(input.tenantId)) return input.tenantId
+                if (uuidRegex.test(input.tenantId)) {
+                    return input.tenantId
+                }
 
                 // Otherwise lookup by slug
                 const tenant = await TenantRepository.findBySlug(input.tenantId)
@@ -190,8 +210,34 @@ export const login = (
                     }),
             })
         ),
-        // Generate tokens and create session
+        // Load user roles
         Effect.flatMap(({ user, resolvedTenantId }) =>
+            pipe(
+                userRolesRepository.findByUser(user.id, resolvedTenantId ?? user.tenantId),
+                Effect.map((userRolesList) => {
+                    const roles = userRolesList.map((ur) => ur.role.roleName)
+
+                    // ✅ Extract and flatten permissions from all roles
+                    const permissionSet = new Set<string>()
+                    userRolesList.forEach(ur => {
+                        // Add table-based permissions
+                        if (ur.role.rolePermissions) {
+                            ur.role.rolePermissions.forEach(rp => {
+                                if (rp.permission && rp.permission.code) {
+                                    permissionSet.add(rp.permission.code)
+                                }
+                            })
+                        }
+                    })
+
+                    const permissions = Array.from(permissionSet)
+
+                    return { user, resolvedTenantId, roles, permissions }
+                })
+            )
+        ),
+        // Generate tokens and create session
+        Effect.flatMap(({ user, resolvedTenantId, roles, permissions }) =>
             Effect.tryPromise({
                 try: async () => {
                     const accessTokenId = crypto.randomUUID()
@@ -199,8 +245,8 @@ export const login = (
                     const now = new Date()
 
                     const [accessToken, refreshToken] = await Promise.all([
-                        generateAccessToken(user, accessTokenId, resolvedTenantId),
-                        generateRefreshToken(user, refreshTokenId, resolvedTenantId),
+                        generateAccessToken(user, accessTokenId, resolvedTenantId, roles, permissions),
+                        generateRefreshToken(user, refreshTokenId, resolvedTenantId, roles, permissions),
                     ])
 
                     // Create session record
@@ -213,14 +259,18 @@ export const login = (
                         userAgent: metadata?.userAgent,
                         expiresAt: new Date(now.getTime() + ACCESS_TOKEN_EXPIRY_MS),
                         refreshExpiresAt: new Date(now.getTime() + REFRESH_TOKEN_EXPIRY_MS),
-                        isActive: true
+                        isActive: true,
                     })
 
                     // Update last login
                     await AuthRepository.updateLastLogin(user.id)
 
                     return {
-                        user,
+                        user: {
+                            ...user,
+                            roles, // Return roles in user object too if needed by frontend immediately
+                            permissions // ✅ Return permissions to frontend
+                        },
                         tokens: {
                             accessToken,
                             refreshToken,

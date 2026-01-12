@@ -17,12 +17,12 @@ const getBaseUrl = (): string => {
     // Fallback to environment variables with hostname detection
     const isProductionDomain = typeof window !== 'undefined' && (window.location.hostname.includes('danafin.com') || window.location.hostname.includes('ifrspro.id'));
     const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-    
+
     let fallbackUrl = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL;
 
     if (isLocalhost) {
-        console.log('🔧 Localhost detected: Forcing local API URL');
-        fallbackUrl = 'http://localhost:3000/api/v1';
+      console.log('🔧 Localhost detected: Forcing local API URL');
+      fallbackUrl = 'http://localhost:3000/api/v1';
     } else if (!fallbackUrl) {
       if (isProductionDomain) {
         fallbackUrl = 'https://iaf-ifrs-be.ifrspro.id/api/v1';
@@ -79,10 +79,12 @@ export class ApiClient {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    // Add tenant context
-    const tenantSlug = this.getTenantContext();
-    if (tenantSlug) {
-      headers['X-Tenant-Slug'] = tenantSlug;
+    // Add tenant context - Prioritize impersonation for admins
+    const impersonatedSlug = typeof window !== 'undefined' ? localStorage.getItem('impersonated_tenant_slug') : null;
+    const contextSlug = impersonatedSlug || this.getTenantContext();
+
+    if (contextSlug) {
+      headers['X-Tenant-Slug'] = contextSlug;
     }
 
     // Merge custom headers

@@ -68,7 +68,7 @@ export const authProvider: AuthProvider = {
         const { user, token, refreshToken } = authData.data;
 
         // ✅ Verify this is a platform admin user
-        const isPlatformAdmin = user.role && (
+        const isPlatformAdmin = user.isPlatformAdmin === true || (user.role && (
           user.role.includes('PLATFORM_SUPER_ADMIN') ||
           user.role.includes('PLATFORM_ADMIN') ||
           user.role.includes('PLATFORM_TECH_ADMIN') ||
@@ -79,7 +79,7 @@ export const authProvider: AuthProvider = {
           user.role.includes('IAF_BANK_CRO') ||
           user.role.includes('SUPERADMIN') ||
           user.role.includes('ADMIN')
-        );
+        ));
 
         if (!isPlatformAdmin) {
           throw new Error('Access denied. Platform administrator privileges required.');
@@ -183,7 +183,7 @@ export const authProvider: AuthProvider = {
       const user = JSON.parse(userData);
 
       // ✅ Verify platform admin privileges
-      const isPlatformAdmin = user.role && (
+      const isPlatformAdmin = user.isPlatformAdmin === true || (user.role && (
         user.role.includes('PLATFORM_SUPER_ADMIN') ||
         user.role.includes('PLATFORM_ADMIN') ||
         user.role.includes('PLATFORM_TECH_ADMIN') ||
@@ -194,7 +194,7 @@ export const authProvider: AuthProvider = {
         user.role.includes('IAF_BANK_CRO') ||
         user.role.includes('SUPERADMIN') ||
         user.role.includes('ADMIN')
-      );
+      ));
 
       if (!isPlatformAdmin) {
         console.log('❌ User does not have platform admin privileges:', user.role);
@@ -274,7 +274,8 @@ export const authProvider: AuthProvider = {
       ];
 
       // Add additional permissions for super admins
-      if (user.role.includes('SUPER_ADMIN')) {
+      const userRole = user.role || user.roles?.[0] || '';
+      if (userRole.includes('SUPER_ADMIN')) {
         platformPermissions.push(
           'platform.tenants.delete',
           'platform.consultants.delete',

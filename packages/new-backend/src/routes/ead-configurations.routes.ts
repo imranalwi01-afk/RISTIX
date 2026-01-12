@@ -1,16 +1,15 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { z } from 'zod'
-import { db } from '@/config'
+import { legacyDb as db } from '@/config'
 import { frs9ImpCaEadConfig } from '@/db/schema'
 import { eq, and, like, desc } from 'drizzle-orm'
 import type { AppContext } from '@/app'
-import { authMiddleware, tenantMiddleware } from '../middleware'
+import { authMiddleware } from '../middleware'
 
 const app = new Hono<AppContext>()
 
 app.use('*', authMiddleware)
-// app.use('*', tenantMiddleware) // Legacy tables typically don't support tenant isolation yet
 
 // ============================================================================
 // VALIDATION SCHEMAS
@@ -18,9 +17,9 @@ app.use('*', authMiddleware)
 
 const createEadConfigSchema = z.object({
     modelName: z.string().min(1).max(250),
-    segmentId: z.number().int().optional(), // smallint in DB
-    eadMethod: z.string().max(10), // varchar(10)
-    calcMethod: z.string().max(10), // varchar(10)
+    segmentId: z.number().int().optional(),
+    eadMethod: z.string().max(10),
+    calcMethod: z.string().max(10),
     isActive: z.boolean().default(true),
 })
 
@@ -105,8 +104,7 @@ app.get('/:id', async (c) => {
 // POST /api/v1/banking/parameters/ead-configurations
 app.post('/', zValidator('json', createEadConfigSchema), async (c) => {
     try {
-        const userId = 'SYSTEM' // Legacy usually implies system or we get from auth if possible
-        // const userId = c.get('userId') as string 
+        const userId = c.get('userId') as string
         const data = c.req.valid('json')
 
         const [config] = await db
@@ -142,7 +140,7 @@ app.put('/:id', zValidator('json', updateEadConfigSchema), async (c) => {
     try {
         const id = Number(c.req.param('id'))
         if (isNaN(id)) return c.json({ error: 'Invalid ID' }, 400);
-        const userId = 'SYSTEM'
+        const userId = c.get('userId') as string
         const data = c.req.valid('json')
 
         const [updated] = await db

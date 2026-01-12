@@ -44,27 +44,27 @@ export interface UpdateFLScalarRequest extends Partial<CreateFLScalarRequest> { 
 
 export const flScalarAPI = {
     getAll: async () => {
-        const response = await apiClient.get<FLScalarWithDetails[]>(BASE_URL);
-        return response.data!;
+        const response = await apiClient.get<any>(BASE_URL);
+        return response.data?.data || [];
     },
 
     getById: async (id: string) => {
-        const response = await apiClient.get<FLScalarWithDetails>(`${BASE_URL}/${id}`);
-        return response.data!;
+        const response = await apiClient.get<any>(`${BASE_URL}/${id}`);
+        return response.data?.data!;
     },
 
     create: async (data: CreateFLScalarRequest) => {
-        const response = await apiClient.post<FLScalarWithDetails>(BASE_URL, data);
-        return response.data!;
+        const response = await apiClient.post<any>(BASE_URL, data);
+        return response.data?.data!;
     },
 
     update: async (id: string, data: UpdateFLScalarRequest) => {
-        const response = await apiClient.put<FLScalarWithDetails>(`${BASE_URL}/${id}`, data);
-        return response.data!;
+        const response = await apiClient.put<any>(`${BASE_URL}/${id}`, data);
+        return response.data?.data!;
     },
 
     delete: async (id: string) => {
         const response = await apiClient.delete(`${BASE_URL}/${id}`);
-        return response.data!;
+        return response.data;
     }
 };

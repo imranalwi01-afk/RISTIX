@@ -241,7 +241,8 @@ export default function JournalParametersPage() {
   };
 
   const applyFilters = () => {
-    let filtered = [...data];
+    // ✅ FIXED: Defensive check to prevent spread mechanism error
+    let filtered = [...(Array.isArray(data) ? data : [])];
 
     if (searchTerm) {
       const search = searchTerm.toLowerCase();
@@ -291,11 +292,11 @@ export default function JournalParametersPage() {
         api.banking.journalParameters.getDbcrOptions()
       ]);
 
-      if (glGroup.success && glGroup.data) setGlGroupOptions(glGroup.data);
-      if (currency.success && currency.data) setCurrencyOptions(currency.data);
-      if (journalType.success && journalType.data) setJournalTypeOptions(journalType.data);
-      if (journalCode.success && journalCode.data) setJournalCodeOptions(journalCode.data);
-      if (dbcr.success && dbcr.data) setDbcrOptions(dbcr.data);
+      if (glGroup.success && Array.isArray(glGroup.data)) setGlGroupOptions(glGroup.data);
+      if (currency.success && Array.isArray(currency.data)) setCurrencyOptions(currency.data);
+      if (journalType.success && Array.isArray(journalType.data)) setJournalTypeOptions(journalType.data);
+      if (journalCode.success && Array.isArray(journalCode.data)) setJournalCodeOptions(journalCode.data);
+      if (dbcr.success && Array.isArray(dbcr.data)) setDbcrOptions(dbcr.data);
 
     } catch (error) {
       console.error('❌ Failed to load dropdown options:', error);
@@ -476,7 +477,7 @@ export default function JournalParametersPage() {
                 label="GL Group"
               >
                 <MenuItem value="">All</MenuItem>
-                {glGroupOptions.map(option => (
+                {Array.isArray(glGroupOptions) && glGroupOptions.map(option => (
                   <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
                 ))}
               </Select>
@@ -490,7 +491,7 @@ export default function JournalParametersPage() {
                 label="Currency"
               >
                 <MenuItem value="">All</MenuItem>
-                {currencyOptions.map(option => (
+                {Array.isArray(currencyOptions) && currencyOptions.map(option => (
                   <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
                 ))}
               </Select>
@@ -575,7 +576,7 @@ export default function JournalParametersPage() {
               error={!formData.glGroup.trim()}
               helperText={!formData.glGroup.trim() && 'Journal Group is required'}
             >
-              {glGroupOptions.length > 0 ? (
+              {Array.isArray(glGroupOptions) && glGroupOptions.length > 0 ? (
                 glGroupOptions.map(option => (
                   <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
                 ))
@@ -594,7 +595,7 @@ export default function JournalParametersPage() {
               error={!formData.currency.trim()}
               helperText={!formData.currency.trim() && 'Currency is required'}
             >
-              {currencyOptions.length > 0 ? (
+              {Array.isArray(currencyOptions) && currencyOptions.length > 0 ? (
                 currencyOptions.map(option => (
                   <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
                 ))
@@ -613,7 +614,7 @@ export default function JournalParametersPage() {
               error={!formData.glType.trim()}
               helperText={!formData.glType.trim() && 'Journal Type is required'}
             >
-              {journalTypeOptions.length > 0 ? (
+              {Array.isArray(journalTypeOptions) && journalTypeOptions.length > 0 ? (
                 journalTypeOptions.map(option => (
                   <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
                 ))
@@ -632,7 +633,7 @@ export default function JournalParametersPage() {
               error={!formData.glCode.trim()}
               helperText={!formData.glCode.trim() && 'Journal Code is required'}
             >
-              {journalCodeOptions.length > 0 ? (
+              {Array.isArray(journalCodeOptions) && journalCodeOptions.length > 0 ? (
                 journalCodeOptions.map(option => (
                   <MenuItem key={option.id} value={option.id}>{option.id} - {option.name}</MenuItem>
                 ))
@@ -660,7 +661,7 @@ export default function JournalParametersPage() {
               error={!formData.dbcr.trim()}
               helperText={!formData.dbcr.trim() && 'DB/CR is required'}
             >
-              {dbcrOptions.length > 0 ? (
+              {Array.isArray(dbcrOptions) && dbcrOptions.length > 0 ? (
                 dbcrOptions.map(option => (
                   <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
                 ))

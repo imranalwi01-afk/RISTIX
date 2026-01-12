@@ -63,6 +63,7 @@ export const users = coreSchema.table(
         department: varchar('department', { length: 100 }),
         position: varchar('position', { length: 100 }),
         isActive: boolean('is_active').notNull().default(true),
+        isPlatformAdmin: boolean('is_platform_admin').notNull().default(false),
         isEmailVerified: boolean('is_email_verified').notNull().default(false),
         lastLoginAt: timestamp('last_login_at'),
         passwordChangedAt: timestamp('password_changed_at'),
