@@ -31,6 +31,14 @@ db: ## Start ONLY databases (Profile: db)
 backend: ## Start ONLY backend (Profile: backend)
 	$(COMPOSE) --profile backend up -d
 
+.PHONY: frontend
+frontend: ## Start ONLY frontend (Docker - Profile: app)
+	$(COMPOSE) --profile app up -d frontend
+
+.PHONY: dev-frontend
+dev-frontend: ## Run frontend LOCALLY (pnpm)
+	pnpm --filter frontend run dev
+
 .PHONY: dev
 dev: ## Alias for up
 	$(COMPOSE) --profile dev up -d
@@ -43,9 +51,16 @@ up-full: ## Start ALL services including frontend (Profile: full)
 prod: ## Start PRODUCTION environment (Profile: full)
 	docker-compose -f docker-compose.prod.yml --profile full up -d
 
-.PHONY: prod-app
 prod-app: ## Start PRODUCTION apps only (Profile: app)
 	docker-compose -f docker-compose.prod.yml --profile app up -d
+
+.PHONY: prod-frontend
+prod-frontend: ## Start PRODUCTION frontend only (Profile: app)
+	docker-compose -f docker-compose.prod.yml --profile app up -d frontend
+
+.PHONY: deploy-frontend
+deploy-frontend: ## Deploy PRODUCTION frontend (Build & Up)
+	docker-compose -f docker-compose.prod.yml --profile app up -d --build frontend
 
 .PHONY: prod-db
 prod-db: ## Start PRODUCTION databases only (Profile: db)
