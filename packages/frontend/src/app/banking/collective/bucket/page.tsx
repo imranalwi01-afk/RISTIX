@@ -88,7 +88,10 @@ const BucketHeaderRow: React.FC<BucketHeaderRowProps> = ({
   const [detailsLoading, setDetailsLoading] = useState(false);
 
   const loadDetails = async () => {
-    setDetailsLoading(true);
+    if (!header.id) {
+      setDetailsLoading(false);
+      return;
+    }
     try {
       const response = await bucketParameterAPI.getDetails(header.id);
       if (response.success) {
@@ -146,7 +149,7 @@ const BucketHeaderRow: React.FC<BucketHeaderRowProps> = ({
         </TableCell>
         <TableCell>
           <Chip
-            label={getBasisDescription(header.basis)}
+            label={getBasisDescription(header.basis || '')}
             size="small"
             color={header.basis === 'D' ? 'primary' : 'info'}
             variant="outlined"
@@ -231,7 +234,7 @@ const BucketHeaderRow: React.FC<BucketHeaderRowProps> = ({
                     </TableHead>
                     <TableBody>
                       {details.map((detail) => (
-                        <TableRow key={detail.id} hover>
+                        <TableRow key={detail.id || `detail-${detail.seq}`} hover>
                           <TableCell>
                             <Typography variant="body2" fontWeight="medium">
                               {detail.bucket_name}
@@ -249,7 +252,7 @@ const BucketHeaderRow: React.FC<BucketHeaderRowProps> = ({
                           </TableCell>
                           <TableCell>
                             <Typography variant="body2" color="primary" fontWeight="medium">
-                              {formatRange(detail.range_start, detail.range_end)}
+                              {formatRange(detail.range_start || 0, detail.range_end)}
                             </Typography>
                           </TableCell>
                           <TableCell align="center">
@@ -400,6 +403,7 @@ export default function BucketParameterPage() {
     }
 
     try {
+      if (!header.id) return;
       const response = await bucketParameterAPI.deleteHeader(header.id);
       if (response.success) {
         await loadBucketHeaders();
@@ -436,6 +440,7 @@ export default function BucketParameterPage() {
     }
 
     try {
+      if (!detail.id) return;
       const response = await bucketParameterAPI.deleteDetail(detail.id);
       if (response.success && selectedHeader) {
         alert('Deleted successfully');
@@ -450,8 +455,10 @@ export default function BucketParameterPage() {
 
   const handleSaveHeader = async () => {
     try {
+      if (editMode && !selectedHeader?.id) return;
+
       const response = editMode
-        ? await bucketParameterAPI.updateHeader(selectedHeader!.id, headerFormData)
+        ? await bucketParameterAPI.updateHeader(selectedHeader!.id!, headerFormData)
         : await bucketParameterAPI.createHeader(headerFormData as any);
 
       if (response.success) {
@@ -467,9 +474,12 @@ export default function BucketParameterPage() {
 
   const handleSaveDetail = async () => {
     try {
+      if (!editMode && !selectedHeader?.id) return;
+      if (editMode && !detailFormData.id) return;
+
       const response = editMode
         ? await bucketParameterAPI.updateDetail(detailFormData.id!, detailFormData)
-        : await bucketParameterAPI.createDetail(selectedHeader!.id, detailFormData as any);
+        : await bucketParameterAPI.createDetail(selectedHeader!.id!, detailFormData as any);
 
       if (response.success) {
         setDetailDialogOpen(false);

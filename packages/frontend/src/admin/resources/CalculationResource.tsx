@@ -161,9 +161,9 @@ const CalculationListActions = () => {
 /**
  * Calculation Status Chip Component
  */
-const CalculationStatusChip: React.FC = () => {
+const CalculationStatusChip: React.FC<any> = () => {
   const record = useRecordContext<Calculation>();
-  
+
   if (!record) return null;
 
   const getStatusColor = (status: string) => {
@@ -196,7 +196,7 @@ const CalculationStatusChip: React.FC = () => {
       case 'cancelled':
         return <Stop />;
       default:
-        return null;
+        return undefined;
     }
   };
 
@@ -213,9 +213,9 @@ const CalculationStatusChip: React.FC = () => {
 /**
  * Calculation Type Chip Component
  */
-const CalculationTypeChip: React.FC = () => {
+const CalculationTypeChip: React.FC<any> = () => {
   const record = useRecordContext<Calculation>();
-  
+
   if (!record) return null;
 
   const getTypeLabel = (type: string) => {
@@ -245,16 +245,16 @@ const CalculationTypeChip: React.FC = () => {
 /**
  * Progress Bar Component
  */
-const ProgressBar: React.FC = () => {
+const ProgressBar: React.FC<any> = () => {
   const record = useRecordContext<Calculation>();
-  
+
   if (!record || record.status !== 'running') return null;
 
   return (
     <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', gap: 1 }}>
-      <LinearProgress 
-        variant="determinate" 
-        value={record.progress} 
+      <LinearProgress
+        variant="determinate"
+        value={record.progress}
         sx={{ flexGrow: 1, height: 8, borderRadius: 4 }}
       />
       <Typography variant="caption" color="textSecondary">
@@ -319,10 +319,10 @@ export const CalculationList: React.FC = () => {
         <ProgressBar label="Progress" />
         <NumberField source="totalAccounts" label="Accounts" />
         <DateField source="startTime" label="Started" showTime />
-        <NumberField 
-          source="duration" 
+        <NumberField
+          source="duration"
           label="Duration (min)"
-          transform={(value: number) => value ? Math.round(value / 60) : null}
+          transform={(value: number) => value ? Math.round(value / 60) : 0}
         />
         <ShowButton />
         <EditButton />
@@ -494,10 +494,10 @@ export const CalculationShow: React.FC = () => {
             <NumberField source="progress" label="Progress (%)" />
             <DateField source="startTime" label="Start Time" showTime />
             <DateField source="endTime" label="End Time" showTime />
-            <NumberField 
-              source="duration" 
+            <NumberField
+              source="duration"
               label="Duration (minutes)"
-              transform={(value: number) => value ? Math.round(value / 60) : null}
+              transform={(value: number) => value ? Math.round(value / 60) : 0}
             />
           </Tab>
 
@@ -517,32 +517,32 @@ export const CalculationShow: React.FC = () => {
 
           {record?.results && (
             <Tab label="Results" icon={<CheckCircle />}>
-              <NumberField 
-                source="results.totalEcl" 
+              <NumberField
+                source="results.totalEcl"
                 label="Total ECL"
                 options={{
                   style: 'currency',
                   currency: 'USD'
                 }}
               />
-              <NumberField 
-                source="results.stage1Ecl" 
+              <NumberField
+                source="results.stage1Ecl"
                 label="Stage 1 ECL"
                 options={{
                   style: 'currency',
                   currency: 'USD'
                 }}
               />
-              <NumberField 
-                source="results.stage2Ecl" 
+              <NumberField
+                source="results.stage2Ecl"
                 label="Stage 2 ECL"
                 options={{
                   style: 'currency',
                   currency: 'USD'
                 }}
               />
-              <NumberField 
-                source="results.stage3Ecl" 
+              <NumberField
+                source="results.stage3Ecl"
                 label="Stage 3 ECL"
                 options={{
                   style: 'currency',
@@ -570,9 +570,9 @@ export const CalculationCreate: React.FC = () => {
         <FormTab label="Basic Information" icon={<Assessment />}>
           <Grid container spacing={2}>
             <Grid item xs={12} md={6}>
-              <TextInput 
-                source="calculationName" 
-                label="Calculation Name" 
+              <TextInput
+                source="calculationName"
+                label="Calculation Name"
                 validate={required()}
                 fullWidth
               />
@@ -591,7 +591,7 @@ export const CalculationCreate: React.FC = () => {
                 fullWidth
               />
             </Grid>
-            
+
             <Grid item xs={12} md={6}>
               <SelectInput
                 source="bankingType"
@@ -605,7 +605,7 @@ export const CalculationCreate: React.FC = () => {
                 fullWidth
               />
             </Grid>
-            
+
             <Grid item xs={12} md={6}>
               <SelectInput
                 source="portfolioId"
@@ -627,14 +627,14 @@ export const CalculationCreate: React.FC = () => {
         <FormTab label="Parameters" icon={<Upload />}>
           <Grid container spacing={2}>
             <Grid item xs={12} md={6}>
-              <DateInput 
-                source="parameters.reportingDate" 
-                label="Reporting Date" 
+              <DateInput
+                source="parameters.reportingDate"
+                label="Reporting Date"
                 validate={required()}
                 fullWidth
               />
             </Grid>
-            
+
             <Grid item xs={12} md={6}>
               <SelectInput
                 source="parameters.scenarioType"
@@ -649,7 +649,7 @@ export const CalculationCreate: React.FC = () => {
                 fullWidth
               />
             </Grid>
-            
+
             <Grid item xs={12} md={6}>
               <SelectInput
                 source="parameters.modelVersion"
@@ -680,9 +680,9 @@ export const CalculationEdit: React.FC = () => {
       <SimpleForm>
         <Grid container spacing={2}>
           <Grid item xs={12} md={6}>
-            <TextInput 
-              source="calculationName" 
-              label="Calculation Name" 
+            <TextInput
+              source="calculationName"
+              label="Calculation Name"
               validate={required()}
               fullWidth
             />
@@ -700,7 +700,7 @@ export const CalculationEdit: React.FC = () => {
               fullWidth
             />
           </Grid>
-          
+
           <Grid item xs={12} md={6}>
             <SelectInput
               source="bankingType"
@@ -713,7 +713,7 @@ export const CalculationEdit: React.FC = () => {
               fullWidth
             />
           </Grid>
-          
+
           <Grid item xs={12} md={6}>
             <SelectInput
               source="portfolioId"
@@ -731,14 +731,14 @@ export const CalculationEdit: React.FC = () => {
           </Grid>
 
           <Grid item xs={12} md={6}>
-            <DateInput 
-              source="parameters.reportingDate" 
-              label="Reporting Date" 
+            <DateInput
+              source="parameters.reportingDate"
+              label="Reporting Date"
               validate={required()}
               fullWidth
             />
           </Grid>
-          
+
           <Grid item xs={12} md={6}>
             <SelectInput
               source="parameters.scenarioType"
@@ -752,7 +752,7 @@ export const CalculationEdit: React.FC = () => {
               fullWidth
             />
           </Grid>
-          
+
           <Grid item xs={12} md={6}>
             <SelectInput
               source="parameters.modelVersion"

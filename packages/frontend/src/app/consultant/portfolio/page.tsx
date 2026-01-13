@@ -35,7 +35,7 @@ import { useRouter } from 'next/navigation';
 export default function ClientPortfolioPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [data, setData] = useState(null);
+  const [data, setData] = useState<any>(null);
 
   useEffect(() => {
     // Initialize page data
@@ -69,9 +69,9 @@ export default function ClientPortfolioPage() {
     <Container maxWidth="xl">
       {/* Breadcrumb Navigation */}
       <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
-        <Link 
-          underline="hover" 
-          color="inherit" 
+        <Link
+          underline="hover"
+          color="inherit"
           href="/consultant/dashboard"
           onClick={(e) => {
             e.preventDefault();
@@ -110,28 +110,28 @@ export default function ClientPortfolioPage() {
                 Client Portfolio Overview
               </Typography>
               <Typography variant="body2" color="text.secondary" paragraph>
-                This page provides client portfolio management and relationship oversight. The interface will be enhanced with 
+                This page provides client portfolio management and relationship oversight. The interface will be enhanced with
                 specific functionality based on consultant requirements.
               </Typography>
-              
+
               <Alert severity="info" sx={{ mt: 2 }}>
                 <Typography variant="body2">
-                  <strong>Development Note:</strong> This is a foundation page structure for consultants. 
-                  Specific client Portfolio functionality will be implemented based on 
+                  <strong>Development Note:</strong> This is a foundation page structure for consultants.
+                  Specific client Portfolio functionality will be implemented based on
                   detailed requirements and consultant workflow needs.
                 </Typography>
               </Alert>
 
               <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
-                <Button 
-                  variant="contained" 
+                <Button
+                  variant="contained"
                   startIcon={<PageIcon />}
                   disabled
                 >
                   Configure Client Portfolio
                 </Button>
-                <Button 
-                  variant="outlined" 
+                <Button
+                  variant="outlined"
                   startIcon={<BackIcon />}
                   onClick={() => router.back()}
                 >

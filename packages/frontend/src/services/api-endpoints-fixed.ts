@@ -71,43 +71,41 @@ export const API_ENDPOINTS = {
   },
 
   // Tenant-specific endpoints
-  TENANT: {
-    (tenantId: string) => ({
-      // Portfolio endpoints
-      PORTFOLIO: {
-        ACCOUNTS: {
-          LIST: `/tenants/${tenantId}/portfolio/accounts`,
-          GET: (id: string) => `/tenants/${tenantId}/portfolio/accounts/${id}`,
-          CREATE: `/tenants/${tenantId}/portfolio/accounts`,
-          UPDATE: (id: string) => `/tenants/${tenantId}/portfolio/accounts/${id}`,
-          DELETE: (id: string) => `/tenants/${tenantId}/portfolio/accounts/${id}`,
-          BULK_IMPORT: `/tenants/${tenantId}/portfolio/accounts/bulk-import`
-        }
-      },
-
-      // ECL calculation endpoints
-      ECL: {
-        CALCULATIONS: {
-          LIST: `/tenants/${tenantId}/ecl/calculations`,
-          GET: (id: string) => `/tenants/${tenantId}/ecl/calculations/${id}`,
-          CREATE: `/tenants/${tenantId}/ecl/calculations`,
-          BATCH: `/tenants/${tenantId}/ecl/calculations/batch`,
-          JOB: (jobId: string) => `/tenants/${tenantId}/ecl/calculations/jobs/${jobId}`
-        }
-      },
-
-      // Model configuration endpoints
-      MODELS: {
-        CONFIGURATIONS: {
-          LIST: `/tenants/${tenantId}/models/configurations`,
-          GET: (id: string) => `/tenants/${tenantId}/models/configurations/${id}`,
-          CREATE: `/tenants/${tenantId}/models/configurations`,
-          UPDATE: (id: string) => `/tenants/${tenantId}/models/configurations/${id}`,
-          DELETE: (id: string) => `/tenants/${tenantId}/models/configurations/${id}`
-        }
+  TENANT: (tenantId: string) => ({
+    // Portfolio endpoints
+    PORTFOLIO: {
+      ACCOUNTS: {
+        LIST: `/tenants/${tenantId}/portfolio/accounts`,
+        GET: (id: string) => `/tenants/${tenantId}/portfolio/accounts/${id}`,
+        CREATE: `/tenants/${tenantId}/portfolio/accounts`,
+        UPDATE: (id: string) => `/tenants/${tenantId}/portfolio/accounts/${id}`,
+        DELETE: (id: string) => `/tenants/${tenantId}/portfolio/accounts/${id}`,
+        BULK_IMPORT: `/tenants/${tenantId}/portfolio/accounts/bulk-import`
       }
-    })
-  },
+    },
+
+    // ECL calculation endpoints
+    ECL: {
+      CALCULATIONS: {
+        LIST: `/tenants/${tenantId}/ecl/calculations`,
+        GET: (id: string) => `/tenants/${tenantId}/ecl/calculations/${id}`,
+        CREATE: `/tenants/${tenantId}/ecl/calculations`,
+        BATCH: `/tenants/${tenantId}/ecl/calculations/batch`,
+        JOB: (jobId: string) => `/tenants/${tenantId}/ecl/calculations/jobs/${jobId}`
+      }
+    },
+
+    // Model configuration endpoints
+    MODELS: {
+      CONFIGURATIONS: {
+        LIST: `/tenants/${tenantId}/models/configurations`,
+        GET: (id: string) => `/tenants/${tenantId}/models/configurations/${id}`,
+        CREATE: `/tenants/${tenantId}/models/configurations`,
+        UPDATE: (id: string) => `/tenants/${tenantId}/models/configurations/${id}`,
+        DELETE: (id: string) => `/tenants/${tenantId}/models/configurations/${id}`
+      }
+    }
+  }),
 
   // Consultant endpoints
   CONSULTANT: {

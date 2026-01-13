@@ -161,8 +161,8 @@ const ModuleStatusCard: React.FC<{ moduleStatus: ModuleStatus; onConfigure: () =
         title={
           <Box display="flex" alignItems="center" gap={1}>
             <Typography variant="h6">{moduleStatus.module}</Typography>
-            <Chip 
-              label={moduleStatus.status.toUpperCase()} 
+            <Chip
+              label={moduleStatus.status.toUpperCase()}
               color={getStatusColor(moduleStatus.status) as any}
               size="small"
             />
@@ -180,7 +180,7 @@ const ModuleStatusCard: React.FC<{ moduleStatus: ModuleStatus; onConfigure: () =
         <Typography variant="body2" color="text.secondary" gutterBottom>
           {moduleStatus.description}
         </Typography>
-        
+
         <Box display="flex" justifyContent="space-between" alignItems="center" mt={2}>
           <Typography variant="h4" color="primary">
             {moduleStatus.count}
@@ -227,7 +227,7 @@ export default function CollectiveParameterPage() {
   const [executing, setExecuting] = useState(false);
 
   const apiClient = useApiClient();
-  const { currentTenant } = useBankingContext();
+  const { selectedTenant: currentTenant } = useBankingContext();
 
   // ============================================================================
   // DATA LOADING
@@ -236,12 +236,12 @@ export default function CollectiveParameterPage() {
   const loadModuleStatuses = async () => {
     try {
       setLoading(true);
-      
+
       // Load status for each module
       const [segmentationStatus, ruleBaseStatus, bucketStatus] = await Promise.all([
-        apiClient.get('/api/v1/banking/segmentation'),
-        apiClient.get('/api/v1/banking/rule-base-setting'),
-        apiClient.get('/api/v1/banking/bucket-parameter')
+        apiClient.apiCall('/api/v1/banking/segmentation'),
+        apiClient.apiCall('/api/v1/banking/rule-base-setting'),
+        apiClient.apiCall('/api/v1/banking/bucket-parameter')
       ]);
 
       const statuses: ModuleStatus[] = [
@@ -279,7 +279,7 @@ export default function CollectiveParameterPage() {
 
   const loadCollectiveParameters = async () => {
     try {
-      const response = await apiClient.get('/api/v1/banking/collective-parameter');
+      const response = await apiClient.apiCall('/api/v1/banking/collective-parameter');
       setCollectiveParameters(response.data || []);
     } catch (err) {
       console.error('Error loading collective parameters:', err);
@@ -288,7 +288,7 @@ export default function CollectiveParameterPage() {
 
   const loadExecutionSummary = async () => {
     try {
-      const response = await apiClient.get('/api/v1/banking/collective-parameter/execution-summary');
+      const response = await apiClient.apiCall('/api/v1/banking/collective-parameter/execution-summary');
       setExecutionSummary(response.data);
     } catch (err) {
       console.error('Error loading execution summary:', err);
@@ -323,14 +323,14 @@ export default function CollectiveParameterPage() {
 
     try {
       setExecuting(true);
-      await apiClient.post(`/api/v1/banking/collective-parameter/${selectedParameter}/execute`);
-      
+      await apiClient.apiCall(`/api/v1/banking/collective-parameter/${selectedParameter}/execute`, { method: 'POST' });
+
       // Reload data after execution
       await Promise.all([
         loadExecutionSummary(),
         loadCollectiveParameters()
       ]);
-      
+
       setExecuteDialog(false);
     } catch (err) {
       setError('Failed to execute collective parameter calculation');
@@ -361,12 +361,12 @@ export default function CollectiveParameterPage() {
         <DashboardIcon color="primary" />
         Module Configuration Status
       </Typography>
-      
+
       <Grid container spacing={3} sx={{ mb: 4 }}>
         {moduleStatuses.map((status, index) => (
           <Grid item xs={12} md={4} key={index}>
-            <ModuleStatusCard 
-              moduleStatus={status} 
+            <ModuleStatusCard
+              moduleStatus={status}
               onConfigure={() => handleModuleConfigure(status.module)}
             />
           </Grid>
@@ -381,8 +381,8 @@ export default function CollectiveParameterPage() {
             <Typography variant="body2" color="text.secondary">
               Overall collective parameter configuration completion
             </Typography>
-            <LinearProgress 
-              variant="determinate" 
+            <LinearProgress
+              variant="determinate"
               value={(moduleStatuses.filter(s => s.status === 'configured').length / moduleStatuses.length) * 100}
               sx={{ mt: 1, height: 8, borderRadius: 4 }}
             />
@@ -396,7 +396,7 @@ export default function CollectiveParameterPage() {
       {/* Execution Summary */}
       {executionSummary && (
         <Card>
-          <CardHeader 
+          <CardHeader
             title="Last Execution Summary"
             action={
               <Button
@@ -444,7 +444,7 @@ export default function CollectiveParameterPage() {
                 </Typography>
               </Grid>
             </Grid>
-            
+
             <Box mt={3}>
               <Typography variant="body2" color="text.secondary">
                 Last execution: {new Date(executionSummary.last_execution).toLocaleString()}
@@ -479,7 +479,7 @@ export default function CollectiveParameterPage() {
                   title={param.parameter_name}
                   subheader={param.description}
                   action={
-                    <Chip 
+                    <Chip
                       label={param.status.toUpperCase()}
                       color={param.status === 'active' ? 'success' : 'default'}
                       size="small"
@@ -490,21 +490,21 @@ export default function CollectiveParameterPage() {
                   <List dense>
                     <ListItem>
                       <ListItemIcon><CategoryIcon /></ListItemIcon>
-                      <ListItemText 
+                      <ListItemText
                         primary="Segmentation Rules"
                         secondary={`${param.segmentation_count} configured`}
                       />
                     </ListItem>
                     <ListItem>
                       <ListItemIcon><RuleIcon /></ListItemIcon>
-                      <ListItemText 
+                      <ListItemText
                         primary="Business Rules"
                         secondary={`${param.rule_count} configured`}
                       />
                     </ListItem>
                     <ListItem>
                       <ListItemIcon><BucketIcon /></ListItemIcon>
-                      <ListItemText 
+                      <ListItemText
                         primary="Bucket Parameters"
                         secondary={`${param.bucket_count} configured`}
                       />
@@ -584,7 +584,7 @@ export default function CollectiveParameterPage() {
               <Typography variant="body2" color="text.secondary" gutterBottom>
                 Module execution order and dependencies:
               </Typography>
-              
+
               <Box mt={2}>
                 <Accordion>
                   <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -688,9 +688,9 @@ export default function CollectiveParameterPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setExecuteDialog(false)}>Cancel</Button>
-          <Button 
-            onClick={handleExecuteCollective} 
-            variant="contained" 
+          <Button
+            onClick={handleExecuteCollective}
+            variant="contained"
             disabled={executing}
             startIcon={executing ? undefined : <ExecuteIcon />}
           >

@@ -114,7 +114,7 @@ export const useMenuState = (
   });
 
   // Current path tracking
-  const currentPath = pathname;
+  const currentPath = pathname || '';
 
   // Get all parent IDs for a given item
   const getParentIds = useCallback((itemId: string, items: HierarchicalMenuItem[]): string[] => {
@@ -161,7 +161,7 @@ export const useMenuState = (
 
   // Auto-expand parent menus when active item changes
   useEffect(() => {
-    if (hierarchicalMenu.length === 0 || !autoExpandActiveParents) return;
+    if (hierarchicalMenu.length === 0 || !autoExpandActiveParents || !currentPath) return;
 
     const currentMenuItem = findMenuItemByPath(hierarchicalMenu, currentPath);
 
@@ -329,6 +329,7 @@ export const useMenuState = (
     currentPath,
     previousPath,
     autoExpandActiveParents,
+    persistExpansionState: true,
 
     // Actions
     toggleExpansion,

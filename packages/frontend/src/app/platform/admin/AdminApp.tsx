@@ -401,7 +401,7 @@ const AdminApp: React.FC = () => {
     return (
         <div style={{ minHeight: '100vh' }}>
             <Admin
-                dataProvider={dataProvider}
+                dataProvider={dataProvider as any}
                 authProvider={authProv}
                 theme={platformTheme}
                 dashboard={PlatformAdminDashboard}

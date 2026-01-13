@@ -6,7 +6,7 @@ import { Container, Typography, Box, Card, CardContent, CircularProgress } from 
 import PageHeader from '@/components/banking/shared/PageHeader';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
-import { api } from '@/services/api';
+import { individualImpairmentAPI } from '@/services/api/individual-impairment.api';
 
 const columns: GridColDef[] = [
   { field: 'id', headerName: 'Log ID', width: 250 },
@@ -25,7 +25,7 @@ export default function HistoryDCFUploadPage() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const response = await api.individualImpairment.getHistory({ entityType: 'DCF' });
+        const response = await individualImpairmentAPI.getHistory({ entityType: 'DCF' });
         if (response.success && response.data) {
           setRows(response.data);
         }
@@ -47,17 +47,17 @@ export default function HistoryDCFUploadPage() {
       />
       <Card>
         <CardContent>
-           <Box sx={{ height: 500, width: '100%' }}>
+          <Box sx={{ height: 500, width: '100%' }}>
             {loading ? (
-               <Box display="flex" justifyContent="center" alignItems="center" height="100%">
-                 <CircularProgress />
-               </Box>
+              <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+                <CircularProgress />
+              </Box>
             ) : (
-                <DataGrid
-                  rows={rows}
-                  columns={columns}
-                  pageSizeOptions={[10, 25]}
-                />
+              <DataGrid
+                rows={rows}
+                columns={columns}
+                pageSizeOptions={[10, 25]}
+              />
             )}
           </Box>
         </CardContent>

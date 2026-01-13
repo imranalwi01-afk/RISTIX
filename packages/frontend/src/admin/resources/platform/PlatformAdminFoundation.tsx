@@ -10,8 +10,7 @@ import {
   useAuthProvider,
   useNotify,
   Loading,
-  Error,
-  Dashboard
+  Error as RaError
 } from 'react-admin';
 import {
   Card,
@@ -233,7 +232,7 @@ const PlatformAdminDashboard: React.FC = () => {
   }, [notify]);
 
   if (loading) return <Loading />;
-  if (error) return <Error error={error} />;
+  if (error) return <RaError error={new Error(error)} resetErrorBoundary={() => window.location.reload()} />;
 
   return (
     <Box sx={{ p: 3 }}>
@@ -394,7 +393,7 @@ const UserManagementCard: React.FC<UserManagementCardProps> = ({ users, onUserUp
     const colors: Record<string, 'primary' | 'secondary' | 'success' | 'warning' | 'error'> = {
       platform_admin: 'primary',
       bank_admin: 'secondary',
-      bank_user: 'info',
+      bank_user: 'primary',
       consultant: 'warning',
       regulator: 'error'
     };

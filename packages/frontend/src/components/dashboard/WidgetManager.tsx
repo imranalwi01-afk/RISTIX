@@ -34,7 +34,8 @@ import {
   Paper,
   Divider,
   Tooltip,
-  Badge
+  Badge,
+  Alert
 } from '@mui/material'
 import {
   DragIndicator,
@@ -339,7 +340,7 @@ export default function WidgetManager({ userId, tenantId, onLayoutChange }: Widg
                         variant="outlined"
                       />
                       <Chip
-                        label={widget.refreshInterval > 0 ? `Auto: ${widget.refreshInterval/1000}s` : 'Manual'}
+                        label={widget.refreshInterval > 0 ? `Auto: ${widget.refreshInterval / 1000}s` : 'Manual'}
                         size="small"
                         variant="outlined"
                       />

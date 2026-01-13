@@ -195,7 +195,7 @@ export interface ImpairmentScenario {
 }
 
 export interface ScenarioAssumptions {
-  macro_economic: MacroAssumptions;
+  macro_economic: MacroAdjustments;
   portfolio_specific: PortfolioAssumptions;
   custom_parameters: Record<string, any>;
 }
@@ -694,7 +694,7 @@ export const individualImpairmentHelpers = {
       expected_credit_loss: individualImpairmentHelpers.formatCurrency(result.expected_credit_loss),
       lifetime_ecl: individualImpairmentHelpers.formatCurrency(result.lifetime_ecl),
       twelve_month_ecl: individualImpairmentHelpers.formatCurrency(result.twelve_month_ecl),
-      coverage_ratio: `${(result.coverage_ratio * 100).toFixed(2)}%`,
+      coverage_ratio: `${(result.calculation_breakdown.coverage_ratio * 100).toFixed(2)}%`,
       risk_adjusted_return: individualImpairmentHelpers.formatCurrency(result.risk_adjusted_return)
     };
   }

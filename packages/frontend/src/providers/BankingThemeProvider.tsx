@@ -19,9 +19,12 @@ interface BankingThemeContextType {
   bankingMode: BankingMode;
   colorMode: PaletteMode;
   setBankingMode: (mode: BankingMode) => void;
+  setTheme: (mode: BankingMode) => void; // Alias for setBankingMode to match component usage
   toggleTheme: () => void; // Switches banking mode (conv/syariah)
   toggleColorMode: () => void; // Switches light/dark
   isLoading: boolean;
+  isConventionalTheme: boolean;
+  isSyariahTheme: boolean;
 }
 
 const BankingThemeContext = createContext<BankingThemeContextType | undefined>(undefined);
@@ -33,11 +36,11 @@ interface BankingThemeProviderProps {
 export const BankingThemeProvider: React.FC<BankingThemeProviderProps> = ({ children }) => {
   const dispatch = useDispatch();
   const { config } = useConfiguration();
-  
+
   // Get user info from Redux store/LocalStorage
   const user = useSelector((state: any) => state.auth?.user);
   const storedBankingMode = useSelector((state: any) => state.configuration?.bankingMode);
-  
+
   const [bankingMode, setBankingModeState] = useState<BankingMode>('conventional');
   const [colorMode, setColorMode] = useState<PaletteMode>('light');
   const [currentTheme, setCurrentTheme] = useState<Theme>(getConventionalTheme('light'));
@@ -49,11 +52,11 @@ export const BankingThemeProvider: React.FC<BankingThemeProviderProps> = ({ chil
     let cMode: PaletteMode = 'light';
 
     if (typeof window !== 'undefined') {
-        const storedBMode = localStorage.getItem('ifrs9_banking_mode') as BankingMode;
-        if (storedBMode) mode = storedBMode;
+      const storedBMode = localStorage.getItem('ifrs9_banking_mode') as BankingMode;
+      if (storedBMode) mode = storedBMode;
 
-        const storedCMode = localStorage.getItem('ifrs9_color_mode') as PaletteMode;
-        if (storedCMode) cMode = storedCMode;
+      const storedCMode = localStorage.getItem('ifrs9_color_mode') as PaletteMode;
+      if (storedCMode) cMode = storedCMode;
     }
 
     if (storedBankingMode) mode = storedBankingMode;
@@ -67,10 +70,10 @@ export const BankingThemeProvider: React.FC<BankingThemeProviderProps> = ({ chil
   useEffect(() => {
     let theme: Theme;
     if (bankingMode === 'syariah') {
-        // Fallback for Syariah (using static for now, or could map it similarly)
-        theme = staticSyariahTheme || getConventionalTheme(colorMode); 
+      // Fallback for Syariah (using static for now, or could map it similarly)
+      theme = staticSyariahTheme || getConventionalTheme(colorMode);
     } else {
-        theme = getConventionalTheme(colorMode);
+      theme = getConventionalTheme(colorMode);
     }
     setCurrentTheme(theme);
   }, [bankingMode, colorMode]);
@@ -85,17 +88,17 @@ export const BankingThemeProvider: React.FC<BankingThemeProviderProps> = ({ chil
   };
 
   const toggleTheme = () => {
-     // Legacy toggle for banking mode
-     const newMode = bankingMode === 'conventional' ? 'syariah' : 'conventional';
-     setBankingMode(newMode);
+    // Legacy toggle for banking mode
+    const newMode = bankingMode === 'conventional' ? 'syariah' : 'conventional';
+    setBankingMode(newMode);
   };
 
   const toggleColorMode = () => {
-      const newMode = colorMode === 'light' ? 'dark' : 'light';
-      setColorMode(newMode);
-      if (typeof window !== 'undefined') {
-          localStorage.setItem('ifrs9_color_mode', newMode);
-      }
+    const newMode = colorMode === 'light' ? 'dark' : 'light';
+    setColorMode(newMode);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('ifrs9_color_mode', newMode);
+    }
   };
 
   const contextValue: BankingThemeContextType = {
@@ -103,13 +106,16 @@ export const BankingThemeProvider: React.FC<BankingThemeProviderProps> = ({ chil
     bankingMode,
     colorMode,
     setBankingMode,
+    setTheme: setBankingMode,
     toggleTheme,
     toggleColorMode,
     isLoading,
+    isConventionalTheme: bankingMode === 'conventional',
+    isSyariahTheme: bankingMode === 'syariah',
   };
 
   if (isLoading) {
-      return null; // Or loading spinner
+    return null; // Or loading spinner
   }
 
   return (

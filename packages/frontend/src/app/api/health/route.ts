@@ -8,7 +8,6 @@ export async function GET() {
   const backendPort = 4232; // Known backend port
   // Try localhost first, then 127.0.0.1 as fallback
   const candidates = [
-  const candidates = [
     `http://localhost:3000/api/v1/health`, // Docker default
     `http://127.0.0.1:3000/api/v1/health`,
     `http://localhost:3001/api/v1/health`, // Local default
@@ -41,8 +40,8 @@ export async function GET() {
 
   // If all failed
   return NextResponse.json(
-    { 
-      status: 'unhealthy', 
+    {
+      status: 'unhealthy',
       error: 'Backend unreachable on all candidates',
       details: 'Evaluated localhost and 127.0.0.1 on port 4232',
       timestamp: new Date().toISOString()

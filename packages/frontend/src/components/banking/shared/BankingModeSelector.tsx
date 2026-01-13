@@ -39,7 +39,7 @@ import {
 } from '@mui/icons-material';
 import { useSelector, useDispatch } from 'react-redux';
 import { useBankingTheme } from '../../../providers/BankingThemeProvider';
-import { setBankingMode } from '../../../store/slices/bankingSlice';
+import { setBankingMode } from '@/store';
 import { BankingMode } from '../types';
 
 interface BankingModeSelectorProps {
@@ -57,11 +57,11 @@ const BankingModeSelector: React.FC<BankingModeSelectorProps> = ({
 }) => {
   const dispatch = useDispatch();
   const { setTheme, isConventionalTheme, isSyariahTheme } = useBankingTheme();
-  
+
   // ✅ Get current banking mode from Redux store
-  const selectedMode = useSelector((state: any) => state.banking?.bankingMode) || currentMode || 'conventional';
+  const selectedMode = useSelector((state: any) => state.configuration?.bankingMode) || currentMode || 'conventional';
   const tenantConfig = useSelector((state: any) => state.configuration?.tenant);
-  
+
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingMode, setPendingMode] = useState<BankingMode | null>(null);
 
@@ -80,13 +80,13 @@ const BankingModeSelector: React.FC<BankingModeSelectorProps> = ({
 
     // Update Redux store
     dispatch(setBankingMode(pendingMode));
-    
+
     // Update theme
     setTheme(pendingMode);
-    
+
     // Call parent callback
     onModeChange?.(pendingMode);
-    
+
     // Close dialog
     setShowConfirmDialog(false);
     setPendingMode(null);
@@ -146,11 +146,11 @@ const BankingModeSelector: React.FC<BankingModeSelectorProps> = ({
             disabled={disabled}
             sx={{ mb: 3, width: '100%' }}
           >
-            <ToggleButton 
-              value="conventional" 
+            <ToggleButton
+              value="conventional"
               aria-label="conventional banking"
-              sx={{ 
-                flex: 1, 
+              sx={{
+                flex: 1,
                 py: 2,
                 '&.Mui-selected': {
                   backgroundColor: modeConfigs.conventional.color + '20',
@@ -163,12 +163,12 @@ const BankingModeSelector: React.FC<BankingModeSelectorProps> = ({
                 <Typography variant="body2">{modeConfigs.conventional.label}</Typography>
               </Box>
             </ToggleButton>
-            
-            <ToggleButton 
-              value="syariah" 
+
+            <ToggleButton
+              value="syariah"
               aria-label="syariah banking"
-              sx={{ 
-                flex: 1, 
+              sx={{
+                flex: 1,
                 py: 2,
                 '&.Mui-selected': {
                   backgroundColor: modeConfigs.syariah.color + '20',
@@ -240,12 +240,12 @@ const BankingModeSelector: React.FC<BankingModeSelectorProps> = ({
             Confirm Banking Mode Change
           </Box>
         </DialogTitle>
-        
+
         <DialogContent>
           {pendingMode && (
             <Box>
               <Typography variant="body1" sx={{ mb: 2 }}>
-                You are about to switch to <strong>{modeConfigs[pendingMode].label}</strong>. 
+                You are about to switch to <strong>{modeConfigs[pendingMode].label}</strong>.
                 This will change the interface theme and available features.
               </Typography>
 
@@ -268,7 +268,7 @@ const BankingModeSelector: React.FC<BankingModeSelectorProps> = ({
 
               <Alert severity="warning" sx={{ mt: 2 }}>
                 <Typography variant="body2">
-                  <strong>Important:</strong> Changing banking mode will update compliance requirements 
+                  <strong>Important:</strong> Changing banking mode will update compliance requirements
                   and may affect ongoing calculations. Ensure all pending processes are completed.
                 </Typography>
               </Alert>
@@ -280,8 +280,8 @@ const BankingModeSelector: React.FC<BankingModeSelectorProps> = ({
           <Button onClick={cancelModeChange} color="inherit">
             Cancel
           </Button>
-          <Button 
-            onClick={confirmModeChange} 
+          <Button
+            onClick={confirmModeChange}
             variant="contained"
             color="primary"
           >

@@ -7,6 +7,7 @@ import {
   Typography,
   Button,
   LinearProgress,
+  CircularProgress,
   Chip,
   Alert,
   IconButton,
@@ -54,7 +55,7 @@ export const IFRS9Dashboard: React.FC = () => {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      
+
       // Load ECL summary
       const eclResponse = await fetch('/api/v1/ifrs9/ecl/summary');
       if (eclResponse.ok) {
@@ -99,7 +100,7 @@ export const IFRS9Dashboard: React.FC = () => {
   };
 
   if (loading) {
-    return <Box sx={{ p: 3 }}><LinearProgress /></Box>;
+    return <Box sx={{ p: 3 }}><CircularProgress /></Box>;
   }
 
   return (
@@ -113,7 +114,7 @@ export const IFRS9Dashboard: React.FC = () => {
           <Button
             variant="contained"
             color="primary"
-            startIcon={calculating ? <LinearProgress size={20} /> : <PlayArrow />}
+            startIcon={calculating ? <CircularProgress size={20} color="inherit" /> : <PlayArrow />}
             onClick={runECLCalculation}
             disabled={calculating}
           >
@@ -147,7 +148,7 @@ export const IFRS9Dashboard: React.FC = () => {
             </CardContent>
           </Card>
         </Grid>
-        
+
         <Grid item xs={12} md={3}>
           <Card>
             <CardContent>
@@ -192,9 +193,9 @@ export const IFRS9Dashboard: React.FC = () => {
             <CardContent>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h6">PD Model</Typography>
-                <Chip 
-                  label={modelStatus?.pdModel?.status || 'Unknown'} 
-                  color={modelStatus?.pdModel?.status === 'active' ? 'success' : 'default'} 
+                <Chip
+                  label={modelStatus?.pdModel?.status || 'Unknown'}
+                  color={modelStatus?.pdModel?.status === 'active' ? 'success' : 'default'}
                 />
               </Box>
               <Typography variant="body1">
@@ -212,9 +213,9 @@ export const IFRS9Dashboard: React.FC = () => {
             <CardContent>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h6">LGD Model</Typography>
-                <Chip 
-                  label={modelStatus?.lgdModel?.status || 'Unknown'} 
-                  color={modelStatus?.lgdModel?.status === 'active' ? 'success' : 'default'} 
+                <Chip
+                  label={modelStatus?.lgdModel?.status || 'Unknown'}
+                  color={modelStatus?.lgdModel?.status === 'active' ? 'success' : 'default'}
                 />
               </Box>
               <Typography variant="body1">
@@ -232,9 +233,9 @@ export const IFRS9Dashboard: React.FC = () => {
             <CardContent>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h6">EAD Model</Typography>
-                <Chip 
-                  label={modelStatus?.eadModel?.status || 'Unknown'} 
-                  color={modelStatus?.eadModel?.status === 'active' ? 'success' : 'default'} 
+                <Chip
+                  label={modelStatus?.eadModel?.status || 'Unknown'}
+                  color={modelStatus?.eadModel?.status === 'active' ? 'success' : 'default'}
                 />
               </Box>
               <Typography variant="body1">
@@ -256,36 +257,36 @@ export const IFRS9Dashboard: React.FC = () => {
               <Typography variant="h6" sx={{ mb: 2 }}>Quick Actions</Typography>
               <Grid container spacing={2}>
                 <Grid item xs={6}>
-                  <Button 
-                    variant="outlined" 
-                    fullWidth 
+                  <Button
+                    variant="outlined"
+                    fullWidth
                     startIcon={<Assessment />}
                   >
                     View Calculations
                   </Button>
                 </Grid>
                 <Grid item xs={6}>
-                  <Button 
-                    variant="outlined" 
-                    fullWidth 
+                  <Button
+                    variant="outlined"
+                    fullWidth
                     startIcon={<ShowChart />}
                   >
                     Model Management
                   </Button>
                 </Grid>
                 <Grid item xs={6}>
-                  <Button 
-                    variant="outlined" 
-                    fullWidth 
+                  <Button
+                    variant="outlined"
+                    fullWidth
                     startIcon={<Download />}
                   >
                     Generate Reports
                   </Button>
                 </Grid>
                 <Grid item xs={6}>
-                  <Button 
-                    variant="outlined" 
-                    fullWidth 
+                  <Button
+                    variant="outlined"
+                    fullWidth
                     startIcon={<Settings />}
                   >
                     Configuration

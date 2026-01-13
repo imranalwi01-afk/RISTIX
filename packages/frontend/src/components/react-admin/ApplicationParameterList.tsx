@@ -74,6 +74,7 @@ import { ApplicationParameterDetailModal } from './ApplicationParameterDetail';
 
 interface ApplicationParameterHeader {
   pkid: number;
+  id?: number;
   param_code: string;
   param_name: string;
   param_usage: string;
@@ -87,6 +88,7 @@ interface ApplicationParameterHeader {
 
 interface ApplicationParameterDetail {
   pkid: number;
+  id?: number;
   param_code: string;
   param_seq: number;
   value1: string;
@@ -116,23 +118,22 @@ const ExpandableRow: React.FC<{ record: ApplicationParameterHeader }> = ({ recor
     if (!open && details.length === 0) {
       setLoading(true);
       setError(null);
-      
+
       try {
         console.log(`🔍 [APPL-004] Loading details for header ${record.param_code}`);
-        
+
         // Use the new master-detail API endpoint
-        const response = await dataProvider.getList('application/headers', {
-          target: `application/headers/${record.pkid}/details`,
+        const response = await dataProvider.getList(`application/headers/${record.pkid}/details`, {
           pagination: { page: 1, perPage: 100 },
           sort: { field: 'param_seq', order: 'ASC' },
           filter: {}
         });
-        
+
         if (response.data) {
           setDetails(response.data);
           console.log(`✅ [APPL-004] Loaded ${response.data.length} details for ${record.param_code}`);
         }
-        
+
       } catch (error) {
         console.error('❌ [APPL-004] Failed to load details:', error);
         setError('Failed to load parameter details');
@@ -158,13 +159,13 @@ const ExpandableRow: React.FC<{ record: ApplicationParameterHeader }> = ({ recor
     try {
       await dataProvider.delete('application/details', {
         id: detailId,
-        previousData: details.find(d => d.pkid === detailId)
+        previousData: details.find(d => d.pkid === detailId) as any
       });
-      
+
       // Refresh details list
       setDetails(details.filter(d => d.pkid !== detailId));
       notify('Detail deleted successfully', { type: 'success' });
-      
+
     } catch (error) {
       console.error('❌ [APPL-004] Failed to delete detail:', error);
       notify('Failed to delete detail', { type: 'error' });
@@ -183,50 +184,49 @@ const ExpandableRow: React.FC<{ record: ApplicationParameterHeader }> = ({ recor
           {open ? <ArrowUpIcon /> : <ArrowDownIcon />}
         </IconButton>
       </TableCell>
-      
+
       <TableCell>
         <Collapse in={open} timeout="auto" unmountOnExit>
           <Box sx={{ margin: 1 }}>
             <Typography variant="h6" gutterBottom component="div" sx={{ display: 'flex', alignItems: 'center' }}>
               <SettingsIcon sx={{ mr: 1 }} />
               Parameter Details for {record.param_code}
-              <Chip 
-                label={`${details.length} details`} 
-                size="small" 
-                color="primary" 
-                sx={{ ml: 2 }} 
+              <Chip
+                label={`${details.length} details`}
+                size="small"
+                color="primary"
+                sx={{ ml: 2 }}
               />
             </Typography>
-            
+
             {loading && (
               <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
                 <Loading />
               </Box>
             )}
-            
+
             {error && (
               <Alert severity="error" sx={{ mb: 2 }}>
                 {error}
               </Alert>
             )}
-            
+
             {!loading && !error && details.length === 0 && (
               <Alert severity="info" sx={{ mb: 2 }}>
-                No details configured for this parameter. 
-                <Button 
-                  size="small" 
+                No details configured for this parameter.
+                <Button
+                  size="small"
                   startIcon={<AddIcon />}
                   sx={{ ml: 1 }}
                   onClick={() => {
                     // TODO: Open create detail dialog
                     notify('Create detail functionality coming soon', { type: 'info' });
                   }}
-                >
-                  Add First Detail
-                </Button>
+                  label="Add First Detail"
+                />
               </Alert>
             )}
-            
+
             {!loading && !error && details.length > 0 && (
               <TableContainer component={Paper} variant="outlined">
                 <Table size="small" aria-label="parameter details">
@@ -264,9 +264,9 @@ const ExpandableRow: React.FC<{ record: ApplicationParameterHeader }> = ({ recor
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2" title={detail.paramdesc}>
-                            {detail.paramdesc ? 
-                              (detail.paramdesc.length > 50 ? 
-                                `${detail.paramdesc.substring(0, 50)}...` : 
+                            {detail.paramdesc ?
+                              (detail.paramdesc.length > 50 ?
+                                `${detail.paramdesc.substring(0, 50)}...` :
                                 detail.paramdesc
                               ) : '-'
                             }
@@ -279,8 +279,8 @@ const ExpandableRow: React.FC<{ record: ApplicationParameterHeader }> = ({ recor
                         </TableCell>
                         <TableCell>
                           <Tooltip title="Edit Detail">
-                            <IconButton 
-                              size="small" 
+                            <IconButton
+                              size="small"
                               color="primary"
                               onClick={() => {
                                 // TODO: Open edit detail dialog
@@ -291,8 +291,8 @@ const ExpandableRow: React.FC<{ record: ApplicationParameterHeader }> = ({ recor
                             </IconButton>
                           </Tooltip>
                           <Tooltip title="Delete Detail">
-                            <IconButton 
-                              size="small" 
+                            <IconButton
+                              size="small"
                               color="error"
                               onClick={() => handleDeleteDetail(detail.pkid)}
                             >
@@ -306,7 +306,7 @@ const ExpandableRow: React.FC<{ record: ApplicationParameterHeader }> = ({ recor
                 </Table>
               </TableContainer>
             )}
-            
+
             <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <Button
@@ -314,19 +314,17 @@ const ExpandableRow: React.FC<{ record: ApplicationParameterHeader }> = ({ recor
                   startIcon={<AddIcon />}
                   variant="outlined"
                   onClick={() => setModalOpen(true)}
-                >
-                  Manage Details
-                </Button>
+                  label="Manage Details"
+                />
                 <Button
                   size="small"
                   startIcon={<ViewIcon />}
                   variant="outlined"
                   onClick={() => setModalOpen(true)}
-                >
-                  View All
-                </Button>
+                  label="View All"
+                />
               </Box>
-              
+
               <Typography variant="caption" color="text.secondary">
                 Parameter: {record.param_name} | Usage: {record.param_usage}
               </Typography>
@@ -334,7 +332,7 @@ const ExpandableRow: React.FC<{ record: ApplicationParameterHeader }> = ({ recor
           </Box>
         </Collapse>
       </TableCell>
-      
+
       {/* ApplicationParameterDetailModal Integration */}
       {modalOpen && (
         <ApplicationParameterDetailModal
@@ -373,16 +371,16 @@ const ExpandableRow: React.FC<{ record: ApplicationParameterHeader }> = ({ recor
 
 const ApplicationParameterActions = () => {
   const refresh = useRefresh();
-  
+
   return (
     <TopToolbar>
       <FilterButton />
-      <CreateButton 
+      <CreateButton
         label="Add Parameter"
         variant="contained"
         sx={{ ml: 1 }}
       />
-      <ExportButton 
+      <ExportButton
         label="Export"
         variant="outlined"
         sx={{ ml: 1 }}
@@ -407,7 +405,7 @@ const ApplicationParameterActions = () => {
 const ApplicationParameterBulkActions = () => (
   <>
     <BulkExportButton />
-    <BulkDeleteButton 
+    <BulkDeleteButton
       confirmTitle="Delete Application Parameters"
       confirmContent="Are you sure you want to delete these parameters? This will also delete all related details."
     />
@@ -455,63 +453,63 @@ export const ApplicationParameterList: React.FC = () => {
         }}
       >
         {/* Core Parameter Fields */}
-        <TextField 
-          source="param_code" 
+        <TextField
+          source="param_code"
           label="Parameter Code"
           sx={{ fontFamily: 'monospace', fontWeight: 'bold' }}
         />
-        
-        <TextField 
-          source="param_name" 
+
+        <TextField
+          source="param_name"
           label="Parameter Name"
           sx={{ fontWeight: 'bold' }}
         />
-        
-        <TextField 
-          source="param_usage" 
+
+        <TextField
+          source="param_usage"
           label="Usage Description"
           sx={{ maxWidth: 300 }}
         />
-        
-        <ChipField 
-          source="param_type" 
+
+        <ChipField
+          source="param_type"
           label="Type"
-          sx={{ 
-            '& .MuiChip-root': { 
+          sx={{
+            '& .MuiChip-root': {
               backgroundColor: 'secondary.light',
               color: 'secondary.contrastText'
             }
           }}
         />
-        
+
         {/* Audit Fields */}
-        <TextField 
-          source="createdby" 
+        <TextField
+          source="createdby"
           label="Created By"
           sx={{ fontSize: '0.875rem' }}
         />
-        
-        <DateField 
-          source="createddate" 
+
+        <DateField
+          source="createddate"
           label="Created Date"
           showTime
           sx={{ fontSize: '0.875rem' }}
         />
-        
+
         {/* Action Buttons */}
         <Box component="div" sx={{ display: 'flex', gap: 1 }}>
-          <ShowButton 
+          <ShowButton
             label="View"
             variant="outlined"
             size="small"
           />
-          <EditButton 
+          <EditButton
             label="Edit"
             variant="contained"
             size="small"
             color="primary"
           />
-          <DeleteButton 
+          <DeleteButton
             label="Delete"
             variant="outlined"
             size="small"
@@ -546,11 +544,11 @@ export const ApplicationParameterEmpty: React.FC = () => (
       No Application Parameters Found
     </Typography>
     <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 600 }}>
-      Application parameters define core system configuration and behavior. 
-      These parameters control various aspects of the banking platform including 
+      Application parameters define core system configuration and behavior.
+      These parameters control various aspects of the banking platform including
       business rules, validation settings, and system limits.
     </Typography>
-    <CreateButton 
+    <CreateButton
       label="Create First Parameter"
       variant="contained"
       sx={{ mt: 2 }}

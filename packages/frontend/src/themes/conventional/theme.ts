@@ -192,3 +192,8 @@ export const getConventionalTheme = (mode: PaletteMode): Theme => {
 // Default export for backward compatibility (defaults to light)
 export const conventionalBankingTheme = getConventionalTheme('light');
 export default conventionalBankingTheme;
+export const conventionalThemeMetadata = {
+  name: 'Conventional Banking',
+  description: 'Professional blue theme optimized for conventional banking operations',
+  mode: 'light',
+};

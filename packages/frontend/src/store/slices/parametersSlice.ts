@@ -92,7 +92,7 @@ export const createProductParameter = createAsyncThunk(
 export const updateProductParameter = createAsyncThunk(
   'parameters/updateProduct',
   async ({ id, data }: { id: number; data: Partial<ProductParameter> }) => {
-    const response = await api.banking.productParameters.update(id, data);
+    const response = await api.banking.productParameters.update(id.toString(), data);
     if (!response.success) {
       throw new Error(response.message);
     }
@@ -103,7 +103,7 @@ export const updateProductParameter = createAsyncThunk(
 export const deleteProductParameter = createAsyncThunk(
   'parameters/deleteProduct',
   async (id: number) => {
-    const response = await api.banking.productParameters.delete(id);
+    const response = await api.banking.productParameters.delete(id.toString());
     if (!response.success) {
       throw new Error(response.message);
     }
@@ -115,7 +115,7 @@ export const deleteProductParameter = createAsyncThunk(
 export const fetchJournalParameters = createAsyncThunk(
   'parameters/fetchJournals',
   async (params?: any) => {
-    const response = await api.banking.journalParameters.getAll(params);
+    const response = await api.banking.journalParameters.getAll();
     if (!response.success) {
       throw new Error(response.message);
     }
@@ -194,7 +194,7 @@ const parametersSlice = createSlice({
         state.loading = false;
         state.error = action.error.message || 'Failed to fetch product parameters';
       })
-      
+
       .addCase(createProductParameter.pending, (state) => {
         state.saving = true;
         state.error = null;
@@ -208,12 +208,12 @@ const parametersSlice = createSlice({
         state.saving = false;
         state.error = action.error.message || 'Failed to create product parameter';
       })
-      
+
       .addCase(deleteProductParameter.fulfilled, (state, action) => {
         state.products = state.products.filter(product => product.pkid !== action.payload);
         state.lastUpdated = new Date().toISOString();
       })
-      
+
       // Journal parameters
       .addCase(fetchJournalParameters.pending, (state) => {
         state.loading = true;
@@ -228,7 +228,7 @@ const parametersSlice = createSlice({
         state.loading = false;
         state.error = action.error.message || 'Failed to fetch journal parameters';
       })
-      
+
       .addCase(createJournalParameter.pending, (state) => {
         state.saving = true;
         state.error = null;
@@ -242,7 +242,7 @@ const parametersSlice = createSlice({
         state.saving = false;
         state.error = action.error.message || 'Failed to create journal parameter';
       })
-      
+
       .addCase(deleteJournalParameter.fulfilled, (state, action) => {
         state.journals = state.journals.filter(journal => journal.pkid !== action.payload);
         state.lastUpdated = new Date().toISOString();
@@ -250,12 +250,12 @@ const parametersSlice = createSlice({
   },
 });
 
-export const { 
-  clearError, 
-  setError, 
-  setSearchQuery, 
-  updateFilters, 
-  clearFilters 
+export const {
+  clearError,
+  setError,
+  setSearchQuery,
+  updateFilters,
+  clearFilters
 } = parametersSlice.actions;
 
 export default parametersSlice.reducer;

@@ -65,14 +65,12 @@ import {
   PlayArrow as PlayIcon,
   Pause as PauseIcon,
   InsertDriveFile as FileIcon,
-  Assessment as ValidateIcon
+  Assessment as ValidateIcon,
+  CloudUpload
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { getAuthToken } from '@/utils/auth-token';
-import {
-  getUploadHistory,
-  uploadDataFile
-} from '@/services/api/data.api';
+// getUploadHistory and uploadDataFile imports removed as they are unused and the module does not exist
 import { useDropzone } from 'react-dropzone';
 
 interface UploadBatch {

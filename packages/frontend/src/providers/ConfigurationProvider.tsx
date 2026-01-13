@@ -10,11 +10,13 @@
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { useDispatch } from 'react-redux';
-import { 
-  getEnvironmentConfig, 
-  initializeConfiguration, 
+import {
+  getEnvironmentConfig,
+  initializeConfiguration,
   diagnoseEnvironment,
-  type EnvironmentConfig 
+  getStakeholderType,
+  isIslamicBankingEnabled,
+  type EnvironmentConfig
 } from '../config/environment.config';
 import { setConfiguration } from '../store/slices/configurationSlice';
 
@@ -40,41 +42,58 @@ export const ConfigurationProvider: React.FC<ConfigurationProviderProps> = ({ ch
   const loadConfiguration = async () => {
     try {
       console.log('🔧 ConfigurationProvider: Loading configuration...');
-      
+
       // Initialize configuration service
       initializeConfiguration();
-      
+
       // Get configuration
       const envConfig = getEnvironmentConfig();
-      
+
       // Validate configuration in development
       if (process.env.NODE_ENV === 'development') {
         diagnoseEnvironment();
       }
-      
+
       // Update Redux store
       dispatch(setConfiguration({
         apiUrl: envConfig.api.baseUrl,
         environment: envConfig.app.environment,
-        bankingMode: envConfig.banking.defaultMode,
-        features: envConfig.features,
+        bankingMode: envConfig.banking.mode,
+        features: {
+          analytics: envConfig.features.rAnalytics,
+          syariahMode: envConfig.banking.mode !== 'conventional',
+          realTime: false,
+          mobileView: true,
+          islamicBanking: envConfig.banking.mode !== 'conventional',
+          multiTenant: envConfig.features.multiTenant,
+          auditTrail: envConfig.features.auditTrail,
+          advancedReporting: true,
+          consultantPortal: envConfig.features.consultantHub,
+          regulatorPortal: false,
+          platformAdmin: true,
+        },
         settings: {
-          stakeholderType: envConfig.app.stakeholderType,
-          theme: envConfig.theme.defaultTheme,
-          islamic: envConfig.islamic,
+          theme: envConfig.theme.defaultTheme as any, // Cast to match expected union type
+          language: 'en',
+          currency: 'IDR',
+          dateFormat: 'DD/MM/YYYY',
+          timezone: 'Asia/Jakarta',
+          notifications: true,
+          autoSave: true,
+          sessionTimeout: envConfig.security.sessionTimeout
         },
         loaded: true,
       }));
-      
+
       setConfig(envConfig);
       setError(null);
       console.log('✅ ConfigurationProvider: Configuration loaded successfully');
-      
+
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown configuration error';
       console.error('❌ ConfigurationProvider: Configuration failed:', errorMessage);
       setError(errorMessage);
-      
+
       // Set fallback configuration
       const fallbackConfig = getEnvironmentConfig(); // This has safe defaults
       setConfig(fallbackConfig);

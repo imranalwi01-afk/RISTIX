@@ -77,7 +77,7 @@ import {
   PriorityHigh,
   Shield,
   Lock,
-  Unlock,
+  LockOpen,
   Settings,
   TimelineOutlined,
   Leaderboard,
@@ -89,7 +89,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { format, subDays, isWithinInterval, parseISO } from 'date-fns';
 import { api } from '@/services/api';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/providers/AuthProvider';
 
 // Types
 interface RoleAnalytics {
@@ -203,24 +203,24 @@ const RoleAssignmentAnalytics: React.FC = () => {
       };
 
       // Fetch role analytics
-      const roleResponse = await api.get('/analytics/roles', { params });
+      const roleResponse = await api.client.get('/analytics/roles', { params });
       setRoleAnalytics(roleResponse.data || []);
 
       // Fetch user analytics
-      const userResponse = await api.get('/analytics/users', { params });
+      const userResponse = await api.client.get('/analytics/users', { params });
       setUserAnalytics(userResponse.data || []);
 
       // Fetch assignment trends
-      const trendsResponse = await api.get('/analytics/assignments/trends', { params });
+      const trendsResponse = await api.client.get('/analytics/assignments/trends', { params });
       setAssignmentTrends(trendsResponse.data || []);
 
       // Fetch security metrics
-      const securityResponse = await api.get('/analytics/security/metrics', { params });
+      const securityResponse = await api.client.get('/analytics/security/metrics', { params });
       setSecurityMetrics(securityResponse.data);
 
       // Extract departments
       const uniqueDepartments = [...new Set(userResponse.data?.map((u: UserAnalytics) => u.department) || [])];
-      setDepartments(uniqueDepartments);
+      setDepartments(uniqueDepartments as string[]);
 
     } catch (err) {
       console.error('Error fetching analytics data:', err);
@@ -244,7 +244,7 @@ const RoleAssignmentAnalytics: React.FC = () => {
         riskLevel: selectedRiskLevel,
       };
 
-      const response = await api.get('/analytics/export', {
+      const response = await api.client.get('/analytics/export', {
         params,
         responseType: 'blob',
       });
@@ -296,7 +296,7 @@ const RoleAssignmentAnalytics: React.FC = () => {
     department: dept,
     users: userAnalytics.filter(u => u.department === dept).length,
     avgRoles: userAnalytics.filter(u => u.department === dept).reduce((sum, u) => sum + u.roleCount, 0) /
-              userAnalytics.filter(u => u.department === dept).length || 0,
+      userAnalytics.filter(u => u.department === dept).length || 0,
   }));
 
   const userRiskData = userAnalytics.map(user => ({
@@ -359,7 +359,7 @@ const RoleAssignmentAnalytics: React.FC = () => {
                 <DatePicker
                   label="Start Date"
                   value={dateRange.start}
-                  onChange={(date) => date && setDateRange(prev => ({ ...prev, start: date }))}
+                  onChange={(date) => date && setDateRange(prev => ({ ...prev, start: date as Date }))}
                   slotProps={{ textField: { fullWidth: true, size: 'small' } }}
                 />
               </Grid>
@@ -367,7 +367,7 @@ const RoleAssignmentAnalytics: React.FC = () => {
                 <DatePicker
                   label="End Date"
                   value={dateRange.end}
-                  onChange={(date) => date && setDateRange(prev => ({ ...prev, end: date }))}
+                  onChange={(date) => date && setDateRange(prev => ({ ...prev, end: date as Date }))}
                   slotProps={{ textField: { fullWidth: true, size: 'small' } }}
                 />
               </Grid>
@@ -923,7 +923,7 @@ const RoleAssignmentAnalytics: React.FC = () => {
                                 width: 8,
                                 height: 8,
                                 borderRadius: '50%',
-                                bgcolor: theme.palette[activity.type as keyof typeof theme.palette].main,
+                                bgcolor: (theme.palette[activity.type as keyof typeof theme.palette] as any)?.main || theme.palette.primary.main,
                               }}
                             />
                             <Box sx={{ flex: 1 }}>

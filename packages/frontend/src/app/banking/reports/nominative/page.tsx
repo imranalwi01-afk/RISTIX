@@ -60,7 +60,7 @@ export default function NominativeReportsPage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const result = await reportsAPI.getNominativeReport({ page: 1, limit: 100 });
+      const result = await reportsAPI.nominativeReport.get({ page: 1, limit: 100 });
       if (result.success && Array.isArray(result.data)) {
         setData(result.data);
       }

@@ -140,11 +140,11 @@ const SEGMENT_TYPES = [
 // Custom chip component for segment types
 const SegmentTypeField: React.FC<{ record?: SegmentationHeader }> = ({ record }) => {
   if (!record?.segment_type) return <span>-</span>;
-  
+
   const segmentType = SEGMENT_TYPES.find(s => s.id === record.segment_type);
   const color = {
     'PD': 'primary',
-    'LGD': 'secondary', 
+    'LGD': 'secondary',
     'EAD': 'success',
     'PF': 'warning',
   }[record.segment_type as keyof typeof color] || 'default';
@@ -182,7 +182,7 @@ const ActiveStatusField: React.FC<{ record?: SegmentationHeader }> = ({ record }
 const ExpandableRowDetails: React.FC<{ record: SegmentationHeader }> = ({ record }) => {
   const [expanded, setExpanded] = useState(false);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
-  
+
   // This would connect to the segmentation detail API
   // For now using mock data structure
   const mockDetails: SegmentationDetail[] = [
@@ -238,9 +238,9 @@ const ExpandableRowDetails: React.FC<{ record: SegmentationHeader }> = ({ record
                   <Stack direction="row" spacing={1} alignItems="center" mb={1}>
                     <Chip label={detail.data_type} size="small" variant="outlined" />
                     <Chip label={detail.operator} size="small" color="primary" />
-                    <Chip 
-                      label={detail.is_active ? 'Active' : 'Inactive'} 
-                      size="small" 
+                    <Chip
+                      label={detail.is_active ? 'Active' : 'Inactive'}
+                      size="small"
                       color={detail.is_active ? 'success' : 'default'}
                     />
                   </Stack>
@@ -252,22 +252,22 @@ const ExpandableRowDetails: React.FC<{ record: SegmentationHeader }> = ({ record
               </Grid>
             ))}
           </Grid>
-          
+
           <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
             <Button
               variant="outlined"
               startIcon={<ViewDetailIcon />}
               onClick={() => setDetailModalOpen(true)}
             >
-              Manage Details
+              <>Manage Details</>
             </Button>
           </Box>
         </AccordionDetails>
       </Accordion>
 
       {/* Detail Management Modal */}
-      <Dialog 
-        open={detailModalOpen} 
+      <Dialog
+        open={detailModalOpen}
         onClose={() => setDetailModalOpen(false)}
         maxWidth="lg"
         fullWidth
@@ -289,13 +289,13 @@ const ExpandableRowDetails: React.FC<{ record: SegmentationHeader }> = ({ record
               Each rule defines criteria for portfolio segmentation based on table columns, operators, and values.
             </Typography>
           </Alert>
-          
+
           {/* This would be replaced with actual React Admin detail CRUD interface */}
           <Box sx={{ mt: 2 }}>
             <Typography variant="subtitle1" gutterBottom>
               Segmentation Detail Rules
             </Typography>
-            
+
             {mockDetails.map((detail) => (
               <Paper key={detail.pkid} sx={{ p: 2, mb: 2, border: '1px solid #e0e0e0' }}>
                 <Grid container spacing={2} alignItems="center">
@@ -328,9 +328,9 @@ const ExpandableRowDetails: React.FC<{ record: SegmentationHeader }> = ({ record
                     </Typography>
                   </Grid>
                   <Grid item xs={1}>
-                    <Chip 
-                      label={detail.is_active ? 'Active' : 'Inactive'} 
-                      size="small" 
+                    <Chip
+                      label={detail.is_active ? 'Active' : 'Inactive'}
+                      size="small"
                       color={detail.is_active ? 'success' : 'default'}
                     />
                   </Grid>
@@ -340,9 +340,9 @@ const ExpandableRowDetails: React.FC<{ record: SegmentationHeader }> = ({ record
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDetailModalOpen(false)}>Close</Button>
+          <Button onClick={() => setDetailModalOpen(false)}><>Close</></Button>
           <Button variant="contained" startIcon={<AddIcon />}>
-            Add New Rule
+            <>Add New Rule</>
           </Button>
         </DialogActions>
       </Dialog>
@@ -364,7 +364,7 @@ const SegmentationListActions: React.FC = () => (
 
 const FilterButton: React.FC = () => {
   const [filterOpen, setFilterOpen] = useState(false);
-  
+
   return (
     <>
       <Button
@@ -372,9 +372,9 @@ const FilterButton: React.FC = () => {
         startIcon={<FilterIcon />}
         onClick={() => setFilterOpen(true)}
       >
-        Advanced Filters
+        <>Advanced Filters</>
       </Button>
-      
+
       <Dialog open={filterOpen} onClose={() => setFilterOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle>Advanced Filters</DialogTitle>
         <DialogContent>
@@ -393,7 +393,7 @@ const FilterButton: React.FC = () => {
                 ))}
               </FilterList>
             </Grid>
-            
+
             <Grid item xs={12} md={6}>
               <Typography variant="subtitle2" gutterBottom>
                 Status
@@ -412,7 +412,7 @@ const FilterButton: React.FC = () => {
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setFilterOpen(false)}>Close</Button>
+          <Button onClick={() => setFilterOpen(false)}><>Close</></Button>
         </DialogActions>
       </Dialog>
     </>
@@ -429,7 +429,7 @@ const SegmentationBulkActions: React.FC = () => (
 
 export const SegmentationList: React.FC = () => {
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
-  
+
   const toggleRowExpansion = (id: number) => {
     const newExpanded = new Set(expandedRows);
     if (newExpanded.has(id)) {
@@ -449,54 +449,54 @@ export const SegmentationList: React.FC = () => {
       sort={{ field: 'seq', order: 'ASC' }}
       filters={[
         <TextInput source="q" label="Search" alwaysOn />,
-        <SelectInput 
-          source="segment_type" 
-          label="Segment Type" 
-          choices={SEGMENT_TYPES} 
+        <SelectInput
+          source="segment_type"
+          label="Segment Type"
+          choices={SEGMENT_TYPES}
           emptyText="All Types"
         />,
         <BooleanInput source="active_flag" label="Active Only" />,
       ]}
     >
-      <Datagrid 
+      <Datagrid
         rowClick={false}
-        expand={<ExpandableRowDetails />}
+        expand={(props: any) => <ExpandableRowDetails record={props.record} />}
         expandSingle
       >
         <NumberField source="seq" label="Seq" sortable />
-        
+
         <FunctionField
           label="Group Segment"
           render={(record: SegmentationHeader) => (
-            <Chip 
-              label={record.group_segment || '-'} 
-              color="primary" 
-              variant="outlined" 
-              size="small" 
+            <Chip
+              label={record.group_segment || '-'}
+              color="primary"
+              variant="outlined"
+              size="small"
             />
           )}
         />
-        
+
         <TextField source="segment" label="Segment" />
         <TextField source="sub_segment" label="Sub Segment" emptyText="-" />
-        
+
         <FunctionField
           label="Segment Type"
           render={(record: SegmentationHeader) => <SegmentTypeField record={record} />}
         />
-        
+
         <FunctionField
           label="Rules"
           render={(record: SegmentationHeader) => <DetailCountField record={record} />}
         />
-        
+
         <FunctionField
           label="Status"
           render={(record: SegmentationHeader) => <ActiveStatusField record={record} />}
         />
-        
+
         <TextField source="createdby" label="Created By" />
-        
+
         <EditButton />
         <ShowButton />
         <DeleteButton />
@@ -514,19 +514,19 @@ export const SegmentationEdit: React.FC = () => (
     <SimpleForm>
       <Grid container spacing={2}>
         <Grid item xs={12} md={6}>
-          <TextInput 
-            source="group_segment" 
-            label="Group Segment" 
-            validate={required()} 
-            fullWidth 
+          <TextInput
+            source="group_segment"
+            label="Group Segment"
+            validate={required()}
+            fullWidth
           />
         </Grid>
         <Grid item xs={12} md={6}>
-          <TextInput 
-            source="segment" 
-            label="Segment" 
-            validate={required()} 
-            fullWidth 
+          <TextInput
+            source="segment"
+            label="Segment"
+            validate={required()}
+            fullWidth
           />
         </Grid>
         <Grid item xs={12} md={6}>
@@ -566,19 +566,19 @@ export const SegmentationCreate: React.FC = () => (
           </Alert>
         </Grid>
         <Grid item xs={12} md={6}>
-          <TextInput 
-            source="group_segment" 
-            label="Group Segment" 
-            validate={required()} 
-            fullWidth 
+          <TextInput
+            source="group_segment"
+            label="Group Segment"
+            validate={required()}
+            fullWidth
           />
         </Grid>
         <Grid item xs={12} md={6}>
-          <TextInput 
-            source="segment" 
-            label="Segment" 
-            validate={required()} 
-            fullWidth 
+          <TextInput
+            source="segment"
+            label="Segment"
+            validate={required()}
+            fullWidth
           />
         </Grid>
         <Grid item xs={12} md={6}>
@@ -631,7 +631,7 @@ export const SegmentationShow: React.FC = () => (
           <TextField source="updateddate" label="Updated Date" />
         </SimpleShowLayout>
       </Tab>
-      
+
       <Tab label="Detail Rules">
         <Box sx={{ p: 2 }}>
           <Typography variant="h6" gutterBottom>
@@ -658,7 +658,7 @@ export const SegmentationResource = {
   create: SegmentationCreate,
   show: SegmentationShow,
   icon: SegmentationIcon,
-  options: { 
+  options: {
     label: 'Segmentation Rules',
     group: 'IFRS 9 Configuration',
   },

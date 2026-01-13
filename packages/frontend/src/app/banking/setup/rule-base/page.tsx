@@ -52,13 +52,13 @@ import RuleBaseSettingModal from '@/components/banking/setup/RuleBaseSettingModa
 // ============================================================================
 
 interface RuleBaseSettingHeader {
-  id: number;
+  id?: number;
   rule_name: string;
   rule_type: string;
   updated_table: string;
   updated_column: string;
   value: string;
-  seq: number;
+  seq?: number;
   active_flag: boolean;
   detail_count?: number;
   created_by?: string;
@@ -196,8 +196,8 @@ export default function RuleBaseSettingPage() {
     }
 
     try {
-      const response = await ruleBaseSettingAPI.deleteHeader(header.id);
-      
+      const response = await ruleBaseSettingAPI.deleteHeader(header.id!);
+
       if (response.success) {
         enqueueSnackbar('Rule base setting deleted successfully', { variant: 'success' });
         loadHeaders(); // Reload data
@@ -302,7 +302,7 @@ export default function RuleBaseSettingPage() {
               )
             }}
           />
-          
+
           <FormControl sx={{ minWidth: 200 }}>
             <InputLabel>Rule Type</InputLabel>
             <Select

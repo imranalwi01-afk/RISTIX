@@ -45,7 +45,7 @@ export default function WatchlistPage() {
   const [data, setData] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  
+
   // Dialog State
   const [openDialog, setOpenDialog] = useState(false);
   const [formData, setFormData] = useState({
@@ -75,7 +75,7 @@ export default function WatchlistPage() {
 
   const handleCreate = async () => {
     if (!formData.customerName || !formData.accountNumber) return;
-    
+
     try {
       setLoading(true);
       await individualImpairmentAPI.addToWatchlist(formData);
@@ -92,7 +92,7 @@ export default function WatchlistPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to remove this customer from watchlist?')) return;
-    
+
     try {
       setLoading(true);
       await individualImpairmentAPI.removeFromWatchlist(id);
@@ -109,27 +109,27 @@ export default function WatchlistPage() {
     { field: 'customerName', headerName: 'Customer Name', flex: 1 },
     { field: 'accountNumber', headerName: 'Account Number', flex: 1 },
     { field: 'segment', headerName: 'Segment', width: 150 },
-    { 
-      field: 'impairmentStatus', 
-      headerName: 'Status', 
+    {
+      field: 'impairmentStatus',
+      headerName: 'Status',
       width: 150,
       renderCell: (params) => (
-        <Chip 
-          label={params.value} 
-          color={params.value === 'WATCHLIST' ? 'warning' : 'default'} 
-          size="small" 
+        <Chip
+          label={params.value}
+          color={params.value === 'WATCHLIST' ? 'warning' : 'default'}
+          size="small"
         />
       )
     },
     { field: 'remarks', headerName: 'Remarks', flex: 1 },
-    { 
-        field: 'triggerDate', 
-        headerName: 'Trigger Date', 
-        width: 180,
-        valueFormatter: (params) => {
-            if (!params.value) return '-';
-            return new Date(params.value).toLocaleString();
-        }
+    {
+      field: 'triggerDate',
+      headerName: 'Trigger Date',
+      width: 180,
+      valueFormatter: (value: any) => {
+        if (!value) return '-';
+        return new Date(value).toLocaleString();
+      }
     },
     {
       field: 'actions',
@@ -156,7 +156,7 @@ export default function WatchlistPage() {
   return (
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
       <FullstackIndicator />
-      
+
       {/* Breadcrumbs */}
       <Breadcrumbs sx={{ mb: 2 }}>
         <Link href="/banking/dashboard" underline="hover" color="inherit" sx={{ display: 'flex', alignItems: 'center' }}>
@@ -171,8 +171,8 @@ export default function WatchlistPage() {
         <Typography variant="h4" component="h1" gutterBottom>
           Individual Watchlist
         </Typography>
-        <Button 
-          variant="contained" 
+        <Button
+          variant="contained"
           startIcon={<AddIcon />}
           onClick={() => setOpenDialog(true)}
         >

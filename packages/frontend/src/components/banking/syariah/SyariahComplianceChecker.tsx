@@ -124,7 +124,7 @@ const SyariahComplianceChecker: React.FC<SyariahComplianceCheckerProps> = ({
 
   // ✅ Get tenant configuration
   const tenantConfig = useSelector((state: any) => state.configuration?.tenant);
-  const bankingMode = useSelector((state: any) => state.banking?.bankingMode);
+  const bankingMode = useSelector((state: any) => state.configuration?.bankingMode);
 
   // ✅ Calculate compliance score
   const calculateComplianceScore = useCallback((data: SyariahComplianceData): number => {
@@ -154,18 +154,18 @@ const SyariahComplianceChecker: React.FC<SyariahComplianceCheckerProps> = ({
   // ✅ Perform compliance check
   const performComplianceCheck = useCallback(async () => {
     setIsLoading(true);
-    
+
     try {
       // Simulate API call for compliance check
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
+
       // Calculate compliance score
       const score = calculateComplianceScore(complianceData);
       const isCompliant = score >= 80; // Minimum 80% for compliance
-      
+
       // Call parent callback
       onComplianceResult?.(isCompliant, complianceData);
-      
+
     } catch (error) {
       console.error('Compliance check failed:', error);
     } finally {
@@ -215,7 +215,7 @@ const SyariahComplianceChecker: React.FC<SyariahComplianceCheckerProps> = ({
               label={`${complianceScore}% Compliant`}
               color={getStatusColor(complianceLevel) as any}
               icon={isFullyCompliant ? <CheckCircle /> : <Warning />}
-              size="large"
+              size="medium"
             />
           </Box>
 
@@ -233,13 +233,13 @@ const SyariahComplianceChecker: React.FC<SyariahComplianceCheckerProps> = ({
           </Box>
 
           {/* Status Alert */}
-          <Alert 
-            severity={isFullyCompliant ? 'success' : 'warning'} 
+          <Alert
+            severity={isFullyCompliant ? 'success' : 'warning'}
             sx={{ mb: 3 }}
             icon={isFullyCompliant ? <CheckCircle /> : <Warning />}
           >
             <Typography variant="body2">
-              {isFullyCompliant 
+              {isFullyCompliant
                 ? '✅ This product/transaction is fully compliant with Syariah principles'
                 : '⚠️ This product/transaction requires review for full Syariah compliance'
               }
@@ -250,9 +250,9 @@ const SyariahComplianceChecker: React.FC<SyariahComplianceCheckerProps> = ({
           <Grid container spacing={2} sx={{ mb: 3 }}>
             <Grid item xs={6} md={3}>
               <Box sx={{ textAlign: 'center' }}>
-                <CheckCircle 
-                  color={complianceData.isHalalCertified ? 'success' : 'disabled'} 
-                  fontSize="large" 
+                <CheckCircle
+                  color={complianceData.isHalalCertified ? 'success' : 'disabled'}
+                  fontSize="large"
                 />
                 <Typography variant="body2" sx={{ mt: 1 }}>
                   Halal Certified
@@ -261,9 +261,9 @@ const SyariahComplianceChecker: React.FC<SyariahComplianceCheckerProps> = ({
             </Grid>
             <Grid item xs={6} md={3}>
               <Box sx={{ textAlign: 'center' }}>
-                <Gavel 
-                  color={complianceData.syariahBoardApproval ? 'success' : 'disabled'} 
-                  fontSize="large" 
+                <Gavel
+                  color={complianceData.syariahBoardApproval ? 'success' : 'disabled'}
+                  fontSize="large"
                 />
                 <Typography variant="body2" sx={{ mt: 1 }}>
                   DPS Approved
@@ -272,9 +272,9 @@ const SyariahComplianceChecker: React.FC<SyariahComplianceCheckerProps> = ({
             </Grid>
             <Grid item xs={6} md={3}>
               <Box sx={{ textAlign: 'center' }}>
-                <Assessment 
-                  color={complianceData.complianceValidation.aaoifiCompliant ? 'success' : 'disabled'} 
-                  fontSize="large" 
+                <Assessment
+                  color={complianceData.complianceValidation.aaoifiCompliant ? 'success' : 'disabled'}
+                  fontSize="large"
                 />
                 <Typography variant="body2" sx={{ mt: 1 }}>
                   AAOIFI Standards
@@ -283,9 +283,9 @@ const SyariahComplianceChecker: React.FC<SyariahComplianceCheckerProps> = ({
             </Grid>
             <Grid item xs={6} md={3}>
               <Box sx={{ textAlign: 'center' }}>
-                <AccountBalance 
-                  color={complianceData.complianceValidation.ojkCompliant ? 'success' : 'disabled'} 
-                  fontSize="large" 
+                <AccountBalance
+                  color={complianceData.complianceValidation.ojkCompliant ? 'success' : 'disabled'}
+                  fontSize="large"
                 />
                 <Typography variant="body2" sx={{ mt: 1 }}>
                   OJK Compliant
@@ -327,9 +327,9 @@ const SyariahComplianceChecker: React.FC<SyariahComplianceCheckerProps> = ({
               <Grid container spacing={3}>
                 <Grid item xs={12} md={6}>
                   <Typography variant="subtitle2" sx={{ mb: 1 }}>Contract Type</Typography>
-                  <Chip 
-                    label={ISLAMIC_CONTRACTS.find(c => c.code === complianceData.islamicContractType)?.name || 'Not Specified'} 
-                    color="secondary" 
+                  <Chip
+                    label={ISLAMIC_CONTRACTS.find(c => c.code === complianceData.islamicContractType)?.name || 'Not Specified'}
+                    color="secondary"
                   />
                   <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                     {ISLAMIC_CONTRACTS.find(c => c.code === complianceData.islamicContractType)?.description || 'Contract type not specified'}
@@ -417,7 +417,7 @@ const SyariahComplianceChecker: React.FC<SyariahComplianceCheckerProps> = ({
             Comprehensive Syariah Compliance Report
           </Box>
         </DialogTitle>
-        
+
         <DialogContent>
           <TableContainer component={Paper} variant="outlined">
             <Table size="small">
@@ -432,8 +432,8 @@ const SyariahComplianceChecker: React.FC<SyariahComplianceCheckerProps> = ({
                 <TableRow>
                   <TableCell>Halal Certification</TableCell>
                   <TableCell align="center">
-                    {complianceData.isHalalCertified ? 
-                      <CheckCircle color="success" /> : 
+                    {complianceData.isHalalCertified ?
+                      <CheckCircle color="success" /> :
                       <Error color="error" />
                     }
                   </TableCell>
@@ -444,8 +444,8 @@ const SyariahComplianceChecker: React.FC<SyariahComplianceCheckerProps> = ({
                 <TableRow>
                   <TableCell>DPS Board Approval</TableCell>
                   <TableCell align="center">
-                    {complianceData.syariahBoardApproval ? 
-                      <CheckCircle color="success" /> : 
+                    {complianceData.syariahBoardApproval ?
+                      <CheckCircle color="success" /> :
                       <Error color="error" />
                     }
                   </TableCell>
@@ -456,8 +456,8 @@ const SyariahComplianceChecker: React.FC<SyariahComplianceCheckerProps> = ({
                 <TableRow>
                   <TableCell>AAOIFI Standards</TableCell>
                   <TableCell align="center">
-                    {complianceData.complianceValidation.aaoifiCompliant ? 
-                      <CheckCircle color="success" /> : 
+                    {complianceData.complianceValidation.aaoifiCompliant ?
+                      <CheckCircle color="success" /> :
                       <Error color="error" />
                     }
                   </TableCell>
@@ -468,8 +468,8 @@ const SyariahComplianceChecker: React.FC<SyariahComplianceCheckerProps> = ({
                 <TableRow>
                   <TableCell>OJK Islamic Banking</TableCell>
                   <TableCell align="center">
-                    {complianceData.complianceValidation.ojkCompliant ? 
-                      <CheckCircle color="success" /> : 
+                    {complianceData.complianceValidation.ojkCompliant ?
+                      <CheckCircle color="success" /> :
                       <Error color="error" />
                     }
                   </TableCell>

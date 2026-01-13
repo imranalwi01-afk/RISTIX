@@ -115,29 +115,34 @@ export default function PersonalizedWidget({
     setWidgetData({ isLoading: true, error: undefined })
 
     try {
-      let response
       const { bankingAPI, ifrs9API } = await import('../../../services/api')
+      let data: any
 
       switch (type) {
         case 'ecl-summary':
-          response = await ifrs9API.getCalculationsSummary()
+          data = await ifrs9API.getCalculationsSummary()
           break
 
         case 'portfolio-summary':
-          // ✅ FIXED: Use proper API service instead of direct fetch
-          response = await bankingAPI.portfolio.summary()
+        case 'portfolio-metrics':
+          data = await ifrs9API.getPortfolioSummary()
           break
 
         case 'activities':
-          response = await bankingAPI.audit.getActivities()
+          data = await ifrs9API.getRecentActivities()
           break
 
         default:
           // For custom widgets, use custom endpoint if specified
           if (customSettings.endpoint) {
-            response = await fetch(customSettings.endpoint, {
+            const fetchResponse = await fetch(customSettings.endpoint, {
               headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
             })
+            if (fetchResponse.ok) {
+              data = await fetchResponse.json()
+            } else {
+              throw new Error(`Failed to load widget data: ${fetchResponse.statusText}`)
+            }
           } else {
             // If no custom endpoint, return early as there's no data to fetch
             setWidgetData({
@@ -148,16 +153,16 @@ export default function PersonalizedWidget({
           }
       }
 
-      if (response && response.ok) {
-        const data = await response.json()
+      if (data) {
+        const processedData = data.success ? data.data : data
         setWidgetData({
-          data: data.success ? data.data : data,
+          data: processedData,
           lastUpdated: new Date().toISOString(),
           isLoading: false
         })
-        onDataUpdate?.(data.success ? data.data : data)
+        onDataUpdate?.(processedData)
       } else {
-        throw new Error(`Failed to load widget data: ${response?.statusText}`)
+        throw new Error('No data received from service')
       }
 
     } catch (error: any) {

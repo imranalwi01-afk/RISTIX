@@ -72,7 +72,7 @@ const validateParamUsage = [
 
 const ApplicationParameterCreateToolbar: React.FC = () => (
   <Toolbar>
-    <SaveButton 
+    <SaveButton
       label="Create Parameter"
       variant="contained"
       icon={<AddIcon />}
@@ -105,7 +105,6 @@ export const ApplicationParameterCreate: React.FC = () => {
       title="Create Application Parameter"
       actions={<ApplicationParameterCreateActions />}
       redirect="list"
-      mutationMode="pessimistic"
     >
       <SimpleForm toolbar={<ApplicationParameterCreateToolbar />}>
         <ApplicationParameterForm mode="create" />

@@ -96,7 +96,7 @@ interface UserFormData {
 export default function UserManagementPage() {
   const router = useRouter();
   const { user: currentUser, isAuthenticated } = useAuth();
-  
+
   // ✅ State Management
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
@@ -321,9 +321,9 @@ export default function UserManagementPage() {
     <Container maxWidth="xl">
       {/* Breadcrumb Navigation */}
       <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
-        <Link 
-          underline="hover" 
-          color="inherit" 
+        <Link
+          underline="hover"
+          color="inherit"
           href="/banking/dashboard"
           onClick={(e) => {
             e.preventDefault();
@@ -658,7 +658,7 @@ export default function UserManagementPage() {
                   endAdornment: (
                     <InputAdornment position="end">
                       <IconButton onClick={() => setShowPassword(!showPassword)}>
-                        {showPassword ? <VisibilityOff /> : <ViewIcon />}
+                        {showPassword ? <HideIcon /> : <ViewIcon />}
                       </IconButton>
                     </InputAdornment>
                   ),
@@ -863,26 +863,26 @@ export default function UserManagementPage() {
                 </Grid>
                 <Grid item xs={6}>
                   <Typography variant="subtitle2" color="text.secondary">Status</Typography>
-                  <Chip 
-                    label={selectedUser.isActive ? 'Active' : 'Inactive'} 
+                  <Chip
+                    label={selectedUser.isActive ? 'Active' : 'Inactive'}
                     color={selectedUser.isActive ? 'success' : 'default'}
-                    size="small" 
+                    size="small"
                   />
                 </Grid>
                 <Grid item xs={6}>
                   <Typography variant="subtitle2" color="text.secondary">Syariah Certified</Typography>
-                  <Chip 
-                    label={selectedUser.syariahCertified ? 'Yes' : 'No'} 
+                  <Chip
+                    label={selectedUser.syariahCertified ? 'Yes' : 'No'}
                     color={selectedUser.syariahCertified ? 'success' : 'default'}
-                    size="small" 
+                    size="small"
                   />
                 </Grid>
                 <Grid item xs={6}>
                   <Typography variant="subtitle2" color="text.secondary">MFA Enabled</Typography>
-                  <Chip 
-                    label={selectedUser.mfaEnabled ? 'Yes' : 'No'} 
+                  <Chip
+                    label={selectedUser.mfaEnabled ? 'Yes' : 'No'}
                     color={selectedUser.mfaEnabled ? 'success' : 'default'}
-                    size="small" 
+                    size="small"
                   />
                 </Grid>
                 <Grid item xs={6}>

@@ -80,7 +80,7 @@ export const platformDataProvider: DataProvider = {
       body: JSON.stringify(params.data),
     }).then(({ json }) => ({
       data: { ...params.data, id: json.id },
-    })),
+    })) as any,
 
   update: (resource, params) =>
     httpClient(`${apiUrl}/${resource}/${params.id}`, {

@@ -88,9 +88,9 @@ const JournalParameterListActions = () => (
 /**
  * GL Code Chip Component
  */
-const GLCodeChip: React.FC = () => {
+const GLCodeChip: React.FC<any> = () => {
   const record = useRecordContext<JournalParameter>();
-  
+
   if (!record) return null;
 
   return (
@@ -107,9 +107,9 @@ const GLCodeChip: React.FC = () => {
 /**
  * GL Group Chip Component
  */
-const GLGroupChip: React.FC = () => {
+const GLGroupChip: React.FC<any> = () => {
   const record = useRecordContext<JournalParameter>();
-  
+
   if (!record) return null;
 
   const getGroupColor = (group: string) => {
@@ -142,9 +142,9 @@ const GLGroupChip: React.FC = () => {
 /**
  * DBCR (Debit/Credit) Chip Component
  */
-const DBCRChip: React.FC = () => {
+const DBCRChip: React.FC<any> = () => {
   const record = useRecordContext<JournalParameter>();
-  
+
   if (!record) return null;
 
   return (
@@ -160,9 +160,9 @@ const DBCRChip: React.FC = () => {
 /**
  * Currency Chip Component
  */
-const CurrencyChip: React.FC = () => {
+const CurrencyChip: React.FC<any> = () => {
   const record = useRecordContext<JournalParameter>();
-  
+
   if (!record) return null;
 
   const getCurrencyName = (currency: string) => {
@@ -192,9 +192,9 @@ const CurrencyChip: React.FC = () => {
 /**
  * Journal Entry Display Component
  */
-const JournalEntryField: React.FC = () => {
+const JournalEntryField: React.FC<any> = () => {
   const record = useRecordContext<JournalParameter>();
-  
+
   if (!record) return null;
 
   return (
@@ -381,24 +381,24 @@ export const JournalParameterCreate: React.FC = () => {
         <FormTab label="Basic Information" icon={<BookOnline />}>
           <Grid container spacing={2}>
             <Grid item xs={12} md={6}>
-              <TextInput 
-                source="gl_code" 
-                label="GL Code" 
+              <TextInput
+                source="gl_code"
+                label="GL Code"
                 validate={required()}
                 fullWidth
               />
             </Grid>
             <Grid item xs={12}>
-              <TextInput 
-                source="gl_desc" 
-                label="GL Description" 
+              <TextInput
+                source="gl_desc"
+                label="GL Description"
                 fullWidth
                 multiline
                 rows={2}
                 placeholder="Describe the purpose and usage of this GL account"
               />
             </Grid>
-            
+
             <Grid item xs={12} md={6}>
               <SelectInput
                 source="gl_group"
@@ -414,7 +414,7 @@ export const JournalParameterCreate: React.FC = () => {
                 fullWidth
               />
             </Grid>
-            
+
             <Grid item xs={12} md={6}>
               <SelectInput
                 source="gl_type"
@@ -432,16 +432,16 @@ export const JournalParameterCreate: React.FC = () => {
                 fullWidth
               />
             </Grid>
-            
+
             <Grid item xs={12} md={6}>
-              <TextInput 
-                source="gl_number" 
-                label="GL Number" 
+              <TextInput
+                source="gl_number"
+                label="GL Number"
                 fullWidth
                 placeholder="e.g., 1110001"
               />
             </Grid>
-            
+
             <Grid item xs={12} md={6}>
               <SelectInput
                 source="currency"
@@ -456,7 +456,7 @@ export const JournalParameterCreate: React.FC = () => {
                 fullWidth
               />
             </Grid>
-            
+
             <Grid item xs={12} md={6}>
               <SelectInput
                 source="dbcr"
@@ -469,11 +469,11 @@ export const JournalParameterCreate: React.FC = () => {
                 fullWidth
               />
             </Grid>
-            
+
             <Grid item xs={12} md={6}>
-              <BooleanInput 
-                source="active_flag" 
-                label="Active" 
+              <BooleanInput
+                source="active_flag"
+                label="Active"
                 defaultValue={true}
               />
             </Grid>
@@ -494,25 +494,25 @@ export const JournalParameterEdit: React.FC = () => {
         <FormTab label="Basic Information" icon={<BookOnline />}>
           <Grid container spacing={2}>
             <Grid item xs={12} md={6}>
-              <TextInput 
-                source="gl_code" 
-                label="GL Code" 
+              <TextInput
+                source="gl_code"
+                label="GL Code"
                 validate={required()}
                 fullWidth
                 disabled // Don't allow editing GL code
               />
             </Grid>
             <Grid item xs={12}>
-              <TextInput 
-                source="gl_desc" 
-                label="GL Description" 
+              <TextInput
+                source="gl_desc"
+                label="GL Description"
                 fullWidth
                 multiline
                 rows={2}
                 placeholder="Describe the purpose and usage of this GL account"
               />
             </Grid>
-            
+
             <Grid item xs={12} md={6}>
               <SelectInput
                 source="gl_group"
@@ -527,7 +527,7 @@ export const JournalParameterEdit: React.FC = () => {
                 fullWidth
               />
             </Grid>
-            
+
             <Grid item xs={12} md={6}>
               <SelectInput
                 source="gl_type"
@@ -544,16 +544,16 @@ export const JournalParameterEdit: React.FC = () => {
                 fullWidth
               />
             </Grid>
-            
+
             <Grid item xs={12} md={6}>
-              <TextInput 
-                source="gl_number" 
-                label="GL Number" 
+              <TextInput
+                source="gl_number"
+                label="GL Number"
                 fullWidth
                 placeholder="e.g., 1110001"
               />
             </Grid>
-            
+
             <Grid item xs={12} md={6}>
               <SelectInput
                 source="currency"
@@ -567,7 +567,7 @@ export const JournalParameterEdit: React.FC = () => {
                 fullWidth
               />
             </Grid>
-            
+
             <Grid item xs={12} md={6}>
               <SelectInput
                 source="dbcr"
@@ -579,10 +579,10 @@ export const JournalParameterEdit: React.FC = () => {
                 fullWidth
               />
             </Grid>
-            
+
             <Grid item xs={12} md={6}>
-              <BooleanInput 
-                source="active_flag" 
+              <BooleanInput
+                source="active_flag"
                 label="Active"
               />
             </Grid>
