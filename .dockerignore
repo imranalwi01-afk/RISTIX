@@ -1,8 +1,9 @@
-node_modules
-.git
-.next
-dist
-build
-.env.local
-.DS_Store
-*.log
+**/node_modules
+**/.git
+**/.next
+**/dist
+**/build
+**/.env.local
+**/.DS_Store
+**/*.log
+tmp

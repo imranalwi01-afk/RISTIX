@@ -31,7 +31,6 @@ import {
   DateInput,
   BooleanInput,
   SelectInput,
-  EmailInput,
   Filter,
   SearchInput,
   TopToolbar,
@@ -81,7 +80,6 @@ const CustomerFilter = (props: any) => (
         { id: 'SME', name: 'Small & Medium Enterprise' },
         { id: 'GOVERNMENT', name: 'Government Entity' },
       ]}
-      allowEmpty
     />
     <SelectInput
       source="riskRating"
@@ -92,7 +90,6 @@ const CustomerFilter = (props: any) => (
         { id: 'HIGH', name: 'High Risk' },
         { id: 'CRITICAL', name: 'Critical Risk' },
       ]}
-      allowEmpty
     />
     <SelectInput
       source="segment"
@@ -103,7 +100,6 @@ const CustomerFilter = (props: any) => (
         { id: 'PRIVATE', name: 'Private Banking' },
         { id: 'SME', name: 'SME Banking' },
       ]}
-      allowEmpty
     />
     <SelectInput
       source="status"
@@ -236,32 +232,32 @@ export const CustomerList = (props: any) => (
     title="Banking Customers"
   >
     <Datagrid rowClick="show">
-      <FunctionField 
-        label="" 
-        render={() => <CustomerAvatar />} 
+      <FunctionField
+        label=""
+        render={() => <CustomerAvatar />}
         textAlign="center"
       />
       <TextField source="customer_id" label="Customer ID" />
       <TextField source="customer_name" label="Customer Name" />
-      <FunctionField 
-        label="Type" 
-        render={() => <CustomerTypeIcon />} 
+      <FunctionField
+        label="Type"
+        render={() => <CustomerTypeIcon />}
         textAlign="center"
       />
       <EmailField source="email" label="Email" />
       <ChipField source="banking_segment" label="Segment" />
       <NumberField source="account_count" label="Accounts" />
-      <FunctionField 
-        label="Total Exposure" 
-        render={() => <TotalExposureField />} 
+      <FunctionField
+        label="Total Exposure"
+        render={() => <TotalExposureField />}
       />
-      <FunctionField 
-        label="Risk" 
-        render={() => <RiskRatingChip />} 
+      <FunctionField
+        label="Risk"
+        render={() => <RiskRatingChip />}
       />
-      <FunctionField 
-        label="Syariah" 
-        render={() => <SyariahComplianceIndicator />} 
+      <FunctionField
+        label="Syariah"
+        render={() => <SyariahComplianceIndicator />}
       />
       <BooleanField source="is_active" label="Active" />
       <EditButton />
@@ -332,9 +328,9 @@ export const CustomerShow = (props: any) => (
               <Stack spacing={2}>
                 <ChipField source="banking_segment" label="Banking Segment" />
                 <NumberField source="account_count" label="Number of Accounts" />
-                <FunctionField 
-                  label="Total Exposure" 
-                  render={() => <TotalExposureField />} 
+                <FunctionField
+                  label="Total Exposure"
+                  render={() => <TotalExposureField />}
                 />
                 <BooleanField source="is_active" label="Active Status" />
               </Stack>
@@ -350,9 +346,9 @@ export const CustomerShow = (props: any) => (
                 Risk Assessment
               </Typography>
               <Stack spacing={2}>
-                <FunctionField 
-                  label="Risk Rating" 
-                  render={() => <RiskRatingChip />} 
+                <FunctionField
+                  label="Risk Rating"
+                  render={() => <RiskRatingChip />}
                 />
                 <DateField source="risk_assessment_date" label="Last Assessment" />
                 <TextField source="risk_notes" label="Risk Notes" />
@@ -407,15 +403,15 @@ export const CustomerShow = (props: any) => (
                 <Datagrid>
                   <TextField source="account_id" label="Account ID" />
                   <ChipField source="product_type" label="Product" />
-                  <NumberField 
-                    source="outstanding_amount" 
-                    label="Outstanding" 
-                    options={{ 
-                      style: 'currency', 
+                  <NumberField
+                    source="outstanding_amount"
+                    label="Outstanding"
+                    options={{
+                      style: 'currency',
                       currency: 'IDR',
                       minimumFractionDigits: 0,
-                      maximumFractionDigits: 0 
-                    }} 
+                      maximumFractionDigits: 0
+                    }}
                   />
                   <ChipField source="current_stage" label="Stage" />
                   <BooleanField source="is_active" label="Active" />
@@ -463,10 +459,10 @@ export const CustomerEdit = (props: any) => (
         <Grid item xs={12} md={6}>
           <TextInput source="customer_id" label="Customer ID" fullWidth disabled />
           <TextInput source="customer_name" label="Customer Name" fullWidth required />
-          <EmailInput source="email" label="Email Address" fullWidth />
+          <TextInput source="email" label="Email Address" fullWidth type="email" />
           <TextInput source="phone" label="Phone Number" fullWidth />
         </Grid>
-        
+
         <Grid item xs={12} md={6}>
           <SelectInput
             source="customer_type"
@@ -493,7 +489,7 @@ export const CustomerEdit = (props: any) => (
             fullWidth
           />
         </Grid>
-        
+
         <Grid item xs={12} md={6}>
           <SelectInput
             source="risk_rating"
@@ -508,7 +504,7 @@ export const CustomerEdit = (props: any) => (
           />
           <DateInput source="risk_assessment_date" label="Risk Assessment Date" fullWidth />
         </Grid>
-        
+
         <Grid item xs={12} md={6}>
           <BooleanInput source="is_active" label="Active" />
           <BooleanInput source="syariah_certification" label="Syariah Certified" />
@@ -550,15 +546,15 @@ export const CustomerCreate = (props: any) => (
       <Alert severity="info" sx={{ mb: 2 }}>
         Creating a new banking customer. Please provide complete information for proper risk assessment.
       </Alert>
-      
+
       <Grid container spacing={2}>
         <Grid item xs={12} md={6}>
           <TextInput source="customer_id" label="Customer ID" fullWidth required />
           <TextInput source="customer_name" label="Customer Name" fullWidth required />
-          <EmailInput source="email" label="Email Address" fullWidth />
+          <TextInput source="email" label="Email Address" fullWidth type="email" />
           <TextInput source="phone" label="Phone Number" fullWidth />
         </Grid>
-        
+
         <Grid item xs={12} md={6}>
           <SelectInput
             source="customer_type"
@@ -588,7 +584,7 @@ export const CustomerCreate = (props: any) => (
             required
           />
         </Grid>
-        
+
         <Grid item xs={12} md={6}>
           <SelectInput
             source="risk_rating"
@@ -605,12 +601,12 @@ export const CustomerCreate = (props: any) => (
           />
           <DateInput source="risk_assessment_date" label="Risk Assessment Date" fullWidth />
         </Grid>
-        
+
         <Grid item xs={12} md={6}>
           <BooleanInput source="is_active" label="Active" defaultValue={true} />
           <BooleanInput source="syariah_certification" label="Syariah Certified" defaultValue={false} />
         </Grid>
-        
+
         <Grid item xs={12}>
           <TextInput source="risk_notes" label="Risk Assessment Notes" fullWidth multiline rows={3} />
         </Grid>

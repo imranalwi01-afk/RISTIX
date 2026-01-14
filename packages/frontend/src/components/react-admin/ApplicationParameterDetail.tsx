@@ -67,6 +67,7 @@ import { useDataProvider, useNotify, useRefresh } from 'react-admin';
 
 interface ApplicationParameterHeader {
   pkid: number;
+  id?: number;
   param_code: string;
   param_name: string;
   param_usage: string;
@@ -80,6 +81,7 @@ interface ApplicationParameterHeader {
 
 interface ApplicationParameterDetail {
   pkid?: number;
+  id?: number;
   param_code: string;
   param_seq: number;
   value1: string;
@@ -113,9 +115,9 @@ const DetailForm: React.FC<{
   mode: 'create' | 'edit' | 'view';
   paramCode: string;
 }> = ({ detail, onChange, errors, mode, paramCode }) => {
-  
+
   const isReadOnly = mode === 'view';
-  
+
   return (
     <Grid container spacing={3}>
       <Grid item xs={12} md={6}>
@@ -126,8 +128,8 @@ const DetailForm: React.FC<{
           fullWidth
           variant="outlined"
           helperText="Inherited from parameter header"
-          sx={{ 
-            '& .MuiInputBase-input': { 
+          sx={{
+            '& .MuiInputBase-input': {
               fontFamily: 'monospace',
               fontWeight: 'bold',
               backgroundColor: 'grey.50'
@@ -135,7 +137,7 @@ const DetailForm: React.FC<{
           }}
         />
       </Grid>
-      
+
       <Grid item xs={12} md={6}>
         <TextField
           label="Sequence Number"
@@ -151,7 +153,7 @@ const DetailForm: React.FC<{
           inputProps={{ min: 1, max: 999 }}
         />
       </Grid>
-      
+
       <Grid item xs={12} md={4}>
         <TextField
           label="Value 1"
@@ -164,15 +166,15 @@ const DetailForm: React.FC<{
           error={!!errors.value1}
           helperText={errors.value1 || 'Primary configuration value (required)'}
           inputProps={{ maxLength: 100 }}
-          sx={{ 
-            '& .MuiInputBase-input': { 
+          sx={{
+            '& .MuiInputBase-input': {
               fontFamily: 'monospace',
               fontWeight: 'bold'
             }
           }}
         />
       </Grid>
-      
+
       <Grid item xs={12} md={4}>
         <TextField
           label="Value 2"
@@ -184,14 +186,14 @@ const DetailForm: React.FC<{
           error={!!errors.value2}
           helperText={errors.value2 || 'Secondary configuration value (optional)'}
           inputProps={{ maxLength: 100 }}
-          sx={{ 
-            '& .MuiInputBase-input': { 
+          sx={{
+            '& .MuiInputBase-input': {
               fontFamily: 'monospace'
             }
           }}
         />
       </Grid>
-      
+
       <Grid item xs={12} md={4}>
         <TextField
           label="Value 3"
@@ -203,14 +205,14 @@ const DetailForm: React.FC<{
           error={!!errors.value3}
           helperText={errors.value3 || 'Tertiary configuration value (optional)'}
           inputProps={{ maxLength: 50 }}
-          sx={{ 
-            '& .MuiInputBase-input': { 
+          sx={{
+            '& .MuiInputBase-input': {
               fontFamily: 'monospace'
             }
           }}
         />
       </Grid>
-      
+
       <Grid item xs={12}>
         <TextField
           label="Description"
@@ -226,7 +228,7 @@ const DetailForm: React.FC<{
           inputProps={{ maxLength: 1000 }}
         />
       </Grid>
-      
+
       {detail.createdby && (
         <Grid item xs={12}>
           <Card variant="outlined" sx={{ backgroundColor: 'grey.50' }}>
@@ -235,23 +237,23 @@ const DetailForm: React.FC<{
                 Audit Information
               </Typography>
               <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                <Chip 
-                  label={`Created: ${detail.createdby}`} 
-                  size="small" 
+                <Chip
+                  label={`Created: ${detail.createdby}`}
+                  size="small"
                   icon={<InfoIcon />}
                   variant="outlined"
                 />
                 {detail.createddate && (
-                  <Chip 
-                    label={`Date: ${new Date(detail.createddate).toLocaleString()}`} 
-                    size="small" 
+                  <Chip
+                    label={`Date: ${new Date(detail.createddate).toLocaleString()}`}
+                    size="small"
                     variant="outlined"
                   />
                 )}
                 {detail.updatedby && (
-                  <Chip 
-                    label={`Updated: ${detail.updatedby}`} 
-                    size="small" 
+                  <Chip
+                    label={`Updated: ${detail.updatedby}`}
+                    size="small"
                     color="secondary"
                     variant="outlined"
                   />
@@ -275,12 +277,12 @@ const DetailsList: React.FC<{
   onDelete: (detailId: number) => void;
   onView: (detail: ApplicationParameterDetail) => void;
 }> = ({ details, onEdit, onDelete, onView }) => {
-  
+
   if (details.length === 0) {
     return (
-      <Box 
-        sx={{ 
-          textAlign: 'center', 
+      <Box
+        sx={{
+          textAlign: 'center',
           py: 4,
           border: '2px dashed',
           borderColor: 'grey.300',
@@ -320,18 +322,18 @@ const DetailsList: React.FC<{
             .map((detail) => (
               <TableRow key={detail.pkid} hover>
                 <TableCell>
-                  <Chip 
-                    label={detail.param_seq} 
-                    size="small" 
-                    color="primary" 
+                  <Chip
+                    label={detail.param_seq}
+                    size="small"
+                    color="primary"
                     variant="outlined"
                   />
                 </TableCell>
                 <TableCell>
-                  <Typography 
-                    variant="body2" 
-                    sx={{ 
-                      fontFamily: 'monospace', 
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      fontFamily: 'monospace',
                       fontWeight: 'bold',
                       maxWidth: 120,
                       overflow: 'hidden',
@@ -343,9 +345,9 @@ const DetailsList: React.FC<{
                   </Typography>
                 </TableCell>
                 <TableCell>
-                  <Typography 
-                    variant="body2" 
-                    sx={{ 
+                  <Typography
+                    variant="body2"
+                    sx={{
                       fontFamily: 'monospace',
                       maxWidth: 120,
                       overflow: 'hidden',
@@ -357,9 +359,9 @@ const DetailsList: React.FC<{
                   </Typography>
                 </TableCell>
                 <TableCell>
-                  <Typography 
-                    variant="body2" 
-                    sx={{ 
+                  <Typography
+                    variant="body2"
+                    sx={{
                       fontFamily: 'monospace',
                       maxWidth: 100,
                       overflow: 'hidden',
@@ -371,18 +373,18 @@ const DetailsList: React.FC<{
                   </Typography>
                 </TableCell>
                 <TableCell>
-                  <Typography 
-                    variant="body2" 
-                    sx={{ 
+                  <Typography
+                    variant="body2"
+                    sx={{
                       maxWidth: 200,
                       overflow: 'hidden',
                       textOverflow: 'ellipsis'
                     }}
                     title={detail.paramdesc}
                   >
-                    {detail.paramdesc ? 
-                      (detail.paramdesc.length > 50 ? 
-                        `${detail.paramdesc.substring(0, 50)}...` : 
+                    {detail.paramdesc ?
+                      (detail.paramdesc.length > 50 ?
+                        `${detail.paramdesc.substring(0, 50)}...` :
                         detail.paramdesc
                       ) : '-'
                     }
@@ -391,8 +393,8 @@ const DetailsList: React.FC<{
                 <TableCell>
                   <Box sx={{ display: 'flex', gap: 0.5 }}>
                     <Tooltip title="View Detail">
-                      <IconButton 
-                        size="small" 
+                      <IconButton
+                        size="small"
                         color="info"
                         onClick={() => onView(detail)}
                       >
@@ -400,8 +402,8 @@ const DetailsList: React.FC<{
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="Edit Detail">
-                      <IconButton 
-                        size="small" 
+                      <IconButton
+                        size="small"
                         color="primary"
                         onClick={() => onEdit(detail)}
                       >
@@ -409,8 +411,8 @@ const DetailsList: React.FC<{
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="Delete Detail">
-                      <IconButton 
-                        size="small" 
+                      <IconButton
+                        size="small"
                         color="error"
                         onClick={() => {
                           if (confirm(`Are you sure you want to delete detail sequence ${detail.param_seq}?`)) {
@@ -451,7 +453,7 @@ export const ApplicationParameterDetailModal: React.FC<ApplicationParameterDetai
   const [loading, setLoading] = useState(false);
   const [showDetailForm, setShowDetailForm] = useState(false);
   const [detailFormMode, setDetailFormMode] = useState<'create' | 'edit' | 'view'>('view');
-  
+
   const dataProvider = useDataProvider();
   const notify = useNotify();
   const refresh = useRefresh();
@@ -485,19 +487,18 @@ export const ApplicationParameterDetailModal: React.FC<ApplicationParameterDetai
     setLoading(true);
     try {
       console.log(`🔍 [APPL-005] Loading details for header ${header.param_code}`);
-      
-      const response = await dataProvider.getList('application/headers', {
-        target: `application/headers/${header.pkid}/details`,
+
+      const response = await dataProvider.getList(`application/headers/${header.pkid}/details`, {
         pagination: { page: 1, perPage: 100 },
         sort: { field: 'param_seq', order: 'ASC' },
         filter: {}
       });
-      
+
       if (response.data) {
         setDetails(response.data);
         console.log(`✅ [APPL-005] Loaded ${response.data.length} details`);
       }
-      
+
     } catch (error) {
       console.error('❌ [APPL-005] Failed to load details:', error);
       notify('Failed to load parameter details', { type: 'error' });
@@ -508,45 +509,45 @@ export const ApplicationParameterDetailModal: React.FC<ApplicationParameterDetai
 
   const validateDetail = (detail: Partial<ApplicationParameterDetail>): Record<string, string> => {
     const newErrors: Record<string, string> = {};
-    
+
     if (!detail.param_seq || detail.param_seq < 1) {
       newErrors.param_seq = 'Sequence number is required and must be positive';
     }
-    
+
     if (!detail.value1 || detail.value1.trim().length === 0) {
       newErrors.value1 = 'Value 1 is required';
     } else if (detail.value1.length > 100) {
       newErrors.value1 = 'Value 1 must be 100 characters or less';
     }
-    
+
     if (detail.value2 && detail.value2.length > 100) {
       newErrors.value2 = 'Value 2 must be 100 characters or less';
     }
-    
+
     if (detail.value3 && detail.value3.length > 50) {
       newErrors.value3 = 'Value 3 must be 50 characters or less';
     }
-    
+
     if (detail.paramdesc && detail.paramdesc.length > 1000) {
       newErrors.paramdesc = 'Description must be 1000 characters or less';
     }
-    
+
     // Check for duplicate sequence number
-    const existingSeq = details.find(d => 
-      d.param_seq === detail.param_seq && 
+    const existingSeq = details.find(d =>
+      d.param_seq === detail.param_seq &&
       d.pkid !== detail.pkid
     );
     if (existingSeq) {
       newErrors.param_seq = 'Sequence number already exists';
     }
-    
+
     return newErrors;
   };
 
   const saveDetail = async () => {
     const validationErrors = validateDetail(currentDetail);
     setErrors(validationErrors);
-    
+
     if (Object.keys(validationErrors).length > 0) {
       notify('Please fix validation errors', { type: 'error' });
       return;
@@ -556,7 +557,7 @@ export const ApplicationParameterDetailModal: React.FC<ApplicationParameterDetai
     try {
       if (detailFormMode === 'create') {
         console.log('➕ [APPL-005] Creating new detail');
-        
+
         const response = await dataProvider.create(`application/headers/${header.pkid}/details`, {
           data: {
             param_seq: currentDetail.param_seq!,
@@ -566,13 +567,13 @@ export const ApplicationParameterDetailModal: React.FC<ApplicationParameterDetai
             paramdesc: currentDetail.paramdesc || ''
           }
         });
-        
+
         console.log('✅ [APPL-005] Detail created successfully');
         notify('Detail created successfully', { type: 'success' });
-        
+
       } else if (detailFormMode === 'edit') {
         console.log('📝 [APPL-005] Updating detail');
-        
+
         await dataProvider.update('application/details', {
           id: currentDetail.pkid!,
           data: {
@@ -584,23 +585,23 @@ export const ApplicationParameterDetailModal: React.FC<ApplicationParameterDetai
           },
           previousData: currentDetail
         });
-        
+
         console.log('✅ [APPL-005] Detail updated successfully');
         notify('Detail updated successfully', { type: 'success' });
       }
-      
+
       // Refresh details list
       await loadDetails();
-      
+
       // Close detail form
       setShowDetailForm(false);
       setCurrentDetail({});
       setErrors({});
-      
+
       if (onSave) {
         onSave(currentDetail as ApplicationParameterDetail);
       }
-      
+
     } catch (error) {
       console.error('❌ [APPL-005] Failed to save detail:', error);
       notify('Failed to save detail', { type: 'error' });
@@ -613,22 +614,22 @@ export const ApplicationParameterDetailModal: React.FC<ApplicationParameterDetai
     setLoading(true);
     try {
       console.log(`🗑️ [APPL-005] Deleting detail ${detailId}`);
-      
+
       await dataProvider.delete('application/details', {
         id: detailId,
-        previousData: details.find(d => d.pkid === detailId)
+        previousData: details.find(d => d.pkid === detailId) as any
       });
-      
+
       console.log('✅ [APPL-005] Detail deleted successfully');
       notify('Detail deleted successfully', { type: 'success' });
-      
+
       // Refresh details list
       await loadDetails();
-      
+
       if (onDelete) {
         onDelete(detailId);
       }
-      
+
     } catch (error) {
       console.error('❌ [APPL-005] Failed to delete detail:', error);
       notify('Failed to delete detail', { type: 'error' });
@@ -681,18 +682,18 @@ export const ApplicationParameterDetailModal: React.FC<ApplicationParameterDetai
   // =====================================================
 
   return (
-    <Dialog 
-      open={open} 
-      onClose={onClose} 
-      maxWidth="xl" 
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="xl"
       fullWidth
       PaperProps={{
         sx: { minHeight: '70vh', maxHeight: '90vh' }
       }}
     >
-      <DialogTitle sx={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
+      <DialogTitle sx={{
+        display: 'flex',
+        justifyContent: 'space-between',
         alignItems: 'center',
         backgroundColor: 'primary.light',
         color: 'primary.contrastText'
@@ -716,7 +717,7 @@ export const ApplicationParameterDetailModal: React.FC<ApplicationParameterDetai
       <DialogContent sx={{ p: 3 }}>
         {/* Header Information */}
         <Card variant="outlined" sx={{ mb: 3 }}>
-          <CardHeader 
+          <CardHeader
             title="Parameter Information"
             avatar={<InfoIcon color="primary" />}
           />
@@ -742,15 +743,15 @@ export const ApplicationParameterDetailModal: React.FC<ApplicationParameterDetai
 
         {/* Details Section */}
         <Card variant="outlined">
-          <CardHeader 
+          <CardHeader
             title={
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Typography variant="h6">Parameter Details</Typography>
-                  <Chip 
-                    label={`${details.length} details`} 
-                    size="small" 
-                    color="primary" 
+                  <Chip
+                    label={`${details.length} details`}
+                    size="small"
+                    color="primary"
                   />
                 </Box>
                 <Button
@@ -784,7 +785,7 @@ export const ApplicationParameterDetailModal: React.FC<ApplicationParameterDetai
         {/* Detail Form */}
         {showDetailForm && (
           <Card variant="outlined" sx={{ mt: 3 }}>
-            <CardHeader 
+            <CardHeader
               title={
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   {detailFormMode === 'create' && <AddIcon color="primary" />}
@@ -806,7 +807,7 @@ export const ApplicationParameterDetailModal: React.FC<ApplicationParameterDetai
                 mode={detailFormMode}
                 paramCode={header.param_code}
               />
-              
+
               <Box sx={{ mt: 3, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
                 <Button
                   variant="outlined"

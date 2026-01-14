@@ -15,11 +15,11 @@ interface ConfigurationState {
   // API Configuration
   apiUrl: string;
   environment: 'development' | 'staging' | 'production';
-  
+
   // Banking Mode Configuration
   bankingMode: 'conventional' | 'syariah' | 'dual';
   defaultBankingMode: 'conventional' | 'syariah';
-  
+
   // Feature Flags
   features: {
     analytics: boolean;
@@ -34,7 +34,7 @@ interface ConfigurationState {
     regulatorPortal: boolean;
     platformAdmin: boolean;
   };
-  
+
   // Application Settings
   settings: {
     theme: 'light' | 'dark' | 'auto';
@@ -46,7 +46,7 @@ interface ConfigurationState {
     autoSave: boolean;
     sessionTimeout: number;
   };
-  
+
   // System Status
   loaded: boolean;
   loading: boolean;
@@ -76,11 +76,11 @@ const initialState: ConfigurationState = {
   // API Configuration
   apiUrl: getInitialApiUrl(),
   environment: (process.env.NEXT_PUBLIC_ENVIRONMENT as 'development' | 'staging' | 'production') || 'development',
-  
+
   // Banking Mode Configuration
   bankingMode: 'conventional',
   defaultBankingMode: 'conventional',
-  
+
   // Feature Flags
   features: {
     analytics: true,
@@ -95,7 +95,7 @@ const initialState: ConfigurationState = {
     regulatorPortal: true,
     platformAdmin: true,
   },
-  
+
   // Application Settings
   settings: {
     theme: 'light',
@@ -107,7 +107,7 @@ const initialState: ConfigurationState = {
     autoSave: true,
     sessionTimeout: 3600000, // 1 hour in milliseconds
   },
-  
+
   // System Status
   loaded: false,
   loading: false,
@@ -129,37 +129,37 @@ const configurationSlice = createSlice({
       state.error = null;
       state.lastUpdated = new Date().toISOString();
     },
-    
+
     // Banking mode actions
     setBankingMode: (state, action: PayloadAction<'conventional' | 'syariah' | 'dual'>) => {
       state.bankingMode = action.payload;
       state.lastUpdated = new Date().toISOString();
     },
-    
+
     // Feature toggle actions
     updateFeature: (state, action: PayloadAction<{ feature: keyof ConfigurationState['features']; enabled: boolean }>) => {
       state.features[action.payload.feature] = action.payload.enabled;
       state.lastUpdated = new Date().toISOString();
     },
-    
+
     // Settings update actions
     updateSetting: (state, action: PayloadAction<{ key: keyof ConfigurationState['settings']; value: any }>) => {
-      state.settings[action.payload.key] = action.payload.value;
+      (state.settings as any)[action.payload.key] = action.payload.value;
       state.lastUpdated = new Date().toISOString();
     },
-    
+
     // Batch settings update
     updateSettings: (state, action: PayloadAction<Partial<ConfigurationState['settings']>>) => {
       Object.assign(state.settings, action.payload);
       state.lastUpdated = new Date().toISOString();
     },
-    
+
     // Batch features update
     updateFeatures: (state, action: PayloadAction<Partial<ConfigurationState['features']>>) => {
       Object.assign(state.features, action.payload);
       state.lastUpdated = new Date().toISOString();
     },
-    
+
     // Loading states
     setConfigurationLoading: (state, action: PayloadAction<boolean>) => {
       state.loading = action.payload;
@@ -167,29 +167,29 @@ const configurationSlice = createSlice({
         state.error = null;
       }
     },
-    
+
     // Error handling
     setConfigurationError: (state, action: PayloadAction<string | null>) => {
       state.error = action.payload;
       state.loading = false;
     },
-    
+
     // Clear error
     clearConfigurationError: (state) => {
       state.error = null;
     },
-    
+
     // Reset to initial state
     resetConfiguration: () => {
       return { ...initialState };
     },
-    
+
     // Update API URL
     setApiUrl: (state, action: PayloadAction<string>) => {
       state.apiUrl = action.payload;
       state.lastUpdated = new Date().toISOString();
     },
-    
+
     // Update environment
     setEnvironment: (state, action: PayloadAction<'development' | 'staging' | 'production'>) => {
       state.environment = action.payload;

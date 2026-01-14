@@ -34,6 +34,39 @@ export const getConfigValue = (key: string, defaultValue?: string): string => {
   return defaults[key] || defaultValue || '';
 };
 
+// ✅ Config helper functions
+export const getBooleanConfig = (key: string, defaultValue = false): boolean => {
+  const value = getConfigValue(key);
+  if (!value) return defaultValue;
+  return value.toLowerCase() === 'true';
+};
+
+export const getNumberConfig = (key: string, defaultValue: number): number => {
+  const value = getConfigValue(key);
+  if (!value) return defaultValue;
+  const parsed = Number(value);
+  return isNaN(parsed) ? defaultValue : parsed;
+};
+
+export const getArrayConfig = (key: string, defaultValue: string[] = []): string[] => {
+  const value = getConfigValue(key);
+  if (!value) return defaultValue;
+  return value.split(',').map(item => item.trim());
+};
+
+// ✅ Types
+export type StakeholderType = 'admin' | 'business' | 'consultant' | 'auditor';
+export type BankingType = 'conventional' | 'syariah' | 'dual';
+
+export enum ConfigCategory {
+  APP = 'app',
+  API = 'api',
+  BANKING = 'banking',
+  FEATURES = 'features',
+  SECURITY = 'security',
+  THEME = 'theme'
+}
+
 // ✅ Environment configuration interface
 export interface EnvironmentConfig {
   app: {
@@ -96,7 +129,6 @@ export const getEnvironmentConfig = (): EnvironmentConfig => {
     },
     security: {
       jwtExpiry: parseInt(getConfigValue('JWT_EXPIRY', '3600000')), // 1 hour
-      sessionTimeout: parseInt(getConfigValue('SESSION_TIMEOUT', '1800000')), // 30 minutes
       sessionTimeout: parseInt(getConfigValue('SESSION_TIMEOUT', '1800000')), // 30 minutes
       maxLoginAttempts: parseInt(getConfigValue('MAX_LOGIN_ATTEMPTS', '5'))
     },
@@ -204,3 +236,32 @@ export const getRuntimeConfig = () => {
 
 // ✅ Export default configuration
 export default getEnvironmentConfig;
+
+// ✅ Export Alias for compatibility
+export const createEnvironmentConfig = getEnvironmentConfig;
+
+// ✅ Environment Helpers
+export const isProduction = (): boolean => getConfigValue('ENVIRONMENT') === 'production';
+export const isDevelopment = (): boolean => getConfigValue('ENVIRONMENT') === 'development';
+export const isStaging = (): boolean => getConfigValue('ENVIRONMENT') === 'staging';
+
+// ✅ Banking Mode Helpers
+export const isIslamicBankingEnabled = (): boolean => {
+  const mode = getConfigValue('BANKING_MODE');
+  return mode === 'syariah' || mode === 'dual';
+}
+export const isConventionalBankingEnabled = (): boolean => {
+  const mode = getConfigValue('BANKING_MODE');
+  return mode === 'conventional' || mode === 'dual';
+}
+export const isDualBankingEnabled = (): boolean => getConfigValue('BANKING_MODE') === 'dual';
+
+// ✅ API Configuration Helpers
+export const getApiBaseUrl = (): string => getConfigValue('API_URL', 'http://iaf-ifrs-be.danafin.com/api/v1');
+export const getApiTimeout = (): number => parseInt(getConfigValue('API_TIMEOUT', '30000'));
+export const getApiRetries = (): number => parseInt(getConfigValue('API_RETRIES', '3'));
+
+// ✅ Stakeholder Helper
+export const getStakeholderType = (): StakeholderType => {
+  return getConfigValue('STAKEHOLDER_TYPE', 'business') as StakeholderType;
+}

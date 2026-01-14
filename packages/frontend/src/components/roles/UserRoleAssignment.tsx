@@ -78,11 +78,12 @@ import {
   AdminPanelSettings as AdminIcon,
   Assessment as ReportIcon,
   AccountBalance as BankingIcon,
-  MonetizationOn as MoneyIcon
+  MonetizationOn as MoneyIcon,
+  ExpandMore as ExpandMoreIcon
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import { format, parseISO } from 'date-fns';
-import { api } from '../../../services/api';
+import { api } from '@/services/api';
 
 // Types
 interface User {
@@ -107,6 +108,7 @@ interface Role {
   isBuiltIn: boolean;
   permissions: Permission[];
   assignedUsers: number;
+  createdAt: string;
 }
 
 interface UserRoleAssignment {
@@ -240,7 +242,7 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
     return users.filter(user => {
       if (!showInactiveUsers && !user.isActive) return false;
       if (searchTerm && !user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) &&
-          !user.email.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+        !user.email.toLowerCase().includes(searchTerm.toLowerCase())) return false;
 
       // Filter by role assignment
       if (filterRoleType !== 'all') {
@@ -259,7 +261,7 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
     return roles.filter(role => {
       if (!showInactiveRoles && !role.isActive) return false;
       if (searchTerm && !role.displayName.toLowerCase().includes(searchTerm.toLowerCase()) &&
-          !role.name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+        !role.name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
       return true;
     });
   }, [roles, searchTerm, showInactiveRoles]);

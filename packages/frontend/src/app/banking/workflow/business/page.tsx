@@ -35,7 +35,7 @@ import { useRouter } from 'next/navigation';
 export default function BusinessProcessPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [data, setData] = useState(null);
+  const [data, setData] = useState<any>(null);
 
   useEffect(() => {
     // Initialize page data
@@ -69,9 +69,9 @@ export default function BusinessProcessPage() {
     <Container maxWidth="xl">
       {/* Breadcrumb Navigation */}
       <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
-        <Link 
-          underline="hover" 
-          color="inherit" 
+        <Link
+          underline="hover"
+          color="inherit"
           href="/dashboard"
           onClick={(e) => {
             e.preventDefault();
@@ -110,28 +110,28 @@ export default function BusinessProcessPage() {
                 Business Process Overview
               </Typography>
               <Typography variant="body2" color="text.secondary" paragraph>
-                This page provides business process and ECL workflow management. The interface will be enhanced with 
+                This page provides business process and ECL workflow management. The interface will be enhanced with
                 specific functionality based on business requirements.
               </Typography>
-              
+
               <Alert severity="info" sx={{ mt: 2 }}>
                 <Typography variant="body2">
-                  <strong>Development Note:</strong> This is a foundation page structure. 
-                  Specific business Process functionality will be implemented based on 
+                  <strong>Development Note:</strong> This is a foundation page structure.
+                  Specific business Process functionality will be implemented based on
                   detailed requirements and API integration.
                 </Typography>
               </Alert>
 
               <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
-                <Button 
-                  variant="contained" 
+                <Button
+                  variant="contained"
                   startIcon={<PageIcon />}
                   disabled
                 >
                   Configure Business Process
                 </Button>
-                <Button 
-                  variant="outlined" 
+                <Button
+                  variant="outlined"
                   startIcon={<BackIcon />}
                   onClick={() => router.back()}
                 >

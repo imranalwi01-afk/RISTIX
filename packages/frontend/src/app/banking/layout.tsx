@@ -106,18 +106,19 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
       console.log('📋 Using Redux auth user data:', authState.user);
       console.log('📋 Redux role fields:', {
         role: authState.user.role,
-        userRole: authState.user.userRole,
-        roleName: authState.user.roleName,
-        roles: authState.user.roles,
-        userType: authState.user.userType,
+        userRole: (authState.user as any).userRole,
+        roleName: (authState.user as any).roleName,
+        roles: (authState.user as any).roles,
+        userType: (authState.user as any).userType,
         permissions: authState.user.permissions
       });
 
-      let role = authState.user.role ||
-        authState.user.userRole ||
-        authState.user.roleName ||
-        (Array.isArray(authState.user.roles) ? authState.user.roles[0] : authState.user.roles) ||
-        authState.user.userType ||
+      const user = authState.user as any;
+      let role = user.role ||
+        user.userRole ||
+        user.roleName ||
+        (Array.isArray(user.roles) ? user.roles[0] : user.roles) ||
+        user.userType ||
         '';
 
       // Ensure role is a string if it somehow came as an array from other fields

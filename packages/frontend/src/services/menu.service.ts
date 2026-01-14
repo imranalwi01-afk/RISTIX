@@ -126,6 +126,7 @@ export interface MenuQueryParams {
   page?: number;
   limit?: number;
   search?: string;
+  useCache?: boolean;
 }
 
 export interface ApiResponse {
@@ -274,7 +275,7 @@ class MenuService {
       const apiResponse = response.data;
 
       console.log('✅ Menu items fetched successfully:', {
-        itemCount: Array.isArray(apiResponse.data) ? apiResponse.data.length : apiResponse.data?.length || 0,
+        itemCount: Array.isArray(apiResponse.data) ? apiResponse.data.length : 0,
         success: apiResponse.success,
         pagination: apiResponse.pagination
       });

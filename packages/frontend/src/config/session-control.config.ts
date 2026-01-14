@@ -315,8 +315,13 @@ export const DEFAULT_SESSION_CONTROL_CONFIG: SessionControlConfig = {
   },
 };
 
+
+type DeepPartial<T> = {
+  [P in keyof T]?: DeepPartial<T[P]>;
+};
+
 // 🏢 ENVIRONMENT-SPECIFIC CONFIGURATIONS
-export const ENVIRONMENT_SESSION_CONFIGS: Record<string, Partial<SessionControlConfig>> = {
+export const ENVIRONMENT_SESSION_CONFIGS: Record<string, DeepPartial<SessionControlConfig>> = {
   development: {
     httpErrors: {
       unauthorized401: {

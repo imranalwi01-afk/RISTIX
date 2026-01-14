@@ -65,6 +65,7 @@ import { BusinessParameterDetailModal } from './BusinessParameterDetailModal';
 
 interface BusinessParameterRecord {
   pkid: number;
+  id: number;
   param_code: string;
   param_name: string;
   param_usage: string;
@@ -78,6 +79,7 @@ interface BusinessParameterRecord {
 
 interface BusinessParameterDetail {
   pkid: number;
+  id: number;
   param_code: string;
   param_seq: number;
   value1: string;
@@ -123,11 +125,11 @@ const ExpandableRow: React.FC<{ record: BusinessParameterRecord }> = ({ record }
   return (
     <Box>
       {/* Master Row */}
-      <Box 
-        display="flex" 
-        alignItems="center" 
-        sx={{ 
-          p: 1, 
+      <Box
+        display="flex"
+        alignItems="center"
+        sx={{
+          p: 1,
           '&:hover': { backgroundColor: 'action.hover' },
           cursor: 'pointer'
         }}
@@ -136,7 +138,7 @@ const ExpandableRow: React.FC<{ record: BusinessParameterRecord }> = ({ record }
         <IconButton size="small" sx={{ mr: 1 }}>
           {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
         </IconButton>
-        
+
         <Grid container spacing={2} alignItems="center">
           <Grid item xs={2}>
             <Box display="flex" alignItems="center">
@@ -146,27 +148,27 @@ const ExpandableRow: React.FC<{ record: BusinessParameterRecord }> = ({ record }
               </Typography>
             </Box>
           </Grid>
-          
+
           <Grid item xs={3}>
             <Typography variant="body2">{record.param_name}</Typography>
           </Grid>
-          
+
           <Grid item xs={3}>
             <Typography variant="body2" color="text.secondary">
               {record.param_usage}
             </Typography>
           </Grid>
-          
+
           <Grid item xs={2}>
-            <Chip 
-              label="BUSINESS" 
-              size="small" 
+            <Chip
+              label="BUSINESS"
+              size="small"
               color="success"
               variant="outlined"
               icon={<SettingsIcon />}
             />
           </Grid>
-          
+
           <Grid item xs={2}>
             <Typography variant="caption" color="text.secondary">
               {details?.length || 0} details
@@ -205,10 +207,10 @@ const ExpandableRow: React.FC<{ record: BusinessParameterRecord }> = ({ record }
                       {details.map((detail) => (
                         <TableRow key={detail.pkid} hover>
                           <TableCell>
-                            <Chip 
-                              label={detail.param_seq} 
-                              size="small" 
-                              color="primary" 
+                            <Chip
+                              label={detail.param_seq}
+                              size="small"
+                              color="primary"
                               variant="outlined"
                             />
                           </TableCell>
@@ -327,7 +329,7 @@ export const BusinessParameterList: React.FC = () => {
           🔧 Business Parameter Management
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          Manage business configuration parameters with master-detail relationships. 
+          Manage business configuration parameters with master-detail relationships.
           These parameters control business logic and operational rules.
         </Typography>
       </Box>
@@ -382,7 +384,7 @@ const BusinessParameterDatagrid: React.FC<BusinessParameterDatagridProps> = ({ o
   }
 
   if (error) {
-    return <Error error={error} />;
+    return <Error error={error} resetErrorBoundary={() => { }} />;
   }
 
   if (!data || data.length === 0) {
@@ -443,13 +445,13 @@ const BusinessParameterDatagrid: React.FC<BusinessParameterDatagridProps> = ({ o
         {data.map((record) => (
           <Box key={record.pkid}>
             <ExpandableRow record={record} />
-            
+
             {/* Action Row */}
-            <Box 
-              sx={{ 
-                pl: 8, 
-                pr: 2, 
-                py: 1, 
+            <Box
+              sx={{
+                pl: 8,
+                pr: 2,
+                py: 1,
                 backgroundColor: 'grey.25',
                 borderBottom: 1,
                 borderColor: 'divider'
@@ -457,18 +459,18 @@ const BusinessParameterDatagrid: React.FC<BusinessParameterDatagridProps> = ({ o
             >
               <Box display="flex" gap={1}>
                 <Tooltip title="View Details">
-                  <IconButton 
-                    size="small" 
+                  <IconButton
+                    size="small"
                     color="primary"
                     onClick={() => onViewDetails(record)}
                   >
                     <ViewIcon />
                   </IconButton>
                 </Tooltip>
-                
+
                 <Tooltip title="Edit Parameter">
-                  <IconButton 
-                    size="small" 
+                  <IconButton
+                    size="small"
                     color="secondary"
                     onClick={() => {
                       // TODO: Implement edit functionality
@@ -478,7 +480,7 @@ const BusinessParameterDatagrid: React.FC<BusinessParameterDatagridProps> = ({ o
                     <EditIcon />
                   </IconButton>
                 </Tooltip>
-                
+
                 <Box ml="auto">
                   <Typography variant="caption" color="text.secondary">
                     Created by {record.createdby} on {new Date(record.createddate).toLocaleDateString()}

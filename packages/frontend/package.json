@@ -40,8 +40,10 @@
     "dayjs": "^1.11.13",
     "js-cookie": "^3.0.5",
     "lucide-react": "^0.456.0",
+    "next": "^15.3.0",
     "notistack": "^3.0.2",
     "process": "^0.11.10",
+    "query-string": "^9.1.1",
     "ra-data-simple-rest": "4.16.15",
     "ra-i18n-polyglot": "^5.13.4",
     "ra-language-english": "^5.13.4",
@@ -56,6 +58,7 @@
     "redux-persist": "^6.0.0",
     "styled-jsx": "5.1.6",
     "typescript": "^5.6.3",
+    "xlsx": "^0.18.5",
     "zod": "^3.23.8"
   },
   "devDependencies": {
@@ -67,7 +70,6 @@
     "eslint-config-next": "^15.3.0",
     "eslint-plugin-react": "^7.37.2",
     "eslint-plugin-react-hooks": "^5.0.0",
-    "next": "^15.3.0",
     "playwright": "^1.56.1",
     "terser-webpack-plugin": "^5.3.14"
   },

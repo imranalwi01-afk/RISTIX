@@ -183,7 +183,7 @@ const JobMonitoringPage: React.FC = () => {
     dateFrom: subDays(new Date(), 1),
     dateTo: new Date(),
   });
-  
+
   // Dialog states
   const [jobDetailsDialog, setJobDetailsDialog] = useState<{
     open: boolean;
@@ -209,17 +209,29 @@ const JobMonitoringPage: React.FC = () => {
   const fetchJobExecutions = useCallback(async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
-      const [executions, definitions, metrics] = await Promise.all([
-        bankingAPI.jobs.getExecutions(),
-        bankingAPI.jobs.getDefinitions(),
-        bankingAPI.jobs.getMetrics()
-      ]);
-      
-      setJobExecutions(executions as any); // Casting for now to avoid strict type mismatch if any
-      setJobDefinitions(definitions as any);
-      setSystemMetrics(metrics as any);
+      // TODO: Implement jobs API endpoints
+      // const [executions, definitions, metrics] = await Promise.all([
+      //   bankingAPI.jobs.getExecutions(),
+      //   bankingAPI.jobs.getDefinitions(),
+      //   bankingAPI.jobs.getMetrics()
+      // ]);
+
+      // Mock data for now
+      setJobExecutions([]);
+      setJobDefinitions([]);
+      setSystemMetrics({
+        cpuUsage: 0,
+        memoryUsage: 0,
+        diskUsage: 0,
+        activeJobs: 0,
+        queuedJobs: 0,
+        completedJobsToday: 0,
+        failedJobsToday: 0,
+        averageExecutionTime: 0,
+        throughputPerHour: 0
+      });
     } catch (error) {
       console.error('Error fetching job data:', error);
       setError('Failed to fetch job data. Please try again.');
@@ -285,13 +297,15 @@ const JobMonitoringPage: React.FC = () => {
     if (!jobControlDialog.job || !jobControlDialog.action) return;
 
     try {
-      if (jobControlDialog.action === 'start' || jobControlDialog.action === 'restart') {
-         // Pass jobId to runJob. If job object has jobId, use it.
-         await bankingAPI.jobs.runJob(jobControlDialog.job.jobId || jobControlDialog.job.id);
-      } else if (jobControlDialog.action === 'stop' || jobControlDialog.action === 'pause') {
-         await bankingAPI.jobs.controlJob(jobControlDialog.job.id, jobControlDialog.action);
-      }
-      
+      // TODO: Implement jobs API endpoints
+      // if (jobControlDialog.action === 'start' || jobControlDialog.action === 'restart') {
+      //   await bankingAPI.jobs.runJob(jobControlDialog.job.jobId || jobControlDialog.job.id);
+      // } else if (jobControlDialog.action === 'stop' || jobControlDialog.action === 'pause') {
+      //   await bankingAPI.jobs.controlJob(jobControlDialog.job.id, jobControlDialog.action);
+      // }
+
+      console.warn('Job control not implemented yet');
+
       setJobControlDialog({ open: false, job: null, action: null });
       fetchJobExecutions();
     } catch (error) {
@@ -301,10 +315,13 @@ const JobMonitoringPage: React.FC = () => {
 
   const toggleJobDefinition = async (jobId: string, enabled: boolean) => {
     try {
-      await bankingAPI.jobs.toggleJob(jobId, enabled);
-      
-      setJobDefinitions(prev => 
-        prev.map(job => 
+      // TODO: Implement jobs API endpoints
+      // await bankingAPI.jobs.toggleJob(jobId, enabled);
+
+      console.warn('Job toggle not implemented yet');
+
+      setJobDefinitions(prev =>
+        prev.map(job =>
           job.id === jobId ? { ...job, isEnabled: enabled } : job
         )
       );
@@ -443,7 +460,7 @@ const JobMonitoringPage: React.FC = () => {
       width: 100,
       renderCell: (params: GridRenderCellParams) => (
         <Typography variant="body2">
-          {params.row.status === 'RUNNING' 
+          {params.row.status === 'RUNNING'
             ? formatDuration(Date.now() - new Date(params.row.startTime).getTime())
             : formatDuration(params.row.duration)
           }
@@ -993,7 +1010,7 @@ const JobMonitoringPage: React.FC = () => {
                   <Box>
                     <Typography variant="body2" color="text.secondary">Duration</Typography>
                     <Typography variant="body2">
-                      {jobDetailsDialog.job.status === 'RUNNING' 
+                      {jobDetailsDialog.job.status === 'RUNNING'
                         ? formatDuration(Date.now() - new Date(jobDetailsDialog.job.startTime).getTime())
                         : formatDuration(jobDetailsDialog.job.duration)
                       }

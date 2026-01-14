@@ -115,7 +115,8 @@ function TabPanel(props: TabPanelProps) {
 
 export default function ProductManagementPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
+  // const [loading, setLoading] = useState(true); // Removed to avoid conflict with derived loading
+
   const [products, setProducts] = useState<BankingProduct[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<BankingProduct[]>([]);
   const [pagination, setPagination] = useState({

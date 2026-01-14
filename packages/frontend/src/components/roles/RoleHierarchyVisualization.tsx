@@ -55,7 +55,7 @@ import {
   Info as InfoIcon
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
-import { api } from '../../../services/api';
+import { api } from '@/services/api';
 
 // Types
 interface Role {
@@ -169,48 +169,60 @@ const RoleHierarchyVisualization: React.FC<RoleHierarchyVisualizationProps> = ({
 
   // Build role hierarchy tree
   const buildHierarchy = useMemo(() => {
-    const roleMap = new Map<string, Role>();
+    const nodeMap = new Map<string, HierarchyNode>();
     const rootNodes: HierarchyNode[] = [];
 
-    // Create role map
+    // Create node map
     roles.forEach(role => {
-      roleMap.set(role.id, { ...role, children: [], level: 0, expanded: true });
+      let level = 0;
+      if (role.level === 'TENANT') level = 1;
+      if (role.level === 'DEPARTMENT') level = 2;
+
+      nodeMap.set(role.id, {
+        role,
+        children: [],
+        level,
+        expanded: true
+      });
     });
 
-    // Build parent-child relationships based on role hierarchy
+    // Build parent-child relationships
     roles.forEach(role => {
-      const roleNode = roleMap.get(role.id);
-      if (!roleNode) return;
+      const node = nodeMap.get(role.id);
+      if (!node) return;
 
       // Determine parent based on role level and type
       let parentId: string | undefined;
 
       if (role.level === 'DEPARTMENT') {
-        // Find parent tenant-level role
-        const parentRole = Array.from(roleMap.values()).find(
+        const parentRole = roles.find(
           r => r.level === 'TENANT' && r.type === role.type
         );
         parentId = parentRole?.id;
       } else if (role.level === 'TENANT') {
-        // Find parent platform-level role
-        const parentRole = Array.from(roleMap.values()).find(
+        const parentRole = roles.find(
           r => r.level === 'PLATFORM' && r.type === role.type
         );
         parentId = parentRole?.id;
       }
 
-      if (parentId && roleMap.has(parentId)) {
-        const parentNode = roleMap.get(parentId)!;
-        parentNode.children.push(roleNode);
-        roleNode.level = parentNode.level + 1;
-      } else if (roleNode.level === 0) {
-        rootNodes.push(roleNode);
+      if (parentId && nodeMap.has(parentId)) {
+        const parentNode = nodeMap.get(parentId)!;
+        parentNode.children.push(node);
+      } else {
+        // Add to root nodes if no parent found (typically PLATFORM roles or orphans)
+        // Only add if it's effectively a root in this view
+        if (role.level === 'PLATFORM' || !parentId) {
+          rootNodes.push(node);
+        }
       }
     });
 
-    // Sort children by hierarchy level and name
+    // Sort children by hierarchy level and name -- recursive sort not needed if we insert sorted? 
+    // But helpful for display
     const sortNodes = (nodes: HierarchyNode[]): HierarchyNode[] => {
       return nodes.sort((a, b) => {
+        // Sort by level then name
         if (a.level !== b.level) return a.level - b.level;
         return a.role.displayName.localeCompare(b.role.displayName);
       }).map(node => ({
@@ -373,7 +385,7 @@ const RoleHierarchyVisualization: React.FC<RoleHierarchyVisualizationProps> = ({
 
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   <Badge badgeContent={userCount} color="primary" showZero>
-                    <PeopleIcon fontSize="small" color="action" />
+                    <UsersIcon fontSize="small" color="action" />
                   </Badge>
                   <Typography variant="caption" color="text.secondary">
                     {userCount} user{userCount !== 1 ? 's' : ''}
@@ -583,7 +595,7 @@ const RoleHierarchyVisualization: React.FC<RoleHierarchyVisualizationProps> = ({
       {/* Hierarchy Tree */}
       <Paper sx={{ p: 2, minHeight: 400 }}>
         <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-          <AccountTreeIcon />
+          <TreeIcon />
           Role Hierarchy Tree
           <Chip label={`${filteredRoles.length} roles`} size="small" />
         </Typography>

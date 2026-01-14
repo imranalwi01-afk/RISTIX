@@ -57,7 +57,7 @@ const BusinessParameterCreateToolbar = () => {
 
   return (
     <Toolbar>
-      <SaveButton 
+      <SaveButton
         label="Save & Continue Adding"
         icon={<SettingsIcon />}
         variant="text"
@@ -67,7 +67,7 @@ const BusinessParameterCreateToolbar = () => {
           redirect: false
         })}
       />
-      <SaveButton 
+      <SaveButton
         label="Save & Return to List"
         icon={<BusinessIcon />}
         variant="contained"
@@ -92,7 +92,6 @@ export const BusinessParameterCreate: React.FC = () => {
       title="Create Business Parameter"
       actions={<BusinessParameterCreateActions />}
       redirect="list"
-      mutationMode="pessimistic"
       sx={{
         '& .RaCreate-main': {
           backgroundColor: 'background.paper',

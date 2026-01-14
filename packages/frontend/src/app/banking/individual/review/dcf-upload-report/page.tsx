@@ -5,15 +5,16 @@ import { Container, Typography, Box, Card, CardContent, CircularProgress, Chip }
 import PageHeader from '@/components/banking/shared/PageHeader';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
-import { api } from '@/services/api';
+import { individualImpairmentAPI } from '@/services/api/individual-impairment.api';
 
 const columns: GridColDef[] = [
   { field: 'fileName', headerName: 'File Name', width: 250 },
   { field: 'recordCount', headerName: 'Records', width: 100 },
-  { field: 'validationStatus', headerName: 'Status', width: 150,
-      renderCell: (params) => {
-        const color = params.value === 'VALID' ? 'success' : params.value === 'VALIDATING' ? 'warning' : 'error';
-        return <Chip label={params.value} color={color} size="small" />;
+  {
+    field: 'validationStatus', headerName: 'Status', width: 150,
+    renderCell: (params) => {
+      const color = params.value === 'VALID' ? 'success' : params.value === 'VALIDATING' ? 'warning' : 'error';
+      return <Chip label={params.value} color={color} size="small" />;
     }
   },
   { field: 'uploadedBy', headerName: 'Uploaded By (ID)', width: 250 },
@@ -28,7 +29,7 @@ export default function DCFUploadReportPage() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const response = await api.individualImpairment.getDcfUploads();
+        const response = await individualImpairmentAPI.getDcfUploads();
         if (response.success && response.data) {
           setRows(response.data);
         }
@@ -50,17 +51,17 @@ export default function DCFUploadReportPage() {
       />
       <Card>
         <CardContent>
-           <Box sx={{ height: 500, width: '100%' }}>
+          <Box sx={{ height: 500, width: '100%' }}>
             {loading ? (
-               <Box display="flex" justifyContent="center" alignItems="center" height="100%">
-                 <CircularProgress />
-               </Box>
+              <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+                <CircularProgress />
+              </Box>
             ) : (
-                <DataGrid
-                  rows={rows}
-                  columns={columns}
-                  pageSizeOptions={[10, 25]}
-                />
+              <DataGrid
+                rows={rows}
+                columns={columns}
+                pageSizeOptions={[10, 25]}
+              />
             )}
           </Box>
         </CardContent>

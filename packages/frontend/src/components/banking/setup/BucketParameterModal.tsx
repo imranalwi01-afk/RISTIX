@@ -58,45 +58,9 @@ import {
   CheckCircle as ValidIcon
 } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
-import { bucketParameterAPI } from '@/services/api.bucketparameter';
+import { bucketParameterAPI, BucketParameterHeader, BucketParameterDetail } from '@/services/api.bucketparameter';
 
-// ============================================================================
-// INTERFACES
-// ============================================================================
 
-interface BucketParameterHeader {
-  id?: number;
-  bucket_name: string;
-  bucket_description?: string;
-  bucket_type: 'AGING' | 'RATING' | 'AMOUNT' | 'CUSTOM';
-  min_range?: number;
-  max_range?: number;
-  range_unit?: 'DAYS' | 'MONTHS' | 'YEARS' | 'AMOUNT' | 'SCORE';
-  active_flag: boolean;
-  seq?: number;
-  created_by?: string;
-  created_date?: string;
-  updated_by?: string;
-  updated_date?: string;
-}
-
-interface BucketParameterDetail {
-  id?: number;
-  bucket_header_id?: number;
-  range_from: number;
-  range_to: number;
-  bucket_label: string;
-  bucket_code: string;
-  pd_rate?: number;
-  lgd_rate?: number;
-  weight: number;
-  active_flag: boolean;
-  seq: number;
-  created_by?: string;
-  created_date?: string;
-  updated_by?: string;
-  updated_date?: string;
-}
 
 interface BucketParameterModalProps {
   open: boolean;
@@ -134,7 +98,11 @@ export default function BucketParameterModal({
     max_range: undefined,
     range_unit: 'DAYS',
     active_flag: true,
-    seq: 1
+    seq: 1,
+    bucket_group: '',
+    basis: 'D',
+    include_close: false,
+    include_wo: false
   });
 
   const [details, setDetails] = useState<BucketParameterDetail[]>([]);
@@ -160,7 +128,9 @@ export default function BucketParameterModal({
     lgd_rate: undefined,
     weight: 0,
     active_flag: true,
-    seq: 1
+    seq: 1,
+    bucket_name: '',
+    range_start: 0
   });
 
   // Validation state
@@ -173,15 +143,19 @@ export default function BucketParameterModal({
   useEffect(() => {
     if (open) {
       loadDropdownData();
-      
+
       if (header) {
-        setHeaderForm(header);
-        if (header.id) {
+        setHeaderForm({
+          ...header,
+          id: header.id // Ensure ID is explicitly set, though spreading `header` should already include it.
+        });
+        if (header.id !== undefined && header.id !== null) {
           loadDetails(header.id);
         }
       } else {
         // Reset form for create mode
         setHeaderForm({
+          id: undefined,
           bucket_name: '',
           bucket_description: '',
           bucket_type: 'AGING',
@@ -216,11 +190,11 @@ export default function BucketParameterModal({
     }
   };
 
-  const loadDetails = async (headerId: number) => {
+  const loadDetails = async (headerId: string | number) => {
     try {
       setDetailsLoading(true);
       const response = await bucketParameterAPI.getDetails(headerId);
-      
+
       if (response.success) {
         setDetails(response.data || []);
       } else {
@@ -249,14 +223,14 @@ export default function BucketParameterModal({
     if (field === 'range_from' || field === 'range_to') {
       const newDetailForm = { ...detailForm, [field]: value };
       if (newDetailForm.range_from !== undefined && newDetailForm.range_to !== undefined) {
-        const autoCode = bucketParameterAPI.generateBucketCode(headerForm.bucket_type, details.length + 1);
+        const autoCode = bucketParameterAPI.generateBucketCode(headerForm.bucket_type || 'AGING', details.length + 1);
         const autoLabel = bucketParameterAPI.generateBucketLabel(
-          headerForm.bucket_type,
+          headerForm.bucket_type || 'AGING',
           newDetailForm.range_from,
           newDetailForm.range_to,
-          headerForm.range_unit
+          headerForm.range_unit || 'DAYS'
         );
-        
+
         setDetailForm(prev => ({
           ...prev,
           bucket_code: autoCode,
@@ -272,7 +246,7 @@ export default function BucketParameterModal({
 
       if (mode === 'create') {
         const response = await bucketParameterAPI.createHeader(headerForm);
-        
+
         if (response.success) {
           enqueueSnackbar('Bucket parameter created successfully', { variant: 'success' });
           onSave();
@@ -281,7 +255,7 @@ export default function BucketParameterModal({
         }
       } else if (mode === 'edit' && header?.id) {
         const response = await bucketParameterAPI.updateHeader(header.id, headerForm);
-        
+
         if (response.success) {
           enqueueSnackbar('Bucket parameter updated successfully', { variant: 'success' });
           onSave();
@@ -298,7 +272,8 @@ export default function BucketParameterModal({
   };
 
   const handleSaveDetail = async () => {
-    if (!header?.id) {
+    const headerId = header?.id;
+    if (!headerId) {
       enqueueSnackbar('Please save the bucket parameter first', { variant: 'warning' });
       return;
     }
@@ -309,7 +284,7 @@ export default function BucketParameterModal({
         const response = await bucketParameterAPI.updateDetail(editingDetail.id, detailForm);
         if (response.success) {
           enqueueSnackbar('Bucket range updated successfully', { variant: 'success' });
-          loadDetails(header.id);
+          loadDetails(headerId);
           setDetailModalOpen(false);
           setEditingDetail(null);
         } else {
@@ -317,10 +292,10 @@ export default function BucketParameterModal({
         }
       } else {
         // Create new detail
-        const response = await bucketParameterAPI.createDetail(header.id, detailForm);
+        const response = await bucketParameterAPI.createDetail(headerId, detailForm);
         if (response.success) {
           enqueueSnackbar('Bucket range created successfully', { variant: 'success' });
-          loadDetails(header.id);
+          loadDetails(headerId);
           setDetailModalOpen(false);
         } else {
           throw new Error(response.error || 'Failed to create bucket range');
@@ -332,7 +307,7 @@ export default function BucketParameterModal({
     }
   };
 
-  const handleDeleteDetail = async (detailId: number) => {
+  const handleDeleteDetail = async (detailId: string | number) => {
     if (!confirm('Are you sure you want to delete this bucket range?')) {
       return;
     }
@@ -341,8 +316,9 @@ export default function BucketParameterModal({
       const response = await bucketParameterAPI.deleteDetail(detailId);
       if (response.success) {
         enqueueSnackbar('Bucket range deleted successfully', { variant: 'success' });
-        if (header?.id) {
-          loadDetails(header.id);
+        const headerId = header?.id;
+        if (headerId) {
+          loadDetails(headerId);
         }
       } else {
         throw new Error(response.error || 'Failed to delete bucket range');
@@ -424,8 +400,8 @@ export default function BucketParameterModal({
             <BucketIcon />
             <Typography variant="h6">
               {mode === 'create' ? 'Create Bucket Parameter' :
-               mode === 'edit' ? 'Edit Bucket Parameter' :
-               'View Bucket Parameter'}
+                mode === 'edit' ? 'Edit Bucket Parameter' :
+                  'View Bucket Parameter'}
             </Typography>
           </Box>
         </DialogTitle>

@@ -67,9 +67,9 @@ export const applicationParameterDataProvider: DataProvider = {
 
         if (response.data.success) {
           const headers = response.data.data || [];
-          
+
           console.log(`✅ [APPL-004] Retrieved ${headers.length} application parameter headers`);
-          
+
           return {
             data: headers.map((header: ApplicationParameterHeader) => ({
               id: header.pkid,
@@ -88,10 +88,10 @@ export const applicationParameterDataProvider: DataProvider = {
         if (headerIdMatch) {
           const headerId = headerIdMatch[1];
           const response = await api.client.get(`/banking/setup/application/headers/${headerId}/details`);
-          
+
           if (response.data.success) {
             const details = response.data.data || [];
-            
+
             return {
               data: details.map((detail: ApplicationParameterDetail) => ({
                 id: detail.pkid,
@@ -127,13 +127,13 @@ export const applicationParameterDataProvider: DataProvider = {
         if (response.data.success) {
           const headers = response.data.data || [];
           const header = headers.find((h: ApplicationParameterHeader) => h.pkid === parseInt(params.id as string));
-          
+
           if (!header) {
             throw new Error('Application parameter header not found');
           }
 
           console.log(`✅ [APPL-004] Retrieved header ${header.param_code} with ${header.details?.length || 0} details`);
-          
+
           return {
             data: {
               id: header.pkid,
@@ -174,9 +174,9 @@ export const applicationParameterDataProvider: DataProvider = {
 
         if (response.data.success) {
           const newHeader = response.data.data;
-          
+
           console.log(`✅ [APPL-004] Created header ${newHeader.param_code}`);
-          
+
           return {
             data: {
               id: newHeader.pkid,
@@ -193,10 +193,10 @@ export const applicationParameterDataProvider: DataProvider = {
         if (headerIdMatch) {
           const headerId = headerIdMatch[1];
           const response = await api.client.post(`/banking/setup/application/headers/${headerId}/details`, params.data);
-          
+
           if (response.data.success) {
             const newDetail = response.data.data;
-            
+
             return {
               data: {
                 id: newDetail.pkid,
@@ -227,9 +227,9 @@ export const applicationParameterDataProvider: DataProvider = {
 
         if (response.data.success) {
           const updatedHeader = response.data.data;
-          
+
           console.log(`✅ [APPL-004] Updated header ${updatedHeader.param_code}`);
-          
+
           return {
             data: {
               id: updatedHeader.pkid,
@@ -246,7 +246,7 @@ export const applicationParameterDataProvider: DataProvider = {
 
         if (response.data.success) {
           const updatedDetail = response.data.data;
-          
+
           return {
             data: {
               id: updatedDetail.pkid,
@@ -276,7 +276,7 @@ export const applicationParameterDataProvider: DataProvider = {
 
         if (response.data.success) {
           console.log(`✅ [APPL-004] Deleted header ${params.id}`);
-          
+
           return {
             data: {
               id: params.id,
@@ -293,7 +293,7 @@ export const applicationParameterDataProvider: DataProvider = {
 
         if (response.data.success) {
           console.log(`✅ [APPL-004] Deleted detail ${params.id}`);
-          
+
           return {
             data: {
               id: params.id,
@@ -312,14 +312,39 @@ export const applicationParameterDataProvider: DataProvider = {
   },
 
   // ==========================================
+  // UPDATE MANY - Bulk update operations
+  // ==========================================
+  updateMany: async (resource: string, params: { ids: any[], data: any }) => {
+    console.log('📝 [APPL-004] DataProvider.updateMany:', resource, params.ids);
+
+    try {
+      const updatePromises = params.ids.map(id =>
+        applicationParameterDataProvider.update(resource, { id, data: params.data, previousData: { id } })
+      );
+
+      await Promise.all(updatePromises);
+
+      console.log(`✅ [APPL-004] Bulk updated ${params.ids.length} items`);
+
+      return {
+        data: params.ids
+      };
+
+    } catch (error) {
+      console.error('❌ [APPL-004] DataProvider.updateMany error:', error);
+      throw error;
+    }
+  },
+
+  // ==========================================
   // DELETE MANY - Bulk delete operations
   // ==========================================
   deleteMany: async (resource: string, params: { ids: any[] }) => {
     console.log('🗑️ [APPL-004] DataProvider.deleteMany:', resource, params.ids);
 
     try {
-      const deletePromises = params.ids.map(id => 
-        applicationParameterDataProvider.delete(resource, { id, previousData: {} })
+      const deletePromises = params.ids.map(id =>
+        applicationParameterDataProvider.delete(resource, { id, previousData: { id } })
       );
 
       await Promise.all(deletePromises);
@@ -373,17 +398,17 @@ export const applicationParameterDataProvider: DataProvider = {
       try {
         // Find header by param_code first, then get its details
         const headerResponse = await api.client.get('/banking/setup/application/headers');
-        
+
         if (headerResponse.data.success) {
           const headers = headerResponse.data.data || [];
           const header = headers.find((h: ApplicationParameterHeader) => h.param_code === params.id);
-          
+
           if (header) {
             const detailResponse = await api.client.get(`/banking/setup/application/headers/${header.pkid}/details`);
-            
+
             if (detailResponse.data.success) {
               const details = detailResponse.data.data || [];
-              
+
               return {
                 data: details.map((detail: ApplicationParameterDetail) => ({
                   id: detail.pkid,

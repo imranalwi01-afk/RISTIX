@@ -96,7 +96,7 @@ export default function SegmentationConfigurationPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [segmentTypes, setSegmentTypes] = useState<SegmentType[]>([]);
-  
+
   const [formData, setFormData] = useState<SegmentationHeaderForm>({
     group_segment: '',
     segment: '',
@@ -115,17 +115,17 @@ export default function SegmentationConfigurationPage() {
       console.log('⚠️ Load already in progress, skipping duplicate call');
       return;
     }
-    
+
     loadingRef.current = true;
     setLoading(true);
     setError(null);
-    
+
     try {
       console.log('🔄 Loading segmentation headers from database...');
-      
+
       // Load segmentation headers
       const result = await api.banking.segmentation.getHeaders();
-      
+
       if (result.success && result.data) {
         console.log('✅ Successfully loaded segmentation data:', result.data.length, 'headers');
         setData(prevData => {
@@ -139,22 +139,22 @@ export default function SegmentationConfigurationPage() {
       } else {
         throw new Error(result.message || 'Failed to load segmentation headers');
       }
-      
+
     } catch (error: any) {
       console.error('❌ Failed to load segmentation headers:', error);
-      
+
       const errorInfo = handleAPIError(error);
       let errorMessage = 'Failed to load segmentation headers from database.';
-      
+
       if (errorInfo.type === 'network_error') {
         errorMessage = 'Cannot connect to backend server. Please check your connection and ensure the backend is running.';
       } else if (errorInfo.type === 'server_error') {
         errorMessage = `Server error (${errorInfo.status}): ${errorInfo.message}`;
       }
-      
+
       setError(errorMessage);
       setData([]);
-      
+
     } finally {
       setLoading(false);
       loadingRef.current = false;
@@ -165,7 +165,7 @@ export default function SegmentationConfigurationPage() {
     try {
       console.log('🔄 Loading segment types...');
       const result = await api.banking.segmentation.getSegmentTypes();
-      
+
       if (result.success && result.data) {
         console.log('✅ Loaded segment types:', result.data.length);
         setSegmentTypes(result.data);
@@ -214,8 +214,8 @@ export default function SegmentationConfigurationPage() {
       renderCell: (params) => {
         const type = segmentTypes.find(t => t.type_code === params?.value);
         return (
-          <Chip 
-            label={type?.type_name || params?.value || '-'} 
+          <Chip
+            label={type?.type_name || params?.value || '-'}
             size="small"
             color="secondary"
             variant="outlined"
@@ -245,10 +245,10 @@ export default function SegmentationConfigurationPage() {
       headerName: 'Active',
       width: 100,
       renderCell: (params) => (
-        <Chip 
-          label={params?.value ? 'Active' : 'Inactive'} 
-          color={params?.value ? 'success' : 'default'} 
-          size="small" 
+        <Chip
+          label={params?.value ? 'Active' : 'Inactive'}
+          color={params?.value ? 'success' : 'default'}
+          size="small"
         />
       )
     },
@@ -337,13 +337,13 @@ export default function SegmentationConfigurationPage() {
     try {
       setLoading(true);
       console.log('🗑️ Deleting segmentation header:', header.pkid);
-      
+
       await api.banking.segmentation.deleteHeader(header.pkid);
-      
+
       console.log('✅ Segmentation header deleted successfully');
       setSuccess('Segmentation deleted successfully');
       await loadData(); // Reload data
-      
+
     } catch (error: any) {
       console.error('❌ Failed to delete segmentation header:', error);
       const errorInfo = handleAPIError(error);
@@ -356,7 +356,7 @@ export default function SegmentationConfigurationPage() {
   const handleSave = async () => {
     // Validate required fields
     const errors: string[] = [];
-    
+
     if (!formData.group_segment.trim()) {
       errors.push('Group Segment is required');
     }
@@ -366,7 +366,7 @@ export default function SegmentationConfigurationPage() {
     if (!formData.segment_type.trim()) {
       errors.push('Segment Type is required');
     }
-    
+
     if (errors.length > 0) {
       setError(errors.join(', '));
       return;
@@ -375,7 +375,7 @@ export default function SegmentationConfigurationPage() {
     try {
       setLoading(true);
       setError(null);
-      
+
       const payload = {
         group_segment: formData.group_segment.trim(),
         segment: formData.segment.trim(),
@@ -384,7 +384,7 @@ export default function SegmentationConfigurationPage() {
         seq: formData.seq === '' ? undefined : Number(formData.seq),
         active_flag: formData.active_flag
       };
-      
+
       if (selectedHeader) {
         // Update existing header
         console.log('✏️ Updating segmentation header:', payload);
@@ -396,10 +396,10 @@ export default function SegmentationConfigurationPage() {
         await api.banking.segmentation.createHeader(payload);
         setSuccess('Segmentation created successfully');
       }
-      
+
       setDialogOpen(false);
       await loadData(); // Reload data
-      
+
     } catch (error: any) {
       console.error('❌ Failed to save segmentation header:', error);
       const errorInfo = handleAPIError(error);
@@ -450,7 +450,7 @@ export default function SegmentationConfigurationPage() {
             Master-detail configuration for portfolio segmentation rules and criteria
           </Typography>
         </Box>
-        
+
         <Box sx={{ display: 'flex', gap: 1 }}>
           <Tooltip title="Refresh Data">
             <IconButton onClick={loadData} color="primary" disabled={loading}>
@@ -489,11 +489,11 @@ export default function SegmentationConfigurationPage() {
                 },
                 noRowsOverlay: {
                   children: (
-                    <Box 
-                      sx={{ 
-                        display: 'flex', 
-                        flexDirection: 'column', 
-                        alignItems: 'center', 
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
                         justifyContent: 'center',
                         height: '100%',
                         gap: 2
@@ -536,7 +536,7 @@ export default function SegmentationConfigurationPage() {
               error={!formData.group_segment.trim()}
               helperText={!formData.group_segment.trim() ? 'Group Segment is required' : 'Group classification name (max 150 characters)'}
             />
-            
+
             {/* Segment - REQUIRED */}
             <TextField
               label="Segment *"
@@ -549,7 +549,7 @@ export default function SegmentationConfigurationPage() {
               error={!formData.segment.trim()}
               helperText={!formData.segment.trim() ? 'Segment is required' : 'Main segment name (max 150 characters)'}
             />
-            
+
             {/* Sub Segment - OPTIONAL */}
             <TextField
               label="Sub Segment"
@@ -560,7 +560,7 @@ export default function SegmentationConfigurationPage() {
               placeholder="Sub Segment (optional)"
               helperText="Optional sub-segment for detailed classification (max 150 characters)"
             />
-            
+
             {/* Segment Type - REQUIRED */}
             <TextField
               label="Segment Type *"
@@ -579,7 +579,7 @@ export default function SegmentationConfigurationPage() {
                 </MenuItem>
               ))}
             </TextField>
-            
+
             {/* Sequence - OPTIONAL */}
             <TextField
               label="Sequence"
@@ -591,7 +591,7 @@ export default function SegmentationConfigurationPage() {
               helperText="Optional display order sequence"
               slotProps={{ htmlInput: { min: 1 } }}
             />
-            
+
             {/* Active Flag */}
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <FormControlLabel
@@ -610,8 +610,8 @@ export default function SegmentationConfigurationPage() {
           <Button onClick={() => setDialogOpen(false)} disabled={loading}>
             Cancel
           </Button>
-          <Button 
-            onClick={handleSave} 
+          <Button
+            onClick={handleSave}
             variant="contained"
             disabled={loading || !formData.group_segment.trim() || !formData.segment.trim() || !formData.segment_type.trim()}
             startIcon={loading ? <CircularProgress size={16} /> : null}
@@ -626,15 +626,15 @@ export default function SegmentationConfigurationPage() {
         <SegmentationDetailModal
           open={detailModalOpen}
           onClose={() => setDetailModalOpen(false)}
-          header={selectedHeader}
+          header={selectedHeader!}
           onRefresh={loadData}
         />
       )}
 
       {/* Success/Error Snackbars */}
-      <Snackbar 
-        open={!!success} 
-        autoHideDuration={4000} 
+      <Snackbar
+        open={!!success}
+        autoHideDuration={4000}
         onClose={() => setSuccess(null)}
         anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
@@ -643,9 +643,9 @@ export default function SegmentationConfigurationPage() {
         </Alert>
       </Snackbar>
 
-      <Snackbar 
-        open={!!error} 
-        autoHideDuration={6000} 
+      <Snackbar
+        open={!!error}
+        autoHideDuration={6000}
         onClose={() => setError(null)}
         anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
       >

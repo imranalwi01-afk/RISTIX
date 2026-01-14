@@ -18,6 +18,7 @@ import {
     Alert,
     List,
     ListItem,
+    ListItemButton,
     ListItemText,
     ListItemIcon,
     Divider
@@ -106,16 +107,17 @@ export default function ReportsPage() {
                             <List>
                                 {reports.map((report, index) => (
                                     <React.Fragment key={report.id}>
-                                        <ListItem
-                                            button
-                                            selected={reportType === report.id}
-                                            onClick={() => setReportType(report.id)}
-                                        >
-                                            <ListItemIcon>{report.icon}</ListItemIcon>
-                                            <ListItemText
-                                                primary={report.title}
-                                                secondary={report.description}
-                                            />
+                                        <ListItem disablePadding>
+                                            <ListItemButton
+                                                selected={reportType === report.id}
+                                                onClick={() => setReportType(report.id)}
+                                            >
+                                                <ListItemIcon>{report.icon}</ListItemIcon>
+                                                <ListItemText
+                                                    primary={report.title}
+                                                    secondary={report.description}
+                                                />
+                                            </ListItemButton>
                                         </ListItem>
                                         {index < reports.length - 1 && <Divider />}
                                     </React.Fragment>

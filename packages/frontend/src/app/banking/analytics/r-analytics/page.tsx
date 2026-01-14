@@ -39,7 +39,7 @@ import {
   CheckCircle,
   Refresh
 } from '@mui/icons-material';
-import type { RootState } from '../../../../../store';
+import type { RootState } from '../../../../store';
 
 // Simple Error Boundary component for error handling
 class ErrorBoundary extends React.Component<
@@ -74,8 +74,8 @@ class ErrorBoundary extends React.Component<
 
 export default function RAnalyticsPage() {
   // Redux state
-  const { user, token } = useSelector((state: RootState) => state.auth);
-  
+  const { user, token } = useSelector((state: RootState) => state.auth || { user: null, token: null });
+
   // Component state (simplified - no session management)
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -97,7 +97,7 @@ export default function RAnalyticsPage() {
 
       try {
         if (typeof window !== 'undefined') {
-          const config = frontendEnvironmentLoader.getConfiguration();
+          const config = frontendEnvironmentLoader.getConfiguration() as any;
           baseUrl = config.rAnalytics?.dashboard || config.urls?.rAnalytics || baseUrl;
         }
       } catch (error) {
@@ -146,7 +146,7 @@ export default function RAnalyticsPage() {
 
   useEffect(() => {
     if (user) {
-      const tenantSlug = user.tenantSlug || 'demo-conventional';
+      const tenantSlug = (user as any).tenantSlug || 'demo-conventional';
       let bankingType: 'conventional' | 'syariah' | 'dual' = 'conventional';
 
       // Determine banking type
@@ -247,12 +247,12 @@ export default function RAnalyticsPage() {
 
   if (!user || !token) {
     return (
-      <Box sx={{ 
-        height: '100vh', 
-        display: 'flex', 
-        alignItems: 'center', 
+      <Box sx={{
+        height: '100vh',
+        display: 'flex',
+        alignItems: 'center',
         justifyContent: 'center',
-        p: 3 
+        p: 3
       }}>
         <Card sx={{ maxWidth: 500, width: '100%' }}>
           <CardContent>
@@ -277,9 +277,9 @@ export default function RAnalyticsPage() {
   return (
     <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
       {/* Compact Header */}
-      <Box sx={{ 
-        p: 2, 
-        borderBottom: 1, 
+      <Box sx={{
+        p: 2,
+        borderBottom: 1,
         borderColor: 'divider',
         backgroundColor: 'background.paper',
         boxShadow: 1,
@@ -375,75 +375,75 @@ export default function RAnalyticsPage() {
             </Box>
           }
         >
-        {/* R Analytics Iframe */}
-        {error ? (
-          <Box sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: '100%',
-            flexDirection: 'column',
-            p: 3
-          }}>
-            <Alert severity="error" sx={{ mb: 2 }}>
-              <AlertTitle>R Analytics Connection Error</AlertTitle>
-              {error}
-            </Alert>
-            <Button
-              variant="contained"
-              onClick={handleRefresh}
-              startIcon={<Refresh />}
-            >
-              Try Again
-            </Button>
-          </Box>
-        ) : (
-          <iframe
-            id="r-analytics-iframe"
-            src={getRAnalyticsUrl()}
-            style={{
-              width: '100%',
+          {/* R Analytics Iframe */}
+          {error ? (
+            <Box sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
               height: '100%',
-              border: 'none',
-              backgroundColor: 'white'
-            }}
-            onLoad={handleIframeLoad}
-            onError={handleIframeError}
-            title={`I9 Modelling - ${getBankingLabel()} Analytics`}
-            allowFullScreen
-            sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-downloads"
-          />
-        )}
+              flexDirection: 'column',
+              p: 3
+            }}>
+              <Alert severity="error" sx={{ mb: 2 }}>
+                <AlertTitle>R Analytics Connection Error</AlertTitle>
+                {error}
+              </Alert>
+              <Button
+                variant="contained"
+                onClick={handleRefresh}
+                startIcon={<Refresh />}
+              >
+                Try Again
+              </Button>
+            </Box>
+          ) : (
+            <iframe
+              id="r-analytics-iframe"
+              src={getRAnalyticsUrl()}
+              style={{
+                width: '100%',
+                height: '100%',
+                border: 'none',
+                backgroundColor: 'white'
+              }}
+              onLoad={handleIframeLoad}
+              onError={handleIframeError}
+              title={`I9 Modelling - ${getBankingLabel()} Analytics`}
+              allowFullScreen
+              sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-downloads"
+            />
+          )}
 
-        {/* Loading Overlay */}
-        {isLoading && (
-          <Box sx={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexDirection: 'column',
-            bgcolor: alpha(theme.palette.background.paper, 0.9),
-            zIndex: 10
-          }}>
-            <Stack alignItems="center" spacing={2}>
-              <CircularProgress size={48} color={getBankingColor() as any} />
-              <Typography variant="h6">
-                Loading R Analytics
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Initializing {getBankingLabel()} environment...
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                URL: {getRAnalyticsUrl()}
-              </Typography>
-            </Stack>
-          </Box>
-        )}
+          {/* Loading Overlay */}
+          {isLoading && (
+            <Box sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexDirection: 'column',
+              bgcolor: alpha(theme.palette.background.paper, 0.9),
+              zIndex: 10
+            }}>
+              <Stack alignItems="center" spacing={2}>
+                <CircularProgress size={48} color={getBankingColor() as any} />
+                <Typography variant="h6">
+                  Loading R Analytics
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Initializing {getBankingLabel()} environment...
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  URL: {getRAnalyticsUrl()}
+                </Typography>
+              </Stack>
+            </Box>
+          )}
         </ErrorBoundary>
       </Box>
     </Box>

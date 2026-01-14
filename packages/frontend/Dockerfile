@@ -44,9 +44,16 @@ ENV NEXT_TELEMETRY_DISABLED 1
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
+# Copy root node_modules to ensure symlinks in standalone work
+COPY --from=builder /app/node_modules ./node_modules
+# Symlink root node_modules to /node_modules because pnpm links point to /node_modules
+RUN ln -s /app/node_modules /node_modules || true
+
 # Copy built artifacts from builder
 # We need to copy from the specific package location
-COPY --from=builder /app/packages/frontend/public ./public
+# Copy built artifacts from builder
+# We need to copy from the specific package location
+COPY --from=builder /app/packages/frontend/public ./packages/frontend/public
 
 # Set permission for prerender cache
 RUN mkdir .next
@@ -56,7 +63,7 @@ RUN chown nextjs:nodejs .next
 # https://nextjs.org/docs/advanced-features/output-file-tracing
 # Note: standalone mode needs to be enabled in next.config.js/mjs
 COPY --from=builder --chown=nextjs:nodejs /app/packages/frontend/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/packages/frontend/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/packages/frontend/.next/static ./packages/frontend/.next/static
 
 USER nextjs
 
@@ -65,14 +72,5 @@ EXPOSE 4231
 ENV PORT 4231
 ENV HOSTNAME "0.0.0.0"
 
-# Standalone mode usually produces a server.js in the root of standalone directory
-# But since we are inside a monorepo structure in standalone, we might need to adjust command
-# Usually standalone output preserves directory structure if it's outside?
-# Let's assume standard behavior: /app/.next/standalone/packages/frontend/server.js or similar?
-# Actually, let's verify where standalone puts things.
-# If nextConfig.output = 'standalone', it produces .next/standalone.
-# In a monorepo, it often includes node_modules and the package structure.
-# CMD ["node", "packages/frontend/server.js"] might be required.
-# Let's try standard invocation from the copied root.
-
+# Startup logic
 CMD ["node", "packages/frontend/server.js"]

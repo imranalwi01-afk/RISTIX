@@ -1161,29 +1161,29 @@ export default function ApplicationSettingPage() {
                     <TableRow key={detail.ID} hover>
                       <TableCell>
                         <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 'bold' }}>
-                          {detail.SeqNo}
+                          {detail.param_seq ?? detail.SeqNo}
                         </Typography>
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                          {detail.Value1}
+                          {detail.value1 ?? detail.Value1}
                         </Typography>
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                          {detail.Value2 || '-'}
+                          {detail.value2 ?? detail.Value2 ?? '-'}
                         </Typography>
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                          {detail.Value3 || '-'}
+                          {detail.value3 ?? detail.Value3 ?? '-'}
                         </Typography>
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2" title={detail.Description}>
-                          {detail.Description?.length > 50
-                            ? `${detail.Description.substring(0, 50)}...`
-                            : detail.Description
+                          {(detail.paramdesc ?? detail.Description)?.length > 50
+                            ? `${(detail.paramdesc ?? detail.Description).substring(0, 50)}...`
+                            : (detail.paramdesc ?? detail.Description)
                           }
                         </Typography>
                       </TableCell>
@@ -1196,12 +1196,12 @@ export default function ApplicationSettingPage() {
                               onClick={() => {
                                 setSelectedDetail(detail);
                                 setDetailFormData({
-                                  ParamCode: detail.ParamCode,
-                                  SeqNo: detail.SeqNo,
-                                  Value1: detail.Value1,
-                                  Value2: detail.Value2,
-                                  Value3: detail.Value3,
-                                  Description: detail.Description
+                                  ParamCode: detail.param_code ?? '',
+                                  SeqNo: detail.param_seq ?? 0,
+                                  Value1: detail.value1 ?? '',
+                                  Value2: detail.value2 ?? '',
+                                  Value3: detail.value3 ?? '',
+                                  Description: detail.paramdesc ?? ''
                                 });
                                 setDetailModalOpen(true);
                               }}
@@ -1214,7 +1214,7 @@ export default function ApplicationSettingPage() {
                               size="small"
                               color="error"
                               onClick={async () => {
-                                if (!confirm(`Are you sure you want to delete detail sequence ${detail.SeqNo}?`)) {
+                                if (!confirm(`Are you sure you want to delete detail sequence ${detail.param_seq ?? detail.SeqNo}?`)) {
                                   return;
                                 }
                                 try {

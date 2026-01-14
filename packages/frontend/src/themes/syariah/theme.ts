@@ -121,7 +121,7 @@ const components = {
       },
     },
   },
-  
+
   // ✅ KEEP SHARP: Drawer (Sidebar) components
   MuiDrawer: {
     styleOverrides: {
@@ -135,7 +135,7 @@ const components = {
       },
     },
   },
-  
+
   // ✅ KEEP SHARP: Toolbar (inside AppBar)
   MuiToolbar: {
     styleOverrides: {
@@ -144,7 +144,7 @@ const components = {
       },
     },
   },
-  
+
   // ✅ KEEP SHARP: List components (sidebar menu items)
   MuiList: {
     styleOverrides: {
@@ -185,7 +185,7 @@ const components = {
       },
     },
   },
-  
+
   // ✅ MAKE ROUNDED: Cards (content area) - FIXED HEIGHT ISSUES
   MuiCard: {
     styleOverrides: {
@@ -205,7 +205,7 @@ const components = {
       },
     },
   },
-  
+
   // ✅ MAKE ROUNDED: Papers (content area)
   MuiPaper: {
     styleOverrides: {
@@ -214,7 +214,7 @@ const components = {
       },
     },
   },
-  
+
   // ✅ MAKE ROUNDED: Text fields (forms)
   MuiTextField: {
     styleOverrides: {
@@ -228,7 +228,7 @@ const components = {
       },
     },
   },
-  
+
   // ✅ MAKE ROUNDED: Chips (tags/badges)
   MuiChip: {
     styleOverrides: {
@@ -239,7 +239,7 @@ const components = {
       },
     },
   },
-  
+
   // ✅ TABLE HEADERS: Keep clean (no specific rounding)
   MuiTableHead: {
     styleOverrides: {
@@ -252,7 +252,7 @@ const components = {
       },
     },
   },
-  
+
   // ✅ ISLAMIC-SPECIFIC: Rounded alerts with cultural styling
   MuiAlert: {
     styleOverrides: {
@@ -271,7 +271,7 @@ const components = {
       },
     },
   },
-  
+
   // ✅ BOX: Default component - no specific styling (inherits global)
   MuiBox: {
     defaultProps: {
@@ -287,7 +287,7 @@ try {
   syariahBankingTheme = createTheme({
     palette: syariahColors,
     typography,
-    components,
+    components: components as any,
     shape: {
       borderRadius: 8, // ✅ GLOBAL DEFAULT: Modern rounded (overridden where needed)
     },
@@ -376,9 +376,14 @@ export const syariahBankingThemeRTL: Theme = createTheme({
         },
       },
     },
-  },
+  } as any,
 });
 
 // ✅ SURGICAL FIX: Multiple export formats to ensure compatibility
 export { syariahBankingTheme };
 export default syariahBankingTheme;
+export const syariahThemeMetadata = {
+  name: 'Syariah Banking',
+  description: 'Islamic green theme optimized for Syariah banking operations',
+  mode: 'light',
+};

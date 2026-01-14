@@ -54,7 +54,7 @@ import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  View as ViewIcon,
+  Visibility as ViewIcon,
   Save as SaveIcon,
   Cancel as CancelIcon,
   Settings as SettingsIcon,
@@ -127,11 +127,11 @@ interface SegmentationDetailForm {
 }
 
 interface BusinessSettingsData {
-  tables: Array<{value: string; text: string}>;
-  columns: Array<{value: string; text: string}>;
-  operators: Array<{value: string; text: string}>;
-  conditions: Array<{value: string; text: string}>;
-  values: Array<{value: string; text: string}>;
+  tables: Array<{ value: string; text: string }>;
+  columns: Array<{ value: string; text: string }>;
+  operators: Array<{ value: string; text: string }>;
+  conditions: Array<{ value: string; text: string }>;
+  values: Array<{ value: string; text: string }>;
 }
 
 interface TabPanelProps {
@@ -183,7 +183,7 @@ export default function SegmentationDetailModal({
   const [isEditMode, setIsEditMode] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  
+
   // Business settings data
   const [businessSettings, setBusinessSettings] = useState<BusinessSettingsData>({
     tables: [],
@@ -216,23 +216,23 @@ export default function SegmentationDetailModal({
 
   const loadDetails = async () => {
     if (!header?.pkid) return;
-    
+
     try {
       setLoading(true);
       console.log('🔄 Loading segmentation details for header:', header.pkid);
-      
+
       const result = await api.banking.segmentation.getDetails(header.pkid);
-      
+
       if (result.success && result.data) {
         console.log('✅ Successfully loaded segmentation details:', result.data.length);
         setDetails(result.data);
       } else {
         throw new Error(result.message || 'Failed to load segmentation details');
       }
-      
+
     } catch (error: any) {
       console.error('❌ Failed to load segmentation details:', error);
-      
+
       // Provide demo data for development
       setDetails([
         {
@@ -266,9 +266,9 @@ export default function SegmentationDetailModal({
           createddate: new Date().toISOString()
         }
       ]);
-      
+
       setError('Failed to load details from backend. Using demo data for UI testing.');
-      
+
     } finally {
       setLoading(false);
     }
@@ -277,7 +277,7 @@ export default function SegmentationDetailModal({
   const loadBusinessSettings = async () => {
     try {
       console.log('🔄 Loading business settings data...');
-      
+
       // Load all business settings in parallel
       const [tablesResult, conditionsResult] = await Promise.all([
         api.banking.segmentation.getBusinessSettingsTables(),
@@ -302,7 +302,7 @@ export default function SegmentationDetailModal({
 
       setBusinessSettings(settings);
       console.log('✅ Business settings loaded successfully');
-      
+
     } catch (error: any) {
       console.error('❌ Failed to load business settings:', error);
       setError('Failed to load business settings from backend. Using fallback data.');
@@ -312,9 +312,9 @@ export default function SegmentationDetailModal({
   const loadColumnsForTable = async (tableName: string) => {
     try {
       console.log(`🔄 Loading columns for table: ${tableName}`);
-      
+
       const result = await api.banking.segmentation.getBusinessSettingsColumns(tableName);
-      
+
       if (result.success && result.data) {
         setBusinessSettings(prev => ({
           ...prev,
@@ -331,13 +331,13 @@ export default function SegmentationDetailModal({
           { value: 'origination_date', text: 'Origination Date' },
           { value: 'current_stage', text: 'Current Stage' }
         ];
-        
+
         setBusinessSettings(prev => ({
           ...prev,
           columns: fallbackColumns
         }));
       }
-      
+
     } catch (error: any) {
       console.error('❌ Failed to load columns:', error);
     }
@@ -346,19 +346,19 @@ export default function SegmentationDetailModal({
   const loadOperatorsForDataType = async (tableName: string, columnName: string) => {
     try {
       console.log(`🔄 Loading data type and operators for ${tableName}.${columnName}`);
-      
+
       const [dataTypeResult, operatorsResult] = await Promise.all([
         api.banking.segmentation.getBusinessSettingsDataType(tableName, columnName),
         api.banking.segmentation.getBusinessSettingsOperators('VARCHAR') // Default to VARCHAR
       ]);
-      
+
       if (dataTypeResult.success) {
         setFormData(prev => ({
           ...prev,
           data_type: dataTypeResult.data.dataType || 'VARCHAR'
         }));
       }
-      
+
       if (operatorsResult.success && operatorsResult.data) {
         setBusinessSettings(prev => ({
           ...prev,
@@ -380,13 +380,13 @@ export default function SegmentationDetailModal({
           { value: 'IS NULL', text: 'Is Null' },
           { value: 'IS NOT NULL', text: 'Is Not Null' }
         ];
-        
+
         setBusinessSettings(prev => ({
           ...prev,
           operators: fallbackOperators
         }));
       }
-      
+
     } catch (error: any) {
       console.error('❌ Failed to load operators:', error);
     }
@@ -395,9 +395,9 @@ export default function SegmentationDetailModal({
   const loadValuesForColumn = async (tableName: string, columnName: string) => {
     try {
       console.log(`🔄 Loading values for ${tableName}.${columnName}`);
-      
+
       const result = await api.banking.segmentation.getBusinessSettingsValues(tableName, columnName);
-      
+
       if (result.success && result.data) {
         setBusinessSettings(prev => ({
           ...prev,
@@ -405,7 +405,7 @@ export default function SegmentationDetailModal({
         }));
       } else {
         // Fallback values based on column
-        let fallbackValues = [];
+        let fallbackValues: Array<{ value: string, text: string }> = [];
         if (columnName === 'product_type') {
           fallbackValues = [
             { value: 'MORTGAGE', text: 'Mortgage' },
@@ -421,13 +421,13 @@ export default function SegmentationDetailModal({
             { value: '3', text: 'Stage 3' }
           ];
         }
-        
+
         setBusinessSettings(prev => ({
           ...prev,
           values: fallbackValues
         }));
       }
-      
+
     } catch (error: any) {
       console.error('❌ Failed to load values:', error);
     }
@@ -491,13 +491,13 @@ export default function SegmentationDetailModal({
     try {
       setLoading(true);
       console.log('🗑️ Deleting segmentation detail:', detail.pkid);
-      
+
       await api.banking.segmentation.deleteDetail(detail.pkid);
-      
+
       console.log('✅ Segmentation detail deleted successfully');
       setSuccess('Detail rule deleted successfully');
       await loadDetails(); // Reload details
-      
+
     } catch (error: any) {
       console.error('❌ Failed to delete segmentation detail:', error);
       const errorInfo = handleAPIError(error);
@@ -509,14 +509,14 @@ export default function SegmentationDetailModal({
 
   const handleSaveDetail = async () => {
     // Validate required fields
-    const errors = [];
-    
+    const errors: string[] = [];
+
     if (!formData.table_name) errors.push('Table Name is required');
     if (!formData.column_name) errors.push('Column Name is required');
     if (!formData.operator) errors.push('Operator is required');
     if (!formData.query_group) errors.push('Query Group is required');
     if (!formData.seq) errors.push('Sequence is required');
-    
+
     if (errors.length > 0) {
       setError(errors.join(', '));
       return;
@@ -525,11 +525,11 @@ export default function SegmentationDetailModal({
     try {
       setLoading(true);
       setError(null);
-      
+
       // Prepare payload based on operator and data type
       let value1 = formData.value1;
       let value2 = formData.value2;
-      
+
       if (formData.data_type.toLowerCase() === 'bit' || formData.data_type.toLowerCase() === 'boolean') {
         value1 = formData.value1_bool;
         value2 = '';
@@ -540,7 +540,7 @@ export default function SegmentationDetailModal({
         value1 = formData.value1_in.join(',');
         value2 = '';
       }
-      
+
       const payload = {
         query_group: Number(formData.query_group),
         seq: Number(formData.seq),
@@ -552,7 +552,7 @@ export default function SegmentationDetailModal({
         value2,
         condition: formData.condition
       };
-      
+
       if (isEditMode && selectedDetail) {
         // Update existing detail
         console.log('✏️ Updating segmentation detail:', payload);
@@ -564,10 +564,10 @@ export default function SegmentationDetailModal({
         await api.banking.segmentation.createDetail(header.pkid, payload);
         setSuccess('Detail rule created successfully');
       }
-      
+
       setDetailDialogOpen(false);
       await loadDetails(); // Reload details
-      
+
     } catch (error: any) {
       console.error('❌ Failed to save segmentation detail:', error);
       const errorInfo = handleAPIError(error);
@@ -589,7 +589,7 @@ export default function SegmentationDetailModal({
       value2: '',
       value1_in: []
     }));
-    
+
     if (tableName) {
       await loadColumnsForTable(tableName);
     }
@@ -605,7 +605,7 @@ export default function SegmentationDetailModal({
       value2: '',
       value1_in: []
     }));
-    
+
     if (columnName && formData.table_name) {
       await loadOperatorsForDataType(formData.table_name, columnName);
     }
@@ -619,7 +619,7 @@ export default function SegmentationDetailModal({
       value2: '',
       value1_in: []
     }));
-    
+
     if ((operator === 'IN' || operator === 'NOT IN') && formData.table_name && formData.column_name) {
       await loadValuesForColumn(formData.table_name, formData.column_name);
     }
@@ -665,10 +665,10 @@ export default function SegmentationDetailModal({
       headerName: 'Data Type',
       width: 100,
       renderCell: (params) => (
-        <Typography variant="caption" sx={{ 
-          px: 1, 
-          py: 0.5, 
-          bgcolor: 'grey.100', 
+        <Typography variant="caption" sx={{
+          px: 1,
+          py: 0.5,
+          bgcolor: 'grey.100',
           borderRadius: 1,
           fontFamily: 'monospace'
         }}>
@@ -691,7 +691,7 @@ export default function SegmentationDetailModal({
       headerName: 'Value 1',
       width: 150,
       renderCell: (params) => (
-        <Typography variant="body2" sx={{ 
+        <Typography variant="body2" sx={{
           maxWidth: '100%',
           overflow: 'hidden',
           textOverflow: 'ellipsis'
@@ -705,7 +705,7 @@ export default function SegmentationDetailModal({
       headerName: 'Value 2',
       width: 150,
       renderCell: (params) => (
-        <Typography variant="body2" sx={{ 
+        <Typography variant="body2" sx={{
           maxWidth: '100%',
           overflow: 'hidden',
           textOverflow: 'ellipsis'
@@ -719,11 +719,11 @@ export default function SegmentationDetailModal({
       headerName: 'Condition',
       width: 100,
       renderCell: (params) => (
-        <Chip 
-          label={params.value || 'AND'} 
-          color={params.value === 'OR' ? 'warning' : 'success'} 
-          variant="outlined" 
-          size="small" 
+        <Chip
+          label={params.value || 'AND'}
+          color={params.value === 'OR' ? 'warning' : 'success'}
+          variant="outlined"
+          size="small"
         />
       )
     },
@@ -832,15 +832,23 @@ export default function SegmentationDetailModal({
             <DatePicker
               label="Start Date"
               value={formData.value1_date}
-              onChange={(date) => setFormData(prev => ({ ...prev, value1_date: date }))}
-              renderInput={(params) => <TextField {...params} fullWidth />}
+              onChange={(date: any) => {
+                setFormData(prev => ({
+                  ...prev,
+                  value1_date: date ? (date.toDate ? date.toDate() : date) : null
+                }));
+              }}
             />
             {operator === 'BETWEEN' && (
               <DatePicker
                 label="End Date"
                 value={formData.value2_date}
-                onChange={(date) => setFormData(prev => ({ ...prev, value2_date: date }))}
-                renderInput={(params) => <TextField {...params} fullWidth />}
+                onChange={(date: any) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    value2_date: date ? (date.toDate ? date.toDate() : date) : null
+                  }));
+                }}
               />
             )}
           </Box>
@@ -879,10 +887,10 @@ export default function SegmentationDetailModal({
   return (
     <>
       {/* Main Detail Modal */}
-      <Dialog 
-        open={open} 
-        onClose={onClose} 
-        maxWidth="xl" 
+      <Dialog
+        open={open}
+        onClose={onClose}
+        maxWidth="xl"
         fullWidth
         PaperProps={{ sx: { height: '90vh' } }}
       >
@@ -925,37 +933,37 @@ export default function SegmentationDetailModal({
                     <List>
                       <ListItem>
                         <ListItemIcon><SettingsIcon /></ListItemIcon>
-                        <ListItemText 
-                          primary="Group Segment" 
-                          secondary={header?.group_segment || '-'} 
+                        <ListItemText
+                          primary="Group Segment"
+                          secondary={header?.group_segment || '-'}
                         />
                       </ListItem>
                       <ListItem>
                         <ListItemIcon><TableIcon /></ListItemIcon>
-                        <ListItemText 
-                          primary="Segment" 
-                          secondary={header?.segment || '-'} 
+                        <ListItemText
+                          primary="Segment"
+                          secondary={header?.segment || '-'}
                         />
                       </ListItem>
                       <ListItem>
                         <ListItemIcon><ColumnIcon /></ListItemIcon>
-                        <ListItemText 
-                          primary="Sub Segment" 
-                          secondary={header?.sub_segment || '-'} 
+                        <ListItemText
+                          primary="Sub Segment"
+                          secondary={header?.sub_segment || '-'}
                         />
                       </ListItem>
                       <ListItem>
                         <ListItemIcon><ValueIcon /></ListItemIcon>
-                        <ListItemText 
-                          primary="Segment Type" 
-                          secondary={header?.segment_type || '-'} 
+                        <ListItemText
+                          primary="Segment Type"
+                          secondary={header?.segment_type || '-'}
                         />
                       </ListItem>
                     </List>
                   </CardContent>
                 </Card>
               </Grid>
-              
+
               <Grid item xs={12} md={6}>
                 <Card>
                   <CardHeader title="Configuration Summary" />
@@ -963,29 +971,29 @@ export default function SegmentationDetailModal({
                     <List>
                       <ListItem>
                         <ListItemIcon><ViewIcon /></ListItemIcon>
-                        <ListItemText 
-                          primary="Total Rules" 
-                          secondary={`${details.length} detail rules configured`} 
+                        <ListItemText
+                          primary="Total Rules"
+                          secondary={`${details.length} detail rules configured`}
                         />
                       </ListItem>
                       <ListItem>
                         <ListItemIcon><DateIcon /></ListItemIcon>
-                        <ListItemText 
-                          primary="Last Updated" 
-                          secondary={header?.updateddate ? new Date(header.updateddate).toLocaleDateString() : 'Never'} 
+                        <ListItemText
+                          primary="Last Updated"
+                          secondary={header?.updateddate ? new Date(header.updateddate).toLocaleDateString() : 'Never'}
                         />
                       </ListItem>
                       <ListItem>
                         <ListItemIcon><SettingsIcon /></ListItemIcon>
-                        <ListItemText 
-                          primary="Status" 
+                        <ListItemText
+                          primary="Status"
                           secondary={
-                            <Chip 
-                              label={header?.active_flag ? 'Active' : 'Inactive'} 
-                              color={header?.active_flag ? 'success' : 'default'} 
-                              size="small" 
+                            <Chip
+                              label={header?.active_flag ? 'Active' : 'Inactive'}
+                              color={header?.active_flag ? 'success' : 'default'}
+                              size="small"
                             />
-                          } 
+                          }
                         />
                       </ListItem>
                     </List>
@@ -1035,10 +1043,10 @@ export default function SegmentationDetailModal({
       </Dialog>
 
       {/* Detail Rule Create/Edit Dialog */}
-      <Dialog 
-        open={detailDialogOpen} 
-        onClose={() => setDetailDialogOpen(false)} 
-        maxWidth="md" 
+      <Dialog
+        open={detailDialogOpen}
+        onClose={() => setDetailDialogOpen(false)}
+        maxWidth="md"
         fullWidth
       >
         <DialogTitle>
@@ -1167,8 +1175,8 @@ export default function SegmentationDetailModal({
           <Button onClick={() => setDetailDialogOpen(false)} startIcon={<CancelIcon />}>
             Cancel
           </Button>
-          <Button 
-            onClick={handleSaveDetail} 
+          <Button
+            onClick={handleSaveDetail}
             variant="contained"
             disabled={loading || !formData.table_name || !formData.column_name || !formData.operator}
             startIcon={loading ? <CircularProgress size={16} /> : <SaveIcon />}
@@ -1179,9 +1187,9 @@ export default function SegmentationDetailModal({
       </Dialog>
 
       {/* Success/Error Snackbars */}
-      <Snackbar 
-        open={!!success} 
-        autoHideDuration={4000} 
+      <Snackbar
+        open={!!success}
+        autoHideDuration={4000}
         onClose={() => setSuccess(null)}
         anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
@@ -1190,9 +1198,9 @@ export default function SegmentationDetailModal({
         </Alert>
       </Snackbar>
 
-      <Snackbar 
-        open={!!error} 
-        autoHideDuration={6000} 
+      <Snackbar
+        open={!!error}
+        autoHideDuration={6000}
         onClose={() => setError(null)}
         anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
       >

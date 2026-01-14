@@ -219,7 +219,7 @@ export default function JournalParametersPage() {
       if (filterActive === 'active') params.active_only = true;
       else if (filterActive === 'inactive') params.active_only = false;
 
-      const result = await api.banking.journalParameters.getAll(params);
+      const result = await api.banking.journalParameters.getAll();
 
       if (result.success && result.data) {
         console.log('✅ Successfully loaded journal data:', result.data.length, 'parameters');

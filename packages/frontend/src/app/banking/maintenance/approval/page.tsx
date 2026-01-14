@@ -175,7 +175,7 @@ export default function ApprovalManagementPage() {
       console.log('Approval response:', response);
 
       // Handle different response formats
-      let requestsData = [];
+      let requestsData: any[] = [];
       if (Array.isArray(response)) {
         requestsData = response;
       } else if (response && Array.isArray(response.data)) {

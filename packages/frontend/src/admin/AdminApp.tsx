@@ -33,12 +33,11 @@ import { UserResource } from './resources/users/UserResource';
 import { RoleResource } from './resources/roles/RoleResource';
 import { PermissionResource } from './resources/permissions/PermissionResource';
 import { MenuResource } from './resources/menus/MenuResource';
-import { TenantResource } from './resources/tenants/TenantResource';
 import { PortfolioResource } from './resources/portfolios/PortfolioResource';
 import { AccountResource } from './resources/accounts/AccountResource';
 import { CalculationResource } from './resources/CalculationResource';
-import { ConfigurationResource } from './resources/ConfigurationResource';
-import { CustomerResource } from './resources/CustomerResource';
+import { ConfigurationResource } from './resources/configurations/ConfigurationResource';
+import { CustomerResource } from './resources/customers/CustomerResource';
 import { ProductParameterResource } from './resources/parameters/ProductParameterResource';
 
 // Enhanced Banking Resources
@@ -118,7 +117,11 @@ const getBankingTheme = (mode: 'conventional' | 'syariah' = 'conventional') => {
   return mode === 'syariah' ? syariahTheme : conventionalTheme;
 };
 
-const AdminApp: React.FC = () => {
+interface AdminAppProps {
+  tenantConfig?: any;
+}
+
+const AdminApp: React.FC<AdminAppProps> = ({ tenantConfig }) => {
   // In a real app, this would come from Redux/Context
   const currentBankingMode: 'conventional' | 'syariah' = 'conventional';
   const theme = createTheme(getBankingTheme(currentBankingMode));
@@ -139,39 +142,39 @@ const AdminApp: React.FC = () => {
         {/* Core Platform Resources */}
         <Resource
           name="users"
-          list={UserResource.List}
-          edit={UserResource.Edit}
-          create={UserResource.Create}
-          show={UserResource.Show}
+          list={UserResource.list}
+          edit={UserResource.edit}
+          create={UserResource.create}
+          show={UserResource.show}
           icon={PeopleIcon}
           options={{ label: 'Users' }}
         />
 
         <Resource
           name="roles"
-          list={RoleResource.List}
-          edit={RoleResource.Edit}
-          create={RoleResource.Create}
+          list={RoleResource.list}
+          edit={RoleResource.edit}
+          create={RoleResource.create}
           icon={SecurityIcon}
           options={{ label: 'Roles & Permissions' }}
         />
 
         <Resource
           name="permissions"
-          list={PermissionResource.List}
-          edit={PermissionResource.Edit}
-          create={PermissionResource.Create}
-          show={PermissionResource.Show}
+          list={PermissionResource.list}
+          edit={PermissionResource.edit}
+          create={PermissionResource.create}
+          show={PermissionResource.show}
           icon={SecurityIcon}
           options={{ label: 'Permissions' }}
         />
 
         <Resource
           name="menus"
-          list={MenuResource.List}
-          edit={MenuResource.Edit}
-          create={MenuResource.Create}
-          show={MenuResource.Show}
+          list={MenuResource.list}
+          edit={MenuResource.edit}
+          create={MenuResource.create}
+          show={MenuResource.show}
           icon={SettingsIcon}
           options={{ label: 'Menu Management' }}
         />
@@ -189,10 +192,7 @@ const AdminApp: React.FC = () => {
         {/* Banking & IFRS 9 Resources */}
         <Resource
           name="portfolios"
-          list={PortfolioResource.List}
-          edit={PortfolioResource.Edit}
-          create={PortfolioResource.Create}
-          show={PortfolioResource.Show}
+          list={PortfolioResource.list}
           icon={AccountBalanceIcon}
           options={{ label: 'Portfolios' }}
         />
@@ -200,10 +200,10 @@ const AdminApp: React.FC = () => {
         {/* Enhanced Banking Resources */}
         <Resource
           name="portfolio-accounts"
-          list={EnhancedPortfolioAccountResource.List}
-          edit={EnhancedPortfolioAccountResource.Edit}
-          create={EnhancedPortfolioAccountResource.Create}
-          show={EnhancedPortfolioAccountResource.Show}
+          list={EnhancedPortfolioAccountResource.list}
+          edit={EnhancedPortfolioAccountResource.edit}
+          create={EnhancedPortfolioAccountResource.create}
+          show={EnhancedPortfolioAccountResource.show}
           icon={AccountBalanceIcon}
           options={{ label: 'Portfolio Accounts (Enhanced)' }}
         />
@@ -240,38 +240,34 @@ const AdminApp: React.FC = () => {
 
         <Resource
           name="accounts"
-          list={AccountResource.List}
-          edit={AccountResource.Edit}
-          create={AccountResource.Create}
+          list={AccountResource.list}
           icon={AccountBalanceIcon}
           options={{ label: 'Portfolio Accounts (Legacy)' }}
         />
 
         <Resource
           name="customers"
-          list={CustomerResource.List}
-          edit={CustomerResource.Edit}
-          create={CustomerResource.Create}
-          show={CustomerResource.Show}
+          list={CustomerResource.list}
+          edit={CustomerResource.edit}
+          create={CustomerResource.create}
+          show={CustomerResource.show}
           icon={PeopleIcon}
           options={{ label: 'Customers (Legacy)' }}
         />
 
         <Resource
           name="calculations"
-          list={CalculationResource.List}
-          edit={CalculationResource.Edit}
-          create={CalculationResource.Create}
-          show={CalculationResource.Show}
+          list={CalculationResource.list}
+          edit={CalculationResource.edit}
+          create={CalculationResource.create}
+          show={CalculationResource.show}
           icon={CalculateIcon}
           options={{ label: 'ECL Calculations' }}
         />
 
         <Resource
           name="configurations"
-          list={ConfigurationResource.List}
-          edit={ConfigurationResource.Edit}
-          create={ConfigurationResource.Create}
+          list={ConfigurationResource.list}
           icon={SettingsIcon}
           options={{ label: 'IFRS 9 Configuration' }}
         />

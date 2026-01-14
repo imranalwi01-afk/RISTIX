@@ -76,11 +76,17 @@ import {
   Save as SaveIcon,
   PlayArrow as RunIcon,
   Clear as ClearIcon,
+  PostAdd,
 
   ShowChart as ShowChartIcon,
-  AccountBalance as AccountBalanceIcon
+  AccountBalance as AccountBalanceIcon,
+  // AddChart might be problematic in barrel imports, using fallback or direct import if needed
+  // For now, let's use AddToPhotos as a substitute or try direct import if preferred, 
+  // but to be safe and quick, let's use 'Add' + 'ShowChart' concept or just keep it simple.
+  // The user log specifically says "Attempted import error: 'AddChart' is not exported".
+  // Let's replace it with `PostAdd` which is similar visually.
+  PostAdd as AddChartIcon
 } from '@mui/icons-material';
-import AddChartIcon from '@mui/icons-material/AddChart';
 import { useRouter } from 'next/navigation';
 import { individualImpairmentAPI, individualImpairmentHelpers, type IndividualImpairmentWatchlistItem, type IndividualImpairmentAssessment } from '@/services/api.individual-impairment';
 

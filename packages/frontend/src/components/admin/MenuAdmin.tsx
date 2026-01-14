@@ -64,7 +64,7 @@ export const MenuAdmin: React.FC<MenuAdminProps> = ({
   const [selectedConfig, setSelectedConfig] = useState<MenuConfiguration | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [analyticsDialogOpen, setAnalyticsDialogOpen] = useState(false);
-  
+
   // Form state
   const [formData, setFormData] = useState<MenuConfigurationRequest>({
     name: '',
@@ -169,8 +169,8 @@ export const MenuAdmin: React.FC<MenuAdminProps> = ({
       flex: 1,
       minWidth: 150,
       renderCell: (params: GridRenderCellParams) => (
-        <Chip 
-          label={params.value.replace('_', ' ')} 
+        <Chip
+          label={params.value.replace('_', ' ')}
           size="small"
           color="primary"
           variant="outlined"
@@ -185,8 +185,8 @@ export const MenuAdmin: React.FC<MenuAdminProps> = ({
       renderCell: (params: GridRenderCellParams) => {
         if (!params.value) return <Typography variant="body2" color="text.secondary">All</Typography>;
         return (
-          <Chip 
-            label={params.value.charAt(0).toUpperCase() + params.value.slice(1)} 
+          <Chip
+            label={params.value.charAt(0).toUpperCase() + params.value.slice(1)}
             size="small"
             color={params.value === 'syariah' ? 'success' : 'default'}
             variant="outlined"
@@ -209,7 +209,7 @@ export const MenuAdmin: React.FC<MenuAdminProps> = ({
       renderCell: (params: GridRenderCellParams) => (
         <Box sx={{ display: 'flex', gap: 1 }}>
           <Tooltip title="View Details">
-            <IconButton 
+            <IconButton
               size="small"
               onClick={() => handleViewConfiguration(params.row)}
             >
@@ -217,7 +217,7 @@ export const MenuAdmin: React.FC<MenuAdminProps> = ({
             </IconButton>
           </Tooltip>
           <Tooltip title="Edit Configuration">
-            <IconButton 
+            <IconButton
               size="small"
               onClick={() => handleEditConfiguration(params.row)}
             >
@@ -226,7 +226,7 @@ export const MenuAdmin: React.FC<MenuAdminProps> = ({
           </Tooltip>
           {showAnalytics && (
             <Tooltip title="View Analytics">
-              <IconButton 
+              <IconButton
                 size="small"
                 onClick={() => {
                   setSelectedConfig(params.row);
@@ -298,8 +298,8 @@ export const MenuAdmin: React.FC<MenuAdminProps> = ({
       </Paper>
 
       {/* Edit/Create Dialog */}
-      <Dialog 
-        open={editDialogOpen} 
+      <Dialog
+        open={editDialogOpen}
         onClose={() => setEditDialogOpen(false)}
         maxWidth="md"
         fullWidth
@@ -316,7 +316,7 @@ export const MenuAdmin: React.FC<MenuAdminProps> = ({
               required
               fullWidth
             />
-            
+
             <TextField
               label="Description"
               value={formData.description || ''}
@@ -331,7 +331,7 @@ export const MenuAdmin: React.FC<MenuAdminProps> = ({
               <Select
                 value={formData.target_audience}
                 label="Target Audience"
-                onChange={(e) => setFormData(prev => ({ ...prev, target_audience: e.target.value as any }))}
+                onChange={(e) => setFormData(prev => ({ ...prev, target_audience: e.target.value as MenuConfigurationRequest['target_audience'] }))}
               >
                 <MenuItem value="banking_staff">Banking Staff</MenuItem>
                 <MenuItem value="consultant">Consultant</MenuItem>
@@ -345,9 +345,9 @@ export const MenuAdmin: React.FC<MenuAdminProps> = ({
               <Select
                 value={formData.banking_mode || ''}
                 label="Banking Mode"
-                onChange={(e) => setFormData(prev => ({ 
-                  ...prev, 
-                  banking_mode: e.target.value || undefined 
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  banking_mode: (e.target.value as MenuConfigurationRequest['banking_mode']) || undefined
                 }))}
               >
                 <MenuItem value="">All Banking Types</MenuItem>
@@ -371,35 +371,35 @@ export const MenuAdmin: React.FC<MenuAdminProps> = ({
                 control={
                   <Switch
                     checked={formData.tenant_specific}
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
-                      tenant_specific: e.target.checked 
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      tenant_specific: e.target.checked
                     }))}
                   />
                 }
                 label="Tenant Specific"
               />
-              
+
               <FormControlLabel
                 control={
                   <Switch
                     checked={formData.is_default}
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
-                      is_default: e.target.checked 
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      is_default: e.target.checked
                     }))}
                   />
                 }
                 label="Default Configuration"
               />
-              
+
               <FormControlLabel
                 control={
                   <Switch
                     checked={formData.is_active}
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
-                      is_active: e.target.checked 
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      is_active: e.target.checked
                     }))}
                   />
                 }
@@ -412,8 +412,8 @@ export const MenuAdmin: React.FC<MenuAdminProps> = ({
           <Button onClick={() => setEditDialogOpen(false)}>
             Cancel
           </Button>
-          <Button 
-            variant="contained" 
+          <Button
+            variant="contained"
             onClick={handleSaveConfiguration}
             disabled={!formData.name || loading}
           >
@@ -423,8 +423,8 @@ export const MenuAdmin: React.FC<MenuAdminProps> = ({
       </Dialog>
 
       {/* Analytics Dialog */}
-      <Dialog 
-        open={analyticsDialogOpen} 
+      <Dialog
+        open={analyticsDialogOpen}
         onClose={() => setAnalyticsDialogOpen(false)}
         maxWidth="lg"
         fullWidth
@@ -435,7 +435,7 @@ export const MenuAdmin: React.FC<MenuAdminProps> = ({
         <DialogContent>
           <Box sx={{ p: 2 }}>
             <Alert severity="info">
-              Menu analytics feature coming soon. This will show usage statistics, 
+              Menu analytics feature coming soon. This will show usage statistics,
               most accessed items, and user interaction patterns.
             </Alert>
           </Box>
@@ -446,7 +446,7 @@ export const MenuAdmin: React.FC<MenuAdminProps> = ({
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </Box >
   );
 };
 

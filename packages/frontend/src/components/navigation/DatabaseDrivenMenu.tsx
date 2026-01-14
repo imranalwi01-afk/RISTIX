@@ -38,7 +38,7 @@ import {
   Business as BusinessIcon,
   MonitorHeart as MonitorHeartIcon,
   Analytics as AnalyticsIcon,
-  Consulting as ConsultingIcon,
+  Handshake as ConsultingIcon,
   FolderOpen as FolderOpenIcon,
   School as SchoolIcon,
   Gavel as GavelIcon,
@@ -46,12 +46,15 @@ import {
   FactCheck as FactCheckIcon,
   Verified as VerifiedIcon
 } from '@mui/icons-material';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useRouter, usePathname } from 'next/navigation';
 import { useSelector, useDispatch } from 'react-redux';
-import { fetchUserMenu, selectMenuState } from '../../store/slices/menuSlice';
-import { selectAuthState } from '../../store/slices/authSlice';
-import { selectTenantState } from '../../store/slices/tenantSlice';
-import { logMenuAccess } from '../../services/api/menu.api';
+import {
+  fetchUserMenu,
+  selectMenuState,
+  logMenuAccess
+} from '@/store/slices/menuSlice';
+import { selectAuthState, RootState } from '@/store';
+import { menuApi } from '@/services/api/menu.api';
 
 // Icon mapping for menu items
 const ICON_MAP: Record<string, React.ComponentType<any>> = {
@@ -115,20 +118,33 @@ export const DatabaseDrivenMenu: React.FC<DatabaseDrivenMenuProps> = ({
   showUserContext = true,
   enableAnalytics = true
 }) => {
-  const navigate = useNavigate();
-  const location = useLocation();
+  const router = useRouter();
+  const pathname = usePathname();
   const dispatch = useDispatch();
 
   // Redux state
-  const { user, isAuthenticated } = useSelector(selectAuthState);
-  const { currentTenant } = useSelector(selectTenantState);
-  const { 
-    menuConfiguration, 
-    menuItems, 
-    loading, 
+  const auth = useSelector((state: RootState) => state.auth);
+  const { user, isAuthenticated, tenantId, tenantSlug, bankingMode } = auth || {};
+
+  // Synthesize tenant context from auth state since tenantSlice is missing
+  const currentTenant = useMemo(() => {
+    if (!tenantId && !tenantSlug) return null;
+    return {
+      id: tenantId,
+      slug: tenantSlug,
+      name: user?.company || tenantSlug || 'Tenant',
+      banking_type: bankingMode || user?.bankingType || 'conventional'
+    };
+  }, [tenantId, tenantSlug, user, bankingMode]);
+
+  const menuState = useSelector(selectMenuState);
+  const {
+    menuConfiguration,
+    menuItems,
+    loading,
     error,
-    lastFetched 
-  } = useSelector(selectMenuState);
+    lastFetched
+  } = menuState || {};
 
   // Local state
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
@@ -143,7 +159,7 @@ export const DatabaseDrivenMenu: React.FC<DatabaseDrivenMenuProps> = ({
 
   // Auto-expand current menu item
   useEffect(() => {
-    if (menuItems && location.pathname) {
+    if (menuItems && pathname) {
       const expandPath = (items: MenuItem[], path: string): void => {
         items.forEach(item => {
           if (item.url === path && item.type === 'item') {
@@ -167,29 +183,29 @@ export const DatabaseDrivenMenu: React.FC<DatabaseDrivenMenuProps> = ({
             const parentIds = findParents(menuItems, item.id);
             setExpandedItems(prev => new Set([...prev, ...parentIds]));
           }
-          
+
           if (item.children) {
             expandPath(item.children, path);
           }
         });
       };
 
-      expandPath(menuItems, location.pathname);
+      expandPath(menuItems, pathname);
     }
-  }, [menuItems, location.pathname]);
+  }, [menuItems, pathname]);
 
   // Track access start time for analytics
   useEffect(() => {
     if (enableAnalytics) {
       setAccessStartTime(Date.now());
     }
-  }, [location.pathname, enableAnalytics]);
+  }, [pathname, enableAnalytics]);
 
   // Memoized menu items rendering
   const renderedMenuItems = useMemo(() => {
     if (!menuItems) return null;
     return renderMenuItems(menuItems, 0);
-  }, [menuItems, expandedItems, location.pathname]);
+  }, [menuItems, expandedItems, pathname]);
 
   // Handle menu item click
   const handleMenuItemClick = async (item: MenuItem) => {
@@ -198,11 +214,11 @@ export const DatabaseDrivenMenu: React.FC<DatabaseDrivenMenuProps> = ({
     // Log analytics if enabled
     if (enableAnalytics && accessStartTime) {
       try {
-        await logMenuAccess({
+        dispatch(logMenuAccess({
           menu_item_id: item.id,
           accessed_url: item.url,
           response_time: Date.now() - accessStartTime
-        });
+        }) as any);
       } catch (error) {
         console.warn('Failed to log menu access:', error);
       }
@@ -212,7 +228,7 @@ export const DatabaseDrivenMenu: React.FC<DatabaseDrivenMenuProps> = ({
     if (item.external) {
       window.open(item.url, item.target || '_blank');
     } else {
-      navigate(item.url);
+      router.push(item.url);
       if (variant === 'temporary' && onClose) {
         onClose();
       }
@@ -288,13 +304,13 @@ export const DatabaseDrivenMenu: React.FC<DatabaseDrivenMenuProps> = ({
       }
 
       // Menu item
-      const isActive = location.pathname === item.url;
+      const isActive = pathname === item.url;
       const IconComponent = item.icon ? getMenuIcon(item.icon) : null;
 
       return (
         <ListItem key={item.id} disablePadding sx={{ pl: depth * 2 }}>
-          <Tooltip 
-            title={item.description || item.title} 
+          <Tooltip
+            title={item.description || item.title}
             placement="right"
             arrow
           >
@@ -403,11 +419,11 @@ export const DatabaseDrivenMenu: React.FC<DatabaseDrivenMenuProps> = ({
           }
         }}
       >
-        <Box sx={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center', 
-          height: '100%' 
+        <Box sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100%'
         }}>
           <CircularProgress size={40} />
         </Box>
@@ -455,7 +471,7 @@ export const DatabaseDrivenMenu: React.FC<DatabaseDrivenMenuProps> = ({
       }}
     >
       {renderUserContext()}
-      
+
       <Box sx={{ overflow: 'auto', flex: 1 }}>
         <List sx={{ px: 1, py: 2 }}>
           {renderedMenuItems}

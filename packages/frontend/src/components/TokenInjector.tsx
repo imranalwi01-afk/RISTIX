@@ -14,17 +14,19 @@ import { useSelector } from 'react-redux';
 import type { RootState } from '../store';
 
 export const TokenInjector: React.FC = () => {
-  const { token, isAuthenticated } = useSelector((state: RootState) => state.auth);
+  const auth = useSelector((state: RootState) => state.auth);
+  const token = auth?.token;
+  const isAuthenticated = auth?.isAuthenticated;
 
   useEffect(() => {
     console.log('🔐 TokenInjector: Auth state changed', { isAuthenticated, hasToken: !!token });
-    
+
     if (isAuthenticated && token) {
       try {
         // ✅ SURGICAL FIX: Set cookie that middleware can access
         const isSecure = typeof window !== 'undefined' && window.location.protocol === 'https:';
         const cookieValue = `auth-token=${token}; path=/; ${isSecure ? 'secure;' : ''} samesite=strict; max-age=${7 * 24 * 60 * 60}`;
-        
+
         document.cookie = cookieValue;
         console.log('✅ Token cookie set for middleware access');
       } catch (error) {
@@ -73,12 +75,12 @@ export const TokenInjector: React.FC = () => {
     const originalPushState = history.pushState;
     const originalReplaceState = history.replaceState;
 
-    history.pushState = function(...args) {
+    history.pushState = function (...args) {
       ensureCookieOnNavigation();
       return originalPushState.apply(this, args);
     };
 
-    history.replaceState = function(...args) {
+    history.replaceState = function (...args) {
       ensureCookieOnNavigation();
       return originalReplaceState.apply(this, args);
     };

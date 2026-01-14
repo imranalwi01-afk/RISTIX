@@ -46,22 +46,7 @@ import BucketParameterModal from '@/components/banking/setup/BucketParameterModa
 // INTERFACES
 // ============================================================================
 
-interface BucketParameterHeader {
-  id: number;
-  bucket_name: string;
-  bucket_description?: string;
-  bucket_type: 'AGING' | 'RATING' | 'AMOUNT' | 'CUSTOM';
-  min_range?: number;
-  max_range?: number;
-  range_unit?: 'DAYS' | 'MONTHS' | 'YEARS' | 'AMOUNT' | 'SCORE';
-  active_flag: boolean;
-  seq?: number;
-  detail_count?: number;
-  created_by?: string;
-  created_date?: string;
-  updated_by?: string;
-  updated_date?: string;
-}
+import type { BucketParameterHeader } from '@/services/api.bucketparameter';
 
 // ============================================================================
 // BUCKET PARAMETER PAGE COMPONENT
@@ -77,7 +62,7 @@ export default function BucketParameterPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create');
   const [selectedHeader, setSelectedHeader] = useState<BucketParameterHeader | null>(null);
-  
+
   // Pagination state
   const [paginationModel, setPaginationModel] = useState({
     page: 0,
@@ -101,7 +86,7 @@ export default function BucketParameterPage() {
 
       if (response.success) {
         setData(response.data || []);
-        setRowCount(response.pagination?.total || 0);
+        setRowCount(response.data?.length || 0);
       } else {
         throw new Error(response.error || 'Failed to load bucket parameters');
       }
@@ -141,13 +126,14 @@ export default function BucketParameterPage() {
   };
 
   const handleDelete = async (header: BucketParameterHeader) => {
-    if (!confirm(`Are you sure you want to delete bucket parameter "${header.bucket_name}"?\n\nThis will also delete all ${header.detail_count || 0} associated bucket ranges.`)) {
+    if (!confirm(`Are you sure you want to delete bucket parameter "${header.bucket_group}"?\n\nThis will also delete all ${header.details_count || 0} associated bucket ranges.`)) {
       return;
     }
 
     try {
+      if (!header.id) return;
       const response = await bucketParameterAPI.deleteHeader(header.id);
-      
+
       if (response.success) {
         enqueueSnackbar('Bucket parameter deleted successfully', { variant: 'success' });
         loadData();
@@ -179,33 +165,23 @@ export default function BucketParameterPage() {
   // GRID CONFIGURATION
   // ============================================================================
 
-  const getBucketTypeLabel = (type: string) => {
-    const typeLabels = {
-      'AGING': 'Aging (DPD)',
-      'RATING': 'Rating (Score)',
-      'AMOUNT': 'Amount (Size)',
-      'CUSTOM': 'Custom'
+  const getBasisLabel = (basis: string) => {
+    const basisLabels = {
+      'D': 'Day Past Due',
+      'R': 'Rating'
     };
-    return typeLabels[type as keyof typeof typeLabels] || type;
+    return basisLabels[basis as keyof typeof basisLabels] || basis;
   };
 
-  const getBucketTypeColor = (type: string) => {
-    const typeColors = {
-      'AGING': 'primary',
-      'RATING': 'secondary',
-      'AMOUNT': 'success',
-      'CUSTOM': 'warning'
+  const getBasisColor = (basis: string) => {
+    const basisColors = {
+      'D': 'primary',
+      'R': 'secondary'
     } as const;
-    return typeColors[type as keyof typeof typeColors] || 'default';
+    return basisColors[basis as keyof typeof basisColors] || 'default';
   };
 
-  const getRangeDisplay = (row: BucketParameterHeader) => {
-    if (row.min_range !== undefined && row.max_range !== undefined) {
-      const unit = row.range_unit ? ` ${row.range_unit.toLowerCase()}` : '';
-      return `${row.min_range}-${row.max_range}${unit}`;
-    }
-    return '-';
-  };
+  // Removed getRangeDisplay as API doesn't have range fields
 
   const columns: GridColDef[] = [
     {
@@ -216,67 +192,60 @@ export default function BucketParameterPage() {
       align: 'center'
     },
     {
-      field: 'bucket_name',
-      headerName: 'Bucket Name',
+      field: 'bucket_group',
+      headerName: 'Bucket Group',
       width: 200,
       headerAlign: 'left',
       align: 'left'
     },
     {
-      field: 'bucket_type',
-      headerName: 'Type',
-      width: 140,
-      headerAlign: 'center',
-      align: 'center',
-      renderCell: (params) => (
-        <Chip
-          label={getBucketTypeLabel(params.value)}
-          color={getBucketTypeColor(params.value)}
-          size="small"
-          icon={<BucketIcon />}
-        />
-      )
-    },
-    {
-      field: 'range_display',
-      headerName: 'Range',
-      width: 120,
-      headerAlign: 'center',
-      align: 'center',
-      valueGetter: (params) => getRangeDisplay(params.row)
-    },
-    {
-      field: 'detail_count',
-      headerName: 'Buckets',
-      width: 100,
-      headerAlign: 'center',
-      align: 'center',
-      renderCell: (params) => (
-        <Tooltip title={`${params.value || 0} bucket ranges configured`}>
-          <Chip
-            label={params.value || 0}
-            color={params.value > 0 ? 'success' : 'default'}
-            size="small"
-            icon={<RangeIcon />}
-          />
-        </Tooltip>
-      )
-    },
-    {
-      field: 'bucket_description',
+      field: 'bucket_group_desc',
       headerName: 'Description',
       width: 250,
       headerAlign: 'left',
       align: 'left',
       renderCell: (params) => (
         <Tooltip title={params.value || 'No description'}>
-          <Typography variant="body2" sx={{ 
-            overflow: 'hidden', 
+          <Typography variant="body2" sx={{
+            overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap'
           }}>
             {params.value || 'No description'}
           </Typography>
+        </Tooltip>
+      )
+    },
+    {
+      field: 'basis',
+      headerName: 'Basis',
+      width: 140,
+      headerAlign: 'center',
+      align: 'center',
+      renderCell: (params) => (
+        <Chip
+          label={getBasisLabel(params.value)}
+          color={getBasisColor(params.value)}
+          size="small"
+          icon={<BucketIcon />}
+        />
+      )
+
+    },
+    {
+      field: 'details_count',
+      headerName: 'Details',
+      width: 100,
+      headerAlign: 'center',
+      align: 'center',
+      renderCell: (params) => (
+        <Tooltip title={`${params.value || 0} bucket details configured`}>
+          <Chip
+            label={params.value || 0}
+            color={params.value > 0 ? 'success' : 'default'}
+            size="small"
+            icon={<RangeIcon />}
+          />
         </Tooltip>
       )
     },
@@ -394,7 +363,7 @@ export default function BucketParameterPage() {
           slotProps={{
             toolbar: {
               showQuickFilter: true,
-              quickFilterProps: { 
+              quickFilterProps: {
                 debounceMs: 500,
                 placeholder: 'Search bucket parameters...'
               }
@@ -416,7 +385,7 @@ export default function BucketParameterPage() {
       <BucketParameterModal
         open={modalOpen}
         mode={modalMode}
-        header={selectedHeader}
+        header={selectedHeader as any}
         onClose={handleModalClose}
         onSave={handleModalSave}
       />

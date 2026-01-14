@@ -42,7 +42,7 @@ interface ProductParameterData {
 // ==========================================
 
 export const productParameterDataProvider: DataProvider = {
-  
+
   // ==========================================
   // GET LIST - WITH FILTERING & PAGINATION
   // ==========================================
@@ -157,12 +157,12 @@ export const productParameterDataProvider: DataProvider = {
     } catch (error: any) {
       console.error('❌ [PROD-006B] DataProvider.create error:', error);
       const errorInfo = handleAPIError(error);
-      
+
       // Handle specific error cases
       if (errorInfo.message.includes('already exists')) {
         throw new Error('Product code already exists. Please use a different code.');
       }
-      
+
       throw new Error(`Failed to create product parameter: ${errorInfo.message}`);
     }
   },
@@ -213,7 +213,7 @@ export const productParameterDataProvider: DataProvider = {
 
         return {
           data: { id: params.id } // React Admin expects the deleted record
-        };
+        } as any;
       } else {
         throw new Error(result.message || 'Failed to delete product parameter');
       }
@@ -293,7 +293,7 @@ export const productParameterDataProvider: DataProvider = {
 
       // Delete each record individually
       // In a real implementation, you might want a bulk delete API endpoint
-      const deletePromises = params.ids.map(id => 
+      const deletePromises = params.ids.map(id =>
         api.banking.productParameters.delete(String(id))
       );
 
@@ -337,7 +337,7 @@ export const productParameterDataProvider: DataProvider = {
 
       // Update each record individually
       // In a real implementation, you might want a bulk update API endpoint
-      const updatePromises = params.ids.map(id => 
+      const updatePromises = params.ids.map(id =>
         api.banking.productParameters.update(String(id), params.data)
       );
 

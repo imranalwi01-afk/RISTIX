@@ -13,7 +13,6 @@ import {
   Create,
   SimpleForm,
   TextInput,
-  EmailInput,
   SelectInput,
   BooleanInput,
   PasswordInput,
@@ -118,7 +117,7 @@ const UserList = () => {
                 record={{ bankingAccess }}
                 color={
                   bankingAccess === 'CONVENTIONAL' ? 'primary' :
-                  bankingAccess === 'SYARIAH' ? 'success' : 'secondary'
+                    bankingAccess === 'SYARIAH' ? 'success' : 'secondary'
                 }
               />
             );
@@ -191,7 +190,7 @@ const AvatarField = ({ source }: any) => {
         sx={{ width: 40, height: 40 }}
       >
         {record.fullName ? record.fullName.split(' ').map((n: string) => n[0]).join('') :
-         record.email ? record.email[0].toUpperCase() : 'U'}
+          record.email ? record.email[0].toUpperCase() : 'U'}
       </Avatar>
     </Box>
   );
@@ -208,7 +207,7 @@ const UserCreate = () => {
         </Typography>
 
         <TextInput source="fullName" fullWidth required />
-        <EmailInput source="email" fullWidth required />
+        <TextInput source="email" fullWidth required type="email" />
         <TextInput source="username" fullWidth required />
         <TextInput source="phone_number" fullWidth />
 
@@ -265,7 +264,7 @@ const UserEdit = () => {
         </Typography>
 
         <TextInput source="fullName" fullWidth required />
-        <EmailInput source="email" fullWidth required />
+        <TextInput source="email" fullWidth required type="email" />
         <TextInput source="username" fullWidth required />
         <TextInput source="phone_number" fullWidth />
 
@@ -385,7 +384,7 @@ const UserShow = () => {
                     record={{ bankingAccess }}
                     color={
                       bankingAccess === 'CONVENTIONAL' ? 'primary' :
-                      bankingAccess === 'SYARIAH' ? 'success' : 'secondary'
+                        bankingAccess === 'SYARIAH' ? 'success' : 'secondary'
                     }
                   />
                 );

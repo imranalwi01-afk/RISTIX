@@ -43,18 +43,18 @@ services:
       - NODE_ENV=production
       - PORT=4232
       - HOST=0.0.0.0
-      
+
       # Production URLs
-      - FRONTEND_URL=https://ifrs9.ifrspro.id
-      - BACKEND_URL=https://bifrs9.ifrspro.id
-      - API_BASE_URL=https://bifrs9.ifrspro.id/api
-      - RAPI_BASE_URL=https://rifrs9.ifrspro.id/api
-      
+      - FRONTEND_URL=${FRONTEND_URL}
+      - BACKEND_URL=${BACKEND_URL}
+      - API_BASE_URL=${API_BASE_URL}
+      - RAPI_BASE_URL=${RAPI_BASE_URL}
+
       # JWT Configuration
       - JWT_SECRET=${JWT_SECRET}
       - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
-      
+
       # Database Configuration
       - DB_HOST=${DB_HOST}
       - DB_PORT=${DB_PORT}
@@ -64,22 +64,22 @@ services:
       - FRS9_DB_PORT=${FRS9_DB_PORT}
       - FRS9_DB_USER=${FRS9_DB_USER}
       - FRS9_DB_PASSWORD=${FRS9_DB_PASSWORD}
-      
+
       # R Analytics Configuration
       - R_ANALYTICS_ENABLED=true
       - R_ANALYTICS_DOMAIN=rifrs9.ifrspro.id
       - R_ANALYTICS_PROTOCOL=https
       - R_PORT_RANGE_MIN=4800
       - R_PORT_RANGE_MAX=4900
-      
+
       # CORS Configuration
-      - CORS_ORIGINS=https://ifrs9.ifrspro.id,https://bifrs9.ifrspro.id,https://rifrs9.ifrspro.id
-      
+      - CORS_ORIGINS=${CORS_ORIGINS}
+
       # Security Configuration
       - SSL_ENABLED=true
       - HELMET_ENABLED=true
       - RATE_LIMITING_ENABLED=true
-      
+
     expose:
       - "4232"
     depends_on:
@@ -92,7 +92,7 @@ services:
       - r-analytics-logs:/var/log/r-analytics
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4232/health"]
+      test: [ "CMD", "curl", "-f", "http://localhost:4232/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -102,18 +102,18 @@ services:
   # ============================================================================
   frontend:
     build:
-      context: ./packages/frontend
-      dockerfile: Dockerfile.production
+      context: .
+      dockerfile: packages/frontend/Dockerfile
       args:
-        - NEXT_PUBLIC_API_URL=https://bifrs9.ifrspro.id
-        - NEXT_PUBLIC_R_ANALYTICS_BASE_URL=https://rifrs9.ifrspro.id/api
+        - NEXT_PUBLIC_API_URL=${API_BASE_URL}
+        - NEXT_PUBLIC_R_ANALYTICS_BASE_URL=${RAPI_BASE_URL}
         - NEXT_PUBLIC_ENVIRONMENT=production
     environment:
       - NODE_ENV=production
       - PORT=4231
-      - NEXT_PUBLIC_API_URL=https://bifrs9.ifrspro.id
+      - NEXT_PUBLIC_API_URL=${API_BASE_URL}
       - NEXT_PUBLIC_R_ANALYTICS_ENABLED=true
-      - NEXT_PUBLIC_R_ANALYTICS_BASE_URL=https://rifrs9.ifrspro.id/api
+      - NEXT_PUBLIC_R_ANALYTICS_BASE_URL=${RAPI_BASE_URL}
       - NEXT_PUBLIC_DOMAIN=ifrspro.id
     expose:
       - "4231"
@@ -123,7 +123,7 @@ services:
       - ifrs9-production
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4231"]
+      test: [ "CMD", "curl", "-f", "http://localhost:4231" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -167,7 +167,7 @@ services:
       - FRS9_DB_PORT=${FRS9_DB_PORT}
       - FRS9_DB_USER=${FRS9_DB_USER}
       - FRS9_DB_PASSWORD=${FRS9_DB_PASSWORD}
-      
+
       # Tenant Configuration
       - TENANT_SLUG=demo-conventional
       - BANKING_TYPE=conventional
@@ -175,12 +175,12 @@ services:
       - USER_EMAIL=conventional@ifrspro.id
       - BANKING_ACCESS=CONVENTIONAL
       - SYARIAH_CERTIFIED=false
-      
+
       # R Runtime Configuration
       - SHINY_HOST=0.0.0.0
       - SHINY_PORT=3838
       - R_LIBS_USER=/opt/r-analytics/R-libs
-      
+
       # Production Configuration
       - NODE_ENV=production
       - R_SESSION_ID=conventional-prod
@@ -216,7 +216,7 @@ services:
       - FRS9_DB_PORT=${FRS9_DB_PORT}
       - FRS9_DB_USER=${FRS9_DB_USER}
       - FRS9_DB_PASSWORD=${FRS9_DB_PASSWORD}
-      
+
       # Tenant Configuration
       - TENANT_SLUG=demo-syariah
       - BANKING_TYPE=syariah
@@ -224,17 +224,17 @@ services:
       - USER_EMAIL=syariah@ifrspro.id
       - BANKING_ACCESS=SYARIAH
       - SYARIAH_CERTIFIED=true
-      
+
       # Islamic Banking Features
       - R_ISLAMIC_MODE=true
       - R_HALAL_SCREENING=true
       - R_SYARIAH_COMPLIANCE=true
-      
+
       # R Runtime Configuration
       - SHINY_HOST=0.0.0.0
       - SHINY_PORT=3838
       - R_LIBS_USER=/opt/r-analytics/R-libs
-      
+
       # Production Configuration
       - NODE_ENV=production
       - R_SESSION_ID=syariah-prod
@@ -270,7 +270,7 @@ services:
       - FRS9_DB_PORT=${FRS9_DB_PORT}
       - FRS9_DB_USER=${FRS9_DB_USER}
       - FRS9_DB_PASSWORD=${FRS9_DB_PASSWORD}
-      
+
       # DANA Production Configuration
       - TENANT_SLUG=dana
       - BANKING_TYPE=conventional
@@ -278,12 +278,12 @@ services:
       - USER_EMAIL=dana@ifrspro.id
       - BANKING_ACCESS=CONVENTIONAL
       - SYARIAH_CERTIFIED=false
-      
+
       # R Runtime Configuration
       - SHINY_HOST=0.0.0.0
       - SHINY_PORT=3838
       - R_LIBS_USER=/opt/r-analytics/R-libs
-      
+
       # Production Configuration
       - NODE_ENV=production
       - R_SESSION_ID=dana-prod
@@ -324,7 +324,7 @@ services:
           memory: 4G
           cpus: '2.0'
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER}" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -346,7 +346,7 @@ services:
           memory: 1G
           cpus: '0.5'
     healthcheck:
-      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD}", "ping"]
+      test: [ "CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD}", "ping" ]
       interval: 30s
       timeout: 10s
       retries: 3

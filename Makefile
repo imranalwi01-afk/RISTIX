@@ -114,6 +114,19 @@ logs: ## Tail logs for all services
 logs-backend: ## Tail logs for backend service only
 	$(COMPOSE) logs -f $(BACKEND_SERVICE)
 
+.PHONY: prune
+prune: ## Prune docker build cache and stopped containers
+	docker builder prune -f
+	docker container prune -f
+
+.PHONY: prune-full
+prune-full: ## Deep clean: remove unused images, containers, and networks (KEEPS VOLUMES/DATA)
+	docker system prune -a -f
+
+.PHONY: prune-volumes
+prune-volumes: ## ⚠️ Danger: Remove unused volumes (DELETES DATABASE DATA)
+	docker volume prune -f
+
 # ==============================================================================
 # 🐚 Access & Utilities
 # ==============================================================================

@@ -1,7 +1,8 @@
 // packages/frontend/src/utils/testing/integrationTestRunner.ts
-import { multiStakeholderDataProvider, multiStakeholderAuthProvider } from '../admin/providers/data/multiStakeholderDataProvider';
-import { platformService, tenantService, consultantService, authService } from '../services';
-import { STAKEHOLDER_TYPES, PERMISSIONS } from '../utils/constants';
+import { multiStakeholderDataProvider, multiStakeholderAuthProvider } from '../../admin/providers/data/multiStakeholderDataProvider';
+import { platformService, tenantService, consultantService, authService } from '../../services';
+import { STAKEHOLDER_TYPES } from '../constants';
+import { PERMISSIONS } from '../permissions';
 
 // =============================================================================
 // INTEGRATION TEST CONFIGURATION
@@ -69,10 +70,10 @@ export class IntegrationTestRunner {
     this.config = config;
   }
 
-  async runAllTests(): Promise<{ 
-    overall: 'PASS' | 'FAIL'; 
-    suites: TestSuite[]; 
-    summary: { total: number; passed: number; failed: number; skipped: number } 
+  async runAllTests(): Promise<{
+    overall: 'PASS' | 'FAIL';
+    suites: TestSuite[];
+    summary: { total: number; passed: number; failed: number; skipped: number }
   }> {
     console.log('🚀 Starting IFRS 9 Platform Integration Tests...');
     console.log(`🔗 Testing against: ${this.config.apiBaseUrl}`);
@@ -248,7 +249,7 @@ export class IntegrationTestRunner {
     suite.results.push(await this.runTest('Cross-Tenant Data Access', async () => {
       try {
         const tenantData = await multiStakeholderDataProvider.getTenantData(
-          this.config.testTenantId, 
+          this.config.testTenantId,
           'portfolio_accounts'
         );
         return { tenantId: this.config.testTenantId, dataAccess: true };
@@ -292,15 +293,15 @@ export class IntegrationTestRunner {
         role: 'analyst',
         tenant_id: this.config.testTenantId,
       };
-      
+
       const createdUser = await platformService.createUser(userData);
       if (!createdUser.id || createdUser.email !== userData.email) {
         throw new Error('User creation failed');
       }
-      
+
       // Cleanup
       await platformService.deleteUser(createdUser.id);
-      
+
       return { userId: createdUser.id, email: createdUser.email };
     }));
 
@@ -316,15 +317,15 @@ export class IntegrationTestRunner {
         contact_phone: '+62-21-12345678',
         address: 'Test Address',
       };
-      
+
       const createdInstitution = await platformService.createBankingInstitution(institutionData);
       if (!createdInstitution.id || createdInstitution.institution_name !== institutionData.institution_name) {
         throw new Error('Banking institution creation failed');
       }
-      
+
       // Cleanup
       await platformService.deleteBankingInstitution(createdInstitution.id);
-      
+
       return { institutionId: createdInstitution.id, name: createdInstitution.institution_name };
     }));
 
@@ -339,15 +340,15 @@ export class IntegrationTestRunner {
         start_date: new Date().toISOString(),
         scope_of_work: 'IFRS 9 implementation and validation',
       };
-      
+
       const createdProject = await platformService.createConsultantProject(projectData);
       if (!createdProject.id || createdProject.project_name !== projectData.project_name) {
         throw new Error('Consultant project creation failed');
       }
-      
+
       // Cleanup
       await platformService.deleteConsultantProject(createdProject.id);
-      
+
       return { projectId: createdProject.id, name: createdProject.project_name };
     }));
 
@@ -426,15 +427,15 @@ export class IntegrationTestRunner {
         currency: 'IDR',
         ifrs9_stage: 'stage_1' as const,
       };
-      
+
       const createdAccount = await tenantService.createPortfolioAccount(accountData);
       if (!createdAccount.id || createdAccount.account_number !== accountData.account_number) {
         throw new Error('Portfolio account creation failed');
       }
-      
+
       // Cleanup
       await tenantService.deletePortfolioAccount(createdAccount.id);
-      
+
       return { accountId: createdAccount.id, accountNumber: createdAccount.account_number };
     }));
 
@@ -492,13 +493,13 @@ export class IntegrationTestRunner {
     // Test 4: Tenant Data Access Check
     suite.results.push(await this.runTest('Tenant Data Access Check', async () => {
       const access = await consultantService.getTenantDataAccess(
-        this.config.testConsultantProjectId, 
+        this.config.testConsultantProjectId,
         this.config.testTenantId
       );
       if (typeof access.can_access_portfolio !== 'boolean') {
         throw new Error('Tenant data access check failed');
       }
-      return { 
+      return {
         portfolioAccess: access.can_access_portfolio,
         calculationsAccess: access.can_access_calculations,
         modelsAccess: access.can_access_models
@@ -560,7 +561,7 @@ export class IntegrationTestRunner {
     suite.results.push(await this.runTest('Cross-Tenant Access Control', async () => {
       // Login as bank user (should NOT have cross-tenant access)
       await authService.login(this.config.testCredentials.bankUser);
-      
+
       try {
         // Try to access another tenant's data (should fail)
         await multiStakeholderDataProvider.getTenantData('different-tenant-id', 'portfolio_accounts');
@@ -598,22 +599,22 @@ export class IntegrationTestRunner {
     suite.results.push(await this.runTest('Complete Authentication Flow', async () => {
       // Logout if logged in
       await authService.logout();
-      
+
       // Login
       const user = await authService.login(this.config.testCredentials.platformAdmin);
-      
+
       // Get current user
       const currentUser = await authService.getCurrentUser();
       if (currentUser.id !== user.id) {
         throw new Error('Current user mismatch after login');
       }
-      
+
       // Logout
       await authService.logout();
       if (authService.isAuthenticated()) {
         throw new Error('Should be logged out');
       }
-      
+
       return { workflowCompleted: true };
     }));
 
@@ -621,7 +622,7 @@ export class IntegrationTestRunner {
     suite.results.push(await this.runTest('Consultant Project Assignment Workflow', async () => {
       // Login as platform admin
       await authService.login(this.config.testCredentials.platformAdmin);
-      
+
       // Create consultant user
       const consultantData = {
         email: `consultant-${Date.now()}@test.com`,
@@ -632,9 +633,9 @@ export class IntegrationTestRunner {
         role: 'validator',
         consultant_specialization: 'IFRS 9 Model Validation',
       };
-      
+
       const consultant = await platformService.createUser(consultantData);
-      
+
       // Create project
       const projectData = {
         banking_institution_id: this.config.testBankingInstitutionId,
@@ -645,48 +646,48 @@ export class IntegrationTestRunner {
         start_date: new Date().toISOString(),
         scope_of_work: 'Model validation and testing',
       };
-      
+
       const project = await platformService.createConsultantProject(projectData);
-      
+
       // Assign consultant to project
       const assignedProject = await platformService.assignConsultantToProject(project.id, consultant.id);
-      
+
       if (assignedProject.consultant_user_id !== consultant.id) {
         throw new Error('Consultant assignment failed');
       }
-      
+
       // Cleanup
       await platformService.deleteConsultantProject(project.id);
       await platformService.deleteUser(consultant.id);
-      
+
       return { projectId: project.id, consultantId: consultant.id };
     }));
 
     // Test 3: Data Provider Integration Test
     suite.results.push(await this.runTest('Data Provider Integration', async () => {
       await authService.login(this.config.testCredentials.platformAdmin);
-      
+
       // Test React Admin DataProvider methods
       const listResult = await multiStakeholderDataProvider.getList('users', {
         pagination: { page: 1, perPage: 10 },
         sort: { field: 'created_at', order: 'DESC' },
         filter: {},
       });
-      
+
       if (!listResult.data || listResult.data.length === 0) {
         throw new Error('DataProvider getList failed');
       }
-      
+
       const oneResult = await multiStakeholderDataProvider.getOne('users', { id: listResult.data[0].id });
-      
+
       if (!oneResult.data || oneResult.data.id !== listResult.data[0].id) {
         throw new Error('DataProvider getOne failed');
       }
-      
-      return { 
-        listCount: listResult.data.length, 
+
+      return {
+        listCount: listResult.data.length,
         total: listResult.total,
-        oneUserId: oneResult.data.id 
+        oneUserId: oneResult.data.id
       };
     }));
 
@@ -735,14 +736,14 @@ export class IntegrationTestRunner {
     console.log('\n' + '='.repeat(80));
     console.log('🎯 IFRS 9 PLATFORM INTEGRATION TEST RESULTS');
     console.log('='.repeat(80));
-    
+
     console.log(`\n📊 OVERALL RESULT: ${overall === 'PASS' ? '✅ PASS' : '❌ FAIL'}`);
     console.log(`📈 SUMMARY: ${summary.passed}/${summary.total} tests passed`);
-    
+
     if (summary.failed > 0) {
       console.log(`⚠️  FAILED TESTS: ${summary.failed}`);
     }
-    
+
     if (summary.skipped > 0) {
       console.log(`⏭️  SKIPPED TESTS: ${summary.skipped}`);
     }
@@ -750,7 +751,7 @@ export class IntegrationTestRunner {
     console.log('\n📋 DETAILED RESULTS:');
     this.results.forEach(suite => {
       console.log(`\n${suite.suiteName}: ${suite.passedTests}/${suite.totalTests} passed (${suite.totalDuration}ms)`);
-      
+
       const failedTests = suite.results.filter(r => r.status === 'FAIL');
       if (failedTests.length > 0) {
         failedTests.forEach(test => {
@@ -770,14 +771,15 @@ export class IntegrationTestRunner {
 export async function runIntegrationTests(): Promise<void> {
   const testRunner = new IntegrationTestRunner();
   const results = await testRunner.runAllTests();
-  
+
   if (results.overall === 'FAIL') {
     process.exit(1);
   }
 }
 
 // Export for use in other modules
-export { TEST_CONFIG, TestResult, TestSuite };
+export type { TestResult, TestSuite };
+export { TEST_CONFIG };
 
 // =============================================================================
 // REACT COMPONENT FOR TESTING UI
@@ -805,14 +807,14 @@ import {
 import {
   PlayArrow,
   CheckCircle,
-  Error,
+  Error as ErrorIcon,
   ExpandMore,
   Storage,
   Security,
   Business,
   Assignment,
   Group,
-  Workflow,
+  AccountTree as WorkflowIcon,
 } from '@mui/icons-material';
 
 export const IntegrationTestDashboard: React.FC = () => {
@@ -827,14 +829,14 @@ export const IntegrationTestDashboard: React.FC = () => {
 
     try {
       const testRunner = new IntegrationTestRunner();
-      
+
       // Simulate progress updates
       const progressInterval = setInterval(() => {
         setProgress(prev => Math.min(prev + 10, 90));
       }, 500);
 
       const testResults = await testRunner.runAllTests();
-      
+
       clearInterval(progressInterval);
       setProgress(100);
       setResults(testResults);
@@ -852,7 +854,7 @@ export const IntegrationTestDashboard: React.FC = () => {
     if (suiteName.includes('Platform')) return <Business />;
     if (suiteName.includes('Consultant')) return <Assignment />;
     if (suiteName.includes('Permission')) return <Group />;
-    if (suiteName.includes('Workflow')) return <Workflow />;
+    if (suiteName.includes('Workflow')) return <WorkflowIcon />;
     return <CheckCircle />;
   };
 
@@ -867,7 +869,7 @@ export const IntegrationTestDashboard: React.FC = () => {
           <Button
             variant="contained"
             size="large"
-            startIcon={<PlayArrow />}
+            startIcon={< PlayArrow />}
             onClick={handleRunTests}
             disabled={isRunning}
             fullWidth
@@ -876,69 +878,78 @@ export const IntegrationTestDashboard: React.FC = () => {
           </Button>
         </Box>
 
-        {isRunning && (
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="body2" gutterBottom>
-              Running integration tests...
-            </Typography>
-            <LinearProgress variant="determinate" value={progress} />
-          </Box>
-        )}
-
-        {results && (
-          <Box>
-            <Alert 
-              severity={results.overall === 'PASS' ? 'success' : 'error'}
-              sx={{ mb: 2 }}
-            >
-              <Typography variant="h6">
-                {results.overall === 'PASS' ? '✅ All Tests Passed!' : '❌ Some Tests Failed'}
+        {
+          isRunning && (
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="body2" gutterBottom >
+                Running integration tests...
               </Typography>
-              {results.summary && (
-                <Typography variant="body2">
-                  {results.summary.passed}/{results.summary.total} tests passed
-                </Typography>
-              )}
-            </Alert>
+              < LinearProgress variant="determinate" value={progress} />
+            </Box>
+          )
+        }
 
-            {results.suites && results.suites.map((suite: any, index: number) => (
-              <Accordion key={index}>
-                <AccordionSummary expandIcon={<ExpandMore />}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    {getSuiteIcon(suite.suiteName)}
-                    <Typography variant="h6">{suite.suiteName}</Typography>
-                    <Chip
-                      label={`${suite.passedTests}/${suite.totalTests}`}
-                      color={suite.failedTests === 0 ? 'success' : 'error'}
-                      size="small"
-                    />
-                  </Box>
-                </AccordionSummary>
-                <AccordionDetails>
-                  <List dense>
-                    {suite.results.map((test: any, testIndex: number) => (
-                      <ListItem key={testIndex}>
-                        <ListItemIcon>
-                          {test.status === 'PASS' ? (
-                            <CheckCircle color="success" />
-                          ) : (
-                            <Error color="error" />
-                          )}
-                        </ListItemIcon>
-                        <ListItemText
-                          primary={test.testName}
-                          secondary={
-                            test.status === 'FAIL' ? test.error : `${test.duration}ms`
-                          }
+        {
+          results && (
+            <Box>
+              <Alert
+                severity={results.overall === 'PASS' ? 'success' : 'error'}
+                sx={{ mb: 2 }
+                }
+              >
+                <Typography variant="h6" >
+                  {results.overall === 'PASS' ? '✅ All Tests Passed!' : '❌ Some Tests Failed'}
+                </Typography>
+                {
+                  results.summary && (
+                    <Typography variant="body2" >
+                      {results.summary.passed} / {results.summary.total} tests passed
+                    </Typography>
+                  )
+                }
+              </Alert>
+
+              {
+                results.suites && results.suites.map((suite: any, index: number) => (
+                  <Accordion key={index} >
+                    <AccordionSummary expandIcon={< ExpandMore />}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        {getSuiteIcon(suite.suiteName)}
+                        < Typography variant="h6" > {suite.suiteName} </Typography>
+                        < Chip
+                          label={`${suite.passedTests}/${suite.totalTests}`}
+                          color={suite.failedTests === 0 ? 'success' : 'error'}
+                          size="small"
                         />
-                      </ListItem>
-                    ))}
-                  </List>
-                </AccordionDetails>
-              </Accordion>
-            ))}
-          </Box>
-        )}
+                      </Box>
+                    </AccordionSummary>
+                    < AccordionDetails >
+                      <List dense >
+                        {
+                          suite.results.map((test: any, testIndex: number) => (
+                            <ListItem key={testIndex} >
+                              <ListItemIcon>
+                                {
+                                  test.status === 'PASS' ? (
+                                    <CheckCircle color="success" />
+                                  ) : (
+                                    <ErrorIcon color="error" />
+                                  )}
+                              </ListItemIcon>
+                              < ListItemText
+                                primary={test.testName}
+                                secondary={
+                                  test.status === 'FAIL' ? test.error : `${test.duration}ms`
+                                }
+                              />
+                            </ListItem>
+                          ))}
+                      </List>
+                    </AccordionDetails>
+                  </Accordion>
+                ))}
+            </Box>
+          )}
       </CardContent>
     </Card>
   );
