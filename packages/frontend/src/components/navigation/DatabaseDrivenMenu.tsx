@@ -46,7 +46,7 @@ import {
   FactCheck as FactCheckIcon,
   Verified as VerifiedIcon
 } from '@mui/icons-material';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useRouter, usePathname } from 'next/navigation';
 import { useSelector, useDispatch } from 'react-redux';
 import {
   fetchUserMenu,
@@ -118,8 +118,8 @@ export const DatabaseDrivenMenu: React.FC<DatabaseDrivenMenuProps> = ({
   showUserContext = true,
   enableAnalytics = true
 }) => {
-  const navigate = useNavigate();
-  const location = useLocation();
+  const router = useRouter();
+  const pathname = usePathname();
   const dispatch = useDispatch();
 
   // Redux state
@@ -159,7 +159,7 @@ export const DatabaseDrivenMenu: React.FC<DatabaseDrivenMenuProps> = ({
 
   // Auto-expand current menu item
   useEffect(() => {
-    if (menuItems && location.pathname) {
+    if (menuItems && pathname) {
       const expandPath = (items: MenuItem[], path: string): void => {
         items.forEach(item => {
           if (item.url === path && item.type === 'item') {
@@ -190,22 +190,22 @@ export const DatabaseDrivenMenu: React.FC<DatabaseDrivenMenuProps> = ({
         });
       };
 
-      expandPath(menuItems, location.pathname);
+      expandPath(menuItems, pathname);
     }
-  }, [menuItems, location.pathname]);
+  }, [menuItems, pathname]);
 
   // Track access start time for analytics
   useEffect(() => {
     if (enableAnalytics) {
       setAccessStartTime(Date.now());
     }
-  }, [location.pathname, enableAnalytics]);
+  }, [pathname, enableAnalytics]);
 
   // Memoized menu items rendering
   const renderedMenuItems = useMemo(() => {
     if (!menuItems) return null;
     return renderMenuItems(menuItems, 0);
-  }, [menuItems, expandedItems, location.pathname]);
+  }, [menuItems, expandedItems, pathname]);
 
   // Handle menu item click
   const handleMenuItemClick = async (item: MenuItem) => {
@@ -228,7 +228,7 @@ export const DatabaseDrivenMenu: React.FC<DatabaseDrivenMenuProps> = ({
     if (item.external) {
       window.open(item.url, item.target || '_blank');
     } else {
-      navigate(item.url);
+      router.push(item.url);
       if (variant === 'temporary' && onClose) {
         onClose();
       }
@@ -304,7 +304,7 @@ export const DatabaseDrivenMenu: React.FC<DatabaseDrivenMenuProps> = ({
       }
 
       // Menu item
-      const isActive = location.pathname === item.url;
+      const isActive = pathname === item.url;
       const IconComponent = item.icon ? getMenuIcon(item.icon) : null;
 
       return (

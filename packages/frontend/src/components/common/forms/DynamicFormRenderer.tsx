@@ -174,7 +174,7 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
 
   // Initialize form
   const methods = useForm({
-    resolver: zodResolver(validationSchema),
+    resolver: zodResolver(validationSchema as any),
     defaultValues: initialData,
     mode: 'onChange'
   });
