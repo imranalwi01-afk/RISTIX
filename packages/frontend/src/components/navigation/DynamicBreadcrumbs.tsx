@@ -11,7 +11,7 @@
 import React, { useEffect } from 'react';
 import {
   Breadcrumbs,
-  Link,
+  Link as MuiLink,
   Typography,
   Box,
   Skeleton,
@@ -23,7 +23,8 @@ import {
   Home as HomeIcon,
   ArrowForward as ArrowForwardIcon
 } from '@mui/icons-material';
-import { Link as RouterLink, useLocation } from 'react-router-dom';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchBreadcrumbs, selectBreadcrumbs, selectIsMenuLoading } from '../../store/slices/menuSlice';
 import { selectMenuConfiguration, selectMenuContext } from '../../store/slices/menuSlice';
@@ -54,7 +55,10 @@ export const DynamicBreadcrumbs: React.FC<DynamicBreadcrumbsProps> = ({
   sx
 }) => {
   const theme = useTheme();
-  const location = useLocation();
+  // eslint-disable-next-line
+  const pathname = usePathname();
+  // Mimic useLocation by creating an object with pathname property
+  const location = { pathname };
   const dispatch = useDispatch();
 
   // Redux state
@@ -89,7 +93,7 @@ export const DynamicBreadcrumbs: React.FC<DynamicBreadcrumbsProps> = ({
     segments.forEach((segment, index) => {
       currentPath += `/${segment}`;
       const isLast = index === segments.length - 1;
-      
+
       // Clean up segment name
       const title = segment
         .split('-')
@@ -107,17 +111,17 @@ export const DynamicBreadcrumbs: React.FC<DynamicBreadcrumbsProps> = ({
   };
 
   // Determine which breadcrumbs to use
-  const displayBreadcrumbs = breadcrumbs.length > 0 
-    ? breadcrumbs 
-    : generateFallbackBreadcrumbs(location.pathname);
+  const displayBreadcrumbs = breadcrumbs.length > 0
+    ? breadcrumbs
+    : generateFallbackBreadcrumbs(location.pathname || '');
 
   // Truncate breadcrumbs if they exceed maxItems
   const truncatedBreadcrumbs = displayBreadcrumbs.length > maxItems
     ? [
-        displayBreadcrumbs[0], // Always keep home
-        { title: '...', active: false } as BreadcrumbItem,
-        ...displayBreadcrumbs.slice(-maxItems + 2) // Keep last items
-      ]
+      displayBreadcrumbs[0], // Always keep home
+      { title: '...', active: false } as BreadcrumbItem,
+      ...displayBreadcrumbs.slice(-maxItems + 2) // Keep last items
+    ]
     : displayBreadcrumbs;
 
   // Loading state
@@ -139,21 +143,21 @@ export const DynamicBreadcrumbs: React.FC<DynamicBreadcrumbsProps> = ({
   }
 
   return (
-    <Box 
+    <Box
       className={className}
-      sx={{ 
-        display: 'flex', 
+      sx={{
+        display: 'flex',
         alignItems: 'center',
         gap: 1,
         py: 1,
-        ...sx 
+        ...sx
       }}
     >
       {/* Context info */}
       {menuContext && (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mr: 2 }}>
           {menuContext.tenant_name && (
-            <Chip 
+            <Chip
               label={menuContext.tenant_name}
               size="small"
               color="primary"
@@ -161,7 +165,7 @@ export const DynamicBreadcrumbs: React.FC<DynamicBreadcrumbsProps> = ({
             />
           )}
           {menuContext.banking_type && (
-            <Chip 
+            <Chip
               label={menuContext.banking_type.charAt(0).toUpperCase() + menuContext.banking_type.slice(1)}
               size="small"
               color={menuContext.banking_type === 'syariah' ? 'success' : 'default'}
@@ -188,7 +192,7 @@ export const DynamicBreadcrumbs: React.FC<DynamicBreadcrumbsProps> = ({
           // Ellipsis item
           if (breadcrumb.title === '...') {
             return (
-              <Typography 
+              <Typography
                 key={key}
                 color="text.secondary"
                 sx={{ cursor: 'default' }}
@@ -201,7 +205,7 @@ export const DynamicBreadcrumbs: React.FC<DynamicBreadcrumbsProps> = ({
           // Active (current) item
           if (breadcrumb.active || !breadcrumb.url) {
             return (
-              <Typography 
+              <Typography
                 key={key}
                 color="text.primary"
                 fontWeight={breadcrumb.active ? 600 : 400}
@@ -223,25 +227,30 @@ export const DynamicBreadcrumbs: React.FC<DynamicBreadcrumbsProps> = ({
           return (
             <Link
               key={key}
-              component={RouterLink}
-              to={breadcrumb.url}
-              underline="hover"
-              color="primary"
-              onClick={() => handleBreadcrumbClick(breadcrumb)}
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 0.5,
-                textDecoration: 'none',
-                '&:hover': {
-                  textDecoration: 'underline'
-                }
-              }}
+              href={breadcrumb.url || '#'}
+              passHref
+              legacyBehavior
             >
-              {index === 0 && showHomeIcon && (
-                <HomeIcon fontSize="small" />
-              )}
-              {breadcrumb.title}
+              <MuiLink
+                underline="hover"
+                color="primary"
+                onClick={() => handleBreadcrumbClick(breadcrumb)}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  textDecoration: 'none',
+                  '&:hover': {
+                    textDecoration: 'underline'
+                  },
+                  cursor: 'pointer'
+                }}
+              >
+                {index === 0 && showHomeIcon && (
+                  <HomeIcon fontSize="small" />
+                )}
+                {breadcrumb.title}
+              </MuiLink>
             </Link>
           );
         })}

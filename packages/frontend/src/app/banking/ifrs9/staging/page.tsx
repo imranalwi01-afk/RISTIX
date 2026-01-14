@@ -35,7 +35,7 @@ import { useRouter } from 'next/navigation';
 export default function IFRS9StagingPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [data, setData] = useState(null);
+  const [data, setData] = useState<any>(null);
 
   useEffect(() => {
     // Initialize page data
@@ -69,9 +69,9 @@ export default function IFRS9StagingPage() {
     <Container maxWidth="xl">
       {/* Breadcrumb Navigation */}
       <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
-        <Link 
-          underline="hover" 
-          color="inherit" 
+        <Link
+          underline="hover"
+          color="inherit"
           href="/dashboard"
           onClick={(e) => {
             e.preventDefault();
@@ -110,28 +110,28 @@ export default function IFRS9StagingPage() {
                 IFRS 9 Staging Overview
               </Typography>
               <Typography variant="body2" color="text.secondary" paragraph>
-                This page provides iFRS 9 staging classification and stage management. The interface will be enhanced with 
+                This page provides iFRS 9 staging classification and stage management. The interface will be enhanced with
                 specific functionality based on business requirements.
               </Typography>
-              
+
               <Alert severity="info" sx={{ mt: 2 }}>
                 <Typography variant="body2">
-                  <strong>Development Note:</strong> This is a foundation page structure. 
-                  Specific iFRS 9 Staging functionality will be implemented based on 
+                  <strong>Development Note:</strong> This is a foundation page structure.
+                  Specific iFRS 9 Staging functionality will be implemented based on
                   detailed requirements and API integration.
                 </Typography>
               </Alert>
 
               <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
-                <Button 
-                  variant="contained" 
+                <Button
+                  variant="contained"
                   startIcon={<PageIcon />}
                   disabled
                 >
                   Configure IFRS 9 Staging
                 </Button>
-                <Button 
-                  variant="outlined" 
+                <Button
+                  variant="outlined"
                   startIcon={<BackIcon />}
                   onClick={() => router.back()}
                 >

@@ -47,6 +47,7 @@ export interface MenuItem {
   external?: boolean;
   target?: '_self' | '_blank' | '_parent' | '_top';
   breadcrumb?: boolean;
+  sort_order: number;
 }
 
 export interface MenuConfiguration {

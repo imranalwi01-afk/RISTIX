@@ -164,14 +164,14 @@ const UsageProgress: React.FC = () => {
       <LinearProgress
         variant="determinate"
         value={usage}
-        sx={{ 
-          width: 60, 
-          height: 8, 
+        sx={{
+          width: 60,
+          height: 8,
           borderRadius: 4,
           backgroundColor: 'grey.300',
           '& .MuiLinearProgress-bar': {
-            backgroundColor: getColor(usage) === 'error' ? '#f44336' : 
-                           getColor(usage) === 'warning' ? '#ff9800' : '#4caf50'
+            backgroundColor: getColor(usage) === 'error' ? '#f44336' :
+              getColor(usage) === 'warning' ? '#ff9800' : '#4caf50'
           }
         }}
       />
@@ -258,11 +258,11 @@ export const TenantList: React.FC = () => (
     <Datagrid bulkActionButtons={false} rowClick="show">
       <TextField source="name" label="Institution Name" />
       <TextField source="slug" label="Tenant Slug" />
-      <BankingTypeChip label="Banking Type" />
-      <TenantStatusChip label="Status" />
+      <BankingTypeChip />
+      <TenantStatusChip />
       <ChipField source="plan" label="Plan" />
       <NumberField source="users_count" label="Users" />
-      <UsageProgress label="Usage" />
+      <UsageProgress />
       <DateField source="created_at" label="Created" showTime />
       <ShowButton />
       <EditButton />
@@ -286,8 +286,8 @@ export const TenantShow: React.FC = () => (
               </Typography>
               <TextField source="name" label="Institution Name" />
               <TextField source="slug" label="Tenant Slug" />
-              <BankingTypeChip label="Banking Type" />
-              <TenantStatusChip label="Status" />
+              <BankingTypeChip />
+              <TenantStatusChip />
               <ChipField source="plan" label="Subscription Plan" />
               <TextField source="regulatory_id" label="Regulatory ID" />
               <EmailField source="contact_email" label="Contact Email" />
@@ -295,7 +295,7 @@ export const TenantShow: React.FC = () => (
             </CardContent>
           </Card>
         </Grid>
-        
+
         <Grid item xs={12} md={4}>
           <Card>
             <CardContent>
@@ -311,7 +311,7 @@ export const TenantShow: React.FC = () => (
                   <NumberField source="users_count" />
                 </Typography>
               </Box>
-              
+
               <Box sx={{ mb: 2 }}>
                 <Typography variant="body2" color="text.secondary">
                   <StorageIcon sx={{ mr: 1, fontSize: '1rem' }} />
@@ -319,7 +319,7 @@ export const TenantShow: React.FC = () => (
                 </Typography>
                 <UsageProgress />
               </Box>
-              
+
               <Box sx={{ mb: 2 }}>
                 <Typography variant="body2" color="text.secondary">
                   API Calls (Monthly)
@@ -330,7 +330,7 @@ export const TenantShow: React.FC = () => (
               </Box>
             </CardContent>
           </Card>
-          
+
           <Card sx={{ mt: 2 }}>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -342,14 +342,14 @@ export const TenantShow: React.FC = () => (
                 </Typography>
                 <DateField source="created_at" showTime />
               </Box>
-              
+
               <Box sx={{ mb: 1 }}>
                 <Typography variant="body2" color="text.secondary">
                   Last Updated
                 </Typography>
                 <DateField source="updated_at" showTime />
               </Box>
-              
+
               <Box>
                 <Typography variant="body2" color="text.secondary">
                   Last Login
@@ -373,7 +373,7 @@ export const TenantEdit: React.FC = () => (
     <SimpleForm>
       <TextInput source="name" label="Institution Name" validate={required()} fullWidth />
       <TextInput source="slug" label="Tenant Slug" validate={required()} helperText="URL-friendly identifier" />
-      
+
       <SelectInput
         source="banking_type"
         label="Banking Type"
@@ -384,7 +384,7 @@ export const TenantEdit: React.FC = () => (
         ]}
         validate={required()}
       />
-      
+
       <SelectInput
         source="status"
         label="Status"
@@ -395,7 +395,7 @@ export const TenantEdit: React.FC = () => (
         ]}
         validate={required()}
       />
-      
+
       <SelectInput
         source="plan"
         label="Subscription Plan"
@@ -407,14 +407,14 @@ export const TenantEdit: React.FC = () => (
         ]}
         validate={required()}
       />
-      
+
       <TextInput source="regulatory_id" label="Regulatory ID" validate={required()} />
       <TextInput source="contact_email" label="Contact Email" type="email" />
       <TextInput source="contact_phone" label="Contact Phone" />
-      
+
       <NumberInput source="max_users" label="Maximum Users" min={1} />
       <NumberInput source="storage_limit_gb" label="Storage Limit (GB)" min={1} />
-      
+
       <BooleanInput source="is_active" label="Active" />
       <BooleanInput source="ifrs9_enabled" label="IFRS9 Module Enabled" />
       <BooleanInput source="syariah_compliance" label="Syariah Compliance Required" />
@@ -434,15 +434,15 @@ export const TenantCreate: React.FC = () => (
           Creating a new banking institution will provision a dedicated tenant database and configure multi-tenant isolation.
         </Typography>
       </Alert>
-      
+
       <TextInput source="name" label="Institution Name" validate={required()} fullWidth />
-      <TextInput 
-        source="slug" 
-        label="Tenant Slug" 
-        validate={required()} 
-        helperText="URL-friendly identifier (lowercase, no spaces)" 
+      <TextInput
+        source="slug"
+        label="Tenant Slug"
+        validate={required()}
+        helperText="URL-friendly identifier (lowercase, no spaces)"
       />
-      
+
       <SelectInput
         source="banking_type"
         label="Banking Type"
@@ -454,7 +454,7 @@ export const TenantCreate: React.FC = () => (
         validate={required()}
         defaultValue="conventional"
       />
-      
+
       <SelectInput
         source="plan"
         label="Subscription Plan"
@@ -467,14 +467,14 @@ export const TenantCreate: React.FC = () => (
         validate={required()}
         defaultValue="standard"
       />
-      
+
       <TextInput source="regulatory_id" label="Regulatory ID" validate={required()} />
       <TextInput source="contact_email" label="Contact Email" type="email" validate={required()} />
       <TextInput source="contact_phone" label="Contact Phone" />
-      
+
       <NumberInput source="max_users" label="Maximum Users" min={1} defaultValue={50} />
       <NumberInput source="storage_limit_gb" label="Storage Limit (GB)" min={1} defaultValue={100} />
-      
+
       <BooleanInput source="ifrs9_enabled" label="IFRS9 Module Enabled" defaultValue={true} />
       <BooleanInput source="syariah_compliance" label="Syariah Compliance Required" defaultValue={false} />
     </SimpleForm>

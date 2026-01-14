@@ -25,6 +25,7 @@ import authReducer, { logout } from './slices/authSlice';
 import configurationReducer from './slices/configurationSlice';
 import userSettingsReducer from './slices/userSettingsSlice';
 import dashboardPersonalizationReducer from './slices/dashboardPersonalizationSlice';
+import menuReducer from './slices/menuSlice';
 // ✅ RTK Query Imports
 import { menuQueryApi } from './api/menuApi';
 import { portfolioQueryApi } from './api/portfolioApi';
@@ -161,6 +162,7 @@ const rootReducer = combineReducers({
   setup: setupReducer,
   parameters: parametersReducer,
   ui: uiSlice.reducer,
+  menu: menuReducer,
   // ✅ RTK Query Reducers
   [menuQueryApi.reducerPath]: menuQueryApi.reducer,
   [portfolioQueryApi.reducerPath]: portfolioQueryApi.reducer,
@@ -372,6 +374,7 @@ export const dispatch = store.dispatch;
 
 // ✅ SURGICAL FIX: Enhanced selectors with null checks
 export const selectAuth = (state: RootState) => state?.auth || {};
+export const selectAuthState = selectAuth; // ✅ Add for backward compatibility
 export const selectUser = (state: RootState) => state?.auth?.user || null;
 export const selectIsAuthenticated = (state: RootState) => state?.auth?.isAuthenticated || false;
 export const selectConfiguration = (state: RootState) => state?.configuration || {};

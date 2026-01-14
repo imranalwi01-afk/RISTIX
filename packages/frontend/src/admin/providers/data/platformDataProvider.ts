@@ -10,7 +10,7 @@
 // ============================================================================
 
 import { DataProvider, fetchUtils } from 'react-admin';
-import { stringify } from 'query-string';
+import queryString from 'query-string';
 
 const apiUrl = process.env.REACT_APP_PLATFORM_API_URL || '/api/platform/admin';
 const httpClient = fetchUtils.fetchJson;
@@ -34,7 +34,7 @@ export const platformDataProvider: DataProvider = {
       range: JSON.stringify([(page - 1) * perPage, page * perPage - 1]),
       filter: JSON.stringify(params.filter),
     };
-    const url = `${apiUrl}/${resource}?${stringify(query)}`;
+    const url = `${apiUrl}/${resource}?${queryString.stringify(query)}`;
 
     return httpClient(url).then(({ headers, json }) => ({
       data: json,
@@ -51,7 +51,7 @@ export const platformDataProvider: DataProvider = {
     const query = {
       filter: JSON.stringify({ id: params.ids }),
     };
-    const url = `${apiUrl}/${resource}?${stringify(query)}`;
+    const url = `${apiUrl}/${resource}?${queryString.stringify(query)}`;
     return httpClient(url).then(({ json }) => ({ data: json }));
   },
 
@@ -66,7 +66,7 @@ export const platformDataProvider: DataProvider = {
         [params.target]: params.id,
       }),
     };
-    const url = `${apiUrl}/${resource}?${stringify(query)}`;
+    const url = `${apiUrl}/${resource}?${queryString.stringify(query)}`;
 
     return httpClient(url).then(({ headers, json }) => ({
       data: json,
@@ -80,7 +80,7 @@ export const platformDataProvider: DataProvider = {
       body: JSON.stringify(params.data),
     }).then(({ json }) => ({
       data: { ...params.data, id: json.id },
-    })),
+    })) as any,
 
   update: (resource, params) =>
     httpClient(`${apiUrl}/${resource}/${params.id}`, {
@@ -92,7 +92,7 @@ export const platformDataProvider: DataProvider = {
     const query = {
       filter: JSON.stringify({ id: params.ids }),
     };
-    return httpClient(`${apiUrl}/${resource}?${stringify(query)}`, {
+    return httpClient(`${apiUrl}/${resource}?${queryString.stringify(query)}`, {
       method: 'PUT',
       body: JSON.stringify(params.data),
     }).then(({ json }) => ({ data: json }));
@@ -107,7 +107,7 @@ export const platformDataProvider: DataProvider = {
     const query = {
       filter: JSON.stringify({ id: params.ids }),
     };
-    return httpClient(`${apiUrl}/${resource}?${stringify(query)}`, {
+    return httpClient(`${apiUrl}/${resource}?${queryString.stringify(query)}`, {
       method: 'DELETE',
     }).then(({ json }) => ({ data: json }));
   },
@@ -147,7 +147,7 @@ export const createPlatformDataProvider = (config: Partial<PlatformDataProviderC
           range: JSON.stringify([(page - 1) * perPage, page * perPage - 1]),
           filter: JSON.stringify(params.filter),
         };
-        const url = `${finalConfig.apiUrl}/${resource}?${stringify(query)}`;
+        const url = `${finalConfig.apiUrl}/${resource}?${queryString.stringify(query)}`;
 
         return enhancedHttpClient(url).then(({ headers, json }: any) => ({
           data: json,

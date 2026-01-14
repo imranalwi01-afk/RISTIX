@@ -40,7 +40,11 @@ export const DataGridVirtualized: React.FC<DataGridVirtualizedProps> = ({
         loading={loading}
         slots={{
           toolbar: enableExport ? GridToolbar : undefined,
-          loadingOverlay: LinearProgress,
+          loadingOverlay: () => (
+            <Box sx={{ position: 'absolute', top: 0, width: '100%' }}>
+              <LinearProgress />
+            </Box>
+          ),
         }}
         initialState={{
           pagination: {

@@ -6,9 +6,9 @@
 // Usage: Import and call in development to verify redirect functionality
 // ============================================================================
 
-import { 
-  getLoginRedirectUrl, 
-  validateBankingRedirect, 
+import {
+  getLoginRedirectUrl,
+  validateBankingRedirect,
   ROLE_TO_STAKEHOLDER_MAP,
   hasRoleAccess,
   debugRedirect
@@ -25,7 +25,7 @@ interface TestUser {
 
 export function runPostFixDiagnostic() {
   console.group('🔍 POST-FIX DIAGNOSTIC - IFRS9 AUTHENTICATION');
-  
+
   // Test users for each stakeholder type
   const testUsers: TestUser[] = [
     {
@@ -37,7 +37,7 @@ export function runPostFixDiagnostic() {
       bankingType: 'conventional'
     },
     {
-      id: '2', 
+      id: '2',
       email: 'superadmin@ifrs9platform.com',
       fullName: 'Platform Super Admin',
       role: 'PLATFORM_SUPER_ADMIN',
@@ -85,11 +85,11 @@ export function runPostFixDiagnostic() {
 
   console.log('\n🚀 Testing Redirect URLs...');
   testUsers.forEach(user => {
-    const redirectUrl = getLoginRedirectUrl(user);
+    const redirectUrl = getLoginRedirectUrl(user.role);
     const isValidPath = redirectUrl.startsWith('/');
     const emoji = isValidPath ? '✅' : '❌';
     console.log(`${emoji} ${user.role} → ${redirectUrl}`);
-    
+
     // Special check for banking users
     if (user.stakeholderType === 'banking') {
       const shouldNotHaveBankingPrefix = !redirectUrl.startsWith('/banking/');
@@ -104,7 +104,7 @@ export function runPostFixDiagnostic() {
     '/banking/ifrs9/calculations',
     '/banking/portfolio/accounts'
   ];
-  
+
   badBankingPaths.forEach(badPath => {
     const fixedPath = validateBankingRedirect(badPath, 'BANK_CRO');
     const isFixed = !fixedPath.startsWith('/banking/');
@@ -143,7 +143,7 @@ export function runPostFixDiagnostic() {
 
 export function testSpecificRedirect(userRole: string, requestedPath?: string) {
   console.group(`🧪 Testing Specific Redirect: ${userRole}`);
-  
+
   const mockUser: TestUser = {
     id: 'test',
     email: 'test@example.com',
@@ -153,8 +153,8 @@ export function testSpecificRedirect(userRole: string, requestedPath?: string) {
     bankingType: userRole.includes('SYARIAH') ? 'syariah' : 'conventional'
   };
 
-  debugRedirect(mockUser, requestedPath);
-  
+  debugRedirect(mockUser.role, requestedPath || '');
+
   console.groupEnd();
 }
 

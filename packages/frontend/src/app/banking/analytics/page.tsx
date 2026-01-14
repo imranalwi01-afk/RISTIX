@@ -46,8 +46,8 @@ import { EmbeddedShinyApp } from '../../../components/analytics/EmbeddedShinyApp
 
 export default function BankingAnalyticsPage() {
   // Redux state
-  const { user, token } = useSelector((state: RootState) => state.auth);
-  
+  const { user, token } = useSelector((state: RootState) => state.auth || { user: null, token: null });
+
   // Component state
   const [analyticsConfig, setAnalyticsConfig] = useState({
     tenantSlug: 'demo-conventional',
@@ -62,13 +62,13 @@ export default function BankingAnalyticsPage() {
   useEffect(() => {
     if (user) {
       // Extract tenant and banking information from user context
-      const tenantSlug = user.tenantSlug || 'demo-conventional';
+      const tenantSlug = (user as any).tenantSlug || 'demo-conventional';
       let bankingType: 'conventional' | 'syariah' | 'dual' = 'conventional';
 
       // Determine banking type from tenant slug or user context
-      if (tenantSlug.includes('syariah') || user.bankingAccess === 'SYARIAH') {
+      if (tenantSlug.includes('syariah') || (user as any).bankingAccess === 'SYARIAH') {
         bankingType = 'syariah';
-      } else if (user.bankingAccess === 'BOTH') {
+      } else if ((user as any).bankingAccess === 'BOTH') {
         bankingType = 'dual';
       }
 

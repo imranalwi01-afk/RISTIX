@@ -31,7 +31,6 @@ import { flScalarAPI } from './api/fl-scalar.api';
 import { eclConfigurationsApi } from './api/ecl-configurations.api';
 import { impairmentApi } from './api/impairment.api';
 import { approvalAPI } from './api/approval.api';
-import { reportsAPI } from './api.reports';
 
 
 
@@ -534,7 +533,6 @@ export const bankingAPI = {
   eclConfigurations: eclConfigurationsApi,
   impairment: impairmentApi,
   approval: approvalAPI,
-  ifrs9Reports: reportsAPI,
 
 
 
@@ -648,6 +646,12 @@ export const bankingAPI = {
       return response.data;
     },
 
+    getById: async (prdCode: string) => {
+      console.log(`🏦 Fetching product parameter ${prdCode} from DS2 database`);
+      const response = await apiClient.get(`/banking/parameters/product/${prdCode}`);
+      return response.data;
+    },
+
     create: async (productData: any) => {
       console.log('➕ Creating product parameter in DS2 database', productData.prd_code);
       const response = await apiClient.post('/banking/parameters/product', productData);
@@ -731,6 +735,43 @@ export const bankingAPI = {
     getSegmentTypes: async () => {
       console.log('📋 Fetching segment types');
       const response = await apiClient.get('/banking/setup/segmentation/business-settings/segment-types');
+      return response.data;
+    },
+
+    // Business Settings for Segmentation
+    getBusinessSettingsTables: async () => {
+      console.log('📋 Fetching segmentation business settings tables');
+      const response = await apiClient.get('/banking/business-settings/tables');
+      return response.data;
+    },
+
+    getBusinessSettingsColumns: async (tableName: string) => {
+      console.log(`📋 Fetching segmentation business settings columns for ${tableName}`);
+      const response = await apiClient.get(`/banking/business-settings/columns?table=${encodeURIComponent(tableName)}`);
+      return response.data;
+    },
+
+    getBusinessSettingsDataType: async (tableName: string, columnName: string) => {
+      console.log(`📋 Fetching segmentation data type for ${tableName}.${columnName}`);
+      const response = await apiClient.get(`/banking/business-settings/data-type?column=${encodeURIComponent(columnName)}&table=${encodeURIComponent(tableName)}`);
+      return response.data;
+    },
+
+    getBusinessSettingsOperators: async (dataType: string) => {
+      console.log(`📋 Fetching segmentation operators for data type: ${dataType}`);
+      const response = await apiClient.get(`/banking/business-settings/operators?dataType=${encodeURIComponent(dataType)}`);
+      return response.data;
+    },
+
+    getBusinessSettingsConditions: async () => {
+      console.log('📋 Fetching segmentation business settings conditions');
+      const response = await apiClient.get('/banking/business-settings/conditions');
+      return response.data;
+    },
+
+    getBusinessSettingsValues: async (tableName: string, columnName: string) => {
+      console.log(`📋 Fetching segmentation column values for ${tableName}.${columnName}`);
+      const response = await apiClient.get(`/banking/business-settings/column-values?column=${encodeURIComponent(columnName)}&table=${encodeURIComponent(tableName)}`);
       return response.data;
     }
   },

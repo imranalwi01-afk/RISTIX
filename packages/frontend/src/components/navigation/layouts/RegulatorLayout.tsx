@@ -12,13 +12,13 @@
 'use client';
 
 import React from 'react';
-import { 
-  Box, 
-  AppBar, 
-  Toolbar, 
-  Typography, 
-  Container, 
-  Chip, 
+import {
+  Box,
+  AppBar,
+  Toolbar,
+  Typography,
+  Container,
+  Chip,
   IconButton,
   Menu,
   MenuItem,
@@ -28,10 +28,10 @@ import {
   Alert,
   Badge
 } from '@mui/material';
-import { 
-  Gavel, 
-  Security, 
-  Visibility, 
+import {
+  Gavel,
+  Security,
+  Visibility,
   AccountCircle,
   Settings,
   ExitToApp,
@@ -64,15 +64,15 @@ const RegulatorLayout: React.FC<RegulatorLayoutProps> = ({ children }) => {
     logout();
   };
 
-  const regulatoryAuthority = user?.authority || getConfigValue('REGULATOR_DEFAULT_AUTHORITY', 'Financial Authority');
-  const jurisdiction = user?.jurisdiction || 'National';
+  const regulatoryAuthority = (user as any)?.authority || getConfigValue('REGULATOR_DEFAULT_AUTHORITY', 'Financial Authority');
+  const jurisdiction = (user as any)?.jurisdiction || 'National';
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       {/* Regulator Header */}
-      <AppBar 
-        position="static" 
-        sx={{ 
+      <AppBar
+        position="static"
+        sx={{
           bgcolor: getConfigValue('THEME_REGULATOR_PRIMARY_COLOR', '#6a1b9a'),
           borderBottom: '3px solid',
           borderBottomColor: getConfigValue('THEME_REGULATOR_ACCENT_COLOR', '#4a148c'),
@@ -90,41 +90,41 @@ const RegulatorLayout: React.FC<RegulatorLayoutProps> = ({ children }) => {
               </Typography>
             </Box>
           </Box>
-          
+
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             {/* Jurisdiction Badge */}
-            <Chip 
+            <Chip
               icon={<Shield />}
               label={`${jurisdiction} Jurisdiction`}
-              color="default" 
+              color="default"
               size="small"
-              sx={{ 
+              sx={{
                 bgcolor: 'rgba(255,255,255,0.2)',
                 color: 'white',
                 '& .MuiChip-icon': { color: 'white' }
               }}
             />
-            
+
             {/* Authority Info */}
-            <Chip 
+            <Chip
               icon={<Security />}
               label={regulatoryAuthority}
-              color="default" 
+              color="default"
               size="small"
-              sx={{ 
+              sx={{
                 bgcolor: 'rgba(255,255,255,0.15)',
                 color: 'white',
                 '& .MuiChip-icon': { color: 'white' }
               }}
             />
-            
+
             {/* Compliance Alerts */}
             <IconButton sx={{ color: 'white' }}>
               <Badge badgeContent={complianceAlerts} color="error">
                 <Warning />
               </Badge>
             </IconButton>
-            
+
             {/* User Menu */}
             <IconButton
               onClick={handleMenuClick}
@@ -134,7 +134,7 @@ const RegulatorLayout: React.FC<RegulatorLayoutProps> = ({ children }) => {
                 <AccountCircle />
               </Avatar>
             </IconButton>
-            
+
             <Menu
               anchorEl={anchorEl}
               open={Boolean(anchorEl)}
@@ -174,10 +174,10 @@ const RegulatorLayout: React.FC<RegulatorLayoutProps> = ({ children }) => {
       </Box>
 
       {/* Regulatory Warning Banner */}
-      <Alert 
-        severity="info" 
+      <Alert
+        severity="info"
         icon={<Shield />}
-        sx={{ 
+        sx={{
           borderRadius: 0,
           bgcolor: 'info.light',
           borderBottom: '1px solid',
@@ -193,10 +193,10 @@ const RegulatorLayout: React.FC<RegulatorLayoutProps> = ({ children }) => {
       </Alert>
 
       {/* Main Content */}
-      <Container 
-        maxWidth="xl" 
-        sx={{ 
-          flex: 1, 
+      <Container
+        maxWidth="xl"
+        sx={{
+          flex: 1,
           py: 3,
           backgroundColor: getConfigValue('THEME_REGULATOR_BG_COLOR', '#fafafa'),
         }}
@@ -205,11 +205,11 @@ const RegulatorLayout: React.FC<RegulatorLayoutProps> = ({ children }) => {
       </Container>
 
       {/* Footer */}
-      <Box 
+      <Box
         component="footer"
-        sx={{ 
-          py: 2, 
-          px: 3, 
+        sx={{
+          py: 2,
+          px: 3,
           mt: 'auto',
           bgcolor: 'grey.100',
           borderTop: '1px solid',

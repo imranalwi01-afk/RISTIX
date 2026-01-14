@@ -53,12 +53,6 @@ const createSSRSafeTheme = () => {
             },
           },
         },
-        // ✅ SURGICAL FIX: Prevent hydration mismatches
-        MuiBox: {
-          defaultProps: {
-            suppressHydrationWarning: true,
-          },
-        },
       },
     });
   } catch (error) {
@@ -84,9 +78,9 @@ class EnhancedErrorBoundary extends React.Component<
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     this.setState({ errorInfo });
-    
-    console.error('🚨 Enhanced ClientProviders Error:', { 
-      error: error.message, 
+
+    console.error('🚨 Enhanced ClientProviders Error:', {
+      error: error.message,
       stack: error.stack,
       errorInfo,
       timestamp: new Date().toISOString()
@@ -97,7 +91,7 @@ class EnhancedErrorBoundary extends React.Component<
       console.error('🔧 React Server Components Error: Component boundary violation detected');
       console.error('💡 Fix: Checking client component directives and imports');
     }
-    
+
     if (error.message.includes('Cannot read properties of undefined')) {
       console.error('🔧 Webpack Module Error: Module loading failure detected');
       console.error('💡 Fix: Checking module resolution in next.config.mjs');
@@ -112,7 +106,7 @@ class EnhancedErrorBoundary extends React.Component<
     if (error.message.includes('Hydration') || error.message.includes('hydration')) {
       console.error('💧 Hydration Error: SSR/Client mismatch detected');
       console.error('💡 Fix: Implementing auto-recovery in 3 seconds...');
-      
+
       setTimeout(() => {
         this.setState({ hasError: false, error: undefined, errorInfo: undefined });
       }, 3000);
@@ -148,17 +142,17 @@ class EnhancedErrorBoundary extends React.Component<
             <Box sx={{ color: 'error.main', mb: 2, fontSize: 24, fontWeight: 600 }}>
               🚨 IFRS9 Platform Recovery
             </Box>
-            
+
             <Box sx={{ color: 'text.secondary', mb: 3, fontSize: 16, lineHeight: 1.5 }}>
               The application encountered a component error and is recovering automatically.
-              
+
               {this.state.error?.message.includes('Cannot assign to read only property') && (
                 <Box sx={{ mt: 2, p: 2, backgroundColor: '#fff3e0', borderRadius: 1 }}>
                   <strong>React Server Components Error:</strong> Component boundary violation detected.
                   Auto-recovery will reload affected components.
                 </Box>
               )}
-              
+
               {this.state.error?.message.includes('Cannot read properties of undefined') && (
                 <Box sx={{ mt: 2, p: 2, backgroundColor: '#e3f2fd', borderRadius: 1 }}>
                   <strong>Module Loading Error:</strong> Webpack module resolution issue.
@@ -175,13 +169,13 @@ class EnhancedErrorBoundary extends React.Component<
             </Box>
 
             <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <button 
-                onClick={() => window.location.reload()} 
-                style={{ 
-                  padding: '12px 24px', 
-                  background: '#1976d2', 
-                  color: 'white', 
-                  border: 'none', 
+              <button
+                onClick={() => window.location.reload()}
+                style={{
+                  padding: '12px 24px',
+                  background: '#1976d2',
+                  color: 'white',
+                  border: 'none',
                   borderRadius: '6px',
                   cursor: 'pointer',
                   fontSize: '16px',
@@ -190,16 +184,16 @@ class EnhancedErrorBoundary extends React.Component<
               >
                 🔄 Reload Application
               </button>
-              
-              <button 
+
+              <button
                 onClick={() => {
                   this.setState({ hasError: false, error: undefined, errorInfo: undefined });
-                }} 
-                style={{ 
-                  padding: '12px 24px', 
-                  background: '#2e7d32', 
-                  color: 'white', 
-                  border: 'none', 
+                }}
+                style={{
+                  padding: '12px 24px',
+                  background: '#2e7d32',
+                  color: 'white',
+                  border: 'none',
                   borderRadius: '6px',
                   cursor: 'pointer',
                   fontSize: '16px',
@@ -208,18 +202,18 @@ class EnhancedErrorBoundary extends React.Component<
               >
                 🔧 Try Recovery
               </button>
-              
-              <button 
+
+              <button
                 onClick={() => {
                   localStorage.clear();
                   sessionStorage.clear();
                   window.location.reload();
-                }} 
-                style={{ 
-                  padding: '12px 24px', 
-                  background: '#dc004e', 
-                  color: 'white', 
-                  border: 'none', 
+                }}
+                style={{
+                  padding: '12px 24px',
+                  background: '#dc004e',
+                  color: 'white',
+                  border: 'none',
                   borderRadius: '6px',
                   cursor: 'pointer',
                   fontSize: '16px',
@@ -231,21 +225,21 @@ class EnhancedErrorBoundary extends React.Component<
             </Box>
 
             {process.env.NODE_ENV === 'development' && this.state.errorInfo && (
-              <details style={{ 
-                marginTop: 24, 
+              <details style={{
+                marginTop: 24,
                 textAlign: 'left',
                 backgroundColor: '#f5f5f5',
                 padding: 16,
                 borderRadius: 4
               }}>
-                <summary style={{ 
-                  cursor: 'pointer', 
+                <summary style={{
+                  cursor: 'pointer',
                   color: '#666',
                   fontWeight: 500
                 }}>
                   🔍 Error Details (Development Only)
                 </summary>
-                <pre style={{ 
+                <pre style={{
                   fontSize: 12,
                   overflow: 'auto',
                   maxHeight: 200,
@@ -254,7 +248,7 @@ class EnhancedErrorBoundary extends React.Component<
                 }}>
                   {this.state.error?.stack}
                 </pre>
-                <pre style={{ 
+                <pre style={{
                   fontSize: 11,
                   overflow: 'auto',
                   maxHeight: 150,
@@ -287,7 +281,7 @@ const PersistLoading = () => (
     }}
   >
     <Box sx={{ textAlign: 'center' }}>
-      <Box 
+      <Box
         sx={{
           width: 40,
           height: 40,
@@ -326,7 +320,7 @@ const AuthLoading = () => (
     }}
   >
     <Box sx={{ textAlign: 'center' }}>
-      <Box 
+      <Box
         sx={{
           width: 40,
           height: 40,

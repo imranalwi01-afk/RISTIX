@@ -3,6 +3,7 @@ import React from 'react';
 import {
   List,
   Datagrid,
+  NumberField,
   TextField,
   EditButton,
   ShowButton,
@@ -195,7 +196,7 @@ const StatusField = ({ source }: any) => {
       />
       {record.requires_auth && (
         <Tooltip title="Requires Authentication">
-          <Lock sx={{ fontSize: 16, color: 'warning.main' }} />
+          <LockIcon sx={{ fontSize: 16, color: 'warning.main' }} />
         </Tooltip>
       )}
       {record.is_visible && (
@@ -205,7 +206,7 @@ const StatusField = ({ source }: any) => {
       )}
       {record.is_external && (
         <Tooltip title="External Link">
-          <Launch sx={{ fontSize: 16, color: 'info.main' }} />
+          <LaunchIcon sx={{ fontSize: 16, color: 'info.main' }} />
         </Tooltip>
       )}
     </Box>
@@ -247,7 +248,7 @@ const MenuList = () => {
               label={record.banking_type || 'both'}
               size="small"
               color={record.banking_type === 'conventional' ? 'primary' :
-                     record.banking_type === 'syariah' ? 'success' : 'default'}
+                record.banking_type === 'syariah' ? 'success' : 'default'}
             />
           )}
         />
@@ -488,7 +489,7 @@ const MenuShow = () => {
                         <Chip
                           label={record?.banking_type || 'both'}
                           color={record?.banking_type === 'conventional' ? 'primary' :
-                                 record?.banking_type === 'syariah' ? 'success' : 'default'}
+                            record?.banking_type === 'syariah' ? 'success' : 'default'}
                         />
                       )}
                     />

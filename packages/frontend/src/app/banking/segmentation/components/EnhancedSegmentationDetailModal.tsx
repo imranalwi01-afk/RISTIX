@@ -183,11 +183,11 @@ interface EnhancedSegmentationDetailModalProps {
 // MAIN ENHANCED COMPONENT
 // ============================================================================
 
-export default function EnhancedSegmentationDetailModal({ 
-  open, 
-  onClose, 
-  header, 
-  onRefresh 
+export default function EnhancedSegmentationDetailModal({
+  open,
+  onClose,
+  header,
+  onRefresh
 }: EnhancedSegmentationDetailModalProps) {
   const [loading, setLoading] = useState(false);
   const [detailsLoading, setDetailsLoading] = useState(false);
@@ -197,7 +197,7 @@ export default function EnhancedSegmentationDetailModal({
   const [selectedDetail, setSelectedDetail] = useState<SegmentationDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  
+
   // Enhanced Search and Filter State
   const [searchFilters, setSearchFilters] = useState<SearchFilters>({
     query: '',
@@ -208,7 +208,7 @@ export default function EnhancedSegmentationDetailModal({
     condition: '',
     query_group: ''
   });
-  
+
   // Enhanced Pagination State
   const [pagination, setPagination] = useState<PaginationState>({
     page: 1,
@@ -216,7 +216,7 @@ export default function EnhancedSegmentationDetailModal({
     total: 0,
     totalPages: 0
   });
-  
+
   // Column Values Loading State
   const [columnValuesLoading, setColumnValuesLoading] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
@@ -245,15 +245,15 @@ export default function EnhancedSegmentationDetailModal({
   // ============================================================================
   // ENHANCED SEARCH AND FILTER FUNCTIONS
   // ============================================================================
-  
+
   // Real-time search and filtering
   const applyFiltersAndSearch = useCallback(() => {
     let filtered = [...details];
-    
+
     // Apply text search across all fields
     if (searchFilters.query.trim()) {
       const query = searchFilters.query.toLowerCase();
-      filtered = filtered.filter(detail => 
+      filtered = filtered.filter(detail =>
         detail.table_name.toLowerCase().includes(query) ||
         detail.column_name.toLowerCase().includes(query) ||
         detail.data_type.toLowerCase().includes(query) ||
@@ -263,7 +263,7 @@ export default function EnhancedSegmentationDetailModal({
         (detail.condition && detail.condition.toLowerCase().includes(query))
       );
     }
-    
+
     // Apply specific filters
     if (searchFilters.table_name) {
       filtered = filtered.filter(detail => detail.table_name === searchFilters.table_name);
@@ -283,7 +283,7 @@ export default function EnhancedSegmentationDetailModal({
     if (searchFilters.query_group) {
       filtered = filtered.filter(detail => detail.query_group.toString() === searchFilters.query_group);
     }
-    
+
     // Update pagination
     setPagination(prev => ({
       ...prev,
@@ -291,15 +291,15 @@ export default function EnhancedSegmentationDetailModal({
       totalPages: Math.ceil(filtered.length / prev.pageSize),
       page: Math.min(prev.page, Math.ceil(filtered.length / prev.pageSize) || 1)
     }));
-    
+
     setFilteredDetails(filtered);
   }, [details, searchFilters]);
-  
+
   // Apply filters whenever search criteria or details change
   useEffect(() => {
     applyFiltersAndSearch();
   }, [applyFiltersAndSearch]);
-  
+
   // Clear all filters
   const clearAllFilters = useCallback(() => {
     setSearchFilters({
@@ -312,7 +312,7 @@ export default function EnhancedSegmentationDetailModal({
       query_group: ''
     });
   }, []);
-  
+
   // Get unique values for filter dropdowns
   const uniqueValues = useMemo(() => {
     const uniqueTables = [...new Set(details.map(d => d.table_name))].filter(Boolean);
@@ -321,7 +321,7 @@ export default function EnhancedSegmentationDetailModal({
     const uniqueOperators = [...new Set(details.map(d => d.operator))].filter(Boolean);
     const uniqueConditions = [...new Set(details.map(d => d.condition))].filter(Boolean);
     const uniqueQueryGroups = [...new Set(details.map(d => d.query_group.toString()))].filter(Boolean);
-    
+
     return {
       tables: uniqueTables,
       columns: uniqueColumns,
@@ -331,15 +331,15 @@ export default function EnhancedSegmentationDetailModal({
       queryGroups: uniqueQueryGroups
     };
   }, [details]);
-  
+
   // ============================================================================
   // ENHANCED PAGINATION FUNCTIONS
   // ============================================================================
-  
+
   const handlePageChange = (newPage: number) => {
     setPagination(prev => ({ ...prev, page: newPage }));
   };
-  
+
   const handlePageSizeChange = (newPageSize: number) => {
     setPagination(prev => ({
       ...prev,
@@ -348,7 +348,7 @@ export default function EnhancedSegmentationDetailModal({
       totalPages: Math.ceil(prev.total / newPageSize)
     }));
   };
-  
+
   // Get paginated data
   const paginatedDetails = useMemo(() => {
     const startIndex = (pagination.page - 1) * pagination.pageSize;
@@ -362,22 +362,22 @@ export default function EnhancedSegmentationDetailModal({
 
   const loadDetails = useCallback(async () => {
     if (!header?.id) return;
-    
+
     setDetailsLoading(true);
     setError(null);
-    
+
     try {
       console.log('🔄 Loading segmentation details for header:', header.id);
-      
+
       const result = await api.banking.segmentation.getDetails(header.id);
-      
+
       if (result.success && result.data) {
         console.log('✅ Successfully loaded segmentation details:', result.data.length, 'rules');
         setDetails(result.data);
       } else {
         throw new Error(result.message || 'Failed to load segmentation details');
       }
-      
+
     } catch (error: any) {
       console.error('❌ Failed to load segmentation details:', error);
       const errorInfo = handleAPIError(error);
@@ -391,7 +391,7 @@ export default function EnhancedSegmentationDetailModal({
   const loadBusinessSettings = useCallback(async () => {
     try {
       console.log('🔄 Loading business settings for segmentation...');
-      
+
       // Load tables from business-settings API
       const tablesResult = await api.banking.businessSettings.getTables();
       if (tablesResult.success && tablesResult.data) {
@@ -401,7 +401,7 @@ export default function EnhancedSegmentationDetailModal({
         })));
         console.log('✅ Loaded tables from business-settings:', tablesResult.data.length);
       }
-      
+
       // Load conditions from business-settings API
       const conditionsResult = await api.banking.businessSettings.getConditions();
       if (conditionsResult.success && conditionsResult.data) {
@@ -411,7 +411,7 @@ export default function EnhancedSegmentationDetailModal({
         })));
         console.log('✅ Loaded conditions from business-settings:', conditionsResult.data.length);
       }
-      
+
     } catch (error: any) {
       console.error('❌ Failed to load business settings:', error);
       // Use fallback data
@@ -433,13 +433,13 @@ export default function EnhancedSegmentationDetailModal({
       setColumns([]);
       return;
     }
-    
+
     try {
       console.log('🔄 Loading columns for table:', tableName);
-      
+
       // ✅ FIXED: Use correct business-settings API endpoint
       const result = await api.banking.businessSettings.getColumns(tableName);
-      
+
       if (result.success && result.data) {
         // Transform business-settings API response to expected format
         const transformedColumns = result.data.map((col: any) => ({
@@ -452,7 +452,7 @@ export default function EnhancedSegmentationDetailModal({
       } else {
         throw new Error(result.message || 'Failed to load columns');
       }
-      
+
     } catch (error: any) {
       console.error('❌ Failed to load columns for table:', tableName, error);
       // Use fallback columns for FRS9_MASTER_ACCOUNT
@@ -473,13 +473,13 @@ export default function EnhancedSegmentationDetailModal({
       setOperators([]);
       return;
     }
-    
+
     try {
       console.log('🔄 Loading operators for data type:', dataType);
-      
+
       // ✅ FIXED: Use correct business-settings API endpoint
       const result = await api.banking.businessSettings.getOperators(dataType);
-      
+
       if (result.success && result.data) {
         // Transform business-settings API response to expected format
         const transformedOperators = result.data.map((op: any) => ({
@@ -493,12 +493,12 @@ export default function EnhancedSegmentationDetailModal({
       } else {
         throw new Error(result.message || 'Failed to load operators');
       }
-      
+
     } catch (error: any) {
       console.error('❌ Failed to load operators for data type:', dataType, error);
       // Use enhanced fallback operators with multi-select support
       let fallbackOperators: OperatorInfo[] = [];
-      
+
       switch (dataType) {
         case 'VARCHAR':
           fallbackOperators = [
@@ -544,7 +544,7 @@ export default function EnhancedSegmentationDetailModal({
             { operator: '!=', operator_display: 'Not Equal (!=)', requires_value2: false }
           ];
       }
-      
+
       setOperators(fallbackOperators);
     }
   }, []);
@@ -555,15 +555,15 @@ export default function EnhancedSegmentationDetailModal({
       setColumnValues([]);
       return;
     }
-    
+
     setColumnValuesLoading(true);
-    
+
     try {
       console.log('🔄 Loading values for column:', `${tableName}.${columnName}`, forceReload ? '(forced reload)' : '');
-      
+
       // ✅ FIXED: Use correct business-settings API endpoint
       const result = await api.banking.businessSettings.getColumnValues(tableName, columnName);
-      
+
       if (result.success && result.data && Array.isArray(result.data) && result.data.length > 0) {
         // Transform business-settings API response to expected format
         const transformedValues = result.data.map((val: any) => ({
@@ -572,37 +572,37 @@ export default function EnhancedSegmentationDetailModal({
         }));
         console.log('✅ Loaded', transformedValues.length, 'values for', `${tableName}.${columnName}`);
         setColumnValues(transformedValues);
-        
+
         // Clear fallback info when data is successfully loaded
         setFallbackInfo(null);
-        
+
         // Show success message for debug
         console.log('📊 Column values loaded successfully:', transformedValues.slice(0, 5).map(v => v.value || v.display));
-        
+
       } else if (result.success && result.fallback_info) {
         // ✅ ENHANCED: Handle API fallback guidance for missing B0016 data
         console.log('📋 API returned fallback guidance for missing data:', result.fallback_info);
         console.log('💡 Fallback example:', result.fallback_info.example);
         console.log('🔧 UI guidance:', result.fallback_info.ui_fallback);
-        
+
         // Show user-friendly message about manual entry
         if (result.fallback_info.example) {
           console.log(`💡 Suggested values for ${tableName}.${columnName}:`, result.fallback_info.example);
         }
-        
+
         // Set empty column values to show "0 options" UI
         setColumnValues([]);
-        
+
         // Store fallback info for dynamic UI display
         setFallbackInfo(result.fallback_info);
-        
+
         // Note: The UI will automatically show manual text input based on operator type
-        
+
       } else {
         console.warn('⚠️ API returned empty or invalid data for column values:', result);
         await loadFallbackValuesForColumn(tableName, columnName);
       }
-      
+
     } catch (error: any) {
       console.error('❌ Failed to load values for column:', `${tableName}.${columnName}`, error);
       console.log('🔄 Attempting fallback values...');
@@ -611,11 +611,11 @@ export default function EnhancedSegmentationDetailModal({
       setColumnValuesLoading(false);
     }
   }, []);
-  
+
   // Enhanced fallback values based on real banking data
   const loadFallbackValuesForColumn = useCallback(async (tableName: string, columnName: string) => {
     console.log('🔄 Loading fallback values for:', `${tableName}.${columnName}`);
-    
+
     // Real banking product codes from legacy system
     if (columnName.toLowerCase().includes('prd_code') || columnName === 'product_type') {
       setColumnValues([
@@ -657,10 +657,10 @@ export default function EnhancedSegmentationDetailModal({
         { value: 'VALUE3', display: 'Sample Value 3' }
       ]);
     }
-    
+
     // Clear fallback info when using hardcoded fallback values
     setFallbackInfo(null);
-    
+
     console.log('✅ Fallback values loaded for:', `${tableName}.${columnName}`);
   }, []);
 
@@ -670,7 +670,7 @@ export default function EnhancedSegmentationDetailModal({
 
   const handleTableChange = useCallback((tableName: string) => {
     console.log('🔄 Table changed to:', tableName);
-    
+
     setFormData(prev => ({
       ...prev,
       table_name: tableName,
@@ -680,10 +680,10 @@ export default function EnhancedSegmentationDetailModal({
       value1: '',
       value2: ''
     }));
-    
+
     // Load columns for the selected table
     loadColumnsForTable(tableName);
-    
+
     // Clear dependent dropdowns
     setColumns([]);
     setOperators([]);
@@ -692,10 +692,10 @@ export default function EnhancedSegmentationDetailModal({
 
   const handleColumnChange = useCallback(async (columnName: string) => {
     console.log('🔄 Column changed to:', columnName);
-    
+
     const selectedColumn = columns.find(col => col.column_name === columnName);
     const dataType = selectedColumn?.data_type || '';
-    
+
     setFormData(prev => ({
       ...prev,
       column_name: columnName,
@@ -704,11 +704,11 @@ export default function EnhancedSegmentationDetailModal({
       value1: '',
       value2: ''
     }));
-    
+
     if (dataType) {
       // Load operators for the data type
       await loadOperatorsForDataType(dataType);
-      
+
       // Enhanced column values loading with force reload
       if (formData.table_name) {
         console.log('🔄 Loading column values with enhanced fallback...');
@@ -719,16 +719,16 @@ export default function EnhancedSegmentationDetailModal({
 
   const handleOperatorChange = useCallback(async (operator: string) => {
     console.log('🔄 Operator changed to:', operator);
-    
+
     const selectedOperator = operators.find(op => op.operator === operator);
-    
+
     setFormData(prev => ({
       ...prev,
       operator: operator,
       value1: '',
       value2: selectedOperator?.requires_value2 ? '' : prev.value2
     }));
-    
+
     // If operator supports multiple values (IN/NOT IN), ensure column values are loaded
     if (selectedOperator?.supports_multiple && formData.table_name && formData.column_name) {
       console.log('🔄 Operator supports multiple values - ensuring column values are loaded...');
@@ -774,14 +774,14 @@ export default function EnhancedSegmentationDetailModal({
       headerName: 'Type',
       width: 100,
       renderCell: (params) => (
-        <Chip 
-          label={params?.value || '-'} 
-          size="small" 
+        <Chip
+          label={params?.value || '-'}
+          size="small"
           color={
             params?.value === 'NUMBER' ? 'info' :
-            params?.value === 'VARCHAR' ? 'success' :
-            params?.value === 'DATE' ? 'warning' :
-            params?.value === 'BOOLEAN' ? 'error' : 'default'
+              params?.value === 'VARCHAR' ? 'success' :
+                params?.value === 'DATE' ? 'warning' :
+                  params?.value === 'BOOLEAN' ? 'error' : 'default'
           }
         />
       )
@@ -811,9 +811,9 @@ export default function EnhancedSegmentationDetailModal({
       headerName: 'Condition',
       width: 80,
       renderCell: (params) => (
-        <Chip 
-          label={params?.value || '-'} 
-          size="small" 
+        <Chip
+          label={params?.value || '-'}
+          size="small"
           color={params?.value === 'AND' ? 'success' : 'warning'}
         />
       )
@@ -869,7 +869,7 @@ export default function EnhancedSegmentationDetailModal({
       });
     }
   }, [open, header?.id, loadDetails, loadBusinessSettings]);
-  
+
   // Update pagination when details change
   useEffect(() => {
     if (details.length > 0) {
@@ -898,12 +898,12 @@ export default function EnhancedSegmentationDetailModal({
       value2: '',
       condition: 'AND'
     });
-    
+
     // Clear dependent dropdowns
     setColumns([]);
     setOperators([]);
     setColumnValues([]);
-    
+
     setDetailDialogOpen(true);
   };
 
@@ -921,7 +921,7 @@ export default function EnhancedSegmentationDetailModal({
       value2: detail.value2 || '',
       condition: detail.condition || 'AND'
     });
-    
+
     // Load dependent dropdowns
     if (detail.table_name) {
       loadColumnsForTable(detail.table_name);
@@ -932,7 +932,7 @@ export default function EnhancedSegmentationDetailModal({
     if (detail.table_name && detail.column_name) {
       loadValuesForColumn(detail.table_name, detail.column_name);
     }
-    
+
     setDetailDialogOpen(true);
   };
 
@@ -944,13 +944,13 @@ export default function EnhancedSegmentationDetailModal({
     try {
       setLoading(true);
       console.log('🗑️ Deleting segmentation detail:', detail.id);
-      
+
       await api.banking.segmentation.deleteDetail(detail.id);
-      
+
       console.log('✅ Segmentation detail deleted successfully');
       setSuccess('Segmentation rule deleted successfully');
       await loadDetails(); // Reload details
-      
+
     } catch (error: any) {
       console.error('❌ Failed to delete segmentation detail:', error);
       const errorInfo = handleAPIError(error);
@@ -963,7 +963,7 @@ export default function EnhancedSegmentationDetailModal({
   const handleSaveDetail = async () => {
     // Validate required fields
     const errors: string[] = [];
-    
+
     if (!formData.table_name.trim()) {
       errors.push('Table is required');
     }
@@ -979,13 +979,13 @@ export default function EnhancedSegmentationDetailModal({
     if (!formData.value1.trim()) {
       errors.push('Value 1 is required');
     }
-    
+
     // Check if operator requires value2
     const selectedOperator = operators.find(op => op.operator === formData.operator);
     if (selectedOperator?.requires_value2 && !formData.value2.trim()) {
       errors.push('Value 2 is required for BETWEEN operator');
     }
-    
+
     if (errors.length > 0) {
       setError(errors.join(', '));
       return;
@@ -994,7 +994,7 @@ export default function EnhancedSegmentationDetailModal({
     try {
       setLoading(true);
       setError(null);
-      
+
       const payload = {
         query_group: formData.query_group === '' ? 1 : Number(formData.query_group),
         seq: formData.seq === '' ? 1 : Number(formData.seq),
@@ -1006,7 +1006,7 @@ export default function EnhancedSegmentationDetailModal({
         value2: selectedOperator?.requires_value2 ? formData.value2.trim() : null,
         condition: formData.condition || 'AND'
       };
-      
+
       if (selectedDetail) {
         // Update existing detail
         console.log('✏️ Updating segmentation detail:', payload);
@@ -1018,11 +1018,11 @@ export default function EnhancedSegmentationDetailModal({
         await api.banking.segmentation.createDetail(header.id, payload);
         setSuccess('Segmentation rule created successfully');
       }
-      
+
       setDetailDialogOpen(false);
       await loadDetails(); // Reload details
       onRefresh(); // Refresh parent header list (to update detail count)
-      
+
     } catch (error: any) {
       console.error('❌ Failed to save segmentation detail:', error);
       const errorInfo = handleAPIError(error);
@@ -1041,7 +1041,7 @@ export default function EnhancedSegmentationDetailModal({
     const value = formData[valueKey];
     const dataType = formData.data_type.toLowerCase();
     const operator = formData.operator;
-    
+
     // Skip value2 if operator doesn't require it (matching legacy logic)
     if (valueKey === 'value2' && operator !== 'BETWEEN') {
       return null;
@@ -1050,7 +1050,7 @@ export default function EnhancedSegmentationDetailModal({
     // =======================================================================
     // EXACT LEGACY LOGIC: setValueInputType() and setOperatorChange() patterns
     // =======================================================================
-    
+
     // 1. IN/NOT IN operators → Show checkbox multi-select (value-1-in pattern)
     if ((operator === 'IN' || operator === 'NOT IN') && valueKey === 'value1') {
       return (
@@ -1059,15 +1059,15 @@ export default function EnhancedSegmentationDetailModal({
             <FormLabel component="legend">
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 {label} (Multi-select - Legacy Pattern)
-                <Chip 
-                  label={`${columnValues.length} options`} 
-                  size="small" 
-                  color="info" 
-                  variant="outlined" 
+                <Chip
+                  label={`${columnValues.length} options`}
+                  size="small"
+                  color="info"
+                  variant="outlined"
                 />
               </Box>
             </FormLabel>
-            
+
             {/* Loading state */}
             {columnValuesLoading && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
@@ -1077,7 +1077,7 @@ export default function EnhancedSegmentationDetailModal({
                 </Typography>
               </Box>
             )}
-            
+
             {/* Legacy checkbox list pattern - matching ul-value1 structure */}
             {!columnValuesLoading && columnValues.length > 0 && (
               <Paper variant="outlined" sx={{ maxHeight: 200, overflow: 'auto', p: 1, mt: 1 }}>
@@ -1095,7 +1095,7 @@ export default function EnhancedSegmentationDetailModal({
                             onChange={(e) => {
                               const currentValues = value ? value.split(',').map(v => v.trim()) : [];
                               let newValues = [...currentValues];
-                              
+
                               if (e.target.checked) {
                                 if (!newValues.includes(valueOption.value)) {
                                   newValues.push(valueOption.value);
@@ -1103,7 +1103,7 @@ export default function EnhancedSegmentationDetailModal({
                               } else {
                                 newValues = newValues.filter(v => v !== valueOption.value);
                               }
-                              
+
                               // Match legacy format: comma-separated values
                               setFormData(prev => ({ ...prev, [valueKey]: newValues.join(',') }));
                             }}
@@ -1122,7 +1122,7 @@ export default function EnhancedSegmentationDetailModal({
                 </FormGroup>
               </Paper>
             )}
-            
+
             {/* Manual input fallback when no values available */}
             {!columnValuesLoading && columnValues.length === 0 && (
               <TextField
@@ -1131,11 +1131,11 @@ export default function EnhancedSegmentationDetailModal({
                 onChange={(e) => setFormData(prev => ({ ...prev, [valueKey]: e.target.value }))}
                 fullWidth
                 placeholder={
-                  fallbackInfo?.ui_fallback?.placeholder || 
+                  fallbackInfo?.ui_fallback?.placeholder ||
                   "Enter comma-separated values"
                 }
                 helperText={
-                  fallbackInfo?.ui_fallback?.placeholder || 
+                  fallbackInfo?.ui_fallback?.placeholder ||
                   `Column values not available. Enter manually (e.g., ${fallbackInfo?.example || 'HE,KPR,CF'})`
                 }
                 sx={{ mt: 1 }}
@@ -1145,12 +1145,12 @@ export default function EnhancedSegmentationDetailModal({
         </Box>
       );
     }
-    
+
     // 2. Boolean/Bit data type → Show radio buttons (value-1-bool pattern)
     if (dataType === 'bit' || dataType === 'boolean') {
-      const booleanValue = value === '1' || value === 'true' || value === true ? '1' : 
-                          value === '0' || value === 'false' || value === false ? '0' : '';
-      
+      const booleanValue = (value as any) === '1' || (value as any) === 'true' || (value as any) === true ? '1' :
+        (value as any) === '0' || (value as any) === 'false' || (value as any) === false ? '0' : '';
+
       return (
         <Box className="value-1-bool" sx={{ mt: 2, display: dataType === 'bit' || dataType === 'boolean' ? 'block' : 'none' }}>
           <FormControl component="fieldset" fullWidth>
@@ -1163,15 +1163,15 @@ export default function EnhancedSegmentationDetailModal({
               row
               sx={{ mt: 1 }}
             >
-              <FormControlLabel 
-                value="1" 
-                control={<Radio />} 
+              <FormControlLabel
+                value="1"
+                control={<Radio />}
                 label="True"
                 className="radio"
               />
-              <FormControlLabel 
-                value="0" 
-                control={<Radio />} 
+              <FormControlLabel
+                value="0"
+                control={<Radio />}
                 label="False"
                 className="radio"
               />
@@ -1185,11 +1185,11 @@ export default function EnhancedSegmentationDetailModal({
         </Box>
       );
     }
-    
+
     // Enhanced Multi-select for IN/NOT IN operators with perfect legacy match
     if (selectedOperator?.supports_multiple) {
       const selectedValues = value ? value.split(',').map(v => v.trim()) : [];
-      
+
       // Show loading state while fetching column values
       if (columnValuesLoading) {
         return (
@@ -1201,7 +1201,7 @@ export default function EnhancedSegmentationDetailModal({
           </Box>
         );
       }
-      
+
       // Show multi-select checkbox interface when values are available
       if (columnValues.length > 0) {
         return (
@@ -1209,15 +1209,15 @@ export default function EnhancedSegmentationDetailModal({
             <FormLabel component="legend">
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 {label} (Multi-select)
-                <Chip 
-                  label={`${columnValues.length} options`} 
-                  size="small" 
-                  color="info" 
-                  variant="outlined" 
+                <Chip
+                  label={`${columnValues.length} options`}
+                  size="small"
+                  color="info"
+                  variant="outlined"
                 />
                 <Tooltip title="Reload column values">
-                  <IconButton 
-                    size="small" 
+                  <IconButton
+                    size="small"
                     onClick={() => loadValuesForColumn(formData.table_name, formData.column_name, true)}
                     disabled={columnValuesLoading}
                   >
@@ -1226,7 +1226,7 @@ export default function EnhancedSegmentationDetailModal({
                 </Tooltip>
               </Box>
             </FormLabel>
-            
+
             <Paper variant="outlined" sx={{ maxHeight: 200, overflow: 'auto', p: 1, mt: 1 }}>
               <FormGroup>
                 {columnValues.map((valueOption) => (
@@ -1253,10 +1253,10 @@ export default function EnhancedSegmentationDetailModal({
                           {valueOption.display || valueOption.value}
                         </Typography>
                         {valueOption.value !== valueOption.display && (
-                          <Chip 
-                            label={valueOption.value} 
-                            size="small" 
-                            variant="outlined" 
+                          <Chip
+                            label={valueOption.value}
+                            size="small"
+                            variant="outlined"
                           />
                         )}
                       </Box>
@@ -1266,7 +1266,7 @@ export default function EnhancedSegmentationDetailModal({
                 ))}
               </FormGroup>
             </Paper>
-            
+
             {selectedValues.length > 0 && (
               <Alert severity="info" sx={{ mt: 1 }}>
                 <Typography variant="body2">
@@ -1291,7 +1291,7 @@ export default function EnhancedSegmentationDetailModal({
                 endAdornment: (
                   <InputAdornment position="end">
                     <Tooltip title="Reload column values">
-                      <IconButton 
+                      <IconButton
                         onClick={() => loadValuesForColumn(formData.table_name, formData.column_name, true)}
                         disabled={columnValuesLoading}
                         size="small"
@@ -1312,7 +1312,7 @@ export default function EnhancedSegmentationDetailModal({
         );
       }
     }
-    
+
     // Dropdown for single values if column values available
     if (!selectedOperator?.supports_multiple && columnValues.length > 0 && formData.data_type === 'VARCHAR') {
       return (
@@ -1333,7 +1333,7 @@ export default function EnhancedSegmentationDetailModal({
         </TextField>
       );
     }
-    
+
     // Date input - Enhanced to match legacy DD-MMM-YYYY format
     if (formData.data_type === 'DATE') {
       // Helper function to format date for display (DD-MMM-YYYY like legacy)
@@ -1341,8 +1341,8 @@ export default function EnhancedSegmentationDetailModal({
         if (!dateValue) return '';
         try {
           const date = new Date(dateValue);
-          const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
-                         'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+          const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+            'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
           const day = date.getDate().toString().padStart(2, '0');
           const month = months[date.getMonth()];
           const year = date.getFullYear();
@@ -1353,7 +1353,7 @@ export default function EnhancedSegmentationDetailModal({
       };
 
       const displayValue = value ? formatDateForDisplay(value) : '';
-      
+
       return (
         <Box sx={{ mt: 1 }}>
           <TextField
@@ -1362,7 +1362,7 @@ export default function EnhancedSegmentationDetailModal({
             value={value}
             onChange={(e) => setFormData(prev => ({ ...prev, [valueKey]: e.target.value }))}
             fullWidth
-            slotProps={{ 
+            slotProps={{
               inputLabel: { shrink: true },
               input: {
                 endAdornment: (
@@ -1385,7 +1385,7 @@ export default function EnhancedSegmentationDetailModal({
         </Box>
       );
     }
-    
+
     // Number input
     if (formData.data_type === 'NUMBER') {
       return (
@@ -1400,7 +1400,7 @@ export default function EnhancedSegmentationDetailModal({
         />
       );
     }
-    
+
     // Default text input
     return (
       <TextField
@@ -1463,17 +1463,17 @@ export default function EnhancedSegmentationDetailModal({
             </Box>
           </Box>
         </DialogTitle>
-        
+
         <DialogContent>
           <Box sx={{ mb: 2 }}>
             <Alert severity="info" icon={<InfoIcon />}>
               <Typography variant="body2">
-                <strong>Enhanced Segmentation Details:</strong> Define business rules using table columns, operators, and values. 
+                <strong>Enhanced Segmentation Details:</strong> Define business rules using table columns, operators, and values.
                 Use query groups to organize related conditions with AND/OR logic. Advanced search and filters available.
               </Typography>
             </Alert>
           </Box>
-          
+
           {/* Enhanced Search and Filter Section */}
           <Card sx={{ mb: 2 }}>
             <CardContent>
@@ -1482,17 +1482,17 @@ export default function EnhancedSegmentationDetailModal({
                   <SearchIcon /> Search & Filter Rules
                 </Typography>
                 <Box sx={{ display: 'flex', gap: 1 }}>
-                  <Button 
-                    size="small" 
-                    variant="outlined" 
+                  <Button
+                    size="small"
+                    variant="outlined"
                     startIcon={<FilterIcon />}
                     onClick={() => setShowFilters(!showFilters)}
                   >
                     {showFilters ? 'Hide' : 'Show'} Filters
                   </Button>
-                  <Button 
-                    size="small" 
-                    variant="outlined" 
+                  <Button
+                    size="small"
+                    variant="outlined"
                     startIcon={<ClearIcon />}
                     onClick={clearAllFilters}
                     disabled={!Object.values(searchFilters).some(v => v)}
@@ -1501,7 +1501,7 @@ export default function EnhancedSegmentationDetailModal({
                   </Button>
                 </Box>
               </Box>
-              
+
               {/* Global Search */}
               <TextField
                 fullWidth
@@ -1517,8 +1517,8 @@ export default function EnhancedSegmentationDetailModal({
                   ),
                   endAdornment: searchFilters.query && (
                     <InputAdornment position="end">
-                      <IconButton 
-                        size="small" 
+                      <IconButton
+                        size="small"
                         onClick={() => setSearchFilters(prev => ({ ...prev, query: '' }))}
                       >
                         <ClearIcon />
@@ -1528,7 +1528,7 @@ export default function EnhancedSegmentationDetailModal({
                 }}
                 sx={{ mb: showFilters ? 2 : 0 }}
               />
-              
+
               {/* Advanced Filters */}
               {showFilters && (
                 <Grid container spacing={2}>
@@ -1588,7 +1588,7 @@ export default function EnhancedSegmentationDetailModal({
                   </Grid>
                 </Grid>
               )}
-              
+
               {/* Filter Summary */}
               {(filteredDetails.length !== details.length || Object.values(searchFilters).some(v => v)) && (
                 <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -1596,10 +1596,10 @@ export default function EnhancedSegmentationDetailModal({
                     Showing {filteredDetails.length} of {details.length} rules
                   </Typography>
                   {Object.values(searchFilters).some(v => v) && (
-                    <Chip 
-                      label="Filters active" 
-                      size="small" 
-                      color="primary" 
+                    <Chip
+                      label="Filters active"
+                      size="small"
+                      color="primary"
                       onDelete={clearAllFilters}
                     />
                   )}
@@ -1609,7 +1609,7 @@ export default function EnhancedSegmentationDetailModal({
           </Card>
 
           <Card>
-            <CardHeader 
+            <CardHeader
               title={`Segmentation Rules (${details.length})`}
               slotProps={{ title: { variant: 'h6' } }}
             />
@@ -1637,7 +1637,7 @@ export default function EnhancedSegmentationDetailModal({
                     </TextField>
                   </Box>
                 </Box>
-                
+
                 <DataGrid
                   rows={paginatedDetails}
                   columns={detailColumns}
@@ -1647,7 +1647,7 @@ export default function EnhancedSegmentationDetailModal({
                   disableRowSelectionOnClick
                   loading={detailsLoading}
                   density="compact"
-                  sx={{ 
+                  sx={{
                     '& .MuiDataGrid-row:hover': {
                       backgroundColor: 'action.hover'
                     }
@@ -1655,11 +1655,11 @@ export default function EnhancedSegmentationDetailModal({
                   slotProps={{
                     noRowsOverlay: {
                       children: (
-                        <Box 
-                          sx={{ 
-                            display: 'flex', 
-                            flexDirection: 'column', 
-                            alignItems: 'center', 
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
                             justifyContent: 'center',
                             height: '100%',
                             gap: 2
@@ -1667,21 +1667,21 @@ export default function EnhancedSegmentationDetailModal({
                         >
                           <WarningIcon sx={{ fontSize: 48, color: 'text.secondary' }} />
                           <Typography variant="h6" color="text.secondary">
-                            {filteredDetails.length === 0 && details.length > 0 ? 
-                              'No rules match current filters' : 
+                            {filteredDetails.length === 0 && details.length > 0 ?
+                              'No rules match current filters' :
                               'No Segmentation Rules Found'
                             }
                           </Typography>
                           <Typography variant="body2" color="text.secondary" textAlign="center">
-                            {filteredDetails.length === 0 && details.length > 0 ? 
+                            {filteredDetails.length === 0 && details.length > 0 ?
                               'Try adjusting your search criteria or clearing filters.' :
                               'No detailed rules configured for this segmentation. Click "Add Rule" to create the first one.'
                             }
                           </Typography>
                           {filteredDetails.length === 0 && details.length > 0 && (
-                            <Button 
-                              variant="outlined" 
-                              startIcon={<ClearIcon />} 
+                            <Button
+                              variant="outlined"
+                              startIcon={<ClearIcon />}
                               onClick={clearAllFilters}
                               size="small"
                             >
@@ -1693,25 +1693,25 @@ export default function EnhancedSegmentationDetailModal({
                     }
                   }}
                 />
-                
+
                 {/* Custom Pagination Controls */}
                 {pagination.totalPages > 1 && (
                   <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 2, gap: 1 }}>
-                    <Button 
-                      size="small" 
+                    <Button
+                      size="small"
                       onClick={() => handlePageChange(1)}
                       disabled={pagination.page === 1}
                     >
                       First
                     </Button>
-                    <Button 
-                      size="small" 
+                    <Button
+                      size="small"
                       onClick={() => handlePageChange(pagination.page - 1)}
                       disabled={pagination.page === 1}
                     >
                       Previous
                     </Button>
-                    
+
                     <Box sx={{ display: 'flex', gap: 0.5 }}>
                       {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
                         let pageNum;
@@ -1724,7 +1724,7 @@ export default function EnhancedSegmentationDetailModal({
                         } else {
                           pageNum = pagination.page - 2 + i;
                         }
-                        
+
                         return (
                           <Button
                             key={pageNum}
@@ -1738,16 +1738,16 @@ export default function EnhancedSegmentationDetailModal({
                         );
                       })}
                     </Box>
-                    
-                    <Button 
-                      size="small" 
+
+                    <Button
+                      size="small"
                       onClick={() => handlePageChange(pagination.page + 1)}
                       disabled={pagination.page === pagination.totalPages}
                     >
                       Next
                     </Button>
-                    <Button 
-                      size="small" 
+                    <Button
+                      size="small"
                       onClick={() => handlePageChange(pagination.totalPages)}
                       disabled={pagination.page === pagination.totalPages}
                     >
@@ -1759,7 +1759,7 @@ export default function EnhancedSegmentationDetailModal({
             </CardContent>
           </Card>
         </DialogContent>
-        
+
         <DialogActions>
           <Button onClick={onClose} disabled={loading}>
             Close
@@ -1788,7 +1788,7 @@ export default function EnhancedSegmentationDetailModal({
                   slotProps={{ htmlInput: { min: 1 } }}
                 />
               </Grid>
-              
+
               <Grid size={6}>
                 <TextField
                   label="Sequence"
@@ -1801,7 +1801,7 @@ export default function EnhancedSegmentationDetailModal({
                   slotProps={{ htmlInput: { min: 1 } }}
                 />
               </Grid>
-              
+
               {/* Table Selection */}
               <Grid size={12}>
                 <TextField
@@ -1822,7 +1822,7 @@ export default function EnhancedSegmentationDetailModal({
                   ))}
                 </TextField>
               </Grid>
-              
+
               {/* Column Selection */}
               <Grid size={8}>
                 <TextField
@@ -1841,15 +1841,15 @@ export default function EnhancedSegmentationDetailModal({
                     <MenuItem key={column.column_name} value={column.column_name}>
                       {column.column_display || column.column_name}
                       {column.data_type && (
-                        <Chip 
-                          label={column.data_type} 
-                          size="small" 
+                        <Chip
+                          label={column.data_type}
+                          size="small"
                           sx={{ ml: 1 }}
                           color={
                             column.data_type === 'NUMBER' ? 'info' :
-                            column.data_type === 'VARCHAR' ? 'success' :
-                            column.data_type === 'DATE' ? 'warning' :
-                            column.data_type === 'BOOLEAN' ? 'error' : 'default'
+                              column.data_type === 'VARCHAR' ? 'success' :
+                                column.data_type === 'DATE' ? 'warning' :
+                                  column.data_type === 'BOOLEAN' ? 'error' : 'default'
                           }
                         />
                       )}
@@ -1857,7 +1857,7 @@ export default function EnhancedSegmentationDetailModal({
                   ))}
                 </TextField>
               </Grid>
-              
+
               {/* Data Type Display */}
               <Grid size={4}>
                 <TextField
@@ -1874,7 +1874,7 @@ export default function EnhancedSegmentationDetailModal({
                   }}
                 />
               </Grid>
-              
+
               {/* Operator Selection */}
               <Grid size={6}>
                 <TextField
@@ -1902,7 +1902,7 @@ export default function EnhancedSegmentationDetailModal({
                   ))}
                 </TextField>
               </Grid>
-              
+
               {/* Condition */}
               <Grid size={6}>
                 <TextField
@@ -1920,37 +1920,37 @@ export default function EnhancedSegmentationDetailModal({
                   ))}
                 </TextField>
               </Grid>
-              
+
               {/* Dynamic Value Inputs */}
               <Grid size={12}>
                 <Divider sx={{ my: 2 }} />
                 <Typography variant="subtitle2" gutterBottom>
                   Rule Values
                 </Typography>
-                
+
                 {formData.operator && (
                   <Box sx={{ mt: 1 }}>
                     <Grid container spacing={2}>
                       <Grid size={operators.find(op => op.operator === formData.operator)?.requires_value2 ? 6 : 12}>
                         {renderValueInput('value1', 'Value 1 *')}
                       </Grid>
-                      
+
                       {operators.find(op => op.operator === formData.operator)?.requires_value2 && (
                         <Grid size={6}>
                           {renderValueInput('value2', 'Value 2 *')}
                         </Grid>
                       )}
                     </Grid>
-                    
+
                     {formData.operator === 'LIKE' && (
                       <Alert severity="info" sx={{ mt: 2 }}>
                         <Typography variant="body2">
-                          <strong>LIKE Operator:</strong> Use % as wildcards. 
+                          <strong>LIKE Operator:</strong> Use % as wildcards.
                           Example: "%loan%" finds any text containing "loan"
                         </Typography>
                       </Alert>
                     )}
-                    
+
                     {formData.operator === 'BETWEEN' && (
                       <Alert severity="info" sx={{ mt: 2 }}>
                         <Typography variant="body2">
@@ -1969,8 +1969,8 @@ export default function EnhancedSegmentationDetailModal({
           <Button onClick={() => setDetailDialogOpen(false)} disabled={loading}>
             Cancel
           </Button>
-          <Button 
-            onClick={handleSaveDetail} 
+          <Button
+            onClick={handleSaveDetail}
             variant="contained"
             disabled={loading || !formData.table_name.trim() || !formData.column_name.trim() || !formData.operator.trim() || !formData.value1.trim()}
             startIcon={loading ? <CircularProgress size={16} /> : <SaveIcon />}
@@ -1981,9 +1981,9 @@ export default function EnhancedSegmentationDetailModal({
       </Dialog>
 
       {/* Success/Error Snackbars */}
-      <Snackbar 
-        open={!!success} 
-        autoHideDuration={4000} 
+      <Snackbar
+        open={!!success}
+        autoHideDuration={4000}
         onClose={() => setSuccess(null)}
         anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
@@ -1992,9 +1992,9 @@ export default function EnhancedSegmentationDetailModal({
         </Alert>
       </Snackbar>
 
-      <Snackbar 
-        open={!!error} 
-        autoHideDuration={6000} 
+      <Snackbar
+        open={!!error}
+        autoHideDuration={6000}
         onClose={() => setError(null)}
         anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
       >

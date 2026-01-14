@@ -13,6 +13,7 @@ import {
   TextInput,
   SelectInput,
   BooleanInput,
+  BooleanField,
   Edit,
   Show,
   TabbedShowLayout,
@@ -31,7 +32,8 @@ import {
   Tab,
   RichTextField,
   useRecordContext,
-  Labeled
+  Labeled,
+  useTranslate
 } from "react-admin";
 import {
   Security,
@@ -199,7 +201,7 @@ const RoleList = () => {
                 record={{ bankingAccess }}
                 color={
                   bankingAccess === 'CONVENTIONAL' ? 'primary' :
-                  bankingAccess === 'SYARIAH' ? 'success' : 'secondary'
+                    bankingAccess === 'SYARIAH' ? 'success' : 'secondary'
                 }
               />
             );
@@ -622,7 +624,7 @@ const RoleShow = () => {
                         record={{ bankingAccess: record.bankingAccess || 'CONVENTIONAL' }}
                         color={
                           record.bankingAccess === 'CONVENTIONAL' ? 'primary' :
-                          record.bankingAccess === 'SYARIAH' ? 'success' : 'secondary'
+                            record.bankingAccess === 'SYARIAH' ? 'success' : 'secondary'
                         }
                       />
                     )}

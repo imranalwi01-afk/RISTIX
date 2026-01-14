@@ -72,7 +72,7 @@ import {
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import { format, parseISO } from 'date-fns';
-import { api } from '../../../services/api';
+import { api } from '@/services/api';
 
 // Types
 interface Role {
@@ -285,7 +285,7 @@ const RoleCRUDOperations: React.FC<RoleCRUDOperationsProps> = ({
 
   // Handle form field changes
   const handleFieldChange = (field: keyof RoleFormData) => (
-    event: React.ChangeEvent<HTMLInputElement | { target: { value: unknown } }
+    event: any
   ) => {
     const value = event.target.value;
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -347,7 +347,7 @@ const RoleCRUDOperations: React.FC<RoleCRUDOperationsProps> = ({
     setCrudDialog({
       open: true,
       mode,
-      role
+      role: role || null
     });
   };
 
@@ -410,7 +410,7 @@ const RoleCRUDOperations: React.FC<RoleCRUDOperationsProps> = ({
       await api.roles.delete(crudDialog.role.id);
 
       setSuccess('Role deleted successfully');
-      onRoleChange?.(roles.find(r => r.id !== crudDialog.role.id)!);
+      onRoleChange?.(roles.find(r => r.id !== crudDialog.role!.id)!);
       setCrudDialog({ open: false, mode: 'create', role: null });
 
       // Re-fetch data to get updated list
@@ -463,7 +463,7 @@ const RoleCRUDOperations: React.FC<RoleCRUDOperationsProps> = ({
                 fullWidth
                 label="Role Name *"
                 value={formData.name}
-                onChange={(e) => handleFieldChange('name', e)}
+                onChange={handleFieldChange('name')}
                 error={!!formErrors.name}
                 helperText={formErrors.name}
                 placeholder="ROLE_NAME"
@@ -476,7 +476,7 @@ const RoleCRUDOperations: React.FC<RoleCRUDOperationsProps> = ({
                 fullWidth
                 label="Display Name *"
                 value={formData.displayName}
-                onChange={(e) => handleFieldChange('displayName', e)}
+                onChange={handleFieldChange('displayName')}
                 error={!!formErrors.displayName}
                 helperText={formErrors.displayName}
                 placeholder="Human readable name"
@@ -488,7 +488,7 @@ const RoleCRUDOperations: React.FC<RoleCRUDOperationsProps> = ({
                 fullWidth
                 label="Description"
                 value={formData.description}
-                onChange={(e) => handleFieldChange('description', e)}
+                onChange={handleFieldChange('description')}
                 error={!!formErrors.description}
                 helperText={formErrors.description}
                 placeholder="Role description and responsibilities"
@@ -508,7 +508,7 @@ const RoleCRUDOperations: React.FC<RoleCRUDOperationsProps> = ({
                 <InputLabel>Role Type *</InputLabel>
                 <Select
                   value={formData.type}
-                  onChange={(e) => handleFieldChange('type', e)}
+                  onChange={handleFieldChange('type')}
                   label="Role Type"
                   disabled={crudDialog.mode === 'view' || crudDialog.mode === 'delete' || crudDialog.role?.isBuiltIn}
                 >
@@ -527,7 +527,7 @@ const RoleCRUDOperations: React.FC<RoleCRUDOperationsProps> = ({
                 <InputLabel>Role Level *</InputLabel>
                 <Select
                   value={formData.level}
-                  onChange={(e) => handleFieldChange('level', e)}
+                  onChange={handleFieldChange('level')}
                   label="Role Level"
                   disabled={crudDialog.mode === 'view' || crudDialog.mode === 'delete' || crudDialog.role?.isBuiltIn}
                 >
@@ -546,7 +546,7 @@ const RoleCRUDOperations: React.FC<RoleCRUDOperationsProps> = ({
                 <InputLabel>Banking Access</InputLabel>
                 <Select
                   value={formData.bankingAccess}
-                  onChange={(e) => handleFieldChange('bankingAccess', e)}
+                  onChange={handleFieldChange('bankingAccess')}
                   label="Banking Access"
                   disabled={crudDialog.mode === 'view' || crudDialog.mode === 'delete'}
                 >
@@ -740,12 +740,12 @@ const RoleCRUDOperations: React.FC<RoleCRUDOperationsProps> = ({
 
   if (loading) {
     return (
-    <Card>
-      <CardContent>
-        <Typography>Loading roles data...</Typography>
-        <LinearProgress sx={{ mt: 2 }} />
-      </CardContent>
-    </Card>
+      <Card>
+        <CardContent>
+          <Typography>Loading roles data...</Typography>
+          <LinearProgress sx={{ mt: 2 }} />
+        </CardContent>
+      </Card>
     );
   }
 
@@ -774,7 +774,7 @@ const RoleCRUDOperations: React.FC<RoleCRUDOperationsProps> = ({
       )}
 
       {error && (
-        <Alert severity="error" sx={{ mb:2 }} onClose={() => setError(null)}>
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
           {error}
         </Alert>
       )}
@@ -806,9 +806,9 @@ const RoleCRUDOperations: React.FC<RoleCRUDOperationsProps> = ({
               <Typography variant="body2" color="text.secondary">
                 Are you sure you want to delete the role "{crudDialog.role?.displayName}"? This action cannot be undone.
               </Typography>
-              {crudDialog.role?.assignedUsers > 0 && (
+              {(crudDialog.role?.assignedUsers || 0) > 0 && (
                 <Alert severity="error" sx={{ mt: 2 }}>
-                  This role has {crudDialog.role.assignedUsers} assigned user(s). Please reassign users before deleting.
+                  This role has {crudDialog.role?.assignedUsers} assigned user(s). Please reassign users before deleting.
                 </Alert>
               )}
             </Box>
@@ -890,8 +890,8 @@ const RoleCRUDOperations: React.FC<RoleCRUDOperationsProps> = ({
         <DialogTitle>Select Permissions</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Select the permissions that this role should have access to.
-        </Typography>
+            Select the permissions that this role should have access to.
+          </Typography>
           {/* Permission selection UI would go here */}
         </DialogContent>
         <DialogActions>

@@ -12,6 +12,8 @@ interface AuthDebugInfo {
   hasToken: boolean;
   hasUserData: boolean;
   hasRefreshToken: boolean;
+  token?: string;
+  refreshToken?: string;
   tokenInfo?: {
     length: number;
     preview: string;
@@ -72,7 +74,7 @@ export const authDebugger = {
         }
       }
 
-      info.lastActivity = localStorage.getItem('last_activity');
+      info.lastActivity = localStorage.getItem('last_activity') ?? undefined;
     }
 
     return info;

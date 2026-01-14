@@ -77,7 +77,7 @@ import { api, handleAPIError } from '../../../../services/api';
 // ============================================================================
 
 interface SegmentationHeader {
-  id: number;
+  pkid: number;
   group_segment: string;
   segment: string;
   sub_segment?: string;
@@ -188,11 +188,11 @@ interface PaginationState {
 // MAIN COMPONENT
 // ============================================================================
 
-export default function SegmentationDetailModal({ 
-  open, 
-  onClose, 
-  header, 
-  onRefresh 
+export default function SegmentationDetailModal({
+  open,
+  onClose,
+  header,
+  onRefresh
 }: SegmentationDetailModalProps) {
   const [loading, setLoading] = useState(false);
   const [detailsLoading, setDetailsLoading] = useState(false);
@@ -202,7 +202,7 @@ export default function SegmentationDetailModal({
   const [selectedDetail, setSelectedDetail] = useState<SegmentationDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  
+
   // Enhanced Search and Filter State
   const [searchFilters, setSearchFilters] = useState<SearchFilters>({
     query: '',
@@ -213,7 +213,7 @@ export default function SegmentationDetailModal({
     condition: '',
     query_group: ''
   });
-  
+
   // Enhanced Pagination State
   const [pagination, setPagination] = useState<PaginationState>({
     page: 1,
@@ -221,7 +221,7 @@ export default function SegmentationDetailModal({
     total: 0,
     totalPages: 0
   });
-  
+
   // Column Values Loading State
   const [columnValuesLoading, setColumnValuesLoading] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
@@ -251,23 +251,23 @@ export default function SegmentationDetailModal({
   // ============================================================================
 
   const loadDetails = useCallback(async () => {
-    if (!header?.id) return;
-    
+    if (!header?.pkid) return;
+
     setDetailsLoading(true);
     setError(null);
-    
+
     try {
-      console.log('🔄 Loading segmentation details for header:', header.id);
-      
-      const result = await api.banking.segmentation.getDetails(header.id);
-      
+      console.log('🔄 Loading segmentation details for header:', header.pkid);
+
+      const result = await api.banking.segmentation.getDetails(header.pkid);
+
       if (result.success && result.data) {
         console.log('✅ Successfully loaded segmentation details:', result.data.length, 'rules');
         setDetails(result.data);
       } else {
         throw new Error(result.message || 'Failed to load segmentation details');
       }
-      
+
     } catch (error: any) {
       console.error('❌ Failed to load segmentation details:', error);
       const errorInfo = handleAPIError(error);
@@ -276,26 +276,26 @@ export default function SegmentationDetailModal({
     } finally {
       setDetailsLoading(false);
     }
-  }, [header?.id]);
+  }, [header?.pkid]);
 
   const loadBusinessSettings = useCallback(async () => {
     try {
       console.log('🔄 Loading business settings for segmentation...');
-      
-      // Load tables
-      const tablesResult = await api.banking.segmentation.getBusinessSettingsTables();
-      if (tablesResult.success && tablesResult.data) {
-        setTables(tablesResult.data);
-        console.log('✅ Loaded tables:', tablesResult.data.length);
-      }
-      
-      // Load conditions
-      const conditionsResult = await api.banking.segmentation.getBusinessSettingsConditions();
-      if (conditionsResult.success && conditionsResult.data) {
-        setConditions(conditionsResult.data);
-        console.log('✅ Loaded conditions:', conditionsResult.data.length);
-      }
-      
+
+      // TODO: Implement getBusinessSettingsTables API endpoint
+      // const tablesResult = await api.banking.segmentation.getBusinessSettingsTables();
+      // if (tablesResult.success && tablesResult.data) {
+      //   setTables(tablesResult.data);
+      //   console.log('✅ Loaded tables:', tablesResult.data.length);
+      // }
+
+      // TODO: Implement getBusinessSettingsConditions API endpoint
+      // const conditionsResult = await api.banking.segmentation.getBusinessSettingsConditions();
+      // if (conditionsResult.success && conditionsResult.data) {
+      //   setConditions(conditionsResult.data);
+      //   console.log('✅ Loaded conditions:', conditionsResult.data.length);
+      // }
+
     } catch (error: any) {
       console.error('❌ Failed to load business settings:', error);
       // Use fallback data
@@ -317,19 +317,19 @@ export default function SegmentationDetailModal({
       setColumns([]);
       return;
     }
-    
+
     try {
       console.log('🔄 Loading columns for table:', tableName);
-      
-      const result = await api.banking.segmentation.getBusinessSettingsColumns(tableName);
-      
-      if (result.success && result.data) {
-        setColumns(result.data);
-        console.log('✅ Loaded columns for', tableName, ':', result.data.length);
-      } else {
-        throw new Error(result.message || 'Failed to load columns');
-      }
-      
+
+      // TODO: Implement getBusinessSettingsColumns API endpoint
+      // const result = await api.banking.segmentation.getBusinessSettingsColumns(tableName);
+      // if (result.success && result.data) {
+      //   setColumns(result.data);
+      //   console.log('✅ Loaded columns for', tableName, ':', result.data.length);
+      // } else {
+      //   throw new Error(result.message || 'Failed to load columns');
+      // }
+
     } catch (error: any) {
       console.error('❌ Failed to load columns for table:', tableName, error);
       // Use fallback columns based on table
@@ -352,24 +352,24 @@ export default function SegmentationDetailModal({
       setOperators([]);
       return;
     }
-    
+
     try {
       console.log('🔄 Loading operators for data type:', dataType);
-      
-      const result = await api.banking.segmentation.getBusinessSettingsOperators(dataType);
-      
-      if (result.success && result.data) {
-        setOperators(result.data);
-        console.log('✅ Loaded operators for', dataType, ':', result.data.length);
-      } else {
-        throw new Error(result.message || 'Failed to load operators');
-      }
-      
+
+      // TODO: Implement getBusinessSettingsOperators API endpoint
+      // const result = await api.banking.segmentation.getBusinessSettingsOperators(dataType);
+      // if (result.success && result.data) {
+      //   setOperators(result.data);
+      //   console.log('✅ Loaded operators for', dataType, ':', result.data.length);
+      // } else {
+      //   throw new Error(result.message || 'Failed to load operators');
+      // }
+
     } catch (error: any) {
       console.error('❌ Failed to load operators for data type:', dataType, error);
       // Use fallback operators based on data type
       let fallbackOperators: OperatorInfo[] = [];
-      
+
       switch (dataType) {
         case 'VARCHAR':
           fallbackOperators = [
@@ -415,7 +415,7 @@ export default function SegmentationDetailModal({
             { operator: '!=', operator_display: 'Not Equal (!=)', requires_value2: false }
           ];
       }
-      
+
       setOperators(fallbackOperators);
     }
   }, []);
@@ -425,19 +425,19 @@ export default function SegmentationDetailModal({
       setColumnValues([]);
       return;
     }
-    
+
     try {
       console.log('🔄 Loading values for column:', `${tableName}.${columnName}`);
-      
-      const result = await api.banking.segmentation.getBusinessSettingsValues(tableName, columnName);
-      
-      if (result.success && result.data) {
-        setColumnValues(result.data);
-        console.log('✅ Loaded values for', `${tableName}.${columnName}`, ':', result.data.length);
-      } else {
-        throw new Error(result.message || 'Failed to load column values');
-      }
-      
+
+      // TODO: Implement getBusinessSettingsValues API endpoint
+      // const result = await api.banking.segmentation.getBusinessSettingsValues(tableName, columnName);
+      // if (result.success && result.data) {
+      //   setColumnValues(result.data);
+      //   console.log('✅ Loaded values for', `${tableName}.${columnName}`, ':', result.data.length);
+      // } else {
+      //   throw new Error(result.message || 'Failed to load column values');
+      // }
+
     } catch (error: any) {
       console.error('❌ Failed to load values for column:', `${tableName}.${columnName}`, error);
       // Use fallback values based on column
@@ -466,7 +466,7 @@ export default function SegmentationDetailModal({
 
   const handleTableChange = useCallback((tableName: string) => {
     console.log('🔄 Table changed to:', tableName);
-    
+
     setFormData(prev => ({
       ...prev,
       table_name: tableName,
@@ -476,10 +476,10 @@ export default function SegmentationDetailModal({
       value1: '',
       value2: ''
     }));
-    
+
     // Load columns for the selected table
     loadColumnsForTable(tableName);
-    
+
     // Clear dependent dropdowns
     setColumns([]);
     setOperators([]);
@@ -488,10 +488,10 @@ export default function SegmentationDetailModal({
 
   const handleColumnChange = useCallback(async (columnName: string) => {
     console.log('🔄 Column changed to:', columnName);
-    
+
     const selectedColumn = columns.find(col => col.column_name === columnName);
     const dataType = selectedColumn?.data_type || '';
-    
+
     setFormData(prev => ({
       ...prev,
       column_name: columnName,
@@ -500,11 +500,11 @@ export default function SegmentationDetailModal({
       value1: '',
       value2: ''
     }));
-    
+
     if (dataType) {
       // Load operators for the data type
       await loadOperatorsForDataType(dataType);
-      
+
       // Load column values if available
       if (formData.table_name) {
         await loadValuesForColumn(formData.table_name, columnName);
@@ -514,9 +514,9 @@ export default function SegmentationDetailModal({
 
   const handleOperatorChange = useCallback((operator: string) => {
     console.log('🔄 Operator changed to:', operator);
-    
+
     const selectedOperator = operators.find(op => op.operator === operator);
-    
+
     setFormData(prev => ({
       ...prev,
       operator: operator,
@@ -563,14 +563,14 @@ export default function SegmentationDetailModal({
       headerName: 'Type',
       width: 100,
       renderCell: (params) => (
-        <Chip 
-          label={params?.value || '-'} 
-          size="small" 
+        <Chip
+          label={params?.value || '-'}
+          size="small"
           color={
             params?.value === 'NUMBER' ? 'info' :
-            params?.value === 'VARCHAR' ? 'success' :
-            params?.value === 'DATE' ? 'warning' :
-            params?.value === 'BOOLEAN' ? 'error' : 'default'
+              params?.value === 'VARCHAR' ? 'success' :
+                params?.value === 'DATE' ? 'warning' :
+                  params?.value === 'BOOLEAN' ? 'error' : 'default'
           }
         />
       )
@@ -600,9 +600,9 @@ export default function SegmentationDetailModal({
       headerName: 'Condition',
       width: 80,
       renderCell: (params) => (
-        <Chip 
-          label={params?.value || '-'} 
-          size="small" 
+        <Chip
+          label={params?.value || '-'}
+          size="small"
           color={params?.value === 'AND' ? 'success' : 'warning'}
         />
       )
@@ -637,11 +637,11 @@ export default function SegmentationDetailModal({
   // ============================================================================
 
   useEffect(() => {
-    if (open && header?.id) {
+    if (open && header?.pkid) {
       loadDetails();
       loadBusinessSettings();
     }
-  }, [open, header?.id, loadDetails, loadBusinessSettings]);
+  }, [open, header?.pkid, loadDetails, loadBusinessSettings]);
 
   // ============================================================================
   // EVENT HANDLERS
@@ -660,12 +660,12 @@ export default function SegmentationDetailModal({
       value2: '',
       condition: 'AND'
     });
-    
+
     // Clear dependent dropdowns
     setColumns([]);
     setOperators([]);
     setColumnValues([]);
-    
+
     setDetailDialogOpen(true);
   };
 
@@ -683,7 +683,7 @@ export default function SegmentationDetailModal({
       value2: detail.value2 || '',
       condition: detail.condition || 'AND'
     });
-    
+
     // Load dependent dropdowns
     if (detail.table_name) {
       loadColumnsForTable(detail.table_name);
@@ -694,7 +694,7 @@ export default function SegmentationDetailModal({
     if (detail.table_name && detail.column_name) {
       loadValuesForColumn(detail.table_name, detail.column_name);
     }
-    
+
     setDetailDialogOpen(true);
   };
 
@@ -706,13 +706,13 @@ export default function SegmentationDetailModal({
     try {
       setLoading(true);
       console.log('🗑️ Deleting segmentation detail:', detail.id);
-      
+
       await api.banking.segmentation.deleteDetail(detail.id);
-      
+
       console.log('✅ Segmentation detail deleted successfully');
       setSuccess('Segmentation rule deleted successfully');
       await loadDetails(); // Reload details
-      
+
     } catch (error: any) {
       console.error('❌ Failed to delete segmentation detail:', error);
       const errorInfo = handleAPIError(error);
@@ -725,7 +725,7 @@ export default function SegmentationDetailModal({
   const handleSaveDetail = async () => {
     // Validate required fields
     const errors: string[] = [];
-    
+
     if (!formData.table_name.trim()) {
       errors.push('Table is required');
     }
@@ -741,13 +741,13 @@ export default function SegmentationDetailModal({
     if (!formData.value1.trim()) {
       errors.push('Value 1 is required');
     }
-    
+
     // Check if operator requires value2
     const selectedOperator = operators.find(op => op.operator === formData.operator);
     if (selectedOperator?.requires_value2 && !formData.value2.trim()) {
       errors.push('Value 2 is required for BETWEEN operator');
     }
-    
+
     if (errors.length > 0) {
       setError(errors.join(', '));
       return;
@@ -756,7 +756,7 @@ export default function SegmentationDetailModal({
     try {
       setLoading(true);
       setError(null);
-      
+
       const payload = {
         query_group: formData.query_group === '' ? 1 : Number(formData.query_group),
         seq: formData.seq === '' ? 1 : Number(formData.seq),
@@ -768,7 +768,7 @@ export default function SegmentationDetailModal({
         value2: selectedOperator?.requires_value2 ? formData.value2.trim() : null,
         condition: formData.condition || 'AND'
       };
-      
+
       if (selectedDetail) {
         // Update existing detail
         console.log('✏️ Updating segmentation detail:', payload);
@@ -777,14 +777,14 @@ export default function SegmentationDetailModal({
       } else {
         // Create new detail
         console.log('➕ Creating segmentation detail:', payload);
-        await api.banking.segmentation.createDetail(header.id, payload);
+        await api.banking.segmentation.createDetail(header.pkid, payload);
         setSuccess('Segmentation rule created successfully');
       }
-      
+
       setDetailDialogOpen(false);
       await loadDetails(); // Reload details
       onRefresh(); // Refresh parent header list (to update detail count)
-      
+
     } catch (error: any) {
       console.error('❌ Failed to save segmentation detail:', error);
       const errorInfo = handleAPIError(error);
@@ -801,12 +801,12 @@ export default function SegmentationDetailModal({
   const renderValueInput = (valueKey: 'value1' | 'value2', label: string) => {
     const selectedOperator = operators.find(op => op.operator === formData.operator);
     const value = formData[valueKey];
-    
+
     // Skip value2 if operator doesn't require it
     if (valueKey === 'value2' && !selectedOperator?.requires_value2) {
       return null;
     }
-    
+
     // Boolean data type - Use Enhanced Boolean Radio with proper pre-selection
     if (formData.data_type === 'BOOLEAN') {
       return (
@@ -822,11 +822,11 @@ export default function SegmentationDetailModal({
         />
       );
     }
-    
+
     // Multi-select for IN/NOT IN operators
     if (selectedOperator?.supports_multiple && columnValues.length > 0) {
       const selectedValues = value ? value.split(',').map(v => v.trim()) : [];
-      
+
       return (
         <FormControl component="fieldset" fullWidth sx={{ mt: 1 }}>
           <FormLabel component="legend">{label} (Multi-select)</FormLabel>
@@ -855,7 +855,7 @@ export default function SegmentationDetailModal({
         </FormControl>
       );
     }
-    
+
     // Dropdown for single values if column values available
     if (!selectedOperator?.supports_multiple && columnValues.length > 0 && formData.data_type === 'VARCHAR') {
       return (
@@ -876,7 +876,7 @@ export default function SegmentationDetailModal({
         </TextField>
       );
     }
-    
+
     // Date input - Use Enhanced Date Picker with DD-MMM-YYYY format
     if (formData.data_type === 'DATE') {
       return (
@@ -892,7 +892,7 @@ export default function SegmentationDetailModal({
         />
       );
     }
-    
+
     // Number input
     if (formData.data_type === 'NUMBER') {
       return (
@@ -907,7 +907,7 @@ export default function SegmentationDetailModal({
         />
       );
     }
-    
+
     // Default text input
     return (
       <TextField
@@ -958,19 +958,19 @@ export default function SegmentationDetailModal({
             </Box>
           </Box>
         </DialogTitle>
-        
+
         <DialogContent>
           <Box sx={{ mb: 2 }}>
             <Alert severity="info" icon={<InfoIcon />}>
               <Typography variant="body2">
-                <strong>Segmentation Details:</strong> Define business rules using table columns, operators, and values. 
+                <strong>Segmentation Details:</strong> Define business rules using table columns, operators, and values.
                 Use query groups to organize related conditions with AND/OR logic.
               </Typography>
             </Alert>
           </Box>
 
           <Card>
-            <CardHeader 
+            <CardHeader
               title={`Segmentation Rules (${details.length})`}
               titleTypographyProps={{ variant: 'h6' }}
             />
@@ -989,11 +989,11 @@ export default function SegmentationDetailModal({
                   slotProps={{
                     noRowsOverlay: {
                       children: (
-                        <Box 
-                          sx={{ 
-                            display: 'flex', 
-                            flexDirection: 'column', 
-                            alignItems: 'center', 
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
                             justifyContent: 'center',
                             height: '100%',
                             gap: 2
@@ -1017,7 +1017,7 @@ export default function SegmentationDetailModal({
             </CardContent>
           </Card>
         </DialogContent>
-        
+
         <DialogActions>
           <Button onClick={onClose} disabled={loading}>
             Close
@@ -1046,7 +1046,7 @@ export default function SegmentationDetailModal({
                   slotProps={{ htmlInput: { min: 1 } }}
                 />
               </Grid>
-              
+
               <Grid item xs={6}>
                 <TextField
                   label="Sequence"
@@ -1059,7 +1059,7 @@ export default function SegmentationDetailModal({
                   slotProps={{ htmlInput: { min: 1 } }}
                 />
               </Grid>
-              
+
               {/* Table Selection */}
               <Grid item xs={12}>
                 <TextField
@@ -1080,7 +1080,7 @@ export default function SegmentationDetailModal({
                   ))}
                 </TextField>
               </Grid>
-              
+
               {/* Column Selection */}
               <Grid item xs={8}>
                 <TextField
@@ -1099,15 +1099,15 @@ export default function SegmentationDetailModal({
                     <MenuItem key={column.column_name} value={column.column_name}>
                       {column.column_display || column.column_name}
                       {column.data_type && (
-                        <Chip 
-                          label={column.data_type} 
-                          size="small" 
+                        <Chip
+                          label={column.data_type}
+                          size="small"
                           sx={{ ml: 1 }}
                           color={
                             column.data_type === 'NUMBER' ? 'info' :
-                            column.data_type === 'VARCHAR' ? 'success' :
-                            column.data_type === 'DATE' ? 'warning' :
-                            column.data_type === 'BOOLEAN' ? 'error' : 'default'
+                              column.data_type === 'VARCHAR' ? 'success' :
+                                column.data_type === 'DATE' ? 'warning' :
+                                  column.data_type === 'BOOLEAN' ? 'error' : 'default'
                           }
                         />
                       )}
@@ -1115,7 +1115,7 @@ export default function SegmentationDetailModal({
                   ))}
                 </TextField>
               </Grid>
-              
+
               {/* Data Type Display */}
               <Grid item xs={4}>
                 <TextField
@@ -1132,7 +1132,7 @@ export default function SegmentationDetailModal({
                   }}
                 />
               </Grid>
-              
+
               {/* Operator Selection */}
               <Grid item xs={6}>
                 <TextField
@@ -1160,7 +1160,7 @@ export default function SegmentationDetailModal({
                   ))}
                 </TextField>
               </Grid>
-              
+
               {/* Condition */}
               <Grid item xs={6}>
                 <TextField
@@ -1178,37 +1178,37 @@ export default function SegmentationDetailModal({
                   ))}
                 </TextField>
               </Grid>
-              
+
               {/* Dynamic Value Inputs */}
               <Grid item xs={12}>
                 <Divider sx={{ my: 2 }} />
                 <Typography variant="subtitle2" gutterBottom>
                   Rule Values
                 </Typography>
-                
+
                 {formData.operator && (
                   <Box sx={{ mt: 1 }}>
                     <Grid container spacing={2}>
                       <Grid item xs={operators.find(op => op.operator === formData.operator)?.requires_value2 ? 6 : 12}>
                         {renderValueInput('value1', 'Value 1 *')}
                       </Grid>
-                      
+
                       {operators.find(op => op.operator === formData.operator)?.requires_value2 && (
                         <Grid item xs={6}>
                           {renderValueInput('value2', 'Value 2 *')}
                         </Grid>
                       )}
                     </Grid>
-                    
+
                     {formData.operator === 'LIKE' && (
                       <Alert severity="info" sx={{ mt: 2 }}>
                         <Typography variant="body2">
-                          <strong>LIKE Operator:</strong> Use % as wildcards. 
+                          <strong>LIKE Operator:</strong> Use % as wildcards.
                           Example: "%loan%" finds any text containing "loan"
                         </Typography>
                       </Alert>
                     )}
-                    
+
                     {formData.operator === 'BETWEEN' && (
                       <Alert severity="info" sx={{ mt: 2 }}>
                         <Typography variant="body2">
@@ -1227,8 +1227,8 @@ export default function SegmentationDetailModal({
           <Button onClick={() => setDetailDialogOpen(false)} disabled={loading}>
             Cancel
           </Button>
-          <Button 
-            onClick={handleSaveDetail} 
+          <Button
+            onClick={handleSaveDetail}
             variant="contained"
             disabled={loading || !formData.table_name.trim() || !formData.column_name.trim() || !formData.operator.trim() || !formData.value1.trim()}
             startIcon={loading ? <CircularProgress size={16} /> : <SaveIcon />}
@@ -1239,9 +1239,9 @@ export default function SegmentationDetailModal({
       </Dialog>
 
       {/* Success/Error Snackbars */}
-      <Snackbar 
-        open={!!success} 
-        autoHideDuration={4000} 
+      <Snackbar
+        open={!!success}
+        autoHideDuration={4000}
         onClose={() => setSuccess(null)}
         anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
@@ -1250,9 +1250,9 @@ export default function SegmentationDetailModal({
         </Alert>
       </Snackbar>
 
-      <Snackbar 
-        open={!!error} 
-        autoHideDuration={6000} 
+      <Snackbar
+        open={!!error}
+        autoHideDuration={6000}
         onClose={() => setError(null)}
         anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
       >

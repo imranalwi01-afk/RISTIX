@@ -116,17 +116,17 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
   // Create dynamic validation schema
   const validationSchema = React.useMemo(() => {
     const schemaFields: Record<string, any> = {};
-    
+
     formConfiguration.form_schema.fields.forEach((field) => {
-      let fieldSchema = z.any();
-      
+      let fieldSchema: z.ZodTypeAny = z.any();
+
       if (field.required && visibleFields.has(field.name)) {
         switch (field.type) {
           case 'email':
             fieldSchema = z.string().email('Invalid email format');
             break;
           case 'number':
-            fieldSchema = z.number('Must be a number');
+            fieldSchema = z.number({ invalid_type_error: 'Must be a number' });
             break;
           case 'currency':
             fieldSchema = z.number().min(0, 'Must be positive');
@@ -149,7 +149,7 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
             }
         }
       }
-      
+
       // Apply additional validation rules
       if (field.validation) {
         if (field.validation.min && fieldSchema instanceof z.ZodNumber) {
@@ -165,16 +165,16 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
           fieldSchema = fieldSchema.max(field.validation.maxLength);
         }
       }
-      
+
       schemaFields[field.name] = fieldSchema;
     });
-    
+
     return z.object(schemaFields);
   }, [formConfiguration.form_schema.fields, visibleFields]);
 
   // Initialize form
   const methods = useForm({
-    resolver: zodResolver(validationSchema),
+    resolver: zodResolver(validationSchema as any),
     defaultValues: initialData,
     mode: 'onChange'
   });
@@ -195,10 +195,10 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
   // Handle conditional logic
   useEffect(() => {
     const newVisibleFields = new Set<string>();
-    
+
     formConfiguration.form_schema.fields.forEach((field) => {
       let shouldShow = true;
-      
+
       // Check conditional logic
       if (field.conditional_logic?.show_if) {
         shouldShow = field.conditional_logic.show_if.every((condition: any) => {
@@ -219,24 +219,24 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
           }
         });
       }
-      
+
       // Check banking type specific logic
       if (field.banking_specific?.banking_type) {
         const bankingTypes = Array.isArray(field.banking_specific.banking_type)
           ? field.banking_specific.banking_type
           : [field.banking_specific.banking_type];
-        
-        if (!bankingTypes.includes(formConfiguration.banking_type) && 
-            !bankingTypes.includes('dual')) {
+
+        if (!bankingTypes.includes(formConfiguration.banking_type) &&
+          !bankingTypes.includes('dual')) {
           shouldShow = false;
         }
       }
-      
+
       if (shouldShow) {
         newVisibleFields.add(field.name);
       }
     });
-    
+
     setVisibleFields(newVisibleFields);
   }, [watchedValues, formConfiguration.banking_type]);
 
@@ -274,7 +274,7 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
             )}
           />
         );
-      
+
       case 'email':
         return (
           <Controller
@@ -297,7 +297,7 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
             )}
           />
         );
-      
+
       case 'number':
         return (
           <Controller
@@ -321,7 +321,7 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
             )}
           />
         );
-      
+
       case 'currency':
         return (
           <Controller
@@ -348,7 +348,7 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
             )}
           />
         );
-      
+
       case 'select':
         return (
           <Controller
@@ -374,7 +374,7 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
             )}
           />
         );
-      
+
       case 'multiselect':
         return (
           <Controller
@@ -402,7 +402,7 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
             )}
           />
         );
-      
+
       case 'checkbox':
         return (
           <Controller
@@ -427,7 +427,7 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
             )}
           />
         );
-      
+
       case 'date':
         return (
           <Controller
@@ -454,7 +454,7 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
             )}
           />
         );
-      
+
       case 'file':
         return (
           <Controller
@@ -490,7 +490,7 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
             )}
           />
         );
-      
+
       default:
         return (
           <Controller
@@ -523,10 +523,10 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
       } else {
         setIsSubmitting(true);
       }
-      
+
       await onSubmit(data, isDraft);
       setValidationErrors([]);
-      
+
     } catch (error: any) {
       setValidationErrors([error.message || 'Submission failed']);
     } finally {
@@ -589,7 +589,7 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
   // Apply theme customizations
   const getThemeStyles = () => {
     const baseStyles: any = {};
-    
+
     if (formConfiguration.ui_configuration.branding) {
       const { primary_color, secondary_color } = formConfiguration.ui_configuration.branding;
       if (primary_color) {
@@ -599,7 +599,7 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
         baseStyles.secondaryColor = secondary_color;
       }
     }
-    
+
     return baseStyles;
   };
 
@@ -617,7 +617,7 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
                 {formConfiguration.form_schema.description}
               </Typography>
             )}
-            
+
             {/* Progress indicator */}
             {formConfiguration.ui_configuration.show_progress && formConfiguration.form_schema.sections && (
               <Box sx={{ mt: 2 }}>
@@ -664,7 +664,7 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
                     {formConfiguration.ui_configuration.cancel_button_text}
                   </Button>
                 )}
-                
+
                 {formConfiguration.ui_configuration.allow_save_draft && !readOnly && (
                   <Button
                     variant="outlined"
@@ -675,7 +675,7 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
                     {isDraftSaving ? 'Saving...' : 'Save Draft'}
                   </Button>
                 )}
-                
+
                 {!readOnly && (
                   <Button
                     type="submit"
@@ -694,7 +694,7 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
                   </Button>
                 )}
               </Box>
-              
+
               {/* Loading indicator */}
               {(isSubmitting || isDraftSaving) && (
                 <LinearProgress sx={{ mt: 1 }} />

@@ -273,13 +273,13 @@ const PermissionList = () => {
               label={record.risk_level}
               color={
                 record.risk_level === 'critical' ? 'error' :
-                record.risk_level === 'high' ? 'warning' :
-                record.risk_level === 'medium' ? 'info' : 'default'
+                  record.risk_level === 'high' ? 'warning' :
+                    record.risk_level === 'medium' ? 'info' : 'default'
               }
               icon={
-                record.risk_level === 'critical' ? GppBad :
-                record.risk_level === 'high' ? GppMaybe :
-                record.risk_level === 'medium' ? GppMaybe : GppGood
+                record.risk_level === 'critical' ? <GppBad /> :
+                  record.risk_level === 'high' ? <GppMaybe /> :
+                    record.risk_level === 'medium' ? <GppMaybe /> : <GppGood />
               }
             />
           )}
@@ -391,13 +391,13 @@ const PermissionCreate = () => {
 
         <ArrayInput source="ip_whitelist" helperText="IP addresses that can use this permission (optional)">
           <SimpleFormIterator>
-            <TextInput label="IP Address" helperText="e.g., 192.168.1.100" />
+            <TextInput source="" label="IP Address" helperText="e.g., 192.168.1.100" />
           </SimpleFormIterator>
         </ArrayInput>
 
         <ArrayInput source="allowed_roles" helperText="Roles that can have this permission (optional)">
           <SimpleFormIterator>
-            <TextInput label="Role ID" helperText="e.g., admin, manager" />
+            <TextInput source="" label="Role ID" helperText="e.g., admin, manager" />
           </SimpleFormIterator>
         </ArrayInput>
 
@@ -508,13 +508,13 @@ const PermissionEdit = () => {
 
         <ArrayInput source="ip_whitelist">
           <SimpleFormIterator>
-            <TextInput label="IP Address" />
+            <TextInput source="" label="IP Address" />
           </SimpleFormIterator>
         </ArrayInput>
 
         <ArrayInput source="allowed_roles">
           <SimpleFormIterator>
-            <TextInput label="Role ID" />
+            <TextInput source="" label="Role ID" />
           </SimpleFormIterator>
         </ArrayInput>
 
@@ -613,8 +613,8 @@ const PermissionShow = () => {
                     label={useRecordContext()?.risk_level}
                     color={
                       useRecordContext()?.risk_level === 'critical' ? 'error' :
-                      useRecordContext()?.risk_level === 'high' ? 'warning' :
-                      useRecordContext()?.risk_level === 'medium' ? 'info' : 'default'
+                        useRecordContext()?.risk_level === 'high' ? 'warning' :
+                          useRecordContext()?.risk_level === 'medium' ? 'info' : 'default'
                     }
                   />
                 </Box>
@@ -743,7 +743,7 @@ const PermissionShow = () => {
                       ))
                     ) : (
                       <Typography variant="body2" color="text.secondary">
-                      No role restrictions
+                        No role restrictions
                       </Typography>
                     )}
                   </Box>

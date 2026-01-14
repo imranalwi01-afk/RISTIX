@@ -21,7 +21,7 @@ const ROLE_TO_STAKEHOLDER_MAP: Record<string, StakeholderType> = {
   'PLATFORM_TECH_ADMIN': 'platform',
   'PLATFORM_OPERATIONS': 'platform',
   'PLATFORM_SUPPORT': 'platform',
-  
+
   // Banking (Conventional)
   'BANK_CRO': 'banking',
   'BANK_IFRS_MANAGER': 'banking',
@@ -29,7 +29,7 @@ const ROLE_TO_STAKEHOLDER_MAP: Record<string, StakeholderType> = {
   'BANK_PORTFOLIO_MANAGER': 'banking',
   'BANK_DATA_ADMIN': 'banking',
   'BANK_CEO': 'banking',
-  
+
   // Banking (Syariah)
   'SYARIAH_BANK_CRO': 'banking',
   'SYARIAH_COMPLIANCE_OFFICER': 'banking',
@@ -37,7 +37,7 @@ const ROLE_TO_STAKEHOLDER_MAP: Record<string, StakeholderType> = {
   'SYARIAH_PORTFOLIO_MANAGER': 'banking',
   'DPS_BOARD_MEMBER': 'banking',
   'DUAL_BANKING_RISK_HEAD': 'banking',
-  
+
   // Consultants
   'SENIOR_IFRS9_CONSULTANT': 'consultant',
   'ISLAMIC_BANKING_CONSULTANT': 'consultant',
@@ -45,7 +45,7 @@ const ROLE_TO_STAKEHOLDER_MAP: Record<string, StakeholderType> = {
   'TECHNICAL_SPECIALIST': 'consultant',
   'R_ANALYTICS_CONSULTANT': 'consultant',
   'CONSULTANT_PROJECT_MANAGER': 'consultant',
-  
+
   // Regulators
   'CENTRAL_BANK_DIRECTOR': 'regulator',
   'BANKING_SUPERVISION_HEAD': 'regulator',
@@ -64,25 +64,25 @@ interface StakeholderRouterProps {
 // ✅ CORRECTED: Route structure matching YOUR actual DIRECT FOLDER implementation
 const STAKEHOLDER_ROUTES = {
   'platform': ['/platform'],
-  
+
   // ✅ CORRECTED: YOUR DIRECT FOLDER structure - all routes need /banking prefix
   'banking': [
-    '/banking/dashboard', 
-    '/banking/analytics', 
-    '/banking/collective', 
-    '/banking/data', 
-    '/banking/ifrs9', 
-    '/banking/individual', 
-    '/banking/maintenance', 
-    '/banking/mode', 
-    '/banking/parameters', 
-    '/banking/portfolio', 
-    '/banking/reports', 
-    '/banking/setup', 
-    '/banking/tools', 
+    '/banking/dashboard',
+    '/banking/analytics',
+    '/banking/collective',
+    '/banking/data',
+    '/banking/ifrs9',
+    '/banking/individual',
+    '/banking/maintenance',
+    '/banking/mode',
+    '/banking/parameters',
+    '/banking/portfolio',
+    '/banking/reports',
+    '/banking/setup',
+    '/banking/tools',
     '/banking/workflow'
   ],
-  
+
   'consultant': ['/consultant'],
   'regulator': ['/regulator']
 };
@@ -99,13 +99,13 @@ const STAKEHOLDER_DEFAULTS = {
 class RoutingLogger {
   static logRouteTransition(from: string, to: string, stakeholder: StakeholderType, user?: any) {
     console.log(`🚀 Route Transition: ${from} → ${to} (${stakeholder}) User: ${user?.email || 'Unknown'} Role: ${user?.role || 'Unknown'}`);
-    
+
     // ✅ CORRECTED: Log YOUR DIRECT FOLDER structure
     if (stakeholder === 'banking') {
       console.log('✅ Banking Route Structure: DIRECT FOLDERS - Files: src/app/banking/dashboard/page.tsx → URLs: /banking/dashboard');
     }
   }
-  
+
   static logNavigationError(error: string, path: string, stakeholder?: StakeholderType) {
     console.error(`🚨 Navigation Error: ${error} - Path: ${path} - Stakeholder: ${stakeholder} - Expected: DIRECT FOLDERS with /banking/ prefix`);
   }
@@ -125,9 +125,9 @@ const selectAuthData = createSelector(
 
 const StakeholderRouter: React.FC<StakeholderRouterProps> = ({ children }) => {
   const router = useRouter();
-  const pathname = usePathname();
+  const pathname = usePathname() || '/';
   const dispatch = useDispatch();
-  
+
   const authData = useSelector(selectAuthData, shallowEqual);
   const { user, isAuthenticated, loading } = authData;
 
@@ -136,8 +136,9 @@ const StakeholderRouter: React.FC<StakeholderRouterProps> = ({ children }) => {
 
   // ✅ CORRECTED: Stakeholder type determination with YOUR DIRECT FOLDER structure
   const determineStakeholderType = useMemo((): StakeholderType | null => {
+    if (!pathname) return null;
     console.log(`🔍 Stakeholder Determination - Path: ${pathname}, User: ${user?.role}, Auth: ${isAuthenticated}, Structure: DIRECT FOLDERS`);
-    
+
     // ✅ From user role first (most reliable)
     if (user?.role) {
       const stakeholderFromRole = ROLE_TO_STAKEHOLDER_MAP[user.role];
@@ -152,7 +153,7 @@ const StakeholderRouter: React.FC<StakeholderRouterProps> = ({ children }) => {
       const matchesRoute = routes.some(route => {
         return pathname === route || pathname.startsWith(route + '/');
       });
-      
+
       if (matchesRoute) {
         const matchedRoute = routes.find(r => pathname === r || pathname.startsWith(r + '/'));
         console.log(`✅ Stakeholder from route: ${stakeholder} (matched: ${matchedRoute})`);
@@ -170,18 +171,18 @@ const StakeholderRouter: React.FC<StakeholderRouterProps> = ({ children }) => {
   const validateRouteAccess = useMemo(() => {
     return (stakeholderType: StakeholderType): boolean => {
       const allowedRoutes = STAKEHOLDER_ROUTES[stakeholderType];
-      
+
       const hasAccess = allowedRoutes.some(route => {
         return pathname === route || pathname.startsWith(route + '/');
       });
-      
+
       console.log(`🔍 Route Validation for ${stakeholderType} (YOUR STRUCTURE):`, {
         pathname,
         allowedRoutes,
         hasAccess,
         structure: 'DIRECT_FOLDERS'
       });
-      
+
       return hasAccess;
     };
   }, [pathname]);
@@ -199,24 +200,24 @@ const StakeholderRouter: React.FC<StakeholderRouterProps> = ({ children }) => {
   useEffect(() => {
     console.log(`🔄 Route Processing - Stakeholder: ${determineStakeholderType}, Path: ${pathname}, Structure: DIRECT FOLDERS`);
     setIsRouteLoading(true);
-    
+
     const stakeholderType = determineStakeholderType;
-    
+
     if (stakeholderType) {
       setCurrentStakeholder(stakeholderType);
-      
+
       // ✅ CORRECTED: Validate route access with YOUR structure
       if (!validateRouteAccess(stakeholderType)) {
         const defaultRoute = STAKEHOLDER_DEFAULTS[stakeholderType];
-        
+
         // ✅ CORRECTED: Use YOUR banking redirect logic with DIRECT FOLDERS
-        const finalRoute = stakeholderType === 'banking' 
+        const finalRoute = stakeholderType === 'banking'
           ? validateBankingRedirect(defaultRoute, user?.role || '')
           : defaultRoute;
-        
+
         RoutingLogger.logRouteTransition(pathname, finalRoute, stakeholderType, user);
         RoutingLogger.logNavigationError(`Invalid route access: ${pathname}`, pathname, stakeholderType);
-        
+
         console.log(`🚀 Redirecting to: ${finalRoute} (DIRECT FOLDER structure)`);
         router.push(finalRoute);
         return;
@@ -236,7 +237,7 @@ const StakeholderRouter: React.FC<StakeholderRouterProps> = ({ children }) => {
       router.push(loginRoute);
       return;
     }
-    
+
     console.log('✅ Route processing complete - YOUR STRUCTURE applied');
     setIsRouteLoading(false);
   }, [determineStakeholderType, isAuthenticated, router, validateRouteAccess, pathname, user]);
@@ -244,10 +245,10 @@ const StakeholderRouter: React.FC<StakeholderRouterProps> = ({ children }) => {
   // ✅ Loading state
   if (loading || isRouteLoading) {
     return (
-      <Box 
-        display="flex" 
-        justifyContent="center" 
-        alignItems="center" 
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
         minHeight="100vh"
         flexDirection="column"
         gap={2}
@@ -256,8 +257,8 @@ const StakeholderRouter: React.FC<StakeholderRouterProps> = ({ children }) => {
         <Box>Loading IFRS 9 Platform...</Box>
         {process.env.NODE_ENV === 'development' && (
           <Box sx={{ fontSize: '0.8rem', color: 'text.secondary', textAlign: 'center' }}>
-            Path: {pathname}<br/>
-            Stakeholder: {currentStakeholder || 'Detecting...'}<br/>
+            Path: {pathname}<br />
+            Stakeholder: {currentStakeholder || 'Detecting...'}<br />
             Structure: DIRECT FOLDERS → /banking/dashboard
           </Box>
         )}
@@ -268,10 +269,10 @@ const StakeholderRouter: React.FC<StakeholderRouterProps> = ({ children }) => {
   // ✅ Authentication required
   if (!isAuthenticated) {
     return (
-      <Box 
-        display="flex" 
-        justifyContent="center" 
-        alignItems="center" 
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
         minHeight="100vh"
         p={3}
       >
@@ -285,12 +286,12 @@ const StakeholderRouter: React.FC<StakeholderRouterProps> = ({ children }) => {
   // ✅ Invalid stakeholder type
   if (!currentStakeholder) {
     RoutingLogger.logNavigationError('Invalid stakeholder type', pathname);
-    
+
     return (
-      <Box 
-        display="flex" 
-        justifyContent="center" 
-        alignItems="center" 
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
         minHeight="100vh"
         p={3}
       >
@@ -298,8 +299,8 @@ const StakeholderRouter: React.FC<StakeholderRouterProps> = ({ children }) => {
           Invalid access. Unable to determine stakeholder type.
           {process.env.NODE_ENV === 'development' && (
             <Box sx={{ mt: 1, fontSize: '0.8rem' }}>
-              Path: {pathname}<br/>
-              User Role: {user?.role || 'None'}<br/>
+              Path: {pathname}<br />
+              User Role: {user?.role || 'None'}<br />
               Expected Banking Path: /banking/dashboard (DIRECT FOLDER)
             </Box>
           )}
@@ -312,12 +313,12 @@ const StakeholderRouter: React.FC<StakeholderRouterProps> = ({ children }) => {
   return (
     <Box>
       {process.env.NODE_ENV === 'development' && (
-        <Box sx={{ 
-          position: 'fixed', 
-          top: 0, 
-          right: 0, 
-          p: 1, 
-          bgcolor: 'background.paper', 
+        <Box sx={{
+          position: 'fixed',
+          top: 0,
+          right: 0,
+          p: 1,
+          bgcolor: 'background.paper',
           zIndex: 9999,
           fontSize: '0.7rem',
           border: '1px solid',

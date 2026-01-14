@@ -58,6 +58,7 @@ import { useDataProvider, useNotify } from 'react-admin';
 
 interface BusinessParameterRecord {
   pkid: number;
+  id: number;
   param_code: string;
   param_name: string;
   param_usage: string;
@@ -71,6 +72,7 @@ interface BusinessParameterRecord {
 
 interface BusinessParameterDetail {
   pkid: number;
+  id: number;
   param_code: string;
   param_seq: number;
   value1: string;
@@ -112,12 +114,12 @@ interface DetailFormProps {
   isLoading: boolean;
 }
 
-const DetailForm: React.FC<DetailFormProps> = ({ 
-  detail, 
-  nextSeq, 
-  onSave, 
-  onCancel, 
-  isLoading 
+const DetailForm: React.FC<DetailFormProps> = ({
+  detail,
+  nextSeq,
+  onSave,
+  onCancel,
+  isLoading
 }) => {
   const [formData, setFormData] = useState<DetailFormData>({
     param_seq: detail?.param_seq || nextSeq,
@@ -126,15 +128,15 @@ const DetailForm: React.FC<DetailFormProps> = ({
     value3: detail?.value3 || '',
     paramdesc: detail?.paramdesc || ''
   });
-  
-  const [errors, setErrors] = useState<Partial<DetailFormData>>({});
+
+  const [errors, setErrors] = useState<Partial<Record<keyof DetailFormData, string>>>({});
 
   const handleInputChange = useCallback((field: keyof DetailFormData) => (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const value = field === 'param_seq' ? parseInt(event.target.value) || 0 : event.target.value;
     setFormData(prev => ({ ...prev, [field]: value }));
-    
+
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
@@ -142,30 +144,30 @@ const DetailForm: React.FC<DetailFormProps> = ({
   }, [errors]);
 
   const validateForm = useCallback((): boolean => {
-    const newErrors: Partial<DetailFormData> = {};
-    
+    const newErrors: Partial<Record<keyof DetailFormData, string>> = {};
+
     if (!formData.param_seq || formData.param_seq < 1) {
       newErrors.param_seq = 'Sequence must be a positive number';
     }
-    
+
     if (!formData.value1.trim()) {
       newErrors.value1 = 'Value 1 is required';
     } else if (formData.value1.length > 100) {
       newErrors.value1 = 'Value 1 must be 100 characters or less';
     }
-    
+
     if (formData.value2.length > 100) {
       newErrors.value2 = 'Value 2 must be 100 characters or less';
     }
-    
+
     if (formData.value3.length > 50) {
       newErrors.value3 = 'Value 3 must be 50 characters or less';
     }
-    
+
     if (formData.paramdesc.length > 1000) {
       newErrors.paramdesc = 'Description must be 1000 characters or less';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   }, [formData]);
@@ -198,7 +200,7 @@ const DetailForm: React.FC<DetailFormProps> = ({
               inputProps={{ min: 1 }}
             />
           </Grid>
-          
+
           <Grid item xs={12} md={6}>
             <TextField
               label="Value 1"
@@ -211,7 +213,7 @@ const DetailForm: React.FC<DetailFormProps> = ({
               inputProps={{ maxLength: 100 }}
             />
           </Grid>
-          
+
           <Grid item xs={12} md={6}>
             <TextField
               label="Value 2"
@@ -223,7 +225,7 @@ const DetailForm: React.FC<DetailFormProps> = ({
               inputProps={{ maxLength: 100 }}
             />
           </Grid>
-          
+
           <Grid item xs={12} md={6}>
             <TextField
               label="Value 3"
@@ -235,7 +237,7 @@ const DetailForm: React.FC<DetailFormProps> = ({
               inputProps={{ maxLength: 50 }}
             />
           </Grid>
-          
+
           <Grid item xs={12}>
             <TextField
               label="Description"
@@ -250,19 +252,19 @@ const DetailForm: React.FC<DetailFormProps> = ({
             />
           </Grid>
         </Grid>
-        
+
         <Box display="flex" justifyContent="flex-end" gap={2} mt={3}>
-          <Button 
-            onClick={onCancel} 
+          <Button
+            onClick={onCancel}
             color="inherit"
             startIcon={<CancelIcon />}
             disabled={isLoading}
           >
             Cancel
           </Button>
-          <Button 
-            onClick={handleSubmit} 
-            variant="contained" 
+          <Button
+            onClick={handleSubmit}
+            variant="contained"
             color="primary"
             startIcon={isLoading ? <CircularProgress size={20} /> : <SaveIcon />}
             disabled={isLoading}
@@ -304,19 +306,19 @@ export const BusinessParameterDetailModal: React.FC<BusinessParameterDetailModal
 
   const loadDetails = useCallback(async () => {
     if (!header) return;
-    
+
     setLoading(true);
     try {
       console.log('📋 [BUSI-005] Loading business parameter details for:', header.param_code);
-      
+
       const response = await dataProvider.getOne('business/headers', {
         id: header.pkid,
         meta: { endpoint: `business/headers/${header.pkid}/details` }
       });
-      
+
       setDetails(response.data || []);
       console.log(`✅ [BUSI-005] Loaded ${response.data?.length || 0} business parameter details`);
-      
+
     } catch (error) {
       console.error('❌ [BUSI-005] Failed to load business parameter details:', error);
       notify('Failed to load business parameter details', { type: 'error' });
@@ -329,17 +331,18 @@ export const BusinessParameterDetailModal: React.FC<BusinessParameterDetailModal
   // Handle save detail
   const handleSaveDetail = useCallback(async (formData: DetailFormData) => {
     if (!header) return;
-    
+
     setSaving(true);
     try {
       let response;
-      
+
       if (editingDetail) {
         // Update existing detail
         console.log('📝 [BUSI-005] Updating business parameter detail:', editingDetail.pkid);
         response = await dataProvider.update('business/details', {
           id: editingDetail.pkid,
-          data: formData
+          data: formData,
+          previousData: editingDetail
         });
       } else {
         // Create new detail
@@ -349,20 +352,20 @@ export const BusinessParameterDetailModal: React.FC<BusinessParameterDetailModal
           meta: { endpoint: `business/headers/${header.pkid}/details` }
         });
       }
-      
+
       console.log('✅ [BUSI-005] Business parameter detail saved successfully');
       notify(editingDetail ? 'Detail updated successfully' : 'Detail created successfully', { type: 'success' });
-      
+
       // Reload details
       await loadDetails();
-      
+
       // Close forms
       setShowAddForm(false);
       setEditingDetail(null);
-      
+
       // Call parent callback
       onSave(response.data);
-      
+
     } catch (error) {
       console.error('❌ [BUSI-005] Failed to save business parameter detail:', error);
       notify('Failed to save business parameter detail', { type: 'error' });
@@ -376,20 +379,20 @@ export const BusinessParameterDetailModal: React.FC<BusinessParameterDetailModal
     if (!window.confirm('Are you sure you want to delete this business parameter detail?')) {
       return;
     }
-    
+
     try {
       console.log('🗑️ [BUSI-005] Deleting business parameter detail:', detail.pkid);
-      
+
       await dataProvider.delete('business/details', {
         id: detail.pkid
       });
-      
+
       console.log('✅ [BUSI-005] Business parameter detail deleted successfully');
       notify('Detail deleted successfully', { type: 'success' });
-      
+
       // Reload details
       await loadDetails();
-      
+
     } catch (error) {
       console.error('❌ [BUSI-005] Failed to delete business parameter detail:', error);
       notify('Failed to delete business parameter detail', { type: 'error' });
@@ -524,10 +527,10 @@ export const BusinessParameterDetailModal: React.FC<BusinessParameterDetailModal
                 {details.map((detail) => (
                   <TableRow key={detail.pkid} hover>
                     <TableCell>
-                      <Chip 
-                        label={detail.param_seq} 
-                        size="small" 
-                        color="primary" 
+                      <Chip
+                        label={detail.param_seq}
+                        size="small"
+                        color="primary"
                         variant="outlined"
                       />
                     </TableCell>
@@ -561,8 +564,8 @@ export const BusinessParameterDetailModal: React.FC<BusinessParameterDetailModal
                     <TableCell>
                       <Box display="flex" gap={1}>
                         <Tooltip title="Edit Detail">
-                          <IconButton 
-                            size="small" 
+                          <IconButton
+                            size="small"
                             color="primary"
                             onClick={() => setEditingDetail(detail)}
                             disabled={showAddForm || !!editingDetail}
@@ -571,8 +574,8 @@ export const BusinessParameterDetailModal: React.FC<BusinessParameterDetailModal
                           </IconButton>
                         </Tooltip>
                         <Tooltip title="Delete Detail">
-                          <IconButton 
-                            size="small" 
+                          <IconButton
+                            size="small"
                             color="error"
                             onClick={() => handleDeleteDetail(detail)}
                             disabled={showAddForm || !!editingDetail}

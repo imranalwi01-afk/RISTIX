@@ -140,7 +140,7 @@ function TabPanel(props: TabPanelProps) {
 
 export default function IFRS9CalculationDashboard() {
   const router = useRouter();
-  
+
   // State management
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -156,7 +156,7 @@ export default function IFRS9CalculationDashboard() {
   const [processHistory, setProcessHistory] = useState<ProcessDate[]>([]);
   const [calculationResults, setCalculationResults] = useState<CalculationResult[]>([]);
   const [calculationSummary, setCalculationSummary] = useState<CalculationSummary | null>(null);
-  
+
   // Configuration state
   const [runConfig, setRunConfig] = useState({
     process_date: new Date().toISOString().split('T')[0],
@@ -196,9 +196,10 @@ export default function IFRS9CalculationDashboard() {
   // DataGrid columns
   const processHistoryColumns: GridColDef[] = [
     { field: 'currdate', headerName: 'Process Date', width: 120 },
-    { field: 'batch_status', headerName: 'Status', width: 120,
+    {
+      field: 'batch_status', headerName: 'Status', width: 120,
       renderCell: (params: GridRenderCellParams) => (
-        <Chip 
+        <Chip
           label={params.value}
           color={params.value === 'COMPLETED' ? 'success' : params.value === 'FAILED' ? 'error' : 'warning'}
           size="small"
@@ -229,9 +230,10 @@ export default function IFRS9CalculationDashboard() {
   const calculationResultColumns: GridColDef[] = [
     { field: 'facility_number', headerName: 'Facility', width: 120 },
     { field: 'cif_number', headerName: 'CIF Number', width: 120 },
-    { field: 'stage', headerName: 'Stage', width: 80,
+    {
+      field: 'stage', headerName: 'Stage', width: 80,
       renderCell: (params: GridRenderCellParams) => (
-        <Chip 
+        <Chip
           label={`Stage ${params.value}`}
           color={params.value === 1 ? 'success' : params.value === 2 ? 'warning' : 'error'}
           size="small"
@@ -239,9 +241,9 @@ export default function IFRS9CalculationDashboard() {
       )
     },
     { field: 'currency', headerName: 'Currency', width: 80 },
-    { 
-      field: 'outstanding', 
-      headerName: 'Outstanding', 
+    {
+      field: 'outstanding',
+      headerName: 'Outstanding',
       width: 150,
       type: 'number',
       valueFormatter: (value) => new Intl.NumberFormat('id-ID', {
@@ -250,9 +252,9 @@ export default function IFRS9CalculationDashboard() {
         minimumFractionDigits: 0
       }).format(Number(value))
     },
-    { 
-      field: 'ecl_final', 
-      headerName: 'ECL Final', 
+    {
+      field: 'ecl_final',
+      headerName: 'ECL Final',
       width: 150,
       type: 'number',
       valueFormatter: (value) => new Intl.NumberFormat('id-ID', {
@@ -431,9 +433,9 @@ export default function IFRS9CalculationDashboard() {
     <Container maxWidth="xl">
       {/* Breadcrumb Navigation */}
       <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
-        <Link 
-          underline="hover" 
-          color="inherit" 
+        <Link
+          underline="hover"
+          color="inherit"
           href="/banking/dashboard"
           onClick={(e) => {
             e.preventDefault();
@@ -537,7 +539,7 @@ export default function IFRS9CalculationDashboard() {
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                <MonetizationOn sx={{ mr: 1, color: 'success.main' }} />
+                <EclIcon sx={{ mr: 1, color: 'success.main' }} />
                 <Typography variant="h6">Total Outstanding</Typography>
               </Box>
               <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
@@ -592,10 +594,10 @@ export default function IFRS9CalculationDashboard() {
               rows={processHistory}
               columns={processHistoryColumns}
               getRowId={(row) => row.pkid}
-              pageSize={10}
-              rowsPerPageOptions={[10, 25, 50]}
+              initialState={{ pagination: { paginationModel: { pageSize: 10, page: 0 } } }}
+              pageSizeOptions={[10, 25, 50]}
               checkboxSelection
-              disableSelectionOnClick
+              disableRowSelectionOnClick
               sx={{
                 '& .MuiDataGrid-cell': {
                   borderBottom: '1px solid #f0f0f0',
@@ -616,10 +618,10 @@ export default function IFRS9CalculationDashboard() {
               rows={calculationResults}
               columns={calculationResultColumns}
               getRowId={(row) => row.account_id}
-              pageSize={10}
-              rowsPerPageOptions={[10, 25, 50]}
+              initialState={{ pagination: { paginationModel: { pageSize: 10, page: 0 } } }}
+              pageSizeOptions={[10, 25, 50]}
               checkboxSelection
-              disableSelectionOnClick
+              disableRowSelectionOnClick
               sx={{
                 '& .MuiDataGrid-cell': {
                   borderBottom: '1px solid #f0f0f0',
@@ -746,7 +748,7 @@ export default function IFRS9CalculationDashboard() {
             </Grid>
             <Grid item xs={12}>
               <Alert severity="warning">
-                This will execute IFRS9 ECL calculations for all configured segments and models. 
+                This will execute IFRS9 ECL calculations for all configured segments and models.
                 The process may take several minutes to complete.
               </Alert>
             </Grid>
@@ -776,7 +778,7 @@ export default function IFRS9CalculationDashboard() {
               </Grid>
               <Grid item xs={12} md={6}>
                 <Typography variant="subtitle2">Current Stage:</Typography>
-                <Chip 
+                <Chip
                   label={`Stage ${selectedResult.stage}`}
                   color={selectedResult.stage === 1 ? 'success' : selectedResult.stage === 2 ? 'warning' : 'error'}
                 />

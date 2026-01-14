@@ -69,10 +69,11 @@ import {
   ZoomIn as ZoomInIcon,
   ZoomOut as ZoomOutIcon,
   ViewColumn as ViewColumnIcon,
-  ViewModule as ViewModuleIcon
+  ViewModule as ViewModuleIcon,
+  ExpandMore as ExpandMoreIcon
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
-import { api } from '../../../services/api';
+import { api } from '@/services/api';
 
 // Types
 interface Role {
@@ -140,7 +141,7 @@ const PermissionsMatrix: React.FC<PermissionsMatrixProps> = ({
   const [editMode, setEditMode] = useState(false);
   const [pendingChanges, setPendingChanges] = useState<Map<string, Set<string>>>(new Map());
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
-  const [selectedCell, setSelectedCell] = useState<{roleId: string, permissionId: string} | null>(null);
+  const [selectedCell, setSelectedCell] = useState<{ roleId: string, permissionId: string } | null>(null);
 
   // Fetch data
   const fetchData = async () => {
@@ -209,7 +210,7 @@ const PermissionsMatrix: React.FC<PermissionsMatrixProps> = ({
     return permissions.filter(permission => {
       if (selectedCategories.length > 0 && !selectedCategories.includes(permission.category)) return false;
       if (searchTerm && !permission.displayName.toLowerCase().includes(searchTerm.toLowerCase()) &&
-          !permission.description.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+        !permission.description.toLowerCase().includes(searchTerm.toLowerCase())) return false;
       if (filterRiskLevel !== 'all' && permission.riskLevel !== filterRiskLevel) return false;
       return true;
     });
@@ -410,7 +411,7 @@ const PermissionsMatrix: React.FC<PermissionsMatrixProps> = ({
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h5" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <GridOnIcon color="primary" />
+          <GridIcon color="primary" />
           Permissions Matrix
         </Typography>
 
@@ -682,8 +683,8 @@ const PermissionsMatrix: React.FC<PermissionsMatrixProps> = ({
                           backgroundColor: isPendingChange
                             ? theme.palette.warning.light
                             : hasPermission
-                            ? getRiskLevelColor(permission.riskLevel)
-                            : 'transparent',
+                              ? getRiskLevelColor(permission.riskLevel)
+                              : 'transparent',
                           padding: compactView ? '4px' : '16px',
                           minWidth: compactView ? 80 : 120,
                           cursor: editMode && !isReadonly ? 'pointer' : 'default',

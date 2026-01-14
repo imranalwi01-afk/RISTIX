@@ -12,6 +12,7 @@ import { MenuItem } from '@/services/menu.service';
 // Extended interface to handle compatibility between different MenuItem definitions
 export interface ExtendedMenuItem extends MenuItem {
   children?: ExtendedMenuItem[];
+  key: string;
 }
 
 // Enhanced menu category definitions based on IFRS9 Neo analysis
@@ -192,7 +193,6 @@ const MENU_KEY_MAPPINGS: Record<string, string> = {
   'ecl-calculations': 'ecl_calculations',
   'ecl_calculations': 'ecl_calculations',
   'ifrs9-staging': 'ifrs9_staging',
-  'ifrs9-staging': 'ifrs9_staging',
 
   // Reports mappings
   'nominative_report': 'nominative_report',
@@ -237,14 +237,14 @@ const MENU_KEY_MAPPINGS: Record<string, string> = {
 export function transformFlatToHierarchical(flatItems: MenuItem[]): ExtendedMenuItem[] {
   console.log('🔄 Transforming flat menu to hierarchical structure:', {
     inputItems: flatItems.length,
-    sampleItems: flatItems.slice(0, 3).map(item => ({ id: item.id, key: item.key, parent_id: item.parent_id }))
+    sampleItems: flatItems.slice(0, 3).map(item => ({ id: item.id, key: item.code, parent_id: item.parent_id }))
   });
 
   // Step 1: Create a map of all items for quick lookup
   const itemMap = new Map<string, ExtendedMenuItem>();
   flatItems.forEach(item => {
     // Normalize the key using mappings
-    const normalizedKey = MENU_KEY_MAPPINGS[item.key] || item.key;
+    const normalizedKey = MENU_KEY_MAPPINGS[item.code] || item.code;
     const normalizedItem: ExtendedMenuItem = {
       ...item,
       key: normalizedKey,
@@ -264,12 +264,12 @@ export function transformFlatToHierarchical(flatItems: MenuItem[]): ExtendedMenu
       description: category.description,
       icon: category.icon,
       sort_order: category.sort_order,
-      parent_id: null,
+      parent_id: undefined,
       is_active: true,
       children: [],
       level: 1,
       path: category.key,
-      href: null, // Parent items typically don't have direct links
+      href: undefined, // Parent items typically don't have direct links
       code: category.key,
       banking_modes: undefined,
       roles: undefined,
@@ -286,7 +286,7 @@ export function transformFlatToHierarchical(flatItems: MenuItem[]): ExtendedMenu
 
   // Step 3: Assign children to parents
   flatItems.forEach(item => {
-    const normalizedKey = MENU_KEY_MAPPINGS[item.key] || item.key;
+    const normalizedKey = MENU_KEY_MAPPINGS[item.code] || item.code;
     const menuItem = itemMap.get(item.id);
 
     if (!menuItem) return;

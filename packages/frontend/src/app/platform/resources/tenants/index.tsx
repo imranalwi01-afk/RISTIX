@@ -79,30 +79,33 @@ const TenantFilters = () => (
     <SearchInput source="q" placeholder="Search tenants..." alwaysOn />
     <SelectInput
       source="status"
-      choices={[
-        { id: 'provisioning', name: 'Provisioning' },
-        { id: 'active', name: 'Active' },
-        { id: 'suspended', name: 'Suspended' },
-        { id: 'terminated', name: 'Terminated' },
-      ]}
+      choices={
+        [
+          { id: 'provisioning', name: 'Provisioning' },
+          { id: 'active', name: 'Active' },
+          { id: 'suspended', name: 'Suspended' },
+          { id: 'terminated', name: 'Terminated' },
+        ]}
       emptyText="All Statuses"
     />
     <SelectInput
       source="banking_type"
-      choices={[
-        { id: 'conventional', name: 'Conventional' },
-        { id: 'syariah', name: 'Syariah' },
-        { id: 'dual', name: 'Dual Banking' },
-      ]}
+      choices={
+        [
+          { id: 'conventional', name: 'Conventional' },
+          { id: 'syariah', name: 'Syariah' },
+          { id: 'dual', name: 'Dual Banking' },
+        ]}
       emptyText="All Banking Types"
     />
     <SelectInput
       source="subscription_tier"
-      choices={[
-        { id: 'basic', name: 'Basic' },
-        { id: 'premium', name: 'Premium' },
-        { id: 'enterprise', name: 'Enterprise' },
-      ]}
+      choices={
+        [
+          { id: 'basic', name: 'Basic' },
+          { id: 'premium', name: 'Premium' },
+          { id: 'enterprise', name: 'Enterprise' },
+        ]}
       emptyText="All Tiers"
     />
   </Filter>
@@ -115,7 +118,7 @@ const TenantFilters = () => (
 const TenantListActions = () => (
   <TopToolbar>
     <CreateButton />
-    <ExportButton />
+    < ExportButton />
   </TopToolbar>
 )
 
@@ -147,13 +150,15 @@ const TenantStatusChip = () => {
     }
   }
 
+  const icon = getStatusIcon(record.status)
   return (
     <Chip
       label={record.status}
       color={getStatusColor(record.status) as any}
       size="small"
-      icon={getStatusIcon(record.status)}
-      sx={{ textTransform: 'capitalize' }}
+      {...(icon && { icon })}
+      sx={{ textTransform: 'capitalize' }
+      }
     />
   )
 }
@@ -179,7 +184,8 @@ const BankingTypeChip = () => {
         backgroundColor: getBankingTypeColor(record.banking_type),
         color: 'white',
         textTransform: 'capitalize'
-      }}
+      }
+      }
     />
   )
 }
@@ -191,15 +197,16 @@ const TenantUsageBar = () => {
   const usagePercent = record.usage_metrics.storage_usage_percent || 0
 
   return (
-    <Box sx={{ width: 100 }}>
+    <Box sx={{ width: 100 }
+    }>
       <LinearProgress
         variant="determinate"
         value={usagePercent}
         color={usagePercent > 80 ? 'warning' : 'primary'}
         sx={{ height: 6, borderRadius: 3 }}
       />
-      <Typography variant="caption" color="text.secondary">
-        {usagePercent}%
+      < Typography variant="caption" color="text.secondary" >
+        {usagePercent} %
       </Typography>
     </Box>
   )
@@ -211,16 +218,16 @@ const TenantUsageBar = () => {
 
 export const TenantList = () => (
   <List
-    filters={<TenantFilters />}
-    actions={<TenantListActions />}
+    filters={< TenantFilters />}
+    actions={< TenantListActions />}
     sort={{ field: 'tenant_name', order: 'ASC' }}
     perPage={25}
     title="Banking Institution Tenants"
   >
-    <Datagrid rowClick="show" bulkActionButtons={false}>
-      
+    <Datagrid rowClick="show" bulkActionButtons={false} >
+
       {/* Tenant Basic Info */}
-      <FunctionField
+      < FunctionField
         source="tenant_name"
         label="Institution"
         render={(record: any) => (
@@ -228,11 +235,11 @@ export const TenantList = () => (
             <Avatar sx={{ width: 32, height: 32, backgroundColor: '#1976d2' }}>
               <Business fontSize="small" />
             </Avatar>
-            <Box>
-              <Typography variant="body2" fontWeight="medium">
+            < Box >
+              <Typography variant="body2" fontWeight="medium" >
                 {record.tenant_name}
               </Typography>
-              <Typography variant="caption" color="text.secondary">
+              < Typography variant="caption" color="text.secondary" >
                 {record.tenant_slug}
               </Typography>
             </Box>
@@ -276,7 +283,7 @@ export const TenantList = () => (
         render={(record: any) => (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
             <People fontSize="small" color="action" />
-            <Typography variant="body2">
+            <Typography variant="body2" >
               {record.user_count || 0}
             </Typography>
           </Box>
@@ -287,9 +294,9 @@ export const TenantList = () => (
       <DateField source="created_at" label="Created" showTime />
 
       {/* Actions */}
-      <Box>
+      < Box >
         <ShowButton />
-        <EditButton />
+        < EditButton />
         <DeleteButton />
       </Box>
 
@@ -302,29 +309,29 @@ export const TenantList = () => (
 // ============================================================================
 
 export const TenantShow = () => (
-  <Show title="Banking Institution Details">
+  <Show title="Banking Institution Details" >
     <SimpleShowLayout>
-      
+
       {/* Header Information */}
-      <Box sx={{ mb: 3 }}>
+      < Box sx={{ mb: 3 }}>
         <Card>
           <CardContent>
-            <Grid container spacing={2} alignItems="center">
-              <Grid item>
+            <Grid container spacing={2} alignItems="center" >
+              <Grid item >
                 <Avatar sx={{ width: 64, height: 64, backgroundColor: '#1976d2' }}>
                   <Business fontSize="large" />
                 </Avatar>
               </Grid>
-              <Grid item xs>
-                <Typography variant="h5" component="h2" gutterBottom>
+              < Grid item xs >
+                <Typography variant="h5" component="h2" gutterBottom >
                   <TextField source="tenant_name" />
                 </Typography>
-                <Typography variant="body1" color="text.secondary" gutterBottom>
+                < Typography variant="body1" color="text.secondary" gutterBottom >
                   <TextField source="description" />
                 </Typography>
-                <Stack direction="row" spacing={1} mt={1}>
+                < Stack direction="row" spacing={1} mt={1} >
                   <BankingTypeChip />
-                  <TenantStatusChip />
+                  < TenantStatusChip />
                   <ChipField source="subscription_tier" transform={(value: string) => value?.toUpperCase()} />
                 </Stack>
               </Grid>
@@ -337,100 +344,101 @@ export const TenantShow = () => (
       <Typography variant="h6" gutterBottom sx={{ color: 'primary.main', mt: 3 }}>
         🏢 Basic Information
       </Typography>
-      <Grid container spacing={2}>
-        <Grid item xs={12} md={6}>
+      < Grid container spacing={2} >
+        <Grid item xs={12} md={6} >
           <TextField source="tenant_slug" label="Tenant Slug" />
           <TextField source="database_name" label="Database Name" />
           <TextField source="contact_email" label="Contact Email" />
           <TextField source="contact_phone" label="Contact Phone" />
         </Grid>
-        <Grid item xs={12} md={6}>
+        < Grid item xs={12} md={6} >
           <DateField source="created_at" label="Created At" showTime />
           <DateField source="updated_at" label="Updated At" showTime />
           <BooleanField source="is_active" label="Active Status" />
         </Grid>
       </Grid>
 
-      <Divider sx={{ my: 3 }} />
+      < Divider sx={{ my: 3 }} />
 
       {/* Banking Configuration */}
       <Typography variant="h6" gutterBottom sx={{ color: 'primary.main' }}>
         🏦 Banking Configuration
       </Typography>
-      <Grid container spacing={2}>
-        <Grid item xs={12} md={6}>
+      < Grid container spacing={2} >
+        <Grid item xs={12} md={6} >
           <TextField source="banking_type" label="Banking Type" />
           <TextField source="subscription_tier" label="Subscription Tier" />
           <TextField source="billing_contact" label="Billing Contact" />
         </Grid>
-        <Grid item xs={12} md={6}>
+        < Grid item xs={12} md={6} >
           <DateField source="subscription_start_date" label="Subscription Start" />
           <DateField source="subscription_end_date" label="Subscription End" />
           <NumberInput source="max_users" label="Maximum Users" disabled />
         </Grid>
       </Grid>
 
-      <Divider sx={{ my: 3 }} />
+      < Divider sx={{ my: 3 }} />
 
       {/* Usage Metrics */}
       <Typography variant="h6" gutterBottom sx={{ color: 'primary.main' }}>
         📊 Usage Metrics
       </Typography>
-      <FunctionField
+      < FunctionField
         render={(record: any) => (
-          <Grid container spacing={2}>
-            {record.usage_metrics && (
-              <>
-                <Grid item xs={12} md={3}>
-                  <Card variant="outlined">
-                    <CardContent>
-                      <Typography variant="h6" color="primary">
-                        {record.usage_metrics.active_users || 0}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Active Users
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                <Grid item xs={12} md={3}>
-                  <Card variant="outlined">
-                    <CardContent>
-                      <Typography variant="h6" color="primary">
-                        {record.usage_metrics.storage_used_gb || 0} GB
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Storage Used
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                <Grid item xs={12} md={3}>
-                  <Card variant="outlined">
-                    <CardContent>
-                      <Typography variant="h6" color="primary">
-                        {record.usage_metrics.api_calls_month || 0}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        API Calls/Month
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                <Grid item xs={12} md={3}>
-                  <Card variant="outlined">
-                    <CardContent>
-                      <Typography variant="h6" color="primary">
-                        {record.usage_metrics.uptime_percent || 0}%
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Uptime
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              </>
-            )}
+          <Grid container spacing={2} >
+            {
+              record.usage_metrics && (
+                <>
+                  <Grid item xs={12} md={3} >
+                    <Card variant="outlined">
+                      <CardContent>
+                        <Typography variant="h6" color="primary" >
+                          {record.usage_metrics.active_users || 0}
+                        </Typography>
+                        < Typography variant="body2" color="text.secondary" >
+                          Active Users
+                        </ Typography >
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                  < Grid item xs={12} md={3} >
+                    <Card variant="outlined" >
+                      <CardContent>
+                        <Typography variant="h6" color="primary" >
+                          {record.usage_metrics.storage_used_gb || 0} GB
+                        </Typography>
+                        < Typography variant="body2" color="text.secondary" >
+                          Storage Used
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                  < Grid item xs={12} md={3} >
+                    <Card variant="outlined" >
+                      <CardContent>
+                        <Typography variant="h6" color="primary" >
+                          {record.usage_metrics.api_calls_month || 0}
+                        </Typography>
+                        < Typography variant="body2" color="text.secondary" >
+                          API Calls / Month
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                  < Grid item xs={12} md={3} >
+                    <Card variant="outlined" >
+                      <CardContent>
+                        <Typography variant="h6" color="primary" >
+                          {record.usage_metrics.uptime_percent || 0} %
+                        </Typography>
+                        < Typography variant="body2" color="text.secondary" >
+                          Uptime
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                </>
+              )}
           </Grid>
         )}
       />
@@ -444,51 +452,53 @@ export const TenantShow = () => (
 // ============================================================================
 
 export const TenantEdit = () => (
-  <Edit title="Edit Banking Institution">
+  <Edit title="Edit Banking Institution" >
     <SimpleForm>
-      
+
       <Typography variant="h6" gutterBottom sx={{ color: 'primary.main' }}>
         🏢 Basic Information
       </Typography>
-      
-      <TextInput source="tenant_name" label="Institution Name" validate={required()} fullWidth />
+
+      < TextInput source="tenant_name" label="Institution Name" validate={required()} fullWidth />
       <TextInput source="description" label="Description" multiline rows={3} fullWidth />
       <TextInput source="tenant_slug" label="Tenant Slug" validate={required()} disabled />
-      
-      <Grid container spacing={2}>
-        <Grid item xs={12} md={6}>
+
+      <Grid container spacing={2} >
+        <Grid item xs={12} md={6} >
           <SelectInput
             source="banking_type"
             label="Banking Type"
-            choices={[
-              { id: 'conventional', name: 'Conventional Banking' },
-              { id: 'syariah', name: 'Syariah Banking' },
-              { id: 'dual', name: 'Dual Banking' },
-            ]}
+            choices={
+              [
+                { id: 'conventional', name: 'Conventional Banking' },
+                { id: 'syariah', name: 'Syariah Banking' },
+                { id: 'dual', name: 'Dual Banking' },
+              ]}
             validate={required()}
           />
         </Grid>
-        <Grid item xs={12} md={6}>
+        < Grid item xs={12} md={6} >
           <SelectInput
             source="status"
             label="Status"
-            choices={[
-              { id: 'provisioning', name: 'Provisioning' },
-              { id: 'active', name: 'Active' },
-              { id: 'suspended', name: 'Suspended' },
-              { id: 'terminated', name: 'Terminated' },
-            ]}
+            choices={
+              [
+                { id: 'provisioning', name: 'Provisioning' },
+                { id: 'active', name: 'Active' },
+                { id: 'suspended', name: 'Suspended' },
+                { id: 'terminated', name: 'Terminated' },
+              ]}
             validate={required()}
           />
         </Grid>
       </Grid>
 
-      <Typography variant="h6" gutterBottom sx={{ color: 'primary.main', mt: 3 }}>
+      < Typography variant="h6" gutterBottom sx={{ color: 'primary.main', mt: 3 }}>
         📞 Contact Information
       </Typography>
-      
-      <Grid container spacing={2}>
-        <Grid item xs={12} md={6}>
+
+      < Grid container spacing={2} >
+        <Grid item xs={12} md={6} >
           <TextInput
             source="contact_email"
             label="Contact Email"
@@ -497,51 +507,52 @@ export const TenantEdit = () => (
             fullWidth
           />
         </Grid>
-        <Grid item xs={12} md={6}>
+        < Grid item xs={12} md={6} >
           <TextInput source="contact_phone" label="Contact Phone" fullWidth />
         </Grid>
       </Grid>
 
-      <Typography variant="h6" gutterBottom sx={{ color: 'primary.main', mt: 3 }}>
+      < Typography variant="h6" gutterBottom sx={{ color: 'primary.main', mt: 3 }}>
         💳 Subscription & Billing
       </Typography>
-      
-      <Grid container spacing={2}>
-        <Grid item xs={12} md={4}>
+
+      < Grid container spacing={2} >
+        <Grid item xs={12} md={4} >
           <SelectInput
             source="subscription_tier"
             label="Subscription Tier"
-            choices={[
-              { id: 'basic', name: 'Basic' },
-              { id: 'premium', name: 'Premium' },
-              { id: 'enterprise', name: 'Enterprise' },
-            ]}
+            choices={
+              [
+                { id: 'basic', name: 'Basic' },
+                { id: 'premium', name: 'Premium' },
+                { id: 'enterprise', name: 'Enterprise' },
+              ]}
             validate={required()}
           />
         </Grid>
-        <Grid item xs={12} md={4}>
+        < Grid item xs={12} md={4} >
           <DateInput source="subscription_start_date" label="Subscription Start" />
         </Grid>
-        <Grid item xs={12} md={4}>
+        < Grid item xs={12} md={4} >
           <DateInput source="subscription_end_date" label="Subscription End" />
         </Grid>
       </Grid>
 
-      <Grid container spacing={2}>
-        <Grid item xs={12} md={6}>
+      < Grid container spacing={2} >
+        <Grid item xs={12} md={6} >
           <TextInput source="billing_contact" label="Billing Contact" fullWidth />
         </Grid>
-        <Grid item xs={12} md={6}>
+        < Grid item xs={12} md={6} >
           <NumberInput source="max_users" label="Maximum Users" min={1} />
         </Grid>
       </Grid>
 
-      <Typography variant="h6" gutterBottom sx={{ color: 'primary.main', mt: 3 }}>
+      < Typography variant="h6" gutterBottom sx={{ color: 'primary.main', mt: 3 }}>
         ⚙️ Settings
       </Typography>
-      
-      <BooleanInput source="is_active" label="Active Status" />
-      
+
+      < BooleanInput source="is_active" label="Active Status" />
+
     </SimpleForm>
   </Edit>
 )
@@ -551,29 +562,29 @@ export const TenantEdit = () => (
 // ============================================================================
 
 export const TenantCreate = () => (
-  <Create title="Create New Banking Institution">
+  <Create title="Create New Banking Institution" >
     <SimpleForm>
-      
+
       <Alert severity="info" sx={{ mb: 3 }}>
-        <Typography variant="body2">
+        <Typography variant="body2" >
           <strong>Creating a new banking institution tenant</strong><br />
           This will provision a new isolated database environment for the banking institution.
           Please ensure all information is accurate before proceeding.
         </Typography>
       </Alert>
 
-      <Typography variant="h6" gutterBottom sx={{ color: 'primary.main' }}>
+      < Typography variant="h6" gutterBottom sx={{ color: 'primary.main' }}>
         🏢 Basic Information
       </Typography>
-      
-      <TextInput
+
+      < TextInput
         source="tenant_name"
         label="Institution Name"
         validate={required()}
         fullWidth
         helperText="Full legal name of the banking institution"
       />
-      
+
       <TextInput
         source="description"
         label="Description"
@@ -582,7 +593,7 @@ export const TenantCreate = () => (
         fullWidth
         helperText="Brief description of the banking institution"
       />
-      
+
       <TextInput
         source="tenant_slug"
         label="Tenant Slug"
@@ -591,41 +602,43 @@ export const TenantCreate = () => (
         helperText="URL-friendly identifier (lowercase, no spaces)"
       />
 
-      <Grid container spacing={2}>
-        <Grid item xs={12} md={6}>
+      <Grid container spacing={2} >
+        <Grid item xs={12} md={6} >
           <SelectInput
             source="banking_type"
             label="Banking Type"
-            choices={[
-              { id: 'conventional', name: 'Conventional Banking' },
-              { id: 'syariah', name: 'Syariah Banking' },
-              { id: 'dual', name: 'Dual Banking' },
-            ]}
+            choices={
+              [
+                { id: 'conventional', name: 'Conventional Banking' },
+                { id: 'syariah', name: 'Syariah Banking' },
+                { id: 'dual', name: 'Dual Banking' },
+              ]}
             validate={required()}
             defaultValue="conventional"
           />
         </Grid>
-        <Grid item xs={12} md={6}>
+        < Grid item xs={12} md={6} >
           <SelectInput
             source="subscription_tier"
             label="Subscription Tier"
-            choices={[
-              { id: 'basic', name: 'Basic' },
-              { id: 'premium', name: 'Premium' },
-              { id: 'enterprise', name: 'Enterprise' },
-            ]}
+            choices={
+              [
+                { id: 'basic', name: 'Basic' },
+                { id: 'premium', name: 'Premium' },
+                { id: 'enterprise', name: 'Enterprise' },
+              ]}
             validate={required()}
             defaultValue="basic"
           />
         </Grid>
       </Grid>
 
-      <Typography variant="h6" gutterBottom sx={{ color: 'primary.main', mt: 3 }}>
+      < Typography variant="h6" gutterBottom sx={{ color: 'primary.main', mt: 3 }}>
         📞 Contact Information
       </Typography>
-      
-      <Grid container spacing={2}>
-        <Grid item xs={12} md={6}>
+
+      < Grid container spacing={2} >
+        <Grid item xs={12} md={6} >
           <TextInput
             source="contact_email"
             label="Primary Contact Email"
@@ -634,24 +647,24 @@ export const TenantCreate = () => (
             fullWidth
           />
         </Grid>
-        <Grid item xs={12} md={6}>
+        < Grid item xs={12} md={6} >
           <TextInput source="contact_phone" label="Contact Phone" fullWidth />
         </Grid>
       </Grid>
 
-      <Typography variant="h6" gutterBottom sx={{ color: 'primary.main', mt: 3 }}>
+      < Typography variant="h6" gutterBottom sx={{ color: 'primary.main', mt: 3 }}>
         💳 Subscription Settings
       </Typography>
-      
-      <Grid container spacing={2}>
-        <Grid item xs={12} md={6}>
+
+      < Grid container spacing={2} >
+        <Grid item xs={12} md={6} >
           <DateInput
             source="subscription_start_date"
             label="Subscription Start Date"
             defaultValue={new Date().toISOString().split('T')[0]}
           />
         </Grid>
-        <Grid item xs={12} md={6}>
+        < Grid item xs={12} md={6} >
           <NumberInput
             source="max_users"
             label="Maximum Users"
@@ -661,8 +674,8 @@ export const TenantCreate = () => (
         </Grid>
       </Grid>
 
-      <TextInput source="billing_contact" label="Billing Contact" fullWidth />
-      
+      < TextInput source="billing_contact" label="Billing Contact" fullWidth />
+
     </SimpleForm>
   </Create>
 )

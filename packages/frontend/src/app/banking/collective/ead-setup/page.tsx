@@ -94,7 +94,7 @@ export default function EADSetupPage() {
       setPopulationSegments(segmentsRes);
 
       const enrichedConfigs = configsRes.map(config => {
-        const segment = segmentsRes.find(s => s.id === config.segment_id);
+        const segment = segmentsRes.find(s => String(s.id) === String(config.segment_id));
         return {
           ...config,
           segment_name: segment?.segment_name || String(config.segment_id || 'Unknown'),

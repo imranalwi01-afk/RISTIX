@@ -53,55 +53,55 @@ import {
 // FILTER COMPONENTS
 // ==========================================
 
-const ProductParameterFilters = () => (
-  <FilterForm>
-    <SearchInput
-      source="q"
-      placeholder="Search by product code or description"
-      alwaysOn
-      sx={{ minWidth: 300 }}
-    />
-    <SelectInput
-      source="prd_group"
-      label="Product Group"
-      choices={[
-        { id: 'KREDIT', name: 'Kredit' },
-        { id: 'DEPOSIT', name: 'Deposit' },
-        { id: 'INVESTMENT', name: 'Investment' },
-        { id: 'SERVICES', name: 'Services' }
-      ]}
-      allowEmpty
-    />
-    <SelectInput
-      source="prd_type"
-      label="Product Type"
-      choices={[
-        { id: 'KONSUMTIF', name: 'Konsumtif' },
-        { id: 'KOMERSIAL', name: 'Komersial' },
-        { id: 'MIKRO', name: 'Mikro' },
-        { id: 'MORTGAGE', name: 'Mortgage' },
-        { id: 'SYARIAH', name: 'Syariah' }
-      ]}
-      allowEmpty
-    />
-    <SelectInput
-      source="currency"
-      label="Currency"
-      choices={[
-        { id: 'IDR', name: 'IDR' },
-        { id: 'USD', name: 'USD' },
-        { id: 'EUR', name: 'EUR' },
-        { id: 'SGD', name: 'SGD' }
-      ]}
-      allowEmpty
-    />
-    <BooleanInput
-      source="active_only"
-      label="Active Only"
-      defaultValue={true}
-    />
-  </FilterForm>
-);
+const ProductParameterFilters = [
+  <SearchInput
+    key="search"
+    source="q"
+    placeholder="Search by product code or description"
+    alwaysOn
+    sx={{ minWidth: 300 }}
+  />,
+  <SelectInput
+    key="prd_group"
+    source="prd_group"
+    label="Product Group"
+    choices={[
+      { id: 'KREDIT', name: 'Kredit' },
+      { id: 'DEPOSIT', name: 'Deposit' },
+      { id: 'INVESTMENT', name: 'Investment' },
+      { id: 'SERVICES', name: 'Services' }
+    ]}
+  />,
+  <SelectInput
+    key="prd_type"
+    source="prd_type"
+    label="Product Type"
+    choices={[
+      { id: 'KONSUMTIF', name: 'Konsumtif' },
+      { id: 'KOMERSIAL', name: 'Komersial' },
+      { id: 'MIKRO', name: 'Mikro' },
+      { id: 'MORTGAGE', name: 'Mortgage' },
+      { id: 'SYARIAH', name: 'Syariah' }
+    ]}
+  />,
+  <SelectInput
+    key="currency"
+    source="currency"
+    label="Currency"
+    choices={[
+      { id: 'IDR', name: 'IDR' },
+      { id: 'USD', name: 'USD' },
+      { id: 'EUR', name: 'EUR' },
+      { id: 'SGD', name: 'SGD' }
+    ]}
+  />,
+  <BooleanInput
+    key="active_only"
+    source="active_only"
+    label="Active Only"
+    defaultValue={true}
+  />
+];
 
 // ==========================================
 // CUSTOM FIELD COMPONENTS
@@ -109,7 +109,7 @@ const ProductParameterFilters = () => (
 
 const ProductGroupField = ({ record }: any) => {
   if (!record?.prd_group) return null;
-  
+
   const getGroupColor = (group: string) => {
     switch (group) {
       case 'KREDIT': return 'primary';
@@ -121,8 +121,8 @@ const ProductGroupField = ({ record }: any) => {
   };
 
   return (
-    <Chip 
-      label={record.prd_group} 
+    <Chip
+      label={record.prd_group}
       color={getGroupColor(record.prd_group)}
       size="small"
       variant="outlined"
@@ -132,10 +132,10 @@ const ProductGroupField = ({ record }: any) => {
 
 const ProductTypeField = ({ record }: any) => {
   if (!record?.prd_type) return null;
-  
+
   return (
-    <Chip 
-      label={record.prd_type} 
+    <Chip
+      label={record.prd_type}
       color="secondary"
       size="small"
       variant="filled"
@@ -146,7 +146,7 @@ const ProductTypeField = ({ record }: any) => {
 const RateField = ({ record, source }: any) => {
   const value = record?.[source];
   if (value == null) return null;
-  
+
   return (
     <Box display="flex" alignItems="center" gap={1}>
       <TrendingUpIcon fontSize="small" color="action" />
@@ -160,10 +160,10 @@ const RateField = ({ record, source }: any) => {
 const ExpectedLifeField = ({ record }: any) => {
   const value = record?.expected_life;
   if (value == null) return null;
-  
+
   const years = Math.floor(value / 12);
   const months = value % 12;
-  
+
   return (
     <Box display="flex" alignItems="center" gap={1}>
       <ScheduleIcon fontSize="small" color="action" />
@@ -176,7 +176,7 @@ const ExpectedLifeField = ({ record }: any) => {
 
 const ActiveStatusField = ({ record }: any) => {
   const isActive = record?.active_flag;
-  
+
   return (
     <Box display="flex" alignItems="center" gap={1}>
       {isActive ? (
@@ -198,15 +198,15 @@ const ActiveStatusField = ({ record }: any) => {
 const ProductParameterActions = () => (
   <TopToolbar>
     <FilterButton />
-    <CreateButton 
-      variant="contained" 
-      label="Add Product Parameter" 
-      sx={{ ml: 1 }} 
+    <CreateButton
+      variant="contained"
+      label="Add Product Parameter"
+      sx={{ ml: 1 }}
     />
-    <ExportButton 
-      variant="outlined" 
-      label="Export" 
-      sx={{ ml: 1 }} 
+    <ExportButton
+      variant="outlined"
+      label="Export"
+      sx={{ ml: 1 }}
     />
   </TopToolbar>
 );
@@ -214,7 +214,7 @@ const ProductParameterActions = () => (
 const ProductParameterBulkActions = () => (
   <>
     <BulkExportButton />
-    <BulkDeleteButton 
+    <BulkDeleteButton
       confirmTitle="Delete Product Parameters"
       confirmContent="Are you sure you want to delete these product parameters? This action cannot be undone."
     />
@@ -227,7 +227,7 @@ const ProductParameterBulkActions = () => (
 
 const ProductParameterEmpty = () => {
   const { resource } = useListContext();
-  
+
   return (
     <Card sx={{ mt: 2 }}>
       <CardContent sx={{ textAlign: 'center', py: 4 }}>
@@ -238,8 +238,8 @@ const ProductParameterEmpty = () => {
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
           Start by creating your first product parameter to define banking products for IFRS 9 calculations.
         </Typography>
-        <CreateButton 
-          variant="contained" 
+        <CreateButton
+          variant="contained"
           label="Create Product Parameter"
           resource={resource}
         />
@@ -254,19 +254,19 @@ const ProductParameterEmpty = () => {
 
 const ProductParameterStats = () => {
   const { data } = useListContext();
-  
+
   if (!data || data.length === 0) return null;
-  
+
   const totalProducts = data.length;
   const activeProducts = data.filter((item: any) => item.active_flag).length;
   const avgBorrowingRate = data
     .filter((item: any) => item.borrowing_rate != null)
-    .reduce((acc: number, item: any) => acc + item.borrowing_rate, 0) / 
+    .reduce((acc: number, item: any) => acc + item.borrowing_rate, 0) /
     data.filter((item: any) => item.borrowing_rate != null).length || 0;
-  
+
   const avgExpectedLife = data
     .filter((item: any) => item.expected_life != null)
-    .reduce((acc: number, item: any) => acc + item.expected_life, 0) / 
+    .reduce((acc: number, item: any) => acc + item.expected_life, 0) /
     data.filter((item: any) => item.expected_life != null).length || 0;
 
   return (
@@ -321,7 +321,7 @@ const ProductParameterStats = () => {
 export const ProductParameterList = () => (
   <List
     title="Product Parameters"
-    filters={<ProductParameterFilters />}
+    filters={ProductParameterFilters}
     actions={<ProductParameterActions />}
     empty={<ProductParameterEmpty />}
     perPage={25}
@@ -353,76 +353,76 @@ export const ProductParameterList = () => (
         }
       }}
     >
-      <TextField 
-        source="prd_code" 
+      <TextField
+        source="prd_code"
         label="Product Code"
         sortable
         sx={{ fontWeight: 'bold' }}
       />
-      <TextField 
-        source="prd_desc" 
+      <TextField
+        source="prd_desc"
         label="Description"
         sortable
         sx={{ maxWidth: 200 }}
       />
-      <ProductGroupField 
-        source="prd_group" 
+      <ProductGroupField
+        source="prd_group"
         label="Group"
         sortable
       />
-      <ProductTypeField 
-        source="prd_type" 
+      <ProductTypeField
+        source="prd_type"
         label="Type"
         sortable
       />
-      <TextField 
-        source="currency" 
+      <TextField
+        source="currency"
         label="Currency"
         sortable
       />
-      <TextField 
-        source="amortization_type" 
+      <TextField
+        source="amortization_type"
         label="Amortization"
         sortable
       />
-      <RateField 
-        source="borrowing_rate" 
+      <RateField
+        source="borrowing_rate"
         label="Borrowing Rate"
         sortable
       />
-      <RateField 
-        source="market_rate" 
+      <RateField
+        source="market_rate"
         label="Market Rate"
         sortable
       />
-      <ExpectedLifeField 
-        source="expected_life" 
+      <ExpectedLifeField
+        source="expected_life"
         label="Expected Life"
         sortable
       />
-      <BooleanField 
-        source="impaired_flag" 
+      <BooleanField
+        source="impaired_flag"
         label="Impaired"
         sortable
       />
-      <BooleanField 
-        source="bm_flag" 
+      <BooleanField
+        source="bm_flag"
         label="BM Flag"
         sortable
       />
-      <ActiveStatusField 
-        source="active_flag" 
+      <ActiveStatusField
+        source="active_flag"
         label="Status"
         sortable
       />
-      <DateField 
-        source="createddate" 
+      <DateField
+        source="createddate"
         label="Created"
         sortable
         showTime
       />
-      <TextField 
-        source="createdby" 
+      <TextField
+        source="createdby"
         label="Created By"
         sortable
       />
@@ -434,7 +434,7 @@ export const ProductParameterList = () => (
           <EditButton />
         </Tooltip>
         <Tooltip title="Delete Product">
-          <DeleteButton 
+          <DeleteButton
             confirmTitle="Delete Product Parameter"
             confirmContent="Are you sure you want to delete this product parameter? This action cannot be undone."
           />

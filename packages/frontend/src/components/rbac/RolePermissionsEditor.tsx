@@ -18,7 +18,7 @@ import {
     Chip
 } from '@mui/material'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
-import { api } from '@/lib/api'
+import { apiClient as api } from '@/services/api-client'
 
 interface PermissionDefinition {
     label: string

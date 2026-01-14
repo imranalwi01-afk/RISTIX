@@ -99,9 +99,9 @@ const ProductParameterListActions = () => (
 /**
  * Product Code Chip Component
  */
-const ProductCodeChip: React.FC = () => {
+const ProductCodeChip: React.FC<any> = () => {
   const record = useRecordContext<ProductParameter>();
-  
+
   if (!record) return null;
 
   return (
@@ -118,9 +118,9 @@ const ProductCodeChip: React.FC = () => {
 /**
  * Product Group Chip Component
  */
-const ProductGroupChip: React.FC = () => {
+const ProductGroupChip: React.FC<any> = () => {
   const record = useRecordContext<ProductParameter>();
-  
+
   if (!record) return null;
 
   const getGroupColor = (group: string) => {
@@ -151,9 +151,9 @@ const ProductGroupChip: React.FC = () => {
 /**
  * Currency Chip Component
  */
-const CurrencyChip: React.FC = () => {
+const CurrencyChip: React.FC<any> = () => {
   const record = useRecordContext<ProductParameter>();
-  
+
   if (!record) return null;
 
   return (
@@ -168,9 +168,9 @@ const CurrencyChip: React.FC = () => {
 /**
  * Product Status Display Component
  */
-const ProductStatusField: React.FC = () => {
+const ProductStatusField: React.FC<any> = () => {
   const record = useRecordContext<ProductParameter>();
-  
+
   if (!record) return null;
 
   return (
@@ -195,12 +195,12 @@ const ProductStatusField: React.FC = () => {
  */
 const useBankingDataProvider = () => {
   const dataProvider = useDataProvider();
-  
+
   return {
     getList: (params: any) => dataProvider.getList('banking/parameters/product', params),
     getOne: (id: any) => dataProvider.getOne('banking/parameters/product', { id }),
     create: (data: any) => dataProvider.create('banking/parameters/product', { data }),
-    update: (id: any, data: any) => dataProvider.update('banking/parameters/product', { id, data }),
+    update: (id: any, data: any) => dataProvider.update('banking/parameters/product', { id, data, previousData: data }),
     delete: (id: any) => dataProvider.delete('banking/parameters/product', { id }),
   };
 };
@@ -366,24 +366,24 @@ export const ProductParameterCreate: React.FC = () => {
         <FormTab label="Basic Information" icon={<Category />}>
           <Grid container spacing={2}>
             <Grid item xs={12} md={6}>
-              <TextInput 
-                source="prd_code" 
-                label="Product Code" 
+              <TextInput
+                source="prd_code"
+                label="Product Code"
                 validate={required()}
                 fullWidth
               />
             </Grid>
             <Grid item xs={12}>
-              <TextInput 
-                source="prd_desc" 
-                label="Product Description" 
+              <TextInput
+                source="prd_desc"
+                label="Product Description"
                 validate={required()}
                 fullWidth
                 multiline
                 rows={2}
               />
             </Grid>
-            
+
             <Grid item xs={12} md={6}>
               <SelectInput
                 source="instrument_class"
@@ -397,7 +397,7 @@ export const ProductParameterCreate: React.FC = () => {
                 fullWidth
               />
             </Grid>
-            
+
             <Grid item xs={12} md={6}>
               <SelectInput
                 source="prd_type"
@@ -411,17 +411,17 @@ export const ProductParameterCreate: React.FC = () => {
                 fullWidth
               />
             </Grid>
-            
+
             <Grid item xs={12} md={6}>
-              <TextInput 
-                source="data_source" 
-                label="Data Source" 
+              <TextInput
+                source="data_source"
+                label="Data Source"
                 defaultValue="Core System"
                 validate={required()}
                 fullWidth
               />
             </Grid>
-            
+
             <Grid item xs={12} md={6}>
               <SelectInput
                 source="currency"
@@ -454,7 +454,7 @@ export const ProductParameterCreate: React.FC = () => {
                 fullWidth
               />
             </Grid>
-            
+
             <Grid item xs={12} md={6}>
               <SelectInput
                 source="al_flag"
@@ -467,53 +467,53 @@ export const ProductParameterCreate: React.FC = () => {
                 fullWidth
               />
             </Grid>
-            
+
             <Grid item xs={12} md={4}>
-              <NumberInput 
-                source="expected_life" 
-                label="Expected Life (months)" 
+              <NumberInput
+                source="expected_life"
+                label="Expected Life (months)"
                 fullWidth
               />
             </Grid>
-            
+
             <Grid item xs={12} md={4}>
-              <NumberInput 
-                source="borrowing_rate" 
-                label="Borrowing Rate" 
+              <NumberInput
+                source="borrowing_rate"
+                label="Borrowing Rate"
                 step={0.001}
                 fullWidth
               />
             </Grid>
-            
+
             <Grid item xs={12} md={4}>
-              <NumberInput 
-                source="market_rate" 
-                label="Market Rate" 
+              <NumberInput
+                source="market_rate"
+                label="Market Rate"
                 step={0.001}
                 fullWidth
               />
             </Grid>
-            
+
             <Grid item xs={12} md={4}>
-              <BooleanInput 
-                source="impaired_flag" 
-                label="Impaired Flag" 
+              <BooleanInput
+                source="impaired_flag"
+                label="Impaired Flag"
                 defaultValue={false}
               />
             </Grid>
-            
+
             <Grid item xs={12} md={4}>
-              <BooleanInput 
-                source="bm_flag" 
-                label="BM Flag" 
+              <BooleanInput
+                source="bm_flag"
+                label="BM Flag"
                 defaultValue={false}
               />
             </Grid>
-            
+
             <Grid item xs={12} md={4}>
-              <BooleanInput 
-                source="active_flag" 
-                label="Active" 
+              <BooleanInput
+                source="active_flag"
+                label="Active"
                 defaultValue={true}
               />
             </Grid>
@@ -534,25 +534,25 @@ export const ProductParameterEdit: React.FC = () => {
         <FormTab label="Basic Information" icon={<Category />}>
           <Grid container spacing={2}>
             <Grid item xs={12} md={6}>
-              <TextInput 
-                source="prd_code" 
-                label="Product Code" 
+              <TextInput
+                source="prd_code"
+                label="Product Code"
                 validate={required()}
                 fullWidth
                 disabled // Don't allow editing product code
               />
             </Grid>
             <Grid item xs={12}>
-              <TextInput 
-                source="prd_desc" 
-                label="Product Description" 
+              <TextInput
+                source="prd_desc"
+                label="Product Description"
                 validate={required()}
                 fullWidth
                 multiline
                 rows={2}
               />
             </Grid>
-            
+
             <Grid item xs={12} md={6}>
               <SelectInput
                 source="instrument_class"
@@ -565,7 +565,7 @@ export const ProductParameterEdit: React.FC = () => {
                 fullWidth
               />
             </Grid>
-            
+
             <Grid item xs={12} md={6}>
               <SelectInput
                 source="prd_type"
@@ -578,16 +578,16 @@ export const ProductParameterEdit: React.FC = () => {
                 fullWidth
               />
             </Grid>
-            
+
             <Grid item xs={12} md={6}>
-              <TextInput 
-                source="data_source" 
-                label="Data Source" 
+              <TextInput
+                source="data_source"
+                label="Data Source"
                 validate={required()}
                 fullWidth
               />
             </Grid>
-            
+
             <Grid item xs={12} md={6}>
               <SelectInput
                 source="currency"
@@ -618,7 +618,7 @@ export const ProductParameterEdit: React.FC = () => {
                 fullWidth
               />
             </Grid>
-            
+
             <Grid item xs={12} md={6}>
               <SelectInput
                 source="al_flag"
@@ -630,50 +630,50 @@ export const ProductParameterEdit: React.FC = () => {
                 fullWidth
               />
             </Grid>
-            
+
             <Grid item xs={12} md={4}>
-              <NumberInput 
-                source="expected_life" 
-                label="Expected Life (months)" 
+              <NumberInput
+                source="expected_life"
+                label="Expected Life (months)"
                 fullWidth
               />
             </Grid>
-            
+
             <Grid item xs={12} md={4}>
-              <NumberInput 
-                source="borrowing_rate" 
-                label="Borrowing Rate" 
+              <NumberInput
+                source="borrowing_rate"
+                label="Borrowing Rate"
                 step={0.001}
                 fullWidth
               />
             </Grid>
-            
+
             <Grid item xs={12} md={4}>
-              <NumberInput 
-                source="market_rate" 
-                label="Market Rate" 
+              <NumberInput
+                source="market_rate"
+                label="Market Rate"
                 step={0.001}
                 fullWidth
               />
             </Grid>
-            
+
             <Grid item xs={12} md={4}>
-              <BooleanInput 
-                source="impaired_flag" 
+              <BooleanInput
+                source="impaired_flag"
                 label="Impaired Flag"
               />
             </Grid>
-            
+
             <Grid item xs={12} md={4}>
-              <BooleanInput 
-                source="bm_flag" 
+              <BooleanInput
+                source="bm_flag"
                 label="BM Flag"
               />
             </Grid>
-            
+
             <Grid item xs={12} md={4}>
-              <BooleanInput 
-                source="active_flag" 
+              <BooleanInput
+                source="active_flag"
                 label="Active"
               />
             </Grid>

@@ -64,10 +64,10 @@ interface DashboardMetrics {
  * Main Dashboard Component with Dual Banking Support
  * Displays key metrics, system status, and quick actions
  */
-export const Dashboard: React.FC<DashboardProps> = ({
-  bankingType,
-  tenantConfig,
-  onBankingTypeChange
+export const Dashboard: React.FC<any> = ({
+  bankingType = 'conventional',
+  tenantConfig = {},
+  onBankingTypeChange = () => { }
 }) => {
   const theme = useTheme();
   const [metrics, setMetrics] = useState<DashboardMetrics>({
@@ -86,10 +86,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
     const loadMetrics = async () => {
       try {
         setLoading(true);
-        
+
         // Simulate API call - replace with actual API
         await new Promise(resolve => setTimeout(resolve, 1000));
-        
+
         const mockMetrics: DashboardMetrics = {
           totalPortfolios: bankingType === 'syariah' ? 25 : 45,
           totalExposure: bankingType === 'syariah' ? 125000000 : 250000000,
@@ -98,7 +98,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           complianceStatus: bankingType === 'syariah' ? 'compliant' : 'warning',
           systemHealth: 'healthy'
         };
-        
+
         setMetrics(mockMetrics);
       } catch (error) {
         console.error('Failed to load dashboard metrics:', error);
@@ -179,7 +179,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             />
           </Box>
         </Box>
-        
+
         <Box sx={{ display: 'flex', gap: 1 }}>
           <Button
             variant="outlined"
@@ -287,9 +287,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     {metrics.complianceStatus}
                   </Typography>
                 </Box>
-                <Security sx={{ 
-                  fontSize: 40, 
-                  color: theme.palette[getStatusColor(metrics.complianceStatus) as keyof typeof theme.palette].main 
+                <Security sx={{
+                  fontSize: 40,
+                  color: (theme.palette[getStatusColor(metrics.complianceStatus) as keyof typeof theme.palette] as any)?.main || theme.palette.primary.main
                 }} />
               </Box>
             </CardContent>
@@ -301,8 +301,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
       <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid item xs={12} md={8}>
           <Card>
-            <CardHeader 
-              title="Quick Actions" 
+            <CardHeader
+              title="Quick Actions"
               action={
                 <Button size="small" color="primary">
                   View All
@@ -358,7 +358,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   {metrics.lastCalculationDate}
                 </Typography>
               </Box>
-              
+
               <Box sx={{ mb: 2 }}>
                 <Typography variant="body2" color="textSecondary">
                   Banking Type
@@ -368,8 +368,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </Typography>
               </Box>
 
-              <Alert 
-                severity={getStatusColor(metrics.systemHealth) as any} 
+              <Alert
+                severity={getStatusColor(metrics.systemHealth) as any}
                 sx={{ mt: 2 }}
               >
                 System is {metrics.systemHealth}
@@ -383,7 +383,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       {bankingType === 'syariah' && (
         <Alert severity="info" sx={{ mb: 2 }}>
           <Typography variant="body2">
-            <strong>Islamic Banking Mode:</strong> All calculations and operations are Syariah-compliant 
+            <strong>Islamic Banking Mode:</strong> All calculations and operations are Syariah-compliant
             according to AAOIFI standards.
           </Typography>
         </Alert>
@@ -391,8 +391,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
       {/* Recent Activities */}
       <Card>
-        <CardHeader 
-          title="Recent Activities" 
+        <CardHeader
+          title="Recent Activities"
           action={
             <Button size="small" startIcon={<Notifications />}>
               View All

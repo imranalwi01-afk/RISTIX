@@ -238,7 +238,7 @@ export default function ProductSegmentPage() {
 
     const handleSave = async () => {
         // Validation
-        const errors = [];
+        const errors: string[] = [];
 
         if (!formData.groupSegment.trim()) {
             errors.push('Group Segment is required');

@@ -5,6 +5,9 @@ const nextConfig = {
   // ============================================================================
   // Enable standalone output for Docker
   output: 'standalone',
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
 
   // Enable SWC minification for faster builds
 

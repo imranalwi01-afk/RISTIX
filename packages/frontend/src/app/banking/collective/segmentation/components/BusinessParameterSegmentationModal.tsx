@@ -48,7 +48,11 @@ import {
   Save as SaveIcon,
   Cancel as CancelIcon,
   Refresh as RefreshIcon,
+  Search as SearchIcon,
+  Add as AddIcon,
+  Edit as EditIcon,
   Info as InfoIcon,
+  Help as HelpIcon,
   Warning as WarningIcon,
   CheckCircle as CheckIcon,
   Clear as ClearIcon,
@@ -112,7 +116,7 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
   // ==========================================
   // STATE MANAGEMENT - EXACT LEGACY PATTERN
   // ==========================================
-  
+
   const [formData, setFormData] = useState<SegmentationDetailForm>({
     query_group: '',
     seq: '',
@@ -163,9 +167,9 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
     try {
       setLoading(prev => ({ ...prev, tables: true }));
       console.log('🗃️ Loading tables from B0012');
-      
+
       const response = await api.banking.businessSettings.getTables();
-      
+
       if (response.success && response.data) {
         setTables(response.data);
         console.log(`✅ Loaded ${response.data.length} tables from B0012`);
@@ -175,10 +179,10 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
     } catch (error) {
       console.error('❌ Error loading tables:', error);
       setError('Failed to load table options');
-      setSnackbar({ 
-        open: true, 
-        message: 'Failed to load table options from B0012', 
-        type: 'error' 
+      setSnackbar({
+        open: true,
+        message: 'Failed to load table options from B0012',
+        type: 'error'
       });
     } finally {
       setLoading(prev => ({ ...prev, tables: false }));
@@ -195,9 +199,9 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
     try {
       setLoading(prev => ({ ...prev, columns: true }));
       console.log(`🗂️ Loading columns from B0013 for table: ${selectedTable}`);
-      
+
       const response = await api.banking.businessSettings.getColumns(selectedTable);
-      
+
       if (response.success && response.data) {
         setColumns(response.data);
         console.log(`✅ Loaded ${response.data.length} columns from B0013 for table ${selectedTable}`);
@@ -207,10 +211,10 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
     } catch (error) {
       console.error('❌ Error loading columns:', error);
       setColumns([]);
-      setSnackbar({ 
-        open: true, 
-        message: `Failed to load column options for table ${selectedTable}`, 
-        type: 'error' 
+      setSnackbar({
+        open: true,
+        message: `Failed to load column options for table ${selectedTable}`,
+        type: 'error'
       });
     } finally {
       setLoading(prev => ({ ...prev, columns: false }));
@@ -227,14 +231,14 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
     try {
       setLoading(prev => ({ ...prev, dataType: true }));
       console.log(`🔢 Loading data type from B0013 for column: ${selectedColumn}, table: ${selectedTable}`);
-      
+
       const response = await api.banking.businessSettings.getDataType(selectedColumn, selectedTable);
-      
+
       if (response.success && response.data) {
         const dataType = response.data.data_type;
         setFormData(prev => ({ ...prev, data_type: dataType }));
         console.log(`✅ Auto-populated data type: ${dataType} for column ${selectedColumn}, table ${selectedTable}`);
-        
+
         // Auto-load operators for this data type
         loadOperators(dataType);
       } else {
@@ -259,9 +263,9 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
     try {
       setLoading(prev => ({ ...prev, operators: true }));
       console.log(`⚙️ Loading operators from B0014 for data type: ${selectedDataType}`);
-      
+
       const response = await api.banking.businessSettings.getOperators(selectedDataType);
-      
+
       if (response.success && response.data) {
         setOperators(response.data);
         console.log(`✅ Loaded ${response.data.length} operators from B0014 for data type ${selectedDataType}`);
@@ -271,10 +275,10 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
     } catch (error) {
       console.error('❌ Error loading operators:', error);
       setOperators([]);
-      setSnackbar({ 
-        open: true, 
-        message: `Failed to load operator options for data type ${selectedDataType}`, 
-        type: 'error' 
+      setSnackbar({
+        open: true,
+        message: `Failed to load operator options for data type ${selectedDataType}`,
+        type: 'error'
       });
     } finally {
       setLoading(prev => ({ ...prev, operators: false }));
@@ -286,9 +290,9 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
     try {
       setLoading(prev => ({ ...prev, conditions: true }));
       console.log('🔗 Loading conditions from B0015');
-      
+
       const response = await api.banking.businessSettings.getConditions();
-      
+
       if (response.success && response.data) {
         setConditions(response.data);
         console.log(`✅ Loaded ${response.data.length} conditions from B0015`);
@@ -298,10 +302,10 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
     } catch (error) {
       console.error('❌ Error loading conditions:', error);
       setError('Failed to load condition options');
-      setSnackbar({ 
-        open: true, 
-        message: 'Failed to load condition options from B0015', 
-        type: 'error' 
+      setSnackbar({
+        open: true,
+        message: 'Failed to load condition options from B0015',
+        type: 'error'
       });
     } finally {
       setLoading(prev => ({ ...prev, conditions: false }));
@@ -318,9 +322,9 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
     try {
       setLoading(prev => ({ ...prev, columnValues: true }));
       console.log(`📋 Loading column values from B0016 for column: ${selectedColumn}, table: ${selectedTable}`);
-      
+
       const response = await api.banking.businessSettings.getColumnValues(selectedColumn, selectedTable);
-      
+
       if (response.success && response.data) {
         setColumnValues(response.data);
         console.log(`✅ Loaded ${response.data.length} column values from B0016 for column ${selectedColumn}, table ${selectedTable}`);
@@ -410,7 +414,7 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
   // Handle table selection change
   const handleTableChange = useCallback((newTable: string) => {
     console.log(`🗃️ Table changed to: ${newTable}`);
-    
+
     setFormData(prev => ({
       ...prev,
       table_name: newTable,
@@ -438,7 +442,7 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
   // Handle column selection change
   const handleColumnChange = useCallback((newColumn: string) => {
     console.log(`🗂️ Column changed to: ${newColumn}`);
-    
+
     setFormData(prev => ({
       ...prev,
       column_name: newColumn,
@@ -465,7 +469,7 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
   // Handle operator selection change - EXACT LEGACY setOperatorChange() function
   const handleOperatorChange = useCallback((newOperator: string) => {
     console.log(`⚙️ Operator changed to: ${newOperator}`);
-    
+
     setFormData(prev => ({
       ...prev,
       operator: newOperator,
@@ -533,15 +537,15 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
   // Handle multi-select value changes (EXACT LEGACY PATTERN)
   const handleMultiSelectChange = useCallback((value: string, checked: boolean) => {
     let newSelectedValues: string[];
-    
+
     if (checked) {
       newSelectedValues = [...selectedMultiValues, value];
     } else {
       newSelectedValues = selectedMultiValues.filter(v => v !== value);
     }
-    
+
     setSelectedMultiValues(newSelectedValues);
-    
+
     // Update form data with comma-separated values (EXACT LEGACY FORMAT)
     const value1String = newSelectedValues.join(', ');
     setFormData(prev => ({ ...prev, value1: value1String }));
@@ -561,8 +565,8 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
       setLoading(prev => ({ ...prev, saving: true }));
 
       // Validation - EXACT LEGACY PATTERN
-      if (!formData.query_group || !formData.seq || !formData.table_name || 
-          !formData.column_name || !formData.data_type || !formData.operator) {
+      if (!formData.query_group || !formData.seq || !formData.table_name ||
+        !formData.column_name || !formData.data_type || !formData.operator) {
         throw new Error('Please fill in all required fields');
       }
 
@@ -583,11 +587,11 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
       console.log('💾 Submitting segmentation detail:', submitData);
 
       await onSave(submitData);
-      
-      setSnackbar({ 
-        open: true, 
-        message: `Segmentation detail ${mode === 'add' ? 'created' : 'updated'} successfully`, 
-        type: 'success' 
+
+      setSnackbar({
+        open: true,
+        message: `Segmentation detail ${mode === 'add' ? 'created' : 'updated'} successfully`,
+        type: 'success'
       });
 
       // Close modal after successful save
@@ -598,10 +602,10 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
     } catch (error) {
       console.error('❌ Error saving segmentation detail:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      setSnackbar({ 
-        open: true, 
-        message: `Failed to ${mode === 'add' ? 'create' : 'update'} segmentation detail: ${errorMessage}`, 
-        type: 'error' 
+      setSnackbar({
+        open: true,
+        message: `Failed to ${mode === 'add' ? 'create' : 'update'} segmentation detail: ${errorMessage}`,
+        type: 'error'
       });
     } finally {
       setLoading(prev => ({ ...prev, saving: false }));
@@ -806,7 +810,7 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
 
           <Grid container spacing={3}>
             {/* Basic Fields */}
-            <Grid xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 label="Query Grouping *"
                 type="number"
@@ -818,7 +822,7 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
               />
             </Grid>
 
-            <Grid xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 label="Sequence *"
                 type="number"
@@ -831,7 +835,7 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
             </Grid>
 
             {/* Table Dropdown - B0012 */}
-            <Grid xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 select
                 label="Table Name *"
@@ -857,7 +861,7 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
             </Grid>
 
             {/* Column Dropdown - B0013 */}
-            <Grid xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 select
                 label="Column Name *"
@@ -883,7 +887,7 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
             </Grid>
 
             {/* Data Type - Auto-populated from B0013 */}
-            <Grid xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 label="Data Type (Auto-detected)"
                 fullWidth
@@ -901,7 +905,7 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
             </Grid>
 
             {/* Operator Dropdown - B0014 */}
-            <Grid xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 select
                 label="Operator *"
@@ -927,7 +931,7 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
             </Grid>
 
             {/* Dynamic Value Inputs - EXACT LEGACY PATTERN */}
-            <Grid xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Card variant="outlined" sx={{ p: 2 }}>
                 <Typography variant="subtitle1" gutterBottom>
                   Value Configuration
@@ -938,7 +942,7 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
             </Grid>
 
             {/* Condition Dropdown - B0015 */}
-            <Grid xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 select
                 label="And/Or Condition"
@@ -973,7 +977,7 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
           >
             Cancel
           </Button>
-          
+
           {mode !== 'view' && (
             <Button
               onClick={handleSave}
@@ -993,8 +997,8 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
         autoHideDuration={6000}
         onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
       >
-        <Alert 
-          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))} 
+        <Alert
+          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
           severity={snackbar.type}
           variant="filled"
         >

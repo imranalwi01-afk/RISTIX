@@ -78,7 +78,9 @@ export default function SimpleEmbeddedShinyApp({
   const theme = useTheme();
 
   // Redux state
-  const { user, token } = useSelector((state: RootState) => state.auth);
+  const auth = useSelector((state: RootState) => state.auth);
+  const user = auth?.user;
+  const token = auth?.token;
 
   // Component state
   const [isLoading, setIsLoading] = useState(true);
@@ -152,8 +154,8 @@ export default function SimpleEmbeddedShinyApp({
   const handleFullscreen = () => {
     if (iframeRef.current?.requestFullscreen) {
       iframeRef.current.requestFullscreen();
-    } else if (iframeRef.current?.webkitRequestFullscreen) {
-      iframeRef.current.webkitRequestFullscreen();
+    } else if ((iframeRef.current as any)?.webkitRequestFullscreen) {
+      (iframeRef.current as any).webkitRequestFullscreen();
     }
   };
 
