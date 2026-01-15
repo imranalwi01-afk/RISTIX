@@ -73,7 +73,7 @@ local-backend: ## [LOCAL] Quick start: Backend only
 .PHONY: local-frontend
 local-frontend: ## [LOCAL] Quick start: Frontend only (requires backend running)
 	@echo "🌐 Starting frontend..."
-	$(COMPOSE) --profile dev-frontend up
+	$(COMPOSE) --profile dev --profile dev-frontend up
 
 .PHONY: local-logs
 local-logs: ## [LOCAL] View logs for all local services
