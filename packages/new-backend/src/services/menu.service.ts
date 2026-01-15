@@ -1,4 +1,4 @@
-import { db } from '@/config'
+import { getDatabase } from '@/config/database'
 import { menuItems, roleMenuAccess } from '@/db/schema/menu.schema'
 import { eq, and, inArray, sql } from 'drizzle-orm'
 import { Effect, pipe } from 'effect'
@@ -31,6 +31,7 @@ export const getUserMenuHierarchy = (
         try: async () => {
             // 1. Get IDs of menu items accessible to the user's roles
             // First find role IDs for the names provided
+            const db = getDatabase(tenantId)
             const roleData = await db.query.roles.findMany({
                 where: (roles, { and, inArray, eq }) =>
                     and(

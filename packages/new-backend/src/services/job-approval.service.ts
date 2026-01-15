@@ -1,6 +1,7 @@
 import { db } from '../config/database'
 import { jobDefinitions, jobExecutions } from '../db/schema'
 import { eq } from 'drizzle-orm'
+import { Effect } from 'effect'
 import { addJob } from './queue.service'
 import * as approvalService from './approval.service'
 
@@ -49,7 +50,8 @@ export const createJobApprovalRequest = async (params: {
     }
 
     // Create approval request
-    const approvalRequest = await approvalService.createApprovalRequest({
+    // Unwrap the effect since this service method is async and returns the result directly
+    const approvalRequest = await Effect.runPromise(approvalService.createApprovalRequest({
         tenantId,
         entityType: 'job_execution',
         entityId: executionId,
@@ -64,7 +66,7 @@ export const createJobApprovalRequest = async (params: {
             approvalMatrixId: definition.approvalMatrixId, // Store in requestData
             parameters
         }
-    })
+    }))
 
     return approvalRequest
 }

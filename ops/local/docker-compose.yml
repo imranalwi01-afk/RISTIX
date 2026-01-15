@@ -1,0 +1,227 @@
+# docker-compose.yml (Local Development)
+# ============================================================================
+# 🚀 IFRS9 NEW BACKEND - LOCAL DEVELOPMENT DOCKER COMPOSE
+# ============================================================================
+# Profiles:
+#   - db: Run databases only (postgres + redis)
+#   - app: Run application service logic
+#   - full: Run databases + backend + frontend (hot reload)
+# ============================================================================
+
+version: '3.8'
+
+services:
+  # ============================================================================
+  # 🗄️ POSTGRESQL DATABASE (Development)
+  # ============================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: ifrs9-postgres-dev
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-ifrspro_platform_admin}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-dev-data:/var/lib/postgresql/data
+    networks:
+      - ifrs9-dev
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    profiles:
+      - db
+      - full
+      - dev
+
+  # ============================================================================
+  # 📊 REDIS (Development)
+  # ============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: ifrs9-redis-dev
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-dev-data:/data
+    networks:
+      - ifrs9-dev
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    profiles:
+      - db
+      - full
+      - dev
+
+  # ============================================================================
+  # 🚀 NEW BACKEND SERVICE (Hono + Drizzle + Bun)
+  # ============================================================================
+  new-backend:
+    build:
+      context: ../../packages/new-backend
+      dockerfile: Dockerfile
+      target: builder
+    container_name: ifrs9-new-backend-dev
+    environment:
+      NODE_ENV: development
+      PORT: 4232
+      HOST: 0.0.0.0
+
+      # Database Configuration
+      DB_HOST: ${DB_HOST:-postgres}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+
+      # Platform Database
+      PLATFORM_DB_HOST: postgres
+      PLATFORM_DB_PORT: ${PLATFORM_DB_PORT:-5432}
+      PLATFORM_DB_USER: ${PLATFORM_DB_USER:-postgres}
+      PLATFORM_DB_PASSWORD: ${PLATFORM_DB_PASSWORD:-postgres}
+      PLATFORM_DB_NAME: ${PLATFORM_DB_NAME:-ifrspro_platform_admin}
+      PLATFORM_DB_SSL: ${PLATFORM_DB_SSL:-false}
+
+      # Shared Services Database
+      SHARED_DB_HOST: postgres
+      SHARED_DB_PORT: ${SHARED_DB_PORT:-5432}
+      SHARED_DB_USER: ${SHARED_DB_USER:-postgres}
+      SHARED_DB_PASSWORD: ${SHARED_DB_PASSWORD:-postgres}
+      SHARED_DB_NAME: ${SHARED_DB_NAME:-ifrspro_shared_services}
+      SHARED_DB_SSL: ${SHARED_DB_SSL:-false}
+
+      # Tenant Database
+      TENANT_DB_HOST: postgres
+      TENANT_DB_PORT: ${TENANT_DB_PORT:-5432}
+      TENANT_DB_USER: ${TENANT_DB_USER:-postgres}
+      TENANT_DB_PASSWORD: ${TENANT_DB_PASSWORD:-postgres}
+      TENANT_DB_NAME: ${TENANT_DB_NAME:-ifrspro_tenant_iaf}
+      TENANT_DB_SSL: ${TENANT_DB_SSL:-false}
+
+      # Legacy Database
+      LEGACY_DB_HOST: ${LEGACY_DB_HOST:-192.168.0.106}
+      LEGACY_DB_PORT: ${LEGACY_DB_PORT:-5433}
+      LEGACY_DB_USER: ${LEGACY_DB_USER:-postgres}
+      LEGACY_DB_PASSWORD: ${LEGACY_DB_PASSWORD:-postgres}
+      LEGACY_DB_NAME: ${LEGACY_DB_NAME:-FRS9PRO}
+      LEGACY_DB_SSL: ${LEGACY_DB_SSL:-false}
+
+      # Backward compatibility - Primary DB URL (points to Platform DB)
+      # Force use of internal hostname 'postgres' instead of inheriting 'localhost' from host .env
+      DATABASE_URL: postgresql://${PLATFORM_DB_USER:-postgres}:${PLATFORM_DB_PASSWORD:-postgres}@postgres:5432/${PLATFORM_DB_NAME:-ifrspro_platform_admin}
+      LEGACY_DATABASE_URL: ${LEGACY_DATABASE_URL:-postgresql://${LEGACY_DB_USER:-postgres}:${LEGACY_DB_PASSWORD:-postgres}@${LEGACY_DB_HOST:-192.168.0.106}:${LEGACY_DB_PORT:-5433}/${LEGACY_DB_NAME:-FRS9PRO}}
+
+      # Tenant Configuration
+      TENANT_ID: ${TENANT_ID:-iaf}
+      TENANT_NAME: ${TENANT_NAME:-Indonesia Airawata Finance}
+      TENANT_SLUG: ${TENANT_SLUG:-iaf}
+      COMPANY_NAME: ${COMPANY_NAME:-Indonesia Airawata Finance}
+      BANKING_TYPE: ${BANKING_TYPE:-conventional}
+      SINGLE_TENANT_MODE: ${SINGLE_TENANT_MODE:-true}
+
+      # JWT
+      JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-change-in-production}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-8h}
+
+      # Redis
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+
+      # Logging
+      LOG_LEVEL: debug
+    ports:
+      - "4232:4232"
+    networks:
+      - ifrs9-dev
+    volumes:
+      - ../../packages/new-backend/src:/app/src:ro
+      - ../../packages/new-backend/package.json:/app/package.json
+      - ../../packages/new-backend/bun.lockb:/app/bun.lockb
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:4232/api/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    # For hot reload during development
+    command: [ "bun", "run", "dev" ]
+    profiles:
+      - app
+      - full
+      - dev
+      - backend
+
+  # ============================================================================
+  # 🌐 FRONTEND SERVICE (Static Build - Optional)
+  # ============================================================================
+  frontend:
+    build:
+      context: ../..
+      dockerfile: packages/frontend/Dockerfile
+    container_name: ifrs9-frontend-dev
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_BACKEND_URL: http://localhost:4232/api
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:4232/api
+    ports:
+      - "4231:4231"
+    networks:
+      - ifrs9-dev
+    profiles:
+      - app
+      - with-frontend
+
+  # ============================================================================
+  # 💻 FRONTEND DEVELOPMENT (Hot Reload)
+  # ============================================================================
+  frontend-dev:
+    image: node:18-alpine
+    container_name: ifrs9-frontend-dev-hot
+    working_dir: /app/packages/frontend
+    environment:
+      - NODE_ENV=development
+      - PORT=4231
+      # Server-side env vars (for Next.js server)
+      # Client-side uses .env file which has localhost URLs
+      - NEXT_TELEMETRY_DISABLED=1
+      - NODE_OPTIONS=--max-old-space-size=4096
+      - WSS_PORT=4231
+      # Watchpack polling for better file change detection on some systems
+      - WATCHPACK_POLLING=true
+    volumes:
+      - ../../packages/frontend:/app/packages/frontend
+      - /app/packages/frontend/node_modules
+      - /app/packages/frontend/.next
+    ports:
+      - "4231:4231"
+    command: sh -c "npm install -g pnpm && pnpm install --no-frozen-lockfile && npx next dev -p 4231 -H 0.0.0.0"
+    networks:
+      - ifrs9-dev
+    depends_on:
+      - new-backend
+    profiles:
+      - dev-frontend
+      - hot-reload
+      - full
+
+# ============================================================================
+# 📁 VOLUMES
+# ============================================================================
+volumes:
+  postgres-dev-data:
+    external: true
+    name: ifrs9-iaf_postgres-dev-data
+  redis-dev-data:
+    external: true
+    name: ifrs9-iaf_redis-dev-data
+
+# ============================================================================
+# 🌐 NETWORKS
+# ============================================================================
+networks:
+  ifrs9-dev:
+    driver: bridge

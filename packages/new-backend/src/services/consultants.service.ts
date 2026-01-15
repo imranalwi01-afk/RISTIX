@@ -53,7 +53,7 @@ export const getConsultants = (options: {
                 total: Number(totalResult[0]?.count || 0),
             }
         },
-        catch: (e) => new DatabaseError({ message: 'Failed to fetch consultants', cause: e }),
+        catch: (e) => new DatabaseError({ operation: 'query', message: 'Failed to fetch consultants', cause: e }),
     })
 
 /**
@@ -64,14 +64,14 @@ export const getConsultantById = (id: string) =>
         try: async () => {
             const result = await db.select().from(consultants).where(eq(consultants.id, id)).execute()
             if (result.length === 0) {
-                throw new NotFoundError({ message: `Consultant with ID ${id} not found` })
+                throw new NotFoundError({ resource: 'Consultant', id })
             }
             return result[0]
         },
         catch: (e) =>
             e instanceof NotFoundError
                 ? e
-                : new DatabaseError({ message: 'Failed to fetch consultant', cause: e }),
+                : new DatabaseError({ operation: 'query', message: 'Failed to fetch consultant', cause: e }),
     })
 
 /**
@@ -83,7 +83,7 @@ export const createConsultant = (data: NewConsultant) =>
             const result = await db.insert(consultants).values(data).returning().execute()
             return result[0]
         },
-        catch: (e) => new DatabaseError({ message: 'Failed to create consultant', cause: e }),
+        catch: (e) => new DatabaseError({ operation: 'insert', message: 'Failed to create consultant', cause: e }),
     })
 
 /**
@@ -100,14 +100,14 @@ export const updateConsultant = (id: string, data: Partial<NewConsultant>) =>
                 .execute()
 
             if (result.length === 0) {
-                throw new NotFoundError({ message: `Consultant with ID ${id} not found` })
+                throw new NotFoundError({ resource: 'Consultant', id })
             }
             return result[0]
         },
         catch: (e) =>
             e instanceof NotFoundError
                 ? e
-                : new DatabaseError({ message: 'Failed to update consultant', cause: e }),
+                : new DatabaseError({ operation: 'update', message: 'Failed to update consultant', cause: e }),
     })
 
 /**
@@ -123,12 +123,12 @@ export const deleteConsultant = (id: string) =>
                 .execute()
 
             if (result.length === 0) {
-                throw new NotFoundError({ message: `Consultant with ID ${id} not found` })
+                throw new NotFoundError({ resource: 'Consultant', id })
             }
             return result[0]
         },
         catch: (e) =>
             e instanceof NotFoundError
                 ? e
-                : new DatabaseError({ message: 'Failed to delete consultant', cause: e }),
+                : new DatabaseError({ operation: 'delete', message: 'Failed to delete consultant', cause: e }),
     })

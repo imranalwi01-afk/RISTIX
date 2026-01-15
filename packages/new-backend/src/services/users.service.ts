@@ -1,5 +1,5 @@
 import { Effect, pipe } from 'effect'
-import { db } from '@/config'
+import { getDatabase } from '@/config/database'
 import { users, type User, type NewUser } from '@/db/schema'
 import { DatabaseError, NotFoundError, ValidationError } from '@/lib/errors'
 import { AuthRepository } from '@/repositories/auth.repository'
@@ -18,6 +18,7 @@ export interface CreateUserInput {
     department?: string
     position?: string
     tenantId: string
+    isPlatformAdmin?: boolean
 }
 
 export interface UpdateUserInput {
@@ -27,6 +28,7 @@ export interface UpdateUserInput {
     department?: string
     position?: string
     isActive?: boolean
+    tenantId?: string // Needed to pick DB
 }
 
 // =============================================================================
@@ -38,16 +40,22 @@ export interface UpdateUserInput {
  */
 export const getUsers = (tenantId: string, options?: { search?: string; isActive?: boolean; limit?: number; offset?: number; sort?: string; order?: 'asc' | 'desc' }) =>
     Effect.tryPromise({
-        try: () => AuthRepository.findUsersByTenant(tenantId, options),
+        try: () => {
+            const db = getDatabase(tenantId)
+            return AuthRepository.findUsersByTenant(db, tenantId, options)
+        },
         catch: (error) => new DatabaseError({ operation: 'query', message: String(error) })
     })
 
 /**
  * Get user by ID
  */
-export const getUserById = (userId: string) =>
+export const getUserById = (userId: string, tenantId?: string) =>
     Effect.tryPromise({
-        try: () => AuthRepository.findUserById(userId),
+        try: () => {
+            const db = getDatabase(tenantId)
+            return AuthRepository.findUserById(db, userId)
+        },
         catch: (error) => new DatabaseError({ operation: 'query', message: String(error) })
     }).pipe(
         Effect.flatMap((user) =>
@@ -62,7 +70,10 @@ export const getUserById = (userId: string) =>
  */
 export const getUserByEmail = (email: string, tenantId?: string) =>
     Effect.tryPromise({
-        try: () => AuthRepository.findUserByEmail(email, tenantId),
+        try: () => {
+            const db = getDatabase(tenantId)
+            return AuthRepository.findUserByEmail(db, email, tenantId)
+        },
         catch: (error) => new DatabaseError({ operation: 'query', message: String(error) })
     })
 
@@ -71,7 +82,10 @@ export const getUserByEmail = (email: string, tenantId?: string) =>
  */
 export const getUserStats = (tenantId: string) =>
     Effect.tryPromise({
-        try: () => AuthRepository.getUserStats(tenantId),
+        try: () => {
+            const db = getDatabase(tenantId)
+            return AuthRepository.getUserStats(db, tenantId)
+        },
         catch: (error) => new DatabaseError({ operation: 'query', message: String(error) })
     })
 
@@ -88,7 +102,10 @@ export const createUser = (
     pipe(
         // Check if email already exists
         Effect.tryPromise({
-            try: () => AuthRepository.findUserByEmail(input.email, input.tenantId),
+            try: () => {
+                const db = getDatabase(input.tenantId)
+                return AuthRepository.findUserByEmail(db, input.email, input.tenantId)
+            },
             catch: (error) => new DatabaseError({ operation: 'query', message: String(error) })
         }),
         Effect.flatMap((existing) =>
@@ -118,19 +135,22 @@ export const createUser = (
         ),
         Effect.flatMap((passwordHash) =>
             Effect.tryPromise({
-                try: () => AuthRepository.createUser({
-                    email: input.email,
-                    username: input.email.split('@')[0],
-                    passwordHash,
-                    firstName: input.firstName,
-                    lastName: input.lastName,
-                    phone: input.phone,
-                    department: input.department,
-                    position: input.position,
-                    tenantId: input.tenantId,
-                    isActive: true,
-                    isEmailVerified: false,
-                }),
+                try: () => {
+                    const db = getDatabase(input.tenantId)
+                    return AuthRepository.createUser(db, {
+                        email: input.email,
+                        username: input.email.split('@')[0],
+                        passwordHash,
+                        firstName: input.firstName,
+                        lastName: input.lastName,
+                        phone: input.phone,
+                        department: input.department,
+                        position: input.position,
+                        tenantId: input.tenantId,
+                        isActive: true, // Default to true?
+                        isEmailVerified: false,
+                    })
+                },
                 catch: (error) => new DatabaseError({ operation: 'insert', message: String(error) })
             })
         )
@@ -144,7 +164,10 @@ export const updateUser = (
     input: UpdateUserInput
 ): Effect.Effect<User, DatabaseError | NotFoundError> =>
     Effect.tryPromise({
-        try: () => AuthRepository.updateUser(userId, input),
+        try: () => {
+            const db = getDatabase(input.tenantId)
+            return AuthRepository.updateUser(db, userId, input)
+        },
         catch: (error) => new DatabaseError({ operation: 'update', message: String(error) })
     }).pipe(
         Effect.map((result) => result)
@@ -154,10 +177,14 @@ export const updateUser = (
  * Delete a user (soft delete)
  */
 export const deleteUser = (
-    userId: string
+    userId: string,
+    tenantId?: string
 ): Effect.Effect<User, DatabaseError | NotFoundError> =>
     Effect.tryPromise({
-        try: () => AuthRepository.updateUser(userId, { isActive: false }),
+        try: () => {
+            const db = getDatabase(tenantId)
+            return AuthRepository.updateUser(db, userId, { isActive: false })
+        },
         catch: (error) => new DatabaseError({ operation: 'update', message: String(error) })
     }).pipe(
         Effect.map((result) => result)
@@ -168,7 +195,8 @@ export const deleteUser = (
  */
 export const updatePassword = (
     userId: string,
-    newPassword: string
+    newPassword: string,
+    tenantId?: string
 ): Effect.Effect<User, DatabaseError | NotFoundError> =>
     pipe(
         Effect.tryPromise({
@@ -181,38 +209,50 @@ export const updatePassword = (
         }),
         Effect.flatMap((passwordHash) =>
             Effect.tryPromise({
-                try: () => AuthRepository.updatePassword(userId, passwordHash),
+                try: () => {
+                    const db = getDatabase(tenantId)
+                    return AuthRepository.updatePassword(db, userId, passwordHash)
+                },
                 catch: (error) => new DatabaseError({ operation: 'update', message: String(error) })
             })
         ),
-        Effect.flatMap(() => getUserById(userId)) // Return updated user
+        Effect.flatMap(() => getUserById(userId, tenantId)) // Return updated user
     )
 
 /**
  * Enable a user
  */
-export const enableUser = (userId: string): Effect.Effect<User, DatabaseError | NotFoundError> =>
+export const enableUser = (userId: string, tenantId?: string): Effect.Effect<User, DatabaseError | NotFoundError> =>
     Effect.tryPromise({
-        try: () => AuthRepository.updateUser(userId, { isActive: true }),
+        try: () => {
+            const db = getDatabase(tenantId)
+            return AuthRepository.updateUser(db, userId, { isActive: true })
+        },
         catch: (error) => new DatabaseError({ operation: 'update', message: String(error) })
     })
 
 /**
  * Disable a user
  */
-export const disableUser = (userId: string): Effect.Effect<User, DatabaseError | NotFoundError> =>
+export const disableUser = (userId: string, tenantId?: string): Effect.Effect<User, DatabaseError | NotFoundError> =>
     Effect.tryPromise({
-        try: () => AuthRepository.updateUser(userId, { isActive: false }),
+        try: () => {
+            const db = getDatabase(tenantId)
+            return AuthRepository.updateUser(db, userId, { isActive: false })
+        },
         catch: (error) => new DatabaseError({ operation: 'update', message: String(error) })
     })
 
 /**
  * Mark email as verified
  */
-export const verifyEmail = (userId: string): Effect.Effect<User, DatabaseError | NotFoundError> =>
+export const verifyEmail = (userId: string, tenantId?: string): Effect.Effect<User, DatabaseError | NotFoundError> =>
     Effect.tryPromise({
-        try: () => AuthRepository.verifyEmail(userId),
+        try: () => {
+            const db = getDatabase(tenantId)
+            return AuthRepository.verifyEmail(db, userId)
+        },
         catch: (error) => new DatabaseError({ operation: 'update', message: String(error) })
     }).pipe(
-        Effect.flatMap(() => getUserById(userId)) // Return updated user
+        Effect.flatMap(() => getUserById(userId, tenantId)) // Return updated user
     )

@@ -32,13 +32,29 @@ import { consultantsRoutes } from './consultants.routes'
 import { platformUsersRoutes } from './platform-users.routes'
 import individualImpairmentRoutes from './individual-impairment.routes'
 
+// NEW STUB ROUTES
+import bankingRoutes from './banking.routes'
+import portfolioRoutes from './portfolio-management.routes'
+import workflowRoutes from './workflow.routes'
+import rAnalyticsRoutes from './r-analytics.routes'
+import formsRoutes from './forms.routes'
+import securityRoutes from './security.routes'
+import userActivityRoutes from './user-activity.routes'
+import userRegistrationRoutes from './user-registration.routes'
+import tenantRegistryRoutes from './tenant-registry.routes'
+import platformInfrastructureRoutes from './platform-infrastructure.routes'
+import adminDashboardRoutes from './admin-dashboard.routes'
+import ifrs9Routes from './ifrs9.routes'
+import securityConfigRoutes from './security-config.routes'
+import bankingResourceRoutes from './banking-resource.routes'
+
 /**
  * Main API router
- * All routes are mounted under /api
+ * All routes are mounted under /api/v1
  */
 export const routes = new OpenAPIHono<AppContext>()
 
-// Mount route groups
+// Core routes
 routes.route('/health', healthRoutes)
 routes.route('/auth', authRoutes)
 routes.route('/users', usersRoutes)
@@ -50,6 +66,8 @@ routes.route('/audit', auditRoutes)
 routes.route('/menu', menuRoutes)
 routes.route('/consultants', consultantsRoutes)
 routes.route('/platform-users', platformUsersRoutes)
+
+// Banking routes (existing)
 routes.route('/banking/parameters/product-segments', productSegmentsRoutes)
 routes.route('/banking/collective/rule-base', ruleBaseSettingsRoutes)
 routes.route('/banking/collective/bucket', bucketParametersRoutes)
@@ -65,12 +83,43 @@ routes.route('/banking/setup/journal-parameters', journalParameterRoutes)
 routes.route('/banking/setup/application', appSettingsRoutes)
 routes.route('/banking/setup/business', businessSettingsRoutes)
 routes.route('/banking/setup/segmentation', segmentationRoutes)
-// routes.route('/banking/parameters/business-settings', businessSettingsRoutes) // Deprecated or kept as alias? Let's keep one source of truth for now.
 routes.route('/banking/individual/impairment', individualImpairmentRoutes)
 routes.route('/banking/ifrs9/impairment-module', impairmentRoutes)
 routes.route('/banking/ifrs9/amortization-module', amortizationRoutes)
+
+// NEW STUB ROUTES - Main banking operations
+routes.route('/banking', bankingRoutes)
+routes.route('/banking-resource', bankingResourceRoutes)
+
+// NEW STUB ROUTES - Portfolio & Workflow
+routes.route('/portfolio-management', portfolioRoutes)
+routes.route('/workflow', workflowRoutes)
+
+// NEW STUB ROUTES - Analytics & Forms
+routes.route('/r-analytics', rAnalyticsRoutes)
+routes.route('/forms', formsRoutes)
+
+// NEW STUB ROUTES - Security
+routes.route('/security', securityRoutes)
+routes.route('/security-config', securityConfigRoutes)
+
+// NEW STUB ROUTES - User Management
+routes.route('/user-activity', userActivityRoutes)
+routes.route('/user-registration', userRegistrationRoutes)
+
+// NEW STUB ROUTES - Platform Management
+routes.route('/tenant-registry', tenantRegistryRoutes)
+routes.route('/platform-infrastructure', platformInfrastructureRoutes)
+routes.route('/admin-dashboard', adminDashboardRoutes)
+
+// NEW STUB ROUTES - IFRS9
+routes.route('/ifrs9', ifrs9Routes)
 routes.route('/ifrs9/reports', reportsRoutes)
+
+// Jobs
 routes.route('/jobs', jobsRoutes)
-routes.route('/roles', rbacRoutes) // Alias for frontend compatibility
-routes.route('/user', usersRoutes) // Alias for frontend compatibility (singular)
-routes.route('/approval', approvalRoutes) // Alias for frontend compatibility (singular)
+
+// Aliases for frontend compatibility
+routes.route('/roles', rbacRoutes)
+routes.route('/user', usersRoutes)
+routes.route('/approval', approvalRoutes)

@@ -7,6 +7,12 @@ yarn.lock
 .npm/
 .yarn-integrity
 
+# pnpm
+.pnpm-store/
+**/.pnpm-store/
+.pnpm-debug.log
+**/.pnpm-debug.log
+
 # Production & Build
 dist/
 **/dist/

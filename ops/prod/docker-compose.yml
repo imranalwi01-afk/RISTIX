@@ -1,4 +1,4 @@
-# docker-compose.prod.yml
+# docker-compose.yml (Production)
 # ============================================================================
 # 🚀 IFRS9 PRODUCTION DEPLOYMENT
 # ============================================================================
@@ -7,6 +7,8 @@
 # - Restart policy: always
 # - Minimal logging (unless overridden)
 # ============================================================================
+
+version: '3.8'
 
 services:
   # ============================================================================
@@ -59,7 +61,7 @@ services:
   # ============================================================================
   new-backend:
     build:
-      context: ./packages/new-backend
+      context: ../../packages/new-backend
       dockerfile: Dockerfile
     container_name: ifrs9-new-backend-prod
     restart: always
@@ -68,9 +70,61 @@ services:
       PORT: 4232
       HOST: 0.0.0.0
 
-      # Database
-      DATABASE_URL: ${DATABASE_URL:-postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-ifrspro_platform_admin}}
-      LEGACY_DATABASE_URL: ${LEGACY_DATABASE_URL}
+      # Database Configuration
+      DB_HOST: ${DB_HOST:-postgres}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+
+      # Platform Database
+      PLATFORM_DB_HOST: ${PLATFORM_DB_HOST:-postgres}
+      PLATFORM_DB_PORT: ${PLATFORM_DB_PORT:-5432}
+      PLATFORM_DB_USER: ${PLATFORM_DB_USER:-postgres}
+      PLATFORM_DB_PASSWORD: ${PLATFORM_DB_PASSWORD:-postgres}
+      PLATFORM_DB_NAME: ${PLATFORM_DB_NAME:-ifrspro_platform_admin}
+      PLATFORM_DB_SSL: ${PLATFORM_DB_SSL:-false}
+
+      # Shared Services Database
+      SHARED_DB_HOST: ${SHARED_DB_HOST:-postgres}
+      SHARED_DB_PORT: ${SHARED_DB_PORT:-5432}
+      SHARED_DB_USER: ${SHARED_DB_USER:-postgres}
+      SHARED_DB_PASSWORD: ${SHARED_DB_PASSWORD:-postgres}
+      SHARED_DB_NAME: ${SHARED_DB_NAME:-ifrspro_shared_services}
+      SHARED_DB_SSL: ${SHARED_DB_SSL:-false}
+
+      # Tenant Database
+      TENANT_DB_HOST: ${TENANT_DB_HOST:-postgres}
+      TENANT_DB_PORT: ${TENANT_DB_PORT:-5432}
+      TENANT_DB_USER: ${TENANT_DB_USER:-postgres}
+      TENANT_DB_PASSWORD: ${TENANT_DB_PASSWORD:-postgres}
+      TENANT_DB_NAME: ${TENANT_DB_NAME:-ifrspro_tenant_iaf}
+      TENANT_DB_SSL: ${TENANT_DB_SSL:-false}
+
+      # Legacy Database
+      LEGACY_DB_HOST: ${LEGACY_DB_HOST}
+      LEGACY_DB_PORT: ${LEGACY_DB_PORT:-5433}
+      LEGACY_DB_USER: ${LEGACY_DB_USER:-postgres}
+      LEGACY_DB_PASSWORD: ${LEGACY_DB_PASSWORD:-postgres}
+      LEGACY_DB_NAME: ${LEGACY_DB_NAME:-FRS9PRO}
+      LEGACY_DB_SSL: ${LEGACY_DB_SSL:-false}
+
+      # Backward compatibility - Primary DB URL (points to Platform DB)
+      DATABASE_URL: ${DATABASE_URL:-postgresql://${PLATFORM_DB_USER:-postgres}:${PLATFORM_DB_PASSWORD:-postgres}@${PLATFORM_DB_HOST:-postgres}:${PLATFORM_DB_PORT:-5432}/${PLATFORM_DB_NAME:-ifrspro_platform_admin}}
+      LEGACY_DATABASE_URL: ${LEGACY_DATABASE_URL:-postgresql://${LEGACY_DB_USER:-postgres}:${LEGACY_DB_PASSWORD:-postgres}@${LEGACY_DB_HOST}:${LEGACY_DB_PORT:-5433}/${LEGACY_DB_NAME:-FRS9PRO}}
+
+      # Tenant Configuration
+      TENANT_ID: ${TENANT_ID:-iaf}
+      TENANT_NAME: ${TENANT_NAME:-Indonesia Airawata Finance}
+      TENANT_SLUG: ${TENANT_SLUG:-iaf}
+      COMPANY_NAME: ${COMPANY_NAME:-Indonesia Airawata Finance}
+      BANKING_TYPE: ${BANKING_TYPE:-conventional}
+      SINGLE_TENANT_MODE: ${SINGLE_TENANT_MODE:-true}
+
+      # URLs
+      FRONTEND_URL: ${FRONTEND_URL}
+      BACKEND_URL: ${BACKEND_URL}
+      API_BASE_URL: ${API_BASE_URL}
+      RAPI_BASE_URL: ${RAPI_BASE_URL}
 
       # JWT
       JWT_SECRET: ${JWT_SECRET}
@@ -78,6 +132,9 @@ services:
 
       # Redis
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+
+      # CORS
+      CORS_ORIGINS: ${CORS_ORIGINS}
 
       # Logging
       LOG_LEVEL: ${LOG_LEVEL:-info}
@@ -99,8 +156,12 @@ services:
   # ============================================================================
   frontend:
     build:
-      context: .
+      context: ../..
       dockerfile: packages/frontend/Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=${API_BASE_URL}
+        - NEXT_PUBLIC_R_ANALYTICS_BASE_URL=${RAPI_BASE_URL}
+        - NEXT_PUBLIC_ENVIRONMENT=production
     container_name: ifrs9-frontend-prod
     restart: always
     environment:
@@ -108,9 +169,10 @@ services:
       PORT: 4231
       HOSTNAME: "0.0.0.0"
 
-      # Public URLs (Must be set in CI/CD or .env for build time)
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
-      NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL}
+      # Public URLs (Runtime)
+      NEXT_PUBLIC_API_URL: ${API_BASE_URL}
+      NEXT_PUBLIC_R_ANALYTICS_BASE_URL: ${RAPI_BASE_URL}
+      NEXT_PUBLIC_DOMAIN: ifrspro.id
     ports:
       - "4231:4231"
     networks:

@@ -2,8 +2,11 @@
 # See docker-compose.dev.yml for service definitions
 
 # Variables
-COMPOSE_FILE := docker-compose.dev.yml
-COMPOSE := docker-compose -f $(COMPOSE_FILE)
+LOCAL_COMPOSE_DIR := ops/local
+DEV_COMPOSE_DIR := ops/dev
+PROD_COMPOSE_DIR := ops/prod
+COMPOSE_FILE := $(LOCAL_COMPOSE_DIR)/docker-compose.yml
+COMPOSE := docker-compose -f $(COMPOSE_FILE) --env-file $(LOCAL_COMPOSE_DIR)/.env
 BACKEND_SERVICE := new-backend
 DB_SERVICE := postgres
 
@@ -16,67 +19,131 @@ help: ## Show this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 # ==============================================================================
-# 🚀 Startup & Shutdown
+# 🚀 LOCAL DEVELOPMENT
 # ==============================================================================
 
 .PHONY: up
-up: ## Start backend, db, and redis (Profile: dev)
+up: ## [LOCAL] Start backend, db, and redis
 	$(COMPOSE) --profile dev up -d
 
 .PHONY: db
-db: ## Start ONLY databases (Profile: db)
+db: ## [LOCAL] Start ONLY databases
 	$(COMPOSE) --profile db up -d
 
 .PHONY: backend
-backend: ## Start ONLY backend (Profile: backend)
+backend: ## [LOCAL] Start ONLY backend
 	$(COMPOSE) --profile backend up -d
 
 .PHONY: frontend
-frontend: ## Start ONLY frontend (Docker - Profile: app)
+frontend: ## [LOCAL] Start ONLY frontend (Docker)
 	$(COMPOSE) --profile app up -d frontend
 
 .PHONY: dev-frontend
-dev-frontend: ## Run frontend LOCALLY (pnpm)
+dev-frontend: ## [LOCAL] Run frontend LOCALLY (pnpm)
 	pnpm --filter frontend run dev
 
 .PHONY: dev
-dev: ## Alias for up
+dev: ## [LOCAL] Start Development Env (Backend + DB)
 	$(COMPOSE) --profile dev up -d
 
 .PHONY: up-full
-up-full: ## Start ALL services including frontend (Profile: full)
+up-full: ## [LOCAL] Start ALL services (Backend + Frontend Hot Reload)
 	$(COMPOSE) --profile full up -d
 
-.PHONY: prod
-prod: ## Start PRODUCTION environment (Profile: full)
-	docker-compose -f docker-compose.prod.yml --profile full up -d
+.PHONY: dev-docker
+dev-docker: ## [LOCAL] Start Backend + Frontend with HOT RELOAD in Docker
+	$(COMPOSE) --profile dev-frontend up -d
 
-prod-app: ## Start PRODUCTION apps only (Profile: app)
-	docker-compose -f docker-compose.prod.yml --profile app up -d
+# Convenient shortcuts
+.PHONY: local-full
+local-full: ## [LOCAL] Quick start: Full stack with hot reload (Frontend + Backend + DB)
+	@echo "🚀 Starting full local development stack..."
+	$(COMPOSE) --profile full up
+
+.PHONY: local-db
+local-db: ## [LOCAL] Quick start: Databases only
+	@echo "🗄️ Starting databases..."
+	$(COMPOSE) --profile db up -d
+
+.PHONY: local-backend
+local-backend: ## [LOCAL] Quick start: Backend only
+	@echo "⚡ Starting backend..."
+	$(COMPOSE) --profile backend up
+
+.PHONY: local-frontend
+local-frontend: ## [LOCAL] Quick start: Frontend only (requires backend running)
+	@echo "🌐 Starting frontend..."
+	$(COMPOSE) --profile dev-frontend up
+
+.PHONY: local-logs
+local-logs: ## [LOCAL] View logs for all local services
+	$(COMPOSE) logs -f
+
+# ==============================================================================
+# 🔧 DEV SERVER (STAGING)
+# ==============================================================================
+DEV_COMPOSE := docker-compose -f $(DEV_COMPOSE_DIR)/docker-compose.yml --env-file $(DEV_COMPOSE_DIR)/.env
+
+.PHONY: dev-server
+dev-server: ## [DEV] Start DEV SERVER environment (Profile: full)
+	$(DEV_COMPOSE) --profile full up -d
+
+.PHONY: dev-server-app
+dev-server-app: ## [DEV] Start DEV SERVER apps only (Profile: app)
+	$(DEV_COMPOSE) --profile app up -d
+
+.PHONY: dev-server-db
+dev-server-db: ## [DEV] Start DEV SERVER databases only (Profile: db)
+	$(DEV_COMPOSE) --profile db up -d
+
+.PHONY: dev-server-deploy
+dev-server-deploy: ## [DEV] Deploy DEV SERVER (Build & Up - Profile: full)
+	$(DEV_COMPOSE) --profile full up -d --build
+
+.PHONY: dev-server-stop
+dev-server-stop: ## [DEV] Stop DEV SERVER environment
+	$(DEV_COMPOSE) stop
+
+.PHONY: dev-server-down
+dev-server-down: ## [DEV] Stop and remove DEV SERVER containers
+	$(DEV_COMPOSE) down
+
+# ==============================================================================
+# 🚀 PRODUCTION
+# ==============================================================================
+PROD_COMPOSE := docker-compose -f $(PROD_COMPOSE_DIR)/docker-compose.yml --env-file $(PROD_COMPOSE_DIR)/.env
+
+.PHONY: prod
+prod: ## [PROD] Start PRODUCTION environment (Profile: full)
+	$(PROD_COMPOSE) --profile full up -d
+
+.PHONY: prod-app
+prod-app: ## [PROD] Start PRODUCTION apps only (Profile: app)
+	$(PROD_COMPOSE) --profile app up -d
 
 .PHONY: prod-frontend
-prod-frontend: ## Start PRODUCTION frontend only (Profile: app)
-	docker-compose -f docker-compose.prod.yml --profile app up -d frontend
+prod-frontend: ## [PROD] Start PRODUCTION frontend only
+	$(PROD_COMPOSE) --profile app up -d frontend
 
 .PHONY: deploy-frontend
-deploy-frontend: ## Deploy PRODUCTION frontend (Build & Up)
-	docker-compose -f docker-compose.prod.yml --profile app up -d --build frontend
+deploy-frontend: ## [PROD] Deploy PRODUCTION frontend (Build & Up)
+	$(PROD_COMPOSE) --profile app up -d --build frontend
 
 .PHONY: prod-db
-prod-db: ## Start PRODUCTION databases only (Profile: db)
-	docker-compose -f docker-compose.prod.yml --profile db up -d
+prod-db: ## [PROD] Start PRODUCTION databases only
+	$(PROD_COMPOSE) --profile db up -d
 
 .PHONY: deploy
-deploy: ## Deploy PRODUCTION (Build & Up - Profile: full)
-	docker-compose -f docker-compose.prod.yml --profile full up -d --build
+deploy: ## [PROD] Deploy PRODUCTION (Build & Up - Profile: full)
+	$(PROD_COMPOSE) --profile full up -d --build
 
 .PHONY: deploy-app
-deploy-app: ## Deploy PRODUCTION apps (Build & Up - Profile: app)
-	docker-compose -f docker-compose.prod.yml --profile app up -d --build
+deploy-app: ## [PROD] Deploy PRODUCTION apps (Build & Up - Profile: app)
+	$(PROD_COMPOSE) --profile app up -d --build
 
 .PHONY: prod-stop
-prod-stop: ## Stop PRODUCTION environment
-	docker-compose -f docker-compose.prod.yml stop
+prod-stop: ## [PROD] Stop PRODUCTION environment
+	$(PROD_COMPOSE) stop
 
 .PHONY: stop
 stop: ## Stop all running services

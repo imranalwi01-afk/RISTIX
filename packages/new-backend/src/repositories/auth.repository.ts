@@ -1,17 +1,14 @@
 import { eq, and, or, asc, desc, count, ilike, sql, gte, isNull } from 'drizzle-orm'
-import { db } from '@/config'
+import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
+import * as schema from '@/db/schema'
 import {
     users,
     sessions,
     passwordResetTokens,
     emailVerificationTokens,
-    type User,
     type NewUser,
-    type Session,
     type NewSession,
-    type PasswordResetToken,
     type NewPasswordResetToken,
-    type EmailVerificationToken,
     type NewEmailVerificationToken,
 } from '@/db/schema'
 
@@ -21,24 +18,26 @@ import {
 // Handles: users, sessions, password_reset_tokens, email_verification_tokens
 // =============================================================================
 
+type DrizzleDB = PostgresJsDatabase<typeof schema>
+
 export const AuthRepository = {
     // ---------------------------------------------------------------------------
     // USER OPERATIONS
     // ---------------------------------------------------------------------------
 
-    findUserById: (id: string) =>
+    findUserById: (db: DrizzleDB, id: string) =>
         db.query.users.findFirst({
             where: eq(users.id, id),
         }),
 
-    findUserByEmail: (email: string, tenantId?: string) =>
+    findUserByEmail: (db: DrizzleDB, email: string, tenantId?: string) =>
         db.query.users.findFirst({
             where: tenantId
                 ? and(eq(users.email, email), eq(users.tenantId, tenantId))
                 : eq(users.email, email),
         }),
 
-    findUsersByTenant: async (tenantId: string, options?: {
+    findUsersByTenant: async (db: DrizzleDB, tenantId: string, options?: {
         search?: string
         isActive?: boolean
         limit?: number
@@ -78,7 +77,7 @@ export const AuthRepository = {
         return { data, total: countResult[0]?.count ?? 0 }
     },
 
-    createUser: async (data: NewUser) => {
+    createUser: async (db: DrizzleDB, data: NewUser) => {
         const [user] = await db.insert(users).values({
             ...data,
             createdAt: new Date(),
@@ -87,7 +86,7 @@ export const AuthRepository = {
         return user
     },
 
-    updateUser: async (id: string, data: Partial<NewUser>) => {
+    updateUser: async (db: DrizzleDB, id: string, data: Partial<NewUser>) => {
         const [user] = await db.update(users).set({
             ...data,
             updatedAt: new Date(),
@@ -95,25 +94,25 @@ export const AuthRepository = {
         return user
     },
 
-    updatePassword: (id: string, passwordHash: string) =>
+    updatePassword: (db: DrizzleDB, id: string, passwordHash: string) =>
         db.update(users).set({
             passwordHash,
             updatedAt: new Date(),
         }).where(eq(users.id, id)),
 
-    verifyEmail: (id: string) =>
+    verifyEmail: (db: DrizzleDB, id: string) =>
         db.update(users).set({
             isEmailVerified: true,
             updatedAt: new Date(),
         }).where(eq(users.id, id)),
 
-    updateLastLogin: (id: string) =>
+    updateLastLogin: (db: DrizzleDB, id: string) =>
         db.update(users).set({
             lastLoginAt: new Date(),
             updatedAt: new Date(),
         }).where(eq(users.id, id)),
 
-    getUserStats: async (tenantId: string) => {
+    getUserStats: async (db: DrizzleDB, tenantId: string) => {
         const result = await db
             .select({
                 total: count(),
@@ -136,29 +135,29 @@ export const AuthRepository = {
     // SESSION OPERATIONS
     // ---------------------------------------------------------------------------
 
-    findSessionByTokenId: (tokenId: string) =>
+    findSessionByTokenId: (db: DrizzleDB, tokenId: string) =>
         db.query.sessions.findFirst({
             where: and(eq(sessions.accessTokenId, tokenId), eq(sessions.isActive, true)),
         }),
 
-    findActiveSessionsByUser: (userId: string) =>
+    findActiveSessionsByUser: (db: DrizzleDB, userId: string) =>
         db.query.sessions.findMany({
             where: and(eq(sessions.userId, userId), eq(sessions.isActive, true)),
             orderBy: [desc(sessions.createdAt)],
         }),
 
-    createSession: async (data: NewSession) => {
+    createSession: async (db: DrizzleDB, data: NewSession) => {
         const [session] = await db.insert(sessions).values(data).returning()
         return session
     },
 
-    invalidateSession: (tokenId: string) =>
+    invalidateSession: (db: DrizzleDB, tokenId: string) =>
         db.update(sessions).set({ isActive: false }).where(eq(sessions.accessTokenId, tokenId)),
 
-    invalidateAllUserSessions: (userId: string) =>
+    invalidateAllUserSessions: (db: DrizzleDB, userId: string) =>
         db.update(sessions).set({ isActive: false }).where(eq(sessions.userId, userId)),
 
-    cleanupExpiredSessions: () =>
+    cleanupExpiredSessions: (db: DrizzleDB) =>
         db.delete(sessions).where(
             and(
                 eq(sessions.isActive, false),
@@ -170,7 +169,7 @@ export const AuthRepository = {
     // PASSWORD RESET TOKEN OPERATIONS
     // ---------------------------------------------------------------------------
 
-    findPasswordResetToken: (token: string) =>
+    findPasswordResetToken: (db: DrizzleDB, token: string) =>
         db.query.passwordResetTokens.findFirst({
             where: and(
                 eq(passwordResetTokens.token, token),
@@ -179,19 +178,19 @@ export const AuthRepository = {
             ),
         }),
 
-    createPasswordResetToken: async (data: NewPasswordResetToken) => {
+    createPasswordResetToken: async (db: DrizzleDB, data: NewPasswordResetToken) => {
         const [token] = await db.insert(passwordResetTokens).values(data).returning()
         return token
     },
 
-    markPasswordResetTokenUsed: (id: string) =>
+    markPasswordResetTokenUsed: (db: DrizzleDB, id: string) =>
         db.update(passwordResetTokens).set({ usedAt: new Date() }).where(eq(passwordResetTokens.id, id)),
 
     // ---------------------------------------------------------------------------
     // EMAIL VERIFICATION TOKEN OPERATIONS
     // ---------------------------------------------------------------------------
 
-    findEmailVerificationToken: (token: string) =>
+    findEmailVerificationToken: (db: DrizzleDB, token: string) =>
         db.query.emailVerificationTokens.findFirst({
             where: and(
                 eq(emailVerificationTokens.token, token),
@@ -200,12 +199,12 @@ export const AuthRepository = {
             ),
         }),
 
-    createEmailVerificationToken: async (data: NewEmailVerificationToken) => {
+    createEmailVerificationToken: async (db: DrizzleDB, data: NewEmailVerificationToken) => {
         const [token] = await db.insert(emailVerificationTokens).values(data).returning()
         return token
     },
 
-    markEmailVerificationTokenUsed: (id: string) =>
+    markEmailVerificationTokenUsed: (db: DrizzleDB, id: string) =>
         db.update(emailVerificationTokens).set({ verifiedAt: new Date() }).where(eq(emailVerificationTokens.id, id)),
 }
 

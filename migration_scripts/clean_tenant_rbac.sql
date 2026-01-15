@@ -1,0 +1,5 @@
+DROP TABLE IF EXISTS core.role_permissions CASCADE;
+DROP TABLE IF EXISTS core.user_roles CASCADE;
+DROP TABLE IF EXISTS core.roles CASCADE;
+DROP TABLE IF EXISTS core.permissions CASCADE;
+DROP TABLE IF EXISTS core.tenants CASCADE;

@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { z } from 'zod'
+import { Effect } from 'effect'
 import type { AppContext } from '../app'
 import { authMiddleware, tenantMiddleware } from '../middleware'
 import { db } from '../config/database'
@@ -209,8 +210,8 @@ app.post('/:id/run', async (c) => {
     }, {
         jobId: executionId,
         priority: definition.priority === 'HIGH' ? 1 : definition.priority === 'CRITICAL' ? 0 : 5,
-        attempts: definition.maxRetries + 1,
-        timeout: definition.timeout * 1000,
+        attempts: (definition.maxRetries || 0) + 1,
+        timeout: (definition.timeout || 3600) * 1000,
     })
 
     // Create execution record

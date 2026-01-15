@@ -66,7 +66,7 @@ platformUsersRoutes.get('/', async (c) => {
                 total: Number(totalResult[0]?.count || 0),
             }
         },
-        catch: (e) => new DatabaseError({ message: 'Failed to fetch platform users', cause: e }),
+        catch: (e) => new DatabaseError({ operation: 'query', message: 'Failed to fetch platform users', cause: e }),
     })
 
     const result = await Effect.runPromise(effect)
@@ -93,7 +93,6 @@ platformUsersRoutes.post('/', zValidator('json', createPlatformUserSchema), asyn
         ...body,
         tenantId,
         isPlatformAdmin: true,
-        username: body.email.split('@')[0], // Simple username gen
     })
 
     return runEffect(c, effect)
@@ -104,7 +103,8 @@ platformUsersRoutes.post('/', zValidator('json', createPlatformUserSchema), asyn
  */
 platformUsersRoutes.get('/:id', async (c) => {
     const { id } = c.req.param()
-    const effect = usersService.getUserById(id)
+    const tenantId = c.get('tenantId')
+    const effect = usersService.getUserById(id, tenantId)
     return runEffect(c, effect)
 })
 
@@ -121,7 +121,9 @@ const updatePlatformUserSchema = z.object({
 platformUsersRoutes.put('/:id', zValidator('json', updatePlatformUserSchema), async (c) => {
     const { id } = c.req.param()
     const body = c.req.valid('json')
-    const effect = usersService.updateUser(id, body)
+    const tenantId = c.get('tenantId')
+    // Pass tenantId for DB selection, though it won't be updated in user record unless allowed
+    const effect = usersService.updateUser(id, { ...body, tenantId })
     return runEffect(c, effect)
 })
 
@@ -130,6 +132,7 @@ platformUsersRoutes.put('/:id', zValidator('json', updatePlatformUserSchema), as
  */
 platformUsersRoutes.delete('/:id', async (c) => {
     const { id } = c.req.param()
-    const effect = usersService.deleteUser(id)
+    const tenantId = c.get('tenantId')
+    const effect = usersService.deleteUser(id, tenantId)
     return runEffect(c, effect)
 })
