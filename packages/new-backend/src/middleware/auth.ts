@@ -53,14 +53,25 @@ export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
             throw new Error('User not found or inactive')
         }
 
-        const tenant = await TenantRepository.findById(user.tenantId)
-        console.log(`✅ [AUTH] User context loaded: ${user.email} (Tenant: ${tenant?.name})`);
 
-        // Set user context
+        // Resolve tenant - user.tenantId might be UUID or slug depending on data migration state
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+        const tenant = uuidRegex.test(user.tenantId)
+            ? await TenantRepository.findById(user.tenantId)
+            : await TenantRepository.findBySlug(user.tenantId)
+
+        if (!tenant) {
+            console.warn(`⚠️ [AUTH] Tenant not found for user: ${user.email}, tenantId: ${user.tenantId}`);
+            throw new Error('Tenant not found')
+        }
+
+        console.log(`✅ [AUTH] User context loaded: ${user.email} (Tenant: ${tenant.name})`);
+
+        // Set user context - ALWAYS use the resolved UUID from tenant object
         c.set('userId', user.id)
         c.set('user', user)
         c.set('tokenId', payload.jti)
-        c.set('tenantId', user.tenantId)
+        c.set('tenantId', tenant.id) // Use resolved UUID, not user.tenantId which might be a slug
         c.set('isSystemUser', !!user.isPlatformAdmin) // Use the flag
 
         await next()
@@ -126,18 +137,22 @@ export const tenantMiddleware = createMiddleware<AppContext>(async (c, next) => 
     const userTenantId = c.get('tenantId') // This is currently the user's home tenant ID
     const isPlatformAdmin = c.get('isSystemUser') // This is now user.isPlatformAdmin
 
+    console.log(`[TENANT] requestedTenantId=${requestedTenantId}, requestedTenantSlug=${requestedTenantSlug}, userTenantId=${userTenantId}, isPlatformAdmin=${isPlatformAdmin}`);
+
     // Default case: No switching requested
     if (!requestedTenantId && !requestedTenantSlug) {
+        console.log(`[TENANT] No tenant switch requested, passing through`);
         await next()
         return
     }
 
-    // Switching requested
-    // Check if effective tenant changes (need to resolve slug first if used)
-    let targetTenantId = requestedTenantId
+    console.log(`[TENANT] Tenant switch requested!`);
 
+    // Switching requested - resolve to UUID for comparison
+    let targetTenantId: string | undefined = requestedTenantId
+
+    // If slug is provided, resolve it to UUID
     if (requestedTenantSlug) {
-        // Resolve slug to ID
         const targetTenant = await TenantRepository.findBySlug(requestedTenantSlug)
         if (targetTenant) {
             targetTenantId = targetTenant.id
@@ -147,11 +162,23 @@ export const tenantMiddleware = createMiddleware<AppContext>(async (c, next) => 
         }
     }
 
+    // If requestedTenantId looks like a slug (not a UUID), try to resolve it
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    if (targetTenantId && !uuidRegex.test(targetTenantId)) {
+        const targetTenant = await TenantRepository.findBySlug(targetTenantId)
+        if (targetTenant) {
+            targetTenantId = targetTenant.id
+        } else {
+            return c.json({ success: false, error: 'Target tenant not found', code: 'TENANT_NOT_FOUND' }, 404)
+        }
+    }
+
+    // Check if this is actually a tenant switch (comparing UUIDs now)
     if (targetTenantId && targetTenantId !== userTenantId) {
+        // User is trying to switch to a different tenant
         if (isPlatformAdmin) {
             // Validate target tenant exists (if we haven't already from slug fetch)
-            // If we resolved by slug, we know it exists. If passed by ID, verify.
-            if (!requestedTenantSlug) {
+            if (!requestedTenantSlug && uuidRegex.test(requestedTenantId || '')) {
                 const targetTenant = await TenantRepository.findById(targetTenantId)
                 if (!targetTenant) {
                     return c.json({ success: false, error: 'Target tenant not found', code: 'TENANT_NOT_FOUND' }, 404)
@@ -162,7 +189,7 @@ export const tenantMiddleware = createMiddleware<AppContext>(async (c, next) => 
             c.set('tenantId', targetTenantId)
             console.log(`🔄 [TENANT] Impersonating tenant: ${targetTenantId}`)
         } else {
-            console.warn(`🛑 [TENANT] Unauthorized impersonation attempt by user ${c.get('userId')}`)
+            console.warn(`🛑 [TENANT] Unauthorized impersonation attempt by user ${c.get('userId')} (user tenant: ${userTenantId}, requested: ${targetTenantId})`)
             return c.json(
                 {
                     success: false,
@@ -172,6 +199,9 @@ export const tenantMiddleware = createMiddleware<AppContext>(async (c, next) => 
                 403
             )
         }
+    } else {
+        // Same tenant or no valid target - just pass through
+        console.log(`[TENANT] Same tenant request, passing through`)
     }
 
     await next()

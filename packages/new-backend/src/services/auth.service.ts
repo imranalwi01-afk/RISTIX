@@ -169,7 +169,9 @@ export const login = (
                 // Otherwise lookup by slug (Using Default/Platform DB for tenant registry)
                 const db = getDatabase(null) // Registry is in Platform/Core
                 const tenant = await TenantRepository.findBySlug(input.tenantId)
-                return tenant?.id
+                console.log(`[AuthDebug] input.tenantId=${input.tenantId} -> foundTenant=${!!tenant} id=${tenant?.id}`);
+                if (!tenant) throw new Error('Tenant not found by slug')
+                return tenant.id
             },
             catch: (error) => new DatabaseError({ message: 'Tenant resolution failed', operation: 'query' })
         }),
@@ -180,7 +182,7 @@ export const login = (
                     try: async () => {
                         // ✅ DYNAMIC DB SWITCHING
                         const db = getDatabase(resolvedTenantId)
-                        const user = await AuthRepository.findUserByEmail(db, input.email, resolvedTenantId)
+                        const user = await AuthRepository.findUserByEmail(db, input.email)
                         return { user, resolvedTenantId, db }
                     },
                     catch: (error) => new DatabaseError({ message: 'Failed to find user', operation: 'query' })
@@ -221,21 +223,7 @@ export const login = (
         // 5. Load user roles (from the same DB)
         Effect.flatMap(({ user, resolvedTenantId, db }) =>
             pipe(
-                // userRolesRepository likely needs a refactor too, but for now assuming it uses global db which might be wrong.
-                // TODO: Refactor userRolesRepository to accept db instance. 
-                // For now, we assume userRoles are in the same DB as the user.
-                // We'll temporarily mock/bypass strict repo check if needed or rely on legacy behavior if single tenant.
-                // Actually, if we are in IFRS9-IAF, tenant DB has permissions.
-
-                // CRITICAL: userRolesRepository MUST use the same DB.
-                // Since I haven't refactored userRolesRepository, this line might fail or query wrong DB.
-                // However, I can pass the db instance if I update the call? 
-                // userRolesRepository.findByUser signature needs checking. 
-                // Assuming I need to update it as well. 
-
-                // For this step to work without breaking, I will wrap it. 
-                // Since I cannot check userRolesRepository right now, I'll proceed assuming I need to update it or 
-                // it will use default DB.
+                // Use resolvedTenantId if available (UUID), fallback to user.tenantId if platform login
                 userRolesRepository.findByUser(db, user.id, resolvedTenantId ?? user.tenantId),
                 Effect.map((userRolesList) => {
                     const roles = userRolesList.map((ur) => ur.role.roleName)

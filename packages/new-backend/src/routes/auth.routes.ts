@@ -127,34 +127,29 @@ authRoutes.openapi(
 
         const effect = pipe(
             authService.login(body, { ip, userAgent }),
-            Effect.flatMap(({ user, tokens }) =>
-                pipe(
-                    Effect.all([
-                        rbacService.getUserPermissions(user.id, user.tenantId),
-                        rbacService.getUserRoles(user.id, user.tenantId)
-                    ]),
-                    Effect.tap(() => {
-                        // Log successful login
-                        auditService.logAuth.login(user.id, user.tenantId, ip, userAgent)
-                        return Effect.succeed(void 0)
-                    }),
-                    Effect.map(([permissions, userRoles]) => ({
-                        user: {
-                            id: user.id,
-                            email: user.email,
-                            firstName: user.firstName,
-                            lastName: user.lastName,
-                            tenantId: user.tenantId,
-                            isPlatformAdmin: user.isPlatformAdmin,
-                            permissions,
-                            roles: userRoles.map((ur: any) => ur.role?.roleName ?? 'UNKNOWN'),
-                        },
-                        ...tokens,
-                        tokens,
-                        token: tokens.accessToken,
-                    }))
-                )
-            ),
+            Effect.tap(({ user, tokens }) => {
+                // Log successful login - extract tenantId from token (it's the resolved UUID)
+                const tokenPayload = JSON.parse(Buffer.from(tokens.accessToken.split('.')[1], 'base64').toString())
+                const resolvedTenantId = tokenPayload.tenantId
+                auditService.logAuth.login(user.id, resolvedTenantId, ip, userAgent)
+                return Effect.succeed(void 0)
+            }),
+            Effect.map(({ user, tokens }) => ({
+                user: {
+                    id: user.id,
+                    email: user.email,
+                    firstName: user.firstName,
+                    lastName: user.lastName,
+                    tenantId: user.tenantId,
+                    isPlatformAdmin: user.isPlatformAdmin,
+                    // authService.login returns roles/permissions mapped as strings
+                    permissions: (user as any).permissions ?? [],
+                    roles: (user as any).roles ?? [],
+                },
+                ...tokens,
+                tokens,
+                token: tokens.accessToken,
+            })),
             Effect.tapError((error) => {
                 // Log failed login
                 const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i

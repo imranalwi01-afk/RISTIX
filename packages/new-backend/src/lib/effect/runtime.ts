@@ -17,7 +17,7 @@ import {
 export async function runEffect<A>(
     c: Context,
     effect: Effect.Effect<A, CommonError>
-): Promise<Response> {
+): Promise<any> {
     const result = await Effect.runPromiseExit(effect)
 
     return result._tag === 'Success'

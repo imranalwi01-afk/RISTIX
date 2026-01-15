@@ -55,7 +55,7 @@ export const sharedDb = drizzle(sharedConnection, { schema })
 /**
  * Drizzle ORM instance for Tenant DB
  */
-export const tenantDb = drizzle(tenantConnection, { schema })
+export const tenantDb = drizzle(tenantConnection, { schema, logger: true })
 
 /**
  * Legacy Drizzle ORM instance
