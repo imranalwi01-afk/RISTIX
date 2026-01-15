@@ -154,6 +154,7 @@ services:
       - full
       - dev
       - backend
+      - backend-only
 
   # ============================================================================
   # 🌐 FRONTEND SERVICE (Static Build - Optional)
@@ -207,6 +208,7 @@ services:
       - dev-frontend
       - hot-reload
       - full
+      - frontend-only
 
 # ============================================================================
 # 📁 VOLUMES
