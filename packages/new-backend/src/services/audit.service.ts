@@ -1,13 +1,14 @@
-import { db } from '../config/database'
+import { tenantDb } from '../config/database'
 import { auditLogs, userActivityLogs, dataAccessLogs, calculationAuditLogs } from '../db/schema'
 import type { NewAuditLog, NewUserActivityLog, NewDataAccessLog, NewCalculationAuditLog } from '../db/schema'
 
 /**
  * Core audit logging function
+ * Uses tenantDb since audit schema exists in tenant database
  */
 export const logAuditEvent = async (params: Partial<NewAuditLog>): Promise<void> => {
     try {
-        await db.insert(auditLogs).values({
+        await tenantDb.insert(auditLogs).values({
             eventType: params.eventType || 'unknown',
             action: params.action || 'unknown',
             ...params
@@ -23,7 +24,7 @@ export const logAuditEvent = async (params: Partial<NewAuditLog>): Promise<void>
  */
 export const logUserActivity = async (params: Partial<NewUserActivityLog>): Promise<void> => {
     try {
-        await db.insert(userActivityLogs).values({
+        await tenantDb.insert(userActivityLogs).values({
             userId: params.userId!,
             activityType: params.activityType!,
             ...params
@@ -38,7 +39,7 @@ export const logUserActivity = async (params: Partial<NewUserActivityLog>): Prom
  */
 export const logDataAccess = async (params: Partial<NewDataAccessLog>): Promise<void> => {
     try {
-        await db.insert(dataAccessLogs).values({
+        await tenantDb.insert(dataAccessLogs).values({
             userId: params.userId!,
             accessType: params.accessType!,
             resourceType: params.resourceType!,
@@ -54,7 +55,7 @@ export const logDataAccess = async (params: Partial<NewDataAccessLog>): Promise<
  */
 export const logCalculation = async (params: Partial<NewCalculationAuditLog>): Promise<void> => {
     try {
-        await db.insert(calculationAuditLogs).values({
+        await tenantDb.insert(calculationAuditLogs).values({
             userId: params.userId!,
             calculationType: params.calculationType!,
             calculationDate: params.calculationDate!,

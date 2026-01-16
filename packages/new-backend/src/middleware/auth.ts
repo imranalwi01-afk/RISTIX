@@ -5,6 +5,7 @@ import { TenantRepository } from '../repositories/tenant.repository'
 import { AuthenticationError, AuthorizationError } from '@lib/errors'
 import { Effect, pipe } from 'effect'
 import { getDatabase } from '@/config/database'
+import { redis } from '@/config/redis'
 import type { AppContext } from '../app'
 
 /**
@@ -35,16 +36,16 @@ export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
         const payload = await verifyToken(token)
         console.log(`✅ [AUTH] Token verified for sub: ${payload.sub}, jti: ${payload.jti}`);
 
+        // Check session in Redis
+        const sessionData = await redis.get(`session:access:${payload.jti}`)
+        if (!sessionData) {
+            console.warn(`⚠️ [AUTH] Session not found in Redis: ${payload.jti}`);
+            throw new Error('Session not found or expired')
+        }
+
         // Contextual validation
         const tenantId = (payload as any).tenantId as string | undefined
         const db = getDatabase(tenantId)
-
-        const session = await AuthRepository.findSessionByTokenId(db, payload.jti)
-
-        if (!session || !session.isActive || new Date() > session.expiresAt) {
-            console.warn(`⚠️ [AUTH] Session invalid or expired: ${payload.jti}`);
-            throw new Error('Session invalid or expired')
-        }
 
         // Load complete user context
         const user = await AuthRepository.findUserById(db, payload.sub)
