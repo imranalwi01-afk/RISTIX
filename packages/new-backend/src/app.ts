@@ -38,13 +38,6 @@ export function createApp() {
             origin: (origin) => {
                 const allowedOrigins = env.CORS_ORIGINS.split(',').map((o) => o.trim())
 
-                // Debug log for CORS
-                console.log('🔒 CORS Check:', {
-                    origin,
-                    allowedOrigins,
-                    isAllowed: allowedOrigins.includes(origin)
-                })
-
                 // Allow requests with no origin (like mobile apps or curl requests)
                 if (!origin) return allowedOrigins[0]
                 if (allowedOrigins.includes(origin)) return origin
