@@ -51,7 +51,10 @@ export const getTenants = (options?: any) =>
                 total: filteredData.length
             }
         },
-        catch: (e) => new DatabaseError({ message: 'Failed to find tenants', operation: 'query' })
+        catch: (e) => {
+            console.error('[TenantService] getTenants error:', e)
+            return new DatabaseError({ message: 'Failed to find tenants', operation: 'query' })
+        }
     })
 
 /**
@@ -60,7 +63,10 @@ export const getTenants = (options?: any) =>
 export const getTenantById = (id: string) =>
     Effect.tryPromise({
         try: () => TenantRepository.findById(id),
-        catch: (e) => new DatabaseError({ message: 'Failed to find tenant', operation: 'query' })
+        catch: (e) => {
+            console.error('[TenantService] getTenantById error:', e)
+            return new DatabaseError({ message: 'Failed to find tenant', operation: 'query' })
+        }
     })
 
 /**
@@ -69,7 +75,10 @@ export const getTenantById = (id: string) =>
 export const getTenantByCode = (code: string) =>
     Effect.tryPromise({
         try: () => TenantRepository.findByCode(code),
-        catch: (e) => new DatabaseError({ message: 'Failed to find tenant params', operation: 'query' })
+        catch: (e) => {
+            console.error('[TenantService] getTenantByCode error:', e)
+            return new DatabaseError({ message: 'Failed to find tenant params', operation: 'query' })
+        }
     })
 
 /**
@@ -78,7 +87,10 @@ export const getTenantByCode = (code: string) =>
 export const getTenantBySlug = (slug: string) =>
     Effect.tryPromise({
         try: () => TenantRepository.findBySlug(slug),
-        catch: (e) => new DatabaseError({ message: 'Failed to find tenant by slug', operation: 'query' })
+        catch: (e) => {
+            console.error('[TenantService] getTenantBySlug error:', e)
+            return new DatabaseError({ message: 'Failed to find tenant by slug', operation: 'query' })
+        }
     })
 
 // =============================================================================
