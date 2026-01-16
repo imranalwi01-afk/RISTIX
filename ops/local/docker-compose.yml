@@ -81,7 +81,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
 
       # Platform Database
-      PLATFORM_DB_HOST: postgres
+      PLATFORM_DB_HOST: ${PLATFORM_DB_HOST:-postgres}
       PLATFORM_DB_PORT: ${PLATFORM_DB_PORT:-5432}
       PLATFORM_DB_USER: ${PLATFORM_DB_USER:-postgres}
       PLATFORM_DB_PASSWORD: ${PLATFORM_DB_PASSWORD:-postgres}
@@ -89,7 +89,7 @@ services:
       PLATFORM_DB_SSL: ${PLATFORM_DB_SSL:-false}
 
       # Shared Services Database
-      SHARED_DB_HOST: postgres
+      SHARED_DB_HOST: ${SHARED_DB_HOST:-postgres}
       SHARED_DB_PORT: ${SHARED_DB_PORT:-5432}
       SHARED_DB_USER: ${SHARED_DB_USER:-postgres}
       SHARED_DB_PASSWORD: ${SHARED_DB_PASSWORD:-postgres}
@@ -97,7 +97,7 @@ services:
       SHARED_DB_SSL: ${SHARED_DB_SSL:-false}
 
       # Tenant Database
-      TENANT_DB_HOST: postgres
+      TENANT_DB_HOST: ${TENANT_DB_HOST:-postgres}
       TENANT_DB_PORT: ${TENANT_DB_PORT:-5432}
       TENANT_DB_USER: ${TENANT_DB_USER:-postgres}
       TENANT_DB_PASSWORD: ${TENANT_DB_PASSWORD:-postgres}
@@ -105,7 +105,7 @@ services:
       TENANT_DB_SSL: ${TENANT_DB_SSL:-false}
 
       # Legacy Database
-      LEGACY_DB_HOST: ${LEGACY_DB_HOST:-192.168.0.106}
+      LEGACY_DB_HOST: ${LEGACY_DB_HOST:-postgres}
       LEGACY_DB_PORT: ${LEGACY_DB_PORT:-5433}
       LEGACY_DB_USER: ${LEGACY_DB_USER:-postgres}
       LEGACY_DB_PASSWORD: ${LEGACY_DB_PASSWORD:-postgres}
@@ -114,8 +114,8 @@ services:
 
       # Backward compatibility - Primary DB URL (points to Platform DB)
       # Force use of internal hostname 'postgres' instead of inheriting 'localhost' from host .env
-      DATABASE_URL: postgresql://${PLATFORM_DB_USER:-postgres}:${PLATFORM_DB_PASSWORD:-postgres}@postgres:5432/${PLATFORM_DB_NAME:-ifrspro_platform_admin}
-      LEGACY_DATABASE_URL: ${LEGACY_DATABASE_URL:-postgresql://${LEGACY_DB_USER:-postgres}:${LEGACY_DB_PASSWORD:-postgres}@${LEGACY_DB_HOST:-192.168.0.106}:${LEGACY_DB_PORT:-5433}/${LEGACY_DB_NAME:-FRS9PRO}}
+      DATABASE_URL: postgresql://${PLATFORM_DB_USER:-postgres}:${PLATFORM_DB_PASSWORD:-postgres}@${PLATFORM_DB_HOST:-postgres}:5432/${PLATFORM_DB_NAME:-ifrspro_platform_admin}
+      LEGACY_DATABASE_URL: ${LEGACY_DATABASE_URL:-postgresql://${LEGACY_DB_USER:-postgres}:${LEGACY_DB_PASSWORD:-postgres}@${LEGACY_DB_HOST:-postgres}:${LEGACY_DB_PORT:-5433}/${LEGACY_DB_NAME:-FRS9PRO}}
 
       # Tenant Configuration
       TENANT_ID: ${TENANT_ID:-iaf}
