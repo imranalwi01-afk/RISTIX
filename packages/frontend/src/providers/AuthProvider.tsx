@@ -480,15 +480,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         if (process.env.NEXT_PUBLIC_BACKEND_API_URL) {
           console.log('⚠️ Using NEXT_PUBLIC_BACKEND_API_URL:', process.env.NEXT_PUBLIC_BACKEND_API_URL);
-          return process.env.NEXT_PUBLIC_BACKEND_API_URL.replace('/api/v1', '');
+          // Strip /api/v1 if present to avoid duplication
+          return process.env.NEXT_PUBLIC_BACKEND_API_URL.replace(/\/api\/v1\/?$/, '');
         }
 
         // Priority 3: Final fallback - MUST USE PRODUCTION DOMAIN
-        const fallbackUrl = `https://bifrs9-iaf.ifrspro.id/api/v1/auth/login`;
+        // NOTE: We return the BASE URL (without /api/v1/auth/login) because the caller adds the path
+        const fallbackUrl = `https://bifrs9-iaf.ifrspro.id`;
         console.log('🚨 Using final fallback URL:', fallbackUrl);
         return fallbackUrl;
       };
-      const apiBaseUrl = getApiBaseUrl();
+      const rawApiBaseUrl = getApiBaseUrl();
+      // Ensure no trailing slash and no /api/v1 suffix
+      const apiBaseUrl = rawApiBaseUrl.replace(/\/?$/, '').replace(/\/api\/v1\/?$/, '');
 
       const response = await fetch(`${apiBaseUrl}/api/v1/auth/login`, {
         method: 'POST',
