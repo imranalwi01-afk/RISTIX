@@ -134,6 +134,9 @@ services:
 
       # Logging
       LOG_LEVEL: debug
+
+      # CORS
+      CORS_ORIGINS: ${CORS_ORIGINS}
     ports:
       - "4232:4232"
     networks:

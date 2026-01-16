@@ -35,9 +35,13 @@ export function createApp() {
     app.use(
         '*',
         cors({
-            origin: isProduction
-                ? ['https://your-domain.com']
-                : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:4231'],
+            origin: (origin) => {
+                const allowedOrigins = env.CORS_ORIGINS.split(',').map((o) => o.trim())
+                // Allow requests with no origin (like mobile apps or curl requests)
+                if (!origin) return allowedOrigins[0]
+                if (allowedOrigins.includes(origin)) return origin
+                return allowedOrigins[0]
+            },
             credentials: true,
             allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
             allowHeaders: [
