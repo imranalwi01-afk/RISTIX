@@ -382,7 +382,7 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
       {
         id: 'bucket-parameter',
         label: 'Bucket Parameter',
-        href: '/banking/collective/bucket-parameter',
+        href: '/banking/collective/bucket',
         icon: <Layers />,
         description: '/IFRS9N/ParamBucket'
       },
@@ -394,13 +394,13 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
         description: '/IFRS9N/PDConfig'
       },
       // 🚫 DISABLED: FL Scalar menu item - Temporarily hidden
-      // {
-      //   id: 'fl-scalar',
-      //   label: 'FL Scalar',
-      //   href: '/banking/collective/fl-scalar',
-      //   icon: <Functions />,
-      //   description: '/IFRS9N/FLScalar'
-      // },
+      {
+        id: 'fl-scalar',
+        label: 'FL Scalar',
+        href: '/banking/collective/fl-scalar',
+        icon: <Functions />,
+        description: '/IFRS9N/FLScalar'
+      },
       {
         id: 'lgd-setup-management',
         label: 'LGD Setup Management',
