@@ -7,6 +7,7 @@ import IORedis from 'ioredis'
 
 // Redis connection - handle optional REDIS_URL
 const redisUrl = env.REDIS_URL || 'redis://localhost:6379'
+
 const connection = new IORedis(redisUrl, {
     maxRetriesPerRequest: null,
 })

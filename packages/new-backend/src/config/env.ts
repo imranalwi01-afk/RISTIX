@@ -10,7 +10,7 @@ const envSchema = z.object({
     HOST: z.string().default('0.0.0.0'),
 
     // CORS Configuration
-    CORS_ORIGINS: z.string().default('http://localhost:4231'),
+    CORS_ORIGINS: z.string().default('http://localhost:4231,https://iaf-ifrs.ifrspro.id,https://bifrs9-iaf.ifrspro.id'),
 
     // Database Configuration (Generic)
     DB_HOST: z.string().default('localhost'),

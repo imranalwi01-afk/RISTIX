@@ -22,23 +22,8 @@ const connectionConfig = {
  * For platform-wide administration, users, roles, etc.
  */
 const platformConnection = postgres(getPlatformDatabaseUrl(), connectionConfig)
-
-/**
- * Shared Services Database Connection
- * For shared services across tenants
- */
 const sharedConnection = postgres(getSharedDatabaseUrl(), connectionConfig)
-
-/**
- * Tenant Database Connection
- * For tenant-specific data (IAF)
- */
 const tenantConnection = postgres(getTenantDatabaseUrl(), connectionConfig)
-
-/**
- * Legacy PostgreSQL connection (FRS9PRO)
- * For legacy FRS9 system data
- */
 const legacyConnection = postgres(getLegacyDatabaseUrl(), connectionConfig)
 
 /**
