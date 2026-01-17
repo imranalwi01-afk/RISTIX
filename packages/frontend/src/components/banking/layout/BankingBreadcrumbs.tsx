@@ -86,7 +86,7 @@ export const BankingBreadcrumbs: React.FC<BankingBreadcrumbsProps> = ({
                     {generateBreadcrumbs().map((crumb, index) => (
                         crumb.isLast ? (
                             <Typography
-                                key={index}
+                                key={crumb.href || crumb.label}
                                 color="text.primary"
                                 sx={{
                                     display: 'flex',
@@ -99,7 +99,7 @@ export const BankingBreadcrumbs: React.FC<BankingBreadcrumbsProps> = ({
                             </Typography>
                         ) : (
                             <Link
-                                key={index}
+                                key={crumb.href || crumb.label}
                                 underline="hover"
                                 color="inherit"
                                 href={crumb.href}

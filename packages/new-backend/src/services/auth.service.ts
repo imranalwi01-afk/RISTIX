@@ -78,7 +78,6 @@ const generateAccessToken = async (
         roles,
         role: roles[0],
         permissions,
-        isPlatformAdmin: user.isPlatformAdmin
     })
         .setProtectedHeader({ alg: 'HS256' })
         .setIssuedAt()
@@ -104,7 +103,6 @@ const generateRefreshToken = async (
         type: 'refresh',
         roles,
         permissions,
-        isPlatformAdmin: user.isPlatformAdmin,
     })
         .setProtectedHeader({ alg: 'HS256' })
         .setIssuedAt()
@@ -185,7 +183,7 @@ export const login = (
                         const tenantDb = getDatabase(resolvedTenantId)
                         let user = await AuthRepository.findUserByEmail(tenantDb, input.email)
                         let db = tenantDb
-                        
+
                         // ✅ Fallback to platform database (for platform admins)
                         if (!user) {
                             console.log(`[AuthDebug] User not found in tenant DB, checking platform DB...`)
@@ -198,7 +196,7 @@ export const login = (
                         } else {
                             console.log(`[AuthDebug] User found in tenant DB: ${user.email}`)
                         }
-                        
+
                         return { user, resolvedTenantId, db }
                     },
                     catch: () => new DatabaseError({ message: 'Failed to find user', operation: 'query' })
@@ -240,11 +238,11 @@ export const login = (
         Effect.flatMap(({ user, resolvedTenantId, db }) =>
             pipe(
                 // Use user.tenantId as stored in the user_roles table (could be slug or UUID)
-                userRolesRepository.findByUser(db, user.id, user.tenantId),
+                userRolesRepository.findByUser(db, user.id, resolvedTenantId ?? user.tenantId ?? undefined),
                 Effect.map((userRolesList) => {
                     console.log('🔍 DEBUG: userRolesList length:', userRolesList.length)
                     console.log('🔍 DEBUG: userRolesList:', JSON.stringify(userRolesList, null, 2))
-                    
+
                     const roles = userRolesList.map((ur) => ur.role.roleCode)
                     console.log('🔍 DEBUG: extracted roles:', roles)
 
@@ -348,7 +346,10 @@ export const logout = (
             // Delete session from Redis
             await redis.del(`session:access:${accessTokenId}`)
         },
-        catch: () => new DatabaseError()
+        catch: (error) => new DatabaseError({
+            message: 'Failed to logout',
+            operation: 'update'
+        })
     })
 
 /**
@@ -400,6 +401,8 @@ export const refreshTokens = (
             return {
                 accessToken: newAccessToken,
                 refreshToken: newRefreshToken,
+                expiresIn: ACCESS_TOKEN_EXPIRY_MS / 1000,
+                refreshExpiresIn: REFRESH_TOKEN_EXPIRY_MS / 1000,
             }
         },
         catch: () =>
@@ -424,10 +427,10 @@ export const getSession = (
             }
             return JSON.parse(sessionData)
         },
-        catch: () => new AuthenticationError({ 
-            message: 'Session not found or expired', 
-            reason: 'invalid_session',
-            code: 'INVALID_SESSION' 
+        catch: () => new AuthenticationError({
+            message: 'Session not found or expired',
+            reason: 'invalid_token',
+            code: 'INVALID_TOKEN'
         })
     })
 
@@ -442,7 +445,7 @@ export const revokeAllSessions = (
         try: async () => {
             // Get all session IDs for this user from Redis set
             const sessionIds = await redis.smembers(`user:sessions:${userId}`)
-            
+
             // Delete all sessions
             const pipeline = redis.pipeline()
             sessionIds.forEach(sessionId => {
