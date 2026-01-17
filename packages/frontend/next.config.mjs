@@ -27,18 +27,14 @@ const nextConfig = {
     pagesBufferLength: 2,
   },
 
-  webpack: (config, { dev, isServer }) => {
-    // Optimize webpack watch options to reduce CPU usage
-    if (dev) {
-      config.watchOptions = {
-        poll: 1000,
-        aggregateTimeout: 300,
-        ignored: /node_modules/,
-      };
-    }
-    return config;
+  // ============================================================================
+  // TURBOPACK CONFIGURATION (for `next dev --turbo`)
+  // ============================================================================
+  // Note: Turbopack has better built-in file watching, no need for webpack watchOptions
+  turbopack: {
+    // Resolve aliases if needed
+    // resolveAlias: {},
   },
-
 
   // Optimize package imports to reduce bundle size
   experimental: {
@@ -57,7 +53,9 @@ const nextConfig = {
     // Enable server actions for better performance
     serverActions: {
       bodySizeLimit: '2mb'
-    }
+    },
+    // Disable server minification to fix Turbopack + Emotion/stylis compatibility
+    serverMinification: false
   },
 
   // Compiler optimizations

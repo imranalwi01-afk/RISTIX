@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Box,
@@ -15,9 +16,7 @@ import {
   CircularProgress,
   InputAdornment,
   IconButton,
-  Paper,
   Fade,
-  useTheme,
   ThemeProvider,
   createTheme
 } from '@mui/material';
@@ -29,9 +28,12 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../../../providers/AuthProvider';
 import { frontendEnvironmentLoader } from '@/config/environment-loader-frontend';
-import ModernLoader from '@/components/common/ModernLoader'; // ✅ Imported ModernLoader
 
-// ... (imports remain)
+// Dynamic import for ModernLoader to improve initial page load
+const ModernLoader = dynamic(
+  () => import('@/components/common/ModernLoader'),
+  { ssr: false }
+);
 
 // ============================================================================
 // TENANT DATA INTERFACES
@@ -50,7 +52,6 @@ export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { login, isLoading, error, clearError } = useAuth();
-  const theme = useTheme();
 
   // Form state
   const [email, setEmail] = useState('');
@@ -173,8 +174,8 @@ export default function LoginPage() {
     }
   };
 
-  // ✅ Force Light Theme for Login Page
-  const loginTheme = createTheme({
+  // ✅ Memoized Light Theme for Login Page - prevents re-creation on every render
+  const loginTheme = useMemo(() => createTheme({
     palette: {
       mode: 'light',
       primary: {
@@ -185,7 +186,6 @@ export default function LoginPage() {
         secondary: '#6B7280',
       }
     },
-    // ... (rest of theme config)
     components: {
       MuiTextField: {
         styleOverrides: {
@@ -202,7 +202,7 @@ export default function LoginPage() {
         }
       }
     }
-  });
+  }), [isPlatformAdmin]);
 
   return (
     <ThemeProvider theme={loginTheme}>

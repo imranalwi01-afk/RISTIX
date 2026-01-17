@@ -333,7 +333,7 @@ function getBankingModeAwareRedirect(user: any, pathname: string, baseUrl: strin
 }
 
 // ✅ SURGICAL FIX: Main middleware function with enhanced banking mode support
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
 
