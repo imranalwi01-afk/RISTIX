@@ -141,14 +141,13 @@ export const createUser = (
                         email: input.email,
                         username: input.email.split('@')[0],
                         passwordHash,
-                        firstName: input.firstName,
-                        lastName: input.lastName,
+                        fullName: `${input.firstName || ''} ${input.lastName || ''}`.trim() || input.email.split('@')[0],
                         phone: input.phone,
                         department: input.department,
                         position: input.position,
                         tenantId: input.tenantId,
                         isActive: true, // Default to true?
-                        isEmailVerified: false,
+                        emailVerifiedAt: null,
                     })
                 },
                 catch: (error) => new DatabaseError({ operation: 'insert', message: String(error) })

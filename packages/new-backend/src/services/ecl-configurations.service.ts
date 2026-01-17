@@ -8,7 +8,7 @@ export const EclConfigurationsService = {
         return pipe(
             EclConfigurationsRepository.findAllHeaders(),
             Effect.map(headers => headers.map(transformHeader))
-        )
+        ) as any
     },
 
     get: (id: number) => {
@@ -23,9 +23,9 @@ export const EclConfigurationsService = {
                         ...transformHeader(header),
                         details: details.map(transformDetail)
                     })
-                    : Effect.fail(new NotFoundError({ resource: 'ECL Configuration', id: String(id) }))
+                    : Effect.fail(new NotFoundError({ resource: 'ECL Configuration', id: String(id) })) as any
             )
-        )
+        ) as any
     },
 
     create: (data: any, userId: string) => {
@@ -73,7 +73,7 @@ export const EclConfigurationsService = {
                     }))
                 )
             )
-        )
+        ) as any
     },
 
     update: (id: number, data: any, userId: string) => {
@@ -118,16 +118,16 @@ export const EclConfigurationsService = {
                             details: details.map(transformDetail)
                         }))
                     )
-                    : Effect.fail(new NotFoundError({ resource: 'ECL Configuration', id: String(id) }))
+                    : Effect.fail(new NotFoundError({ resource: 'ECL Configuration', id: String(id) })) as any
             )
-        )
+        ) as any
     },
 
     delete: (id: number) => {
         return pipe(
             EclConfigurationsRepository.delete(BigInt(id)),
             Effect.map(() => ({ message: 'Deleted successfully' }))
-        )
+        ) as any
     }
 }
 

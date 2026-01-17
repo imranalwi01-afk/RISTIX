@@ -93,12 +93,12 @@ export const AuditRepository = {
             where: whereClause,
             limit: options.limit ?? 100,
             offset: options.offset ?? 0,
-            orderBy: [desc(userActivityLogs.timestamp)],
+            orderBy: [desc(userActivityLogs.createdAt)],
         })
     },
 
     createUserActivityLog: async (data: NewUserActivityLog) => {
-        const [log] = await db.insert(userActivityLogs).values({ ...data, timestamp: new Date() }).returning()
+        const [log] = await db.insert(userActivityLogs).values({ ...data, createdAt: new Date() }).returning()
         return log
     },
 
@@ -125,7 +125,7 @@ export const AuditRepository = {
             where: whereClause,
             limit: options.limit ?? 100,
             offset: options.offset ?? 0,
-            orderBy: [desc(dataAccessLogs.timestamp)],
+            orderBy: [desc(dataAccessLogs.createdAt)],
         })
     },
 
@@ -157,7 +157,7 @@ export const AuditRepository = {
             where: whereClause,
             limit: options.limit ?? 100,
             offset: options.offset ?? 0,
-            orderBy: [desc(calculationAuditLogs.timestamp)],
+            orderBy: [desc(calculationAuditLogs.createdAt)],
         })
     },
 
@@ -203,8 +203,8 @@ export const AuditRepository = {
         const [totalLogs, todayLogs, criticalLogs, highRiskLogs] = await Promise.all([
             db.select({ count: count() }).from(auditLogs).where(eq(auditLogs.tenantId, tenantId)),
             db.select({ count: count() }).from(auditLogs).where(and(eq(auditLogs.tenantId, tenantId), gte(auditLogs.createdAt, today))),
-            db.select({ count: count() }).from(auditLogs).where(and(eq(auditLogs.tenantId, tenantId), eq(auditLogs.riskLevel, 'critical'))),
-            db.select({ count: count() }).from(auditLogs).where(and(eq(auditLogs.tenantId, tenantId), eq(auditLogs.riskLevel, 'high'))),
+            db.select({ count: count() }).from(auditLogs).where(and(eq(auditLogs.tenantId, tenantId), eq((auditLogs as any).riskLevel, 'critical'))),
+            db.select({ count: count() }).from(auditLogs).where(and(eq(auditLogs.tenantId, tenantId), eq((auditLogs as any).riskLevel, 'high'))),
         ])
 
         return {

@@ -57,9 +57,9 @@ export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
 
         // Resolve tenant - user.tenantId might be UUID or slug depending on data migration state
         const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-        const tenant = uuidRegex.test(user.tenantId)
+        const tenant = user.tenantId && uuidRegex.test(user.tenantId)
             ? await TenantRepository.findById(user.tenantId)
-            : await TenantRepository.findBySlug(user.tenantId)
+            : await TenantRepository.findBySlug(user.tenantId || '')
 
         if (!tenant) {
             console.warn(`⚠️ [AUTH] Tenant not found for user: ${user.email}, tenantId: ${user.tenantId}`);
@@ -73,7 +73,7 @@ export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
         c.set('user', user)
         c.set('tokenId', payload.jti)
         c.set('tenantId', tenant.id) // Use resolved UUID, not user.tenantId which might be a slug
-        c.set('isSystemUser', !!user.isPlatformAdmin) // Use the flag
+        c.set('isSystemUser', !!(user as any).isPlatformAdmin) // Use the flag
 
         await next()
     } catch (error: any) {

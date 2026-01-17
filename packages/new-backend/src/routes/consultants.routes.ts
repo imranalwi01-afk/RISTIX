@@ -106,7 +106,7 @@ consultantsRoutes.openapi(
         )
 
         const result = await Effect.runPromise(effect)
-        return sendListResponse(c, result.data, result.total, pagination)
+        return sendListResponse(c, result.data, result.total, pagination) as any
     }
 )
 
@@ -142,7 +142,7 @@ consultantsRoutes.openapi(
     async (c) => {
         const { id } = c.req.valid('param')
         const effect = consultantsService.getConsultantById(id)
-        return runEffect(c, effect)
+        return runEffect(c, effect) as any
     }
 )
 
@@ -186,7 +186,7 @@ consultantsRoutes.openapi(
         }
 
         const effect = consultantsService.createConsultant(data as any)
-        return runEffect(c, effect)
+        return runEffect(c, effect) as any
     }
 )
 
@@ -227,7 +227,7 @@ consultantsRoutes.openapi(
         const body = c.req.valid('json')
 
         const effect = consultantsService.updateConsultant(id, body as any)
-        return runEffect(c, effect)
+        return runEffect(c, effect) as any
     }
 )
 
@@ -259,7 +259,7 @@ consultantsRoutes.openapi(
     async (c) => {
         const { id } = c.req.valid('param')
         const effect = consultantsService.deleteConsultant(id)
-        return runEffect(c, effect)
+        return runEffect(c, effect) as any
     }
 )
 

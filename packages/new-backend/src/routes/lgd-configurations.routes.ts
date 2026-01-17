@@ -245,4 +245,4 @@ app.openapi(
     }
 )
 
-export default app
+export const lgdConfigurationsRoutes = app

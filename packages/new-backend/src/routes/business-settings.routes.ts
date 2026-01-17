@@ -371,4 +371,4 @@ app.openapi(
     }
 )
 
-export default app
+export const businessSettingsRoutes = app

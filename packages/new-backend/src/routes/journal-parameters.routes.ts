@@ -135,7 +135,7 @@ app.openapi(
     }),
     async (c) => {
         const { id } = c.req.valid('param')
-        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
+        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' } as any, 400)
         return runEffect(c, JournalParametersService.get(id) as any) as any
     }
 )
@@ -183,7 +183,7 @@ app.openapi(
         const { id } = c.req.valid('param')
         const data = c.req.valid('json')
         const userId = c.get('userId') as string || 'system'
-        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
+        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' } as any, 400)
         return runEffect(c, JournalParametersService.update(id, data, userId) as any) as any
     }
 )
@@ -206,11 +206,11 @@ app.openapi(
     }),
     async (c) => {
         const { id } = c.req.valid('param')
-        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
+        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' } as any, 400)
         return runEffect(c, JournalParametersService.delete(id) as any) as any
     }
 )
 
 // Lookup routes moved to top to prevent shadowing
 
-export default app
+export const journalParameterRoutes = app

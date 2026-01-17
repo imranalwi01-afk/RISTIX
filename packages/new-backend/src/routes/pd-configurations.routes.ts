@@ -222,4 +222,4 @@ app.openapi(
     }
 )
 
-export default app
+export const pdConfigurationsRoutes = app

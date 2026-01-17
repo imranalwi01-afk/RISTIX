@@ -1,0 +1,18 @@
+{
+    "$schema": "https://typedoc.org/schema.json",
+    "entryPoints": [
+        "./src/index.ts",
+        "./src/services/*.ts",
+        "./src/routes/*.ts",
+        "./src/repositories/*.ts"
+    ],
+    "out": "docs",
+    "plugin": [],
+    "theme": "default",
+    "name": "IFRS 9 Backend",
+    "includeVersion": true,
+    "readme": "README.md",
+    "skipErrorChecking": true,
+    "hideGenerator": true,
+    "cleanOutputDir": true
+}

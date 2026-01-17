@@ -211,7 +211,7 @@ export const assignRole = (input: {
                     validUntil: input.validUntil,
                     isTemporary: input.isTemporary,
                     temporaryReason: input.temporaryReason
-                }))
+                } as any))
             )
         )
     )

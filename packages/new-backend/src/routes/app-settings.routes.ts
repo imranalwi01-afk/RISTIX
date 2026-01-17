@@ -224,4 +224,4 @@ app.openapi(
     }
 )
 
-export default app
+export const appSettingsRoutes = app

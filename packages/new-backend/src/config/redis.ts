@@ -5,7 +5,7 @@ import { env } from './env'
  * Redis client for session management and caching
  * Supports both REDIS_URL (for Docker) and individual env vars (for local dev)
  */
-export const redis = env.REDIS_URL 
+export const redis = env.REDIS_URL
     ? new IORedis(env.REDIS_URL, {
         maxRetriesPerRequest: 3,
         retryStrategy(times) {

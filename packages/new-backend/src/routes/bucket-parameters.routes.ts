@@ -319,4 +319,4 @@ app.openapi(
     }
 )
 
-export default app
+export const bucketParametersRoutes = app

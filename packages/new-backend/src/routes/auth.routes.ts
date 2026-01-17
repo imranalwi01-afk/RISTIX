@@ -37,7 +37,6 @@ const UserSchema = z.object({
     firstName: z.string().optional().nullable(),
     lastName: z.string().optional().nullable(),
     tenantId: z.string().optional().nullable(),
-    isPlatformAdmin: z.boolean().optional(),
     permissions: z.array(z.string()),
     roles: z.array(z.string()),
 }).openapi('User')
@@ -138,10 +137,9 @@ authRoutes.openapi(
                 user: {
                     id: user.id,
                     email: user.email,
-                    firstName: user.firstName,
-                    lastName: user.lastName,
+                    firstName: (user as any).firstName || '',
+                    lastName: (user as any).lastName || '',
                     tenantId: user.tenantId,
-                    isPlatformAdmin: user.isPlatformAdmin,
                     // authService.login returns roles/permissions mapped as strings
                     permissions: (user as any).permissions ?? [],
                     roles: (user as any).roles ?? [],
@@ -238,7 +236,7 @@ authRoutes.openapi(
             success: true,
             message: 'Auth service is healthy',
             timestamp: new Date().toISOString(),
-        })
+        } as any)
     }
 )
 
@@ -331,7 +329,7 @@ authRoutes.openapi(
             success: true,
             message: 'Token is valid',
             user: c.get('user'),
-        })
+        } as any)
     }
 )
 
@@ -437,7 +435,7 @@ authRoutes.openapi(
         const ip = c.req.header('x-forwarded-for') || c.req.header('x-real-ip')
 
         if (!tokenId) {
-            return c.json({ success: true, message: 'Logged out' })
+            return c.json({ success: true, message: 'Logged out' } as any)
         }
 
         const effect = pipe(

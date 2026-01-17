@@ -420,4 +420,4 @@ app.openapi(
     }
 )
 
-export default app
+export const ruleBaseSettingsRoutes = app

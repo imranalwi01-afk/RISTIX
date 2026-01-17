@@ -54,8 +54,7 @@ export const AuthRepository = {
             conditions.push(
                 or(
                     ilike(users.email, `%${options.search}%`),
-                    ilike(users.firstName, `%${options.search}%`),
-                    ilike(users.lastName, `%${options.search}%`)
+                    ilike(users.fullName, `%${options.search}%`)
                 )!
             )
         }
@@ -102,7 +101,7 @@ export const AuthRepository = {
 
     verifyEmail: (db: DrizzleDB, id: string) =>
         db.update(users).set({
-            isEmailVerified: true,
+            emailVerifiedAt: new Date(),
             updatedAt: new Date(),
         }).where(eq(users.id, id)),
 

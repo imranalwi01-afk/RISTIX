@@ -20,7 +20,9 @@
         "db:migrate": "drizzle-kit migrate",
         "db:push": "drizzle-kit push",
         "db:studio": "drizzle-kit studio",
-        "db:seed": "bun run src/db/seed.ts"
+        "db:seed": "bun run src/db/seed.ts",
+        "docs": "typedoc",
+        "docs:serve": "npx serve docs"
     },
     "dependencies": {
         "@hono/zod-openapi": "0.18.3",
@@ -38,6 +40,7 @@
     "devDependencies": {
         "@types/bun": "^1.1.14",
         "drizzle-kit": "0.30.1",
+        "typedoc": "^0.28.16",
         "typescript": "^5.7.2"
     },
     "engines": {

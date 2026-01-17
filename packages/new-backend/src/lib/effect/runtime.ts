@@ -20,9 +20,9 @@ export async function runEffect<A>(
 ): Promise<any> {
     const result = await Effect.runPromiseExit(effect)
 
-    return result._tag === 'Success'
-        ? c.json({ success: true, data: result.value })
-        : handleEffectError(c, result.cause)
+    return (result._tag === 'Success'
+        ? c.json({ success: true, data: result.value } as any)
+        : handleEffectError(c, result.cause)) as any
 }
 
 /**
@@ -34,14 +34,14 @@ function handleEffectError(c: Context, cause: unknown): Response {
 
     if (!error) {
         console.error('Unknown error:', cause)
-        return c.json({ success: false, error: 'Internal server error' }, 500)
+        return c.json({ success: false, error: 'Internal server error' } as any, 500)
     }
 
     switch (error._tag) {
         case 'DatabaseError':
             console.error('Database error:', error)
             return c.json(
-                { success: false, error: 'Database operation failed', code: 'DB_ERROR' },
+                { success: false, error: 'Database operation failed', code: 'DB_ERROR' } as any,
                 500
             )
 
@@ -52,7 +52,7 @@ function handleEffectError(c: Context, cause: unknown): Response {
                     error: error.message,
                     code: 'VALIDATION_ERROR',
                     details: { field: error.field, errors: error.errors },
-                },
+                } as any,
                 400
             )
 
@@ -62,19 +62,19 @@ function handleEffectError(c: Context, cause: unknown): Response {
                     success: false,
                     error: `${error.resource} with id ${error.id} not found`,
                     code: 'NOT_FOUND',
-                },
+                } as any,
                 404
             )
 
         case 'AuthenticationError':
             return c.json(
-                { success: false, error: error.message, code: 'UNAUTHENTICATED' },
+                { success: false, error: error.message, code: 'UNAUTHENTICATED' } as any,
                 401
             )
 
         case 'AuthorizationError':
             return c.json(
-                { success: false, error: error.message, code: 'UNAUTHORIZED' },
+                { success: false, error: error.message, code: 'UNAUTHORIZED' } as any,
                 403
             )
 
@@ -85,19 +85,19 @@ function handleEffectError(c: Context, cause: unknown): Response {
                     error: error.message,
                     code: error.code,
                     details: error.details,
-                },
+                } as any,
                 422
             )
 
         case 'RateLimitError':
             return c.json(
-                { success: false, error: error.message, code: 'RATE_LIMITED' },
+                { success: false, error: error.message, code: 'RATE_LIMITED' } as any,
                 429
             )
 
         default:
             console.error('Unhandled error:', error)
-            return c.json({ success: false, error: 'Internal server error' }, 500)
+            return c.json({ success: false, error: 'Internal server error' } as any, 500)
     }
 }
 
