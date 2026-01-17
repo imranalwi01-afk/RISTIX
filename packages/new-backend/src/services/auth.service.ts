@@ -1,10 +1,11 @@
 import { Effect, pipe } from 'effect'
 import * as jose from 'jose'
+import crypto from 'crypto'
 import { env } from '@/config/env'
 import { getDatabase } from '@/config/database' // ✅ Import dynamic DB factory
+import { redis } from '@/config/redis' // ✅ Import Redis for session management
 import {
     type User,
-    type NewSession,
     type NewUser,
 } from '@/db/schema'
 import {
@@ -173,19 +174,34 @@ export const login = (
                 if (!tenant) throw new Error('Tenant not found by slug')
                 return tenant.id
             },
-            catch: (error) => new DatabaseError({ message: 'Tenant resolution failed', operation: 'query' })
+            catch: () => new DatabaseError({ message: 'Tenant resolution failed', operation: 'query' })
         }),
-        // 2. Find user in the CORRECT database
+        // 2. Find user in the CORRECT database (check tenant DB first, then platform DB)
         Effect.flatMap((resolvedTenantId) =>
             pipe(
                 Effect.tryPromise({
                     try: async () => {
-                        // ✅ DYNAMIC DB SWITCHING
-                        const db = getDatabase(resolvedTenantId)
-                        const user = await AuthRepository.findUserByEmail(db, input.email)
+                        // ✅ Try tenant database first (for tenant-specific users)
+                        const tenantDb = getDatabase(resolvedTenantId)
+                        let user = await AuthRepository.findUserByEmail(tenantDb, input.email)
+                        let db = tenantDb
+                        
+                        // ✅ Fallback to platform database (for platform admins)
+                        if (!user) {
+                            console.log(`[AuthDebug] User not found in tenant DB, checking platform DB...`)
+                            const platformDb = getDatabase(null)
+                            user = await AuthRepository.findUserByEmail(platformDb, input.email)
+                            if (user) {
+                                console.log(`[AuthDebug] Platform user found: ${user.email}`)
+                                db = platformDb
+                            }
+                        } else {
+                            console.log(`[AuthDebug] User found in tenant DB: ${user.email}`)
+                        }
+                        
                         return { user, resolvedTenantId, db }
                     },
-                    catch: (error) => new DatabaseError({ message: 'Failed to find user', operation: 'query' })
+                    catch: () => new DatabaseError({ message: 'Failed to find user', operation: 'query' })
                 })
             )
         ),
@@ -223,13 +239,18 @@ export const login = (
         // 5. Load user roles (from the same DB)
         Effect.flatMap(({ user, resolvedTenantId, db }) =>
             pipe(
-                // Use resolvedTenantId if available (UUID), fallback to user.tenantId if platform login
-                userRolesRepository.findByUser(db, user.id, resolvedTenantId ?? user.tenantId),
+                // Use user.tenantId as stored in the user_roles table (could be slug or UUID)
+                userRolesRepository.findByUser(db, user.id, user.tenantId),
                 Effect.map((userRolesList) => {
-                    const roles = userRolesList.map((ur) => ur.role.roleName)
+                    console.log('🔍 DEBUG: userRolesList length:', userRolesList.length)
+                    console.log('🔍 DEBUG: userRolesList:', JSON.stringify(userRolesList, null, 2))
+                    
+                    const roles = userRolesList.map((ur) => ur.role.roleCode)
+                    console.log('🔍 DEBUG: extracted roles:', roles)
 
                     const permissionSet = new Set<string>()
                     userRolesList.forEach(ur => {
+                        console.log('🔍 DEBUG: role:', ur.role.roleCode, 'rolePermissions:', ur.role.rolePermissions?.length)
                         if (ur.role.rolePermissions) {
                             ur.role.rolePermissions.forEach(rp => {
                                 if (rp.permission && rp.permission.code) {
@@ -238,12 +259,13 @@ export const login = (
                             })
                         }
                     })
+                    console.log('🔍 DEBUG: extracted permissions:', Array.from(permissionSet))
 
                     return { user, resolvedTenantId, roles, permissions: Array.from(permissionSet), db }
                 })
             )
         ),
-        // 6. Generate tokens and create session (in the CORRECT DB)
+        // 6. Generate tokens and store session in Redis
         Effect.flatMap(({ user, resolvedTenantId, roles, permissions, db }) =>
             Effect.tryPromise({
                 try: async () => {
@@ -256,18 +278,37 @@ export const login = (
                         generateRefreshToken(user, refreshTokenId, resolvedTenantId, roles, permissions),
                     ])
 
-                    // Create session record in the SAME database where user exists
-                    await AuthRepository.createSession(db, {
+                    // Store session in Redis (much better than database for sessions!)
+                    const sessionData = {
                         userId: user.id,
                         tenantId: resolvedTenantId ?? user.tenantId,
                         accessTokenId,
                         refreshTokenId,
                         ipAddress: metadata?.ip,
                         userAgent: metadata?.userAgent,
-                        expiresAt: new Date(now.getTime() + ACCESS_TOKEN_EXPIRY_MS),
-                        refreshExpiresAt: new Date(now.getTime() + REFRESH_TOKEN_EXPIRY_MS),
+                        roles,
+                        permissions,
+                        createdAt: now.toISOString(),
+                        expiresAt: new Date(now.getTime() + ACCESS_TOKEN_EXPIRY_MS).toISOString(),
+                        refreshExpiresAt: new Date(now.getTime() + REFRESH_TOKEN_EXPIRY_MS).toISOString(),
                         isActive: true,
-                    })
+                    }
+
+                    // Store with TTL matching token expiry
+                    await Promise.all([
+                        redis.setex(
+                            `session:access:${accessTokenId}`,
+                            Math.floor(ACCESS_TOKEN_EXPIRY_MS / 1000),
+                            JSON.stringify(sessionData)
+                        ),
+                        redis.setex(
+                            `session:refresh:${refreshTokenId}`,
+                            Math.floor(REFRESH_TOKEN_EXPIRY_MS / 1000),
+                            JSON.stringify(sessionData)
+                        ),
+                        // Also index by user for easy logout-all
+                        redis.sadd(`user:sessions:${user.id}`, accessTokenId, refreshTokenId),
+                    ])
 
                     // Update last login
                     await AuthRepository.updateLastLogin(db, user.id)
@@ -286,7 +327,7 @@ export const login = (
                         },
                     }
                 },
-                catch: (error) =>
+                catch: (error: any) =>
                     new DatabaseError({
                         operation: 'insert',
                         message: `Failed to create session: ${error}`,
@@ -299,26 +340,15 @@ export const login = (
  * Logout a user by revoking their session
  */
 export const logout = (
-    accessTokenId: string, // We might need tenantId here to know which DB to update
+    accessTokenId: string,
     reason?: string
 ): Effect.Effect<void, DatabaseError> =>
     Effect.tryPromise({
         try: async () => {
-            // TODO: We need to know WHICH DB the session is in.
-            // For now, we might need to check both or require tenantId in logout.
-            // To be safe, we'll try default DB first.
-            // Ideally, the token contains the tenantId claim, which we can extract before calling this.
-
-            // Temporary: Try both or default
-            const db = getDatabase(null) // platform
-            await AuthRepository.invalidateSession(db, accessTokenId)
-
-            // If we had tenantId, we'd use getDatabase(tenantId)
+            // Delete session from Redis
+            await redis.del(`session:access:${accessTokenId}`)
         },
-        catch: (error) => new DatabaseError({
-            message: 'Failed to logout',
-            operation: 'update'
-        })
+        catch: () => new DatabaseError()
     })
 
 /**
@@ -335,27 +365,44 @@ export const refreshTokens = (
                 throw new Error('Invalid token type')
             }
 
+            // Check if refresh session exists in Redis
+            const sessionData = await redis.get(`session:refresh:${payload.jti}`)
+            if (!sessionData) {
+                throw new Error('Session not found or expired')
+            }
+
             // ✅ Resolve DB from token payload
             const db = getDatabase(payload.tenantId)
 
-            // Look up session in the correct DB
-            // Note: We need findSessionByTokenId in Repo to accept db
-            // Using payload.jti (refresh token ID) or implementing session lookup correctly
-
-            // For now, assume simple session check or omit if complexity is too high for this step
-            // We'll trust the signed JWT for now but ideally check DB session
-
             const user = await AuthRepository.findUserById(db, payload.sub)
-            if (!user) throw new Error('User not found')
+            if (!user || !user.isActive) {
+                throw new Error('User not found or inactive')
+            }
 
-            // Re-issue tokens...
-            // Simplified for this refactor step to avoid implementing full refresh flow logic from scratch
-            // calling generateAccessToken etc.
+            // Generate new tokens
+            const accessTokenId = crypto.randomUUID()
+            const refreshTokenId = crypto.randomUUID()
 
-            // ... [Rest of logic would go here, simplified to return mock for now] ...
-            throw new Error('Refresh flow pending full implementation')
+            const [newAccessToken, newRefreshToken] = await Promise.all([
+                generateAccessToken(user, accessTokenId, payload.tenantId, payload.roles, payload.permissions),
+                generateRefreshToken(user, refreshTokenId, payload.tenantId, payload.roles, payload.permissions),
+            ])
+
+            // Store new sessions in Redis
+            const sessionInfo = JSON.parse(sessionData)
+            await Promise.all([
+                redis.setex(`session:access:${accessTokenId}`, 900, JSON.stringify({ ...sessionInfo, accessTokenId })),
+                redis.setex(`session:refresh:${refreshTokenId}`, 2592000, JSON.stringify({ ...sessionInfo, refreshTokenId })),
+                // Remove old refresh session
+                redis.del(`session:refresh:${payload.jti}`),
+            ])
+
+            return {
+                accessToken: newAccessToken,
+                refreshToken: newRefreshToken,
+            }
         },
-        catch: (error) =>
+        catch: () =>
             new AuthenticationError({
                 message: 'Invalid or expired refresh token',
                 reason: 'invalid_token',
@@ -364,28 +411,25 @@ export const refreshTokens = (
     })
 
 /**
- * Get session by access token ID
+ * Get session by access token ID from Redis
  */
 export const getSession = (
     accessTokenId: string
-): Effect.Effect<
-    { session: NewSession; user: User },
-    DatabaseError | AuthenticationError
-> =>
-    pipe(
-        Effect.tryPromise({
-            try: async () => {
-                // Without tenantId, we don't know which DB.
-                // This method signature is insufficient for multi-tenant split auth.
-                // We need getSession(accessTokenId, tenantId)
-                return null as any
-            },
-            catch: (e) => new DatabaseError({ message: 'DB Error', operation: 'query' })
-        }),
-        Effect.flatMap((session: any) => {
-            return Effect.fail(new AuthenticationError({ message: 'Refactor pending', reason: 'refactor_pending' }))
+): Effect.Effect<any, DatabaseError | AuthenticationError> =>
+    Effect.tryPromise({
+        try: async () => {
+            const sessionData = await redis.get(`session:access:${accessTokenId}`)
+            if (!sessionData) {
+                throw new Error('Session not found')
+            }
+            return JSON.parse(sessionData)
+        },
+        catch: () => new AuthenticationError({ 
+            message: 'Session not found or expired', 
+            reason: 'invalid_session',
+            code: 'INVALID_SESSION' 
         })
-    )
+    })
 
 /**
  * Revoke all sessions for a user
@@ -396,10 +440,17 @@ export const revokeAllSessions = (
 ): Effect.Effect<void, DatabaseError> =>
     Effect.tryPromise({
         try: async () => {
-            // Again, need tenantId to know which DB
-            // Assuming default/platform for now
-            const db = getDatabase(null)
-            await AuthRepository.invalidateAllUserSessions(db, userId)
+            // Get all session IDs for this user from Redis set
+            const sessionIds = await redis.smembers(`user:sessions:${userId}`)
+            
+            // Delete all sessions
+            const pipeline = redis.pipeline()
+            sessionIds.forEach(sessionId => {
+                pipeline.del(`session:access:${sessionId}`)
+                pipeline.del(`session:refresh:${sessionId}`)
+            })
+            pipeline.del(`user:sessions:${userId}`)
+            await pipeline.exec()
         },
         catch: () => new DatabaseError({ message: 'Failed to revoke', operation: 'update' })
     })

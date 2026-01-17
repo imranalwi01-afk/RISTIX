@@ -26,35 +26,31 @@ export const roles = coreSchema.table(
     'roles',
     {
         id: uuid('id').primaryKey().defaultRandom(),
-        legacyId: integer('legacy_id'),
         roleCode: varchar('role_code', { length: 50 }).notNull().unique(),
         roleName: varchar('role_name', { length: 100 }).notNull(),
         description: text('description'),
-        permissions: jsonb('permissions').notNull().default({}),
-        isActive: boolean('is_active').notNull().default(true),
-
-        // Banking-specific role configuration
-        bankingTypeSpecific: varchar('banking_type_specific', { length: 20 }),
-        complianceLevel: varchar('compliance_level', { length: 50 }),
-        hierarchyLevel: integer('hierarchy_level').notNull().default(1),
+        permissions: jsonb('permissions').default('[]'),
+        isActive: boolean('is_active').default(true),
 
         // System roles (cannot be deleted/modified)
-        isSystemRole: boolean('is_system_role').notNull().default(false),
+        isSystemRole: boolean('is_system_role').default(false),
 
         // Tenant isolation
-        tenantId: uuid('tenant_id').references(() => tenants.id),
+        tenantId: varchar('tenant_id', { length: 100 }).default('dana'),
 
-        // Audit fields
-        createdAt: timestamp('created_at').notNull().defaultNow(),
-        updatedAt: timestamp('updated_at').notNull().defaultNow(),
-        createdBy: uuid('created_by'),
-        updatedBy: uuid('updated_by'),
+        // Timestamps
+        createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+        updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+        
+        // Tenant-specific fields
+        level: integer('level').notNull().default(1),
+        supportsConventional: boolean('supports_conventional').default(true),
+        supportsSyariah: boolean('supports_syariah').default(false),
     },
     (table) => [
         uniqueIndex('roles_role_name_idx').on(table.roleName),
         index('roles_tenant_idx').on(table.tenantId),
         index('roles_active_idx').on(table.isActive),
-        index('roles_hierarchy_idx').on(table.hierarchyLevel),
         index('roles_system_role_idx').on(table.isSystemRole),
     ]
 )
@@ -67,37 +63,23 @@ export const userRoles = coreSchema.table(
     'user_roles',
     {
         id: uuid('id').primaryKey().defaultRandom(),
-        userId: uuid('user_id')
-            .notNull()
-            .references(() => users.id, { onDelete: 'cascade' }),
-        roleId: uuid('role_id')
-            .notNull()
-            .references(() => roles.id, { onDelete: 'cascade' }),
+        userId: uuid('user_id').notNull(),
+        roleId: uuid('role_id').notNull(),
 
         // Assignment metadata
         assignedBy: uuid('assigned_by'),
-        assignedAt: timestamp('assigned_at').notNull().defaultNow(),
+        assignedAt: timestamp('assigned_at', { withTimezone: true }).defaultNow(),
 
         // Status and validity
-        isActive: boolean('is_active').notNull().default(true),
-        validFrom: timestamp('valid_from'),
-        validUntil: timestamp('valid_until'),
-
-        // Banking context
-        bankingTypeRestriction: varchar('banking_type_restriction', { length: 20 }),
+        isActive: boolean('is_active').default(true),
+        validFrom: timestamp('valid_from', { withTimezone: true }).defaultNow(),
+        validUntil: timestamp('valid_until', { withTimezone: true }),
 
         // Temporary assignments
-        isTemporary: boolean('is_temporary').notNull().default(false),
-        temporaryReason: text('temporary_reason'),
+        isTemporary: boolean('is_temporary').default(false),
 
         // Tenant isolation
-        tenantId: uuid('tenant_id')
-            .notNull()
-            .references(() => tenants.id),
-
-        // Timestamps
-        createdAt: timestamp('created_at').notNull().defaultNow(),
-        updatedAt: timestamp('updated_at').notNull().defaultNow(),
+        tenantId: varchar('tenant_id', { length: 100 }).default('dana'),
     },
     (table) => [
         uniqueIndex('user_role_unique_idx').on(table.userId, table.roleId),

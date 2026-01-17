@@ -69,43 +69,45 @@ services:
       dockerfile: Dockerfile
       target: builder
     container_name: ifrs9-new-backend-dev
+    env_file:
+      - .env
     environment:
       NODE_ENV: development
       PORT: 4232
       HOST: 0.0.0.0
 
       # Database Configuration
-      DB_HOST: ${DB_HOST:-postgres}
-      DB_PORT: ${DB_PORT:-5432}
+      DB_HOST: ${DB_HOST:-host.docker.internal}
+      DB_PORT: ${DB_PORT:-5433}
       DB_USER: ${DB_USER:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
 
       # Platform Database
-      PLATFORM_DB_HOST: ${PLATFORM_DB_HOST:-postgres}
-      PLATFORM_DB_PORT: ${PLATFORM_DB_PORT:-5432}
+      PLATFORM_DB_HOST: ${PLATFORM_DB_HOST:-host.docker.internal}
+      PLATFORM_DB_PORT: ${PLATFORM_DB_PORT:-5433}
       PLATFORM_DB_USER: ${PLATFORM_DB_USER:-postgres}
       PLATFORM_DB_PASSWORD: ${PLATFORM_DB_PASSWORD:-postgres}
       PLATFORM_DB_NAME: ${PLATFORM_DB_NAME:-ifrspro_platform_admin}
       PLATFORM_DB_SSL: ${PLATFORM_DB_SSL:-false}
 
       # Shared Services Database
-      SHARED_DB_HOST: ${SHARED_DB_HOST:-postgres}
-      SHARED_DB_PORT: ${SHARED_DB_PORT:-5432}
+      SHARED_DB_HOST: ${SHARED_DB_HOST:-host.docker.internal}
+      SHARED_DB_PORT: ${SHARED_DB_PORT:-5433}
       SHARED_DB_USER: ${SHARED_DB_USER:-postgres}
       SHARED_DB_PASSWORD: ${SHARED_DB_PASSWORD:-postgres}
       SHARED_DB_NAME: ${SHARED_DB_NAME:-ifrspro_shared_services}
       SHARED_DB_SSL: ${SHARED_DB_SSL:-false}
 
       # Tenant Database
-      TENANT_DB_HOST: ${TENANT_DB_HOST:-postgres}
-      TENANT_DB_PORT: ${TENANT_DB_PORT:-5432}
+      TENANT_DB_HOST: ${TENANT_DB_HOST:-host.docker.internal}
+      TENANT_DB_PORT: ${TENANT_DB_PORT:-5433}
       TENANT_DB_USER: ${TENANT_DB_USER:-postgres}
       TENANT_DB_PASSWORD: ${TENANT_DB_PASSWORD:-postgres}
       TENANT_DB_NAME: ${TENANT_DB_NAME:-ifrspro_tenant_iaf}
       TENANT_DB_SSL: ${TENANT_DB_SSL:-false}
 
       # Legacy Database
-      LEGACY_DB_HOST: ${LEGACY_DB_HOST:-postgres}
+      LEGACY_DB_HOST: ${LEGACY_DB_HOST:-host.docker.internal}
       LEGACY_DB_PORT: ${LEGACY_DB_PORT:-5433}
       LEGACY_DB_USER: ${LEGACY_DB_USER:-postgres}
       LEGACY_DB_PASSWORD: ${LEGACY_DB_PASSWORD:-postgres}
@@ -113,9 +115,9 @@ services:
       LEGACY_DB_SSL: ${LEGACY_DB_SSL:-false}
 
       # Backward compatibility - Primary DB URL (points to Platform DB)
-      # Force use of internal hostname 'postgres' instead of inheriting 'localhost' from host .env
-      DATABASE_URL: postgresql://${PLATFORM_DB_USER:-postgres}:${PLATFORM_DB_PASSWORD:-postgres}@${PLATFORM_DB_HOST:-postgres}:5432/${PLATFORM_DB_NAME:-ifrspro_platform_admin}
-      LEGACY_DATABASE_URL: ${LEGACY_DATABASE_URL:-postgresql://${LEGACY_DB_USER:-postgres}:${LEGACY_DB_PASSWORD:-postgres}@${LEGACY_DB_HOST:-postgres}:${LEGACY_DB_PORT:-5433}/${LEGACY_DB_NAME:-FRS9PRO}}
+      # Use host.docker.internal to connect to host machine's PostgreSQL on port 5433
+      DATABASE_URL: postgresql://${PLATFORM_DB_USER:-postgres}:${PLATFORM_DB_PASSWORD:-postgres}@${PLATFORM_DB_HOST:-host.docker.internal}:5433/${PLATFORM_DB_NAME:-ifrspro_platform_admin}
+      LEGACY_DATABASE_URL: ${LEGACY_DATABASE_URL:-postgresql://${LEGACY_DB_USER:-postgres}:${LEGACY_DB_PASSWORD:-postgres}@${LEGACY_DB_HOST:-host.docker.internal}:${LEGACY_DB_PORT:-5433}/${LEGACY_DB_NAME:-FRS9PRO}}
 
       # Tenant Configuration
       TENANT_ID: ${TENANT_ID:-iaf}
@@ -167,6 +169,8 @@ services:
       context: ../..
       dockerfile: packages/frontend/Dockerfile
     container_name: ifrs9-frontend-dev
+    env_file:
+      - .env
     environment:
       NODE_ENV: development
       NEXT_PUBLIC_BACKEND_URL: ${BACKEND_URL:-http://localhost:4232/api}
@@ -187,6 +191,8 @@ services:
     image: node:18-alpine
     container_name: ifrs9-frontend-dev-hot
     working_dir: /app/packages/frontend
+    env_file:
+      - .env
     environment:
       - NODE_ENV=development
       - PORT=4231

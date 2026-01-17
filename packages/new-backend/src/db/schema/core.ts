@@ -6,6 +6,8 @@ import {
     boolean,
     text,
     jsonb,
+    integer,
+    date,
     index,
     uniqueIndex,
 } from 'drizzle-orm/pg-core'
@@ -50,31 +52,55 @@ export const users = coreSchema.table(
     'users',
     {
         id: uuid('id').primaryKey().defaultRandom(),
-        tenantId: uuid('tenant_id')
-            .notNull()
-            .references(() => tenants.id),
-        email: varchar('email', { length: 255 }).notNull(),
+        // Tenant ID as varchar (not FK) to match actual database
+        tenantId: varchar('tenant_id', { length: 100 }).default('dana'),
+        
+        // Basic info
         username: varchar('username', { length: 100 }).notNull(),
-        passwordHash: text('password_hash').notNull(),
-        fullName: text('full_name'),
-        firstName: varchar('first_name', { length: 100 }),
-        lastName: varchar('last_name', { length: 100 }),
-        phone: varchar('phone', { length: 20 }),
+        email: varchar('email', { length: 255 }).notNull(),
+        passwordHash: varchar('password_hash', { length: 255 }).notNull(),
+        fullName: varchar('full_name', { length: 200 }).notNull(),
+        
+        // Contact & Organization
         department: varchar('department', { length: 100 }),
         position: varchar('position', { length: 100 }),
-        isActive: boolean('is_active').notNull().default(true),
-        isPlatformAdmin: boolean('is_platform_admin').notNull().default(false),
-        isEmailVerified: boolean('is_email_verified').notNull().default(false),
-        lastLoginAt: timestamp('last_login_at'),
+        phone: varchar('phone', { length: 50 }),
+        employeeId: varchar('employee_id', { length: 50 }),
+        bankId: varchar('bank_id', { length: 50 }),
+        
+        // Banking specific
+        bankingAccess: varchar('banking_access', { length: 20 }).default('CONVENTIONAL'),
+        syariahCertified: boolean('syariah_certified').default(false),
+        syariahCertification: boolean('syariah_certification').default(false),
+        syariahCertificationDate: date('syariah_certification_date'),
+        
+        // Security & MFA
+        isActive: boolean('is_active').default(true),
+        isVerified: boolean('is_verified').default(false),
+        mfaEnabled: boolean('mfa_enabled').default(false),
+        mfaSecret: varchar('mfa_secret', { length: 255 }),
+        backupCodes: text('backup_codes').array(),
+        forcePasswordChange: boolean('force_password_change').default(false),
+        
+        // Activity tracking
+        loginCount: integer('login_count').default(0),
+        failedLoginAttempts: integer('failed_login_attempts').default(0),
+        lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
+        
+        // Timestamps
+        emailVerifiedAt: timestamp('email_verified_at'),
         passwordChangedAt: timestamp('password_changed_at'),
-        createdAt: timestamp('created_at').notNull().defaultNow(),
-        updatedAt: timestamp('updated_at').notNull().defaultNow(),
+        createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+        updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
     },
     (table) => [
-        uniqueIndex('users_email_tenant_idx').on(table.email, table.tenantId),
-        index('users_username_idx').on(table.username),
-        index('users_tenant_idx').on(table.tenantId),
-        index('users_active_idx').on(table.isActive),
+        index('idx_dana_users_email').on(table.email),
+        index('idx_dana_users_username').on(table.username),
+        index('idx_dana_users_tenant_id').on(table.tenantId),
+        index('idx_dana_users_active').on(table.isActive),
+        index('idx_dana_users_employee_id').on(table.employeeId),
+        index('idx_dana_users_login_count').on(table.loginCount),
+        index('idx_dana_users_failed_attempts').on(table.failedLoginAttempts),
     ]
 )
 
@@ -86,12 +112,7 @@ export const tenantsRelations = relations(tenants, ({ many }) => ({
     users: many(users),
 }))
 
-export const usersRelations = relations(users, ({ one }) => ({
-    tenant: one(tenants, {
-        fields: [users.tenantId],
-        references: [tenants.id],
-    }),
-}))
+// Note: tenantId in users is varchar, not FK, so no direct relation
 
 // =============================================================================
 // TYPE EXPORTS

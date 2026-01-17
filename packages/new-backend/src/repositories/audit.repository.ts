@@ -1,5 +1,5 @@
 import { eq, and, or, asc, desc, count, ilike, gte, lte, sql } from 'drizzle-orm'
-import { db } from '@/config'
+import { tenantDb as db } from '@/config'
 import {
     auditLogs,
     userActivityLogs,
