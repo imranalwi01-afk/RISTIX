@@ -10,17 +10,23 @@
 // ============================================================================
 
 import axios, { AxiosResponse, AxiosError } from 'axios';
-import Cookies from 'js-cookie';
 import { getAuthToken } from '../utils/auth-token';
 
 // ============================================================================
 // 🏗️ CENTRALIZED API CONFIGURATION
 // ============================================================================
-import { frontendEnvironmentLoader } from '../config/environment-loader-frontend';
-import { apiClient } from './api-client';
-export { apiClient };
-import { sessionControlService } from './session-control.service';
+// Imported from lightweight setup to avoid circular dependencies
+import {
+  apiClient,
+  initializeUrls,
+  ensureCurrentUrls,
+  API_BASE_URL,
+  BACKEND_URL
+} from './api-setup';
 
+export { apiClient };
+
+// Import Domain APIs
 // Import Individual Impairment API (will be initialized later to avoid circular dependency)
 import { individualImpairmentAPI as individualImpairmentAPIService } from './api.individual-impairment';
 import { pdConfigurationsApi } from './api/pd-configurations.api';
@@ -31,63 +37,8 @@ import { flScalarAPI } from './api/fl-scalar.api';
 import { eclConfigurationsApi } from './api/ecl-configurations.api';
 import { impairmentApi } from './api/impairment.api';
 import { approvalAPI } from './api/approval.api';
-
-
-
-// ✅ ENVIRONMENT-AWARE CONFIG: Use environment loader with auto-detection
-// ⚠️ NO HARDCODED VALUES: URLs will be set exclusively by environment loader
-let API_BASE_URL: string = '';  // Will be set by environment loader
-let BACKEND_URL: string = '';   // Will be set by environment loader
-
-// Initialize URLs from environment loader
-const initializeUrls = () => {
-  try {
-    console.log('🔧 [API INIT] Starting URL initialization...');
-    const config = frontendEnvironmentLoader.getConfiguration();
-    console.log('🔧 [API INIT] Environment loader returned config:', {
-      configExists: !!config,
-      deploymentTarget: config?.deploymentTarget,
-      environmentName: config?.environmentName,
-      backendUrl: config?.api?.backend,
-      backendFromUrls: config?.urls?.backend
-    });
-
-    // Check if config is valid before accessing properties
-    if (!config) {
-      throw new Error('Configuration is null or undefined');
-    }
-
-    // CRITICAL FIX: Always use config values, never fall back to hardcoded URLs
-    API_BASE_URL = config.api?.base || config.api?.backend;
-    BACKEND_URL = config.urls?.backend || config.api?.backend;
-
-    console.log('✅ API URLs initialized from environment loader:', {
-      environment: config.environmentName || 'unknown',
-      deploymentTarget: config.deploymentTarget || 'unknown',
-      nodeEnv: config.nodeEnv || 'unknown',
-      backendFromConfig: config.api?.backend,
-      backendUrlFromConfig: config.urls?.backend,
-      finalApiUrl: API_BASE_URL,
-      finalBackendUrl: BACKEND_URL
-    });
-
-    // Update axios client with new base URL
-    apiClient.defaults.baseURL = API_BASE_URL;
-    console.log('✅ Axios client updated with new base URL:', API_BASE_URL);
-  } catch (error) {
-    console.warn('⚠️ Failed to initialize URLs from environment loader, using defaults:', error);
-    console.log('🔄 Using default URLs:', { API_BASE_URL, BACKEND_URL });
-  }
-};
-
-// Function to ensure URLs are up-to-date (call this before critical API calls)
-const ensureCurrentUrls = () => {
-  console.log('🔄 [URL REFRESH] Ensuring URLs are current...');
-  initializeUrls();
-};
-
-// Initialize URLs now that apiClient is imported and available
-initializeUrls();
+// Import IFRS9 API service
+import { ifrs9API as ifrs9Service } from './api/ifrs9.api';
 
 // ✅ ENVIRONMENT-AWARE CONFIG LOGGING - AUTO-DETECTION MODE
 console.log('🏗️ IFRS9 IAF API SERVICE - DUAL-MODE AUTO-DETECTION:');
@@ -97,219 +48,6 @@ console.log('  - Mode: Automatic Environment Detection');
 console.log('  - Environment: Frontend auto-detects based on hostname');
 console.log('  - Auto-Switch: IAF Development ↔ IAF Production');
 console.log('  - Configuration Source: Environment Loader');
-
-// ============================================================================
-// RATE LIMITING AND REQUEST DEBOUNCING
-// ============================================================================
-interface PendingRequest {
-  timestamp: number;
-  resolve: (value: any) => void;
-  reject: (reason: any) => void;
-}
-
-const pendingRequests = new Map<string, PendingRequest[]>();
-const RATE_LIMIT_WINDOW = 1000; // 1 second window
-const MAX_REQUESTS_PER_WINDOW = 10; // Max 10 requests per second
-const RETRY_DELAY = 1000; // Initial retry delay
-const MAX_RETRIES = 3; // Maximum retry attempts
-
-// Generate request key for deduplication
-const getRequestKey = (config: any) => {
-  const { method, url, params, data } = config;
-  return `${method}:${url}:${JSON.stringify(params || {})}:${JSON.stringify(data || {})}`;
-};
-
-// Check if request should be throttled
-const shouldThrottle = (url: string): boolean => {
-  // Skip throttling for non-data endpoints
-  const skipThrottle = ['/health', '/api/v1/auth/me', '/api/v1/auth/refresh'];
-  return !skipThrottle.some(endpoint => url.includes(endpoint));
-};
-
-// ============================================================================
-// REQUEST INTERCEPTOR - REAL AUTH TOKEN AND TENANT SUPPORT WITH RATE LIMITING
-// ============================================================================
-apiClient.interceptors.request.use(
-  async (config) => {
-    // ✅ IAF DUAL-MODE AUTO-SWITCH: API calls routed based on environment detection
-    if (typeof window !== 'undefined') {
-      const hostname = window.location.hostname;
-
-      if (hostname === 'iaf-ifrs.danafin.com' || hostname.includes('danafin.com')) {
-        console.log('🏭 IAF ECS PRODUCTION API call:', config.url);
-      } else if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.includes('ifrspro.id')) {
-        console.log('🏗️ IAF LOCAL DEVELOPMENT API call:', config.url);
-      } else {
-        console.log('🌐 IAF UNKNOWN ENVIRONMENT API call:', config.url);
-      }
-    }
-
-    // 🚀 RATE LIMITING: Check if request should be throttled
-    if (shouldThrottle(config.url || '')) {
-      const requestKey = getRequestKey(config);
-      const now = Date.now();
-
-      // Clean old requests outside the window
-      for (const [key, requests] of pendingRequests.entries()) {
-        const validRequests = requests.filter(req => now - req.timestamp < RATE_LIMIT_WINDOW);
-        if (validRequests.length === 0) {
-          pendingRequests.delete(key);
-        } else if (validRequests.length < requests.length) {
-          pendingRequests.set(key, validRequests);
-        }
-      }
-
-      // Check current request count for this URL pattern
-      const urlPattern = config.url?.split('?')[0] || '';
-      const similarRequests = Array.from(pendingRequests.keys())
-        .filter(key => key.includes(urlPattern))
-        .reduce((total, key) => total + (pendingRequests.get(key)?.length || 0), 0);
-
-      if (similarRequests >= MAX_REQUESTS_PER_WINDOW) {
-        console.warn(`⚠️ Rate limiting request to ${config.url} (${similarRequests}/${MAX_REQUESTS_PER_WINDOW})`);
-
-        // Wait for the window to pass
-        const waitTime = RATE_LIMIT_WINDOW - (now % RATE_LIMIT_WINDOW);
-        await new Promise(resolve => setTimeout(resolve, waitTime));
-      }
-    }
-
-    // ✅ FIXED: Add real authentication token
-    if (typeof window !== 'undefined') {
-      // ✅ Use centralized utility (prefers cookie)
-      const token = getAuthToken();
-
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-        console.log(`🔐 [API] Added Authorization header: Bearer ${token.substring(0, 10)}...`);
-      } else {
-        console.warn('⚠️ [API] No auth_token found');
-      }
-
-      // ✅ FIXED: Add tenant context for banking users
-      const userData = localStorage.getItem('user_data'); // Fixed: Use 'user_data' key to match auth provider
-      if (userData) {
-        try {
-          const user = JSON.parse(userData);
-
-          // ✅ CRITICAL FIX: Use tenant slug if available, otherwise use tenant UUID
-          if (user.tenantSlug) {
-            config.headers['X-Tenant-Slug'] = user.tenantSlug;
-            console.log(`📁 Adding tenant context (slug): ${user.tenantSlug}`);
-          } else if (user.tenantId && user.tenantId !== "") {
-            // Fallback to tenant ID if slug is not available (and not empty string)
-            config.headers['X-Tenant-ID'] = user.tenantId;
-            console.log(`📁 Adding tenant context (ID): ${user.tenantId}`);
-          } else if (user.userType === 'platform' || user.role?.includes('PLATFORM_')) {
-            // Platform admins don't need tenant context for some endpoints
-            console.log(`🏢 Platform admin user - no tenant context required`);
-
-            // ✅ CRITICAL FIX: For IFRS9 endpoints, platform admins need tenant context
-            // Check if the URL is an IFRS9 endpoint and add IAF tenant context
-            if (config.url && config.url.includes('/ifrs9/')) {
-              config.headers['X-Tenant-Slug'] = 'iaf';
-              console.log(`🏦 Adding IAF tenant context for IFRS9 endpoint`);
-            }
-          }
-        } catch (e) {
-          console.warn('Failed to parse user data:', e);
-        }
-      }
-    }
-
-    // Add request metadata
-    config.headers['X-Request-Time'] = new Date().toISOString();
-    config.headers['X-Client'] = 'ifrs9-frontend';
-
-    return config;
-  },
-  (error) => {
-    console.error('Request interceptor error:', error);
-    return Promise.reject(error);
-  }
-);
-
-// ============================================================================
-// RESPONSE INTERCEPTOR - CENTRALIZED SESSION CONTROL WITH 429 RETRY
-// ============================================================================
-apiClient.interceptors.response.use(
-  (response: AxiosResponse) => {
-    // Log successful responses in development
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`✅ API Success: ${response.config.method?.toUpperCase()} ${response.config.url}`, response.status);
-    }
-    return response;
-  },
-  async (error: AxiosError) => {
-    const originalRequest = error.config as any;
-
-    // Log errors in development
-    if (process.env.NODE_ENV === 'development') {
-      console.error(`❌ API Error: ${originalRequest?.method?.toUpperCase()} ${originalRequest?.url}`, error.response?.status, error.message);
-    }
-
-    // 🚀 RATE LIMITING (429) RETRY LOGIC
-    if (error.response?.status === 429) {
-      if (!originalRequest._retryCount) {
-        originalRequest._retryCount = 0;
-      }
-
-      if (originalRequest._retryCount < MAX_RETRIES) {
-        originalRequest._retryCount++;
-
-        // Get retry delay from response headers or use exponential backoff
-        let retryDelay = RETRY_DELAY * Math.pow(2, originalRequest._retryCount - 1);
-        const retryAfter = error.response.headers['retry-after'];
-        if (retryAfter) {
-          retryDelay = parseInt(retryAfter) * 1000;
-        }
-
-        console.warn(`⏳ Rate limited (${originalRequest._retryCount}/${MAX_RETRIES}), retrying in ${retryDelay}ms`);
-
-        // Wait before retrying
-        await new Promise(resolve => setTimeout(resolve, retryDelay));
-
-        // Retry the request
-        return apiClient(originalRequest);
-      } else {
-        console.error(`🚫 Max retries exceeded for ${originalRequest?.url}`);
-      }
-    }
-
-    // Use centralized session control for HTTP errors
-    if (error.response?.status && typeof window !== 'undefined') {
-      const status = error.response.status;
-      const errorHandled = await sessionControlService.handleHttpError(status, error);
-
-      if (errorHandled) {
-        // Session control service handled the error (token refresh, logout, etc.)
-        // If token was refreshed, retry the original request
-        if (status === 401 && originalRequest && !originalRequest._retry) {
-          originalRequest._retry = true;
-          // ✅ Use centralized utility
-          const newToken = getAuthToken();
-          if (newToken) {
-            originalRequest.headers.Authorization = `Bearer ${newToken}`;
-            console.log('✅ Token refreshed by session control, retrying request');
-            return apiClient(originalRequest);
-          }
-        }
-        // For other handled errors, don't reject further
-        return Promise.reject(error);
-      }
-    }
-
-    // Fallback handling for network errors (non-HTTP status errors)
-    if (!error.response && typeof window !== 'undefined') {
-      const networkHandled = await sessionControlService.handleNetworkError(error);
-      if (networkHandled) {
-        console.log('🌐 Network error handled by session control service');
-      }
-    }
-
-    return Promise.reject(error);
-  }
-);
 
 // ============================================================================
 // REAL AUTHENTICATION API - NO MOCKUP DATA
@@ -1620,120 +1358,7 @@ export const applicationParameterAPI = {
 // ============================================================================
 // IFRS9 CALCULATION API - REAL DATABASE INTEGRATION
 // ============================================================================
-export const ifrs9API = {
-  // Get IFRS9 calculation summary from real backend
-  getCalculationsSummary: async () => {
-    console.log('📊 Fetching IFRS9 calculation summary from real database');
-    try {
-      const response = await apiClient.get('/ifrs9/calculations/summary');
-      return response.data;
-    } catch (error: any) {
-      if (error.response?.status === 401) {
-        // Silently return demo data for unauthenticated users
-        return {
-          success: true,
-          data: {
-            totalECL: 2500000000,
-            stage1ECL: 1200000000,
-            stage2ECL: 800000000,
-            stage3ECL: 500000000,
-            totalPortfolio: 50000000000,
-            impairedRatio: 0.05,
-            coverageRatio: 0.85,
-            lastUpdated: new Date().toISOString()
-          }
-        };
-      }
-      throw error;
-    }
-  },
 
-  // Get calculation batches from real backend
-  getCalculationBatches: async () => {
-    console.log('📋 Fetching IFRS9 calculation batches from real database');
-    try {
-      const response = await apiClient.get('/ifrs9/calculation-batches');
-      return response.data;
-    } catch (error: any) {
-      if (error.response?.status === 401) {
-        console.warn('⚠️ Authentication required for calculation batches, returning demo data');
-        return {
-          success: true,
-          data: [
-            {
-              id: 'demo-batch-1',
-              name: 'Q4 2024 ECL Calculation',
-              status: 'completed',
-              createdAt: new Date().toISOString(),
-              totalRecords: 15000,
-              processedRecords: 15000,
-              totalECL: 2500000000
-            },
-            {
-              id: 'demo-batch-2',
-              name: 'Q3 2024 ECL Calculation',
-              status: 'completed',
-              createdAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
-              totalRecords: 14500,
-              processedRecords: 14500,
-              totalECL: 2350000000
-            }
-          ]
-        };
-      }
-      throw error;
-    }
-  },
-
-  // Run ECL calculation on real backend
-  runECLCalculation: async (config: any) => {
-    console.log('🚀 Running real ECL calculation with config:', config);
-    const response = await apiClient.post('/ifrs9/calculations/ecl', config);
-    return response.data;
-  },
-
-  // Get portfolio summary from real backend
-  getPortfolioSummary: async () => {
-    console.log('📈 Fetching portfolio summary from real database');
-    const response = await apiClient.get('/ifrs9/portfolio/summary');
-    return response.data;
-  },
-
-  // Get recent activities from real backend
-  getRecentActivities: async () => {
-    console.log('📝 Fetching recent activities from real database');
-    const response = await apiClient.get('/ifrs9/activities/recent');
-    return response.data;
-  },
-
-  // Perform staging analysis on real backend
-  performStagingAnalysis: async (data: any) => {
-    console.log('🔍 Performing staging analysis on real data');
-    const response = await apiClient.post('/ifrs9/staging/analyze', data);
-    return response.data;
-  },
-
-  // Calculate PD on real backend
-  calculatePD: async (data: any) => {
-    console.log('📊 Calculating Probability of Default on real data');
-    const response = await apiClient.post('/ifrs9/pd/calculate', data);
-    return response.data;
-  },
-
-  // Calculate LGD on real backend
-  calculateLGD: async (data: any) => {
-    console.log('💰 Calculating Loss Given Default on real data');
-    const response = await apiClient.post('/ifrs9/lgd/calculate', data);
-    return response.data;
-  },
-
-  // Compute EAD on real backend
-  computeEAD: async (data: any) => {
-    console.log('💳 Computing Exposure at Default on real data');
-    const response = await apiClient.post('/ifrs9/ead/compute', data);
-    return response.data;
-  }
-};
 
 export const api = {
   auth: authAPI,
@@ -1742,7 +1367,7 @@ export const api = {
   banking: bankingAPI,
   applicationParameter: applicationParameterAPI,
   individualImpairment: individualImpairmentAPIService,
-  ifrs9: ifrs9API,
+  ifrs9: ifrs9Service,
   ifrs9Reports: bankingAPI.ifrs9Reports,
   health: healthAPI,
   upload: uploadAPI,

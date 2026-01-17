@@ -60,7 +60,9 @@ import {
 import { useRouter } from 'next/navigation'
 import { useSelector, useDispatch } from 'react-redux'
 import type { RootState, AppDispatch } from '../../../store'
-import { api, handleAPIError } from '../../../services/api'
+// import { api, handleAPIError } from '../../../services/api' // Disabled heavy barrel import
+import { ifrs9API } from '../../../services/api/ifrs9.api' // Direct import
+import { handleAPIError } from '../../../services/api' // Keep handleAPIError from barrel (or move it if possible)
 import {
   fetchDashboardPersonalization,
   saveDashboardPersonalization,
@@ -68,7 +70,7 @@ import {
   selectCurrentWidgets,
   selectDashboardPersonalization,
   selectHasUnsavedChanges
-} from '../../../store'
+} from '../../../store/slices/dashboardPersonalizationSlice'
 import WidgetManager from '../../../components/dashboard/WidgetManager'
 import PersonalizedWidget from '../../../components/dashboard/widgets/PersonalizedWidget'
 import {
@@ -360,7 +362,7 @@ export default function BankingDashboardPage() {
 
       try {
         // Load ECL summary from real API
-        const eclResponse = await api.ifrs9.getCalculationsSummary()
+        const eclResponse = await ifrs9API.getCalculationsSummary()
 
         if (eclResponse?.success) {
           setEclSummary(eclResponse.data)

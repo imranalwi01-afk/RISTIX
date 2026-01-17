@@ -1,4 +1,11 @@
 /** @type {import('next').NextConfig} */
+import bundleAnalyzer from '@next/bundle-analyzer';
+
+const withBundleAnalyzer = bundleAnalyzer({
+  enabled: process.env.ANALYZE === 'true',
+});
+
+/** @type {import('next').NextConfig} */
 const nextConfig = {
   // ============================================================================
   // PERFORMANCE OPTIMIZATIONS
@@ -10,6 +17,27 @@ const nextConfig = {
   },
 
   // Enable SWC minification for faster builds
+
+
+  // Improve development performance by disposing inactive pages
+  onDemandEntries: {
+    // period (in ms) where the server will keep pages in the buffer
+    maxInactiveAge: 25 * 1000,
+    // number of pages that should be kept simultaneously without being disposed
+    pagesBufferLength: 2,
+  },
+
+  webpack: (config, { dev, isServer }) => {
+    // Optimize webpack watch options to reduce CPU usage
+    if (dev) {
+      config.watchOptions = {
+        poll: 1000,
+        aggregateTimeout: 300,
+        ignored: /node_modules/,
+      };
+    }
+    return config;
+  },
 
 
   // Optimize package imports to reduce bundle size
@@ -81,4 +109,4 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+export default withBundleAnalyzer(nextConfig);

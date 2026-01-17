@@ -13,7 +13,7 @@ export interface BackendHealth {
   error?: string; // Added error field
 }
 
-export const useBackendHealth = (pollingIntervalMs = 30000): BackendHealth => {
+export const useBackendHealth = (pollingIntervalMs = 300000): BackendHealth => { // Default to 5 minutes
   const [isOnline, setIsOnline] = useState<boolean>(true); // Optimistic
   const [latency, setLatency] = useState<number | null>(null);
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
@@ -26,15 +26,15 @@ export const useBackendHealth = (pollingIntervalMs = 30000): BackendHealth => {
     try {
       // Add timestamp to prevent caching
       const url = `${HEALTH_CHECK_URL}?t=${start}`;
-      
-      await axios.get(url, { 
+
+      await axios.get(url, {
         timeout: 5000,
         headers: {
           'Cache-Control': 'no-cache',
           'Pragma': 'no-cache'
         }
       });
-      
+
       const end = Date.now();
       setLatency(end - start);
       setIsOnline(true);

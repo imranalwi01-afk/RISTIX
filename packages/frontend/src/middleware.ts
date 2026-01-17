@@ -112,7 +112,6 @@ function validateTokenBasic(token: string): { isValid: boolean; user?: any } {
         const now = Math.floor(Date.now() / 1000);
         const buffer = 300; // 5 minute buffer for clock skew
         if (now > (payload.exp + buffer)) {
-          console.log('Token expired:', { now, exp: payload.exp, expired: now - payload.exp });
           return { isValid: false };
         }
       }
@@ -224,12 +223,9 @@ function hasRouteAccess(user: any, pathname: string): boolean {
         const hasPermission = userPermissions.includes(requiredPermission);
 
         if (!hasPermission) {
-          console.log(`🚫 Access Denied: ${pathname} requires ${requiredPermission}`);
-          console.log(`   User Permissions: ${userPermissions.slice(0, 5)}... (Total: ${userPermissions.length})`);
           return false;
         }
 
-        console.log(`✅ Access Granted: ${pathname} (Permission: ${requiredPermission})`);
         return true;
       }
     }
@@ -274,7 +270,6 @@ function hasRouteAccess(user: any, pathname: string): boolean {
   const hasRoleAccess = allowedRoles.includes(userRole) || allowedRoles.includes(userRole.toLowerCase());
 
   if (!hasRoleAccess) {
-    console.log(`❌ Role Access Denied: ${pathname} (Role: ${userRole})`);
   }
 
   return hasRoleAccess;
@@ -341,12 +336,10 @@ function getBankingModeAwareRedirect(user: any, pathname: string, baseUrl: strin
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  console.log(`🔐 Middleware check: ${pathname}`);
 
   // ✅ SURGICAL ENHANCEMENT: Detect banking mode from URL
   const detectedBankingMode = detectBankingModeFromURL(pathname);
   if (detectedBankingMode) {
-    console.log(`🎨 Middleware: Detected banking mode "${detectedBankingMode}" from URL: ${pathname}`);
   }
 
   // ✅ ENHANCED FIX: Check for logout action first (before all other checks)
@@ -358,7 +351,6 @@ export function middleware(request: NextRequest) {
 
   // ✅ ENHANCED FIX: Comprehensive logout detection
   if (isLogoutAction || hasLogoutHeader || refererHasLogout) {
-    console.log(`🚪 Logout action detected - allowing access to ${pathname}`);
     const response = NextResponse.next();
 
     // ✅ ENHANCED FIX: Set headers to prevent middleware interference
@@ -382,7 +374,6 @@ export function middleware(request: NextRequest) {
     if (route === '/') return pathname === '/';
     return pathname === route || pathname.startsWith(route);
   })) {
-    console.log(`✅ Public route allowed: ${pathname}`);
     const response = NextResponse.next();
 
     // ✅ SURGICAL ENHANCEMENT: Add banking mode header if detected
@@ -404,7 +395,6 @@ export function middleware(request: NextRequest) {
   const token = getTokenFromRequest(request);
 
   if (!token) {
-    console.log(`❌ No token found for ${pathname}`);
 
     // ✅ ENHANCED FIX: Check for logout indicators first
     const url = new URL(request.url);
@@ -416,7 +406,6 @@ export function middleware(request: NextRequest) {
 
     // ✅ CRITICAL FIX: If this is a logout action or going to login with logout indicators, always allow access
     if (isGoingToLogin && (hasLogoutParam || hasLogoutHeader || refererHasLogout || hasTimestamp)) {
-      console.log(`🚪 Logout action with no token - allowing access to login page: ${pathname}`);
       const response = NextResponse.next();
       response.headers.set('x-force-logout-allowed', 'true');
       response.headers.set('x-bypass-auth-check', 'true');
@@ -426,7 +415,6 @@ export function middleware(request: NextRequest) {
 
     // ✅ CRITICAL FIX: If this is a logout action from any page, allow access to login
     if (hasLogoutParam || hasLogoutHeader || refererHasLogout) {
-      console.log(`🚪 Logout action detected from protected page - redirecting to login`);
       const loginUrl = new URL('/login?logout=true&ts=' + Date.now(), request.url);
       const response = NextResponse.redirect(loginUrl);
       response.headers.set('x-force-logout-allowed', 'true');
@@ -436,7 +424,6 @@ export function middleware(request: NextRequest) {
 
     // ✅ NORMAL FLOW: Redirect to login for regular unauthorized access
     if (request.headers.get('accept')?.includes('text/html') && !isGoingToLogin) {
-      console.log(`🔄 Redirecting unauthorized user to login: ${pathname}`);
       const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('error', 'session_expired');
       loginUrl.searchParams.set('from', pathname);
@@ -450,7 +437,6 @@ export function middleware(request: NextRequest) {
   const { isValid, user } = validateTokenBasic(token);
 
   if (!isValid || !user) {
-    console.log(`❌ Invalid token for ${pathname}`);
 
     // ✅ ENHANCED FIX: Check for logout indicators first
     const url = new URL(request.url);
@@ -462,7 +448,6 @@ export function middleware(request: NextRequest) {
 
     // ✅ CRITICAL FIX: If this is a logout action with invalid token, allow access to login
     if (isGoingToLogin && (hasLogoutParam || hasLogoutHeader || refererHasLogout || hasTimestamp)) {
-      console.log(`🚪 Logout action with invalid token - allowing access to login page: ${pathname}`);
       const response = NextResponse.next();
       response.headers.set('x-force-logout-allowed', 'true');
       response.headers.set('x-bypass-auth-check', 'true');
@@ -472,7 +457,6 @@ export function middleware(request: NextRequest) {
 
     // ✅ CRITICAL FIX: If this is a logout action from protected page with invalid token, redirect to login
     if (hasLogoutParam || hasLogoutHeader || refererHasLogout) {
-      console.log(`🚪 Logout action detected with invalid token - redirecting to login`);
       const loginUrl = new URL('/login?logout=true&invalid_token=true&ts=' + Date.now(), request.url);
       const response = NextResponse.redirect(loginUrl);
       response.headers.set('x-force-logout-allowed', 'true');
@@ -483,7 +467,6 @@ export function middleware(request: NextRequest) {
 
     // ✅ NORMAL FLOW: Redirect to login for invalid token access
     if (request.headers.get('accept')?.includes('text/html') && !isGoingToLogin) {
-      console.log(`🔄 Redirecting invalid token user to login: ${pathname}`);
       const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('error', 'session_expired');
       loginUrl.searchParams.set('invalid_token', 'true');
@@ -494,11 +477,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  console.log(`✅ Valid token for user: ${user.email} (${user.role})`);
 
   // ✅ SURGICAL FIX: Check route access with better default handling
   if (!hasRouteAccess(user, pathname)) {
-    console.log(`❌ Access denied to ${pathname} for role ${user.role}`);
 
     // ✅ SURGICAL FIX: Get appropriate redirect
     const stakeholderType = getStakeholderType(user);
@@ -506,7 +487,6 @@ export function middleware(request: NextRequest) {
       STAKEHOLDER_REDIRECTS[stakeholderType] :
       '/banking/dashboard';
 
-    console.log(`🚀 Redirecting to appropriate dashboard: ${redirectPath}`);
 
     // ✅ SURGICAL FIX: Loop protection
     if (new URL(redirectPath, request.url).pathname === pathname) {
@@ -526,11 +506,9 @@ export function middleware(request: NextRequest) {
   // ✅ SURGICAL ENHANCEMENT: Check for banking mode specific redirects
   const bankingModeRedirect = getBankingModeAwareRedirect(user, pathname, request.nextUrl.origin, request.url);
   if (bankingModeRedirect) {
-    console.log(`🎨 Banking mode redirect: ${bankingModeRedirect}`);
     return NextResponse.redirect(new URL(bankingModeRedirect));
   }
 
-  console.log(`✅ Navigation allowed: ${pathname} for ${user.role}`);
 
   // ✅ Add user info to headers
   const response = NextResponse.next();
@@ -567,11 +545,4 @@ export const config = {
 
 // ✅ Development logging
 if (process.env.NODE_ENV === 'development') {
-  console.log('🔧 Enhanced Middleware - Banking Mode Theme Support:');
-  console.log('  - Token detection: localStorage + cookies + headers ✅');
-  console.log('  - Lenient token validation ✅');
-  console.log('  - Better navigation handling ✅');
-  console.log('  - Banking mode URL detection ✅');
-  console.log('  - Banking mode headers ✅');
-  console.log('  - Reduced false redirects ✅');
 }

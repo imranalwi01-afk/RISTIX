@@ -6,7 +6,7 @@
   "type": "module",
   "packageManager": "pnpm@8.15.0",
   "scripts": {
-    "dev": "NEXT_TELEMETRY_DISABLED=1 NODE_OPTIONS='--max-old-space-size=4096' WSS_PORT=4231 next dev -p 4231 -H 0.0.0.0",
+    "dev": "NEXT_TELEMETRY_DISABLED=1 NODE_OPTIONS='--max-old-space-size=4096' WSS_PORT=4231 next dev --turbo -p 4231 -H 0.0.0.0",
     "build": "NODE_OPTIONS='--max-old-space-size=4096' next build",
     "start": "next start -p 4231",
     "lint": "next lint",

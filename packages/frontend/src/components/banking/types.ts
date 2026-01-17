@@ -7,6 +7,8 @@
 // Architecture: Dual banking support with Syariah compliance
 // ============================================================================
 
+import React from 'react';
+
 // ✅ Core Banking Types
 export type BankingMode = 'conventional' | 'syariah' | 'dual';
 
@@ -198,4 +200,60 @@ export interface APIResponse<T> {
     bankingMode: BankingMode;
     timestamp: Date;
   };
+}
+
+// ✅ Database menu item structure (from API)
+export interface DatabaseMenuItem {
+  id: string;
+  key?: string;
+  menu_key?: string; // Backend field name for menu key
+  title?: string;
+  label?: string; // Alternative field name for title
+  description?: string;
+  icon?: string;
+  url?: string;
+  href?: string; // Alternative field name for URL
+  type?: string;
+  sort_order?: number;
+  is_active?: boolean;
+  user_types?: string[];
+  roles?: string[]; // Alternative field name for user types
+  banking_types?: string[];
+  banking_modes?: ('conventional' | 'syariah' | 'dual')[];
+  parent_id?: string | null;
+  children?: DatabaseMenuItem[];
+  created_at?: string;
+  updated_at?: string;
+  isNew?: boolean;
+  requires_setup?: boolean;
+  requiresSetup?: boolean;
+  badge_info?: {
+    content?: string | number;
+    color?: string;
+  };
+}
+
+// ✅ Menu structure (for UI components)
+export interface MenuItem {
+  id: string;
+  code?: string; // Optional for static menu compatibility
+  label: string;
+  isActive?: boolean;
+  href?: string;
+  icon: React.ReactElement;
+  description?: string;
+  parent_id?: string | null;
+  sort_order?: number; // Optional for static menu compatibility
+  level?: number; // Optional for static menu compatibility
+  path?: string; // Optional for static menu compatibility
+  children?: MenuItem[];
+  roles?: string[];
+  banking_modes?: ('conventional' | 'syariah' | 'dual')[];
+  badge?: {
+    content: string | number;
+    color: 'primary' | 'secondary' | 'error' | 'warning' | 'info' | 'success';
+  };
+  isNew?: boolean; // Added isNew
+  requiresSetup?: boolean; // Added requiresSetup
+  status?: string; // Added status
 }
