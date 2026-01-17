@@ -160,7 +160,7 @@ approvalRoutes.openapi(
                 ...r,
                 description: r.description ?? null,
                 createdAt: r.createdAt.toISOString(),
-                updatedAt: r.updatedAt.toISOString(),
+                updatedAt: (r as any).completedAt?.toISOString() || r.createdAt.toISOString(),
             })))
         )
 
@@ -213,7 +213,7 @@ approvalRoutes.openapi(
                 ...request,
                 description: request.description ?? null,
                 createdAt: request.createdAt.toISOString(),
-                updatedAt: request.updatedAt.toISOString(),
+                updatedAt: (request as any).completedAt?.toISOString() || request.createdAt.toISOString(),
             }))
         )
 
@@ -257,7 +257,7 @@ approvalRoutes.openapi(
                 ...request,
                 description: request.description ?? null,
                 createdAt: request.createdAt.toISOString(),
-                updatedAt: request.updatedAt.toISOString(),
+                updatedAt: (request as any).completedAt?.toISOString() || request.createdAt.toISOString(),
             }))
         )
 

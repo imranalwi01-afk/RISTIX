@@ -177,6 +177,7 @@ const transformDetail = (d: typeof frs9ParamCommond.$inferSelect) => ({
 })
 
 const transformHeader = (h: any) => ({
+    pkid: Number(h.pkid),
     param_code: h.paramCode,
     param_name: h.paramName,
     param_usage: h.paramUsage,

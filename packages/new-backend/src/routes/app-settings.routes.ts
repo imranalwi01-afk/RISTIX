@@ -24,6 +24,7 @@ const AppSettingDetailSchema = z.object({
 }).openapi('AppSettingDetail')
 
 const AppSettingSchema = z.object({
+    pkid: z.number().int(),
     param_code: z.string(),
     param_name: z.string().nullable(),
     param_usage: z.string().nullable(),
