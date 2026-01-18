@@ -12,12 +12,22 @@ import {
 } from '@/db/schema'
 import { DatabaseError, NotFoundError, ValidationError, BusinessError } from '@/lib/errors'
 
+/**
+ * @module RBACService
+ * @description Provides services for Role-Based Access Control.
+ * Handles role management, user-role assignments, and permission checking.
+ */
+
 // =============================================================================
 // ROLE OPERATIONS
 // =============================================================================
 
 /**
- * Get all roles for a tenant
+ * Retrieve all roles for a given tenant.
+ * 
+ * @param tenantId - The unique identifier of the tenant
+ * @param options - Optional filters (includeInactive, bankingType)
+ * @returns An Effect that succeeds with an array of Roles
  */
 export const getRoles = (
     tenantId: string,
@@ -36,7 +46,11 @@ export const getRoles = (
     )
 
 /**
- * Get a role by ID
+ * Retrieve a single role by its unique ID.
+ * 
+ * @param roleId - The unique identifier of the role
+ * @param tenantId - Optional tenant ID to resolve the database
+ * @returns An Effect that succeeds with the Role if found
  */
 export const getRoleById = (roleId: string, tenantId?: string) =>
     pipe(
@@ -61,7 +75,11 @@ const findRole = (roleId: string, tenantId?: string) =>
     )
 
 /**
- * Create a new role
+ * Create a new role for a tenant.
+ * 
+ * @param input - The role definition as NewRole object
+ * @returns An Effect that succeeds with the created Role
+ * @throws {ValidationError} If a role with the same name already exists
  */
 export const createRole = (input: NewRole) =>
     pipe(
@@ -88,7 +106,12 @@ export const createRole = (input: NewRole) =>
     )
 
 /**
- * Update an existing role
+ * Update an existing role's properties.
+ * 
+ * @param roleId - The unique identifier of the role to update
+ * @param input - Partial role object containing updates and optional tenantId
+ * @returns An Effect that succeeds with the updated Role
+ * @throws {BusinessError} If attempting to rename a protected system role
  */
 export const updateRole = (roleId: string, input: Partial<NewRole> & { tenantId?: string }) =>
     pipe(
@@ -114,7 +137,12 @@ export const updateRole = (roleId: string, input: Partial<NewRole> & { tenantId?
     )
 
 /**
- * Delete a role (soft delete by setting isActive = false)
+ * Deactivates a role (Soft delete).
+ * 
+ * @param roleId - The unique identifier of the role to delete
+ * @param tenantId - Optional tenant ID to resolve the database
+ * @returns An Effect that succeeds with the deleted/deactivated Role
+ * @throws {BusinessError} If attempting to delete a protected system role
  */
 export const deleteRole = (roleId: string, tenantId?: string) =>
     pipe(
@@ -144,7 +172,11 @@ export const deleteRole = (roleId: string, tenantId?: string) =>
 // =============================================================================
 
 /**
- * Get all roles for a user
+ * Retrieve all active roles currently assigned to a user.
+ * 
+ * @param userId - The unique identifier of the user
+ * @param tenantId - The unique identifier of the tenant
+ * @returns An Effect that succeeds with an array of active UserRole assignments
  */
 export const getUserRoles = (userId: string, tenantId: string) =>
     pipe(
@@ -162,7 +194,11 @@ export const getUserRoles = (userId: string, tenantId: string) =>
     )
 
 /**
- * Assign a role to a user
+ * Assign a role to a user with optional temporal constraints.
+ * 
+ * @param input - Assignment details including userId, roleId, and tenure info
+ * @returns An Effect that succeeds with the newly created assignment
+ * @throws {ValidationError} If the role is already assigned to the user
  */
 export const assignRole = (input: {
     userId: string
@@ -217,7 +253,12 @@ export const assignRole = (input: {
     )
 
 /**
- * Remove a role from a user
+ * Remove a role assignment from a user.
+ * 
+ * @param userId - The unique identifier of the user
+ * @param roleId - The unique identifier of the role to remove
+ * @param tenantId - The unique identifier of the tenant
+ * @returns An Effect that succeeds when the assignment is removed
  */
 export const removeRole = (userId: string, roleId: string, tenantId: string) =>
     pipe(
@@ -232,7 +273,13 @@ export const removeRole = (userId: string, roleId: string, tenantId: string) =>
 
 
 /**
- * Check if a user has a specific permission
+ * Check if a user possesses a specific permission for a resource and action.
+ * 
+ * @param userId - The unique identifier of the user
+ * @param tenantId - The unique identifier of the tenant
+ * @param resource - The resource identifier (e.g., 'users', 'roles')
+ * @param action - The action identifier (e.g., 'read', 'write', '*')
+ * @returns An Effect that succeeds with a boolean flag
  */
 export const hasPermission = (
     userId: string,
@@ -250,7 +297,11 @@ export const hasPermission = (
     )
 
 /**
- * Get all permissions for a user (Grouped by resource)
+ * Aggregates and groups all permissions granted to a user across all their roles.
+ * 
+ * @param userId - The unique identifier of the user
+ * @param tenantId - The unique identifier of the tenant
+ * @returns An Effect that succeeds with a Record of resource-to-actions mappings
  */
 export const getUserPermissions = (
     userId: string,

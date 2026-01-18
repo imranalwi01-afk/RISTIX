@@ -16,8 +16,6 @@ import {
     type Permission,
     type NewPermission,
 } from '@/db/schema'
-import { DatabaseError, NotFoundError, ValidationError, BusinessError } from '@/lib/errors'
-import { dbOperation } from '@/lib/effect'
 import type { PaginationParams } from '@/lib/react-admin'
 import {
     type IRepository,
@@ -30,6 +28,14 @@ import {
     withNotFound,
     calculateOffset,
 } from './base.repository'
+import { DatabaseError, NotFoundError } from '@/lib/errors'
+import { dbOperation } from '@/lib'
+
+/**
+ * @module RBACRepository
+ * @description Data access layer for Role-Based Access Control.
+ * Handles database operations for roles, user-role assignments, and permissions.
+ */
 
 // =============================================================================
 // TYPES
@@ -41,14 +47,26 @@ type DrizzleDB = PostgresJsDatabase<typeof schema>
 // ROLES REPOSITORY
 // =============================================================================
 
+/**
+ * Options for querying roles.
+ */
 export interface RolesQueryOptions extends QueryOptions {
+    /** Filter by banking type system */
     bankingType?: string
+    /** Whether to only include system-defined roles */
     systemRolesOnly?: boolean
 }
 
+/**
+ * Repository for managing roles in the database.
+ */
 export class RolesRepository {
     /**
-     * Find role by ID
+     * Find a role by its unique ID.
+     * 
+     * @param db - Drizzle database instance
+     * @param id - The role ID to search for
+     * @returns An Effect that succeeds with the Role and its permissions
      */
     findById(db: DrizzleDB, id: string): Effect.Effect<Role, DatabaseError | NotFoundError> {
         return pipe(
@@ -63,7 +81,12 @@ export class RolesRepository {
     }
 
     /**
-     * Find role by Name
+     * Find a role by its name within a tenant.
+     * 
+     * @param db - Drizzle database instance
+     * @param roleName - The name of the role
+     * @param tenantId - Optional tenant ID for scoping
+     * @returns An Effect that succeeds with the Role if found, or undefined
      */
     findByName(db: DrizzleDB, roleName: string, tenantId?: string): Effect.Effect<Role | undefined, DatabaseError> {
         return queryEffect(() =>
@@ -76,7 +99,11 @@ export class RolesRepository {
     }
 
     /**
-     * Find all roles with pagination
+     * Find all roles matching criteria with pagination.
+     * 
+     * @param db - Drizzle database instance
+     * @param options - Query options including pagination, filters, and includeInactive
+     * @returns An Effect that succeeds with a paginated result of Roles
      */
     findAll(db: DrizzleDB, options?: RolesQueryOptions): Effect.Effect<PaginatedResult<Role>, DatabaseError> {
         return queryEffect(async () => {
@@ -131,6 +158,14 @@ export class RolesRepository {
     /**
      * Find roles by tenant
      */
+    /**
+     * Find all roles belonging to a specific tenant with pagination.
+     * 
+     * @param db - Drizzle database instance
+     * @param tenantId - The unique identifier of the tenant
+     * @param options - Query options including pagination and filters
+     * @returns An Effect that succeeds with a paginated result of Roles
+     */
     findByTenant(
         db: DrizzleDB,
         tenantId: string,
@@ -179,7 +214,11 @@ export class RolesRepository {
     }
 
     /**
-     * Create a new role
+     * Create a new role record.
+     * 
+     * @param db - Drizzle database instance
+     * @param data - The role data to insert
+     * @returns An Effect that succeeds with the created Role
      */
     create(db: DrizzleDB, data: NewRole): Effect.Effect<Role, DatabaseError> {
         return insertEffect(() =>
@@ -195,7 +234,12 @@ export class RolesRepository {
     }
 
     /**
-     * Update an existing role
+     * Update an existing role record.
+     * 
+     * @param db - Drizzle database instance
+     * @param id - The role ID to update
+     * @param data - Partial role data containing updates
+     * @returns An Effect that succeeds with the updated Role
      */
     update(
         db: DrizzleDB,
@@ -220,14 +264,22 @@ export class RolesRepository {
     }
 
     /**
-     * Soft delete a role
+     * Deactivates a role record (Soft delete).
+     * 
+     * @param db - Drizzle database instance
+     * @param id - The ID of the role to deactivate
+     * @returns An Effect that succeeds with the updated Role
      */
     delete(db: DrizzleDB, id: string): Effect.Effect<Role, DatabaseError | NotFoundError> {
         return this.update(db, id, { isActive: false })
     }
 
     /**
-     * Check if role name exists
+     * Check if a role name already exists in the system.
+     * 
+     * @param db - Drizzle database instance
+     * @param roleName - The role name to check
+     * @returns An Effect that succeeds with true if the name is taken
      */
     existsByName(db: DrizzleDB, roleName: string): Effect.Effect<boolean, DatabaseError> {
         return queryEffect(async () => {
@@ -248,7 +300,17 @@ export interface PermissionsQueryOptions extends QueryOptions {
     isActive?: boolean
 }
 
+/**
+ * Repository for managing granular permissions.
+ */
 export class PermissionsRepository {
+    /**
+     * Find a permission by its unique ID.
+     * 
+     * @param db - Drizzle database instance
+     * @param id - The permission ID
+     * @returns An Effect that succeeds with the Permission record
+     */
     findById(db: DrizzleDB, id: string): Effect.Effect<Permission, DatabaseError | NotFoundError> {
         return pipe(
             queryEffect(() => db.query.permissions.findFirst({
@@ -258,12 +320,26 @@ export class PermissionsRepository {
         )
     }
 
+    /**
+     * Find a permission by its unique code.
+     * 
+     * @param db - Drizzle database instance
+     * @param code - The permission code (e.g., 'user:read')
+     * @returns An Effect that succeeds with the Permission if found
+     */
     findByCode(db: DrizzleDB, code: string): Effect.Effect<Permission | undefined, DatabaseError> {
         return queryEffect(() => db.query.permissions.findFirst({
             where: eq(permissions.code, code)
         }))
     }
 
+    /**
+     * Find all permissions matching criteria.
+     * 
+     * @param db - Drizzle database instance
+     * @param options - Query options for filtering permissions
+     * @returns An Effect that succeeds with an array of Permissions
+     */
     findAll(db: DrizzleDB, options?: PermissionsQueryOptions): Effect.Effect<Permission[], DatabaseError> {
         return queryEffect(() => {
             const conditions = []
@@ -295,7 +371,18 @@ export class PermissionsRepository {
 // ROLE PERMISSIONS REPOSITORY
 // =============================================================================
 
+/**
+ * Repository for managing permissions assigned to roles.
+ */
 export class RolePermissionsRepository {
+    /**
+     * Assign a permission to a role.
+     * 
+     * @param db - Drizzle database instance
+     * @param roleId - The role ID
+     * @param permissionId - The permission ID
+     * @returns An Effect that succeeds with the created RolePermission record
+     */
     assign(db: DrizzleDB, roleId: string, permissionId: string): Effect.Effect<RolePermission, DatabaseError> {
         return insertEffect(() =>
             db.insert(rolePermissions).values({
@@ -347,9 +434,18 @@ export interface UserRolesQueryOptions extends QueryOptions {
     activeOnly?: boolean
 }
 
+/**
+ * Repository for managing user-role associations.
+ */
 export class UserRolesRepository {
     /**
-     * Find all roles for a user
+     * Find all roles assigned to a specific user.
+     * 
+     * @param db - Drizzle database instance
+     * @param userId - The user ID
+     * @param tenantId - Optional tenant ID to scope the search
+     * @param options - Optional query params (activeOnly)
+     * @returns An Effect that succeeds with a rich array of UserRoles with associated role and permission data
      */
     findByUser(
         db: DrizzleDB,
@@ -393,6 +489,14 @@ export class UserRolesRepository {
     /**
      * Find users with a specific role
      */
+    /**
+     * Find all user assignments for a specific role.
+     * 
+     * @param db - Drizzle database instance
+     * @param roleId - The role ID
+     * @param options - Filter options
+     * @returns An Effect that succeeds with an array of UserRole assignments
+     */
     findByRole(
         db: DrizzleDB,
         roleId: string,
@@ -411,7 +515,11 @@ export class UserRolesRepository {
     }
 
     /**
-     * Assign role to user
+     * Assign a role to a user.
+     * 
+     * @param db - Drizzle database instance
+     * @param data - The assignment data
+     * @returns An Effect that succeeds with the created assignment
      */
     assign(db: DrizzleDB, data: NewUserRole): Effect.Effect<UserRole, DatabaseError> {
         return insertEffect(() =>

@@ -17,32 +17,64 @@ import { AuthRepository } from '@/repositories/auth.repository'
 import { TenantRepository } from '@/repositories/tenant.repository'
 import { userRolesRepository } from '@/repositories/rbac.repository'
 
+/**
+ * @module AuthService
+ * @description Provides authentication and session management services.
+ * Handles login, logout, token generation, and password verification.
+ */
+
 // =============================================================================
 // TYPES
 // =============================================================================
 
+/**
+ * Input for the login operation.
+ */
 export interface LoginInput {
+    /** User's email address */
     email: string
+    /** User's plain text password */
     password: string
+    /** Optional tenant ID or slug for split authentication */
     tenantId?: string
 }
 
+/**
+ * Pair of JWT tokens issued upon successful authentication.
+ */
 export interface TokenPair {
+    /** Brief lived access token for authorization */
     accessToken: string
+    /** Longer lived refresh token for obtaining new access tokens */
     refreshToken: string
+    /** Expiry time for the access token in seconds */
     expiresIn: number
+    /** Expiry time for the refresh token in seconds */
     refreshExpiresIn: number
 }
 
+/**
+ * Structure of the JWT payload.
+ */
 export interface JwtPayload {
-    sub: string // userId
+    /** User ID (Subject) */
+    sub: string
+    /** User's email address */
     email: string
+    /** Optional tenant ID associated with the user */
     tenantId?: string
-    jti: string // token id
+    /** Unique Token ID (JWT ID) */
+    jti: string
+    /** Token type: either 'access' or 'refresh' */
     type: 'access' | 'refresh'
+    /** List of role codes assigned to the user */
     roles?: string[]
+    /** Primary/First role code */
     role?: string
-    permissions?: string[] // ✅ Add permissions field
+    /** List of permission codes assigned to the user */
+    permissions?: string[]
+    /** Calculated stakeholder type (banking, platform, etc.) */
+    stakeholderType?: string
 }
 
 // =============================================================================
@@ -60,7 +92,15 @@ const REFRESH_TOKEN_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
 // =============================================================================
 
 /**
- * Generate a new JWT access token
+ * Generate a new JWT access token.
+ * 
+ * @param user - The user object to include in the payload
+ * @param tokenId - Unique identifier for the token
+ * @param tenantId - Optional tenant ID to associate with the token
+ * @param roles - List of roles to include
+ * @param permissions - List of permissions to include
+ * @param stakeholderType - The persona hint for the frontend
+ * @returns A signed JWT string
  */
 const generateAccessToken = async (
     user: User,
@@ -88,7 +128,15 @@ const generateAccessToken = async (
 }
 
 /**
- * Generate a new JWT refresh token
+ * Generate a new JWT refresh token.
+ * 
+ * @param user - The user object to include in the payload
+ * @param tokenId - Unique identifier for the token
+ * @param tenantId - Optional tenant ID to associate with the token
+ * @param roles - List of roles to include
+ * @param permissions - List of permissions to include
+ * @param stakeholderType - The persona hint for the frontend
+ * @returns A signed JWT string
  */
 const generateRefreshToken = async (
     user: User,
@@ -116,7 +164,11 @@ const generateRefreshToken = async (
 }
 
 /**
- * Verify and decode a JWT token
+ * Verify and decode a JWT token.
+ * 
+ * @param token - The JWT string to verify
+ * @returns The decoded payload as a JwtPayload object
+ * @throws {jose.errors.JWTInvalid} If the token is invalid or expired
  */
 export const verifyToken = async (token: string): Promise<JwtPayload> => {
     const { payload } = await jose.jwtVerify(token, JWT_SECRET)
@@ -128,7 +180,10 @@ export const verifyToken = async (token: string): Promise<JwtPayload> => {
 // =============================================================================
 
 /**
- * Hash a password using Bun's built-in password hashing
+ * Hash a password using Bun's built-in password hashing.
+ * 
+ * @param password - The plain text password to hash
+ * @returns A promise that resolves to the hashed password string
  */
 export const hashPassword = async (password: string): Promise<string> => {
     return Bun.password.hash(password, {
@@ -138,7 +193,11 @@ export const hashPassword = async (password: string): Promise<string> => {
 }
 
 /**
- * Verify a password against a hash
+ * Verify a password against a hash.
+ * 
+ * @param password - The plain text password to verify
+ * @param hash - The stored password hash
+ * @returns A promise that resolves to true if the password matches, false otherwise
  */
 export const verifyPassword = async (password: string, hash: string): Promise<boolean> => {
     return Bun.password.verify(password, hash)
@@ -149,10 +208,15 @@ export const verifyPassword = async (password: string, hash: string): Promise<bo
 // =============================================================================
 
 /**
- * Login a user with email and password
- * Supports Split Authentication:
- * - If tenantId is provided: Authenticates against Tenant DB
- * - If tenantId is missing: Authenticates against Platform DB
+ * Login a user with email and password.
+ * 
+ * @description Supports Split Authentication:
+ * - If `tenantId` is provided: Authenticates against the Tenant-specific Database.
+ * - If `tenantId` is missing: Authenticates against the Platform/Core Database.
+ * 
+ * @param input - The login credentials and optional tenant ID
+ * @param metadata - Optional metadata like IP address and User Agent for logging
+ * @returns An Effect that succeeds with the user and token pair, or fails with a Database/Authentication error
  */
 export const login = (
     input: LoginInput,
@@ -355,7 +419,11 @@ export const login = (
     )
 
 /**
- * Logout a user by revoking their session
+ * Logout a user by revoking their session.
+ * 
+ * @param accessTokenId - The unique ID of the access token to revoke
+ * @param reason - Optional reason for logging out
+ * @returns An Effect that succeeds when the session is removed
  */
 export const logout = (
     accessTokenId: string,
@@ -373,7 +441,10 @@ export const logout = (
     })
 
 /**
- * Refresh tokens using a valid refresh token
+ * Refresh tokens using a valid refresh token.
+ * 
+ * @param refreshToken - The valid refresh token string
+ * @returns An Effect that succeeds with a new TokenPair
  */
 export const refreshTokens = (
     refreshToken: string
@@ -434,7 +505,10 @@ export const refreshTokens = (
     })
 
 /**
- * Get session by access token ID from Redis
+ * Get session information from Redis by access token ID.
+ * 
+ * @param accessTokenId - The unique ID of the access token
+ * @returns An Effect that succeeds with the session data object
  */
 export const getSession = (
     accessTokenId: string
@@ -455,7 +529,11 @@ export const getSession = (
     })
 
 /**
- * Revoke all sessions for a user
+ * Revoke all active sessions for a specific user.
+ * 
+ * @param userId - ID of the user whose sessions should be revoked
+ * @param reason - Optional reason for revocation
+ * @returns An Effect that succeeds when all sessions are deleted from Redis
  */
 export const revokeAllSessions = (
     userId: string,

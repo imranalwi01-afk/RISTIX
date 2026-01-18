@@ -8,26 +8,59 @@ import { tenants, type Tenant, type NewTenant } from '@/db/schema'
 // Handles: tenants (future: tenant_settings, tenant_features)
 // =============================================================================
 
+/**
+ * @module TenantRepository
+ * @description Data access layer for Multi-Tenancy.
+ * Handles database operations for tenant records and metadata.
+ */
+
+/**
+ * Repository object containing all tenant-related data operations.
+ */
 export const TenantRepository = {
     // ---------------------------------------------------------------------------
     // TENANT OPERATIONS
     // ---------------------------------------------------------------------------
 
+    /**
+     * Find a tenant by its unique record ID.
+     * 
+     * @param id - The tenant UUID or record ID
+     * @returns A promise that resolves to the Tenant record or undefined
+     */
     findById: (id: string) =>
         db.query.tenants.findFirst({
             where: eq(tenants.id, id),
         }),
 
+    /**
+     * Find a tenant by its unique business code.
+     * 
+     * @param code - The short code identifier for the tenant
+     * @returns A promise that resolves to the Tenant record or undefined
+     */
     findByCode: (code: string) =>
         db.query.tenants.findFirst({
             where: eq(tenants.code, code),
         }),
 
+    /**
+     * Find a tenant by its URL-friendly slug.
+     * 
+     * @param slug - The unique slug used for split authentication
+     * @returns A promise that resolves to the Tenant record or undefined
+     */
     findBySlug: (slug: string) =>
         db.query.tenants.findFirst({
             where: eq(tenants.slug, slug),
         }),
 
+    /**
+     * Find all tenants matching criteria with search and sorting.
+     * 
+     * @param options - Query options including search, isActive, pagination, and sort
+     * @returns A paginated result of Tenant records
+     */
     findAll: async (options?: {
         search?: string
         isActive?: boolean
