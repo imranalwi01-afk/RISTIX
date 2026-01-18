@@ -23,6 +23,13 @@ export const ParametersService = {
         )
     },
 
+    getAppSettingDetails: (code: string) => {
+        return pipe(
+            ParametersRepository.findDetailByCode(code),
+            Effect.map(details => details.map(transformDetail))
+        )
+    },
+
     createAppSetting: (data: any, userId: string) => {
         const now = new Date().toISOString()
         const payload = {

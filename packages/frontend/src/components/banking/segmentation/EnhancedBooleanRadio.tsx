@@ -10,7 +10,8 @@ import {
   Box,
   Chip,
 } from '@mui/material';
-import { Check as CheckIcon, Close as CloseIcon } from '@mui/icons-material';
+import CheckIcon from '@mui/icons-material/Check';
+import CloseIcon from '@mui/icons-material/Close';
 
 interface EnhancedBooleanRadioProps {
   label: string;

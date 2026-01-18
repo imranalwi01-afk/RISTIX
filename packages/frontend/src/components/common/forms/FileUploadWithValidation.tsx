@@ -8,7 +8,9 @@ import {
   Alert,
   LinearProgress
 } from '@mui/material';
-import { CloudUpload, Delete, InsertDriveFile } from '@mui/icons-material';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import DeleteIcon from '@mui/icons-material/Delete';
+import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 
 interface FileUploadWithValidationProps {
   onFileSelect: (file: File) => void;
@@ -109,7 +111,7 @@ export const FileUploadWithValidation: React.FC<FileUploadWithValidationProps> =
           onDrop={handleDrop}
           onClick={handleButtonClick}
         >
-          <CloudUpload sx={{ fontSize: 40, color: 'text.secondary', mb: 1 }} />
+          <CloudUploadIcon sx={{ fontSize: 40, color: 'text.secondary', mb: 1 }} />
           <Typography variant="body1" color="text.secondary">
             {label}
           </Typography>
@@ -119,7 +121,7 @@ export const FileUploadWithValidation: React.FC<FileUploadWithValidationProps> =
         </Paper>
       ) : (
         <Paper variant="outlined" sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-          <InsertDriveFile color="primary" />
+          <InsertDriveFileIcon color="primary" />
           <Box sx={{ flexGrow: 1 }}>
              <Typography variant="subtitle2" noWrap>
               {selectedFile.name}
@@ -132,7 +134,7 @@ export const FileUploadWithValidation: React.FC<FileUploadWithValidationProps> =
              )}
           </Box>
           <IconButton onClick={handleRemove} color="error" size="small">
-            <Delete />
+            <DeleteIcon />
           </IconButton>
         </Paper>
       )}

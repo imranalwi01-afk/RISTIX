@@ -24,7 +24,9 @@ import {
     Chip,
     Grid
 } from '@mui/material';
-import { Refresh as RefreshIcon, Search as SearchIcon, Add as AddIcon } from '@mui/icons-material';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import SearchIcon from '@mui/icons-material/Search';
+import AddIcon from '@mui/icons-material/Add';
 import { useApi } from '@/hooks/useApi';
 
 interface WatchlistItem {

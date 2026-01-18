@@ -10,6 +10,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import {
   Box,
   Typography,
@@ -36,9 +37,12 @@ import {
   Delete as DeleteIcon,
   Error as ErrorIcon
 } from '@mui/icons-material';
-import { DataGrid, GridColDef, GridActionsCellItem, GridRowParams } from '@mui/x-data-grid';
+import { GridColDef, GridActionsCellItem, GridRowParams } from '@mui/x-data-grid';
 import { api, handleAPIError } from '../../../../services/api';
 import { useRouter } from 'next/navigation';
+
+// Safe DataGrid wrapper to prevent bundling issues
+import { SafeDataGrid } from '@/components/shared/SafeDataGrid';
 
 // Shared components
 import PageHeader from '@/components/banking/shared/PageHeader';
@@ -265,7 +269,7 @@ export default function ProductParametersPage() {
   // ============================================================================
   // DATAGRID COLUMNS CONFIGURATION
   // ============================================================================
-  const columns: GridColDef[] = [
+  const columns: GridColDef<ProductParameter>[] = [
     {
       field: 'dataSource',
       headerName: 'Data Source',
@@ -558,37 +562,18 @@ export default function ProductParametersPage() {
       />
 
       <Card>
-        <CardContent>
-          <Box sx={{ height: 600, width: '100%' }}>
-            <DataGrid
-              rows={data}
-              columns={columns}
-              getRowId={(row) => row?.pkid || row?.prdCode || `row_${Math.random()}`}
-              pageSizeOptions={[5, 10, 25, 50]}
-              initialState={{
-                pagination: { paginationModel: { pageSize: 10 } }
-              }}
-              disableRowSelectionOnClick
-              loading={loading}
-              slotProps={{
-                loadingOverlay: {
-                  variant: 'linear-progress' as const,
-                  noRowsVariant: 'skeleton' as const,
-                },
-                noRowsOverlay: {
-                  children: (
-                    <EmptyState
-                      title="No Product Parameters Found"
-                      description={error ? 'Failed to load data from database.' : 'No parameters configured yet.'}
-                      onRetry={error ? loadData : handleCreate}
-                      retryText={error ? 'Retry' : 'Add Product'}
-                      icon={<ErrorIcon />}
-                    />
-                  )
-                }
-              }}
-            />
-          </Box>
+        <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
+          <SafeDataGrid<ProductParameter>
+            rows={data}
+            columns={columns}
+            getRowId={(row) => row.pkid}
+            pageSizeOptions={[5, 10, 25, 50]}
+            initialState={{
+              pagination: { paginationModel: { pageSize: 10 } }
+            }}
+            disableRowSelectionOnClick
+            loading={loading}
+          />
         </CardContent>
       </Card>
 

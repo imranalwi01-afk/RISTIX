@@ -8,7 +8,7 @@
 
 import React from 'react';
 import { Box, Typography, Container } from '@mui/material';
-import { Category as ParametersIcon } from '@mui/icons-material';
+import ParametersIcon from '@mui/icons-material/Category';
 
 export default function ParametersLayout({
   children,

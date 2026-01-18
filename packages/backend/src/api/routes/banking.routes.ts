@@ -61,11 +61,197 @@ import {
   deleteBusinessSetupDetail
 } from '../controllers/frs9-parameter.controller';
 
-// All functions imported above from main controller
+// Import class-based controller for additional methods
+import { FRS9ParameterController } from '../controllers/frs9-parameter.controller';
+import pdSetupController from '../controllers/pd-setup.controller';
+import { productParameterController } from '../controllers/product-parameter.controller';
+import { journalParameterController } from '../controllers/journal-parameter.controller';
+
+// Instantiate controller for methods not exported as standalone functions
+const frs9Controller = new FRS9ParameterController();
 
 const router = Router();
 
 console.log('✅ Banking routes loaded with FRS9 controller functions');
+
+// ============================================================================
+// SERVICE INFO & HEALTH ENDPOINTS (NO AUTH)
+// ============================================================================
+
+/**
+ * GET /api/v1/banking
+ * Service info endpoint
+ */
+router.get('/', (req, res) => {
+  res.json({
+    success: true,
+    message: 'FRS9 Banking Parameters Service',
+    version: '2.0.0',
+    description: 'DS2 FRS9PRO database integration for banking parameter management',
+    timestamp: new Date().toISOString(),
+
+    database_info: {
+      host: `${process.env.FRS9_DB_HOST || 'localhost'}:${process.env.FRS9_DB_PORT || '5433'}`,
+      database: process.env.FRS9_DB_NAME || 'FRS9PRO',
+      tables: [
+        'frs9_param_commonh (parameter headers)',
+        'frs9_param_commond (parameter details)',
+        'frs9_param_product (product parameters)',
+        'frs9_param_journal (journal parameters)'
+      ]
+    },
+
+    endpoints: {
+      service_info: 'GET /banking',
+      health_check: 'GET /banking/health',
+      portfolio_summary: 'GET /banking/portfolio/summary',
+      recent_activities: 'GET /banking/activities/recent',
+      application_setup: {
+        list: 'GET /banking/setup/application',
+        create: 'POST /banking/setup/application',
+        update: 'PUT /banking/setup/application/:paramCode',
+        delete: 'DELETE /banking/setup/application/:paramCode',
+        get_details: 'GET /banking/setup/application/:paramCode/details',
+        create_detail: 'POST /banking/setup/application/:paramCode/details',
+        update_detail: 'PUT /banking/setup/application/details/:id',
+        delete_detail: 'DELETE /banking/setup/application/details/:id'
+      },
+      business_setup: {
+        list: 'GET /banking/setup/business',
+        create: 'POST /banking/setup/business',
+        update: 'PUT /banking/setup/business/:paramCode',
+        delete: 'DELETE /banking/setup/business/:paramCode'
+      },
+      product_parameters: {
+        list: 'GET /banking/parameters/product',
+        create: 'POST /banking/parameters/product',
+        update: 'PUT /banking/parameters/product/:id',
+        delete: 'DELETE /banking/parameters/product/:id'
+      },
+      journal_parameters: {
+        list: 'GET /banking/parameters/journal',
+        create: 'POST /banking/parameters/journal',
+        update: 'PUT /banking/parameters/journal/:id',
+        delete: 'DELETE /banking/parameters/journal/:id'
+      }
+    }
+  });
+});
+
+/**
+ * GET /api/v1/banking/health
+ * Health check for banking service
+ */
+router.get('/health', async (req, res) => {
+  try {
+    console.log('🏥 Banking health check requested');
+    await frs9Controller.checkDatabaseHealth(req, res);
+  } catch (error) {
+    console.error('❌ Banking health check route error:', error);
+    res.status(503).json({
+      success: false,
+      error: 'Banking service health check failed',
+      details: error instanceof Error ? error.message : 'Unknown error',
+      code: 'HEALTH_CHECK_ERROR',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// ============================================================================
+// DASHBOARD ENDPOINTS (REQUIRES AUTH)
+// ============================================================================
+
+/**
+ * GET /api/v1/banking/portfolio/summary
+ * Get portfolio summary for dashboard
+ */
+router.get('/portfolio/summary', requireAuth, async (req, res) => {
+  try {
+    const user = (req as any).user;
+    const tenantId = user?.tenantId || 'dana';
+
+    const portfolioData = {
+      totalExposure: tenantId === 'dana' ? 50000000000 : 35000000000,
+      numberOfAccounts: tenantId === 'dana' ? 15420 : 8750,
+      averageRating: tenantId === 'dana' ? 'BBB+' : 'A-',
+      riskDistribution: {
+        stage1: tenantId === 'dana' ? 85 : 88,
+        stage2: tenantId === 'dana' ? 12 : 10,
+        stage3: tenantId === 'dana' ? 3 : 2
+      },
+      currency: 'IDR'
+    };
+
+    console.log(`✅ Banking portfolio summary: ${user?.email} (${tenantId})`);
+    res.json({ success: true, data: portfolioData });
+  } catch (error) {
+    console.error('❌ Portfolio summary error:', error);
+    res.status(500).json({ success: false, error: 'Portfolio summary failed' });
+  }
+});
+
+/**
+ * GET /api/v1/banking/activities/recent
+ * Get recent activities for dashboard
+ */
+router.get('/activities/recent', requireAuth, async (req, res) => {
+  try {
+    const user = (req as any).user;
+
+    const activities = [
+      { id: '1', icon: '🏦', text: 'Banking parameter updated', time: '10 min ago', type: 'success' },
+      { id: '2', icon: '📋', text: 'Application settings saved', time: '1 hour ago', type: 'info' },
+      { id: '3', icon: '👥', text: 'New user account created', time: '2 hours ago', type: 'success' }
+    ];
+
+    console.log(`✅ Banking activities: ${user?.email}`);
+    res.json({ success: true, data: activities });
+  } catch (error) {
+    console.error('❌ Activities error:', error);
+    res.status(500).json({ success: false, error: 'Activities failed' });
+  }
+});
+
+// ============================================================================
+// DEBUG ENDPOINTS (NO AUTH - FOR TESTING)
+// ============================================================================
+
+/**
+ * GET /api/v1/banking/setup/application/debug
+ * Debug application setup parameters
+ */
+router.get('/setup/application/debug', async (req, res) => {
+  try {
+    console.log('🔍 Application setup debug requested - NO AUTH');
+    await frs9Controller.getApplicationSetupDebug(req, res);
+  } catch (error) {
+    console.error('❌ Application setup debug route error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to debug application setup',
+      code: 'ROUTE_ERROR'
+    });
+  }
+});
+
+/**
+ * GET /api/v1/banking/setup/application/headers
+ * Get application setup headers only
+ */
+router.get('/setup/application/headers', async (req, res) => {
+  try {
+    console.log('📋 Application setup headers requested');
+    await frs9Controller.getApplicationSetupHeaders(req, res);
+  } catch (error) {
+    console.error('❌ Application setup headers route error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get application setup headers',
+      code: 'ROUTE_ERROR'
+    });
+  }
+});
 
 // ============================================================================
 // VALIDATION MIDDLEWARE

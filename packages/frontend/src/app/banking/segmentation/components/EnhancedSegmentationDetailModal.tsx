@@ -38,7 +38,7 @@ import {
   Radio,
   Checkbox,
   FormGroup,
-  Grid2 as Grid,
+  Grid,
   Snackbar,
   InputAdornment,
   Paper,

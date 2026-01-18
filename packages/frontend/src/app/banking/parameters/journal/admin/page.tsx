@@ -14,7 +14,9 @@ import React from 'react';
 import { Admin, Resource } from 'react-admin';
 import { createTheme, ThemeProvider, useTheme } from '@mui/material/styles';
 import { Box, Typography, Button, Breadcrumbs, Link } from '@mui/material';
-import { ArrowBack as ArrowBackIcon, BookOnline as JournalIcon, Home as HomeIcon } from '@mui/icons-material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import JournalIcon from '@mui/icons-material/BookOnline';
+import HomeIcon from '@mui/icons-material/Home';
 import { useRouter } from 'next/navigation';
 
 // Import our React Admin resources

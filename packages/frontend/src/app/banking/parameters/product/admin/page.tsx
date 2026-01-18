@@ -14,7 +14,8 @@ import React from 'react';
 import { Admin, Resource } from 'react-admin';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import { Box, Typography, Button } from '@mui/material';
-import { ArrowBack as ArrowBackIcon, Category as ProductIcon } from '@mui/icons-material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import ProductIcon from '@mui/icons-material/Category';
 import { useRouter } from 'next/navigation';
 
 // Import our React Admin resources

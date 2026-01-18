@@ -685,7 +685,7 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
 ];
 
 // Convert icon string to React element helper
-export const convertIconStringToElement = (iconString: string): React.ReactElement => {
+export const convertIconStringToElement = (iconString: string): React.ReactElement<any> => {
     // Handle undefined/null iconString - return fallback menu icon
     if (!iconString || typeof iconString !== 'string') {
         return <Menu />;
@@ -761,7 +761,7 @@ export const convertIconStringToElement = (iconString: string): React.ReactEleme
 };
 
 // Enhanced icon conversion function - CENTRALIZED CONFIGURATION
-export const getIconFromDatabaseString = (iconString: string, bankingMode?: string): React.ReactElement => {
+export const getIconFromDatabaseString = (iconString: string, bankingMode?: string): React.ReactElement<any> => {
     // Handle undefined/null iconString - return fallback menu icon
     if (!iconString || typeof iconString !== 'string') {
         return <Menu />;
@@ -775,7 +775,7 @@ export const getIconFromDatabaseString = (iconString: string, bankingMode?: stri
     }
 
     // Fallback to local icon mapping for comprehensive coverage
-    const fallbackIconMap: Record<string, React.ReactElement> = {
+    const fallbackIconMap: Record<string, React.ReactElement<any>> = {
         // Core Navigation
         'dashboard': <Dashboard />,
         'settings': <Settings />,
@@ -863,9 +863,9 @@ export const getIconFromDatabaseString = (iconString: string, bankingMode?: stri
 };
 
 // Get appropriate icon for menu item based on code and level
-export const getIconForMenuItem = (code: string, level: number): React.ReactElement => {
+export const getIconForMenuItem = (code: string, level: number): React.ReactElement<any> => {
     // Map common menu codes to icons
-    const iconMap: Record<string, React.ReactElement> = {
+    const iconMap: Record<string, React.ReactElement<any>> = {
         'dashboard': <Dashboard />,
         'application-setting': <Settings />,
         'business-setting': <Business />,

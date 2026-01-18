@@ -7,9 +7,8 @@ import {
     IconButton,
     Avatar,
     Tooltip,
-    alpha,
-    useTheme
 } from '@mui/material';
+import { useTheme, alpha } from '@mui/material/styles';
 import {
     Menu as MenuIcon,
     MenuOpen,

@@ -13,7 +13,8 @@
 import React, { Suspense } from 'react';
 import { Admin, Resource, Layout, CustomRoutes } from 'react-admin';
 import { Box, Typography, CircularProgress, Alert } from '@mui/material';
-import { AccountTree as SegmentationIcon, Dashboard as DashboardIcon } from '@mui/icons-material';
+import SegmentationIcon from '@mui/icons-material/AccountTree';
+import DashboardIcon from '@mui/icons-material/Dashboard';
 
 // Import Segmentation Resource components
 import { SegmentationResource } from './segmentation/SegmentationResource';

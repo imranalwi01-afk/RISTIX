@@ -285,6 +285,7 @@ let syariahBankingTheme: Theme;
 
 try {
   syariahBankingTheme = createTheme({
+    cssVariables: false,
     palette: syariahColors,
     typography,
     components: components as any,
@@ -303,10 +304,16 @@ try {
     },
     direction: 'ltr', // Can be changed to 'rtl' for Arabic layouts
   });
+  // Explicitly ensure CSS variables are disabled
+  (syariahBankingTheme as any).cssVariables = false;
+  (syariahBankingTheme as any).vars = undefined;
+  (syariahBankingTheme as any).generateCssVars = undefined;
+  (syariahBankingTheme as any).applyStyles = (_mode: string, _styles: any) => ({});
 } catch (error) {
   console.error('❌ Error creating syariah banking theme:', error);
   // ✅ SURGICAL FIX: Fallback to basic theme if creation fails
   syariahBankingTheme = createTheme({
+    cssVariables: false,
     palette: {
       primary: { main: '#2e7d32' },
       secondary: { main: '#8bc34a' },
@@ -315,6 +322,8 @@ try {
       borderRadius: 8, // ✅ ROUNDED: Modern fallback
     },
   });
+  // Explicitly ensure CSS variables are disabled
+  (syariahBankingTheme as any).cssVariables = false;
 }
 
 // Custom theme extensions for Syariah banking
@@ -360,6 +369,7 @@ export const syariahThemeExtensions = {
 
 // RTL (Right-to-Left) theme variant for Arabic interfaces
 export const syariahBankingThemeRTL: Theme = createTheme({
+  cssVariables: false,
   ...syariahBankingTheme,
   direction: 'rtl',
   shape: {
@@ -378,6 +388,20 @@ export const syariahBankingThemeRTL: Theme = createTheme({
     },
   } as any,
 });
+
+// Function to generate the syariah theme (currently only supports light mode)
+// TODO: Implement dark mode for syariah theme
+export const getSyariahTheme = (mode: 'light' | 'dark' = 'light'): Theme => {
+  // For now, return the same theme regardless of mode
+  // Dark mode for syariah theme can be implemented later
+  // NUCLEAR OPTION: Strip CSS variable references
+  (syariahBankingTheme as any).cssVariables = false;
+  (syariahBankingTheme as any).vars = undefined;
+  (syariahBankingTheme as any).generateCssVars = undefined;
+  (syariahBankingTheme as any).applyStyles = (_mode: string, _styles: any) => ({});
+  
+  return syariahBankingTheme;
+};
 
 // ✅ SURGICAL FIX: Multiple export formats to ensure compatibility
 export { syariahBankingTheme };

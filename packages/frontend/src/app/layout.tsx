@@ -80,7 +80,7 @@ export const metadata: Metadata = {
   // Additional metadata
   category: 'business',
   classification: 'Banking Software',
-  generator: 'Next.js 15',
+  generator: 'Next.js 16',
 }
 
 // ============================================================================

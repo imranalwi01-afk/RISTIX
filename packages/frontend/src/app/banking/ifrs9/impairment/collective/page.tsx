@@ -23,7 +23,8 @@ import {
     Grid,
     Chip
 } from '@mui/material';
-import { Refresh as RefreshIcon, Calculate as CalculateIcon } from '@mui/icons-material';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import CalculateIcon from '@mui/icons-material/Calculate';
 import { useApi } from '@/hooks/useApi';
 
 interface ECLCalculation {

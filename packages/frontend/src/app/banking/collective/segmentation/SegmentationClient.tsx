@@ -72,13 +72,7 @@ import { FullstackIndicator } from '@/components/common/feedback/FullstackIndica
 // DYNAMIC IMPORTS FOR HEAVY COMPONENTS (Performance Optimization)
 // ============================================================================
 
-const DataGrid = dynamic(
-  () => import('@mui/x-data-grid').then((mod) => mod.DataGrid),
-  {
-    ssr: false,
-    loading: () => <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress /></Box>
-  }
-);
+import { SafeDataGrid as DataGrid } from '@/components/shared/SafeDataGrid';
 
 const GridActionsCellItem = dynamic(
   () => import('@mui/x-data-grid').then((mod) => mod.GridActionsCellItem),
@@ -1103,7 +1097,7 @@ export default function SegmentationConfigurationPage() {
           <Paper elevation={1} sx={{ p: 2, mb: 2 }}>
             <Grid container spacing={2} alignItems="center">
               {/* Search Field */}
-              <Grid item xs={12} md={4}>
+              <Grid size={{ xs: 12, md: 4 }}>
                 <TextField
                   fullWidth
                   size="small"
@@ -1128,7 +1122,7 @@ export default function SegmentationConfigurationPage() {
               </Grid>
 
               {/* Segment Type Filter */}
-              <Grid item xs={12} md={3}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <FormControl fullWidth size="small">
                   <InputLabel>Segment Type</InputLabel>
                   <Select
@@ -1147,7 +1141,7 @@ export default function SegmentationConfigurationPage() {
               </Grid>
 
               {/* Status Filter */}
-              <Grid item xs={12} md={2}>
+              <Grid size={{ xs: 12, md: 2 }}>
                 <FormControl fullWidth size="small">
                   <InputLabel>Status</InputLabel>
                   <Select
@@ -1163,7 +1157,7 @@ export default function SegmentationConfigurationPage() {
               </Grid>
 
               {/* Sort Controls */}
-              <Grid item xs={12} md={2}>
+              <Grid size={{ xs: 12, md: 2 }}>
                 <FormControl fullWidth size="small">
                   <InputLabel>Sort By</InputLabel>
                   <Select
@@ -1181,7 +1175,7 @@ export default function SegmentationConfigurationPage() {
               </Grid>
 
               {/* Action Buttons */}
-              <Grid item xs={12} md={1}>
+              <Grid size={{ xs: 12, md: 1 }}>
                 <Stack direction="row" spacing={1}>
                   <Tooltip title={`Sort ${sortDirection === 'asc' ? 'Descending' : 'Ascending'}`}>
                     <IconButton

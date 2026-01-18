@@ -3,7 +3,7 @@
 import React from 'react';
 import { Provider as ReduxProvider } from 'react-redux';
 import { CssBaseline, StyledEngineProvider } from '@mui/material';
-import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
+import { AppRouterCacheProvider } from '@mui/material-nextjs/v16-appRouter';
 
 // ✅ Redux store
 import { store } from '../store';

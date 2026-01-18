@@ -10,7 +10,7 @@
 
 import React from 'react';
 import { Resource } from 'react-admin';
-import { Business as BusinessIcon } from '@mui/icons-material';
+import BusinessIcon from '@mui/icons-material/Business';
 
 // Import all Business Parameter components
 import { BusinessParameterList } from '../BusinessParameterList';

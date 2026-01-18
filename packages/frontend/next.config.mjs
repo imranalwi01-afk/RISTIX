@@ -12,11 +12,24 @@ const nextConfig = {
   // ============================================================================
   // Enable standalone output for Docker
   output: 'standalone',
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+
+  // Force transpilation of MUI packages to fix Turbopack bundling issues
+  // Force transpilation of MUI packages to fix Turbopack bundling issues
+  transpilePackages: [
+    '@mui/material',
+    '@mui/icons-material',
+    '@mui/system',
+    '@mui/lab',
+    '@mui/x-data-grid',
+    '@mui/x-date-pickers',
+    '@mui/x-data-grid-pro',
+    '@mui/x-data-grid-premium',
+  ],
+
+
 
   // Enable SWC minification for faster builds
+  swcMinify: false,
 
 
   // Improve development performance by disposing inactive pages
@@ -27,25 +40,11 @@ const nextConfig = {
     pagesBufferLength: 2,
   },
 
-  // ============================================================================
-  // TURBOPACK CONFIGURATION (for `next dev --turbo`)
-  // ============================================================================
-  // Note: Turbopack has better built-in file watching, no need for webpack watchOptions
-  turbopack: {
-    // Resolve aliases if needed
-    // resolveAlias: {},
-  },
+
 
   // Optimize package imports to reduce bundle size
   experimental: {
     optimizePackageImports: [
-      '@mui/material',
-      '@mui/icons-material',
-      '@mui/lab',
-      '@mui/x-data-grid',
-      '@mui/x-date-pickers',
-      'react-admin',
-      'ra-data-simple-rest',
       'recharts',
       'lucide-react',
       'notistack'
@@ -54,23 +53,42 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '2mb'
     },
-    // Disable server minification to fix Turbopack + Emotion/stylis compatibility
-    serverMinification: false
   },
 
   // Compiler optimizations
   compiler: {
+    // Enable Emotion for MUI v7
+    emotion: {
+      sourceMap: true,
+      autoLabel: 'dev-only',
+      labelFormat: '[local]',
+    },
     // Remove console logs in production (keep errors and warnings)
     removeConsole: process.env.NODE_ENV === 'production' ? {
       exclude: ['error', 'warn']
     } : false
   },
 
+  // Webpack configuration for DataGrid compatibility
+  // webpack: (config, { isServer }) => {
+  //   // Exclude DataGrid from optimization that breaks destructuring
+  //   config.optimization = config.optimization || {};
+  //   config.optimization.providedExports = false;
+
+  //   return config;
+  // },
+
   // ============================================================================
   // IMAGE OPTIMIZATION
   // ============================================================================
   images: {
-    domains: ['localhost', 'iaf-ifrs.ifrspro.id', 'bifrs9-iaf.ifrspro.id', 'danafin.com', 'iaf-ifrs.danafin.com'],
+    remotePatterns: [
+      { protocol: 'http', hostname: 'localhost' },
+      { protocol: 'https', hostname: 'iaf-ifrs.ifrspro.id' },
+      { protocol: 'https', hostname: 'bifrs9-iaf.ifrspro.id' },
+      { protocol: 'https', hostname: 'danafin.com' },
+      { protocol: 'https', hostname: 'iaf-ifrs.danafin.com' },
+    ],
     formats: ['image/webp', 'image/avif']
   },
 

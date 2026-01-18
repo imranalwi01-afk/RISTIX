@@ -15,9 +15,9 @@ import type { RootState } from '../../store';
 import {
   Box,
   Drawer,
-  useTheme,
   useMediaQuery,
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 
 // Import our enhanced sidebar
 import BankingSidebar from '../../components/banking/BankingSidebar';

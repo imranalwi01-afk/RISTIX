@@ -23,7 +23,8 @@ import {
     TextField,
     Chip
 } from '@mui/material';
-import { Refresh as RefreshIcon, Search as SearchIcon } from '@mui/icons-material';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import SearchIcon from '@mui/icons-material/Search';
 import { useApi } from '@/hooks/useApi';
 
 interface Event {

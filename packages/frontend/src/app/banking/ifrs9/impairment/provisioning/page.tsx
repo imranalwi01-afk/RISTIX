@@ -25,7 +25,8 @@ import {
     Select,
     MenuItem
 } from '@mui/material';
-import { Refresh as RefreshIcon, Download as DownloadIcon } from '@mui/icons-material';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import DownloadIcon from '@mui/icons-material/Download';
 import { useApi } from '@/hooks/useApi';
 
 interface ProvisionSummary {

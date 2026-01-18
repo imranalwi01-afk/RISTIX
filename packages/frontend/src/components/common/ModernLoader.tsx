@@ -1,5 +1,7 @@
 import React from 'react';
-import { Box, Typography, keyframes, alpha } from '@mui/material';
+import { Box, Typography } from '@mui/material';
+import { alpha } from '@mui/material/styles';
+import { keyframes } from '@mui/material/styles';
 
 // 🎨 Animations
 const spin = keyframes`

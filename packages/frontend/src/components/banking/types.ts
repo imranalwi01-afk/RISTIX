@@ -240,7 +240,7 @@ export interface MenuItem {
   label: string;
   isActive?: boolean;
   href?: string;
-  icon: React.ReactElement;
+  icon: React.ReactElement<any>;
   description?: string;
   parent_id?: string | null;
   sort_order?: number; // Optional for static menu compatibility

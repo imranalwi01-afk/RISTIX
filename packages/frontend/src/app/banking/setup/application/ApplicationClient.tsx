@@ -614,6 +614,41 @@ export default function ApplicationSettingPage() {
     setDraw(draw + 1);
   };
 
+  // Memoized form input handlers to prevent lag
+  const handleParamCodeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, '');
+    setFormData(prev => ({ ...prev, ParamCode: formatted }));
+  }, []);
+
+  const handleParamNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({ ...prev, ParamName: e.target.value }));
+  }, []);
+
+  const handleParamUsageChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({ ...prev, ParamUsage: e.target.value }));
+  }, []);
+
+  // Memoized detail form handlers
+  const handleDetailSeqNoChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setDetailFormData(prev => ({ ...prev, SeqNo: parseInt(e.target.value) || 1 }));
+  }, []);
+
+  const handleDetailValue1Change = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setDetailFormData(prev => ({ ...prev, Value1: e.target.value }));
+  }, []);
+
+  const handleDetailValue2Change = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setDetailFormData(prev => ({ ...prev, Value2: e.target.value }));
+  }, []);
+
+  const handleDetailValue3Change = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setDetailFormData(prev => ({ ...prev, Value3: e.target.value }));
+  }, []);
+
+  const handleDetailDescriptionChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setDetailFormData(prev => ({ ...prev, Description: e.target.value }));
+  }, []);
+
   // Component lifecycle
   useEffect(() => {
     loadData();
@@ -1016,10 +1051,7 @@ export default function ApplicationSettingPage() {
             <TextField
               label="Common Code"
               value={formData.ParamCode}
-              onChange={(e) => {
-                const formatted = e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, '');
-                setFormData(prev => ({ ...prev, ParamCode: formatted }));
-              }}
+              onChange={handleParamCodeChange}
               fullWidth
               required
               disabled={!!selectedRecord}
@@ -1029,7 +1061,7 @@ export default function ApplicationSettingPage() {
             <TextField
               label="Parameter Name"
               value={formData.ParamName}
-              onChange={(e) => setFormData(prev => ({ ...prev, ParamName: e.target.value }))}
+              onChange={handleParamNameChange}
               fullWidth
               required
               placeholder="e.g., System Configuration"
@@ -1037,7 +1069,7 @@ export default function ApplicationSettingPage() {
             <TextField
               label="Usage Description"
               value={formData.ParamUsage}
-              onChange={(e) => setFormData(prev => ({ ...prev, ParamUsage: e.target.value }))}
+              onChange={handleParamUsageChange}
               fullWidth
               multiline
               rows={3}
@@ -1263,7 +1295,7 @@ export default function ApplicationSettingPage() {
               label="Sequence"
               type="number"
               value={detailFormData.SeqNo}
-              onChange={(e) => setDetailFormData(prev => ({ ...prev, SeqNo: parseInt(e.target.value) || 1 }))}
+              onChange={handleDetailSeqNoChange}
               fullWidth
               required
               inputProps={{ min: 1 }}
@@ -1271,7 +1303,7 @@ export default function ApplicationSettingPage() {
             <TextField
               label="Value 1"
               value={detailFormData.Value1}
-              onChange={(e) => setDetailFormData(prev => ({ ...prev, Value1: e.target.value }))}
+              onChange={handleDetailValue1Change}
               fullWidth
               required
               placeholder="Primary value"
@@ -1279,21 +1311,21 @@ export default function ApplicationSettingPage() {
             <TextField
               label="Value 2"
               value={detailFormData.Value2}
-              onChange={(e) => setDetailFormData(prev => ({ ...prev, Value2: e.target.value }))}
+              onChange={handleDetailValue2Change}
               fullWidth
               placeholder="Secondary value (optional)"
             />
             <TextField
               label="Value 3"
               value={detailFormData.Value3}
-              onChange={(e) => setDetailFormData(prev => ({ ...prev, Value3: e.target.value }))}
+              onChange={handleDetailValue3Change}
               fullWidth
               placeholder="Tertiary value (optional)"
             />
             <TextField
               label="Description"
               value={detailFormData.Description}
-              onChange={(e) => setDetailFormData(prev => ({ ...prev, Description: e.target.value }))}
+              onChange={handleDetailDescriptionChange}
               fullWidth
               multiline
               rows={3}
