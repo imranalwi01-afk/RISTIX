@@ -25,13 +25,16 @@ interface MenuItem {
     children?: MenuItem[]
 }
 
-const MenuItemSchema: z.ZodType<MenuItem> = z.object({
+const MenuItemSchema: z.ZodType<MenuItem> = z.lazy(() => z.object({
     id: z.string(),
     label: z.string(),
     path: z.string().optional(),
     icon: z.string().optional(),
-    children: z.array(z.lazy(() => MenuItemSchema)).optional(), // Recursive schema
-}).openapi('MenuItem')
+    children: z.array(MenuItemSchema).optional(),
+}).openapi('MenuItem')).openapi({
+    type: 'object',
+    title: 'MenuItem'
+})
 
 
 const MenuHierarchySchema = z.object({
