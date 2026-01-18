@@ -281,7 +281,7 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
   roleCodes = [], // ✅ Add roleCodes parameter
   userPermissions = [], // ✅ Add userPermissions parameter
   collapsed = false,
-  appBarHeight = 42,
+  appBarHeight = 50,
   onMenuClick
 }) => {
   const theme = useTheme();
@@ -462,7 +462,7 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
       </Box>
 
       {/* Navigation Menu */}
-      <List sx={{ p: collapsed ? 0.25 : 0.5, pt: 1, flexGrow: 1 }}>
+      <List sx={{ p: collapsed ? 0.25 : 0.5, pt: 3, flexGrow: 1 }}>
         {isMenuLoading && hierarchicalMenu.length === 0 ? (
           <MenuSkeleton />
         ) : menuQueryError && hierarchicalMenu.length === 0 ? (

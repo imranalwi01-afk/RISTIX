@@ -23,11 +23,18 @@ const PRIMARY_ROUTES = [
 
 // Secondary routes - loaded after primary routes complete
 const SECONDARY_ROUTES = [
+    // Parameters
+    '/banking/parameters/product',
+    '/banking/parameters/journal',
+    // Collective
     '/banking/collective/segmentation',
-    '/banking/collective/pd-setup',
-    '/banking/collective/lgd-setup',
-    '/banking/collective/ecl-config',
+    '/banking/collective/rule-base',
     '/banking/collective/bucket',
+    '/banking/collective/pd-setup',
+    '/banking/collective/fl-scalar',
+    '/banking/collective/lgd-setup',
+    '/banking/collective/ead-setup',
+    '/banking/collective/ecl-config',
 ];
 
 /**
