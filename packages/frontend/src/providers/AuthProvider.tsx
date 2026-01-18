@@ -34,44 +34,28 @@ import { setBankingMode } from '../store/slices/configurationSlice'
 import { sessionControlService } from '../services/session-control.service'
 
 // ============================================================================
-// ROLE-BASED REDIRECT HELPER
+// STAKEHOLDER LANDING PAGE HELPER
 // ============================================================================
-const getRoleBasedRedirectUrl = (user: any): string => {
+const getLandingPageUrl = (user: any): string => {
   try {
-    const role = user?.role || user?.roles?.[0] || '';
+    const stakeholderType = user?.stakeholderType || (user?.isPlatformAdmin ? 'platform' : 'banking');
     const email = user?.email || '';
-    const tenantId = user?.tenantId || '';
 
-    console.log(`🔍 Determining redirect for user: ${email} with role: ${role}, tenant: ${tenantId}`);
+    console.log(`🔍 Determining landing page for user: ${email} with stakeholderType: ${stakeholderType}`);
 
-    // Platform administrators
-    if (user?.isPlatformAdmin === true || role.includes('PLATFORM_') || role.includes('SUPER_ADMIN')) {
-      console.log('📊 Platform admin user detected - redirecting to React Admin');
-      return '/platform/admin';
+    switch (stakeholderType) {
+      case 'platform':
+        return '/platform/admin';
+      case 'consultant':
+        return '/consultant/dashboard';
+      case 'regulator':
+        return '/regulator/dashboard';
+      case 'banking':
+      default:
+        return '/banking/dashboard';
     }
-
-    // External consultants
-    if (role.includes('CONSULTANT')) {
-      console.log('👨‍💼 Consultant user detected');
-      return '/consultant/dashboard';
-    }
-
-    // Banking regulators
-    if (role.includes('BANKING_SUPERVISION') || role.includes('REGULATOR')) {
-      console.log('🏛️ Regulator user detected');
-      return '/regulator/dashboard';
-    }
-
-    // IAF Banking users (default for IAF tenant)
-    if (tenantId === 'iaf' || role.includes('BANK_') || role.includes('CRO') || role.includes('IFRS_MANAGER')) {
-      console.log('🏦 IAF Banking user detected');
-      return '/banking/dashboard';
-    }
-
-    console.log('🏦 Default banking user detected');
-    return '/banking/dashboard';
   } catch (error) {
-    console.error('❌ Error in getRoleBasedRedirectUrl:', error);
+    console.error('❌ Error in getLandingPageUrl:', error);
     return '/banking/dashboard';
   }
 };
@@ -147,11 +131,8 @@ const detectBankingModeFromUser = (user: any): 'conventional' | 'syariah' | null
       }
     }
 
-    // Check role for banking type indicators
-    const role = user.role || user.roles?.[0] || '';
-    if (role.toLowerCase().includes('syariah') ||
-      role.toLowerCase().includes('islamic') ||
-      role.toLowerCase().includes('dps')) {
+    // Check user preferences or certification for banking type indicators
+    if (user.syariahCertified || user.syariahCertification) {
       return 'syariah';
     }
 
@@ -380,8 +361,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               // ✅ LOOP PREVENTION: Only redirect from home page, not from login page
               // This prevents auto-redirect when users visit login URL directly
               if (currentPath === '/' || currentPath === '') {
-                const roleBasedUrl = getRoleBasedRedirectUrl(parsedUser)
-                console.log(`✅ Redirecting authenticated user from home to: ${roleBasedUrl}`)
+                const landingUrl = getLandingPageUrl(parsedUser)
+                console.log(`✅ Redirecting authenticated user from home to: ${landingUrl}`)
 
                 setTimeout(() => {
                   safeNavigate(router, roleBasedUrl);
@@ -567,8 +548,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         // ✅ SURGICAL FIX: Enhanced role-based redirect
         try {
-          const roleBasedUrl = getRoleBasedRedirectUrl(userData)
-          console.log(`🚀 Login successful - preparing redirect to: ${roleBasedUrl}`)
+          const landingUrl = getLandingPageUrl(userData)
+          console.log(`🚀 Login successful - preparing redirect to: ${landingUrl}`)
 
           // ✅ PERFORMANCE OPTIMIZATION: Pre-fetch menu data while user sees the "Login Success" state
           // We fetch it here in parallel with 150ms timeout, effectively making it "free" time
@@ -593,11 +574,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
           setTimeout(() => {
             try {
-              console.log(`🚀 Executing navigation to: ${roleBasedUrl}`);
-              safeNavigate(router, roleBasedUrl);
+              console.log(`🚀 Executing navigation to: ${landingUrl}`);
+              safeNavigate(router, landingUrl);
             } catch (navError) {
               console.error('❌ Navigation Error:', navError);
-              window.location.href = roleBasedUrl;
+              window.location.href = landingUrl;
             }
           }, 150);
 

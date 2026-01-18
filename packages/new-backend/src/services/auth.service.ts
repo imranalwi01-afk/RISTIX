@@ -67,7 +67,8 @@ const generateAccessToken = async (
     tokenId: string,
     tenantId?: string,
     roles: string[] = [],
-    permissions: string[] = []
+    permissions: string[] = [],
+    stakeholderType: string = 'banking'
 ): Promise<string> => {
     return new jose.SignJWT({
         sub: user.id,
@@ -78,6 +79,7 @@ const generateAccessToken = async (
         roles,
         role: roles[0],
         permissions,
+        stakeholderType,
     })
         .setProtectedHeader({ alg: 'HS256' })
         .setIssuedAt()
@@ -93,7 +95,8 @@ const generateRefreshToken = async (
     tokenId: string,
     tenantId?: string,
     roles: string[] = [],
-    permissions: string[] = []
+    permissions: string[] = [],
+    stakeholderType: string = 'banking'
 ): Promise<string> => {
     return new jose.SignJWT({
         sub: user.id,
@@ -102,7 +105,9 @@ const generateRefreshToken = async (
         jti: tokenId,
         type: 'refresh',
         roles,
+        role: roles[0],
         permissions,
+        stakeholderType,
     })
         .setProtectedHeader({ alg: 'HS256' })
         .setIssuedAt()
@@ -240,8 +245,12 @@ export const login = (
                 // Use user.tenantId as stored in the user_roles table (could be slug or UUID)
                 userRolesRepository.findByUser(db, user.id, resolvedTenantId ?? user.tenantId ?? undefined),
                 Effect.map((userRolesList) => {
-                    console.log('🔍 DEBUG: userRolesList length:', userRolesList.length)
-                    console.log('🔍 DEBUG: userRolesList:', JSON.stringify(userRolesList, null, 2))
+                    console.log(`[AuthDebug] userRolesList lookup for userId=${user.id} tenantId=${resolvedTenantId ?? user.tenantId} count=${userRolesList.length}`);
+                    console.log(`[AuthDebug] userRolesList raw data:`, JSON.stringify(userRolesList.map(ur => ({
+                        roleId: ur.roleId,
+                        roleCode: ur.role?.roleCode,
+                        permissionsCount: ur.role?.rolePermissions?.length
+                    })), null, 2));
 
                     const roles = userRolesList.map((ur) => ur.role.roleCode)
                     console.log('🔍 DEBUG: extracted roles:', roles)
@@ -271,9 +280,19 @@ export const login = (
                     const refreshTokenId = crypto.randomUUID()
                     const now = new Date()
 
+                    // Determine stakeholder type based on permissions
+                    let stakeholderType = 'banking'
+                    if (permissions.includes('MANAGE_SYSTEM') || permissions.includes('PLATFORM_ADMIN')) {
+                        stakeholderType = 'platform'
+                    } else if (permissions.includes('CONSULTANT_ACCESS')) {
+                        stakeholderType = 'consultant'
+                    } else if (permissions.includes('REGULATOR_ACCESS')) {
+                        stakeholderType = 'regulator'
+                    }
+
                     const [accessToken, refreshToken] = await Promise.all([
-                        generateAccessToken(user, accessTokenId, resolvedTenantId, roles, permissions),
-                        generateRefreshToken(user, refreshTokenId, resolvedTenantId, roles, permissions),
+                        generateAccessToken(user, accessTokenId, resolvedTenantId, roles, permissions, stakeholderType),
+                        generateRefreshToken(user, refreshTokenId, resolvedTenantId, roles, permissions, stakeholderType),
                     ])
 
                     // Store session in Redis (much better than database for sessions!)
@@ -286,6 +305,7 @@ export const login = (
                         userAgent: metadata?.userAgent,
                         roles,
                         permissions,
+                        stakeholderType,
                         createdAt: now.toISOString(),
                         expiresAt: new Date(now.getTime() + ACCESS_TOKEN_EXPIRY_MS).toISOString(),
                         refreshExpiresAt: new Date(now.getTime() + REFRESH_TOKEN_EXPIRY_MS).toISOString(),

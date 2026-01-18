@@ -66,23 +66,6 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
         role = role[0] || '';
       }
 
-      // 🔧 FORCE IAF ROLES FOR ADMIN USERS
-      if (authState.user?.email === 'admin@iaf.co.id') {
-        if (role === 'BANK_USER') {
-          role = 'IAF_TENANT_SUPERADMIN';
-        }
-      }
-      if (authState.user?.email === 'superadmin@iaf.co.id') {
-        if (role === 'BANK_USER') {
-          role = 'IAF_TENANT_SUPERADMIN';
-        }
-      }
-
-      // ✅ FIX: Normalize verbose roles to codes
-      if (role === 'IAF Tenant Super Administrator' || role === 'IAF Tenant Administrator') {
-        role = role === 'IAF Tenant Super Administrator' ? 'IAF_TENANT_SUPERADMIN' : 'IAF_TENANT_ADMIN';
-      }
-
       setUserRole(role);
       setUserName(authState.user.fullName || authState.user.email || authState.user.username || 'User');
       return;
