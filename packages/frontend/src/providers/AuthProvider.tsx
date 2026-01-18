@@ -365,7 +365,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 console.log(`✅ Redirecting authenticated user from home to: ${landingUrl}`)
 
                 setTimeout(() => {
-                  safeNavigate(router, roleBasedUrl);
+                  safeNavigate(router, landingUrl);
                 }, 100);
               } else if (currentPath === '/login') {
                 // ✅ LOOP PREVENTION: Stay on login page if user navigates there manually
@@ -555,7 +555,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           // We fetch it here in parallel with 150ms timeout, effectively making it "free" time
           // We store raw data to 'temp_raw_menu' so BankingSidebar can pick it up immediately
           // avoiding a second network request.
-          if (roleBasedUrl.includes('banking') && token) {
+          if (landingUrl.includes('banking') && token) {
             const detectedMode = detectedBankingMode || 'conventional';
             // Run in background, don't await
             import('../services/api/menu.api').then(({ menuApi }) => {
