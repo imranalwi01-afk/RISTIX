@@ -53,6 +53,22 @@ export const ParametersRepository = {
         })
     },
 
+    deleteHeader: (code: string) => {
+        return queryEffect(async () => {
+            // First delete any associated details
+            await db
+                .delete(frs9ParamCommond)
+                .where(eq(frs9ParamCommond.paramCode, code))
+
+            // Then delete the header
+            const result = await db
+                .delete(frs9ParamCommonh)
+                .where(eq(frs9ParamCommonh.paramCode, code))
+                .returning()
+            return result[0]
+        })
+    },
+
     // Detail Operations
     findDetailByCode: (code: string) => {
         return queryEffect(async () => {

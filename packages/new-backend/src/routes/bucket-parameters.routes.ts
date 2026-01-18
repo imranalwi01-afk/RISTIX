@@ -106,6 +106,7 @@ app.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: BucketListResponse } }, description: 'List Headers' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
@@ -127,6 +128,7 @@ app.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: BucketResponse } }, description: 'Header Detail' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
             404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
@@ -150,6 +152,7 @@ app.openapi(
         },
         responses: {
             201: { content: { 'application/json': { schema: BucketResponse } }, description: 'Created' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
@@ -173,6 +176,7 @@ app.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: BucketResponse } }, description: 'Updated' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
             404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
@@ -228,6 +232,7 @@ app.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: BucketDetailListResponse } }, description: 'List Details' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
             404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
@@ -253,6 +258,7 @@ app.openapi(
         },
         responses: {
             201: { content: { 'application/json': { schema: BucketDetailResponse } }, description: 'Created' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
@@ -280,6 +286,7 @@ app.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: BucketDetailResponse } }, description: 'Updated' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
             404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }

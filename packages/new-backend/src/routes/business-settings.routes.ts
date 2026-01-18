@@ -191,6 +191,30 @@ app.openapi(
     }
 )
 
+// DELETE /api/v1/business-settings/:code
+// Delete Business Setting Header
+app.openapi(
+    createRoute({
+        method: 'delete',
+        path: '/{code}',
+        tags: ['Business Settings'],
+        summary: 'Delete Business Setting',
+        description: 'Deletes a business setting by its param_code',
+        request: {
+            params: z.object({ code: z.string() })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), message: z.string() }) } }, description: 'Deleted' },
+            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        const { code } = c.req.valid('param')
+        return runEffect(c, ParametersService.deleteAppSetting(code) as any) as any
+    }
+)
+
 // POST /api/v1/business-settings/details
 // Create Business Setting Detail
 app.openapi(

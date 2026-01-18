@@ -209,10 +209,17 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
   useEffect(() => {
     if (shouldSkip) return;
 
+    // 🔧 DEBUG: Log menu data from API
+    console.log('[SIDEBAR DEBUG] menuData from API:', menuData);
+    console.log('[SIDEBAR DEBUG] userRole:', userRole);
+    console.log('[SIDEBAR DEBUG] roleCodes:', roleCodes);
+    console.log('[SIDEBAR DEBUG] bankingMode:', bankingMode);
+
     if (menuData && Array.isArray(menuData) && menuData.length > 0) {
       processMenuData(menuData);
     } else if (menuQueryError || (!isMenuLoading && (!menuData || menuData.length === 0))) {
       // Use fallback on error or empty data
+      console.log('[SIDEBAR DEBUG] Using static fallback because:', menuQueryError ? 'API error' : 'empty data');
       applyStaticFallback();
     }
   }, [menuData, isMenuLoading, menuQueryError, shouldSkip, bankingMode, userRole, roleCodes, userPermissions]);
@@ -265,7 +272,9 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
     // Filter by role and banking mode
     const filtered = filterHierarchicalMenu(hierarchical, userRole, bankingMode, roleCodes, userPermissions);
 
-
+    // 🔧 DEBUG: Log filtering results
+    console.log('[SIDEBAR DEBUG] Before filter - hierarchical items:', hierarchical.map(h => ({ id: h.id, title: h.title, permissions: h.permissions, children: h.children?.length })));
+    console.log('[SIDEBAR DEBUG] After filter - filtered items:', filtered.map(f => ({ id: f.id, title: f.title, children: f.children?.length })));
 
     setHierarchicalMenu(filtered);
 

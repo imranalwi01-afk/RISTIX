@@ -11,7 +11,7 @@ import { frontendEnvironmentLoader } from '../config/environment-loader-frontend
 
 // Initialize configuration
 const config = frontendEnvironmentLoader.getConfiguration();
-const baseURL = config?.api?.base || config?.api?.backend || 'http://localhost:3000/api/v1';
+const baseURL = config?.api?.base || config?.api?.backend || 'http://localhost:4232/api/v1';
 
 console.log('🔧 [API CLIENT] Initializing shared axios client with baseURL:', baseURL);
 
@@ -35,7 +35,7 @@ apiClient.interceptors.request.use(
   (config) => {
     // Get token from storage
     const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
-    
+
     // Get tenant from storage or user data
     let tenantId = null;
     if (typeof window !== 'undefined') {

@@ -302,6 +302,30 @@ app.openapi(
     }
 )
 
+// DELETE /api/v1/app-settings/:code
+app.openapi(
+    createRoute({
+        method: 'delete',
+        path: '/{code}',
+        tags: ['Application Settings'],
+        summary: 'Delete Application Setting',
+        description: 'Deletes an application setting by its param_code',
+        request: {
+            params: z.object({ code: z.string() })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), message: z.string() }) } }, description: 'Deleted' },
+            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        const { code } = c.req.valid('param');
+
+        return runEffect(c, ParametersService.deleteAppSetting(code) as any) as any
+    }
+)
+
 // POST /api/v1/app-settings/details
 app.openapi(
     createRoute({

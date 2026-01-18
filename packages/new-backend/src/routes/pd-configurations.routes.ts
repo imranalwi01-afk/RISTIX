@@ -91,6 +91,7 @@ app.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: PdListResponse } }, description: 'List of PD configurations' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Server Error' }
         }
     }),
@@ -115,7 +116,9 @@ app.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: PdResponse } }, description: 'PD Configuration details' },
-            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' }
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
+            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
     async (c) => {
@@ -136,7 +139,9 @@ app.openapi(
             body: { content: { 'application/json': { schema: CreatePdConfigSchema } } }
         },
         responses: {
-            201: { content: { 'application/json': { schema: PdResponse } }, description: 'Created' }
+            201: { content: { 'application/json': { schema: PdResponse } }, description: 'Created' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
     async (c) => {
@@ -158,7 +163,10 @@ app.openapi(
             body: { content: { 'application/json': { schema: UpdatePdConfigSchema } } }
         },
         responses: {
-            200: { content: { 'application/json': { schema: PdResponse } }, description: 'Updated' }
+            200: { content: { 'application/json': { schema: PdResponse } }, description: 'Updated' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
+            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
     async (c) => {
@@ -181,7 +189,10 @@ app.openapi(
             params: z.object({ id: z.string().transform(Number) })
         },
         responses: {
-            200: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Deleted' }
+            200: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Deleted' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
+            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
     async (c) => {

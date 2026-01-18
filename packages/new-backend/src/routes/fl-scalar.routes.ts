@@ -201,6 +201,7 @@ flScalarRoutes.openapi(
         },
         responses: {
             201: { content: { 'application/json': { schema: FlScalarResponse } }, description: 'Created' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),

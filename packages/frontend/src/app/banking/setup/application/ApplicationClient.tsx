@@ -71,67 +71,19 @@ import {
 import EmptyState from '@/components/banking/shared/EmptyState';
 import api, { handleAPIError } from '../../../../services/api';
 
+// Extracted dialog components for better performance
+import {
+  ApplicationFormDialog,
+  DetailFormDialog,
+  type ApplicationSettingDataTable,
+  type ApplicationSettingDetailDataTable,
+  type ApplicationSettingFormData,
+  type DetailFormData
+} from './components';
+
 // =====================================================
-// INTERFACES MATCHING EXACT LEGACY DATATABLES RESPONSE
+// LOCAL INTERFACES (not imported from ./components)
 // =====================================================
-
-// Legacy DataTables Response Structure (matches LoadData() response)
-interface ApplicationSettingDataTable {
-  ID: number;              // Maps to pkid
-  CommonCode: string;     // Maps to param_code
-  Description: string;    // Maps to param_name
-  Value: string;          // Computed display value
-  ParamType: string;      // Maps to param_type
-  CreatedBy: string;      // Maps to createdby
-  CreatedDate: string;    // Maps to createddate
-  UpdatedBy?: string;     // Maps to updatedby
-  UpdatedDate?: string;   // Maps to updateddate
-  // Legacy compatibility fields
-  pkid?: number;
-  param_code?: string;
-  param_name?: string;
-  param_usage?: string;
-  param_type?: string;
-  createdby?: string;
-  createddate?: string;
-}
-
-// Legacy Detail DataTables Response Structure (matches LoadDataDetail() response)
-interface ApplicationSettingDetailDataTable {
-  ID: number;              // Maps to pkid
-  SeqNo: number;          // Maps to param_seq
-  Value1: string;         // Maps to value1
-  Value2: string;         // Maps to value2
-  Value3: string;         // Maps to value3
-  Description: string;    // Maps to paramdesc
-  // Legacy compatibility fields
-  pkid?: number;
-  param_code?: string;
-  param_seq?: number;
-  value1?: string;
-  value2?: string;
-  value3?: string;
-  paramdesc?: string;
-}
-
-// Legacy ApplicationSetting Form Model (matches Create.cshtml)
-interface ApplicationSettingCreateModel {
-  ID?: number;
-  ParamCode: string;      // Maps to param_code
-  ParamName: string;      // Maps to param_name
-  ParamUsage?: string;    // Maps to param_usage
-}
-
-// Legacy ApplicationSettingDetail Form Model (matches CreateDetail.cshtml)
-interface ApplicationSettingDetailCreateModel {
-  ID?: number;
-  ParamCode: string;      // Maps to param_code
-  SeqNo: number;          // Maps to param_seq
-  Value1: string;         // Maps to value1
-  Value2?: string;        // Maps to value2
-  Value3?: string;        // Maps to value3
-  Description: string;    // Maps to paramdesc
-}
 
 // Legacy Permission Interface (matches ViewBag permissions)
 interface ViewBagPermissions {
@@ -183,7 +135,7 @@ export default function ApplicationSettingPage() {
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<ApplicationSettingDataTable | null>(null);
-  const [formData, setFormData] = useState<ApplicationSettingCreateModel>({
+  const [formData, setFormData] = useState<ApplicationSettingFormData>({
     ParamCode: '',
     ParamName: '',
     ParamUsage: ''
@@ -194,7 +146,7 @@ export default function ApplicationSettingPage() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [selectedDetail, setSelectedDetail] = useState<ApplicationSettingDetailDataTable | null>(null);
-  const [detailFormData, setDetailFormData] = useState<ApplicationSettingDetailCreateModel>({
+  const [detailFormData, setDetailFormData] = useState<DetailFormData>({
     ParamCode: '',
     SeqNo: 1,
     Value1: '',
@@ -649,6 +601,81 @@ export default function ApplicationSettingPage() {
     setDetailFormData(prev => ({ ...prev, Description: e.target.value }));
   }, []);
 
+  // Callback for ApplicationFormDialog - memoized to prevent re-renders
+  const handleApplicationFormSave = useCallback(async (data: ApplicationSettingFormData) => {
+    if (!data.ParamCode?.trim() || !data.ParamName?.trim()) {
+      setError('Parameter Code and Parameter Name are required');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const payload = {
+        param_code: data.ParamCode.trim().toUpperCase(),
+        param_name: data.ParamName.trim(),
+        param_usage: data.ParamUsage?.trim() || ''
+      };
+
+      if (selectedRecord) {
+        await api.applicationParameter.headers.update(selectedRecord.CommonCode, payload);
+        setSuccess('Application Setting updated successfully');
+      } else {
+        await api.applicationParameter.headers.create(payload);
+        setSuccess('Application Setting created successfully');
+      }
+
+      setCreateModalOpen(false);
+      setEditModalOpen(false);
+      await loadData();
+
+    } catch (error: any) {
+      console.error('❌ Failed to save Application Setting:', error);
+      const errorInfo = handleAPIError(error);
+      setError(`Failed to save Application Setting: ${errorInfo.message}`);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedRecord, loadData]);
+
+  // Callback for DetailFormDialog - memoized to prevent re-renders
+  const handleDetailFormSave = useCallback(async (data: DetailFormData) => {
+    if (!selectedRecord || !data.Value1?.trim()) {
+      setError('Value 1 is required for detail record');
+      return;
+    }
+
+    try {
+      setDetailLoading(true);
+      setError(null);
+
+      const payload = {
+        param_seq: data.SeqNo,
+        value1: data.Value1.trim(),
+        value2: data.Value2?.trim() || '',
+        value3: data.Value3?.trim() || '',
+        paramdesc: data.Description?.trim() || ''
+      };
+
+      if (selectedDetail) {
+        await api.applicationParameter.details.update(selectedDetail.ID.toString(), payload);
+      } else {
+        await api.applicationParameter.details.create(selectedRecord.CommonCode, payload);
+      }
+
+      setDetailModalOpen(false);
+      await loadDetailData(selectedRecord.CommonCode);
+      setSuccess('Parameter detail saved successfully');
+
+    } catch (error: any) {
+      console.error('❌ Failed to save detail:', error);
+      setError(`Failed to save detail: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setDetailLoading(false);
+    }
+  }, [selectedRecord, selectedDetail, loadDetailData]);
+
   // Component lifecycle
   useEffect(() => {
     loadData();
@@ -1041,56 +1068,14 @@ export default function ApplicationSettingPage() {
         </CardContent>
       </Card>
 
-      {/* Create/Edit Modal - matching legacy Create.cshtml */}
-      <Dialog open={createModalOpen || editModalOpen} onClose={() => { setCreateModalOpen(false); setEditModalOpen(false); }} maxWidth="md" fullWidth>
-        <DialogTitle>
-          {selectedRecord ? 'Edit Application Setting' : 'Create Application Setting'}
-        </DialogTitle>
-        <DialogContent sx={{ mt: 2 }}>
-          <Box sx={{ display: 'grid', gap: 2 }}>
-            <TextField
-              label="Common Code"
-              value={formData.ParamCode}
-              onChange={handleParamCodeChange}
-              fullWidth
-              required
-              disabled={!!selectedRecord}
-              placeholder="e.g., APP001"
-              inputProps={{ maxLength: 10 }}
-            />
-            <TextField
-              label="Parameter Name"
-              value={formData.ParamName}
-              onChange={handleParamNameChange}
-              fullWidth
-              required
-              placeholder="e.g., System Configuration"
-            />
-            <TextField
-              label="Usage Description"
-              value={formData.ParamUsage}
-              onChange={handleParamUsageChange}
-              fullWidth
-              multiline
-              rows={3}
-              placeholder="Describe how this parameter is used in the system"
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => { setCreateModalOpen(false); setEditModalOpen(false); }} disabled={loading}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSave}
-            variant="contained"
-            disabled={loading || !formData.ParamCode?.trim() || !formData.ParamName?.trim()}
-            startIcon={loading ? <CircularProgress size={16} /> : null}
-          >
-            {loading ? 'Saving...' : (selectedRecord ? 'Update' : 'Create')}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {/* Create/Edit Modal - using memoized component for performance */}
+      <ApplicationFormDialog
+        open={createModalOpen || editModalOpen}
+        onClose={() => { setCreateModalOpen(false); setEditModalOpen(false); }}
+        onSave={handleApplicationFormSave}
+        selectedRecord={selectedRecord}
+        loading={loading}
+      />
 
       {/* View Modal with Detail Table - matching legacy Detail.cshtml */}
       <Dialog open={viewModalOpen} onClose={() => setViewModalOpen(false)} maxWidth="lg" fullWidth>
@@ -1281,72 +1266,16 @@ export default function ApplicationSettingPage() {
         </DialogActions>
       </Dialog>
 
-      {/* Detail Create/Edit Modal - matching legacy CreateDetail.cshtml */}
-      <Dialog open={detailModalOpen} onClose={() => setDetailModalOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>
-          {selectedDetail ? 'Edit Parameter Detail' : 'Create Parameter Detail'}
-        </DialogTitle>
-        <DialogContent sx={{ mt: 2 }}>
-          <Alert severity="info" sx={{ mb: 2 }}>
-            Adding detail for parameter: <strong>{detailFormData.ParamCode}</strong>
-          </Alert>
-          <Box sx={{ display: 'grid', gap: 2 }}>
-            <TextField
-              label="Sequence"
-              type="number"
-              value={detailFormData.SeqNo}
-              onChange={handleDetailSeqNoChange}
-              fullWidth
-              required
-              inputProps={{ min: 1 }}
-            />
-            <TextField
-              label="Value 1"
-              value={detailFormData.Value1}
-              onChange={handleDetailValue1Change}
-              fullWidth
-              required
-              placeholder="Primary value"
-            />
-            <TextField
-              label="Value 2"
-              value={detailFormData.Value2}
-              onChange={handleDetailValue2Change}
-              fullWidth
-              placeholder="Secondary value (optional)"
-            />
-            <TextField
-              label="Value 3"
-              value={detailFormData.Value3}
-              onChange={handleDetailValue3Change}
-              fullWidth
-              placeholder="Tertiary value (optional)"
-            />
-            <TextField
-              label="Description"
-              value={detailFormData.Description}
-              onChange={handleDetailDescriptionChange}
-              fullWidth
-              multiline
-              rows={3}
-              placeholder="Describe the purpose of this detail configuration"
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDetailModalOpen(false)} disabled={detailLoading}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSaveDetail}
-            variant="contained"
-            disabled={detailLoading || !detailFormData.Value1?.trim()}
-            startIcon={detailLoading ? <CircularProgress size={16} /> : null}
-          >
-            {detailLoading ? 'Saving...' : (selectedDetail ? 'Update' : 'Create')}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {/* Detail Create/Edit Modal - using memoized component for performance */}
+      <DetailFormDialog
+        open={detailModalOpen}
+        onClose={() => setDetailModalOpen(false)}
+        onSave={handleDetailFormSave}
+        selectedDetail={selectedDetail}
+        parentParamCode={selectedRecord?.CommonCode || ''}
+        nextSeqNo={detailData.length + 1}
+        loading={detailLoading}
+      />
 
       {/* Success/Error Messages */}
       <Snackbar

@@ -116,6 +116,17 @@ export const ParametersService = {
         )
     },
 
+    deleteAppSetting: (code: string) => {
+        return pipe(
+            ParametersRepository.deleteHeader(code),
+            Effect.flatMap(deleted =>
+                (deleted
+                    ? Effect.succeed({ message: `Application setting '${code}' deleted successfully` })
+                    : Effect.fail(new NotFoundError({ resource: 'App Setting', id: code }))) as any
+            )
+        )
+    },
+
     // Business Settings Queries
     listBusinessSettings: (code?: string) => {
         // If code provided, return details

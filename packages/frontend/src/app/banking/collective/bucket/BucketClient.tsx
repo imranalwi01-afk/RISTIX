@@ -34,7 +34,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Grid,
   Alert,
   Breadcrumbs,
   Link,
@@ -662,8 +661,8 @@ export default function BucketParameterPage() {
         </DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 2 }}>
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
+            <Box sx={{ pt: 2, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 3 }}>
+              <Box>
                 <TextField
                   fullWidth
                   label="Bucket Group ID"
@@ -671,8 +670,8 @@ export default function BucketParameterPage() {
                   onChange={(e) => setHeaderFormData(prev => ({ ...prev, bucket_group: e.target.value }))}
                   required
                 />
-              </Grid>
-              <Grid item xs={12} md={6}>
+              </Box>
+              <Box>
                 <FormControl fullWidth required>
                   <InputLabel>Basis</InputLabel>
                   <Select
@@ -687,49 +686,51 @@ export default function BucketParameterPage() {
                     ))}
                   </Select>
                 </FormControl>
-              </Grid>
-              <Grid item xs={12}>
+              </Box>
+              <Box sx={{ gridColumn: 'span 2' }}>
                 <TextField
                   fullWidth
                   label="Description"
                   value={headerFormData.bucket_group_desc || ''}
                   onChange={(e) => setHeaderFormData(prev => ({ ...prev, bucket_group_desc: e.target.value }))}
                 />
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={headerFormData.include_close || false}
-                      onChange={(e) => setHeaderFormData(prev => ({ ...prev, include_close: e.target.checked }))}
-                    />
-                  }
-                  label="Include Closed"
-                />
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={headerFormData.include_wo || false}
-                      onChange={(e) => setHeaderFormData(prev => ({ ...prev, include_wo: e.target.checked }))}
-                    />
-                  }
-                  label="Include WO"
-                />
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={headerFormData.active_flag ?? true}
-                      onChange={(e) => setHeaderFormData(prev => ({ ...prev, active_flag: e.target.checked }))}
-                    />
-                  }
-                  label="Active"
-                />
-              </Grid>
-            </Grid>
+              </Box>
+              <Box sx={{ display: 'grid', gridColumn: 'span 2', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2 }}>
+                <Box>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={headerFormData.include_close || false}
+                        onChange={(e) => setHeaderFormData(prev => ({ ...prev, include_close: e.target.checked }))}
+                      />
+                    }
+                    label="Include Closed"
+                  />
+                </Box>
+                <Box>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={headerFormData.include_wo || false}
+                        onChange={(e) => setHeaderFormData(prev => ({ ...prev, include_wo: e.target.checked }))}
+                      />
+                    }
+                    label="Include WO"
+                  />
+                </Box>
+                <Box>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={headerFormData.active_flag !== false}
+                        onChange={(e) => setHeaderFormData(prev => ({ ...prev, active_flag: e.target.checked }))}
+                      />
+                    }
+                    label="Active"
+                  />
+                </Box>
+              </Box>
+            </Box>
           </Box>
         </DialogContent>
         <DialogActions>
@@ -745,8 +746,8 @@ export default function BucketParameterPage() {
         </DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 2 }}>
-            <Grid container spacing={3}>
-              <Grid item xs={12}>
+            <Box sx={{ pt: 2, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 3 }}>
+              <Box sx={{ gridColumn: 'span 2' }}>
                 <TextField
                   fullWidth
                   label="Bucket Name"
@@ -754,8 +755,8 @@ export default function BucketParameterPage() {
                   onChange={(e) => setDetailFormData(prev => ({ ...prev, bucket_name: e.target.value }))}
                   required
                 />
-              </Grid>
-              <Grid item xs={12} md={6}>
+              </Box>
+              <Box>
                 <TextField
                   fullWidth
                   type="number"
@@ -764,8 +765,8 @@ export default function BucketParameterPage() {
                   onChange={(e) => setDetailFormData(prev => ({ ...prev, range_start: Number(e.target.value) }))}
                   required
                 />
-              </Grid>
-              <Grid item xs={12} md={6}>
+              </Box>
+              <Box>
                 <TextField
                   fullWidth
                   type="number"
@@ -773,19 +774,19 @@ export default function BucketParameterPage() {
                   value={detailFormData.range_end || ''}
                   onChange={(e) => setDetailFormData(prev => ({ ...prev, range_end: e.target.value ? Number(e.target.value) : undefined }))}
                 />
-              </Grid>
-              <Grid item xs={12}>
+              </Box>
+              <Box sx={{ gridColumn: 'span 2' }}>
                 <FormControlLabel
                   control={
                     <Switch
-                      checked={detailFormData.active_flag ?? true}
+                      checked={detailFormData.active_flag !== false}
                       onChange={(e) => setDetailFormData(prev => ({ ...prev, active_flag: e.target.checked }))}
                     />
                   }
                   label="Active"
                 />
-              </Grid>
-            </Grid>
+              </Box>
+            </Box>
           </Box>
         </DialogContent>
         <DialogActions>

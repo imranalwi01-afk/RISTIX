@@ -184,19 +184,19 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
                 isActive: true,
                 status: 'active'
             },
-            {
-                id: 'risk-parameters',
-                code: 'risk-parameters',
-                label: 'Risk Parameters',
-                href: '/banking/parameters/risk',
-                icon: <TrendingUp />,
-                description: 'Risk Assessment Parameters',
-                sort_order: 8,
-                level: 2,
-                path: '/risk-parameters',
-                isActive: true,
-                status: 'active'
-            }
+            // {
+            //     id: 'risk-parameters',
+            //     code: 'risk-parameters',
+            //     label: 'Risk Parameters',
+            //     href: '/banking/parameters/risk',
+            //     icon: <TrendingUp />,
+            //     description: 'Risk Assessment Parameters',
+            //     sort_order: 8,
+            //     level: 2,
+            //     path: '/risk-parameters',
+            //     isActive: true,
+            //     status: 'active'
+            // }
         ]
     },
 
@@ -245,7 +245,7 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
         icon: <TrendingUp />,
         description: 'Portfolio Assessment',
         banking_modes: ['conventional', 'syariah', 'dual'],
-        roles: ['IAF_TENANT_SUPERADMIN', 'IAF_TENANT_ADMIN', 'IAF Tenant Super Administrator', 'IAF Tenant Administrator', 'IAF_BANK_CRO', 'IAF_IFRS_MANAGER', 'IAF_RISK_ANALYST', 'IAF_PORTFOLIO_MANAGER'],
+        // roles: ['IAF_TENANT_SUPERADMIN', 'IAF_TENANT_ADMIN', 'IAF Tenant Super Administrator', 'IAF Tenant Administrator', 'IAF_BANK_CRO', 'IAF_IFRS_MANAGER', 'IAF_RISK_ANALYST', 'IAF_PORTFOLIO_MANAGER'],
         children: [
             {
                 id: 'segmentation-configuration',

@@ -10,7 +10,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 // Business Setup Error Boundary
 class BusinessSetupErrorBoundary extends React.Component<
@@ -139,214 +139,12 @@ import api, { handleAPIError } from '../../../../services/api';
 import PageHeader from '@/components/banking/shared/PageHeader';
 import EmptyState from '@/components/banking/shared/EmptyState';
 
-// =====================================================
-// BUSINESS PARAMETER INTERFACES
-// =====================================================
-
-interface BusinessParameter {
-  pkid: string;
-  param_code: string;
-  param_desc: string;
-  param_category: string;
-  param_value: string;
-  param_type: string;
-  is_editable: boolean;
-  active_flag: boolean;
-  created_by: string;
-  created_date: string;
-}
-
-interface BusinessParameterFormData {
-  param_code: string;
-  param_desc: string;
-  param_value: string;
-  param_category: string;
-  param_type: string;
-  is_editable: boolean;
-  active_flag: boolean;
-}
-
-// =====================================================
-// BUSINESS PARAMETER FORM DIALOG
-// =====================================================
-
-const BusinessParameterDialog: React.FC<{
-  open: boolean;
-  onClose: () => void;
-  onSave: (data: BusinessParameterFormData) => void;
-  parameter?: BusinessParameter;
-}> = ({ open, onClose, onSave, parameter }) => {
-  const [formData, setFormData] = useState<BusinessParameterFormData>({
-    param_code: '',
-    param_desc: '',
-    param_value: '',
-    param_category: 'B',
-    param_type: 'BUSINESS',
-    is_editable: true,
-    active_flag: true
-  });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (parameter) {
-      setFormData({
-        param_code: parameter.param_code,
-        param_desc: parameter.param_desc,
-        param_value: parameter.param_value,
-        param_category: parameter.param_category,
-        param_type: parameter.param_type,
-        is_editable: parameter.is_editable,
-        active_flag: parameter.active_flag
-      });
-    } else {
-      setFormData({
-        param_code: '',
-        param_desc: '',
-        param_value: '',
-        param_category: 'B',
-        param_type: 'BUSINESS',
-        is_editable: true,
-        active_flag: true
-      });
-    }
-  }, [parameter]);
-
-  const handleSubmit = () => {
-    // Validation
-    if (!formData.param_code?.trim()) {
-      setError('Parameter Code is required');
-      return;
-    }
-    if (!formData.param_desc?.trim()) {
-      setError('Description is required');
-      return;
-    }
-    if (!formData.param_value?.trim()) {
-      setError('Parameter Value is required');
-      return;
-    }
-
-    setError(null);
-    onSave({
-      ...formData,
-      param_code: formData.param_code.trim(),
-      param_desc: formData.param_desc.trim(),
-      param_value: formData.param_value.trim()
-    });
-  };
-
-  return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>
-        {parameter ? 'Edit Business Parameter' : 'Create Business Parameter'}
-      </DialogTitle>
-      <DialogContent sx={{ mt: 2 }}>
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="Parameter Code"
-              value={formData.param_code}
-              onChange={(e) => setFormData(prev => ({ ...prev, param_code: e.target.value }))}
-              placeholder="e.g., BIZ001"
-              required
-              disabled={!!parameter} // Don't allow editing of primary key
-            />
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <FormControl fullWidth>
-              <InputLabel>Parameter Category</InputLabel>
-              <Select
-                value={formData.param_category}
-                onChange={(e) => setFormData(prev => ({ ...prev, param_category: e.target.value }))}
-                label="Parameter Category"
-              >
-                <MenuItem value="B">Business</MenuItem>
-                <MenuItem value="A">Application</MenuItem>
-                <MenuItem value="S">System</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Description"
-              value={formData.param_desc}
-              onChange={(e) => setFormData(prev => ({ ...prev, param_desc: e.target.value }))}
-              placeholder="Enter parameter description"
-              required
-              multiline
-              rows={2}
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Parameter Value"
-              value={formData.param_value}
-              onChange={(e) => setFormData(prev => ({ ...prev, param_value: e.target.value }))}
-              placeholder="Enter parameter value"
-              required
-            />
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <FormControl fullWidth>
-              <InputLabel>Parameter Type</InputLabel>
-              <Select
-                value={formData.param_type}
-                onChange={(e) => setFormData(prev => ({ ...prev, param_type: e.target.value }))}
-                label="Parameter Type"
-              >
-                <MenuItem value="BUSINESS">Business</MenuItem>
-                <MenuItem value="APPLICATION">Application</MenuItem>
-                <MenuItem value="SYSTEM">System</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={formData.is_editable}
-                  onChange={(e) => setFormData(prev => ({ ...prev, is_editable: e.target.checked }))}
-                />
-              }
-              label="Editable"
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={formData.active_flag}
-                  onChange={(e) => setFormData(prev => ({ ...prev, active_flag: e.target.checked }))}
-                />
-              }
-              label="Active"
-            />
-          </Grid>
-        </Grid>
-
-        {error && (
-          <Alert severity="error" sx={{ mt: 2 }}>
-            {error}
-          </Alert>
-        )}
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
-        <Button
-          onClick={handleSubmit}
-          variant="contained"
-          disabled={loading}
-        >
-          {parameter ? 'Update' : 'Create'}
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
-};
+// Extracted memoized dialog component
+import {
+  BusinessParameterDialog,
+  type BusinessParameter,
+  type BusinessParameterFormData
+} from './components';
 
 // =====================================================
 // MAIN BUSINESS SETTING PAGE
@@ -499,7 +297,8 @@ function BusinessSettingPage() {
     }
   };
 
-  const handleSaveParameter = async (formData: BusinessParameterFormData) => {
+  // Memoized callback to prevent dialog re-renders
+  const handleSaveParameter = useCallback(async (formData: BusinessParameterFormData) => {
     try {
       if (editingParameter) {
         // Update existing parameter
@@ -533,7 +332,12 @@ function BusinessSettingPage() {
     } catch (error: any) {
       setError(`Failed to save business parameter: ${handleAPIError(error).message}`);
     }
-  };
+  }, [editingParameter]);
+
+  // Memoized close handler
+  const handleCloseDialog = useCallback(() => {
+    setDialogOpen(false);
+  }, []);
 
   const handleChangePage = (event: React.MouseEvent<HTMLButtonElement> | null, newPage: number) => {
     setPage(newPage);
@@ -700,7 +504,7 @@ function BusinessSettingPage() {
       {/* Parameter Dialog */}
       <BusinessParameterDialog
         open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
+        onClose={handleCloseDialog}
         onSave={handleSaveParameter}
         parameter={editingParameter || undefined}
       />

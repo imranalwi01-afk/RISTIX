@@ -72,12 +72,7 @@ import { FullstackIndicator } from '@/components/common/feedback/FullstackIndica
 // DYNAMIC IMPORTS FOR HEAVY COMPONENTS (Performance Optimization)
 // ============================================================================
 
-import { SafeDataGrid as DataGrid } from '@/components/shared/SafeDataGrid';
-
-const GridActionsCellItem = dynamic(
-  () => import('@mui/x-data-grid').then((mod) => mod.GridActionsCellItem),
-  { ssr: false }
-);
+import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 
 const EnhancedSegmentationDetailModal = dynamic(
   () => import('../../segmentation/components/EnhancedSegmentationDetailModal'),
@@ -105,10 +100,10 @@ interface SegmentationHeader {
   seq?: number;
   active_flag: boolean;
   detail_count?: number;
-  created_by?: string;
-  created_date?: string;
-  updated_by?: string;
-  updated_date?: string;
+  createdby?: string;
+  createddate?: string;
+  updatedby?: string;
+  updateddate?: string;
 }
 
 interface SegmentationHeaderForm {
@@ -140,20 +135,20 @@ const initialDemoData: SegmentationHeader[] = [
     seq: 1,
     active_flag: true,
     detail_count: 5,
-    created_by: 'system',
-    created_date: new Date().toISOString()
+    createdby: 'system',
+    createddate: new Date().toISOString()
   },
   {
     id: 2,
-    group_segment: 'SME Banking',
-    segment: 'Small Medium Enterprise',
-    sub_segment: 'Trading',
-    segment_type: 'BUSINESS_SEGMENT',
+    group_segment: 'Retail Banking',
+    segment: 'Personal Banking',
+    sub_segment: 'Mortgage',
+    segment_type: 'PRODUCT_SEGMENT',
     seq: 2,
     active_flag: true,
     detail_count: 3,
-    created_by: 'system',
-    created_date: new Date().toISOString()
+    createdby: 'system',
+    createddate: new Date().toISOString()
   },
   {
     id: 3,
@@ -164,8 +159,8 @@ const initialDemoData: SegmentationHeader[] = [
     seq: 3,
     active_flag: false,
     detail_count: 4,
-    created_by: 'system',
-    created_date: new Date().toISOString()
+    createdby: 'system',
+    createddate: new Date().toISOString()
   }
 ];
 
@@ -389,7 +384,7 @@ export default function SegmentationConfigurationPage() {
         item.segment?.toLowerCase().includes(search) ||
         item.sub_segment?.toLowerCase().includes(search) ||
         item.segment_type?.toLowerCase().includes(search) ||
-        item.created_by?.toLowerCase().includes(search)
+        item.createdby?.toLowerCase().includes(search)
       );
     }
 
@@ -493,7 +488,7 @@ export default function SegmentationConfigurationPage() {
       getActions: (params: GridRowParams) => {
         if (!params.row) return [];
         return [
-          <GridActionsCellItem
+          <SafeGridActionsCellItem
             icon={<ViewDetailIcon fontSize="small" />}
             label="View"
             onClick={() => handleViewDetails(params.row)}
@@ -501,7 +496,7 @@ export default function SegmentationConfigurationPage() {
             disabled={backendUnavailable}
             showInMenu={false}
           />,
-          <GridActionsCellItem
+          <SafeGridActionsCellItem
             icon={<EditIcon fontSize="small" />}
             label="Edit"
             onClick={() => handleEdit(params.row)}
@@ -509,7 +504,7 @@ export default function SegmentationConfigurationPage() {
             disabled={backendUnavailable}
             showInMenu={false}
           />,
-          <GridActionsCellItem
+          <SafeGridActionsCellItem
             icon={<DeleteIcon fontSize="small" />}
             label="Delete"
             onClick={() => handleDelete(params.row)}
@@ -521,7 +516,7 @@ export default function SegmentationConfigurationPage() {
       }
     },
     {
-      field: 'groupSegment',
+      field: 'group_segment',
       headerName: 'Group Segment',
       flex: 1,
       minWidth: 200,
@@ -563,7 +558,7 @@ export default function SegmentationConfigurationPage() {
       ),
     },
     {
-      field: 'subSegment',
+      field: 'sub_segment',
       headerName: 'Sub Segment',
       flex: 1,
       minWidth: 200,
@@ -584,7 +579,7 @@ export default function SegmentationConfigurationPage() {
       renderCell: (params) => params.value || '-'
     },
     {
-      field: 'segmentType',
+      field: 'segment_type',
       headerName: 'Segment Type',
       flex: 1,
       minWidth: 200,
@@ -608,7 +603,7 @@ export default function SegmentationConfigurationPage() {
       }
     },
     {
-      field: 'activeFlag',
+      field: 'active_flag',
       headerName: 'Is Active',
       width: 100,
       headerAlign: 'center',
@@ -889,7 +884,7 @@ export default function SegmentationConfigurationPage() {
         // Update existing
         const updatedData = data.map(item =>
           item.id === selectedHeader.id
-            ? { ...item, ...payload, updated_by: 'user', updated_date: new Date().toISOString() }
+            ? { ...item, ...payload, updatedby: 'user', updateddate: new Date().toISOString() }
             : item
         );
         setData(updatedData);
@@ -902,8 +897,8 @@ export default function SegmentationConfigurationPage() {
           id: newId,
           ...payload,
           detail_count: 0,
-          created_by: 'user',
-          created_date: new Date().toISOString()
+          createdby: 'user',
+          createddate: new Date().toISOString()
         };
         const updatedData = [...data, newItem];
         setData(updatedData);
@@ -1212,16 +1207,27 @@ export default function SegmentationConfigurationPage() {
           </Paper>
 
           <Box sx={{ height: 600, width: '100%' }}>
-            <DataGrid
+            <SafeDataGrid
               rows={filteredData}
               columns={columns}
-              getRowId={(row) => row?.id || `row_${JSON.stringify(row).slice(0, 50)}`}
-              pageSizeOptions={[5, 10, 25, 50]}
+              getRowId={(row) => row.id}
               initialState={{
-                pagination: { paginationModel: { pageSize: 10 } }
+                pagination: { paginationModel: { pageSize: 10 } },
               }}
+              pageSizeOptions={[10, 25, 50, 100]}
               disableRowSelectionOnClick
               loading={loading}
+              slots={{
+                toolbar: () => (
+                  <Box sx={{ p: 1, display: 'flex', gap: 1 }}>
+                    <Button startIcon={<DownloadIcon />} onClick={handleExport}>Export</Button>
+                    <Button component="label" startIcon={<UploadIcon />}>
+                      Import
+                      <input type="file" hidden accept=".json" onChange={handleImport} />
+                    </Button>
+                  </Box>
+                )
+              }}
               slotProps={{
                 loadingOverlay: {
                   variant: 'linear-progress' as const,

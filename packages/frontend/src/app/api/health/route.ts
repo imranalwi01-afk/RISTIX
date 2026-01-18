@@ -1,10 +1,14 @@
 
 import { NextResponse } from 'next/server';
+import { prewarmApp } from '@/lib/prewarm';
 
 // Force dynamic execution so it doesn't cache the result at build time
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
+  // Fire-and-forget: warm up routes on first health check
+  prewarmApp();
+
   const backendPort = 4232; // Known backend port
   // Try localhost first, then 127.0.0.1 as fallback
   const candidates = [

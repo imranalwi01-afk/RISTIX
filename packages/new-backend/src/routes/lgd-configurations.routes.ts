@@ -32,16 +32,17 @@ const LgdConfigSchema = z.object({
 }).openapi('LgdConfig')
 
 const CreateLgdConfigSchema = z.object({
-    modelName: z.string().min(1).max(255),
-    segmentId: z.number().int().optional(),
-    lgdMethod: z.number().int(),
-    populationType: z.string().optional(),
-    observationPeriod: z.string().optional(),
-    workoutPeriod: z.number().int().optional(),
-    flFlag: z.boolean().default(false),
-    flScalarId: z.number().int().optional(),
-    lgdRate: z.number().optional(),
-    isActive: z.boolean().default(true),
+    model_name: z.string().min(1).max(255),
+    segment_id: z.number().int().optional(),
+    lgd_method: z.number().int(),
+    population_type: z.string().optional(),
+    observation_period: z.string().optional(),
+    workout_period: z.number().int().optional(),
+    fl_flag: z.boolean().default(false),
+    fl_scalar_id: z.number().int().optional(),
+    lgd_rate: z.number().optional(),
+    is_active: z.boolean().default(true),
+    observation_start_date: z.string().optional(),
 }).openapi('CreateLgdConfigInput')
 
 const UpdateLgdConfigSchema = CreateLgdConfigSchema.partial().openapi('UpdateLgdConfigInput')
@@ -128,7 +129,8 @@ app.openapi(
             body: { content: { 'application/json': { schema: CreateLgdConfigSchema } } }
         },
         responses: {
-            200: { content: { 'application/json': { schema: LgdResponse } }, description: 'Created' }, // Note 201->200 if runEffect defaults to 200, check runEffect
+            200: { content: { 'application/json': { schema: LgdResponse } }, description: 'Created' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
@@ -136,7 +138,21 @@ app.openapi(
         const data = c.req.valid('json')
         const userId = c.get('userId') as string || 'system'
 
-        return runEffect(c, LgdConfigurationsService.create(data, userId)) as any
+        const payload = {
+            modelName: data.model_name,
+            segmentId: data.segment_id,
+            lgdMethod: data.lgd_method,
+            populationType: data.population_type,
+            observationPeriod: data.observation_period,
+            workoutPeriod: data.workout_period,
+            flFlag: data.fl_flag,
+            flScalarId: data.fl_scalar_id,
+            lgdRate: data.lgd_rate,
+            isActive: data.is_active,
+            observationStartDate: data.observation_start_date
+        }
+
+        return runEffect(c, LgdConfigurationsService.create(payload, userId)) as any
     }
 )
 
@@ -165,7 +181,21 @@ app.openapi(
         const data = c.req.valid('json')
         const userId = c.get('userId') as string || 'system'
 
-        return runEffect(c, LgdConfigurationsService.update(id, data, userId)) as any
+        const payload = {
+            modelName: data.model_name,
+            segmentId: data.segment_id,
+            lgdMethod: data.lgd_method,
+            populationType: data.population_type,
+            observationPeriod: data.observation_period,
+            workoutPeriod: data.workout_period,
+            flFlag: data.fl_flag,
+            flScalarId: data.fl_scalar_id,
+            lgdRate: data.lgd_rate,
+            isActive: data.is_active,
+            observationStartDate: data.observation_start_date
+        }
+
+        return runEffect(c, LgdConfigurationsService.update(id, payload, userId)) as any
     }
 )
 

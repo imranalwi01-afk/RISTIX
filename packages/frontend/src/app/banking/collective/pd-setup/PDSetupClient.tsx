@@ -2,13 +2,11 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import dynamic from 'next/dynamic';
 import {
   Box,
   Typography,
   Container,
   Paper,
-  Grid,
   Card,
   CardContent,
   Button,
@@ -40,26 +38,18 @@ import {
   Search as SearchIcon,
 } from '@mui/icons-material';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
-import type { GridColDef } from '@mui/x-data-grid';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { GridColDef } from '@mui/x-data-grid';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import dayjs, { Dayjs } from 'dayjs';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import dayjs from 'dayjs';
 import { useRouter } from 'next/navigation';
-import { api } from '../../../../services/api';
-import { PDConfiguration } from '../../../../services/api/pd-configurations.api';
-import { PopulationSegment } from '../../../../services/api/population-segments.api';
+import { api } from '@/services/api';
+import { PDConfiguration } from '@/services/api/pd-configurations.api';
+import { PopulationSegment } from '@/services/api/population-segments.api';
 
-// Dynamic imports for heavy components
-const DataGrid = dynamic(
-  () => import('@mui/x-data-grid').then((mod) => mod.DataGrid),
-  { ssr: false, loading: () => <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress /></Box> }
-);
-
-const GridActionsCellItem = dynamic(
-  () => import('@mui/x-data-grid').then((mod) => mod.GridActionsCellItem),
-  { ssr: false }
-);
+// Safe DataGrid wrapper to prevent bundling issues
+import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 
 // Extended interface for UI display
 interface PDConfigUI extends PDConfiguration {
@@ -259,7 +249,7 @@ const PdSetupPage = () => {
       headerName: 'Actions',
       width: 100,
       getActions: (params) => [
-        <GridActionsCellItem
+        <SafeGridActionsCellItem
           key="edit"
           icon={<EditIcon />}
           label="Edit"
@@ -270,7 +260,7 @@ const PdSetupPage = () => {
             setIsDialogOpen(true);
           }}
         />,
-        <GridActionsCellItem
+        <SafeGridActionsCellItem
           key="delete"
           icon={<DeleteIcon />}
           label="Delete"
@@ -324,7 +314,7 @@ const PdSetupPage = () => {
       <Card>
         <Box sx={{ height: 'calc(100vh - 100px)', display: 'flex', flexDirection: 'column', position: 'relative' }}>
           <FullstackIndicator />
-          <DataGrid
+          <SafeDataGrid
             rows={filteredConfigs}
             columns={columns}
             loading={loading}
@@ -338,8 +328,8 @@ const PdSetupPage = () => {
         <DialogTitle>{selectedConfig ? 'Edit PD Configuration' : 'New PD Configuration'}</DialogTitle>
         <DialogContent dividers>
           <LocalizationProvider dateAdapter={AdapterDayjs}>
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 3 }}>
+              <Box>
                 <TextField
                   fullWidth
                   label="Model Name"
@@ -348,8 +338,8 @@ const PdSetupPage = () => {
                   error={!!formErrors.model_name}
                   helperText={formErrors.model_name}
                 />
-              </Grid>
-              <Grid item xs={12} md={6}>
+              </Box>
+              <Box>
                 <FormControl fullWidth>
                   <InputLabel>Population Segment</InputLabel>
                   <Select
@@ -362,9 +352,9 @@ const PdSetupPage = () => {
                     ))}
                   </Select>
                 </FormControl>
-              </Grid>
+              </Box>
 
-              <Grid item xs={12} md={6}>
+              <Box>
                 <FormControl fullWidth>
                   <InputLabel>Method</InputLabel>
                   <Select
@@ -375,9 +365,9 @@ const PdSetupPage = () => {
                     {methodOptions.map(m => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
                   </Select>
                 </FormControl>
-              </Grid>
+              </Box>
 
-              <Grid item xs={12} md={6}>
+              <Box>
                 <TextField
                   fullWidth
                   type="number"
@@ -386,9 +376,9 @@ const PdSetupPage = () => {
                   onChange={(e) => setFormData({ ...formData, migration_interval: Number(e.target.value) })}
                   disabled={isFieldDisabled('migration_interval')}
                 />
-              </Grid>
+              </Box>
 
-              <Grid item xs={12} md={6}>
+              <Box>
                 <FormControl fullWidth>
                   <InputLabel>Bucket Group</InputLabel>
                   <Select
@@ -402,9 +392,9 @@ const PdSetupPage = () => {
                     ))}
                   </Select>
                 </FormControl>
-              </Grid>
+              </Box>
 
-              <Grid item xs={12} md={6}>
+              <Box>
                 <FormControl fullWidth>
                   <InputLabel>Population Type</InputLabel>
                   <Select
@@ -416,9 +406,9 @@ const PdSetupPage = () => {
                     {popTypeOptions.map(m => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
                   </Select>
                 </FormControl>
-              </Grid>
+              </Box>
 
-              <Grid item xs={12} md={6}>
+              <Box>
                 <TextField
                   fullWidth
                   type="number"
@@ -427,9 +417,9 @@ const PdSetupPage = () => {
                   onChange={(e) => setFormData({ ...formData, historical_month: Number(e.target.value) })}
                   disabled={isFieldDisabled('historical_month')}
                 />
-              </Grid>
+              </Box>
 
-              <Grid item xs={12} md={6}>
+              <Box>
                 <DatePicker
                   label="First Historical Date"
                   value={formData.first_historical_date ? dayjs(formData.first_historical_date) : null}
@@ -437,9 +427,9 @@ const PdSetupPage = () => {
                   disabled={isFieldDisabled('first_historical_date')}
                   slotProps={{ textField: { fullWidth: true } }}
                 />
-              </Grid>
+              </Box>
 
-              <Grid item xs={12} md={6}>
+              <Box>
                 <TextField
                   fullWidth
                   type="number"
@@ -448,9 +438,9 @@ const PdSetupPage = () => {
                   onChange={(e) => setFormData({ ...formData, multiplication: Number(e.target.value) })}
                   disabled={isFieldDisabled('multiplication')}
                 />
-              </Grid>
+              </Box>
 
-              <Grid item xs={12} md={6} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <FormControlLabel
                   control={<Switch checked={!!formData.is_active} onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })} />}
                   label="Active"
@@ -463,9 +453,9 @@ const PdSetupPage = () => {
                   control={<Switch checked={!!formData.ia_flag} onChange={(e) => setFormData({ ...formData, ia_flag: e.target.checked })} />}
                   label="IA Flag"
                 />
-              </Grid>
+              </Box>
 
-            </Grid>
+            </Box>
           </LocalizationProvider>
         </DialogContent>
         <DialogActions>

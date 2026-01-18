@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import dynamic from 'next/dynamic';
 import {
   Box,
   Typography,
@@ -35,7 +34,7 @@ import {
   Refresh as RefreshIcon,
   Search as SearchIcon,
 } from '@mui/icons-material';
-import type { GridColDef } from '@mui/x-data-grid';
+import { GridColDef } from '@mui/x-data-grid';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -45,18 +44,10 @@ import { api } from '../../../../services/api';
 import { LGDConfiguration } from '../../../../services/api/lgd-configurations.api';
 import { PopulationSegment } from '../../../../services/api/population-segments.api';
 import { FLScalarWithDetails } from '../../../../services/api/fl-scalar.api';
-import { FullstackIndicator } from '../../../../components/common/feedback/FullstackIndicator';
+import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 
-// Dynamic imports for heavy components
-const DataGrid = dynamic(
-  () => import('@mui/x-data-grid').then((mod) => mod.DataGrid),
-  { ssr: false, loading: () => <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress /></Box> }
-);
-
-const GridActionsCellItem = dynamic(
-  () => import('@mui/x-data-grid').then((mod) => mod.GridActionsCellItem),
-  { ssr: false }
-);
+// Safe DataGrid wrapper to prevent bundling issues
+import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 
 // Extended interface for UI display
 interface LGDConfigUI extends LGDConfiguration {
@@ -180,17 +171,17 @@ export default function LGDSetupPage() {
     setLoading(true);
     try {
       const payload: any = {
-        modelName: formData.model_name,
-        segmentId: formData.segment_id,
-        lgdMethod: formData.lgd_method,
-        populationType: formData.population_type,
-        observationPeriod: formData.observation_period,
-        workoutPeriod: formData.workout_period,
-        flFlag: formData.fl_flag,
-        flScalarId: formData.fl_scalar_id,
-        lgdRate: formData.lgd_rate,
-        isActive: formData.is_active,
-        observationStartDate: formData.observation_start_date
+        model_name: formData.model_name,
+        segment_id: formData.segment_id,
+        lgd_method: formData.lgd_method || 1,
+        population_type: formData.population_type,
+        observation_period: formData.observation_period,
+        workout_period: formData.workout_period,
+        fl_flag: formData.fl_flag,
+        fl_scalar_id: formData.fl_scalar_id,
+        lgd_rate: formData.lgd_rate,
+        is_active: formData.is_active,
+        observation_start_date: formData.observation_start_date
       };
 
       if (isEditing && selectedConfig?.id) {
@@ -262,7 +253,7 @@ export default function LGDSetupPage() {
       headerName: 'Actions',
       width: 100,
       getActions: (params) => [
-        <GridActionsCellItem
+        <SafeGridActionsCellItem
           key="edit"
           icon={<EditIcon />}
           label="Edit"
@@ -273,7 +264,7 @@ export default function LGDSetupPage() {
             setIsDialogOpen(true);
           }}
         />,
-        <GridActionsCellItem
+        <SafeGridActionsCellItem
           key="delete"
           icon={<DeleteIcon />}
           label="Delete"
@@ -313,23 +304,21 @@ export default function LGDSetupPage() {
 
       <Card sx={{ mb: 3 }}>
         <CardContent>
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={4}>
-              <TextField
-                fullWidth
-                label="Search"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                InputProps={{ startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} /> }}
-              />
-            </Grid>
-          </Grid>
+          <Box sx={{ width: '100%', maxWidth: 400 }}>
+            <TextField
+              fullWidth
+              label="Search"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              InputProps={{ startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} /> }}
+            />
+          </Box>
         </CardContent>
       </Card>
 
       <Card>
         <Box sx={{ height: 600, width: '100%' }}>
-          <DataGrid
+          <SafeDataGrid
             rows={filteredConfigs}
             columns={columns}
             loading={loading}
@@ -343,99 +332,83 @@ export default function LGDSetupPage() {
         <DialogTitle>{selectedConfig ? 'Edit LGD Configuration' : 'New LGD Configuration'}</DialogTitle>
         <DialogContent dividers>
           <LocalizationProvider dateAdapter={AdapterDayjs}>
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Model Name"
-                  value={formData.model_name || ''}
-                  onChange={(e) => setFormData({ ...formData, model_name: e.target.value })}
-                  error={!!formErrors.model_name}
-                  helperText={formErrors.model_name}
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth error={!!formErrors.segment_id}>
-                  <InputLabel>Population Segment</InputLabel>
-                  <Select
-                    value={formData.segment_id || ''}
-                    label="Population Segment"
-                    onChange={(e) => setFormData({ ...formData, segment_id: Number(e.target.value) })}
-                  >
-                    {populationSegments.map(s => (
-                      <MenuItem key={s.id} value={s.id}>{s.segment_name}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 3 }}>
+              <TextField
+                fullWidth
+                label="Model Name"
+                value={formData.model_name || ''}
+                onChange={(e) => setFormData({ ...formData, model_name: e.target.value })}
+                error={!!formErrors.model_name}
+                helperText={formErrors.model_name}
+              />
+              <FormControl fullWidth error={!!formErrors.segment_id}>
+                <InputLabel>Population Segment</InputLabel>
+                <Select
+                  value={formData.segment_id || ''}
+                  label="Population Segment"
+                  onChange={(e) => setFormData({ ...formData, segment_id: Number(e.target.value) })}
+                >
+                  {populationSegments.map(s => (
+                    <MenuItem key={s.id} value={s.id}>{s.segment_name}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
 
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth error={!!formErrors.lgd_method}>
-                  <InputLabel>Method</InputLabel>
-                  <Select
-                    value={formData.lgd_method || 1}
-                    label="Method"
-                    onChange={(e) => setFormData({ ...formData, lgd_method: Number(e.target.value) })}
-                  >
-                    {methodOptions.map(m => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
-                  </Select>
-                </FormControl>
-              </Grid>
+              <FormControl fullWidth error={!!formErrors.lgd_method}>
+                <InputLabel>Method</InputLabel>
+                <Select
+                  value={formData.lgd_method || 1}
+                  label="Method"
+                  onChange={(e) => setFormData({ ...formData, lgd_method: Number(e.target.value) })}
+                >
+                  {methodOptions.map(m => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
+                </Select>
+              </FormControl>
 
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Population Type</InputLabel>
-                  <Select
-                    value={formData.population_type || 'Monthly'}
-                    label="Population Type"
-                    onChange={(e) => setFormData({ ...formData, population_type: e.target.value })}
-                  >
-                    {popTypeOptions.map(m => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
-                  </Select>
-                </FormControl>
-              </Grid>
+              <FormControl fullWidth>
+                <InputLabel>Population Type</InputLabel>
+                <Select
+                  value={formData.population_type || 'Monthly'}
+                  label="Population Type"
+                  onChange={(e) => setFormData({ ...formData, population_type: e.target.value })}
+                >
+                  {popTypeOptions.map(m => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
+                </Select>
+              </FormControl>
 
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Observation Period"
-                  value={formData.observation_period || ''}
-                  onChange={(e) => setFormData({ ...formData, observation_period: e.target.value })}
-                  helperText="e.g. 2020-2023 or 24 months"
-                />
-              </Grid>
+              <TextField
+                fullWidth
+                label="Observation Period"
+                value={formData.observation_period || ''}
+                onChange={(e) => setFormData({ ...formData, observation_period: e.target.value })}
+                helperText="e.g. 2020-2023 or 24 months"
+              />
 
-              <Grid item xs={12} md={6}>
-                <DatePicker
-                  label="Observation Start Date"
-                  value={formData.observation_start_date ? dayjs(formData.observation_start_date) : null}
-                  onChange={(date) => setFormData({ ...formData, observation_start_date: date ? dayjs(date).format('YYYY-MM-DD') : undefined })}
-                  slotProps={{ textField: { fullWidth: true } }}
-                />
-              </Grid>
+              <DatePicker
+                label="Observation Start Date"
+                value={formData.observation_start_date ? dayjs(formData.observation_start_date) : null}
+                onChange={(date) => setFormData({ ...formData, observation_start_date: date ? dayjs(date).format('YYYY-MM-DD') : undefined })}
+                slotProps={{ textField: { fullWidth: true } }}
+              />
 
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  type="number"
-                  label="Workout Period (Months)"
-                  value={formData.workout_period || ''}
-                  onChange={(e) => setFormData({ ...formData, workout_period: Number(e.target.value) })}
-                />
-              </Grid>
+              <TextField
+                fullWidth
+                type="number"
+                label="Workout Period (Months)"
+                value={formData.workout_period || ''}
+                onChange={(e) => setFormData({ ...formData, workout_period: Number(e.target.value) })}
+              />
 
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  type="number"
-                  label="LGD Rate (%)"
-                  value={formData.lgd_rate || 0}
-                  onChange={(e) => setFormData({ ...formData, lgd_rate: Number(e.target.value) })}
-                  inputProps={{ step: 0.001 }}
-                />
-              </Grid>
+              <TextField
+                fullWidth
+                type="number"
+                label="LGD Rate (%)"
+                value={formData.lgd_rate || 0}
+                onChange={(e) => setFormData({ ...formData, lgd_rate: Number(e.target.value) })}
+                inputProps={{ step: 0.001 }}
+              />
 
-              <Grid item xs={12} md={6} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <FormControlLabel
                   control={<Switch checked={!!formData.is_active} onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })} />}
                   label="Active"
@@ -444,26 +417,24 @@ export default function LGDSetupPage() {
                   control={<Switch checked={!!formData.fl_flag} onChange={(e) => setFormData({ ...formData, fl_flag: e.target.checked })} />}
                   label="FL Flag"
                 />
-              </Grid>
+              </Box>
 
               {formData.fl_flag && (
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth error={!!formErrors.fl_scalar_id}>
-                    <InputLabel>FL Scalar</InputLabel>
-                    <Select
-                      value={formData.fl_scalar_id || ''}
-                      label="FL Scalar"
-                      onChange={(e) => setFormData({ ...formData, fl_scalar_id: Number(e.target.value) })}
-                    >
-                      {flScalars.map(s => (
-                        <MenuItem key={s.pkid} value={s.pkid}>{s.scalar_name}</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
+                <FormControl fullWidth error={!!formErrors.fl_scalar_id}>
+                  <InputLabel>FL Scalar</InputLabel>
+                  <Select
+                    value={formData.fl_scalar_id || ''}
+                    label="FL Scalar"
+                    onChange={(e) => setFormData({ ...formData, fl_scalar_id: Number(e.target.value) })}
+                  >
+                    {flScalars.map(s => (
+                      <MenuItem key={s.pkid} value={s.pkid}>{s.scalar_name}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
               )}
 
-            </Grid>
+            </Box>
           </LocalizationProvider>
         </DialogContent>
         <DialogActions>

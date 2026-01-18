@@ -266,11 +266,29 @@ export class FrontendEnvironmentLoader {
     const isLocalDev = deploymentTarget === 'localdev';
     const isProduction = process.env.NODE_ENV === 'production' || isEcs;
 
+    // Detect if running on true localhost (not via Cloudflare Zero Trust)
+    const isTrueLocalhost = typeof window !== 'undefined' &&
+      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') &&
+      window.location.protocol === 'http:';
+
     // API URLs based on environment - 🏭 IAF LOCAL PRODUCTION MODE
+    // Priority: 1) ENV var, 2) True localhost -> localhost:4232, 3) LocalDev -> ifrspro.id, 4) ECS -> danafin.com
+    const getApiUrl = () => {
+      if (this.getEnvVar('NEXT_PUBLIC_BACKEND_URL')) {
+        return this.getEnvVar('NEXT_PUBLIC_BACKEND_URL');
+      }
+      if (isTrueLocalhost) {
+        console.log('🏠 True localhost detected - using http://localhost:4232/api/v1');
+        return 'http://localhost:4232/api/v1';
+      }
+      return isEcs ? 'https://iaf-ifrs-be.danafin.com/api/v1' : 'https://iaf-ifrs-be.ifrspro.id/api/v1';
+    };
+
+    const apiUrl = getApiUrl();
+
     const api = {
-      backend: this.getEnvVar('NEXT_PUBLIC_BACKEND_URL',
-        isEcs ? 'https://iaf-ifrs-be.danafin.com/api/v1' : 'https://iaf-ifrs-be.ifrspro.id/api/v1'),
-      base: this.getEnvVar('NEXT_PUBLIC_API_BASE_URL', isEcs ? 'https://iaf-ifrs-be.danafin.com/api/v1' : 'https://iaf-ifrs-be.ifrspro.id/api/v1'),
+      backend: apiUrl,
+      base: this.getEnvVar('NEXT_PUBLIC_API_BASE_URL') || apiUrl,
       auth: '/auth',
       banking: '/banking',
       user: '/v1/user',

@@ -43,7 +43,6 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Grid,
   Divider
 } from '@mui/material';
 import {
@@ -71,7 +70,7 @@ import { FullstackIndicator } from '@/components/common/feedback/FullstackIndica
 // =====================================================
 
 interface RuleBaseHeader {
-  pkid: number;
+  id: number;
   rule_name: string;
   rule_type: string;
   rule_type_desc?: string;
@@ -89,7 +88,7 @@ interface RuleBaseHeader {
 }
 
 interface RuleBaseDetail {
-  pkid: number;
+  id: number;
   rule_id: number;
   query_group: number;
   seq: number;
@@ -119,6 +118,7 @@ interface ExpandableRowProps {
   onEditDetail: (detail: RuleBaseDetail) => void;
   onDeleteDetail: (detail: RuleBaseDetail) => void;
   loading: boolean;
+  refreshTrigger?: number;
 }
 
 function ExpandableRow({
@@ -128,7 +128,8 @@ function ExpandableRow({
   onCreateDetail,
   onEditDetail,
   onDeleteDetail,
-  loading
+  loading,
+  refreshTrigger
 }: ExpandableRowProps) {
   const [open, setOpen] = useState(false);
   const [details, setDetails] = useState<RuleBaseDetail[]>([]);
@@ -141,12 +142,18 @@ function ExpandableRow({
     setOpen(!open);
   };
 
+  useEffect(() => {
+    if (refreshTrigger) {
+      loadDetails();
+    }
+  }, [refreshTrigger]);
+
   const loadDetails = async () => {
     setLoadingDetails(true);
     try {
-      console.log(`🔍 Loading Rule Base Setting details for rule ${header.pkid}`);
+      console.log(`🔍 Loading Rule Base Setting details for rule ${header.id}`);
 
-      const response = await bankingAPI.ruleBaseSetting.getDetails(header.pkid);
+      const response = await bankingAPI.ruleBaseSetting.getDetails(header.id);
       if (response.success) {
         setDetails(response.data);
         console.log(`✅ Loaded ${response.data.length} rule details from DS2 database`);
@@ -176,7 +183,7 @@ function ExpandableRow({
         </TableCell>
         <TableCell>
           <Typography variant="body2" sx={{ fontWeight: 'bold', fontFamily: 'monospace' }}>
-            {header.pkid}
+            {header.id}
           </Typography>
         </TableCell>
         <TableCell>
@@ -263,7 +270,7 @@ function ExpandableRow({
                 <Button
                   size="small"
                   startIcon={<AddIcon />}
-                  onClick={() => onCreateDetail(header.pkid)}
+                  onClick={() => onCreateDetail(header.id)}
                   disabled={loading}
                   variant="outlined"
                 >
@@ -299,7 +306,7 @@ function ExpandableRow({
                     </TableHead>
                     <TableBody>
                       {details.map((detail, index) => (
-                        <TableRow key={detail.pkid ? `detail-${detail.pkid}` : `detail-idx-${index}`} hover>
+                        <TableRow key={detail.id ? `detail-${detail.id}` : `detail-idx-${index}`} hover>
                           <TableCell>
                             <Chip label={detail.query_group} size="small" color="info" />
                           </TableCell>
@@ -414,6 +421,11 @@ export default function RuleBaseSettingPage() {
   // Form States
   const [headerFormData, setHeaderFormData] = useState<Partial<RuleBaseHeader>>({});
   const [detailFormData, setDetailFormData] = useState<Partial<RuleBaseDetail>>({});
+  const [refreshTriggers, setRefreshTriggers] = useState<Record<number, number>>({});
+
+  const triggerRefresh = (headerId: number) => {
+    setRefreshTriggers(prev => ({ ...prev, [headerId]: Date.now() }));
+  };
 
   // Dropdown Options - Live Database Metadata
   const [ruleTypes, setRuleTypes] = useState<{ label: string, value: string }[]>([]);
@@ -575,7 +587,7 @@ export default function RuleBaseSettingPage() {
       setLoading(true);
       setError(null);
 
-      await bankingAPI.ruleBaseSetting.deleteHeader(header.pkid);
+      await bankingAPI.ruleBaseSetting.deleteHeader(header.id);
       setSuccess('Rule header deleted successfully');
       await loadHeaders();
 
@@ -610,7 +622,7 @@ export default function RuleBaseSettingPage() {
 
       if (selectedHeader) {
         // Update existing header
-        await bankingAPI.ruleBaseSetting.updateHeader(selectedHeader.pkid, payload);
+        await bankingAPI.ruleBaseSetting.updateHeader(selectedHeader.id, payload);
         setSuccess('Rule header updated successfully');
       } else {
         // Create new header
@@ -664,8 +676,11 @@ export default function RuleBaseSettingPage() {
       setLoading(true);
       setError(null);
 
-      await bankingAPI.ruleBaseSetting.deleteDetail(detail.pkid);
+      await bankingAPI.ruleBaseSetting.deleteDetail(detail.id);
       setSuccess('Rule detail deleted successfully');
+      setSuccess('Rule detail deleted successfully');
+
+      triggerRefresh(detail.rule_id);
       await loadHeaders();
 
     } catch (error: any) {
@@ -688,8 +703,8 @@ export default function RuleBaseSettingPage() {
       setError(null);
 
       const payload = {
-        query_group: detailFormData.query_group || 1,
-        seq: detailFormData.seq || 1,
+        query_group: Number(detailFormData.query_group) || 1,
+        seq: Number(detailFormData.seq) || 1,
         table_name: detailFormData.table_name!.trim(),
         column_name: detailFormData.column_name!.trim(),
         data_type: detailFormData.data_type!.trim(),
@@ -697,14 +712,14 @@ export default function RuleBaseSettingPage() {
         value1: detailFormData.value1?.trim() || '',
         value2: detailFormData.value2?.trim() || '',
         condition: detailFormData.condition || 'AND',
-        detail_type: detailFormData.detail_type ? Number(detailFormData.detail_type) : undefined,
-        stage_from: detailFormData.stage_from ? Number(detailFormData.stage_from) : undefined,
-        stage_to: detailFormData.stage_to ? Number(detailFormData.stage_to) : undefined
+        detail_type: detailFormData.detail_type?.toString() || undefined,
+        stage_from: detailFormData.stage_from?.toString() || undefined,
+        stage_to: detailFormData.stage_to?.toString() || undefined
       };
 
       if (selectedDetail) {
         // Update existing detail
-        await bankingAPI.ruleBaseSetting.updateDetail(selectedDetail.pkid, payload);
+        await bankingAPI.ruleBaseSetting.updateDetail(selectedDetail.id, payload);
         setSuccess('Rule detail updated successfully');
       } else {
         // Create new detail
@@ -713,6 +728,12 @@ export default function RuleBaseSettingPage() {
       }
 
       setDetailDialogOpen(false);
+      setDetailDialogOpen(false);
+
+      if (selectedHeaderId) {
+        triggerRefresh(selectedHeaderId);
+      }
+
       await loadHeaders();
 
     } catch (error: any) {
@@ -860,8 +881,8 @@ export default function RuleBaseSettingPage() {
             />
           </Box>
 
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={3}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '3fr 2fr 2fr 2fr 3fr' }, gap: 2 }}>
+            <Box>
               <TextField
                 fullWidth
                 label="Search Rules"
@@ -873,9 +894,9 @@ export default function RuleBaseSettingPage() {
                 }}
                 size="small"
               />
-            </Grid>
+            </Box>
 
-            <Grid item xs={12} md={2}>
+            <Box>
               <FormControl fullWidth size="small">
                 <InputLabel>Rule Type</InputLabel>
                 <Select
@@ -889,9 +910,9 @@ export default function RuleBaseSettingPage() {
                   ))}
                 </Select>
               </FormControl>
-            </Grid>
+            </Box>
 
-            <Grid item xs={12} md={2}>
+            <Box>
               <FormControl fullWidth size="small">
                 <InputLabel>Status</InputLabel>
                 <Select
@@ -904,9 +925,9 @@ export default function RuleBaseSettingPage() {
                   <MenuItem value="inactive">Inactive</MenuItem>
                 </Select>
               </FormControl>
-            </Grid>
+            </Box>
 
-            <Grid item xs={12} md={2}>
+            <Box>
               <FormControl fullWidth size="small">
                 <InputLabel>Created By</InputLabel>
                 <Select
@@ -920,9 +941,9 @@ export default function RuleBaseSettingPage() {
                   ))}
                 </Select>
               </FormControl>
-            </Grid>
+            </Box>
 
-            <Grid item xs={12} md={3}>
+            <Box>
               <Box sx={{ display: 'flex', gap: 1, height: '40px' }}>
                 <Button
                   variant="outlined"
@@ -943,8 +964,8 @@ export default function RuleBaseSettingPage() {
                   Refresh
                 </Button>
               </Box>
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
         </CardContent>
       </Card>
 
@@ -981,7 +1002,7 @@ export default function RuleBaseSettingPage() {
                 <TableBody>
                   {filteredHeaders.map((header, index) => (
                     <ExpandableRow
-                      key={header.pkid ? `row-${header.pkid}` : `row-idx-${index}`}
+                      key={header.id ? `row-${header.id}` : `row-idx-${index}`}
                       header={header}
                       onEditHeader={handleEditHeader}
                       onDeleteHeader={handleDeleteHeader}
@@ -989,6 +1010,7 @@ export default function RuleBaseSettingPage() {
                       onEditDetail={handleEditDetail}
                       onDeleteDetail={handleDeleteDetail}
                       loading={loading}
+                      refreshTrigger={refreshTriggers[header.id]}
                     />
                   ))}
                 </TableBody>
