@@ -187,13 +187,13 @@ export default function LGDConfigurationsPage() {
             width: 100,
             getActions: (params: GridRowParams) => [
                 <GridActionsCellItem
-                    icon={<EditIcon />}
+                    icon={<EditIcon color="primary" />}
                     label="Edit"
                     onClick={() => handleEdit(params.row as LGDConfiguration)}
                     key="edit"
                 />,
                 <GridActionsCellItem
-                    icon={<DeleteIcon />}
+                    icon={<DeleteIcon color="error" />}
                     label="Delete"
                     onClick={() => handleDelete(params.row as LGDConfiguration)}
                     key="delete"

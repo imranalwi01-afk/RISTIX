@@ -380,8 +380,8 @@ const PortfolioMonitoring: React.FC = () => {
 
   const getTrendIcon = (trend: string) => {
     switch (trend) {
-      case 'up': return <TrendingUpIcon sx={{ color: 'success.main' }} />;
-      case 'down': return <TrendingDownIcon sx={{ color: 'error.main' }} />;
+      case 'up': return <TrendingUpIcon  />;
+      case 'down': return <TrendingDownIcon  />;
       default: return <SpeedIcon sx={{ color: 'grey.500' }} />;
     }
   };
@@ -459,7 +459,7 @@ const PortfolioMonitoring: React.FC = () => {
         {/* Filters */}
         <Paper sx={{ p: 2, mb: 3 }}>
           <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={3}>
+            <Grid size={{ xs: 12, md: 3 }}>
               <DatePicker
                 label="Start Date"
                 value={filters.dateRange[0]}
@@ -470,7 +470,7 @@ const PortfolioMonitoring: React.FC = () => {
                 slotProps={{ textField: { size: 'small', fullWidth: true } }}
               />
             </Grid>
-            <Grid item xs={12} md={3}>
+            <Grid size={{ xs: 12, md: 3 }}>
               <DatePicker
                 label="End Date"
                 value={filters.dateRange[1]}
@@ -481,7 +481,7 @@ const PortfolioMonitoring: React.FC = () => {
                 slotProps={{ textField: { size: 'small', fullWidth: true } }}
               />
             </Grid>
-            <Grid item xs={12} md={2}>
+            <Grid size={{ xs: 12, md: 2 }}>
               <FormControl fullWidth size="small">
                 <InputLabel>Product Type</InputLabel>
                 <Select
@@ -496,7 +496,7 @@ const PortfolioMonitoring: React.FC = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={2}>
+            <Grid size={{ xs: 12, md: 2 }}>
               <FormControl fullWidth size="small">
                 <InputLabel>Banking Type</InputLabel>
                 <Select
@@ -510,7 +510,7 @@ const PortfolioMonitoring: React.FC = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={2}>
+            <Grid size={{ xs: 12, md: 2 }}>
               <TextField
                 fullWidth
                 size="small"
@@ -530,7 +530,7 @@ const PortfolioMonitoring: React.FC = () => {
         {/* Key Metrics */}
         <Grid container spacing={3} sx={{ mb: 3 }}>
           {metrics.map((metric) => (
-            <Grid item xs={12} sm={6} md={3} key={metric.id}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }} key={metric.id}>
               <Card>
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -569,7 +569,7 @@ const PortfolioMonitoring: React.FC = () => {
 
         {/* Alerts Section */}
         <Grid container spacing={3} sx={{ mb: 3 }}>
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Card>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -603,7 +603,7 @@ const PortfolioMonitoring: React.FC = () => {
             </Card>
           </Grid>
 
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Card>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -664,7 +664,7 @@ const PortfolioMonitoring: React.FC = () => {
                         <strong>Performance Metrics</strong>
                       </Typography>
                       <Grid container spacing={2}>
-                        <Grid item xs={6}>
+                        <Grid size={{ xs: 6 }}>
                           <Box sx={{ textAlign: 'center' }}>
                             <Typography variant="h5" sx={{ color: 'success.main', fontWeight: 600 }}>
                               {kpiData.performanceMetrics.performing}%
@@ -674,7 +674,7 @@ const PortfolioMonitoring: React.FC = () => {
                             </Typography>
                           </Box>
                         </Grid>
-                        <Grid item xs={6}>
+                        <Grid size={{ xs: 6 }}>
                           <Box sx={{ textAlign: 'center' }}>
                             <Typography variant="h5" sx={{ color: 'error.main', fontWeight: 600 }}>
                               {kpiData.performanceMetrics.nonPerforming}%
@@ -700,7 +700,7 @@ const PortfolioMonitoring: React.FC = () => {
               <Typography variant="h6" sx={{ mb: 3 }}>Risk Distribution</Typography>
               <Grid container spacing={3}>
                 {Object.entries(kpiData.riskDistribution).map(([risk, percentage]) => (
-                  <Grid item xs={12} sm={6} md={3} key={risk}>
+                  <Grid size={{ xs: 12, sm: 6, md: 3 }} key={risk}>
                     <Paper sx={{ p: 2, textAlign: 'center' }}>
                       <Typography variant="h4" sx={{
                         fontWeight: 600,

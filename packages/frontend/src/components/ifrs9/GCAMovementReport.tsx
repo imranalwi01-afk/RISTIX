@@ -151,7 +151,7 @@ const GCAMovementReport: React.FC = () => {
   const SummaryCards = () => (
     <Grid container spacing={3} sx={{ mb: 3 }}>
       {/* Opening GCA */}
-      <Grid item xs={12} md={3}>
+      <Grid size={{ xs: 12, md: 3 }}>
         <Card sx={{ height: '100%', bgcolor: 'info.light', color: 'white' }}>
           <CardContent sx={{ textAlign: 'center' }}>
             <Avatar sx={{ bgcolor: 'info.dark', mx: 'auto', mb: 2, width: 56, height: 56 }}>
@@ -173,7 +173,7 @@ const GCAMovementReport: React.FC = () => {
       </Grid>
 
       {/* Closing GCA */}
-      <Grid item xs={12} md={3}>
+      <Grid size={{ xs: 12, md: 3 }}>
         <Card sx={{ height: '100%', bgcolor: 'success.light', color: 'white' }}>
           <CardContent sx={{ textAlign: 'center' }}>
             <Avatar sx={{ bgcolor: 'success.dark', mx: 'auto', mb: 2, width: 56, height: 56 }}>
@@ -195,7 +195,7 @@ const GCAMovementReport: React.FC = () => {
       </Grid>
 
       {/* Net Movement */}
-      <Grid item xs={12} md={3}>
+      <Grid size={{ xs: 12, md: 3 }}>
         <Card sx={{
           height: '100%',
           bgcolor: summaryStats.netGCAMovement >= 0 ? 'primary.light' : 'warning.light',
@@ -225,7 +225,7 @@ const GCAMovementReport: React.FC = () => {
       </Grid>
 
       {/* Growth Rate */}
-      <Grid item xs={12} md={3}>
+      <Grid size={{ xs: 12, md: 3 }}>
         <Card sx={{ height: '100%', bgcolor: 'error.light', color: 'white' }}>
           <CardContent sx={{ textAlign: 'center' }}>
             <Avatar sx={{ bgcolor: 'error.dark', mx: 'auto', mb: 2, width: 56, height: 56 }}>
@@ -252,7 +252,7 @@ const GCAMovementReport: React.FC = () => {
           Stage Transfer Analysis
         </Typography>
         <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Paper sx={{ p: 2 }}>
               <Typography variant="subtitle1" gutterBottom>
                 Deterioration (Increased Risk)
@@ -297,7 +297,7 @@ const GCAMovementReport: React.FC = () => {
             </Paper>
           </Grid>
 
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Paper sx={{ p: 2 }}>
               <Typography variant="subtitle1" gutterBottom>
                 Improvement (Decreased Risk)
@@ -349,7 +349,7 @@ const GCAMovementReport: React.FC = () => {
   const GCACharts = () => (
     <Grid container spacing={3} sx={{ mb: 3 }}>
       {/* GCA Movement Trend */}
-      <Grid item xs={12} md={8}>
+      <Grid size={{ xs: 12, md: 8 }}>
         <Card>
           <CardContent>
             <Typography variant="h6" gutterBottom>
@@ -395,7 +395,7 @@ const GCAMovementReport: React.FC = () => {
       </Grid>
 
       {/* GCA by Stage */}
-      <Grid item xs={12} md={4}>
+      <Grid size={{ xs: 12, md: 4 }}>
         <Card>
           <CardContent>
             <Typography variant="h6" gutterBottom>

@@ -222,7 +222,7 @@ function DCFAnalysisTab({ account, assessment, onCalculate, loading }: DCFAnalys
 
       <Grid container spacing={3}>
         {/* Input Parameters */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -309,7 +309,7 @@ function DCFAnalysisTab({ account, assessment, onCalculate, loading }: DCFAnalys
         </Grid>
 
         {/* Scenarios */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -358,7 +358,7 @@ function DCFAnalysisTab({ account, assessment, onCalculate, loading }: DCFAnalys
         </Grid>
 
         {/* Current Account Info */}
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -368,25 +368,25 @@ function DCFAnalysisTab({ account, assessment, onCalculate, loading }: DCFAnalys
               <Divider sx={{ mb: 2 }} />
 
               <Grid container spacing={2}>
-                <Grid item xs={12} md={3}>
+                <Grid size={{ xs: 12, md: 3 }}>
                   <Typography variant="body2" color="text.secondary">Outstanding Balance:</Typography>
                   <Typography variant="h6">
                     {formatCurrency(account?.outstanding_balance || 0)}
                   </Typography>
                 </Grid>
-                <Grid item xs={12} md={3}>
+                <Grid size={{ xs: 12, md: 3 }}>
                   <Typography variant="body2" color="text.secondary">Current Stage:</Typography>
                   <Box sx={{ mt: 1 }}>
                     {account && renderStageChipLocal(account.stage)}
                   </Box>
                 </Grid>
-                <Grid item xs={12} md={3}>
+                <Grid size={{ xs: 12, md: 3 }}>
                   <Typography variant="body2" color="text.secondary">Impaired Status:</Typography>
                   <Box sx={{ mt: 1 }}>
                     {account && renderImpairedFlagLocal(account.impaired_flag)}
                   </Box>
                 </Grid>
-                <Grid item xs={12} md={3}>
+                <Grid size={{ xs: 12, md: 3 }}>
                   <Typography variant="body2" color="text.secondary">Current Provision:</Typography>
                   <Typography variant="h6">
                     {formatCurrency(account?.provision_amount || 0)}
@@ -429,7 +429,7 @@ function ProvisionCalculationTab({ account, assessment, calculation, loading }: 
 
       {calculation ? (
         <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>DCF Results</Typography>
@@ -461,7 +461,7 @@ function ProvisionCalculationTab({ account, assessment, calculation, loading }: 
             </Card>
           </Grid>
 
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>Provision Recommendation</Typography>
@@ -798,7 +798,7 @@ export default function IndividualAssessmentPage() {
 
       {/* Main Content */}
       <Grid container spacing={3}>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Paper sx={{ p: 3 }}>
             {/* Filters */}
             <Box sx={{ mb: 3, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -1026,7 +1026,7 @@ export default function IndividualAssessmentPage() {
 
                     {assessment ? (
                       <Grid container spacing={3}>
-                        <Grid item xs={12} md={6}>
+                        <Grid size={{ xs: 12, md: 6 }}>
                           <Card>
                             <CardContent>
                               <Typography variant="h6" gutterBottom>
@@ -1072,7 +1072,7 @@ export default function IndividualAssessmentPage() {
                           </Card>
                         </Grid>
 
-                        <Grid item xs={12} md={6}>
+                        <Grid size={{ xs: 12, md: 6 }}>
                           <Card>
                             <CardContent>
                               <Typography variant="h6" gutterBottom>
@@ -1107,7 +1107,7 @@ export default function IndividualAssessmentPage() {
                           </Card>
                         </Grid>
 
-                        <Grid item xs={12}>
+                        <Grid size={{ xs: 12 }}>
                           <Card>
                             <CardContent>
                               <Typography variant="h6" gutterBottom>

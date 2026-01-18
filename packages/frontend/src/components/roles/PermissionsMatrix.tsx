@@ -457,37 +457,37 @@ const PermissionsMatrix: React.FC<PermissionsMatrixProps> = ({
 
       {/* Statistics */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={2}>
+        <Grid size={{ xs: 12, sm: 6, md: 2 }}>
           <Paper sx={{ p: 2, textAlign: 'center', borderLeft: `4px solid ${theme.palette.primary.main}` }}>
             <Typography variant="h4" color="primary">{stats.total}</Typography>
             <Typography variant="body2" color="text.secondary">Total Cells</Typography>
           </Paper>
         </Grid>
-        <Grid item xs={12} sm={6} md={2}>
+        <Grid size={{ xs: 12, sm: 6, md: 2 }}>
           <Paper sx={{ p: 2, textAlign: 'center', borderLeft: `4px solid ${theme.palette.success.main}` }}>
             <Typography variant="h4" color="success.main">{stats.assigned}</Typography>
             <Typography variant="body2" color="text.secondary">Assigned ({stats.coverage}%)</Typography>
           </Paper>
         </Grid>
-        <Grid item xs={12} sm={6} md={2}>
+        <Grid size={{ xs: 12, sm: 6, md: 2 }}>
           <Paper sx={{ p: 2, textAlign: 'center', borderLeft: `4px solid ${theme.palette.error.main}` }}>
             <Typography variant="h4" color="error.main">{stats.critical}</Typography>
             <Typography variant="body2" color="text.secondary">Critical</Typography>
           </Paper>
         </Grid>
-        <Grid item xs={12} sm={6} md={2}>
+        <Grid size={{ xs: 12, sm: 6, md: 2 }}>
           <Paper sx={{ p: 2, textAlign: 'center', borderLeft: `4px solid ${theme.palette.warning.main}` }}>
             <Typography variant="h4" color="warning.main">{stats.highRisk}</Typography>
             <Typography variant="body2" color="text.secondary">High Risk</Typography>
           </Paper>
         </Grid>
-        <Grid item xs={12} sm={6} md={2}>
+        <Grid size={{ xs: 12, sm: 6, md: 2 }}>
           <Paper sx={{ p: 2, textAlign: 'center', borderLeft: `4px solid ${theme.palette.secondary.main}` }}>
             <Typography variant="h4" color="secondary.main">{stats.systemRoles}</Typography>
             <Typography variant="body2" color="text.secondary">System Roles</Typography>
           </Paper>
         </Grid>
-        <Grid item xs={12} sm={6} md={2}>
+        <Grid size={{ xs: 12, sm: 6, md: 2 }}>
           <Paper sx={{ p: 2, textAlign: 'center', borderLeft: `4px solid ${theme.palette.info.main}` }}>
             <Typography variant="h4" color="info.main">{stats.customRoles}</Typography>
             <Typography variant="body2" color="text.secondary">Custom Roles</Typography>
@@ -511,7 +511,7 @@ const PermissionsMatrix: React.FC<PermissionsMatrixProps> = ({
           </AccordionSummary>
           <AccordionDetails>
             <Grid container spacing={2} alignItems="center">
-              <Grid item xs={12} md={3}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <TextField
                   fullWidth
                   size="small"
@@ -524,7 +524,7 @@ const PermissionsMatrix: React.FC<PermissionsMatrixProps> = ({
                 />
               </Grid>
 
-              <Grid item xs={12} md={2}>
+              <Grid size={{ xs: 12, md: 2 }}>
                 <FormControl fullWidth size="small">
                   <InputLabel>Risk Level</InputLabel>
                   <Select
@@ -541,7 +541,7 @@ const PermissionsMatrix: React.FC<PermissionsMatrixProps> = ({
                 </FormControl>
               </Grid>
 
-              <Grid item xs={12} md={2}>
+              <Grid size={{ xs: 12, md: 2 }}>
                 <FormControl fullWidth size="small">
                   <InputLabel>Categories</InputLabel>
                   <Select
@@ -560,7 +560,7 @@ const PermissionsMatrix: React.FC<PermissionsMatrixProps> = ({
                 </FormControl>
               </Grid>
 
-              <Grid item xs={12} md={2}>
+              <Grid size={{ xs: 12, md: 2 }}>
                 <FormControlLabel
                   control={
                     <Switch
@@ -573,7 +573,7 @@ const PermissionsMatrix: React.FC<PermissionsMatrixProps> = ({
                 />
               </Grid>
 
-              <Grid item xs={12} md={2}>
+              <Grid size={{ xs: 12, md: 2 }}>
                 <FormControlLabel
                   control={
                     <Switch

@@ -99,7 +99,7 @@ const ECLMovementReport: React.FC = () => {
   const SummaryCards = () => (
     <Grid container spacing={3} sx={{ mb: 3 }}>
       {/* Opening Balance */}
-      <Grid item xs={12} md={3}>
+      <Grid size={{ xs: 12, md: 3 }}>
         <Card sx={{ height: '100%', bgcolor: 'primary.light', color: 'white' }}>
           <CardContent sx={{ textAlign: 'center' }}>
             <Avatar sx={{ bgcolor: 'primary.dark', mx: 'auto', mb: 2, width: 56, height: 56 }}>
@@ -121,7 +121,7 @@ const ECLMovementReport: React.FC = () => {
       </Grid>
 
       {/* Closing Balance */}
-      <Grid item xs={12} md={3}>
+      <Grid size={{ xs: 12, md: 3 }}>
         <Card sx={{ height: '100%', bgcolor: 'success.light', color: 'white' }}>
           <CardContent sx={{ textAlign: 'center' }}>
             <Avatar sx={{ bgcolor: 'success.dark', mx: 'auto', mb: 2, width: 56, height: 56 }}>
@@ -143,7 +143,7 @@ const ECLMovementReport: React.FC = () => {
       </Grid>
 
       {/* Net Movement */}
-      <Grid item xs={12} md={3}>
+      <Grid size={{ xs: 12, md: 3 }}>
         <Card sx={{
           height: '100%',
           bgcolor: summaryStats.netMovement >= 0 ? 'warning.light' : 'info.light',
@@ -176,7 +176,7 @@ const ECLMovementReport: React.FC = () => {
       </Grid>
 
       {/* Movement Ratio */}
-      <Grid item xs={12} md={3}>
+      <Grid size={{ xs: 12, md: 3 }}>
         <Card sx={{ height: '100%', bgcolor: 'error.light', color: 'white' }}>
           <CardContent sx={{ textAlign: 'center' }}>
             <Avatar sx={{ bgcolor: 'error.dark', mx: 'auto', mb: 2, width: 56, height: 56 }}>

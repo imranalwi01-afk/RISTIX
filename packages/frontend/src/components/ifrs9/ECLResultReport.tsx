@@ -113,7 +113,7 @@ const ECLResultReport: React.FC = () => {
   const SummaryCards = () => (
     <Grid container spacing={3} sx={{ mb: 3 }}>
       {/* Total ECL */}
-      <Grid item xs={12} md={3}>
+      <Grid size={{ xs: 12, md: 3 }}>
         <Card sx={{ height: '100%' }}>
           <CardContent sx={{ textAlign: 'center' }}>
             <Avatar sx={{ bgcolor: 'error.main', mx: 'auto', mb: 2, width: 56, height: 56 }}>
@@ -135,7 +135,7 @@ const ECLResultReport: React.FC = () => {
       </Grid>
 
       {/* Total Outstanding */}
-      <Grid item xs={12} md={3}>
+      <Grid size={{ xs: 12, md: 3 }}>
         <Card sx={{ height: '100%' }}>
           <CardContent sx={{ textAlign: 'center' }}>
             <Avatar sx={{ bgcolor: 'primary.main', mx: 'auto', mb: 2, width: 56, height: 56 }}>
@@ -157,7 +157,7 @@ const ECLResultReport: React.FC = () => {
       </Grid>
 
       {/* ECL Ratio */}
-      <Grid item xs={12} md={3}>
+      <Grid size={{ xs: 12, md: 3 }}>
         <Card sx={{ height: '100%' }}>
           <CardContent sx={{ textAlign: 'center' }}>
             <Avatar sx={{ bgcolor: 'warning.main', mx: 'auto', mb: 2, width: 56, height: 56 }}>
@@ -174,7 +174,7 @@ const ECLResultReport: React.FC = () => {
       </Grid>
 
       {/* Risk Level */}
-      <Grid item xs={12} md={3}>
+      <Grid size={{ xs: 12, md: 3 }}>
         <Card sx={{ height: '100%' }}>
           <CardContent sx={{ textAlign: 'center' }}>
             <Avatar sx={{
@@ -204,7 +204,7 @@ const ECLResultReport: React.FC = () => {
           ECL by IFRS 9 Stage
         </Typography>
         <Grid container spacing={3}>
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'success.light', color: 'white' }}>
               <Typography variant="h6" gutterBottom>Stage 1 (12-month ECL)</Typography>
               <Typography variant="h4" component="div" fontWeight="bold">
@@ -220,7 +220,7 @@ const ECLResultReport: React.FC = () => {
               </Typography>
             </Paper>
           </Grid>
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'warning.light', color: 'white' }}>
               <Typography variant="h6" gutterBottom>Stage 2 (Lifetime ECL)</Typography>
               <Typography variant="h4" component="div" fontWeight="bold">
@@ -236,7 +236,7 @@ const ECLResultReport: React.FC = () => {
               </Typography>
             </Paper>
           </Grid>
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'error.light', color: 'white' }}>
               <Typography variant="h6" gutterBottom>Stage 3 (Lifetime ECL)</Typography>
               <Typography variant="h4" component="div" fontWeight="bold">
@@ -260,7 +260,7 @@ const ECLResultReport: React.FC = () => {
   const ECLCharts = () => (
     <Grid container spacing={3} sx={{ mb: 3 }}>
       {/* Stage Distribution Pie Chart */}
-      <Grid item xs={12} md={6}>
+      <Grid size={{ xs: 12, md: 6 }}>
         <Card>
           <CardContent>
             <Typography variant="h6" gutterBottom>
@@ -304,7 +304,7 @@ const ECLResultReport: React.FC = () => {
       </Grid>
 
       {/* Segment Analysis */}
-      <Grid item xs={12} md={6}>
+      <Grid size={{ xs: 12, md: 6 }}>
         <Card>
           <CardContent>
             <Typography variant="h6" gutterBottom>

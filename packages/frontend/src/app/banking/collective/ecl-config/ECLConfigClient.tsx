@@ -699,14 +699,14 @@ export default function ECLConfigurationPage() {
         />,
         <SafeGridActionsCellItem
           key="edit"
-          icon={<EditIcon />}
+          icon={<EditIcon color="primary" />}
           label="Edit"
           onClick={() => handleEdit(params.row)}
           color="primary"
         />,
         <SafeGridActionsCellItem
           key="delete"
-          icon={<DeleteIcon />}
+          icon={<DeleteIcon color="error" />}
           label="Delete"
           onClick={() => handleDelete(params.row)}
           color="error"

@@ -15,7 +15,7 @@ import {
   Typography,
   Container,
   Paper,
-  Grid2 as Grid,
+  Grid,
   Button,
   IconButton,
   Chip,
@@ -512,17 +512,15 @@ export default function ApprovalManagementPage() {
           actions.push(
             <GridActionsCellItem
               key="approve"
-              icon={<ApproveIcon />}
+              icon={<ApproveIcon color="success" />}
               label="Approve"
               onClick={() => handleApprovalAction(params.row, 'approve')}
-              sx={{ color: 'success.main' }}
             />,
             <GridActionsCellItem
               key="reject"
-              icon={<RejectIcon />}
+              icon={<RejectIcon color="error" />}
               label="Reject"
               onClick={() => handleApprovalAction(params.row, 'reject')}
-              sx={{ color: 'error.main' }}
             />
           );
         }

@@ -560,7 +560,7 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
               {section.fields.map((fieldName) => {
                 const field = formConfiguration.form_schema.fields.find(f => f.name === fieldName);
                 return field ? (
-                  <Grid item xs={12} sm={6} key={fieldName}>
+                  <Grid size={{ xs: 12, sm: 6 }} key={fieldName}>
                     {renderField(field)}
                   </Grid>
                 ) : null;
@@ -576,7 +576,7 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
           <CardContent>
             <Grid container spacing={2}>
               {formConfiguration.form_schema.fields.map((field) => (
-                <Grid item xs={12} sm={6} key={field.id}>
+                <Grid size={{ xs: 12, sm: 6 }} key={field.id}>
                   {renderField(field)}
                 </Grid>
               ))}

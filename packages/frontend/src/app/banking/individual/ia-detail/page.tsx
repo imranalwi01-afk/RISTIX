@@ -95,7 +95,7 @@ export default function IaDetailPage() {
 
       {/* Summary Cards */}
       <Grid container spacing={3} mb={3}>
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
             <Card>
                 <CardContent>
                     <Typography color="textSecondary" gutterBottom>
@@ -107,7 +107,7 @@ export default function IaDetailPage() {
                 </CardContent>
             </Card>
         </Grid>
-         <Grid item xs={12} md={4}>
+         <Grid size={{ xs: 12, md: 4 }}>
             <Card>
                 <CardContent>
                      <Typography color="textSecondary" gutterBottom>

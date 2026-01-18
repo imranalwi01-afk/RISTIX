@@ -157,9 +157,9 @@ const IFRS9ReportsPage: React.FC = () => {
   ];
 
   const ReportCard = ({ report }: { report: any }) => (
-    <Card 
-      sx={{ 
-        height: '100%', 
+    <Card
+      sx={{
+        height: '100%',
         cursor: 'pointer',
         transition: 'all 0.3s ease',
         '&:hover': {
@@ -171,12 +171,12 @@ const IFRS9ReportsPage: React.FC = () => {
     >
       <CardContent>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <Avatar 
-            sx={{ 
-              bgcolor: `${report.color}.main`, 
-              mr: 2, 
-              width: 48, 
-              height: 48 
+          <Avatar
+            sx={{
+              bgcolor: `${report.color}.main`,
+              mr: 2,
+              width: 48,
+              height: 48
             }}
           >
             {report.icon}
@@ -185,15 +185,15 @@ const IFRS9ReportsPage: React.FC = () => {
             <Typography variant="h6" component="div">
               {report.title}
             </Typography>
-            <Chip 
-              size="small" 
+            <Chip
+              size="small"
               label={report.id}
               color={report.color}
               variant="outlined"
             />
           </Box>
-          <IconButton 
-            size="small" 
+          <IconButton
+            size="small"
             onClick={(e) => {
               e.stopPropagation();
               setSelectedTab(report.tabIndex);
@@ -202,15 +202,15 @@ const IFRS9ReportsPage: React.FC = () => {
             <LaunchIcon />
           </IconButton>
         </Box>
-        
-        <Typography 
-          variant="body2" 
-          color="text.secondary" 
+
+        <Typography
+          variant="body2"
+          color="text.secondary"
           sx={{ mb: 2, minHeight: '40px' }}
         >
           {report.description}
         </Typography>
-        
+
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 2 }}>
           {report.features.map((feature: string, index: number) => (
             <Chip
@@ -223,10 +223,10 @@ const IFRS9ReportsPage: React.FC = () => {
           ))}
         </Box>
       </CardContent>
-      
+
       <CardActions>
-        <Button 
-          size="small" 
+        <Button
+          size="small"
           color={report.color}
           onClick={(e) => {
             e.stopPropagation();
@@ -252,29 +252,29 @@ const IFRS9ReportsPage: React.FC = () => {
         <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
           Comprehensive IFRS 9 reporting suite with real-time database integration
         </Typography>
-        
+
         {/* Quick Stats */}
         <Paper sx={{ p: 2, bgcolor: 'primary.light', color: 'white' }}>
           <Grid container spacing={3}>
-            <Grid item xs={12} md={3}>
+            <Grid size={{ xs: 12, md: 3 }}>
               <Box sx={{ textAlign: 'center' }}>
                 <Typography variant="h4" fontWeight="bold">7</Typography>
                 <Typography variant="body2">Report Types</Typography>
               </Box>
             </Grid>
-            <Grid item xs={12} md={3}>
+            <Grid size={{ xs: 12, md: 3 }}>
               <Box sx={{ textAlign: 'center' }}>
                 <Typography variant="h4" fontWeight="bold">Live</Typography>
                 <Typography variant="body2">Database Integration</Typography>
               </Box>
             </Grid>
-            <Grid item xs={12} md={3}>
+            <Grid size={{ xs: 12, md: 3 }}>
               <Box sx={{ textAlign: 'center' }}>
                 <Typography variant="h4" fontWeight="bold">Real-time</Typography>
                 <Typography variant="body2">Data Processing</Typography>
               </Box>
             </Grid>
-            <Grid item xs={12} md={3}>
+            <Grid size={{ xs: 12, md: 3 }}>
               <Box sx={{ textAlign: 'center' }}>
                 <Typography variant="h4" fontWeight="bold">DS2</Typography>
                 <Typography variant="body2">FRS9PRO Database</Typography>
@@ -295,15 +295,15 @@ const IFRS9ReportsPage: React.FC = () => {
               <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
                 {category.description}
               </Typography>
-              
+
               <Grid container spacing={3}>
                 {category.reports.map((report, reportIndex) => (
-                  <Grid item xs={12} md={6} lg={4} key={reportIndex}>
+                  <Grid size={{ xs: 12, md: 6, lg: 4 }} key={reportIndex}>
                     <ReportCard report={report} />
                   </Grid>
                 ))}
               </Grid>
-              
+
               {categoryIndex < reportCategories.length - 1 && <Divider sx={{ mt: 4 }} />}
             </Box>
           ))}
@@ -371,7 +371,7 @@ const IFRS9ReportsPage: React.FC = () => {
           <Typography variant="h6">Database Integration Information</Typography>
         </Box>
         <Grid container spacing={2}>
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <Typography variant="body2" sx={{ mb: 1, fontWeight: 'bold' }}>
               Database Server:
             </Typography>
@@ -379,7 +379,7 @@ const IFRS9ReportsPage: React.FC = () => {
               DS2 FRS9PRO (192.168.0.106:5433)
             </Typography>
           </Grid>
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <Typography variant="body2" sx={{ mb: 1, fontWeight: 'bold' }}>
               Data Sources:
             </Typography>
@@ -387,7 +387,7 @@ const IFRS9ReportsPage: React.FC = () => {
               Live PostgreSQL tables with actual banking data
             </Typography>
           </Grid>
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <Typography variant="body2" sx={{ mb: 1, fontWeight: 'bold' }}>
               Update Frequency:
             </Typography>

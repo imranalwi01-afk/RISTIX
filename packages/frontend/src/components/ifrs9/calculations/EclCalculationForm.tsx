@@ -123,7 +123,7 @@ export const EclCalculationForm: React.FC<EclCalculationFormProps> = ({
         <form onSubmit={handleSubmit}>
           <Grid container spacing={3}>
             {/* Basic Parameters */}
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Typography variant="subtitle1" gutterBottom>
                 <DateRange sx={{ mr: 1, verticalAlign: 'middle' }} />
                 Basic Parameters
@@ -131,7 +131,7 @@ export const EclCalculationForm: React.FC<EclCalculationFormProps> = ({
               <Divider sx={{ mb: 2 }} />
             </Grid>
 
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <LocalizationProvider dateAdapter={AdapterDateFns}>
                 <DatePicker
                   label="Calculation Date"
@@ -147,7 +147,7 @@ export const EclCalculationForm: React.FC<EclCalculationFormProps> = ({
               </LocalizationProvider>
             </Grid>
 
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 label="Account IDs (comma-separated)"
@@ -159,7 +159,7 @@ export const EclCalculationForm: React.FC<EclCalculationFormProps> = ({
             </Grid>
 
             {/* Calculation Methods */}
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Typography variant="subtitle1" gutterBottom>
                 <Assessment sx={{ mr: 1, verticalAlign: 'middle' }} />
                 Calculation Methods
@@ -167,7 +167,7 @@ export const EclCalculationForm: React.FC<EclCalculationFormProps> = ({
               <Divider sx={{ mb: 2 }} />
             </Grid>
 
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <FormControl fullWidth>
                 <InputLabel>PD Method</InputLabel>
                 <Select
@@ -182,7 +182,7 @@ export const EclCalculationForm: React.FC<EclCalculationFormProps> = ({
               </FormControl>
             </Grid>
 
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <FormControl fullWidth>
                 <InputLabel>LGD Method</InputLabel>
                 <Select
@@ -197,7 +197,7 @@ export const EclCalculationForm: React.FC<EclCalculationFormProps> = ({
               </FormControl>
             </Grid>
 
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <FormControl fullWidth>
                 <InputLabel>EAD Method</InputLabel>
                 <Select
@@ -213,7 +213,7 @@ export const EclCalculationForm: React.FC<EclCalculationFormProps> = ({
             </Grid>
 
             {/* Advanced Options */}
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Accordion>
                 <AccordionSummary
                   expandIcon={<ExpandMore />}
@@ -234,7 +234,7 @@ export const EclCalculationForm: React.FC<EclCalculationFormProps> = ({
                 </AccordionSummary>
                 <AccordionDetails>
                   <Grid container spacing={2}>
-                    <Grid item xs={12}>
+                    <Grid size={{ xs: 12 }}>
                       <FormControlLabel
                         control={
                           <Switch
@@ -251,12 +251,12 @@ export const EclCalculationForm: React.FC<EclCalculationFormProps> = ({
 
                     {forwardLooking && (
                       <>
-                        <Grid item xs={12}>
+                        <Grid size={{ xs: 12 }}>
                           <Typography variant="body1" gutterBottom>
                             Scenario Weights (must sum to 100%)
                           </Typography>
                         </Grid>
-                        <Grid item xs={12} md={4}>
+                        <Grid size={{ xs: 12, md: 4 }}>
                           <TextField
                             fullWidth
                             type="number"
@@ -266,7 +266,7 @@ export const EclCalculationForm: React.FC<EclCalculationFormProps> = ({
                             inputProps={{ min: 0, max: 100 }}
                           />
                         </Grid>
-                        <Grid item xs={12} md={4}>
+                        <Grid size={{ xs: 12, md: 4 }}>
                           <TextField
                             fullWidth
                             type="number"
@@ -276,7 +276,7 @@ export const EclCalculationForm: React.FC<EclCalculationFormProps> = ({
                             inputProps={{ min: 0, max: 100 }}
                           />
                         </Grid>
-                        <Grid item xs={12} md={4}>
+                        <Grid size={{ xs: 12, md: 4 }}>
                           <TextField
                             fullWidth
                             type="number"
@@ -286,7 +286,7 @@ export const EclCalculationForm: React.FC<EclCalculationFormProps> = ({
                             inputProps={{ min: 0, max: 100 }}
                           />
                         </Grid>
-                        <Grid item xs={12}>
+                        <Grid size={{ xs: 12 }}>
                           <Typography variant="body2" color={
                             Math.abs(baseWeight + upsideWeight + downsideWeight - 100) < 0.01
                               ? 'success.main' : 'error.main'
@@ -302,7 +302,7 @@ export const EclCalculationForm: React.FC<EclCalculationFormProps> = ({
             </Grid>
 
             {/* Submit Button */}
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Box display="flex" justifyContent="flex-end" mt={2}>
                 <Button
                   type="submit"

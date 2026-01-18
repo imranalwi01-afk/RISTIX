@@ -29,7 +29,7 @@ const nextConfig = {
 
 
   // Enable SWC minification for faster builds
-  swcMinify: false,
+
 
 
   // Improve development performance by disposing inactive pages

@@ -264,7 +264,7 @@ export const EnhancedDatePicker: React.FC<EnhancedDatePickerProps> = ({
           {/* Day Headers */}
           <Grid container spacing={0.5} sx={{ mb: 1 }}>
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-              <Grid item xs={12/7} key={day}>
+              <Grid size={{ xs: 12/7 }} key={day}>
                 <Typography variant="caption" align="center" display="block" fontWeight="bold">
                   {day}
                 </Typography>
@@ -275,7 +275,7 @@ export const EnhancedDatePicker: React.FC<EnhancedDatePickerProps> = ({
           {/* Calendar Days */}
           <Grid container spacing={0.5}>
             {generateCalendarDays().map((day, index) => (
-              <Grid item xs={12/7} key={index}>
+              <Grid size={{ xs: 12/7 }} key={index}>
                 {day ? (
                   <Button
                     variant={selectedDate && isSameDay(day, selectedDate) ? 'contained' : 'text'}

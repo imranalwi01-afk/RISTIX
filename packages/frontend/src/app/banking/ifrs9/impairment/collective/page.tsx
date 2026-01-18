@@ -136,7 +136,7 @@ export default function CollectiveImpairmentPage() {
             {/* Summary Cards */}
             {data.length > 0 && (
                 <Grid container spacing={3} sx={{ mb: 3 }}>
-                    <Grid item xs={12} md={3}>
+                    <Grid size={{ xs: 12, md: 3 }}>
                         <Card>
                             <CardContent>
                                 <Typography variant="h6" color="primary">
@@ -148,7 +148,7 @@ export default function CollectiveImpairmentPage() {
                             </CardContent>
                         </Card>
                     </Grid>
-                    <Grid item xs={12} md={3}>
+                    <Grid size={{ xs: 12, md: 3 }}>
                         <Card>
                             <CardContent>
                                 <Typography variant="h6" color="error">
@@ -160,7 +160,7 @@ export default function CollectiveImpairmentPage() {
                             </CardContent>
                         </Card>
                     </Grid>
-                    <Grid item xs={12} md={3}>
+                    <Grid size={{ xs: 12, md: 3 }}>
                         <Card>
                             <CardContent>
                                 <Typography variant="h6" color="success.main">
@@ -172,7 +172,7 @@ export default function CollectiveImpairmentPage() {
                             </CardContent>
                         </Card>
                     </Grid>
-                    <Grid item xs={12} md={3}>
+                    <Grid size={{ xs: 12, md: 3 }}>
                         <Card>
                             <CardContent>
                                 <Typography variant="h6" color="warning.main">

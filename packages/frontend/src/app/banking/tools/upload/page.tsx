@@ -324,7 +324,7 @@ export default function ManualUploadPage() {
         return (
           <Grid container spacing={3}>
             {uploadTemplates.map((template) => (
-              <Grid item xs={12} md={6} lg={4} key={template.id}>
+              <Grid size={{ xs: 12, md: 6, lg: 4 }} key={template.id}>
                 <Card 
                   sx={{ 
                     cursor: 'pointer',

@@ -38,7 +38,8 @@ import { eclConfigurationsApi } from './api/ecl-configurations.api';
 import { impairmentApi } from './api/impairment.api';
 import { approvalAPI } from './api/approval.api';
 // Import IFRS9 API service
-import { ifrs9API as ifrs9Service } from './api/ifrs9.api';
+import { ifrs9API as ifrs9Service, ifrs9API } from './api/ifrs9.api';
+export { ifrs9API };
 
 // ✅ ENVIRONMENT-AWARE CONFIG LOGGING - AUTO-DETECTION MODE
 console.log('🏗️ IFRS9 IAF API SERVICE - DUAL-MODE AUTO-DETECTION:');
@@ -831,9 +832,9 @@ export const bankingAPI = {
       value1?: string;
       value2?: string;
       condition: 'AND' | 'OR';
-      detail_type?: number;
-      stage_from?: number;
-      stage_to?: number;
+      detail_type?: string;
+      stage_from?: string;
+      stage_to?: string;
     }) => {
       console.log(`➕ Creating new Rule Base Setting detail for header ${headerId} in DS2 database`);
       const response = await apiClient.post(`/banking/collective/rule-base/${headerId}/details`, detailData);

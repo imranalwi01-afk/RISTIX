@@ -628,7 +628,7 @@ const JobMonitoringPage: React.FC = () => {
       {/* System Metrics */}
       {systemMetrics && (
         <Grid container spacing={3} sx={{ mb: 3 }}>
-          <Grid item xs={12} md={3}>
+          <Grid size={{ xs: 12, md: 3 }}>
             <StatCard
               title="Active Jobs"
               value={systemMetrics.activeJobs}
@@ -637,7 +637,7 @@ const JobMonitoringPage: React.FC = () => {
               subtitle="Currently running"
             />
           </Grid>
-          <Grid item xs={12} md={3}>
+          <Grid size={{ xs: 12, md: 3 }}>
             <StatCard
               title="Queued Jobs"
               value={systemMetrics.queuedJobs}
@@ -646,7 +646,7 @@ const JobMonitoringPage: React.FC = () => {
               subtitle="Waiting to start"
             />
           </Grid>
-          <Grid item xs={12} md={3}>
+          <Grid size={{ xs: 12, md: 3 }}>
             <StatCard
               title="Completed Today"
               value={systemMetrics.completedJobsToday}
@@ -656,7 +656,7 @@ const JobMonitoringPage: React.FC = () => {
               subtitle="Successful jobs"
             />
           </Grid>
-          <Grid item xs={12} md={3}>
+          <Grid size={{ xs: 12, md: 3 }}>
             <StatCard
               title="Failed Today"
               value={systemMetrics.failedJobsToday}
@@ -720,7 +720,7 @@ const JobMonitoringPage: React.FC = () => {
           />
           <CardContent>
             <Grid container spacing={2}>
-              <Grid item xs={12} md={2}>
+              <Grid size={{ xs: 12, md: 2 }}>
                 <FormControl fullWidth size="small">
                   <InputLabel>Status</InputLabel>
                   <Select
@@ -737,7 +737,7 @@ const JobMonitoringPage: React.FC = () => {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} md={2}>
+              <Grid size={{ xs: 12, md: 2 }}>
                 <FormControl fullWidth size="small">
                   <InputLabel>Type</InputLabel>
                   <Select
@@ -755,7 +755,7 @@ const JobMonitoringPage: React.FC = () => {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} md={2}>
+              <Grid size={{ xs: 12, md: 2 }}>
                 <FormControl fullWidth size="small">
                   <InputLabel>Priority</InputLabel>
                   <Select
@@ -771,7 +771,7 @@ const JobMonitoringPage: React.FC = () => {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   fullWidth
                   size="small"
@@ -831,7 +831,7 @@ const JobMonitoringPage: React.FC = () => {
       <TabPanel value={currentTab} index={2}>
         <Grid container spacing={3}>
           {jobDefinitions.map((job) => (
-            <Grid item xs={12} md={6} lg={4} key={job.id}>
+            <Grid size={{ xs: 12, md: 6, lg: 4 }} key={job.id}>
               <Card>
                 <CardHeader
                   title={job.name}
@@ -894,7 +894,7 @@ const JobMonitoringPage: React.FC = () => {
       <TabPanel value={currentTab} index={3}>
         {systemMetrics && (
           <Grid container spacing={3}>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <StatCard
                 title="CPU Usage"
                 value={`${systemMetrics.cpuUsage}%`}
@@ -903,7 +903,7 @@ const JobMonitoringPage: React.FC = () => {
                 subtitle="System CPU utilization"
               />
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <StatCard
                 title="Memory Usage"
                 value={`${systemMetrics.memoryUsage}%`}
@@ -912,7 +912,7 @@ const JobMonitoringPage: React.FC = () => {
                 subtitle="System memory utilization"
               />
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <StatCard
                 title="Disk Usage"
                 value={`${systemMetrics.diskUsage}%`}
@@ -921,7 +921,7 @@ const JobMonitoringPage: React.FC = () => {
                 subtitle="System disk utilization"
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <StatCard
                 title="Avg Execution Time"
                 value={formatDuration(systemMetrics.averageExecutionTime)}
@@ -930,7 +930,7 @@ const JobMonitoringPage: React.FC = () => {
                 subtitle="Average job completion time"
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <StatCard
                 title="Throughput"
                 value={`${systemMetrics.throughputPerHour.toLocaleString()}/hr`}
@@ -956,7 +956,7 @@ const JobMonitoringPage: React.FC = () => {
         <DialogContent>
           {jobDetailsDialog.job && (
             <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="h6" gutterBottom>
                   Job Information
                 </Typography>
@@ -988,7 +988,7 @@ const JobMonitoringPage: React.FC = () => {
                   </Box>
                 </Stack>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="h6" gutterBottom>
                   Execution Details
                 </Typography>
@@ -1032,7 +1032,7 @@ const JobMonitoringPage: React.FC = () => {
                 </Stack>
               </Grid>
               {jobDetailsDialog.job.resourceUsage && (
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Typography variant="h6" gutterBottom>
                     Resource Usage
                   </Typography>
@@ -1053,7 +1053,7 @@ const JobMonitoringPage: React.FC = () => {
                 </Grid>
               )}
               {jobDetailsDialog.job.performanceMetrics && (
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Typography variant="h6" gutterBottom>
                     Performance Metrics
                   </Typography>
@@ -1080,7 +1080,7 @@ const JobMonitoringPage: React.FC = () => {
                 </Grid>
               )}
               {jobDetailsDialog.job.errorMessage && (
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <Typography variant="h6" gutterBottom>
                     Error Information
                   </Typography>

@@ -306,21 +306,21 @@ const ECLCalculationPanel: React.FC = () => {
             )}
             
             <Grid container spacing={3}>
-              <Grid item xs={12} md={3}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <Typography variant="body2" color="textSecondary">Progress</Typography>
                 <Typography variant="h6">{currentJob.progress}%</Typography>
               </Grid>
-              <Grid item xs={12} md={3}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <Typography variant="body2" color="textSecondary">Processed Accounts</Typography>
                 <Typography variant="h6">
                   {currentJob.processedAccounts.toLocaleString()} / {currentJob.totalAccounts.toLocaleString()}
                 </Typography>
               </Grid>
-              <Grid item xs={12} md={3}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <Typography variant="body2" color="textSecondary">Total ECL</Typography>
                 <Typography variant="h6">{formatCurrency(currentJob.totalECL)}</Typography>
               </Grid>
-              <Grid item xs={12} md={3}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <Typography variant="body2" color="textSecondary">Duration</Typography>
                 <Typography variant="h6">
                   {currentJob.startTime && currentJob.endTime 
@@ -337,19 +337,19 @@ const ECLCalculationPanel: React.FC = () => {
             <Box mt={3}>
               <Typography variant="subtitle1" gutterBottom>Staging Breakdown</Typography>
               <Grid container spacing={2}>
-                <Grid item xs={4}>
+                <Grid size={{ xs: 4 }}>
                   <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'success.light' }}>
                     <Typography variant="h6">{currentJob.stage1Count.toLocaleString()}</Typography>
                     <Typography variant="body2">Stage 1</Typography>
                   </Paper>
                 </Grid>
-                <Grid item xs={4}>
+                <Grid size={{ xs: 4 }}>
                   <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'warning.light' }}>
                     <Typography variant="h6">{currentJob.stage2Count.toLocaleString()}</Typography>
                     <Typography variant="body2">Stage 2</Typography>
                   </Paper>
                 </Grid>
-                <Grid item xs={4}>
+                <Grid size={{ xs: 4 }}>
                   <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'error.light' }}>
                     <Typography variant="h6">{currentJob.stage3Count.toLocaleString()}</Typography>
                     <Typography variant="body2">Stage 3</Typography>
@@ -374,7 +374,7 @@ const ECLCalculationPanel: React.FC = () => {
         {/* ✅ Parameters Tab */}
         <TabPanel value={activeTab} index={0}>
           <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 label="Calculation Date"
@@ -384,7 +384,7 @@ const ECLCalculationPanel: React.FC = () => {
                 InputLabelProps={{ shrink: true }}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <FormControl fullWidth>
                 <InputLabel>Scenario Type</InputLabel>
                 <Select
@@ -398,7 +398,7 @@ const ECLCalculationPanel: React.FC = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <TextField
                 fullWidth
                 label="PD Model Version"
@@ -406,7 +406,7 @@ const ECLCalculationPanel: React.FC = () => {
                 onChange={(e) => setParameters({...parameters, pdModelVersion: e.target.value})}
               />
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <TextField
                 fullWidth
                 label="LGD Model Version"
@@ -414,7 +414,7 @@ const ECLCalculationPanel: React.FC = () => {
                 onChange={(e) => setParameters({...parameters, lgdModelVersion: e.target.value})}
               />
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <TextField
                 fullWidth
                 label="EAD Model Version"
@@ -422,7 +422,7 @@ const ECLCalculationPanel: React.FC = () => {
                 onChange={(e) => setParameters({...parameters, eadModelVersion: e.target.value})}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 label="Forward Looking Periods (months)"
@@ -431,7 +431,7 @@ const ECLCalculationPanel: React.FC = () => {
                 onChange={(e) => setParameters({...parameters, forwardLookingPeriods: parseInt(e.target.value)})}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 label="Significant Increase Threshold (%)"

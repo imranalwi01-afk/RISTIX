@@ -90,7 +90,7 @@ const LifetimeLGDReport: React.FC = () => {
   const SummaryCards = () => (
     <Grid container spacing={2} sx={{ mb: 3 }}>
       {/* Total Accounts */}
-      <Grid item xs={12} md={3}>
+      <Grid size={{ xs: 12, md: 3 }}>
         <Card>
           <CardContent sx={{ textAlign: 'center' }}>
             <Avatar sx={{ bgcolor: 'primary.main', mx: 'auto', mb: 1 }}>
@@ -107,7 +107,7 @@ const LifetimeLGDReport: React.FC = () => {
       </Grid>
 
       {/* Average LGD */}
-      <Grid item xs={12} md={3}>
+      <Grid size={{ xs: 12, md: 3 }}>
         <Card>
           <CardContent sx={{ textAlign: 'center' }}>
             <Avatar sx={{ bgcolor: 'warning.main', mx: 'auto', mb: 1 }}>
@@ -124,7 +124,7 @@ const LifetimeLGDReport: React.FC = () => {
       </Grid>
 
       {/* Total Recovery */}
-      <Grid item xs={12} md={3}>
+      <Grid size={{ xs: 12, md: 3 }}>
         <Card>
           <CardContent sx={{ textAlign: 'center' }}>
             <Avatar sx={{ bgcolor: 'success.main', mx: 'auto', mb: 1 }}>
@@ -146,7 +146,7 @@ const LifetimeLGDReport: React.FC = () => {
       </Grid>
 
       {/* LGD Quality */}
-      <Grid item xs={12} md={3}>
+      <Grid size={{ xs: 12, md: 3 }}>
         <Card>
           <CardContent sx={{ textAlign: 'center' }}>
             <Avatar sx={{ bgcolor: 'info.main', mx: 'auto', mb: 1 }}>
@@ -168,7 +168,7 @@ const LifetimeLGDReport: React.FC = () => {
   const LGDCharts = () => (
     <Grid container spacing={3} sx={{ mb: 3 }}>
       {/* LGD Distribution Bar Chart */}
-      <Grid item xs={12} md={6}>
+      <Grid size={{ xs: 12, md: 6 }}>
         <Card>
           <CardContent>
             <Typography variant="h6" gutterBottom>
@@ -190,7 +190,7 @@ const LifetimeLGDReport: React.FC = () => {
       </Grid>
 
       {/* LGD Distribution Pie Chart */}
-      <Grid item xs={12} md={6}>
+      <Grid size={{ xs: 12, md: 6 }}>
         <Card>
           <CardContent>
             <Typography variant="h6" gutterBottom>

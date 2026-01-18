@@ -235,7 +235,7 @@ export default function DcfUploadPage() {
 
             <Grid container spacing={3}>
                 {/* Step 1: File Selection */}
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                     <Card variant="outlined">
                         <CardContent>
                             <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
@@ -284,7 +284,7 @@ export default function DcfUploadPage() {
 
                 {/* Step 2: Validation Grid */}
                 {rows.length > 0 && (
-                    <Grid item xs={12}>
+                    <Grid size={{ xs: 12 }}>
                         <Card>
                             <CardContent>
                                 <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>

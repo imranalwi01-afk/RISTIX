@@ -689,7 +689,7 @@ const UserActivityPage: React.FC = () => {
             />
             <CardContent>
               <Grid container spacing={2}>
-                <Grid item xs={12} md={3}>
+                <Grid size={{ xs: 12, md: 3 }}>
                   <DatePicker
                     label="From Date"
                     value={filters.dateFrom}
@@ -697,7 +697,7 @@ const UserActivityPage: React.FC = () => {
                     slotProps={{ textField: { fullWidth: true, size: 'small' } }}
                   />
                 </Grid>
-                <Grid item xs={12} md={3}>
+                <Grid size={{ xs: 12, md: 3 }}>
                   <DatePicker
                     label="To Date"
                     value={filters.dateTo}
@@ -705,7 +705,7 @@ const UserActivityPage: React.FC = () => {
                     slotProps={{ textField: { fullWidth: true, size: 'small' } }}
                   />
                 </Grid>
-                <Grid item xs={12} md={2}>
+                <Grid size={{ xs: 12, md: 2 }}>
                   <FormControl fullWidth size="small">
                     <InputLabel>Activity Type</InputLabel>
                     <Select
@@ -722,7 +722,7 @@ const UserActivityPage: React.FC = () => {
                     </Select>
                   </FormControl>
                 </Grid>
-                <Grid item xs={12} md={2}>
+                <Grid size={{ xs: 12, md: 2 }}>
                   <FormControl fullWidth size="small">
                     <InputLabel>Result</InputLabel>
                     <Select
@@ -737,7 +737,7 @@ const UserActivityPage: React.FC = () => {
                     </Select>
                   </FormControl>
                 </Grid>
-                <Grid item xs={12} md={2}>
+                <Grid size={{ xs: 12, md: 2 }}>
                   <FormControl fullWidth size="small">
                     <InputLabel>Risk Level</InputLabel>
                     <Select
@@ -753,7 +753,7 @@ const UserActivityPage: React.FC = () => {
                     </Select>
                   </FormControl>
                 </Grid>
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <TextField
                     fullWidth
                     size="small"
@@ -766,7 +766,7 @@ const UserActivityPage: React.FC = () => {
                     }}
                   />
                 </Grid>
-                <Grid item xs={12} md={3}>
+                <Grid size={{ xs: 12, md: 3 }}>
                   <FormControl fullWidth size="small">
                     <InputLabel>Banking Type</InputLabel>
                     <Select
@@ -780,7 +780,7 @@ const UserActivityPage: React.FC = () => {
                     </Select>
                   </FormControl>
                 </Grid>
-                <Grid item xs={12} md={3}>
+                <Grid size={{ xs: 12, md: 3 }}>
                   <TextField
                     fullWidth
                     size="small"
@@ -825,12 +825,12 @@ const UserActivityPage: React.FC = () => {
           {statistics && (
             <Grid container spacing={3}>
               {/* Key Metrics */}
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Typography variant="h6" gutterBottom>
                   Key Metrics
                 </Typography>
               </Grid>
-              <Grid item xs={12} md={3}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <StatCard
                   title="Total Activities"
                   value={statistics.totalActivities.toLocaleString()}
@@ -840,7 +840,7 @@ const UserActivityPage: React.FC = () => {
                   subtitle="Last 7 days"
                 />
               </Grid>
-              <Grid item xs={12} md={3}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <StatCard
                   title="Success Rate"
                   value={`${((statistics.successfulActivities / statistics.totalActivities) * 100).toFixed(1)}%`}
@@ -850,7 +850,7 @@ const UserActivityPage: React.FC = () => {
                   subtitle={`${statistics.successfulActivities} successful`}
                 />
               </Grid>
-              <Grid item xs={12} md={3}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <StatCard
                   title="High Risk Activities"
                   value={statistics.criticalRiskActivities + statistics.highRiskActivities}
@@ -860,7 +860,7 @@ const UserActivityPage: React.FC = () => {
                   subtitle="Critical + High risk"
                 />
               </Grid>
-              <Grid item xs={12} md={3}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <StatCard
                   title="Avg Response Time"
                   value={`${statistics.avgResponseTime}ms`}
@@ -872,7 +872,7 @@ const UserActivityPage: React.FC = () => {
               </Grid>
 
               {/* Additional Stats */}
-              <Grid item xs={12} md={3}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <StatCard
                   title="Unique Users"
                   value={statistics.uniqueUsers}
@@ -881,7 +881,7 @@ const UserActivityPage: React.FC = () => {
                   subtitle="Active users"
                 />
               </Grid>
-              <Grid item xs={12} md={3}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <StatCard
                   title="Unique Sessions"
                   value={statistics.uniqueSessions}
@@ -890,7 +890,7 @@ const UserActivityPage: React.FC = () => {
                   subtitle="Active sessions"
                 />
               </Grid>
-              <Grid item xs={12} md={3}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <StatCard
                   title="Compliance Events"
                   value={statistics.complianceRelevantActivities}
@@ -899,7 +899,7 @@ const UserActivityPage: React.FC = () => {
                   subtitle="Requires audit"
                 />
               </Grid>
-              <Grid item xs={12} md={3}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <StatCard
                   title="Failed Activities"
                   value={statistics.failedActivities}
@@ -910,7 +910,7 @@ const UserActivityPage: React.FC = () => {
               </Grid>
 
               {/* Top Modules */}
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Card>
                   <CardHeader title="Top Modules" />
                   <CardContent>
@@ -941,7 +941,7 @@ const UserActivityPage: React.FC = () => {
               </Grid>
 
               {/* Top Users */}
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Card>
                   <CardHeader title="Most Active Users" />
                   <CardContent>
@@ -1016,7 +1016,7 @@ const UserActivityPage: React.FC = () => {
           <DialogContent>
             {detailsDialog.activity && (
               <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Typography variant="subtitle2" gutterBottom>
                     User Information
                   </Typography>
@@ -1027,7 +1027,7 @@ const UserActivityPage: React.FC = () => {
                     <Typography variant="body2"><strong>Session ID:</strong> {detailsDialog.activity.sessionId}</Typography>
                   </Box>
                 </Grid>
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Typography variant="subtitle2" gutterBottom>
                     Activity Information
                   </Typography>
@@ -1038,7 +1038,7 @@ const UserActivityPage: React.FC = () => {
                     <Typography variant="body2"><strong>Result:</strong> {detailsDialog.activity.actionResult}</Typography>
                   </Box>
                 </Grid>
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Typography variant="subtitle2" gutterBottom>
                     Technical Details
                   </Typography>
@@ -1049,7 +1049,7 @@ const UserActivityPage: React.FC = () => {
                     <Typography variant="body2"><strong>Browser:</strong> {detailsDialog.activity.browserName}</Typography>
                   </Box>
                 </Grid>
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Typography variant="subtitle2" gutterBottom>
                     Risk & Compliance
                   </Typography>
@@ -1061,7 +1061,7 @@ const UserActivityPage: React.FC = () => {
                   </Box>
                 </Grid>
                 {detailsDialog.activity.errorMessage && (
-                  <Grid item xs={12}>
+                  <Grid size={{ xs: 12 }}>
                     <Typography variant="subtitle2" gutterBottom>
                       Error Details
                     </Typography>
@@ -1071,7 +1071,7 @@ const UserActivityPage: React.FC = () => {
                   </Grid>
                 )}
                 {detailsDialog.activity.metadata && (
-                  <Grid item xs={12}>
+                  <Grid size={{ xs: 12 }}>
                     <Typography variant="subtitle2" gutterBottom>
                       Additional Metadata
                     </Typography>

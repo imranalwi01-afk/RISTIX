@@ -316,7 +316,7 @@ const RoleHierarchyVisualization: React.FC<RoleHierarchyVisualizationProps> = ({
         >
           <CardContent sx={{ py: 2, '&:last-child': { pb: 2 } }}>
             <Grid container spacing={2} alignItems="center">
-              <Grid item xs="auto">
+              <Grid size={{ xs: 'auto' }}>
                 {hasChildren && (
                   <IconButton
                     size="small"
@@ -348,7 +348,7 @@ const RoleHierarchyVisualization: React.FC<RoleHierarchyVisualizationProps> = ({
                 />
               </Grid>
 
-              <Grid item xs>
+              <Grid size={{ xs: 'auto' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                   <Typography variant="h6" sx={{ fontWeight: 'bold', color: getRoleTypeColor(role.type) }}>
                     {role.displayName}
@@ -409,7 +409,7 @@ const RoleHierarchyVisualization: React.FC<RoleHierarchyVisualizationProps> = ({
                 </Box>
               </Grid>
 
-              <Grid item xs="auto">
+              <Grid size={{ xs: 'auto' }}>
                 <Box sx={{ display: 'flex', gap: 0.5 }}>
                   <Tooltip title="View Details">
                     <IconButton
@@ -507,37 +507,37 @@ const RoleHierarchyVisualization: React.FC<RoleHierarchyVisualizationProps> = ({
 
       {/* Statistics Cards */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={2}>
+        <Grid size={{ xs: 12, sm: 6, md: 2 }}>
           <Paper sx={{ p: 2, textAlign: 'center', borderLeft: `4px solid ${theme.palette.primary.main}` }}>
             <Typography variant="h4" color="primary">{stats.total}</Typography>
             <Typography variant="body2" color="text.secondary">Total Roles</Typography>
           </Paper>
         </Grid>
-        <Grid item xs={12} sm={6} md={2}>
+        <Grid size={{ xs: 12, sm: 6, md: 2 }}>
           <Paper sx={{ p: 2, textAlign: 'center', borderLeft: `4px solid ${theme.palette.success.main}` }}>
             <Typography variant="h4" color="success.main">{stats.active}</Typography>
             <Typography variant="body2" color="text.secondary">Active Roles</Typography>
           </Paper>
         </Grid>
-        <Grid item xs={12} sm={6} md={2}>
+        <Grid size={{ xs: 12, sm: 6, md: 2 }}>
           <Paper sx={{ p: 2, textAlign: 'center', borderLeft: `4px solid ${theme.palette.error.main}` }}>
             <Typography variant="h4" color="error.main">{stats.system}</Typography>
             <Typography variant="body2" color="text.secondary">System Roles</Typography>
           </Paper>
         </Grid>
-        <Grid item xs={12} sm={6} md={2}>
+        <Grid size={{ xs: 12, sm: 6, md: 2 }}>
           <Paper sx={{ p: 2, textAlign: 'center', borderLeft: `4px solid ${theme.palette.primary.main}` }}>
             <Typography variant="h4" color="primary">{stats.banking}</Typography>
             <Typography variant="body2" color="text.secondary">Banking Roles</Typography>
           </Paper>
         </Grid>
-        <Grid item xs={12} sm={6} md={2}>
+        <Grid size={{ xs: 12, sm: 6, md: 2 }}>
           <Paper sx={{ p: 2, textAlign: 'center', borderLeft: `4px solid ${theme.palette.secondary.main}` }}>
             <Typography variant="h4" color="secondary.main">{stats.custom}</Typography>
             <Typography variant="body2" color="text.secondary">Custom Roles</Typography>
           </Paper>
         </Grid>
-        <Grid item xs={12} sm={6} md={2}>
+        <Grid size={{ xs: 12, sm: 6, md: 2 }}>
           <Paper sx={{ p: 2, textAlign: 'center', borderLeft: `4px solid ${theme.palette.info.main}` }}>
             <Typography variant="h4" color="info.main">{stats.users}</Typography>
             <Typography variant="body2" color="text.secondary">Total Users</Typography>

@@ -643,7 +643,7 @@ const RoleManagementPage: React.FC = () => {
 
       {/* Statistics */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} md={3}>
+        <Grid size={{ xs: 12, md: 3 }}>
           <StatCard
             title="Total Roles"
             value={roles.length}
@@ -652,7 +652,7 @@ const RoleManagementPage: React.FC = () => {
             subtitle="Active roles"
           />
         </Grid>
-        <Grid item xs={12} md={3}>
+        <Grid size={{ xs: 12, md: 3 }}>
           <StatCard
             title="System Roles"
             value={roles.filter(r => r.type === 'SYSTEM').length}
@@ -661,7 +661,7 @@ const RoleManagementPage: React.FC = () => {
             subtitle="Built-in roles"
           />
         </Grid>
-        <Grid item xs={12} md={3}>
+        <Grid size={{ xs: 12, md: 3 }}>
           <StatCard
             title="Banking Roles"
             value={roles.filter(r => r.type === 'BANKING').length}
@@ -670,7 +670,7 @@ const RoleManagementPage: React.FC = () => {
             subtitle="Banking specific"
           />
         </Grid>
-        <Grid item xs={12} md={3}>
+        <Grid size={{ xs: 12, md: 3 }}>
           <StatCard
             title="Total Users"
             value={roles.reduce((sum, role) => sum + role.assignedUsers, 0)}
@@ -746,7 +746,7 @@ const RoleManagementPage: React.FC = () => {
           />
           <CardContent>
             <Grid container spacing={2}>
-              <Grid item xs={12} md={3}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <FormControl fullWidth size="small">
                   <InputLabel>Type</InputLabel>
                   <Select
@@ -761,7 +761,7 @@ const RoleManagementPage: React.FC = () => {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} md={3}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <FormControl fullWidth size="small">
                   <InputLabel>Level</InputLabel>
                   <Select
@@ -776,7 +776,7 @@ const RoleManagementPage: React.FC = () => {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} md={3}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <FormControl fullWidth size="small">
                   <InputLabel>Banking Access</InputLabel>
                   <Select
@@ -791,7 +791,7 @@ const RoleManagementPage: React.FC = () => {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} md={3}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <TextField
                   fullWidth
                   size="small"
@@ -838,7 +838,7 @@ const RoleManagementPage: React.FC = () => {
       <TabPanel value={currentTab} index={1}>
         <Grid container spacing={3}>
           {permissionCategories.map((category) => (
-            <Grid item xs={12} md={6} lg={4} key={category.name}>
+            <Grid size={{ xs: 12, md: 6, lg: 4 }} key={category.name}>
               <Card>
                 <CardHeader
                   title={category.displayName}
@@ -1170,7 +1170,7 @@ const RoleManagementPage: React.FC = () => {
                 Matrix Statistics
               </Typography>
               <Grid container spacing={2}>
-                <Grid item xs={12} md={3}>
+                <Grid size={{ xs: 12, md: 3 }}>
                   <Typography variant="body2" color="text.secondary">
                     Total Permission Assignments
                   </Typography>
@@ -1178,7 +1178,7 @@ const RoleManagementPage: React.FC = () => {
                     {roles.reduce((sum, role) => sum + role.permissions.length, 0)}
                   </Typography>
                 </Grid>
-                <Grid item xs={12} md={3}>
+                <Grid size={{ xs: 12, md: 3 }}>
                   <Typography variant="body2" color="text.secondary">
                     Average Permissions per Role
                   </Typography>
@@ -1188,7 +1188,7 @@ const RoleManagementPage: React.FC = () => {
                       : 0}
                   </Typography>
                 </Grid>
-                <Grid item xs={12} md={3}>
+                <Grid size={{ xs: 12, md: 3 }}>
                   <Typography variant="body2" color="text.secondary">
                     Critical Permissions Assigned
                   </Typography>
@@ -1200,7 +1200,7 @@ const RoleManagementPage: React.FC = () => {
                     )}
                   </Typography>
                 </Grid>
-                <Grid item xs={12} md={3}>
+                <Grid size={{ xs: 12, md: 3 }}>
                   <Typography variant="body2" color="text.secondary">
                     Roles Requiring Approval
                   </Typography>
@@ -1232,7 +1232,7 @@ const RoleManagementPage: React.FC = () => {
         </DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 label="Role Name (System)"
@@ -1242,7 +1242,7 @@ const RoleManagementPage: React.FC = () => {
                 placeholder="ROLE_NAME"
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 label="Display Name"
@@ -1252,7 +1252,7 @@ const RoleManagementPage: React.FC = () => {
                 placeholder="Human readable name"
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <TextField
                 fullWidth
                 label="Description"
@@ -1264,7 +1264,7 @@ const RoleManagementPage: React.FC = () => {
                 placeholder="Role description and responsibilities"
               />
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <FormControl fullWidth disabled={roleDialog.mode === 'view'}>
                 <InputLabel>Type</InputLabel>
                 <Select
@@ -1278,7 +1278,7 @@ const RoleManagementPage: React.FC = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <FormControl fullWidth disabled={roleDialog.mode === 'view'}>
                 <InputLabel>Level</InputLabel>
                 <Select
@@ -1292,7 +1292,7 @@ const RoleManagementPage: React.FC = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <FormControl fullWidth disabled={roleDialog.mode === 'view'}>
                 <InputLabel>Banking Access</InputLabel>
                 <Select
@@ -1306,7 +1306,7 @@ const RoleManagementPage: React.FC = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <FormControlLabel
                 control={
                   <Switch
@@ -1355,7 +1355,7 @@ const RoleManagementPage: React.FC = () => {
                 <AccordionDetails>
                   <Grid container spacing={1}>
                     {category.permissions.map((permission) => (
-                      <Grid item xs={12} md={6} key={permission.id}>
+                      <Grid size={{ xs: 12, md: 6 }} key={permission.id}>
                         <FormControlLabel
                           control={
                             <Checkbox

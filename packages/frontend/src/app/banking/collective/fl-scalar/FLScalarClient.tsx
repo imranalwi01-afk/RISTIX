@@ -383,13 +383,13 @@ export default function FLScalarManagementPage() {
         />,
         <SafeGridActionsCellItem
           key="edit"
-          icon={<EditIcon />}
+          icon={<EditIcon color="primary" />}
           label="Edit"
           onClick={() => openDialog('edit', params.row)}
         />,
         <SafeGridActionsCellItem
           key="delete"
-          icon={<DeleteIcon />}
+          icon={<DeleteIcon color="error" />}
           label="Delete"
           onClick={() => handleDelete(params.id)}
         />,

@@ -1150,7 +1150,7 @@ const MenuManagement: React.FC = () => {
 
       {/* Stats Cards */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -1165,7 +1165,7 @@ const MenuManagement: React.FC = () => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -1180,7 +1180,7 @@ const MenuManagement: React.FC = () => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -1211,7 +1211,7 @@ const MenuManagement: React.FC = () => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -1271,7 +1271,7 @@ const MenuManagement: React.FC = () => {
 
           <Grid container spacing={3}>
             {/* Total Menu Items */}
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <Box sx={{
                 p: 2,
                 border: `1px solid ${theme.palette.divider}`,
@@ -1291,7 +1291,7 @@ const MenuManagement: React.FC = () => {
             </Grid>
 
             {/* Active Items */}
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <Box sx={{
                 p: 2,
                 border: `1px solid ${theme.palette.divider}`,
@@ -1311,7 +1311,7 @@ const MenuManagement: React.FC = () => {
             </Grid>
 
             {/* Items by Banking Mode */}
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <Box sx={{
                 p: 2,
                 border: `1px solid ${theme.palette.divider}`,
@@ -1330,7 +1330,7 @@ const MenuManagement: React.FC = () => {
             </Grid>
 
             {/* Role Coverage */}
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <Box sx={{
                 p: 2,
                 border: `1px solid ${theme.palette.divider}`,
@@ -1444,7 +1444,7 @@ const MenuManagement: React.FC = () => {
         </DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 2 }}>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <TextField
                 fullWidth
                 label="Menu Label"
@@ -1452,7 +1452,7 @@ const MenuManagement: React.FC = () => {
                 onChange={(e) => setFormData({ ...formData, label: e.target.value })}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <TextField
                 fullWidth
                 label="Menu URL (optional)"
@@ -1460,16 +1460,16 @@ const MenuManagement: React.FC = () => {
                 onChange={(e) => setFormData({ ...formData, href: e.target.value })}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <Autocomplete
                 fullWidth
                 options={iconOptions}
                 value={iconOptions.find(opt => opt.value === formData.icon)}
                 onChange={(event, value) => setFormData({ ...formData, icon: value?.value || '' })}
-                renderInput={(params) => <TextField {...params} label="Icon" />}
+                renderInput={(params) => <TextField {...params as any} label="Icon" />}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="Order"
@@ -1478,7 +1478,7 @@ const MenuManagement: React.FC = () => {
                 onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) })}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <TextField
                 fullWidth
                 label="Description"
@@ -1488,7 +1488,7 @@ const MenuManagement: React.FC = () => {
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <FormControl fullWidth>
                 <InputLabel>Parent Menu</InputLabel>
                 <Select
@@ -1507,7 +1507,7 @@ const MenuManagement: React.FC = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <FormControl fullWidth>
                 <InputLabel>Roles</InputLabel>
                 <Select
@@ -1524,7 +1524,7 @@ const MenuManagement: React.FC = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <FormControl fullWidth>
                 <InputLabel>Banking Modes</InputLabel>
                 <Select
@@ -1539,7 +1539,7 @@ const MenuManagement: React.FC = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <FormControl fullWidth>
                 <InputLabel>Permissions</InputLabel>
                 <Select
@@ -1556,7 +1556,7 @@ const MenuManagement: React.FC = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <FormControlLabel
                 control={
                   <Switch

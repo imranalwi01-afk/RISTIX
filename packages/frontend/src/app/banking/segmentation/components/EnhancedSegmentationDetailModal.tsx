@@ -827,13 +827,13 @@ export default function EnhancedSegmentationDetailModal({
         if (!params.row) return [];
         return [
           <GridActionsCellItem
-            icon={<EditIcon />}
+            icon={<EditIcon color="primary" />}
             label="Edit"
             onClick={() => handleEditDetail(params.row)}
             key="edit"
           />,
           <GridActionsCellItem
-            icon={<DeleteIcon />}
+            icon={<DeleteIcon color="error" />}
             label="Delete"
             onClick={() => handleDeleteDetail(params.row)}
             key="delete"
@@ -1538,7 +1538,7 @@ export default function EnhancedSegmentationDetailModal({
                       options={uniqueValues.tables}
                       value={searchFilters.table_name}
                       onChange={(_, value) => setSearchFilters(prev => ({ ...prev, table_name: value || '' }))}
-                      renderInput={(params) => <TextField {...params} label="Table" />}
+                      renderInput={(params) => <TextField {...params as any} label="Table" />}
                     />
                   </Grid>
                   <Grid size={3}>
@@ -1547,7 +1547,7 @@ export default function EnhancedSegmentationDetailModal({
                       options={uniqueValues.columns}
                       value={searchFilters.column_name}
                       onChange={(_, value) => setSearchFilters(prev => ({ ...prev, column_name: value || '' }))}
-                      renderInput={(params) => <TextField {...params} label="Column" />}
+                      renderInput={(params) => <TextField {...params as any} label="Column" />}
                     />
                   </Grid>
                   <Grid size={2}>
@@ -1556,7 +1556,7 @@ export default function EnhancedSegmentationDetailModal({
                       options={uniqueValues.dataTypes}
                       value={searchFilters.data_type}
                       onChange={(_, value) => setSearchFilters(prev => ({ ...prev, data_type: value || '' }))}
-                      renderInput={(params) => <TextField {...params} label="Data Type" />}
+                      renderInput={(params) => <TextField {...params as any} label="Data Type" />}
                     />
                   </Grid>
                   <Grid size={2}>
@@ -1565,7 +1565,7 @@ export default function EnhancedSegmentationDetailModal({
                       options={uniqueValues.operators}
                       value={searchFilters.operator}
                       onChange={(_, value) => setSearchFilters(prev => ({ ...prev, operator: value || '' }))}
-                      renderInput={(params) => <TextField {...params} label="Operator" />}
+                      renderInput={(params) => <TextField {...params as any} label="Operator" />}
                     />
                   </Grid>
                   <Grid size={1}>
@@ -1574,7 +1574,7 @@ export default function EnhancedSegmentationDetailModal({
                       options={uniqueValues.conditions}
                       value={searchFilters.condition}
                       onChange={(_, value) => setSearchFilters(prev => ({ ...prev, condition: value || '' }))}
-                      renderInput={(params) => <TextField {...params} label="Condition" />}
+                      renderInput={(params) => <TextField {...params as any} label="Condition" />}
                     />
                   </Grid>
                   <Grid size={1}>
@@ -1583,7 +1583,7 @@ export default function EnhancedSegmentationDetailModal({
                       options={uniqueValues.queryGroups}
                       value={searchFilters.query_group}
                       onChange={(_, value) => setSearchFilters(prev => ({ ...prev, query_group: value || '' }))}
-                      renderInput={(params) => <TextField {...params} label="Group" />}
+                      renderInput={(params) => <TextField {...params as any} label="Group" />}
                     />
                   </Grid>
                 </Grid>

@@ -237,7 +237,7 @@ const ECLCalculationCard: React.FC<ECLCalculationCardProps> = ({
             
             {/* Detailed Metrics */}
             <Grid container spacing={2} sx={{ mb: 2 }}>
-              <Grid item xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <Typography variant="caption" color="text.secondary">
                   PD Rate
                 </Typography>
@@ -245,7 +245,7 @@ const ECLCalculationCard: React.FC<ECLCalculationCardProps> = ({
                   {(calculationData.pdRate * 100).toFixed(2)}%
                 </Typography>
               </Grid>
-              <Grid item xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <Typography variant="caption" color="text.secondary">
                   LGD Rate
                 </Typography>
@@ -253,7 +253,7 @@ const ECLCalculationCard: React.FC<ECLCalculationCardProps> = ({
                   {(calculationData.lgdRate * 100).toFixed(2)}%
                 </Typography>
               </Grid>
-              <Grid item xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <Typography variant="caption" color="text.secondary">
                   EAD Amount
                 </Typography>
@@ -261,7 +261,7 @@ const ECLCalculationCard: React.FC<ECLCalculationCardProps> = ({
                   {formatCurrency(calculationData.eadAmount, calculationData.currency)}
                 </Typography>
               </Grid>
-              <Grid item xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <Typography variant="caption" color="text.secondary">
                   Calculation Date
                 </Typography>

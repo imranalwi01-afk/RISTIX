@@ -522,7 +522,7 @@ export default function IFRS9CalculationDashboard() {
 
       {/* Summary Cards */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
@@ -535,7 +535,7 @@ export default function IFRS9CalculationDashboard() {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
@@ -548,7 +548,7 @@ export default function IFRS9CalculationDashboard() {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
@@ -561,7 +561,7 @@ export default function IFRS9CalculationDashboard() {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
@@ -638,7 +638,7 @@ export default function IFRS9CalculationDashboard() {
         {/* Analytics Tab */}
         <TabPanel value={tabValue} index={2}>
           <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>Stage Distribution</Typography>
@@ -664,7 +664,7 @@ export default function IFRS9CalculationDashboard() {
                 </CardContent>
               </Card>
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>ECL Trend by Stage</Typography>
@@ -689,7 +689,7 @@ export default function IFRS9CalculationDashboard() {
         {/* Configuration Tab */}
         <TabPanel value={tabValue} index={3}>
           <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>Calculation Settings</Typography>
@@ -701,7 +701,7 @@ export default function IFRS9CalculationDashboard() {
                 </CardContent>
               </Card>
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>Model Parameters</Typography>
@@ -722,7 +722,7 @@ export default function IFRS9CalculationDashboard() {
         <DialogTitle>Run ECL Calculation</DialogTitle>
         <DialogContent>
           <Grid container spacing={3} sx={{ mt: 1 }}>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 label="Process Date"
                 type="date"
@@ -732,7 +732,7 @@ export default function IFRS9CalculationDashboard() {
                 InputLabelProps={{ shrink: true }}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <FormControl fullWidth>
                 <InputLabel>Calculation Type</InputLabel>
                 <Select
@@ -746,7 +746,7 @@ export default function IFRS9CalculationDashboard() {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Alert severity="warning">
                 This will execute IFRS9 ECL calculations for all configured segments and models.
                 The process may take several minutes to complete.
@@ -768,30 +768,30 @@ export default function IFRS9CalculationDashboard() {
         <DialogContent>
           {selectedResult && (
             <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="subtitle2">Facility Number:</Typography>
                 <Typography variant="body1">{selectedResult.facility_number}</Typography>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="subtitle2">CIF Number:</Typography>
                 <Typography variant="body1">{selectedResult.cif_number}</Typography>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="subtitle2">Current Stage:</Typography>
                 <Chip
                   label={`Stage ${selectedResult.stage}`}
                   color={selectedResult.stage === 1 ? 'success' : selectedResult.stage === 2 ? 'warning' : 'error'}
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="subtitle2">Outstanding Amount:</Typography>
                 <Typography variant="body1">{formatCurrency(selectedResult.outstanding)}</Typography>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="subtitle2">ECL Amount:</Typography>
                 <Typography variant="body1">{formatCurrency(selectedResult.ecl_amount)}</Typography>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="subtitle2">Final ECL:</Typography>
                 <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
                   {formatCurrency(selectedResult.ecl_final)}

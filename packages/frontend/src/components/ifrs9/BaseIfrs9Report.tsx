@@ -401,7 +401,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
               
               <Grid container spacing={2}>
                 {/* Processing Date (Required) */}
-                <Grid item xs={12} md={3}>
+                <Grid size={{ xs: 12, md: 3 }}>
                   <DatePicker
                     label="Processing Date *"
                     value={filters.prc_date}
@@ -418,7 +418,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
 
                 {/* Optional Parameters */}
                 {optionalParams.includes('segment_id') && (
-                  <Grid item xs={12} md={2}>
+                  <Grid size={{ xs: 12, md: 2 }}>
                     <TextField
                       label="Segment ID"
                       type="number"
@@ -430,7 +430,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                 )}
 
                 {optionalParams.includes('stage') && (
-                  <Grid item xs={12} md={2}>
+                  <Grid size={{ xs: 12, md: 2 }}>
                     <FormControl fullWidth>
                       <InputLabel>Stage</InputLabel>
                       <Select
@@ -448,7 +448,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                 )}
 
                 {optionalParams.includes('branch_code') && (
-                  <Grid item xs={12} md={2}>
+                  <Grid size={{ xs: 12, md: 2 }}>
                     <TextField
                       label="Branch Code"
                       value={filters.branch_code || ''}

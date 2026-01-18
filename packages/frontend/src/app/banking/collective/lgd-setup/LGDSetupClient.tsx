@@ -255,7 +255,7 @@ export default function LGDSetupPage() {
       getActions: (params) => [
         <SafeGridActionsCellItem
           key="edit"
-          icon={<EditIcon />}
+          icon={<EditIcon color="primary" />}
           label="Edit"
           onClick={() => {
             setSelectedConfig(params.row);
@@ -266,7 +266,7 @@ export default function LGDSetupPage() {
         />,
         <SafeGridActionsCellItem
           key="delete"
-          icon={<DeleteIcon />}
+          icon={<DeleteIcon color="error" />}
           label="Delete"
           onClick={() => handleDelete(params.row.id!)}
         />

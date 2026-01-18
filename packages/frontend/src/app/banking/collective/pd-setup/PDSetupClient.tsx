@@ -251,7 +251,7 @@ const PdSetupPage = () => {
       getActions: (params) => [
         <SafeGridActionsCellItem
           key="edit"
-          icon={<EditIcon />}
+          icon={<EditIcon color="primary" />}
           label="Edit"
           onClick={() => {
             setSelectedConfig(params.row);
@@ -262,7 +262,7 @@ const PdSetupPage = () => {
         />,
         <SafeGridActionsCellItem
           key="delete"
-          icon={<DeleteIcon />}
+          icon={<DeleteIcon color="error" />}
           label="Delete"
           onClick={() => handleDelete(params.row.id)}
         />

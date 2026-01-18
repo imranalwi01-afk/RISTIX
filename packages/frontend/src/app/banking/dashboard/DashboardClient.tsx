@@ -82,53 +82,53 @@ const PersonalizedWidget = dynamic(
 )
 
 // Dynamic imports for Recharts - these are heavy chart libraries
-const ResponsiveContainer = dynamic(
-    () => import('recharts').then((mod) => mod.ResponsiveContainer),
+const ResponsiveContainer: any = dynamic(
+    () => import('recharts').then((mod) => mod.ResponsiveContainer as any),
     { ssr: false }
 )
 
-const RechartsPieChart = dynamic(
-    () => import('recharts').then((mod) => mod.PieChart),
+const RechartsPieChart: any = dynamic(
+    () => import('recharts').then((mod) => mod.PieChart as any),
     { ssr: false }
 )
 
-const Pie = dynamic(
-    () => import('recharts').then((mod) => mod.Pie),
+const Pie: any = dynamic(
+    () => import('recharts').then((mod) => mod.Pie as any),
     { ssr: false }
 )
 
-const Cell = dynamic(
-    () => import('recharts').then((mod) => mod.Cell),
+const Cell: any = dynamic(
+    () => import('recharts').then((mod) => mod.Cell as any),
     { ssr: false }
 )
 
-const RechartsTooltip = dynamic(
-    () => import('recharts').then((mod) => mod.Tooltip),
+const RechartsTooltip: any = dynamic(
+    () => import('recharts').then((mod) => mod.Tooltip as any),
     { ssr: false }
 )
 
-const AreaChart = dynamic(
-    () => import('recharts').then((mod) => mod.AreaChart),
+const AreaChart: any = dynamic(
+    () => import('recharts').then((mod) => mod.AreaChart as any),
     { ssr: false }
 )
 
-const Area = dynamic(
-    () => import('recharts').then((mod) => mod.Area),
+const Area: any = dynamic(
+    () => import('recharts').then((mod) => mod.Area as any),
     { ssr: false }
 )
 
-const XAxis = dynamic(
-    () => import('recharts').then((mod) => mod.XAxis),
+const XAxis: any = dynamic(
+    () => import('recharts').then((mod) => mod.XAxis as any),
     { ssr: false }
 )
 
-const YAxis = dynamic(
-    () => import('recharts').then((mod) => mod.YAxis),
+const YAxis: any = dynamic(
+    () => import('recharts').then((mod) => mod.YAxis as any),
     { ssr: false }
 )
 
-const CartesianGrid = dynamic(
-    () => import('recharts').then((mod) => mod.CartesianGrid),
+const CartesianGrid: any = dynamic(
+    () => import('recharts').then((mod) => mod.CartesianGrid as any),
     { ssr: false }
 )
 
@@ -619,7 +619,7 @@ export default function DashboardClient() {
             {eclSummary && (
                 <Grid container spacing={3} sx={{ mb: 4 }}>
                     {/* PRIMARY STATS */}
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                         <StatCard
                             title="Total ECL"
                             value={formatCurrency(eclSummary?.totalECL || 0, eclSummary?.currency || 'IDR')}
@@ -629,7 +629,7 @@ export default function DashboardClient() {
                             trend={{ label: 'Current', color: '#1976d2' }}
                         />
                     </Grid>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                         <StatCard
                             title="Total Exposure"
                             value={formatCurrency(portfolioMetrics?.totalExposure || 0)}
@@ -639,7 +639,7 @@ export default function DashboardClient() {
                             trend={{ label: 'Stable', color: '#00C49F' }}
                         />
                     </Grid>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                         <StatCard
                             title="Active Accounts"
                             value={portfolioMetrics?.numberOfAccounts?.toLocaleString() || '0'}
@@ -648,7 +648,7 @@ export default function DashboardClient() {
                             color="#FFBB28"
                         />
                     </Grid>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                         <StatCard
                             title="High Risk (Stage 3)"
                             value={formatCurrency(eclSummary.stage3ECL || 0)}
@@ -660,7 +660,7 @@ export default function DashboardClient() {
                     </Grid>
 
                     {/* CHARTS SECTION */}
-                    <Grid item xs={12} md={8}>
+                    <Grid size={{ xs: 12, md: 8 }}>
                         <Card sx={{ borderRadius: 3, boxShadow: theme.shadows[2], height: '100%', overflow: 'hidden', background: theme.palette.background.paper }}>
                             <CardContent>
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
@@ -672,7 +672,7 @@ export default function DashboardClient() {
                         </Card>
                     </Grid>
 
-                    <Grid item xs={12} md={4}>
+                    <Grid size={{ xs: 12, md: 4 }}>
                         <Card sx={{ borderRadius: 3, boxShadow: theme.shadows[2], height: '100%', background: theme.palette.background.paper }}>
                             <CardContent>
                                 <Typography variant="h6" fontWeight="bold" sx={{ mb: 3 }}>ECL Distribution</Typography>
@@ -725,7 +725,7 @@ export default function DashboardClient() {
             {/* Main Content Area */}
             <Grid container spacing={3} sx={{ mb: 4 }}>
                 {/* Quick Actions */}
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                     <Card sx={{ height: '100%' }}>
                         <CardContent>
                             <Typography variant="h6" gutterBottom sx={{ color: bankingContext.primary, display: 'flex', alignItems: 'center' }}>
@@ -782,7 +782,7 @@ export default function DashboardClient() {
                 </Grid>
 
                 {/* Recent Activities */}
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                     <Card sx={{ height: '100%' }}>
                         <CardContent>
                             <Typography variant="h6" gutterBottom sx={{ color: bankingContext.primary, display: 'flex', alignItems: 'center' }}>

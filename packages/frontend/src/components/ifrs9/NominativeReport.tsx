@@ -55,7 +55,7 @@ const NominativeReport: React.FC = () => {
   const SummaryCards = () => (
     <Grid container spacing={2} sx={{ mb: 3 }}>
       {/* Total Accounts */}
-      <Grid item xs={12} md={3}>
+      <Grid size={{ xs: 12, md: 3 }}>
         <Card>
           <CardContent sx={{ textAlign: 'center' }}>
             <AccountIcon sx={{ fontSize: 40, color: 'primary.main', mb: 1 }} />
@@ -70,7 +70,7 @@ const NominativeReport: React.FC = () => {
       </Grid>
 
       {/* Total Outstanding */}
-      <Grid item xs={12} md={3}>
+      <Grid size={{ xs: 12, md: 3 }}>
         <Card>
           <CardContent sx={{ textAlign: 'center' }}>
             <TrendingUpIcon sx={{ fontSize: 40, color: 'success.main', mb: 1 }} />
@@ -90,7 +90,7 @@ const NominativeReport: React.FC = () => {
       </Grid>
 
       {/* Total ECL */}
-      <Grid item xs={12} md={3}>
+      <Grid size={{ xs: 12, md: 3 }}>
         <Card>
           <CardContent sx={{ textAlign: 'center' }}>
             <WarningIcon sx={{ fontSize: 40, color: 'warning.main', mb: 1 }} />
@@ -110,7 +110,7 @@ const NominativeReport: React.FC = () => {
       </Grid>
 
       {/* ECL Ratio */}
-      <Grid item xs={12} md={3}>
+      <Grid size={{ xs: 12, md: 3 }}>
         <Card>
           <CardContent sx={{ textAlign: 'center' }}>
             <CheckIcon sx={{ fontSize: 40, color: 'info.main', mb: 1 }} />
@@ -127,7 +127,7 @@ const NominativeReport: React.FC = () => {
       </Grid>
 
       {/* Stage Distribution */}
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <Card>
           <CardContent>
             <Typography variant="h6" gutterBottom>
@@ -135,7 +135,7 @@ const NominativeReport: React.FC = () => {
             </Typography>
             
             <Grid container spacing={2}>
-              <Grid item xs={4}>
+              <Grid size={{ xs: 4 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                   <Chip 
                     size="small" 
@@ -160,7 +160,7 @@ const NominativeReport: React.FC = () => {
                 </Typography>
               </Grid>
               
-              <Grid item xs={4}>
+              <Grid size={{ xs: 4 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                   <Chip 
                     size="small" 
@@ -185,7 +185,7 @@ const NominativeReport: React.FC = () => {
                 </Typography>
               </Grid>
               
-              <Grid item xs={4}>
+              <Grid size={{ xs: 4 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                   <Chip 
                     size="small" 

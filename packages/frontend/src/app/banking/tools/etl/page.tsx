@@ -15,7 +15,7 @@ import {
   Typography,
   Container,
   Paper,
-  Grid2 as Grid,
+  Grid,
   Button,
   CircularProgress,
   Breadcrumbs,
@@ -222,8 +222,8 @@ const initialWorkflows: ETLWorkflow[] = [
         id: '1',
         type: 'etlNode',
         position: { x: 100, y: 100 },
-        data: { 
-          nodeType: 'source', 
+        data: {
+          nodeType: 'source',
           label: 'Customer CSV',
           config: { sourceType: 'file', path: '/data/customers.csv', format: 'csv' }
         },
@@ -232,8 +232,8 @@ const initialWorkflows: ETLWorkflow[] = [
         id: '2',
         type: 'etlNode',
         position: { x: 100, y: 200 },
-        data: { 
-          nodeType: 'validate', 
+        data: {
+          nodeType: 'validate',
           label: 'Data Validation',
           config: { rules: ['email_format', 'phone_format'], onFailure: 'reject' }
         },
@@ -242,8 +242,8 @@ const initialWorkflows: ETLWorkflow[] = [
         id: '3',
         type: 'etlNode',
         position: { x: 100, y: 300 },
-        data: { 
-          nodeType: 'output', 
+        data: {
+          nodeType: 'output',
           label: 'Clean Customers',
           config: { destination: 'database', table: 'clean_customers', format: 'json' }
         },
@@ -286,8 +286,8 @@ const initialWorkflows: ETLWorkflow[] = [
         id: '1',
         type: 'etlNode',
         position: { x: 50, y: 100 },
-        data: { 
-          nodeType: 'source', 
+        data: {
+          nodeType: 'source',
           label: 'Portfolio Data',
           config: { sourceType: 'database', table: 'portfolio_accounts', format: 'json' }
         },
@@ -296,8 +296,8 @@ const initialWorkflows: ETLWorkflow[] = [
         id: '2',
         type: 'etlNode',
         position: { x: 250, y: 100 },
-        data: { 
-          nodeType: 'source', 
+        data: {
+          nodeType: 'source',
           label: 'Market Data',
           config: { sourceType: 'api', endpoint: '/market-data', format: 'json' }
         },
@@ -306,8 +306,8 @@ const initialWorkflows: ETLWorkflow[] = [
         id: '3',
         type: 'etlNode',
         position: { x: 150, y: 250 },
-        data: { 
-          nodeType: 'join', 
+        data: {
+          nodeType: 'join',
           label: 'Data Join',
           config: { joinType: 'inner', leftKey: 'account_id', rightKey: 'account_ref' }
         },
@@ -316,8 +316,8 @@ const initialWorkflows: ETLWorkflow[] = [
         id: '4',
         type: 'etlNode',
         position: { x: 150, y: 350 },
-        data: { 
-          nodeType: 'transform', 
+        data: {
+          nodeType: 'transform',
           label: 'ECL Transform',
           config: { transformType: 'calculate_ecl', expression: 'pd * lgd * ead', outputFields: ['ecl_amount'] }
         },
@@ -326,8 +326,8 @@ const initialWorkflows: ETLWorkflow[] = [
         id: '5',
         type: 'etlNode',
         position: { x: 150, y: 450 },
-        data: { 
-          nodeType: 'output', 
+        data: {
+          nodeType: 'output',
           label: 'IFRS9 Results',
           config: { destination: 'database', table: 'ifrs9_calculations', format: 'json' }
         },
@@ -368,7 +368,7 @@ const initialWorkflows: ETLWorkflow[] = [
 const ETLNode = ({ data, selected, id }: { data: any; selected: boolean; id: string }) => {
   const template = nodeTemplates[data.nodeType as NodeType];
   const IconComponent = template?.icon || SourceIcon;
-  
+
   return (
     <Paper
       elevation={selected ? 8 : 2}
@@ -399,13 +399,13 @@ const ETLNode = ({ data, selected, id }: { data: any; selected: boolean; id: str
           border: '2px solid white',
         }}
       />
-      
+
       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-        <IconComponent 
-          sx={{ 
-            color: template?.color, 
+        <IconComponent
+          sx={{
+            color: template?.color,
             fontSize: 32
-          }} 
+          }}
         />
         <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
           {data.label || template?.label}
@@ -414,10 +414,10 @@ const ETLNode = ({ data, selected, id }: { data: any; selected: boolean; id: str
           {data.nodeType}
         </Typography>
         {selected && (
-          <Chip 
-            size="small" 
-            label="Selected" 
-            color="primary" 
+          <Chip
+            size="small"
+            label="Selected"
+            color="primary"
             sx={{ fontSize: 10, height: 16 }}
           />
         )}
@@ -442,13 +442,13 @@ function ETLWorkflowDesignerContent() {
   const router = useRouter();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
-  
+
   // State management
   const [workflows, setWorkflows] = useState<ETLWorkflow[]>(initialWorkflows);
   const [currentWorkflow, setCurrentWorkflow] = useState<ETLWorkflow | null>(initialWorkflows[0]);
   const [nodes, setNodes, onNodesChange] = useNodesState(currentWorkflow?.nodes || []);
   const [edges, setEdges, onEdgesChange] = useEdgesState(currentWorkflow?.edges || []);
-  
+
   // UI State
   const [drawerOpen, setDrawerOpen] = useState(true);
   const [propertiesPaneOpen, setPropertiesPaneOpen] = useState(true);
@@ -456,10 +456,10 @@ function ETLWorkflowDesignerContent() {
   const [workflowDialogOpen, setWorkflowDialogOpen] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [newWorkflow, setNewWorkflow] = useState({ name: '', description: '' });
-  const [snackbar, setSnackbar] = useState({ 
-    open: false, 
-    message: '', 
-    severity: 'success' as 'success' | 'error' | 'info' | 'warning' 
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success' as 'success' | 'error' | 'info' | 'warning'
   });
 
   // Create dynamic node types with selection state
@@ -548,7 +548,7 @@ function ETLWorkflowDesignerContent() {
 
   const createNewWorkflow = async () => {
     if (!newWorkflow.name.trim()) return;
-    
+
     const workflow: ETLWorkflow = {
       id: Date.now().toString(),
       name: newWorkflow.name,
@@ -599,7 +599,7 @@ function ETLWorkflowDesignerContent() {
 
   const executeWorkflow = async () => {
     if (!currentWorkflow) return;
-    
+
     showSnackbar('Workflow execution started', 'info');
     // Mock execution
     setTimeout(() => {
@@ -653,9 +653,9 @@ function ETLWorkflowDesignerContent() {
       {/* Header */}
       <Box sx={{ mb: 2 }}>
         <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 1 }}>
-          <Link 
-            underline="hover" 
-            color="inherit" 
+          <Link
+            underline="hover"
+            color="inherit"
             href="/banking/dashboard"
             onClick={(e) => {
               e.preventDefault();
@@ -740,14 +740,14 @@ function ETLWorkflowDesignerContent() {
               <Typography variant="h6">
                 Workflows
               </Typography>
-              <IconButton 
-                size="small" 
+              <IconButton
+                size="small"
                 onClick={() => setDrawerOpen(false)}
               >
                 <CloseIcon />
               </IconButton>
             </Box>
-            
+
             <List dense>
               {workflows.map((workflow) => (
                 <ListItemButton
@@ -760,12 +760,12 @@ function ETLWorkflowDesignerContent() {
                     primary={workflow.name}
                     secondary={
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-                        <Chip 
-                          size="small" 
+                        <Chip
+                          size="small"
                           label={workflow.status}
                           color={
                             workflow.status === 'active' ? 'success' :
-                            workflow.status === 'error' ? 'error' : 'default'
+                              workflow.status === 'error' ? 'error' : 'default'
                           }
                         />
                         <Typography variant="caption">
@@ -786,7 +786,7 @@ function ETLWorkflowDesignerContent() {
             <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
               Drag nodes to the canvas
             </Typography>
-            
+
             <Grid container spacing={1}>
               {Object.entries(nodeTemplates).map(([nodeType, template]) => {
                 const IconComponent = template.icon;
@@ -844,25 +844,25 @@ function ETLWorkflowDesignerContent() {
                 selectNodesOnDrag={false}
               >
                 <Controls />
-                <MiniMap 
+                <MiniMap
                   style={{
                     height: 120,
                   }}
                   zoomable
                   pannable
                 />
-                <Background 
-                  variant={BackgroundVariant.Dots} 
-                  gap={20} 
+                <Background
+                  variant={BackgroundVariant.Dots}
+                  gap={20}
                   size={1}
                 />
-                
+
                 {/* Custom Panel */}
                 <Panel position="top-right">
                   <Box sx={{ display: 'flex', gap: 1 }}>
                     <Tooltip title="Fit to screen">
-                      <IconButton 
-                        size="small" 
+                      <IconButton
+                        size="small"
                         onClick={() => reactFlowInstance?.fitView()}
                         sx={{ backgroundColor: 'background.paper', '&:hover': { backgroundColor: 'action.hover' } }}
                       >
@@ -870,8 +870,8 @@ function ETLWorkflowDesignerContent() {
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="Toggle sidebar">
-                      <IconButton 
-                        size="small" 
+                      <IconButton
+                        size="small"
                         onClick={() => setDrawerOpen(!drawerOpen)}
                         sx={{ backgroundColor: 'background.paper', '&:hover': { backgroundColor: 'action.hover' } }}
                       >
@@ -937,16 +937,16 @@ function ETLWorkflowDesignerContent() {
               <Box sx={{ display: 'flex', gap: 0.5 }}>
                 {selectedNode && (
                   <Tooltip title="Clear selection">
-                    <IconButton 
-                      size="small" 
+                    <IconButton
+                      size="small"
                       onClick={() => setSelectedNodeId(null)}
                     >
                       <CloseIcon sx={{ fontSize: 16 }} />
                     </IconButton>
                   </Tooltip>
                 )}
-                <IconButton 
-                  size="small" 
+                <IconButton
+                  size="small"
                   onClick={() => setPropertiesPaneOpen(false)}
                 >
                   <CloseIcon />
@@ -966,10 +966,10 @@ function ETLWorkflowDesignerContent() {
                       {selectedNode.data.label}
                     </Typography>
                   </Box>
-                  <Chip 
-                    size="small" 
+                  <Chip
+                    size="small"
                     label={selectedNode.data.nodeType}
-                    sx={{ 
+                    sx={{
                       backgroundColor: nodeTemplates[selectedNode.data.nodeType]?.color + '20',
                       color: nodeTemplates[selectedNode.data.nodeType]?.color
                     }}
@@ -1060,8 +1060,8 @@ function ETLWorkflowDesignerContent() {
                         size="small"
                         value={selectedNode.position.x}
                         onChange={(e) => {
-                          const newNodes = nodes.map(n => 
-                            n.id === selectedNode.id 
+                          const newNodes = nodes.map(n =>
+                            n.id === selectedNode.id
                               ? { ...n, position: { ...n.position, x: parseInt(e.target.value) || 0 } }
                               : n
                           );
@@ -1076,8 +1076,8 @@ function ETLWorkflowDesignerContent() {
                         size="small"
                         value={selectedNode.position.y}
                         onChange={(e) => {
-                          const newNodes = nodes.map(n => 
-                            n.id === selectedNode.id 
+                          const newNodes = nodes.map(n =>
+                            n.id === selectedNode.id
                               ? { ...n, position: { ...n.position, y: parseInt(e.target.value) || 0 } }
                               : n
                           );
@@ -1108,10 +1108,10 @@ function ETLWorkflowDesignerContent() {
                 </Box>
               </Box>
             ) : (
-              <Box sx={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                alignItems: 'center', 
+              <Box sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
                 justifyContent: 'center',
                 minHeight: 200,
                 color: 'text.secondary'
@@ -1190,7 +1190,7 @@ function ETLWorkflowDesignerContent() {
           <SettingsIcon />
         </Fab>
       )}
-      
+
       {!propertiesPaneOpen && (
         <Fab
           size="medium"

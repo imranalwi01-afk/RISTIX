@@ -435,7 +435,7 @@ export default function PreferencesPage() {
 
       <Grid container spacing={3}>
         {/* Quick Settings Sidebar */}
-        <Grid item xs={12} md={3}>
+        <Grid size={{ xs: 12, md: 3 }}>
           <Paper sx={{ p: 2, position: 'sticky', top: 20 }}>
             <Typography variant="h6" gutterBottom>
               Quick Settings
@@ -509,7 +509,7 @@ export default function PreferencesPage() {
         </Grid>
 
         {/* Preferences Content */}
-        <Grid item xs={12} md={9}>
+        <Grid size={{ xs: 12, md: 9 }}>
           {/* Dashboard Preferences */}
           {activeSection === 'dashboard' && (
             <Card>
@@ -520,7 +520,7 @@ export default function PreferencesPage() {
                 </Typography>
 
                 <Grid container spacing={3}>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <FormControl fullWidth>
                       <InputLabel>Dashboard Layout</InputLabel>
                       <Select
@@ -534,7 +534,7 @@ export default function PreferencesPage() {
                       </Select>
                     </FormControl>
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <FormControl fullWidth>
                       <InputLabel>Default Date Range</InputLabel>
                       <Select
@@ -549,7 +549,7 @@ export default function PreferencesPage() {
                       </Select>
                     </FormControl>
                   </Grid>
-                  <Grid item xs={12}>
+                  <Grid size={{ xs: 12 }}>
                     <Typography variant="subtitle2" gutterBottom>
                       Auto Refresh Interval: {preferences.refreshInterval} minutes
                     </Typography>
@@ -568,7 +568,7 @@ export default function PreferencesPage() {
                       ]}
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <FormControlLabel
                       control={
                         <Switch
@@ -579,7 +579,7 @@ export default function PreferencesPage() {
                       label="Show Quick Actions"
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <FormControlLabel
                       control={
                         <Switch
@@ -605,7 +605,7 @@ export default function PreferencesPage() {
                 </Typography>
 
                 <Grid container spacing={3}>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <TextField
                       fullWidth
                       label="Default Page Size"
@@ -615,7 +615,7 @@ export default function PreferencesPage() {
                       inputProps={{ min: 10, max: 100, step: 5 }}
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <FormControl fullWidth>
                       <InputLabel>Default Sort Order</InputLabel>
                       <Select
@@ -628,7 +628,7 @@ export default function PreferencesPage() {
                       </Select>
                     </FormControl>
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <FormControlLabel
                       control={
                         <Switch
@@ -639,7 +639,7 @@ export default function PreferencesPage() {
                       label="Show Row Numbers"
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <FormControlLabel
                       control={
                         <Switch
@@ -650,7 +650,7 @@ export default function PreferencesPage() {
                       label="Alternate Row Colors"
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <FormControlLabel
                       control={
                         <Switch
@@ -661,7 +661,7 @@ export default function PreferencesPage() {
                       label="Compact Tables"
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <FormControlLabel
                       control={
                         <Switch
@@ -687,7 +687,7 @@ export default function PreferencesPage() {
                 </Typography>
 
                 <Grid container spacing={3}>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <FormControl fullWidth>
                       <InputLabel>Default Export Format</InputLabel>
                       <Select
@@ -701,7 +701,7 @@ export default function PreferencesPage() {
                       </Select>
                     </FormControl>
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <FormControl fullWidth>
                       <InputLabel>Date Format</InputLabel>
                       <Select
@@ -715,7 +715,7 @@ export default function PreferencesPage() {
                       </Select>
                     </FormControl>
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <FormControl fullWidth>
                       <InputLabel>Number Format</InputLabel>
                       <Select
@@ -729,7 +729,7 @@ export default function PreferencesPage() {
                       </Select>
                     </FormControl>
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <FormControl fullWidth>
                       <InputLabel>Currency Position</InputLabel>
                       <Select
@@ -742,7 +742,7 @@ export default function PreferencesPage() {
                       </Select>
                     </FormControl>
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <FormControlLabel
                       control={
                         <Switch
@@ -753,7 +753,7 @@ export default function PreferencesPage() {
                       label="Include Headers"
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <FormControlLabel
                       control={
                         <Switch
@@ -779,7 +779,7 @@ export default function PreferencesPage() {
                 </Typography>
 
                 <Grid container spacing={3}>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <FormControl fullWidth>
                       <InputLabel>Email Digest Frequency</InputLabel>
                       <Select
@@ -794,7 +794,7 @@ export default function PreferencesPage() {
                       </Select>
                     </FormControl>
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <FormControlLabel
                       control={
                         <Switch
@@ -805,7 +805,7 @@ export default function PreferencesPage() {
                       label="Real-time Alerts"
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <FormControlLabel
                       control={
                         <Switch
@@ -816,7 +816,7 @@ export default function PreferencesPage() {
                       label="Batch Notifications"
                     />
                   </Grid>
-                  <Grid item xs={12}>
+                  <Grid size={{ xs: 12 }}>
                     <Typography variant="subtitle2" gutterBottom>
                       Alert Types
                     </Typography>
@@ -883,7 +883,7 @@ export default function PreferencesPage() {
                 </Typography>
 
                 <Grid container spacing={3}>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <FormControlLabel
                       control={
                         <Switch
@@ -894,7 +894,7 @@ export default function PreferencesPage() {
                       label="Auto-save Drafts"
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <FormControlLabel
                       control={
                         <Switch
@@ -905,7 +905,7 @@ export default function PreferencesPage() {
                       label="Auto-submit Approvals"
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <FormControlLabel
                       control={
                         <Switch
@@ -916,7 +916,7 @@ export default function PreferencesPage() {
                       label="Require Confirmation"
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <FormControlLabel
                       control={
                         <Switch
@@ -927,7 +927,7 @@ export default function PreferencesPage() {
                       label="Skip Confirmation Dialogs"
                     />
                   </Grid>
-                  <Grid item xs={12}>
+                  <Grid size={{ xs: 12 }}>
                     <FormControl fullWidth>
                       <InputLabel>Default Approval Route</InputLabel>
                       <Select
@@ -957,7 +957,7 @@ export default function PreferencesPage() {
                 </Typography>
 
                 <Grid container spacing={3}>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <FormControl fullWidth>
                       <InputLabel>Default Banking Mode</InputLabel>
                       <Select
@@ -986,7 +986,7 @@ export default function PreferencesPage() {
                       </Select>
                     </FormControl>
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <FormControlLabel
                       control={
                         <Switch
@@ -997,7 +997,7 @@ export default function PreferencesPage() {
                       label="Show Islamic Indicators"
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <FormControlLabel
                       control={
                         <Switch
@@ -1008,7 +1008,7 @@ export default function PreferencesPage() {
                       label="Compliance Warnings"
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <FormControlLabel
                       control={
                         <Switch
@@ -1034,7 +1034,7 @@ export default function PreferencesPage() {
                 </Typography>
 
                 <Grid container spacing={3}>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <FormControl fullWidth>
                       <InputLabel>Performance Mode</InputLabel>
                       <Select
@@ -1048,7 +1048,7 @@ export default function PreferencesPage() {
                       </Select>
                     </FormControl>
                   </Grid>
-                  <Grid item xs={12}>
+                  <Grid size={{ xs: 12 }}>
                     <Typography variant="subtitle2" gutterBottom>
                       Cache Size: {preferences.cacheSize} MB
                     </Typography>
@@ -1066,7 +1066,7 @@ export default function PreferencesPage() {
                       ]}
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <FormControlLabel
                       control={
                         <Switch
@@ -1082,7 +1082,7 @@ export default function PreferencesPage() {
                       }
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <FormControlLabel
                       control={
                         <Switch
@@ -1093,7 +1093,7 @@ export default function PreferencesPage() {
                       label="Usage Analytics"
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <FormControlLabel
                       control={
                         <Switch

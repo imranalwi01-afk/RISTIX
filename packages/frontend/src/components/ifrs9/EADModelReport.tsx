@@ -118,7 +118,7 @@ const EADModelReport: React.FC = () => {
   const SummaryCards = () => (
     <Grid container spacing={2} sx={{ mb: 3 }}>
       {/* Total Accounts */}
-      <Grid item xs={12} md={3}>
+      <Grid size={{ xs: 12, md: 3 }}>
         <Card>
           <CardContent sx={{ textAlign: 'center' }}>
             <Avatar sx={{ bgcolor: 'primary.main', mx: 'auto', mb: 1 }}>
@@ -135,7 +135,7 @@ const EADModelReport: React.FC = () => {
       </Grid>
 
       {/* Average EAD */}
-      <Grid item xs={12} md={3}>
+      <Grid size={{ xs: 12, md: 3 }}>
         <Card>
           <CardContent sx={{ textAlign: 'center' }}>
             <Avatar sx={{ bgcolor: 'success.main', mx: 'auto', mb: 1 }}>
@@ -157,7 +157,7 @@ const EADModelReport: React.FC = () => {
       </Grid>
 
       {/* Average CCF */}
-      <Grid item xs={12} md={3}>
+      <Grid size={{ xs: 12, md: 3 }}>
         <Card>
           <CardContent sx={{ textAlign: 'center' }}>
             <Avatar sx={{ bgcolor: 'warning.main', mx: 'auto', mb: 1 }}>
@@ -174,7 +174,7 @@ const EADModelReport: React.FC = () => {
       </Grid>
 
       {/* Average Utilization */}
-      <Grid item xs={12} md={3}>
+      <Grid size={{ xs: 12, md: 3 }}>
         <Card>
           <CardContent sx={{ textAlign: 'center' }}>
             <Avatar sx={{ bgcolor: 'info.main', mx: 'auto', mb: 1 }}>
@@ -195,7 +195,7 @@ const EADModelReport: React.FC = () => {
   const EADCharts = () => (
     <Grid container spacing={3} sx={{ mb: 3 }}>
       {/* EAD Trend */}
-      <Grid item xs={12} md={8}>
+      <Grid size={{ xs: 12, md: 8 }}>
         <Card>
           <CardContent>
             <Typography variant="h6" gutterBottom>
@@ -253,7 +253,7 @@ const EADModelReport: React.FC = () => {
       </Grid>
 
       {/* Product Distribution */}
-      <Grid item xs={12} md={4}>
+      <Grid size={{ xs: 12, md: 4 }}>
         <Card>
           <CardContent>
             <Typography variant="h6" gutterBottom>
@@ -303,7 +303,7 @@ const EADModelReport: React.FC = () => {
           EAD Model Key Metrics
         </Typography>
         <Grid container spacing={3}>
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'primary.light', color: 'white' }}>
               <Typography variant="h4">
                 {(summaryStats.avgCCF * 100).toFixed(2)}%
@@ -313,7 +313,7 @@ const EADModelReport: React.FC = () => {
               </Typography>
             </Paper>
           </Grid>
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'success.light', color: 'white' }}>
               <Typography variant="h4">
                 {(summaryStats.avgUtilization * 100).toFixed(2)}%
@@ -323,7 +323,7 @@ const EADModelReport: React.FC = () => {
               </Typography>
             </Paper>
           </Grid>
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'warning.light', color: 'white' }}>
               <Typography variant="h6">
                 {new Intl.NumberFormat('id-ID', {

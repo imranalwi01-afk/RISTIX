@@ -616,13 +616,13 @@ export default function SegmentationDetailModal({
         if (!params.row) return [];
         return [
           <GridActionsCellItem
-            icon={<EditIcon />}
+            icon={<EditIcon color="primary" />}
             label="Edit"
             onClick={() => handleEditDetail(params.row)}
             key="edit"
           />,
           <GridActionsCellItem
-            icon={<DeleteIcon />}
+            icon={<DeleteIcon color="error" />}
             label="Delete"
             onClick={() => handleDeleteDetail(params.row)}
             key="delete"
@@ -1034,7 +1034,7 @@ export default function SegmentationDetailModal({
           <Box sx={{ mt: 2 }}>
             <Grid container spacing={2}>
               {/* Query Group and Sequence */}
-              <Grid item xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <TextField
                   label="Query Group"
                   type="number"
@@ -1047,7 +1047,7 @@ export default function SegmentationDetailModal({
                 />
               </Grid>
 
-              <Grid item xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <TextField
                   label="Sequence"
                   type="number"
@@ -1061,7 +1061,7 @@ export default function SegmentationDetailModal({
               </Grid>
 
               {/* Table Selection */}
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <TextField
                   label="Table *"
                   select
@@ -1082,7 +1082,7 @@ export default function SegmentationDetailModal({
               </Grid>
 
               {/* Column Selection */}
-              <Grid item xs={8}>
+              <Grid size={{ xs: 8 }}>
                 <TextField
                   label="Column *"
                   select
@@ -1117,7 +1117,7 @@ export default function SegmentationDetailModal({
               </Grid>
 
               {/* Data Type Display */}
-              <Grid item xs={4}>
+              <Grid size={{ xs: 4 }}>
                 <TextField
                   label="Data Type"
                   value={formData.data_type}
@@ -1134,7 +1134,7 @@ export default function SegmentationDetailModal({
               </Grid>
 
               {/* Operator Selection */}
-              <Grid item xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <TextField
                   label="Operator *"
                   select
@@ -1162,7 +1162,7 @@ export default function SegmentationDetailModal({
               </Grid>
 
               {/* Condition */}
-              <Grid item xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <TextField
                   label="Condition"
                   select
@@ -1180,7 +1180,7 @@ export default function SegmentationDetailModal({
               </Grid>
 
               {/* Dynamic Value Inputs */}
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Divider sx={{ my: 2 }} />
                 <Typography variant="subtitle2" gutterBottom>
                   Rule Values
@@ -1189,12 +1189,12 @@ export default function SegmentationDetailModal({
                 {formData.operator && (
                   <Box sx={{ mt: 1 }}>
                     <Grid container spacing={2}>
-                      <Grid item xs={operators.find(op => op.operator === formData.operator)?.requires_value2 ? 6 : 12}>
+                      <Grid size={{ xs: operators.find(op => op.operator === formData.operator)?.requires_value2 ? 6 : 12 }}>
                         {renderValueInput('value1', 'Value 1 *')}
                       </Grid>
 
                       {operators.find(op => op.operator === formData.operator)?.requires_value2 && (
-                        <Grid item xs={6}>
+                        <Grid size={{ xs: 6 }}>
                           {renderValueInput('value2', 'Value 2 *')}
                         </Grid>
                       )}

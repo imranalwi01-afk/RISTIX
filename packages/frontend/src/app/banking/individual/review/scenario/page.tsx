@@ -262,7 +262,7 @@ export default function ReviewScenarioPage() {
       getActions: (params) => [
         <GridActionsCellItem
           key="edit"
-          icon={<EditIcon />}
+          icon={<EditIcon color="primary" />}
           label="Edit"
           onClick={() => handleOpenDialog(params.row as Scenario)}
         />
@@ -317,7 +317,7 @@ export default function ReviewScenarioPage() {
 
           {activeTab === 0 && (
             <Grid container spacing={2}>
-              <Grid item xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <TextField
                   label="Scenario Code"
                   fullWidth
@@ -325,7 +325,7 @@ export default function ReviewScenarioPage() {
                   onChange={(e) => setFormData({ ...formData, scenarioCode: e.target.value })}
                 />
               </Grid>
-              <Grid item xs={6}>
+              <Grid size={{ xs: 6 }}>
                 <TextField
                   label="Scenario Name"
                   fullWidth
@@ -333,7 +333,7 @@ export default function ReviewScenarioPage() {
                   onChange={(e) => setFormData({ ...formData, scenarioName: e.target.value })}
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <TextField
                   label="Description"
                   fullWidth
@@ -343,7 +343,7 @@ export default function ReviewScenarioPage() {
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <FormControlLabel
                   control={<Switch checked={!!formData.activeFlag} onChange={(e) => setFormData({ ...formData, activeFlag: e.target.checked })} />}
                   label="Active"
@@ -358,7 +358,7 @@ export default function ReviewScenarioPage() {
                 Scenario Weights
               </Typography>
               <Grid container spacing={2} alignItems="center">
-                <Grid item xs={3}>
+                <Grid size={{ xs: 3 }}>
                   <FormControl fullWidth size="small">
                     <InputLabel>Number of Scenarios</InputLabel>
                     <Select
@@ -375,7 +375,7 @@ export default function ReviewScenarioPage() {
                     </Select>
                   </FormControl>
                 </Grid>
-                <Grid item xs={3}>
+                <Grid size={{ xs: 3 }}>
                   <TextField
                     label="Base %"
                     type="number"
@@ -391,7 +391,7 @@ export default function ReviewScenarioPage() {
                     })}
                   />
                 </Grid>
-                <Grid item xs={3}>
+                <Grid size={{ xs: 3 }}>
                   <TextField
                     label="Best %"
                     type="number"
@@ -408,7 +408,7 @@ export default function ReviewScenarioPage() {
                     })}
                   />
                 </Grid>
-                <Grid item xs={3}>
+                <Grid size={{ xs: 3 }}>
                   <TextField
                     label="Worst %"
                     type="number"

@@ -255,7 +255,7 @@ export default function ConsultantDashboardPage() {
 
       {/* Key Consulting Metrics */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} lg={3}>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <Card sx={{ height: '100%', position: 'relative', overflow: 'visible' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -282,7 +282,7 @@ export default function ConsultantDashboardPage() {
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} lg={3}>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <Card sx={{ height: '100%' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -309,7 +309,7 @@ export default function ConsultantDashboardPage() {
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} lg={3}>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <Card sx={{ height: '100%' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -336,7 +336,7 @@ export default function ConsultantDashboardPage() {
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} lg={3}>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <Card sx={{ height: '100%' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -455,7 +455,7 @@ export default function ConsultantDashboardPage() {
       {/* Main Content Area */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         {/* Consultant Actions */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card sx={{ height: '100%' }}>
             <CardContent>
               <Typography variant="h6" gutterBottom sx={{ color: theme.primary, display: 'flex', alignItems: 'center' }}>
@@ -508,7 +508,7 @@ export default function ConsultantDashboardPage() {
         </Grid>
 
         {/* Recent Professional Activities */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card sx={{ height: '100%' }}>
             <CardContent>
               <Typography variant="h6" gutterBottom sx={{ color: theme.primary, display: 'flex', alignItems: 'center' }}>
@@ -558,7 +558,7 @@ export default function ConsultantDashboardPage() {
           <Grid container spacing={3}>
             {consultantType.includes('Senior IFRS9') && (
               <>
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                   <Box sx={{ textAlign: 'center', p: 2 }}>
                     <Avatar sx={{ backgroundColor: theme.primary, mx: 'auto', mb: 1 }}>
                       <Calculate />
@@ -567,7 +567,7 @@ export default function ConsultantDashboardPage() {
                     <Chip label="Expert Level" color="success" size="small" />
                   </Box>
                 </Grid>
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                   <Box sx={{ textAlign: 'center', p: 2 }}>
                     <Avatar sx={{ backgroundColor: theme.secondary, mx: 'auto', mb: 1 }}>
                       <Assessment />
@@ -576,7 +576,7 @@ export default function ConsultantDashboardPage() {
                     <Chip label="Advanced" color="primary" size="small" />
                   </Box>
                 </Grid>
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                   <Box sx={{ textAlign: 'center', p: 2 }}>
                     <Avatar sx={{ backgroundColor: '#2e7d32', mx: 'auto', mb: 1 }}>
                       <Verified />
@@ -585,7 +585,7 @@ export default function ConsultantDashboardPage() {
                     <Chip label="Certified" color="success" size="small" />
                   </Box>
                 </Grid>
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                   <Box sx={{ textAlign: 'center', p: 2 }}>
                     <Avatar sx={{ backgroundColor: '#1976d2', mx: 'auto', mb: 1 }}>
                       <Timeline />
@@ -599,7 +599,7 @@ export default function ConsultantDashboardPage() {
             
             {consultantType.includes('Islamic Banking') && (
               <>
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                   <Box sx={{ textAlign: 'center', p: 2 }}>
                     <Avatar sx={{ backgroundColor: theme.primary, mx: 'auto', mb: 1 }}>
                       <Verified />
@@ -608,7 +608,7 @@ export default function ConsultantDashboardPage() {
                     <Chip label="Certified Expert" color="success" size="small" />
                   </Box>
                 </Grid>
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                   <Box sx={{ textAlign: 'center', p: 2 }}>
                     <Avatar sx={{ backgroundColor: theme.secondary, mx: 'auto', mb: 1 }}>
                       <Description />
@@ -617,7 +617,7 @@ export default function ConsultantDashboardPage() {
                     <Chip label="Expert" color="success" size="small" />
                   </Box>
                 </Grid>
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                   <Box sx={{ textAlign: 'center', p: 2 }}>
                     <Avatar sx={{ backgroundColor: '#2e7d32', mx: 'auto', mb: 1 }}>
                       <Group />
@@ -626,7 +626,7 @@ export default function ConsultantDashboardPage() {
                     <Chip label="Available" color="primary" size="small" />
                   </Box>
                 </Grid>
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                   <Box sx={{ textAlign: 'center', p: 2 }}>
                     <Avatar sx={{ backgroundColor: '#1976d2', mx: 'auto', mb: 1 }}>
                       <Business />
@@ -640,7 +640,7 @@ export default function ConsultantDashboardPage() {
             
             {(consultantType.includes('Risk') || consultantType.includes('Technical') || consultantType.includes('Analytics') || consultantType.includes('Project')) && (
               <>
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                   <Box sx={{ textAlign: 'center', p: 2 }}>
                     <Avatar sx={{ backgroundColor: theme.primary, mx: 'auto', mb: 1 }}>
                       <Assessment />
@@ -649,7 +649,7 @@ export default function ConsultantDashboardPage() {
                     <Chip label="Expert" color="success" size="small" />
                   </Box>
                 </Grid>
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                   <Box sx={{ textAlign: 'center', p: 2 }}>
                     <Avatar sx={{ backgroundColor: theme.secondary, mx: 'auto', mb: 1 }}>
                       <Analytics />
@@ -658,7 +658,7 @@ export default function ConsultantDashboardPage() {
                     <Chip label="Advanced" color="primary" size="small" />
                   </Box>
                 </Grid>
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                   <Box sx={{ textAlign: 'center', p: 2 }}>
                     <Avatar sx={{ backgroundColor: '#2e7d32', mx: 'auto', mb: 1 }}>
                       <Engineering />
@@ -667,7 +667,7 @@ export default function ConsultantDashboardPage() {
                     <Chip label="Certified" color="success" size="small" />
                   </Box>
                 </Grid>
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                   <Box sx={{ textAlign: 'center', p: 2 }}>
                     <Avatar sx={{ backgroundColor: '#1976d2', mx: 'auto', mb: 1 }}>
                       <Group />

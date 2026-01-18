@@ -154,13 +154,13 @@ export default function JournalParametersPage() {
       width: 120,
       getActions: (params: GridRowParams) => [
         <SafeGridActionsCellItem
-          icon={<EditIcon />}
+          icon={<EditIcon color="primary" />}
           label="Edit"
           onClick={() => params?.row && handleEdit(params.row)}
           key="edit"
         />,
         <SafeGridActionsCellItem
-          icon={<DeleteIcon />}
+          icon={<DeleteIcon color="error" />}
           label="Delete"
           onClick={() => params?.row && handleDelete(params.row)}
           key="delete"
