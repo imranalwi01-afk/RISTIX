@@ -16,7 +16,7 @@ export interface SafeGridActionsCellItemProps {
   [key: string]: any;
 }
 
-export function SafeGridActionsCellItem({ label, icon, onClick, ...other }: SafeGridActionsCellItemProps) {
+export function SafeGridActionsCellItem({ label, icon, onClick, showInMenu, ...other }: SafeGridActionsCellItemProps) {
   return (
     <Tooltip title={label}>
       <IconButton size="small" onClick={onClick} {...other}>
