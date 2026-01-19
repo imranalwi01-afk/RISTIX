@@ -122,7 +122,12 @@ const ErrorResponse = z.object({
 // HEADER ROUTES
 // ============================================================================
 
-// GET /api/v1/banking/collective/rule-base
+/**
+ * List Rule Headers.
+ * Retrieve a list of rule headers with optional filtering.
+ * 
+ * @route GET /api/v1/banking/collective/rule-base
+ */
 app.openapi(
     createRoute({
         method: 'get',
@@ -151,7 +156,12 @@ app.openapi(
     }
 )
 
-// GET /api/v1/banking/collective/rule-base/:id
+/**
+ * Get Rule Header.
+ * Retrieve a specific rule header by ID.
+ * 
+ * @route GET /api/v1/banking/collective/rule-base/:id
+ */
 app.openapi(
     createRoute({
         method: 'get',
@@ -175,7 +185,12 @@ app.openapi(
     }
 )
 
-// POST /api/v1/banking/collective/rule-base
+/**
+ * Create Rule Header.
+ * Create a new rule header configuration.
+ * 
+ * @route POST /api/v1/banking/collective/rule-base
+ */
 app.openapi(
     createRoute({
         method: 'post',
@@ -207,7 +222,12 @@ app.openapi(
     }
 )
 
-// PUT /api/v1/banking/collective/rule-base/:id
+/**
+ * Update Rule Header.
+ * Update an existing rule header configuration.
+ * 
+ * @route PUT /api/v1/banking/collective/rule-base/:id
+ */
 app.openapi(
     createRoute({
         method: 'put',
@@ -244,7 +264,12 @@ app.openapi(
     }
 )
 
-// DELETE /api/v1/banking/collective/rule-base/:id
+/**
+ * Delete Rule Header.
+ * Delete a rule header and its associated details.
+ * 
+ * @route DELETE /api/v1/banking/collective/rule-base/:id
+ */
 app.openapi(
     createRoute({
         method: 'delete',
@@ -271,7 +296,12 @@ app.openapi(
 // DETAIL ROUTES
 // ============================================================================
 
-// GET /api/v1/banking/collective/rule-base/:ruleId/details
+/**
+ * List Rule Details.
+ * Retrieve details for a specific rule header.
+ * 
+ * @route GET /api/v1/banking/collective/rule-base/:ruleId/details
+ */
 app.openapi(
     createRoute({
         method: 'get',
@@ -294,7 +324,12 @@ app.openapi(
     }
 )
 
-// POST /api/v1/banking/collective/rule-base/:ruleId/details
+/**
+ * Create Rule Detail.
+ * Add a new detail condition to a rule.
+ * 
+ * @route POST /api/v1/banking/collective/rule-base/:ruleId/details
+ */
 app.openapi(
     createRoute({
         method: 'post',
@@ -335,7 +370,12 @@ app.openapi(
     }
 )
 
-// PUT /api/v1/banking/collective/rule-base/details/:detailId
+/**
+ * Update Rule Detail.
+ * Update an existing rule detail condition.
+ * 
+ * @route PUT /api/v1/banking/collective/rule-base/details/:detailId
+ */
 app.openapi(
     createRoute({
         method: 'put',
@@ -377,7 +417,12 @@ app.openapi(
     }
 )
 
-// DELETE /api/v1/banking/collective/rule-base/details/:detailId
+/**
+ * Delete Rule Detail.
+ * Remove a detail condition from a rule.
+ * 
+ * @route DELETE /api/v1/banking/collective/rule-base/details/:detailId
+ */
 app.openapi(
     createRoute({
         method: 'delete',
@@ -404,7 +449,12 @@ app.openapi(
 // METADATA ROUTES
 // ============================================================================
 
-// GET /api/v1/banking/collective/rule-base/metadata/rule-types
+/**
+ * Get Rule Types.
+ * Retrieve available rule types metadata.
+ * 
+ * @route GET /api/v1/banking/collective/rule-base/metadata/rule-types
+ */
 app.openapi(
     createRoute({
         method: 'get',
@@ -421,7 +471,12 @@ app.openapi(
     }
 )
 
-// GET /api/v1/banking/collective/rule-base/metadata/operators/:dataType
+/**
+ * Get Operators.
+ * Retrieve available operators for a data type.
+ * 
+ * @route GET /api/v1/banking/collective/rule-base/metadata/operators/:dataType
+ */
 app.openapi(
     createRoute({
         method: 'get',
@@ -442,7 +497,12 @@ app.openapi(
     }
 )
 
-// GET /api/v1/banking/collective/rule-base/metadata/conditions
+/**
+ * Get Conditions.
+ * Retrieve available logic conditions (AND, OR).
+ * 
+ * @route GET /api/v1/banking/collective/rule-base/metadata/conditions
+ */
 app.openapi(
     createRoute({
         method: 'get',
@@ -459,7 +519,12 @@ app.openapi(
     }
 )
 
-// GET /api/v1/banking/collective/rule-base/metadata/stages
+/**
+ * Get Stages.
+ * Retrieve available stages metadata.
+ * 
+ * @route GET /api/v1/banking/collective/rule-base/metadata/stages
+ */
 app.openapi(
     createRoute({
         method: 'get',

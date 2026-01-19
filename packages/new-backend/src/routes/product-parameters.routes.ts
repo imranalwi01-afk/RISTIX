@@ -84,7 +84,16 @@ const ErrorResponse = z.object({
 // ROUTES
 // ============================================================================
 
-// GET /api/v1/banking/collective/product/instrument-class-options
+// ============================================================================
+// ROUTES
+// ============================================================================
+
+/**
+ * Get Instrument Class Options.
+ * Retrieve available instrument class options.
+ * 
+ * @route GET /api/v1/banking/collective/product/instrument-class-options
+ */
 app.openapi(
     createRoute({
         method: 'get',
@@ -101,7 +110,12 @@ app.openapi(
     }
 )
 
-// GET /api/v1/banking/collective/product
+/**
+ * List Product Parameters.
+ * Retrieve a list of product parameters.
+ * 
+ * @route GET /api/v1/banking/collective/product
+ */
 app.openapi(
     createRoute({
         method: 'get',
@@ -118,7 +132,12 @@ app.openapi(
     }
 )
 
-// GET /api/v1/banking/collective/product/:id
+/**
+ * Get Product Parameter.
+ * Retrieve a specific product parameter by ID.
+ * 
+ * @route GET /api/v1/banking/collective/product/:id
+ */
 app.openapi(
     createRoute({
         method: 'get',
@@ -141,7 +160,12 @@ app.openapi(
     }
 )
 
-// POST /api/v1/banking/collective/product
+/**
+ * Create Product Parameter.
+ * Create a new product parameter configuration.
+ * 
+ * @route POST /api/v1/banking/collective/product
+ */
 app.openapi(
     createRoute({
         method: 'post',
@@ -163,7 +187,12 @@ app.openapi(
     }
 )
 
-// PUT /api/v1/banking/collective/product/:id
+/**
+ * Update Product Parameter.
+ * Update an existing product parameter configuration.
+ * 
+ * @route PUT /api/v1/banking/collective/product/:id
+ */
 app.openapi(
     createRoute({
         method: 'put',
@@ -189,7 +218,12 @@ app.openapi(
     }
 )
 
-// DELETE /api/v1/banking/collective/product/:id
+/**
+ * Delete Product Parameter.
+ * Delete a product parameter configuration.
+ * 
+ * @route DELETE /api/v1/banking/collective/product/:id
+ */
 app.openapi(
     createRoute({
         method: 'delete',

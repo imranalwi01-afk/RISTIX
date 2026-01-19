@@ -26,6 +26,12 @@ export const AuditRepository = {
     // AUDIT LOG OPERATIONS
     // ---------------------------------------------------------------------------
 
+    /**
+     * Find audit logs with filtering options.
+     * 
+     * @param options - Filter options (tenantId, userId, entityType, action, date range, pagination)
+     * @returns An object containing data array and total count
+     */
     findAuditLogs: async (options: {
         tenantId?: string
         userId?: string
@@ -60,11 +66,23 @@ export const AuditRepository = {
         return { data, total: countResult[0]?.count ?? 0 }
     },
 
+    /**
+     * Find a single audit log by ID.
+     * 
+     * @param id - The audit log ID
+     * @returns The audit log or undefined
+     */
     findAuditLogById: (id: string) =>
         db.query.auditLogs.findFirst({
             where: eq(auditLogs.id, id),
         }),
 
+    /**
+     * Create a new audit log entry.
+     * 
+     * @param data - The audit log data
+     * @returns The created audit log
+     */
     createAuditLog: async (data: NewAuditLog) => {
         const [log] = await db.insert(auditLogs).values(data).returning()
         return log
@@ -74,6 +92,12 @@ export const AuditRepository = {
     // USER ACTIVITY LOG OPERATIONS
     // ---------------------------------------------------------------------------
 
+    /**
+     * Find user activity logs with filtering.
+     * 
+     * @param options - Filter options (tenantId, userId, activityType, pagination)
+     * @returns An array of user activity logs
+     */
     findUserActivityLogs: async (options: {
         tenantId?: string
         userId?: string
@@ -97,6 +121,12 @@ export const AuditRepository = {
         })
     },
 
+    /**
+     * Create a new user activity log.
+     * 
+     * @param data - The activity log data
+     * @returns The created activity log
+     */
     createUserActivityLog: async (data: NewUserActivityLog) => {
         const [log] = await db.insert(userActivityLogs).values({ ...data, createdAt: new Date() }).returning()
         return log
@@ -106,6 +136,12 @@ export const AuditRepository = {
     // DATA ACCESS LOG OPERATIONS
     // ---------------------------------------------------------------------------
 
+    /**
+     * Find data access logs with filtering.
+     * 
+     * @param options - Filter options (tenantId, userId, resourceType, pagination)
+     * @returns An array of data access logs
+     */
     findDataAccessLogs: async (options: {
         tenantId?: string
         userId?: string
@@ -129,6 +165,12 @@ export const AuditRepository = {
         })
     },
 
+    /**
+     * Create a new data access log.
+     * 
+     * @param data - The data access log data
+     * @returns The created data access log
+     */
     createDataAccessLog: async (data: NewDataAccessLog) => {
         const [log] = await db.insert(dataAccessLogs).values(data).returning()
         return log
@@ -138,6 +180,12 @@ export const AuditRepository = {
     // CALCULATION AUDIT LOG OPERATIONS
     // ---------------------------------------------------------------------------
 
+    /**
+     * Find calculation audit logs with filtering.
+     * 
+     * @param options - Filter options (tenantId, calculationType, status, pagination)
+     * @returns An array of calculation audit logs
+     */
     findCalculationAuditLogs: async (options: {
         tenantId?: string
         calculationType?: string
@@ -161,6 +209,12 @@ export const AuditRepository = {
         })
     },
 
+    /**
+     * Create a new calculation audit log.
+     * 
+     * @param data - The calculation audit log data
+     * @returns The created calculation audit log
+     */
     createCalculationAuditLog: async (data: NewCalculationAuditLog) => {
         const [log] = await db.insert(calculationAuditLogs).values(data).returning()
         return log
@@ -170,6 +224,13 @@ export const AuditRepository = {
     // AGGREGATE QUERIES
     // ---------------------------------------------------------------------------
 
+    /**
+     * Get recent activity logs for a tenant.
+     * 
+     * @param tenantId - The tenant ID
+     * @param limit - Max number of logs to return (default 10)
+     * @returns An array of recent audit logs
+     */
     getRecentActivity: async (tenantId: string, limit: number = 10) =>
         db.query.auditLogs.findMany({
             where: eq(auditLogs.tenantId, tenantId),
@@ -177,6 +238,13 @@ export const AuditRepository = {
             orderBy: [desc(auditLogs.createdAt)],
         }),
 
+    /**
+     * Get activity statistics grouped by action for a tenant.
+     * 
+     * @param tenantId - The tenant ID
+     * @param days - Number of days to look back (default 7)
+     * @returns An array of action counts
+     */
     getActivityStats: async (tenantId: string, days: number = 7) => {
         const startDate = new Date()
         startDate.setDate(startDate.getDate() - days)
@@ -196,6 +264,12 @@ export const AuditRepository = {
         return result
     },
 
+    /**
+     * Get summary metrics for audit logs (total, today, critical, high risk).
+     * 
+     * @param tenantId - The tenant ID
+     * @returns An object with summary counts
+     */
     getAuditSummary: async (tenantId: string) => {
         const today = new Date()
         today.setHours(0, 0, 0, 0)

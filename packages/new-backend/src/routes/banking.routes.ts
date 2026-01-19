@@ -3,6 +3,7 @@ import type { AppContext } from '../app'
 
 /**
  * Banking Routes (STUB)
+ * Placeholder routes for banking operations (Portfolio, Accounts, Customers, Products, Transactions).
  * TODO: Implement real database queries
  */
 export const bankingRoutes = new OpenAPIHono<AppContext>()

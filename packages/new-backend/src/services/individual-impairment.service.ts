@@ -3,6 +3,17 @@ import { MasterAccountRepository } from '../repositories/master-account.reposito
 import { frs9MasterAccount } from '../db/schema'
 
 export const IndividualImpairmentService = {
+    /**
+     * Get the individual impairment watchlist.
+     * 
+     * @param options - Pagination, filtering, and sorting options
+     * @param options.page - Page number
+     * @param options.limit - Items per page
+     * @param options.search - Search term
+     * @param options.filter - Filter criteria (stage, impaired_flag, assessment_status)
+     * @param options.sort - Sort criteria (field, order)
+     * @returns An Effect resolving to a paginated response with transformed watchlist items
+     */
     getWatchlist: (options: {
         page: number
         limit: number

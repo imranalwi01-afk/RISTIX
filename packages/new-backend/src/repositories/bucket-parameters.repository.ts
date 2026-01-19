@@ -4,8 +4,19 @@ import { frs9ParamBucketh, frs9ParamBucketd } from '../db/schema'
 import { Effect } from 'effect'
 import { DatabaseError, NotFoundError } from '../lib/errors'
 
+/**
+ * Repository for accessing Bucket Parameters data.
+ */
 export const BucketParametersRepository = {
     // Header Operations
+
+    /**
+     * Find bucket headers with optional filtering.
+     * 
+     * @param search - Search term for bucket group or description
+     * @param basis - Filter by basis
+     * @returns An Effect resolving to an array of bucket headers
+     */
     findHeaders: (search?: string, basis?: string) => {
         return Effect.tryPromise({
             try: async () => {
@@ -30,6 +41,12 @@ export const BucketParametersRepository = {
         })
     },
 
+    /**
+     * Find a bucket header by ID.
+     * 
+     * @param id - The ID of the bucket header
+     * @returns An Effect resolving to the bucket header or null
+     */
     findHeaderById: (id: bigint) => {
         return Effect.tryPromise({
             try: async () => {
@@ -43,6 +60,12 @@ export const BucketParametersRepository = {
         })
     },
 
+    /**
+     * Create a new bucket header.
+     * 
+     * @param data - The data for the new bucket header
+     * @returns An Effect resolving to the created bucket header
+     */
     createHeader: (data: typeof frs9ParamBucketh.$inferInsert) => {
         return Effect.tryPromise({
             try: async () => {
@@ -56,6 +79,13 @@ export const BucketParametersRepository = {
         })
     },
 
+    /**
+     * Update an existing bucket header.
+     * 
+     * @param id - The ID of the bucket header
+     * @param data - The updated data
+     * @returns An Effect resolving to the updated bucket header or null
+     */
     updateHeader: (id: bigint, data: Partial<typeof frs9ParamBucketh.$inferInsert>) => {
         return Effect.tryPromise({
             try: async () => {
@@ -70,6 +100,12 @@ export const BucketParametersRepository = {
         })
     },
 
+    /**
+     * Delete a bucket header and its details.
+     * 
+     * @param id - The ID of the bucket header
+     * @returns An Effect resolving to true on success
+     */
     deleteHeader: (id: bigint) => {
         return Effect.tryPromise({
             try: async () => {
@@ -85,6 +121,14 @@ export const BucketParametersRepository = {
     },
 
     // Detail Operations
+    // Detail Operations
+
+    /**
+     * Find bucket details for a specific header.
+     * 
+     * @param headerId - The ID of the bucket header
+     * @returns An Effect resolving to an array of bucket details
+     */
     findDetailsByHeaderId: (headerId: bigint) => {
         return Effect.tryPromise({
             try: async () => {
@@ -98,6 +142,12 @@ export const BucketParametersRepository = {
         })
     },
 
+    /**
+     * Find a bucket detail by ID.
+     * 
+     * @param id - The ID of the bucket detail
+     * @returns An Effect resolving to the bucket detail or null
+     */
     findDetailById: (id: bigint) => {
         return Effect.tryPromise({
             try: async () => {
@@ -111,6 +161,12 @@ export const BucketParametersRepository = {
         })
     },
 
+    /**
+     * Create a new bucket detail.
+     * 
+     * @param data - The data for the new bucket detail
+     * @returns An Effect resolving to the created bucket detail
+     */
     createDetail: (data: typeof frs9ParamBucketd.$inferInsert) => {
         return Effect.tryPromise({
             try: async () => {
@@ -124,6 +180,13 @@ export const BucketParametersRepository = {
         })
     },
 
+    /**
+     * Update an existing bucket detail.
+     * 
+     * @param id - The ID of the bucket detail
+     * @param data - The updated data
+     * @returns An Effect resolving to the updated bucket detail or null
+     */
     updateDetail: (id: bigint, data: Partial<typeof frs9ParamBucketd.$inferInsert>) => {
         return Effect.tryPromise({
             try: async () => {
@@ -138,6 +201,12 @@ export const BucketParametersRepository = {
         })
     },
 
+    /**
+     * Delete a bucket detail.
+     * 
+     * @param id - The ID of the bucket detail
+     * @returns An Effect resolving to true on success
+     */
     deleteDetail: (id: bigint) => {
         return Effect.tryPromise({
             try: async () => {

@@ -33,7 +33,7 @@ import { dbOperation } from '@/lib'
 
 /**
  * @module RBACRepository
- * @description Data access layer for Role-Based Access Control.
+ * Data access layer for Role-Based Access Control.
  * Handles database operations for roles, user-role assignments, and permissions.
  */
 
@@ -41,7 +41,7 @@ import { dbOperation } from '@/lib'
 // TYPES
 // =============================================================================
 
-type DrizzleDB = PostgresJsDatabase<typeof schema>
+export type DrizzleDB = PostgresJsDatabase<typeof schema>
 
 // =============================================================================
 // ROLES REPOSITORY

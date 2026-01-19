@@ -19,7 +19,7 @@ import { userRolesRepository } from '@/repositories/rbac.repository'
 
 /**
  * @module AuthService
- * @description Provides authentication and session management services.
+ * Provides authentication and session management services.
  * Handles login, logout, token generation, and password verification.
  */
 
@@ -210,7 +210,7 @@ export const verifyPassword = async (password: string, hash: string): Promise<bo
 /**
  * Login a user with email and password.
  * 
- * @description Supports Split Authentication:
+ * Supports Split Authentication:
  * - If `tenantId` is provided: Authenticates against the Tenant-specific Database.
  * - If `tenantId` is missing: Authenticates against the Platform/Core Database.
  * 

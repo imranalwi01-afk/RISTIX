@@ -16,6 +16,20 @@ export interface WatchlistQueryOptions {
 }
 
 export const MasterAccountRepository = {
+    /**
+     * Find accounts for the impairment watchlist with pagination, filtering, and sorting.
+     * 
+     * @param options - Query options
+     * @param options.page - Page number (1-based)
+     * @param options.limit - Number of records per page
+     * @param options.search - Search term (account number, CIF name, CIF number)
+     * @param options.stage - Filter by stage (1, 2, 3)
+     * @param options.impairedFlag - Filter by impaired flag ('I' or 'N')
+     * @param options.assessmentStatus - Filter by assessment status (currently ignored as not in DB)
+     * @param options.sortField - Field to sort by
+     * @param options.sortOrder - Sort order ('asc' or 'desc')
+     * @returns An Effect resolving to an object with data array and total count
+     */
     findAll: (options: WatchlistQueryOptions) => {
         return queryEffect(async () => {
             const conditions = []

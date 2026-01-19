@@ -395,4 +395,10 @@ app.openapi(
     }
 )
 
+/**
+ * Business Settings Routes
+ * Handles CRUD operations for Business Settings and Metadata.
+ * 
+ * Base Path: /api/v1/business-settings
+ */
 export const businessSettingsRoutes = app

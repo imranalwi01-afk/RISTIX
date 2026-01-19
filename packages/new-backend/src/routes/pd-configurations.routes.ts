@@ -74,7 +74,16 @@ const ErrorResponse = z.object({
 // ROUTES
 // ============================================================================
 
-// GET /api/v1/banking/parameters/pd-configurations
+// ============================================================================
+// ROUTES
+// ============================================================================
+
+/**
+ * List PD Configurations.
+ * Retrieve a list of PD configurations with optional filtering.
+ * 
+ * @route GET /api/v1/banking/parameters/pd-configurations
+ */
 app.openapi(
     createRoute({
         method: 'get',
@@ -104,7 +113,12 @@ app.openapi(
     }
 )
 
-// GET /api/v1/banking/parameters/pd-configurations/:id
+/**
+ * Get PD Configuration.
+ * Retrieve a specific PD configuration by ID.
+ * 
+ * @route GET /api/v1/banking/parameters/pd-configurations/:id
+ */
 app.openapi(
     createRoute({
         method: 'get',
@@ -128,7 +142,12 @@ app.openapi(
     }
 )
 
-// POST /api/v1/banking/parameters/pd-configurations
+/**
+ * Create PD Configuration.
+ * Create a new PD configuration.
+ * 
+ * @route POST /api/v1/banking/parameters/pd-configurations
+ */
 app.openapi(
     createRoute({
         method: 'post',
@@ -151,7 +170,12 @@ app.openapi(
     }
 )
 
-// PUT /api/v1/banking/parameters/pd-configurations/:id
+/**
+ * Update PD Configuration.
+ * Update an existing PD configuration.
+ * 
+ * @route PUT /api/v1/banking/parameters/pd-configurations/:id
+ */
 app.openapi(
     createRoute({
         method: 'put',
@@ -178,7 +202,12 @@ app.openapi(
     }
 )
 
-// DELETE /api/v1/banking/parameters/pd-configurations/:id
+/**
+ * Delete PD Configuration.
+ * Delete a PD configuration.
+ * 
+ * @route DELETE /api/v1/banking/parameters/pd-configurations/:id
+ */
 app.openapi(
     createRoute({
         method: 'delete',
@@ -203,6 +232,13 @@ app.openapi(
 )
 
 // Metadata endpoints
+
+/**
+ * Get Metadata Methods.
+ * Retrieve available methods metadata.
+ * 
+ * @route GET /api/v1/banking/parameters/pd-configurations/metadata/methods
+ */
 app.openapi(
     createRoute({
         method: 'get',
@@ -218,6 +254,12 @@ app.openapi(
     }
 )
 
+/**
+ * Get Metadata Population Types.
+ * Retrieve available population types metadata.
+ * 
+ * @route GET /api/v1/banking/parameters/pd-configurations/metadata/population-types
+ */
 app.openapi(
     createRoute({
         method: 'get',

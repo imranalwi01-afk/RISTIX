@@ -6,7 +6,7 @@ import { DatabaseError, NotFoundError } from '@/lib/errors'
 
 /**
  * @module MenuService
- * @description Provides services for managing application menus.
+ * Provides services for managing application menus.
  * Handles menu hierarchy generation and role-based visibility.
  */
 
@@ -31,7 +31,7 @@ export interface MenuHierarchyItem {
 /**
  * Generate a hierarchical menu structure for a user.
  * 
- * @description The hierarchy is constructed by:
+ * The hierarchy is constructed by:
  * 1. Identifying roles assigned to the user within the tenant.
  * 2. Fetching menu items that these roles have permission to view.
  * 3. Building a tree structure based on parent-child relationships.

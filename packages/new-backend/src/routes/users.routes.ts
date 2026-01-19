@@ -67,8 +67,16 @@ const UserStatsResponse = z.object({
 // ROUTES
 // =============================================================================
 
+// =============================================================================
+// ROUTES
+// =============================================================================
+
 /**
- * GET /users - List users (react-admin compatible)
+ * List Users.
+ * Retrieve a list of users with pagination and filtering.
+ * Compatible with react-admin data provider.
+ * 
+ * @route GET /users
  */
 usersRoutes.openapi(
     createRoute({
@@ -136,7 +144,10 @@ usersRoutes.openapi(
 )
 
 /**
- * POST /users - Create user
+ * Create User.
+ * Register a new user in the tenant.
+ * 
+ * @route POST /users
  */
 usersRoutes.openapi(
     createRoute({
@@ -173,10 +184,6 @@ usersRoutes.openapi(
             usersService.createUser({
                 ...body,
                 tenantId,
-                // Map API fields to Service/DB fields if needed
-                // Service likely expects fullName etc now if updated, 
-                // but checking the Service signature earlier it might have expected firstName/lastName 
-                // We'll need to check the service, but assuming it takes Partial<User>
             }),
             Effect.map((user) => ({
                 id: user.id,
@@ -200,7 +207,10 @@ usersRoutes.openapi(
 )
 
 /**
- * GET /users/stats - User statistics
+ * Get User Statistics.
+ * Returns counts of total, active, and inactive users.
+ * 
+ * @route GET /users/stats
  */
 usersRoutes.openapi(
     createRoute({
@@ -228,7 +238,10 @@ usersRoutes.openapi(
 )
 
 /**
- * GET /users/profile - Current user profile
+ * Get My Profile.
+ * Retrieve the profile of the currently authenticated user.
+ * 
+ * @route GET /users/profile
  */
 usersRoutes.openapi(
     createRoute({
@@ -275,7 +288,11 @@ usersRoutes.openapi(
 
 
 /**
- * GET /users/:id/dashboard/personalization - Get user dashboard settings (Stub)
+ * Get Dashboard Settings.
+ * Retrieve personalization settings for the user's dashboard.
+ * (Currently returns a mock/stub response)
+ * 
+ * @route GET /users/:id/dashboard/personalization
  */
 usersRoutes.openapi(
     createRoute({
@@ -322,7 +339,11 @@ usersRoutes.openapi(
 )
 
 /**
- * PUT /users/:id/dashboard/personalization - Update user dashboard settings (Stub)
+ * Update Dashboard Settings.
+ * Save personalization settings for the user's dashboard.
+ * (Currently returns a mock/stub response)
+ * 
+ * @route PUT /users/:id/dashboard/personalization
  */
 usersRoutes.openapi(
     createRoute({
@@ -359,7 +380,10 @@ usersRoutes.openapi(
 )
 
 /**
- * GET /users/:id - Get user by ID
+ * Get User by ID.
+ * Retrieve details of a specific user.
+ * 
+ * @route GET /users/:id
  */
 usersRoutes.openapi(
     createRoute({
@@ -408,7 +432,10 @@ usersRoutes.openapi(
 )
 
 /**
- * PUT /users/:id - Update user
+ * Update User.
+ * Update details of a specific user.
+ * 
+ * @route PUT /users/:id
  */
 usersRoutes.openapi(
     createRoute({
@@ -467,7 +494,10 @@ usersRoutes.openapi(
 )
 
 /**
- * DELETE /users/:id - Delete user (soft delete)
+ * Delete User.
+ * Soft delete a user (mark as inactive).
+ * 
+ * @route DELETE /users/:id
  */
 usersRoutes.openapi(
     createRoute({
@@ -503,7 +533,10 @@ usersRoutes.openapi(
 )
 
 /**
- * POST /users/:id/enable - Enable user
+ * Enable User.
+ * Reactivate a disabled user.
+ * 
+ * @route POST /users/:id/enable
  */
 usersRoutes.openapi(
     createRoute({
@@ -544,7 +577,10 @@ usersRoutes.openapi(
 )
 
 /**
- * POST /users/:id/disable - Disable user
+ * Disable User.
+ * Deactivate a user account.
+ * 
+ * @route POST /users/:id/disable
  */
 usersRoutes.openapi(
     createRoute({

@@ -6,6 +6,12 @@ import { runEffect } from '../lib/effect'
 import { parsePaginationParams, parseFilterParams } from '../lib/react-admin'
 import * as tenantsService from '../services/tenants.service'
 
+/**
+ * Tenants Routes
+ * Handles CRUD operations for Tenants.
+ * 
+ * Base Path: /tenants
+ */
 export const tenantsRoutes = new OpenAPIHono<AppContext>()
 
 // Apply auth middleware

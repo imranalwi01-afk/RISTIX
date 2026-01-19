@@ -3,8 +3,11 @@ import { auditLogs, userActivityLogs, dataAccessLogs, calculationAuditLogs } fro
 import type { NewAuditLog, NewUserActivityLog, NewDataAccessLog, NewCalculationAuditLog } from '../db/schema'
 
 /**
- * Core audit logging function
- * Uses tenantDb since audit schema exists in tenant database
+ * Core audit logging function.
+ * Uses tenantDb since audit schema exists in tenant database.
+ * 
+ * @param params - Partial audit log data used to create the log entry
+ * @returns A Promise that resolves when the log is written, or catches error silently
  */
 export const logAuditEvent = async (params: Partial<NewAuditLog>): Promise<void> => {
     try {
@@ -20,7 +23,10 @@ export const logAuditEvent = async (params: Partial<NewAuditLog>): Promise<void>
 }
 
 /**
- * Log user activity
+ * Log user activity.
+ * 
+ * @param params - Partial user activity log data
+ * @returns A Promise that resolves when the log is written
  */
 export const logUserActivity = async (params: Partial<NewUserActivityLog>): Promise<void> => {
     try {
@@ -35,7 +41,10 @@ export const logUserActivity = async (params: Partial<NewUserActivityLog>): Prom
 }
 
 /**
- * Log data access
+ * Log data access.
+ * 
+ * @param params - Partial data access log data
+ * @returns A Promise that resolves when the log is written
  */
 export const logDataAccess = async (params: Partial<NewDataAccessLog>): Promise<void> => {
     try {
@@ -51,7 +60,10 @@ export const logDataAccess = async (params: Partial<NewDataAccessLog>): Promise<
 }
 
 /**
- * Log calculation execution
+ * Log calculation execution.
+ * 
+ * @param params - Partial calculation audit log data
+ * @returns A Promise that resolves when the log is written
  */
 export const logCalculation = async (params: Partial<NewCalculationAuditLog>): Promise<void> => {
     try {

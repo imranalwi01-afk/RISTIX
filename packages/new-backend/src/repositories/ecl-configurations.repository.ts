@@ -6,6 +6,12 @@ import { DatabaseError } from '../lib/errors'
 
 export const EclConfigurationsRepository = {
     // Header Operations
+
+    /**
+     * Find all ECL configuration headers.
+     * 
+     * @returns An Effect resolving to an array of ECL headers
+     */
     findAllHeaders: () => {
         return Effect.tryPromise({
             try: async () => {
@@ -18,6 +24,12 @@ export const EclConfigurationsRepository = {
         })
     },
 
+    /**
+     * Find an ECL configuration header by ID.
+     * 
+     * @param id - The ECL header ID
+     * @returns An Effect resolving to the header or null
+     */
     findHeaderById: (id: bigint) => {
         return Effect.tryPromise({
             try: async () => {
@@ -31,6 +43,12 @@ export const EclConfigurationsRepository = {
         })
     },
 
+    /**
+     * Find ECL details by header ID.
+     * 
+     * @param headerId - The ECL header ID
+     * @returns An Effect resolving to an array of details
+     */
     findDetailsByHeaderId: (headerId: bigint) => {
         return Effect.tryPromise({
             try: async () => {
@@ -43,6 +61,13 @@ export const EclConfigurationsRepository = {
         })
     },
 
+    /**
+     * Create a new ECL configuration with details.
+     * 
+     * @param headerData - The header data
+     * @param detailsData - The details data
+     * @returns An Effect resolving to the created header
+     */
     create: (headerData: typeof frs9ImpCaEclConfigh.$inferInsert, detailsData: Array<typeof frs9ImpCaEclConfigd.$inferInsert>) => {
         return Effect.tryPromise({
             try: async () => {
@@ -67,6 +92,14 @@ export const EclConfigurationsRepository = {
         })
     },
 
+    /**
+     * Update an existing ECL configuration and its details.
+     * 
+     * @param id - The ECL header ID
+     * @param headerData - The header data to update
+     * @param detailsData - Optional details data to replace existing details
+     * @returns An Effect resolving to the updated header or null
+     */
     update: (id: bigint, headerData: Partial<typeof frs9ImpCaEclConfigh.$inferInsert>, detailsData?: Array<typeof frs9ImpCaEclConfigd.$inferInsert>) => {
         return Effect.tryPromise({
             try: async () => {
@@ -99,6 +132,12 @@ export const EclConfigurationsRepository = {
         })
     },
 
+    /**
+     * Delete an ECL configuration and its details.
+     * 
+     * @param id - The ECL header ID
+     * @returns An Effect resolving to true on success
+     */
     delete: (id: bigint) => {
         return Effect.tryPromise({
             try: async () => {

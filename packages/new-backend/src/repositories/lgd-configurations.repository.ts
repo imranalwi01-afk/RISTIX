@@ -12,6 +12,12 @@ export interface LgdQueryOptions {
 }
 
 export const LgdConfigurationsRepository = {
+    /**
+     * Find all LGD configurations with optional filtering.
+     * 
+     * @param options - Filter options
+     * @returns An Effect resolving to an array of configurations
+     */
     findAll: (options?: LgdQueryOptions) => {
         return queryEffect(async () => {
             const conditions = []
@@ -36,6 +42,12 @@ export const LgdConfigurationsRepository = {
         })
     },
 
+    /**
+     * Find an LGD configuration by ID.
+     * 
+     * @param id - The configuration ID
+     * @returns An Effect resolving to the configuration or undefined
+     */
     findById: (id: number) => {
         return queryEffect(async () => {
             const result = await db
@@ -48,6 +60,12 @@ export const LgdConfigurationsRepository = {
         })
     },
 
+    /**
+     * Create a new LGD configuration.
+     * 
+     * @param data - The configuration data
+     * @returns An Effect resolving to the created configuration
+     */
     create: (data: typeof frs9ImpCaLgdConfig.$inferInsert) => {
         return queryEffect(async () => {
             const result = await db
@@ -59,6 +77,13 @@ export const LgdConfigurationsRepository = {
         })
     },
 
+    /**
+     * Update an existing LGD configuration.
+     * 
+     * @param id - The configuration ID
+     * @param data - The data to update
+     * @returns An Effect resolving to the updated configuration
+     */
     update: (id: number, data: Partial<typeof frs9ImpCaLgdConfig.$inferInsert>) => {
         return queryEffect(async () => {
             const result = await db
@@ -71,6 +96,12 @@ export const LgdConfigurationsRepository = {
         })
     },
 
+    /**
+     * Delete an LGD configuration.
+     * 
+     * @param id - The configuration ID
+     * @returns An Effect resolving to the deleted configuration
+     */
     delete: (id: number) => {
         return queryEffect(async () => {
             const result = await db

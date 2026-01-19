@@ -20,11 +20,11 @@ import {
 
 /**
  * @module AuthRepository
- * @description Data access layer for Authentication and Identity.
+ * Data access layer for Authentication and Identity.
  * Handles database operations for users, sessions, and verification tokens.
  */
 
-type DrizzleDB = PostgresJsDatabase<typeof schema>
+export type DrizzleDB = PostgresJsDatabase<typeof schema>
 
 /**
  * Repository object containing all authentication-related data operations.

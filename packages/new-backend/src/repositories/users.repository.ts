@@ -27,7 +27,10 @@ export interface UsersQueryOptions extends QueryOptions {
 
 export class UsersRepository implements ITenantRepository<User, NewUser> {
     /**
-     * Find user by ID
+     * Find user by ID.
+     * 
+     * @param id - The user ID
+     * @returns An Effect resolving to the user or NotFoundError
      */
     findById(id: string): Effect.Effect<User, DatabaseError | NotFoundError> {
         return pipe(
@@ -41,7 +44,11 @@ export class UsersRepository implements ITenantRepository<User, NewUser> {
     }
 
     /**
-     * Find user by email
+     * Find user by email.
+     * 
+     * @param email - The email address
+     * @param tenantId - Optional tenant ID filter
+     * @returns An Effect resolving to the user or undefined
      */
     findByEmail(email: string, tenantId?: string): Effect.Effect<User | undefined, DatabaseError> {
         return queryEffect(() => {
@@ -56,7 +63,10 @@ export class UsersRepository implements ITenantRepository<User, NewUser> {
     }
 
     /**
-     * Find all users with pagination
+     * Find all users with pagination.
+     * 
+     * @param options - Query options including pagination and filters
+     * @returns An Effect resolving to paginated user results
      */
     findAll(options?: UsersQueryOptions): Effect.Effect<PaginatedResult<User>, DatabaseError> {
         return queryEffect(async () => {
@@ -108,7 +118,11 @@ export class UsersRepository implements ITenantRepository<User, NewUser> {
     }
 
     /**
-     * Find users by tenant
+     * Find users by tenant.
+     * 
+     * @param tenantId - The tenant ID
+     * @param options - Query options including pagination and filters
+     * @returns An Effect resolving to paginated user results for the tenant
      */
     findByTenant(
         tenantId: string,
@@ -163,7 +177,10 @@ export class UsersRepository implements ITenantRepository<User, NewUser> {
     }
 
     /**
-     * Create a new user
+     * Create a new user.
+     * 
+     * @param data - The user data
+     * @returns An Effect resolving to the created user
      */
     create(data: NewUser): Effect.Effect<User, DatabaseError> {
         return insertEffect(() =>
@@ -179,7 +196,11 @@ export class UsersRepository implements ITenantRepository<User, NewUser> {
     }
 
     /**
-     * Update an existing user
+     * Update an existing user.
+     * 
+     * @param id - The user ID
+     * @param data - The data to update
+     * @returns An Effect resolving to the updated user or NotFoundError
      */
     update(
         id: string,
@@ -203,14 +224,20 @@ export class UsersRepository implements ITenantRepository<User, NewUser> {
     }
 
     /**
-     * Soft delete a user
+     * Soft delete a user.
+     * 
+     * @param id - The user ID
+     * @returns An Effect resolving to the updated (deleted) user
      */
     delete(id: string): Effect.Effect<User, DatabaseError | NotFoundError> {
         return this.update(id, { isActive: false })
     }
 
     /**
-     * Get user statistics for a tenant
+     * Get user statistics for a tenant.
+     * 
+     * @param tenantId - The tenant ID
+     * @returns An Effect resolving to user statistics (total, active, inactive, verified)
      */
     getStats(tenantId: string): Effect.Effect<{
         total: number

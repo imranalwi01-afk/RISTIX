@@ -5,6 +5,16 @@ import { frs9ParamScenarioRulesh, frs9ParamScenarioRulesd } from '../db/schema'
 
 export const RuleBaseSettingsService = {
     // Header Operations
+
+    /**
+     * List rule headers with filtering.
+     * 
+     * @param query - Filter options
+     * @param query.search - Search term for rule name or type
+     * @param query.ruleType - Filter by rule type
+     * @param query.activeFlag - Filter by active status
+     * @returns An Effect resolving to an array of transformed headers
+     */
     listHeaders: (query: { search?: string, ruleType?: string, activeFlag?: boolean }) => {
         return pipe(
             RuleBaseSettingsRepository.findHeaders(query.search, query.ruleType, query.activeFlag),
@@ -12,6 +22,12 @@ export const RuleBaseSettingsService = {
         )
     },
 
+    /**
+     * Get a rule header by ID.
+     * 
+     * @param id - The header ID
+     * @returns An Effect resolving to the header or NotFoundError
+     */
     getHeader: (id: number) => {
         return pipe(
             RuleBaseSettingsRepository.findHeaderById(BigInt(id)),
@@ -23,6 +39,13 @@ export const RuleBaseSettingsService = {
         )
     },
 
+    /**
+     * Create a new rule header.
+     * 
+     * @param data - The header data
+     * @param userId - The ID of the user creating the header
+     * @returns An Effect resolving to the created header
+     */
     createHeader: (data: any, userId: string) => {
         const now = new Date().toISOString()
         const payload = {
@@ -40,6 +63,14 @@ export const RuleBaseSettingsService = {
         )
     },
 
+    /**
+     * Update an existing rule header.
+     * 
+     * @param id - The header ID
+     * @param data - The data to update
+     * @param userId - The ID of the user updating the header
+     * @returns An Effect resolving to the updated header or NotFoundError
+     */
     updateHeader: (id: number, data: any, userId: string) => {
         const now = new Date().toISOString()
         const payload = {
@@ -58,6 +89,12 @@ export const RuleBaseSettingsService = {
         )
     },
 
+    /**
+     * Delete a rule header.
+     * 
+     * @param id - The header ID
+     * @returns An Effect resolving to a success message
+     */
     deleteHeader: (id: number) => {
         return pipe(
             RuleBaseSettingsRepository.deleteHeader(BigInt(id)),
@@ -66,6 +103,13 @@ export const RuleBaseSettingsService = {
     },
 
     // Detail Operations
+
+    /**
+     * List details for a rule.
+     * 
+     * @param ruleId - The rule header ID
+     * @returns An Effect resolving to an array of transformed details
+     */
     listDetails: (ruleId: number) => {
         return pipe(
             RuleBaseSettingsRepository.findDetailsByRuleId(BigInt(ruleId)),
@@ -73,6 +117,14 @@ export const RuleBaseSettingsService = {
         )
     },
 
+    /**
+     * Create a new rule detail.
+     * 
+     * @param ruleId - The rule header ID
+     * @param data - The detail data
+     * @param userId - The ID of the user creating the detail
+     * @returns An Effect resolving to the created detail
+     */
     createDetail: (ruleId: number, data: any, userId: string) => {
         const now = new Date().toISOString()
         const payload = {
@@ -92,6 +144,14 @@ export const RuleBaseSettingsService = {
         )
     },
 
+    /**
+     * Update an existing rule detail.
+     * 
+     * @param id - The detail ID
+     * @param data - The data to update
+     * @param userId - The ID of the user updating the detail
+     * @returns An Effect resolving to the updated detail or NotFoundError
+     */
     updateDetail: (id: number, data: any, userId: string) => {
         const now = new Date().toISOString()
         const payload = {
@@ -110,6 +170,12 @@ export const RuleBaseSettingsService = {
         )
     },
 
+    /**
+     * Delete a rule detail.
+     * 
+     * @param id - The detail ID
+     * @returns An Effect resolving to a success message or NotFoundError
+     */
     deleteDetail: (id: number) => {
         return pipe(
             RuleBaseSettingsRepository.deleteDetail(BigInt(id)),
@@ -122,6 +188,8 @@ export const RuleBaseSettingsService = {
     },
 
     // Metadata Handlers
+
+    /** Get available rule types options. */
     getRuleTypes: () => {
         return Effect.succeed([
             { value: 'DEFAULT', label: 'Default' },
@@ -131,6 +199,12 @@ export const RuleBaseSettingsService = {
         ])
     },
 
+    /**
+     * Get available operators based on data type.
+     * 
+     * @param dataType - The column data type (varchar, int, date)
+     * @returns An Effect resolving to an array of operators
+     */
     getOperators: (dataType: string) => {
         const operators = {
             varchar: [
@@ -161,6 +235,7 @@ export const RuleBaseSettingsService = {
         return Effect.succeed(operators[dataType as keyof typeof operators] || operators.varchar)
     },
 
+    /** Get available conditions (AND/OR). */
     getConditions: () => {
         return Effect.succeed([
             { value: 'AND', label: 'AND' },
@@ -168,6 +243,7 @@ export const RuleBaseSettingsService = {
         ])
     },
 
+    /** Get available stage options. */
     getStages: () => {
         return Effect.succeed([
             { value: '1', label: 'Stage 1 - Performing' },

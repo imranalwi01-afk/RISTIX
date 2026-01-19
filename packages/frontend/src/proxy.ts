@@ -168,11 +168,6 @@ function hasRouteAccess(user: any, pathname: string): boolean {
     return true;
   }
 
-  // 🩹 BYPASS: Always allow access for now as requested by user
-  // This shifts permission enforcement to the UI (sidebar/buttons) and Backend API
-  return true;
-
-  /* 
   // 2. Map-Based Permission Check
   // Sort patterns from most specific to least specific
   const protectedPaths = Object.keys(ROUTE_PERMISSION_MAP).sort((a, b) => b.length - a.length);
@@ -202,7 +197,6 @@ function hasRouteAccess(user: any, pathname: string): boolean {
 
   // Allow public or un-mapped routes by default (middleware logic should catch sensitive ones)
   return true;
-  */
 }
 
 // ✅ SURGICAL FIX: Get token from multiple sources

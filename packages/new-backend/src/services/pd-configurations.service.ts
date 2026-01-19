@@ -5,6 +5,17 @@ import { frs9ImpCaPdConfig } from '../db/schema'
 
 export const PdConfigurationsService = {
     // CRUD Operations
+
+    /**
+     * List PD configurations with filtering options.
+     * 
+     * @param query - Filter options
+     * @param query.search - Search term for model name
+     * @param query.selected_method - PD method ID
+     * @param query.bucket - Bucket group
+     * @param query.is_active - Active status flag
+     * @returns An Effect resolving to an array of transformed configurations
+     */
     list: (query: { search?: string, selected_method?: string, bucket?: string, is_active?: boolean }) => {
         return pipe(
             PdConfigurationsRepository.findAll(query.search, query.selected_method, query.bucket, query.is_active),
@@ -12,6 +23,12 @@ export const PdConfigurationsService = {
         )
     },
 
+    /**
+     * Get a PD configuration by ID.
+     * 
+     * @param id - The configuration ID
+     * @returns An Effect resolving to the configuration or NotFoundError
+     */
     get: (id: number) => {
         return pipe(
             PdConfigurationsRepository.findById(BigInt(id)),
@@ -23,6 +40,13 @@ export const PdConfigurationsService = {
         )
     },
 
+    /**
+     * Create a new PD configuration.
+     * 
+     * @param data - The configuration data
+     * @param userId - The ID of the user creating the configuration
+     * @returns An Effect resolving to the created configuration
+     */
     create: (data: any, userId: string) => {
         const now = new Date().toISOString()
         const payload = {
@@ -51,6 +75,14 @@ export const PdConfigurationsService = {
         )
     },
 
+    /**
+     * Update an existing PD configuration.
+     * 
+     * @param id - The configuration ID
+     * @param data - The data to update
+     * @param userId - The ID of the user updating the configuration
+     * @returns An Effect resolving to the updated configuration or NotFoundError
+     */
     update: (id: number, data: any, userId: string) => {
         const now = new Date().toISOString()
         const updateData: any = {
@@ -82,6 +114,12 @@ export const PdConfigurationsService = {
         )
     },
 
+    /**
+     * Delete a PD configuration.
+     * 
+     * @param id - The configuration ID
+     * @returns An Effect resolving to a success message
+     */
     delete: (id: number) => {
         return pipe(
             PdConfigurationsRepository.delete(BigInt(id)),
@@ -90,6 +128,8 @@ export const PdConfigurationsService = {
     },
 
     // Metadata
+
+    /** Get available PD methods options. */
     getMethods: () => {
         return Effect.succeed([
             { value: 1, label: 'NOA Migration' },
@@ -97,6 +137,7 @@ export const PdConfigurationsService = {
         ])
     },
 
+    /** Get available population types options. */
     getPopulationTypes: () => {
         return Effect.succeed([
             { value: 2, label: 'Window Moving Period' },

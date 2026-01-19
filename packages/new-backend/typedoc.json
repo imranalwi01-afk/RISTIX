@@ -4,7 +4,10 @@
         "./src/index.ts",
         "./src/services/*.ts",
         "./src/routes/*.ts",
-        "./src/repositories/*.ts"
+        "./src/repositories/*.ts",
+        "./src/db/schema/*.ts",
+        "./src/lib/*.ts",
+        "./src/app.ts"
     ],
     "out": "docs",
     "plugin": [],
