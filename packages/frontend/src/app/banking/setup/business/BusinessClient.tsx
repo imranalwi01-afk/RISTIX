@@ -466,6 +466,15 @@ function BusinessSettingPage() {
                         </TableCell>
                         <TableCell>
                           <Box sx={{ display: 'flex', gap: 1 }}>
+                            <Tooltip title="View Details">
+                              <IconButton
+                                size="small"
+                                color="info"
+                                onClick={() => handleViewDetail(parameter)}
+                              >
+                                <InfoIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
                             <Tooltip title="Edit Parameter">
                               <IconButton
                                 size="small"
