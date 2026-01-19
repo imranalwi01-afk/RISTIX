@@ -140,6 +140,24 @@ export const ParametersRepository = {
     },
 
     /**
+     * Update an existing parameter detail.
+     * 
+     * @param id - The ID of the detail
+     * @param data - The data to update
+     * @returns An Effect resolving to the updated detail
+     */
+    updateDetail: (id: number | bigint, data: Partial<InferInsertModel<typeof frs9ParamCommond>>) => {
+        return queryEffect(async () => {
+            const result = await db
+                .update(frs9ParamCommond)
+                .set(data)
+                .where(eq(frs9ParamCommond.pkid, BigInt(id)))
+                .returning()
+            return result[0]
+        })
+    },
+
+    /**
      * Delete a parameter detail.
      * 
      * @param id - The ID of the detail

@@ -166,6 +166,28 @@ app.openapi(
     }
 )
 
+// GET /api/v1/business-settings/:code/details
+// Get Business Setting Details
+app.openapi(
+    createRoute({
+        method: 'get',
+        path: '/{code}/details',
+        tags: ['Business Settings'],
+        summary: 'Get Business Setting Details',
+        request: {
+            params: z.object({ code: z.string() })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), data: z.array(BusinessSettingDetailSchema) }) } }, description: 'Get Setting Details' },
+            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' }
+        }
+    }),
+    async (c) => {
+        const { code } = c.req.valid('param')
+        return runEffect(c, ParametersService.getAppSettingDetails(code) as any) as any
+    }
+)
+
 // PUT /api/v1/business-settings/:code
 // Update Business Setting Header
 app.openapi(
@@ -258,6 +280,32 @@ app.openapi(
         const { id } = c.req.valid('param')
         if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
         return runEffect(c, ParametersService.deleteAppSettingDetail(id) as any) as any
+    }
+)
+
+// PUT /api/v1/business-settings/details/:id
+// Update Business Setting Detail
+app.openapi(
+    createRoute({
+        method: 'put',
+        path: '/details/{id}',
+        tags: ['Business Settings'],
+        summary: 'Update Business Setting Detail',
+        request: {
+            params: z.object({ id: z.string().transform(Number) }),
+            body: { content: { 'application/json': { schema: CreateBusinessDetailSchema.partial() } } }
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), data: BusinessSettingDetailSchema }) } }, description: 'Updated' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Invalid Input' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        const { id } = c.req.valid('param')
+        const data = c.req.valid('json')
+        const userId = c.get('userId') as string || 'system'
+        return runEffect(c, ParametersService.updateAppSettingDetail(id, data, userId) as any) as any
     }
 )
 

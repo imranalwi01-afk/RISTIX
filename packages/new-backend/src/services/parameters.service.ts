@@ -155,6 +155,38 @@ export const ParametersService = {
     },
 
     /**
+     * Update an app setting detail.
+     * 
+     * @param id - The ID of the detail
+     * @param data - The data to update
+     * @param userId - The ID of the user updating the detail
+     * @returns An Effect resolving to the updated detail
+     */
+    updateAppSettingDetail: (id: number, data: any, userId: string) => {
+        const now = new Date().toISOString()
+        const payload: any = {
+            updatedby: userId,
+            updatedhost: 'localhost',
+            updateddate: now,
+        }
+
+        if (data.paramSeq !== undefined) payload.paramSeq = data.paramSeq
+        if (data.value1 !== undefined) payload.value1 = data.value1
+        if (data.value2 !== undefined) payload.value2 = data.value2
+        if (data.value3 !== undefined) payload.value3 = data.value3
+        if (data.paramdesc !== undefined) payload.paramdesc = data.paramdesc
+
+        return pipe(
+            ParametersRepository.updateDetail(id, payload),
+            Effect.flatMap(updated =>
+                (updated
+                    ? Effect.succeed(transformDetail(updated as any))
+                    : Effect.fail(new NotFoundError({ resource: 'App Setting Detail', id: String(id) }))) as any
+            )
+        )
+    },
+
+    /**
      * Delete an app setting detail.
      * 
      * @param id - The ID of the detail to delete

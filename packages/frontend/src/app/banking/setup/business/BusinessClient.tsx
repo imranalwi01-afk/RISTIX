@@ -145,6 +145,7 @@ import {
   type BusinessParameter,
   type BusinessParameterFormData
 } from './components';
+import { BusinessDetailDialog } from './components/BusinessDetailDialog';
 
 // =====================================================
 // MAIN BUSINESS SETTING PAGE
@@ -158,6 +159,10 @@ function BusinessSettingPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingParameter, setEditingParameter] = useState<BusinessParameter | null>(null);
+
+  // Detail Dialog State
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [selectedParameterForDetail, setSelectedParameterForDetail] = useState<BusinessParameter | null>(null);
 
   // Pagination
   const [page, setPage] = useState(0);
@@ -270,6 +275,11 @@ function BusinessSettingPage() {
   const handleCreateParameter = () => {
     setEditingParameter(null);
     setDialogOpen(true);
+  };
+
+  const handleViewDetail = (parameter: BusinessParameter) => {
+    setSelectedParameterForDetail(parameter);
+    setDetailDialogOpen(true);
   };
 
   const handleEditParameter = (parameter: BusinessParameter) => {
@@ -507,6 +517,13 @@ function BusinessSettingPage() {
         onClose={handleCloseDialog}
         onSave={handleSaveParameter}
         parameter={editingParameter || undefined}
+      />
+
+      {/* Detail Dialog */}
+      <BusinessDetailDialog
+        open={detailDialogOpen}
+        onClose={() => setDetailDialogOpen(false)}
+        parameter={selectedParameterForDetail}
       />
 
       {/* Success/Error Snackbars */}
