@@ -5,6 +5,12 @@ import { eq, desc, inArray } from 'drizzle-orm'
 import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
 
+/**
+ * FL Scalar Routes
+ * Handles CRUD operations for Forward Looking (FL) Scalars.
+ * 
+ * Base Path: /api/v1/banking/collective/fl-scalar
+ */
 export const flScalarRoutes = new OpenAPIHono<AppContext>()
 
 flScalarRoutes.use('*', authMiddleware)

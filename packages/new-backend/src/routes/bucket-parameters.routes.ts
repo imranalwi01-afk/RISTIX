@@ -326,4 +326,10 @@ app.openapi(
     }
 )
 
+/**
+ * Bucket Parameters Routes
+ * Handles CRUD operations for Bucket Parameters (Headers and Details).
+ * 
+ * Base Path: /api/v1/banking/collective/bucket
+ */
 export const bucketParametersRoutes = app

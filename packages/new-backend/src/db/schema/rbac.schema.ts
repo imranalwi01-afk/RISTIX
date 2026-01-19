@@ -22,6 +22,10 @@ export const coreSchema = pgSchema('core')
 // ROLES TABLE
 // =============================================================================
 
+/**
+ * Roles table definition.
+ * Defines available roles within the system, including system and custom roles.
+ */
 export const roles = coreSchema.table(
     'roles',
     {
@@ -41,7 +45,7 @@ export const roles = coreSchema.table(
         // Timestamps
         createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
         updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
-        
+
         // Tenant-specific fields
         level: integer('level').notNull().default(1),
         supportsConventional: boolean('supports_conventional').default(true),
@@ -59,6 +63,10 @@ export const roles = coreSchema.table(
 // USER ROLES JUNCTION TABLE
 // =============================================================================
 
+/**
+ * User roles junction table definition.
+ * Maps users to roles, supporting temporary and permanent assignments.
+ */
 export const userRoles = coreSchema.table(
     'user_roles',
     {
@@ -96,6 +104,10 @@ export const userRoles = coreSchema.table(
 // PERMISSIONS TABLE (for granular permission management)
 // =============================================================================
 
+/**
+ * Permissions table definition.
+ * Defines atomic actions and resources for granular access control.
+ */
 export const permissions = coreSchema.table(
     'permissions',
     {
@@ -121,6 +133,10 @@ export const permissions = coreSchema.table(
 // ROLE PERMISSIONS JUNCTION TABLE
 // =============================================================================
 
+/**
+ * Role permissions junction table definition.
+ * Maps roles to permissions, defining what actions a role can perform.
+ */
 export const rolePermissions = coreSchema.table(
     'role_permissions',
     {

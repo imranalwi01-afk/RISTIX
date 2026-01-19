@@ -21,14 +21,22 @@ export const auditSchema = pgSchema('audit')
 // AUDIT LOGS TABLE
 // =============================================================================
 
+// =============================================================================
+// AUDIT LOGS TABLE
+// =============================================================================
+
+/**
+ * Audit logs table definition.
+ * Stores system-wide audit trail for critical actions and data changes.
+ */
 export const auditLogs = auditSchema.table(
     'audit_logs',
     {
         id: uuid('id').primaryKey().defaultRandom(),
-        
+
         // User context
         userId: uuid('user_id'),
-        
+
         // Tenant isolation - varchar to match actual database
         tenantId: varchar('tenant_id', { length: 100 }).default('dana'),
 
@@ -76,6 +84,10 @@ export const auditLogs = auditSchema.table(
 // USER ACTIVITY LOGS TABLE
 // =============================================================================
 
+/**
+ * User activity logs table definition.
+ * Tracks granular user interactions, page views, and API calls for analytics.
+ */
 export const userActivityLogs = auditSchema.table(
     'user_activity_logs',
     {
@@ -84,24 +96,24 @@ export const userActivityLogs = auditSchema.table(
         tenantId: varchar('tenant_id', { length: 100 }),
         activityType: varchar('activity_type', { length: 100 }).notNull(),
         activityDescription: text('activity_description'),
-        
+
         // Page navigation
         pageUrl: varchar('page_url', { length: 1000 }),
         pageTitle: varchar('page_title', { length: 500 }),
         previousPage: varchar('previous_page', { length: 1000 }),
-        
+
         // API details
         endpoint: varchar('endpoint', { length: 500 }),
         method: varchar('method', { length: 10 }),
         statusCode: integer('status_code'),
         responseTimeMs: integer('response_time_ms'),
-        
+
         // Session and device
         sessionId: varchar('session_id', { length: 255 }),
         deviceInfo: jsonb('device_info'),
         ipAddress: varchar('ip_address', { length: 45 }),
         userAgent: text('user_agent'),
-        
+
         // Timestamps
         createdAt: timestamp('created_at').notNull().defaultNow(),
     },
@@ -117,6 +129,10 @@ export const userActivityLogs = auditSchema.table(
 // DATA ACCESS LOGS TABLE
 // =============================================================================
 
+/**
+ * Data access logs table definition.
+ * Records specific data access patterns (read, export, print) for compliance.
+ */
 export const dataAccessLogs = auditSchema.table(
     'data_access_logs',
     {
@@ -143,6 +159,10 @@ export const dataAccessLogs = auditSchema.table(
 // CALCULATION AUDIT LOGS TABLE
 // =============================================================================
 
+/**
+ * Calculation audit logs table definition.
+ * specialized audit log for tracking complex calculation jobs and their parameters.
+ */
 export const calculationAuditLogs = auditSchema.table(
     'calculation_audit_logs',
     {

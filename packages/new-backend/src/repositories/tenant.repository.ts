@@ -101,6 +101,12 @@ export const TenantRepository = {
         return { data, total: countResult[0]?.count ?? 0 }
     },
 
+    /**
+     * Create a new tenant record.
+     * 
+     * @param data - The tenant data to insert
+     * @returns The newly created Tenant record
+     */
     create: async (data: NewTenant) => {
         const [tenant] = await db.insert(tenants).values({
             ...data,
@@ -110,6 +116,13 @@ export const TenantRepository = {
         return tenant
     },
 
+    /**
+     * Update an existing tenant record.
+     * 
+     * @param id - The tenant ID to update
+     * @param data - Partial tenant data containing updates
+     * @returns The updated Tenant record
+     */
     update: async (id: string, data: Partial<NewTenant>) => {
         const [tenant] = await db.update(tenants).set({
             ...data,
@@ -118,12 +131,24 @@ export const TenantRepository = {
         return tenant
     },
 
+    /**
+     * Soft delete a tenant by setting isActive to false.
+     * 
+     * @param id - The ID of the tenant to deactivate
+     * @returns The updated Tenant record (implicitly via query update)
+     */
     delete: (id: string) =>
         db.update(tenants).set({
             isActive: false,
             updatedAt: new Date(),
         }).where(eq(tenants.id, id)),
 
+    /**
+     * Reactivate a tenant by setting isActive to true.
+     * 
+     * @param id - The ID of the tenant to activate
+     * @returns The updated Tenant record (implicitly via query update)
+     */
     enable: (id: string) =>
         db.update(tenants).set({
             isActive: true,
@@ -134,6 +159,11 @@ export const TenantRepository = {
     // AGGREGATE QUERIES
     // ---------------------------------------------------------------------------
 
+    /**
+     * Aggregate statistics for tenants (total, active, inactive).
+     * 
+     * @returns A promise resolving to an object with statistical counts
+     */
     getStats: async () => {
         const result = await db
             .select({
@@ -150,6 +180,11 @@ export const TenantRepository = {
         }
     },
 
+    /**
+     * Group and count tenants by their banking mode (type).
+     * 
+     * @returns A promise resolving to an array of counts grouped by banking mode
+     */
     countByBankingType: async () => {
         const result = await db
             .select({
