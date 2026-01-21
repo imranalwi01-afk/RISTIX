@@ -153,6 +153,7 @@ test.describe('Banking Setup with Admin Login', () => {
 
         // READ Verification
         await expect(page.getByText('Mock Business Param')).toBeVisible();
+        await expect(page.locator('button[aria-label="View Details"]')).toBeVisible();
 
         // CREATE Verification
         await page.getByRole('button', { name: /Create|Add/i }).click();

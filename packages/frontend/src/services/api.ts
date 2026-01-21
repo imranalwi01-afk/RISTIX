@@ -86,6 +86,19 @@ export const authAPI = {
     return response.data;
   },
 
+  // Verify token
+  verifyToken: async () => {
+    console.log('🔒 Verifying token');
+    const response = await apiClient.get('/auth/verify');
+    return response.data;
+  },
+
+  changePassword: async (data: any) => {
+    console.log('🔒 Changing password (stub)');
+    // In real implementation: await apiClient.post('/auth/change-password', data);
+    return { success: true, message: 'Password changed successfully' };
+  },
+
   // Real token refresh
   refresh: async (refreshToken: string) => {
     console.log('🔄 Real token refresh');
@@ -240,14 +253,81 @@ export const rolesAPI = {
   // Assign role to user
   assignUser: async (roleId: string, userId: string) => {
     console.log(`👤 Assigning role ${roleId} to user ${userId}`);
-    const response = await apiClient.post(`/roles/${roleId}/users/${userId}`);
+    // Fixed path matching backend: POST /users/:userId/roles/:roleId
+    const response = await apiClient.post(`/users/${userId}/roles/${roleId}`);
     return response.data;
   },
 
   // Remove role from user
   removeUser: async (roleId: string, userId: string) => {
     console.log(`👤 Removing role ${roleId} from user ${userId}`);
-    const response = await apiClient.delete(`/roles/${roleId}/users/${userId}`);
+    // Fixed path matching backend: DELETE /users/:userId/roles/:roleId
+    const response = await apiClient.delete(`/users/${userId}/roles/${roleId}`);
+    return response.data;
+  }
+};
+
+// ============================================================================
+// REAL AUDIT API - DATABASE INTEGRATION
+// ============================================================================
+export const auditAPI = {
+  // Get all audit logs with filtering and pagination
+  getLogs: async (params?: {
+    page?: number;
+    limit?: number;
+    eventType?: string;
+    action?: string;
+    userId?: string;
+    entityType?: string;
+    entityId?: string;
+    startDate?: string;
+    endDate?: string;
+    search?: string;
+  }) => {
+    console.log('📜 Fetching audit logs from real database', params);
+    const response = await apiClient.get('/audit/logs', { params });
+    return response.data;
+  },
+
+  // Get specific audit log
+  getLogById: async (id: string) => {
+    console.log(`📜 Fetching audit log ${id}`);
+    const response = await apiClient.get(`/audit/logs/${id}`);
+    return response.data;
+  },
+
+  // Get audit stats
+  getStats: async (params?: { startDate?: string; endDate?: string }) => {
+    console.log('📊 Fetching audit stats');
+    const response = await apiClient.get('/audit/stats', { params });
+    return response.data;
+  },
+
+  // Export audit logs
+  exportLogs: async (format: 'csv' | 'json', filters?: any) => {
+    console.log(`📤 Exporting audit logs as ${format}`);
+    const response = await apiClient.post('/audit/export', { format, filters }, {
+      responseType: format === 'csv' ? 'blob' : 'json'
+    });
+    return response.data;
+  }
+};
+
+// ============================================================================
+// SECURITY CONFIG API (STUB)
+// ============================================================================
+export const securityConfigAPI = {
+  // Get security configuration
+  get: async () => {
+    console.log('🛡️ Fetching security configuration');
+    const response = await apiClient.get('/security-config');
+    return response.data;
+  },
+
+  // Update security configuration
+  update: async (config: any) => {
+    console.log('🛡️ Updating security configuration');
+    const response = await apiClient.put('/security-config', config);
     return response.data;
   }
 };

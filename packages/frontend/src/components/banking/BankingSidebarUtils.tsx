@@ -634,10 +634,31 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
     // MAINTENANCE
     {
         id: 'maintenance',
-        label: 'Maintenance',
+        label: 'Admin & Maintenance',
         icon: <Build />,
         description: 'System Administration',
         children: [
+            {
+                id: 'user-management',
+                label: 'User Management',
+                href: '/admin/users',
+                icon: <ManageAccounts />,
+                description: 'Manage system users'
+            },
+            {
+                id: 'role-management',
+                label: 'Role Management',
+                href: '/admin/roles',
+                icon: <VpnKey />,
+                description: 'Manage roles and permissions'
+            },
+            {
+                id: 'user-assignments',
+                label: 'User Assignments',
+                href: '/admin/assignments',
+                icon: <SupervisorAccount />,
+                description: 'Assign roles to users'
+            },
             {
                 id: 'approval',
                 label: 'Approval',
@@ -658,20 +679,6 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
                 href: '/banking/maintenance/job-monitoring',
                 icon: <Monitor />,
                 description: '/IFRS9N/JobMonitoring'
-            },
-            {
-                id: 'user-management',
-                label: 'User Management',
-                href: '/banking/maintenance/users',
-                icon: <ManageAccounts />,
-                description: '/IFRS9N/UserManagement'
-            },
-            {
-                id: 'role-management',
-                label: 'Role Management',
-                href: '/banking/maintenance/roles',
-                icon: <VpnKey />,
-                description: '/IFRS9N/RoleManagement'
             },
             {
                 id: 'menu-management',

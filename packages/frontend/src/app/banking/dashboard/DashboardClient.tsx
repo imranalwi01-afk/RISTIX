@@ -70,6 +70,8 @@ import {
     selectHasUnsavedChanges
 } from '../../../store/slices/dashboardPersonalizationSlice'
 
+import RecentActivityWidget from '../../../components/dashboard/RecentActivityWidget'
+
 // Dynamic imports for heavy components
 const WidgetManager = dynamic(
     () => import('../../../components/dashboard/WidgetManager'),
@@ -307,14 +309,6 @@ interface PortfolioMetrics {
     averageLoanSize?: number;
 }
 
-interface DashboardActivity {
-    id: string;
-    icon: React.ReactNode;
-    text: string;
-    time: string;
-    type: 'success' | 'warning' | 'info' | 'error';
-}
-
 export default function DashboardClient() {
     const router = useRouter()
     const dispatch = useDispatch<AppDispatch>()
@@ -334,7 +328,6 @@ export default function DashboardClient() {
     const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
     const [eclSummary, setEclSummary] = useState<ECLSummary | null>(null)
     const [portfolioMetrics, setPortfolioMetrics] = useState<PortfolioMetrics | null>(null)
-    const [activities, setActivities] = useState<DashboardActivity[]>([])
     const [error, setError] = useState<string | null>(null)
     const [isDataLoaded, setIsDataLoaded] = useState(false)
 
@@ -439,22 +432,7 @@ export default function DashboardClient() {
             }
         })
 
-        setActivities([
-            {
-                id: '1',
-                icon: <Calculate />,
-                text: 'ECL calculation completed',
-                time: new Date().toISOString(),
-                type: 'success'
-            },
-            {
-                id: '2',
-                icon: <Upload />,
-                text: 'Portfolio data uploaded',
-                time: new Date(Date.now() - 3600000).toISOString(),
-                type: 'success'
-            }
-        ])
+
 
         setIsLoading(false)
         setIsDataLoaded(true)
@@ -553,11 +531,9 @@ export default function DashboardClient() {
                     </Box>
 
                     <Stack direction="row" spacing={2} alignItems="center">
-                        <Badge badgeContent={activities.length} color="error">
-                            <IconButton sx={{ color: 'white' }}>
-                                <Notifications />
-                            </IconButton>
-                        </Badge>
+                        <IconButton sx={{ color: 'white' }}>
+                            <Notifications />
+                        </IconButton>
                         <Chip
                             label={bankingContext.name}
                             sx={{ backgroundColor: 'rgba(255,255,255,0.2)', color: 'white', fontWeight: 'bold' }}
@@ -783,46 +759,7 @@ export default function DashboardClient() {
 
                 {/* Recent Activities */}
                 <Grid size={{ xs: 12, md: 6 }}>
-                    <Card sx={{ height: '100%' }}>
-                        <CardContent>
-                            <Typography variant="h6" gutterBottom sx={{ color: bankingContext.primary, display: 'flex', alignItems: 'center' }}>
-                                <Timeline sx={{ mr: 1 }} />
-                                Recent Activities
-                            </Typography>
-                            <List>
-                                {activities.length > 0 ? (
-                                    activities.slice(0, 5).map((activity, index) => (
-                                        <React.Fragment key={activity.id}>
-                                            <ListItem sx={{ px: 0 }}>
-                                                <ListItemIcon sx={{ minWidth: 40 }}>
-                                                    {activity.icon}
-                                                </ListItemIcon>
-                                                <ListItemText
-                                                    primary={activity.text}
-                                                    secondary={activity.time}
-                                                    primaryTypographyProps={{ variant: 'body2' }}
-                                                    secondaryTypographyProps={{ variant: 'caption' }}
-                                                />
-                                            </ListItem>
-                                            {index < activities.length - 1 && index < 4 && <Divider />}
-                                        </React.Fragment>
-                                    ))
-                                ) : (
-                                    <ListItem sx={{ px: 0 }}>
-                                        <ListItemIcon sx={{ minWidth: 40 }}>
-                                            <Info color="info" />
-                                        </ListItemIcon>
-                                        <ListItemText
-                                            primary="No recent activities"
-                                            secondary="Activities will appear here as you use the system"
-                                            primaryTypographyProps={{ variant: 'body2' }}
-                                            secondaryTypographyProps={{ variant: 'caption' }}
-                                        />
-                                    </ListItem>
-                                )}
-                            </List>
-                        </CardContent>
-                    </Card>
+                    <RecentActivityWidget />
                 </Grid>
             </Grid>
 
