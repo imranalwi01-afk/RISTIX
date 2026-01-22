@@ -145,7 +145,6 @@ rbacRoutes.openapi(
                 level: query.level
             }),
             Effect.map((result) => ({
-                success: true,
                 data: result.data.map(r => ({
                     ...r,
                     // Handle potential nulls
@@ -215,6 +214,47 @@ rbacRoutes.openapi(
                 // complianceLevel: r.complianceLevel ?? null,
                 tenantId: r.tenantId ?? null,
             }))
+        )
+
+        return runEffect(c, effect)
+    }
+)
+
+/**
+ * GET /permissions - Get all available permissions grouped
+ */
+rbacRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/permissions',
+        tags: ['RBAC'],
+        summary: 'List Available Permissions',
+        security: [{ BearerAuth: [] }],
+        responses: {
+            200: {
+                description: 'Permission groups',
+                content: {
+                    'application/json': {
+                        schema: z.object({
+                            success: z.boolean(),
+                            data: z.array(z.any()),
+                        })
+                    }
+                }
+            },
+        },
+    }),
+    async (c) => {
+        const tenantId = c.get('tenantId')!
+
+        const effect = pipe(
+            rbacService.getAvailablePermissions(tenantId),
+            Effect.map((permissions) => permissions.map(p => ({
+                ...p,
+                category: p.category ?? 'CORE',
+                riskLevel: (p as any).riskLevel ?? 'LOW',
+                requiresApproval: (p as any).requiresApproval ?? false,
+            }))),
         )
 
         return runEffect(c, effect)
@@ -769,46 +809,3 @@ rbacRoutes.openapi(
 // PERMISSION MANAGEMENT ENDPOINTS
 // =============================================================================
 
-/**
- * GET /permissions - Get all available permissions grouped
- */
-rbacRoutes.openapi(
-    createRoute({
-        method: 'get',
-        path: '/permissions',
-        tags: ['RBAC'],
-        summary: 'List Available Permissions',
-        security: [{ BearerAuth: [] }],
-        responses: {
-            200: {
-                description: 'Permission groups',
-                content: {
-                    'application/json': {
-                        schema: z.object({
-                            success: z.boolean(),
-                            data: z.array(z.any()),
-                        })
-                    }
-                }
-            },
-        },
-    }),
-    async (c) => {
-        const tenantId = c.get('tenantId')!
-
-        const effect = pipe(
-            rbacService.getAvailablePermissions(tenantId),
-            Effect.map((permissions) => ({
-                success: true,
-                data: permissions.map(p => ({
-                    ...p,
-                    category: p.category ?? 'CORE',
-                    riskLevel: (p as any).riskLevel ?? 'LOW',
-                    requiresApproval: (p as any).requiresApproval ?? false,
-                })),
-            }))
-        )
-
-        return runEffect(c, effect)
-    }
-)

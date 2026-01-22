@@ -236,9 +236,9 @@ const RoleManagementPage: React.FC = () => {
         permissionsInfo: permissionsResponse
       });
 
-      // Handle new structured response: { success: true, data: { roles: [...] }, pagination: { ... } }
-      const rolesData = rolesResponse.data?.roles || rolesResponse.data || [];
-      const permissionsData = permissionsResponse.data || [];
+      // Handle standardized response with axios wrapper: response.data = { success: true, data: [...], pagination: { ... } }
+      const rolesData = Array.isArray(rolesResponse.data?.data) ? rolesResponse.data.data : [];
+      const permissionsData = Array.isArray(permissionsResponse.data?.data) ? permissionsResponse.data.data : [];
 
       console.log('📊 Processed data:', {
         rolesCount: rolesData.length,
