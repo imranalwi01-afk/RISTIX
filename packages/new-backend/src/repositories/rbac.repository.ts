@@ -1,5 +1,5 @@
 import { Effect, pipe } from 'effect'
-import { eq, and, or, asc, desc, count, isNull, lte, gte, inArray } from 'drizzle-orm'
+import { eq, and, or, asc, desc, count, isNull, lte, gte, inArray, ilike } from 'drizzle-orm'
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import * as schema from '@/db/schema'
 import {
@@ -189,6 +189,15 @@ export class RolesRepository {
                         isNull((roles as any).bankingTypeSpecific)
                     )!
                 )
+            }
+            if (options?.search) {
+                const searchPattern = `%${options.search}%`;
+                conditions.push(
+                    or(
+                        ilike(roles.roleName, searchPattern),
+                        ilike(roles.description, searchPattern)
+                    )!
+                );
             }
 
             const whereClause = and(...conditions)

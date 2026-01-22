@@ -31,7 +31,13 @@ import { DatabaseError, NotFoundError, ValidationError, BusinessError } from '@/
  */
 export const getRoles = (
     tenantId: string,
-    options?: { includeInactive?: boolean; bankingType?: string }
+    options?: {
+        includeInactive?: boolean;
+        bankingType?: string;
+        search?: string;
+        type?: string;
+        level?: string;
+    }
 ) =>
     pipe(
         Effect.try(() => getDatabase(tenantId)),
@@ -39,10 +45,12 @@ export const getRoles = (
         Effect.flatMap(db =>
             rolesRepository.findByTenant(db, tenantId, {
                 includeInactive: options?.includeInactive,
-                bankingType: options?.bankingType
+                bankingType: options?.bankingType,
+                search: options?.search,
+                systemRolesOnly: options?.type === 'SYSTEM'
             })
         ),
-        Effect.map(({ data }) => data)
+        Effect.map((result) => result)
     )
 
 /**
@@ -329,4 +337,17 @@ export const getUserPermissions = (
 
             return allPermissions
         })
+    )
+
+/**
+ * Retrieve all available permissions from the database.
+ * 
+ * @param tenantId - The unique identifier of the tenant
+ * @returns An Effect that succeeds with an array of Permissions
+ */
+export const getAvailablePermissions = (tenantId: string) =>
+    pipe(
+        Effect.try(() => getDatabase(tenantId)),
+        Effect.mapError(error => new DatabaseError({ operation: 'query', message: String(error) })),
+        Effect.flatMap(db => permissionsRepository.findAll(db))
     )

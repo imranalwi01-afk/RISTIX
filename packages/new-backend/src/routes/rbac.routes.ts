@@ -93,14 +93,19 @@ const UpdatePermissionsSchema = z.object({
 rbacRoutes.openapi(
     createRoute({
         method: 'get',
-        path: '/roles',
+        path: '/',
         tags: ['RBAC'],
         summary: 'List Roles',
         security: [{ BearerAuth: [] }],
         request: {
             query: z.object({
+                page: z.string().optional().openapi({ example: '1' }),
+                limit: z.string().optional().openapi({ example: '10' }),
+                search: z.string().optional(),
                 includeInactive: z.string().optional().openapi({ example: 'true' }),
                 bankingType: z.string().optional(),
+                type: z.string().optional().openapi({ example: 'SYSTEM' }),
+                level: z.string().optional().openapi({ example: 'TENANT' }),
             }),
         },
         responses: {
@@ -108,8 +113,13 @@ rbacRoutes.openapi(
                 content: {
                     'application/json': {
                         schema: z.object({
-                            roles: z.array(RoleSchema),
-                            total: z.number(),
+                            success: z.boolean(),
+                            data: z.array(RoleSchema),
+                            pagination: z.object({
+                                total: z.number(),
+                                page: z.number(),
+                                limit: z.number(),
+                            }),
                         }),
                     },
                 },
@@ -119,22 +129,35 @@ rbacRoutes.openapi(
     }),
     async (c) => {
         const tenantId = c.get('tenantId')!
-        const includeInactive = c.req.query('includeInactive') === 'true'
-        const bankingType = c.req.query('bankingType')
+        const query = c.req.valid('query')
+
+        const page = parseInt(query.page || '1')
+        const limit = parseInt(query.limit || '100')
+        const includeInactive = query.includeInactive === 'true'
+        const bankingType = query.bankingType
 
         const effect = pipe(
-            rbacService.getRoles(tenantId, { includeInactive, bankingType }),
-            Effect.map((roles) => ({
-                roles: roles.map(r => ({
+            rbacService.getRoles(tenantId, {
+                includeInactive,
+                bankingType,
+                search: query.search,
+                type: query.type,
+                level: query.level
+            }),
+            Effect.map((result) => ({
+                success: true,
+                data: result.data.map(r => ({
                     ...r,
                     // Handle potential nulls
                     description: r.description ?? null,
                     permissions: r.permissions ?? null,
-                    // bankingTypeSpecific: r.bankingTypeSpecific ?? null,
-                    // complianceLevel: r.complianceLevel ?? null,
                     tenantId: r.tenantId ?? null,
                 })),
-                total: roles.length,
+                pagination: {
+                    total: result.total,
+                    page,
+                    limit
+                }
             }))
         )
 
@@ -148,7 +171,7 @@ rbacRoutes.openapi(
 rbacRoutes.openapi(
     createRoute({
         method: 'post',
-        path: '/roles',
+        path: '/',
         tags: ['RBAC'],
         summary: 'Create Role',
         security: [{ BearerAuth: [] }],
@@ -204,7 +227,7 @@ rbacRoutes.openapi(
 rbacRoutes.openapi(
     createRoute({
         method: 'get',
-        path: '/roles/{roleId}',
+        path: '/{roleId}',
         tags: ['RBAC'],
         summary: 'Get Role',
         security: [{ BearerAuth: [] }],
@@ -217,7 +240,10 @@ rbacRoutes.openapi(
             200: {
                 content: {
                     'application/json': {
-                        schema: RoleSchema,
+                        schema: z.object({
+                            success: z.boolean(),
+                            data: RoleSchema,
+                        }),
                     },
                 },
                 description: 'Role details',
@@ -230,12 +256,13 @@ rbacRoutes.openapi(
         const effect = pipe(
             rbacService.getRoleById(roleId),
             Effect.map(r => ({
-                ...r,
-                description: r.description ?? null,
-                permissions: r.permissions ?? null,
-                // bankingTypeSpecific: r.bankingTypeSpecific ?? null,
-                // complianceLevel: r.complianceLevel ?? null,
-                tenantId: r.tenantId ?? null,
+                success: true,
+                data: {
+                    ...r,
+                    description: r.description ?? null,
+                    permissions: r.permissions ?? null,
+                    tenantId: r.tenantId ?? null,
+                },
             }))
         )
 
@@ -249,7 +276,7 @@ rbacRoutes.openapi(
 rbacRoutes.openapi(
     createRoute({
         method: 'put',
-        path: '/roles/{roleId}',
+        path: '/{roleId}',
         tags: ['RBAC'],
         summary: 'Update Role',
         security: [{ BearerAuth: [] }],
@@ -306,7 +333,7 @@ rbacRoutes.openapi(
 rbacRoutes.openapi(
     createRoute({
         method: 'delete',
-        path: '/roles/{roleId}',
+        path: '/{roleId}',
         tags: ['RBAC'],
         summary: 'Delete Role',
         security: [{ BearerAuth: [] }],
@@ -345,7 +372,7 @@ rbacRoutes.openapi(
 rbacRoutes.openapi(
     createRoute({
         method: 'get',
-        path: '/roles/{roleId}/permissions',
+        path: '/{roleId}/permissions',
         tags: ['RBAC'],
         summary: 'Get Role Permissions',
         security: [{ BearerAuth: [] }],
@@ -405,7 +432,7 @@ rbacRoutes.openapi(
 rbacRoutes.openapi(
     createRoute({
         method: 'put',
-        path: '/roles/{roleId}/permissions',
+        path: '/{roleId}/permissions',
         tags: ['RBAC'],
         summary: 'Update Role Permissions',
         security: [{ BearerAuth: [] }],
@@ -480,8 +507,11 @@ rbacRoutes.openapi(
                 content: {
                     'application/json': {
                         schema: z.object({
-                            userId: z.string(),
-                            roles: z.array(UserRoleSchema),
+                            success: z.boolean(),
+                            data: z.object({
+                                userId: z.string(),
+                                roles: z.array(UserRoleSchema),
+                            }),
                         }),
                     },
                 },
@@ -496,23 +526,24 @@ rbacRoutes.openapi(
         const effect = pipe(
             rbacService.getUserRoles(userId, tenantId),
             Effect.map((userRoles) => ({
-                userId,
-                roles: userRoles.map((ur) => ({
-                    id: ur.id,
-                    roleId: ur.roleId,
-                    role: (ur as any).role ? {
-                        ...(ur as any).role,
-                        description: (ur as any).role.description ?? null,
-                        permissions: (ur as any).role.permissions ?? null,
-                        bankingTypeSpecific: (ur as any).role.bankingTypeSpecific ?? null,
-                        complianceLevel: (ur as any).role.complianceLevel ?? null,
-                        tenantId: (ur as any).role.tenantId ?? null,
-                    } : undefined,
-                    assignedAt: ur.assignedAt?.toISOString() ?? null,
-                    validFrom: ur.validFrom ? ur.validFrom.toISOString() : null,
-                    validUntil: ur.validUntil ? ur.validUntil.toISOString() : null,
-                    isTemporary: ur.isTemporary,
-                })),
+                success: true,
+                data: {
+                    userId,
+                    roles: userRoles.map((ur) => ({
+                        id: ur.id,
+                        roleId: ur.roleId,
+                        role: (ur as any).role ? {
+                            ...(ur as any).role,
+                            description: (ur as any).role.description ?? null,
+                            permissions: (ur as any).role.permissions ?? null,
+                            tenantId: (ur as any).role.tenantId ?? null,
+                        } : undefined,
+                        assignedAt: ur.assignedAt?.toISOString() ?? null,
+                        validFrom: ur.validFrom ? ur.validFrom.toISOString() : null,
+                        validUntil: ur.validUntil ? ur.validUntil.toISOString() : null,
+                        isTemporary: ur.isTemporary,
+                    })),
+                },
             }))
         )
 
@@ -547,7 +578,10 @@ rbacRoutes.openapi(
             200: {
                 content: {
                     'application/json': {
-                        schema: z.any(), // Service returns result of insert/update, usually object
+                        schema: z.object({
+                            success: z.boolean(),
+                            data: z.any(),
+                        }),
                     },
                 },
                 description: 'Role assigned',
@@ -560,20 +594,23 @@ rbacRoutes.openapi(
         const assignedBy = c.get('userId')
         const body = c.req.valid('json')
 
-        const effect = rbacService.assignRole({
-            userId,
-            roleId,
-            tenantId,
-            assignedBy,
-            validFrom: body.validFrom ? new Date(body.validFrom) : undefined,
-            validUntil: body.validUntil ? new Date(body.validUntil) : undefined,
-            isTemporary: body.isTemporary,
-            temporaryReason: body.temporaryReason,
-        })
+        const effect = pipe(
+            rbacService.assignRole({
+                userId,
+                roleId,
+                tenantId,
+                assignedBy,
+                validFrom: body.validFrom ? new Date(body.validFrom) : undefined,
+                validUntil: body.validUntil ? new Date(body.validUntil) : undefined,
+                isTemporary: body.isTemporary,
+            }),
+            Effect.map(result => ({
+                success: true,
+                data: result,
+            }))
+        )
 
-        const result = await runEffect(c, effect)
-        // Ensure result is JSON serializable if it contains dates
-        return c.json(JSON.parse(JSON.stringify(result)) as any)
+        return runEffect(c, effect)
     }
 )
 
@@ -692,10 +729,13 @@ rbacRoutes.openapi(
                 content: {
                     'application/json': {
                         schema: z.object({
-                            userId: z.string(),
-                            resource: z.string(),
-                            action: z.string(),
-                            hasPermission: z.boolean(),
+                            success: z.boolean(),
+                            data: z.object({
+                                userId: z.string(),
+                                resource: z.string(),
+                                action: z.string(),
+                                hasPermission: z.boolean(),
+                            }),
                         }),
                     },
                 },
@@ -711,10 +751,13 @@ rbacRoutes.openapi(
         const effect = pipe(
             rbacService.hasPermission(userId, tenantId, resource, action),
             Effect.map((hasPermission) => ({
-                userId,
-                resource,
-                action,
-                hasPermission,
+                success: true,
+                data: {
+                    userId,
+                    resource,
+                    action,
+                    hasPermission,
+                },
             }))
         )
 
@@ -741,13 +784,31 @@ rbacRoutes.openapi(
                 description: 'Permission groups',
                 content: {
                     'application/json': {
-                        schema: z.any() // PERMISSION_GROUPS structure
+                        schema: z.object({
+                            success: z.boolean(),
+                            data: z.array(z.any()),
+                        })
                     }
                 }
             },
         },
     }),
     async (c) => {
-        return c.json(PERMISSION_GROUPS as any)
+        const tenantId = c.get('tenantId')!
+
+        const effect = pipe(
+            rbacService.getAvailablePermissions(tenantId),
+            Effect.map((permissions) => ({
+                success: true,
+                data: permissions.map(p => ({
+                    ...p,
+                    category: p.category ?? 'CORE',
+                    riskLevel: (p as any).riskLevel ?? 'LOW',
+                    requiresApproval: (p as any).requiresApproval ?? false,
+                })),
+            }))
+        )
+
+        return runEffect(c, effect)
     }
 )

@@ -114,7 +114,7 @@ const SecuritySettings: React.FC = () => {
             <form onSubmit={formik.handleSubmit}>
                 <Grid container spacing={3}>
                     {/* Password Policy */}
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                         <Paper sx={{ p: 3, height: '100%' }}>
                             <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                 <Lock fontSize="small" /> Password Policy
@@ -122,7 +122,7 @@ const SecuritySettings: React.FC = () => {
                             <Divider sx={{ mb: 2 }} />
 
                             <Grid container spacing={2}>
-                                <Grid item xs={12}>
+                                <Grid size={{ xs: 12 }}>
                                     <TextField
                                         fullWidth
                                         id="passwordMinLength"
@@ -135,7 +135,7 @@ const SecuritySettings: React.FC = () => {
                                         helperText={formik.touched.passwordMinLength && formik.errors.passwordMinLength}
                                     />
                                 </Grid>
-                                <Grid item xs={12}>
+                                <Grid size={{ xs: 12 }}>
                                     <FormControlLabel
                                         control={
                                             <Switch
@@ -148,7 +148,7 @@ const SecuritySettings: React.FC = () => {
                                         label="Require Uppercase Letters"
                                     />
                                 </Grid>
-                                <Grid item xs={12}>
+                                <Grid size={{ xs: 12 }}>
                                     <FormControlLabel
                                         control={
                                             <Switch
@@ -161,7 +161,7 @@ const SecuritySettings: React.FC = () => {
                                         label="Require Lowercase Letters"
                                     />
                                 </Grid>
-                                <Grid item xs={12}>
+                                <Grid size={{ xs: 12 }}>
                                     <FormControlLabel
                                         control={
                                             <Switch
@@ -174,7 +174,7 @@ const SecuritySettings: React.FC = () => {
                                         label="Require Numbers"
                                     />
                                 </Grid>
-                                <Grid item xs={12}>
+                                <Grid size={{ xs: 12 }}>
                                     <FormControlLabel
                                         control={
                                             <Switch
@@ -192,7 +192,7 @@ const SecuritySettings: React.FC = () => {
                     </Grid>
 
                     {/* Session & MFA */}
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                         <Paper sx={{ p: 3, height: '100%' }}>
                             <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                 <AccessTime fontSize="small" /> Session & Access
@@ -200,7 +200,7 @@ const SecuritySettings: React.FC = () => {
                             <Divider sx={{ mb: 2 }} />
 
                             <Grid container spacing={2}>
-                                <Grid item xs={12}>
+                                <Grid size={{ xs: 12 }}>
                                     <TextField
                                         fullWidth
                                         id="sessionTimeoutMinutes"
@@ -214,7 +214,7 @@ const SecuritySettings: React.FC = () => {
                                     />
                                 </Grid>
 
-                                <Grid item xs={12} sx={{ mt: 2 }}>
+                                <Grid size={{ xs: 12 }} sx={{ mt: 2 }}>
                                     <Alert severity="info" sx={{ mb: 2 }}>
                                         Multi-Factor Authentication (MFA) enforcement applies to all non-admin users.
                                     </Alert>
@@ -234,7 +234,7 @@ const SecuritySettings: React.FC = () => {
                         </Paper>
                     </Grid>
 
-                    <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <Grid size={{ xs: 12 }} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                         <Button
                             variant="contained"
                             size="large"

@@ -36,10 +36,13 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  Badge
+  Badge,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell
 } from '@mui/material';
-import { DataGrid, GridColDef, GridRowParams, GridRenderCellParams } from '@mui/x-data-grid';
-import { Table, TableHead, TableBody, TableRow, TableCell } from '@mui/material';
 import {
   Visibility as VisibilityIcon,
   Edit as EditIcon,
@@ -58,13 +61,18 @@ import {
   MonetizationOn as MoneyIcon,
   Assessment as ReportIcon,
   Settings as SettingsIcon,
+  Delete as DeleteIcon,
   Search as SearchIcon,
   Clear as ClearIcon
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
+import { GridColDef, GridRenderCellParams, GridRowParams } from '@mui/x-data-grid';
 import { format, parseISO } from 'date-fns';
-import { api } from '../../../../services/api';
-import { RolePermissionsEditor } from '../../../../components/rbac/RolePermissionsEditor';
+
+// Local components and services
+import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
+import { api } from '@/services/api';
+import { RolePermissionsEditor } from '@/components/rbac/RolePermissionsEditor';
 
 // Types and Interfaces
 interface Role {
@@ -224,14 +232,23 @@ const RoleManagementPage: React.FC = () => {
       ]);
 
       console.log('✅ Real API responses received:', {
-        rolesCount: rolesResponse.data?.length || 0,
-        permissionsCount: permissionsResponse.data?.length || 0
+        rolesInfo: rolesResponse,
+        permissionsInfo: permissionsResponse
+      });
+
+      // Handle new structured response: { success: true, data: { roles: [...] }, pagination: { ... } }
+      const rolesData = rolesResponse.data?.roles || rolesResponse.data || [];
+      const permissionsData = permissionsResponse.data || [];
+
+      console.log('📊 Processed data:', {
+        rolesCount: rolesData.length,
+        permissionsCount: permissionsData.length
       });
 
       // Set data from real API responses
-      setRoles(rolesResponse.data || []);
-      setPermissions(permissionsResponse.data || []);
-      setPermissionCategories(groupPermissionsByCategory(permissionsResponse.data || []));
+      setRoles(rolesData);
+      setPermissions(permissionsData);
+      setPermissionCategories(groupPermissionsByCategory(permissionsData));
 
     } catch (error) {
       console.error('❌ Error fetching roles from real database:', error);
@@ -549,45 +566,35 @@ const RoleManagementPage: React.FC = () => {
       field: 'actions',
       headerName: 'Actions',
       width: 150,
-      sortable: false,
-      renderCell: (params: GridRenderCellParams) => (
-        <Box>
-          <Tooltip title="View Role">
-            <IconButton
-              size="small"
-              onClick={() => handleViewRole(params.row)}
-            >
-              <VisibilityIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Edit Role">
-            <IconButton
-              size="small"
-              onClick={() => handleEditRole(params.row)}
-              disabled={params.row.isBuiltIn}
-            >
-              <EditIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Manage Permissions">
-            <IconButton
-              size="small"
-              onClick={() => handleManagePermissions(params.row)}
-            >
-              <SecurityIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title={params.row.isActive ? 'Disable Role' : 'Enable Role'}>
-            <IconButton
-              size="small"
-              onClick={() => handleToggleRole(params.row.id, params.row.isActive)}
-              disabled={params.row.isBuiltIn}
-            >
-              {params.row.isActive ? <CancelIcon fontSize="small" /> : <CheckCircleIcon fontSize="small" />}
-            </IconButton>
-          </Tooltip>
-        </Box>
-      ),
+      type: 'actions',
+      getActions: (params: GridRowParams) => [
+        <SafeGridActionsCellItem
+          key="view"
+          icon={<VisibilityIcon fontSize="small" />}
+          label="View Role"
+          onClick={() => handleViewRole(params.row)}
+        />,
+        <SafeGridActionsCellItem
+          key="edit"
+          icon={<EditIcon fontSize="small" />}
+          label="Edit Role"
+          onClick={() => handleEditRole(params.row)}
+          disabled={params.row.isBuiltIn}
+        />,
+        <SafeGridActionsCellItem
+          key="permissions"
+          icon={<SecurityIcon fontSize="small" />}
+          label="Manage Permissions"
+          onClick={() => handleManagePermissions(params.row)}
+        />,
+        <SafeGridActionsCellItem
+          key="toggle"
+          icon={params.row.isActive ? <CancelIcon fontSize="small" /> : <CheckCircleIcon fontSize="small" />}
+          label={params.row.isActive ? 'Disable Role' : 'Enable Role'}
+          onClick={() => handleToggleRole(params.row.id, params.row.isActive)}
+          disabled={params.row.isBuiltIn}
+        />,
+      ],
     },
   ];
 
@@ -814,8 +821,8 @@ const RoleManagementPage: React.FC = () => {
             title={`Roles (${roles.length})`}
             subheader={`Last updated: ${format(new Date(), 'MMM dd, yyyy HH:mm')}`}
           />
-          <CardContent>
-            <DataGrid
+          <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
+            <SafeDataGrid
               rows={roles}
               columns={roleColumns}
               loading={loading}
@@ -828,7 +835,6 @@ const RoleManagementPage: React.FC = () => {
               checkboxSelection
               disableRowSelectionOnClick
               sx={{ height: 600 }}
-              onRowDoubleClick={(params: GridRowParams) => handleViewRole(params.row)}
             />
           </CardContent>
         </Card>

@@ -30,26 +30,34 @@ export const roles = coreSchema.table(
     'roles',
     {
         id: uuid('id').primaryKey().defaultRandom(),
+        legacyId: integer('legacy_id'),
         roleCode: varchar('role_code', { length: 50 }).notNull().unique(),
         roleName: varchar('role_name', { length: 100 }).notNull(),
         description: text('description'),
-        permissions: jsonb('permissions').default('[]'),
+        permissions: jsonb('permissions').default('{}'),
         isActive: boolean('is_active').default(true),
+
+        // Banking-specific fields
+        bankingTypeSpecific: varchar('banking_type_specific', { length: 20 }),
+        complianceLevel: varchar('compliance_level', { length: 50 }),
+        hierarchyLevel: integer('hierarchy_level').notNull().default(1),
 
         // System roles (cannot be deleted/modified)
         isSystemRole: boolean('is_system_role').default(false),
 
         // Tenant isolation
-        tenantId: varchar('tenant_id', { length: 100 }).default('dana'),
+        tenantId: uuid('tenant_id'),
 
         // Timestamps
-        createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
-        updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+        createdAt: timestamp('created_at', { withTimezone: false }).defaultNow(),
+        updatedAt: timestamp('updated_at', { withTimezone: false }).defaultNow(),
+        createdBy: uuid('created_by'),
+        updatedBy: uuid('updated_by'),
 
-        // Tenant-specific fields
-        level: integer('level').notNull().default(1),
-        supportsConventional: boolean('supports_conventional').default(true),
-        supportsSyariah: boolean('supports_syariah').default(false),
+        // Legacy tenant-specific fields (keeping for compatibility)
+        level: integer('level'),
+        supportsConventional: varchar('supports_conventional', { length: 100 }),
+        supportsSyariah: varchar('supports_syariah', { length: 100 }),
     },
     (table) => [
         uniqueIndex('roles_role_name_idx').on(table.roleName),
@@ -76,18 +84,29 @@ export const userRoles = coreSchema.table(
 
         // Assignment metadata
         assignedBy: uuid('assigned_by'),
-        assignedAt: timestamp('assigned_at', { withTimezone: true }).defaultNow(),
+        assignedAt: timestamp('assigned_at', { withTimezone: false }).defaultNow(),
 
         // Status and validity
         isActive: boolean('is_active').default(true),
-        validFrom: timestamp('valid_from', { withTimezone: true }).defaultNow(),
-        validUntil: timestamp('valid_until', { withTimezone: true }),
+        validFrom: timestamp('valid_from', { withTimezone: false }),
+        validUntil: timestamp('valid_until', { withTimezone: false }),
+
+        // Banking-specific restrictions
+        bankingTypeRestriction: varchar('banking_type_restriction', { length: 20 }),
 
         // Temporary assignments
         isTemporary: boolean('is_temporary').default(false),
+        temporaryReason: text('temporary_reason'),
 
         // Tenant isolation
-        tenantId: varchar('tenant_id', { length: 100 }).default('dana'),
+        tenantId: uuid('tenant_id').notNull(),
+
+        // Timestamps
+        createdAt: timestamp('created_at', { withTimezone: false }).defaultNow(),
+        updatedAt: timestamp('updated_at', { withTimezone: false }).defaultNow(),
+
+        // Legacy field
+        level: integer('level'),
     },
     (table) => [
         uniqueIndex('user_role_unique_idx').on(table.userId, table.roleId),

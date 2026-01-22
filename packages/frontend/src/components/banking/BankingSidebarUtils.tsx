@@ -641,21 +641,21 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
             {
                 id: 'user-management',
                 label: 'User Management',
-                href: '/admin/users',
+                href: '/banking/maintenance/users',
                 icon: <ManageAccounts />,
                 description: 'Manage system users'
             },
             {
                 id: 'role-management',
                 label: 'Role Management',
-                href: '/admin/roles',
+                href: '/banking/maintenance/roles',
                 icon: <VpnKey />,
                 description: 'Manage roles and permissions'
             },
             {
                 id: 'user-assignments',
                 label: 'User Assignments',
-                href: '/admin/assignments',
+                href: '/banking/maintenance/assignments',
                 icon: <SupervisorAccount />,
                 description: 'Assign roles to users'
             },
@@ -667,11 +667,11 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
                 description: '/IFRS9N/Approval'
             },
             {
-                id: 'user-activity',
+                id: 'audit-logs',
                 label: 'User Activity',
-                href: '/banking/maintenance/user-activity',
+                href: '/banking/maintenance/audit',
                 icon: <History />,
-                description: '/IFRS9N/UserActivity'
+                description: 'System audit logs'
             },
             {
                 id: 'job-monitoring',
