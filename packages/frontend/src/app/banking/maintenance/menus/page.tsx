@@ -583,7 +583,7 @@ const MenuManagement: React.FC = () => {
             id: role.id,
             name: role.name,
             description: role.description || '',
-            permissions: role.permissions || [],
+            permissions: role.permissions ? Object.values(role.permissions).flat().map((p: any) => p.code || p.id) : [],
             isActive: role.is_active !== false
           }));
           setRoles(liveRoles);

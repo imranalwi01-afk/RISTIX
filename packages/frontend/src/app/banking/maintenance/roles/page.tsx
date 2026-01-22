@@ -41,7 +41,10 @@ import {
   TableHead,
   TableBody,
   TableRow,
-  TableCell
+  TableCell,
+  TableContainer,
+  Stack,
+  Divider
 } from '@mui/material';
 import {
   Visibility as VisibilityIcon,
@@ -63,7 +66,8 @@ import {
   Settings as SettingsIcon,
   Delete as DeleteIcon,
   Search as SearchIcon,
-  Clear as ClearIcon
+  Clear as ClearIcon,
+  Save as SaveIcon
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import { GridColDef, GridRenderCellParams, GridRowParams } from '@mui/x-data-grid';
@@ -140,13 +144,30 @@ const TabPanel: React.FC<TabPanelProps> = ({ children, value, index, ...other })
 
 const RoleManagementPage: React.FC = () => {
   const theme = useTheme();
+
+  // Helper function to flatten grouped permissions from API
+  const flattenPermissionsFromAPI = (groupedPermissions: Record<string, Permission[]>): Permission[] => {
+    return Object.values(groupedPermissions).flat();
+  };
+
+  // Helper function to get permissions by category
+  const getPermissionsByCategory = (groupedPermissions: Record<string, Permission[]>, category: string): Permission[] => {
+    return groupedPermissions[category] || [];
+  };
+
   const [currentTab, setCurrentTab] = useState(0);
+  const [permissionsTab, setPermissionsTab] = useState(0);
   const [roles, setRoles] = useState<Role[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [permissionCategories, setPermissionCategories] = useState<PermissionCategory[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<RoleFilters>({});
+
+  // Bulk assignment states
+  const [bulkAssignmentRole, setBulkAssignmentRole] = useState<string | null>(null);
+  const [selectedBulkPermissions, setSelectedBulkPermissions] = useState<string[]>([]);
+  const [selectAllPermissions, setSelectAllPermissions] = useState(false);
 
   // Dialog states
   const [roleDialog, setRoleDialog] = useState<{
@@ -238,15 +259,31 @@ const RoleManagementPage: React.FC = () => {
 
       // Handle standardized response with axios wrapper: response.data = { success: true, data: [...], pagination: { ... } }
       const rolesData = Array.isArray(rolesResponse.data?.data) ? rolesResponse.data.data : [];
-      const permissionsData = Array.isArray(permissionsResponse.data?.data) ? permissionsResponse.data.data : [];
+      
+      // Permissions endpoint returns { success: true, data: [...] }
+      let permissionsDataRaw: any[] = [];
+      if (Array.isArray(permissionsResponse.data?.data)) {
+        permissionsDataRaw = permissionsResponse.data.data;
+      } else if (Array.isArray(permissionsResponse.data)) {
+        // Fallback if response is the array directly
+        permissionsDataRaw = permissionsResponse.data;
+      }
+      
+      // Normalize permissions to match frontend interface
+      const permissionsData = permissionsDataRaw.map(normalizePermissionFromApi);
 
       console.log('📊 Processed data:', {
         rolesCount: rolesData.length,
-        permissionsCount: permissionsData.length
+        permissionsCount: permissionsData.length,
+        permissionsRaw: permissionsResponse.data,
+        permissionsDataSample: permissionsData.slice(0, 2)
       });
 
+      // Transform roles using the normalize function
+      const transformedRoles = rolesData.map(normalizeRoleFromApi);
+
       // Set data from real API responses
-      setRoles(rolesData);
+      setRoles(transformedRoles);
       setPermissions(permissionsData);
       setPermissionCategories(groupPermissionsByCategory(permissionsData));
 
@@ -439,6 +476,120 @@ const RoleManagementPage: React.FC = () => {
     }
   };
 
+  // Permission Matrix handlers
+  const handlePermissionToggle = async (roleId: string, permissionId: string, isChecked: boolean) => {
+    try {
+      const role = roles.find(r => r.id === roleId);
+      if (!role) return;
+
+      const currentPermissions = role.permissions.map(p => p.id);
+      let newPermissions: string[];
+
+      if (isChecked) {
+        newPermissions = [...currentPermissions, permissionId];
+      } else {
+        newPermissions = currentPermissions.filter(id => id !== permissionId);
+      }
+
+      // Update the role locally for immediate UI feedback
+      setRoles(prevRoles =>
+        prevRoles.map(r =>
+          r.id === roleId
+            ? { ...r, permissions: permissions.filter(p => newPermissions.includes(p.id)) }
+            : r
+        )
+      );
+
+      // Call API to persist changes
+      await api.roles.updatePermissions(roleId, newPermissions);
+    } catch (error) {
+      console.error('❌ Error toggling permission:', error);
+      setError('Failed to update permission. Please refresh and try again.');
+      // Refresh to revert local changes
+      await fetchRoles();
+    }
+  };
+
+  const handleBulkPermissionUpdate = async () => {
+    try {
+      setLoading(true);
+      console.log('🔑 Bulk updating permissions for all roles...');
+
+      // This would need to be implemented in the backend
+      // For now, just refresh
+      await fetchRoles();
+    } catch (error) {
+      console.error('❌ Error in bulk permission update:', error);
+      setError('Failed to save bulk permission changes. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBulkPermissionAssignment = async () => {
+    if (!bulkAssignmentRole || selectedBulkPermissions.length === 0) return;
+
+    try {
+      setLoading(true);
+      console.log('🔑 Assigning permissions to role:', bulkAssignmentRole, selectedBulkPermissions);
+
+      await api.roles.updatePermissions(bulkAssignmentRole, selectedBulkPermissions);
+
+      // Reset form
+      setBulkAssignmentRole(null);
+      setSelectedBulkPermissions([]);
+      setSelectAllPermissions(false);
+
+      // Refresh roles
+      await fetchRoles();
+    } catch (error) {
+      console.error('❌ Error in bulk assignment:', error);
+      setError('Failed to assign permissions. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleQuickAssign = async (category: string) => {
+    if (!bulkAssignmentRole) return;
+
+    try {
+      setLoading(true);
+      const categoryPermissions = permissions
+        .filter(p => p.category.toLowerCase() === category)
+        .map(p => p.id);
+
+      console.log(`🔑 Quick assigning ${category} permissions to role:`, bulkAssignmentRole);
+
+      await api.roles.updatePermissions(bulkAssignmentRole, categoryPermissions);
+
+      await fetchRoles();
+    } catch (error) {
+      console.error('❌ Error in quick assign:', error);
+      setError('Failed to assign permissions. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClearAllPermissions = async () => {
+    if (!bulkAssignmentRole) return;
+
+    try {
+      setLoading(true);
+      console.log('🔑 Clearing all permissions from role:', bulkAssignmentRole);
+
+      await api.roles.updatePermissions(bulkAssignmentRole, []);
+
+      await fetchRoles();
+    } catch (error) {
+      console.error('❌ Error clearing permissions:', error);
+      setError('Failed to clear permissions. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Helper functions
   const getRoleTypeColor = (type: string) => {
     switch (type) {
@@ -466,6 +617,63 @@ const RoleManagementPage: React.FC = () => {
       case 'BOTH': return 'success';
       default: return 'default';
     }
+  };
+  
+  // Normalize backend permission payload into the shape expected by the UI
+  const normalizePermissionFromApi = (perm: any): Permission => ({
+    id: perm.id,
+    module: perm.module || 'core',
+    resource: perm.resource,
+    action: perm.action,
+    displayName: perm.displayName || perm.name || `${perm.resource} ${perm.action}`,
+    description: perm.description || '',
+    category: (perm.category || 'CORE') as Permission['category'],
+    riskLevel: (perm.riskLevel || 'LOW') as Permission['riskLevel'],
+    requiresApproval: perm.requiresApproval ?? false,
+    bankingSpecific: perm.bankingSpecific ?? (perm.module === 'banking'),
+    syariahRequired: perm.syariahRequired ?? false,
+  });
+
+  // Normalize backend role payload into the shape expected by the grid/UI
+  const normalizeRoleFromApi = (role: any): Role => {
+    const displayName = role.displayName
+      ?? role.roleName
+      ?? role.role_name
+      ?? role.name
+      ?? role.roleCode
+      ?? role.role_code
+      ?? 'Untitled Role';
+  
+    const name = role.name
+      ?? role.roleCode
+      ?? role.role_code
+      ?? role.roleName
+      ?? role.role_name
+      ?? displayName;
+  
+    const type = (role.type ?? (role.isSystemRole ? 'SYSTEM' : 'CUSTOM')) as Role['type'];
+    const level = (role.level ?? (role.hierarchyLevel ? 'TENANT' : 'TENANT')) as Role['level'];
+  
+    const bankingAccess = (role.bankingAccess
+      ?? role.bankingTypeSpecific
+      ?? role.supportsConventional
+      ?? role.supportsSyariah
+      ?? undefined) as Role['bankingAccess'] | undefined;
+  
+    return {
+      ...role,
+      displayName,
+      name,
+      type,
+      level,
+      bankingAccess,
+      isActive: role.isActive ?? true,
+      isBuiltIn: role.isBuiltIn ?? role.isSystemRole ?? false,
+      assignedUsers: Number(role.assignedUsers ?? 0),
+      createdAt: (role.createdAt ?? role.created_at ?? '') as string,
+      updatedAt: role.updatedAt ?? role.updated_at,
+      permissions: flattenPermissionsFromAPI(role.permissions || {}),
+    };
   };
 
   // DataGrid columns
@@ -558,7 +766,7 @@ const RoleManagementPage: React.FC = () => {
       width: 120,
       renderCell: (params: GridRenderCellParams) => (
         <Typography variant="body2">
-          {format(parseISO(params.row.createdAt), 'MMM dd, yyyy')}
+          {params.row.createdAt ? format(parseISO(params.row.createdAt), 'MMM dd, yyyy') : '-'}
         </Typography>
       ),
     },
@@ -680,7 +888,7 @@ const RoleManagementPage: React.FC = () => {
         <Grid size={{ xs: 12, md: 3 }}>
           <StatCard
             title="Total Users"
-            value={roles.reduce((sum, role) => sum + role.assignedUsers, 0)}
+            value={roles.reduce((sum, role) => sum + (role.assignedUsers ?? 0), 0)}
             icon={<PeopleIcon fontSize="large" />}
             color={theme.palette.success.main}
             subtitle="With assigned roles"
@@ -842,29 +1050,166 @@ const RoleManagementPage: React.FC = () => {
 
       {/* Permissions Tab */}
       <TabPanel value={currentTab} index={1}>
-        <Grid container spacing={3}>
-          {permissionCategories.map((category) => (
-            <Grid size={{ xs: 12, md: 6, lg: 4 }} key={category.name}>
-              <Card>
-                <CardHeader
-                  title={category.displayName}
-                  subheader={`${category.permissions.length} permissions`}
-                />
-                <CardContent>
-                  <List dense>
-                    {category.permissions.map((permission) => (
-                      <ListItem key={permission.id} divider>
-                        <ListItemIcon>
-                          {permission.category === 'BANKING' && <BankingIcon />}
-                          {permission.category === 'IFRS9' && <MoneyIcon />}
-                          {permission.category === 'REPORTING' && <ReportIcon />}
-                          {permission.category === 'ADMIN' && <AdminIcon />}
-                          {permission.category === 'CORE' && <SettingsIcon />}
-                        </ListItemIcon>
-                        <ListItemText
-                          primary={permission.displayName}
-                          secondary={
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+        {/* Permissions Sub-Tabs */}
+        <Paper sx={{ mb: 3 }}>
+          <Tabs
+            value={permissionsTab}
+            onChange={(e, newValue) => setPermissionsTab(newValue)}
+            indicatorColor="primary"
+            textColor="primary"
+            variant="fullWidth"
+          >
+            <Tab
+              label="Permission Categories"
+              icon={<SettingsIcon />}
+              iconPosition="start"
+            />
+            <Tab
+              label="Permission Matrix"
+              icon={<AssignmentIcon />}
+              iconPosition="start"
+            />
+            <Tab
+              label="Bulk Assignment"
+              icon={<GroupIcon />}
+              iconPosition="start"
+            />
+          </Tabs>
+        </Paper>
+
+        {/* Permission Categories Sub-Tab */}
+        {permissionsTab === 0 && (
+          <Grid container spacing={3}>
+            {permissionCategories.map((category) => (
+              <Grid size={{ xs: 12, md: 6, lg: 4 }} key={category.name}>
+                <Card>
+                  <CardHeader
+                    title={category.displayName}
+                    subheader={`${category.permissions.length} permissions`}
+                    action={
+                      <Chip
+                        label={category.name}
+                        size="small"
+                        color="primary"
+                        variant="outlined"
+                      />
+                    }
+                  />
+                  <CardContent>
+                    <List dense>
+                      {category.permissions.map((permission) => (
+                        <ListItem key={permission.id} divider>
+                          <ListItemIcon>
+                            {permission.category === 'BANKING' && <BankingIcon />}
+                            {permission.category === 'IFRS9' && <MoneyIcon />}
+                            {permission.category === 'REPORTING' && <ReportIcon />}
+                            {permission.category === 'ADMIN' && <AdminIcon />}
+                            {permission.category === 'CORE' && <SettingsIcon />}
+                          </ListItemIcon>
+                          <ListItemText
+                            primary={permission.displayName}
+                            secondary={
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+                                <Chip
+                                  label={permission.riskLevel}
+                                  size="small"
+                                  color={getRiskLevelColor(permission.riskLevel) as any}
+                                  variant="outlined"
+                                />
+                                {permission.requiresApproval && (
+                                  <Chip
+                                    label="Approval Required"
+                                    size="small"
+                                    color="warning"
+                                    variant="filled"
+                                  />
+                                )}
+                                {permission.syariahRequired && (
+                                  <Chip
+                                    label="Syariah"
+                                    size="small"
+                                    color="secondary"
+                                    variant="outlined"
+                                  />
+                                )}
+                              </Box>
+                            }
+                          />
+                        </ListItem>
+                      ))}
+                    </List>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        )}
+
+        {/* Permission Matrix Sub-Tab */}
+        {permissionsTab === 1 && (
+          <Card>
+            <CardHeader
+              title="Permission-Role Assignment Matrix"
+              subheader="Assign permissions to roles across all categories"
+              action={
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Button
+                    variant="outlined"
+                    startIcon={<RefreshIcon />}
+                    onClick={fetchRoles}
+                    size="small"
+                  >
+                    Refresh
+                  </Button>
+                  <Button
+                    variant="contained"
+                    startIcon={<SaveIcon />}
+                    onClick={handleBulkPermissionUpdate}
+                    size="small"
+                    color="primary"
+                  >
+                    Save Changes
+                  </Button>
+                </Box>
+              }
+            />
+            <CardContent>
+              <TableContainer component={Paper} sx={{ maxHeight: 600 }}>
+                <Table stickyHeader size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell sx={{ fontWeight: 'bold', minWidth: 200 }}>
+                        Permission
+                      </TableCell>
+                      {roles.map((role) => (
+                        <TableCell
+                          key={role.id}
+                          align="center"
+                          sx={{
+                            fontWeight: 'bold',
+                            minWidth: 120,
+                            writingMode: 'vertical-rl',
+                            textOrientation: 'mixed',
+                            transform: 'rotate(180deg)',
+                          }}
+                        >
+                          {role.displayName}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {permissions.map((permission) => (
+                      <TableRow key={permission.id} hover>
+                        <TableCell sx={{ fontWeight: 'medium' }}>
+                          <Box>
+                            <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                              {permission.displayName}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {permission.module}.{permission.resource}:{permission.action}
+                            </Typography>
+                            <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5 }}>
                               <Chip
                                 label={permission.riskLevel}
                                 size="small"
@@ -873,31 +1218,209 @@ const RoleManagementPage: React.FC = () => {
                               />
                               {permission.requiresApproval && (
                                 <Chip
-                                  label="Approval Required"
+                                  label="Approval"
                                   size="small"
                                   color="warning"
                                   variant="filled"
                                 />
                               )}
-                              {permission.syariahRequired && (
-                                <Chip
-                                  label="Syariah"
-                                  size="small"
-                                  color="secondary"
-                                  variant="outlined"
-                                />
-                              )}
                             </Box>
-                          }
-                        />
-                      </ListItem>
+                          </Box>
+                        </TableCell>
+                        {roles.map((role) => {
+                          const hasPermission = role.permissions.some(p => p.id === permission.id);
+                          return (
+                            <TableCell key={`${role.id}-${permission.id}`} align="center">
+                              <Checkbox
+                                size="small"
+                                checked={hasPermission}
+                                onChange={(e) => {
+                                  const isChecked = e.target.checked;
+                                  handlePermissionToggle(role.id, permission.id, isChecked);
+                                }}
+                                disabled={role.isBuiltIn}
+                                color="primary"
+                              />
+                            </TableCell>
+                          );
+                        })}
+                      </TableRow>
                     ))}
-                  </List>
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Bulk Assignment Sub-Tab */}
+        {permissionsTab === 2 && (
+          <Grid container spacing={3}>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Card>
+                <CardHeader
+                  title="Bulk Role Assignment"
+                  subheader="Assign multiple permissions to roles at once"
+                />
+                <CardContent>
+                  <FormControl fullWidth sx={{ mb: 2 }}>
+                    <InputLabel>Select Role</InputLabel>
+                    <Select
+                      value={bulkAssignmentRole || ''}
+                      onChange={(e) => setBulkAssignmentRole(e.target.value)}
+                      label="Select Role"
+                    >
+                      {roles.map((role) => (
+                        <MenuItem key={role.id} value={role.id}>
+                          {role.displayName}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+
+                  {bulkAssignmentRole && (
+                    <Box>
+                      <Typography variant="h6" gutterBottom>
+                        Select Permissions
+                      </Typography>
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={selectAllPermissions}
+                            onChange={(e) => {
+                              setSelectAllPermissions(e.target.checked);
+                              if (e.target.checked) {
+                                setSelectedBulkPermissions(permissions.map(p => p.id));
+                              } else {
+                                setSelectedBulkPermissions([]);
+                              }
+                            }}
+                          />
+                        }
+                        label="Select All Permissions"
+                      />
+
+                      <Box sx={{ maxHeight: 300, overflow: 'auto', mt: 2 }}>
+                        {permissionCategories.map((category) => (
+                          <Accordion key={category.name} defaultExpanded={false}>
+                            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                              <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                                {category.displayName} ({category.permissions.length})
+                              </Typography>
+                            </AccordionSummary>
+                            <AccordionDetails>
+                              <List dense>
+                                {category.permissions.map((permission) => {
+                                  const isSelected = selectedBulkPermissions.includes(permission.id);
+                                  return (
+                                    <ListItem key={permission.id} dense>
+                                      <ListItemIcon>
+                                        <Checkbox
+                                          size="small"
+                                          checked={isSelected}
+                                          onChange={(e) => {
+                                            if (e.target.checked) {
+                                              setSelectedBulkPermissions(prev => [...prev, permission.id]);
+                                            } else {
+                                              setSelectedBulkPermissions(prev => prev.filter(id => id !== permission.id));
+                                            }
+                                          }}
+                                        />
+                                      </ListItemIcon>
+                                      <ListItemText
+                                        primary={permission.displayName}
+                                        secondary={`${permission.module}.${permission.resource}:${permission.action}`}
+                                      />
+                                    </ListItem>
+                                  );
+                                })}
+                              </List>
+                            </AccordionDetails>
+                          </Accordion>
+                        ))}
+                      </Box>
+
+                      <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
+                        <Button
+                          variant="contained"
+                          onClick={handleBulkPermissionAssignment}
+                          disabled={selectedBulkPermissions.length === 0}
+                          startIcon={<SaveIcon />}
+                        >
+                          Assign Selected Permissions
+                        </Button>
+                        <Button
+                          variant="outlined"
+                          onClick={() => {
+                            setSelectedBulkPermissions([]);
+                            setSelectAllPermissions(false);
+                          }}
+                        >
+                          Clear Selection
+                        </Button>
+                      </Box>
+                    </Box>
+                  )}
                 </CardContent>
               </Card>
             </Grid>
-          ))}
-        </Grid>
+
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Card>
+                <CardHeader
+                  title="Quick Actions"
+                  subheader="Common permission assignment patterns"
+                />
+                <CardContent>
+                  <Stack spacing={2}>
+                    <Button
+                      variant="outlined"
+                      startIcon={<AdminIcon />}
+                      onClick={() => handleQuickAssign('admin')}
+                      fullWidth
+                    >
+                      Assign All Admin Permissions
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      startIcon={<ReportIcon />}
+                      onClick={() => handleQuickAssign('reporting')}
+                      fullWidth
+                    >
+                      Assign All Reporting Permissions
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      startIcon={<BankingIcon />}
+                      onClick={() => handleQuickAssign('banking')}
+                      fullWidth
+                    >
+                      Assign All Banking Permissions
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      startIcon={<SettingsIcon />}
+                      onClick={() => handleQuickAssign('core')}
+                      fullWidth
+                    >
+                      Assign All Core Permissions
+                    </Button>
+                    <Divider />
+                    <Button
+                      variant="contained"
+                      color="error"
+                      startIcon={<DeleteIcon />}
+                      onClick={handleClearAllPermissions}
+                      fullWidth
+                    >
+                      Clear All Permissions
+                    </Button>
+                  </Stack>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+        )}
       </TabPanel>
 
       {/* Role Matrix Tab */}
@@ -1201,7 +1724,7 @@ const RoleManagementPage: React.FC = () => {
                   <Typography variant="h6" color="error.main">
                     {roles.reduce((sum, role) =>
                       sum + role.permissions.filter(p =>
-                        permissions.find(perm => perm.id === (typeof p === 'string' ? p : p.id))?.riskLevel === 'CRITICAL'
+                        permissions.find(perm => perm.id === p.id)?.riskLevel === 'CRITICAL'
                       ).length, 0
                     )}
                   </Typography>
@@ -1213,7 +1736,7 @@ const RoleManagementPage: React.FC = () => {
                   <Typography variant="h6" color="warning.main">
                     {roles.reduce((sum, role) =>
                       sum + role.permissions.filter(p =>
-                        permissions.find(perm => perm.id === (typeof p === 'string' ? p : p.id))?.requiresApproval
+                        permissions.find(perm => perm.id === p.id)?.requiresApproval
                       ).length, 0
                     )}
                   </Typography>
@@ -1342,93 +1865,255 @@ const RoleManagementPage: React.FC = () => {
       <Dialog
         open={permissionDialog.open}
         onClose={() => setPermissionDialog({ open: false, role: null, selectedPermissions: [] })}
-        maxWidth="lg"
+        maxWidth="xl"
         fullWidth
+        PaperProps={{
+          sx: { minHeight: '80vh' }
+        }}
       >
         <DialogTitle>
-          Manage Permissions: {permissionDialog.role?.displayName}
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Box>
+              <Typography variant="h6" component="div">
+                Manage Permissions: {permissionDialog.role?.displayName}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {permissionDialog.role?.type} • {permissionDialog.role?.level} Level
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Chip
+                label={`${permissionDialog.selectedPermissions.length}/${permissions.length} Selected`}
+                color={permissionDialog.selectedPermissions.length === permissions.length ? 'success' : 'default'}
+                size="small"
+              />
+            </Box>
+          </Box>
         </DialogTitle>
         <DialogContent>
           <Box sx={{ mt: 2 }}>
-            {permissionCategories.map((category) => (
-              <Accordion key={category.name} defaultExpanded>
-                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                  <Typography variant="h6">{category.displayName}</Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ ml: 2 }}>
-                    ({category.permissions.length} permissions)
-                  </Typography>
-                </AccordionSummary>
-                <AccordionDetails>
-                  <Grid container spacing={1}>
-                    {category.permissions.map((permission) => (
-                      <Grid size={{ xs: 12, md: 6 }} key={permission.id}>
-                        <FormControlLabel
-                          control={
-                            <Checkbox
-                              checked={permissionDialog.selectedPermissions.includes(permission.id)}
-                              onChange={(e) => {
-                                const selected = permissionDialog.selectedPermissions;
-                                if (e.target.checked) {
-                                  setPermissionDialog({
-                                    ...permissionDialog,
-                                    selectedPermissions: [...selected, permission.id]
-                                  });
-                                } else {
-                                  setPermissionDialog({
-                                    ...permissionDialog,
-                                    selectedPermissions: selected.filter(id => id !== permission.id)
-                                  });
-                                }
-                              }}
-                            />
-                          }
-                          label={
-                            <Box>
-                              <Typography variant="body2">{permission.displayName}</Typography>
-                              <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5 }}>
-                                <Chip
-                                  label={permission.riskLevel}
-                                  size="small"
-                                  color={getRiskLevelColor(permission.riskLevel) as any}
-                                />
-                                {permission.requiresApproval && (
-                                  <Chip label="Approval" size="small" color="warning" />
-                                )}
-                              </Box>
-                            </Box>
-                          }
+            {/* Category Selection Controls */}
+            <Box sx={{ mb: 3, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={permissionCategories.every(cat =>
+                      cat.permissions.every(p => permissionDialog.selectedPermissions.includes(p.id))
+                    )}
+                    indeterminate={permissionCategories.some(cat =>
+                      cat.permissions.some(p => permissionDialog.selectedPermissions.includes(p.id)) &&
+                      !cat.permissions.every(p => permissionDialog.selectedPermissions.includes(p.id))
+                    )}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        // Select all permissions from all categories
+                        const allPermissionIds = permissionCategories.flatMap(cat => cat.permissions.map(p => p.id));
+                        setPermissionDialog({
+                          ...permissionDialog,
+                          selectedPermissions: [...new Set([...permissionDialog.selectedPermissions, ...allPermissionIds])]
+                        });
+                      } else {
+                        // Deselect all
+                        setPermissionDialog({
+                          ...permissionDialog,
+                          selectedPermissions: []
+                        });
+                      }
+                    }}
+                  />
+                }
+                label={<Typography variant="subtitle1" fontWeight="bold">Select All Permissions</Typography>}
+              />
+              <Typography variant="body2" color="text.secondary">
+                {permissionDialog.selectedPermissions.length} of {permissions.length} permissions selected
+              </Typography>
+            </Box>
+
+            {/* Permission Categories */}
+            {permissionCategories.map((category) => {
+              const categoryPermissions = category.permissions;
+              const selectedInCategory = categoryPermissions.filter(p => permissionDialog.selectedPermissions.includes(p.id)).length;
+              const isCategoryFullySelected = selectedInCategory === categoryPermissions.length;
+              const isCategoryPartiallySelected = selectedInCategory > 0 && selectedInCategory < categoryPermissions.length;
+
+              return (
+                <Accordion key={category.name} defaultExpanded>
+                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={isCategoryFullySelected}
+                            indeterminate={isCategoryPartiallySelected}
+                            onChange={(e) => {
+                              e.stopPropagation(); // Prevent accordion toggle
+                              const categoryPermissionIds = categoryPermissions.map(p => p.id);
+                              if (e.target.checked) {
+                                // Select all in category
+                                setPermissionDialog({
+                                  ...permissionDialog,
+                                  selectedPermissions: [...new Set([...permissionDialog.selectedPermissions, ...categoryPermissionIds])]
+                                });
+                              } else {
+                                // Deselect all in category
+                                setPermissionDialog({
+                                  ...permissionDialog,
+                                  selectedPermissions: permissionDialog.selectedPermissions.filter(id => !categoryPermissionIds.includes(id))
+                                });
+                              }
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        }
+                        label={
+                          <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                            {category.displayName}
+                          </Typography>
+                        }
+                        sx={{ flex: 1 }}
+                      />
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Chip
+                          label={`${selectedInCategory}/${categoryPermissions.length}`}
+                          size="small"
+                          color={isCategoryFullySelected ? 'success' : selectedInCategory > 0 ? 'warning' : 'default'}
+                          variant="outlined"
                         />
-                      </Grid>
-                    ))}
-                  </Grid>
-                </AccordionDetails>
-              </Accordion>
-            ))}
+                        <Typography variant="body2" color="text.secondary">
+                          {category.name}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </AccordionSummary>
+                  <AccordionDetails>
+                    <Grid container spacing={1}>
+                      {category.permissions.map((permission) => (
+                        <Grid size={{ xs: 12, sm: 6, md: 4 }} key={permission.id}>
+                          <FormControlLabel
+                            control={
+                              <Checkbox
+                                size="small"
+                                checked={permissionDialog.selectedPermissions.includes(permission.id)}
+                                onChange={(e) => {
+                                  const selected = permissionDialog.selectedPermissions;
+                                  if (e.target.checked) {
+                                    setPermissionDialog({
+                                      ...permissionDialog,
+                                      selectedPermissions: [...selected, permission.id]
+                                    });
+                                  } else {
+                                    setPermissionDialog({
+                                      ...permissionDialog,
+                                      selectedPermissions: selected.filter(id => id !== permission.id)
+                                    });
+                                  }
+                                }}
+                              />
+                            }
+                            label={
+                              <Box sx={{ minWidth: 0 }}>
+                                <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                                  {permission.displayName}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                                  {permission.module}.{permission.resource}:{permission.action}
+                                </Typography>
+                                <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5 }}>
+                                  <Chip
+                                    label={permission.riskLevel}
+                                    size="small"
+                                    color={getRiskLevelColor(permission.riskLevel) as any}
+                                    variant="outlined"
+                                  />
+                                  {permission.requiresApproval && (
+                                    <Chip label="Approval" size="small" color="warning" variant="filled" />
+                                  )}
+                                  {permission.syariahRequired && (
+                                    <Chip label="Syariah" size="small" color="secondary" variant="outlined" />
+                                  )}
+                                </Box>
+                              </Box>
+                            }
+                          />
+                        </Grid>
+                      ))}
+                    </Grid>
+                  </AccordionDetails>
+                </Accordion>
+              );
+            })}
           </Box>
         </DialogContent>
         <DialogActions>
+          <Box sx={{ display: 'flex', gap: 1, flex: 1 }}>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => {
+                // Select all critical permissions
+                const criticalPermissions = permissions.filter(p => p.riskLevel === 'CRITICAL').map(p => p.id);
+                setPermissionDialog({
+                  ...permissionDialog,
+                  selectedPermissions: [...new Set([...permissionDialog.selectedPermissions, ...criticalPermissions])]
+                });
+              }}
+            >
+              + Critical
+            </Button>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => {
+                // Select all permissions requiring approval
+                const approvalPermissions = permissions.filter(p => p.requiresApproval).map(p => p.id);
+                setPermissionDialog({
+                  ...permissionDialog,
+                  selectedPermissions: [...new Set([...permissionDialog.selectedPermissions, ...approvalPermissions])]
+                });
+              }}
+            >
+              + Approval Required
+            </Button>
+            <Button
+              variant="outlined"
+              size="small"
+              color="error"
+              onClick={() => {
+                setPermissionDialog({
+                  ...permissionDialog,
+                  selectedPermissions: []
+                });
+              }}
+            >
+              Clear All
+            </Button>
+          </Box>
           <Button onClick={() => setPermissionDialog({ open: false, role: null, selectedPermissions: [] })}>
             Cancel
           </Button>
-          <Button variant="contained" onClick={async () => {
-            try {
-              if (permissionDialog.role) {
-                console.log('🔒 Updating role permissions in tenant database:', permissionDialog.role.id);
-                console.log('🔧 Selected permissions:', permissionDialog.selectedPermissions);
+          <Button
+            variant="contained"
+            onClick={async () => {
+              try {
+                if (permissionDialog.role) {
+                  console.log('🔒 Updating role permissions in tenant database:', permissionDialog.role.id);
+                  console.log('🔧 Selected permissions:', permissionDialog.selectedPermissions);
 
-                // Use real API call to update role permissions
-                await api.roles.updatePermissions(permissionDialog.role.id, permissionDialog.selectedPermissions);
+                  // Use real API call to update role permissions
+                  await api.roles.updatePermissions(permissionDialog.role.id, permissionDialog.selectedPermissions);
 
-                console.log('✅ Role permissions updated successfully');
-                await fetchRoles(); // Refresh from real database
+                  console.log('✅ Role permissions updated successfully');
+                  await fetchRoles(); // Refresh from real database
+                }
+                setPermissionDialog({ open: false, role: null, selectedPermissions: [] });
+              } catch (error) {
+                console.error('❌ Error updating role permissions:', error);
+                // TODO: Add proper error handling/notification to user
               }
-              setPermissionDialog({ open: false, role: null, selectedPermissions: [] });
-            } catch (error) {
-              console.error('❌ Error updating role permissions:', error);
-              // TODO: Add proper error handling/notification to user
-            }
-          }}>
-            Save Permissions
+            }}
+            disabled={permissionDialog.selectedPermissions.length === 0}
+          >
+            Save {permissionDialog.selectedPermissions.length} Permission{permissionDialog.selectedPermissions.length !== 1 ? 's' : ''}
           </Button>
         </DialogActions>
       </Dialog>

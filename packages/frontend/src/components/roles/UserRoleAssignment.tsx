@@ -106,7 +106,7 @@ interface Role {
   bankingAccess?: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
   isActive: boolean;
   isBuiltIn: boolean;
-  permissions: Permission[];
+  permissions: Record<string, Permission[]>; // Grouped by category
   assignedUsers: number;
   createdAt: string;
 }
@@ -183,7 +183,10 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
     user: null,
     role: null
   });
-
+  // Helper function to flatten grouped permissions
+  const flattenPermissions = (groupedPermissions: Record<string, Permission[]>): Permission[] => {
+    return Object.values(groupedPermissions).flat();
+  };
   // Bulk assignment state
   const [bulkDialog, setBulkDialog] = useState<{
     open: boolean;
@@ -753,7 +756,7 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge badgeContent={role.permissions.length} color="secondary">
+                      <Badge badgeContent={flattenPermissions(role.permissions).length} color="secondary">
                         <SecurityIcon fontSize="small" />
                       </Badge>
                     </TableCell>

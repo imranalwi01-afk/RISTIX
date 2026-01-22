@@ -3,7 +3,8 @@ import {
     rolesRepository,
     userRolesRepository,
     permissionsRepository,
-    rolePermissionsRepository
+    rolePermissionsRepository,
+    type RoleWithPermissions
 } from '@/repositories/rbac.repository'
 import { getDatabase } from '@/config/database'
 import {
@@ -65,12 +66,12 @@ export const getRoleById = (roleId: string, tenantId?: string) =>
         Effect.try(() => getDatabase(tenantId)),
         Effect.mapError(error => new DatabaseError({ operation: 'query', message: String(error) })),
         Effect.flatMap(db => rolesRepository.findById(db, roleId)),
-        // Map NotFound to success undefined? No, findById returns Effect<Role, NotFoundError>
+        // Map NotFound to success undefined? No, findById returns Effect<RoleWithPermissions, NotFoundError>
         // But if it fails with NotFoundError, do we want that?
         // The original code mapped: role ? succeed : fail(NotFound).
         // My repo findById returns Effect.fail(NotFound) if not found (via withNotFound).
         // So I don't need manual check unless I want to customize.
-        // It returns Effect<Role, DatabaseError | NotFoundError>.
+        // It returns Effect<RoleWithPermissions, DatabaseError | NotFoundError>.
         // So this is fine.
     )
 
@@ -337,6 +338,28 @@ export const getUserPermissions = (
 
             return allPermissions
         })
+    )
+
+/**
+ * Update permissions for a specific role by replacing all existing role-permission associations.
+ * 
+ * @param roleId - The unique identifier of the role
+ * @param permissionIds - Array of permission IDs to assign to the role
+ * @param tenantId - Optional tenant ID for database resolution
+ * @returns An Effect that succeeds with the updated Role
+ */
+export const updateRolePermissions = (roleId: string, permissionIds: string[], tenantId?: string) =>
+    pipe(
+        Effect.try(() => getDatabase(tenantId)),
+        Effect.mapError(error => new DatabaseError({ operation: 'query', message: String(error) })),
+        Effect.flatMap(db => rolePermissionsRepository.set(db, roleId, permissionIds)),
+        Effect.flatMap(() => 
+            pipe(
+                Effect.try(() => getDatabase(tenantId)),
+                Effect.mapError(error => new DatabaseError({ operation: 'query', message: String(error) })),
+                Effect.flatMap(db => rolesRepository.findById(db, roleId))
+            )
+        )
     )
 
 /**

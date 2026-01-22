@@ -20,12 +20,28 @@ rbacRoutes.use('*', tenantMiddleware)
 // SCHEMA DEFINITIONS
 // =============================================================================
 
+const PermissionSchema = z.object({
+    id: z.string().openapi({ example: '123e4567-e89b-12d3-a456-426614174000' }),
+    code: z.string().openapi({ example: 'USER_READ' }),
+    name: z.string().openapi({ example: 'User Read' }),
+    displayName: z.string().openapi({ example: 'User Read' }),
+    description: z.string().openapi({ example: 'Read user information' }),
+    resource: z.string().openapi({ example: 'users' }),
+    action: z.string().openapi({ example: 'read' }),
+    module: z.string().openapi({ example: 'user_management' }),
+    category: z.enum(['CORE', 'BANKING', 'IFRS9', 'REPORTING', 'ADMIN']).openapi({ example: 'CORE' }),
+    riskLevel: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']).openapi({ example: 'LOW' }),
+    requiresApproval: z.boolean().openapi({ example: false }),
+    bankingSpecific: z.boolean().openapi({ example: false }),
+    syariahRequired: z.boolean().openapi({ example: false }),
+}).openapi('Permission')
+
 const RoleSchema = z.object({
     id: z.string().openapi({ example: '123e4567-e89b-12d3-a456-426614174000' }),
     roleName: z.string().openapi({ example: 'DATA_ENTRY' }),
     roleCode: z.string().openapi({ example: 'DATA_ENTRY' }),
     description: z.string().nullable().optional().openapi({ example: 'Data entry clerk' }),
-    permissions: z.record(z.array(z.string())).nullable().optional(),
+    permissions: z.record(z.array(PermissionSchema)).openapi({ example: { 'CORE': [], 'BANKING': [], 'IFRS9': [], 'REPORTING': [], 'ADMIN': [] } }),
     bankingTypeSpecific: z.enum(['CONVENTIONAL', 'SYARIAH', 'BOTH']).nullable().optional(),
     complianceLevel: z.string().nullable().optional(),
     hierarchyLevel: z.number().int().default(1),
@@ -42,7 +58,7 @@ const CreateRoleSchema = z.object({
         .regex(/^[A-Z_][A-Z0-9_]*$/, 'Role name must be uppercase with underscores')
         .openapi({ example: 'NEW_ROLE' }),
     description: z.string().optional().openapi({ example: 'New role description' }),
-    permissions: z.record(z.array(z.string())).default({}),
+    permissions: z.array(z.string()).default([]), // Array of permission codes
     bankingTypeSpecific: z.enum(['CONVENTIONAL', 'SYARIAH', 'BOTH']).optional(),
     complianceLevel: z.string().optional(),
     hierarchyLevel: z.number().int().min(1).max(10).default(1),
@@ -51,7 +67,7 @@ const CreateRoleSchema = z.object({
 const UpdateRoleSchema = z.object({
     roleName: z.string().min(2).max(100).optional(),
     description: z.string().optional(),
-    permissions: z.record(z.array(z.string())).optional(),
+    permissions: z.array(z.string()).optional(), // Array of permission codes
     bankingTypeSpecific: z.enum(['CONVENTIONAL', 'SYARIAH', 'BOTH']).nullish(),
     hierarchyLevel: z.number().int().min(1).max(10).optional(),
     isActive: z.boolean().optional(),
@@ -80,7 +96,7 @@ const PermissionCheckSchema = z.object({
 }).openapi('PermissionCheckInput')
 
 const UpdatePermissionsSchema = z.object({
-    permissions: z.record(z.array(z.string()))
+    permissions: z.array(z.string())
 }).openapi('UpdatePermissionsInput')
 
 // =============================================================================
@@ -146,10 +162,35 @@ rbacRoutes.openapi(
             }),
             Effect.map((result) => ({
                 data: result.data.map(r => ({
-                    ...r,
-                    // Handle potential nulls
+                    id: r.id,
+                    roleName: r.roleName,
+                    roleCode: r.roleCode,
                     description: r.description ?? null,
-                    permissions: r.permissions ?? null,
+                    permissions: (r.rolePermissions || []).reduce((acc, rp) => {
+                        const category = (rp.permission.category as 'CORE' | 'BANKING' | 'IFRS9' | 'REPORTING' | 'ADMIN') || 'CORE';
+                        if (!acc[category]) acc[category] = [];
+                        acc[category].push({
+                            id: rp.permission.id,
+                            code: rp.permission.code,
+                            name: rp.permission.name,
+                            displayName: rp.permission.name,
+                            description: rp.permission.description || '',
+                            resource: rp.permission.resource,
+                            action: rp.permission.action,
+                            module: rp.permission.module,
+                            category: category,
+                            riskLevel: 'LOW' as const, // Default value since not in DB
+                            requiresApproval: false, // Default value since not in DB
+                            bankingSpecific: rp.permission.module === 'banking',
+                            syariahRequired: false, // Default value since not in DB
+                        });
+                        return acc;
+                    }, {} as Record<string, any[]>),
+                    bankingTypeSpecific: r.bankingTypeSpecific,
+                    complianceLevel: r.complianceLevel,
+                    hierarchyLevel: r.hierarchyLevel,
+                    isSystemRole: r.isSystemRole,
+                    isActive: r.isActive,
                     tenantId: r.tenantId ?? null,
                 })),
                 pagination: {
@@ -206,12 +247,36 @@ rbacRoutes.openapi(
                 tenantId,
                 // createdBy: userId,
             }),
-            Effect.map(r => ({
-                ...r,
+            Effect.map((r: any) => ({
+                id: r.id,
+                roleName: r.roleName,
+                roleCode: r.roleCode,
                 description: r.description ?? null,
-                permissions: r.permissions ?? null,
-                // bankingTypeSpecific: r.bankingTypeSpecific ?? null,
-                // complianceLevel: r.complianceLevel ?? null,
+                permissions: ((r as any).rolePermissions || []).reduce((acc: Record<string, any[]>, rp: any) => {
+                    const category = (rp.permission.category as 'CORE' | 'BANKING' | 'IFRS9' | 'REPORTING' | 'ADMIN') || 'CORE';
+                    if (!acc[category]) acc[category] = [];
+                    acc[category].push({
+                        id: rp.permission.id,
+                        code: rp.permission.code,
+                        name: rp.permission.name,
+                        displayName: rp.permission.name,
+                        description: rp.permission.description || '',
+                        resource: rp.permission.resource,
+                        action: rp.permission.action,
+                        module: rp.permission.module,
+                        category: category,
+                        riskLevel: 'LOW' as const, // Default value since not in DB
+                        requiresApproval: false, // Default value since not in DB
+                        bankingSpecific: rp.permission.module === 'banking',
+                        syariahRequired: false, // Default value since not in DB
+                    });
+                    return acc;
+                }, {} as Record<string, any[]>),
+                bankingTypeSpecific: r.bankingTypeSpecific,
+                complianceLevel: r.complianceLevel,
+                hierarchyLevel: r.hierarchyLevel,
+                isSystemRole: r.isSystemRole,
+                isActive: r.isActive,
                 tenantId: r.tenantId ?? null,
             }))
         )
@@ -292,15 +357,40 @@ rbacRoutes.openapi(
     }),
     async (c) => {
         const { roleId } = c.req.valid('param')
-
         const effect = pipe(
             rbacService.getRoleById(roleId),
-            Effect.map(r => ({
+            Effect.map((r: any) => ({
                 success: true,
                 data: {
-                    ...r,
+                    id: r.id,
+                    roleName: r.roleName,
+                    roleCode: r.roleCode,
                     description: r.description ?? null,
-                    permissions: r.permissions ?? null,
+                    permissions: ((r as any).rolePermissions || []).reduce((acc: Record<string, any[]>, rp: any) => {
+                        const category = (rp.permission.category as 'CORE' | 'BANKING' | 'IFRS9' | 'REPORTING' | 'ADMIN') || 'CORE';
+                        if (!acc[category]) acc[category] = [];
+                        acc[category].push({
+                            id: rp.permission.id,
+                            code: rp.permission.code,
+                            name: rp.permission.name,
+                            displayName: rp.permission.name,
+                            description: rp.permission.description || '',
+                            resource: rp.permission.resource,
+                            action: rp.permission.action,
+                            module: rp.permission.module,
+                            category: category,
+                            riskLevel: 'LOW' as const, // Default value since not in DB
+                            requiresApproval: false, // Default value since not in DB
+                            bankingSpecific: rp.permission.module === 'banking',
+                            syariahRequired: false, // Default value since not in DB
+                        });
+                        return acc;
+                    }, {} as Record<string, any[]>),
+                    bankingTypeSpecific: r.bankingTypeSpecific,
+                    complianceLevel: r.complianceLevel,
+                    hierarchyLevel: r.hierarchyLevel,
+                    isSystemRole: r.isSystemRole,
+                    isActive: r.isActive,
                     tenantId: r.tenantId ?? null,
                 },
             }))
@@ -353,12 +443,36 @@ rbacRoutes.openapi(
                 ...body,
                 // updatedBy: userId,
             }),
-            Effect.map(r => ({
-                ...r,
+            Effect.map((r: any) => ({
+                id: r.id,
+                roleName: r.roleName,
+                roleCode: r.roleCode,
                 description: r.description ?? null,
-                permissions: r.permissions ?? null,
-                // bankingTypeSpecific: r.bankingTypeSpecific ?? null,
-                // complianceLevel: r.complianceLevel ?? null,
+                permissions: ((r as any).rolePermissions || []).reduce((acc: Record<string, any[]>, rp: any) => {
+                    const category = (rp.permission.category as 'CORE' | 'BANKING' | 'IFRS9' | 'REPORTING' | 'ADMIN') || 'CORE';
+                    if (!acc[category]) acc[category] = [];
+                    acc[category].push({
+                        id: rp.permission.id,
+                        code: rp.permission.code,
+                        name: rp.permission.name,
+                        displayName: rp.permission.name,
+                        description: rp.permission.description || '',
+                        resource: rp.permission.resource,
+                        action: rp.permission.action,
+                        module: rp.permission.module,
+                        category: category,
+                        riskLevel: 'LOW' as const, // Default value since not in DB
+                        requiresApproval: false, // Default value since not in DB
+                        bankingSpecific: rp.permission.module === 'banking',
+                        syariahRequired: false, // Default value since not in DB
+                    });
+                    return acc;
+                }, {} as Record<string, any[]>),
+                bankingTypeSpecific: r.bankingTypeSpecific,
+                complianceLevel: r.complianceLevel,
+                hierarchyLevel: r.hierarchyLevel,
+                isSystemRole: r.isSystemRole,
+                isActive: r.isActive,
                 tenantId: (r as any).tenantId ?? null,
             }))
         )

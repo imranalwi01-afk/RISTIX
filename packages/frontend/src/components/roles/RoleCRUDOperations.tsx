@@ -85,7 +85,7 @@ interface Role {
   bankingAccess?: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
   isActive: boolean;
   isBuiltIn: boolean;
-  permissions: Permission[];
+  permissions: Record<string, Permission[]>; // Grouped by category
   assignedUsers: number;
   createdBy: string;
   createdAt: string;
@@ -133,6 +133,11 @@ const RoleCRUDOperations: React.FC<RoleCRUDOperationsProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // Helper function to flatten grouped permissions
+  const flattenPermissions = (groupedPermissions: Record<string, Permission[]>): Permission[] => {
+    return Object.values(groupedPermissions).flat();
+  };
 
   // Dialog states
   const [crudDialog, setCrudDialog] = useState<{
@@ -329,9 +334,9 @@ const RoleCRUDOperations: React.FC<RoleCRUDOperationsProps> = ({
       level: role.level,
       bankingAccess: role.bankingAccess || 'CONVENTIONAL',
       isActive: role.isActive,
-      permissions: role.permissions.map(p => p.id)
+      permissions: flattenPermissions(role.permissions).map(p => p.id)
     });
-    setSelectedPermissions(role.permissions.map(p => p.id));
+    setSelectedPermissions(flattenPermissions(role.permissions).map(p => p.id));
     setFormErrors({});
     setActiveStep(0);
   };

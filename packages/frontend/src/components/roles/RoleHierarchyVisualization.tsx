@@ -68,7 +68,7 @@ interface Role {
   bankingAccess?: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
   isActive: boolean;
   isBuiltIn: boolean;
-  permissions: Permission[];
+  permissions: Record<string, Permission[]>; // Grouped by category
   assignedUsers: number;
   createdBy: string;
   createdAt: string;
@@ -138,6 +138,11 @@ const RoleHierarchyVisualization: React.FC<RoleHierarchyVisualizationProps> = ({
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [roleDetailsOpen, setRoleDetailsOpen] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
+
+  // Helper function to flatten grouped permissions
+  const flattenPermissions = (groupedPermissions: Record<string, Permission[]>): Permission[] => {
+    return Object.values(groupedPermissions).flat();
+  };
 
   // Fetch roles and users data
   const fetchData = async () => {
@@ -391,11 +396,11 @@ const RoleHierarchyVisualization: React.FC<RoleHierarchyVisualizationProps> = ({
                     {userCount} user{userCount !== 1 ? 's' : ''}
                   </Typography>
 
-                  <Badge badgeContent={role.permissions.length} color="secondary" showZero>
+                  <Badge badgeContent={flattenPermissions(role.permissions).length} color="secondary" showZero>
                     <PermissionIcon fontSize="small" color="action" />
                   </Badge>
                   <Typography variant="caption" color="text.secondary">
-                    {role.permissions.length} permission{role.permissions.length !== 1 ? 's' : ''}
+                    {flattenPermissions(role.permissions).length} permission{flattenPermissions(role.permissions).length !== 1 ? 's' : ''}
                   </Typography>
 
                   {role.bankingAccess && (
@@ -667,7 +672,7 @@ const RoleHierarchyVisualization: React.FC<RoleHierarchyVisualizationProps> = ({
                 <ListItem>
                   <ListItemText
                     primary="Permissions"
-                    secondary={selectedRole.permissions.length}
+                    secondary={flattenPermissions(selectedRole.permissions).length}
                   />
                 </ListItem>
                 <ListItem>
@@ -684,14 +689,14 @@ const RoleHierarchyVisualization: React.FC<RoleHierarchyVisualizationProps> = ({
                 </ListItem>
               </List>
 
-              {selectedRole.permissions.length > 0 && (
+              {flattenPermissions(selectedRole.permissions).length > 0 && (
                 <>
                   <Divider sx={{ my: 2 }} />
                   <Typography variant="subtitle1" gutterBottom>
-                    Permissions ({selectedRole.permissions.length})
+                    Permissions ({flattenPermissions(selectedRole.permissions).length})
                   </Typography>
                   <List dense>
-                    {selectedRole.permissions.map((permission) => (
+                    {flattenPermissions(selectedRole.permissions).map((permission) => (
                       <ListItem key={permission.id}>
                         <ListItemText
                           primary={permission.displayName}

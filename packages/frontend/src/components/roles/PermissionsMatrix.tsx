@@ -296,9 +296,8 @@ const PermissionsMatrix: React.FC<PermissionsMatrixProps> = ({
       console.log('💾 Saving permission changes...');
 
       for (const [roleId, permissionIds] of pendingChanges) {
-        const rolePermissions = filteredRoles
-          .find(r => r.id === roleId)
-          ?.permissions.map(p => p.id) || [];
+        const foundRole = filteredRoles.find(r => r.id === roleId);
+        const rolePermissions = foundRole ? foundRole.permissions.map(p => p.id) : [];
 
         const updatedPermissions = Array.from(permissionIds);
         await api.roles.updatePermissions(roleId, updatedPermissions);

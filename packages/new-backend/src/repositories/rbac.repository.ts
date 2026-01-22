@@ -43,6 +43,13 @@ import { dbOperation } from '@/lib'
 
 export type DrizzleDB = PostgresJsDatabase<typeof schema>
 
+/**
+ * Role with permissions relation included
+ */
+export type RoleWithPermissions = Role & {
+    rolePermissions: (RolePermission & { permission: Permission })[]
+}
+
 // =============================================================================
 // ROLES REPOSITORY
 // =============================================================================
@@ -68,7 +75,7 @@ export class RolesRepository {
      * @param id - The role ID to search for
      * @returns An Effect that succeeds with the Role and its permissions
      */
-    findById(db: DrizzleDB, id: string): Effect.Effect<Role, DatabaseError | NotFoundError> {
+    findById(db: DrizzleDB, id: string): Effect.Effect<RoleWithPermissions, DatabaseError | NotFoundError> {
         return pipe(
             queryEffect(() =>
                 db.query.roles.findFirst({
@@ -76,7 +83,7 @@ export class RolesRepository {
                     with: { rolePermissions: { with: { permission: true } } },
                 })
             ),
-            withNotFound<Role>('Role', id)
+            withNotFound<RoleWithPermissions>('Role', id)
         )
     }
 
@@ -170,7 +177,7 @@ export class RolesRepository {
         db: DrizzleDB,
         tenantId: string,
         options?: RolesQueryOptions & { search?: string }
-    ): Effect.Effect<PaginatedResult<Role>, DatabaseError> {
+    ): Effect.Effect<PaginatedResult<RoleWithPermissions>, DatabaseError> {
         return queryEffect(async () => {
             const pagination = options?.pagination ?? { page: 1, limit: 100 }
             const offset = calculateOffset(pagination.page, pagination.limit)
