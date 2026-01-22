@@ -98,6 +98,8 @@ interface Permission {
   category: 'CORE' | 'BANKING' | 'IFRS9' | 'REPORTING' | 'ADMIN';
   riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   requiresApproval: boolean;
+  requiredApprovalLevel?: number | null;
+  requiredApprovers?: number;
   bankingSpecific: boolean;
   syariahRequired?: boolean;
 }

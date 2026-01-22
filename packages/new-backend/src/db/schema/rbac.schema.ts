@@ -177,6 +177,47 @@ export const rolePermissions = coreSchema.table(
 )
 
 // =============================================================================
+// PERMISSION APPROVAL POLICIES TABLE
+// =============================================================================
+
+/**
+ * Permission approval policies table definition.
+ * Links permissions to approval requirements based on role hierarchy levels.
+ */
+export const permissionApprovalPolicies = coreSchema.table(
+    'permission_approval_policies',
+    {
+        id: uuid('id').primaryKey().defaultRandom(),
+        tenantId: uuid('tenant_id').notNull(),
+        permissionId: uuid('permission_id').notNull(),
+
+        // Approval requirement metadata
+        requiresApproval: boolean('requires_approval').notNull().default(false),
+        minHierarchyLevel: integer('min_hierarchy_level'),
+        requiredApprovers: integer('required_approvers').notNull().default(1),
+
+        // Reference to complex approval flow (optional)
+        matrixId: uuid('matrix_id'),
+
+        // Metadata
+        description: text('description'),
+        isActive: boolean('is_active').notNull().default(true),
+        createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+        updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+    },
+    (table) => ({
+        uniqueTenantPermission: uniqueIndex('unique_tenant_permission').on(
+            table.tenantId,
+            table.permissionId
+        ),
+        tenantIdx: index('permission_policy_tenant_idx').on(table.tenantId),
+        permissionIdx: index('permission_policy_permission_idx').on(table.permissionId),
+        matrixIdx: index('permission_policy_matrix_idx').on(table.matrixId),
+        hierarchyIdx: index('permission_policy_hierarchy_idx').on(table.minHierarchyLevel),
+    })
+)
+
+// =============================================================================
 // RELATIONS
 // =============================================================================
 
@@ -206,6 +247,7 @@ export const userRolesRelations = relations(userRoles, ({ one }) => ({
 
 export const permissionsRelations = relations(permissions, ({ many }) => ({
     rolePermissions: many(rolePermissions),
+    approvalPolicies: many(permissionApprovalPolicies),
 }))
 
 export const rolePermissionsRelations = relations(rolePermissions, ({ one }) => ({
@@ -218,8 +260,25 @@ export const rolePermissionsRelations = relations(rolePermissions, ({ one }) => 
         references: [permissions.id],
     }),
 }))
+export const permissionApprovalPoliciesRelations = relations(
+    permissionApprovalPolicies,
+    ({ one }) => ({
+        tenant: one(tenants, {
+            fields: [permissionApprovalPolicies.tenantId],
+            references: [tenants.id],
+        }),
+        permission: one(permissions, {
+            fields: [permissionApprovalPolicies.permissionId],
+            references: [permissions.id],
+        }),
+    })
+)
 
-// =============================================================================
+
+// ================================================================
+
+export type PermissionApprovalPolicy = typeof permissionApprovalPolicies.$inferSelect
+export type NewPermissionApprovalPolicy = typeof permissionApprovalPolicies.$inferInsert=============
 // TYPE EXPORTS
 // =============================================================================
 

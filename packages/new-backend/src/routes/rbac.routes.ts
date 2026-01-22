@@ -32,6 +32,8 @@ const PermissionSchema = z.object({
     category: z.enum(['CORE', 'BANKING', 'IFRS9', 'REPORTING', 'ADMIN']).openapi({ example: 'CORE' }),
     riskLevel: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']).openapi({ example: 'LOW' }),
     requiresApproval: z.boolean().openapi({ example: false }),
+    requiredApprovalLevel: z.number().nullable().optional().openapi({ example: 2, description: 'Minimum hierarchy level required to approve (1-10)' }),
+    requiredApprovers: z.number().optional().openapi({ example: 1, description: 'Number of approvers needed' }),
     bankingSpecific: z.boolean().openapi({ example: false }),
     syariahRequired: z.boolean().openapi({ example: false }),
 }).openapi('Permission')
@@ -319,6 +321,8 @@ rbacRoutes.openapi(
                 category: p.category ?? 'CORE',
                 riskLevel: (p as any).riskLevel ?? 'LOW',
                 requiresApproval: (p as any).requiresApproval ?? false,
+                requiredApprovalLevel: (p as any).requiredApprovalLevel ?? null,
+                requiredApprovers: (p as any).requiredApprovers ?? 1,
             }))),
         )
 

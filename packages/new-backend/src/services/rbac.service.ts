@@ -12,6 +12,7 @@ import {
     type Role,
 } from '@/db/schema'
 import { DatabaseError, NotFoundError, ValidationError, BusinessError } from '@/lib/errors'
+import { PermissionApprovalService } from './permission-approval.service'
 
 /**
  * @module RBACService
@@ -363,14 +364,36 @@ export const updateRolePermissions = (roleId: string, permissionIds: string[], t
     )
 
 /**
- * Retrieve all available permissions from the database.
+ * Get all available permissions with approval metadata
  * 
  * @param tenantId - The unique identifier of the tenant
- * @returns An Effect that succeeds with an array of Permissions
+ * @returns An Effect that succeeds with an array of Permissions with approval info
  */
 export const getAvailablePermissions = (tenantId: string) =>
     pipe(
         Effect.try(() => getDatabase(tenantId)),
         Effect.mapError(error => new DatabaseError({ operation: 'query', message: String(error) })),
-        Effect.flatMap(db => permissionsRepository.findAll(db))
+        Effect.flatMap(db => 
+            Effect.gen(function* (_) {
+                const permissions = yield* _(permissionsRepository.findAll(db))
+                const approvalService = new PermissionApprovalService(db)
+                
+                // Get approval requirements for all permissions
+                const permissionIds = permissions.map(p => p.id)
+                const approvalMap = yield* _(
+                    approvalService.getBulkApprovalRequirements(tenantId, permissionIds)
+                )
+                
+                // Enrich permissions with approval metadata
+                return permissions.map(p => {
+                    const approval = approvalMap.get(p.id)
+                    return {
+                        ...p,
+                        requiresApproval: approval?.requiresApproval ?? false,
+                        requiredApprovalLevel: approval?.minHierarchyLevel ?? null,
+                        requiredApprovers: approval?.requiredApprovers ?? 1,
+                    }
+                })
+            })
+        )
     )

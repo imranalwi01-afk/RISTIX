@@ -9,10 +9,12 @@ export {
     userRoles,
     permissions,
     rolePermissions,
+    permissionApprovalPolicies,
     rolesRelations,
     userRolesRelations,
     permissionsRelations,
     rolePermissionsRelations,
+    permissionApprovalPoliciesRelations,
     type Role,
     type NewRole,
     type UserRole,
@@ -21,6 +23,8 @@ export {
     type NewPermission,
     type RolePermission,
     type NewRolePermission,
+    type PermissionApprovalPolicy,
+    type NewPermissionApprovalPolicy,
 } from './rbac.schema'
 
 // Audit logging

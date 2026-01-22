@@ -67,7 +67,8 @@ import {
   Delete as DeleteIcon,
   Search as SearchIcon,
   Clear as ClearIcon,
-  Save as SaveIcon
+  Save as SaveIcon,
+  Lock as LockIcon
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import { GridColDef, GridRenderCellParams, GridRowParams } from '@mui/x-data-grid';
@@ -106,6 +107,8 @@ interface Permission {
   category: 'CORE' | 'BANKING' | 'IFRS9' | 'REPORTING' | 'ADMIN';
   riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   requiresApproval: boolean;
+  requiredApprovalLevel?: number | null;
+  requiredApprovers?: number;
   bankingSpecific?: boolean;
   syariahRequired?: boolean;
 }
@@ -630,6 +633,8 @@ const RoleManagementPage: React.FC = () => {
     category: (perm.category || 'CORE') as Permission['category'],
     riskLevel: (perm.riskLevel || 'LOW') as Permission['riskLevel'],
     requiresApproval: perm.requiresApproval ?? false,
+    requiredApprovalLevel: perm.requiredApprovalLevel ?? null,
+    requiredApprovers: perm.requiredApprovers ?? 1,
     bankingSpecific: perm.bankingSpecific ?? (perm.module === 'banking'),
     syariahRequired: perm.syariahRequired ?? false,
   });
@@ -1118,10 +1123,11 @@ const RoleManagementPage: React.FC = () => {
                                 />
                                 {permission.requiresApproval && (
                                   <Chip
-                                    label="Approval Required"
+                                    label={`Approval: Level ${permission.requiredApprovalLevel ?? 1}+ (${permission.requiredApprovers ?? 1} approver${(permission.requiredApprovers ?? 1) > 1 ? 's' : ''})`}
                                     size="small"
                                     color="warning"
                                     variant="filled"
+                                    icon={<LockIcon fontSize="small" />}
                                   />
                                 )}
                                 {permission.syariahRequired && (

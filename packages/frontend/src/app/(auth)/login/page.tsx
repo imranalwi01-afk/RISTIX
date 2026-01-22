@@ -305,11 +305,11 @@ export default function LoginPage() {
                   sx={{ mb: 3, bgcolor: '#ffffff' }}
                 >
                   {tenants.length > 0 ? tenants.map((tenant) => (
-                    <MenuItem key={tenant.id} value={tenant.id}>
+                    <MenuItem key={tenant.id} value={tenant.slug}>
                       {tenant.displayName}
                     </MenuItem>
                   )) : (
-                    <MenuItem value="">No Tenant Found</MenuItem>
+                    <MenuItem value="iaf">Indonesia Airawata Finance (Fallback)</MenuItem>
                   )}
                 </TextField>
 
