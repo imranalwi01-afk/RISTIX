@@ -8,7 +8,7 @@ import {
 } from '../schema'
 
 export class PermissionApprovalPolicyRepository {
-    constructor(private db: PostgresJsDatabase<typeof schema>) {}
+    constructor(private db: PostgresJsDatabase<typeof schema>) { }
 
     /**
      * Find all policies for a tenant

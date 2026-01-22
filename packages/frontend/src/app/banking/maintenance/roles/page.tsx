@@ -262,7 +262,7 @@ const RoleManagementPage: React.FC = () => {
 
       // Handle standardized response with axios wrapper: response.data = { success: true, data: [...], pagination: { ... } }
       const rolesData = Array.isArray(rolesResponse.data?.data) ? rolesResponse.data.data : [];
-      
+
       // Permissions endpoint returns { success: true, data: [...] }
       let permissionsDataRaw: any[] = [];
       if (Array.isArray(permissionsResponse.data?.data)) {
@@ -271,7 +271,7 @@ const RoleManagementPage: React.FC = () => {
         // Fallback if response is the array directly
         permissionsDataRaw = permissionsResponse.data;
       }
-      
+
       // Normalize permissions to match frontend interface
       const permissionsData = permissionsDataRaw.map(normalizePermissionFromApi);
 
@@ -621,7 +621,7 @@ const RoleManagementPage: React.FC = () => {
       default: return 'default';
     }
   };
-  
+
   // Normalize backend permission payload into the shape expected by the UI
   const normalizePermissionFromApi = (perm: any): Permission => ({
     id: perm.id,
@@ -648,23 +648,23 @@ const RoleManagementPage: React.FC = () => {
       ?? role.roleCode
       ?? role.role_code
       ?? 'Untitled Role';
-  
+
     const name = role.name
       ?? role.roleCode
       ?? role.role_code
       ?? role.roleName
       ?? role.role_name
       ?? displayName;
-  
+
     const type = (role.type ?? (role.isSystemRole ? 'SYSTEM' : 'CUSTOM')) as Role['type'];
     const level = (role.level ?? (role.hierarchyLevel ? 'TENANT' : 'TENANT')) as Role['level'];
-  
+
     const bankingAccess = (role.bankingAccess
       ?? role.bankingTypeSpecific
       ?? role.supportsConventional
       ?? role.supportsSyariah
       ?? undefined) as Role['bankingAccess'] | undefined;
-  
+
     return {
       ...role,
       displayName,

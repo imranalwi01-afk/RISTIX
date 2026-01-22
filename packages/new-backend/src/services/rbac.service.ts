@@ -354,7 +354,7 @@ export const updateRolePermissions = (roleId: string, permissionIds: string[], t
         Effect.try(() => getDatabase(tenantId)),
         Effect.mapError(error => new DatabaseError({ operation: 'query', message: String(error) })),
         Effect.flatMap(db => rolePermissionsRepository.set(db, roleId, permissionIds)),
-        Effect.flatMap(() => 
+        Effect.flatMap(() =>
             pipe(
                 Effect.try(() => getDatabase(tenantId)),
                 Effect.mapError(error => new DatabaseError({ operation: 'query', message: String(error) })),
@@ -373,17 +373,17 @@ export const getAvailablePermissions = (tenantId: string) =>
     pipe(
         Effect.try(() => getDatabase(tenantId)),
         Effect.mapError(error => new DatabaseError({ operation: 'query', message: String(error) })),
-        Effect.flatMap(db => 
+        Effect.flatMap(db =>
             Effect.gen(function* (_) {
                 const permissions = yield* _(permissionsRepository.findAll(db))
                 const approvalService = new PermissionApprovalService(db)
-                
+
                 // Get approval requirements for all permissions
                 const permissionIds = permissions.map(p => p.id)
                 const approvalMap = yield* _(
                     approvalService.getBulkApprovalRequirements(tenantId, permissionIds)
                 )
-                
+
                 // Enrich permissions with approval metadata
                 return permissions.map(p => {
                     const approval = approvalMap.get(p.id)

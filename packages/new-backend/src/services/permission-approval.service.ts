@@ -47,9 +47,9 @@ export class PermissionApprovalService {
                     description: policy?.description ?? undefined,
                 }
             },
-            catch: (error) => new DatabaseError({ 
-                operation: 'query', 
-                message: `Failed to get approval requirement: ${error}` 
+            catch: (error) => new DatabaseError({
+                operation: 'query',
+                message: `Failed to get approval requirement: ${error}`
             }),
         })
 
@@ -61,9 +61,9 @@ export class PermissionApprovalService {
             try: async (): Promise<boolean> => {
                 return this.repository.requiresApproval(tenantId, permissionId)
             },
-            catch: (error) => new DatabaseError({ 
-                operation: 'query', 
-                message: `Failed to check approval requirement: ${error}` 
+            catch: (error) => new DatabaseError({
+                operation: 'query',
+                message: `Failed to check approval requirement: ${error}`
             }),
         })
 
@@ -75,9 +75,9 @@ export class PermissionApprovalService {
             try: async (): Promise<PermissionApprovalPolicy[]> => {
                 return this.repository.findRequiringApproval(tenantId)
             },
-            catch: (error) => new DatabaseError({ 
-                operation: 'query', 
-                message: `Failed to get permissions requiring approval: ${error}` 
+            catch: (error) => new DatabaseError({
+                operation: 'query',
+                message: `Failed to get permissions requiring approval: ${error}`
             }),
         })
 
@@ -98,9 +98,9 @@ export class PermissionApprovalService {
             try: async (): Promise<PermissionApprovalPolicy> => {
                 return this.repository.upsert(tenantId, permissionId, data)
             },
-            catch: (error) => new DatabaseError({ 
-                operation: 'upsert', 
-                message: `Failed to upsert approval policy: ${error}` 
+            catch: (error) => new DatabaseError({
+                operation: 'upsert',
+                message: `Failed to upsert approval policy: ${error}`
             }),
         })
 
@@ -126,9 +126,9 @@ export class PermissionApprovalService {
             try: async (): Promise<number | null> => {
                 return this.repository.getMinHierarchyLevel(tenantId, permissionId)
             },
-            catch: (error) => new DatabaseError({ 
-                operation: 'query', 
-                message: `Failed to get eligible approver level: ${error}` 
+            catch: (error) => new DatabaseError({
+                operation: 'query',
+                message: `Failed to get eligible approver level: ${error}`
             }),
         })
 
@@ -179,9 +179,9 @@ export class PermissionApprovalService {
 
                 return requirements
             },
-            catch: (error) => new DatabaseError({ 
-                operation: 'query', 
-                message: `Failed to get bulk approval requirements: ${error}` 
+            catch: (error) => new DatabaseError({
+                operation: 'query',
+                message: `Failed to get bulk approval requirements: ${error}`
             }),
         })
 
@@ -193,9 +193,9 @@ export class PermissionApprovalService {
             try: async (): Promise<void> => {
                 await this.repository.softDelete(id)
             },
-            catch: (error) => new DatabaseError({ 
-                operation: 'delete', 
-                message: `Failed to delete approval policy: ${error}` 
+            catch: (error) => new DatabaseError({
+                operation: 'delete',
+                message: `Failed to delete approval policy: ${error}`
             }),
         })
 }
