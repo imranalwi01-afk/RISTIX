@@ -8,8 +8,9 @@ import { env } from './env'
 export const redis = env.REDIS_URL
     ? new IORedis(env.REDIS_URL, {
         maxRetriesPerRequest: null,
+        lazyConnect: true,
         retryStrategy(times) {
-            const delay = Math.min(times * 50, 2000)
+            const delay = Math.min(times * 100, 2000)
             return delay
         },
     })
@@ -18,19 +19,29 @@ export const redis = env.REDIS_URL
         port: parseInt(env.REDIS_PORT || '6379'),
         password: env.REDIS_PASSWORD || undefined,
         db: parseInt(env.REDIS_SESSION_DB || '11'),
+        lazyConnect: true,
         retryStrategy(times) {
-            const delay = Math.min(times * 50, 2000)
+            const delay = Math.min(times * 100, 2000)
             return delay
         },
         maxRetriesPerRequest: null,
     })
 
+// Track connection state to suppress initial errors
+let isConnected = false
+
 redis.on('connect', () => {
-    console.log('✅ Redis connected for session management')
+    if (!isConnected) {
+        console.log('✅ Redis connected for session management')
+        isConnected = true
+    }
 })
 
 redis.on('error', (err) => {
-    console.error('❌ Redis connection error:', err)
+    // Only log errors after initial connection established
+    if (isConnected) {
+        console.error('❌ Redis session error:', err.message)
+    }
 })
 
 export default redis

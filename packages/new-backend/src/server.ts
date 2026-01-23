@@ -39,7 +39,14 @@ export async function startServer() {
     console.log('✅ Socket.IO initialized')
 
     // ============================================================================
-    // 4. SETUP BULL QUEUES & WORKERS
+    // 4. CONNECT TO REDIS (required for queues and sessions)
+    // ============================================================================
+    console.log('🔌 Connecting to Redis...')
+    const { redis: sessionRedis } = await import('./config/redis')
+    await sessionRedis.connect()
+    
+    // ============================================================================
+    // 5. SETUP BULL QUEUES & WORKERS
     // ============================================================================
     console.log('🔧 Setting up Bull queues...')
     await setupQueues()
@@ -47,7 +54,7 @@ export async function startServer() {
     console.log('✅ Bull queues and workers ready')
 
     // ============================================================================
-    // 5. INITIALIZE WORKFLOW REPOSITORIES
+    // 6. INITIALIZE WORKFLOW REPOSITORIES
     // ============================================================================
     console.log('⚙️  Initializing workflow repositories...')
     const workflowRepo = createWorkflowRepository(db)
@@ -55,7 +62,7 @@ export async function startServer() {
     console.log('✅ Workflow system ready')
 
     // ============================================================================
-    // 6. RETURN BUN SERVER CONFIGURATION
+    // 7. RETURN BUN SERVER CONFIGURATION
     // ============================================================================
     const port = env.PORT || 3001
     const { websocket } = engine.handler()

@@ -6,12 +6,35 @@ import { Effect } from 'effect'
  * Approval job queue configuration for notifications, ECL calculations, and workflows
  */
 
-// Redis connection
+// Redis connection for Bull queues
 const redis = new Redis({
     host: process.env.REDIS_HOST || 'localhost',
     port: parseInt(process.env.REDIS_PORT || '6379'),
     maxRetriesPerRequest: null,
     enableReadyCheck: false,
+    retryStrategy(times) {
+        // Retry with exponential backoff, max 2 seconds
+        const delay = Math.min(times * 100, 2000)
+        return delay
+    },
+    // Suppress connection errors during retries
+    lazyConnect: true,
+})
+
+// Suppress error logging during initial connection attempts
+let isConnected = false
+redis.on('connect', () => {
+    if (!isConnected) {
+        console.log('✅ Redis connected for Bull queues')
+        isConnected = true
+    }
+})
+
+redis.on('error', (err) => {
+    // Only log errors after initial connection
+    if (isConnected) {
+        console.error('❌ Bull Redis error:', err.message)
+    }
 })
 
 // Default queue options (env-tunable)
