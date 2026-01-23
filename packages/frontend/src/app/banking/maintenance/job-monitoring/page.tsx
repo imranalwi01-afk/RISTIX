@@ -449,7 +449,6 @@ const JobMonitoringPage: React.FC = () => {
   const statusCounts = getStatusCounts();
   const filteredJobs = getFilteredJobsByStatus();
 
-        const [executions, definitions, metrics] = await Promise.all([
   const executionColumns: GridColDef[] = [
     {
       field: 'jobName',
@@ -502,12 +501,13 @@ const JobMonitoringPage: React.FC = () => {
           </Box>
         </Box>
       ),
-      // Initial fetch
-      fetchJobExecutions();
-      // Auto-refresh every 30 seconds
-      if (!autoRefresh) return;
-      const interval = setInterval(fetchJobExecutions, 30000);
-      return () => clearInterval(interval);
+    },
+    {
+      field: 'priority',
+      headerName: 'Priority',
+      width: 110,
+      renderCell: (params: GridRenderCellParams) => (
+        <Chip
           label={params.row.priority}
           size="small"
           color={getPriorityColor(params.row.priority) as any}
