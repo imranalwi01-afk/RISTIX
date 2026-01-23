@@ -7,7 +7,7 @@ import { env } from './env'
  */
 export const redis = env.REDIS_URL
     ? new IORedis(env.REDIS_URL, {
-        maxRetriesPerRequest: 3,
+        maxRetriesPerRequest: null,
         retryStrategy(times) {
             const delay = Math.min(times * 50, 2000)
             return delay
@@ -22,7 +22,7 @@ export const redis = env.REDIS_URL
             const delay = Math.min(times * 50, 2000)
             return delay
         },
-        maxRetriesPerRequest: 3,
+        maxRetriesPerRequest: null,
     })
 
 redis.on('connect', () => {
