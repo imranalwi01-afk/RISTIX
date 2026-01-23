@@ -173,6 +173,7 @@ const TabPanel: React.FC<TabPanelProps> = ({ children, value, index, ...other })
 const JobMonitoringPage: React.FC = () => {
   const theme = useTheme();
   const [currentTab, setCurrentTab] = useState(0);
+  const [statusTab, setStatusTab] = useState(0); // 0: All, 1: Ongoing, 2: Running, 3: Completed, 4: Failed
   const [jobExecutions, setJobExecutions] = useState<JobExecution[]>([]);
   const [jobDefinitions, setJobDefinitions] = useState<JobDefinition[]>([]);
   const [systemMetrics, setSystemMetrics] = useState<SystemMetrics | null>(null);
@@ -276,6 +277,10 @@ const JobMonitoringPage: React.FC = () => {
   // Handlers
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setCurrentTab(newValue);
+  };
+
+  const handleStatusTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    setStatusTab(newValue);
   };
 
   const handleFilterChange = (field: keyof JobFilters, value: any) => {
@@ -385,6 +390,64 @@ const JobMonitoringPage: React.FC = () => {
     const seconds = Math.floor((duration % 60000) / 1000);
     return `${minutes}m ${seconds}s`;
   };
+
+  // Filter jobs by status tab
+  const getFilteredJobsByStatus = () => {
+    let filtered = jobExecutions;
+
+    // Apply status tab filter
+    switch (statusTab) {
+      case 1: // Ongoing
+        filtered = filtered.filter(job => job.status === 'PENDING');
+        break;
+      case 2: // Running
+        filtered = filtered.filter(job => job.status === 'RUNNING');
+        break;
+      case 3: // Completed
+        filtered = filtered.filter(job => job.status === 'COMPLETED');
+        break;
+      case 4: // Failed
+        filtered = filtered.filter(job => job.status === 'FAILED');
+        break;
+      default: // All
+        break;
+    }
+
+    // Apply additional filters
+    if (filters.status) {
+      filtered = filtered.filter(job => job.status === filters.status);
+    }
+    if (filters.type) {
+      filtered = filtered.filter(job => job.jobType === filters.type);
+    }
+    if (filters.priority) {
+      filtered = filtered.filter(job => job.priority === filters.priority);
+    }
+    if (filters.searchTerm) {
+      const term = filters.searchTerm.toLowerCase();
+      filtered = filtered.filter(job =>
+        job.jobName.toLowerCase().includes(term) ||
+        (job.userName && job.userName.toLowerCase().includes(term)) ||
+        (job.tenantName && job.tenantName.toLowerCase().includes(term))
+      );
+    }
+
+    return filtered;
+  };
+
+  // Get counts for each status
+  const getStatusCounts = () => {
+    return {
+      all: jobExecutions.length,
+      ongoing: jobExecutions.filter(job => job.status === 'PENDING').length,
+      running: jobExecutions.filter(job => job.status === 'RUNNING').length,
+      completed: jobExecutions.filter(job => job.status === 'COMPLETED').length,
+      failed: jobExecutions.filter(job => job.status === 'FAILED').length,
+    };
+  };
+
+  const statusCounts = getStatusCounts();
+  const filteredJobs = getFilteredJobsByStatus();
 
         const [executions, definitions, metrics] = await Promise.all([
   const executionColumns: GridColDef[] = [
@@ -716,6 +779,108 @@ const JobMonitoringPage: React.FC = () => {
 
       {/* Active Jobs Tab */}
       <TabPanel value={currentTab} index={0}>
+        {/* Status Tabs */}
+        <Paper sx={{ mb: 3 }}>
+          <Tabs
+            value={statusTab}
+            onChange={handleStatusTabChange}
+            indicatorColor="primary"
+            textColor="primary"
+            variant="fullWidth"
+            sx={{
+              borderBottom: 1,
+              borderColor: 'divider',
+              '& .MuiTab-root': {
+                minHeight: 64,
+              },
+            }}
+          >
+            <Tab
+              label={
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                    All Jobs
+                  </Typography>
+                  <Chip
+                    label={statusCounts.all}
+                    size="small"
+                    color="default"
+                    sx={{ mt: 0.5, minWidth: 40 }}
+                  />
+                </Box>
+              }
+            />
+            <Tab
+              icon={<HourglassEmptyIcon />}
+              iconPosition="start"
+              label={
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                    Ongoing
+                  </Typography>
+                  <Chip
+                    label={statusCounts.ongoing}
+                    size="small"
+                    color="warning"
+                    sx={{ mt: 0.5, minWidth: 40 }}
+                  />
+                </Box>
+              }
+            />
+            <Tab
+              icon={<PlayArrowIcon />}
+              iconPosition="start"
+              label={
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                    Running
+                  </Typography>
+                  <Chip
+                    label={statusCounts.running}
+                    size="small"
+                    color="info"
+                    sx={{ mt: 0.5, minWidth: 40 }}
+                  />
+                </Box>
+              }
+            />
+            <Tab
+              icon={<CheckCircleIcon />}
+              iconPosition="start"
+              label={
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                    Completed
+                  </Typography>
+                  <Chip
+                    label={statusCounts.completed}
+                    size="small"
+                    color="success"
+                    sx={{ mt: 0.5, minWidth: 40 }}
+                  />
+                </Box>
+              }
+            />
+            <Tab
+              icon={<ErrorIcon />}
+              iconPosition="start"
+              label={
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                    Failed
+                  </Typography>
+                  <Chip
+                    label={statusCounts.failed}
+                    size="small"
+                    color="error"
+                    sx={{ mt: 0.5, minWidth: 40 }}
+                  />
+                </Box>
+              }
+            />
+          </Tabs>
+        </Paper>
+
         {/* Filters */}
         <Card sx={{ mb: 3 }}>
           <CardHeader
@@ -804,12 +969,12 @@ const JobMonitoringPage: React.FC = () => {
         {/* Active Jobs DataGrid */}
         <Card>
           <CardHeader
-            title={`Job Executions (${jobExecutions.length})`}
+            title={`Job Executions (${filteredJobs.length}${filteredJobs.length !== jobExecutions.length ? ` of ${jobExecutions.length}` : ''})`}
             subheader={`Last updated: ${format(new Date(), 'MMM dd, yyyy HH:mm')}`}
           />
           <CardContent>
             <DataGrid
-              rows={jobExecutions}
+              rows={filteredJobs}
               columns={executionColumns}
               loading={loading}
               pageSizeOptions={[10, 25, 50]}

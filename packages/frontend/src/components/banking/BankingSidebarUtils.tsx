@@ -675,6 +675,7 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
             },
             {
                 id: 'job-monitoring',
+                code: 'job-monitoring',
                 label: 'Job Monitoring',
                 href: '/banking/maintenance/job-monitoring',
                 icon: <Monitor />,
@@ -909,6 +910,7 @@ export const getIconForMenuItem = (code: string, level: number): React.ReactElem
         'approval-system': <Approval />,
         'workflow-configuration': <Settings />,
         'process-monitoring': <Monitor />,
+        'job-monitoring': <Monitor />,
         'staging-management': <TableView />,
         'business-process': <Business />,
         'manual-upload': <CloudUpload />,
