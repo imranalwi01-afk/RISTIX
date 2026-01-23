@@ -1,4 +1,4 @@
-import { Server as HTTPServer } from 'http'
+import { Server as Engine } from '@socket.io/bun-engine'
 import { Server as SocketIOServer, Socket } from 'socket.io'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import * as schema from '../db/schema'
@@ -25,15 +25,11 @@ export class NotificationSocket {
     private io: SocketIOServer
     private connectedAdmins: Map<string, Set<string>> = new Map() // tenantId -> Set of socketIds
 
-    constructor(httpServer: HTTPServer) {
-        this.io = new SocketIOServer(httpServer, {
-            cors: {
-                origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-                methods: ['GET', 'POST'],
-                credentials: true,
-            },
-            path: '/socket.io',
-        })
+    constructor(engine: Engine) {
+        this.io = new SocketIOServer()
+        
+        // Bind Socket.IO to Bun engine
+        this.io.bind(engine)
 
         this.setupMiddleware()
         this.setupNamespaces()

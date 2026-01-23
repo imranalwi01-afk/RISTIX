@@ -28,6 +28,7 @@
         "@hono/zod-openapi": "0.18.3",
         "@hono/zod-validator": "^0.4.1",
         "@scalar/hono-api-reference": "^0.9.30",
+        "@socket.io/bun-engine": "^0.1.0",
         "bullmq": "^5.66.7",
         "drizzle-orm": "0.38.2",
         "effect": "^3.12.5",
