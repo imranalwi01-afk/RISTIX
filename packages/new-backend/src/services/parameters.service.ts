@@ -17,7 +17,7 @@ export const ParametersService = {
      * @param paramType - Parameter type filter (default 'S' for System)
      * @returns An Effect resolving to an array of parameter headers
      */
-    listAppSettings: (code?: string, paramType: string = 'S') => {
+    listAppSettings: (code?: string, paramType: string | string[] = ['S', 'A']) => {
         return pipe(
             ParametersRepository.findHeaders(paramType, code),
             Effect.map(headers => headers.map(transformHeader))
@@ -238,7 +238,11 @@ export const ParametersService = {
                 Effect.map(details => details.map(transformDetail))
             )
         }
-        return Effect.succeed([])
+        // Return headers for type 'B'
+        return pipe(
+            ParametersRepository.findHeaders('B'),
+            Effect.map(headers => headers.map(transformHeader))
+        )
     },
 
     /**

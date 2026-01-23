@@ -112,11 +112,8 @@ app.openapi(
         // and fix the service logic in the next step. 
         // Wait, I should fix the service first or reuse a method that allows type.
 
-        // Actually, viewing ParametersService line 8: listAppSettings: (code?: string) => ParametersRepository.findHeaders('S', code)
-        // It hardcodes 'S'. I need to fix this.
-
-        // Temporarily calling listAppSettings but I will fix the service in next tool call.
-        return runEffect(c, ParametersService.listAppSettings() as any) as any
+        // Now calling listBusinessSettings which correctly fetches type 'B' headers
+        return runEffect(c, ParametersService.listBusinessSettings() as any) as any
     }
 )
 

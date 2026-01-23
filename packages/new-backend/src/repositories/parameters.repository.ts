@@ -1,6 +1,6 @@
 import { legacyDb as db } from '../config'
 import { frs9ParamCommonh, frs9ParamCommond } from '../db/schema'
-import { eq, and, asc } from 'drizzle-orm'
+import { eq, and, asc, inArray } from 'drizzle-orm'
 import { queryEffect } from './base.repository'
 import type { InferInsertModel } from 'drizzle-orm'
 
@@ -17,11 +17,15 @@ export const ParametersRepository = {
      * @param code - Optional parameter code to filter by
      * @returns An Effect resolving to an array of headers
      */
-    findHeaders: (paramType: string, code?: string) => {
+    findHeaders: (paramType: string | string[], code?: string) => {
         return queryEffect(async () => {
+            const typeCondition = Array.isArray(paramType)
+                ? inArray(frs9ParamCommonh.paramType, paramType)
+                : eq(frs9ParamCommonh.paramType, paramType)
+
             return await db.query.frs9ParamCommonh.findMany({
                 where: and(
-                    eq(frs9ParamCommonh.paramType, paramType),
+                    typeCondition,
                     code ? eq(frs9ParamCommonh.paramCode, code) : undefined
                 ),
                 with: {
