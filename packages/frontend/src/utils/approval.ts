@@ -3,15 +3,15 @@
  */
 
 export interface ApprovalMetadata {
-  requiresApproval: boolean;
-  requiredApprovalLevel: number | null;
-  requiredApprovers: number;
+    requiresApproval: boolean;
+    requiredApprovalLevel: number | null;
+    requiredApprovers: number;
 }
 
 export interface UserRoleInfo {
-  hierarchyLevel: number;
-  roleCode: string;
-  roleName: string;
+    hierarchyLevel: number;
+    roleCode: string;
+    roleName: string;
 }
 
 /**
@@ -21,13 +21,13 @@ export interface UserRoleInfo {
  * @returns true if user meets or exceeds the required level
  */
 export const canUserApprove = (
-  userMaxHierarchyLevel: number,
-  requiredMinHierarchyLevel: number | null
+    userMaxHierarchyLevel: number,
+    requiredMinHierarchyLevel: number | null
 ): boolean => {
-  if (requiredMinHierarchyLevel === null) {
-    return true; // No hierarchy requirement
-  }
-  return userMaxHierarchyLevel >= requiredMinHierarchyLevel;
+    if (requiredMinHierarchyLevel === null) {
+        return true; // No hierarchy requirement
+    }
+    return userMaxHierarchyLevel >= requiredMinHierarchyLevel;
 };
 
 /**
@@ -36,8 +36,8 @@ export const canUserApprove = (
  * @returns Maximum hierarchy level, or 1 if no roles
  */
 export const getUserMaxHierarchyLevel = (roles: UserRoleInfo[]): number => {
-  if (!roles || roles.length === 0) return 1;
-  return Math.max(...roles.map(r => r.hierarchyLevel));
+    if (!roles || roles.length === 0) return 1;
+    return Math.max(...roles.map(r => r.hierarchyLevel));
 };
 
 /**
@@ -47,45 +47,45 @@ export const getUserMaxHierarchyLevel = (roles: UserRoleInfo[]): number => {
  * @returns Object with eligibility status and reason
  */
 export const checkApprovalEligibility = (
-  userRoles: UserRoleInfo[],
-  approval: ApprovalMetadata
+    userRoles: UserRoleInfo[],
+    approval: ApprovalMetadata
 ): {
-  canApprove: boolean;
-  reason: string;
-  maxLevel: number;
-  requiredLevel: number | null;
+    canApprove: boolean;
+    reason: string;
+    maxLevel: number;
+    requiredLevel: number | null;
 } => {
-  const maxLevel = getUserMaxHierarchyLevel(userRoles);
-  const requiredLevel = approval.requiredApprovalLevel;
+    const maxLevel = getUserMaxHierarchyLevel(userRoles);
+    const requiredLevel = approval.requiredApprovalLevel;
 
-  if (!approval.requiresApproval) {
+    if (!approval.requiresApproval) {
+        return {
+            canApprove: true,
+            reason: 'No approval required',
+            maxLevel,
+            requiredLevel,
+        };
+    }
+
+    if (requiredLevel === null) {
+        return {
+            canApprove: true,
+            reason: 'No hierarchy level requirement',
+            maxLevel,
+            requiredLevel,
+        };
+    }
+
+    const canApprove = maxLevel >= requiredLevel;
+
     return {
-      canApprove: true,
-      reason: 'No approval required',
-      maxLevel,
-      requiredLevel,
+        canApprove,
+        reason: canApprove
+            ? `User level ${maxLevel} meets requirement (Level ${requiredLevel}+)`
+            : `User level ${maxLevel} insufficient (Level ${requiredLevel}+ required)`,
+        maxLevel,
+        requiredLevel,
     };
-  }
-
-  if (requiredLevel === null) {
-    return {
-      canApprove: true,
-      reason: 'No hierarchy level requirement',
-      maxLevel,
-      requiredLevel,
-    };
-  }
-
-  const canApprove = maxLevel >= requiredLevel;
-
-  return {
-    canApprove,
-    reason: canApprove
-      ? `User level ${maxLevel} meets requirement (Level ${requiredLevel}+)`
-      : `User level ${maxLevel} insufficient (Level ${requiredLevel}+ required)`,
-    maxLevel,
-    requiredLevel,
-  };
 };
 
 /**
@@ -94,15 +94,15 @@ export const checkApprovalEligibility = (
  * @returns Human-readable status string
  */
 export const getApprovalStatusMessage = (approval: ApprovalMetadata): string => {
-  if (!approval.requiresApproval) {
-    return 'No approval required';
-  }
+    if (!approval.requiresApproval) {
+        return 'No approval required';
+    }
 
-  const level = approval.requiredApprovalLevel ?? 1;
-  const approvers = approval.requiredApprovers ?? 1;
-  const approverText = approvers > 1 ? `${approvers} approvers` : '1 approver';
+    const level = approval.requiredApprovalLevel ?? 1;
+    const approvers = approval.requiredApprovers ?? 1;
+    const approverText = approvers > 1 ? `${approvers} approvers` : '1 approver';
 
-  return `Requires Level ${level}+ approval (${approverText})`;
+    return `Requires Level ${level}+ approval (${approverText})`;
 };
 
 /**
@@ -111,14 +111,14 @@ export const getApprovalStatusMessage = (approval: ApprovalMetadata): string => 
  * @returns Human-readable level name
  */
 export const getHierarchyLevelName = (level: number): string => {
-  const levels: Record<number, string> = {
-    1: 'Base/Operator',
-    2: 'Supervisor/Manager',
-    3: 'Senior Manager/Director',
-    4: 'Executive/Board',
-  };
+    const levels: Record<number, string> = {
+        1: 'Base/Operator',
+        2: 'Supervisor/Manager',
+        3: 'Senior Manager/Director',
+        4: 'Executive/Board',
+    };
 
-  return levels[level] ?? (level >= 4 ? 'Executive/Board' : 'Custom Level');
+    return levels[level] ?? (level >= 4 ? 'Executive/Board' : 'Custom Level');
 };
 
 /**
@@ -127,10 +127,10 @@ export const getHierarchyLevelName = (level: number): string => {
  * @returns MUI color name
  */
 export const getApprovalBadgeColor = (
-  level: number | null
+    level: number | null
 ): 'default' | 'info' | 'warning' | 'error' => {
-  if (level === null) return 'default';
-  if (level === 1) return 'info';
-  if (level === 2) return 'warning';
-  return 'error'; // Level 3+
+    if (level === null) return 'default';
+    if (level === 1) return 'info';
+    if (level === 2) return 'warning';
+    return 'error'; // Level 3+
 };

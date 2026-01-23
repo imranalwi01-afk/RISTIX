@@ -26,6 +26,7 @@ import { useBankingTheme } from '../../providers/BankingThemeProvider';
 // Import extracted layout components
 import { BankingAppBar } from '../../components/banking/layout/BankingAppBar';
 import { BankingBreadcrumbs } from '../../components/banking/layout/BankingBreadcrumbs';
+import { NotificationProvider } from '../../providers/NotificationProvider';
 
 const DRAWER_WIDTH = 280;
 const DRAWER_WIDTH_COLLAPSED = 60;
@@ -103,9 +104,10 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
   const handleSidebarToggle = () => setSidebarCollapsed(!sidebarCollapsed);
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
-      {/* AppBar */}
-      <BankingAppBar
+    <NotificationProvider>
+      <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+        {/* AppBar */}
+        <BankingAppBar
         drawerWidth={currentDrawerWidth}
         appBarHeight={COMPACT_APPBAR_HEIGHT}
         sidebarCollapsed={sidebarCollapsed}
@@ -209,5 +211,6 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
         </Box>
       </Box>
     </Box>
+    </NotificationProvider>
   );
 }

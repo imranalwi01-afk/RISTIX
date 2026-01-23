@@ -27,30 +27,30 @@ export const workflows = workflowSchema.table(
     {
         id: uuid('id').primaryKey().defaultRandom(),
         tenantId: uuid('tenant_id').notNull(),
-        
+
         // Workflow metadata
         workflowType: varchar('workflow_type', { length: 50 }).notNull(), // 'APPROVAL', 'ECL_CALCULATION', etc.
         workflowName: varchar('workflow_name', { length: 255 }).notNull(),
         description: text('description'),
-        
+
         // Entity reference
         entityType: varchar('entity_type', { length: 50 }).notNull(),
         entityId: uuid('entity_id').notNull(),
-        
+
         // State tracking
         currentState: varchar('current_state', { length: 50 }).notNull().default('PENDING'),
         previousState: varchar('previous_state', { length: 50 }),
-        
+
         // Approval fields
         requestedBy: uuid('requested_by'),
         requestReason: text('request_reason'),
-        
+
         // Timestamps
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
         expectedCompletionAt: timestamp('expected_completion_at', { withTimezone: true }),
         completedAt: timestamp('completed_at', { withTimezone: true }),
-        
+
         // Metadata and status
         metadata: jsonb('metadata').default('{}'),
         isActive: boolean('is_active').notNull().default(true),
@@ -76,21 +76,21 @@ export const workflowTransitions = workflowSchema.table(
             .notNull()
             .references(() => workflows.id, { onDelete: 'cascade' }),
         tenantId: uuid('tenant_id').notNull(),
-        
+
         // Transition details
         fromState: varchar('from_state', { length: 50 }).notNull(),
         toState: varchar('to_state', { length: 50 }).notNull(),
         transitionReason: varchar('transition_reason', { length: 255 }),
         transitionNotes: text('transition_notes'),
-        
+
         // Who triggered
         triggeredBy: uuid('triggered_by'),
         triggeredAt: timestamp('triggered_at', { withTimezone: true }).notNull().defaultNow(),
-        
+
         // Approval action
         approvalAction: varchar('approval_action', { length: 50 }), // APPROVED, REJECTED, REQUESTED_CHANGES
         approvalComment: text('approval_comment'),
-        
+
         // Metadata
         metadata: jsonb('metadata').default('{}'),
     },
@@ -113,23 +113,23 @@ export const workflowJobs = workflowSchema.table(
             .notNull()
             .references(() => workflows.id, { onDelete: 'cascade' }),
         tenantId: uuid('tenant_id').notNull(),
-        
+
         // Job metadata
         jobType: varchar('job_type', { length: 50 }).notNull(), // ECL_CALCULATION, NOTIFICATION, etc.
         jobId: varchar('job_id', { length: 255 }), // Bull queue job ID
         jobName: varchar('job_name', { length: 255 }),
-        
+
         // Job status
         status: varchar('status', { length: 50 }).notNull().default('QUEUED'), // QUEUED, PROCESSING, COMPLETED, FAILED, RETRY
         attempts: integer('attempts').default(0),
         maxAttempts: integer('max_attempts').default(3),
-        
+
         // Execution tracking
         startedAt: timestamp('started_at', { withTimezone: true }),
         completedAt: timestamp('completed_at', { withTimezone: true }),
         errorMessage: text('error_message'),
         result: jsonb('result'),
-        
+
         // Timestamps
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

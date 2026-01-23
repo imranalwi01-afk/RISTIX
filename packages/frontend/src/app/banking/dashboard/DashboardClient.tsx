@@ -81,6 +81,11 @@ const PersonalizedWidget = dynamic(
     { ssr: false }
 )
 
+const NotificationPanel = dynamic(
+    () => import('../../../components/dashboard/NotificationPanel'),
+    { ssr: false }
+)
+
 // Dynamic imports for Recharts - these are heavy chart libraries
 const ResponsiveContainer: any = dynamic(
     () => import('recharts').then((mod) => mod.ResponsiveContainer as any),
@@ -823,6 +828,11 @@ export default function DashboardClient() {
                             </List>
                         </CardContent>
                     </Card>
+                </Grid>
+
+                {/* Live Notifications Panel */}
+                <Grid size={{ xs: 12, md: 6 }}>
+                    <NotificationPanel />
                 </Grid>
             </Grid>
 

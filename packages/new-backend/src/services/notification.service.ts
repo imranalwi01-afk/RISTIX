@@ -19,15 +19,15 @@ const smtpConfig: SMTPConfig = {
     auth:
         process.env.SMTP_USER && process.env.SMTP_PASS
             ? {
-                  user: process.env.SMTP_USER,
-                  pass: process.env.SMTP_PASS,
-              }
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASS,
+            }
             : undefined,
 }
 
 async function sendSMTPEmail(to: string, subject: string, text: string, html?: string): Promise<string> {
     const from = process.env.SMTP_FROM || 'noreply@ifrs9-app.local'
-    
+
     try {
         // Connect to SMTP server using Bun.connect
         const socket = await Bun.connect({
@@ -46,36 +46,36 @@ async function sendSMTPEmail(to: string, subject: string, text: string, html?: s
         // Build email message
         const messageId = `<${Date.now()}.${Math.random().toString(36).substring(7)}@${smtpConfig.host}>`
         const boundary = `----=_Part_${Date.now()}_${Math.random().toString(36).substring(7)}`
-        
+
         const emailContent = html
             ? [
-                  `From: ${from}`,
-                  `To: ${to}`,
-                  `Subject: ${subject}`,
-                  `Message-ID: ${messageId}`,
-                  `MIME-Version: 1.0`,
-                  `Content-Type: multipart/alternative; boundary="${boundary}"`,
-                  '',
-                  `--${boundary}`,
-                  'Content-Type: text/plain; charset=utf-8',
-                  '',
-                  text,
-                  '',
-                  `--${boundary}`,
-                  'Content-Type: text/html; charset=utf-8',
-                  '',
-                  html,
-                  '',
-                  `--${boundary}--`,
-              ].join('\r\n')
+                `From: ${from}`,
+                `To: ${to}`,
+                `Subject: ${subject}`,
+                `Message-ID: ${messageId}`,
+                `MIME-Version: 1.0`,
+                `Content-Type: multipart/alternative; boundary="${boundary}"`,
+                '',
+                `--${boundary}`,
+                'Content-Type: text/plain; charset=utf-8',
+                '',
+                text,
+                '',
+                `--${boundary}`,
+                'Content-Type: text/html; charset=utf-8',
+                '',
+                html,
+                '',
+                `--${boundary}--`,
+            ].join('\r\n')
             : [
-                  `From: ${from}`,
-                  `To: ${to}`,
-                  `Subject: ${subject}`,
-                  `Message-ID: ${messageId}`,
-                  '',
-                  text,
-              ].join('\r\n')
+                `From: ${from}`,
+                `To: ${to}`,
+                `Subject: ${subject}`,
+                `Message-ID: ${messageId}`,
+                '',
+                text,
+            ].join('\r\n')
 
         // Send SMTP commands
         const sendCommand = async (cmd: string) => {
@@ -86,27 +86,27 @@ async function sendSMTPEmail(to: string, subject: string, text: string, html?: s
         // SMTP handshake
         await Bun.sleep(500) // Wait for server greeting
         await sendCommand(`EHLO ${smtpConfig.host}`)
-        
+
         if (smtpConfig.auth) {
             await sendCommand('AUTH LOGIN')
             await sendCommand(btoa(smtpConfig.auth.user))
             await sendCommand(btoa(smtpConfig.auth.pass))
         }
-        
+
         await sendCommand(`MAIL FROM:<${from}>`)
         await sendCommand(`RCPT TO:<${to}>`)
         await sendCommand('DATA')
         await sendCommand(emailContent)
         await sendCommand('.')
         await sendCommand('QUIT')
-        
+
         socket.end()
-        
+
         console.log('📧 Email sent successfully via SMTP')
         return messageId
     } catch (error) {
         console.error('❌ SMTP Error:', error)
-        
+
         // Fallback: Log email details
         console.log('📧 Email Details (fallback):', {
             from,
@@ -114,7 +114,7 @@ async function sendSMTPEmail(to: string, subject: string, text: string, html?: s
             subject,
             text: text.substring(0, 100) + '...',
         })
-        
+
         return `msg_${Date.now()}_${Math.random().toString(36).substring(7)}`
     }
 }

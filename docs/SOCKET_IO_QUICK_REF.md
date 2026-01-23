@@ -211,6 +211,6 @@ socket.broadcastApprovalNotification('tenant-id', {
 
 **For detailed setup:** See `docs/SOCKET_IO_SETUP.md`
 
-**For implementation example:** See `packages/new-backend/src/app-setup-example.ts`
+**For implementation example:** See `packages/new-backend/src/app.ts`
 
 **For frontend example:** See `packages/frontend/src/app/admin/dashboard-example.tsx`

@@ -175,7 +175,7 @@ const RoleManagementPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<RoleFilters>({});
-  
+
   // Current user's roles for approval eligibility checking
   const [currentUserRoles, setCurrentUserRoles] = useState<UserRoleInfo[]>([]);
   const [userMaxHierarchyLevel, setUserMaxHierarchyLevel] = useState<number>(1);
@@ -320,7 +320,7 @@ const RoleManagementPage: React.FC = () => {
     fetchRoles();
     fetchCurrentUserRoles();
   }, [fetchRoles]);
-  
+
   // Fetch current user's roles for approval eligibility
   const fetchCurrentUserRoles = useCallback(async () => {
     try {
@@ -1123,7 +1123,7 @@ const RoleManagementPage: React.FC = () => {
             </Grid>
           </CardContent>
         </Card>
-        
+
         {/* Permissions Sub-Tabs */}
         <Paper sx={{ mb: 3 }}>
           <Tabs
@@ -1174,12 +1174,12 @@ const RoleManagementPage: React.FC = () => {
                       {category.permissions.map((permission) => {
                         const eligibility = permission.requiresApproval
                           ? checkApprovalEligibility(currentUserRoles, {
-                              requiresApproval: permission.requiresApproval,
-                              requiredApprovalLevel: permission.requiredApprovalLevel ?? null,
-                              requiredApprovers: permission.requiredApprovers ?? 1,
-                            })
+                            requiresApproval: permission.requiresApproval,
+                            requiredApprovalLevel: permission.requiredApprovalLevel ?? null,
+                            requiredApprovers: permission.requiredApprovers ?? 1,
+                          })
                           : null;
-                        
+
                         return (
                           <ListItem key={permission.id} divider>
                             <ListItemIcon>

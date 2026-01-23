@@ -37,13 +37,17 @@
   - Action links to relevant pages
 
 ### Example Implementations
-- **Backend**: `packages/new-backend/src/app-setup-example.ts`
   - Shows how to initialize Socket.IO + Bull + Workflows
   - Example approval endpoint with event triggering
+### Example Implementations
+- **Backend**: `packages/new-backend/src/app.ts`
+  - Main Hono app entry where Socket.IO and queues are wired alongside the server
 - **Frontend**: `packages/frontend/src/app/admin/dashboard-example.tsx`
   - Admin dashboard header with notifications
   - Approvals page with live update feed
   - ECL calculations page with progress tracking
+
+**For implementation example:** See `packages/new-backend/src/app.ts`
 
 ## Files Created/Modified
 
@@ -51,7 +55,7 @@
 Backend:
   ✅ packages/new-backend/src/socket/notification.socket.ts (NEW)
   ✅ packages/new-backend/src/repositories/workflows.repository.ts (MODIFIED - added Socket.IO)
-  ✅ packages/new-backend/src/app-setup-example.ts (NEW)
+  ✅ packages/new-backend/src/app.ts (entrypoint)
 
 Frontend:
   ✅ packages/frontend/src/hooks/useNotificationSocket.ts (NEW)

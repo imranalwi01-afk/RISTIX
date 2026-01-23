@@ -28,14 +28,19 @@ export async function createAppServer(db: PostgresJsDatabase<any>, port: number 
 
     // Create HTTP server using @hono/node-server (needed for Socket.IO)
     const httpServer = createServer((req, res) => {
-        return app.fetch(req as any).then(response => {
+        ;(async () => {
+            const response = await app.fetch(req as any)
             res.statusCode = response.status
-            response.headers.forEach((value, key) => res.setHeader(key, value))
+            response.headers.forEach((value: string, key: string) => res.setHeader(key, value))
             response.body?.pipeTo(new WritableStream({
                 write(chunk) {
                     res.write(chunk)
                 }
             }))
+        })().catch(err => {
+            console.error('Error handling request', err)
+            res.statusCode = 500
+            res.end('Internal Server Error')
         })
     })
 

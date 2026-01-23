@@ -1,6 +1,7 @@
 import { Worker } from 'bullmq'
 import Redis from 'ioredis'
-import { ApprovalNotificationJob, ECLCalculationJob, approvalNotificationQueue, eclCalculationQueue } from '../queue/bull-setup'
+import { ApprovalNotificationJob, ECLCalculationJob, enqueueDeadLetter } from '../queue/bull-setup'
+import { getNotificationSocket } from '../socket/notification.socket'
 import * as NotificationService from '../services/notification.service'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import * as schema from '../db/schema'
@@ -41,7 +42,7 @@ export function setupApprovalNotificationWorker(db: PostgresJsDatabase<typeof sc
                         toEmail: string,
                         context: Record<string, unknown>
                     ) => Promise<string>
-                    
+
                     const messageId = await emailServiceFn(job.data, email, templateContext)
                     console.log(`✉️ Email notification sent: ${messageId}`)
                 }
@@ -92,6 +93,39 @@ export function setupApprovalNotificationWorker(db: PostgresJsDatabase<typeof sc
 
     worker.on('failed', (job, err) => {
         console.error(`❌ Job ${job?.id} failed: ${err.message}`)
+        if (job) {
+            const jobId: string = job.id ? String(job.id) : 'unknown'
+            const payloadData = job.data as unknown as Record<string, unknown>
+            const severity: 'error' = 'error'
+
+            enqueueDeadLetter('approval-notifications', {
+                originalQueue: 'approval-notifications',
+                originalJobId: jobId,
+                name: job.name,
+                data: payloadData,
+                failedReason: err?.message,
+                failedAt: new Date().toISOString(),
+            }).catch((dlqErr) => console.error('❌ Failed to enqueue DLQ for approval job', dlqErr))
+
+            // Broadcast alert to admins of the tenant
+            const tenantId = job.data.tenantId || 'tenant-id'
+            try {
+                getNotificationSocket().broadcastComplianceAlert(
+                    tenantId,
+                    severity,
+                    `Approval notification job failed (${jobId}): ${err.message}`,
+                    {
+                        queue: 'approval-notifications',
+                        jobId,
+                        name: job.name,
+                        data: payloadData,
+                        failedAt: new Date().toISOString(),
+                    }
+                )
+            } catch (broadcastErr) {
+                console.error('❌ Failed to broadcast approval job failure', broadcastErr)
+            }
+        }
     })
 
     return worker
@@ -147,6 +181,39 @@ export function setupECLCalculationWorker(db: PostgresJsDatabase<typeof schema>)
 
     worker.on('failed', (job, err) => {
         console.error(`❌ ECL job ${job?.id} failed: ${err.message}`)
+        if (job) {
+            const jobId: string = job.id ? String(job.id) : 'unknown'
+            const payloadData = job.data as unknown as Record<string, unknown>
+            const severity: 'error' = 'error'
+
+            enqueueDeadLetter('ecl-calculations', {
+                originalQueue: 'ecl-calculations',
+                originalJobId: jobId,
+                name: job.name,
+                data: payloadData,
+                failedReason: err?.message,
+                failedAt: new Date().toISOString(),
+            }).catch((dlqErr) => console.error('❌ Failed to enqueue DLQ for ECL job', dlqErr))
+
+            // Broadcast alert to admins of the tenant
+            const tenantId = job.data.tenantId || 'tenant-id'
+            try {
+                getNotificationSocket().broadcastComplianceAlert(
+                    tenantId,
+                    severity,
+                    `ECL calculation job failed (${jobId}): ${err.message}`,
+                    {
+                        queue: 'ecl-calculations',
+                        jobId,
+                        name: job.name,
+                        data: payloadData,
+                        failedAt: new Date().toISOString(),
+                    }
+                )
+            } catch (broadcastErr) {
+                console.error('❌ Failed to broadcast ECL job failure', broadcastErr)
+            }
+        }
     })
 
     return worker

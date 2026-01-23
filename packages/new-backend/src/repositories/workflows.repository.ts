@@ -21,7 +21,7 @@ import { getNotificationSocket } from '../socket/notification.socket'
  */
 
 export class WorkflowRepository {
-    constructor(private db: PostgresJsDatabase<any>) {}
+    constructor(private db: PostgresJsDatabase<any>) { }
 
     /**
      * Create new workflow
@@ -149,7 +149,7 @@ export class WorkflowEventHandler {
     constructor(
         private workflowRepo: WorkflowRepository,
         private db: PostgresJsDatabase<any>
-    ) {}
+    ) { }
 
     /**
      * Handle approval workflow completed

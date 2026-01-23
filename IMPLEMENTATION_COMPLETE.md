@@ -83,7 +83,7 @@ ECL Calculations (stored procedures) → Results stored → Admin Dashboard (rea
 
 | File | Purpose |
 |------|---------|
-| `packages/new-backend/src/app-setup-example.ts` | Backend setup example |
+| `packages/new-backend/src/app.ts` | Backend setup entrypoint |
 | `packages/frontend/src/app/admin/dashboard-example.tsx` | Frontend example |
 
 ---
@@ -300,7 +300,7 @@ See `SOCKET_IO_CHECKLIST.md` for complete testing procedure
 
 **Detailed Setup:** `docs/SOCKET_IO_SETUP.md` (complete guide)
 
-**Integration Example:** `packages/new-backend/src/app-setup-example.ts`
+**Integration Example:** `packages/new-backend/src/app.ts`
 
 **Checklist:** `SOCKET_IO_CHECKLIST.md` (implementation steps)
 

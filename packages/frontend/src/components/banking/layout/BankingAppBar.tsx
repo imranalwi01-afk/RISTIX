@@ -19,6 +19,7 @@ import {
 import { useBankingTheme } from '../../../providers/BankingThemeProvider'; // Adjust path
 import { TenantSwitcher } from '../../admin/TenantSwitcher'; // Adjust path
 import { BankingProfileMenu } from './BankingProfileMenu';
+import { NotificationBell } from '../NotificationBell';
 
 interface BankingAppBarProps {
     drawerWidth: number;
@@ -132,6 +133,9 @@ export const BankingAppBar: React.FC<BankingAppBarProps> = ({
                             {colorMode === 'dark' ? <Brightness7 /> : <Brightness4 />}
                         </IconButton>
                     </Tooltip>
+
+                    {/* Notification Bell */}
+                    <NotificationBell colorMode={colorMode} />
 
                     {/* Tenant Switcher */}
                     <TenantSwitcher />

@@ -14,10 +14,48 @@ const redis = new Redis({
     enableReadyCheck: false,
 })
 
-// Queue instances
-export const approvalNotificationQueue = new Queue('approval-notifications', { connection: redis })
-export const eclCalculationQueue = new Queue('ecl-calculations', { connection: redis })
-export const complianceCheckQueue = new Queue('compliance-checks', { connection: redis })
+// Default queue options (env-tunable)
+const queueDefaults = {
+    approval: {
+        attempts: parseInt(process.env.BULL_APPROVAL_ATTEMPTS || '3'),
+        backoff: {
+            type: 'exponential' as const,
+            delay: parseInt(process.env.BULL_APPROVAL_BACKOFF_MS || '2000'),
+        },
+        timeout: parseInt(process.env.BULL_APPROVAL_TIMEOUT_MS || '30000'),
+    },
+    ecl: {
+        attempts: parseInt(process.env.BULL_ECL_ATTEMPTS || '5'),
+        backoff: {
+            type: 'exponential' as const,
+            delay: parseInt(process.env.BULL_ECL_BACKOFF_MS || '5000'),
+        },
+        timeout: parseInt(process.env.BULL_ECL_TIMEOUT_MS || '60000'),
+    },
+    compliance: {
+        attempts: parseInt(process.env.BULL_COMPLIANCE_ATTEMPTS || '3'),
+        backoff: {
+            type: 'exponential' as const,
+            delay: parseInt(process.env.BULL_COMPLIANCE_BACKOFF_MS || '3000'),
+        },
+        timeout: parseInt(process.env.BULL_COMPLIANCE_TIMEOUT_MS || '30000'),
+    },
+}
+
+// Queue instances with defaults
+export const approvalNotificationQueue = new Queue('approval-notifications', {
+    connection: redis,
+})
+export const eclCalculationQueue = new Queue('ecl-calculations', {
+    connection: redis,
+})
+export const complianceCheckQueue = new Queue('compliance-checks', {
+    connection: redis,
+})
+// Dead-letter queues (DLQ)
+export const approvalDLQ = new Queue('approval-notifications-dlq', { connection: redis })
+export const eclDLQ = new Queue('ecl-calculations-dlq', { connection: redis })
+export const complianceDLQ = new Queue('compliance-checks-dlq', { connection: redis })
 
 // Job data types
 export interface ApprovalNotificationJob {
@@ -49,6 +87,15 @@ export interface ComplianceCheckJob {
     rules?: Record<string, unknown>
 }
 
+export interface DeadLetterJob {
+    originalQueue: string
+    originalJobId: string | number
+    name: string
+    data: Record<string, unknown>
+    failedReason?: string
+    failedAt: string
+}
+
 // Queue event listeners and setup
 export async function setupQueues(): Promise<void> {
     console.log('🔧 Setting up Bull queues...')
@@ -61,8 +108,50 @@ export async function closeQueues(): Promise<void> {
         approvalNotificationQueue.close(),
         eclCalculationQueue.close(),
         complianceCheckQueue.close(),
+        approvalDLQ.close(),
+        eclDLQ.close(),
+        complianceDLQ.close(),
         redis.quit(),
     ])
+}
+
+/**
+ * Move a failed job payload to the corresponding dead-letter queue
+ */
+export async function enqueueDeadLetter(queueName: string, payload: DeadLetterJob): Promise<void> {
+    switch (queueName) {
+        case 'approval-notifications':
+            await approvalDLQ.add('dead-letter', payload, { removeOnComplete: false, removeOnFail: false })
+            return
+        case 'ecl-calculations':
+            await eclDLQ.add('dead-letter', payload, { removeOnComplete: false, removeOnFail: false })
+            return
+        case 'compliance-checks':
+            await complianceDLQ.add('dead-letter', payload, { removeOnComplete: false, removeOnFail: false })
+            return
+        default:
+            console.warn(`Unknown queue for DLQ: ${queueName}`)
+    }
+}
+
+/**
+ * Lightweight queue health snapshot (use in /health or dashboards)
+ */
+export async function getQueueMetrics() {
+    const [approvalCounts, eclCounts, complianceCounts, approvalDLQCount, eclDLQCount, complianceDLQCount] = await Promise.all([
+        approvalNotificationQueue.getJobCounts(),
+        eclCalculationQueue.getJobCounts(),
+        complianceCheckQueue.getJobCounts(),
+        approvalDLQ.count(),
+        eclDLQ.count(),
+        complianceDLQ.count(),
+    ])
+
+    return {
+        approval: { ...approvalCounts, dlq: approvalDLQCount },
+        ecl: { ...eclCounts, dlq: eclDLQCount },
+        compliance: { ...complianceCounts, dlq: complianceDLQCount },
+    }
 }
 
 /**
@@ -75,11 +164,8 @@ export async function queueApprovalNotification(
         `approval-${job.action.toLowerCase()}`,
         job,
         {
-            attempts: 3,
-            backoff: {
-                type: 'exponential',
-                delay: 2000,
-            },
+            attempts: queueDefaults.approval.attempts,
+            backoff: queueDefaults.approval.backoff,
             removeOnComplete: true,
             removeOnFail: false,
         }
@@ -95,11 +181,8 @@ export async function queueECLCalculation(job: ECLCalculationJob): Promise<strin
         `ecl-${job.storedProcedure || 'default'}`,
         job,
         {
-            attempts: 5,
-            backoff: {
-                type: 'exponential',
-                delay: 5000,
-            },
+            attempts: queueDefaults.ecl.attempts,
+            backoff: queueDefaults.ecl.backoff,
             removeOnComplete: false, // keep for audit trail
             removeOnFail: false,
         }
@@ -115,11 +198,8 @@ export async function queueComplianceCheck(job: ComplianceCheckJob): Promise<str
         `compliance-${job.checkType.toLowerCase()}`,
         job,
         {
-            attempts: 3,
-            backoff: {
-                type: 'exponential',
-                delay: 3000,
-            },
+            attempts: queueDefaults.compliance.attempts,
+            backoff: queueDefaults.compliance.backoff,
             removeOnComplete: true,
             removeOnFail: false,
         }

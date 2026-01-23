@@ -74,11 +74,10 @@ export function ApprovalsPage() {
                                 <button
                                     key={approval.id}
                                     onClick={() => setSelectedApprovalId(approval.id)}
-                                    className={`w-full text-left p-3 border rounded transition ${
-                                        selectedApprovalId === approval.id
+                                    className={`w-full text-left p-3 border rounded transition ${selectedApprovalId === approval.id
                                             ? 'border-blue-500 bg-blue-50'
                                             : 'border-gray-200 hover:bg-gray-50'
-                                    }`}
+                                        }`}
                                 >
                                     <div className="flex items-center justify-between">
                                         <div>
@@ -86,11 +85,10 @@ export function ApprovalsPage() {
                                             <p className="text-sm text-gray-600">{approval.requester}</p>
                                         </div>
                                         <span
-                                            className={`text-xs px-2 py-1 rounded ${
-                                                approval.status === 'pending'
+                                            className={`text-xs px-2 py-1 rounded ${approval.status === 'pending'
                                                     ? 'bg-yellow-100 text-yellow-800'
                                                     : 'bg-blue-100 text-blue-800'
-                                            }`}
+                                                }`}
                                         >
                                             {approval.status}
                                         </span>
@@ -164,13 +162,12 @@ export function ECLCalculationsPage() {
                     {eclNotifications.map((n) => (
                         <div key={n.id} className="flex items-center gap-2 text-sm">
                             <div
-                                className={`w-3 h-3 rounded-full ${
-                                    n.type === 'ECL_STARTED'
+                                className={`w-3 h-3 rounded-full ${n.type === 'ECL_STARTED'
                                         ? 'bg-blue-500'
                                         : n.type === 'ECL_COMPLETED'
-                                          ? 'bg-green-500'
-                                          : 'bg-red-500'
-                                }`}
+                                            ? 'bg-green-500'
+                                            : 'bg-red-500'
+                                    }`}
                             />
                             <span>{n.message}</span>
                         </div>
