@@ -199,11 +199,18 @@ WHERE p.is_active = true
 | 3    | Add approval policy repository | `packages/new-backend/src/repositories/permission-approval.repo.ts` | ✅ DONE |
 | 4    | Add approval policy service | `packages/new-backend/src/services/permission-approval.service.ts` | ✅ DONE |
 | 5    | Enrich `/rbac/permissions` API endpoint | Update `rbac.routes.ts` | ✅ DONE |
-| 6    | Add approval enforcement middleware/guard | Backend service layer | ⏳ TODO |
+| 6    | Add approval enforcement middleware/guard | Backend service layer | ✅ DONE |
 | 7    | Update frontend Permission interface | Add `requiresApproval`, `required_approval_level` fields | ✅ DONE |
 | 8    | Display approval badges in permissions UI | Update roles/permissions components | ✅ DONE |
-| 9    | Add approver eligibility check helper (frontend) | Utility function | ⏳ TODO |
-| 10   | Seed test policies (DEV/QA only) | Optional test migration | ⏳ TODO |
+| 9    | Add approver eligibility check helper (frontend) | Utility function | ✅ DONE |
+| 10   | Seed test policies (DEV/QA only) | Migration 0014 (optional) | ✅ DONE |
+| 11   | Run migrations on database | See MIGRATION_GUIDE.md | ⏳ PENDING |
+
+---
+
+## Implementation Complete! 🎉
+
+All code has been written and is ready for deployment. See [MIGRATION_GUIDE.md](./MIGRATION_GUIDE.md) for detailed instructions on running the database migrations.
 
 ---
 

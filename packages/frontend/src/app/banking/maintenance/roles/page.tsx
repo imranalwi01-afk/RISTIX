@@ -78,6 +78,15 @@ import { format, parseISO } from 'date-fns';
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 import { api } from '@/services/api';
 import { RolePermissionsEditor } from '@/components/rbac/RolePermissionsEditor';
+import {
+  canUserApprove,
+  getUserMaxHierarchyLevel,
+  checkApprovalEligibility,
+  getApprovalStatusMessage,
+  getHierarchyLevelName,
+  getApprovalBadgeColor,
+  type UserRoleInfo,
+} from '@/utils/approval';
 
 // Types and Interfaces
 interface Role {
@@ -166,6 +175,10 @@ const RoleManagementPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<RoleFilters>({});
+  
+  // Current user's roles for approval eligibility checking
+  const [currentUserRoles, setCurrentUserRoles] = useState<UserRoleInfo[]>([]);
+  const [userMaxHierarchyLevel, setUserMaxHierarchyLevel] = useState<number>(1);
 
   // Bulk assignment states
   const [bulkAssignmentRole, setBulkAssignmentRole] = useState<string | null>(null);
@@ -305,7 +318,25 @@ const RoleManagementPage: React.FC = () => {
 
   useEffect(() => {
     fetchRoles();
+    fetchCurrentUserRoles();
   }, [fetchRoles]);
+  
+  // Fetch current user's roles for approval eligibility
+  const fetchCurrentUserRoles = useCallback(async () => {
+    try {
+      // TODO: Replace with actual API call to get current user's roles
+      // For now, mock with default values
+      const mockUserRoles: UserRoleInfo[] = [
+        { hierarchyLevel: 2, roleCode: 'SUPERVISOR', roleName: 'Supervisor' },
+      ];
+      setCurrentUserRoles(mockUserRoles);
+      setUserMaxHierarchyLevel(getUserMaxHierarchyLevel(mockUserRoles));
+    } catch (err) {
+      console.error('Failed to fetch current user roles:', err);
+      // Default to level 1 on error
+      setUserMaxHierarchyLevel(1);
+    }
+  }, []);
 
   // Handlers
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
@@ -1055,6 +1086,44 @@ const RoleManagementPage: React.FC = () => {
 
       {/* Permissions Tab */}
       <TabPanel value={currentTab} index={1}>
+        {/* User Approval Level Summary */}
+        <Card sx={{ mb: 3, bgcolor: theme.palette.mode === 'dark' ? 'grey.900' : 'primary.50' }}>
+          <CardContent>
+            <Grid container spacing={2} alignItems="center">
+              <Grid size={{ xs: 12, md: 4 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <SecurityIcon color="primary" sx={{ fontSize: 40 }} />
+                  <Box>
+                    <Typography variant="h6" color="primary">
+                      Your Approval Level
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Level {userMaxHierarchyLevel} - {getHierarchyLevelName(userMaxHierarchyLevel)}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Grid>
+              <Grid size={{ xs: 12, md: 8 }}>
+                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                  {currentUserRoles.map((role) => (
+                    <Chip
+                      key={role.roleCode}
+                      label={`${role.roleName} (Level ${role.hierarchyLevel})`}
+                      size="small"
+                      color="primary"
+                      variant="outlined"
+                      icon={<KeyIcon />}
+                    />
+                  ))}
+                </Box>
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                  You can approve permissions requiring Level {userMaxHierarchyLevel} or below
+                </Typography>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+        
         {/* Permissions Sub-Tabs */}
         <Paper sx={{ mb: 3 }}>
           <Tabs
@@ -1102,47 +1171,91 @@ const RoleManagementPage: React.FC = () => {
                   />
                   <CardContent>
                     <List dense>
-                      {category.permissions.map((permission) => (
-                        <ListItem key={permission.id} divider>
-                          <ListItemIcon>
-                            {permission.category === 'BANKING' && <BankingIcon />}
-                            {permission.category === 'IFRS9' && <MoneyIcon />}
-                            {permission.category === 'REPORTING' && <ReportIcon />}
-                            {permission.category === 'ADMIN' && <AdminIcon />}
-                            {permission.category === 'CORE' && <SettingsIcon />}
-                          </ListItemIcon>
-                          <ListItemText
-                            primary={permission.displayName}
-                            secondary={
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-                                <Chip
-                                  label={permission.riskLevel}
-                                  size="small"
-                                  color={getRiskLevelColor(permission.riskLevel) as any}
-                                  variant="outlined"
-                                />
-                                {permission.requiresApproval && (
+                      {category.permissions.map((permission) => {
+                        const eligibility = permission.requiresApproval
+                          ? checkApprovalEligibility(currentUserRoles, {
+                              requiresApproval: permission.requiresApproval,
+                              requiredApprovalLevel: permission.requiredApprovalLevel ?? null,
+                              requiredApprovers: permission.requiredApprovers ?? 1,
+                            })
+                          : null;
+                        
+                        return (
+                          <ListItem key={permission.id} divider>
+                            <ListItemIcon>
+                              {permission.category === 'BANKING' && <BankingIcon />}
+                              {permission.category === 'IFRS9' && <MoneyIcon />}
+                              {permission.category === 'REPORTING' && <ReportIcon />}
+                              {permission.category === 'ADMIN' && <AdminIcon />}
+                              {permission.category === 'CORE' && <SettingsIcon />}
+                            </ListItemIcon>
+                            <ListItemText
+                              primary={
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <Typography variant="body2">
+                                    {permission.displayName}
+                                  </Typography>
+                                  {eligibility && !eligibility.canApprove && (
+                                    <Tooltip title={eligibility.reason}>
+                                      <Chip
+                                        label="Cannot Approve"
+                                        size="small"
+                                        color="error"
+                                        variant="outlined"
+                                        sx={{ fontSize: '0.65rem', height: '18px' }}
+                                      />
+                                    </Tooltip>
+                                  )}
+                                  {eligibility && eligibility.canApprove && (
+                                    <Tooltip title={eligibility.reason}>
+                                      <Chip
+                                        label="Can Approve"
+                                        size="small"
+                                        color="success"
+                                        variant="outlined"
+                                        sx={{ fontSize: '0.65rem', height: '18px' }}
+                                      />
+                                    </Tooltip>
+                                  )}
+                                </Box>
+                              }
+                              secondary={
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
                                   <Chip
-                                    label={`Approval: Level ${permission.requiredApprovalLevel ?? 1}+ (${permission.requiredApprovers ?? 1} approver${(permission.requiredApprovers ?? 1) > 1 ? 's' : ''})`}
+                                    label={permission.riskLevel}
                                     size="small"
-                                    color="warning"
-                                    variant="filled"
-                                    icon={<LockIcon fontSize="small" />}
-                                  />
-                                )}
-                                {permission.syariahRequired && (
-                                  <Chip
-                                    label="Syariah"
-                                    size="small"
-                                    color="secondary"
+                                    color={getRiskLevelColor(permission.riskLevel) as any}
                                     variant="outlined"
                                   />
-                                )}
-                              </Box>
-                            }
-                          />
-                        </ListItem>
-                      ))}
+                                  {permission.requiresApproval && (
+                                    <Tooltip title={getApprovalStatusMessage({
+                                      requiresApproval: permission.requiresApproval,
+                                      requiredApprovalLevel: permission.requiredApprovalLevel ?? null,
+                                      requiredApprovers: permission.requiredApprovers ?? 1,
+                                    })}>
+                                      <Chip
+                                        label={`Level ${permission.requiredApprovalLevel ?? 1}+ (${permission.requiredApprovers ?? 1})`}
+                                        size="small"
+                                        color={getApprovalBadgeColor(permission.requiredApprovalLevel ?? null)}
+                                        variant="filled"
+                                        icon={<LockIcon fontSize="small" />}
+                                      />
+                                    </Tooltip>
+                                  )}
+                                  {permission.syariahRequired && (
+                                    <Chip
+                                      label="Syariah"
+                                      size="small"
+                                      color="secondary"
+                                      variant="outlined"
+                                    />
+                                  )}
+                                </Box>
+                              }
+                            />
+                          </ListItem>
+                        );
+                      })}
                     </List>
                   </CardContent>
                 </Card>

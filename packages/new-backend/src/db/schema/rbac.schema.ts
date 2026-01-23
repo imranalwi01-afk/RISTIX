@@ -275,10 +275,7 @@ export const permissionApprovalPoliciesRelations = relations(
 )
 
 
-// ================================================================
-
-export type PermissionApprovalPolicy = typeof permissionApprovalPolicies.$inferSelect
-export type NewPermissionApprovalPolicy = typeof permissionApprovalPolicies.$inferInsert=============
+// =============================================================================
 // TYPE EXPORTS
 // =============================================================================
 
@@ -293,3 +290,6 @@ export type NewPermission = typeof permissions.$inferInsert
 
 export type RolePermission = typeof rolePermissions.$inferSelect
 export type NewRolePermission = typeof rolePermissions.$inferInsert
+
+export type PermissionApprovalPolicy = typeof permissionApprovalPolicies.$inferSelect
+export type NewPermissionApprovalPolicy = typeof permissionApprovalPolicies.$inferInsert
