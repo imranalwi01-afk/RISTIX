@@ -102,8 +102,6 @@ const SecuritySettings: React.FC = () => {
             setSaving(false);
         }
     };
-        },
-    });
 
     if (loading) {
         return <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress /></Box>;
