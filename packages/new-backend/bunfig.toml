@@ -1,6 +1,8 @@
 [install]
 # Cache packages locally
 cache = true
+# Disable lockfile to avoid EISDIR issues
+lockfile = false
 
 [run]
 # Enable sourcemaps
