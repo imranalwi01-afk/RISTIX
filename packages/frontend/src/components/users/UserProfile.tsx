@@ -24,24 +24,31 @@ import {
     Email,
     Phone
 } from '@mui/icons-material';
-import { useFormik } from 'formik';
-import * as yup from 'yup';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store';
 import { usersAPI, authAPI } from '@/services/api';
 
-const profileSchema = yup.object({
-    fullName: yup.string().required('Full name is required'),
-    phone: yup.string(),
-    department: yup.string(),
-    position: yup.string(),
+const profileSchema = z.object({
+    fullName: z.string().min(1, 'Full name is required'),
+    phone: z.string().optional(),
+    department: z.string().optional(),
+    position: z.string().optional(),
 });
 
-const passwordSchema = yup.object({
-    currentPassword: yup.string().required('Current password is required'),
-    newPassword: yup.string().min(8, 'Password must be at least 8 characters').required('New password is required'),
-    confirmPassword: yup.string().oneOf([yup.ref('newPassword')], 'Passwords must match').required('Confirm password is required'),
+const passwordSchema = z.object({
+    currentPassword: z.string().min(1, 'Current password is required'),
+    newPassword: z.string().min(8, 'Password must be at least 8 characters'),
+    confirmPassword: z.string(),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+    message: 'Passwords must match',
+    path: ['confirmPassword'],
 });
+
+type ProfileFormData = z.infer<typeof profileSchema>;
+type PasswordFormData = z.infer<typeof passwordSchema>;
 
 const UserProfile: React.FC = () => {
     const user = useSelector((state: RootState) => state.auth?.user);
@@ -57,51 +64,53 @@ const UserProfile: React.FC = () => {
         position: user?.position || '',
     }
 
-    const profileForm = useFormik({
-        initialValues,
-        enableReinitialize: true,
-        validationSchema: profileSchema,
-        onSubmit: async (values) => {
-            if (!user?.id) return;
-            setLoading(true);
-            setError(null);
-            try {
-                await usersAPI.update(user.id, values);
-                setSuccess('Profile updated successfully');
-            } catch (err) {
-                console.error('Update profile failed:', err);
-                setError('Failed to update profile');
-            } finally {
-                setLoading(false);
-            }
-        },
+    const { control: profileControl, handleSubmit: handleProfileSubmit, formState: { errors: profileErrors, isDirty: profileDirty } } = useForm<ProfileFormData>({
+        resolver: zodResolver(profileSchema),
+        defaultValues: initialValues,
+        values: initialValues,
     });
 
-    const passwordForm = useFormik({
-        initialValues: {
+    const onProfileSubmit = async (values: ProfileFormData) => {
+        if (!user?.id) return;
+        setLoading(true);
+        setError(null);
+        try {
+            await usersAPI.update(user.id, values);
+            setSuccess('Profile updated successfully');
+        } catch (err) {
+            console.error('Update profile failed:', err);
+            setError('Failed to update profile');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const { control: passwordControl, handleSubmit: handlePasswordSubmit, reset: resetPassword, formState: { errors: passwordErrors, isValid: passwordValid, isDirty: passwordDirty } } = useForm<PasswordFormData>({
+        resolver: zodResolver(passwordSchema),
+        defaultValues: {
             currentPassword: '',
             newPassword: '',
             confirmPassword: '',
         },
-        validationSchema: passwordSchema,
-        onSubmit: async (values, { resetForm }) => {
-            setLoading(true);
-            setError(null);
-            try {
-                await authAPI.changePassword({
-                    currentPassword: values.currentPassword,
-                    newPassword: values.newPassword
-                });
-                setSuccess('Password changed successfully');
-                resetForm();
-            } catch (err) {
-                console.error('Change password failed:', err);
-                setError('Failed to change password');
-            } finally {
-                setLoading(false);
-            }
-        },
     });
+
+    const onPasswordSubmit = async (values: PasswordFormData) => {
+        setLoading(true);
+        setError(null);
+        try {
+            await authAPI.changePassword({
+                currentPassword: values.currentPassword,
+                newPassword: values.newPassword
+            });
+            setSuccess('Password changed successfully');
+            resetPassword();
+        } catch (err) {
+            console.error('Change password failed:', err);
+            setError('Failed to change password');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     if (!user) {
         return <Alert severity="warning">You must be logged in to view this page.</Alert>;
@@ -142,7 +151,7 @@ const UserProfile: React.FC = () => {
 
                         <Divider sx={{ mb: 3 }} />
 
-                        <form onSubmit={profileForm.handleSubmit}>
+                        <form onSubmit={handleProfileSubmit(onProfileSubmit)}>
                             <Grid container spacing={2}>
                                 <Grid size={{ xs: 12 }}>
                                     <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -150,51 +159,63 @@ const UserProfile: React.FC = () => {
                                     </Typography>
                                 </Grid>
                                 <Grid size={{ xs: 12, md: 6 }}>
-                                    <TextField
-                                        fullWidth
-                                        id="fullName"
+                                    <Controller
                                         name="fullName"
-                                        label="Full Name"
-                                        value={profileForm.values.fullName}
-                                        onChange={profileForm.handleChange}
-                                        error={profileForm.touched.fullName && Boolean(profileForm.errors.fullName)}
-                                        helperText={profileForm.touched.fullName && profileForm.errors.fullName}
+                                        control={profileControl}
+                                        render={({ field }) => (
+                                            <TextField
+                                                {...field}
+                                                fullWidth
+                                                label="Full Name"
+                                                error={!!profileErrors.fullName}
+                                                helperText={profileErrors.fullName?.message}
+                                            />
+                                        )}
                                     />
                                 </Grid>
                                 <Grid size={{ xs: 12, md: 6 }}>
-                                    <TextField
-                                        fullWidth
-                                        id="phone"
+                                    <Controller
                                         name="phone"
-                                        label="Phone Number"
-                                        value={profileForm.values.phone}
-                                        onChange={profileForm.handleChange}
-                                        InputProps={{
-                                            startAdornment: <Phone color="action" fontSize="small" sx={{ mr: 1 }} />
-                                        }}
+                                        control={profileControl}
+                                        render={({ field }) => (
+                                            <TextField
+                                                {...field}
+                                                fullWidth
+                                                label="Phone Number"
+                                                InputProps={{
+                                                    startAdornment: <Phone color="action" fontSize="small" sx={{ mr: 1 }} />
+                                                }}
+                                            />
+                                        )}
                                     />
                                 </Grid>
                                 <Grid size={{ xs: 12, md: 6 }}>
-                                    <TextField
-                                        fullWidth
-                                        id="department"
+                                    <Controller
                                         name="department"
-                                        label="Department"
-                                        value={profileForm.values.department}
-                                        onChange={profileForm.handleChange}
-                                        InputProps={{
-                                            startAdornment: <BadgeIcon color="action" fontSize="small" sx={{ mr: 1 }} />
-                                        }}
+                                        control={profileControl}
+                                        render={({ field }) => (
+                                            <TextField
+                                                {...field}
+                                                fullWidth
+                                                label="Department"
+                                                InputProps={{
+                                                    startAdornment: <BadgeIcon color="action" fontSize="small" sx={{ mr: 1 }} />
+                                                }}
+                                            />
+                                        )}
                                     />
                                 </Grid>
                                 <Grid size={{ xs: 12, md: 6 }}>
-                                    <TextField
-                                        fullWidth
-                                        id="position"
+                                    <Controller
                                         name="position"
-                                        label="Position / Title"
-                                        value={profileForm.values.position}
-                                        onChange={profileForm.handleChange}
+                                        control={profileControl}
+                                        render={({ field }) => (
+                                            <TextField
+                                                {...field}
+                                                fullWidth
+                                                label="Position / Title"
+                                            />
+                                        )}
                                     />
                                 </Grid>
                                 <Grid size={{ xs: 12 }} sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
@@ -202,7 +223,7 @@ const UserProfile: React.FC = () => {
                                         variant="contained"
                                         startIcon={<Save />}
                                         type="submit"
-                                        disabled={loading || !profileForm.dirty}
+                                        disabled={loading || !profileDirty}
                                     >
                                         Save Changes
                                     </Button>
@@ -220,46 +241,55 @@ const UserProfile: React.FC = () => {
                         </Typography>
                         <Divider sx={{ mb: 3 }} />
 
-                        <form onSubmit={passwordForm.handleSubmit}>
+                        <form onSubmit={handlePasswordSubmit(onPasswordSubmit)}>
                             <Stack spacing={2}>
-                                <TextField
-                                    fullWidth
-                                    id="currentPassword"
+                                <Controller
                                     name="currentPassword"
-                                    label="Current Password"
-                                    type="password"
-                                    value={passwordForm.values.currentPassword}
-                                    onChange={passwordForm.handleChange}
-                                    error={passwordForm.touched.currentPassword && Boolean(passwordForm.errors.currentPassword)}
-                                    helperText={passwordForm.touched.currentPassword && passwordForm.errors.currentPassword}
+                                    control={passwordControl}
+                                    render={({ field }) => (
+                                        <TextField
+                                            {...field}
+                                            fullWidth
+                                            label="Current Password"
+                                            type="password"
+                                            error={!!passwordErrors.currentPassword}
+                                            helperText={passwordErrors.currentPassword?.message}
+                                        />
+                                    )}
                                 />
-                                <TextField
-                                    fullWidth
-                                    id="newPassword"
+                                <Controller
                                     name="newPassword"
-                                    label="New Password"
-                                    type="password"
-                                    value={passwordForm.values.newPassword}
-                                    onChange={passwordForm.handleChange}
-                                    error={passwordForm.touched.newPassword && Boolean(passwordForm.errors.newPassword)}
-                                    helperText={passwordForm.touched.newPassword && passwordForm.errors.newPassword}
+                                    control={passwordControl}
+                                    render={({ field }) => (
+                                        <TextField
+                                            {...field}
+                                            fullWidth
+                                            label="New Password"
+                                            type="password"
+                                            error={!!passwordErrors.newPassword}
+                                            helperText={passwordErrors.newPassword?.message}
+                                        />
+                                    )}
                                 />
-                                <TextField
-                                    fullWidth
-                                    id="confirmPassword"
+                                <Controller
                                     name="confirmPassword"
-                                    label="Confirm New Password"
-                                    type="password"
-                                    value={passwordForm.values.confirmPassword}
-                                    onChange={passwordForm.handleChange}
-                                    error={passwordForm.touched.confirmPassword && Boolean(passwordForm.errors.confirmPassword)}
-                                    helperText={passwordForm.touched.confirmPassword && passwordForm.errors.confirmPassword}
+                                    control={passwordControl}
+                                    render={({ field }) => (
+                                        <TextField
+                                            {...field}
+                                            fullWidth
+                                            label="Confirm New Password"
+                                            type="password"
+                                            error={!!passwordErrors.confirmPassword}
+                                            helperText={passwordErrors.confirmPassword?.message}
+                                        />
+                                    )}
                                 />
                                 <Button
                                     variant="outlined"
                                     color="primary"
                                     type="submit"
-                                    disabled={loading || !passwordForm.isValid || !passwordForm.dirty}
+                                    disabled={loading || !passwordValid || !passwordDirty}
                                     sx={{ mt: 1 }}
                                 >
                                     Change Password

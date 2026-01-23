@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect } from 'react';
 import {
     Dialog,
     DialogTitle,
@@ -12,9 +12,10 @@ import {
     Switch,
     Typography,
     Box
-} from '@mui/material'; // Fixed imports
-import { useFormik } from 'formik';
-import * as yup from 'yup';
+} from '@mui/material';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 
 // Type definition based on backend schema
 export interface UserFormData {
@@ -22,12 +23,37 @@ export interface UserFormData {
     email: string;
     fullName: string;
     username: string;
-    password?: string; // Optional for edit
+    password?: string;
     phone?: string;
     department?: string;
     position?: string;
     isActive?: boolean;
 }
+
+// Zod schemas for create and edit modes
+const createUserSchema = z.object({
+    email: z.string().email('Enter a valid email'),
+    fullName: z.string().min(2, 'Name should be of minimum 2 characters length'),
+    username: z.string().min(2, 'Username should be of minimum 2 characters length'),
+    password: z.string().min(8, 'Password must be at least 8 characters'),
+    phone: z.string().optional(),
+    department: z.string().optional(),
+    position: z.string().optional(),
+    isActive: z.boolean().default(true),
+});
+
+const editUserSchema = z.object({
+    email: z.string().email('Enter a valid email'),
+    fullName: z.string().min(2, 'Name should be of minimum 2 characters length'),
+    username: z.string().min(2, 'Username should be of minimum 2 characters length'),
+    password: z.string().min(8, 'Password must be at least 8 characters').optional().or(z.literal('')),
+    phone: z.string().optional(),
+    department: z.string().optional(),
+    position: z.string().optional(),
+    isActive: z.boolean().default(true),
+});
+
+type UserFormSchema = z.infer<typeof createUserSchema>;
 
 interface UserFormProps {
     open: boolean;
@@ -46,24 +72,10 @@ const UserForm: React.FC<UserFormProps> = ({
     mode,
     loading = false,
 }) => {
-    const validationSchema = useMemo(() => {
-        return yup.object({
-            email: yup.string().email('Enter a valid email').required('Email is required'),
-            fullName: yup.string().min(2, 'Name should be of minimum 2 characters length').required('Full Name is required'),
-            username: yup.string().min(2, 'Username should be of minimum 2 characters length').required('Username is required'),
-            password: yup.string().when([], {
-                is: () => mode === 'create',
-                then: (schema) => schema.min(8, 'Password must be at least 8 characters').required('Password is required'),
-                otherwise: (schema) => schema.min(8, 'Password must be at least 8 characters')
-            }),
-            phone: yup.string().nullable(),
-            department: yup.string().nullable(),
-            position: yup.string().nullable(),
-        });
-    }, [mode]);
-
-    const formik = useFormik({
-        initialValues: {
+    const { control, handleSubmit, reset, formState: { errors, isValid } } = useForm<UserFormSchema>({
+        resolver: zodResolver(mode === 'create' ? createUserSchema : editUserSchema),
+        mode: 'onBlur',
+        defaultValues: {
             email: '',
             fullName: '',
             username: '',
@@ -73,48 +85,54 @@ const UserForm: React.FC<UserFormProps> = ({
             position: '',
             isActive: true,
         },
-        validationSchema: validationSchema,
-        validateOnMount: false, // Don't validate on mount to avoid showing errors immediately
-        enableReinitialize: true,
-        onSubmit: (values) => {
-            // Filter out empty strings for optional fields if needed, or backend handles it
-            const submissionData: UserFormData = {
-                ...values,
-                id: initialData?.id
-            };
-
-            // Remove password if empty in edit mode
-            if (mode === 'edit' && !values.password) {
-                delete submissionData.password;
-            }
-
-            onSubmit(submissionData);
-        },
     });
+
+    const onFormSubmit = (values: UserFormSchema) => {
+        const submissionData: UserFormData = {
+            ...values,
+            id: initialData?.id
+        };
+
+        // Remove password if empty in edit mode
+        if (mode === 'edit' && !values.password) {
+            delete submissionData.password;
+        }
+
+        onSubmit(submissionData);
+    };
 
     // Reset form when opening or changing initialData
     useEffect(() => {
         if (open) {
             if (initialData && mode === 'edit') {
-                formik.setValues({
+                reset({
                     email: initialData.email || '',
                     fullName: initialData.fullName || '',
                     username: initialData.username || '',
-                    password: '', // Always blank for security
+                    password: '',
                     phone: initialData.phone || '',
                     department: initialData.department || '',
                     position: initialData.position || '',
                     isActive: initialData.isActive ?? true,
                 });
             } else {
-                formik.resetForm();
+                reset({
+                    email: '',
+                    fullName: '',
+                    username: '',
+                    password: '',
+                    phone: '',
+                    department: '',
+                    position: '',
+                    isActive: true,
+                });
             }
         }
-    }, [open, initialData, mode]);
+    }, [open, initialData, mode, reset]);
 
     return (
         <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-            <form onSubmit={formik.handleSubmit}>
+            <form onSubmit={handleSubmit(onFormSubmit)}>
                 <DialogTitle>
                     {mode === 'create' ? 'Create New User' : 'Edit User'}
                 </DialogTitle>
@@ -129,48 +147,54 @@ const UserForm: React.FC<UserFormProps> = ({
 
                         {/* Email */}
                         <Grid size={12}>
-                            <TextField
-                                fullWidth
-                                id="email"
+                            <Controller
                                 name="email"
-                                label="Email Address"
-                                value={formik.values.email}
-                                onChange={formik.handleChange}
-                                onBlur={formik.handleBlur}
-                                error={formik.touched.email && Boolean(formik.errors.email)}
-                                helperText={formik.touched.email && formik.errors.email}
-                                disabled={mode === 'edit'} // Often email is immutable or requires specific flow
+                                control={control}
+                                render={({ field }) => (
+                                    <TextField
+                                        {...field}
+                                        fullWidth
+                                        label="Email Address"
+                                        error={!!errors.email}
+                                        helperText={errors.email?.message}
+                                        disabled={mode === 'edit'}
+                                    />
+                                )}
                             />
                         </Grid>
 
                         {/* Username */}
                         <Grid size={{ xs: 12, sm: 6 }}>
-                            <TextField
-                                fullWidth
-                                id="username"
+                            <Controller
                                 name="username"
-                                label="Username"
-                                value={formik.values.username}
-                                onChange={formik.handleChange}
-                                onBlur={formik.handleBlur}
-                                error={formik.touched.username && Boolean(formik.errors.username)}
-                                helperText={formik.touched.username && formik.errors.username}
+                                control={control}
+                                render={({ field }) => (
+                                    <TextField
+                                        {...field}
+                                        fullWidth
+                                        label="Username"
+                                        error={!!errors.username}
+                                        helperText={errors.username?.message}
+                                    />
+                                )}
                             />
                         </Grid>
 
                         {/* Password */}
                         <Grid size={{ xs: 12, sm: 6 }}>
-                            <TextField
-                                fullWidth
-                                id="password"
+                            <Controller
                                 name="password"
-                                label={mode === 'edit' ? "Password (Leave blank to keep)" : "Password"}
-                                type="password"
-                                value={formik.values.password}
-                                onChange={formik.handleChange}
-                                onBlur={formik.handleBlur}
-                                error={formik.touched.password && Boolean(formik.errors.password)}
-                                helperText={formik.touched.password && formik.errors.password}
+                                control={control}
+                                render={({ field }) => (
+                                    <TextField
+                                        {...field}
+                                        fullWidth
+                                        label={mode === 'edit' ? "Password (Leave blank to keep)" : "Password"}
+                                        type="password"
+                                        error={!!errors.password}
+                                        helperText={errors.password?.message}
+                                    />
+                                )}
                             />
                         </Grid>
 
@@ -182,77 +206,90 @@ const UserForm: React.FC<UserFormProps> = ({
 
                         {/* Full Name */}
                         <Grid size={12}>
-                            <TextField
-                                fullWidth
-                                id="fullName"
+                            <Controller
                                 name="fullName"
-                                label="Full Name"
-                                value={formik.values.fullName}
-                                onChange={formik.handleChange}
-                                onBlur={formik.handleBlur}
-                                error={formik.touched.fullName && Boolean(formik.errors.fullName)}
-                                helperText={formik.touched.fullName && formik.errors.fullName}
+                                control={control}
+                                render={({ field }) => (
+                                    <TextField
+                                        {...field}
+                                        fullWidth
+                                        label="Full Name"
+                                        error={!!errors.fullName}
+                                        helperText={errors.fullName?.message}
+                                    />
+                                )}
                             />
                         </Grid>
 
                         {/* Phone */}
                         <Grid size={{ xs: 12, sm: 6 }}>
-                            <TextField
-                                fullWidth
-                                id="phone"
+                            <Controller
                                 name="phone"
-                                label="Phone Number"
-                                value={formik.values.phone}
-                                onChange={formik.handleChange}
-                                onBlur={formik.handleBlur}
-                                error={formik.touched.phone && Boolean(formik.errors.phone)}
-                                helperText={formik.touched.phone && formik.errors.phone}
+                                control={control}
+                                render={({ field }) => (
+                                    <TextField
+                                        {...field}
+                                        fullWidth
+                                        label="Phone Number"
+                                        error={!!errors.phone}
+                                        helperText={errors.phone?.message}
+                                    />
+                                )}
                             />
                         </Grid>
 
                         {/* Department */}
                         <Grid size={{ xs: 12, sm: 6 }}>
-                            <TextField
-                                fullWidth
-                                id="department"
+                            <Controller
                                 name="department"
-                                label="Department"
-                                value={formik.values.department}
-                                onChange={formik.handleChange}
-                                onBlur={formik.handleBlur}
-                                error={formik.touched.department && Boolean(formik.errors.department)}
-                                helperText={formik.touched.department && formik.errors.department}
+                                control={control}
+                                render={({ field }) => (
+                                    <TextField
+                                        {...field}
+                                        fullWidth
+                                        label="Department"
+                                        error={!!errors.department}
+                                        helperText={errors.department?.message}
+                                    />
+                                )}
                             />
                         </Grid>
 
                         {/* Position */}
                         <Grid size={{ xs: 12, sm: 6 }}>
-                            <TextField
-                                fullWidth
-                                id="position"
+                            <Controller
                                 name="position"
-                                label="Position"
-                                value={formik.values.position}
-                                onChange={formik.handleChange}
-                                onBlur={formik.handleBlur}
-                                error={formik.touched.position && Boolean(formik.errors.position)}
-                                helperText={formik.touched.position && formik.errors.position}
+                                control={control}
+                                render={({ field }) => (
+                                    <TextField
+                                        {...field}
+                                        fullWidth
+                                        label="Position"
+                                        error={!!errors.position}
+                                        helperText={errors.position?.message}
+                                    />
+                                )}
                             />
                         </Grid>
 
                         {/* Active Status */}
                         <Grid size={{ xs: 12, sm: 6 }}>
                             <Box display="flex" alignItems="center" height="100%">
-                                <FormControlLabel
-                                    control={
-                                        <Switch
-                                            checked={formik.values.isActive}
-                                            onChange={formik.handleChange}
-                                            name="isActive"
-                                            color="primary"
+                                <Controller
+                                    name="isActive"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <FormControlLabel
+                                            control={
+                                                <Switch
+                                                    checked={field.value}
+                                                    onChange={field.onChange}
+                                                    color="primary"
+                                                />
+                                            }
+                                            label={field.value ? "Active Account" : "Inactive Account"}
                                         />
-                                    }
-                                    label={formik.values.isActive ? "Active Account" : "Inactive Account"}
+                                    )}
                                 />
                             </Box>
                         </Grid>
@@ -267,7 +304,7 @@ const UserForm: React.FC<UserFormProps> = ({
                         type="submit"
                         variant="contained"
                         color="primary"
-                        disabled={loading || !formik.isValid}
+                        disabled={loading || !isValid}
                     >
                         {loading ? 'Saving...' : (mode === 'create' ? 'Create User' : 'Save Changes')}
                     </Button>

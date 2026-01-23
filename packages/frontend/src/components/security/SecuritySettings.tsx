@@ -16,19 +16,22 @@ import {
     CircularProgress
 } from '@mui/material';
 import { Security, Save, Lock, AccessTime } from '@mui/icons-material';
-import { useFormik } from 'formik';
-import * as yup from 'yup';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { securityConfigAPI } from '@/services/api';
 
-const validationSchema = yup.object({
-    passwordMinLength: yup.number().min(8, 'Minimum length must be at least 8').required('Required'),
-    passwordRequireUppercase: yup.boolean(),
-    passwordRequireLowercase: yup.boolean(),
-    passwordRequireNumbers: yup.boolean(),
-    passwordRequireSpecialChars: yup.boolean(),
-    sessionTimeoutMinutes: yup.number().min(5, 'Minimum timeout is 5 minutes').required('Required'),
-    mfaEnabled: yup.boolean(),
+const validationSchema = z.object({
+    passwordMinLength: z.number().min(8, 'Minimum length must be at least 8'),
+    passwordRequireUppercase: z.boolean(),
+    passwordRequireLowercase: z.boolean(),
+    passwordRequireNumbers: z.boolean(),
+    passwordRequireSpecialChars: z.boolean(),
+    sessionTimeoutMinutes: z.number().min(5, 'Minimum timeout is 5 minutes'),
+    mfaEnabled: z.boolean(),
 });
+
+type SecurityFormData = z.infer<typeof validationSchema>;
 
 const SecuritySettings: React.FC = () => {
     const [loading, setLoading] = useState(false);
@@ -36,21 +39,32 @@ const SecuritySettings: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
 
+    const { control, handleSubmit, setValue, formState: { errors } } = useForm<SecurityFormData>({
+        resolver: zodResolver(validationSchema),
+        defaultValues: {
+            passwordMinLength: 8,
+            passwordRequireUppercase: true,
+            passwordRequireLowercase: true,
+            passwordRequireNumbers: true,
+            passwordRequireSpecialChars: true,
+            sessionTimeoutMinutes: 60,
+            mfaEnabled: false,
+        },
+    });
+
     const fetchConfig = async () => {
         setLoading(true);
         try {
             const response = await securityConfigAPI.get();
             const data = response.data || {};
 
-            formik.setValues({
-                passwordMinLength: data.passwordPolicy?.minLength || 8,
-                passwordRequireUppercase: data.passwordPolicy?.requireUppercase || true,
-                passwordRequireLowercase: data.passwordPolicy?.requireLowercase || true,
-                passwordRequireNumbers: data.passwordPolicy?.requireNumbers || true,
-                passwordRequireSpecialChars: data.passwordPolicy?.requireSpecialChars || true,
-                sessionTimeoutMinutes: (data.sessionTimeout || 3600) / 60, // Convert seconds to minutes
-                mfaEnabled: data.mfaEnabled || false,
-            });
+            setValue('passwordMinLength', data.passwordPolicy?.minLength || 8);
+            setValue('passwordRequireUppercase', data.passwordPolicy?.requireUppercase || true);
+            setValue('passwordRequireLowercase', data.passwordPolicy?.requireLowercase || true);
+            setValue('passwordRequireNumbers', data.passwordPolicy?.requireNumbers || true);
+            setValue('passwordRequireSpecialChars', data.passwordPolicy?.requireSpecialChars || true);
+            setValue('sessionTimeoutMinutes', (data.sessionTimeout || 3600) / 60);
+            setValue('mfaEnabled', data.mfaEnabled || false);
         } catch (err) {
             console.error('Failed to fetch security config:', err);
             setError('Failed to load security settings. Using defaults.');
@@ -63,41 +77,31 @@ const SecuritySettings: React.FC = () => {
         fetchConfig();
     }, []);
 
-    const formik = useFormik({
-        initialValues: {
-            passwordMinLength: 8,
-            passwordRequireUppercase: true,
-            passwordRequireLowercase: true,
-            passwordRequireNumbers: true,
-            passwordRequireSpecialChars: true,
-            sessionTimeoutMinutes: 60,
-            mfaEnabled: false,
-        },
-        validationSchema: validationSchema,
-        onSubmit: async (values) => {
-            setSaving(true);
-            setError(null);
-            try {
-                const configData = {
-                    passwordPolicy: {
-                        minLength: values.passwordMinLength,
-                        requireUppercase: values.passwordRequireUppercase,
-                        requireLowercase: values.passwordRequireLowercase,
-                        requireNumbers: values.passwordRequireNumbers,
-                        requireSpecialChars: values.passwordRequireSpecialChars,
-                    },
-                    sessionTimeout: values.sessionTimeoutMinutes * 60, // Convert back to seconds
-                    mfaEnabled: values.mfaEnabled,
-                };
+    const onSubmit = async (values: SecurityFormData) => {
+        setSaving(true);
+        setError(null);
+        try {
+            const configData = {
+                passwordPolicy: {
+                    minLength: values.passwordMinLength,
+                    requireUppercase: values.passwordRequireUppercase,
+                    requireLowercase: values.passwordRequireLowercase,
+                    requireNumbers: values.passwordRequireNumbers,
+                    requireSpecialChars: values.passwordRequireSpecialChars,
+                },
+                sessionTimeout: values.sessionTimeoutMinutes * 60,
+                mfaEnabled: values.mfaEnabled,
+            };
 
-                await securityConfigAPI.update(configData);
-                setSuccess('Security settings updated successfully');
-            } catch (err) {
-                console.error('Failed to save security config:', err);
-                setError('Failed to save settings. Please try again.');
-            } finally {
-                setSaving(false);
-            }
+            await securityConfigAPI.update(configData);
+            setSuccess('Security settings updated successfully');
+        } catch (err) {
+            console.error('Failed to save security config:', err);
+            setError('Failed to save settings. Please try again.');
+        } finally {
+            setSaving(false);
+        }
+    };
         },
     });
 
@@ -111,7 +115,7 @@ const SecuritySettings: React.FC = () => {
                 <Security /> Security Settings
             </Typography>
 
-            <form onSubmit={formik.handleSubmit}>
+            <form onSubmit={handleSubmit(onSubmit)}>
                 <Grid container spacing={3}>
                     {/* Password Policy */}
                     <Grid size={{ xs: 12, md: 6 }}>
@@ -123,68 +127,92 @@ const SecuritySettings: React.FC = () => {
 
                             <Grid container spacing={2}>
                                 <Grid size={{ xs: 12 }}>
-                                    <TextField
-                                        fullWidth
-                                        id="passwordMinLength"
+                                    <Controller
                                         name="passwordMinLength"
-                                        label="Minimum Password Length"
-                                        type="number"
-                                        value={formik.values.passwordMinLength}
-                                        onChange={formik.handleChange}
-                                        error={formik.touched.passwordMinLength && Boolean(formik.errors.passwordMinLength)}
-                                        helperText={formik.touched.passwordMinLength && formik.errors.passwordMinLength}
+                                        control={control}
+                                        render={({ field }) => (
+                                            <TextField
+                                                {...field}
+                                                fullWidth
+                                                label="Minimum Password Length"
+                                                type="number"
+                                                onChange={(e) => field.onChange(parseInt(e.target.value))}
+                                                error={!!errors.passwordMinLength}
+                                                helperText={errors.passwordMinLength?.message}
+                                            />
+                                        )}
                                     />
                                 </Grid>
                                 <Grid size={{ xs: 12 }}>
-                                    <FormControlLabel
-                                        control={
-                                            <Switch
-                                                checked={formik.values.passwordRequireUppercase}
-                                                onChange={formik.handleChange}
-                                                name="passwordRequireUppercase"
-                                                color="primary"
+                                    <Controller
+                                        name="passwordRequireUppercase"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <FormControlLabel
+                                                control={
+                                                    <Switch
+                                                        checked={field.value}
+                                                        onChange={field.onChange}
+                                                        color="primary"
+                                                    />
+                                                }
+                                                label="Require Uppercase Letters"
                                             />
-                                        }
-                                        label="Require Uppercase Letters"
+                                        )}
                                     />
                                 </Grid>
                                 <Grid size={{ xs: 12 }}>
-                                    <FormControlLabel
-                                        control={
-                                            <Switch
-                                                checked={formik.values.passwordRequireLowercase}
-                                                onChange={formik.handleChange}
-                                                name="passwordRequireLowercase"
-                                                color="primary"
+                                    <Controller
+                                        name="passwordRequireLowercase"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <FormControlLabel
+                                                control={
+                                                    <Switch
+                                                        checked={field.value}
+                                                        onChange={field.onChange}
+                                                        color="primary"
+                                                    />
+                                                }
+                                                label="Require Lowercase Letters"
                                             />
-                                        }
-                                        label="Require Lowercase Letters"
+                                        )}
                                     />
                                 </Grid>
                                 <Grid size={{ xs: 12 }}>
-                                    <FormControlLabel
-                                        control={
-                                            <Switch
-                                                checked={formik.values.passwordRequireNumbers}
-                                                onChange={formik.handleChange}
-                                                name="passwordRequireNumbers"
-                                                color="primary"
+                                    <Controller
+                                        name="passwordRequireNumbers"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <FormControlLabel
+                                                control={
+                                                    <Switch
+                                                        checked={field.value}
+                                                        onChange={field.onChange}
+                                                        color="primary"
+                                                    />
+                                                }
+                                                label="Require Numbers"
                                             />
-                                        }
-                                        label="Require Numbers"
+                                        )}
                                     />
                                 </Grid>
                                 <Grid size={{ xs: 12 }}>
-                                    <FormControlLabel
-                                        control={
-                                            <Switch
-                                                checked={formik.values.passwordRequireSpecialChars}
-                                                onChange={formik.handleChange}
-                                                name="passwordRequireSpecialChars"
-                                                color="primary"
+                                    <Controller
+                                        name="passwordRequireSpecialChars"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <FormControlLabel
+                                                control={
+                                                    <Switch
+                                                        checked={field.value}
+                                                        onChange={field.onChange}
+                                                        color="primary"
+                                                    />
+                                                }
+                                                label="Require Special Characters"
                                             />
-                                        }
-                                        label="Require Special Characters"
+                                        )}
                                     />
                                 </Grid>
                             </Grid>
@@ -201,16 +229,20 @@ const SecuritySettings: React.FC = () => {
 
                             <Grid container spacing={2}>
                                 <Grid size={{ xs: 12 }}>
-                                    <TextField
-                                        fullWidth
-                                        id="sessionTimeoutMinutes"
+                                    <Controller
                                         name="sessionTimeoutMinutes"
-                                        label="Session Timeout (Minutes)"
-                                        type="number"
-                                        value={formik.values.sessionTimeoutMinutes}
-                                        onChange={formik.handleChange}
-                                        error={formik.touched.sessionTimeoutMinutes && Boolean(formik.errors.sessionTimeoutMinutes)}
-                                        helperText={formik.touched.sessionTimeoutMinutes && formik.errors.sessionTimeoutMinutes}
+                                        control={control}
+                                        render={({ field }) => (
+                                            <TextField
+                                                {...field}
+                                                fullWidth
+                                                label="Session Timeout (Minutes)"
+                                                type="number"
+                                                onChange={(e) => field.onChange(parseInt(e.target.value))}
+                                                error={!!errors.sessionTimeoutMinutes}
+                                                helperText={errors.sessionTimeoutMinutes?.message}
+                                            />
+                                        )}
                                     />
                                 </Grid>
 
@@ -218,16 +250,21 @@ const SecuritySettings: React.FC = () => {
                                     <Alert severity="info" sx={{ mb: 2 }}>
                                         Multi-Factor Authentication (MFA) enforcement applies to all non-admin users.
                                     </Alert>
-                                    <FormControlLabel
-                                        control={
-                                            <Switch
-                                                checked={formik.values.mfaEnabled}
-                                                onChange={formik.handleChange}
-                                                name="mfaEnabled"
-                                                color="primary"
+                                    <Controller
+                                        name="mfaEnabled"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <FormControlLabel
+                                                control={
+                                                    <Switch
+                                                        checked={field.value}
+                                                        onChange={field.onChange}
+                                                        color="primary"
+                                                    />
+                                                }
+                                                label="Enforce Multi-Factor Authentication (MFA)"
                                             />
-                                        }
-                                        label="Enforce Multi-Factor Authentication (MFA)"
+                                        )}
                                     />
                                 </Grid>
                             </Grid>
