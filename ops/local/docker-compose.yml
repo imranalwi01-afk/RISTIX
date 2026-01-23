@@ -86,14 +86,15 @@ services:
     volumes:
       - ../../packages/new-backend/src:/app/src:ro
       - ../../packages/new-backend/package.json:/app/package.json
-      - ../../packages/new-backend/bun.lockb:/app/bun.lockb
+      - ../../packages/new-backend/bunfig.toml:/app/bunfig.toml
+      - new-backend-node-modules:/app/node_modules
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:4232/api/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
     # For hot reload during development
-    command: [ "bun", "run", "dev" ]
+    command: sh -c "bun install && bun run dev"
     profiles:
       - app
       - full
@@ -171,6 +172,8 @@ volumes:
   redis-dev-data:
     external: true
     name: ifrs9-iaf_redis-dev-data
+  new-backend-node-modules:
+    driver: local
 
 # ============================================================================
 # 🌐 NETWORKS
