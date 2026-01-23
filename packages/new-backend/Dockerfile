@@ -8,11 +8,11 @@ FROM oven/bun:1.1 AS builder
 
 WORKDIR /app
 
-# Copy package files
-COPY package.json bun.lockb* ./
+# Copy package files and bunfig.toml
+COPY package.json bunfig.toml ./
 
-# Install dependencies
-RUN bun install --frozen-lockfile
+# Install dependencies (no lockfile)
+RUN bun install
 
 # Copy source code
 COPY . .
