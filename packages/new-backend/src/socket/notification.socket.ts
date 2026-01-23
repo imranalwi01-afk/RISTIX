@@ -252,8 +252,8 @@ export class NotificationSocket {
  */
 let notificationSocket: NotificationSocket
 
-export function initializeNotificationSocket(httpServer: HTTPServer): NotificationSocket {
-    notificationSocket = new NotificationSocket(httpServer)
+export function initializeNotificationSocket(engine: Engine): NotificationSocket {
+    notificationSocket = new NotificationSocket(engine)
     return notificationSocket
 }
 

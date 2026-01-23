@@ -5,8 +5,8 @@
 
 import { startServer } from './server'
 
-// Start the integrated server and serve with Bun
+// Start the integrated server and get configuration
 const serverConfig = await startServer()
 
-// Export default for Bun.serve
-export default Bun.serve(serverConfig)
+// Export for Bun.serve - Bun will automatically serve this
+export default serverConfig

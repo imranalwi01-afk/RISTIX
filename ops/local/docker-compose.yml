@@ -89,12 +89,13 @@ services:
       - ../../packages/new-backend/bunfig.toml:/app/bunfig.toml
       - new-backend-node-modules:/app/node_modules
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:4232/api/health" ]
+      test: [ "CMD", "curl", "-f", "http://localhost:4232/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
-    # For hot reload during development
-    command: sh -c "bun install && bun run dev"
+    # Run without watch mode in Docker to prevent EADDRINUSE on reload
+    # Source changes will be picked up on container restart
+    command: sh -c "bun install && bun run src/index.ts"
     profiles:
       - app
       - full
