@@ -211,26 +211,44 @@ const JobMonitoringPage: React.FC = () => {
     setError(null);
 
     try {
-      // TODO: Implement jobs API endpoints
-      // const [executions, definitions, metrics] = await Promise.all([
-      //   bankingAPI.jobs.getExecutions(),
-      //   bankingAPI.jobs.getDefinitions(),
-      //   bankingAPI.jobs.getMetrics()
-      // ]);
+      const [executions, definitions, metrics] = await Promise.all([
+        bankingAPI.jobs.getExecutions({ limit: 100 }),
+        bankingAPI.jobs.getDefinitions(),
+        bankingAPI.jobs.getMetrics()
+      ]);
 
-      // Mock data for now
-      setJobExecutions([]);
-      setJobDefinitions([]);
+      // Map backend statuses to UI statuses
+      const mapped: JobExecution[] = (executions || []).map((e: any) => ({
+        id: e.id,
+        jobId: e.id,
+        jobName: e.jobName || e.jobType,
+        jobType: e.jobType,
+        status:
+          e.status === 'active' ? 'RUNNING'
+          : e.status === 'completed' ? 'COMPLETED'
+          : e.status === 'failed' ? 'FAILED'
+          : e.status === 'waiting' ? 'PENDING'
+          : 'PENDING',
+        startTime: e.startTime || new Date().toISOString(),
+        endTime: e.endTime || undefined,
+        progress: typeof e.progress === 'number' ? e.progress : 0,
+        resultSummary: e.result || undefined,
+        errorMessage: e.error || undefined,
+        triggeredBy: e.triggeredBy || undefined,
+      }));
+
+      setJobExecutions(mapped);
+      setJobDefinitions(definitions || []);
       setSystemMetrics({
-        cpuUsage: 0,
-        memoryUsage: 0,
-        diskUsage: 0,
-        activeJobs: 0,
-        queuedJobs: 0,
-        completedJobsToday: 0,
-        failedJobsToday: 0,
-        averageExecutionTime: 0,
-        throughputPerHour: 0
+        cpuUsage: metrics?.cpuUsage || 0,
+        memoryUsage: metrics?.memoryUsage || 0,
+        diskUsage: metrics?.diskUsage || 0,
+        activeJobs: metrics?.activeJobs || 0,
+        queuedJobs: metrics?.queuedJobs || 0,
+        completedJobsToday: metrics?.completedJobsToday || 0,
+        failedJobsToday: metrics?.failedJobsToday || 0,
+        averageExecutionTime: metrics?.averageExecutionTime || 0,
+        throughputPerHour: metrics?.throughputPerHour || 0,
       });
     } catch (error) {
       console.error('Error fetching job data:', error);
@@ -297,28 +315,23 @@ const JobMonitoringPage: React.FC = () => {
     if (!jobControlDialog.job || !jobControlDialog.action) return;
 
     try {
-      // TODO: Implement jobs API endpoints
-      // if (jobControlDialog.action === 'start' || jobControlDialog.action === 'restart') {
-      //   await bankingAPI.jobs.runJob(jobControlDialog.job.jobId || jobControlDialog.job.id);
-      // } else if (jobControlDialog.action === 'stop' || jobControlDialog.action === 'pause') {
-      //   await bankingAPI.jobs.controlJob(jobControlDialog.job.id, jobControlDialog.action);
-      // }
-
-      console.warn('Job control not implemented yet');
+      if (jobControlDialog.action === 'start' || jobControlDialog.action === 'restart') {
+        await bankingAPI.jobs.runJob(jobControlDialog.job.jobId || jobControlDialog.job.id);
+      } else if (jobControlDialog.action === 'stop' || jobControlDialog.action === 'pause') {
+        await bankingAPI.jobs.controlJob(jobControlDialog.job.id, jobControlDialog.action);
+      }
 
       setJobControlDialog({ open: false, job: null, action: null });
       fetchJobExecutions();
     } catch (error) {
       console.error('Job control error:', error);
+      setError('Failed to control job. Please try again.');
     }
   };
 
   const toggleJobDefinition = async (jobId: string, enabled: boolean) => {
     try {
-      // TODO: Implement jobs API endpoints
-      // await bankingAPI.jobs.toggleJob(jobId, enabled);
-
-      console.warn('Job toggle not implemented yet');
+      await bankingAPI.jobs.toggleJob(jobId);
 
       setJobDefinitions(prev =>
         prev.map(job =>
@@ -327,6 +340,7 @@ const JobMonitoringPage: React.FC = () => {
       );
     } catch (error) {
       console.error('Toggle job error:', error);
+      setError('Failed to toggle job. Please try again.');
     }
   };
 
@@ -372,7 +386,7 @@ const JobMonitoringPage: React.FC = () => {
     return `${minutes}m ${seconds}s`;
   };
 
-  // DataGrid columns for job executions
+        const [executions, definitions, metrics] = await Promise.all([
   const executionColumns: GridColDef[] = [
     {
       field: 'jobName',
@@ -425,13 +439,12 @@ const JobMonitoringPage: React.FC = () => {
           </Box>
         </Box>
       ),
-    },
-    {
-      field: 'priority',
-      headerName: 'Priority',
-      width: 100,
-      renderCell: (params: GridRenderCellParams) => (
-        <Chip
+      // Initial fetch
+      fetchJobExecutions();
+      // Auto-refresh every 30 seconds
+      if (!autoRefresh) return;
+      const interval = setInterval(fetchJobExecutions, 30000);
+      return () => clearInterval(interval);
           label={params.row.priority}
           size="small"
           color={getPriorityColor(params.row.priority) as any}

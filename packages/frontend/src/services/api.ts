@@ -353,6 +353,34 @@ export const bankingAPI = {
   impairment: impairmentApi,
   approval: approvalAPI,
 
+  // Jobs Monitoring API (backend /api/v1/jobs)
+  jobs: {
+    getDefinitions: async () => {
+      const response = await apiClient.get('/jobs/definitions')
+      return response.data
+    },
+    getExecutions: async (params?: { page?: number; limit?: number; status?: string; jobType?: string }) => {
+      const response = await apiClient.get('/jobs/executions', { params })
+      return response.data
+    },
+    getMetrics: async () => {
+      const response = await apiClient.get('/jobs/metrics')
+      return response.data
+    },
+    runJob: async (definitionId: string) => {
+      const response = await apiClient.post(`/jobs/${definitionId}/run`)
+      return response.data
+    },
+    controlJob: async (executionId: string, action: 'pause' | 'resume' | 'stop') => {
+      const response = await apiClient.post(`/jobs/${executionId}/control`, { action })
+      return response.data
+    },
+    toggleJob: async (definitionId: string) => {
+      const response = await apiClient.post(`/jobs/${definitionId}/toggle`)
+      return response.data
+    },
+  },
+
 
 
   // Application setup parameters (FRS9_PARAM_COMMONH - Type A)
