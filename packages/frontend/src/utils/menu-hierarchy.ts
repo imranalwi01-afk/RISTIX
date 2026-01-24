@@ -45,6 +45,7 @@ export interface HierarchicalMenuItem {
   active: boolean;
   visible: boolean;
   permissions: string[];
+  requiredPermissions?: string[];
   banking_modes: string[];
   banking_types?: string[]; // Backend field name compatibility
   user_types: string[];
@@ -80,7 +81,8 @@ export const transformFlatToHierarchical = (
         expanded: false,
         active: false,
         visible: true,
-        permissions: item.requiredPermissions || item.user_types || item.roles || [],
+        permissions: item.user_types || item.roles || [],
+        requiredPermissions: item.requiredPermissions || item.permission_codes || item.permissions_required,
         banking_modes: item.bankingTypes || item.banking_types || item.banking_modes || [],
         user_types: item.requiredPermissions || item.user_types || item.roles || [],
         tenant_types: [],
@@ -120,7 +122,8 @@ export const transformFlatToHierarchical = (
       expanded: false,
       active: false,
       visible: true,
-      permissions: item.requiredPermissions || item.user_types || item.roles || [],
+      permissions: item.user_types || item.roles || [],
+      requiredPermissions: item.requiredPermissions || item.permission_codes || item.permissions_required,
       banking_modes: item.bankingTypes || item.banking_types || item.banking_modes || [],
       user_types: item.requiredPermissions || item.user_types || item.roles || [],
       tenant_types: [],
@@ -267,15 +270,22 @@ export const filterHierarchicalMenu = (
           return false;
         }
 
-        // Role/Permission-based filter
-        if (item.permissions && item.permissions.length > 0) {
-          // 1. PERMISSION-BASED FILTERING (Primary)
+        // Permission-based filter (explicit permission codes)
+        const requiredPerms = item.requiredPermissions || [];
+        if (requiredPerms.length > 0) {
           if (userPermissions && userPermissions.length > 0) {
-            const hasExplicitPermission = item.permissions.some(requiredPerm =>
+            const hasPermission = requiredPerms.some(requiredPerm =>
               userPermissions.some(userPerm => userPerm.toLowerCase() === requiredPerm.toLowerCase())
             );
-            if (hasExplicitPermission) return true;
+            if (hasPermission) {
+              // Allow even if role checks below would fail
+              return true;
+            }
           }
+        }
+
+        // Role/Permission-based filter (legacy role codes)
+        if (item.permissions && item.permissions.length > 0) {
 
           // 2. ROLE-BASED FILTERING (Secondary/Legacy)
           const effectiveRoles = roleCodes && roleCodes.length > 0 ? roleCodes : (userRole ? [userRole] : []);

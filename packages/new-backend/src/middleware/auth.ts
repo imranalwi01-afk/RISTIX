@@ -7,18 +7,20 @@ import { Effect, pipe } from 'effect'
 import { getDatabase } from '@/config/database'
 import { redis } from '@/config/redis'
 import type { AppContext } from '../app'
+import { withRequestIds } from '../lib/logger'
 
 /**
  * JWT verification middleware
  * Extracts and validates JWT token from Authorization header
  */
 export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
+    const baseLogger = c.get('logger') || withRequestIds({ requestId: c.get('requestId'), tenantId: c.get('tenantId') })
     const authHeader = c.req.header('Authorization')
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        console.warn('⚠️ [AUTH] Missing or invalid authorization header:', {
+        baseLogger.warn({
             authHeader: authHeader ? `${authHeader.substring(0, 15)}...` : 'null'
-        });
+        }, '[AUTH] Missing or invalid authorization header')
         return c.json(
             {
                 success: false,
@@ -34,12 +36,12 @@ export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
     try {
         // Verify JWT signature
         const payload = await verifyToken(token)
-        console.log(`✅ [AUTH] Token verified for sub: ${payload.sub}, jti: ${payload.jti}`);
+        baseLogger.info({ sub: payload.sub, jti: payload.jti }, '[AUTH] Token verified')
 
         // Check session in Redis
         const sessionData = await redis.get(`session:access:${payload.jti}`)
         if (!sessionData) {
-            console.warn(`⚠️ [AUTH] Session not found in Redis: ${payload.jti}`);
+            baseLogger.warn({ jti: payload.jti }, '[AUTH] Session not found in Redis')
             throw new Error('Session not found or expired')
         }
 
@@ -50,7 +52,7 @@ export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
         // Load complete user context
         const user = await AuthRepository.findUserById(db, payload.sub)
         if (!user || !user.isActive) {
-            console.warn(`⚠️ [AUTH] User not found or inactive: ${payload.sub}`);
+            baseLogger.warn({ sub: payload.sub }, '[AUTH] User not found or inactive')
             throw new Error('User not found or inactive')
         }
 
@@ -62,11 +64,11 @@ export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
             : await TenantRepository.findBySlug(user.tenantId || '')
 
         if (!tenant) {
-            console.warn(`⚠️ [AUTH] Tenant not found for user: ${user.email}, tenantId: ${user.tenantId}`);
+            baseLogger.warn({ email: user.email, tenantId: user.tenantId }, '[AUTH] Tenant not found for user')
             throw new Error('Tenant not found')
         }
 
-        console.log(`✅ [AUTH] User context loaded: ${user.email} (Tenant: ${tenant.name})`);
+        baseLogger.info({ email: user.email, tenantName: tenant.name }, '[AUTH] User context loaded')
 
         // Set user context - ALWAYS use the resolved UUID from tenant object
         c.set('userId', user.id)
@@ -77,7 +79,7 @@ export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
 
         await next()
     } catch (error: any) {
-        console.error('❌ [AUTH] authentication error:', error.message);
+        baseLogger.error({ err: error }, '[AUTH] authentication error')
         return c.json(
             {
                 success: false,
@@ -132,22 +134,23 @@ export function requirePermission(resource: string, action: string) {
 
 // Tenant context middleware
 export const tenantMiddleware = createMiddleware<AppContext>(async (c, next) => {
+    const log = c.get('logger') || withRequestIds({ requestId: c.get('requestId'), tenantId: c.get('tenantId') })
     const requestedTenantId = c.req.header('X-Tenant-ID')
     const requestedTenantSlug = c.req.header('X-Tenant-Slug')
 
     const userTenantId = c.get('tenantId') // This is currently the user's home tenant ID
     const isPlatformAdmin = c.get('isSystemUser') // This is now user.isPlatformAdmin
 
-    console.log(`[TENANT] requestedTenantId=${requestedTenantId}, requestedTenantSlug=${requestedTenantSlug}, userTenantId=${userTenantId}, isPlatformAdmin=${isPlatformAdmin}`);
+    log.info({ requestedTenantId, requestedTenantSlug, userTenantId, isPlatformAdmin }, '[TENANT] switch check')
 
     // Default case: No switching requested
     if (!requestedTenantId && !requestedTenantSlug) {
-        console.log(`[TENANT] No tenant switch requested, passing through`);
+        log.info('[TENANT] No tenant switch requested, passing through')
         await next()
         return
     }
 
-    console.log(`[TENANT] Tenant switch requested!`);
+    log.info('[TENANT] Tenant switch requested')
 
     // Switching requested - resolve to UUID for comparison
     let targetTenantId: string | undefined = requestedTenantId
@@ -188,9 +191,9 @@ export const tenantMiddleware = createMiddleware<AppContext>(async (c, next) => 
 
             // Switch context
             c.set('tenantId', targetTenantId)
-            console.log(`🔄 [TENANT] Impersonating tenant: ${targetTenantId}`)
+            log.info({ targetTenantId }, '[TENANT] Impersonating tenant')
         } else {
-            console.warn(`🛑 [TENANT] Unauthorized impersonation attempt by user ${c.get('userId')} (user tenant: ${userTenantId}, requested: ${targetTenantId})`)
+            log.warn({ userId: c.get('userId'), userTenantId, targetTenantId }, '[TENANT] Unauthorized impersonation attempt')
             return c.json(
                 {
                     success: false,
@@ -202,7 +205,7 @@ export const tenantMiddleware = createMiddleware<AppContext>(async (c, next) => 
         }
     } else {
         // Same tenant or no valid target - just pass through
-        console.log(`[TENANT] Same tenant request, passing through`)
+        log.info('[TENANT] Same tenant request, passing through')
     }
 
     await next()

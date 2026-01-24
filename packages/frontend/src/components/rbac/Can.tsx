@@ -1,35 +1,41 @@
 import React from 'react';
 import { usePermission } from '../../hooks/usePermission';
 
+type MatchMode = 'any' | 'all';
+
 interface CanProps {
-    /**
-     * The action to perform (e.g., 'view', 'create', 'edit')
-     */
-    I: string;
-    /**
-     * The resource to act upon (e.g., 'users', 'roles')
-     */
-    a: string;
-    /**
-     * Content to render if permission is granted
-     */
+    /** The action(s) to perform (e.g., 'view', 'create', ['view', 'edit']) */
+    I: string | string[];
+    /** The resource(s) (e.g., 'users', 'roles', ['users', 'roles']) */
+    a: string | string[];
+    /** Rendered when permission is granted */
     children: React.ReactNode;
-    /**
-     * Optional content to render if permission is denied
-     */
+    /** Optional fallback when denied */
     fallback?: React.ReactNode;
+    /** Match rule: any (default) or all action-resource combos must be allowed */
+    match?: MatchMode;
+    /** Invert logic: render children only when not allowed */
+    not?: boolean;
 }
 
 /**
- * RBAC/ACL Component to conditionally render content based on permissions.
- * Usage: <Can I="view" a="users"> <UserList /> </Can>
+ * RBAC/ACL component to conditionally render content based on permissions.
+ * Usage:
+ *   <Can I="view" a="users"> <UserList /> </Can>
+ *   <Can I={['create','edit']} a="users" match="all"> ... </Can>
+ *   <Can I="delete" a="users" not fallback={<></>} />
  */
-export const Can: React.FC<CanProps> = ({ I, a, children, fallback = null }) => {
+export const Can: React.FC<CanProps> = ({
+    I,
+    a,
+    children,
+    fallback = null,
+    match = 'any',
+    not = false,
+}) => {
     const { can } = usePermission();
+    const allowed = can(I, a, match);
+    const shouldRender = not ? !allowed : allowed;
 
-    if (can(I, a)) {
-        return <>{children}</>;
-    }
-
-    return <>{fallback}</>;
+    return <>{shouldRender ? children : fallback}</>;
 };

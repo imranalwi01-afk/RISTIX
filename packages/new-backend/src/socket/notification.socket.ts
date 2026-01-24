@@ -2,6 +2,7 @@ import { Server as Engine } from '@socket.io/bun-engine'
 import { Server as SocketIOServer, Socket } from 'socket.io'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import * as schema from '../db/schema'
+import { withRequestIds } from '../lib/logger'
 
 /**
  * Socket.IO server for real-time notifications
@@ -71,7 +72,7 @@ export class NotificationSocket {
         adminNs.on('connection', (socket: Socket) => {
             const { userId, tenantId, roles } = socket.data
 
-            console.log(`📱 Admin connected: ${userId} (tenant: ${tenantId})`)
+            withRequestIds({ tenantId, userId }).info('Admin connected')
 
             // Track admin connection per tenant
             if (!this.connectedAdmins.has(tenantId)) {
@@ -93,7 +94,7 @@ export class NotificationSocket {
 
             // Handle disconnect
             socket.on('disconnect', () => {
-                console.log(`📴 Admin disconnected: ${userId}`)
+                withRequestIds({ tenantId, userId }).info('Admin disconnected')
                 const admins = this.connectedAdmins.get(tenantId)
                 if (admins) {
                     admins.delete(socket.id)
@@ -103,22 +104,22 @@ export class NotificationSocket {
             // Handle subscription to specific notifications
             socket.on('subscribe:approval', (data) => {
                 socket.join(`approval:${data.approvalRequestId}`)
-                console.log(`✅ Subscribed to approval updates: ${data.approvalRequestId}`)
+                withRequestIds({ tenantId, userId }).info({ approvalRequestId: data.approvalRequestId }, 'Subscribed to approval updates')
             })
 
             socket.on('subscribe:ecl', (data) => {
                 socket.join(`ecl:${data.workflowId}`)
-                console.log(`✅ Subscribed to ECL updates: ${data.workflowId}`)
+                withRequestIds({ tenantId, userId }).info({ workflowId: data.workflowId }, 'Subscribed to ECL updates')
             })
 
             // Handle ACK (read notification)
             socket.on('notification:ack', (notificationId) => {
-                console.log(`✓ Notification read: ${notificationId}`)
+                withRequestIds({ tenantId, userId }).info({ notificationId }, 'Notification read')
                 // TODO: Mark notification as read in DB
             })
         })
 
-        console.log('✅ Socket.IO namespaces configured')
+        withRequestIds({}).info('Socket.IO namespaces configured')
     }
 
     /**
@@ -141,7 +142,7 @@ export class NotificationSocket {
             this.io.of('/admin/notifications').to(room).emit('notification', notification)
         })
 
-        console.log(`📢 Approval notification broadcast to ${rooms.join(', ')}`)
+        withRequestIds({ tenantId }).info({ rooms }, 'Approval notification broadcast')
     }
 
     /**
@@ -174,7 +175,7 @@ export class NotificationSocket {
         this.io.of('/admin/notifications').to(`ecl:${workflowId}`).emit('notification', notification)
         this.io.of('/admin/notifications').to(`tenant:${tenantId}`).emit('notification', notification)
 
-        console.log(`📢 ECL event broadcast: ${eventType}`)
+        withRequestIds({ tenantId }).info({ workflowId, eventType }, 'ECL event broadcast')
     }
 
     /**
@@ -203,7 +204,7 @@ export class NotificationSocket {
         this.io.of('/admin/notifications').to(`tenant:${tenantId}`).emit('notification', notification)
         this.io.of('/admin/notifications').to(`approval:${workflowId}`).emit('notification', notification)
 
-        console.log(`📢 Workflow transition broadcast: ${fromState} → ${toState}`)
+        withRequestIds({ tenantId }).info({ workflowId, fromState, toState }, 'Workflow transition broadcast')
     }
 
     /**
@@ -229,7 +230,7 @@ export class NotificationSocket {
 
         this.io.of('/admin/notifications').to(`role:ADMIN:${tenantId}`).emit('notification', notification)
 
-        console.log(`📢 Compliance alert broadcast: ${severity}`)
+        withRequestIds({ tenantId }).warn({ severity, message, data }, 'Compliance alert broadcast')
     }
 
     /**

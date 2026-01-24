@@ -92,6 +92,7 @@ import {
   HierarchicalMenuItem,
   validateMenuHierarchy
 } from '@/utils/menu-hierarchy';
+import { usePermission } from '@/hooks/usePermission';
 
 // Import menu state management hook
 import { useMenuState } from '@/hooks/useMenuState';
@@ -138,6 +139,15 @@ const SidebarItem = React.memo(({
   onFlyoutOpen: (e: React.MouseEvent<HTMLElement>, item: HierarchicalMenuItem) => void;
   onMenuClick?: (id: string, url?: string) => void;
 }) => {
+  const { hasPermission } = usePermission();
+
+  const isAllowed = React.useMemo(() => {
+    if (!item.requiredPermissions || item.requiredPermissions.length === 0) return true;
+    return item.requiredPermissions.some((code) => hasPermission(code));
+  }, [item.requiredPermissions, hasPermission]);
+
+  if (!isAllowed) return null;
+
   const hasChildren = item.children && item.children.length > 0;
   const isExpanded = expandedItems.has(item.id);
   const isActiveParent = activeItems.has(item.id);
@@ -342,6 +352,7 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
           active: dbItem.is_active !== false,
           visible: true,
           permissions: dbItem.user_types || dbItem.roles || [],
+          requiredPermissions: dbItem.requiredPermissions || dbItem.permission_codes || dbItem.permissions_required,
           banking_modes: dbItem.banking_types || dbItem.banking_modes || ['conventional', 'syariah', 'dual'],
           user_types: dbItem.user_types || dbItem.roles || [],
           tenant_types: [],

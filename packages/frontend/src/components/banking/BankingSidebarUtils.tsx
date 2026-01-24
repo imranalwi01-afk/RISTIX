@@ -88,6 +88,29 @@ import { MenuItem, DatabaseMenuItem, BankingMode } from './types';
 import { getMenuIcon } from '@/config/menu-config';
 
 // IAF-SPECIFIC SITEMAP STRUCTURE - Based on IAF Navigation Requirements
+// Default permission mapping for static menu (can be overridden per id/code)
+const PERMISSION_OVERRIDES: Record<string, string> = {
+    dashboard: 'VIEW_DASHBOARD',
+    'system-setup': 'MANAGE_SYSTEM_SETUP',
+    'parameter-management': 'MANAGE_PARAMETERS',
+    'ifrs9': 'VIEW_IFRS9',
+    'ifrs9-report': 'VIEW_IFRS9_REPORTS',
+    'maintenance': 'ADMIN_MAINTENANCE',
+    'user-management': 'ADMIN_USERS',
+    'role-management': 'ADMIN_ROLES',
+    'menu-management': 'ADMIN_MENUS',
+    'job-monitoring': 'VIEW_JOB_MONITORING',
+    'workflow-management': 'VIEW_WORKFLOWS',
+    'approval-system': 'VIEW_APPROVALS',
+    'tools': 'USE_TOOLS',
+};
+
+const derivePermissionCode = (idOrCode: string | undefined) => {
+    if (!idOrCode) return undefined;
+    const key = idOrCode.toLowerCase();
+    if (PERMISSION_OVERRIDES[key]) return PERMISSION_OVERRIDES[key];
+    return `VIEW_${idOrCode.replace(/[^a-zA-Z0-9]+/g, '_').toUpperCase()}`;
+};
 const BANKING_MENU_STRUCTURE: MenuItem[] = [
     {
         id: 'dashboard',
@@ -100,7 +123,8 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
         level: 1,
         path: '/dashboard',
         isActive: true,
-        status: 'active'
+        status: 'active',
+        requiredPermissions: [derivePermissionCode('dashboard')!]
     },
 
     // CORE SYSTEM SETUP
@@ -508,7 +532,8 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
                 label: 'R Analytics',
                 href: '/banking/analytics/r-analytics',
                 icon: <DataUsage />,
-                description: 'Statistical Analysis'
+                description: 'Statistical Analysis',
+
             },
             {
                 id: 'financial-reports',
@@ -930,6 +955,7 @@ export const getIconForMenuItem = (code: string, level: number): React.ReactElem
 // Helper function to convert static menu to database format for fallback
 export const convertStaticToDatabaseFormat = (staticMenu: MenuItem[]): DatabaseMenuItem[] => {
     const convertItem = (item: MenuItem, parentId: string | null = null): DatabaseMenuItem => {
+        const permissionCode = item.requiredPermissions?.[0] || derivePermissionCode(item.code || item.id);
         const dbItem: DatabaseMenuItem = {
             id: item.id,
             menu_key: item.code || item.id,
@@ -942,6 +968,7 @@ export const convertStaticToDatabaseFormat = (staticMenu: MenuItem[]): DatabaseM
             is_active: true,
             user_types: item.roles || [],
             banking_types: item.banking_modes || ['conventional', 'syariah', 'dual'],
+            requiredPermissions: item.requiredPermissions || (permissionCode ? [permissionCode] : []),
             parent_id: parentId
         };
         return dbItem;
@@ -992,6 +1019,7 @@ export const convertDatabaseMenuToMenuItem = (dbMenuItems: DatabaseMenuItem[], b
             icon: item.icon ? getIconFromDatabaseString(item.icon, bankingMode) : <Menu />,
             banking_modes: item.banking_types as ('conventional' | 'syariah' | 'dual')[],
             roles: item.user_types,
+            requiredPermissions: item.requiredPermissions,
             // ✅ CRITICAL: Preserve children from database - DON'T RECURSIVELY CONVERT
             children: item.children && item.children.length > 0 ? item.children.map(child => ({
                 id: child.id,
@@ -1006,6 +1034,7 @@ export const convertDatabaseMenuToMenuItem = (dbMenuItems: DatabaseMenuItem[], b
                 icon: child.icon ? getIconFromDatabaseString(child.icon, bankingMode) : <Menu />,
                 banking_modes: child.banking_types as ('conventional' | 'syariah' | 'dual')[],
                 roles: child.user_types,
+                requiredPermissions: child.requiredPermissions,
                 status: child.is_active ? 'active' : 'disabled'
             })) : undefined,
             status: item.is_active ? 'active' : 'disabled'

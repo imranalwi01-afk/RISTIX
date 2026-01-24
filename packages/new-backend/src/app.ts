@@ -1,7 +1,10 @@
 import { OpenAPIHono } from '@hono/zod-openapi'
 import { Scalar } from '@scalar/hono-api-reference'
 import { cors } from 'hono/cors'
-import { logger } from 'hono/logger'
+import { logger as honoLogger } from 'hono/logger'
+import { nanoid } from 'nanoid'
+import { logger, withRequestIds } from './lib/logger'
+import type { Logger } from './lib/logger'
 import { secureHeaders } from 'hono/secure-headers'
 import { timing } from 'hono/timing'
 import { prettyJSON } from 'hono/pretty-json'
@@ -16,12 +19,14 @@ import type { User } from './db/schema'
  */
 export type AppContext = {
     Variables: {
+        requestId?: string
         tenantId?: string
         userId?: string
         tokenId?: string
         permissions?: string[]
         isSystemUser?: boolean
         user?: User
+        logger?: Logger
     }
 }
 
@@ -30,6 +35,40 @@ export type AppContext = {
  */
 export function createApp() {
     const app = new OpenAPIHono<AppContext>()
+
+    // Attach request/trace IDs and structured logging early
+    app.use('*', (c, next) => {
+        const requestId = c.req.header('x-request-id') || nanoid()
+        const tenantId = c.req.header('x-tenant-id') || c.req.header('x-tenant-slug')
+        c.set('requestId', requestId)
+        c.set('tenantId', tenantId)
+
+        // Bind a child logger on context for handlers
+        const requestLogger = withRequestIds({ requestId, tenantId })
+        c.set('logger', requestLogger)
+
+        return next()
+    })
+
+    // Lightweight request logging
+    app.use('*', async (c, next) => {
+        const start = performance.now()
+        await next()
+        const durationMs = Number((performance.now() - start).toFixed(2))
+        const log = c.get('logger') || logger
+        log.info(
+            {
+                method: c.req.method,
+                path: c.req.path,
+                status: c.res?.status,
+                durationMs,
+                tenantId: c.get('tenantId'),
+                userId: c.get('userId'),
+                requestId: c.get('requestId'),
+            },
+            'request.completed'
+        )
+    })
 
     // Global middleware
     app.use(
@@ -40,11 +79,7 @@ export function createApp() {
 
                 // Debug logging only when LOG_LEVEL is 'debug'
                 if (env.LOG_LEVEL === 'debug') {
-                    console.log('🔒 CORS Check:', {
-                        origin,
-                        allowedOrigins,
-                        isAllowed: allowedOrigins.includes(origin)
-                    })
+                    logger.debug({ origin, allowedOrigins, isAllowed: allowedOrigins.includes(origin) }, 'CORS check')
                 }
 
                 // Allow requests with no origin (like mobile apps or curl requests)
@@ -71,7 +106,7 @@ export function createApp() {
     )
 
     app.use('*', timing())
-    app.use('*', logger())
+    app.use('*', honoLogger())
     app.use(
         '*',
         secureHeaders({

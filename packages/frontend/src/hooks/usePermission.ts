@@ -1,34 +1,46 @@
 import { useSelector } from 'react-redux';
 import { RootState } from '../store';
 
+type ActionOrResource = string | string[];
+type MatchMode = 'any' | 'all';
+
 export const usePermission = () => {
     const auth = useSelector((state: RootState) => state.auth);
     const user = auth?.user;
-    // Ensure permissions is always an array
     const userPermissions = user?.permissions || [];
 
-    /**
-     * Check if user has a specific permission code
-     * @param code The permission code (e.g., 'view_users', 'manage_content')
-     */
     const hasPermission = (code: string): boolean => {
         if (!code) return false;
-        // Check exact match or superadmin (if applicable, e.g. *)
         return userPermissions.includes(code) || userPermissions.includes('*');
     };
 
-    /**
-     * Check if user can perform an action on a resource
-     * @param action The action (e.g., 'view', 'create', 'update', 'delete')
-     * @param resource The resource (e.g., 'users', 'roles', 'reports')
-     */
-    const can = (action: string, resource: string): boolean => {
-        if (!action || !resource) return false;
+    const normalize = (value: ActionOrResource): string[] =>
+        Array.isArray(value) ? value : [value];
 
-        // Construct code from action and resource (e.g., 'view_users')
-        // Try uppercase format as used in backend (VIEW_USERS)
-        const code = `${action.toUpperCase()}_${resource.toUpperCase()}`;
-        return hasPermission(code);
+    /**
+     * Check if user can perform action(s) on resource(s)
+     * match: 'any' (default) -> any combination allows access
+     *        'all' -> every action-resource combination must be allowed
+     */
+    const can = (
+        action: ActionOrResource,
+        resource: ActionOrResource,
+        match: MatchMode = 'any'
+    ): boolean => {
+        const actions = normalize(action);
+        const resources = normalize(resource);
+
+        if (!actions.length || !resources.length) return false;
+
+        const check = (a: string, r: string) =>
+            hasPermission(`${a.toUpperCase()}_${r.toUpperCase()}`);
+
+        if (match === 'all') {
+            return actions.every((a) => resources.every((r) => check(a, r)));
+        }
+
+        // default: any
+        return actions.some((a) => resources.some((r) => check(a, r)));
     };
 
     return {

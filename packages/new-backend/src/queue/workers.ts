@@ -5,6 +5,7 @@ import { getNotificationSocket } from '../socket/notification.socket'
 import * as NotificationService from '../services/notification.service'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import * as schema from '../db/schema'
+import { logger, withRequestIds } from '../lib/logger'
 
 const redis = new Redis({
     host: process.env.REDIS_HOST || 'localhost',
@@ -20,7 +21,7 @@ export function setupApprovalNotificationWorker(db: PostgresJsDatabase<typeof sc
     const worker = new Worker<ApprovalNotificationJob>(
         'approval-notifications',
         async (job) => {
-            console.log(`🔄 Processing approval notification job ${job.id}`)
+            withRequestIds({ tenantId: job.data.tenantId }).info({ jobId: job.id }, 'Processing approval notification job')
 
             const { action, notifyUser, email, template, workflowId, workflowName } = job.data
 
@@ -45,7 +46,7 @@ export function setupApprovalNotificationWorker(db: PostgresJsDatabase<typeof sc
                     ) => Promise<string>
 
                     const messageId = await emailServiceFn(job.data, email, templateContext)
-                    console.log(`✉️ Email notification sent: ${messageId}`)
+                    withRequestIds({ tenantId: job.data.tenantId }).info({ jobId: job.id, messageId }, 'Email notification sent')
                 }
 
                 // Create in-app notification
@@ -78,10 +79,10 @@ export function setupApprovalNotificationWorker(db: PostgresJsDatabase<typeof sc
                     `${process.env.APP_URL}/approvals/${workflowId}`
                 )
 
-                console.log(`✅ Approval notification job ${job.id} completed`)
+                withRequestIds({ tenantId: job.data.tenantId }).info({ jobId: job.id }, 'Approval notification job completed')
                 return { success: true, jobId: job.id }
             } catch (err) {
-                console.error(`❌ Approval notification job ${job.id} failed: ${err}`)
+                withRequestIds({ tenantId: job.data.tenantId }).error({ jobId: job.id, err }, 'Approval notification job failed')
                 throw err
             }
         },
@@ -89,11 +90,11 @@ export function setupApprovalNotificationWorker(db: PostgresJsDatabase<typeof sc
     )
 
     worker.on('completed', (job) => {
-        console.log(`✅ Job ${job.id} completed`)
+        withRequestIds({ tenantId: job.data?.tenantId }).info({ jobId: job.id }, 'Approval job completed')
     })
 
     worker.on('failed', (job, err) => {
-        console.error(`❌ Job ${job?.id} failed: ${err.message}`)
+        withRequestIds({ tenantId: job?.data?.tenantId }).error({ jobId: job?.id, err }, 'Approval job failed')
         if (job) {
             const jobId: string = job.id ? String(job.id) : 'unknown'
             const payloadData = job.data as unknown as Record<string, unknown>
@@ -106,7 +107,7 @@ export function setupApprovalNotificationWorker(db: PostgresJsDatabase<typeof sc
                 data: payloadData,
                 failedReason: err?.message,
                 failedAt: new Date().toISOString(),
-            }).catch((dlqErr) => console.error('❌ Failed to enqueue DLQ for approval job', dlqErr))
+            }).catch((dlqErr) => withRequestIds({ tenantId }).error({ dlqErr }, 'Failed to enqueue DLQ for approval job'))
 
             // Broadcast alert to admins of the tenant
             const tenantId = job.data.tenantId || 'tenant-id'
@@ -124,7 +125,7 @@ export function setupApprovalNotificationWorker(db: PostgresJsDatabase<typeof sc
                     }
                 )
             } catch (broadcastErr) {
-                console.error('❌ Failed to broadcast approval job failure', broadcastErr)
+                withRequestIds({ tenantId }).error({ broadcastErr }, 'Failed to broadcast approval job failure')
             }
         }
     })
@@ -140,7 +141,7 @@ export function setupECLCalculationWorker(db: PostgresJsDatabase<typeof schema>)
     const worker = new Worker<ECLCalculationJob>(
         'ecl-calculations',
         async (job) => {
-            console.log(`🔄 Processing ECL calculation job ${job.id}`)
+            withRequestIds({ tenantId: job.data.tenantId }).info({ jobId: job.id }, 'Processing ECL calculation job')
 
             const { workflowId, tenantId, entityId, storedProcedure, parameters } = job.data
 
@@ -148,7 +149,7 @@ export function setupECLCalculationWorker(db: PostgresJsDatabase<typeof schema>)
                 // Call stored procedure (example: calculate_expected_credit_loss)
                 const spName = storedProcedure || 'calculate_expected_credit_loss'
 
-                console.log(`📞 Calling SP: ${spName} for entity ${entityId}`)
+                withRequestIds({ tenantId: tenantId }).info({ spName, entityId }, 'Calling stored procedure')
 
                 // Execute stored procedure and get result
                 // In production, replace with actual SP call
@@ -158,18 +159,18 @@ export function setupECLCalculationWorker(db: PostgresJsDatabase<typeof schema>)
                     parameters,
                 })
 
-                console.log(`✅ SP ${spName} completed. Result:`, result)
+                withRequestIds({ tenantId }).info({ spName, result }, 'Stored procedure completed')
 
                 // Update workflow with result (via stored procedure handler)
                 // In production: call core.handle_ecl_job_result
-                console.log(`📝 Updating workflow ${workflowId} with ECL result`)
+                withRequestIds({ tenantId }).info({ workflowId }, 'Updating workflow with ECL result')
 
                 // Mark workflow as completed
                 // UPDATE core.workflows SET current_state = 'COMPLETED', metadata['ecl_result'] = result WHERE id = workflow_id
 
                 return { success: true, jobId: job.id, result }
             } catch (err) {
-                console.error(`❌ ECL calculation job ${job.id} failed: ${err}`)
+                withRequestIds({ tenantId }).error({ jobId: job.id, err }, 'ECL calculation job failed')
                 throw err
             }
         },
@@ -177,11 +178,11 @@ export function setupECLCalculationWorker(db: PostgresJsDatabase<typeof schema>)
     )
 
     worker.on('completed', (job) => {
-        console.log(`✅ ECL job ${job.id} completed`)
+        withRequestIds({ tenantId: job.data?.tenantId }).info({ jobId: job.id }, 'ECL job completed')
     })
 
     worker.on('failed', (job, err) => {
-        console.error(`❌ ECL job ${job?.id} failed: ${err.message}`)
+        withRequestIds({ tenantId: job?.data?.tenantId }).error({ jobId: job?.id, err }, 'ECL job failed')
         if (job) {
             const jobId: string = job.id ? String(job.id) : 'unknown'
             const payloadData = job.data as unknown as Record<string, unknown>
@@ -194,7 +195,7 @@ export function setupECLCalculationWorker(db: PostgresJsDatabase<typeof schema>)
                 data: payloadData,
                 failedReason: err?.message,
                 failedAt: new Date().toISOString(),
-            }).catch((dlqErr) => console.error('❌ Failed to enqueue DLQ for ECL job', dlqErr))
+            }).catch((dlqErr) => withRequestIds({ tenantId }).error({ dlqErr }, 'Failed to enqueue DLQ for ECL job'))
 
             // Broadcast alert to admins of the tenant
             const tenantId = job.data.tenantId || 'tenant-id'
@@ -212,7 +213,7 @@ export function setupECLCalculationWorker(db: PostgresJsDatabase<typeof schema>)
                     }
                 )
             } catch (broadcastErr) {
-                console.error('❌ Failed to broadcast ECL job failure', broadcastErr)
+                withRequestIds({ tenantId }).error({ broadcastErr }, 'Failed to broadcast ECL job failure')
             }
         }
     })
@@ -233,7 +234,7 @@ async function callStoredProcedure(
 
     if (spName === 'calculate_expected_credit_loss') {
         // SELECT ecl.calculate_expected_credit_loss(...)
-        console.log(`Executing ${spName} with params:`, params)
+        withRequestIds({ tenantId: params.tenantId as string | undefined }).info({ spName, params }, 'Executing stored procedure')
 
         // Mock result for now
         return {
@@ -252,12 +253,12 @@ async function callStoredProcedure(
  * Setup all workers
  */
 export async function setupAllWorkers(db: PostgresJsDatabase<typeof schema>) {
-    console.log('🚀 Setting up Bull workers...')
+    logger.info('Setting up Bull workers...')
 
     const approvalWorker = setupApprovalNotificationWorker(db)
     const eclWorker = setupECLCalculationWorker(db)
 
-    console.log('✅ All workers ready')
+    logger.info('All workers ready')
 
     return { approvalWorker, eclWorker }
 }

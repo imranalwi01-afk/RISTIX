@@ -8,6 +8,7 @@ import { Server as Engine } from '@socket.io/bun-engine'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { app } from './app'
 import { env, db, closeDatabase } from './config'
+import { logger } from './lib/logger'
 import { initializeNotificationSocket } from './socket/notification.socket'
 import { setupQueues, closeQueues } from './queue/bull-setup'
 import { setupAllWorkers } from './queue/workers'
@@ -17,49 +18,49 @@ import { createWorkflowRepository, createWorkflowEventHandler } from './reposito
  * Start the server with all integrations
  */
 export async function startServer() {
-    console.log('🚀 Starting IFRS9 Backend Server...')
+    logger.info('Starting IFRS9 Backend Server...')
 
     // ============================================================================
     // 1. DATABASE (already initialized from config)
     // ============================================================================
-    console.log('📊 Database connection ready')
+    logger.info('Database connection ready')
     // db is imported from config/database.ts
 
     // ============================================================================
     // 2. CREATE BUN ENGINE FOR SOCKET.IO
     // ============================================================================
-    console.log('🌐 Creating Bun engine...')
+    logger.info('Creating Bun engine...')
     const engine = new Engine()
 
     // ============================================================================
     // 3. INITIALIZE SOCKET.IO
     // ============================================================================
-    console.log('📱 Initializing Socket.IO...')
+    logger.info('Initializing Socket.IO...')
     const notificationSocket = initializeNotificationSocket(engine)
-    console.log('✅ Socket.IO initialized')
+    logger.info('Socket.IO initialized')
 
     // ============================================================================
     // 4. CONNECT TO REDIS (required for queues and sessions)
     // ============================================================================
-    console.log('🔌 Connecting to Redis...')
+    logger.info('Connecting to Redis...')
     const { redis: sessionRedis } = await import('./config/redis')
     await sessionRedis.connect()
     
     // ============================================================================
     // 5. SETUP BULL QUEUES & WORKERS
     // ============================================================================
-    console.log('🔧 Setting up Bull queues...')
+    logger.info('Setting up Bull queues...')
     await setupQueues()
     const { approvalWorker, eclWorker } = await setupAllWorkers(db)
-    console.log('✅ Bull queues and workers ready')
+    logger.info('Bull queues and workers ready')
 
     // ============================================================================
     // 6. INITIALIZE WORKFLOW REPOSITORIES
     // ============================================================================
-    console.log('⚙️  Initializing workflow repositories...')
+    logger.info('Initializing workflow repositories...')
     const workflowRepo = createWorkflowRepository(db)
     const eventHandler = createWorkflowEventHandler(workflowRepo, db)
-    console.log('✅ Workflow system ready')
+    logger.info('Workflow system ready')
 
     // ============================================================================
     // 7. RETURN BUN SERVER CONFIGURATION
@@ -67,21 +68,16 @@ export async function startServer() {
     const port = env.PORT || 3001
     const { websocket } = engine.handler()
 
-    console.log('')
-    console.log('┌─────────────────────────────────────────────────────────┐')
-    console.log('│  ✅ IFRS9 Backend Server Ready                          │')
-    console.log('├─────────────────────────────────────────────────────────┤')
-    console.log(`│  🌐 HTTP Server:     http://localhost:${port}`)
-    console.log(`│  📱 Socket.IO:       ws://localhost:${port}/socket.io`)
-    console.log(`│  📚 API Reference:   http://localhost:${port}/reference`)
-    console.log(`│  📖 OpenAPI Spec:    http://localhost:${port}/doc`)
-    console.log(`│  ❤️  Health Check:    http://localhost:${port}/health`)
-    console.log('├─────────────────────────────────────────────────────────┤')
-    console.log(`│  Runtime: Bun ${Bun.version}`)
-    console.log(`│  Environment: ${env.NODE_ENV}`)
-    console.log(`│  Tenant Mode: Multi-tenant`)
-    console.log('└─────────────────────────────────────────────────────────┘')
-    console.log('')
+    logger.info({
+        http: `http://localhost:${port}`,
+        socket: `ws://localhost:${port}/socket.io`,
+        reference: `http://localhost:${port}/reference`,
+        openapi: `http://localhost:${port}/doc`,
+        health: `http://localhost:${port}/health`,
+        runtime: `Bun ${Bun.version}`,
+        environment: env.NODE_ENV,
+        tenantMode: 'Multi-tenant',
+    }, 'IFRS9 Backend Server Ready')
 
     // Return Bun server configuration
     return {
