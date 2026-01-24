@@ -92,7 +92,18 @@ import { getMenuIcon } from '@/config/menu-config';
 const PERMISSION_OVERRIDES: Record<string, string> = {
     dashboard: 'VIEW_DASHBOARD',
     'system-setup': 'MANAGE_SYSTEM_SETUP',
+    'application-configuration': 'MANAGE_APP_CONFIG',
+    'business-configuration': 'MANAGE_BUSINESS_CONFIG',
     'parameter-management': 'MANAGE_PARAMETERS',
+    'product-parameters': 'MANAGE_PRODUCT_PARAMS',
+    'accounting-parameters': 'MANAGE_ACCOUNTING_PARAMS',
+    'segmentation-configuration': 'MANAGE_SEGMENTATION',
+    'rule-base-setting': 'MANAGE_RULES',
+    'bucket-parameter': 'MANAGE_BUCKETS',
+    'pd-setup-management': 'MANAGE_PD',
+    'lgd-setup-management': 'MANAGE_LGD',
+    'ead-setup-management': 'MANAGE_EAD',
+    'ecl-configuration': 'MANAGE_ECL_CONFIG',
     'ifrs9': 'VIEW_IFRS9',
     'ifrs9-report': 'VIEW_IFRS9_REPORTS',
     'maintenance': 'ADMIN_MAINTENANCE',
@@ -102,7 +113,15 @@ const PERMISSION_OVERRIDES: Record<string, string> = {
     'job-monitoring': 'VIEW_JOB_MONITORING',
     'workflow-management': 'VIEW_WORKFLOWS',
     'approval-system': 'VIEW_APPROVALS',
+    'workflow-configuration': 'CONFIGURE_WORKFLOWS',
+    'process-monitoring': 'VIEW_PROCESS_MONITORING',
     'tools': 'USE_TOOLS',
+    'manual-upload': 'USE_MANUAL_UPLOAD',
+    'bulk-data-import': 'USE_BULK_IMPORT',
+    'data-export': 'USE_EXPORT',
+    'etl-tools': 'USE_ETL',
+    'direct-db-connection': 'USE_DIRECT_DB',
+    'data-scheduler': 'USE_DATA_SCHEDULER',
 };
 
 const derivePermissionCode = (idOrCode: string | undefined) => {
@@ -716,6 +735,21 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
         ]
     }
 ];
+
+// Ensure every static menu item has requiredPermissions (explicit or derived)
+const applyRequiredPermissions = (items: MenuItem[]) => {
+    items.forEach((item) => {
+        if (!item.requiredPermissions || item.requiredPermissions.length === 0) {
+            const code = derivePermissionCode(item.code || item.id);
+            item.requiredPermissions = code ? [code] : [];
+        }
+        if (item.children && item.children.length > 0) {
+            applyRequiredPermissions(item.children);
+        }
+    });
+};
+
+applyRequiredPermissions(BANKING_MENU_STRUCTURE);
 
 // Convert icon string to React element helper
 export const convertIconStringToElement = (iconString: string): React.ReactElement<any> => {

@@ -352,7 +352,7 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
           active: dbItem.is_active !== false,
           visible: true,
           permissions: dbItem.user_types || dbItem.roles || [],
-          requiredPermissions: dbItem.requiredPermissions || dbItem.permission_codes || dbItem.permissions_required,
+          requiredPermissions: dbItem.requiredPermissions,
           banking_modes: dbItem.banking_types || dbItem.banking_modes || ['conventional', 'syariah', 'dual'],
           user_types: dbItem.user_types || dbItem.roles || [],
           tenant_types: [],

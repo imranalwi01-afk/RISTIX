@@ -1,5 +1,6 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { getAuthToken } from '../../utils/auth-token';
+import type { MenuItem } from '../../services/api/menu.api';
 
 // Define the API slice
 export const menuQueryApi = createApi({
@@ -25,12 +26,12 @@ export const menuQueryApi = createApi({
     }),
     tagTypes: ['Menu'],
     endpoints: (builder) => ({
-        getMenuTree: builder.query<any[], { bankingMode?: string; includeInactive?: boolean }>({
+        getMenuTree: builder.query<MenuItem[], { bankingMode?: string; includeInactive?: boolean }>({
             query: ({ bankingMode = 'conventional', includeInactive = false }) => ({
                 url: '/menu/hierarchy', // Updated to match new-backend
                 params: undefined, // Backend does not use query params, it filters by auth token/context
             }),
-            transformResponse: (response: { data: any[] }) => response.data, // ✅ Unwrap the 'data' property
+            transformResponse: (response: { data: MenuItem[] }) => response.data, // ✅ Unwrap the 'data' property
             providesTags: ['Menu'],
             // Keep unused data for 5 minutes
             keepUnusedDataFor: 300,
