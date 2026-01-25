@@ -244,12 +244,16 @@ export const getParentIds = (
 // Filter hierarchical menu by user role, roleCodes and banking mode
 export const filterHierarchicalMenu = (
   hierarchicalItems: HierarchicalMenuItem[],
-  userRole: string | undefined,
+  _userRole: string | undefined,
   bankingMode: 'conventional' | 'syariah' | 'dual',
-  roleCodes?: string[], // ✅ Add roleCodes parameter for accurate menu filtering
   userPermissions?: string[] // ✅ Add permissions parameter for granular filtering
 ): HierarchicalMenuItem[] => {
+  // Normalize inputs once for re-use
+  const normalizedPermissions = (userPermissions || []).map(p => p?.toLowerCase()).filter(Boolean);
 
+  const isSuperAdmin =
+    normalizedPermissions.includes('*') ||
+    normalizedPermissions.includes('super_admin');
 
   const filterItems = (items: HierarchicalMenuItem[]): HierarchicalMenuItem[] => {
     return items
@@ -259,9 +263,9 @@ export const filterHierarchicalMenu = (
           return false;
         }
 
-        // 🔒 IAF-SPECIFIC: TEMPORARILY HIDE PORTFOLIO MANAGEMENT
-        if (item.id === 'portfolio-management' || item.id?.startsWith('portfolio-')) {
-          return false;
+        // Global super admin bypass (after hard-hides)
+        if (isSuperAdmin) {
+          return true;
         }
 
         // Banking mode filter
@@ -273,67 +277,22 @@ export const filterHierarchicalMenu = (
         // Permission-based filter (explicit permission codes)
         const requiredPerms = item.requiredPermissions || [];
         if (requiredPerms.length > 0) {
-          if (userPermissions && userPermissions.length > 0) {
+          if (normalizedPermissions.length > 0) {
             const hasPermission = requiredPerms.some(requiredPerm =>
-              userPermissions.some(userPerm => userPerm.toLowerCase() === requiredPerm.toLowerCase())
+              normalizedPermissions.some(userPerm => userPerm === (requiredPerm || '').toLowerCase())
             );
             if (hasPermission) {
               // Allow even if role checks below would fail
               return true;
             }
           }
-        }
-
-        // Role/Permission-based filter (legacy role codes)
-        if (item.permissions && item.permissions.length > 0) {
-
-          // 2. ROLE-BASED FILTERING (Secondary/Legacy)
-          const effectiveRoles = roleCodes && roleCodes.length > 0 ? roleCodes : (userRole ? [userRole] : []);
-          if (effectiveRoles.length === 0) return false;
-
-          const userRoles = effectiveRoles.flatMap(r => r.split(',')).map(role => role.trim().toLowerCase());
-
-          // IAF ROLE MAPPING
-          const iafRoleMapping: Record<string, string[]> = {
-            'iaf_tenant_superadmin': ['iaf_tenant_superadmin', 'iaf_super_admin', 'platform_super_admin', 'super_admin'],
-            'iaf_tenant_admin': ['iaf_tenant_admin', 'iaf_admin', 'tenant_admin'],
-            'iaf_bank_cro': ['iaf_bank_cro', 'iaf_cro', 'cro', 'chief_risk_officer'],
-            'iaf_ifrs_manager': ['iaf_ifrs_manager', 'ifrs_manager', 'risk_manager'],
-            'iaf_risk_analyst': ['iaf_risk_analyst', 'risk_analyst', 'analyst'],
-            'iaf_portfolio_manager': ['iaf_portfolio_manager', 'portfolio_manager'],
-            'iaf_data_admin': ['iaf_data_admin', 'data_admin'],
-            'iaf_report_analyst': ['iaf_report_analyst', 'report_analyst'],
-            'iaf_auditor': ['iaf_auditor', 'auditor', 'internal_auditor'],
-            'iaf_viewer': ['iaf_viewer', 'viewer', 'read_only']
-          };
-
-          const hasPermission = item.permissions.some(permission => {
-            const normalizedPermission = permission.toLowerCase().trim();
-
-            // Check mapping
-            const mappedRequiredRoles = iafRoleMapping[normalizedPermission] || [normalizedPermission];
-
-            return userRoles.some(userRoleItem => {
-              // Direct or hierarchy match
-              if (mappedRequiredRoles.includes(userRoleItem)) return true;
-
-              const roleHierarchy: Record<string, string[]> = {
-                'iaf_tenant_superadmin': ['iaf_tenant_admin', 'iaf_bank_cro', 'iaf_ifrs_manager', 'iaf_risk_analyst', 'iaf_portfolio_manager', 'iaf_data_admin', 'iaf_report_analyst', 'iaf_auditor', 'iaf_viewer'],
-                'iaf_tenant_admin': ['iaf_bank_cro', 'iaf_ifrs_manager', 'iaf_risk_analyst', 'iaf_portfolio_manager', 'iaf_data_admin', 'iaf_report_analyst', 'iaf_auditor', 'iaf_viewer'],
-                'iaf_bank_cro': ['iaf_ifrs_manager', 'iaf_risk_analyst', 'iaf_portfolio_manager', 'iaf_report_analyst', 'iaf_auditor'],
-                'iaf_ifrs_manager': ['iaf_risk_analyst', 'iaf_portfolio_manager', 'iaf_report_analyst', 'iaf_auditor']
-              };
-
-              for (const [higherRole, lowerRoles] of Object.entries(roleHierarchy)) {
-                if (userRoleItem === higherRole && mappedRequiredRoles.some(r => lowerRoles.includes(r))) return true;
-                if (normalizedPermission === higherRole && lowerRoles.includes(userRoleItem)) return true;
-              }
-
-              return false;
-            });
-          });
-
-          if (!hasPermission) return false;
+        } else if (item.permissions && item.permissions.length > 0) {
+          // Treat legacy item.permissions as permission codes (not roles)
+          const hasPermission = item.permissions.some(perm =>
+            normalizedPermissions.includes((perm || '').toLowerCase())
+          );
+          if (hasPermission) return true;
+          return false;
         }
 
         return true;

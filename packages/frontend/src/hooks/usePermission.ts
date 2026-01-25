@@ -9,9 +9,19 @@ export const usePermission = () => {
     const user = auth?.user;
     const userPermissions = user?.permissions || [];
 
+    // Normalize permissions for super admin detection (case-insensitive)
+    const normalizedPermissions = userPermissions.map((perm) => perm.toLowerCase());
+
+    const isSuperAdmin =
+        normalizedPermissions.includes('*') ||
+        normalizedPermissions.includes('super_admin');
+
     const hasPermission = (code: string): boolean => {
         if (!code) return false;
-        return userPermissions.includes(code) || userPermissions.includes('*');
+        if (isSuperAdmin) return true;
+
+        const normalizedCode = code.toLowerCase();
+        return normalizedPermissions.includes(normalizedCode) || normalizedPermissions.includes('*');
     };
 
     const normalize = (value: ActionOrResource): string[] =>
@@ -45,6 +55,7 @@ export const usePermission = () => {
 
     return {
         permissions: userPermissions,
+        isSuperAdmin,
         hasPermission,
         can
     };

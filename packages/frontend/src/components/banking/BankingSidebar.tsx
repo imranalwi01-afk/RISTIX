@@ -372,8 +372,8 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
     }
 
     // Filter by role/permissions/banking mode (IAF logic moved to utility)
-    return filterHierarchicalMenu(rawItems, userRole, bankingMode, roleCodes, userPermissions);
-  }, [menuData, isMenuLoading, bankingMode, userRole, roleCodes, userPermissions]);
+    return filterHierarchicalMenu(rawItems, userRole, bankingMode, userPermissions);
+  }, [menuData, isMenuLoading, bankingMode, userRole, userPermissions]);
 
   // Use hierarchical menu state management
   const menuState = useMenuState(hierarchicalMenu);

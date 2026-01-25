@@ -89,7 +89,7 @@ import { getMenuIcon } from '@/config/menu-config';
 
 // IAF-SPECIFIC SITEMAP STRUCTURE - Based on IAF Navigation Requirements
 // Default permission mapping for static menu (can be overridden per id/code)
-const PERMISSION_OVERRIDES: Record<string, string> = {
+const PERMISSION_OVERRIDES: Record<string, string | string[]> = {
     dashboard: 'VIEW_DASHBOARD',
     'system-setup': 'MANAGE_SYSTEM_SETUP',
     'application-configuration': 'MANAGE_APP_CONFIG',
@@ -124,11 +124,12 @@ const PERMISSION_OVERRIDES: Record<string, string> = {
     'data-scheduler': 'USE_DATA_SCHEDULER',
 };
 
-const derivePermissionCode = (idOrCode: string | undefined) => {
-    if (!idOrCode) return undefined;
+const derivePermissionCodes = (idOrCode: string | undefined): string[] => {
+    if (!idOrCode) return [];
     const key = idOrCode.toLowerCase();
-    if (PERMISSION_OVERRIDES[key]) return PERMISSION_OVERRIDES[key];
-    return `VIEW_${idOrCode.replace(/[^a-zA-Z0-9]+/g, '_').toUpperCase()}`;
+    const override = PERMISSION_OVERRIDES[key];
+    if (override) return Array.isArray(override) ? override : [override];
+    return [`VIEW_${idOrCode.replace(/[^a-zA-Z0-9]+/g, '_').toUpperCase()}`];
 };
 const BANKING_MENU_STRUCTURE: MenuItem[] = [
     {
@@ -143,7 +144,7 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
         path: '/dashboard',
         isActive: true,
         status: 'active',
-        requiredPermissions: [derivePermissionCode('dashboard')!]
+        requiredPermissions: derivePermissionCodes('dashboard')
     },
 
     // CORE SYSTEM SETUP
@@ -740,8 +741,8 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
 const applyRequiredPermissions = (items: MenuItem[]) => {
     items.forEach((item) => {
         if (!item.requiredPermissions || item.requiredPermissions.length === 0) {
-            const code = derivePermissionCode(item.code || item.id);
-            item.requiredPermissions = code ? [code] : [];
+            const codes = derivePermissionCodes(item.code || item.id);
+            item.requiredPermissions = codes;
         }
         if (item.children && item.children.length > 0) {
             applyRequiredPermissions(item.children);
@@ -989,7 +990,9 @@ export const getIconForMenuItem = (code: string, level: number): React.ReactElem
 // Helper function to convert static menu to database format for fallback
 export const convertStaticToDatabaseFormat = (staticMenu: MenuItem[]): DatabaseMenuItem[] => {
     const convertItem = (item: MenuItem, parentId: string | null = null): DatabaseMenuItem => {
-        const permissionCode = item.requiredPermissions?.[0] || derivePermissionCode(item.code || item.id);
+        const permissionCodes = item.requiredPermissions && item.requiredPermissions.length > 0
+            ? item.requiredPermissions
+            : derivePermissionCodes(item.code || item.id);
         const dbItem: DatabaseMenuItem = {
             id: item.id,
             menu_key: item.code || item.id,
@@ -1002,7 +1005,7 @@ export const convertStaticToDatabaseFormat = (staticMenu: MenuItem[]): DatabaseM
             is_active: true,
             user_types: item.roles || [],
             banking_types: item.banking_modes || ['conventional', 'syariah', 'dual'],
-            requiredPermissions: item.requiredPermissions || (permissionCode ? [permissionCode] : []),
+            requiredPermissions: permissionCodes,
             parent_id: parentId
         };
         return dbItem;
