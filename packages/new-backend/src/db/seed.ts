@@ -58,6 +58,9 @@ async function seed() {
         const { seedPermissions } = await import('./seeds/permissions.seed')
         await seedPermissions()
 
+        const { seedRoles } = await import('./seeds/roles.seed')
+        await seedRoles()
+
         console.log('🎉 Database seeding complete!')
         process.exit(0)
     } catch (error) {
