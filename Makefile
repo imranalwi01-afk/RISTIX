@@ -45,7 +45,12 @@ dev-frontend: ## [LOCAL] Run frontend LOCALLY (pnpm)
 .PHONY: frontend-dev
 frontend-dev: ## [LOCAL] Start frontend in Docker (hot-reload)
 	@echo "🌐 Starting frontend (hot-reload) in Docker..."
-	$(COMPOSE) --profile dev-frontend up -d frontend-dev
+	$(COMPOSE) --profile dev --profile dev-frontend up -d frontend-dev
+
+.PHONY: frontend-dev-no-deps
+frontend-dev-no-deps: ## [LOCAL] Start frontend in Docker (hot-reload) WITHOUT starting dependencies
+	@echo "🌐 Starting frontend (hot-reload) in Docker (no dependencies)..."
+	$(COMPOSE) --profile dev-frontend up -d --no-deps frontend-dev
 
 .PHONY: dev
 dev: ## [LOCAL] Start Development Env (Backend + DB)
