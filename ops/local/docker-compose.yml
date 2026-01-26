@@ -108,8 +108,8 @@ services:
   # ============================================================================
   frontend:
     build:
-      context: ../..
-      dockerfile: packages/frontend/Dockerfile
+      context: ../../packages/frontend
+      dockerfile: Dockerfile
     container_name: ifrs9-frontend-dev
     env_file:
       - .env
