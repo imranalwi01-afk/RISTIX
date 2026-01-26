@@ -78,6 +78,8 @@ services:
       HOST: 0.0.0.0
       LOG_LEVEL: debug
       # Redis uses docker service name when running in docker network
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
       REDIS_URL: redis://redis:6379
     ports:
       - "4232:4232"
@@ -88,6 +90,9 @@ services:
       - ../../packages/new-backend/package.json:/app/package.json
       - ../../packages/new-backend/bunfig.toml:/app/bunfig.toml
       - new-backend-node-modules:/app/node_modules
+    depends_on:
+      redis:
+        condition: service_healthy
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:4232/health" ]
       interval: 30s
