@@ -91,7 +91,7 @@ function TabPanel(props: TabPanelProps) {
       aria-labelledby={`amortization-tab-${index}`}
       {...other}
     >
-      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
+      {value === index && <Box sx={{ p: 3 }}>{children as any}</Box>}
     </div>
   );
 }

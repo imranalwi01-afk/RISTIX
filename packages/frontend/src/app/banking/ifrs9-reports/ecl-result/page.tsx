@@ -1,11 +1,12 @@
 // packages/frontend/src/app/banking/ifrs9-reports/ecl-result/page.tsx
 'use client';
 
-import React from 'react';
 import { Box, Typography } from '@mui/material';
 import ECLResultReport from '../../../../components/ifrs9/ECLResultReport';
 
-const ECLResultReportPage: React.FC = () => {
+export default function ECLResultReportPage({ params }: { params: Promise<{}> }) {
+  void params; // required by typed routes signature, unused in this page
+
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>
@@ -18,6 +19,4 @@ const ECLResultReportPage: React.FC = () => {
       <ECLResultReport />
     </Box>
   );
-};
-
-export default ECLResultReportPage;
+}

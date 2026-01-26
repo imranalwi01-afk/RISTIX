@@ -20,7 +20,7 @@ export function SafeGridActionsCellItem({ label, icon, onClick, showInMenu, ...o
   return (
     <Tooltip title={label}>
       <IconButton size="small" onClick={onClick} {...other}>
-        {icon}
+        {icon as any}
       </IconButton>
     </Tooltip>
   );
@@ -34,7 +34,7 @@ export interface SafeDataGridProps<T extends GridValidRowModel = any> extends Om
   rows: T[];
   columns: GridColDef<T>[];
   // Detail panel support (not in base DataGridProps)
-  getDetailPanelContent?: (params: { row: T }) => React.ReactNode;
+  getDetailPanelContent?: (params: { row: T }) => any;
   getDetailPanelHeight?: (params: { row: T }) => number | 'auto';
 }
 

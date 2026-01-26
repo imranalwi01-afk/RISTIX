@@ -155,7 +155,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
         {/* ✅ SURGICAL FIX: Use ClientProviders with correct import */}
         <ClientProviders>
           <div id="__next" className="h-full">
-            {children}
+            {children as any}
           </div>
         </ClientProviders>
       </body>

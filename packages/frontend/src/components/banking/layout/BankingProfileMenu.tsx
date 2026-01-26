@@ -150,7 +150,7 @@ export const BankingProfileMenu: React.FC<BankingProfileMenuProps> = ({
                         pl: 1,
                         '& .MuiChip-label': { pl: 1 }
                     }}
-                    icon={React.cloneElement(getBankingModeIcon() as React.ReactElement<any>, { style: { fontSize: 14 } })}
+                    icon={React.cloneElement(getBankingModeIcon() as React.ReactElement<any>, { style: { fontSize: 14 } }) as any}
                 />
             </Box>
             <Box sx={{ p: 1 }}>

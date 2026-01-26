@@ -355,7 +355,7 @@ export default function AnalyticsLayout({ children }: AnalyticsLayoutProps) {
 
       {/* Page Content */}
       <Box>
-        {children}
+        {children as any}
       </Box>
     </Box>
   );

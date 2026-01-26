@@ -30,7 +30,7 @@ const PlatformAdminLayout: React.FC<PlatformAdminLayoutProps> = ({ children }) =
         </Toolbar>
       </AppBar>
       <Container maxWidth="xl" sx={{ flex: 1, py: 3 }}>
-        {children}
+        {children as any}
       </Container>
     </Box>
   );

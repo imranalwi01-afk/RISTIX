@@ -99,7 +99,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({
               </IconButton>
             </Tooltip>
           )}
-          {extraActions}
+          {extraActions as any}
         </Box>
       </Box>
     </>

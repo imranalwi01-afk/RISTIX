@@ -205,7 +205,8 @@ interface CreateMenuItemRequest {
   external_url?: string | undefined;
 }
 
-const MenuManagement: React.FC = () => {
+export default function MenuManagement({ params }: { params: Promise<{}> }) {
+  void params; // required by typed routes signature, unused in this page
   const theme = useTheme();
   const [menus, setMenus] = useState<MenuItem[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
@@ -1659,6 +1660,4 @@ const MenuManagement: React.FC = () => {
       </Snackbar>
     </Box>
   );
-};
-
-export default MenuManagement;
+}

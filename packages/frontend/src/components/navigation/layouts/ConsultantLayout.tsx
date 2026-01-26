@@ -336,7 +336,7 @@ export const ConsultantLayout: React.FC<ConsultantLayoutProps> = ({
       {/* ✅ Main Content Area */}
       <Box sx={{ flexGrow: 1, bgcolor: '#f8f9fa' }}>
         <Container maxWidth="xl" sx={{ py: 3 }}>
-          {children}
+          {children as any}
         </Container>
       </Box>
 

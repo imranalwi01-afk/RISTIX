@@ -233,7 +233,7 @@ const SidebarItem = React.memo(({
                 '& svg': { fontSize: collapsed ? '1.4rem' : '1.3rem', transition: 'all 0.3s ease' }
               }}
             >
-              {getIconFromDatabaseString(item.icon)}
+              {getIconFromDatabaseString(item.icon) as any}
             </ListItemIcon>
 
             {!collapsed && (
@@ -372,8 +372,8 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
     }
 
     // Filter by role/permissions/banking mode (IAF logic moved to utility)
-    return filterHierarchicalMenu(rawItems, userRole, bankingMode, userPermissions);
-  }, [menuData, isMenuLoading, bankingMode, userRole, userPermissions]);
+    return filterHierarchicalMenu(rawItems, bankingMode, userPermissions);
+  }, [menuData, isMenuLoading, bankingMode, userPermissions]);
 
   // Use hierarchical menu state management
   const menuState = useMenuState(hierarchicalMenu);

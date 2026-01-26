@@ -1002,7 +1002,7 @@ export default function DataValidationDashboard() {
           <>
             <DialogTitle>
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                {React.createElement(ruleTypeIcons[selectedRule.type], { sx: { mr: 1, color: 'primary.main' } })}
+                {(React.createElement(ruleTypeIcons[selectedRule.type] as any, { sx: { mr: 1, color: 'primary.main' } }) as any)}
                 {selectedRule.name}
               </Box>
             </DialogTitle>

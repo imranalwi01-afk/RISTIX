@@ -59,12 +59,13 @@ function TabPanel(props: TabPanelProps) {
       aria-labelledby={`ifrs9-tab-${index}`}
       {...other}
     >
-      {value === index && <Box>{children}</Box>}
+      {value === index && <Box>{children as any}</Box>}
     </div>
   );
 }
 
-const IFRS9ReportsPage: React.FC = () => {
+export default function IFRS9ReportsPage({ params }: { params: Promise<{}> }) {
+  void params; // required by typed routes signature, unused in this page
   const [selectedTab, setSelectedTab] = useState(0);
   const router = useRouter();
 
@@ -399,6 +400,4 @@ const IFRS9ReportsPage: React.FC = () => {
       </Paper>
     </Box>
   );
-};
-
-export default IFRS9ReportsPage;
+}

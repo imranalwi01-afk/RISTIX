@@ -191,7 +191,7 @@ export const ConfigurationProvider: React.FC<ConfigurationProviderProps> = ({ ch
 
   return (
     <ConfigurationContext.Provider value={contextValue}>
-      {children}
+      {children as any}
     </ConfigurationContext.Provider>
   );
 };

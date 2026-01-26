@@ -13,5 +13,5 @@ export default function CollectiveLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <>{children}</>;
+  return <>{children as any}</>;
 }

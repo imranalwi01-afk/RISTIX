@@ -331,7 +331,7 @@ const StakeholderRouter: React.FC<StakeholderRouterProps> = ({ children }) => {
           <div>Banking URL: /banking/dashboard</div>
         </Box>
       )}
-      {children}
+      {children as any}
     </Box>
   );
 };

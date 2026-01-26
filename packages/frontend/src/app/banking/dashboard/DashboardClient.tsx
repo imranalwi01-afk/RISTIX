@@ -800,7 +800,7 @@ export default function DashboardClient() {
                                         <React.Fragment key={activity.id}>
                                             <ListItem sx={{ px: 0 }}>
                                                 <ListItemIcon sx={{ minWidth: 40 }}>
-                                                    {activity.icon}
+                                                    {activity.icon as any}
                                                 </ListItemIcon>
                                                 <ListItemText
                                                     primary={activity.text}

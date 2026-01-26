@@ -959,9 +959,9 @@ function ETLWorkflowDesignerContent() {
                 {/* Node Header */}
                 <Paper sx={{ p: 2, mb: 2, backgroundColor: 'grey.50' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                    {React.createElement(nodeTemplates[selectedNode.data.nodeType]?.icon || SourceIcon, {
+                    {(React.createElement((nodeTemplates[selectedNode.data.nodeType]?.icon || SourceIcon) as any, {
                       sx: { color: nodeTemplates[selectedNode.data.nodeType]?.color, fontSize: 24 }
-                    })}
+                    }) as any)}
                     <Typography variant="h6">
                       {selectedNode.data.label}
                     </Typography>

@@ -1,11 +1,12 @@
 // packages/frontend/src/app/banking/ifrs9-reports/ecl-movement/page.tsx
 'use client';
 
-import React from 'react';
 import { Box, Typography } from '@mui/material';
 import ECLMovementReport from '../../../../components/ifrs9/ECLMovementReport';
 
-const ECLMovementReportPage: React.FC = () => {
+export default function ECLMovementReportPage({ params }: { params: Promise<{}> }) {
+  void params; // required by typed routes signature, unused in this page
+
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>
@@ -18,6 +19,4 @@ const ECLMovementReportPage: React.FC = () => {
       <ECLMovementReport />
     </Box>
   );
-};
-
-export default ECLMovementReportPage;
+}

@@ -29,7 +29,7 @@ export default function ClientProviders({ children }: { children: React.ReactNod
             <AuthProvider>
               <BankingThemeProvider>
                 <CssBaseline />
-                {children}
+                {children as any}
               </BankingThemeProvider>
             </AuthProvider>
           </ConfigurationProvider>

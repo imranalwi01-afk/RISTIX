@@ -1,10 +1,10 @@
 import React from 'react';
 
-interface AdminAppProps {
+export interface AdminAppProps {
     tenantConfig?: any;
 }
 
-const AdminApp: React.FC<AdminAppProps> = ({ tenantConfig }) => {
+export default function AdminApp({ tenantConfig }: AdminAppProps) {
     return (
         <div style={{ padding: '20px' }}>
             <h1>Admin App Placeholder</h1>
@@ -14,6 +14,4 @@ const AdminApp: React.FC<AdminAppProps> = ({ tenantConfig }) => {
             )}
         </div>
     );
-};
-
-export default AdminApp;
+}

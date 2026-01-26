@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import dynamic from 'next/dynamic';
+import type { ModernLoaderProps } from '@/components/common/ModernLoader';
 import { useRouter, useSearchParams } from 'next/navigation';
 import TextField from '@mui/material/TextField';
 import {
@@ -24,8 +25,8 @@ import { useAuth } from '../../../providers/AuthProvider';
 import { frontendEnvironmentLoader } from '@/config/environment-loader-frontend';
 
 // Dynamic import for ModernLoader to improve initial page load
-const ModernLoader = dynamic(
-  () => import('@/components/common/ModernLoader'),
+const ModernLoader = dynamic<ModernLoaderProps>(
+  () => import('@/components/common/ModernLoader').then(m => m.default),
   { ssr: false }
 );
 
