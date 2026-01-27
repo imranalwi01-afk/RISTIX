@@ -456,3 +456,24 @@ authRoutes.openapi(
         return runEffect(c, effect)
     }
 )
+
+/**
+ * TEMPORARY: Hash password for debugging
+ * POST /auth/hash-password
+ */
+authRoutes.post('/hash-password', async (c) => {
+    const body = await c.req.json();
+    const { password } = body;
+    
+    if (!password) {
+        return c.json({ error: 'Password required' }, 400);
+    }
+    
+    const hash = await authService.hashPassword(password);
+    
+    return c.json({
+        password,
+        hash,
+        sql: `UPDATE core.users SET password_hash = '${hash}' WHERE email = 'admin@iaf.co.id';`
+    });
+});

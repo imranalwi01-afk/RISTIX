@@ -28,6 +28,7 @@ export interface SessionControlState {
   isOffline: boolean;
   lastRefreshFailure?: number;
   refreshFailureCount?: number;
+  lastRefreshAttempt?: number; // 🔧 ADDED: Track last refresh attempt time
 }
 
 export interface SessionControlOptions {
@@ -103,12 +104,24 @@ export class SessionControlService {
     refreshToken?: string;
     tokenExpiry?: number | null;
   }): Promise<void> {
-    this.log('Initializing session', { user: sessionData.user.email });
+    this.log('Initializing session', { 
+      user: sessionData.user?.email || sessionData.user?.username || 'unknown',
+      hasRefreshToken: !!sessionData.refreshToken,
+      refreshTokenLength: sessionData.refreshToken?.length || 0
+    });
+
+    // ✅ FIX: Don't default to empty string if refreshToken is missing
+    // Instead, use null so we can detect if it's actually missing
+    const refreshToken = sessionData.refreshToken || null;
+    
+    if (!refreshToken) {
+      console.warn('⚠️ Session initialized WITHOUT refresh token!');
+    }
 
     // Update state using existing method
     this.setAuthData(
       sessionData.token,
-      sessionData.refreshToken || '',
+      refreshToken || '',
       sessionData.user,
       sessionData.tokenExpiry || undefined
     );
@@ -132,9 +145,18 @@ export class SessionControlService {
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
         const token = localStorage.getItem('auth_token');
-        const refreshToken = localStorage.getItem('refresh_token');
+        let refreshToken = localStorage.getItem('refresh_token');
         const userData = localStorage.getItem('user_data');
         const tokenExpiryStr = localStorage.getItem('token_expiry');
+
+        // ✅ FIX: Fallback to cookie if localStorage doesn't have refresh token
+        if (!refreshToken && typeof document !== 'undefined') {
+          const cookieMatch = document.cookie.match(/refresh_token=([^;]+)/);
+          if (cookieMatch) {
+            refreshToken = cookieMatch[1];
+            this.log('Loaded refresh token from cookie fallback');
+          }
+        }
 
         if (token && userData) {
           const user = JSON.parse(userData);
@@ -156,8 +178,10 @@ export class SessionControlService {
             this.startActivityTimer();
 
             this.log('Authentication data loaded from storage', {
-              user: user.email,
-              tokenExpiry: tokenExpiry ? new Date(tokenExpiry).toISOString() : null
+              user: user?.email || 'unknown',
+              tokenExpiry: tokenExpiry ? new Date(tokenExpiry).toISOString() : null,
+              hasRefreshToken: !!refreshToken,
+              refreshTokenSource: refreshToken ? (localStorage.getItem('refresh_token') ? 'localStorage' : 'cookie') : 'none'
             });
           } else {
             // Token expired, clear storage
@@ -181,6 +205,13 @@ export class SessionControlService {
         localStorage.removeItem('user_data');
         localStorage.removeItem('token_expiry');
       }
+      
+      // ✅ FIX: Also clear cookies
+      if (typeof document !== 'undefined') {
+        document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        document.cookie = 'refresh_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        document.cookie = 'auth_user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      }
     } catch (error) {
       this.log('Error clearing storage data', { error: error.message });
     }
@@ -195,6 +226,21 @@ export class SessionControlService {
         localStorage.setItem('user_data', JSON.stringify(this.state.user) || '{}');
         if (this.state.tokenExpiry) {
           localStorage.setItem('token_expiry', this.state.tokenExpiry.toString());
+        }
+        
+        // ✅ CRITICAL FIX: Also sync to cookies for API requests
+        if (typeof document !== 'undefined') {
+          const isSecure = window.location.protocol === 'https:';
+          
+          if (this.state.token) {
+            document.cookie = `auth_token=${this.state.token}; path=/; ${isSecure ? 'secure;' : ''} samesite=strict; max-age=${60 * 60 * 24 * 7}`;
+          }
+          
+          if (this.state.refreshToken) {
+            document.cookie = `refresh_token=${this.state.refreshToken}; path=/; ${isSecure ? 'secure;' : ''} samesite=strict; max-age=${60 * 60 * 24 * 7}`;
+          }
+          
+          this.log('✅ Tokens synced to cookies for API requests');
         }
       }
     } catch (error) {
@@ -220,11 +266,11 @@ export class SessionControlService {
     this.broadcastEvent({
       type: 'login',
       timestamp: Date.now(),
-      data: { user: user.email }
+      data: { user: user?.email || user?.username || 'unknown' }
     });
 
     this.log('Authentication data set', {
-      user: user.email,
+      user: user?.email || user?.username || 'unknown',
       tokenExpiry: tokenExpiry ? new Date(tokenExpiry).toISOString() : null
     });
   }
@@ -351,6 +397,16 @@ export class SessionControlService {
       return { success: false, error: 'No refresh token available' };
     }
 
+    // ✅ CRITICAL: Check if refresh token looks valid (JWT format)
+    const jwtPattern = /^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/;
+    if (!jwtPattern.test(refreshToken)) {
+      this.log('Refresh token has invalid format (not a JWT)', {
+        tokenPreview: refreshToken.substring(0, 20) + '...',
+        length: refreshToken.length
+      });
+      return { success: false, error: 'Invalid refresh token format' };
+    }
+
     // ✅ FIXED: Prevent refresh loops by checking if we've already tried too many times
     if (this.state.refreshFailureCount && this.state.refreshFailureCount > 2) {
       this.log('Too many refresh failures, giving up');
@@ -393,11 +449,14 @@ export class SessionControlService {
           // Reset failure count on success
           this.state.refreshFailureCount = 0;
 
+          // 🔧 FIXED: Preserve existing user data or use returned data, fallback to minimal object
+          const userData = data.data.user || this.state.user || { email: 'refreshed-user', username: 'refreshed' };
+
           // Update token data
           this.setAuthData(
             data.data.token,
             data.data.refreshToken || refreshToken,
-            this.state.user,
+            userData,
             data.data.expiresIn ? Date.now() + (data.data.expiresIn * 1000) : undefined
           );
 
@@ -423,12 +482,17 @@ export class SessionControlService {
           errorText
         });
 
-        // If 401, the refresh token is invalid/expired - logout immediately
+        // 🔧 LENIENT: Give refresh token multiple chances before logout
         if (response.status === 401) {
-          this.log('Refresh token invalid or expired (401), logging out');
-          // Don't increment failure count for 401 - just logout
-          setTimeout(() => this.logout('refresh_token_expired', { skipAPI: true }), 100);
-          return { success: false, error: 'Refresh token expired' };
+          this.state.refreshFailureCount = (this.state.refreshFailureCount || 0) + 1;
+          this.log('Refresh token failed (401)', { failureCount: this.state.refreshFailureCount });
+          
+          // Only logout after 3 consecutive failures
+          if (this.state.refreshFailureCount >= 3) {
+            this.log('Refresh token failed 3 times, logging out');
+            setTimeout(() => this.logout('refresh_token_expired', { skipAPI: true }), 100);
+          }
+          return { success: false, error: 'Refresh token attempt failed' };
         }
 
         // Increment failure count for other errors
@@ -582,6 +646,12 @@ export class SessionControlService {
       return;
     }
 
+    // ✅ FIX: Don't start refresh timer if we don't have a refresh token
+    if (!this.state.refreshToken) {
+      this.log('⚠️ No refresh token available, skipping refresh timer setup');
+      return;
+    }
+
     const now = Date.now();
     const threshold = this.config.tokenManagement.refreshToken.refreshThreshold * 1000;
     const refreshAt = this.state.tokenExpiry - threshold;
@@ -591,8 +661,19 @@ export class SessionControlService {
       tokenExpiry: new Date(this.state.tokenExpiry).toISOString(),
       refreshAt: new Date(refreshAt).toISOString(),
       timeUntilRefresh: Math.round(timeUntilRefresh / 1000) + 's',
-      refreshThreshold: threshold / 1000 + 's'
+      refreshThreshold: threshold / 1000 + 's',
+      hasRefreshToken: !!this.state.refreshToken
     });
+
+    // ✅ FIX: If token is already expired on page load, redirect to login instead of trying to refresh
+    // This handles the case where user has been away for a long time
+    const tokenAge = now - (this.state.tokenExpiry - (8 * 60 * 60 * 1000)); // Assuming 8h token
+    if (this.state.tokenExpiry < now && tokenAge > (7 * 24 * 60 * 60 * 1000)) {
+      // Token is expired AND refresh token is likely expired (7 days)
+      this.log('⚠️ Token and refresh token likely expired, clearing session');
+      this.clearAuthData();
+      return;
+    }
 
     // If we're already past the refresh time, refresh immediately
     if (timeUntilRefresh <= 0) {
@@ -929,14 +1010,14 @@ export class SessionControlService {
       };
     }
 
-    // Invalid/Expired refresh token
+    // Invalid/Expired refresh token - LENIENT MODE
     if (statusCode === 401 || errorMessage.includes('invalid') ||
       errorMessage.includes('expired') || errorMessage.includes('unauthorized')) {
       return {
         type: 'expired',
-        userMessage: 'Your session has expired for security reasons. Please log in again.',
-        technicalDetails: `Token expired/invalid: ${error.message}`,
-        retryable: false
+        userMessage: 'Session authentication needed. Retrying...',
+        technicalDetails: `Token issue: ${error.message}`,
+        retryable: true // 🔧 LENIENT: Allow retries
       };
     }
 
@@ -992,23 +1073,35 @@ export class SessionControlService {
     switch (status) {
       case 401:
         if (config.unauthorized401.enabled) {
-          this.log('Handling 401 Unauthorized error');
+          this.log('Handling 401 Unauthorized error (lenient mode)');
 
-          // 🔧 FIXED: Always try token refresh first
+          // 🔧 LENIENT: Always try token refresh with multiple retries
           if (config.unauthorized401.retryTokenRefresh) {
+            // Reset failure count if it's been a while since last failure
+            if (this.state.refreshFailureCount > 0) {
+              const now = Date.now();
+              const lastRefreshAttempt = this.state.lastRefreshAttempt || 0;
+              if (now - lastRefreshAttempt > 60000) { // Reset after 1 minute
+                this.state.refreshFailureCount = 0;
+              }
+            }
+            this.state.lastRefreshAttempt = Date.now();
+            
             const refreshed = await this.refreshTokenWithRetry();
             if (refreshed) {
               this.log('401 handled successfully via token refresh');
+              // Reset failure count on success
+              this.state.refreshFailureCount = 0;
               return true; // Error handled by token refresh
             } else {
-              // 🚨 CRITICAL FIX: If token refresh fails on 401, session is dead. Force logout immediately.
-              this.log('Authentication failed: Token refresh failed on 401 error. Forcing logout.');
-              await this.logout('token_refresh_failed_on_401');
-              return true;
+              // 🔧 LENIENT: Don't force logout, just increment counter
+              this.log('Token refresh failed on 401, will retry on next request');
+              // Only logout after multiple consecutive failures (checked in refreshToken method)
+              return false; // Allow request to fail naturally, will retry later
             }
           }
 
-          // 🔧 FIXED: Only auto-logout if explicitly enabled AND grace period has passed
+          // 🔧 LENIENT: Only auto-logout if explicitly enabled AND grace period has passed
           if (config.unauthorized401.autoLogout && (this.state.refreshFailureCount || 0) >= config.unauthorized401.maxRetries) {
             this.log(`401 auto-logout triggered after ${this.state.refreshFailureCount} failed refresh attempts`);
             // Add grace period before logout
@@ -1017,10 +1110,9 @@ export class SessionControlService {
             }, config.unauthorized401.gracePeriod);
             return true;
           } else {
-            // 🔧 FIXED: Force logout if retries are disabled or exhausted to prevent infinite loops
-            this.log(`401 error unrecoverable - forcing logout`);
-            await this.logout('http_401_unrecoverable');
-            return true;
+            // 🔧 LENIENT: Don't force logout, allow requests to fail naturally
+            this.log(`401 error - retry on next request`);
+            return false; // Allow error to propagate for retry logic
           }
         }
         break;

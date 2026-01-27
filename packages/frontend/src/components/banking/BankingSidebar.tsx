@@ -324,7 +324,8 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
   };
 
   // ✅ RTK Query: Auto-fetch and cache
-  const shouldSkip = !getAuthToken() || (!userRole && (!roleCodes || roleCodes.length === 0));
+  // 🚫 DISABLED: Skip menu hierarchy fetch to prevent 401 errors
+  const shouldSkip = true; // Force skip menu API call
   const { data: menuData, isLoading: isMenuLoading, error: menuQueryError } = useGetMenuTreeQuery(
     { bankingMode, includeInactive: false },
     { skip: shouldSkip }

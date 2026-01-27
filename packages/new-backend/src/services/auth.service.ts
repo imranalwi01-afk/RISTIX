@@ -81,10 +81,27 @@ export interface JwtPayload {
 // JWT CONFIGURATION
 // =============================================================================
 
+/**
+ * Parse time string like '8h', '15m', '7d' to milliseconds
+ */
+function parseTimeToMs(timeStr: string): number {
+    const match = timeStr.match(/^(\d+)([smhd])$/)
+    if (!match) return 15 * 60 * 1000 // Default 15min
+    const value = parseInt(match[1], 10)
+    const unit = match[2]
+    switch (unit) {
+        case 's': return value * 1000
+        case 'm': return value * 60 * 1000
+        case 'h': return value * 60 * 60 * 1000
+        case 'd': return value * 24 * 60 * 60 * 1000
+        default: return value * 1000
+    }
+}
+
 const JWT_SECRET = new TextEncoder().encode(env.JWT_SECRET)
-const ACCESS_TOKEN_EXPIRY = '15m'
+const ACCESS_TOKEN_EXPIRY = env.JWT_EXPIRES_IN || '8h' // ✅ Use env variable
 const REFRESH_TOKEN_EXPIRY = '7d'
-const ACCESS_TOKEN_EXPIRY_MS = 15 * 60 * 1000 // 15 minutes
+const ACCESS_TOKEN_EXPIRY_MS = parseTimeToMs(ACCESS_TOKEN_EXPIRY) // ✅ Parse from env
 const REFRESH_TOKEN_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
 
 // =============================================================================
@@ -186,10 +203,12 @@ export const verifyToken = async (token: string): Promise<JwtPayload> => {
  * @returns A promise that resolves to the hashed password string
  */
 export const hashPassword = async (password: string): Promise<string> => {
-    return Bun.password.hash(password, {
+    const hash = await Bun.password.hash(password, {
         algorithm: 'bcrypt',
         cost: 10,
     })
+    console.log(`🔐 [HASH DEBUG] Password: "${password}" -> Hash: "${hash}"`);
+    return hash;
 }
 
 /**
@@ -289,18 +308,33 @@ export const login = (
         Effect.flatMap(({ user, resolvedTenantId, db }) =>
             Effect.tryPromise({
                 try: async () => {
+                    console.log('🔐 [AUTH DEBUG] Password verification:', {
+                        email: user.email,
+                        inputPassword: input.password,
+                        storedHashPreview: user.passwordHash?.substring(0, 20) + '...',
+                        storedHashLength: user.passwordHash?.length
+                    });
+                    
                     const isValid = await verifyPassword(input.password, user.passwordHash)
+                    
+                    console.log('🔐 [AUTH DEBUG] Password verification result:', {
+                        email: user.email,
+                        isValid
+                    });
+                    
                     if (!isValid) {
                         throw new Error('Invalid password')
                     }
                     return { user, resolvedTenantId, db }
                 },
-                catch: () =>
-                    new AuthenticationError({
+                catch: (error) => {
+                    console.error('❌ [AUTH DEBUG] Password verification failed:', error);
+                    return new AuthenticationError({
                         message: 'Invalid email or password',
                         reason: 'invalid_credentials',
                         code: 'INVALID_CREDENTIALS',
-                    }),
+                    });
+                },
             })
         ),
         // 5. Load user roles (from the same DB)
@@ -483,8 +517,8 @@ export const refreshTokens = (
             // Store new sessions in Redis
             const sessionInfo = JSON.parse(sessionData)
             await Promise.all([
-                redis.setex(`session:access:${accessTokenId}`, 900, JSON.stringify({ ...sessionInfo, accessTokenId })),
-                redis.setex(`session:refresh:${refreshTokenId}`, 2592000, JSON.stringify({ ...sessionInfo, refreshTokenId })),
+                redis.setex(`session:access:${accessTokenId}`, Math.floor(ACCESS_TOKEN_EXPIRY_MS / 1000), JSON.stringify({ ...sessionInfo, accessTokenId })),
+                redis.setex(`session:refresh:${refreshTokenId}`, Math.floor(REFRESH_TOKEN_EXPIRY_MS / 1000), JSON.stringify({ ...sessionInfo, refreshTokenId })),
                 // Remove old refresh session
                 redis.del(`session:refresh:${payload.jti}`),
             ])
