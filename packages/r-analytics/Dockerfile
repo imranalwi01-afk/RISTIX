@@ -21,23 +21,38 @@ LABEL version="1.0.0"
 # ============================================================================
 
 # Install system dependencies for R packages
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     # Database connectivity
     libpq-dev \
     # SSL/TLS support
     libssl-dev \
     libcurl4-openssl-dev \
+    libssh2-1-dev \
     # XML processing
     libxml2-dev \
-    # Image processing
+    # Graphics & Plotting
+    libcairo2-dev \
+    libxt-dev \
+    # Image & Font processing (for tidyverse/ggplot2)
     libpng-dev \
     libjpeg-dev \
-    # Mathematical libraries
+    libtiff5-dev \
+    libfontconfig1-dev \
+    libfreetype6-dev \
+    libfribidi-dev \
+    libharfbuzz-dev \
+    # Mathematical libraries & Optimization
     libgsl-dev \
     libfftw3-dev \
-    # Development tools
+    libgmp-dev \
+    libmpfr-dev \
+    libglpk-dev \
+    # Development tools & Libraries
     build-essential \
     git \
+    cmake \
+    libicu-dev \
+    zlib1g-dev \
     # Cleanup
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
@@ -46,43 +61,41 @@ RUN apt-get update && apt-get install -y \
 # 📊 R PACKAGE INSTALLATION
 # ============================================================================
 
-# Install R packages in optimal order (dependencies first)
-RUN R -e "install.packages(c( \
-    # Database connectivity
-    'DBI', 'RPostgres', \
-    # Data manipulation
-    'dplyr', 'data.table', 'tibble', 'tidyverse', \
-    # Statistical analysis
-    'forecast', 'tseries', 'smooth', 'fpp2', 'aTSA', 'MASS', 'nortest', \
-    # Time series
-    'date', 'lubridate', \
-    # Visualization
-    'ggplot2', 'plotly', \
-    # Shiny ecosystem
-    'shiny', 'shinydashboard', 'shinyWidgets', 'shinycssloaders', 'shinyjs', \
-    # Data tables and UI
-    'DT', \
-    # File I/O
-    'openxlsx', 'readxl', \
-    # Statistical tests
-    'lmtest', 'car', \
-    # Mathematical operations
-    'combinat', \
-    # JSON processing
-    'jsonlite' \
-), repos='https://cran.rstudio.com/')"
+# Use all available cores for compilation
+# Step 1: Core & DB Connectivity
+RUN R -e "options(Ncpus = parallel::detectCores()); \
+    install.packages(c('DBI', 'RPostgres', 'jsonlite', 'httr', 'curl', 'xml2'), repos='https://cran.rstudio.com/'); \
+    if (!all(c('DBI', 'RPostgres', 'jsonlite', 'httr', 'curl', 'xml2') %in% installed.packages()[,1])) stop('Step 1 failed')"
 
-# Install additional packages for enhanced analytics
-RUN R -e "install.packages(c( \
-    # Advanced time series
-    'vars', 'urca', 'tsDyn', \
-    # Machine learning
-    'randomForest', 'caret', \
-    # Parallel processing
-    'parallel', 'foreach', 'doParallel', \
-    # Network analysis
-    'httr', 'curl' \
-), repos='https://cran.rstudio.com/')"
+# Step 2: Data Manipulation (Splitting tidyverse for reliability)
+RUN R -e "options(Ncpus = parallel::detectCores()); \
+    install.packages(c('dplyr', 'data.table', 'tibble', 'magrittr', 'purrr', 'stringr', 'forcats'), repos='https://cran.rstudio.com/'); \
+    if (!all(c('dplyr', 'data.table', 'tibble', 'magrittr') %in% installed.packages()[,1])) stop('Step 2 failed')"
+
+# Step 3: Tidyverse and Time Series
+RUN R -e "options(Ncpus = parallel::detectCores()); \
+    install.packages(c('tidyverse', 'lubridate', 'date', 'zoo', 'xts'), repos='https://cran.rstudio.com/'); \
+    if (!all(c('tidyverse', 'lubridate', 'zoo', 'xts') %in% installed.packages()[,1])) stop('Step 3 failed')"
+
+# Step 4: Statistical Analysis & Tests
+RUN R -e "options(Ncpus = parallel::detectCores()); \
+    install.packages(c('MASS', 'nortest', 'lmtest', 'car', 'combinat', 'tseries', 'smooth'), repos='https://cran.rstudio.com/'); \
+    if (!all(c('MASS', 'nortest', 'lmtest', 'car', 'combinat', 'tseries', 'smooth') %in% installed.packages()[,1])) stop('Step 4 failed')"
+
+# Step 5: Forecasting & Advanced Analytics
+RUN R -e "options(Ncpus = parallel::detectCores()); \
+    install.packages(c('forecast', 'fpp2', 'aTSA', 'vars', 'urca', 'tsDyn'), repos='https://cran.rstudio.com/'); \
+    if (!all(c('forecast', 'fpp2', 'aTSA', 'vars', 'urca', 'tsDyn') %in% installed.packages()[,1])) stop('Step 5 failed')"
+
+# Step 6: Shiny & Visualization
+RUN R -e "options(Ncpus = parallel::detectCores()); \
+    install.packages(c('shiny', 'shinydashboard', 'shinyWidgets', 'shinycssloaders', 'shinyjs', 'DT', 'ggplot2', 'plotly'), repos='https://cran.rstudio.com/'); \
+    if (!all(c('shiny', 'shinydashboard', 'shinyWidgets', 'shinycssloaders', 'shinyjs', 'DT', 'ggplot2', 'plotly') %in% installed.packages()[,1])) stop('Step 6 failed')"
+
+# Step 7: File I/O & Machine Learning
+RUN R -e "options(Ncpus = parallel::detectCores()); \
+    install.packages(c('openxlsx', 'readxl', 'future', 'future.apply', 'randomForest', 'caret', 'parallel', 'foreach', 'doParallel'), repos='https://cran.rstudio.com/'); \
+    if (!all(c('openxlsx', 'readxl', 'future', 'parallel') %in% installed.packages()[,1])) stop('Step 7 failed')"
 
 # ============================================================================
 # 👤 USER SETUP (Security best practice)
@@ -98,10 +111,10 @@ RUN mkdir -p /home/r-analytics && chown r-analytics:r-analytics /home/r-analytic
 
 # Create application directories
 RUN mkdir -p /opt/r-analytics/shiny-app \
-             /opt/r-analytics/config \
-             /opt/r-analytics/functions \
-             /opt/r-analytics/logs \
-             /opt/r-analytics/temp \
+    /opt/r-analytics/config \
+    /opt/r-analytics/functions \
+    /opt/r-analytics/logs \
+    /opt/r-analytics/temp \
     && chown -R r-analytics:r-analytics /opt/r-analytics
 
 # Set working directory
@@ -111,13 +124,12 @@ WORKDIR /opt/r-analytics
 # 📄 COPY APPLICATION FILES
 # ============================================================================
 
-# Copy enhanced R application files
-COPY --chown=r-analytics:r-analytics shiny-app/enhanced-global.R ./shiny-app/global.R
-COPY --chown=r-analytics:r-analytics shiny-app/enhanced-app9.R ./shiny-app/app.R
+# Copy R application files if they exist
+COPY --chown=r-analytics:r-analytics shiny-app/*.R ./shiny-app/
 
-# Copy configuration and function files
+# Copy configuration files if they exist
 COPY --chown=r-analytics:r-analytics config/ ./config/
-COPY --chown=r-analytics:r-analytics functions/ ./functions/
+# COPY --chown=r-analytics:r-analytics functions/ ./functions/ # Removed as directory is missing
 
 # Copy startup script
 COPY --chown=r-analytics:r-analytics docker-entrypoint.sh ./
@@ -129,13 +141,13 @@ RUN chmod +x docker-entrypoint.sh
 
 # Create custom Shiny server configuration
 RUN echo "server { \
-  listen 3838 0.0.0.0; \
-  location / { \
+    listen 3838 0.0.0.0; \
+    location / { \
     app_dir /opt/r-analytics/shiny-app; \
     log_dir /opt/r-analytics/logs; \
     directory_index on; \
-  } \
-}" > /etc/shiny-server/shiny-server.conf
+    } \
+    }" > /etc/shiny-server/shiny-server.conf
 
 # ============================================================================
 # 🔧 ENVIRONMENT CONFIGURATION
