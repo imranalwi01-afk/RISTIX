@@ -5,6 +5,15 @@ message("==========================================")
 message("   IFRS9 R ANALYTICS LOCAL RUNNER")
 message("==========================================")
 
+# 0. Set up library path correctly
+r_version <- paste(R.version$major, strsplit(R.version$minor, "\\.")[[1]][1], sep = ".")
+user_lib <- path.expand(paste0("~/Library/R/", r_version, "/library"))
+if (!dir.exists(user_lib)) {
+    dir.create(user_lib, recursive = TRUE)
+}
+.libPaths(c(user_lib, .libPaths()))
+message("📦 R Library Path: ", user_lib)
+
 # 1. Required Packages
 # Menjamin semua library yang dibutuhkan tersedia di laptop
 required_packages <- c(

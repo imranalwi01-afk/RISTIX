@@ -8,6 +8,7 @@ echo "Starting R Analytics Entrypoint..."
 if [ $# -gt 0 ]; then
   exec "$@"
 else
-  echo "No command provided to Docker. Staying alive..."
-  tail -f /dev/null
+  echo "No command provided. Starting R Analytics (Shiny) ..."
+  cd /opt/r-analytics/shiny-app
+  exec Rscript start_iaf.R
 fi

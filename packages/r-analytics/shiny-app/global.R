@@ -65,7 +65,8 @@ if (!exists("tags") || !is.function(tags$head)) {
 # Load conflicting packages with suppressed warnings and conflict resolution
 suppressPackageStartupMessages({
   library(ggplot2)
-  library(tidyverse)
+  library(tidyr)
+  library(stringr)
   library(tseries)
   library(data.table)
   library(dplyr)

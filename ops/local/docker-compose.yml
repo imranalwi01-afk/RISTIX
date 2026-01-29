@@ -163,6 +163,41 @@ services:
       - full
       - frontend-only
 
+  # ============================================================================
+  # 📈 R ANALYTICS (Shiny)
+  # ============================================================================
+  r-analytics:
+    platform: linux/amd64
+    build:
+      context: ../../packages/r-analytics
+      dockerfile: Dockerfile
+    container_name: ifrs9-r-analytics-dev
+    env_file:
+      - .env
+    environment:
+      R_PORT: 3838
+      DEPLOYMENT_TARGET: localdev
+      NODE_ENV: development
+      MODELLING_DIR: /opt/r-analytics/modelling
+      DB_HOST: ${R_DB_HOST:-10.8.0.2}
+      DB_PORT: ${R_DB_PORT:-5433}
+      DB_NAME: ${R_DB_NAME:-IFRS9_pro}
+      DB_USER: ${R_DB_USER:-postgres}
+      DB_PASSWORD: ${R_DB_PASSWORD:-postgres}
+    ports:
+      - "3838:3838"
+    networks:
+      - ifrs9-dev
+    volumes:
+      - ../../packages/r-analytics/shiny-app:/opt/r-analytics/shiny-app:ro
+      - ../../modelling:/opt/r-analytics/modelling:ro
+      - r-analytics-logs:/opt/r-analytics/logs
+    profiles:
+      - app
+      - full
+      - dev
+      - analytics
+
 # ============================================================================
 # 📁 VOLUMES
 # ============================================================================
@@ -174,6 +209,8 @@ volumes:
     external: true
     name: ifrs9-iaf_redis-dev-data
   new-backend-node-modules:
+    driver: local
+  r-analytics-logs:
     driver: local
 
 # ============================================================================
