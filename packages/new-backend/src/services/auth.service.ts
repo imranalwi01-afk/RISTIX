@@ -247,17 +247,19 @@ export const login = (
             try: async () => {
                 if (!input.tenantId) return undefined // Platform Login
 
-                // Check if it's a UUID
-                const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-                if (uuidRegex.test(input.tenantId)) {
-                    return input.tenantId
+                // Try looking up by ID (UUID) or Slug
+                const db = getDatabase(null) // Registry is in Platform/Core
+                
+                // 1. Try by exact ID
+                let tenant = await TenantRepository.findById(input.tenantId)
+                
+                // 2. Fallback to lookup by slug
+                if (!tenant) {
+                    tenant = await TenantRepository.findBySlug(input.tenantId)
                 }
 
-                // Otherwise lookup by slug (Using Default/Platform DB for tenant registry)
-                const db = getDatabase(null) // Registry is in Platform/Core
-                const tenant = await TenantRepository.findBySlug(input.tenantId)
                 console.log(`[AuthDebug] input.tenantId=${input.tenantId} -> foundTenant=${!!tenant} id=${tenant?.id}`);
-                if (!tenant) throw new Error('Tenant not found by slug')
+                if (!tenant) throw new Error('Tenant not found')
                 return tenant.id
             },
             catch: (error: any) =>
