@@ -4,7 +4,7 @@ import { AuthRepository } from '../repositories/auth.repository'
 import { TenantRepository } from '../repositories/tenant.repository'
 import { AuthenticationError, AuthorizationError } from '@lib/errors'
 import { Effect, pipe } from 'effect'
-import { env, isDevelopment, maskDatabaseUrl, getPlatformDatabaseUrl } from '@/config/env'
+import { env, isDevelopment, maskDatabaseUrl, getPlatformDatabaseUrl, getDatabaseUrl } from '@/config/env'
 import { getDatabase } from '@/config/database'
 import { redis } from '@/config/redis'
 import type { AppContext } from '../app'
@@ -40,21 +40,44 @@ export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
         baseLogger.info({ sub: payload.sub, jti: payload.jti }, '[AUTH] Token verified')
 
         // Check session in Redis
-        const sessionData = await redis.get(`session:access:${payload.jti}`)
+        const sessionKey = `session:access:${payload.jti}`
+        const sessionData = await redis.get(sessionKey)
         if (!sessionData) {
-            baseLogger.warn({ jti: payload.jti }, '[AUTH] Session not found in Redis')
+            console.warn(`[AUTH DEBUG] Session not found in Redis: ${sessionKey}`)
+            baseLogger.warn({ jti: payload.jti, sessionKey }, '[AUTH] Session not found in Redis')
             throw new Error('Session not found or expired')
         }
 
         // Contextual validation
         const tenantId = (payload as any).tenantId as string | undefined
-        const db = getDatabase(tenantId)
+        const tenantDb = getDatabase(tenantId)
+        
+        console.log(`[AUTH DEBUG] Resolving user: sub=${payload.sub}, tenantId=${tenantId}`)
 
-        // Load complete user context
-        const user = await AuthRepository.findUserById(db, payload.sub)
+        // Load complete user context - try tenant DB first, then platform DB as fallback
+        let user = await AuthRepository.findUserById(tenantDb, payload.sub)
+        let db = tenantDb
+
+        if (!user) {
+            baseLogger.debug({ sub: payload.sub, tenantId }, '[AUTH] User not found in tenant DB, checking platform DB...')
+            const platformDb = getDatabase(null)
+            user = await AuthRepository.findUserById(platformDb, payload.sub)
+            if (user) {
+                db = platformDb
+                baseLogger.debug({ sub: payload.sub }, '[AUTH] User found in platform DB')
+            }
+        }
+
         if (!user || !user.isActive) {
-            baseLogger.warn({ sub: payload.sub }, '[AUTH] User not found or inactive')
-            throw new Error('User not found or inactive')
+            const dbUrl = maskDatabaseUrl(getDatabaseUrl(user ? (db === tenantDb ? tenantId : null) : tenantId))
+            const dbContext = db === tenantDb ? 'Tenant DB' : 'Platform DB'
+            
+            baseLogger.warn({ sub: payload.sub, dbContext, dbUrl }, '[AUTH] User not found or inactive')
+            
+            const errorMsg = isDevelopment
+                ? `User not found or inactive (${dbContext}: ${dbUrl})`
+                : 'User not found or inactive'
+            throw new Error(errorMsg)
         }
 
 
@@ -96,11 +119,16 @@ export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
 
         await next()
     } catch (error: any) {
-        baseLogger.error({ err: error }, '[AUTH] authentication error')
+        const dbUrl = maskDatabaseUrl(getPlatformDatabaseUrl())
+        const message = isDevelopment
+            ? `Invalid or expired token (${error.message}, Database: ${dbUrl})`
+            : 'Invalid or expired token'
+            
+        baseLogger.error({ err: error, dbUrl }, '[AUTH] authentication error')
         return c.json(
             {
                 success: false,
-                error: 'Invalid or expired token',
+                error: message,
                 code: 'INVALID_TOKEN',
             },
             401

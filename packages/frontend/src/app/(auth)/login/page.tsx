@@ -99,22 +99,22 @@ export default function LoginPage() {
           setTenants(filteredTenants);
 
           // Auto-select logic
-          if (isPlatformAdmin) {
-            // For Platform Admin, ALWAYS select system if available
-            const systemTenant = filteredTenants.find((t: TenantOption) => t.slug === 'system');
-            if (systemTenant) {
-              setSelectedTenantId('system');
+            if (isPlatformAdmin) {
+              // For Platform Admin, ALWAYS select system if available
+              const systemTenant = filteredTenants.find((t: TenantOption) => t.slug === 'system');
+              if (systemTenant) {
+                setSelectedTenantId(systemTenant.id);
+              } else {
+                // Fallback if system not found in list (should not happen with my backend fix)
+                console.warn('System tenant not found in response despite mode=admin');
+                if (filteredTenants.length > 0) setSelectedTenantId(filteredTenants[0].id);
+              }
             } else {
-              // Fallback if system not found in list (should not happen with my backend fix)
-              console.warn('System tenant not found in response despite mode=admin');
-              if (filteredTenants.length > 0) setSelectedTenantId(filteredTenants[0].slug);
+              // Regular User: Auto-select first available
+              if (filteredTenants.length > 0) {
+                setSelectedTenantId(filteredTenants[0].id);
+              }
             }
-          } else {
-            // Regular User: Auto-select first available
-            if (filteredTenants.length > 0) {
-              setSelectedTenantId(filteredTenants[0].slug);
-            }
-          }
         }
       } catch (error) {
         console.error('Failed to fetch tenant data, using fallback:', error);
@@ -129,7 +129,7 @@ export default function LoginPage() {
           isActive: true
         };
         setTenants([iafTenant]);
-        setSelectedTenantId('iaf');
+        setSelectedTenantId(iafTenant.id);
       } finally {
         setTenantsLoading(false);
       }
@@ -306,11 +306,11 @@ export default function LoginPage() {
                   sx={{ mb: 3, bgcolor: '#ffffff' }}
                 >
                   {tenants.length > 0 ? tenants.map((tenant) => (
-                    <MenuItem key={tenant.id} value={tenant.slug}>
+                    <MenuItem key={tenant.id} value={tenant.id}>
                       {tenant.displayName}
                     </MenuItem>
                   )) : (
-                    <MenuItem value="iaf">Indonesia Airawata Finance (Fallback)</MenuItem>
+                    <MenuItem value="iaf-fallback">Indonesia Airawata Finance (Fallback)</MenuItem>
                   )}
                 </TextField>
 

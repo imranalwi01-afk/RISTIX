@@ -28,10 +28,13 @@ export const TenantRepository = {
      * @param id - The tenant UUID or record ID
      * @returns A promise that resolves to the Tenant record or undefined
      */
-    findById: (id: string) =>
-        db.query.tenants.findFirst({
+    findById: (id: string) => {
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+        if (!uuidRegex.test(id)) return Promise.resolve(undefined)
+        return db.query.tenants.findFirst({
             where: eq(tenants.id, id),
-        }),
+        })
+    },
 
     /**
      * Find a tenant by its unique business code.

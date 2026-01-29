@@ -250,8 +250,12 @@ export const login = (
                 // Try looking up by ID (UUID) or Slug
                 const db = getDatabase(null) // Registry is in Platform/Core
                 
-                // 1. Try by exact ID
-                let tenant = await TenantRepository.findById(input.tenantId)
+                // 1. Try by exact ID (if it looks like a UUID)
+                const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+                let tenant = null
+                if (uuidRegex.test(input.tenantId)) {
+                    tenant = await TenantRepository.findById(input.tenantId)
+                }
                 
                 // 2. Fallback to lookup by slug
                 if (!tenant) {
