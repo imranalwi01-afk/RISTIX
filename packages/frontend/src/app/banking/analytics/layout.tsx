@@ -54,8 +54,12 @@ export default function AnalyticsLayout({ children }: AnalyticsLayoutProps) {
   const dispatch = useDispatch();
   
   // Redux state
-  const { selectedView, realTimeEnabled, refreshInterval, filters, kpiMetrics } = useSelector((state: any) => state.analytics || {});
-  const { mode: bankingMode } = useSelector((state: any) => state.banking || {});
+  const selectedView = useSelector((state: any) => state.analytics?.selectedView);
+  const realTimeEnabled = useSelector((state: any) => state.analytics?.realTimeEnabled);
+  const refreshInterval = useSelector((state: any) => state.analytics?.refreshInterval);
+  const filters = useSelector((state: any) => state.analytics?.filters);
+  const kpiMetrics = useSelector((state: any) => state.analytics?.kpiMetrics);
+  const bankingMode = useSelector((state: any) => state.banking?.mode);
   
   // Local state
   const [settingsAnchor, setSettingsAnchor] = useState<null | HTMLElement>(null);

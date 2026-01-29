@@ -296,11 +296,18 @@ export class FrontendEnvironmentLoader {
       reports: '/reports'
     };
 
-    // R Analytics URLs - MUST USE IAF GUIDE DOMAINS
+    // R Analytics Configuration
     const rAnalytics = {
-      api: this.getEnvVar('NEXT_PUBLIC_RAPI_BASE_URL', isEcs ? 'https://iaf-ifrs-analytics-calc.danafin.com/api' : 'https://iaf-ifrs-analytics-calc.ifrspro.id/api'),
-      dashboard: this.getEnvVar('NEXT_PUBLIC_R_ANALYTICS_URL', isEcs ? 'https://iaf-ifrs-analytics.danafin.com' : 'https://iaf-ifrs-analytics.ifrspro.id'),
-      calc: this.getEnvVar('NEXT_PUBLIC_R_ANALYTICS_CALC_URL', isEcs ? 'https://iaf-ifrs-analytics-calc.danafin.com' : 'https://iaf-ifrs-analytics-calc.ifrspro.id')
+      api: this.getEnvVar('NEXT_PUBLIC_RAPI_BASE_URL') || (isEcs ? 'https://iaf-ifrs-analytics-calc.danafin.com/api' : 'https://iaf-ifrs-analytics-calc.ifrspro.id/api'),
+      dashboard: (() => {
+        const envUrl = this.getEnvVar('NEXT_PUBLIC_R_ANALYTICS_URL');
+        // If envUrl is set and is NOT localhost, use it.
+        // If it IS localhost but we are in production, or if it's empty, use the fallback.
+        if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
+          return envUrl;
+        }
+        return isEcs ? 'https://iaf-ifrs-analytics.danafin.com' : 'https://iaf-ifrs-analytics.ifrspro.id';
+      })()
     };
 
     // Application URLs

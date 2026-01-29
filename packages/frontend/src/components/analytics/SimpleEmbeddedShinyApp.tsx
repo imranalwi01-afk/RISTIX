@@ -39,14 +39,26 @@ import type { RootState } from '../../store';
 // 🌐 CONFIGURATION
 // ============================================================================
 
+import { frontendEnvironmentLoader } from '../../config/environment-loader-frontend';
+
 const getRAnalyticsUrl = () => {
+  const config = frontendEnvironmentLoader.getConfiguration();
+  const dashboardUrl = config.rAnalytics.dashboard;
+  
+  // If the configured URL is remote, use it
+  if (dashboardUrl && !dashboardUrl.includes('localhost') && !dashboardUrl.includes('127.0.0.1')) {
+    return dashboardUrl;
+  }
+  
+  // Otherwise, handle localhost logic
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
     const isProductionDomain = hostname.includes('ifrspro.id') || hostname.includes('danafin.com');
     if (!isProductionDomain && (hostname === 'localhost' || hostname === '127.0.0.1')) {
-      return 'http://localhost:3838';
+      return 'http://localhost:4236';
     }
   }
+  
   return 'https://iaf-ifrs-analytics.ifrspro.id';
 };
 

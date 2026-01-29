@@ -46,75 +46,13 @@ import {
 } from '@mui/icons-material';
 import type { RootState } from '../../store';
 
+import { frontendEnvironmentLoader } from '../../config/environment-loader-frontend';
+
 // ============================================================================
-// 🌐 PRODUCTION API CONFIGURATION
+// 🌐 CONFIGURATION
 // ============================================================================
 
-// ✅ CENTRALIZED R ANALYTICS CONFIGURATION - Use environment loader
-const getApiConfig = () => {
-  try {
-    // Try to use centralized environment loader first
-    const { frontendEnvironmentLoader } = require('../../config/environment-loader-frontend');
-    const config = frontendEnvironmentLoader.getConfiguration();
-
-    return {
-      IS_PRODUCTION: config.isProduction,
-      R_ANALYTICS_API: config.rAnalytics.api,
-      R_DOMAINS: {
-        conventional: config.rAnalytics.dashboard,
-        syariah: config.rAnalytics.dashboard,
-        dana: config.rAnalytics.dashboard
-      },
-      R_PORTS: {
-        conventional: 4238,
-        syariah: 4239,
-        dana: 4240
-      },
-      configSource: 'centralized'
-    };
-  } catch (error) {
-    console.warn('⚠️ Failed to load centralized R Analytics config, using fallback:', error);
-
-    // Fallback to environment variables with hostname detection
-    const isProductionDomain = typeof window !== 'undefined' && window.location.hostname.includes('danafin.com');
-
-    return {
-      IS_PRODUCTION: isProductionDomain || process.env.NODE_ENV === 'production',
-      R_ANALYTICS_API: process.env.NEXT_PUBLIC_R_API_URL || (isProductionDomain
-        ? 'https://iaf-ifrs-analytics-calc.danafin.com/api'
-        : 'https://iaf-ifrs-analytics-calc.ifrspro.id/api'),
-      R_DOMAINS: {
-        conventional: process.env.NEXT_PUBLIC_R_SHINY_CONVENTIONAL_URL || (isProductionDomain
-          ? 'https://iaf-ifrs-analytics.danafin.com'
-          : 'https://iaf-ifrs-analytics.ifrspro.id'),
-        syariah: process.env.NEXT_PUBLIC_R_SHINY_SYARIAH_URL || (isProductionDomain
-          ? 'https://iaf-ifrs-analytics.danafin.com'
-          : 'https://iaf-ifrs-analytics.ifrspro.id'),
-        dana: process.env.NEXT_PUBLIC_R_SHINY_DANA_URL || (isProductionDomain
-          ? 'https://iaf-ifrs-analytics.danafin.com'
-          : 'https://iaf-ifrs-analytics.ifrspro.id')
-      },
-      R_PORTS: {
-        conventional: parseInt(process.env.NEXT_PUBLIC_R_SHINY_CONVENTIONAL_PORT || '4238'),
-        syariah: parseInt(process.env.NEXT_PUBLIC_R_SHINY_SYARIAH_PORT || '4239'),
-        dana: parseInt(process.env.NEXT_PUBLIC_R_SHINY_DANA_PORT || '4240')
-      },
-      configSource: 'fallback'
-    };
-  }
-};
-
-const API_CONFIG = getApiConfig();
-
-console.log('🏗️ CENTRALIZED CONFIG - R Analytics Config:', {
-  environment: process.env.NODE_ENV,
-  rAnalyticsApi: API_CONFIG.R_ANALYTICS_API,
-  rDomains: API_CONFIG.R_DOMAINS,
-  isProduction: API_CONFIG.IS_PRODUCTION,
-  rAnalyticsHost: process.env.NEXT_PUBLIC_R_ANALYTICS_HOST,
-  rShinyHost: process.env.NEXT_PUBLIC_R_SHINY_HOST,
-  message: 'Using centralized configuration system'
-});
+// (Configuration now loaded inside component scope)
 
 // ============================================================================
 // 🔧 TYPES & INTERFACES
@@ -235,6 +173,16 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
   fullscreenSupport = true
 }) => {
   const theme = useTheme();
+  
+  // ✅ Load configuration inside component for fresh environment access
+  const config = frontendEnvironmentLoader.getConfiguration();
+  const API_CONFIG = {
+    IS_PRODUCTION: config.isProduction,
+    R_ANALYTICS_API: config.rAnalytics.api,
+    R_DASHBOARD_URL: config.rAnalytics.dashboard,
+    FRONTEND_URL: config.urls.frontend
+  };
+
   const styles = useShinyAppStyles(bankingType, theme);
   
   // Redux state
@@ -293,19 +241,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
           'X-Tenant-ID': user.tenantId || '',
-          'Origin': (() => {
-            try {
-              const { frontendEnvironmentLoader } = require('../../config/environment-loader-frontend');
-              const config = frontendEnvironmentLoader.getConfiguration();
-              return config.urls.frontend;
-            } catch (error) {
-              console.warn('⚠️ Failed to get frontend URL from config, using fallback:', error);
-              const isProductionDomain = typeof window !== 'undefined' && window.location.hostname.includes('danafin.com');
-              return process.env.NEXT_PUBLIC_FRONTEND_URL || (isProductionDomain
-                ? 'https://iaf-ifrs.danafin.com'
-                : 'https://iaf-ifrs.ifrspro.id');
-            }
-          })()
+          'Origin': API_CONFIG.FRONTEND_URL
         },
         body: JSON.stringify(sessionRequest)
       });
@@ -328,19 +264,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
                   method: 'DELETE',
                   headers: {
                     'Authorization': `Bearer ${token}`,
-                    'Origin': (() => {
-            try {
-              const { frontendEnvironmentLoader } = require('../../config/environment-loader-frontend');
-              const config = frontendEnvironmentLoader.getConfiguration();
-              return config.urls.frontend;
-            } catch (error) {
-              console.warn('⚠️ Failed to get frontend URL from config, using fallback:', error);
-              const isProductionDomain = typeof window !== 'undefined' && window.location.hostname.includes('danafin.com');
-              return process.env.NEXT_PUBLIC_FRONTEND_URL || (isProductionDomain
-                ? 'https://iaf-ifrs.danafin.com'
-                : 'https://iaf-ifrs.ifrspro.id');
-            }
-          })()
+                    'Origin': API_CONFIG.FRONTEND_URL
                   }
                 });
                 
@@ -387,28 +311,25 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
       if (typeof sessionData.port === 'undefined' || sessionData.port === null) {
         console.warn('⚠️ SessionData missing port property, using default based on bankingType');
         const defaultPorts = {
-          conventional: 3838,
-          syariah: 3838,
-          dana: 3838
+          conventional: 4236,
+          syariah: 4236,
+          dana: 4236
         };
         const fallbackBankingType = sessionData.bankingType || sessionRequest.bankingType || 'conventional';
-        sessionData.port = defaultPorts[fallbackBankingType as keyof typeof defaultPorts] || 3838;
+        sessionData.port = defaultPorts[fallbackBankingType as keyof typeof defaultPorts] || 4236;
       }
       
       const actualPort = sessionData.port;
       
-      // Determine URL - Prefer backend provided URL, fallback to constructing it
-      if (!sessionData.iframeUrl) {
-         // Construct URL based on environment
-         if (API_CONFIG.IS_PRODUCTION) {
-            const domainBase = API_CONFIG.R_DOMAINS[bankingType as keyof typeof API_CONFIG.R_DOMAINS];
-            sessionData.iframeUrl = `${domainBase}/?session=${sessionData.sessionId}&iframe=true`;
-            sessionData.domainUrl = domainBase;
-         } else {
-            // Local development
-            sessionData.iframeUrl = `http://localhost:${actualPort}/?session=${sessionData.sessionId}&iframe=true`;
-            sessionData.domainUrl = `http://localhost:${actualPort}`;
-         }
+      // Construct URL based on environment
+      if (API_CONFIG.IS_PRODUCTION) {
+         const domainBase = API_CONFIG.R_DASHBOARD_URL;
+         sessionData.iframeUrl = `${domainBase}/?session=${sessionData.sessionId}&iframe=true`;
+         sessionData.domainUrl = domainBase;
+      } else {
+         // Local development
+         sessionData.iframeUrl = `http://localhost:${actualPort}/?session=${sessionData.sessionId}&iframe=true`;
+         sessionData.domainUrl = `http://localhost:${actualPort}`;
       }
 
       console.log(`✅ R session created:`, sessionData);
@@ -459,19 +380,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Origin': (() => {
-            try {
-              const { frontendEnvironmentLoader } = require('../../config/environment-loader-frontend');
-              const config = frontendEnvironmentLoader.getConfiguration();
-              return config.urls.frontend;
-            } catch (error) {
-              console.warn('⚠️ Failed to get frontend URL from config, using fallback:', error);
-              const isProductionDomain = typeof window !== 'undefined' && window.location.hostname.includes('danafin.com');
-              return process.env.NEXT_PUBLIC_FRONTEND_URL || (isProductionDomain
-                ? 'https://iaf-ifrs.danafin.com'
-                : 'https://iaf-ifrs.ifrspro.id');
-            }
-          })()
+          'Origin': API_CONFIG.FRONTEND_URL
         }
       });
 
@@ -492,19 +401,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
       const response = await fetch(`${API_CONFIG.R_ANALYTICS_API}/session/${session.sessionId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Origin': (() => {
-            try {
-              const { frontendEnvironmentLoader } = require('../../config/environment-loader-frontend');
-              const config = frontendEnvironmentLoader.getConfiguration();
-              return config.urls.frontend;
-            } catch (error) {
-              console.warn('⚠️ Failed to get frontend URL from config, using fallback:', error);
-              const isProductionDomain = typeof window !== 'undefined' && window.location.hostname.includes('danafin.com');
-              return process.env.NEXT_PUBLIC_FRONTEND_URL || (isProductionDomain
-                ? 'https://iaf-ifrs.danafin.com'
-                : 'https://iaf-ifrs.ifrspro.id');
-            }
-          })()
+          'Origin': API_CONFIG.FRONTEND_URL
         }
       });
 
@@ -525,53 +422,12 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
     const handleMessage = (event: MessageEvent) => {
       // ✅ PRODUCTION: Validate origin for security
       if (API_CONFIG.IS_PRODUCTION) {
-        // Use centralized dual-mode configuration for allowed origins
-        const getAllowedOrigins = () => {
-          try {
-            const { frontendEnvironmentLoader } = require('../../config/environment-loader-frontend');
-            const config = frontendEnvironmentLoader.getConfiguration();
-            const currentDomain = window.location.hostname;
-
-            if (currentDomain.includes('danafin.com')) {
-              // Production origins
-              return [
-                config.rAnalytics.dashboard,
-                config.rAnalytics.api,
-                config.urls.frontend,
-                config.api.backend
-              ];
-            } else {
-              // Development origins
-              return [
-                config.rAnalytics.dashboard,
-                config.rAnalytics.api,
-                config.urls.frontend,
-                config.api.backend
-              ];
-            }
-          } catch (error) {
-            console.warn('⚠️ Failed to get allowed origins from config, using fallback:', error);
-
-            // Fallback to hostname-based detection
-            const isProductionDomain = typeof window !== 'undefined' && window.location.hostname.includes('danafin.com');
-            if (isProductionDomain) {
-              return [
-                'https://iaf-ifrs-analytics.danafin.com',
-                'https://iaf-ifrs-analytics-calc.danafin.com',
-                'https://iaf-ifrs.danafin.com',
-                'https://iaf-ifrs-be.danafin.com'
-              ];
-            }
-            return [
-              'https://iaf-ifrs-analytics.ifrspro.id',
-              'https://iaf-ifrs-analytics-calc.ifrspro.id',
-              'https://iaf-ifrs.ifrspro.id',
-              'https://iaf-ifrs-be.ifrspro.id'
-            ];
-          }
-        };
-
-        const allowedOrigins = getAllowedOrigins();
+        // Use centralized configuration for allowed origins
+        const allowedOrigins = [
+          API_CONFIG.R_DASHBOARD_URL,
+          API_CONFIG.R_ANALYTICS_API,
+          API_CONFIG.FRONTEND_URL
+        ];
         
         if (!allowedOrigins.includes(event.origin)) {
           console.warn('🚨 Blocked message from untrusted origin:', event.origin);
@@ -643,20 +499,32 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
   useEffect(() => {
     if (autoStart && !session && !loading && !error) {
       
-      let domainBase = '';
-      let port = 3838;
+      const config = frontendEnvironmentLoader.getConfiguration();
+      const currentDashboardUrl = config.rAnalytics.dashboard;
+      const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
       
-      if (API_CONFIG.IS_PRODUCTION) {
-        domainBase = API_CONFIG.R_DOMAINS[bankingType as keyof typeof API_CONFIG.R_DOMAINS];
-      } else {
-        // Local defaults
-        const defaultPorts = {
-          conventional: 3838,
-          syariah: 3838,
-          dana: 3838
-        };
-        port = defaultPorts[bankingType as keyof typeof defaultPorts] || 3838;
-        domainBase = `http://localhost:${port}`;
+      console.log('🔍 EmbeddedShinyApp - URL Resolution:', {
+        configDashboard: currentDashboardUrl,
+        isLocalhost,
+        isProduction: config.isProduction,
+        envVar: process.env.NEXT_PUBLIC_R_ANALYTICS_URL
+      });
+
+      let domainBase = '';
+      
+      // ✅ PRIORITY 1: If we have a configured remote domain, use it regardless of localhost
+      if (currentDashboardUrl && !currentDashboardUrl.includes('localhost') && !currentDashboardUrl.includes('127.0.0.1')) {
+        console.log('📡 REMOTE DOMAIN DETECTED - Using configured URL:', currentDashboardUrl);
+        domainBase = currentDashboardUrl;
+      } 
+      // ✅ PRIORITY 2: If we are not on localhost, use whatever is configured
+      else if (!isLocalhost || config.isProduction) {
+        domainBase = currentDashboardUrl;
+      } 
+      // ✅ FALLBACK: Localhost development
+      else {
+        console.log('💻 LOCALHOST DETECTED - Falling back to local R Analytics');
+        domainBase = `http://localhost:4236`;
       }
 
       const directSession: RSessionData = {
@@ -664,7 +532,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
         tenantSlug: tenantSlug || 'iaf',
         bankingType: bankingType as any,
         status: 'running',
-        port: port,
+        port: 4236,
         url: domainBase,
         iframeUrl: domainBase,
         startTime: new Date().toISOString(),
@@ -672,10 +540,10 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
         domainUrl: domainBase
       };
 
-      console.log('📡 DIRECT EMBED - Using URL:', domainBase);
+      console.log('📡 DIRECT EMBED - Final URL:', domainBase);
       setSession(directSession);
       onSessionCreate?.(directSession);
-      return; // Skip API session creation
+      return;
     }
 
     // Only call createRSession if NOT local/direct embed
@@ -726,9 +594,9 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
     // If domainUrl is not set, try to construct it
     if (!openUrl) {
       if (API_CONFIG.IS_PRODUCTION) {
-         openUrl = API_CONFIG.R_DOMAINS[session.bankingType as keyof typeof API_CONFIG.R_DOMAINS];
+         openUrl = API_CONFIG.R_DASHBOARD_URL;
       } else {
-         openUrl = `http://localhost:${session.port || 3838}`;
+         openUrl = `http://localhost:${session.port || 4236}`;
       }
     }
     
@@ -816,7 +684,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
             Loading R Analytics Dashboard
           </Typography>
           <Typography variant="body2" color="textSecondary" align="center">
-            Embedding PRODUCTION URL: {API_CONFIG.R_DOMAINS[bankingType as keyof typeof API_CONFIG.R_DOMAINS]}
+            Embedding URL: {API_CONFIG.R_DASHBOARD_URL}
           </Typography>
           <Typography variant="body2" color="textSecondary" align="center" sx={{ mt: 0.5 }}>
             DIRECT EMBED MODE | No API session needed
@@ -872,11 +740,11 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
             <Typography variant="body2" component="ul" sx={{ pl: 2 }}>
               <li>🔥 Check production domain accessibility</li>
               <li>🌐 Verify Cloudflare tunnels are active</li>
-              <li>🚀 Ensure production R servers are running</li>
-              <li>🔥 Check: {API_CONFIG.R_DOMAINS[bankingType as keyof typeof API_CONFIG.R_DOMAINS]}</li>
+              <li>🚀 Ensure R servers are running</li>
+              <li>🔥 Check: {API_CONFIG.R_DASHBOARD_URL}</li>
             </Typography>
             <Typography variant="caption" color="textSecondary" sx={{ mt: 1, display: 'block' }}>
-              🔥🔥🔥 FORCED PRODUCTION MODE | API: {API_CONFIG.R_ANALYTICS_API} 🔥🔥🔥   seeems you need to embed this : {API_CONFIG.R_DOMAINS[bankingType as keyof typeof API_CONFIG.R_DOMAINS]}
+              🔥🔥🔥 API: {API_CONFIG.R_ANALYTICS_API} 🔥🔥🔥   seems you need to embed this : {API_CONFIG.R_DASHBOARD_URL}
             </Typography>
           </Alert>
           
@@ -887,7 +755,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
               onClick={() => {
                 setError(null);
                 // Direct embed approach - no API session needed
-                const productionDomain = API_CONFIG.R_DOMAINS[bankingType as keyof typeof API_CONFIG.R_DOMAINS];
+                const productionDomain = API_CONFIG.R_DASHBOARD_URL;
                 const directSession: RSessionData = {
                   sessionId: `direct-retry-${Date.now()}`,
                   tenantSlug: tenantSlug || 'iaf',
@@ -979,7 +847,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
                 </IconButton>
               </Tooltip>
               
-              <Tooltip title={`Open in New Tab (${session ? API_CONFIG.R_DOMAINS[session.bankingType as keyof typeof API_CONFIG.R_DOMAINS] : 'Domain URL'})`}>
+              <Tooltip title={`Open in New Tab (${session ? API_CONFIG.R_DASHBOARD_URL : 'Domain URL'})`}>
                 <IconButton
                   onClick={handleOpenInNewTab}
                   disabled={!session}
