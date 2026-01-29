@@ -245,42 +245,42 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
     },
 
     // PORTFOLIO MANAGEMENT
-    {
-        id: 'portfolio-management',
-        label: 'Portfolio Management',
-        icon: <Business />,
-        description: 'Banking Operations',
-        children: [
-            {
-                id: 'portfolio-accounts',
-                label: 'Portfolio Accounts',
-                href: '/banking/portfolio/accounts',
-                icon: <AccountCircle />,
-                description: 'Account Management'
-            },
-            {
-                id: 'customer-management',
-                label: 'Customer Management',
-                href: '/banking/portfolio/customers',
-                icon: <People />,
-                description: 'Client Information'
-            },
-            {
-                id: 'banking-products',
-                label: 'Banking Products',
-                href: '/banking/portfolio/products',
-                icon: <AccountBalance />,
-                description: 'Product Configuration'
-            },
-            {
-                id: 'portfolio-monitoring',
-                label: 'Portfolio Monitoring',
-                href: '/banking/portfolio/overview',
-                icon: <Visibility />,
-                description: 'Real-time Tracking'
-            }
-        ]
-    },
+    // {
+    //     id: 'portfolio-management',
+    //     label: 'Portfolio Management',
+    //     icon: <Business />,
+    //     description: 'Banking Operations',
+    //     children: [
+    //         {
+    //             id: 'portfolio-accounts',
+    //             label: 'Portfolio Accounts',
+    //             href: '/banking/portfolio/accounts',
+    //             icon: <AccountCircle />,
+    //             description: 'Account Management'
+    //         },
+    //         {
+    //             id: 'customer-management',
+    //             label: 'Customer Management',
+    //             href: '/banking/portfolio/customers',
+    //             icon: <People />,
+    //             description: 'Client Information'
+    //         },
+    //         {
+    //             id: 'banking-products',
+    //             label: 'Banking Products',
+    //             href: '/banking/portfolio/products',
+    //             icon: <AccountBalance />,
+    //             description: 'Product Configuration'
+    //         },
+    //         {
+    //             id: 'portfolio-monitoring',
+    //             label: 'Portfolio Monitoring',
+    //             href: '/banking/portfolio/overview',
+    //             icon: <Visibility />,
+    //             description: 'Real-time Tracking'
+    //         }
+    //     ]
+    // },
 
     // COLLECTIVE IMPAIRMENT
     {
