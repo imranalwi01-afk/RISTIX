@@ -40,10 +40,14 @@ import type { RootState } from '../../store';
 // ============================================================================
 
 const getRAnalyticsUrl = () => {
-  const isProductionDomain = typeof window !== 'undefined' && window.location.hostname.includes('ifrspro.id');
-  return isProductionDomain
-    ? 'https://iaf-ifrs-analytics.ifrspro.id'
-    : 'https://iaf-ifrs-analytics.ifrspro.id'; // Same for both environments
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    const isProductionDomain = hostname.includes('ifrspro.id') || hostname.includes('danafin.com');
+    if (!isProductionDomain && (hostname === 'localhost' || hostname === '127.0.0.1')) {
+      return 'http://localhost:3838';
+    }
+  }
+  return 'https://iaf-ifrs-analytics.ifrspro.id';
 };
 
 // ============================================================================
@@ -152,10 +156,11 @@ export default function SimpleEmbeddedShinyApp({
   };
 
   const handleFullscreen = () => {
-    if (iframeRef.current?.requestFullscreen) {
-      iframeRef.current.requestFullscreen();
-    } else if ((iframeRef.current as any)?.webkitRequestFullscreen) {
-      (iframeRef.current as any).webkitRequestFullscreen();
+    const iframe = iframeRef.current as any;
+    if (iframe?.requestFullscreen) {
+      iframe.requestFullscreen();
+    } else if (iframe?.webkitRequestFullscreen) {
+      iframe.webkitRequestFullscreen();
     }
   };
 

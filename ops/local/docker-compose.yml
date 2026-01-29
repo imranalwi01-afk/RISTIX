@@ -118,6 +118,7 @@ services:
       NEXT_PUBLIC_BACKEND_URL: ${BACKEND_URL:-http://localhost:4232/api}
       NEXT_PUBLIC_API_BASE_URL: ${API_BASE_URL:-http://localhost:4232/api}
       NEXT_PUBLIC_BACKEND_API_URL: ${BACKEND_API_URL:-http://localhost:4232/api}
+      NEXT_PUBLIC_R_ANALYTICS_URL: ${NEXT_PUBLIC_R_ANALYTICS_URL:-http://localhost:3838}
     ports:
       - "4231:4231"
     networks:
@@ -139,6 +140,7 @@ services:
       - NODE_ENV=development
       - PORT=4231
       - NEXT_PUBLIC_BACKEND_API_URL=${BACKEND_API_URL:-http://localhost:4232/api}
+      - NEXT_PUBLIC_R_ANALYTICS_URL=${NEXT_PUBLIC_R_ANALYTICS_URL:-http://localhost:3838}
       # Server-side env vars (for Next.js server)
       # Client-side uses .env file which has localhost URLs
       - NEXT_TELEMETRY_DISABLED=1

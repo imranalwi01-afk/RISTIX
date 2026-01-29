@@ -46,12 +46,14 @@ import { EmbeddedShinyApp } from '../../../components/analytics/EmbeddedShinyApp
 
 export default function BankingAnalyticsPage() {
   // Redux state
-  const { user, token } = useSelector((state: RootState) => state.auth || { user: null, token: null });
-
+  const authState = useSelector((state: RootState) => state.auth);
+  const user = authState?.user;
+  const token = authState?.token;
+  
   // Component state
   const [analyticsConfig, setAnalyticsConfig] = useState({
-    tenantSlug: 'demo-conventional',
-    bankingType: 'conventional' as 'conventional' | 'syariah' | 'dual',
+    tenantSlug: user?.tenantSlug || 'iaf',
+    bankingType: user?.bankingType || 'conventional',
     modelType: 'ifrs9' as 'ifrs9' | 'pd' | 'lgd' | 'ecl'
   });
 
@@ -62,13 +64,13 @@ export default function BankingAnalyticsPage() {
   useEffect(() => {
     if (user) {
       // Extract tenant and banking information from user context
-      const tenantSlug = (user as any).tenantSlug || 'demo-conventional';
+      const tenantSlug = user.tenantSlug || 'demo-conventional';
       let bankingType: 'conventional' | 'syariah' | 'dual' = 'conventional';
 
       // Determine banking type from tenant slug or user context
-      if (tenantSlug.includes('syariah') || (user as any).bankingAccess === 'SYARIAH') {
+      if (tenantSlug.includes('syariah') || user.bankingType === 'syariah') {
         bankingType = 'syariah';
-      } else if ((user as any).bankingAccess === 'BOTH') {
+      } else if (user.bankingType === 'dual') {
         bankingType = 'dual';
       }
 
