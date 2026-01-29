@@ -1,12 +1,11 @@
 // packages/frontend/src/app/banking/ifrs9-reports/lifetime-pd/page.tsx
 'use client';
 
+import React from 'react';
 import { Box, Typography } from '@mui/material';
 import LifetimePDReport from '../../../../components/ifrs9/LifetimePDReport';
 
-export default function LifetimePDReportPage({ params }: { params: Promise<{}> }) {
-  void params; // required by typed routes signature, unused in this page
-
+const LifetimePDReportPage: React.FC = () => {
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>
@@ -19,4 +18,6 @@ export default function LifetimePDReportPage({ params }: { params: Promise<{}> }
       <LifetimePDReport />
     </Box>
   );
-}
+};
+
+export default LifetimePDReportPage;

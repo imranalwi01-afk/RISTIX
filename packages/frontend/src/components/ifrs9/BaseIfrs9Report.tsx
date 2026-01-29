@@ -17,7 +17,9 @@ import {
   Select,
   MenuItem,
   IconButton,
-  Tooltip
+  Tooltip,
+  Switch,
+  FormControlLabel
 } from '@mui/material';
 import {
   DatePicker,
@@ -33,6 +35,8 @@ import {
 import { DataGrid, GridColDef, GridToolbar } from '@mui/x-data-grid';
 import { useAuth } from '../../providers/AuthProvider';
 import api from '../../services/api';
+import ModernLoader from '../common/ModernLoader'; // ✅ Import ModernLoader
+import * as XLSX from 'xlsx'; // ✅ Import xlsx for client-side export
 
 export interface BaseIfrs9ReportProps {
   title: string;
@@ -50,7 +54,11 @@ export interface BaseIfrs9ReportProps {
 export interface ReportFilters {
   prc_date: Date | null;
   pd_config_id?: number;
+  pd_method?: number;
+  scalar_id?: number;
   lgd_config_id?: number;
+  lgd_method?: number;
+  model_id?: number;
   ead_config_id?: number;
   segment_id?: number;
   stage?: '1' | '2' | '3';
@@ -299,35 +307,43 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
     }));
   };
 
-  // Export functionality
+  // Export functionality - Client-side using xlsx library
   const handleExport = async (format: 'xlsx' | 'csv' | 'pdf') => {
+    if (data.length === 0) {
+      console.warn('No data to export');
+      return;
+    }
+    
     setExportLoading(true);
     try {
-      const params = {
-        ...filters,
-        prc_date: filters.prc_date?.toISOString().split('T')[0],
-        format
-      };
-
-      const response = await api.banking.ifrs9Reports.export(reportType, params);
+      // Create worksheet from data
+      const worksheet = XLSX.utils.json_to_sheet(data);
       
-      if (response.success && response.data) {
-        // Create download link
-        const blob = new Blob([response.data], {
-          type: format === 'xlsx' 
-            ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            : format === 'csv'
-            ? 'text/csv'
-            : 'application/pdf'
-        });
-        
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `${reportType}-${filters.prc_date?.toISOString().split('T')[0]}.${format}`;
-        link.click();
-        window.URL.revokeObjectURL(url);
+      // Create workbook
+      const workbook = XLSX.utils.book_new();
+      const sheetName = title.substring(0, 31).replace(/[/\\*?[\]]/g, ''); // Max 31 chars, no special chars
+      XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+      
+      // Auto-size columns
+      const maxWidth = 30;
+      const colWidths = Object.keys(data[0] || {}).map(key => ({
+        wch: Math.min(maxWidth, Math.max(key.length, ...data.map(row => String(row[key] || '').length)))
+      }));
+      worksheet['!cols'] = colWidths;
+      
+      // Generate filename
+      const dateStr = filters.prc_date?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0];
+      const filename = `${reportType}-${dateStr}`;
+      
+      if (format === 'xlsx') {
+        // Export as XLSX
+        XLSX.writeFile(workbook, `${filename}.xlsx`);
+      } else if (format === 'csv') {
+        // Export as CSV
+        XLSX.writeFile(workbook, `${filename}.csv`, { bookType: 'csv' });
       }
+      
+      console.log(`✅ Exported ${data.length} rows to ${filename}.${format}`);
     } catch (err) {
       console.error('Export error:', err);
     } finally {
@@ -344,7 +360,14 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Box sx={{ p: 3 }}>
+       <Box sx={{ p: 3, position: 'relative', minHeight: '60vh' }}>
+        {/* ✅ ADD: Modern Loader Overlay */}
+        <ModernLoader 
+          open={loading} 
+          message={`Loading ${title}`}
+          subMessage="Retrieving financial data..."
+        />
+        
         {/* Header */}
         <Box sx={{ mb: 3 }}>
           <Typography variant="h4" gutterBottom>
@@ -392,7 +415,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
         </Box>
 
         {/* Filters */}
-        {(showFilters && (
+        {showFilters && (
           <Card sx={{ mb: 3 }}>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -401,7 +424,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
               
               <Grid container spacing={2}>
                 {/* Processing Date (Required) */}
-                <Grid size={{ xs: 12, md: 3 }}>
+                <Grid item xs={12} md={3}>
                   <DatePicker
                     label="Processing Date *"
                     value={filters.prc_date}
@@ -418,7 +441,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
 
                 {/* Optional Parameters */}
                 {optionalParams.includes('segment_id') && (
-                  <Grid size={{ xs: 12, md: 2 }}>
+                  <Grid item xs={12} md={2}>
                     <TextField
                       label="Segment ID"
                       type="number"
@@ -429,8 +452,66 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                   </Grid>
                 )}
 
+                {optionalParams.includes('pd_config_id') && (
+                  <Grid item xs={12} md={2}>
+                    <TextField
+                      label="PD Config ID"
+                      type="number"
+                      value={filters.pd_config_id || ''}
+                      onChange={(e) => handleFilterChange('pd_config_id', parseInt(e.target.value) || undefined)}
+                      fullWidth
+                    />
+                  </Grid>
+                )}
+
+                {optionalParams.includes('pd_method') && (
+                  <Grid item xs={12} md={2}>
+                    <FormControl fullWidth>
+                      <InputLabel>PD Method</InputLabel>
+                      <Select
+                        value={filters.pd_method || ''}
+                        onChange={(e) => handleFilterChange('pd_method', e.target.value ? Number(e.target.value) : undefined)}
+                        label="PD Method"
+                      >
+                        <MenuItem value="">All Methods</MenuItem>
+                        <MenuItem value={1}>TTC (Through-the-Cycle)</MenuItem>
+                        <MenuItem value={2}>PIT (Point-in-Time)</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                )}
+
+                {optionalParams.includes('scalar_id') && (
+                  <Grid item xs={12} md={2}>
+                    <TextField
+                      label="Scalar ID"
+                      type="number"
+                      value={filters.scalar_id || ''}
+                      onChange={(e) => handleFilterChange('scalar_id', parseInt(e.target.value) || undefined)}
+                      fullWidth
+                      helperText="Optional FL scalar"
+                    />
+                  </Grid>
+                )}
+
+                {optionalParams.includes('fl_flag') && (
+                  <Grid item xs={12} md={2}>
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={filters.fl_flag || false}
+                          onChange={(e) => handleFilterChange('fl_flag', e.target.checked)}
+                          color="primary"
+                        />
+                      }
+                      label="Forward Looking"
+                      sx={{ mt: 1 }}
+                    />
+                  </Grid>
+                )}
+
                 {optionalParams.includes('stage') && (
-                  <Grid size={{ xs: 12, md: 2 }}>
+                  <Grid item xs={12} md={2}>
                     <FormControl fullWidth>
                       <InputLabel>Stage</InputLabel>
                       <Select
@@ -447,8 +528,62 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                   </Grid>
                 )}
 
+                {optionalParams.includes('lgd_config_id') && (
+                  <Grid item xs={12} md={2}>
+                    <TextField
+                      label="LGD Config ID"
+                      type="number"
+                      value={filters.lgd_config_id || ''}
+                      onChange={(e) => handleFilterChange('lgd_config_id', parseInt(e.target.value) || undefined)}
+                      fullWidth
+                    />
+                  </Grid>
+                )}
+
+                {optionalParams.includes('lgd_method') && (
+                  <Grid item xs={12} md={2}>
+                    <FormControl fullWidth>
+                      <InputLabel>LGD Method</InputLabel>
+                      <Select
+                        value={filters.lgd_method || ''}
+                        onChange={(e) => handleFilterChange('lgd_method', e.target.value ? Number(e.target.value) : undefined)}
+                        label="LGD Method"
+                      >
+                        <MenuItem value="">All Methods</MenuItem>
+                        <MenuItem value={1}>Workout</MenuItem>
+                        <MenuItem value={2}>Model-Based</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                )}
+
+                {optionalParams.includes('model_id') && (
+                  <Grid item xs={12} md={2}>
+                    <TextField
+                      label="Model ID"
+                      type="number"
+                      value={filters.model_id || ''}
+                      onChange={(e) => handleFilterChange('model_id', parseInt(e.target.value) || undefined)}
+                      fullWidth
+                      helperText="Optional LGD model"
+                    />
+                  </Grid>
+                )}
+
+                {optionalParams.includes('ead_config_id') && (
+                  <Grid item xs={12} md={2}>
+                    <TextField
+                      label="EAD Config ID"
+                      type="number"
+                      value={filters.ead_config_id || ''}
+                      onChange={(e) => handleFilterChange('ead_config_id', parseInt(e.target.value) || undefined)}
+                      fullWidth
+                    />
+                  </Grid>
+                )}
+
                 {optionalParams.includes('branch_code') && (
-                  <Grid size={{ xs: 12, md: 2 }}>
+                  <Grid item xs={12} md={2}>
                     <TextField
                       label="Branch Code"
                       value={filters.branch_code || ''}
@@ -471,7 +606,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
               </Box>
             </CardContent>
           </Card>
-        )) as any }
+        )}
 
         {/* Error Alert */}
         {error && (
@@ -481,7 +616,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
         )}
 
         {/* Custom content */}
-        {children as any}
+        {children}
 
         {/* Data Grid */}
         {columns.length > 0 && (

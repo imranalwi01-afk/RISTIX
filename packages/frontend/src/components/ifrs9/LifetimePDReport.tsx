@@ -52,7 +52,7 @@ function TabPanel(props: TabPanelProps) {
       aria-labelledby={`pd-tab-${index}`}
       {...other}
     >
-      {value === index && <Box sx={{ p: 3 }}>{children as any}</Box>}
+      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
     </div>
   );
 }
@@ -73,43 +73,24 @@ const LifetimePDReport: React.FC = () => {
     if (!data || data.length === 0) return { pivotData: [], columns: [], chartData: [] };
 
     const firstRow = data[0];
+    const baseColumns = ['account_id', 'customer_name', 'product_type', 'segment_name'];
+    
+    // Extract dynamic period columns
+    const periodColumns = Object.keys(firstRow).filter(key => 
+      type === 'yearly' 
+        ? key.match(/^year_\d+$/)
+        : key.match(/^month_\d+$/)
+    ).sort();
 
-    // Check if pivoted (has year_X columns)
-    const isPivoted = Object.keys(firstRow).some(key => key.match(/^(year|month)_\d+$/));
-
-    let allColumns: string[] = [];
-    let chartDataPoints: any[] = [];
-
-    if (isPivoted) {
-      // Updated to use camelCase keys matching new backend joins
-      const baseColumns = ['accountId', 'cifName', 'productType', 'segmentName'];
-
-      const periodColumns = Object.keys(firstRow).filter(key =>
-        type === 'yearly' ? key.match(/^year_\d+$/) : key.match(/^month_\d+$/)
-      ).sort();
-
-      allColumns = [...baseColumns.filter(k => k in firstRow), ...periodColumns];
-
-      // Chart data from first row
-      const sampleAccount = data[0];
-      chartDataPoints = periodColumns.map(col => ({
-        period: col.replace(/^(year|month)_/, ''),
-        pd: sampleAccount[col] || 0,
-        label: type === 'yearly' ? `Year ${col.replace('year_', '')}` : `Month ${col.replace('month_', '')}`
-      }));
-    } else {
-      // Normalized data (e.g. from frs9ImpCaPdTs)
-      // Use available columns from backend
-      const potentialBaseColumns = ['pdModelName', 'pdModelId', 'bucketId', 'pdYear', 'pdMonth', 'pdRate'];
-      allColumns = potentialBaseColumns.filter(k => k in firstRow);
-
-      // Chart data from mapping rows (limit to first 50 to avoid clutter)
-      chartDataPoints = data.slice(0, 50).map(row => ({
-        period: row.pdYear || row.pdMonth,
-        pd: row.pdRate || 0,
-        label: type === 'yearly' ? `Year ${row.pdYear}` : `Month ${row.pdMonth}`
-      }));
-    }
+    const allColumns = [...baseColumns, ...periodColumns];
+    
+    // Prepare chart data
+    const sampleAccount = data[0];
+    const chartDataPoints = periodColumns.map(col => ({
+      period: col.replace(/^(year|month)_/, ''),
+      pd: sampleAccount[col] || 0,
+      label: type === 'yearly' ? `Year ${col.replace('year_', '')}` : `Month ${col.replace('month_', '')}`
+    }));
 
     return {
       pivotData: data,
@@ -159,12 +140,12 @@ const LifetimePDReport: React.FC = () => {
                   </TableCell>
                 ))}
                 {periodColumns.map(col => (
-                  <TableCell
-                    key={col}
-                    align="right"
-                    sx={{
-                      fontWeight: 'bold',
-                      backgroundColor: 'primary.main',
+                  <TableCell 
+                    key={col} 
+                    align="right" 
+                    sx={{ 
+                      fontWeight: 'bold', 
+                      backgroundColor: 'primary.main', 
                       color: 'white',
                       minWidth: 80
                     }}
@@ -180,9 +161,9 @@ const LifetimePDReport: React.FC = () => {
                   {baseColumns.map(col => (
                     <TableCell key={col}>
                       {col === 'product_type' ? (
-                        <Chip
-                          size="small"
-                          label={row[col]}
+                        <Chip 
+                          size="small" 
+                          label={row[col]} 
                           color="primary"
                           variant="outlined"
                         />
@@ -194,9 +175,9 @@ const LifetimePDReport: React.FC = () => {
                   {periodColumns.map(col => (
                     <TableCell key={col} align="right">
                       {row[col] !== null && row[col] !== undefined ? (
-                        <Typography
-                          variant="body2"
-                          sx={{
+                        <Typography 
+                          variant="body2" 
+                          sx={{ 
                             fontWeight: row[col] > 0.1 ? 'bold' : 'normal',
                             color: row[col] > 0.5 ? 'error.main' : 'inherit'
                           }}
@@ -233,24 +214,24 @@ const LifetimePDReport: React.FC = () => {
           <ResponsiveContainer width="100%" height={400}>
             <LineChart data={data}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis
-                dataKey="label"
+              <XAxis 
+                dataKey="label" 
                 tick={{ fontSize: 12 }}
                 angle={-45}
                 textAnchor="end"
               />
-              <YAxis
+              <YAxis 
                 tickFormatter={(value) => `${(value * 100).toFixed(2)}%`}
               />
-              <Tooltip
+              <Tooltip 
                 formatter={(value: number) => [`${(value * 100).toFixed(4)}%`, 'PD Rate']}
                 labelFormatter={(label) => `Period: ${label}`}
               />
               <Legend />
-              <Line
-                type="monotone"
-                dataKey="pd"
-                stroke="#8884d8"
+              <Line 
+                type="monotone" 
+                dataKey="pd" 
+                stroke="#8884d8" 
                 strokeWidth={2}
                 dot={{ r: 4 }}
                 name="PD Rate"
@@ -265,8 +246,8 @@ const LifetimePDReport: React.FC = () => {
 
   // Memoize params to prevent infinite loops
   const yearlyRequiredParams = React.useMemo(() => ['prc_date'], []);
-  const yearlyOptionalParams = React.useMemo(() => ['pd_config_id', 'segment_id', 'fl_flag'], []);
-
+  const yearlyOptionalParams = React.useMemo(() => ['pd_config_id', 'pd_method', 'scalar_id', 'segment_id', 'fl_flag'], []);
+  
   return (
     <Box>
       <Typography variant="h4" gutterBottom>
@@ -297,9 +278,9 @@ const LifetimePDReport: React.FC = () => {
         >
           <Box>
             <PDChart data={chartData} type="yearly" />
-            <PivotTable
-              data={yearlyData}
-              columns={pivotColumns}
+            <PivotTable 
+              data={yearlyData} 
+              columns={pivotColumns} 
               title="Yearly Marginal PD"
             />
           </Box>
@@ -319,9 +300,9 @@ const LifetimePDReport: React.FC = () => {
         >
           <Box>
             <PDChart data={chartData} type="monthly" />
-            <PivotTable
-              data={monthlyData}
-              columns={pivotColumns}
+            <PivotTable 
+              data={monthlyData} 
+              columns={pivotColumns} 
               title="Monthly Marginal PD"
             />
           </Box>

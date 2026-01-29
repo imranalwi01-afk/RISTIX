@@ -32,6 +32,14 @@ export const ifrs9API = {
         }
     },
 
+    getCalculationResults: async (date: string) => {
+        console.log(`📋 Fetching calculation results for date: ${date}`);
+        const response = await apiClient.get(
+            `/ifrs9/calculations/batch-results?date=${date}`,
+        );
+        return response.data;
+    },
+
     // Get calculation batches from real backend
     getCalculationBatches: async () => {
         console.log('📋 Fetching IFRS9 calculation batches from real database');

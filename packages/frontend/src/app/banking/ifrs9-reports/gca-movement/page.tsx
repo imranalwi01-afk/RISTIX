@@ -1,12 +1,11 @@
 // packages/frontend/src/app/banking/ifrs9-reports/gca-movement/page.tsx
 'use client';
 
+import React from 'react';
 import { Box, Typography } from '@mui/material';
 import GCAMovementReport from '../../../../components/ifrs9/GCAMovementReport';
 
-export default function GCAMovementReportPage({ params }: { params: Promise<{}> }) {
-  void params; // required by typed routes signature, unused in this page
-
+const GCAMovementReportPage: React.FC = () => {
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>
@@ -19,4 +18,6 @@ export default function GCAMovementReportPage({ params }: { params: Promise<{}> 
       <GCAMovementReport />
     </Box>
   );
-}
+};
+
+export default GCAMovementReportPage;

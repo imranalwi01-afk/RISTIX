@@ -2,12 +2,12 @@ import { Context } from 'hono';
 import { ifrs9CalculationsService } from '../services/ifrs9-calculations.service';
 
 export class Ifrs9CalculationsController {
-    
+
     async getSummary(c: Context) {
         try {
             const user = c.get('user');
             // if (!user?.tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
-            
+
             const data = await ifrs9CalculationsService.getSummary(user?.tenantId || 'default');
             return c.json({ success: true, data });
         } catch (error: any) {
@@ -49,6 +49,29 @@ export class Ifrs9CalculationsController {
             return c.json({ success: false, message: error.message }, 500);
         }
     }
+
+    async getBatchResults(c: Context) {
+        try {
+            const user = c.get("user");
+            const processDate = c.req.query("date");
+
+            if (!processDate)
+                return c.json(
+                    { success: false, message: "Process date required" },
+                    400,
+                );
+
+            const result = await ifrs9CalculationsService.getBatchResults(
+                user?.tenantId || "default",
+                processDate,
+            );
+            return c.json({ success: true, data: result.data });
+        } catch (error: any) {
+            console.error("Error fetching batch results:", error);
+            return c.json({ success: false, message: error.message }, 500);
+        }
+    }
+
 }
 
 export const ifrs9CalculationsController = new Ifrs9CalculationsController();
