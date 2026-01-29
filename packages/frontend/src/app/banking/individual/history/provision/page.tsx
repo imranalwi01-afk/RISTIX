@@ -11,10 +11,10 @@ import {
   Chip
 } from '@mui/material';
 import {
-  DataGrid,
   GridColDef,
   GridToolbar
 } from '@mui/x-data-grid';
+import { SafeDataGrid } from '@/components/shared/SafeDataGrid';
 import {
   Home as HomeIcon,
   History as HistoryIcon,
@@ -129,7 +129,7 @@ export default function ProvisionHistoryPage() {
       )}
 
       <Paper sx={{ height: 600, width: '100%' }}>
-        <DataGrid
+        <SafeDataGrid
             rows={data}
             columns={columns}
             loading={loading}

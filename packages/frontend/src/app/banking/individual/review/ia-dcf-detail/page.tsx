@@ -3,9 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Typography, Box, Card, CardContent, CircularProgress, Alert } from '@mui/material';
 import PageHeader from '@/components/banking/shared/PageHeader';
-import { DataGrid, GridColDef } from '@mui/x-data-grid';
+import { GridColDef } from '@mui/x-data-grid';
+import { SafeDataGrid } from '@/components/shared/SafeDataGrid';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
-import { individualImpairmentAPI } from '@/services/api/individual-impairment.api';
+import { api } from '@/services/api';
 
 const columns: GridColDef[] = [
   { field: 'accountId', headerName: 'Account ID', width: 150 },
@@ -26,16 +27,16 @@ export default function IADCFDetailPage() {
       try {
         setLoading(true);
         // 1. Get List of Uploads
-        const uploadsRes = await individualImpairmentAPI.getDcfUploads();
+        const uploadsRes = await api.individualImpairment.getDcfUploads();
         if (uploadsRes.success && uploadsRes.data && uploadsRes.data.length > 0) {
-          const latest = uploadsRes.data[0];
-          setCurrentUpload(latest);
-
-          // 2. Get Cashflows for Latest
-          const cashflowsRes = await individualImpairmentAPI.getDcfCashflows(latest.id);
-          if (cashflowsRes.success && cashflowsRes.data) {
-            setRows(cashflowsRes.data);
-          }
+            const latest = uploadsRes.data[0];
+            setCurrentUpload(latest);
+            
+            // 2. Get Cashflows for Latest
+            const cashflowsRes = await api.individualImpairment.getDcfCashflows(latest.id);
+            if (cashflowsRes.success && cashflowsRes.data) {
+                setRows(cashflowsRes.data);
+            }
         }
       } catch (error) {
         console.error('Failed to fetch cashflows:', error);
@@ -56,23 +57,22 @@ export default function IADCFDetailPage() {
       <Card>
         <CardContent>
           <Box mb={2}>
-            {currentUpload ? (
-              <Alert severity="info">Showing cashflows for File: <strong>{currentUpload.fileName}</strong> ({new Date(currentUpload.createdAt).toLocaleDateString()})</Alert>
-            ) : (
-              <Alert severity="warning">No DCF Uploads found.</Alert>
-            )}
+              {currentUpload ? (
+                  <Alert severity="info">Showing cashflows for File: <strong>{currentUpload.fileName}</strong> ({new Date(currentUpload.createdAt).toLocaleDateString()})</Alert>
+              ) : (
+                  <Alert severity="warning">No DCF Uploads found.</Alert>
+              )}
           </Box>
           <Box sx={{ height: 500, width: '100%' }}>
             {loading ? (
-              <Box display="flex" justifyContent="center" alignItems="center" height="100%">
-                <CircularProgress />
-              </Box>
+               <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+                 <CircularProgress />
+               </Box>
             ) : (
-              <DataGrid
-                rows={rows}
-                columns={columns}
-                pageSizeOptions={[10, 25]}
-              />
+                <SafeDataGrid
+                  rows={rows}
+                  columns={columns}
+                />
             )}
           </Box>
         </CardContent>

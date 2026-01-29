@@ -1,4 +1,4 @@
-# setwd("D:/shiny dan database/ifrs dan stres testing") # Commented out for system compatibility
+# setwd("D:/shiny dan database/ifrs dan stres testing")
 library(shiny)
 library(shinydashboard)
 library(DT)
@@ -26,17 +26,20 @@ source("global.R")
 
 
 
-# Koneksi database PostgreSQL - Menggunakan environment variables dengan fallback VPN
+# Koneksi database PostgreSQL
 con <- dbConnect(
   RPostgres::Postgres(),
-  dbname = Sys.getenv("DB_NAME", unset = "IFRS9_pro"),
-  host = Sys.getenv("DB_HOST", unset = "10.8.0.2"),
-  port = as.integer(Sys.getenv("DB_PORT", unset = "5433")),
-  user = Sys.getenv("DB_USER", unset = "postgres"),
-  password = Sys.getenv("DB_PASSWORD", unset = "postgres")
+  dbname = "IFRS9_pro",
+  # host ="pgm-d9j5id443p7876n9.pgsql.ap-southeast-5.rds.aliyuncs.com",
+  host = "10.8.0.2",
+  port = 5433,
+  # user ="admin_iaf",
+  user = "postgres",
+  # password = "P@ssw0rd2025!"
+  password = "postgres"
 )
 
-dbExecute(con, "SET search_path TO dbo, public;")
+dbExecute(con, "SET search_path TO dbo;")
 
 # Load konfigurasi
 LGD <- dbGetQuery(con, 'SELECT * FROM "FRS9_IMP_CA_LGD_CONFIG"')
@@ -70,179 +73,142 @@ pd_final_map <- list(
 
 customHeader <- tags$head(
   tags$style(HTML("
-    /* =========================================
-       MODERN CLEAN THEME - MATCHING SIDEBAR (#1976D2)
-       ========================================= */
-
-    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
-
-    body {
-      font-family: 'Roboto', sans-serif !important;
-      background-color: #f4f6f9;
-    }
-
-    /* --- HEADER & NAVBAR --- */
-    .skin-blue .main-header .navbar {
-      background-color: #1976D2 !important; /* MATCH SIDEBAR */
-      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
-    }
-
+    /* ===== HEADER & NAVBAR ===== */
+    /* ===== HEADER & NAVBAR ===== */
     .skin-blue .main-header .logo {
-      background-color: #1565C0 !important; /* Slightly darker for logo */
-      font-weight: 700;
-      letter-spacing: 1px;
+      background-color: #1976D2 !important;
+      color: #ffffff !important;
+      border: none !important;
+      height: 50px !important;
+      line-height: 50px !important;
     }
 
     .skin-blue .main-header .logo:hover {
-      background-color: #0D47A1 !important;
+      background-color: #1565C0 !important;
     }
 
-    /* Navbar Links */
-    .navbar-nav > li > a {
-      color: white !important;
-      font-weight: 500;
-      font-size: 14px;
-      transition: all 0.3s ease;
-      border-bottom: 3px solid transparent;
-      padding-top: 18px;
+    .skin-blue .main-header .navbar {
+      background-color: #1976D2 !important;
+      border: none !important;
+      margin-bottom: 0 !important;
+      min-height: 50px !important;
+      box-shadow: none !important;
     }
 
-    .navbar-nav > li > a:hover {
-      background-color: rgba(255,255,255,0.1) !important;
+    .skin-blue .main-header {
+      max-height: 50px !important;
+      box-shadow: none !important;
+      padding-bottom: 0 !important;
     }
 
-    /* Active Menu Item */
-    .navbar-nav > li.active > a {
-      background-color: rgba(255,255,255,0.15) !important;
+    /* ===== TOGGLE BUTTON ===== */
+    .skin-blue .main-header .navbar .sidebar-toggle {
       color: #ffffff !important;
-      font-weight: 700;
-      border-bottom: 3px solid #ffeb3b; /* Soft Yellow Accent */
+    }
+    .skin-blue .main-header .navbar .sidebar-toggle:hover {
+      background-color: #1565C0 !important;
     }
 
-    /* --- MODERN BOXES (CARDS) --- */
-    .box {
-      border-radius: 12px !important;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05) !important;
-      border-top: none !important; /* Remove colored strip for cleaner look */
-      border: 1px solid #eaeaea;
-      background: #ffffff;
-      margin-bottom: 24px;
-      transition: transform 0.2s;
+    /* ===== MENU ITEM ===== */
+    .skin-blue .main-header .navbar .nav > li > a {
+      color: #ffffff !important;
     }
 
-    /* Hover effect for interaction */
-    .box:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 16px rgba(0,0,0,0.08) !important;
+    /* ===== HOVER MENU ===== */
+    .skin-blue .main-header .navbar .nav > li > a:hover,
+    .skin-blue .main-header .navbar .nav > li > a:active,
+    .skin-blue .main-header .navbar .nav > li > a:focus {
+      background-color: #1565C0 !important;
+      color: #ffffff !important;
     }
 
-    .box-header {
-      padding: 16px 20px !important;
-      border-bottom: 1px solid #f0f0f0;
-      background-color: #fff;
-      border-radius: 12px 12px 0 0 !important;
+    /* ===== ACTIVE MENU ===== */
+    .navbar-nav > li.active > a {
+      background-color: #1565C0 !important;
+      color: #ffffff !important;
+      font-weight: bold;
+      box-shadow: inset 0 -3px 0 #FFD54F !important;
+      border-bottom: none !important;
     }
 
-    .box-header .box-title {
-      font-size: 18px;
-      font-weight: 600;
-      color: #333;
-    }
-
-    /* Box Primary Title Override */
-    .box.box-primary .box-header {
-       border-bottom: 2px solid #1976D2;
-    }
-
-    .box-body {
-      padding: 20px !important;
-    }
-
-    /* --- MODERN BUTTONS --- */
-    .btn {
-      border-radius: 6px !important;
-      font-weight: 500;
-      letter-spacing: 0.5px;
-      text-transform: uppercase;
-      font-size: 13px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      transition: all 0.2s;
-      border: none;
-    }
-
-    .btn:hover {
-      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-      transform: translateY(-1px);
-    }
-
-    .btn-success {
-      background-color: #2e7d32 !important; /* Darker Green */
-      color: white;
-    }
-
-    .btn-warning {
-       background-color: #f57c00 !important;
-       color: white;
-    }
-
-    /* --- INPUTS & SELECTS --- */
-    .form-control {
-      border-radius: 8px !important;
-      height: 42px;
-      border: 1px solid #ddd;
-      box-shadow: none;
-    }
-
-    .form-control:focus {
-      border-color: #1976D2 !important;
-      box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.2);
-    }
-
-    /* Select2 (Shiny Inputs) customization */
-    .selectize-input {
-      border-radius: 8px !important;
-      padding: 10px 12px !important;
-      border: 1px solid #ddd !important;
-    }
-
-    .selectize-input.focus {
-      border-color: #1976D2 !important;
-      box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.2) !important;
-    }
-
-    /* --- TABS --- */
-    .nav-tabs-custom {
-      box-shadow: none;
-      background: transparent;
-    }
-
-    .nav-tabs-custom > .nav-tabs {
-      border-bottom-color: transparent;
-    }
-
-    .nav-tabs-custom > .nav-tabs > li.active {
+    /* ===== BOX & BUTTON (opsional tetap) ===== */
+    .box.box-primary {
       border-top-color: #1976D2;
     }
 
-    .nav-tabs-custom > .nav-tabs > li.active > a {
-       border-top-color: #1976D2;
-       font-weight: bold;
+    .btn-success {
+      background-color: #28a745;
+      border-color: #28a745;
     }
 
-    /* --- CONTENT WRAPPER --- */
     .content-wrapper {
-      background-color: #f4f6f9 !important;
+      margin-top: 0px !important;
       padding-top: 10px !important;
     }
 
-    /* Typography Headers */
-    h1, h2, h3, h4 {
-      font-weight: 300;
+    /* ================================
+       GLOBAL BOX STYLE
+       ================================ */
+
+    /* Box border */
+    .box {
+      border-radius: 6px;
+      border-top: 0 !important;
+      border: 1px solid #1976D2 !important;
     }
+
+    /* Box header */
+    .box-header {
+      background-color: #1976D2 !important;
+      color: #ffffff !important;
+      font-weight: bold;
+      border-bottom: 1px solid #1976D2 !important;
+    }
+
+    /* Box title */
+    .box-header .box-title {
+      color: #ffffff !important;
+      font-size: 16px;
+    }
+
+    /* Solid primary box */
+    .box.box-primary {
+      border-top-color: #1976D2 !important;
+    }
+
+    .box.box-primary > .box-header {
+      background-color: #1976D2 !important;
+      color: #ffffff !important;
+    }
+
+    /* Box body (isi) */
+    .box-body {
+      background-color: #ffffff;
+    }
+
+    /* Optional: footer */
+    .box-footer {
+      border-top: 1px solid #1976D2 !important;
+    }
+
+     html, body {
+  background-color: #ffffff !important;
+  height: 100%;
+}
+
+.wrapper {
+  background-color: #ffffff !important;
+  min-height: 100vh !important;
+}
+
+.content-wrapper, .right-side {
+  background-color: #ffffff !important;
+  min-height: 100vh !important;
+}
+
 
   "))
 )
-
 
 
 ui <- dashboardPage(
@@ -290,13 +256,6 @@ ui <- dashboardPage(
             "PD & AFL"
           )
         ),
-        tags$li(
-          tags$a(
-            href = "#shiny-tab-forecast_manual",
-            `data-toggle` = "tab",
-            "Forecast Manual"
-          )
-        )
       )
     )
   ),
@@ -315,10 +274,6 @@ ui <- dashboardPage(
           "The Probability of Default (PD) module in this IFRS 9 Modelling Tools application is designed to assist financial institutions in calculating the likelihood of borrower default based on historical data, in an accurate, efficient, and compliant manner with IFRS 9 standards.",
           style = "font-size: 22px; color: #333333;"
         ),
-        div(
-          style = "text-align: center;",
-          tags$img(src = "overfitting.png", height = "300px")
-        )
       ),
       tabItem(
         tabName = "input",
@@ -4216,5 +4171,4 @@ server <- function(input, output, session) {
 }
 
 # shinyApp(ui, server)
-# runApp(shinyApp(ui, server), host = "0.0.0.0", port = 4742)
 shinyApp(ui, server)

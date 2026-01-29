@@ -11,10 +11,10 @@ import {
   Chip
 } from '@mui/material';
 import {
-  DataGrid,
   GridColDef,
   GridToolbar
 } from '@mui/x-data-grid';
+import { SafeDataGrid } from '@/components/shared/SafeDataGrid';
 import {
   Home as HomeIcon,
   History as HistoryIcon,
@@ -48,25 +48,25 @@ export default function CustomerHistoryPage() {
   }, []);
 
   const columns: GridColDef[] = [
-    {
-      field: 'performedAt',
-      headerName: 'Date',
+    { 
+      field: 'performedAt', 
+      headerName: 'Date', 
       width: 180,
-      valueFormatter: (value: any) => {
-        if (!value) return '-';
-        return new Date(value).toLocaleString();
+      valueFormatter: (params) => {
+        if (!params.value) return '-';
+        return new Date(params.value).toLocaleString();
       }
     },
     { field: 'entityId', headerName: 'Customer / ID', flex: 1 },
-    {
-      field: 'action',
-      headerName: 'Action',
+    { 
+      field: 'action', 
+      headerName: 'Action', 
       width: 120,
       renderCell: (params) => (
-        <Chip
-          label={params.value}
-          color={params.value === 'CREATE' ? 'success' : params.value === 'DELETE' ? 'error' : 'primary'}
-          size="small"
+         <Chip 
+          label={params.value} 
+          color={params.value === 'CREATE' ? 'success' : params.value === 'DELETE' ? 'error' : 'primary'} 
+          size="small" 
           variant="outlined"
         />
       )
@@ -81,7 +81,7 @@ export default function CustomerHistoryPage() {
   return (
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
       <FullstackIndicator />
-
+      
       {/* Breadcrumbs */}
       <Breadcrumbs sx={{ mb: 2 }}>
         <Link href="/banking/dashboard" underline="hover" color="inherit" sx={{ display: 'flex', alignItems: 'center' }}>
@@ -103,22 +103,22 @@ export default function CustomerHistoryPage() {
 
       {error && (
         <Typography color="error" sx={{ mb: 2 }}>
-          {error}
+            {error}
         </Typography>
       )}
 
       <Paper sx={{ height: 600, width: '100%' }}>
-        <DataGrid
-          rows={data}
-          columns={columns}
-          loading={loading}
-          slots={{ toolbar: GridToolbar }}
-          disableRowSelectionOnClick
-          initialState={{
-            sorting: {
-              sortModel: [{ field: 'performedAt', sort: 'desc' }],
-            },
-          }}
+        <SafeDataGrid
+            rows={data}
+            columns={columns}
+            loading={loading}
+            slots={{ toolbar: GridToolbar }}
+            disableRowSelectionOnClick
+            initialState={{
+                sorting: {
+                    sortModel: [{ field: 'performedAt', sort: 'desc' }],
+                },
+            }}
         />
       </Paper>
     </Container>

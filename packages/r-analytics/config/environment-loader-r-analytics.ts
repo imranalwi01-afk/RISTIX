@@ -283,8 +283,8 @@ class RAnalyticsEnvironmentLoader {
         tenantDomains: {
           iaf: this.getEnvVar('R_ANALYTICS_IAF_DOMAIN',
             environment === 'iafecs' ?
-            'https://iaf-ifrs-analytics.danafin.com' :
-            'https://iaf-ifrs-analytics.ifrspro.id')
+              'https://iaf-ifrs-analytics.danafin.com' :
+              'https://iaf-ifrs-analytics.ifrspro.id')
         }
       };
 

@@ -9,6 +9,18 @@ import { secureHeaders } from 'hono/secure-headers'
 import { timing } from 'hono/timing'
 import { prettyJSON } from 'hono/pretty-json'
 import { env, isProduction } from './config'
+
+// ============================================================================
+// GLOBAL POLYFILLS & PATCHES
+// ============================================================================
+
+/**
+ * Patch BigInt to be serializable by JSON.stringify
+ * This prevents "JSON.stringify cannot serialize BigInt" errors
+ */
+(BigInt.prototype as any).toJSON = function () {
+    return this.toString()
+}
 import { routes } from './routes'
 import { errorHandler } from './middleware/error-handler'
 

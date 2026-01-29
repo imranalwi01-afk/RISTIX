@@ -76,19 +76,15 @@ import {
   Save as SaveIcon,
   PlayArrow as RunIcon,
   Clear as ClearIcon,
-  PostAdd,
-
+  Addchart as AddChartIcon,
   ShowChart as ShowChartIcon,
-  AccountBalance as AccountBalanceIcon,
-  // AddChart might be problematic in barrel imports, using fallback or direct import if needed
-  // For now, let's use AddToPhotos as a substitute or try direct import if preferred, 
-  // but to be safe and quick, let's use 'Add' + 'ShowChart' concept or just keep it simple.
-  // The user log specifically says "Attempted import error: 'AddChart' is not exported".
-  // Let's replace it with `PostAdd` which is similar visually.
-  PostAdd as AddChartIcon
+  AccountBalance as AccountBalanceIcon
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { individualImpairmentAPI, individualImpairmentHelpers, type IndividualImpairmentWatchlistItem, type IndividualImpairmentAssessment } from '@/services/api.individual-impairment';
+import ModernLoader from '@/components/common/ModernLoader';
+import { DCFAnalysisTab } from '@/components/banking/individual/assessment/DCFAnalysisTab';
+import { ProvisionCalculationTab } from '@/components/banking/individual/assessment/ProvisionCalculationTab';
 
 // Tab Panel Component
 interface TabPanelProps {
@@ -108,386 +104,8 @@ function TabPanel(props: TabPanelProps) {
       aria-labelledby={`individual-impairment-tab-${index}`}
       {...other}
     >
-      {value === index && <Box sx={{ p: 3 }}>{children as any}</Box>}
+      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
     </div>
-  );
-}
-
-// DCF Analysis Tab Component
-interface DCFAnalysisTabProps {
-  account: IndividualImpairmentWatchlistItem | null;
-  assessment: IndividualImpairmentAssessment | null;
-  onCalculate: (parameters: any) => void;
-  loading: boolean;
-}
-
-function DCFAnalysisTab({ account, assessment, onCalculate, loading }: DCFAnalysisTabProps) {
-  const [parameters, setParameters] = useState({
-    discountRate: 8.5,
-    projectedGrowthRate: 2.0,
-    recoveryRate: 60.0,
-    timeHorizon: 60,
-    paymentFrequency: 'monthly',
-    scenarioType: 'base'
-  });
-
-  const [scenarioData, setScenarioData] = useState([
-    { name: 'Base Case', discountRate: 8.5, recoveryRate: 60.0, growthRate: 2.0 },
-    { name: 'Optimistic', discountRate: 6.5, recoveryRate: 75.0, growthRate: 3.5 },
-    { name: 'Pessimistic', discountRate: 12.0, recoveryRate: 40.0, growthRate: 0.5 }
-  ]);
-
-  const [activeScenario, setActiveScenario] = useState('base');
-  const [calculationResults, setCalculationResults] = useState<any>(null);
-
-  const handleParameterChange = (field: string, value: any) => {
-    setParameters(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleCalculate = () => {
-    onCalculate({
-      ...parameters,
-      scenarioType: activeScenario,
-      accountId: account?.account_id
-    });
-  };
-
-  const handleScenarioChange = (scenarioName: string) => {
-    const scenario = scenarioData.find(s => s.name === scenarioName);
-    if (scenario) {
-      setParameters(prev => ({
-        ...prev,
-        discountRate: scenario.discountRate,
-        recoveryRate: scenario.recoveryRate,
-        projectedGrowthRate: scenario.growthRate
-      }));
-      setActiveScenario(scenarioName.toLowerCase().replace(' ', ''));
-    }
-  };
-
-  // Local helper function for formatting currency
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
-
-  // Local helper function for rendering stage chip
-  const renderStageChipLocal = (stage: number) => {
-    const colors = {
-      1: '#4caf50',
-      2: '#ff9800',
-      3: '#f44336'
-    };
-    const labels = {
-      1: 'Stage 1',
-      2: 'Stage 2',
-      3: 'Stage 3'
-    };
-
-    return (
-      <Chip
-        label={labels[stage as keyof typeof labels]}
-        size="small"
-        sx={{
-          backgroundColor: colors[stage as keyof typeof colors],
-          color: 'white',
-          fontWeight: 'bold'
-        }}
-      />
-    );
-  };
-
-  // Local helper function for rendering impaired flag
-  const renderImpairedFlagLocal = (flag: string) => {
-    return (
-      <Chip
-        label={flag === 'I' ? 'Impaired' : 'Non-Impaired'}
-        size="small"
-        color={flag === 'I' ? 'error' : 'success'}
-        variant="outlined"
-      />
-    );
-  };
-
-  return (
-    <Box>
-      <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-        <CalculateIcon sx={{ mr: 1 }} />
-        DCF Analysis - {account?.account_number} - {account?.cif_name}
-      </Typography>
-
-      <Grid container spacing={3}>
-        {/* Input Parameters */}
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                <ShowChartIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                DCF Parameters
-              </Typography>
-              <Divider sx={{ mb: 2 }} />
-
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <TextField
-                  label="Discount Rate (%)"
-                  type="number"
-                  value={parameters.discountRate}
-                  onChange={(e) => handleParameterChange('discountRate', parseFloat(e.target.value))}
-                  inputProps={{ step: 0.1, min: 0, max: 100 }}
-                  size="small"
-                  helperText="Annual discount rate for present value calculation"
-                />
-
-                <TextField
-                  label="Recovery Rate (%)"
-                  type="number"
-                  value={parameters.recoveryRate}
-                  onChange={(e) => handleParameterChange('recoveryRate', parseFloat(e.target.value))}
-                  inputProps={{ step: 1, min: 0, max: 100 }}
-                  size="small"
-                  helperText="Expected recovery rate of outstanding balance"
-                />
-
-                <TextField
-                  label="Growth Rate (%)"
-                  type="number"
-                  value={parameters.projectedGrowthRate}
-                  onChange={(e) => handleParameterChange('projectedGrowthRate', parseFloat(e.target.value))}
-                  inputProps={{ step: 0.1, min: -10, max: 20 }}
-                  size="small"
-                  helperText="Projected cash flow growth rate"
-                />
-
-                <TextField
-                  label="Time Horizon (months)"
-                  type="number"
-                  value={parameters.timeHorizon}
-                  onChange={(e) => handleParameterChange('timeHorizon', parseInt(e.target.value))}
-                  inputProps={{ step: 1, min: 1, max: 360 }}
-                  size="small"
-                  helperText="Analysis period in months"
-                />
-
-                <FormControl size="small" fullWidth>
-                  <InputLabel>Payment Frequency</InputLabel>
-                  <Select
-                    value={parameters.paymentFrequency}
-                    label="Payment Frequency"
-                    onChange={(e) => handleParameterChange('paymentFrequency', e.target.value)}
-                  >
-                    <MenuItem value="monthly">Monthly</MenuItem>
-                    <MenuItem value="quarterly">Quarterly</MenuItem>
-                    <MenuItem value="annually">Annually</MenuItem>
-                  </Select>
-                </FormControl>
-
-                <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
-                  <Button
-                    variant="contained"
-                    startIcon={<RunIcon />}
-                    onClick={handleCalculate}
-                    disabled={loading}
-                    fullWidth
-                  >
-                    {loading ? <CircularProgress size={20} /> : 'Calculate DCF'}
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    startIcon={<ClearIcon />}
-                    onClick={() => setCalculationResults(null)}
-                  >
-                    Clear
-                  </Button>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Scenarios */}
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                <AddChartIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                Scenario Analysis
-              </Typography>
-              <Divider sx={{ mb: 2 }} />
-
-              <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                {scenarioData.map((scenario) => (
-                  <Button
-                    key={scenario.name}
-                    variant={activeScenario.includes(scenario.name.toLowerCase()) ? 'contained' : 'outlined'}
-                    size="small"
-                    onClick={() => handleScenarioChange(scenario.name)}
-                  >
-                    {scenario.name}
-                  </Button>
-                ))}
-              </Box>
-
-              <TableContainer>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Scenario</TableCell>
-                      <TableCell>Discount Rate</TableCell>
-                      <TableCell>Recovery Rate</TableCell>
-                      <TableCell>Growth Rate</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {scenarioData.map((scenario) => (
-                      <TableRow key={scenario.name}>
-                        <TableCell>{scenario.name}</TableCell>
-                        <TableCell>{scenario.discountRate}%</TableCell>
-                        <TableCell>{scenario.recoveryRate}%</TableCell>
-                        <TableCell>{scenario.growthRate}%</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Current Account Info */}
-        <Grid size={{ xs: 12 }}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                <AccountBalanceIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                Account Information
-              </Typography>
-              <Divider sx={{ mb: 2 }} />
-
-              <Grid container spacing={2}>
-                <Grid size={{ xs: 12, md: 3 }}>
-                  <Typography variant="body2" color="text.secondary">Outstanding Balance:</Typography>
-                  <Typography variant="h6">
-                    {formatCurrency(account?.outstanding_balance || 0)}
-                  </Typography>
-                </Grid>
-                <Grid size={{ xs: 12, md: 3 }}>
-                  <Typography variant="body2" color="text.secondary">Current Stage:</Typography>
-                  <Box sx={{ mt: 1 }}>
-                    {account && renderStageChipLocal(account.stage)}
-                  </Box>
-                </Grid>
-                <Grid size={{ xs: 12, md: 3 }}>
-                  <Typography variant="body2" color="text.secondary">Impaired Status:</Typography>
-                  <Box sx={{ mt: 1 }}>
-                    {account && renderImpairedFlagLocal(account.impaired_flag)}
-                  </Box>
-                </Grid>
-                <Grid size={{ xs: 12, md: 3 }}>
-                  <Typography variant="body2" color="text.secondary">Current Provision:</Typography>
-                  <Typography variant="h6">
-                    {formatCurrency(account?.provision_amount || 0)}
-                  </Typography>
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-    </Box>
-  );
-}
-
-// Provision Calculation Tab Component
-interface ProvisionCalculationTabProps {
-  account: IndividualImpairmentWatchlistItem | null;
-  assessment: IndividualImpairmentAssessment | null;
-  calculation: any;
-  loading: boolean;
-}
-
-function ProvisionCalculationTab({ account, assessment, calculation, loading }: ProvisionCalculationTabProps) {
-  // Local helper function for formatting currency
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
-
-  return (
-    <Box>
-      <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-        <MoneyIcon sx={{ mr: 1 }} />
-        Provision Calculation - {account?.account_number} - {account?.cif_name}
-      </Typography>
-
-      {calculation ? (
-        <Grid container spacing={3}>
-          <Grid size={{ xs: 12, md: 6 }}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>DCF Results</Typography>
-                <Divider sx={{ mb: 2 }} />
-
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2">Present Value of Cash Flows:</Typography>
-                    <Typography variant="h6">
-                      {formatCurrency(calculation.presentValue || 0)}
-                    </Typography>
-                  </Box>
-
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2">Outstanding Balance:</Typography>
-                    <Typography variant="body2">
-                      {formatCurrency(account?.outstanding_balance || 0)}
-                    </Typography>
-                  </Box>
-
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2">Loss Given Default:</Typography>
-                    <Typography variant="h6" color="error.main">
-                      {formatCurrency(calculation.lgd || 0)}
-                    </Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid size={{ xs: 12, md: 6 }}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>Provision Recommendation</Typography>
-                <Divider sx={{ mb: 2 }} />
-
-                <Alert severity="info" sx={{ mb: 2 }}>
-                  Based on DCF analysis, the recommended provision amount is calculated.
-                </Alert>
-
-                <Typography variant="h4" color="primary.main" sx={{ textAlign: 'center', my: 2 }}>
-                  {formatCurrency(calculation.recommendedProvision || 0)}
-                </Typography>
-
-                <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
-                  Recommended Provision Amount
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
-      ) : (
-        <Alert severity="info">
-          Please perform DCF analysis first to calculate provision amounts.
-        </Alert>
-      )}
-    </Box>
   );
 }
 
@@ -642,7 +260,7 @@ export default function IndividualAssessmentPage() {
 
     setLoading(true);
     try {
-      const response = await individualImpairmentAPI.assessment.create(assessmentData);
+      const response = await individualImpairmentAPI.assessment.create({ ...assessmentData, account_id: selectedAccount.account_id });
       if (response.success) {
         setAssessment(response.data);
         fetchWatchlist(); // Refresh watchlist to update status
@@ -715,20 +333,24 @@ export default function IndividualAssessmentPage() {
   };
 
   // Render assessment status
-  const renderAssessmentStatus = (status: string) => {
+  const renderAssessmentStatus = (status: string | undefined | null) => {
+    const safeStatus = status || 'PENDING';
     const colors = {
       'PENDING': '#757575',
       'IN_PROGRESS': '#2196f3',
       'COMPLETED': '#4caf50',
       'REVIEWED': '#ff9800'
     };
+    
+    // Default to grey if status not in map
+    const bgColor = colors[safeStatus as keyof typeof colors] || '#757575';
 
     return (
       <Chip
-        label={status.replace('_', ' ')}
+        label={safeStatus.replace('_', ' ')}
         size="small"
         sx={{
-          backgroundColor: colors[status as keyof typeof colors],
+          backgroundColor: bgColor,
           color: 'white',
           fontWeight: 'bold'
         }}
@@ -736,18 +358,13 @@ export default function IndividualAssessmentPage() {
     );
   };
 
-  if (loading && watchlist.length === 0) {
-    return (
-      <Container maxWidth="xl">
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
-          <CircularProgress size={40} />
-        </Box>
-      </Container>
-    );
-  }
-
   return (
     <Container maxWidth="xl">
+      <ModernLoader 
+        open={loading} 
+        message="Loading Assessment Data" 
+        subMessage="Fetching individual impairment details..." 
+      />
       {/* Breadcrumb Navigation */}
       <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
         <Link
@@ -798,7 +415,7 @@ export default function IndividualAssessmentPage() {
 
       {/* Main Content */}
       <Grid container spacing={3}>
-        <Grid size={{ xs: 12 }}>
+        <Grid item xs={12}>
           <Paper sx={{ p: 3 }}>
             {/* Filters */}
             <Box sx={{ mb: 3, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -920,268 +537,310 @@ export default function IndividualAssessmentPage() {
             </Box>
 
             <Box>
-              {/* Tab Panels */}
-              <TabPanel value={tabValue} index={0}>
-                {/* Watchlist Table */}
-                <TableContainer sx={{ maxHeight: 600, overflow: 'auto' }}>
-                  <Table stickyHeader>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Account Info</TableCell>
-                        <TableCell>Customer</TableCell>
-                        <TableCell>Balance</TableCell>
-                        <TableCell>Stage</TableCell>
-                        <TableCell>Status</TableCell>
-                        <TableCell>Priority</TableCell>
-                        <TableCell>Impaired</TableCell>
-                        <TableCell>Provision</TableCell>
-                        <TableCell>Actions</TableCell>
+            {/* Tab Panels */}
+            <TabPanel value={tabValue} index={0}>
+              {/* Watchlist Table */}
+              <TableContainer sx={{ maxHeight: 600, overflow: 'auto' }}>
+                <Table stickyHeader>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Account Info</TableCell>
+                      <TableCell>Customer</TableCell>
+                      <TableCell>Balance</TableCell>
+                    <TableCell>Stage</TableCell>
+                      <TableCell>Status</TableCell>
+                      <TableCell>Priority</TableCell>
+                      <TableCell>Impaired</TableCell>
+                      <TableCell>Provision</TableCell>
+                      <TableCell>Actions</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {watchlist.map((account) => (
+                      <TableRow key={account.pkid} hover>
+                        <TableCell>
+                          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                            {account.account_number}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            ID: {account.account_id}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">{account.cif_name}</Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {account.cif_number}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">
+                            {individualImpairmentHelpers.formatCurrency(account.outstanding_balance)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          {renderStageChip(account.stage)}
+                        </TableCell>
+                        <TableCell>
+                          {renderAssessmentStatus(account.assessment_status)}
+                        </TableCell>
+                        <TableCell>
+                          {renderPriorityChip(account.priority_level)}
+                        </TableCell>
+                        <TableCell>
+                          {renderImpairedFlag(account.impaired_flag)}
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">
+                            {individualImpairmentHelpers.formatCurrency(account.provision_amount)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Box sx={{ display: 'flex', gap: 1 }}>
+                            <Tooltip title="View Details">
+                              <IconButton
+                                size="small"
+                                onClick={() => handleAccountSelect(account)}
+                                color="primary"
+                                >
+                                <VisibilityIcon />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Edit Assessment">
+                              <IconButton
+                                size="small"
+                                onClick={() => handleAssessmentDialog(true)}
+                                disabled={!account.account_id}
+                              >
+                                <EditIcon />
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
+                        </TableCell>
                       </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {watchlist.map((account) => (
-                        <TableRow key={account.pkid} hover>
-                          <TableCell>
-                            <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                              {account.account_number}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              ID: {account.account_id}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2">{account.cif_name}</Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {account.cif_number}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2">
-                              {individualImpairmentHelpers.formatCurrency(account.outstanding_balance)}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            {renderStageChip(account.stage)}
-                          </TableCell>
-                          <TableCell>
-                            {renderAssessmentStatus(account.assessment_status)}
-                          </TableCell>
-                          <TableCell>
-                            {renderPriorityChip(account.priority_level)}
-                          </TableCell>
-                          <TableCell>
-                            {renderImpairedFlag(account.impaired_flag)}
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2">
-                              {individualImpairmentHelpers.formatCurrency(account.provision_amount)}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Box sx={{ display: 'flex', gap: 1 }}>
-                              <Tooltip title="View Details">
-                                <IconButton
-                                  size="small"
-                                  onClick={() => handleAccountSelect(account)}
-                                  color="primary"
-                                >
-                                  <VisibilityIcon />
-                                </IconButton>
-                              </Tooltip>
-                              <Tooltip title="Edit Assessment">
-                                <IconButton
-                                  size="small"
-                                  onClick={() => handleAssessmentDialog(true)}
-                                  disabled={!account.account_id}
-                                >
-                                  <EditIcon />
-                                </IconButton>
-                              </Tooltip>
-                            </Box>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
 
-                {/* Pagination */}
-                <TablePagination
-                  rowsPerPageOptions={[10, 25, 50, 100]}
-                  component="div"
-                  count={pagination.total}
-                  rowsPerPage={pagination.limit}
-                  page={pagination.page}
-                  onPageChange={handlePageChange}
-                  onRowsPerPageChange={handleRowsPerPageChange}
-                />
-              </TabPanel>
+              {/* Pagination */}
+              <TablePagination
+                rowsPerPageOptions={[10, 25, 50, 100]}
+                component="div"
+                count={pagination.total}
+                rowsPerPage={pagination.limit}
+                page={pagination.page}
+                onPageChange={handlePageChange}
+                onRowsPerPageChange={handleRowsPerPageChange}
+              />
+            </TabPanel>
 
-              <TabPanel value={tabValue} index={1}>
-                {selectedAccount ? (
-                  <Box>
-                    <Alert severity="info" sx={{ mb: 2 }}>
-                      Assessment details for Account {selectedAccount.account_number} - {selectedAccount.cif_name}
-                    </Alert>
-
-                    {assessment ? (
-                      <Grid container spacing={3}>
-                        <Grid size={{ xs: 12, md: 6 }}>
-                          <Card>
-                            <CardContent>
-                              <Typography variant="h6" gutterBottom>
-                                Assessment Information
-                              </Typography>
-                              <Divider sx={{ mb: 2 }} />
-
-                              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                                  <Typography variant="body2" color="text.secondary">Impaired Flag:</Typography>
-                                  <Chip
-                                    label={assessment.impaired_flag === 'I' ? 'Impaired' : 'Non-Impaired'}
-                                    color={assessment.impaired_flag === 'I' ? 'error' : 'success'}
-                                    size="small"
-                                  />
-                                </Box>
-
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                                  <Typography variant="body2" color="text.secondary">Stage:</Typography>
-                                  {renderStageChip(assessment.stage)}
-                                </Box>
-
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                                  <Typography variant="body2" color="text.secondary">Method:</Typography>
-                                  <Typography variant="body2">{assessment.method}</Typography>
-                                </Box>
-
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                                  <Typography variant="body2" color="text.secondary">Rating:</Typography>
-                                  <Typography variant="body2">{assessment.rating_code}</Typography>
-                                </Box>
-
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                                  <Typography variant="body2" color="text.secondary">Approval Status:</Typography>
-                                  <Chip
-                                    label={assessment.approval_status}
-                                    color={assessment.approval_status === 'APPROVED' ? 'success' : 'default'}
-                                    size="small"
-                                  />
-                                </Box>
-                              </Box>
-                            </CardContent>
-                          </Card>
-                        </Grid>
-
-                        <Grid size={{ xs: 12, md: 6 }}>
-                          <Card>
-                            <CardContent>
-                              <Typography variant="h6" gutterBottom>
-                                Financial Details
-                              </Typography>
-                              <Divider sx={{ mb: 2 }} />
-
-                              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                                  <Typography variant="body2" color="text.secondary">Outstanding Balance:</Typography>
-                                  <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                                    {individualImpairmentHelpers.formatCurrency(assessment.outstanding_balance)}
-                                  </Typography>
-                                </Box>
-
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                                  <Typography variant="body2" color="text.secondary">Interest Rate:</Typography>
-                                  <Typography variant="body2">{assessment.interest_rate}%</Typography>
-                                </Box>
-
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                                  <Typography variant="body2" color="text.secondary">Days Past Due:</Typography>
-                                  <Typography variant="body2">{assessment.dpd}</Typography>
-                                </Box>
-
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                                  <Typography variant="body2" color="text.secondary">Collectability:</Typography>
-                                  <Typography variant="body2">{assessment.collectability}%</Typography>
-                                </Box>
-                              </Box>
-                            </CardContent>
-                          </Card>
-                        </Grid>
-
-                        <Grid size={{ xs: 12 }}>
-                          <Card>
-                            <CardContent>
-                              <Typography variant="h6" gutterBottom>
-                                Assessment Comments
-                              </Typography>
-                              <Divider sx={{ mb: 2 }} />
-
-                              <Typography variant="body2" paragraph>
-                                {assessment.analyst_comments || 'No analyst comments available.'}
-                              </Typography>
-
-                              {assessment.reviewer_comments && (
-                                <>
-                                  <Typography variant="subtitle2" sx={{ mb: 1, mt: 2 }}>
-                                    Reviewer Comments:
-                                  </Typography>
-                                  <Typography variant="body2">
-                                    {assessment.reviewer_comments}
-                                  </Typography>
-                                </>
-                              )}
-                            </CardContent>
-                          </Card>
-                        </Grid>
-                      </Grid>
-                    ) : (
-                      <Alert severity="info">
-                        No assessment data available for this account.
-                      </Alert>
-                    )}
-                  </Box>
-                ) : (
-                  <Alert severity="info">
-                    Please select an account from the watchlist to view assessment details.
+            <TabPanel value={tabValue} index={1}>
+              {selectedAccount ? (
+                <Box>
+                  <Alert severity="info" sx={{ mb: 2 }}>
+                    Assessment details for Account {selectedAccount.account_number} - {selectedAccount.cif_name}
                   </Alert>
-                )}
-              </TabPanel>
 
-              <TabPanel value={tabValue} index={2}>
-                <DCFAnalysisTab
-                  account={selectedAccount}
-                  assessment={assessment}
-                  onCalculate={handleCalculateDCF}
-                  loading={loading}
-                />
-              </TabPanel>
+                  {assessment ? (
+                    <Grid container spacing={3}>
+                      <Grid item xs={12} md={6}>
+                        <Card>
+                          <CardContent>
+                            <Typography variant="h6" gutterBottom>
+                              Assessment Information
+                            </Typography>
+                            <Divider sx={{ mb: 2 }} />
 
-              <TabPanel value={tabValue} index={3}>
-                <ProvisionCalculationTab
-                  account={selectedAccount}
-                  assessment={assessment}
-                  calculation={selectedCalculation}
-                  loading={loading}
-                />
-              </TabPanel>
-            </Box>
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <Typography variant="body2" color="text.secondary">Impaired Flag:</Typography>
+                                <Chip
+                                  label={assessment.impaired_flag === 'I' ? 'Impaired' : 'Non-Impaired'}
+                                  color={assessment.impaired_flag === 'I' ? 'error' : 'success'}
+                                  size="small"
+                                />
+                              </Box>
 
-            {/* Assessment Dialog */}
-            <Dialog
-              open={assessmentDialogOpen}
-              onClose={() => handleAssessmentDialog(false)}
-              maxWidth="md"
-              fullWidth
-            >
-              <DialogTitle>Edit Assessment</DialogTitle>
-              <DialogContent>
-                <Alert severity="info" sx={{ mb: 2 }}>
-                  Assessment editing functionality will be available in the next phase.
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <Typography variant="body2" color="text.secondary">Stage:</Typography>
+                                {renderStageChip(assessment.stage)}
+                              </Box>
+
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <Typography variant="body2" color="text.secondary">Method:</Typography>
+                                <Typography variant="body2">{assessment.method}</Typography>
+                              </Box>
+
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <Typography variant="body2" color="text.secondary">Rating:</Typography>
+                                <Typography variant="body2">{assessment.rating_code}</Typography>
+                              </Box>
+
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <Typography variant="body2" color="text.secondary">Approval Status:</Typography>
+                                <Chip
+                                  label={assessment.approval_status}
+                                  color={assessment.approval_status === 'APPROVED' ? 'success' : 'default'}
+                                  size="small"
+                                />
+                              </Box>
+                            </Box>
+                          </CardContent>
+                        </Card>
+                      </Grid>
+
+                      <Grid item xs={12} md={6}>
+                        <Card>
+                          <CardContent>
+                            <Typography variant="h6" gutterBottom>
+                              Financial Details
+                            </Typography>
+                            <Divider sx={{ mb: 2 }} />
+
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <Typography variant="body2" color="text.secondary">Outstanding Balance:</Typography>
+                                <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                                  {individualImpairmentHelpers.formatCurrency(assessment.outstanding_balance)}
+                                </Typography>
+                              </Box>
+
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <Typography variant="body2" color="text.secondary">Interest Rate:</Typography>
+                                <Typography variant="body2">{assessment.interest_rate}%</Typography>
+                              </Box>
+
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <Typography variant="body2" color="text.secondary">Days Past Due:</Typography>
+                                <Typography variant="body2">{assessment.dpd}</Typography>
+                              </Box>
+
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <Typography variant="body2" color="text.secondary">Collectability:</Typography>
+                                <Typography variant="body2">{assessment.collectability}%</Typography>
+                              </Box>
+                            </Box>
+                          </CardContent>
+                        </Card>
+                      </Grid>
+
+                      <Grid item xs={12}>
+                        <Card>
+                          <CardContent>
+                            <Typography variant="h6" gutterBottom>
+                              Assessment Comments
+                            </Typography>
+                            <Divider sx={{ mb: 2 }} />
+
+                            <Typography variant="body2" paragraph>
+                              {assessment.analyst_comments || 'No analyst comments available.'}
+                            </Typography>
+
+                            {assessment.reviewer_comments && (
+                              <>
+                                <Typography variant="subtitle2" sx={{ mb: 1, mt: 2 }}>
+                                  Reviewer Comments:
+                                </Typography>
+                                <Typography variant="body2">
+                                  {assessment.reviewer_comments}
+                                </Typography>
+                              </>
+                            )}
+                          </CardContent>
+                        </Card>
+                      </Grid>
+                    </Grid>
+                  ) : (
+                    <Alert severity="info">
+                      No assessment data available for this account.
+                    </Alert>
+                  )}
+                </Box>
+              ) : (
+                <Alert severity="info">
+                  Please select an account from the watchlist to view assessment details.
                 </Alert>
+              )}
+            </TabPanel>
+
+            <TabPanel value={tabValue} index={2}>
+              <DCFAnalysisTab
+                account={selectedAccount}
+                assessment={assessment}
+                onCalculate={handleCalculateDCF}
+                loading={loading}
+              />
+            </TabPanel>
+
+            <TabPanel value={tabValue} index={3}>
+              <ProvisionCalculationTab
+                account={selectedAccount}
+                assessment={assessment}
+                calculation={selectedCalculation}
+                loading={loading}
+              />
+            </TabPanel>
+          </Box>
+
+          {/* Assessment Dialog */}
+          <Dialog
+            open={assessmentDialogOpen}
+            onClose={() => handleAssessmentDialog(false)}
+            maxWidth="md"
+            fullWidth
+          >
+            <DialogTitle>Individual Assessment Override: {selectedAccount?.account_number}</DialogTitle>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              const formData = new FormData(e.currentTarget);
+              const data = {
+                accountNumber: selectedAccount?.account_number,
+                overrideStage: formData.get('overrideStage'),
+                justification: formData.get('justification'),
+                status: 'APPROVED',
+                createdBy: 'Analyst'
+              };
+              await handleSaveAssessment(data);
+              handleAssessmentDialog(false);
+            }}>
+              <DialogContent>
+                <Grid container spacing={2} sx={{ mt: 1 }}>
+                  <Grid item xs={12} md={6}>
+                    <FormControl fullWidth>
+                      <InputLabel>Override Stage</InputLabel>
+                      <Select
+                        name="overrideStage"
+                        defaultValue={selectedAccount?.stage.toString() || '1'}
+                        label="Override Stage"
+                        required
+                      >
+                        <MenuItem value="1">Stage 1: Low Credit Risk</MenuItem>
+                        <MenuItem value="2">Stage 2: Significant Increase (SICR)</MenuItem>
+                        <MenuItem value="3">Stage 3: Default / Impaired</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      name="justification"
+                      label="Justification"
+                      multiline
+                      rows={4}
+                      required
+                      placeholder="Provide reasoning for manual stage override..."
+                    />
+                  </Grid>
+                </Grid>
               </DialogContent>
               <DialogActions>
                 <Button onClick={() => handleAssessmentDialog(false)}>Cancel</Button>
+                <Button type="submit" variant="contained" color="primary" startIcon={<SaveIcon />}>
+                  Save Override
+                </Button>
               </DialogActions>
-            </Dialog>
+            </form>
+          </Dialog>
           </Paper>
         </Grid>
       </Grid>

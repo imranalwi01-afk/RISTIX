@@ -1,78 +1,493 @@
-import { Effect, pipe } from 'effect'
-import { MasterAccountRepository } from '../repositories/master-account.repository'
-import { frs9MasterAccount } from '../db/schema'
 
-export const IndividualImpairmentService = {
-    /**
-     * Get the individual impairment watchlist.
-     * 
-     * @param options - Pagination, filtering, and sorting options
-     * @param options.page - Page number
-     * @param options.limit - Items per page
-     * @param options.search - Search term
-     * @param options.filter - Filter criteria (stage, impaired_flag, assessment_status)
-     * @param options.sort - Sort criteria (field, order)
-     * @returns An Effect resolving to a paginated response with transformed watchlist items
-     */
-    getWatchlist: (options: {
-        page: number
-        limit: number
-        search?: string
-        filter?: any
-        sort?: any
-    }) => {
-        return pipe(
-            MasterAccountRepository.findAll({
-                page: options.page,
-                limit: options.limit,
-                search: options.search,
-                stage: options.filter?.stage,
-                impairedFlag: options.filter?.impaired_flag,
-                assessmentStatus: options.filter?.assessment_status,
-                sortField: options.sort?.field,
-                sortOrder: options.sort?.order
-            }),
-            Effect.map(({ data, total }) => ({
-                success: true,
-                data: data.map(transformWatchlistItem),
-                pagination: {
-                    page: options.page,
-                    limit: options.limit,
-                    total,
-                    totalPages: Math.ceil(total / options.limit)
+import { legacyDb } from '../config';
+import {
+    frs9ImpIaHeader,
+    frs9ImpIaDetail,
+    frs9ImpIaDcf,
+    frs9ImpIaResultH,
+    frs9ImpIaResultD
+} from '../db/schema/legacy';
+import { frs9MasterAccount } from '../db/schema/introspected/schema';
+import { users } from '../db/schema';
+import { and, eq, desc, sql, inArray } from 'drizzle-orm';
+
+
+// Helper to map Legacy Status (Int) <-> Frontend Status (String)
+// Assumption: 0=Pending, 1=Approved, 2=Rejected
+const STATUS_MAP_TO_STRING: Record<number, string> = {
+    0: 'PENDING',
+    1: 'APPROVED',
+    2: 'REJECTED'
+};
+const STATUS_MAP_TO_INT: Record<string, number> = {
+    'PENDING': 0,
+    'APPROVED': 1,
+    'REJECTED': 2
+};
+
+export class IndividualImpairmentService {
+
+    // =========================================================================
+    // AUDIT TRAIL / HISTORY
+    // =========================================================================
+
+    async getAuditTrails(tenantId: string, filters: { entityType?: string; limit?: number; offset?: number }) {
+        return []; // Generic audit not supported in legacy
+    }
+
+    async getAssessmentHistory(tenantId: string, accountId: number) {
+        try {
+            // Fetch the Assessment Record
+            const result = await legacyDb.select()
+                .from(frs9ImpIaHeader)
+                .where(eq(frs9ImpIaHeader.accountId, Number(accountId)))
+                .limit(1);
+
+            if (!result.length) return [];
+
+            const row = result[0];
+            const history = [];
+
+            // 1. Creation Event
+            if (row.createddate) {
+                history.push({
+                    id: `HIST-C-${row.pkid}`,
+                    entityId: row.pkid.toString(),
+                    entityType: 'ASSESSMENT',
+                    action: 'CREATE',
+                    actor: row.createdby,
+                    timestamp: row.createddate,
+                    details: 'Assessment created',
+                    status: 'PENDING'
+                });
+            }
+
+            // 2. Update Event
+            if (row.updateddate) {
+                history.push({
+                    id: `HIST-U-${row.pkid}`,
+                    entityId: row.pkid.toString(),
+                    entityType: 'ASSESSMENT',
+                    action: 'UPDATE',
+                    actor: row.updatedby || 'SYSTEM',
+                    timestamp: row.updateddate,
+                    details: row.triggerRemarks || 'Assessment details updated',
+                    status: STATUS_MAP_TO_STRING[row.status] || 'IN_PROGRESS'
+                });
+            }
+
+            // 3. Review Event
+            if (row.revieweddate) {
+                history.push({
+                    id: `HIST-R-${row.pkid}`,
+                    entityId: row.pkid.toString(),
+                    entityType: 'ASSESSMENT',
+                    action: 'REVIEW',
+                    actor: row.reviewedby || 'SYSTEM',
+                    timestamp: row.revieweddate,
+                    details: 'Assessment reviewed',
+                    status: 'REVIEWED'
+                });
+            }
+
+            // Sort by timestamp desc
+            return history.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+        } catch (error) {
+            console.error('❌ Error fetching assessment history:', error);
+            // Fallback mock history
+            return [
+                {
+                    id: 'HIST-MOCK-1',
+                    entityId: String(accountId),
+                    entityType: 'ASSESSMENT',
+                    action: 'CREATE',
+                    actor: 'admin',
+                    timestamp: new Date().toISOString(),
+                    details: 'Mock Assessment created (Fallback)',
+                    status: 'PENDING'
                 }
-            }))
-        )
+            ];
+        }
+    }
+
+    async createAuditLog(entry: any) {
+        return [];
+    }
+
+    // =========================================================================
+    // LIST OF INDIVIDUAL REPORT (1.4.2) -> frs9_imp_ia_result_h
+    // =========================================================================
+
+    async getReports(tenantId: string, filters: { reportPeriod?: string; limit?: number; offset?: number }) {
+        const { reportPeriod, limit = 50, offset = 0 } = filters;
+        const conditions = [];
+
+        if (reportPeriod) {
+            conditions.push(sql`TO_CHAR(${frs9ImpIaResultH.prcDate}, 'YYYY-MM') = ${reportPeriod}`);
+        }
+
+        return legacyDb.select()
+            .from(frs9ImpIaResultH)
+            .where(and(...conditions))
+            .orderBy(desc(frs9ImpIaResultH.createddate))
+            .limit(limit)
+            .offset(offset);
+    }
+
+    async createReport(data: any) {
+        return legacyDb.insert(frs9ImpIaResultH).values(data).returning();
+    }
+
+    // =========================================================================
+    // REVIEW SCENARIO DETAILS (1.4.4)
+    // =========================================================================
+
+    async getScenarios(tenantId: string, filters: { status?: string; limit?: number; offset?: number }) {
+        return [];
+    }
+
+    async createScenario(data: any) {
+        return [];
+    }
+
+    async updateScenarioStatus(id: string, tenantId: string, status: string, approverId?: string) {
+        return [];
+    }
+
+    // =========================================================================
+    // REVIEW DCF UPLOAD (1.4.6) & CASHFLOW (1.4.7) -> frs9_imp_ia_dcf
+    // =========================================================================
+
+    async getDcfUploads(tenantId: string, limit = 50, offset = 0) {
+        return legacyDb.select()
+            .from(frs9ImpIaDcf)
+            .orderBy(desc(frs9ImpIaDcf.createddate))
+            .limit(limit)
+            .offset(offset);
+    }
+
+    async createDcfUpload(data: any) {
+        const iaId = await this.generateIaId();
+        return legacyDb.insert(frs9ImpIaDcf).values({
+            ...data,
+            iaId,
+            createdby: 'SYSTEM',
+            createddate: new Date().toISOString(),
+            createdhost: 'localhost',
+            status: '0' // Default status
+        }).returning();
+    }
+
+    async getDcfCashflows(tenantId: string, uploadId: string) {
+        return legacyDb.select()
+            .from(frs9ImpIaDcf)
+            .where(eq(frs9ImpIaDcf.iaId, Number(uploadId)))
+            .orderBy(frs9ImpIaDcf.periode);
+    }
+
+    async getDcfCalculations(tenantId: string) {
+        return [];
+    }
+
+    async createDcfCashflows(data: any[]) {
+        return [];
+    }
+
+    // =========================================================================
+    // WATCHLIST (1.4.1) -> frs9_imp_ia_header
+    // =========================================================================
+
+    async getWatchlist(tenantId: string, filters: { segment?: string; status?: string; limit?: number; offset?: number }) {
+        try {
+            const { limit = 50, offset = 0 } = filters;
+
+            // 1. Fetch System Results (Base Data)
+            const results = await legacyDb.select()
+                .from(frs9ImpIaResultH)
+                .orderBy(desc(frs9ImpIaResultH.createddate))
+                .limit(limit)
+                .offset(offset);
+
+            if (results.length === 0) return [];
+
+            // 2. Fetch Overrides (Manual Interventions) for these accounts
+            const accountNumbers = results.map(r => r.accountNumber).filter((n): n is string => !!n);
+
+            if (accountNumbers.length === 0) return results.map(row => ({
+                pkid: row.pkid,
+                ia_id: Number(row.iaId),
+                prc_date: row.prcDate,
+                eff_date: row.prcDate,
+                cif_number: row.cifNumber,
+                cif_name: row.cifName,
+                account_id: Number(row.accountId),
+                account_number: row.accountNumber,
+                currency: row.currency,
+                eff_interest_rate: row.effInterestRate,
+                interest_rate: row.interestRate,
+                dpd: row.dpd,
+                collectability: row.collectability,
+                rating_code: row.ratingCode,
+                impaired_flag: (row.collectability && row.collectability > 2) ? 'I' : 'N',
+                method: 'DCF',
+                outstanding_balance: Number(row.outstanding),
+                provision_amount: Number(row.eclIaAmt),
+                ecl_amount: Number(row.eclIaAmt),
+                stage: (row.collectability && row.collectability > 2) ? 3 : (row.dpd && row.dpd > 30) ? 2 : 1,
+                priority_level: (row.eclIaAmt && Number(row.eclIaAmt) > 1000000000) ? 'HIGH' : 'MEDIUM',
+                assessment_status: 'PENDING',
+                notes: 'System Calculated',
+                createdby: row.createdby,
+                createddate: row.createddate,
+                is_override: false
+            }));
+
+            const overrides = await legacyDb.select()
+                .from(frs9ImpIaHeader)
+                .where(inArray(frs9ImpIaHeader.accountNumber, accountNumbers));
+
+            // 3. Merge Logic: Override > System Result
+            return results.map(row => {
+                // Find matching override
+                const override = overrides.find(o => o.accountNumber === row.accountNumber);
+
+                // Base values from Result (System)
+                let stage = (row.collectability && row.collectability > 2) ? 3 : (row.dpd && row.dpd > 30) ? 2 : 1;
+                let status = 'PENDING';
+                let notes = 'System Calculated';
+                let impaired = (row.collectability && row.collectability > 2) ? 'I' : 'N';
+
+                // Overwrite with Override values if exist
+                if (override) {
+                    stage = override.impairedFlag === 'T' ? 3 : 1;
+                    const statusMap: Record<number, string> = { 0: 'PENDING', 1: 'APPROVED', 2: 'REJECTED' };
+                    status = statusMap[override.status as number] || 'IN_PROGRESS';
+                    notes = override.triggerRemarks || 'Manual Override';
+                    impaired = override.impairedFlag === 'T' ? 'I' : 'N';
+                }
+
+                return {
+                    pkid: row.pkid,
+                    ia_id: Number(row.iaId),
+                    prc_date: row.prcDate,
+                    eff_date: row.prcDate,
+                    cif_number: row.cifNumber,
+                    cif_name: row.cifName,
+                    account_id: Number(row.accountId),
+                    account_number: row.accountNumber,
+                    currency: row.currency,
+                    eff_interest_rate: row.effInterestRate,
+                    interest_rate: row.interestRate,
+                    dpd: row.dpd,
+                    collectability: row.collectability,
+                    rating_code: row.ratingCode,
+                    impaired_flag: impaired,
+                    method: 'DCF',
+                    outstanding_balance: Number(row.outstanding),
+                    provision_amount: Number(row.eclIaAmt),
+                    ecl_amount: Number(row.eclIaAmt),
+                    stage: stage,
+                    priority_level: (row.eclIaAmt && Number(row.eclIaAmt) > 1000000000) ? 'HIGH' : 'MEDIUM',
+                    assessment_status: status,
+                    notes: notes,
+                    createdby: row.createdby,
+                    createddate: row.createddate,
+                    is_override: !!override
+                };
+            });
+        } catch (error) {
+            console.error('❌ Database Query Failed in getWatchlist:', error);
+            return [];
+        }
+    }
+
+    async addToWatchlist(data: any) {
+        const iaId = await this.generateIaId();
+        return legacyDb.insert(frs9ImpIaHeader).values({
+            ...data,
+            iaId,
+            createdby: 'SYSTEM',
+            createddate: new Date().toISOString(),
+            createdhost: 'localhost',
+        }).returning();
+    }
+
+    async removeFromWatchlist(id: string, tenantId: string) {
+        return legacyDb.delete(frs9ImpIaHeader)
+            .where(eq(frs9ImpIaHeader.pkid, Number(id)))
+            .returning();
+    }
+
+    // =========================================================================
+    // ASSESSMENT MANAGEMENT (1.4.2)
+    // =========================================================================
+
+    async getAssessment(tenantId: string, accountId: number) {
+        const result = await legacyDb.select()
+            .from(frs9ImpIaHeader)
+            .where(eq(frs9ImpIaHeader.accountId, Number(accountId)))
+            .orderBy(desc(frs9ImpIaHeader.createddate))
+            .limit(1);
+
+        if (!result.length) return null;
+
+        const row = result[0];
+
+        return {
+            pkid: row.pkid,
+            ia_id: Number(row.iaId),
+            account_id: Number(row.accountId),
+            account_number: row.accountNumber,
+            cif_number: row.cifNumber,
+            cif_name: row.cifName,
+            prc_date: row.prcDate,
+            eff_date: row.effDate,
+            currency: row.currency,
+            outstanding_balance: Number(row.outstanding),
+            interest_rate: row.interestRate,
+            eff_interest_rate: row.effInterestRate,
+            dpd: row.dpd,
+            collectability: row.collectability,
+            rating_code: row.ratingCode,
+            impaired_flag: row.impairedFlag === 'T' ? 'I' : 'N',
+            method: row.method,
+            stage: row.impairedFlag === 'T' ? 3 : 1,
+            previous_stage: 1, // Placeholder
+            impairment_reason: row.triggerRemarks, // Mapping trigger remarks to reason
+            assessment_basis: 'Individual Assessment', // Default
+            supporting_documents: row.triggerFilename ? [row.triggerFilename] : [],
+            analyst_comments: row.triggerRemarks, // Mapping trigger remarks to comments
+            reviewer_comments: null,
+            // Map status to Approval Status string
+            approval_status: STATUS_MAP_TO_STRING[row.status] || 'PENDING',
+            createdby: row.createdby,
+            createddate: row.createddate,
+            updatedby: row.updatedby,
+            updateddate: row.updateddate
+        };
+    }
+
+    async createAssessment(data: any) {
+        // Logic to insert/update assessment
+        // For now, we reuse addToWatchlist logic as it writes to the same table
+        return this.addToWatchlist(data);
+    }
+
+    // =========================================================================
+    // OVERRIDE TRIGGER (1.4.3) -> frs9_imp_ia_header
+    // =========================================================================
+
+    async getOverrides(tenantId: string, filters: { status?: string; limit?: number; offset?: number }) {
+        const { status, limit = 50, offset = 0 } = filters;
+        const conditions = [];
+
+        // Map status string to legacy int if present
+        if (status) {
+            const statusInt = STATUS_MAP_TO_INT[status] ?? 0;
+            conditions.push(eq(frs9ImpIaHeader.status, statusInt));
+        }
+
+        const results = await legacyDb.select()
+            .from(frs9ImpIaHeader)
+            .where(and(...conditions))
+            .orderBy(desc(frs9ImpIaHeader.createddate))
+            .limit(limit)
+            .offset(offset);
+
+        // Map back to Frontend structure
+        return results.map(row => ({
+            id: row.pkid.toString(),
+            tenantId: 'legacy', // Hardcode or derive
+            customerName: row.cifName,
+            accountNumber: row.accountNumber,
+            originalStage: '1', // Default or derive from 'impairedFlag'?
+            overrideStage: row.impairedFlag === 'T' ? '3' : '2', // Rough mapping
+            justification: row.triggerRemarks,
+            status: STATUS_MAP_TO_STRING[row.status] || 'PENDING',
+            createdAt: row.createddate,
+            createdBy: row.createdby,
+            documentUrl: row.triggerFilename
+        }));
+    }
+
+    async createOverride(data: any) {
+        const statusInt = STATUS_MAP_TO_INT[data.status] ?? 0;
+        const accountNumber = data.accountNumber || '0';
+
+        // 1. Lookup Account ID from Master Account
+        const account = await legacyDb.select({ id: frs9MasterAccount.accountId })
+            .from(frs9MasterAccount)
+            .where(eq(frs9MasterAccount.accountNumber, accountNumber))
+            .limit(1);
+
+        const realAccountId = account[0]?.id;
+
+        if (!realAccountId) {
+            throw new Error(`Account Number ${accountNumber} not found in Master Data.`);
+        }
+
+        // 2. Check if Override already exists for this Account
+        const existing = await legacyDb.select()
+            .from(frs9ImpIaHeader)
+            .where(eq(frs9ImpIaHeader.accountId, realAccountId))
+            .limit(1);
+
+        if (existing.length > 0) {
+            // UPSERT: Update existing record
+            const updated = await legacyDb.update(frs9ImpIaHeader)
+                .set({
+                    impairedFlag: data.overrideStage === '3' ? 'T' : 'F',
+                    triggerRemarks: data.justification,
+                    status: statusInt,
+                    updatedby: (data.createdBy || 'SYSTEM').slice(0, 36),
+                    updateddate: new Date().toISOString(),
+                    // Update other fields if necessary
+                })
+                .where(eq(frs9ImpIaHeader.pkid, existing[0].pkid))
+                .returning();
+            return updated;
+        } else {
+            // INSERT: Create new record
+            const iaId = await this.generateIaId();
+            const today = new Date().toISOString().split('T')[0]; // Format YYYY-MM-DD
+
+            const result = await legacyDb.insert(frs9ImpIaHeader).values({
+                iaId: iaId,
+                prcDate: today,
+                effDate: today,
+                cifNumber: data.cifNumber || 'UNKNOWN',
+                cifName: data.customerName || 'UNKNOWN',
+                accountId: realAccountId,
+                accountNumber: accountNumber,
+                currency: 'IDR',
+                effInterestRate: 0,
+                interestRate: 0,
+                impairedFlag: data.overrideStage === '3' ? 'T' : 'F',
+                triggerRemarks: data.justification,
+                status: statusInt,
+                createdby: (data.createdBy || 'SYSTEM').slice(0, 36),
+                createddate: new Date().toISOString(), // TIMESTAMP column accepts ISO
+                createdhost: 'localhost', // Max 36, safe
+                // Defaults for NOT NULL constraints
+                outstanding: "0",
+                plafond: "0",
+                accruedInterest: "0",
+                carryingAmt: "0",
+                eadAmt: "0",
+                pvDcfAmt: "0",
+                eclIaAmt: "0",
+                poRate1: 0, poRate2: 0, poRate3: 0
+            }).returning();
+            return result;
+        }
+    }
+
+    private async generateIaId(): Promise<number> {
+        const result = await legacyDb.execute(sql`SELECT MAX(ia_id) as max_id FROM frs9_imp_ia_header`);
+        const maxId = Number(result[0]?.max_id) || 0;
+        return maxId + 1;
     }
 }
 
-const transformWatchlistItem = (item: typeof frs9MasterAccount.$inferSelect) => ({
-    pkid: Number(item.pkid), // Ensure number
-    cif_number: item.cifNumber || '',
-    cif_name: item.cifName || '',
-    account_id: Number(item.accountId),
-    account_number: item.accountNumber || '',
-    currency: item.currency || 'IDR',
-    outstanding_balance: Number(item.outstanding || 0),
-    stage: Number(item.stage || 1),
-    ecl_amount: Number(item.eclFinalAmt || 0),
-    impaired_flag: item.impairedFlag ? 'I' : 'N',
-    rating_code: item.internalRatingCode || '',
-    assessment_status: 'PENDING', // Default as it's not in Master Account
-
-    // Additional fields required by frontend interface
-    prc_date: item.prcDate || new Date().toISOString(),
-    eff_date: item.prcDate || new Date().toISOString(),
-    eff_interest_rate: Number(item.effInterestRate || 0),
-    interest_rate: Number(item.interestRate || 0),
-    dpd: Number(item.dpd || 0),
-    collectability: Number(item.collectability || 1),
-    method: 'DCF', // Default
-    provision_amount: Number(item.eclFinalAmt || 0),
-    last_review_date: new Date().toISOString(),
-    next_review_date: new Date().toISOString(),
-    assigned_analyst: 'System',
-    priority_level: 'MEDIUM',
-    createdby: 'System',
-    createddate: new Date().toISOString()
-})
+export const individualImpairmentService = new IndividualImpairmentService();

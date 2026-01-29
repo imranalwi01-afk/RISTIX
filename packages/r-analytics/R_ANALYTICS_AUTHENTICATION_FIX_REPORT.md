@@ -106,7 +106,7 @@ get_auth_config <- function() {
   } else {
     # Fallback to environment variables
     enabled <- as.logical(Sys.getenv("ENABLE_AUTH", "false"))
-    backend_url <- Sys.getenv("AUTH_BACKEND_URL", "https://iaf-ifrs-be.ifrspro.id")
+    backend_url <- Sys.getenv("AUTH_BACKEND_URL", "https://bifrs9-iaf.ifrspro.id")
     # ... other fallbacks
   }
 
@@ -175,7 +175,7 @@ if (!exists("auth_config")) {
 ✅ Environment: localdev (Development)
 ✅ Authentication: FALSE (Development Mode)
 ✅ Debug Mode: TRUE
-✅ Backend URL: https://iaf-ifrs-be.ifrspro.id
+✅ Backend URL: https://bifrs9-iaf.ifrspro.id
 ✅ Development User: admin@iaf.co.id (IAF_TENANT_SUPERADMIN)
 ```
 
@@ -255,7 +255,7 @@ ENABLE_AUTH=false
 # Enable authentication
 ENABLE_AUTH=true
 # Set backend URL and security
-AUTH_BACKEND_URL=https://iaf-ifrs-be.ifrspro.id
+AUTH_BACKEND_URL=https://bifrs9-iaf.ifrspro.id
 # Deploy with authentication
 ./start_iaf.R
 ```

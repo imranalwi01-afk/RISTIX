@@ -19,11 +19,11 @@ import {
   Alert
 } from '@mui/material';
 import {
-  DataGrid,
   GridColDef,
   GridToolbar,
   GridRowModel
 } from '@mui/x-data-grid';
+import { SafeDataGrid } from '@/components/shared/SafeDataGrid';
 import {
   Home as HomeIcon,
   Calculate as CalculateIcon,
@@ -192,7 +192,7 @@ export default function DcfCalculatorPage() {
 
       <Grid container spacing={3}>
         {/* Parameters Form */}
-        <Grid size={{ xs: 12, md: 4 }}>
+        <Grid item xs={12} md={4}>
             <Card>
                 <CardContent>
                     <Typography variant="h6" gutterBottom>Parameters</Typography>
@@ -213,7 +213,7 @@ export default function DcfCalculatorPage() {
                             margin="normal" size="small"
                         />
                          <Grid container spacing={2}>
-                            <Grid size={{ xs: 6 }}>
+                            <Grid item xs={6}>
                                 <TextField
                                     fullWidth label="Rate (% p.a.)"
                                     type="number"
@@ -222,7 +222,7 @@ export default function DcfCalculatorPage() {
                                     margin="normal" size="small"
                                 />
                             </Grid>
-                            <Grid size={{ xs: 6 }}>
+                            <Grid item xs={6}>
                                 <TextField
                                     fullWidth label="Tenure (Months)"
                                     type="number"
@@ -270,7 +270,7 @@ export default function DcfCalculatorPage() {
         </Grid>
 
         {/* Results Grid */}
-        <Grid size={{ xs: 12, md: 8 }}>
+        <Grid item xs={12} md={8}>
             <Paper sx={{ height: 600, width: '100%', p: 2, display: 'flex', flexDirection: 'column' }}>
                 <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
                     <Typography variant="h6">
@@ -286,7 +286,7 @@ export default function DcfCalculatorPage() {
                         Save Projection
                     </Button>
                 </Box>
-                <DataGrid
+                <SafeDataGrid
                     rows={rows}
                     columns={columns}
                     processRowUpdate={processRowUpdate}

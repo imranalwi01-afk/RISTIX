@@ -69,7 +69,8 @@ import {
   GetApp as ExportIcon,
   CloudDownload as LoadIcon
 } from '@mui/icons-material';
-import { DataGrid, GridColDef, GridActionsCellItem, GridRowParams } from '@mui/x-data-grid';
+import { GridColDef, GridRowParams } from '@mui/x-data-grid';
+import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 import { api, handleAPIError } from '../../../../services/api';
 
 // ============================================================================
@@ -615,13 +616,13 @@ export default function SegmentationDetailModal({
       getActions: (params: GridRowParams) => {
         if (!params.row) return [];
         return [
-          <GridActionsCellItem
+          <SafeGridActionsCellItem
             icon={<EditIcon color="primary" />}
             label="Edit"
             onClick={() => handleEditDetail(params.row)}
             key="edit"
           />,
-          <GridActionsCellItem
+          <SafeGridActionsCellItem
             icon={<DeleteIcon color="error" />}
             label="Delete"
             onClick={() => handleDeleteDetail(params.row)}
@@ -976,40 +977,15 @@ export default function SegmentationDetailModal({
             />
             <CardContent>
               <Box sx={{ height: 400, width: '100%' }}>
-                <DataGrid
+                <SafeDataGrid
                   rows={details}
                   columns={detailColumns}
                   getRowId={(row) => row?.id || `row_${JSON.stringify(row).slice(0, 50)}`}
-                  pageSizeOptions={[5, 10, 25]}
-                  initialState={{
-                    pagination: { paginationModel: { pageSize: 10 } }
-                  }}
-                  disableRowSelectionOnClick
                   loading={detailsLoading}
-                  slotProps={{
-                    noRowsOverlay: {
-                      children: (
-                        <Box
-                          sx={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            height: '100%',
-                            gap: 2
-                          }}
-                        >
-                          <WarningIcon sx={{ fontSize: 48, color: 'text.secondary' }} />
-                          <Typography variant="h6" color="text.secondary">
-                            No Segmentation Rules Found
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary" textAlign="center">
-                            No detailed rules configured for this segmentation.
-                            <br />
-                            Click "Add Rule" to create the first one.
-                          </Typography>
-                        </Box>
-                      )
+                  sx={{
+                    height: 400,
+                    '& .MuiTableRow-root:hover': {
+                      backgroundColor: 'action.hover'
                     }
                   }}
                 />

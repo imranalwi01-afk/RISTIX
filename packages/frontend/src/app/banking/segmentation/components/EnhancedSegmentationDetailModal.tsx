@@ -64,7 +64,8 @@ import {
   GetApp as ExportIcon,
   CloudDownload as LoadIcon
 } from '@mui/icons-material';
-import { DataGrid, GridColDef, GridActionsCellItem, GridRowParams } from '@mui/x-data-grid';
+import { GridColDef, GridRowParams } from '@mui/x-data-grid';
+import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 import { api, handleAPIError } from '../../../../services/api';
 
 // ============================================================================
@@ -826,13 +827,13 @@ export default function EnhancedSegmentationDetailModal({
       getActions: (params: GridRowParams) => {
         if (!params.row) return [];
         return [
-          <GridActionsCellItem
+          <SafeGridActionsCellItem
             icon={<EditIcon color="primary" />}
             label="Edit"
             onClick={() => handleEditDetail(params.row)}
             key="edit"
           />,
-          <GridActionsCellItem
+          <SafeGridActionsCellItem
             icon={<DeleteIcon color="error" />}
             label="Delete"
             onClick={() => handleDeleteDetail(params.row)}
@@ -1638,57 +1639,16 @@ export default function EnhancedSegmentationDetailModal({
                   </Box>
                 </Box>
 
-                <DataGrid
+                <SafeDataGrid
                   rows={paginatedDetails}
                   columns={detailColumns}
                   getRowId={(row) => row?.id || `row_${JSON.stringify(row).slice(0, 50)}`}
-                  hideFooterPagination
-                  hideFooter
-                  disableRowSelectionOnClick
                   loading={detailsLoading}
-                  density="compact"
                   sx={{
-                    '& .MuiDataGrid-row:hover': {
+                    height: 400,
+                    '& .MuiTableRow-root:hover': {
                       backgroundColor: 'action.hover'
                     }
-                  }}
-                  slots={{
-                    noRowsOverlay: () => (
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          height: '100%',
-                          gap: 2
-                        }}
-                      >
-                        <WarningIcon sx={{ fontSize: 48, color: 'text.secondary' }} />
-                        <Typography variant="h6" color="text.secondary">
-                          {filteredDetails.length === 0 && details.length > 0 ?
-                            'No rules match current filters' :
-                            'No Segmentation Rules Found'
-                          }
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" textAlign="center">
-                          {filteredDetails.length === 0 && details.length > 0 ?
-                            'Try adjusting your search criteria or clearing filters.' :
-                            'No detailed rules configured for this segmentation. Click "Add Rule" to create the first one.'
-                          }
-                        </Typography>
-                        {filteredDetails.length === 0 && details.length > 0 && (
-                          <Button
-                            variant="outlined"
-                            startIcon={<ClearIcon />}
-                            onClick={clearAllFilters}
-                            size="small"
-                          >
-                            Clear Filters
-                          </Button>
-                        )}
-                      </Box>
-                    )
                   }}
                 />
 

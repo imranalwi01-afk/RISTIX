@@ -4,9 +4,10 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Typography, Box, Card, CardContent, CircularProgress } from '@mui/material';
 import PageHeader from '@/components/banking/shared/PageHeader';
-import { DataGrid, GridColDef } from '@mui/x-data-grid';
+import { GridColDef } from '@mui/x-data-grid';
+import { SafeDataGrid } from '@/components/shared/SafeDataGrid';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
-import { individualImpairmentAPI } from '@/services/api/individual-impairment.api';
+import { api } from '@/services/api';
 
 const columns: GridColDef[] = [
   { field: 'id', headerName: 'Log ID', width: 250 },
@@ -25,7 +26,7 @@ export default function HistoryDCFUploadPage() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const response = await individualImpairmentAPI.getHistory({ entityType: 'DCF' });
+        const response = await api.individualImpairment.getHistory({ entityType: 'DCF' });
         if (response.success && response.data) {
           setRows(response.data);
         }
@@ -47,17 +48,16 @@ export default function HistoryDCFUploadPage() {
       />
       <Card>
         <CardContent>
-          <Box sx={{ height: 500, width: '100%' }}>
+           <Box sx={{ height: 500, width: '100%' }}>
             {loading ? (
-              <Box display="flex" justifyContent="center" alignItems="center" height="100%">
-                <CircularProgress />
-              </Box>
+               <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+                 <CircularProgress />
+               </Box>
             ) : (
-              <DataGrid
-                rows={rows}
-                columns={columns}
-                pageSizeOptions={[10, 25]}
-              />
+                <SafeDataGrid
+                  rows={rows}
+                  columns={columns}
+                />
             )}
           </Box>
         </CardContent>

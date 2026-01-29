@@ -48,9 +48,6 @@ dependencies:
   '@types/node':
     specifier: ^22.9.0
     version: 22.19.6
-  '@types/react':
-    specifier: 19.2.8
-    version: 19.2.8
   '@types/react-dom':
     specifier: 19.2.3
     version: 19.2.3(@types/react@19.2.8)
@@ -137,6 +134,9 @@ devDependencies:
   '@playwright/test':
     specifier: ^1.56.1
     version: 1.57.0
+  '@types/react':
+    specifier: 19.2.8
+    version: 19.2.8
   '@typescript-eslint/eslint-plugin':
     specifier: ^8.15.0
     version: 8.53.0(@typescript-eslint/parser@8.53.0)(eslint@9.39.2)(typescript@5.9.3)
@@ -1718,7 +1718,6 @@ packages:
     resolution: {integrity: sha512-3MbSL37jEchWZz2p2mjntRZtPt837ij10ApxKfgmXCTuHWagYg7iA5bqPw6C8BMPfwidlvfPI/fxOc42HLhcyg==}
     dependencies:
       csstype: 3.2.3
-    dev: false
 
   /@types/use-sync-external-store@0.0.6:
     resolution: {integrity: sha512-zFDAD+tlpf2r4asuHEj0XH6pY6i0g5NeAHPn+15wk3BV6JA69eERFXC1gyGThDkVa1zCyKr5jox1+2LbV/AMLg==}
@@ -2582,7 +2581,6 @@ packages:
 
   /csstype@3.2.3:
     resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
-    dev: false
 
   /d3-array@3.2.4:
     resolution: {integrity: sha512-tdQAmyA18i4J7wprpYq8ClcxZy3SC31QMeByyCFyRt7BVHdREQZ5lpzoe5mFEYZUWe+oq8HBvk9JjpibyEV4Jg==}

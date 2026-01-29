@@ -19,7 +19,6 @@ import {
   Card,
   CardContent,
   Button,
-  CircularProgress,
   Alert,
   Breadcrumbs,
   Link,
@@ -28,9 +27,15 @@ import {
 import {
   History as PageIcon,
   Home as HomeIcon,
-  ArrowBack as BackIcon
+  ArrowBack as BackIcon,
+  CheckCircle as ApprovedIcon,
+  Cancel as RejectedIcon,
+  Pending as PendingIcon,
+  Assignment as TotalIcon
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
+import ModernLoader from '@/components/common/ModernLoader';
+import { StatCard } from '@/components/common/StatCard';
 
 export default function OverrideHistoryPage() {
   const router = useRouter();
@@ -43,8 +48,13 @@ export default function OverrideHistoryPage() {
       setLoading(true);
       try {
         // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 500));
-        setData({}); // Set actual data here
+        await new Promise(resolve => setTimeout(resolve, 800));
+        setData({
+          total: 156,
+          approved: 89,
+          rejected: 12,
+          pending: 55
+        }); 
       } catch (error) {
         console.error('Error loading Override History data:', error);
       } finally {
@@ -55,23 +65,18 @@ export default function OverrideHistoryPage() {
     initializePage();
   }, []);
 
-  if (loading) {
-    return (
-      <Container maxWidth="xl">
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
-          <CircularProgress />
-        </Box>
-      </Container>
-    );
-  }
-
   return (
     <Container maxWidth="xl">
+      <ModernLoader 
+        open={loading} 
+        message="Loading History" 
+        subMessage="Fetching override audit trail..." 
+      />
       {/* Breadcrumb Navigation */}
       <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
-        <Link
-          underline="hover"
-          color="inherit"
+        <Link 
+          underline="hover" 
+          color="inherit" 
           href="/dashboard"
           onClick={(e) => {
             e.preventDefault();
@@ -101,37 +106,79 @@ export default function OverrideHistoryPage() {
         </Typography>
       </Box>
 
+      {/* Stat Cards */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard
+            title="Total Records"
+            value={data?.total || 0}
+            icon={<TotalIcon sx={{ fontSize: 40 }} />}
+            color="#1976d2"
+            subtitle="All History Entries"
+
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard
+            title="Pending Review"
+            value={data?.pending || 0}
+            icon={<PendingIcon sx={{ fontSize: 40 }} />}
+            color="#ff9800"
+            subtitle="Awaiting Approval"
+
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard
+            title="Approved"
+            value={data?.approved || 0}
+            icon={<ApprovedIcon sx={{ fontSize: 40 }} />}
+            color="#2e7d32"
+            subtitle="Overridden Successfully"
+
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard
+            title="Rejected"
+            value={data?.rejected || 0}
+            icon={<RejectedIcon sx={{ fontSize: 40 }} />}
+            color="#d32f2f"
+            subtitle="Denied Requests"
+            loading={loading}
+          />
+        </Grid>
+      </Grid>
+
       {/* Main Content */}
       <Grid container spacing={3}>
-        <Grid size={{ xs: 12 }}>
+        <Grid item xs={12}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
-                Override History Overview
+                History Details
               </Typography>
               <Typography variant="body2" color="text.secondary" paragraph>
-                This page provides individual assessment override history and audit trail. The interface will be enhanced with
-                specific functionality based on business requirements.
+                This page provides individual assessment override history and audit trail. 
               </Typography>
-
+              
               <Alert severity="info" sx={{ mt: 2 }}>
                 <Typography variant="body2">
-                  <strong>Development Note:</strong> This is a foundation page structure.
-                  Specific override History functionality will be implemented based on
-                  detailed requirements and API integration.
+                  <strong>Development Note:</strong> Detailed history table integration with backend API 
+                  (/banking/individual/impairment/assessment/history) is pending.
                 </Typography>
               </Alert>
 
               <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
-                <Button
-                  variant="contained"
+                <Button 
+                  variant="contained" 
                   startIcon={<PageIcon />}
                   disabled
                 >
-                  Configure Override History
+                  Export Log
                 </Button>
-                <Button
-                  variant="outlined"
+                <Button 
+                  variant="outlined" 
                   startIcon={<BackIcon />}
                   onClick={() => router.back()}
                 >

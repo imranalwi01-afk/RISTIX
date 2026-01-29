@@ -1,3 +1,8 @@
-import OverrideTriggerPage from '../override-trigger/page';
+'use client';
 
-export default OverrideTriggerPage;
+import { AssessmentOverride } from '../../../../components/banking/individual/AssessmentOverride';
+
+export default function AssessmentOverridePage() {
+  return <AssessmentOverride />;
+}
+

@@ -1,8 +1,7 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
 import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
-import { Effect } from 'effect'
-import { IndividualImpairmentService } from '../services/individual-impairment.service'
+import { individualImpairmentController } from '../controllers/individual-impairment.controller'
 
 export const individualImpairmentRoutes = new OpenAPIHono<AppContext>()
 
@@ -12,39 +11,71 @@ individualImpairmentRoutes.use('*', authMiddleware)
 // SCHEMAS
 // ============================================================================
 
+const SuccessResponseSchema = z.object({
+    success: z.boolean(),
+    message: z.string().optional(),
+    data: z.any().optional()
+}).openapi('SuccessResponse')
+
+const ErrorResponse = z.object({
+    success: z.boolean(),
+    message: z.string(),
+    error: z.string().optional()
+}).openapi('ErrorResponse')
+
+// --- Watchlist ---
 const WatchlistItemSchema = z.object({
-    id: z.string(),
+    pkid: z.number().int(),
+    accountId: z.number().int(),
     customerName: z.string().optional(),
     accountNumber: z.string().optional(),
-    stage: z.number().int().optional(),
-    impairedFlag: z.string().optional(),
-    assessmentStatus: z.string().optional(),
-    // Add more real fields based on Service return
+    segment: z.string().optional(),
+    status: z.string().optional(),
+    addedBy: z.string().optional(),
+    createdAt: z.string().optional()
 }).openapi('WatchlistItem')
 
 const WatchlistListResponse = z.object({
     success: z.boolean(),
-    data: z.array(WatchlistItemSchema),
-    meta: z.object({
-        page: z.number(),
-        limit: z.number(),
-        total: z.number(),
-        totalPages: z.number(),
-    }).optional()
+    data: z.array(WatchlistItemSchema)
 }).openapi('WatchlistListResponse')
 
 const AddWatchlistSchema = z.object({
-    customerId: z.string(),
-    reason: z.string().optional(),
+    accountId: z.number().int(),
+    remarks: z.string().optional(),
 }).openapi('AddWatchlistInput')
 
+// --- Assessment ---
+const AssessmentSchema = z.object({
+    pkid: z.number().int(),
+    accountId: z.number().int(),
+    stage: z.number().int(),
+    provisionAmount: z.number(),
+    assessmentDate: z.string(),
+    status: z.string()
+}).openapi('Assessment')
+
+const AssessmentResponse = z.object({
+    success: z.boolean(),
+    data: AssessmentSchema
+}).openapi('AssessmentResponse')
+
+const CreateAssessmentSchema = z.object({
+    accountId: z.number().int(),
+    stage: z.number().int(),
+    provisionAmount: z.number(),
+    remarks: z.string().optional()
+}).openapi('CreateAssessmentInput')
+
+// --- Overrides ---
 const OverrideSchema = z.object({
-    id: z.number(),
-    customerId: z.string(),
+    pkid: z.number().int(),
+    accountId: z.number().int(),
     originalStage: z.number().int(),
     proposedStage: z.number().int(),
     status: z.string(),
-    createdAt: z.string(),
+    requestedBy: z.string(),
+    createdAt: z.string()
 }).openapi('OverrideItem')
 
 const OverrideListResponse = z.object({
@@ -53,23 +84,141 @@ const OverrideListResponse = z.object({
 }).openapi('OverrideListResponse')
 
 const AddOverrideSchema = z.object({
-    customerId: z.string(),
+    accountId: z.number().int(),
     originalStage: z.number().int(),
     proposedStage: z.number().int(),
     justification: z.string(),
 }).openapi('AddOverrideInput')
 
-const ErrorResponse = z.object({
+// --- History ---
+const AuditTrailSchema = z.object({
+    pkid: z.number().int(),
+    entityType: z.string(),
+    entityId: z.string(),
+    action: z.string(),
+    performedBy: z.string(),
+    performedAt: z.string(),
+    oldValue: z.string().optional(),
+    newValue: z.string().optional(),
+    reason: z.string().optional()
+}).openapi('AuditTrail')
+
+const HistoryListResponse = z.object({
     success: z.boolean(),
-    message: z.string(),
-    error: z.string().optional()
-}).openapi('ErrorResponse')
+    data: z.array(AuditTrailSchema),
+    meta: z.object({
+        limit: z.number(),
+        offset: z.number(),
+        count: z.number()
+    }).optional()
+}).openapi('HistoryListResponse')
+
+// --- Reports ---
+const ReportSchema = z.object({
+    pkid: z.number().int(),
+    reportPeriod: z.string(),
+    reportType: z.string(),
+    status: z.string(),
+    generatedBy: z.string(),
+    createdAt: z.string()
+}).openapi('ReportItem')
+
+const ReportListResponse = z.object({
+    success: z.boolean(),
+    data: z.array(ReportSchema)
+}).openapi('ReportListResponse')
+
+const CreateReportSchema = z.object({
+    reportPeriod: z.string(),
+    reportType: z.string()
+}).openapi('CreateReportInput')
+
+// --- Scenarios ---
+const ScenarioSchema = z.object({
+    pkid: z.number().int(),
+    scenarioCode: z.string(),
+    scenarioName: z.string(),
+    description: z.string().optional(),
+    status: z.string(),
+    activeFlag: z.boolean()
+}).openapi('ScenarioItem')
+
+const ScenarioListResponse = z.object({
+    success: z.boolean(),
+    data: z.array(ScenarioSchema)
+}).openapi('ScenarioListResponse')
+
+const CreateScenarioSchema = z.object({
+    scenarioCode: z.string(),
+    scenarioName: z.string(),
+    description: z.string().optional(),
+    configuration: z.any().optional()
+}).openapi('CreateScenarioInput')
+
+const UpdateScenarioStatusSchema = z.object({
+    status: z.string()
+}).openapi('UpdateScenarioStatusInput')
+
+// --- DCF ---
+const DcfUploadSchema = z.object({
+    pkid: z.number().int(),
+    fileName: z.string(),
+    batchId: z.string(),
+    recordCount: z.number().int(),
+    uploadedBy: z.string(),
+    createdAt: z.string()
+}).openapi('DcfUpload')
+
+const DcfUploadListResponse = z.object({
+    success: z.boolean(),
+    data: z.array(DcfUploadSchema)
+}).openapi('DcfUploadListResponse')
+
+const DcfCashflowSchema = z.object({
+    pkid: z.number().int(),
+    accountId: z.string(),
+    periodDate: z.string(),
+    cashflowAmount: z.number(),
+    discountRate: z.number(),
+    discountFactor: z.number().optional(),
+    presentValue: z.number().optional()
+}).openapi('DcfCashflow')
+
+const DcfCashflowListResponse = z.object({
+    success: z.boolean(),
+    data: z.array(DcfCashflowSchema)
+}).openapi('DcfCashflowListResponse')
+
+const DcfCalculationSchema = z.object({
+    accountId: z.string(),
+    totalCashflow: z.number(),
+    totalPV: z.number(),
+    scenarioName: z.string().optional(),
+    fileName: z.string().optional()
+}).openapi('DcfCalculation')
+
+const DcfCalculationListResponse = z.object({
+    success: z.boolean(),
+    data: z.array(DcfCalculationSchema)
+}).openapi('DcfCalculationListResponse')
+
+const CreateBatchUploadSchema = z.object({
+    fileName: z.string(),
+    batchId: z.string().optional(),
+    cashflows: z.array(z.object({
+        accountId: z.string(),
+        periodDate: z.string(),
+        cashflowAmount: z.number(),
+        discountRate: z.number().optional()
+    }))
+}).openapi('CreateBatchUploadInput')
 
 // ============================================================================
 // ROUTES
 // ============================================================================
 
-// GET /watchlist - Real implementation
+// --- WATCHLIST ---
+
 individualImpairmentRoutes.openapi(
     createRoute({
         method: 'get',
@@ -78,67 +227,21 @@ individualImpairmentRoutes.openapi(
         summary: 'Get Watchlist',
         request: {
             query: z.object({
-                page: z.string().optional(),
+                segment: z.string().optional(),
+                status: z.string().optional(),
                 limit: z.string().optional(),
-                search: z.string().optional(),
-                'filter[stage]': z.string().optional(),
-                'filter[impaired_flag]': z.string().optional(),
-                'filter[assessment_status]': z.string().optional(),
-                'sort[field]': z.string().optional(),
-                'sort[order]': z.string().optional(),
-            } as any)
+                offset: z.string().optional()
+            })
         },
         responses: {
             200: { content: { 'application/json': { schema: WatchlistListResponse } }, description: 'Watchlist' },
+            401: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Unauthorized' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    async (c) => {
-        try {
-            const query = c.req.query()
-            const page = Number(query['page'] || '1')
-            const limit = Number(query['limit'] || '20')
-            const search = query['search']
-
-            const filter = {
-                stage: query['filter[stage]'] ? Number(query['filter[stage]']) : undefined,
-                impaired_flag: query['filter[impaired_flag]'] as 'I' | 'N' | undefined,
-                assessment_status: query['filter[assessment_status]']
-            }
-
-            const sort = {
-                field: query['sort[field]'],
-                order: query['sort[order]'] as 'asc' | 'desc' | undefined
-            }
-
-            const program = IndividualImpairmentService.getWatchlist({
-                page,
-                limit,
-                search,
-                filter,
-                sort
-            } as any)
-
-            const result = await Effect.runPromiseExit(program)
-
-            if (result._tag === 'Success') {
-                return c.json(result.value as any)
-            } else {
-                console.error('Error fetching watchlist:', result.cause)
-                return c.json({
-                    success: false,
-                    message: 'Failed to fetch watchlist',
-                    error: String(result.cause)
-                } as any, 500)
-            }
-        } catch (error) {
-            console.error('Error fetching watchlist:', error)
-            return c.json({ success: false, message: 'Failed to fetch watchlist', error: String(error) }, 500)
-        }
-    }
+    (c) => individualImpairmentController.getWatchlist(c)
 )
 
-// POST /watchlist - Stub endpoint
 individualImpairmentRoutes.openapi(
     createRoute({
         method: 'post',
@@ -149,25 +252,14 @@ individualImpairmentRoutes.openapi(
             body: { content: { 'application/json': { schema: AddWatchlistSchema } } }
         },
         responses: {
-            200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), message: z.string(), data: z.any() }) } }, description: 'Added' },
+            200: { content: { 'application/json': { schema: SuccessResponseSchema } }, description: 'Added' },
+            401: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Unauthorized' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    async (c) => {
-        try {
-            const body = await c.req.json()
-            return c.json({
-                success: true,
-                data: { id: Date.now(), ...body },
-                message: 'Added to watchlist'
-            } as any)
-        } catch (error) {
-            return c.json({ success: false, message: 'Failed to add to watchlist' }, 500)
-        }
-    }
+    (c) => individualImpairmentController.addToWatchlist(c)
 )
 
-// DELETE /watchlist/:id - Stub endpoint
 individualImpairmentRoutes.openapi(
     createRoute({
         method: 'delete',
@@ -178,41 +270,78 @@ individualImpairmentRoutes.openapi(
             params: z.object({ id: z.string() })
         },
         responses: {
-            200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), message: z.string() }) } }, description: 'Removed' },
+            200: { content: { 'application/json': { schema: SuccessResponseSchema } }, description: 'Removed' },
+            401: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Unauthorized' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    async (c) => {
-        try {
-            return c.json({ success: true, message: 'Removed from watchlist' })
-        } catch (error) {
-            return c.json({ success: false, message: 'Failed to remove from watchlist' }, 500)
-        }
-    }
+    (c) => individualImpairmentController.removeFromWatchlist(c)
 )
 
-// GET /overrides - Stub endpoint
+// --- ASSESSMENT ---
+
+individualImpairmentRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/assessment',
+        tags: ['Individual Impairment'],
+        summary: 'Get Assessment',
+        request: {
+            query: z.object({ account_id: z.string() })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: AssessmentResponse } }, description: 'Assessment' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
+            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
+            401: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Unauthorized' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    (c) => individualImpairmentController.getAssessment(c)
+)
+
+individualImpairmentRoutes.openapi(
+    createRoute({
+        method: 'post',
+        path: '/assessment',
+        tags: ['Individual Impairment'],
+        summary: 'Create Assessment',
+        request: {
+            body: { content: { 'application/json': { schema: CreateAssessmentSchema } } }
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: SuccessResponseSchema } }, description: 'Created' },
+            401: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Unauthorized' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    (c) => individualImpairmentController.createAssessment(c)
+)
+
+// --- OVERRIDES ---
+
 individualImpairmentRoutes.openapi(
     createRoute({
         method: 'get',
         path: '/overrides',
         tags: ['Individual Impairment'],
         summary: 'Get Overrides',
+        request: {
+            query: z.object({
+                status: z.string().optional(),
+                limit: z.string().optional(),
+                offset: z.string().optional()
+            })
+        },
         responses: {
             200: { content: { 'application/json': { schema: OverrideListResponse } }, description: 'Overrides' },
+            401: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Unauthorized' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    async (c) => {
-        try {
-            return c.json({ success: true, data: [] })
-        } catch (error) {
-            return c.json({ success: false, message: 'Failed to fetch overrides' }, 500)
-        }
-    }
+    (c) => individualImpairmentController.getOverrides(c)
 )
 
-// POST /overrides - Stub endpoint
 individualImpairmentRoutes.openapi(
     createRoute({
         method: 'post',
@@ -223,20 +352,219 @@ individualImpairmentRoutes.openapi(
             body: { content: { 'application/json': { schema: AddOverrideSchema } } }
         },
         responses: {
-            200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), message: z.string(), data: OverrideSchema }) } }, description: 'Created' },
+            200: { content: { 'application/json': { schema: SuccessResponseSchema } }, description: 'Created' },
+            401: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Unauthorized' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    async (c) => {
-        try {
-            const body = await c.req.json()
-            return c.json({
-                success: true,
-                data: { id: Date.now(), ...body, status: 'PENDING', createdAt: new Date().toISOString() },
-                message: 'Override request created'
-            } as any)
-        } catch (error) {
-            return c.json({ success: false, message: 'Failed to create override' }, 500)
+    (c) => individualImpairmentController.createOverride(c)
+)
+
+// --- HISTORY ---
+
+individualImpairmentRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/history',
+        tags: ['Individual Impairment'],
+        summary: 'Get History',
+        request: {
+            query: z.object({
+                entityType: z.string().optional(),
+                limit: z.string().optional(),
+                offset: z.string().optional()
+            })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: HistoryListResponse } }, description: 'History' },
+            401: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Unauthorized' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
-    }
+    }),
+    (c) => individualImpairmentController.getHistory(c)
+)
+
+individualImpairmentRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/assessment/{accountId}/history',
+        tags: ['Individual Impairment'],
+        summary: 'Get Assessment History',
+        request: {
+            params: z.object({ accountId: z.string() })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: HistoryListResponse } }, description: 'Assessment History' },
+            401: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Unauthorized' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    (c) => individualImpairmentController.getAssessmentHistory(c)
+)
+
+// --- REPORTS ---
+
+individualImpairmentRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/reports',
+        tags: ['Individual Impairment'],
+        summary: 'Get Reports',
+        request: {
+            query: z.object({
+                reportPeriod: z.string().optional(),
+                limit: z.string().optional(),
+                offset: z.string().optional()
+            })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: ReportListResponse } }, description: 'Reports' },
+            401: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Unauthorized' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    (c) => individualImpairmentController.getReports(c)
+)
+
+individualImpairmentRoutes.openapi(
+    createRoute({
+        method: 'post',
+        path: '/reports',
+        tags: ['Individual Impairment'],
+        summary: 'Create Report',
+        request: {
+            body: { content: { 'application/json': { schema: CreateReportSchema } } }
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: SuccessResponseSchema } }, description: 'Created' },
+            401: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Unauthorized' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    (c) => individualImpairmentController.createReport(c)
+)
+
+// --- SCENARIOS ---
+
+individualImpairmentRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/scenarios',
+        tags: ['Individual Impairment'],
+        summary: 'Get Scenarios',
+        request: {
+            query: z.object({ status: z.string().optional() })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: ScenarioListResponse } }, description: 'Scenarios' },
+            401: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Unauthorized' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    (c) => individualImpairmentController.getScenarios(c)
+)
+
+individualImpairmentRoutes.openapi(
+    createRoute({
+        method: 'post',
+        path: '/scenarios',
+        tags: ['Individual Impairment'],
+        summary: 'Create Scenario',
+        request: {
+            body: { content: { 'application/json': { schema: CreateScenarioSchema } } }
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: SuccessResponseSchema } }, description: 'Created' },
+            401: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Unauthorized' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    (c) => individualImpairmentController.createScenario(c)
+)
+
+individualImpairmentRoutes.openapi(
+    createRoute({
+        method: 'put',
+        path: '/scenarios/{id}/status',
+        tags: ['Individual Impairment'],
+        summary: 'Update Scenario Status',
+        request: {
+            params: z.object({ id: z.string() }),
+            body: { content: { 'application/json': { schema: UpdateScenarioStatusSchema } } }
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: SuccessResponseSchema } }, description: 'Updated' },
+            401: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Unauthorized' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    (c) => individualImpairmentController.updateScenarioStatus(c)
+)
+
+// --- DCF ---
+
+individualImpairmentRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/dcf-uploads',
+        tags: ['Individual Impairment'],
+        summary: 'Get DCF Uploads',
+        responses: {
+            200: { content: { 'application/json': { schema: DcfUploadListResponse } }, description: 'Uploads' },
+            401: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Unauthorized' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    (c) => individualImpairmentController.getDcfUploads(c)
+)
+
+individualImpairmentRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/dcf-calculations',
+        tags: ['Individual Impairment'],
+        summary: 'Get DCF Calculations',
+        responses: {
+            200: { content: { 'application/json': { schema: DcfCalculationListResponse } }, description: 'Calculations' },
+            401: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Unauthorized' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    (c) => individualImpairmentController.getDcfCalculations(c)
+)
+
+individualImpairmentRoutes.openapi(
+    createRoute({
+        method: 'post',
+        path: '/dcf-uploads',
+        tags: ['Individual Impairment'],
+        summary: 'Create Batch Upload',
+        request: {
+            body: { content: { 'application/json': { schema: CreateBatchUploadSchema } } }
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: SuccessResponseSchema } }, description: 'Uploaded' },
+            401: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Unauthorized' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    (c) => individualImpairmentController.createBatchUpload(c)
+)
+
+individualImpairmentRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/dcf-uploads/{uploadId}/cashflows',
+        tags: ['Individual Impairment'],
+        summary: 'Get DCF Cashflows',
+        request: {
+            params: z.object({ uploadId: z.string() })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: DcfCashflowListResponse } }, description: 'Cashflows' },
+            401: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Unauthorized' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    (c) => individualImpairmentController.getDcfCashflows(c)
 )

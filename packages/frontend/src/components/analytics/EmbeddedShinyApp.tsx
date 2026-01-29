@@ -101,7 +101,7 @@ interface CrossFrameMessage {
 
 const useShinyAppStyles = (bankingType: string, theme: any) => {
   const isIslamic = bankingType === 'syariah';
-  
+
   return {
     container: {
       position: 'relative',
@@ -113,9 +113,9 @@ const useShinyAppStyles = (bankingType: string, theme: any) => {
       boxShadow: theme.shadows[4]
     },
     header: {
-      background: isIslamic 
+      background: isIslamic
         ? `linear-gradient(135deg, ${theme.palette.success.main} 0%, ${theme.palette.success.dark} 100%)`
-        : `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+        : '#1976D2',
       color: theme.palette.common.white,
       padding: theme.spacing(1, 2),
       display: 'flex',
@@ -173,7 +173,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
   fullscreenSupport = true
 }) => {
   const theme = useTheme();
-  
+
   // ✅ Load configuration inside component for fresh environment access
   const config = frontendEnvironmentLoader.getConfiguration();
   const API_CONFIG = {
@@ -184,12 +184,12 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
   };
 
   const styles = useShinyAppStyles(bankingType, theme);
-  
+
   // Redux state
   const auth = useSelector((state: RootState) => state.auth);
   const user = auth?.user;
   const token = auth?.token;
-  
+
   // Component state
   const [session, setSession] = useState<RSessionData | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
@@ -197,15 +197,15 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [messages, setMessages] = useState<CrossFrameMessage[]>([]);
   const [sessionDialogOpen, setSessionDialogOpen] = useState<boolean>(false);
-  
+
   // Refs
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  
+
   // ============================================================================
   // 🔗 ENHANCED API FUNCTIONS (Production Ready)
   // ============================================================================
-  
+
   const createRSession = useCallback(async () => {
     if (!token || !user) {
       setError('Authentication required');
@@ -225,11 +225,11 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
 
       console.log('🔬 Creating R session with request:', sessionRequest);
       console.log('🌐 Using API URL:', API_CONFIG.R_ANALYTICS_API);
-      
+
       // Validate URL construction
       const sessionUrl = `${API_CONFIG.R_ANALYTICS_API}/session`;
       console.log('🔗 Full session URL:', sessionUrl);
-      
+
       // Check for double slashes or malformed URLs
       if (sessionUrl.includes('//api') || sessionUrl.includes('/api/v1/api')) {
         console.error('❌ Malformed URL detected:', sessionUrl);
@@ -248,7 +248,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
 
       if (!response.ok) {
         const errorData = await response.json();
-        
+
         // Handle port already in use case
         if (errorData.code === 'PORT_ALREADY_IN_USE') {
           if (errorData.data?.canTerminate) {
@@ -256,7 +256,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
               `Port ${errorData.data.requestedPort} is already in use by another user. ` +
               `As an admin, would you like to terminate their session and connect?`
             );
-            
+
             if (shouldTerminate && errorData.data.existingSession?.sessionId) {
               // Terminate existing session and retry
               try {
@@ -267,7 +267,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
                     'Origin': API_CONFIG.FRONTEND_URL
                   }
                 });
-                
+
                 // Wait a moment then retry
                 setTimeout(() => createRSession(), 2000);
                 return;
@@ -276,19 +276,19 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
               }
             }
           }
-          
+
           // Provide helpful error message
           throw new Error(
             `${errorData.error}. ` +
             `Please wait for the other user to finish, or ask an admin to terminate their session.`
           );
         }
-        
+
         throw new Error(errorData.error || `HTTP ${response.status}`);
       }
 
       const data = await response.json();
-      
+
       // 🛡️ DEFENSIVE: Handle both data.data and direct data response structures
       let sessionData: RSessionData = data.data || data;
 
@@ -318,23 +318,23 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
         const fallbackBankingType = sessionData.bankingType || sessionRequest.bankingType || 'conventional';
         sessionData.port = defaultPorts[fallbackBankingType as keyof typeof defaultPorts] || 4236;
       }
-      
+
       const actualPort = sessionData.port;
-      
+
       // Construct URL based on environment
       if (API_CONFIG.IS_PRODUCTION) {
-         const domainBase = API_CONFIG.R_DASHBOARD_URL;
-         sessionData.iframeUrl = `${domainBase}/?session=${sessionData.sessionId}&iframe=true`;
-         sessionData.domainUrl = domainBase;
+        const domainBase = API_CONFIG.R_DASHBOARD_URL;
+        sessionData.iframeUrl = `${domainBase}/?session=${sessionData.sessionId}&iframe=true`;
+        sessionData.domainUrl = domainBase;
       } else {
-         // Local development
-         sessionData.iframeUrl = `http://localhost:${actualPort}/?session=${sessionData.sessionId}&iframe=true`;
-         sessionData.domainUrl = `http://localhost:${actualPort}`;
+        // Local development
+        sessionData.iframeUrl = `http://localhost:${actualPort}/?session=${sessionData.sessionId}&iframe=true`;
+        sessionData.domainUrl = `http://localhost:${actualPort}`;
       }
 
       console.log(`✅ R session created:`, sessionData);
       console.log(`🖼️ Iframe URL:`, sessionData.iframeUrl);
-      
+
       setSession(sessionData);
       onSessionCreate?.(sessionData);
 
@@ -342,18 +342,18 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
       if (sessionData.reused) {
         console.log('♻️ R session reused:', sessionData);
         console.log('🖼️ Iframe URL:', sessionData.iframeUrl);
-        
+
         setSession(sessionData);
         onSessionCreate?.(sessionData);
-        
+
         // Immediately remove loading since session is already running
         setLoading(false);
         return;
       }
-      
+
       console.log('✅ R session created:', sessionData);
       console.log('🖼️ Iframe URL:', sessionData.iframeUrl);
-      
+
       setSession(sessionData);
       onSessionCreate?.(sessionData);
 
@@ -365,7 +365,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to create R session';
       console.error('❌ R session creation failed:', errorMessage);
-      
+
       setError(errorMessage);
       setLoading(false);
       onSessionError?.(errorMessage);
@@ -428,19 +428,19 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
           API_CONFIG.R_ANALYTICS_API,
           API_CONFIG.FRONTEND_URL
         ];
-        
+
         if (!allowedOrigins.includes(event.origin)) {
           console.warn('🚨 Blocked message from untrusted origin:', event.origin);
           return;
         }
       }
-      
+
       if (event.data && typeof event.data === 'object') {
         const message: CrossFrameMessage = event.data;
-        
+
         if (message.source === 'r_analytics') {
           console.log('📨 Received message from R Analytics:', message);
-          
+
           setMessages(prev => [...prev.slice(-9), message]); // Keep last 10 messages
           onMessage?.(message);
 
@@ -498,11 +498,11 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
   // Auto-start session on mount
   useEffect(() => {
     if (autoStart && !session && !loading && !error) {
-      
+
       const config = frontendEnvironmentLoader.getConfiguration();
       const currentDashboardUrl = config.rAnalytics.dashboard;
       const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-      
+
       console.log('🔍 EmbeddedShinyApp - URL Resolution:', {
         configDashboard: currentDashboardUrl,
         isLocalhost,
@@ -511,16 +511,16 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
       });
 
       let domainBase = '';
-      
+
       // ✅ PRIORITY 1: If we have a configured remote domain, use it regardless of localhost
       if (currentDashboardUrl && !currentDashboardUrl.includes('localhost') && !currentDashboardUrl.includes('127.0.0.1')) {
         console.log('📡 REMOTE DOMAIN DETECTED - Using configured URL:', currentDashboardUrl);
         domainBase = currentDashboardUrl;
-      } 
+      }
       // ✅ PRIORITY 2: If we are not on localhost, use whatever is configured
       else if (!isLocalhost || config.isProduction) {
         domainBase = currentDashboardUrl;
-      } 
+      }
       // ✅ FALLBACK: Localhost development
       else {
         console.log('💻 LOCALHOST DETECTED - Falling back to local R Analytics');
@@ -548,7 +548,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
 
     // Only call createRSession if NOT local/direct embed
     if (autoStart && API_CONFIG.IS_PRODUCTION) {
-        createRSession();
+      createRSession();
     }
   }, [autoStart, session, loading, error, tenantSlug, bankingType, onSessionCreate, createRSession]);
 
@@ -588,21 +588,21 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
 
   const handleOpenInNewTab = useCallback(() => {
     if (!session) return;
-    
+
     let openUrl = session.domainUrl;
-    
+
     // If domainUrl is not set, try to construct it
     if (!openUrl) {
       if (API_CONFIG.IS_PRODUCTION) {
-         openUrl = API_CONFIG.R_DASHBOARD_URL;
+        openUrl = API_CONFIG.R_DASHBOARD_URL;
       } else {
-         openUrl = `http://localhost:${session.port || 4236}`;
+        openUrl = `http://localhost:${session.port || 4236}`;
       }
     }
-    
+
     // Append session params if needed
     if (openUrl && !openUrl.includes('?')) {
-       openUrl += `/?session=${session.sessionId}&iframe=false`;
+      openUrl += `/?session=${session.sessionId}&iframe=false`;
     }
 
     console.log(`🚀 Opening R Analytics in new tab: ${openUrl}`);
@@ -611,7 +611,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
 
   const handleIframeLoad = useCallback(() => {
     console.log('🖼️ R Analytics iframe loaded');
-    
+
     // Send initial configuration to R
     setTimeout(() => {
       sendMessageToR('parent_ready', {
@@ -663,21 +663,21 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
       <Card sx={{ height, ...styles.container }}>
         <Box sx={styles.header}>
           <Stack direction="row" spacing={2} alignItems="center">
-          
+
             <Typography variant="h6">
               I9 Modelling - {bankingType === 'syariah' ? 'Islamic' : bankingType === 'dana' ? 'DANA' : 'Conventional'} Banking
             </Typography>
             {API_CONFIG.IS_PRODUCTION && (
-              <Chip 
-                label="PRODUCTION" 
-                color="error" 
-                size="small" 
+              <Chip
+                label="PRODUCTION"
+                color="error"
+                size="small"
                 sx={{ fontWeight: 'bold' }}
               />
             )}
           </Stack>
         </Box>
-        
+
         <Box sx={styles.loadingOverlay}>
           <CircularProgress size={60} color={bankingType === 'syariah' ? 'success' : 'primary'} />
           <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>
@@ -692,14 +692,14 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
           <Typography variant="caption" color="textSecondary" align="center" sx={{ mt: 1, fontStyle: 'italic' }}>
             Enhanced v15 Dashboard Ready!
           </Typography>
-          <LinearProgress 
-            sx={{ 
-              width: 300, 
+          <LinearProgress
+            sx={{
+              width: 300,
               mt: 2,
               '& .MuiLinearProgress-bar': {
                 backgroundColor: bankingType === 'syariah' ? theme.palette.success.main : theme.palette.primary.main
               }
-            }} 
+            }}
           />
         </Box>
       </Card>
@@ -718,16 +718,16 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
             <ErrorIcon />
             <Typography variant="h6">R Analytics - Connection Error</Typography>
             {API_CONFIG.IS_PRODUCTION && (
-              <Chip 
-                label="PRODUCTION" 
-                color="error" 
-                size="small" 
+              <Chip
+                label="PRODUCTION"
+                color="error"
+                size="small"
                 sx={{ fontWeight: 'bold' }}
               />
             )}
           </Stack>
         </Box>
-        
+
         <Box sx={{ p: 3 }}>
           <Alert severity="error">
             <AlertTitle>⚠️ Failed to Connect to R Analytics</AlertTitle>
@@ -747,7 +747,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
               🔥🔥🔥 API: {API_CONFIG.R_ANALYTICS_API} 🔥🔥🔥   seems you need to embed this : {API_CONFIG.R_DASHBOARD_URL}
             </Typography>
           </Alert>
-          
+
           <Box sx={{ mt: 2 }}>
             <Button
               variant="contained"
@@ -797,20 +797,20 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
             <Typography variant="h6" noWrap>
               I9 Modelling - {session ? (session.bankingType === 'syariah' ? 'Islamic' : session.bankingType === 'dana' ? 'DANA' : 'Conventional') : (bankingType === 'syariah' ? 'Islamic' : bankingType === 'dana' ? 'DANA' : 'Conventional')} Banking
             </Typography>
-            
+
             {API_CONFIG.IS_PRODUCTION && (
-              <Chip 
-                label="PRODUCTION" 
-                color="warning" 
-                size="small" 
-                sx={{ 
+              <Chip
+                label="PRODUCTION"
+                color="warning"
+                size="small"
+                sx={{
                   backgroundColor: '#ff9800',
                   color: 'white',
                   fontWeight: 'bold'
                 }}
               />
             )}
-            
+
             {session && (
               <Chip
                 icon={getStatusIcon(session.status) || undefined}
@@ -820,13 +820,13 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
                 sx={styles.statusChip}
               />
             )}
-            
+
             {bankingType === 'syariah' && (
               <Chip
                 label="HALAL"
                 color="success"
                 size="small"
-                sx={{ 
+                sx={{
                   backgroundColor: alpha(theme.palette.success.main, 0.9),
                   color: theme.palette.common.white,
                   fontWeight: 700
@@ -846,7 +846,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
                   <Refresh />
                 </IconButton>
               </Tooltip>
-              
+
               <Tooltip title={`Open in New Tab (${session ? API_CONFIG.R_DASHBOARD_URL : 'Domain URL'})`}>
                 <IconButton
                   onClick={handleOpenInNewTab}
@@ -856,7 +856,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
                   <OpenInNew />
                 </IconButton>
               </Tooltip>
-              
+
               {fullscreenSupport && (
                 <Tooltip title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}>
                   <IconButton
@@ -867,7 +867,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
                   </IconButton>
                 </Tooltip>
               )}
-              
+
               <Tooltip title="Session Details">
                 <IconButton
                   onClick={() => setSessionDialogOpen(true)}
@@ -877,7 +877,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
                   <Analytics />
                 </IconButton>
               </Tooltip>
-              
+
               <Tooltip title="Close Session">
                 <IconButton
                   onClick={terminateSession}
@@ -931,7 +931,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
             )}
           </Stack>
         </DialogTitle>
-        
+
         <DialogContent>
           {session && (
             <Stack spacing={2}>
@@ -947,7 +947,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
                 <Typography variant="body2">Environment: {API_CONFIG.IS_PRODUCTION ? 'Production' : 'Development'}</Typography>
                 <Typography variant="body2">Iframe URL: {session.iframeUrl}</Typography>
               </Box>
-              
+
               <Box>
                 <Typography variant="subtitle2">Cross-Frame Messages ({messages.length})</Typography>
                 <Box sx={{ maxHeight: 200, overflow: 'auto', border: 1, borderColor: 'divider', p: 1, borderRadius: 1 }}>
@@ -961,7 +961,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
             </Stack>
           )}
         </DialogContent>
-        
+
         <DialogActions>
           <Button onClick={() => setSessionDialogOpen(false)}>Close</Button>
         </DialogActions>
