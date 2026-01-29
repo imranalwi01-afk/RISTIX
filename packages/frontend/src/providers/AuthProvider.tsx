@@ -15,6 +15,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import Cookies from 'js-cookie'
 import { useRouter, usePathname } from 'next/navigation'
 import { useDispatch, useSelector } from 'react-redux'
+import { getCookieConfig } from '../utils/cookie-domain'
 import type { RootState, AppDispatch } from '../store'
 import {
   loginStart,
@@ -68,21 +69,28 @@ const syncTokenToCookie = (token: string | null, user: any = null, refreshToken?
         // Set cookies for middleware and SSR access
         const isSecure = window.location.protocol === 'https:';
 
+        // ✅ Get cookie config with domain detection (supports localhost, ifrspro.id, danafin.com)
+        const cookieConfig = getCookieConfig(7);
+        
+        console.log('🍪 [Cookie Setup] Configuration:', {
+          hostname: window.location.hostname,
+          protocol: window.location.protocol,
+          cookieConfig,
+          hasToken: !!token,
+          hasRefreshToken: !!refreshToken
+        });
+
         // Store auth_token (matches middleware.ts expectation)
         Cookies.set('auth_token', token, {
           path: '/',
-          secure: isSecure,
-          sameSite: 'strict',
-          expires: 7 // 7 days
+          ...cookieConfig
         });
 
         // ✅ FIX: Store refresh token in cookie for page refresh handling
         if (refreshToken) {
           Cookies.set('refresh_token', refreshToken, {
             path: '/',
-            secure: isSecure,
-            sameSite: 'strict',
-            expires: 7 // 7 days
+            ...cookieConfig
           });
           console.log('🔐 Refresh token synced to cookie');
         }
@@ -96,18 +104,28 @@ const syncTokenToCookie = (token: string | null, user: any = null, refreshToken?
             tenantId: user.tenantId
           }), {
             path: '/',
-            secure: isSecure,
-            sameSite: 'strict',
-            expires: 7
+            ...cookieConfig
           });
         }
 
-        console.log('🔐 Authentication cookies synced successfully');
+        // Verify cookies were actually set
+        const verifyToken = Cookies.get('auth_token');
+        const verifyRefresh = Cookies.get('refresh_token');
+        console.log('🔐 Authentication cookies synced successfully', { 
+          domain: cookieConfig.domain || 'localhost',
+          authTokenSet: !!verifyToken,
+          refreshTokenSet: !!verifyRefresh,
+          authTokenLength: verifyToken?.length,
+          refreshTokenLength: verifyRefresh?.length
+        });
       } else {
-        // Clear cookies
-        Cookies.remove('auth_token', { path: '/' });
-        Cookies.remove('refresh_token', { path: '/' });
-        Cookies.remove('auth_user', { path: '/' });
+        // Clear cookies with dynamic domain detection
+        const cookieConfig = getCookieConfig();
+        const removeOptions = { path: '/', ...(cookieConfig.domain && { domain: cookieConfig.domain }) };
+        
+        Cookies.remove('auth_token', removeOptions);
+        Cookies.remove('refresh_token', removeOptions);
+        Cookies.remove('auth_user', removeOptions);
         console.log('🗑️ Authentication cookies cleared');
       }
     }

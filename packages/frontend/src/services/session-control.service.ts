@@ -5,6 +5,7 @@
 import Cookies from 'js-cookie';
 import { getSessionControlConfig, SessionControlConfig } from '../config/session-control.config';
 import { frontendEnvironmentLoader } from '../config/environment-loader-frontend';
+import { buildCookieString, buildCookieRemovalString } from '../utils/cookie-domain';
 
 export interface SessionEvent {
   type: 'login' | 'logout' | 'token_refresh' | 'session_warning' | 'session_expired' | 'error' |
@@ -66,6 +67,7 @@ export class SessionControlService {
       logoutInProgress: false,
       networkFailureCount: 0,
       isOffline: false,
+      loginTimestamp: null, // ✅ Track when user logged in
     };
 
     // ✅ FIXED: Load authentication data from localStorage on initialization
@@ -110,6 +112,9 @@ export class SessionControlService {
       refreshTokenLength: sessionData.refreshToken?.length || 0
     });
 
+    // ✅ FIX: Set login timestamp to prevent immediate logout
+    this.state.loginTimestamp = Date.now();
+
     // ✅ FIX: Don't default to empty string if refreshToken is missing
     // Instead, use null so we can detect if it's actually missing
     const refreshToken = sessionData.refreshToken || null;
@@ -136,7 +141,7 @@ export class SessionControlService {
       }
     });
 
-    this.log('Session initialized successfully');
+    this.log('Session initialized successfully - grace period active for 60 seconds');
   }
 
   // 🔐 AUTHENTICATION STATE MANAGEMENT
@@ -206,11 +211,11 @@ export class SessionControlService {
         localStorage.removeItem('token_expiry');
       }
       
-      // ✅ FIX: Also clear cookies
+      // ✅ FIX: Clear cookies with dynamic domain detection
       if (typeof document !== 'undefined') {
-        document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-        document.cookie = 'refresh_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-        document.cookie = 'auth_user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        document.cookie = buildCookieRemovalString('auth_token');
+        document.cookie = buildCookieRemovalString('refresh_token');
+        document.cookie = buildCookieRemovalString('auth_user');
       }
     } catch (error) {
       this.log('Error clearing storage data', { error: error.message });
@@ -228,19 +233,17 @@ export class SessionControlService {
           localStorage.setItem('token_expiry', this.state.tokenExpiry.toString());
         }
         
-        // ✅ CRITICAL FIX: Also sync to cookies for API requests
+        // ✅ CRITICAL FIX: Sync to cookies with dynamic domain detection
         if (typeof document !== 'undefined') {
-          const isSecure = window.location.protocol === 'https:';
-          
           if (this.state.token) {
-            document.cookie = `auth_token=${this.state.token}; path=/; ${isSecure ? 'secure;' : ''} samesite=strict; max-age=${60 * 60 * 24 * 7}`;
+            document.cookie = buildCookieString('auth_token', this.state.token);
           }
           
           if (this.state.refreshToken) {
-            document.cookie = `refresh_token=${this.state.refreshToken}; path=/; ${isSecure ? 'secure;' : ''} samesite=strict; max-age=${60 * 60 * 24 * 7}`;
+            document.cookie = buildCookieString('refresh_token', this.state.refreshToken);
           }
           
-          this.log('✅ Tokens synced to cookies for API requests');
+          this.log('✅ Tokens synced to cookies for API requests (multi-domain support)');
         }
       }
     } catch (error) {
@@ -487,9 +490,18 @@ export class SessionControlService {
           this.state.refreshFailureCount = (this.state.refreshFailureCount || 0) + 1;
           this.log('Refresh token failed (401)', { failureCount: this.state.refreshFailureCount });
           
-          // Only logout after 3 consecutive failures
+          // ✅ GRACE PERIOD: Don't auto-logout within 60 seconds of login
+          const timeSinceLogin = this.state.loginTimestamp ? Date.now() - this.state.loginTimestamp : Infinity;
+          const gracePeriod = 60000; // 60 seconds
+          
+          if (timeSinceLogin < gracePeriod) {
+            this.log(`🛡️ Refresh token failed during grace period (${Math.round(timeSinceLogin / 1000)}s since login) - skipping auto-logout`);
+            return { success: false, error: 'Refresh token failed (grace period active)' };
+          }
+          
+          // Only logout after 3 consecutive failures AND after grace period
           if (this.state.refreshFailureCount >= 3) {
-            this.log('Refresh token failed 3 times, logging out');
+            this.log('Refresh token failed 3 times (after grace period), logging out');
             setTimeout(() => this.logout('refresh_token_expired', { skipAPI: true }), 100);
           }
           return { success: false, error: 'Refresh token attempt failed' };
@@ -1073,6 +1085,15 @@ export class SessionControlService {
     switch (status) {
       case 401:
         if (config.unauthorized401.enabled) {
+          // ✅ GRACE PERIOD: Skip all 401 handling within 60 seconds of login
+          const timeSinceLogin = this.state.loginTimestamp ? Date.now() - this.state.loginTimestamp : Infinity;
+          const gracePeriod = 60000; // 60 seconds
+          
+          if (timeSinceLogin < gracePeriod) {
+            this.log(`🛡️ 401 during grace period (${Math.round(timeSinceLogin / 1000)}s since login) - skipping token refresh, allowing normal flow`);
+            return false; // Let the error propagate without any intervention
+          }
+          
           this.log('Handling 401 Unauthorized error (lenient mode)');
 
           // 🔧 LENIENT: Always try token refresh with multiple retries

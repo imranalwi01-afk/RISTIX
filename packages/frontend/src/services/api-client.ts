@@ -23,7 +23,7 @@ export const apiClient: AxiosInstance = axios.create({
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   },
-  withCredentials: false,
+  withCredentials: true, // ✅ CRITICAL: Enable credentials to send cookies with requests
   responseType: 'json',
   maxRedirects: 5,
 });

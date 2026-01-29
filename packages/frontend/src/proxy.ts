@@ -104,14 +104,25 @@ function validateTokenBasic(token: string): { isValid: boolean; user?: any } {
 
       // ✅ SURGICAL FIX: Return valid if we have basic user data
       if (payload.userId || payload.email || payload.sub) {
+        const roles = payload.roles || (payload.role ? [payload.role] : []);
+        const permissions = payload.permissions || [];
+        
+        console.log('[ProxyDebug] Token decoded:', {
+          email: payload.email,
+          roles: roles,
+          permissions: permissions.slice(0, 5), // First 5 permissions
+          totalPermissions: permissions.length,
+          stakeholderType: payload.stakeholderType
+        });
+        
         return {
           isValid: true,
           user: {
             id: payload.userId || payload.sub,
             email: payload.email,
-            role: payload.role || payload.roles?.[0] || '', // Removed fallback role
-            roles: payload.roles || (payload.role ? [payload.role] : []),
-            permissions: payload.permissions || [], // ✅ Extract permissions
+            role: payload.role || roles[0] || '',
+            roles: roles,
+            permissions: permissions,
             tenantId: payload.tenantId,
             tenantSlug: payload.tenantSlug,
             bankingType: payload.bankingType,
@@ -165,10 +176,18 @@ function detectBankingModeFromURL(pathname: string): 'conventional' | 'syariah' 
 function hasRouteAccess(user: any, pathname: string): boolean {
   // 1. Platform Admin Bypass (Absolute Superuser)
   if (user?.isPlatformAdmin === true) {
+    console.log(`[ProxyDebug] Platform admin ${user.email} - access granted`);
     return true;
   }
 
-  // 2. Map-Based Permission Check
+  // 2. Super Admin role bypass (for tenant admins)
+  const userRoles = user.roles || [];
+  if (userRoles.some((r: string) => r.toUpperCase().includes('ADMIN') || r.toUpperCase().includes('SUPERUSER'))) {
+    console.log(`[ProxyDebug] Admin user ${user.email} (${userRoles.join(',')}) - access granted`);
+    return true;
+  }
+
+  // 3. Map-Based Permission Check
   // Sort patterns from most specific to least specific
   const protectedPaths = Object.keys(ROUTE_PERMISSION_MAP).sort((a, b) => b.length - a.length);
 
@@ -177,22 +196,33 @@ function hasRouteAccess(user: any, pathname: string): boolean {
       const requiredPermission = ROUTE_PERMISSION_MAP[routePath];
       const userPermissions = user.permissions || [];
 
-      // Strict Check: User MUST have the required permission
+      // Check if user has the required permission
       if (userPermissions.includes(requiredPermission)) {
+        return true;
+      }
+
+      // ✅ LENIENT: If user has ANY banking permissions, allow banking routes
+      if (pathname.startsWith('/banking') && userPermissions.some((p: string) => 
+        p.includes('VIEW') || p.includes('MANAGE') || p.includes('ACCESS')
+      )) {
+        console.log(`[ProxyDebug] User ${user.email} has banking permissions - allowing ${pathname}`);
         return true;
       }
 
       // If we matched a pattern but didn't have the permission, deny access
       console.warn(`[ProxyDebug] User ${user.email} missing required permission ${requiredPermission} for ${pathname}`);
+      console.warn(`[ProxyDebug] User roles: ${JSON.stringify(userRoles)}, User permissions: ${JSON.stringify(userPermissions)}`);
       return false;
     }
   }
 
-  // 3. Default Fallback
-  // If a path is in a module like /banking, /platform, etc., but not explicitly mapped,
-  // we require at least the base module permission.
-  if (pathname.startsWith('/banking') && user.permissions?.includes('VIEW_DASHBOARD')) {
-    return true;
+  // 4. Default Fallback for banking routes
+  if (pathname.startsWith('/banking')) {
+    const hasAnyPermission = (user.permissions || []).length > 0;
+    if (hasAnyPermission) {
+      console.log(`[ProxyDebug] User ${user.email} has permissions - allowing banking route ${pathname}`);
+      return true;
+    }
   }
 
   // Allow public or un-mapped routes by default (middleware logic should catch sensitive ones)

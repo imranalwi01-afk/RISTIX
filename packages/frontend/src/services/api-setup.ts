@@ -106,15 +106,30 @@ apiClient.interceptors.request.use(
         // 3. Auth Headers
         if (typeof window !== 'undefined') {
             const token = getAuthToken();
+            
+            // Enhanced logging for debugging
+            const cookieToken = typeof document !== 'undefined' ? document.cookie.split('; ').find(row => row.startsWith('auth_token='))?.split('=')[1] : null;
+            const localToken = localStorage.getItem('auth_token');
+            const allCookies = typeof document !== 'undefined' ? document.cookie : 'N/A';
+            
             console.log('🔑 [API Setup] Token check:', {
                 hasToken: !!token,
                 tokenPreview: token ? `${token.substring(0, 20)}...` : 'none',
+                tokenSource: cookieToken ? 'cookie' : (localToken ? 'localStorage' : 'none'),
+                cookieExists: !!cookieToken,
+                localStorageExists: !!localToken,
+                withCredentials: config.withCredentials,
+                allCookies: allCookies.substring(0, 100),
                 url: config.url
             });
+            
             if (token) {
                 config.headers.Authorization = `Bearer ${token}`;
             } else {
                 console.warn('⚠️ [API Setup] No token available for request:', config.url);
+                console.warn('   → Cookie token:', cookieToken ? 'exists' : 'missing');
+                console.warn('   → LocalStorage token:', localToken ? 'exists' : 'missing');
+                console.warn('   → All cookies:', allCookies);
             }
 
             // Tenant Context
