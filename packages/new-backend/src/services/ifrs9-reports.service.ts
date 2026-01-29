@@ -1,10 +1,10 @@
 
 import { sql, desc, eq, and, lte } from 'drizzle-orm';
-import { frs9Db } from '../config/database';
+import { legacyDb } from '../config/database';
 // Use the centralized schema export
-import { 
-    frs9ImpIaHeader, 
-    frs9ImpCaResultH, 
+import {
+    frs9ImpIaHeader,
+    frs9ImpCaResultH,
     frs9ImpCaPdStructure,
     frs9AccountId,
     frs9ImpCaLgdData,
@@ -143,7 +143,7 @@ export class Ifrs9ReportsService {
             }
 
             // Query frs9_imp_ca_pd_structure
-            const rawData = await frs9Db
+            const rawData = await legacyDb
                 .select()
                 .from(frs9ImpCaPdStructure)
                 .where(and(...conditions))
@@ -195,7 +195,7 @@ export class Ifrs9ReportsService {
             }
 
             // Query frs9_imp_ca_pd_structure
-            const rawData = await frs9Db
+            const rawData = await legacyDb
                 .select()
                 .from(frs9ImpCaPdStructure)
                 .where(and(...conditions))
@@ -244,7 +244,7 @@ export class Ifrs9ReportsService {
             }
 
             // Execute aggregation query matching SQL script
-            const rawData = await frs9Db.execute(sql.raw(`
+            const rawData = await legacyDb.execute(sql.raw(`
                 SELECT 
                     prc_date AS period,
                     branch_code,
@@ -334,7 +334,7 @@ export class Ifrs9ReportsService {
             }
 
             // Query account-level data from frs9_master_account
-            const rawData = await frs9Db.execute(sql.raw(`
+            const rawData = await legacyDb.execute(sql.raw(`
                 SELECT 
                     account_id,
                     account_number,
@@ -376,7 +376,7 @@ export class Ifrs9ReportsService {
             }));
 
             // Get total count
-            const countResult = await frs9Db.execute(sql.raw(`
+            const countResult = await legacyDb.execute(sql.raw(`
                 SELECT COUNT(*) as total FROM ifrs9.frs9_master_account WHERE ${whereClause}
             `));
             const total = Number((countResult as any[])[0]?.total || 0);
@@ -388,8 +388,8 @@ export class Ifrs9ReportsService {
                 totalPages: Math.ceil(total / limit)
             };
         } catch (error) {
-             console.error('❌ Error in getNominativeReport service:', error);
-             return { data: [], total: 0, page, totalPages: 0 };
+            console.error('❌ Error in getNominativeReport service:', error);
+            return { data: [], total: 0, page, totalPages: 0 };
         }
     }
 
@@ -413,7 +413,7 @@ export class Ifrs9ReportsService {
             // INNER JOIN FRS9_IMP_CA_LGD_REC_D C ON B.ACCOUNT_ID = C.ACCOUNT_ID
             // WHERE B.PRC_DATE <= @DATE AND B.LGD_CONFIG_ID = @LGD_CONFIG_ID
 
-            const rawData = await frs9Db.execute(sql`
+            const rawData = await legacyDb.execute(sql`
                 SELECT 
                     A.account_number,
                     A.cif_name,
@@ -496,7 +496,7 @@ export class Ifrs9ReportsService {
             // FROM FRS9_IMP_CA_LGD_H A INNER JOIN FRS9_IMP_CA_LGD_CONFIG B ON A.LGD_CONFIG_ID = B.PKID
             // WHERE PRC_DATE = @DATE AND LGD_CONFIG_ID = @LGD_CONFIG_ID
 
-            const rawData = await frs9Db.execute(sql`
+            const rawData = await legacyDb.execute(sql`
                 SELECT 
                     A.prc_date AS period,
                     B.lgd_model_name AS lgd_model,
@@ -552,7 +552,7 @@ export class Ifrs9ReportsService {
                 eq(frs9ImpCaEadPaymAvg.segmentId, segmentId)
             ];
 
-            const rawData = await frs9Db
+            const rawData = await legacyDb
                 .select()
                 .from(frs9ImpCaEadPaymAvg)
                 .where(and(...conditions))
@@ -625,7 +625,7 @@ export class Ifrs9ReportsService {
                 conditions.push(eq(frs9ImpCaEadPaymAvg.segmentId, segmentId));
             }
 
-            const rawData = await frs9Db
+            const rawData = await legacyDb
                 .select()
                 .from(frs9ImpCaEadPaymAvg)
                 .where(and(...conditions))
