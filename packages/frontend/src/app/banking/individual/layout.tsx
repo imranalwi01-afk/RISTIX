@@ -13,5 +13,5 @@ export default function IndividualLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <>{children}</>;
+  return <>{children as any}</>;
 }

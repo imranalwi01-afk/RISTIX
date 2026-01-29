@@ -88,6 +88,49 @@ import { MenuItem, DatabaseMenuItem, BankingMode } from './types';
 import { getMenuIcon } from '@/config/menu-config';
 
 // IAF-SPECIFIC SITEMAP STRUCTURE - Based on IAF Navigation Requirements
+// Default permission mapping for static menu (can be overridden per id/code)
+const PERMISSION_OVERRIDES: Record<string, string | string[]> = {
+    dashboard: 'VIEW_DASHBOARD',
+    'system-setup': 'MANAGE_SYSTEM_SETUP',
+    'application-configuration': 'MANAGE_APP_CONFIG',
+    'business-configuration': 'MANAGE_BUSINESS_CONFIG',
+    'parameter-management': 'MANAGE_PARAMETERS',
+    'product-parameters': 'MANAGE_PRODUCT_PARAMS',
+    'accounting-parameters': 'MANAGE_ACCOUNTING_PARAMS',
+    'segmentation-configuration': 'MANAGE_SEGMENTATION',
+    'rule-base-setting': 'MANAGE_RULES',
+    'bucket-parameter': 'MANAGE_BUCKETS',
+    'pd-setup-management': 'MANAGE_PD',
+    'lgd-setup-management': 'MANAGE_LGD',
+    'ead-setup-management': 'MANAGE_EAD',
+    'ecl-configuration': 'MANAGE_ECL_CONFIG',
+    'ifrs9': 'VIEW_IFRS9',
+    'ifrs9-report': 'VIEW_IFRS9_REPORTS',
+    'maintenance': 'ADMIN_MAINTENANCE',
+    'user-management': 'ADMIN_USERS',
+    'role-management': 'ADMIN_ROLES',
+    'menu-management': 'ADMIN_MENUS',
+    'job-monitoring': 'VIEW_JOB_MONITORING',
+    'workflow-management': 'VIEW_WORKFLOWS',
+    'approval-system': 'VIEW_APPROVALS',
+    'workflow-configuration': 'CONFIGURE_WORKFLOWS',
+    'process-monitoring': 'VIEW_PROCESS_MONITORING',
+    'tools': 'USE_TOOLS',
+    'manual-upload': 'USE_MANUAL_UPLOAD',
+    'bulk-data-import': 'USE_BULK_IMPORT',
+    'data-export': 'USE_EXPORT',
+    'etl-tools': 'USE_ETL',
+    'direct-db-connection': 'USE_DIRECT_DB',
+    'data-scheduler': 'USE_DATA_SCHEDULER',
+};
+
+const derivePermissionCodes = (idOrCode: string | undefined): string[] => {
+    if (!idOrCode) return [];
+    const key = idOrCode.toLowerCase();
+    const override = PERMISSION_OVERRIDES[key];
+    if (override) return Array.isArray(override) ? override : [override];
+    return [`VIEW_${idOrCode.replace(/[^a-zA-Z0-9]+/g, '_').toUpperCase()}`];
+};
 const BANKING_MENU_STRUCTURE: MenuItem[] = [
     {
         id: 'dashboard',
@@ -100,7 +143,8 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
         level: 1,
         path: '/dashboard',
         isActive: true,
-        status: 'active'
+        status: 'active',
+        requiredPermissions: derivePermissionCodes('dashboard')
     },
 
     // CORE SYSTEM SETUP
@@ -508,7 +552,8 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
                 label: 'R Analytics',
                 href: '/banking/analytics/r-analytics',
                 icon: <DataUsage />,
-                description: 'Statistical Analysis'
+                description: 'Statistical Analysis',
+
             },
             {
                 id: 'financial-reports',
@@ -691,6 +736,21 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
         ]
     }
 ];
+
+// Ensure every static menu item has requiredPermissions (explicit or derived)
+const applyRequiredPermissions = (items: MenuItem[]) => {
+    items.forEach((item) => {
+        if (!item.requiredPermissions || item.requiredPermissions.length === 0) {
+            const codes = derivePermissionCodes(item.code || item.id);
+            item.requiredPermissions = codes;
+        }
+        if (item.children && item.children.length > 0) {
+            applyRequiredPermissions(item.children);
+        }
+    });
+};
+
+applyRequiredPermissions(BANKING_MENU_STRUCTURE);
 
 // Convert icon string to React element helper
 export const convertIconStringToElement = (iconString: string): React.ReactElement<any> => {
@@ -930,6 +990,9 @@ export const getIconForMenuItem = (code: string, level: number): React.ReactElem
 // Helper function to convert static menu to database format for fallback
 export const convertStaticToDatabaseFormat = (staticMenu: MenuItem[]): DatabaseMenuItem[] => {
     const convertItem = (item: MenuItem, parentId: string | null = null): DatabaseMenuItem => {
+        const permissionCodes = item.requiredPermissions && item.requiredPermissions.length > 0
+            ? item.requiredPermissions
+            : derivePermissionCodes(item.code || item.id);
         const dbItem: DatabaseMenuItem = {
             id: item.id,
             menu_key: item.code || item.id,
@@ -942,6 +1005,7 @@ export const convertStaticToDatabaseFormat = (staticMenu: MenuItem[]): DatabaseM
             is_active: true,
             user_types: item.roles || [],
             banking_types: item.banking_modes || ['conventional', 'syariah', 'dual'],
+            requiredPermissions: permissionCodes,
             parent_id: parentId
         };
         return dbItem;
@@ -992,6 +1056,7 @@ export const convertDatabaseMenuToMenuItem = (dbMenuItems: DatabaseMenuItem[], b
             icon: item.icon ? getIconFromDatabaseString(item.icon, bankingMode) : <Menu />,
             banking_modes: item.banking_types as ('conventional' | 'syariah' | 'dual')[],
             roles: item.user_types,
+            requiredPermissions: item.requiredPermissions,
             // ✅ CRITICAL: Preserve children from database - DON'T RECURSIVELY CONVERT
             children: item.children && item.children.length > 0 ? item.children.map(child => ({
                 id: child.id,
@@ -1006,6 +1071,7 @@ export const convertDatabaseMenuToMenuItem = (dbMenuItems: DatabaseMenuItem[], b
                 icon: child.icon ? getIconFromDatabaseString(child.icon, bankingMode) : <Menu />,
                 banking_modes: child.banking_types as ('conventional' | 'syariah' | 'dual')[],
                 roles: child.user_types,
+                requiredPermissions: child.requiredPermissions,
                 status: child.is_active ? 'active' : 'disabled'
             })) : undefined,
             status: item.is_active ? 'active' : 'disabled'

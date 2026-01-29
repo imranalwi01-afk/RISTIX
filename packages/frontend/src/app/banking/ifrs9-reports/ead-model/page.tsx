@@ -1,11 +1,13 @@
 // packages/frontend/src/app/banking/ifrs9-reports/ead-model/page.tsx
 'use client';
 
-import React from 'react';
 import { Box, Typography } from '@mui/material';
 import EADModelReport from '../../../../components/ifrs9/EADModelReport';
 
-const EADModelReportPage: React.FC = () => {
+export default function EADModelReportPage({ params }: { params: Promise<{}> }) {
+  // params are unused but required by Next.js typed routes signature
+  void params;
+
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>
@@ -18,6 +20,4 @@ const EADModelReportPage: React.FC = () => {
       <EADModelReport />
     </Box>
   );
-};
-
-export default EADModelReportPage;
+}

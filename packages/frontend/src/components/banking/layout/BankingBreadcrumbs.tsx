@@ -120,7 +120,7 @@ export const BankingBreadcrumbs: React.FC<BankingBreadcrumbsProps> = ({
                                     }
                                 }}
                             >
-                                {crumb.icon}
+                                {crumb.icon as any}
                                 {crumb.label}
                             </Link>
                         )

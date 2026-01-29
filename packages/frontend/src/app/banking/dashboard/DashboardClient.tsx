@@ -467,12 +467,13 @@ export default function DashboardClient() {
     }, [isAuthenticated, user, isDataLoaded])
 
     // Load dashboard personalization on component mount
+    // 🚫 DISABLED: Skip personalization fetch to prevent 401 errors
     useEffect(() => {
         if (isAuthenticated && user && !isDataLoaded) {
-            dispatch(fetchDashboardPersonalization({
-                userId: user.id,
-                tenantId: user.tenantSlug || 'default'
-            }))
+            // dispatch(fetchDashboardPersonalization({
+            //     userId: user.id,
+            //     tenantId: user.tenantSlug || 'default'
+            // }))
 
             loadDashboardData()
         } else if (!isAuthenticated) {
@@ -800,7 +801,7 @@ export default function DashboardClient() {
                                         <React.Fragment key={activity.id}>
                                             <ListItem sx={{ px: 0 }}>
                                                 <ListItemIcon sx={{ minWidth: 40 }}>
-                                                    {activity.icon}
+                                                    {activity.icon as any}
                                                 </ListItemIcon>
                                                 <ListItemText
                                                     primary={activity.text}

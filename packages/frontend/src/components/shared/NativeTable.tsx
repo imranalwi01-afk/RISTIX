@@ -226,7 +226,7 @@ export function NativeTable<T = any>({
                 {getDetailPanelContent && (
                   <Collapse in={isExpanded} timeout="auto" unmountOnExit>
                     <Box sx={{ mt: 2, pt: 2, borderTop: `1px solid ${theme.palette.divider}` }}>
-                      {getDetailPanelContent({ row })}
+                      {getDetailPanelContent({ row }) as any}
                     </Box>
                   </Collapse>
                 )}
@@ -321,7 +321,7 @@ export function NativeTable<T = any>({
                         <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={visibleColumns.length + (checkboxSelection ? 2 : 1)}>
                           <Collapse in={isExpanded} timeout="auto" unmountOnExit>
                             <Box sx={{ margin: 2 }}>
-                              {getDetailPanelContent({ row })}
+                              {getDetailPanelContent({ row }) as any}
                             </Box>
                           </Collapse>
                         </TableCell>

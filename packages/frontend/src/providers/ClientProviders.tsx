@@ -298,7 +298,7 @@ const PersistLoading = () => (
       <Box sx={{ color: 'text.disabled', fontSize: 14 }}>
         Initializing Redux store & authentication
       </Box>
-      <style jsx>{`
+      <style>{`
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
@@ -337,7 +337,7 @@ const AuthLoading = () => (
       <Box sx={{ color: 'text.disabled', fontSize: 14 }}>
         Validating user session
       </Box>
-      <style jsx>{`
+      <style>{`
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
@@ -371,7 +371,7 @@ export default function ClientProviders({ children }: { children: ReactNode }) {
               <ThemeProvider theme={theme}>
                 <CssBaseline enableColorScheme />
                 <Box component="div" suppressHydrationWarning>
-                  {children}
+                  {children as any}
                 </Box>
               </ThemeProvider>
             </AuthProvider>

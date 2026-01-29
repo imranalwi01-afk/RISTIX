@@ -92,6 +92,7 @@ import {
   HierarchicalMenuItem,
   validateMenuHierarchy
 } from '@/utils/menu-hierarchy';
+import { usePermission } from '@/hooks/usePermission';
 
 // Import menu state management hook
 import { useMenuState } from '@/hooks/useMenuState';
@@ -138,6 +139,15 @@ const SidebarItem = React.memo(({
   onFlyoutOpen: (e: React.MouseEvent<HTMLElement>, item: HierarchicalMenuItem) => void;
   onMenuClick?: (id: string, url?: string) => void;
 }) => {
+  const { hasPermission } = usePermission();
+
+  const isAllowed = React.useMemo(() => {
+    if (!item.requiredPermissions || item.requiredPermissions.length === 0) return true;
+    return item.requiredPermissions.some((code) => hasPermission(code));
+  }, [item.requiredPermissions, hasPermission]);
+
+  if (!isAllowed) return null;
+
   const hasChildren = item.children && item.children.length > 0;
   const isExpanded = expandedItems.has(item.id);
   const isActiveParent = activeItems.has(item.id);
@@ -223,7 +233,7 @@ const SidebarItem = React.memo(({
                 '& svg': { fontSize: collapsed ? '1.4rem' : '1.3rem', transition: 'all 0.3s ease' }
               }}
             >
-              {getIconFromDatabaseString(item.icon)}
+              {getIconFromDatabaseString(item.icon) as any}
             </ListItemIcon>
 
             {!collapsed && (
@@ -314,7 +324,8 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
   };
 
   // ✅ RTK Query: Auto-fetch and cache
-  const shouldSkip = !getAuthToken() || (!userRole && (!roleCodes || roleCodes.length === 0));
+  // 🚫 DISABLED: Skip menu hierarchy fetch to prevent 401 errors
+  const shouldSkip = true; // Force skip menu API call
   const { data: menuData, isLoading: isMenuLoading, error: menuQueryError } = useGetMenuTreeQuery(
     { bankingMode, includeInactive: false },
     { skip: shouldSkip }
@@ -342,6 +353,7 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
           active: dbItem.is_active !== false,
           visible: true,
           permissions: dbItem.user_types || dbItem.roles || [],
+          requiredPermissions: dbItem.requiredPermissions,
           banking_modes: dbItem.banking_types || dbItem.banking_modes || ['conventional', 'syariah', 'dual'],
           user_types: dbItem.user_types || dbItem.roles || [],
           tenant_types: [],
@@ -361,8 +373,8 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
     }
 
     // Filter by role/permissions/banking mode (IAF logic moved to utility)
-    return filterHierarchicalMenu(rawItems, userRole, bankingMode, roleCodes, userPermissions);
-  }, [menuData, isMenuLoading, bankingMode, userRole, roleCodes, userPermissions]);
+    return filterHierarchicalMenu(rawItems, bankingMode, userPermissions);
+  }, [menuData, isMenuLoading, bankingMode, userPermissions]);
 
   // Use hierarchical menu state management
   const menuState = useMenuState(hierarchicalMenu);

@@ -341,7 +341,7 @@ export default function ManualUploadPage() {
                   <CardContent>
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                       <Box sx={{ color: 'primary.main', mr: 2 }}>
-                        {template.icon}
+                        {template.icon as any}
                       </Box>
                       <Typography variant="h6">
                         {template.name}

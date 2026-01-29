@@ -175,7 +175,7 @@ export const DualBankingThemeProvider: React.FC<DualBankingThemeProviderProps> =
     <ThemeContext.Provider value={contextValue}>
       <MUIThemeProvider theme={contextValue.currentTheme}>
         <CssBaseline />
-        {children}
+        {children as any}
       </MUIThemeProvider>
     </ThemeContext.Provider>
   );

@@ -1,5 +1,6 @@
 import IORedis from 'ioredis'
 import { env } from './env'
+import { logger } from '../lib/logger'
 
 /**
  * Redis client for session management and caching
@@ -32,7 +33,7 @@ let isConnected = false
 
 redis.on('connect', () => {
     if (!isConnected) {
-        console.log('✅ Redis connected for session management')
+        logger.info('Redis connected for session management')
         isConnected = true
     }
 })
@@ -40,7 +41,7 @@ redis.on('connect', () => {
 redis.on('error', (err) => {
     // Only log errors after initial connection established
     if (isConnected) {
-        console.error('❌ Redis session error:', err.message)
+        logger.error({ err }, 'Redis session error')
     }
 })
 

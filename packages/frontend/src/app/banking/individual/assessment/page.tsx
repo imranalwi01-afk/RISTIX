@@ -108,7 +108,7 @@ function TabPanel(props: TabPanelProps) {
       aria-labelledby={`individual-impairment-tab-${index}`}
       {...other}
     >
-      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
+      {value === index && <Box sx={{ p: 3 }}>{children as any}</Box>}
     </div>
   );
 }

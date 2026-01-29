@@ -15,6 +15,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import Cookies from 'js-cookie'
 import { useRouter, usePathname } from 'next/navigation'
 import { useDispatch, useSelector } from 'react-redux'
+import { getCookieConfig } from '../utils/cookie-domain'
 import type { RootState, AppDispatch } from '../store'
 import {
   loginStart,
@@ -61,20 +62,38 @@ const getLandingPageUrl = (user: any): string => {
 };
 
 // ✅ SURGICAL FIX: Enhanced token sync function using js-cookie
-const syncTokenToCookie = (token: string | null, user: any = null) => {
+const syncTokenToCookie = (token: string | null, user: any = null, refreshToken?: string | null) => {
   try {
     if (typeof window !== 'undefined') {
       if (token) {
         // Set cookies for middleware and SSR access
         const isSecure = window.location.protocol === 'https:';
 
+        // ✅ Get cookie config with domain detection (supports localhost, ifrspro.id, danafin.com)
+        const cookieConfig = getCookieConfig(7);
+        
+        console.log('🍪 [Cookie Setup] Configuration:', {
+          hostname: window.location.hostname,
+          protocol: window.location.protocol,
+          cookieConfig,
+          hasToken: !!token,
+          hasRefreshToken: !!refreshToken
+        });
+
         // Store auth_token (matches middleware.ts expectation)
         Cookies.set('auth_token', token, {
           path: '/',
-          secure: isSecure,
-          sameSite: 'strict',
-          expires: 7 // 7 days
+          ...cookieConfig
         });
+
+        // ✅ FIX: Store refresh token in cookie for page refresh handling
+        if (refreshToken) {
+          Cookies.set('refresh_token', refreshToken, {
+            path: '/',
+            ...cookieConfig
+          });
+          console.log('🔐 Refresh token synced to cookie');
+        }
 
         // Optionally store basic user data for SSR if needed
         if (user) {
@@ -85,17 +104,28 @@ const syncTokenToCookie = (token: string | null, user: any = null) => {
             tenantId: user.tenantId
           }), {
             path: '/',
-            secure: isSecure,
-            sameSite: 'strict',
-            expires: 7
+            ...cookieConfig
           });
         }
 
-        console.log('🔐 Authentication cookies synced successfully');
+        // Verify cookies were actually set
+        const verifyToken = Cookies.get('auth_token');
+        const verifyRefresh = Cookies.get('refresh_token');
+        console.log('🔐 Authentication cookies synced successfully', { 
+          domain: cookieConfig.domain || 'localhost',
+          authTokenSet: !!verifyToken,
+          refreshTokenSet: !!verifyRefresh,
+          authTokenLength: verifyToken?.length,
+          refreshTokenLength: verifyRefresh?.length
+        });
       } else {
-        // Clear cookies
-        Cookies.remove('auth_token', { path: '/' });
-        Cookies.remove('auth_user', { path: '/' });
+        // Clear cookies with dynamic domain detection
+        const cookieConfig = getCookieConfig();
+        const removeOptions = { path: '/', ...(cookieConfig.domain && { domain: cookieConfig.domain }) };
+        
+        Cookies.remove('auth_token', removeOptions);
+        Cookies.remove('refresh_token', removeOptions);
+        Cookies.remove('auth_user', removeOptions);
         console.log('🗑️ Authentication cookies cleared');
       }
     }
@@ -257,8 +287,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // ✅ SURGICAL FIX: Sync tokens to cookie whenever auth state changes
   useEffect(() => {
-    syncTokenToCookie(authState?.token || null);
-  }, [authState?.token]);
+    const refreshToken = typeof window !== 'undefined' ? localStorage.getItem('refresh_token') : null;
+    syncTokenToCookie(authState?.token || null, authState?.user, refreshToken);
+  }, [authState?.token, authState?.user]);
 
   // ✅ SURGICAL ENHANCEMENT: Sync banking mode when user changes
   useEffect(() => {
@@ -295,7 +326,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           console.log('✅ Found stored auth data for:', parsedUser.email)
 
           // ✅ SURGICAL FIX: Sync token to cookie immediately
-          syncTokenToCookie(token);
+          syncTokenToCookie(token, parsedUser, refreshToken);
 
           // ✅ SURGICAL ENHANCEMENT: Detect and set banking mode
           const detectedBankingMode = detectBankingModeFromUser(parsedUser);
@@ -505,15 +536,40 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const authData = await response.json()
 
       if (authData.success && authData.data) {
+        // 🔍 DEBUG: Log full response structure
+        console.log('🔍 Full login response:', JSON.stringify(authData, null, 2));
+        
         const { user: userData, accessToken: token, refreshToken, expiresIn } = authData.data
 
         console.log('✅ Login successful for:', userData.email)
+        console.log('🔐 Login response:', {
+          hasToken: !!token,
+          tokenLength: token?.length || 0,
+          hasRefreshToken: !!refreshToken,
+          refreshTokenLength: refreshToken?.length || 0,
+          expiresIn,
+          dataKeys: Object.keys(authData.data)
+        })
+
+        // ✅ CRITICAL FIX: Also try to extract `token` field for compatibility
+        const actualToken = token || authData.data.token;
+        const actualRefreshToken = refreshToken || authData.data.refreshToken;
+
+        if (!actualToken) {
+          console.error('❌ No access token in login response!', authData.data);
+          dispatch(loginFailure('Login response missing access token'));
+          return false;
+        }
+
+        if (!actualRefreshToken) {
+          console.warn('⚠️ No refresh token in login response! User will be logged out on token expiry.');
+        }
 
         // Store in localStorage
-        localStorage.setItem('auth_token', token)
+        localStorage.setItem('auth_token', actualToken)
         localStorage.setItem('user_data', JSON.stringify(userData))
-        if (refreshToken) {
-          localStorage.setItem('refresh_token', refreshToken)
+        if (actualRefreshToken) {
+          localStorage.setItem('refresh_token', actualRefreshToken)
         }
         // ✅ FIXED: Store token expiry for better session management
         if (expiresIn) {
@@ -523,13 +579,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // ✅ CENTRALIZED SESSION CONTROL: Initialize session control service
         await sessionControlService.initializeSession({
           user: userData,
-          token,
-          refreshToken,
+          token: actualToken,
+          refreshToken: actualRefreshToken,
           tokenExpiry: expiresIn ? Date.now() + (expiresIn * 1000) : null
         });
 
+        // ✅ CRITICAL FIX: Wait a bit to ensure all tokens are persisted before continuing
+        // This prevents race conditions where API calls happen before tokens are saved
+        await new Promise(resolve => setTimeout(resolve, 100));
+
         // ✅ SURGICAL FIX: Sync token and user to cookie for middleware/SSR
-        syncTokenToCookie(token, userData);
+        syncTokenToCookie(actualToken, userData, actualRefreshToken);
 
         // ✅ SURGICAL ENHANCEMENT: Detect and set banking mode from login data
         const detectedBankingMode = detectBankingModeFromUser(userData);
@@ -541,8 +601,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // Dispatch Redux success action
         dispatch(loginSuccess({
           user: userData,
-          token,
-          refreshToken,
+          token: actualToken,
+          refreshToken: actualRefreshToken,
           expiresIn,
         }))
 
@@ -759,13 +819,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       const token = localStorage.getItem('auth_token')
       const userData = localStorage.getItem('user_data')
+      const refreshToken = localStorage.getItem('refresh_token')
 
       if (!token || !userData) {
         return false
       }
 
       // ✅ SURGICAL FIX: Ensure cookie is synced
-      syncTokenToCookie(token);
+      const parsedUser = userData ? JSON.parse(userData) : null;
+      syncTokenToCookie(token, parsedUser, refreshToken);
 
       // ✅ FIXED: Use centralized configuration for dual-mode support
       let backendUrl: string;
@@ -836,7 +898,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   return (
     <AuthContext.Provider value={contextValue}>
-      {children}
+      {children as any}
     </AuthContext.Provider>
   )
 }

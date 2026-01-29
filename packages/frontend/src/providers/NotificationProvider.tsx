@@ -30,7 +30,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
                 clearNotifications: socket.clearNotifications,
             }}
         >
-            {children}
+            {children as any}
         </NotificationContext.Provider>
     )
 }

@@ -392,7 +392,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
         </Box>
 
         {/* Filters */}
-        {showFilters && (
+        {(showFilters && (
           <Card sx={{ mb: 3 }}>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -471,7 +471,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
               </Box>
             </CardContent>
           </Card>
-        )}
+        )) as any }
 
         {/* Error Alert */}
         {error && (
@@ -481,7 +481,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
         )}
 
         {/* Custom content */}
-        {children}
+        {children as any}
 
         {/* Data Grid */}
         {columns.length > 0 && (

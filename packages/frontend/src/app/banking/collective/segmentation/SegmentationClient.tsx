@@ -83,7 +83,7 @@ const EnhancedSegmentationDetailModal = dynamic(
 );
 
 const ConditionBuilder = dynamic(
-  () => import('@/components/common/forms/ConditionBuilder').then((mod) => mod.ConditionBuilder),
+  () => import('@/components/common/forms/ConditionBuilder').then((mod) => mod.ConditionBuilder as any),
   { ssr: false }
 );
 

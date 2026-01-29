@@ -153,7 +153,7 @@ function TabPanel({ children, value, index, ...other }: TabPanelProps) {
       aria-labelledby={`segmentation-tab-${index}`}
       {...other}
     >
-      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
+      {value === index && <Box sx={{ p: 3 }}>{children as any}</Box>}
     </div>
   );
 }

@@ -28,7 +28,7 @@ const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
             <AuthProvider>
               <BankingThemeProvider>
                 <CssBaseline />
-                {children}
+                {children as any}
               </BankingThemeProvider>
             </AuthProvider>
           </ConfigurationProvider>

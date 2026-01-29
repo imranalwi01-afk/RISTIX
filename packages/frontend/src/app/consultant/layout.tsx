@@ -13,7 +13,7 @@ export default function ConsultantRouteLayout({
 }) {
   return (
     <ConsultantLayout title="Consultant Portal">
-      {children}
+      {children as any}
     </ConsultantLayout>
   );
 }

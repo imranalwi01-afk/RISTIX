@@ -144,7 +144,7 @@ export const BankingThemeProvider: React.FC<BankingThemeProviderProps> = ({ chil
   return (
     <BankingThemeContext.Provider value={contextValue}>
       <ThemeProvider theme={currentTheme}>
-        {children}
+        {children as any}
       </ThemeProvider>
     </BankingThemeContext.Provider>
   );

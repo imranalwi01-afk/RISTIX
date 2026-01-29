@@ -158,7 +158,7 @@ interface TabPanelProps {
   value: number;
 }
 
-const TabPanel: React.FC<TabPanelProps> = ({ children, value, index, ...other }) => (
+const TabPanel = ({ children, value, index, ...other }: TabPanelProps) => (
   <div
     role="tabpanel"
     hidden={value !== index}
@@ -166,11 +166,12 @@ const TabPanel: React.FC<TabPanelProps> = ({ children, value, index, ...other })
     aria-labelledby={`job-monitoring-tab-${index}`}
     {...other}
   >
-    {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
+    {value === index && <Box sx={{ p: 3 }}>{children as any}</Box>}
   </div>
 );
 
-const JobMonitoringPage: React.FC = () => {
+export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
+  void params; // required by typed routes signature, unused in this page
   const theme = useTheme();
   const [currentTab, setCurrentTab] = useState(0);
   const [statusTab, setStatusTab] = useState(0); // 0: All, 1: Ongoing, 2: Running, 3: Completed, 4: Failed
@@ -634,7 +635,7 @@ const JobMonitoringPage: React.FC = () => {
             )}
           </Box>
           <Box sx={{ color, opacity: 0.7 }}>
-            {icon}
+            {icon as any}
           </Box>
         </Box>
         {trend && (
@@ -1330,5 +1331,3 @@ const JobMonitoringPage: React.FC = () => {
     </Box>
   );
 };
-
-export default JobMonitoringPage;

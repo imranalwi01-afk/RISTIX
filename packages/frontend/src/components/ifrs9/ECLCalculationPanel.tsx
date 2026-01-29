@@ -89,7 +89,7 @@ interface TabPanelProps {
 
 const TabPanel: React.FC<TabPanelProps> = ({ children, value, index }) => (
   <div hidden={value !== index} style={{ width: '100%' }}>
-    {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
+    {value === index && <Box sx={{ p: 3 }}>{children as any}</Box>}
   </div>
 );
 

@@ -207,7 +207,7 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
         }} />
 
         <Box sx={{ p: 2 }}>
-          {children}
+          {children as any}
         </Box>
       </Box>
     </Box>

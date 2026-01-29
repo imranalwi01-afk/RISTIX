@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { logger } from '../lib/logger'
 
 /**
  * Environment schema with Zod validation
@@ -93,7 +94,7 @@ function parseEnv(): Env {
             const envPath = path.resolve(process.cwd(), '.env')
 
             if (fs.existsSync(envPath)) {
-                console.log('📝 Manually loading .env from:', envPath)
+                logger.info({ envPath }, 'Manually loading .env from file')
                 const content = fs.readFileSync(envPath, 'utf-8')
                 content.split('\n').forEach((line: string) => {
                     const match = line.match(/^\s*([\w_]+)\s*=\s*(.*)?\s*$/)
@@ -108,15 +109,14 @@ function parseEnv(): Env {
                 })
             }
         } catch (e) {
-            console.warn('⚠️ Failed to manually load .env file:', e)
+            logger.warn({ err: e }, 'Failed to manually load .env file')
         }
     }
 
     const result = envSchema.safeParse(process.env)
 
     if (!result.success) {
-        console.error('❌ Invalid environment variables:')
-        console.error(result.error.flatten().fieldErrors)
+        logger.error({ errors: result.error.flatten().fieldErrors }, 'Invalid environment variables')
         process.exit(1)
     }
 

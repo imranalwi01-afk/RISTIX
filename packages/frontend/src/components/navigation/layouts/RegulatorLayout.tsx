@@ -201,7 +201,7 @@ const RegulatorLayout: React.FC<RegulatorLayoutProps> = ({ children }) => {
           backgroundColor: getConfigValue('THEME_REGULATOR_BG_COLOR', '#fafafa'),
         }}
       >
-        {children}
+        {children as any}
       </Container>
 
       {/* Footer */}

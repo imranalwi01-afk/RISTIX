@@ -18,7 +18,7 @@ export default function SetupLayout({
   return (
     <Box>
       {/* Optional: Add section-specific header or navigation */}
-      {children}
+      {children as any}
     </Box>
   );
 }

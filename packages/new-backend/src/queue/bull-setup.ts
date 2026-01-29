@@ -1,5 +1,6 @@
 import { Queue, Worker } from 'bullmq'
 import Redis from 'ioredis'
+import { logger } from '../lib/logger'
 import { Effect } from 'effect'
 
 /**
@@ -25,7 +26,7 @@ const redis = new Redis({
 let isConnected = false
 redis.on('connect', () => {
     if (!isConnected) {
-        console.log('✅ Redis connected for Bull queues')
+        logger.info('Redis connected for Bull queues')
         isConnected = true
     }
 })
@@ -33,7 +34,7 @@ redis.on('connect', () => {
 redis.on('error', (err) => {
     // Only log errors after initial connection
     if (isConnected) {
-        console.error('❌ Bull Redis error:', err.message)
+        logger.error({ err }, 'Bull Redis error')
     }
 })
 
@@ -121,8 +122,8 @@ export interface DeadLetterJob {
 
 // Queue event listeners and setup
 export async function setupQueues(): Promise<void> {
-    console.log('🔧 Setting up Bull queues...')
-    console.log('✅ Queues configured')
+    logger.info('Setting up Bull queues...')
+    logger.info('Queues configured')
 }
 
 // Cleanup on shutdown
@@ -153,7 +154,7 @@ export async function enqueueDeadLetter(queueName: string, payload: DeadLetterJo
             await complianceDLQ.add('dead-letter', payload, { removeOnComplete: false, removeOnFail: false })
             return
         default:
-            console.warn(`Unknown queue for DLQ: ${queueName}`)
+            logger.warn({ queueName }, 'Unknown queue for DLQ')
     }
 }
 

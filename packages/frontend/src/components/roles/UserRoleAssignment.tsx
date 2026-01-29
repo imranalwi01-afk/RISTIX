@@ -153,7 +153,7 @@ const TabPanel: React.FC<TabPanelProps> = ({ children, value, index, ...other })
     aria-labelledby={`user-role-tab-${index}`}
     {...other}
   >
-    {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
+    {value === index && <Box sx={{ p: 3 }}>{children as any}</Box>}
   </div>
 );
 

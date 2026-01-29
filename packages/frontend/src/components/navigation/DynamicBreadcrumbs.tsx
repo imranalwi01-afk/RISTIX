@@ -177,7 +177,7 @@ export const DynamicBreadcrumbs: React.FC<DynamicBreadcrumbsProps> = ({
 
       {/* Breadcrumbs */}
       <Breadcrumbs
-        separator={customSeparator || <NavigateNextIcon fontSize="small" />}
+        separator={customSeparator || (<NavigateNextIcon fontSize="small" /> as any)}
         maxItems={maxItems}
         sx={{
           '& .MuiBreadcrumbs-separator': {

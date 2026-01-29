@@ -128,7 +128,7 @@ interface TabPanelProps {
   value: number;
 }
 
-const TabPanel: React.FC<TabPanelProps> = ({ children, value, index, ...other }) => (
+const TabPanel = ({ children, value, index, ...other }: TabPanelProps) => (
   <div
     role="tabpanel"
     hidden={value !== index}
@@ -136,11 +136,12 @@ const TabPanel: React.FC<TabPanelProps> = ({ children, value, index, ...other })
     aria-labelledby={`user-activity-tab-${index}`}
     {...other}
   >
-    {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
+    {value === index && <Box sx={{ p: 3 }}>{children as any}</Box>}
   </div>
 );
 
-const UserActivityPage: React.FC = () => {
+export default function UserActivityPage({ params }: { params: Promise<{}> }) {
+  void params; // required by typed routes signature, unused in this page
   const theme = useTheme();
   const [currentTab, setCurrentTab] = useState(0);
   const [activities, setActivities] = useState<UserActivityLog[]>([]);
@@ -574,7 +575,7 @@ const UserActivityPage: React.FC = () => {
             )}
           </Box>
           <Box sx={{ color, opacity: 0.7 }}>
-            {icon}
+            {icon as any}
           </Box>
         </Box>
         {trend && (
@@ -1139,5 +1140,3 @@ const UserActivityPage: React.FC = () => {
     </LocalizationProvider>
   );
 };
-
-export default UserActivityPage;

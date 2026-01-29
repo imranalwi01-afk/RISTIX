@@ -115,7 +115,8 @@ interface MonitoringFilters {
   bankingType: string;
 }
 
-const PortfolioMonitoring: React.FC = () => {
+export default function PortfolioMonitoring({ params }: { params: Promise<{}> }) {
+  void params; // required by typed routes signature, unused in this page
   const { enqueueSnackbar } = useSnackbar();
 
   // State management
@@ -535,7 +536,7 @@ const PortfolioMonitoring: React.FC = () => {
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                     <Avatar sx={{ bgcolor: getStatusColor(metric.status) + '.main', mr: 2 }}>
-                      {metric.icon}
+                      {metric.icon as any}
                     </Avatar>
                     <Box sx={{ flex: 1 }}>
                       <Typography variant="h6" sx={{ fontWeight: 600 }}>
@@ -724,5 +725,3 @@ const PortfolioMonitoring: React.FC = () => {
     </LocalizationProvider>
   );
 };
-
-export default PortfolioMonitoring;
