@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Title: IFRS9 R ANALYTICS - LOCAL (PORT 3838)
+# Title: IFRS9 R ANALYTICS - LOCAL (PORT 4236)
 echo "========================================================"
 echo "   IFRS9 R ANALYTICS LOCAL RUNNER"
 echo "========================================================"
@@ -45,7 +45,7 @@ fi
 echo "[*] R Detected!"
 echo "[*] Installing missing dependencies and starting App..."
 echo "[*] Database Target: 10.8.0.2 (VPN Required)"
-echo "[*] Port: 3838"
+echo "[*] Port: 4236"
 echo ""
 
 Rscript run_local.R

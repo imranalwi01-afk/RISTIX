@@ -180,7 +180,7 @@ services:
     env_file:
       - .env
     environment:
-      R_PORT: 3838
+      R_PORT: 4236
       DEPLOYMENT_TARGET: localdev
       NODE_ENV: development
       MODELLING_DIR: /opt/r-analytics/modelling
@@ -190,7 +190,7 @@ services:
       DB_USER: ${R_DB_USER:-postgres}
       DB_PASSWORD: ${R_DB_PASSWORD:-postgres}
     ports:
-      - "3838:3838"
+      - "4236:4236"
     networks:
       - ifrs9-dev
     volumes:

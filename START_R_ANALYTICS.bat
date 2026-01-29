@@ -1,5 +1,5 @@
 @echo off
-TITLE IFRS9 R ANALYTICS - LOCAL (PORT 3838)
+TITLE IFRS9 R ANALYTICS - LOCAL (PORT 4236)
 ECHO ========================================================
 ECHO    IFRS9 R ANALYTICS LOCAL RUNNER
 ECHO ========================================================
@@ -37,7 +37,7 @@ IF %ERRORLEVEL% NEQ 0 (
 ECHO [*] R Detected!
 ECHO [*] Installing missing dependencies and starting App...
 ECHO [*] Database Target: 10.8.0.2 (VPN Required)
-ECHO [*] Port: 3838
+ECHO [*] Port: 4236
 ECHO.
 
 Rscript run_local.R
