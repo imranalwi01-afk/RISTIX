@@ -172,7 +172,7 @@ const getApiBase = (): string => {
   if (typeof window !== 'undefined' && window.location.hostname.includes('danafin.com')) {
     return 'https://iaf-ifrs-be.danafin.com/api/v1';
   }
-  return process.env.NEXT_PUBLIC_API_URL || 'https://bifrs9-iaf.ifrspro.id/api/v1';
+  return process.env.NEXT_PUBLIC_API_URL || 'https://iaf-ifrs-be.ifrspro.id/api/v1';
 };
 
 const API_BASE = getApiBase();

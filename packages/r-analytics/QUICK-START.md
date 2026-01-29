@@ -20,7 +20,7 @@ cd /home/doppelgaenger/ifrspro/ifrs9-iaf/packages/r-analytics
 
 ### **2. Access the Dashboard**
 
-- **Development URL**: https://ifrs9-iaf-analytics.ifrspro.id
+- **Development URL**: https://iaf-ifrs-analytics.ifrspro.id
 - **Local URL**: http://localhost:4236
 - **Authentication**: Currently **DISABLED** (development mode)
 
@@ -114,7 +114,7 @@ app.R (Shiny Application)
 ./r-analytics-manager.sh start
 
 # 2. Access dashboard
-# https://ifrs9-iaf-analytics.ifrspro.id
+# https://iaf-ifrs-analytics.ifrspro.id
 
 # 3. No login required (authentication disabled)
 
@@ -133,7 +133,7 @@ app.R (Shiny Application)
 ./r-analytics-manager.sh start
 
 # 3. Access dashboard via IAF frontend
-# https://ifrs9-iaf-analytics.ifrspro.id
+# https://iaf-ifrs-analytics.ifrspro.id
 # (Will require login)
 
 # 4. Monitor status

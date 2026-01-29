@@ -195,7 +195,7 @@ export default function ProfileSettingsPage() {
       // Fallback to hostname detection
       const isProductionDomain = typeof window !== 'undefined' && window.location.hostname.includes('danafin.com');
       const fallbackUrl = process.env.NEXT_PUBLIC_API_URL ||
-        (isProductionDomain ? 'https://iaf-ifrs-be.danafin.com/api/v1' : 'https://bifrs9-iaf.ifrspro.id/api/v1');
+        (isProductionDomain ? 'https://iaf-ifrs-be.danafin.com/api/v1' : 'https://iaf-ifrs-be.ifrspro.id/api/v1');
 
       console.log('🔧 Profile Page: Using fallback API base URL:', fallbackUrl);
       return fallbackUrl;

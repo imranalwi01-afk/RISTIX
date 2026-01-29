@@ -904,7 +904,7 @@ export class SessionControlService {
     if (typeof window !== 'undefined') {
       const hostname = window.location.hostname;
       if (hostname.includes('iaf-ifrs.danafin.com')) return 'iafecs';
-      if (hostname.includes('ifrs9-iaf.ifrspro.id')) return 'development';
+      if (hostname.includes('iaf-ifrs.ifrspro.id')) return 'development';
     }
     return process.env.NODE_ENV || 'development';
   }

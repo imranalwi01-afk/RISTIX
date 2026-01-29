@@ -83,7 +83,7 @@ const TENANT_SERVICES = {
         url: getEnvVar('TENANT_IAF_URL',
             environment === 'iafecs' ?
             'https://iaf-ifrs-analytics.danafin.com' :
-            'https://ifrs9-iaf-analytics.ifrspro.id'
+            'https://iaf-ifrs-analytics.ifrspro.id'
         )
     }
 };

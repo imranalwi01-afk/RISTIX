@@ -98,7 +98,7 @@ const TENANT_CONFIG = {
         domain: getEnvVar('TENANT_IAF_URL',
             environment === 'iafecs' ?
             'https://iaf-ifrs-analytics.danafin.com' :
-            'https://ifrs9-iaf-analytics.ifrspro.id'
+            'https://iaf-ifrs-analytics.ifrspro.id'
         ),
         internal_url: getEnvVar('TENANT_IAF_INTERNAL',
             environment === 'iafecs' ?
@@ -486,7 +486,7 @@ app.listen(PORT, HOST, () => {
     
     // ✅ ENVIRONMENT-AWARE SERVICE URLS: Use centralized configuration
     const serviceHost = getEnvVar('SERVICE_HOST',
-        environment === 'iafecs' ? 'iaf-ifrs-analytics.danafin.com' : 'ifrs9-iaf-analytics.ifrspro.id');
+        environment === 'iafecs' ? 'iaf-ifrs-analytics.danafin.com' : 'iaf-ifrs-analytics.ifrspro.id');
     const serviceUrl = `https://${serviceHost}`;
 
     console.log(`🔗 Health Check: ${serviceUrl}/health`);

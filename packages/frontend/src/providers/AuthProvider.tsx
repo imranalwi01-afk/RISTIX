@@ -358,10 +358,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL ||
                   (window.location.hostname.includes('danafin.com')
                     ? 'https://iaf-ifrs-be.danafin.com'
-                    : 'https://bifrs9-iaf.ifrspro.id');
+                    : 'https://iaf-ifrs-be.ifrspro.id');
               } else {
                 // Server-side fallback
-                backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://bifrs9-iaf.ifrspro.id';
+                backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://iaf-ifrs-be.ifrspro.id';
               }
             }
             const response = await fetch(`${backendUrl}/api/v1/auth/verify`, {
@@ -498,7 +498,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         // Priority 3: Final fallback - MUST USE PRODUCTION DOMAIN
         // NOTE: We return the BASE URL (without /api/v1/auth/login) because the caller adds the path
-        const fallbackUrl = `https://bifrs9-iaf.ifrspro.id`;
+        const fallbackUrl = `https://iaf-ifrs-be.ifrspro.id`;
         console.log('🚨 Using final fallback URL:', fallbackUrl);
         return fallbackUrl;
       };
@@ -844,10 +844,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL ||
             (window.location.hostname.includes('danafin.com')
               ? 'https://iaf-ifrs-be.danafin.com'
-              : 'https://bifrs9-iaf.ifrspro.id');
+              : 'https://iaf-ifrs-be.ifrspro.id');
         } else {
           // Server-side fallback
-          backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://bifrs9-iaf.ifrspro.id';
+          backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://iaf-ifrs-be.ifrspro.id';
         }
       }
       const response = await fetch(`${backendUrl}/api/v1/auth/verify`, {

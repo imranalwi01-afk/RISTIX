@@ -284,7 +284,7 @@ class RAnalyticsEnvironmentLoader {
           iaf: this.getEnvVar('R_ANALYTICS_IAF_DOMAIN',
             environment === 'iafecs' ?
             'https://iaf-ifrs-analytics.danafin.com' :
-            'https://ifrs9-iaf-analytics.ifrspro.id')
+            'https://iaf-ifrs-analytics.ifrspro.id')
         }
       };
 

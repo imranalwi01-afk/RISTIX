@@ -117,7 +117,7 @@ When authentication is enabled, users come from the IAF frontend with roles:
 When authentication is enabled, the IAF frontend passes these parameters:
 
 ```
-https://ifrs9-iaf-analytics.ifrspro.id?
+https://iaf-ifrs-analytics.ifrspro.id?
   user_id=12345&
   user_email=user@iaf.co.id&
   user_name=John%20Doe&
@@ -260,7 +260,7 @@ cd /home/doppelgaenger/ifrspro/ifrs9-iaf/packages/r-analytics
 ```
 
 ### 3. Access Dashboard
-- **Local**: https://ifrs9-iaf-analytics.ifrspro.id
+- **Local**: https://iaf-ifrs-analytics.ifrspro.id
 - **No login required** (development mode)
 
 ### 4. When Ready for Production

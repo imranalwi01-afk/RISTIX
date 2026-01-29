@@ -1652,45 +1652,43 @@ export default function EnhancedSegmentationDetailModal({
                       backgroundColor: 'action.hover'
                     }
                   }}
-                  slotProps={{
-                    noRowsOverlay: {
-                      children: (
-                        <Box
-                          sx={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            height: '100%',
-                            gap: 2
-                          }}
-                        >
-                          <WarningIcon sx={{ fontSize: 48, color: 'text.secondary' }} />
-                          <Typography variant="h6" color="text.secondary">
-                            {filteredDetails.length === 0 && details.length > 0 ?
-                              'No rules match current filters' :
-                              'No Segmentation Rules Found'
-                            }
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary" textAlign="center">
-                            {filteredDetails.length === 0 && details.length > 0 ?
-                              'Try adjusting your search criteria or clearing filters.' :
-                              'No detailed rules configured for this segmentation. Click "Add Rule" to create the first one.'
-                            }
-                          </Typography>
-                          {filteredDetails.length === 0 && details.length > 0 && (
-                            <Button
-                              variant="outlined"
-                              startIcon={<ClearIcon />}
-                              onClick={clearAllFilters}
-                              size="small"
-                            >
-                              Clear Filters
-                            </Button>
-                          )}
-                        </Box>
-                      )
-                    }
+                  slots={{
+                    noRowsOverlay: () => (
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          height: '100%',
+                          gap: 2
+                        }}
+                      >
+                        <WarningIcon sx={{ fontSize: 48, color: 'text.secondary' }} />
+                        <Typography variant="h6" color="text.secondary">
+                          {filteredDetails.length === 0 && details.length > 0 ?
+                            'No rules match current filters' :
+                            'No Segmentation Rules Found'
+                          }
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" textAlign="center">
+                          {filteredDetails.length === 0 && details.length > 0 ?
+                            'Try adjusting your search criteria or clearing filters.' :
+                            'No detailed rules configured for this segmentation. Click "Add Rule" to create the first one.'
+                          }
+                        </Typography>
+                        {filteredDetails.length === 0 && details.length > 0 && (
+                          <Button
+                            variant="outlined"
+                            startIcon={<ClearIcon />}
+                            onClick={clearAllFilters}
+                            size="small"
+                          >
+                            Clear Filters
+                          </Button>
+                        )}
+                      </Box>
+                    )
                   }}
                 />
 

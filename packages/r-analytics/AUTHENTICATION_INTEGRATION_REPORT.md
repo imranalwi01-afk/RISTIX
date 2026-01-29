@@ -16,6 +16,10 @@ Successfully implemented a **comprehensive modular authentication system** for R
 - **Clean separation of concerns** with API, Service, UI, Server, and Integration layers
 - **Environment-aware configuration** switching between development and production modes
 
+
+
+
+
 #### **2. Backend API Integration** ✅
 - **JWT-based authentication** with refresh token support
 - **Complete API methods**: login, logout, get_profile, verify_token, get_user_roles, get_permissions
@@ -142,7 +146,7 @@ ui_with_auth <- auth$render_if_authenticated(ui_elements)
 ```bash
 # Authentication Configuration
 ENABLE_AUTH=false                    # Development mode
-AUTH_BACKEND_URL=https://bifrs9-iaf.ifrspro.id
+AUTH_BACKEND_URL=https://iaf-ifrs-be.ifrspro.id
 AUTH_TIMEOUT=30
 
 # Security Configuration
@@ -290,7 +294,7 @@ output$admin_content <- renderUI({
 ```bash
 # Enable authentication
 ENABLE_AUTH=true
-AUTH_BACKEND_URL=https://bifrs9-iaf.ifrspro.id
+AUTH_BACKEND_URL=https://iaf-ifrs-be.ifrspro.id
 
 # Production security
 JWT_SECRET=<generated-64-char-secret>

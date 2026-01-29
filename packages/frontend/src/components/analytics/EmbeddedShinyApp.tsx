@@ -368,7 +368,22 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
       // 🛡️ DEFENSIVE: Handle both data.data and direct data response structures
       let sessionData: RSessionData = data.data || data;
 
-      // 🛡️ DEFENSIVE: Ensure port exists with proper fallback
+      // � Normalize legacy/incorrect hostnames returned by older backend versions
+      if (sessionData?.iframeUrl && typeof sessionData.iframeUrl === 'string') {
+        const normalized = sessionData.iframeUrl
+          .replace('ifrs9-iaf-analytics.ifrspro.id', 'iaf-ifrs-analytics.ifrspro.id')
+          .replace('ifrs9-iaf-analytics-calc.ifrspro.id', 'iaf-ifrs-analytics-calc.ifrspro.id')
+          .replace('ifrs9-iaf.ifrspro.id', 'iaf-ifrs.ifrspro.id');
+        if (normalized !== sessionData.iframeUrl) {
+          console.warn('🔁 Normalized session.iframeUrl from legacy host to canonical host', { before: sessionData.iframeUrl, after: normalized });
+          sessionData.iframeUrl = normalized;
+          if (sessionData.domainUrl) {
+            sessionData.domainUrl = String(sessionData.domainUrl).replace('ifrs9-iaf-analytics.ifrspro.id', 'iaf-ifrs-analytics.ifrspro.id');
+          }
+        }
+      }
+
+      // �🛡️ DEFENSIVE: Ensure port exists with proper fallback
       if (typeof sessionData.port === 'undefined' || sessionData.port === null) {
         console.warn('⚠️ SessionData missing port property, using default based on bankingType');
         const defaultPorts = {
@@ -548,10 +563,10 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
               ];
             }
             return [
-              'https://ifrs9-iaf-analytics.ifrspro.id',
-              'https://ifrs9-iaf-analytics-calc.ifrspro.id',
-              'https://ifrs9-iaf.ifrspro.id',
-              'https://bifrs9-iaf.ifrspro.id'
+              'https://iaf-ifrs-analytics.ifrspro.id',
+              'https://iaf-ifrs-analytics-calc.ifrspro.id',
+              'https://iaf-ifrs.ifrspro.id',
+              'https://iaf-ifrs-be.ifrspro.id'
             ];
           }
         };

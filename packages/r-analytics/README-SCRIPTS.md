@@ -203,7 +203,7 @@ R_ANALYTICS_DEV_BYPASS_AUTH=true
 ## 🌐 **Service URLs**
 
 ### Development (localdev):
-- **Dashboard**: https://ifrs9-iaf-analytics.ifrspro.id
+- **Dashboard**: https://iaf-ifrs-analytics.ifrspro.id
 - **Local**: http://localhost:4236
 
 ### Production (iafecs):
@@ -222,7 +222,7 @@ R_ANALYTICS_DEV_BYPASS_AUTH=true
 ./r-analytics-manager.sh start
 
 # Access the dashboard
-# https://ifrs9-iaf-analytics.ifrspro.id
+# https://iaf-ifrs-analytics.ifrspro.id
 ```
 
 ### Production Deployment:
