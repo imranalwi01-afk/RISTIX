@@ -4,6 +4,7 @@ import { AuthRepository } from '../repositories/auth.repository'
 import { TenantRepository } from '../repositories/tenant.repository'
 import { AuthenticationError, AuthorizationError } from '@lib/errors'
 import { Effect, pipe } from 'effect'
+import { env, isDevelopment, maskDatabaseUrl, getPlatformDatabaseUrl } from '@/config/env'
 import { getDatabase } from '@/config/database'
 import { redis } from '@/config/redis'
 import type { AppContext } from '../app'
@@ -57,15 +58,31 @@ export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
         }
 
 
-        // Resolve tenant - user.tenantId might be UUID or slug depending on data migration state
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-        const tenant = user.tenantId && uuidRegex.test(user.tenantId)
-            ? await TenantRepository.findById(user.tenantId)
-            : await TenantRepository.findBySlug(user.tenantId || '')
+        // Resolve tenant - try ID first, then fallback to Slug
+        let tenant = null
+        if (user.tenantId) {
+            try {
+                // First try looking up by ID (UUID)
+                tenant = await TenantRepository.findById(user.tenantId)
+            } catch (e) {
+                // If ID lookup fails (e.g. invalid UUID format), ignore and try slug
+                baseLogger.debug({ tenantId: user.tenantId }, '[AUTH] ID lookup failed or invalid format, trying slug')
+            }
+
+            // Fallback to slug if not found by ID
+            if (!tenant) {
+                tenant = await TenantRepository.findBySlug(user.tenantId)
+            }
+        }
 
         if (!tenant) {
-            baseLogger.warn({ email: user.email, tenantId: user.tenantId }, '[AUTH] Tenant not found for user')
-            throw new Error('Tenant not found')
+            const dbUrl = maskDatabaseUrl(getPlatformDatabaseUrl())
+            const errorMsg = isDevelopment
+                ? `Tenant not found (Target: ${user.tenantId}, Database: ${dbUrl})`
+                : 'Tenant not found'
+            
+            baseLogger.warn({ email: user.email, tenantId: user.tenantId, dbUrl }, '[AUTH] Tenant not found for user')
+            throw new Error(errorMsg)
         }
 
         baseLogger.info({ email: user.email, tenantName: tenant.name }, '[AUTH] User context loaded')
