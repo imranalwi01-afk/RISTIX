@@ -273,6 +273,22 @@ export class IndividualImpairmentController {
         }
     }
 
+    async calculateDcf(c: Context) {
+        try {
+            const user = c.get('user');
+            if (!user?.tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
+            const body = await c.req.json();
+
+            // Panggil Service untuk hitung matematika
+            const data = await individualImpairmentService.calculateDcf(user.tenantId, body);
+
+            return c.json({ success: true, data });
+        } catch (error: any) {
+            // Error Handling standar
+            return c.json({ success: false, message: error.message }, 500);
+        }
+    }
+
     async createBatchUpload(c: Context) {
         try {
             const user = c.get('user');

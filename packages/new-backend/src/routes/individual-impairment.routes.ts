@@ -520,6 +520,21 @@ individualImpairmentRoutes.openapi(
 
 individualImpairmentRoutes.openapi(
     createRoute({
+        method: 'post',
+        path: '/dcf/calculate',
+        tags: ['Individual Impairment'],
+        summary: 'Get DCF Calculations',
+        responses: {
+            200: { content: { 'application/json': { schema: DcfCalculationListResponse } }, description: 'Calculations' },
+            401: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Unauthorized' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    (c) => individualImpairmentController.calculateDcf(c)
+)
+
+individualImpairmentRoutes.openapi(
+    createRoute({
         method: 'get',
         path: '/dcf-calculations',
         tags: ['Individual Impairment'],

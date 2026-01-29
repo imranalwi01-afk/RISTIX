@@ -187,11 +187,79 @@ export class IndividualImpairmentService {
     }
 
     async getDcfCalculations(tenantId: string) {
-        return [];
+        // Mengambil 100 data kalkulasi terakhir dari tabel Result Header
+        return await legacyDb.select()
+            .from(frs9ImpIaResultH)
+            .orderBy(desc(frs9ImpIaResultH.createddate))
+            .limit(100);
     }
 
     async createDcfCashflows(data: any[]) {
         return [];
+    }
+
+    async calculateDcf(tenantId: string, params: any) {
+        const { accountId, assumptions } = params;
+
+        // 1. Ambil Data Akun
+        const account = await this.getAssessment(tenantId, accountId);
+        if (!account) throw new Error("Account not found");
+        const outstanding = Number(account.outstanding_balance) || 0;
+
+        // 2. Hitung PV (Discounted Cash Flow)
+        const discountRate = (Number(assumptions.discountRate) || 12) / 100;
+        const growthRate = (Number(assumptions.projectedGrowthRate) || 0) / 100;
+        const timeHorizon = Number(assumptions.timeHorizon) || 12;
+        let pv = 0;
+        let details = [];
+        const r_m = discountRate / 12;
+        const g_m = growthRate / 12;
+        const baseMonthlyFlow = outstanding / timeHorizon;
+        for (let t = 1; t <= timeHorizon; t++) {
+            const cf = baseMonthlyFlow * Math.pow(1 + g_m, t);
+            const df = 1 / Math.pow(1 + r_m, t);
+            const presentValue = cf * df;
+
+            pv += presentValue;
+
+            details.push({
+                period: t,
+                cashflow: cf,
+                discountFactor: df,
+                pv: presentValue
+            });
+        }
+
+        // 3. Hitung LGD & Provision
+        const lgd = Math.max(0, outstanding - pv);
+        const provision = lgd;
+        // --- PERSISTENCE: Save Result Header ---
+        let savedId = null;
+        try {
+            const [saved] = await legacyDb.insert(frs9ImpIaResultH).values({
+                prcDate: new Date().toISOString().split('T')[0],
+                accountId: accountId,
+                outstanding: outstanding.toString(),
+                pvDcfAmt: pv.toString(),
+                eclIaAmt: provision.toString(),
+                createdby: 'SYSTEM',
+                createddate: new Date().toISOString()
+            }).returning();
+            if (saved) savedId = saved.pkid;
+        } catch (e) {
+            console.error('Failed to persist DCF Result:', e);
+        }
+        return {
+            account_id: accountId,
+            scenario: assumptions.scenarioType || 'base',
+            presentValue: pv,
+            outstanding: outstanding,
+            lgd: lgd,
+            recommendedProvision: provision,
+            assumptions: assumptions,
+            details: details,
+            savedId: savedId
+        };
     }
 
     // =========================================================================
@@ -301,6 +369,8 @@ export class IndividualImpairmentService {
             return [];
         }
     }
+
+
 
     async addToWatchlist(data: any) {
         const iaId = await this.generateIaId();
