@@ -195,9 +195,7 @@ services:
       - ../../modelling:/opt/r-analytics/modelling:ro
       - r-analytics-logs:/opt/r-analytics/logs
     profiles:
-      - app
       - full
-      - dev
       - analytics
 
 # ============================================================================

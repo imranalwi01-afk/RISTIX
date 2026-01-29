@@ -210,6 +210,28 @@ export function getLegacyDatabaseUrl(): string {
 }
 
 /**
+ * Mask sensitive information in a database URL
+ */
+export function maskDatabaseUrl(url: string): string {
+    try {
+        // Matches postgresql://user:password@host:port/database
+        return url.replace(/(postgresql:\/\/)([^:]+):([^@]+)(@.+)/, '$1$2:****$4')
+    } catch {
+        return 'invalid-url'
+    }
+}
+
+/**
+ * Get Database URL based on tenant context
+ */
+export function getDatabaseUrl(tenantId?: string | null): string {
+    if (tenantId) {
+        return getTenantDatabaseUrl()
+    }
+    return getPlatformDatabaseUrl()
+}
+
+/**
  * Check if running in production
  */
 export const isProduction = env.NODE_ENV === 'production'

@@ -1,7 +1,7 @@
 import { Effect, pipe } from 'effect'
 import * as jose from 'jose'
 import crypto from 'crypto'
-import { env } from '@/config/env'
+import { env, isDevelopment, maskDatabaseUrl, getPlatformDatabaseUrl, getTenantDatabaseUrl, getDatabaseUrl } from '@/config/env'
 import { getDatabase } from '@/config/database' // ✅ Import dynamic DB factory
 import { redis } from '@/config/redis' // ✅ Import Redis for session management
 import {
@@ -241,7 +241,14 @@ export const login = (
                 if (!tenant) throw new Error('Tenant not found by slug')
                 return tenant.id
             },
-            catch: () => new DatabaseError({ message: 'Tenant resolution failed', operation: 'query' })
+            catch: (error: any) =>
+                new DatabaseError({
+                    message: isDevelopment
+                        ? `Tenant resolution failed (Database: ${maskDatabaseUrl(getPlatformDatabaseUrl())})`
+                        : 'Tenant resolution failed',
+                    operation: 'query',
+                    cause: error
+                })
         }),
         // 2. Find user in the CORRECT database (check tenant DB first, then platform DB)
         Effect.flatMap((resolvedTenantId) =>
@@ -268,7 +275,14 @@ export const login = (
 
                         return { user, resolvedTenantId, db }
                     },
-                    catch: () => new DatabaseError({ message: 'Failed to find user', operation: 'query' })
+                    catch: (error: any) =>
+                        new DatabaseError({
+                            message: isDevelopment
+                                ? `Failed to find user (Database: ${maskDatabaseUrl(getDatabaseUrl(resolvedTenantId))})`
+                                : 'Failed to find user',
+                            operation: 'query',
+                            cause: error
+                        })
                 })
             )
         ),
@@ -412,7 +426,10 @@ export const login = (
                 catch: (error: any) =>
                     new DatabaseError({
                         operation: 'insert',
-                        message: `Failed to create session: ${error}`,
+                        message: isDevelopment
+                            ? `Failed to create session (Database: ${maskDatabaseUrl(getDatabaseUrl(resolvedTenantId))}): ${error}`
+                            : `Failed to create session: ${error}`,
+                        cause: error
                     }),
             })
         )
@@ -434,9 +451,12 @@ export const logout = (
             // Delete session from Redis
             await redis.del(`session:access:${accessTokenId}`)
         },
-        catch: (error) => new DatabaseError({
-            message: 'Failed to logout',
-            operation: 'update'
+        catch: (error: any) => new DatabaseError({
+            message: isDevelopment
+                ? `Failed to logout (Redis: ${env.REDIS_HOST || 'localhost'}:${env.REDIS_PORT || '6379'})`
+                : 'Failed to logout',
+            operation: 'update',
+            cause: error
         })
     })
 
@@ -553,6 +573,13 @@ export const revokeAllSessions = (
             pipeline.del(`user:sessions:${userId}`)
             await pipeline.exec()
         },
-        catch: () => new DatabaseError({ message: 'Failed to revoke', operation: 'update' })
+        catch: (error: any) =>
+            new DatabaseError({
+                message: isDevelopment
+                    ? `Failed to revoke (Database: ${maskDatabaseUrl(getPlatformDatabaseUrl())})`
+                    : 'Failed to revoke',
+                operation: 'update',
+                cause: error
+            })
     })
 
