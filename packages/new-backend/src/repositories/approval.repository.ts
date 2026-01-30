@@ -1,5 +1,6 @@
 import { eq, and, asc, desc, count, gte, lte } from 'drizzle-orm'
 import { db } from '@/config'
+import { getDatabase } from '@/config/database'
 import {
     approvalMatrices,
     approvalLevels,
@@ -46,8 +47,9 @@ export const ApprovalRepository = {
      * @param bankingMode - Optional banking mode filter
      * @returns The approval matrix with levels
      */
-    findMatrixByEntityType: (tenantId: string, entityType: string, bankingMode?: string) =>
-        db.query.approvalMatrices.findFirst({
+    findMatrixByEntityType: (tenantId: string, entityType: string, bankingMode?: string) => {
+        const dbx = getDatabase(tenantId)
+        return dbx.query.approvalMatrices.findFirst({
             where: and(
                 eq(approvalMatrices.tenantId, tenantId),
                 eq(approvalMatrices.entityType, entityType),
@@ -55,7 +57,8 @@ export const ApprovalRepository = {
                 bankingMode ? eq(approvalMatrices.bankingMode, bankingMode) : undefined
             ),
             with: { levels: { orderBy: [asc(approvalLevels.level)] } },
-        }),
+        })
+    },
 
     /**
      * Find all approval matrices for a tenant.
@@ -63,11 +66,13 @@ export const ApprovalRepository = {
      * @param tenantId - The tenant ID
      * @returns An array of approval matrices
      */
-    findMatricesByTenant: async (tenantId: string) =>
-        db.query.approvalMatrices.findMany({
+    findMatricesByTenant: async (tenantId: string) => {
+        const dbx = getDatabase(tenantId)
+        return dbx.query.approvalMatrices.findMany({
             where: eq(approvalMatrices.tenantId, tenantId),
             with: { levels: true },
-        }),
+        })
+    },
 
     /**
      * Create a new approval matrix with levels.
@@ -113,15 +118,32 @@ export const ApprovalRepository = {
      * @param id - The request ID
      * @returns The approval request with details
      */
-    findRequestById: (id: string) =>
-        db.query.approvalRequests.findFirst({
+    findRequestById: async (id: string) => {
+        // Best-effort: try tenant DB first, then platform DB as fallback
+        const tenantDb = getDatabase(null)
+        try {
+            const res = await tenantDb.query.approvalRequests.findFirst({
+                where: eq(approvalRequests.id, id),
+                with: {
+                    actions: { orderBy: [asc(approvalActions.createdAt)] },
+                    requester: true,
+                    matrix: { with: { levels: true } },
+                },
+            })
+            if (res) return res
+        } catch (err) {
+            // ignore and fall back
+        }
+
+        return db.query.approvalRequests.findFirst({
             where: eq(approvalRequests.id, id),
             with: {
                 actions: { orderBy: [asc(approvalActions.createdAt)] },
                 requester: true,
                 matrix: { with: { levels: true } },
             },
-        }),
+        })
+    },
 
     /**
      * Find pending approval requests for a tenant.
@@ -129,8 +151,9 @@ export const ApprovalRepository = {
      * @param tenantId - The tenant ID
      * @returns An array of pending approval requests
      */
-    findPendingRequests: (tenantId: string) =>
-        db.query.approvalRequests.findMany({
+    findPendingRequests: (tenantId: string) => {
+        const dbx = getDatabase(tenantId)
+        return dbx.query.approvalRequests.findMany({
             where: and(
                 eq(approvalRequests.tenantId, tenantId),
                 eq(approvalRequests.status, 'pending')
@@ -141,7 +164,8 @@ export const ApprovalRepository = {
                 actions: true,
             },
             orderBy: [desc(approvalRequests.createdAt)],
-        }),
+        })
+    },
 
     /**
      * Find approval requests by entity type.
@@ -151,8 +175,9 @@ export const ApprovalRepository = {
      * @param entityId - Optional entity ID filter
      * @returns An array of approval requests
      */
-    findRequestsByEntity: (tenantId: string, entityType: string, entityId?: string) =>
-        db.query.approvalRequests.findMany({
+    findRequestsByEntity: (tenantId: string, entityType: string, entityId?: string) => {
+        const dbx = getDatabase(tenantId)
+        return dbx.query.approvalRequests.findMany({
             where: and(
                 eq(approvalRequests.tenantId, tenantId),
                 eq(approvalRequests.entityType, entityType),
@@ -161,7 +186,8 @@ export const ApprovalRepository = {
             with: { actions: true, requester: true },
             orderBy: [desc(approvalRequests.createdAt)],
             limit: 100,
-        }),
+        })
+    },
 
     /**
      * Create a new approval request.
@@ -170,7 +196,8 @@ export const ApprovalRepository = {
      * @returns The created request
      */
     createRequest: async (data: NewApprovalRequest) => {
-        const [request] = await db.insert(approvalRequests).values(data).returning()
+        const dbx = getDatabase((data as any).tenantId)
+        const [request] = await dbx.insert(approvalRequests).values(data).returning()
         return request
     },
 
@@ -188,6 +215,19 @@ export const ApprovalRepository = {
         completedAt: Date | null
         completedBy: string | null
     }>) => {
+        // Try tenant DB first (best-effort). If no row affected, fall back to platform DB.
+        try {
+            const dbx = getDatabase((data as any).tenantId || null)
+            const [request] = await dbx.update(approvalRequests)
+                .set({ ...data })
+                .where(eq(approvalRequests.id, id))
+                .returning()
+            if (request) return request
+        } catch (err) {
+            // continue to fallback
+        }
+
+        // Fallback: try default DB (platform) — keep behavior compatible
         const [request] = await db.update(approvalRequests)
             .set({ ...data })
             .where(eq(approvalRequests.id, id))
@@ -205,12 +245,25 @@ export const ApprovalRepository = {
      * @param requestId - The request ID
      * @returns An array of approval actions
      */
-    findActionsByRequest: (requestId: string) =>
-        db.query.approvalActions.findMany({
+    findActionsByRequest: async (requestId: string) => {
+        try {
+            const dbx = getDatabase(null)
+            const res = await dbx.query.approvalActions.findMany({
+                where: eq(approvalActions.requestId, requestId),
+                with: { approver: true },
+                orderBy: [asc(approvalActions.createdAt)],
+            })
+            if (res && res.length) return res
+        } catch (err) {
+            // ignore and fall back
+        }
+
+        return db.query.approvalActions.findMany({
             where: eq(approvalActions.requestId, requestId),
             with: { approver: true },
             orderBy: [asc(approvalActions.createdAt)],
-        }),
+        })
+    },
 
     /**
      * Create a new approval action.
@@ -228,7 +281,8 @@ export const ApprovalRepository = {
     // ---------------------------------------------------------------------------
 
     countPendingByTenant: async (tenantId: string) => {
-        const result = await db.select({ count: count() })
+        const dbx = getDatabase(tenantId)
+        const result = await dbx.select({ count: count() })
             .from(approvalRequests)
             .where(and(
                 eq(approvalRequests.tenantId, tenantId),

@@ -1,5 +1,6 @@
 import { eq, and, desc, sql } from 'drizzle-orm'
 import { db } from '@/config/database'
+import { getDatabase } from '@/config/database'
 import {
     jobDefinitions,
     jobExecutions,
@@ -15,7 +16,8 @@ export const JobsRepository = {
     // =============================================================================
 
     async findAllDefinitions(tenantId: string) {
-        return db.query.jobDefinitions.findMany({
+        const dbx = getDatabase(tenantId)
+        return dbx.query.jobDefinitions.findMany({
             where: sql`${jobDefinitions.tenantId} = ${tenantId} OR ${jobDefinitions.tenantId} IS NULL`,
             orderBy: [desc(jobDefinitions.createdAt)],
         })
@@ -49,7 +51,8 @@ export const JobsRepository = {
     // =============================================================================
 
     async findExecutions(tenantId: string, limit: number = 50) {
-        return db.query.jobExecutions.findMany({
+        const dbx = getDatabase(tenantId)
+        return dbx.query.jobExecutions.findMany({
             where: eq(jobExecutions.tenantId, tenantId),
             orderBy: [desc(jobExecutions.startTime)],
             limit: limit,
@@ -70,7 +73,8 @@ export const JobsRepository = {
     },
 
     async createExecution(data: NewJobExecution) {
-        const [execution] = await db
+        const dbx = (data as any).tenantId ? getDatabase((data as any).tenantId) : db
+        const [execution] = await dbx
             .insert(jobExecutions)
             .values(data)
             .returning()
@@ -88,7 +92,8 @@ export const JobsRepository = {
 
     async getStats(tenantId: string) {
         // Simple stats aggregation
-        const activeJobs = await db
+        const dbx = getDatabase(tenantId)
+        const activeJobs = await dbx
             .select({ count: sql<number>`count(*)` })
             .from(jobExecutions)
             .where(and(
@@ -96,7 +101,7 @@ export const JobsRepository = {
                 eq(jobExecutions.status, 'RUNNING')
             ))
 
-        const failedToday = await db
+        const failedToday = await dbx
             .select({ count: sql<number>`count(*)` })
             .from(jobExecutions)
             .where(and(

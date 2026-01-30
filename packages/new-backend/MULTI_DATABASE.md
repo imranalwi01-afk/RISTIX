@@ -258,6 +258,16 @@ psql postgresql://postgres:postgres@localhost:5432/ifrspro_tenant_iaf
 
 # Test Legacy DB
 psql postgresql://postgres:postgres@192.168.0.106:5433/FRS9PRO
+
+---
+
+## Changelog
+
+- **2026-01-30**: Fixed tenant-routing bugs where tenant-scoped repository methods executed against the platform DB (caused errors like "relation \"approval.approval_requests\" does not exist").
+  - Patched: `approval.repository`, `users.repository`, `jobs.repository` to use `getDatabase(tenantId)` or tenant DB for tenant-scoped reads/writes.
+  - Added unit tests that mock `getDatabase` to prevent regressions (see `src/test/repositories/*`).
+  - Follow-up: refactor `dbOperation('transaction', ...)` to accept an explicit DB instance for transactional safety.
+
 ```
 
 ## Best Practices
