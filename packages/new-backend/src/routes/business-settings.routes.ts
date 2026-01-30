@@ -35,16 +35,64 @@ const BusinessSettingHeaderSchema = z.object({
 }).openapi('BusinessSettingHeader')
 
 const CreateBusinessSettingSchema = z.object({
-    paramCode: z.string().max(10),
-    paramName: z.string().max(255),
+    // accept both camelCase and snake_case from the frontend
+    paramCode: z.string().max(10).optional(),
+    param_code: z.string().max(10).optional(),
+    paramName: z.string().max(255).optional(),
+    param_name: z.string().max(255).optional(),
+    param_desc: z.string().max(255).optional(),
     paramUsage: z.string().max(255).optional(),
-    paramType: z.string().max(10).default('B'),
-    bankingType: z.enum(['conventional', 'syariah', 'dual']).default('conventional'),
-    isActive: z.boolean().default(true),
-    requiresApproval: z.boolean().default(false),
-}).openapi('CreateBusinessSettingInput')
+    param_usage: z.string().max(255).optional(),
+    paramType: z.string().max(10).optional(),
+    param_type: z.string().max(10).optional(),
+    bankingType: z.enum(['conventional', 'syariah', 'dual']).optional(),
+    banking_type: z.enum(['conventional', 'syariah', 'dual']).optional(),
+    isActive: z.boolean().optional(),
+    is_active: z.boolean().optional(),
+    active_flag: z.boolean().optional(),
+    isEditable: z.boolean().optional(),
+    is_editable: z.boolean().optional(),
+    requiresApproval: z.boolean().optional(),
+    requires_approval: z.boolean().optional(),
+}).transform(data => ({
+    // normalize to camelCase and provide defaults for business settings
+    paramCode: (data.param_code || data.paramCode || '').toString(),
+    paramName: data.param_name || data.paramName || data.param_desc || '',
+    paramUsage: data.param_usage || data.paramUsage || '',
+    paramType: data.param_type || data.paramType || 'B',
+    bankingType: data.banking_type || data.bankingType || 'conventional',
+    isActive: data.active_flag ?? data.is_active ?? data.isActive ?? true,
+    requiresApproval: data.requires_approval ?? data.requiresApproval ?? false,
+})).refine(d => typeof d.paramCode === 'string' && d.paramCode.length > 0, { message: 'paramCode is required' }).refine(d => typeof d.paramName === 'string' && d.paramName.length > 0, { message: 'paramName is required' }).openapi('CreateBusinessSettingInput')
 
-const UpdateBusinessSettingSchema = CreateBusinessSettingSchema.partial().openapi('UpdateBusinessSettingInput')
+const UpdateBusinessSettingSchema = z.object({
+    paramCode: z.string().max(10).optional(),
+    param_code: z.string().max(10).optional(),
+    paramName: z.string().max(255).optional(),
+    param_name: z.string().max(255).optional(),
+    param_desc: z.string().max(255).optional(),
+    paramUsage: z.string().max(255).optional(),
+    param_usage: z.string().max(255).optional(),
+    paramType: z.string().max(10).optional(),
+    param_type: z.string().max(10).optional(),
+    bankingType: z.enum(['conventional', 'syariah', 'dual']).optional(),
+    banking_type: z.enum(['conventional', 'syariah', 'dual']).optional(),
+    isActive: z.boolean().optional(),
+    is_active: z.boolean().optional(),
+    active_flag: z.boolean().optional(),
+    isEditable: z.boolean().optional(),
+    is_editable: z.boolean().optional(),
+    requiresApproval: z.boolean().optional(),
+    requires_approval: z.boolean().optional(),
+}).transform(data => ({
+    ...(data.param_code || data.paramCode ? { paramCode: data.param_code || data.paramCode } : {}),
+    ...(data.param_name || data.paramName || data.param_desc ? { paramName: data.param_name || data.paramName || data.param_desc } : {}),
+    ...(data.param_usage || data.paramUsage ? { paramUsage: data.param_usage || data.paramUsage } : {}),
+    ...(data.param_type || data.paramType ? { paramType: data.param_type || data.paramType } : {}),
+    ...(data.banking_type || data.bankingType ? { bankingType: data.banking_type || data.bankingType } : {}),
+    ...(data.active_flag !== undefined || data.is_active !== undefined || data.isActive !== undefined ? { isActive: data.active_flag ?? data.is_active ?? data.isActive } : {}),
+    ...(data.requires_approval !== undefined || data.requiresApproval !== undefined ? { requiresApproval: data.requires_approval ?? data.requiresApproval } : {}),
+})).openapi('UpdateBusinessSettingInput')
 
 const CreateBusinessDetailSchema = z.object({
     paramCode: z.string().max(50),
@@ -80,6 +128,9 @@ const ErrorResponse = z.object({
     message: z.string(),
     error: z.string().optional()
 }).openapi('ErrorResponse')
+
+// Export schemas for unit testing
+export { CreateBusinessSettingSchema, UpdateBusinessSettingSchema }
 
 // ============================================================================
 // ENDPOINTS
