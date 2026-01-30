@@ -580,7 +580,9 @@ export default function MenuManagement({ params }: { params: Promise<{}> }) {
         const result = await response.json();
         if (result.success && result.data) {
           // Transform database role data to UI format
-          const liveRoles: Role[] = result.data.map((role: any) => ({
+          const rolesData = Array.isArray(result.data) ? result.data : (result.data.data && Array.isArray(result.data.data) ? result.data.data : []);
+
+          const liveRoles: Role[] = rolesData.map((role: any) => ({
             id: role.id,
             name: role.name,
             description: role.description || '',

@@ -32,7 +32,8 @@ import {
   FilterList as FilterIcon,
   BarChart as ChartIcon
 } from '@mui/icons-material';
-import { DataGrid, GridColDef, GridToolbar } from '@mui/x-data-grid';
+import { SafeDataGrid, SafeGridActionsCellItem, SafeDataGridProps } from '@/components/shared/SafeDataGrid';
+import { GridColDef, GridToolbar, GridValidRowModel } from '@mui/x-data-grid';
 import { useAuth } from '../../providers/AuthProvider';
 import api from '../../services/api';
 import ModernLoader from '../common/ModernLoader'; // ✅ Import ModernLoader
@@ -41,8 +42,8 @@ import * as XLSX from 'xlsx'; // ✅ Import xlsx for client-side export
 export interface BaseIfrs9ReportProps {
   title: string;
   description?: string;
-  reportType: 'nominative-report' | 'lifetime-pd-yearly' | 'lifetime-pd-monthly' | 
-              'lifetime-lgd' | 'ead-model' | 'ecl-result' | 'ecl-movement' | 'gca-movement';
+  reportType: 'nominative-report' | 'lifetime-pd-yearly' | 'lifetime-pd-monthly' |
+  'lifetime-lgd' | 'ead-model' | 'ecl-result' | 'ecl-movement' | 'gca-movement';
   requiredParams: string[];
   optionalParams?: string[];
   supportsPagination?: boolean;
@@ -98,12 +99,12 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
   children
 }) => {
   const { user } = useAuth();
-  
+
   // Extract tenant from user data - Memoized to prevent infinite loops
-  const tenant = React.useMemo(() => 
+  const tenant = React.useMemo(() =>
     user?.tenantId ? { id: user.tenantId, slug: user.tenantSlug } : null
-  , [user?.tenantId, user?.tenantSlug]);
-  
+    , [user?.tenantId, user?.tenantSlug]);
+
   // State management
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -163,17 +164,17 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
       } else if (typeof value === 'boolean') {
         column.type = 'boolean';
         column.renderCell = (params) => (
-          <Chip 
-            size="small" 
-            label={params.value ? 'Yes' : 'No'} 
+          <Chip
+            size="small"
+            label={params.value ? 'Yes' : 'No'}
             color={params.value ? 'success' : 'default'}
           />
         );
         column.width = 100;
       } else if (key.includes('stage')) {
         column.renderCell = (params) => (
-          <Chip 
-            size="small" 
+          <Chip
+            size="small"
             label={`Stage ${params.value}`}
             color={params.value === 1 ? 'success' : params.value === 2 ? 'warning' : 'error'}
           />
@@ -265,16 +266,16 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
 
       if (response.success) {
         setData(response.data || []);
-        
+
         // Generate dynamic columns
         const dynamicColumns = generateDynamicColumns(response.data || []);
         setColumns(dynamicColumns);
-        
+
         // Handle pagination
         if (response.pagination) {
           setPagination(response.pagination);
         }
-        
+
         // Notify parent component
         if (onDataLoaded) {
           onDataLoaded(response.data || []);
@@ -313,28 +314,28 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
       console.warn('No data to export');
       return;
     }
-    
+
     setExportLoading(true);
     try {
       // Create worksheet from data
       const worksheet = XLSX.utils.json_to_sheet(data);
-      
+
       // Create workbook
       const workbook = XLSX.utils.book_new();
       const sheetName = title.substring(0, 31).replace(/[/\\*?[\]]/g, ''); // Max 31 chars, no special chars
       XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
-      
+
       // Auto-size columns
       const maxWidth = 30;
       const colWidths = Object.keys(data[0] || {}).map(key => ({
         wch: Math.min(maxWidth, Math.max(key.length, ...data.map(row => String(row[key] || '').length)))
       }));
       worksheet['!cols'] = colWidths;
-      
+
       // Generate filename
       const dateStr = filters.prc_date?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0];
       const filename = `${reportType}-${dateStr}`;
-      
+
       if (format === 'xlsx') {
         // Export as XLSX
         XLSX.writeFile(workbook, `${filename}.xlsx`);
@@ -342,7 +343,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
         // Export as CSV
         XLSX.writeFile(workbook, `${filename}.csv`, { bookType: 'csv' });
       }
-      
+
       console.log(`✅ Exported ${data.length} rows to ${filename}.${format}`);
     } catch (err) {
       console.error('Export error:', err);
@@ -360,14 +361,14 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
-       <Box sx={{ p: 3, position: 'relative', minHeight: '60vh' }}>
+      <Box sx={{ p: 3, position: 'relative', minHeight: '60vh' }}>
         {/* ✅ ADD: Modern Loader Overlay */}
-        <ModernLoader 
-          open={loading} 
+        <ModernLoader
+          open={loading}
           message={`Loading ${title}`}
           subMessage="Retrieving financial data..."
         />
-        
+
         {/* Header */}
         <Box sx={{ mb: 3 }}>
           <Typography variant="h4" gutterBottom>
@@ -378,7 +379,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
               {description}
             </Typography>
           )}
-          
+
           {/* Action buttons */}
           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
             <Button
@@ -388,13 +389,13 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
             >
               {showFilters ? 'Hide Filters' : 'Show Filters'}
             </Button>
-            
+
             <Tooltip title="Refresh Data">
               <IconButton onClick={fetchData} disabled={loading}>
                 <RefreshIcon />
               </IconButton>
             </Tooltip>
-            
+
             {supportsCharts && (
               <Tooltip title="Charts View">
                 <IconButton>
@@ -402,7 +403,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                 </IconButton>
               </Tooltip>
             )}
-            
+
             <Button
               variant="contained"
               startIcon={<DownloadIcon />}
@@ -421,7 +422,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
               <Typography variant="h6" gutterBottom>
                 Report Filters
               </Typography>
-              
+
               <Grid container spacing={2}>
                 {/* Processing Date (Required) */}
                 <Grid item xs={12} md={3}>
@@ -621,7 +622,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
         {/* Data Grid */}
         {columns.length > 0 && (
           <Paper sx={{ height: 600, width: '100%' }}>
-            <DataGrid
+            <SafeDataGrid
               rows={data}
               columns={columns}
               loading={loading}
@@ -638,15 +639,6 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                 }
               }}
               pageSizeOptions={supportsPagination ? [10, 20, 50, 100] : [100]}
-              slots={{
-                toolbar: GridToolbar
-              }}
-              slotProps={{
-                toolbar: {
-                  showQuickFilter: true,
-                  quickFilterProps: { debounceMs: 500 }
-                }
-              }}
               getRowId={(row) => row.id || row.account_id || row.pkid || Math.random()}
               sx={{
                 '& .MuiDataGrid-cell': {
@@ -661,7 +653,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
             />
           </Paper>
         )}
-        
+
         {/* Summary */}
         {data.length > 0 && (
           <Box sx={{ mt: 2, p: 2, bgcolor: 'background.paper', borderRadius: 1 }}>

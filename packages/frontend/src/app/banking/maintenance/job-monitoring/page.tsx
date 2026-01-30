@@ -39,7 +39,8 @@ import {
   FormControlLabel
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { DataGrid, GridColDef, GridRowParams, GridRenderCellParams } from '@mui/x-data-grid';
+import { GridColDef, GridRowParams, GridRenderCellParams } from '@mui/x-data-grid';
+import { SafeDataGrid } from '@/components/shared/SafeDataGrid';
 import {
   Visibility as VisibilityIcon,
   Download as DownloadIcon,
@@ -227,10 +228,10 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
         jobType: e.jobType,
         status:
           e.status === 'active' ? 'RUNNING'
-          : e.status === 'completed' ? 'COMPLETED'
-          : e.status === 'failed' ? 'FAILED'
-          : e.status === 'waiting' ? 'PENDING'
-          : 'PENDING',
+            : e.status === 'completed' ? 'COMPLETED'
+              : e.status === 'failed' ? 'FAILED'
+                : e.status === 'waiting' ? 'PENDING'
+                  : 'PENDING',
         startTime: e.startTime || new Date().toISOString(),
         endTime: e.endTime || undefined,
         progress: typeof e.progress === 'number' ? e.progress : 0,
@@ -974,7 +975,7 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
             subheader={`Last updated: ${format(new Date(), 'MMM dd, yyyy HH:mm')}`}
           />
           <CardContent>
-            <DataGrid
+            <SafeDataGrid
               rows={filteredJobs}
               columns={executionColumns}
               loading={loading}
@@ -985,9 +986,7 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
                 },
               }}
               checkboxSelection
-              disableRowSelectionOnClick
               sx={{ height: 600 }}
-              onRowDoubleClick={(params: GridRowParams) => handleViewJobDetails(params.row)}
             />
           </CardContent>
         </Card>
