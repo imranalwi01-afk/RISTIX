@@ -269,7 +269,7 @@ export class Ifrs9ReportsService {
                     SUM(CAST(unwinding_ca_amt AS DECIMAL)) AS unwinding_ca,
                     SUM(CAST(unwinding_ia_amt AS DECIMAL)) AS unwinding_ia,
                     SUM(CAST(unwinding_ia_sum_amt AS DECIMAL)) AS total_unwinding_ia
-                FROM ifrs9.frs9_master_account
+                FROM public.frs9_master_account
                 WHERE ${whereClause}
                 GROUP BY 
                     prc_date,
@@ -360,7 +360,7 @@ export class Ifrs9ReportsService {
                     sicr_flag,
                     impaired_flag,
                     prc_date
-                FROM ifrs9.frs9_master_account
+                FROM public.frs9_master_account
                 WHERE ${whereClause}
                 ORDER BY account_number
                 LIMIT ${limit}
@@ -377,7 +377,7 @@ export class Ifrs9ReportsService {
 
             // Get total count
             const countResult = await legacyDb.execute(sql.raw(`
-                SELECT COUNT(*) as total FROM ifrs9.frs9_master_account WHERE ${whereClause}
+                SELECT COUNT(*) as total FROM public.frs9_master_account WHERE ${whereClause}
             `));
             const total = Number((countResult as any[])[0]?.total || 0);
 
@@ -421,9 +421,9 @@ export class Ifrs9ReportsService {
                     B.eqv_at_default AS os_at_default,
                     C.seq,
                     C.npv_eqv_rec AS pv_recovery
-                FROM frs9_account_id A
-                INNER JOIN frs9_imp_ca_lgd_data B ON A.account_id = B.account_id
-                INNER JOIN frs9_imp_ca_lgd_rec_d C ON B.account_id = C.account_id
+                FROM public.frs9_account_id A
+                INNER JOIN public.frs9_imp_ca_lgd_data B ON A.account_id = B.account_id
+                INNER JOIN public.frs9_imp_ca_lgd_rec_d C ON B.account_id = C.account_id
                 WHERE B.prc_date <= ${prcDate}
                 AND B.lgd_config_id = ${lgdConfigId}
                 ORDER BY A.account_number, C.seq
@@ -504,8 +504,8 @@ export class Ifrs9ReportsService {
                     A.npv_eqv_rec AS total_pv_recovery,
                     A.rec_rate,
                     A.lgd AS lgd_rate
-                FROM frs9_imp_ca_lgd_h A
-                INNER JOIN frs9_imp_ca_lgd_config B ON A.lgd_config_id = B.pkid
+                FROM public.frs9_imp_ca_lgd_h A
+                INNER JOIN public.frs9_imp_ca_lgd_config B ON A.lgd_config_id = B.pkid
                 WHERE A.prc_date = ${prcDate}
                 AND A.lgd_config_id = ${lgdConfigId}
             `);
