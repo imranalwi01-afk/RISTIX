@@ -97,6 +97,23 @@ export function SafeDataGrid<T extends GridValidRowModel = any>(props: SafeDataG
       sx={props.sx}
       getDetailPanelContent={props.getDetailPanelContent}
       getDetailPanelHeight={props.getDetailPanelHeight}
+      // Pagination mapping
+      count={props.rowCount}
+      page={props.paginationModel?.page}
+      rowsPerPage={props.paginationModel?.pageSize}
+      onPageChange={props.onPaginationModelChange ? (_e, newPage) => {
+        props.onPaginationModelChange?.({
+          page: newPage,
+          pageSize: props.paginationModel?.pageSize || 10
+        }, {} as any);
+      } : undefined}
+      onRowsPerPageChange={props.onPaginationModelChange ? (e) => {
+        const newPageSize = parseInt(e.target.value, 10);
+        props.onPaginationModelChange?.({
+          page: 0, // Reset to first page on size change
+          pageSize: newPageSize
+        }, {} as any);
+      } : undefined}
     />
   );
 }

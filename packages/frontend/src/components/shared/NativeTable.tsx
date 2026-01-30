@@ -71,6 +71,13 @@ export interface NativeTableProps<T = any> {
   getDetailPanelHeight?: (params: { row: T }) => number | 'auto';
   // Responsive mode: 'cards' (mobile cards) or 'scroll' (horizontal scroll)
   responsiveMode?: 'cards' | 'scroll';
+
+  // Controlled pagination props (for server-side pagination)
+  count?: number; // Total number of rows (if different from rows.length)
+  page?: number; // Zero-based page index
+  onPageChange?: (event: unknown, newPage: number) => void;
+  rowsPerPage?: number;
+  onRowsPerPageChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 /**
@@ -91,24 +98,43 @@ export function NativeTable<T = any>({
   getDetailPanelContent,
   getDetailPanelHeight = () => 'auto',
   responsiveMode = 'scroll', // Default to horizontal scroll
+  count,
+  page: propPage,
+  onPageChange: propOnPageChange,
+  rowsPerPage: propRowsPerPage,
+  onRowsPerPageChange: propOnRowsPerPageChange,
 }: NativeTableProps<T>) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  const [page, setPage] = useState(initialState?.pagination?.paginationModel?.page || 0);
-  const [rowsPerPage, setRowsPerPage] = useState(
+  // Internal state for uncontrolled pagination
+  const [internalPage, setInternalPage] = useState(initialState?.pagination?.paginationModel?.page || 0);
+  const [internalRowsPerPage, setInternalRowsPerPage] = useState(
     initialState?.pagination?.paginationModel?.pageSize || pageSizeOptions[0]
   );
+
+  // Use controlled props if available, otherwise internal state
+  const page = propPage !== undefined ? propPage : internalPage;
+  const rowsPerPage = propRowsPerPage !== undefined ? propRowsPerPage : internalRowsPerPage;
+
   const [selected, setSelected] = useState<Set<any>>(new Set(rowSelectionModel));
   const [expandedRows, setExpandedRows] = useState<Set<any>>(new Set());
 
-  const handleChangePage = (_event: unknown, newPage: number) => {
-    setPage(newPage);
+  const handleChangePage = (event: unknown, newPage: number) => {
+    if (propOnPageChange) {
+      propOnPageChange(event, newPage);
+    } else {
+      setInternalPage(newPage);
+    }
   };
 
   const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
+    if (propOnRowsPerPageChange) {
+      propOnRowsPerPageChange(event);
+    } else {
+      setInternalRowsPerPage(parseInt(event.target.value, 10));
+      setInternalPage(0);
+    }
   };
 
   const handleSelectAll = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -144,9 +170,15 @@ export function NativeTable<T = any>({
   };
 
   const paginatedRows = useMemo(() => {
+    // If count is provided (server-side pagination), rows usually contains just the current page data
+    // So we don't slice unless rows.length > rowsPerPage (which might indicate a cache or pre-fetch, but typically server returns page)
+    if (count !== undefined) {
+      return rows;
+    }
+    // Client-side pagination: slice the full rows array
     const start = page * rowsPerPage;
     return rows.slice(start, start + rowsPerPage);
-  }, [rows, page, rowsPerPage]);
+  }, [rows, page, rowsPerPage, count]);
 
   const visibleColumns = useMemo(() => {
     if (isMobile && responsiveMode === 'cards') {
@@ -237,7 +269,7 @@ export function NativeTable<T = any>({
         <TablePagination
           rowsPerPageOptions={pageSizeOptions}
           component="div"
-          count={rows.length}
+          count={count !== undefined ? count : rows.length}
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={handleChangePage}
@@ -336,7 +368,7 @@ export function NativeTable<T = any>({
         <TablePagination
           rowsPerPageOptions={pageSizeOptions}
           component="div"
-          count={rows.length}
+          count={count !== undefined ? count : rows.length}
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={handleChangePage}
