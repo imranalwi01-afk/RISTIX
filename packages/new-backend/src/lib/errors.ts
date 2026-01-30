@@ -14,7 +14,7 @@ export class AppError extends Data.TaggedError('AppError')<{
  */
 export class DatabaseError extends Data.TaggedError('DatabaseError')<{
     readonly message: string
-    readonly operation: 'query' | 'insert' | 'update' | 'delete' | 'transaction'
+    readonly operation: 'query' | 'insert' | 'update' | 'delete' | 'upsert' | 'transaction'
     readonly cause?: unknown
 }> { }
 

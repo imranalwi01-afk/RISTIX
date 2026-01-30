@@ -35,16 +35,64 @@ const BusinessSettingHeaderSchema = z.object({
 }).openapi('BusinessSettingHeader')
 
 const CreateBusinessSettingSchema = z.object({
-    paramCode: z.string().max(10),
-    paramName: z.string().max(255),
+    // accept both camelCase and snake_case from the frontend
+    paramCode: z.string().max(10).optional(),
+    param_code: z.string().max(10).optional(),
+    paramName: z.string().max(255).optional(),
+    param_name: z.string().max(255).optional(),
+    param_desc: z.string().max(255).optional(),
     paramUsage: z.string().max(255).optional(),
-    paramType: z.string().max(10).default('B'),
-    bankingType: z.enum(['conventional', 'syariah', 'dual']).default('conventional'),
-    isActive: z.boolean().default(true),
-    requiresApproval: z.boolean().default(false),
-}).openapi('CreateBusinessSettingInput')
+    param_usage: z.string().max(255).optional(),
+    paramType: z.string().max(10).optional(),
+    param_type: z.string().max(10).optional(),
+    bankingType: z.enum(['conventional', 'syariah', 'dual']).optional(),
+    banking_type: z.enum(['conventional', 'syariah', 'dual']).optional(),
+    isActive: z.boolean().optional(),
+    is_active: z.boolean().optional(),
+    active_flag: z.boolean().optional(),
+    isEditable: z.boolean().optional(),
+    is_editable: z.boolean().optional(),
+    requiresApproval: z.boolean().optional(),
+    requires_approval: z.boolean().optional(),
+}).transform(data => ({
+    // normalize to camelCase and provide defaults for business settings
+    paramCode: (data.param_code || data.paramCode || '').toString(),
+    paramName: data.param_name || data.paramName || data.param_desc || '',
+    paramUsage: data.param_usage || data.paramUsage || '',
+    paramType: data.param_type || data.paramType || 'B',
+    bankingType: data.banking_type || data.bankingType || 'conventional',
+    isActive: data.active_flag ?? data.is_active ?? data.isActive ?? true,
+    requiresApproval: data.requires_approval ?? data.requiresApproval ?? false,
+})).refine(d => typeof d.paramCode === 'string' && d.paramCode.length > 0, { message: 'paramCode is required' }).refine(d => typeof d.paramName === 'string' && d.paramName.length > 0, { message: 'paramName is required' }).openapi('CreateBusinessSettingInput')
 
-const UpdateBusinessSettingSchema = CreateBusinessSettingSchema.partial().openapi('UpdateBusinessSettingInput')
+const UpdateBusinessSettingSchema = z.object({
+    paramCode: z.string().max(10).optional(),
+    param_code: z.string().max(10).optional(),
+    paramName: z.string().max(255).optional(),
+    param_name: z.string().max(255).optional(),
+    param_desc: z.string().max(255).optional(),
+    paramUsage: z.string().max(255).optional(),
+    param_usage: z.string().max(255).optional(),
+    paramType: z.string().max(10).optional(),
+    param_type: z.string().max(10).optional(),
+    bankingType: z.enum(['conventional', 'syariah', 'dual']).optional(),
+    banking_type: z.enum(['conventional', 'syariah', 'dual']).optional(),
+    isActive: z.boolean().optional(),
+    is_active: z.boolean().optional(),
+    active_flag: z.boolean().optional(),
+    isEditable: z.boolean().optional(),
+    is_editable: z.boolean().optional(),
+    requiresApproval: z.boolean().optional(),
+    requires_approval: z.boolean().optional(),
+}).transform(data => ({
+    ...(data.param_code || data.paramCode ? { paramCode: data.param_code || data.paramCode } : {}),
+    ...(data.param_name || data.paramName || data.param_desc ? { paramName: data.param_name || data.paramName || data.param_desc } : {}),
+    ...(data.param_usage || data.paramUsage ? { paramUsage: data.param_usage || data.paramUsage } : {}),
+    ...(data.param_type || data.paramType ? { paramType: data.param_type || data.paramType } : {}),
+    ...(data.banking_type || data.bankingType ? { bankingType: data.banking_type || data.bankingType } : {}),
+    ...(data.active_flag !== undefined || data.is_active !== undefined || data.isActive !== undefined ? { isActive: data.active_flag ?? data.is_active ?? data.isActive } : {}),
+    ...(data.requires_approval !== undefined || data.requiresApproval !== undefined ? { requiresApproval: data.requires_approval ?? data.requiresApproval } : {}),
+})).openapi('UpdateBusinessSettingInput')
 
 const CreateBusinessDetailSchema = z.object({
     paramCode: z.string().max(50),
@@ -81,6 +129,9 @@ const ErrorResponse = z.object({
     error: z.string().optional()
 }).openapi('ErrorResponse')
 
+// Export schemas for unit testing
+export { CreateBusinessSettingSchema, UpdateBusinessSettingSchema }
+
 // ============================================================================
 // ENDPOINTS
 // ============================================================================
@@ -112,11 +163,8 @@ app.openapi(
         // and fix the service logic in the next step. 
         // Wait, I should fix the service first or reuse a method that allows type.
 
-        // Actually, viewing ParametersService line 8: listAppSettings: (code?: string) => ParametersRepository.findHeaders('S', code)
-        // It hardcodes 'S'. I need to fix this.
-
-        // Temporarily calling listAppSettings but I will fix the service in next tool call.
-        return runEffect(c, ParametersService.listAppSettings() as any) as any
+        // Now calling listBusinessSettings which correctly fetches type 'B' headers
+        return runEffect(c, ParametersService.listBusinessSettings() as any) as any
     }
 )
 
@@ -166,6 +214,28 @@ app.openapi(
     }
 )
 
+// GET /api/v1/business-settings/:code/details
+// Get Business Setting Details
+app.openapi(
+    createRoute({
+        method: 'get',
+        path: '/{code}/details',
+        tags: ['Business Settings'],
+        summary: 'Get Business Setting Details',
+        request: {
+            params: z.object({ code: z.string() })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), data: z.array(BusinessSettingDetailSchema) }) } }, description: 'Get Setting Details' },
+            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' }
+        }
+    }),
+    async (c) => {
+        const { code } = c.req.valid('param')
+        return runEffect(c, ParametersService.getAppSettingDetails(code) as any) as any
+    }
+)
+
 // PUT /api/v1/business-settings/:code
 // Update Business Setting Header
 app.openapi(
@@ -188,6 +258,30 @@ app.openapi(
         const data = c.req.valid('json')
         const userId = c.get('userId') as string || 'system'
         return runEffect(c, ParametersService.updateAppSetting(code, data, userId) as any) as any
+    }
+)
+
+// DELETE /api/v1/business-settings/:code
+// Delete Business Setting Header
+app.openapi(
+    createRoute({
+        method: 'delete',
+        path: '/{code}',
+        tags: ['Business Settings'],
+        summary: 'Delete Business Setting',
+        description: 'Deletes a business setting by its param_code',
+        request: {
+            params: z.object({ code: z.string() })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), message: z.string() }) } }, description: 'Deleted' },
+            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        const { code } = c.req.valid('param')
+        return runEffect(c, ParametersService.deleteAppSetting(code) as any) as any
     }
 )
 
@@ -234,6 +328,32 @@ app.openapi(
         const { id } = c.req.valid('param')
         if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
         return runEffect(c, ParametersService.deleteAppSettingDetail(id) as any) as any
+    }
+)
+
+// PUT /api/v1/business-settings/details/:id
+// Update Business Setting Detail
+app.openapi(
+    createRoute({
+        method: 'put',
+        path: '/details/{id}',
+        tags: ['Business Settings'],
+        summary: 'Update Business Setting Detail',
+        request: {
+            params: z.object({ id: z.string().transform(Number) }),
+            body: { content: { 'application/json': { schema: CreateBusinessDetailSchema.partial() } } }
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), data: BusinessSettingDetailSchema }) } }, description: 'Updated' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Invalid Input' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        const { id } = c.req.valid('param')
+        const data = c.req.valid('json')
+        const userId = c.get('userId') as string || 'system'
+        return runEffect(c, ParametersService.updateAppSettingDetail(id, data, userId) as any) as any
     }
 )
 
@@ -371,4 +491,10 @@ app.openapi(
     }
 )
 
-export default app
+/**
+ * Business Settings Routes
+ * Handles CRUD operations for Business Settings and Metadata.
+ * 
+ * Base Path: /api/v1/business-settings
+ */
+export const businessSettingsRoutes = app

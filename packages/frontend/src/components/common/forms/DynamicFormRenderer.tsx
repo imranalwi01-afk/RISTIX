@@ -36,7 +36,8 @@ import { useForm, FormProvider, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useTheme } from '@mui/material/styles';
-import { Save as SaveIcon, Send as SendIcon } from '@mui/icons-material';
+import SaveIcon from '@mui/icons-material/Save';
+import SendIcon from '@mui/icons-material/Send';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -559,7 +560,7 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
               {section.fields.map((fieldName) => {
                 const field = formConfiguration.form_schema.fields.find(f => f.name === fieldName);
                 return field ? (
-                  <Grid item xs={12} sm={6} key={fieldName}>
+                  <Grid size={{ xs: 12, sm: 6 }} key={fieldName}>
                     {renderField(field)}
                   </Grid>
                 ) : null;
@@ -575,7 +576,7 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
           <CardContent>
             <Grid container spacing={2}>
               {formConfiguration.form_schema.fields.map((field) => (
-                <Grid item xs={12} sm={6} key={field.id}>
+                <Grid size={{ xs: 12, sm: 6 }} key={field.id}>
                   {renderField(field)}
                 </Grid>
               ))}

@@ -25,7 +25,8 @@ import {
     Select,
     MenuItem
 } from '@mui/material';
-import { Refresh as RefreshIcon, Download as DownloadIcon } from '@mui/icons-material';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import DownloadIcon from '@mui/icons-material/Download';
 import { useApi } from '@/hooks/useApi';
 
 interface ProvisionSummary {
@@ -148,7 +149,7 @@ export default function ProvisioningPage() {
             {/* Summary Cards */}
             {latestData && (
                 <Grid container spacing={3} sx={{ mb: 3 }}>
-                    <Grid item xs={12} md={3}>
+                    <Grid size={{ xs: 12, md: 3 }}>
                         <Card>
                             <CardContent>
                                 <Typography variant="h6" color="primary">
@@ -160,7 +161,7 @@ export default function ProvisioningPage() {
                             </CardContent>
                         </Card>
                     </Grid>
-                    <Grid item xs={12} md={3}>
+                    <Grid size={{ xs: 12, md: 3 }}>
                         <Card>
                             <CardContent>
                                 <Typography variant="h6" color="error">
@@ -172,7 +173,7 @@ export default function ProvisioningPage() {
                             </CardContent>
                         </Card>
                     </Grid>
-                    <Grid item xs={12} md={3}>
+                    <Grid size={{ xs: 12, md: 3 }}>
                         <Card>
                             <CardContent>
                                 <Typography variant="h6" color="warning.main">
@@ -184,7 +185,7 @@ export default function ProvisioningPage() {
                             </CardContent>
                         </Card>
                     </Grid>
-                    <Grid item xs={12} md={3}>
+                    <Grid size={{ xs: 12, md: 3 }}>
                         <Card>
                             <CardContent>
                                 <Typography variant="h6" color="info.main">

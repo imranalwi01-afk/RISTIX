@@ -7,6 +7,7 @@ import IORedis from 'ioredis'
 
 // Redis connection - handle optional REDIS_URL
 const redisUrl = env.REDIS_URL || 'redis://localhost:6379'
+
 const connection = new IORedis(redisUrl, {
     maxRetriesPerRequest: null,
 })
@@ -22,6 +23,12 @@ const queueEvents = new QueueEvents(QUEUE_NAME, { connection })
 
 // 3. Worker (Consumer)
 // We will define processors in a registry or switch case
+/**
+ * Job processor function.
+ * 
+ * @param job - The BullMQ job object
+ * @returns A Promise resolving to the processing result
+ */
 const processor = async (job: Job) => {
     // TODO: Implement actual job logic dispatch
     console.log(`[Worker] Processing job ${job.id} (${job.name})`)
@@ -69,13 +76,13 @@ jobsWorker.on('active', (job) => {
 jobsWorker.on('completed', (job, result) => {
     if (!job) return
     console.log(`[Worker] Job ${job.id} completed`)
-    updateExecutionStatus(job.id!, 'completed', { result })
+    if (job.id) updateExecutionStatus(job.id, 'completed', { result })
 })
 
 jobsWorker.on('failed', (job, err) => {
     if (!job) return
     console.error(`[Worker] Job ${job.id} failed`, err)
-    updateExecutionStatus(job.id!, 'failed', { error: err.message })
+    if (job.id) updateExecutionStatus(job.id, 'failed', { error: err.message })
 })
 
 jobsWorker.on('progress', (job, progress) => {
@@ -87,10 +94,24 @@ jobsWorker.on('progress', (job, progress) => {
 // PUBLIC API
 // =============================================================================
 
+/**
+ * Add a job to the queue.
+ * 
+ * @param name - The job name
+ * @param data - The job data
+ * @param opts - BullMQ job options
+ * @returns A Promise resolving to the added job
+ */
 export const addJob = async (name: string, data: any, opts?: any) => {
     return await jobsQueue.add(name, data, opts)
 }
 
+/**
+ * Get a job by ID.
+ * 
+ * @param jobId - The job ID
+ * @returns A Promise resolving to the job or undefined
+ */
 export const getJob = async (jobId: string) => {
     return await jobsQueue.getJob(jobId)
 }

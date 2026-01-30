@@ -6,6 +6,15 @@ import { DatabaseError } from '../lib/errors'
 
 export const RuleBaseSettingsRepository = {
     // Header Operations
+
+    /**
+     * Find rule headers with filtering.
+     * 
+     * @param search - Search term for rule name or type
+     * @param ruleType - Filter by rule type
+     * @param activeFlag - Filter by active status
+     * @returns An Effect resolving to an array of headers
+     */
     findHeaders: (search?: string, ruleType?: string, activeFlag?: boolean) => {
         return Effect.tryPromise({
             try: async () => {
@@ -33,6 +42,12 @@ export const RuleBaseSettingsRepository = {
         })
     },
 
+    /**
+     * Find a rule header by ID.
+     * 
+     * @param id - The header ID
+     * @returns An Effect resolving to the header or null
+     */
     findHeaderById: (id: bigint) => {
         return Effect.tryPromise({
             try: async () => {
@@ -46,6 +61,12 @@ export const RuleBaseSettingsRepository = {
         })
     },
 
+    /**
+     * Create a new rule header.
+     * 
+     * @param data - The header data
+     * @returns An Effect resolving to the created header
+     */
     createHeader: (data: typeof frs9ParamScenarioRulesh.$inferInsert) => {
         return Effect.tryPromise({
             try: async () => {
@@ -59,6 +80,13 @@ export const RuleBaseSettingsRepository = {
         })
     },
 
+    /**
+     * Update an existing rule header.
+     * 
+     * @param id - The header ID
+     * @param data - The data to update
+     * @returns An Effect resolving to the updated header or null
+     */
     updateHeader: (id: bigint, data: Partial<typeof frs9ParamScenarioRulesh.$inferInsert>) => {
         return Effect.tryPromise({
             try: async () => {
@@ -73,6 +101,12 @@ export const RuleBaseSettingsRepository = {
         })
     },
 
+    /**
+     * Delete a rule header and its associated details.
+     * 
+     * @param id - The header ID
+     * @returns An Effect resolving to true on success
+     */
     deleteHeader: (id: bigint) => {
         return Effect.tryPromise({
             try: async () => {
@@ -87,6 +121,13 @@ export const RuleBaseSettingsRepository = {
     },
 
     // Detail Operations
+
+    /**
+     * Find details for a specific rule sorted by group and sequence.
+     * 
+     * @param ruleId - The rule header ID
+     * @returns An Effect resolving to an array of details
+     */
     findDetailsByRuleId: (ruleId: bigint) => {
         return Effect.tryPromise({
             try: async () => {
@@ -100,6 +141,12 @@ export const RuleBaseSettingsRepository = {
         })
     },
 
+    /**
+     * Create a new rule detail.
+     * 
+     * @param data - The detail data
+     * @returns An Effect resolving to the created detail
+     */
     createDetail: (data: typeof frs9ParamScenarioRulesd.$inferInsert) => {
         return Effect.tryPromise({
             try: async () => {
@@ -113,6 +160,13 @@ export const RuleBaseSettingsRepository = {
         })
     },
 
+    /**
+     * Update an existing rule detail.
+     * 
+     * @param id - The detail ID
+     * @param data - The data to update
+     * @returns An Effect resolving to the updated detail or null
+     */
     updateDetail: (id: bigint, data: Partial<typeof frs9ParamScenarioRulesd.$inferInsert>) => {
         return Effect.tryPromise({
             try: async () => {
@@ -127,6 +181,12 @@ export const RuleBaseSettingsRepository = {
         })
     },
 
+    /**
+     * Delete a rule detail.
+     * 
+     * @param id - The detail ID
+     * @returns An Effect resolving to true if deleted, false otherwise
+     */
     deleteDetail: (id: bigint) => {
         return Effect.tryPromise({
             try: async () => {

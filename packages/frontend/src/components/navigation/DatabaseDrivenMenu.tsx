@@ -295,7 +295,7 @@ export const DatabaseDrivenMenu: React.FC<DatabaseDrivenMenuProps> = ({
             {hasChildren && (
               <Collapse in={isExpanded} timeout="auto" unmountOnExit>
                 <List component="div" disablePadding>
-                  {renderMenuItems(item.children!, depth + 1)}
+                  {renderMenuItems(item.children!, depth + 1) as any}
                 </List>
               </Collapse>
             )}
@@ -474,7 +474,7 @@ export const DatabaseDrivenMenu: React.FC<DatabaseDrivenMenuProps> = ({
 
       <Box sx={{ overflow: 'auto', flex: 1 }}>
         <List sx={{ px: 1, py: 2 }}>
-          {renderedMenuItems}
+          {renderedMenuItems as any}
         </List>
       </Box>
 

@@ -13,10 +13,10 @@ import {
   Grid
 } from '@mui/material';
 import {
-  DataGrid,
   GridColDef,
   GridToolbar
 } from '@mui/x-data-grid';
+import { SafeDataGrid } from '@/components/shared/SafeDataGrid';
 import {
   Home as HomeIcon,
   List as ListIcon,
@@ -123,7 +123,7 @@ export default function IaDetailPage() {
 
 
       <Paper sx={{ height: 600, width: '100%' }}>
-        <DataGrid
+        <SafeDataGrid
             getRowId={(row) => `${row.uploadId}-${row.accountId}`}
             rows={data}
             columns={columns}

@@ -22,6 +22,10 @@ export const coreSchema = pgSchema('core')
 // ROLES TABLE
 // =============================================================================
 
+/**
+ * Roles table definition.
+ * Defines available roles within the system, including system and custom roles.
+ */
 export const roles = coreSchema.table(
     'roles',
     {
@@ -30,31 +34,35 @@ export const roles = coreSchema.table(
         roleCode: varchar('role_code', { length: 50 }).notNull().unique(),
         roleName: varchar('role_name', { length: 100 }).notNull(),
         description: text('description'),
-        permissions: jsonb('permissions').notNull().default({}),
-        isActive: boolean('is_active').notNull().default(true),
+        permissions: jsonb('permissions').default('{}'),
+        isActive: boolean('is_active').default(true),
 
-        // Banking-specific role configuration
+        // Banking-specific fields
         bankingTypeSpecific: varchar('banking_type_specific', { length: 20 }),
         complianceLevel: varchar('compliance_level', { length: 50 }),
         hierarchyLevel: integer('hierarchy_level').notNull().default(1),
 
         // System roles (cannot be deleted/modified)
-        isSystemRole: boolean('is_system_role').notNull().default(false),
+        isSystemRole: boolean('is_system_role').default(false),
 
         // Tenant isolation
-        tenantId: uuid('tenant_id').references(() => tenants.id),
+        tenantId: uuid('tenant_id'),
 
-        // Audit fields
-        createdAt: timestamp('created_at').notNull().defaultNow(),
-        updatedAt: timestamp('updated_at').notNull().defaultNow(),
+        // Timestamps
+        createdAt: timestamp('created_at', { withTimezone: false }).defaultNow(),
+        updatedAt: timestamp('updated_at', { withTimezone: false }).defaultNow(),
         createdBy: uuid('created_by'),
         updatedBy: uuid('updated_by'),
+
+        // Legacy tenant-specific fields (keeping for compatibility)
+        level: integer('level'),
+        supportsConventional: varchar('supports_conventional', { length: 100 }),
+        supportsSyariah: varchar('supports_syariah', { length: 100 }),
     },
     (table) => [
         uniqueIndex('roles_role_name_idx').on(table.roleName),
         index('roles_tenant_idx').on(table.tenantId),
         index('roles_active_idx').on(table.isActive),
-        index('roles_hierarchy_idx').on(table.hierarchyLevel),
         index('roles_system_role_idx').on(table.isSystemRole),
     ]
 )
@@ -63,41 +71,42 @@ export const roles = coreSchema.table(
 // USER ROLES JUNCTION TABLE
 // =============================================================================
 
+/**
+ * User roles junction table definition.
+ * Maps users to roles, supporting temporary and permanent assignments.
+ */
 export const userRoles = coreSchema.table(
     'user_roles',
     {
         id: uuid('id').primaryKey().defaultRandom(),
-        userId: uuid('user_id')
-            .notNull()
-            .references(() => users.id, { onDelete: 'cascade' }),
-        roleId: uuid('role_id')
-            .notNull()
-            .references(() => roles.id, { onDelete: 'cascade' }),
+        userId: uuid('user_id').notNull(),
+        roleId: uuid('role_id').notNull(),
 
         // Assignment metadata
         assignedBy: uuid('assigned_by'),
-        assignedAt: timestamp('assigned_at').notNull().defaultNow(),
+        assignedAt: timestamp('assigned_at', { withTimezone: false }).defaultNow(),
 
         // Status and validity
-        isActive: boolean('is_active').notNull().default(true),
-        validFrom: timestamp('valid_from'),
-        validUntil: timestamp('valid_until'),
+        isActive: boolean('is_active').default(true),
+        validFrom: timestamp('valid_from', { withTimezone: false }),
+        validUntil: timestamp('valid_until', { withTimezone: false }),
 
-        // Banking context
+        // Banking-specific restrictions
         bankingTypeRestriction: varchar('banking_type_restriction', { length: 20 }),
 
         // Temporary assignments
-        isTemporary: boolean('is_temporary').notNull().default(false),
+        isTemporary: boolean('is_temporary').default(false),
         temporaryReason: text('temporary_reason'),
 
         // Tenant isolation
-        tenantId: uuid('tenant_id')
-            .notNull()
-            .references(() => tenants.id),
+        tenantId: uuid('tenant_id').notNull(),
 
         // Timestamps
-        createdAt: timestamp('created_at').notNull().defaultNow(),
-        updatedAt: timestamp('updated_at').notNull().defaultNow(),
+        createdAt: timestamp('created_at', { withTimezone: false }).defaultNow(),
+        updatedAt: timestamp('updated_at', { withTimezone: false }).defaultNow(),
+
+        // Legacy field
+        level: integer('level'),
     },
     (table) => [
         uniqueIndex('user_role_unique_idx').on(table.userId, table.roleId),
@@ -114,6 +123,10 @@ export const userRoles = coreSchema.table(
 // PERMISSIONS TABLE (for granular permission management)
 // =============================================================================
 
+/**
+ * Permissions table definition.
+ * Defines atomic actions and resources for granular access control.
+ */
 export const permissions = coreSchema.table(
     'permissions',
     {
@@ -139,6 +152,10 @@ export const permissions = coreSchema.table(
 // ROLE PERMISSIONS JUNCTION TABLE
 // =============================================================================
 
+/**
+ * Role permissions junction table definition.
+ * Maps roles to permissions, defining what actions a role can perform.
+ */
 export const rolePermissions = coreSchema.table(
     'role_permissions',
     {
@@ -157,6 +174,47 @@ export const rolePermissions = coreSchema.table(
         index('role_permissions_role_idx').on(table.roleId),
         index('role_permissions_perm_idx').on(table.permissionId),
     ]
+)
+
+// =============================================================================
+// PERMISSION APPROVAL POLICIES TABLE
+// =============================================================================
+
+/**
+ * Permission approval policies table definition.
+ * Links permissions to approval requirements based on role hierarchy levels.
+ */
+export const permissionApprovalPolicies = coreSchema.table(
+    'permission_approval_policies',
+    {
+        id: uuid('id').primaryKey().defaultRandom(),
+        tenantId: uuid('tenant_id').notNull(),
+        permissionId: uuid('permission_id').notNull(),
+
+        // Approval requirement metadata
+        requiresApproval: boolean('requires_approval').notNull().default(false),
+        minHierarchyLevel: integer('min_hierarchy_level'),
+        requiredApprovers: integer('required_approvers').notNull().default(1),
+
+        // Reference to complex approval flow (optional)
+        matrixId: uuid('matrix_id'),
+
+        // Metadata
+        description: text('description'),
+        isActive: boolean('is_active').notNull().default(true),
+        createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+        updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+    },
+    (table) => ({
+        uniqueTenantPermission: uniqueIndex('unique_tenant_permission').on(
+            table.tenantId,
+            table.permissionId
+        ),
+        tenantIdx: index('permission_policy_tenant_idx').on(table.tenantId),
+        permissionIdx: index('permission_policy_permission_idx').on(table.permissionId),
+        matrixIdx: index('permission_policy_matrix_idx').on(table.matrixId),
+        hierarchyIdx: index('permission_policy_hierarchy_idx').on(table.minHierarchyLevel),
+    })
 )
 
 // =============================================================================
@@ -189,6 +247,7 @@ export const userRolesRelations = relations(userRoles, ({ one }) => ({
 
 export const permissionsRelations = relations(permissions, ({ many }) => ({
     rolePermissions: many(rolePermissions),
+    approvalPolicies: many(permissionApprovalPolicies),
 }))
 
 export const rolePermissionsRelations = relations(rolePermissions, ({ one }) => ({
@@ -201,6 +260,20 @@ export const rolePermissionsRelations = relations(rolePermissions, ({ one }) => 
         references: [permissions.id],
     }),
 }))
+export const permissionApprovalPoliciesRelations = relations(
+    permissionApprovalPolicies,
+    ({ one }) => ({
+        tenant: one(tenants, {
+            fields: [permissionApprovalPolicies.tenantId],
+            references: [tenants.id],
+        }),
+        permission: one(permissions, {
+            fields: [permissionApprovalPolicies.permissionId],
+            references: [permissions.id],
+        }),
+    })
+)
+
 
 // =============================================================================
 // TYPE EXPORTS
@@ -217,3 +290,6 @@ export type NewPermission = typeof permissions.$inferInsert
 
 export type RolePermission = typeof rolePermissions.$inferSelect
 export type NewRolePermission = typeof rolePermissions.$inferInsert
+
+export type PermissionApprovalPolicy = typeof permissionApprovalPolicies.$inferSelect
+export type NewPermissionApprovalPolicy = typeof permissionApprovalPolicies.$inferInsert

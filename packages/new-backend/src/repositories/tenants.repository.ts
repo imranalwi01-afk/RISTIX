@@ -28,7 +28,10 @@ export interface TenantsQueryOptions extends QueryOptions {
 
 export class TenantsRepository implements IRepository<Tenant, NewTenant> {
     /**
-     * Find tenant by ID
+     * Find tenant by ID.
+     * 
+     * @param id - The tenant ID
+     * @returns An Effect resolving to the tenant or NotFoundError
      */
     findById(id: string): Effect.Effect<Tenant, DatabaseError | NotFoundError> {
         return pipe(
@@ -42,7 +45,10 @@ export class TenantsRepository implements IRepository<Tenant, NewTenant> {
     }
 
     /**
-     * Find tenant by code
+     * Find tenant by code.
+     * 
+     * @param code - The tenant code
+     * @returns An Effect resolving to the tenant or undefined
      */
     findByCode(code: string): Effect.Effect<Tenant | undefined, DatabaseError> {
         return queryEffect(() =>
@@ -53,7 +59,10 @@ export class TenantsRepository implements IRepository<Tenant, NewTenant> {
     }
 
     /**
-     * Find tenant by slug
+     * Find tenant by slug.
+     * 
+     * @param slug - The tenant slug
+     * @returns An Effect resolving to the tenant or undefined
      */
     findBySlug(slug: string): Effect.Effect<Tenant | undefined, DatabaseError> {
         return queryEffect(() =>
@@ -64,7 +73,10 @@ export class TenantsRepository implements IRepository<Tenant, NewTenant> {
     }
 
     /**
-     * Find all tenants with pagination
+     * Find all tenants with pagination.
+     * 
+     * @param options - Query options including pagination and filters
+     * @returns An Effect resolving to paginated tenant results
      */
     findAll(options?: TenantsQueryOptions): Effect.Effect<PaginatedResult<Tenant>, DatabaseError> {
         return queryEffect(async () => {
@@ -113,7 +125,10 @@ export class TenantsRepository implements IRepository<Tenant, NewTenant> {
     }
 
     /**
-     * Create a new tenant
+     * Create a new tenant.
+     * 
+     * @param data - The tenant data
+     * @returns An Effect resolving to the created tenant
      */
     create(data: NewTenant): Effect.Effect<Tenant, DatabaseError> {
         return insertEffect(() =>
@@ -129,7 +144,11 @@ export class TenantsRepository implements IRepository<Tenant, NewTenant> {
     }
 
     /**
-     * Update an existing tenant
+     * Update an existing tenant.
+     * 
+     * @param id - The tenant ID
+     * @param data - The data to update
+     * @returns An Effect resolving to the updated tenant or NotFoundError
      */
     update(
         id: string,
@@ -153,7 +172,10 @@ export class TenantsRepository implements IRepository<Tenant, NewTenant> {
     }
 
     /**
-     * Soft delete a tenant
+     * Soft delete a tenant.
+     * 
+     * @param id - The tenant ID
+     * @returns An Effect resolving to the updated (deleted) tenant
      */
     delete(id: string): Effect.Effect<Tenant, DatabaseError | NotFoundError> {
         return this.update(id, { isActive: false })

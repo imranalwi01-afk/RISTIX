@@ -13,30 +13,30 @@ app.use('*', authMiddleware)
 // ============================================================================
 
 const CreateHeaderSchema = z.object({
-    ruleName: z.string().min(1).max(150),
-    ruleType: z.string().min(1).max(50),
-    updatedTable: z.string().min(1).max(30),
-    updatedColumn: z.string().min(1).max(30),
+    rule_name: z.string().min(1).max(150),
+    rule_type: z.string().min(1).max(50),
+    updated_table: z.string().min(1).max(30),
+    updated_column: z.string().min(1).max(30),
     value: z.string().optional(),
     seq: z.number().int().default(1),
-    activeFlag: z.boolean().default(true),
+    active_flag: z.boolean().default(true),
 }).openapi('CreateRuleHeaderInput')
 
 const UpdateHeaderSchema = CreateHeaderSchema.partial().openapi('UpdateRuleHeaderInput')
 
 const CreateDetailSchema = z.object({
-    queryGroup: z.number().int().default(1),
+    query_group: z.number().int().default(1),
     seq: z.number().int().default(1),
-    tableName: z.string().min(1).max(30),
-    columnName: z.string().min(1).max(30),
-    dataType: z.string().min(1).max(15),
+    table_name: z.string().min(1).max(30),
+    column_name: z.string().min(1).max(30),
+    data_type: z.string().min(1).max(15),
     operator: z.string().max(10).optional(),
     value1: z.string().optional(),
     value2: z.string().optional(),
     condition: z.string().max(3).default('AND'),
-    detailType: z.string().max(50).optional(),
-    stageFrom: z.string().max(2).optional(),
-    stageTo: z.string().max(2).optional(),
+    detail_type: z.string().max(50).optional(),
+    stage_from: z.string().max(2).optional(),
+    stage_to: z.string().max(2).optional(),
 }).openapi('CreateRuleDetailInput')
 
 const UpdateDetailSchema = CreateDetailSchema.partial().openapi('UpdateRuleDetailInput')
@@ -122,7 +122,12 @@ const ErrorResponse = z.object({
 // HEADER ROUTES
 // ============================================================================
 
-// GET /api/v1/banking/collective/rule-base
+/**
+ * List Rule Headers.
+ * Retrieve a list of rule headers with optional filtering.
+ * 
+ * @route GET /api/v1/banking/collective/rule-base
+ */
 app.openapi(
     createRoute({
         method: 'get',
@@ -138,6 +143,7 @@ app.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: RuleListResponse } }, description: 'List Rules' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
@@ -150,7 +156,12 @@ app.openapi(
     }
 )
 
-// GET /api/v1/banking/collective/rule-base/:id
+/**
+ * Get Rule Header.
+ * Retrieve a specific rule header by ID.
+ * 
+ * @route GET /api/v1/banking/collective/rule-base/:id
+ */
 app.openapi(
     createRoute({
         method: 'get',
@@ -162,6 +173,7 @@ app.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: RuleDetailResponseSingle } }, description: 'Rule Header' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
             404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
@@ -173,7 +185,12 @@ app.openapi(
     }
 )
 
-// POST /api/v1/banking/collective/rule-base
+/**
+ * Create Rule Header.
+ * Create a new rule header configuration.
+ * 
+ * @route POST /api/v1/banking/collective/rule-base
+ */
 app.openapi(
     createRoute({
         method: 'post',
@@ -185,17 +202,32 @@ app.openapi(
         },
         responses: {
             201: { content: { 'application/json': { schema: RuleDetailResponseSingle } }, description: 'Created' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
     async (c) => {
         const data = c.req.valid('json')
         const userId = c.get('userId') as string || 'system'
-        return runEffect(c, RuleBaseSettingsService.createHeader(data, userId) as any) as any
+        const payload = {
+            ruleName: data.rule_name,
+            ruleType: data.rule_type,
+            updatedTable: data.updated_table,
+            updatedColumn: data.updated_column,
+            value: data.value,
+            seq: data.seq,
+            activeFlag: data.active_flag
+        }
+        return runEffect(c, RuleBaseSettingsService.createHeader(payload, userId) as any) as any
     }
 )
 
-// PUT /api/v1/banking/collective/rule-base/:id
+/**
+ * Update Rule Header.
+ * Update an existing rule header configuration.
+ * 
+ * @route PUT /api/v1/banking/collective/rule-base/:id
+ */
 app.openapi(
     createRoute({
         method: 'put',
@@ -208,6 +240,7 @@ app.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: RuleDetailResponseSingle } }, description: 'Updated' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
             404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
@@ -217,11 +250,26 @@ app.openapi(
         const data = c.req.valid('json')
         const userId = c.get('userId') as string || 'system'
         if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
-        return runEffect(c, RuleBaseSettingsService.updateHeader(id, data, userId) as any) as any
+
+        const payload = {
+            ruleName: data.rule_name,
+            ruleType: data.rule_type,
+            updatedTable: data.updated_table,
+            updatedColumn: data.updated_column,
+            value: data.value,
+            seq: data.seq,
+            activeFlag: data.active_flag
+        }
+        return runEffect(c, RuleBaseSettingsService.updateHeader(id, payload, userId) as any) as any
     }
 )
 
-// DELETE /api/v1/banking/collective/rule-base/:id
+/**
+ * Delete Rule Header.
+ * Delete a rule header and its associated details.
+ * 
+ * @route DELETE /api/v1/banking/collective/rule-base/:id
+ */
 app.openapi(
     createRoute({
         method: 'delete',
@@ -248,7 +296,12 @@ app.openapi(
 // DETAIL ROUTES
 // ============================================================================
 
-// GET /api/v1/banking/collective/rule-base/:ruleId/details
+/**
+ * List Rule Details.
+ * Retrieve details for a specific rule header.
+ * 
+ * @route GET /api/v1/banking/collective/rule-base/:ruleId/details
+ */
 app.openapi(
     createRoute({
         method: 'get',
@@ -260,6 +313,7 @@ app.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: RuleDetailsListResponse } }, description: 'List Details' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
@@ -270,7 +324,12 @@ app.openapi(
     }
 )
 
-// POST /api/v1/banking/collective/rule-base/:ruleId/details
+/**
+ * Create Rule Detail.
+ * Add a new detail condition to a rule.
+ * 
+ * @route POST /api/v1/banking/collective/rule-base/:ruleId/details
+ */
 app.openapi(
     createRoute({
         method: 'post',
@@ -283,6 +342,7 @@ app.openapi(
         },
         responses: {
             201: { content: { 'application/json': { schema: RuleDetailItemResponse } }, description: 'Created' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
@@ -291,11 +351,31 @@ app.openapi(
         const data = c.req.valid('json')
         const userId = c.get('userId') as string || 'system'
         if (isNaN(ruleId)) return c.json({ success: false, message: 'Invalid ID' }, 400)
-        return runEffect(c, RuleBaseSettingsService.createDetail(ruleId, data, userId) as any) as any
+
+        const payload = {
+            queryGroup: data.query_group,
+            seq: data.seq,
+            tableName: data.table_name,
+            columnName: data.column_name,
+            dataType: data.data_type,
+            operator: data.operator,
+            value1: data.value1,
+            value2: data.value2,
+            condition: data.condition,
+            detailType: data.detail_type,
+            stageFrom: data.stage_from,
+            stageTo: data.stage_to
+        }
+        return runEffect(c, RuleBaseSettingsService.createDetail(ruleId, payload, userId) as any) as any
     }
 )
 
-// PUT /api/v1/banking/collective/rule-base/details/:detailId
+/**
+ * Update Rule Detail.
+ * Update an existing rule detail condition.
+ * 
+ * @route PUT /api/v1/banking/collective/rule-base/details/:detailId
+ */
 app.openapi(
     createRoute({
         method: 'put',
@@ -308,6 +388,7 @@ app.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: RuleDetailItemResponse } }, description: 'Updated' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
             404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
@@ -317,11 +398,31 @@ app.openapi(
         const data = c.req.valid('json')
         const userId = c.get('userId') as string || 'system'
         if (isNaN(detailId)) return c.json({ success: false, message: 'Invalid ID' }, 400)
-        return runEffect(c, RuleBaseSettingsService.updateDetail(detailId, data, userId) as any) as any
+
+        const payload = {
+            queryGroup: data.query_group,
+            seq: data.seq,
+            tableName: data.table_name,
+            columnName: data.column_name,
+            dataType: data.data_type,
+            operator: data.operator,
+            value1: data.value1,
+            value2: data.value2,
+            condition: data.condition,
+            detailType: data.detail_type,
+            stageFrom: data.stage_from,
+            stageTo: data.stage_to
+        }
+        return runEffect(c, RuleBaseSettingsService.updateDetail(detailId, payload, userId) as any) as any
     }
 )
 
-// DELETE /api/v1/banking/collective/rule-base/details/:detailId
+/**
+ * Delete Rule Detail.
+ * Remove a detail condition from a rule.
+ * 
+ * @route DELETE /api/v1/banking/collective/rule-base/details/:detailId
+ */
 app.openapi(
     createRoute({
         method: 'delete',
@@ -348,7 +449,12 @@ app.openapi(
 // METADATA ROUTES
 // ============================================================================
 
-// GET /api/v1/banking/collective/rule-base/metadata/rule-types
+/**
+ * Get Rule Types.
+ * Retrieve available rule types metadata.
+ * 
+ * @route GET /api/v1/banking/collective/rule-base/metadata/rule-types
+ */
 app.openapi(
     createRoute({
         method: 'get',
@@ -365,7 +471,12 @@ app.openapi(
     }
 )
 
-// GET /api/v1/banking/collective/rule-base/metadata/operators/:dataType
+/**
+ * Get Operators.
+ * Retrieve available operators for a data type.
+ * 
+ * @route GET /api/v1/banking/collective/rule-base/metadata/operators/:dataType
+ */
 app.openapi(
     createRoute({
         method: 'get',
@@ -386,7 +497,12 @@ app.openapi(
     }
 )
 
-// GET /api/v1/banking/collective/rule-base/metadata/conditions
+/**
+ * Get Conditions.
+ * Retrieve available logic conditions (AND, OR).
+ * 
+ * @route GET /api/v1/banking/collective/rule-base/metadata/conditions
+ */
 app.openapi(
     createRoute({
         method: 'get',
@@ -403,7 +519,12 @@ app.openapi(
     }
 )
 
-// GET /api/v1/banking/collective/rule-base/metadata/stages
+/**
+ * Get Stages.
+ * Retrieve available stages metadata.
+ * 
+ * @route GET /api/v1/banking/collective/rule-base/metadata/stages
+ */
 app.openapi(
     createRoute({
         method: 'get',
@@ -420,4 +541,4 @@ app.openapi(
     }
 )
 
-export default app
+export const ruleBaseSettingsRoutes = app

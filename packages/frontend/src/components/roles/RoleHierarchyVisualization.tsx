@@ -68,7 +68,7 @@ interface Role {
   bankingAccess?: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
   isActive: boolean;
   isBuiltIn: boolean;
-  permissions: Permission[];
+  permissions: Record<string, Permission[]>; // Grouped by category
   assignedUsers: number;
   createdBy: string;
   createdAt: string;
@@ -88,6 +88,8 @@ interface Permission {
   category: 'CORE' | 'BANKING' | 'IFRS9' | 'REPORTING' | 'ADMIN';
   riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   requiresApproval: boolean;
+  requiredApprovalLevel?: number | null;
+  requiredApprovers?: number;
   bankingSpecific: boolean;
   syariahRequired?: boolean;
 }
@@ -138,6 +140,11 @@ const RoleHierarchyVisualization: React.FC<RoleHierarchyVisualizationProps> = ({
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [roleDetailsOpen, setRoleDetailsOpen] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
+
+  // Helper function to flatten grouped permissions
+  const flattenPermissions = (groupedPermissions: Record<string, Permission[]>): Permission[] => {
+    return Object.values(groupedPermissions).flat();
+  };
 
   // Fetch roles and users data
   const fetchData = async () => {
@@ -316,7 +323,7 @@ const RoleHierarchyVisualization: React.FC<RoleHierarchyVisualizationProps> = ({
         >
           <CardContent sx={{ py: 2, '&:last-child': { pb: 2 } }}>
             <Grid container spacing={2} alignItems="center">
-              <Grid item xs="auto">
+              <Grid size={{ xs: 'auto' }}>
                 {hasChildren && (
                   <IconButton
                     size="small"
@@ -348,7 +355,7 @@ const RoleHierarchyVisualization: React.FC<RoleHierarchyVisualizationProps> = ({
                 />
               </Grid>
 
-              <Grid item xs>
+              <Grid size={{ xs: 'auto' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                   <Typography variant="h6" sx={{ fontWeight: 'bold', color: getRoleTypeColor(role.type) }}>
                     {role.displayName}
@@ -391,11 +398,11 @@ const RoleHierarchyVisualization: React.FC<RoleHierarchyVisualizationProps> = ({
                     {userCount} user{userCount !== 1 ? 's' : ''}
                   </Typography>
 
-                  <Badge badgeContent={role.permissions.length} color="secondary" showZero>
+                  <Badge badgeContent={flattenPermissions(role.permissions).length} color="secondary" showZero>
                     <PermissionIcon fontSize="small" color="action" />
                   </Badge>
                   <Typography variant="caption" color="text.secondary">
-                    {role.permissions.length} permission{role.permissions.length !== 1 ? 's' : ''}
+                    {flattenPermissions(role.permissions).length} permission{flattenPermissions(role.permissions).length !== 1 ? 's' : ''}
                   </Typography>
 
                   {role.bankingAccess && (
@@ -409,7 +416,7 @@ const RoleHierarchyVisualization: React.FC<RoleHierarchyVisualizationProps> = ({
                 </Box>
               </Grid>
 
-              <Grid item xs="auto">
+              <Grid size={{ xs: 'auto' }}>
                 <Box sx={{ display: 'flex', gap: 0.5 }}>
                   <Tooltip title="View Details">
                     <IconButton
@@ -507,37 +514,37 @@ const RoleHierarchyVisualization: React.FC<RoleHierarchyVisualizationProps> = ({
 
       {/* Statistics Cards */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={2}>
+        <Grid size={{ xs: 12, sm: 6, md: 2 }}>
           <Paper sx={{ p: 2, textAlign: 'center', borderLeft: `4px solid ${theme.palette.primary.main}` }}>
             <Typography variant="h4" color="primary">{stats.total}</Typography>
             <Typography variant="body2" color="text.secondary">Total Roles</Typography>
           </Paper>
         </Grid>
-        <Grid item xs={12} sm={6} md={2}>
+        <Grid size={{ xs: 12, sm: 6, md: 2 }}>
           <Paper sx={{ p: 2, textAlign: 'center', borderLeft: `4px solid ${theme.palette.success.main}` }}>
             <Typography variant="h4" color="success.main">{stats.active}</Typography>
             <Typography variant="body2" color="text.secondary">Active Roles</Typography>
           </Paper>
         </Grid>
-        <Grid item xs={12} sm={6} md={2}>
+        <Grid size={{ xs: 12, sm: 6, md: 2 }}>
           <Paper sx={{ p: 2, textAlign: 'center', borderLeft: `4px solid ${theme.palette.error.main}` }}>
             <Typography variant="h4" color="error.main">{stats.system}</Typography>
             <Typography variant="body2" color="text.secondary">System Roles</Typography>
           </Paper>
         </Grid>
-        <Grid item xs={12} sm={6} md={2}>
+        <Grid size={{ xs: 12, sm: 6, md: 2 }}>
           <Paper sx={{ p: 2, textAlign: 'center', borderLeft: `4px solid ${theme.palette.primary.main}` }}>
             <Typography variant="h4" color="primary">{stats.banking}</Typography>
             <Typography variant="body2" color="text.secondary">Banking Roles</Typography>
           </Paper>
         </Grid>
-        <Grid item xs={12} sm={6} md={2}>
+        <Grid size={{ xs: 12, sm: 6, md: 2 }}>
           <Paper sx={{ p: 2, textAlign: 'center', borderLeft: `4px solid ${theme.palette.secondary.main}` }}>
             <Typography variant="h4" color="secondary.main">{stats.custom}</Typography>
             <Typography variant="body2" color="text.secondary">Custom Roles</Typography>
           </Paper>
         </Grid>
-        <Grid item xs={12} sm={6} md={2}>
+        <Grid size={{ xs: 12, sm: 6, md: 2 }}>
           <Paper sx={{ p: 2, textAlign: 'center', borderLeft: `4px solid ${theme.palette.info.main}` }}>
             <Typography variant="h4" color="info.main">{stats.users}</Typography>
             <Typography variant="body2" color="text.secondary">Total Users</Typography>
@@ -667,7 +674,7 @@ const RoleHierarchyVisualization: React.FC<RoleHierarchyVisualizationProps> = ({
                 <ListItem>
                   <ListItemText
                     primary="Permissions"
-                    secondary={selectedRole.permissions.length}
+                    secondary={flattenPermissions(selectedRole.permissions).length}
                   />
                 </ListItem>
                 <ListItem>
@@ -684,14 +691,14 @@ const RoleHierarchyVisualization: React.FC<RoleHierarchyVisualizationProps> = ({
                 </ListItem>
               </List>
 
-              {selectedRole.permissions.length > 0 && (
+              {flattenPermissions(selectedRole.permissions).length > 0 && (
                 <>
                   <Divider sx={{ my: 2 }} />
                   <Typography variant="subtitle1" gutterBottom>
-                    Permissions ({selectedRole.permissions.length})
+                    Permissions ({flattenPermissions(selectedRole.permissions).length})
                   </Typography>
                   <List dense>
-                    {selectedRole.permissions.map((permission) => (
+                    {flattenPermissions(selectedRole.permissions).map((permission) => (
                       <ListItem key={permission.id}>
                         <ListItemText
                           primary={permission.displayName}

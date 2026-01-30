@@ -1,9 +1,18 @@
-import { db } from '@/config'
+import { getDatabase } from '@/config/database'
 import { menuItems, roleMenuAccess } from '@/db/schema/menu.schema'
 import { eq, and, inArray, sql } from 'drizzle-orm'
 import { Effect, pipe } from 'effect'
 import { DatabaseError, NotFoundError } from '@/lib/errors'
 
+/**
+ * @module MenuService
+ * Provides services for managing application menus.
+ * Handles menu hierarchy generation and role-based visibility.
+ */
+
+/**
+ * Item structure for the hierarchical menu tree.
+ */
 export interface MenuHierarchyItem {
     id: string
     key: string
@@ -20,7 +29,17 @@ export interface MenuHierarchyItem {
 }
 
 /**
- * Get the hierarchical menu structure for a user based on their roles and tenant.
+ * Generate a hierarchical menu structure for a user.
+ * 
+ * The hierarchy is constructed by:
+ * 1. Identifying roles assigned to the user within the tenant.
+ * 2. Fetching menu items that these roles have permission to view.
+ * 3. Building a tree structure based on parent-child relationships.
+ * 
+ * @param userId - The unique identifier of the user
+ * @param tenantId - The unique identifier of the tenant
+ * @param userRoles - Array of role names assigned to the user
+ * @returns An Effect that succeeds with the hierarchical menu tree
  */
 export const getUserMenuHierarchy = (
     userId: string,
@@ -31,6 +50,7 @@ export const getUserMenuHierarchy = (
         try: async () => {
             // 1. Get IDs of menu items accessible to the user's roles
             // First find role IDs for the names provided
+            const db = getDatabase(tenantId)
             const roleData = await db.query.roles.findMany({
                 where: (roles, { and, inArray, eq }) =>
                     and(
@@ -79,7 +99,10 @@ export const getUserMenuHierarchy = (
     });
 
 /**
- * Helper function to build a tree from a flat list of menu items
+ * Transform a flat list of menu items into a recursive tree structure.
+ * 
+ * @param items - Array of flat menu item objects from the database
+ * @returns A hierarchical tree of MenuHierarchyItem objects
  */
 function buildTree(items: any[]): MenuHierarchyItem[] {
     const itemMap = new Map<string, MenuHierarchyItem>();

@@ -144,7 +144,7 @@ interface TabPanelProps {
 const TabPanel: React.FC<TabPanelProps> = ({ children, value, index }) => {
   return (
     <div hidden={value !== index}>
-      {value === index && <Box sx={{ pt: 3 }}>{children}</Box>}
+      {value === index && <Box sx={{ pt: 3 }}>{children as any}</Box>}
     </div>
   );
 };
@@ -355,7 +355,7 @@ const RoleAssignmentAnalytics: React.FC = () => {
           <CardContent>
             <Typography variant="h6" sx={{ mb: 2 }}>Filters</Typography>
             <Grid container spacing={2} alignItems="center">
-              <Grid item xs={12} md={3}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <DatePicker
                   label="Start Date"
                   value={dateRange.start}
@@ -363,7 +363,7 @@ const RoleAssignmentAnalytics: React.FC = () => {
                   slotProps={{ textField: { fullWidth: true, size: 'small' } }}
                 />
               </Grid>
-              <Grid item xs={12} md={3}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <DatePicker
                   label="End Date"
                   value={dateRange.end}
@@ -371,7 +371,7 @@ const RoleAssignmentAnalytics: React.FC = () => {
                   slotProps={{ textField: { fullWidth: true, size: 'small' } }}
                 />
               </Grid>
-              <Grid item xs={12} md={3}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <FormControl fullWidth size="small">
                   <InputLabel>Department</InputLabel>
                   <Select
@@ -386,7 +386,7 @@ const RoleAssignmentAnalytics: React.FC = () => {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} md={3}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <FormControl fullWidth size="small">
                   <InputLabel>Risk Level</InputLabel>
                   <Select
@@ -407,7 +407,7 @@ const RoleAssignmentAnalytics: React.FC = () => {
 
         {/* Key Metrics */}
         <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid item xs={12} md={3}>
+          <Grid size={{ xs: 12, md: 3 }}>
             <Card sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), border: `1px solid ${alpha(theme.palette.primary.main, 0.3)}` }}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -424,7 +424,7 @@ const RoleAssignmentAnalytics: React.FC = () => {
               </CardContent>
             </Card>
           </Grid>
-          <Grid item xs={12} md={3}>
+          <Grid size={{ xs: 12, md: 3 }}>
             <Card sx={{ bgcolor: alpha(theme.palette.success.main, 0.1), border: `1px solid ${alpha(theme.palette.success.main, 0.3)}` }}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -441,7 +441,7 @@ const RoleAssignmentAnalytics: React.FC = () => {
               </CardContent>
             </Card>
           </Grid>
-          <Grid item xs={12} md={3}>
+          <Grid size={{ xs: 12, md: 3 }}>
             <Card sx={{ bgcolor: alpha(theme.palette.warning.main, 0.1), border: `1px solid ${alpha(theme.palette.warning.main, 0.3)}` }}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -458,7 +458,7 @@ const RoleAssignmentAnalytics: React.FC = () => {
               </CardContent>
             </Card>
           </Grid>
-          <Grid item xs={12} md={3}>
+          <Grid size={{ xs: 12, md: 3 }}>
             <Card sx={{ bgcolor: alpha(theme.palette.error.main, 0.1), border: `1px solid ${alpha(theme.palette.error.main, 0.3)}` }}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -495,7 +495,7 @@ const RoleAssignmentAnalytics: React.FC = () => {
             <TabPanel value={tabValue} index={0}>
               <Grid container spacing={3}>
                 {/* Role Distribution */}
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Card variant="outlined">
                     <CardContent>
                       <Typography variant="h6" sx={{ mb: 2 }}>Role Distribution by Users</Typography>
@@ -523,7 +523,7 @@ const RoleAssignmentAnalytics: React.FC = () => {
                 </Grid>
 
                 {/* Banking Types */}
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Card variant="outlined">
                     <CardContent>
                       <Typography variant="h6" sx={{ mb: 2 }}>Roles by Banking Type</Typography>
@@ -541,7 +541,7 @@ const RoleAssignmentAnalytics: React.FC = () => {
                 </Grid>
 
                 {/* Risk Levels */}
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Card variant="outlined">
                     <CardContent>
                       <Typography variant="h6" sx={{ mb: 2 }}>Risk Level Distribution</Typography>
@@ -570,7 +570,7 @@ const RoleAssignmentAnalytics: React.FC = () => {
                 </Grid>
 
                 {/* Department Stats */}
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Card variant="outlined">
                     <CardContent>
                       <Typography variant="h6" sx={{ mb: 2 }}>Department Statistics</Typography>
@@ -595,7 +595,7 @@ const RoleAssignmentAnalytics: React.FC = () => {
             <TabPanel value={tabValue} index={1}>
               <Grid container spacing={3}>
                 {/* Role Performance Table */}
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <Card variant="outlined">
                     <CardContent>
                       <Typography variant="h6" sx={{ mb: 2 }}>Role Performance Metrics</Typography>
@@ -671,7 +671,7 @@ const RoleAssignmentAnalytics: React.FC = () => {
                 </Grid>
 
                 {/* Role Usage Heatmap */}
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <Card variant="outlined">
                     <CardContent>
                       <Typography variant="h6" sx={{ mb: 2 }}>Role Usage Patterns</Typography>
@@ -697,7 +697,7 @@ const RoleAssignmentAnalytics: React.FC = () => {
             <TabPanel value={tabValue} index={2}>
               <Grid container spacing={3}>
                 {/* User Risk Analysis */}
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Card variant="outlined">
                     <CardContent>
                       <Typography variant="h6" sx={{ mb: 2 }}>User Risk Analysis</Typography>
@@ -717,7 +717,7 @@ const RoleAssignmentAnalytics: React.FC = () => {
                 </Grid>
 
                 {/* User Activity */}
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Card variant="outlined">
                     <CardContent>
                       <Typography variant="h6" sx={{ mb: 2 }}>User Activity Distribution</Typography>
@@ -736,7 +736,7 @@ const RoleAssignmentAnalytics: React.FC = () => {
                 </Grid>
 
                 {/* Top Users Table */}
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <Card variant="outlined">
                     <CardContent>
                       <Typography variant="h6" sx={{ mb: 2 }}>Top Users by Role Count</Typography>
@@ -823,7 +823,7 @@ const RoleAssignmentAnalytics: React.FC = () => {
             <TabPanel value={tabValue} index={3}>
               <Grid container spacing={3}>
                 {/* Assignment Trends */}
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <Card variant="outlined">
                     <CardContent>
                       <Typography variant="h6" sx={{ mb: 2 }}>Assignment Trends Over Time</Typography>
@@ -845,12 +845,12 @@ const RoleAssignmentAnalytics: React.FC = () => {
                 </Grid>
 
                 {/* Growth Metrics */}
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Card variant="outlined">
                     <CardContent>
                       <Typography variant="h6" sx={{ mb: 2 }}>Growth Metrics</Typography>
                       <Grid container spacing={2}>
-                        <Grid item xs={6}>
+                        <Grid size={{ xs: 6 }}>
                           <Box sx={{ textAlign: 'center', p: 2, bgcolor: alpha(theme.palette.success.main, 0.1), borderRadius: 1 }}>
                             <TrendingUp sx={{ fontSize: 32, color: 'success.main', mb: 1 }} />
                             <Typography variant="h5" sx={{ fontWeight: 600, color: 'success.main' }}>
@@ -861,7 +861,7 @@ const RoleAssignmentAnalytics: React.FC = () => {
                             </Typography>
                           </Box>
                         </Grid>
-                        <Grid item xs={6}>
+                        <Grid size={{ xs: 6 }}>
                           <Box sx={{ textAlign: 'center', p: 2, bgcolor: alpha(theme.palette.primary.main, 0.1), borderRadius: 1 }}>
                             <TrendingUp sx={{ fontSize: 32, color: 'primary.main', mb: 1 }} />
                             <Typography variant="h5" sx={{ fontWeight: 600, color: 'primary.main' }}>
@@ -872,7 +872,7 @@ const RoleAssignmentAnalytics: React.FC = () => {
                             </Typography>
                           </Box>
                         </Grid>
-                        <Grid item xs={6}>
+                        <Grid size={{ xs: 6 }}>
                           <Box sx={{ textAlign: 'center', p: 2, bgcolor: alpha(theme.palette.warning.main, 0.1), borderRadius: 1 }}>
                             <Speed sx={{ fontSize: 32, color: 'warning.main', mb: 1 }} />
                             <Typography variant="h5" sx={{ fontWeight: 600, color: 'warning.main' }}>
@@ -883,7 +883,7 @@ const RoleAssignmentAnalytics: React.FC = () => {
                             </Typography>
                           </Box>
                         </Grid>
-                        <Grid item xs={6}>
+                        <Grid size={{ xs: 6 }}>
                           <Box sx={{ textAlign: 'center', p: 2, bgcolor: alpha(theme.palette.error.main, 0.1), borderRadius: 1 }}>
                             <Warning sx={{ fontSize: 32, color: 'error.main', mb: 1 }} />
                             <Typography variant="h5" sx={{ fontWeight: 600, color: 'error.main' }}>
@@ -900,7 +900,7 @@ const RoleAssignmentAnalytics: React.FC = () => {
                 </Grid>
 
                 {/* Activity Timeline */}
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Card variant="outlined">
                     <CardContent>
                       <Typography variant="h6" sx={{ mb: 2 }}>Recent Activity Timeline</Typography>
@@ -946,12 +946,12 @@ const RoleAssignmentAnalytics: React.FC = () => {
                 {securityMetrics && (
                   <>
                     {/* Security Overview */}
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <Card variant="outlined">
                         <CardContent>
                           <Typography variant="h6" sx={{ mb: 2 }}>Security Overview</Typography>
                           <Grid container spacing={2}>
-                            <Grid item xs={6}>
+                            <Grid size={{ xs: 6 }}>
                               <Box sx={{ p: 2, textAlign: 'center', border: `1px solid ${theme.palette.divider}`, borderRadius: 1 }}>
                                 <Shield sx={{ fontSize: 32, color: 'error.main', mb: 1 }} />
                                 <Typography variant="h6" sx={{ fontWeight: 600, color: 'error.main' }}>
@@ -962,7 +962,7 @@ const RoleAssignmentAnalytics: React.FC = () => {
                                 </Typography>
                               </Box>
                             </Grid>
-                            <Grid item xs={6}>
+                            <Grid size={{ xs: 6 }}>
                               <Box sx={{ p: 2, textAlign: 'center', border: `1px solid ${theme.palette.divider}`, borderRadius: 1 }}>
                                 <Warning sx={{ fontSize: 32, color: 'warning.main', mb: 1 }} />
                                 <Typography variant="h6" sx={{ fontWeight: 600, color: 'warning.main' }}>
@@ -973,7 +973,7 @@ const RoleAssignmentAnalytics: React.FC = () => {
                                 </Typography>
                               </Box>
                             </Grid>
-                            <Grid item xs={6}>
+                            <Grid size={{ xs: 6 }}>
                               <Box sx={{ p: 2, textAlign: 'center', border: `1px solid ${theme.palette.divider}`, borderRadius: 1 }}>
                                 <Lock sx={{ fontSize: 32, color: 'info.main', mb: 1 }} />
                                 <Typography variant="h6" sx={{ fontWeight: 600, color: 'info.main' }}>
@@ -984,7 +984,7 @@ const RoleAssignmentAnalytics: React.FC = () => {
                                 </Typography>
                               </Box>
                             </Grid>
-                            <Grid item xs={6}>
+                            <Grid size={{ xs: 6 }}>
                               <Box sx={{ p: 2, textAlign: 'center', border: `1px solid ${theme.palette.divider}`, borderRadius: 1 }}>
                                 <Security sx={{ fontSize: 32, color: 'success.main', mb: 1 }} />
                                 <Typography variant="h6" sx={{ fontWeight: 600, color: 'success.main' }}>
@@ -1001,7 +1001,7 @@ const RoleAssignmentAnalytics: React.FC = () => {
                     </Grid>
 
                     {/* Security Risks */}
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <Card variant="outlined">
                         <CardContent>
                           <Typography variant="h6" sx={{ mb: 2 }}>Security Risk Distribution</Typography>
@@ -1038,7 +1038,7 @@ const RoleAssignmentAnalytics: React.FC = () => {
                     </Grid>
 
                     {/* Security Recommendations */}
-                    <Grid item xs={12}>
+                    <Grid size={{ xs: 12 }}>
                       <Card variant="outlined">
                         <CardContent>
                           <Typography variant="h6" sx={{ mb: 2 }}>Security Recommendations</Typography>
@@ -1049,7 +1049,7 @@ const RoleAssignmentAnalytics: React.FC = () => {
                               { title: 'Clean Up Orphaned Permissions', description: '12 permissions are not assigned to any role', priority: 'medium' },
                               { title: 'Enable Multi-Factor Authentication', description: '23 users have critical roles but no MFA', priority: 'high' },
                             ].map((recommendation, index) => (
-                              <Grid item xs={12} md={6} key={index}>
+                              <Grid size={{ xs: 12, md: 6 }} key={index}>
                                 <Card sx={{ p: 2, border: `1px solid ${theme.palette[recommendation.priority === 'high' ? 'error' : 'warning'].main}` }}>
                                   <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
                                     <PriorityHigh
@@ -1088,12 +1088,12 @@ const RoleAssignmentAnalytics: React.FC = () => {
             <TabPanel value={tabValue} index={5}>
               <Grid container spacing={3}>
                 {/* System Performance */}
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Card variant="outlined">
                     <CardContent>
                       <Typography variant="h6" sx={{ mb: 2 }}>System Performance Metrics</Typography>
                       <Grid container spacing={2}>
-                        <Grid item xs={6}>
+                        <Grid size={{ xs: 6 }}>
                           <Box sx={{ p: 2, textAlign: 'center', bgcolor: alpha(theme.palette.success.main, 0.1), borderRadius: 1 }}>
                             <Speed sx={{ fontSize: 32, color: 'success.main', mb: 1 }} />
                             <Typography variant="h5" sx={{ fontWeight: 600, color: 'success.main' }}>
@@ -1104,7 +1104,7 @@ const RoleAssignmentAnalytics: React.FC = () => {
                             </Typography>
                           </Box>
                         </Grid>
-                        <Grid item xs={6}>
+                        <Grid size={{ xs: 6 }}>
                           <Box sx={{ p: 2, textAlign: 'center', bgcolor: alpha(theme.palette.primary.main, 0.1), borderRadius: 1 }}>
                             <TrendingUp sx={{ fontSize: 32, color: 'primary.main', mb: 1 }} />
                             <Typography variant="h5" sx={{ fontWeight: 600, color: 'primary.main' }}>
@@ -1115,7 +1115,7 @@ const RoleAssignmentAnalytics: React.FC = () => {
                             </Typography>
                           </Box>
                         </Grid>
-                        <Grid item xs={6}>
+                        <Grid size={{ xs: 6 }}>
                           <Box sx={{ p: 2, textAlign: 'center', bgcolor: alpha(theme.palette.warning.main, 0.1), borderRadius: 1 }}>
                             <Assessment sx={{ fontSize: 32, color: 'warning.main', mb: 1 }} />
                             <Typography variant="h5" sx={{ fontWeight: 600, color: 'warning.main' }}>
@@ -1126,7 +1126,7 @@ const RoleAssignmentAnalytics: React.FC = () => {
                             </Typography>
                           </Box>
                         </Grid>
-                        <Grid item xs={6}>
+                        <Grid size={{ xs: 6 }}>
                           <Box sx={{ p: 2, textAlign: 'center', bgcolor: alpha(theme.palette.info.main, 0.1), borderRadius: 1 }}>
                             <Leaderboard sx={{ fontSize: 32, color: 'info.main', mb: 1 }} />
                             <Typography variant="h5" sx={{ fontWeight: 600, color: 'info.main' }}>
@@ -1143,7 +1143,7 @@ const RoleAssignmentAnalytics: React.FC = () => {
                 </Grid>
 
                 {/* Database Performance */}
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Card variant="outlined">
                     <CardContent>
                       <Typography variant="h6" sx={{ mb: 2 }}>Database Performance</Typography>
@@ -1173,7 +1173,7 @@ const RoleAssignmentAnalytics: React.FC = () => {
                 </Grid>
 
                 {/* API Performance */}
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <Card variant="outlined">
                     <CardContent>
                       <Typography variant="h6" sx={{ mb: 2 }}>API Endpoint Performance</Typography>

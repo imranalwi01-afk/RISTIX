@@ -1,0 +1,226 @@
+# docker-compose.yml (Local Development)
+# ============================================================================
+# 🚀 IFRS9 NEW BACKEND - LOCAL DEVELOPMENT DOCKER COMPOSE
+# ============================================================================
+# Profiles:
+#   - db: Run databases only (postgres + redis)
+#   - app: Run application service logic
+#   - full: Run databases + backend + frontend (hot reload)
+# ============================================================================
+
+version: '3.8'
+
+services:
+  # ============================================================================
+  # 🗄️ POSTGRESQL DATABASE (Development)
+  # ============================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: ifrs9-postgres-dev
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-ifrspro_platform_admin}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-dev-data:/var/lib/postgresql/data
+    networks:
+      - ifrs9-dev
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    profiles:
+      - db
+      - full
+      - dev
+
+  # ============================================================================
+  # 📊 REDIS (Development)
+  # ============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: ifrs9-redis-dev
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-dev-data:/data
+    networks:
+      - ifrs9-dev
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    profiles:
+      - db
+      - full
+      - dev
+
+  # ============================================================================
+  # 🚀 NEW BACKEND SERVICE (Hono + Drizzle + Bun)
+  # ============================================================================
+  new-backend:
+    build:
+      context: ../../packages/new-backend
+      dockerfile: Dockerfile
+      target: builder
+    container_name: ifrs9-new-backend-dev
+    env_file:
+      - .env
+    environment:
+      # Only set what needs to be different from .env
+      NODE_ENV: development
+      PORT: 4232
+      HOST: 0.0.0.0
+      LOG_LEVEL: debug
+      # Redis uses docker service name when running in docker network
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "4232:4232"
+    networks:
+      - ifrs9-dev
+    volumes:
+      - ../../packages/new-backend/src:/app/src:ro
+      - ../../packages/new-backend/package.json:/app/package.json
+      - ../../packages/new-backend/bunfig.toml:/app/bunfig.toml
+      - new-backend-node-modules:/app/node_modules
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:4232/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    # Run without watch mode in Docker to prevent EADDRINUSE on reload
+    # Source changes will be picked up on container restart
+    command: sh -c "bun install && bun run src/index.ts"
+    profiles:
+      - app
+      - full
+      - dev
+      - backend
+      - backend-only
+
+  # ============================================================================
+  # 🌐 FRONTEND SERVICE (Static Build - Optional)
+  # ============================================================================
+  frontend:
+    build:
+      context: ../../packages/frontend
+      dockerfile: Dockerfile
+    container_name: ifrs9-frontend-dev
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_BACKEND_URL: ${BACKEND_URL:-http://localhost:4232/api}
+      NEXT_PUBLIC_API_BASE_URL: ${API_BASE_URL:-http://localhost:4232/api}
+      NEXT_PUBLIC_BACKEND_API_URL: ${BACKEND_API_URL:-http://localhost:4232/api}
+      NEXT_PUBLIC_R_ANALYTICS_URL: ${NEXT_PUBLIC_R_ANALYTICS_URL:-https://iaf-ifrs-analytics.ifrspro.id}
+      NEXT_PUBLIC_RAPI_BASE_URL: ${NEXT_PUBLIC_RAPI_BASE_URL:-https://iaf-ifrs-analytics-calc.ifrspro.id/api}
+    ports:
+      - "4231:4231"
+    networks:
+      - ifrs9-dev
+    profiles:
+      - app
+      - with-frontend
+
+  # ============================================================================
+  # 💻 FRONTEND DEVELOPMENT (Hot Reload)
+  # ============================================================================
+  frontend-dev:
+    image: node:20-alpine
+    container_name: ifrs9-frontend-dev-hot
+    working_dir: /app/packages/frontend
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=development
+      - PORT=4231
+      - NEXT_PUBLIC_BACKEND_API_URL=${BACKEND_API_URL:-http://localhost:4232/api}
+      - NEXT_PUBLIC_R_ANALYTICS_URL=${NEXT_PUBLIC_R_ANALYTICS_URL:-https://iaf-ifrs-analytics.ifrspro.id}
+      - NEXT_PUBLIC_RAPI_BASE_URL=${NEXT_PUBLIC_RAPI_BASE_URL:-https://iaf-ifrs-analytics-calc.ifrspro.id/api}
+      # Server-side env vars (for Next.js server)
+      # Client-side uses .env file which has localhost URLs
+      - NEXT_TELEMETRY_DISABLED=1
+      - NODE_OPTIONS=--max-old-space-size=4096
+      - WSS_PORT=4231
+      # Watchpack polling for better file change detection on some systems
+      - WATCHPACK_POLLING=true
+    volumes:
+      - ../../packages/frontend:/app/packages/frontend
+      - /app/packages/frontend/node_modules
+      - /app/packages/frontend/.next
+    ports:
+      - "4231:4231"
+    command: sh -c "npm install -g pnpm && pnpm install --no-frozen-lockfile && pnpm dev"
+    networks:
+      - ifrs9-dev
+    profiles:
+      - dev-frontend
+      - hot-reload
+      - full
+      - frontend-only
+
+  # ============================================================================
+  # 📈 R ANALYTICS (Shiny)
+  # ============================================================================
+  r-analytics:
+    platform: linux/amd64
+    build:
+      context: ../../packages/r-analytics
+      dockerfile: Dockerfile
+    container_name: ifrs9-r-analytics-dev
+    env_file:
+      - .env
+    environment:
+      R_PORT: 4236
+      DEPLOYMENT_TARGET: localdev
+      NODE_ENV: development
+      MODELLING_DIR: /opt/r-analytics/modelling
+      DB_HOST: ${R_DB_HOST:-10.8.0.2}
+      DB_PORT: ${R_DB_PORT:-5433}
+      DB_NAME: ${R_DB_NAME:-IFRS9_pro}
+      DB_USER: ${R_DB_USER:-postgres}
+      DB_PASSWORD: ${R_DB_PASSWORD:-postgres}
+    ports:
+      - "4236:4236"
+    networks:
+      - ifrs9-dev
+    volumes:
+      - ../../packages/r-analytics/shiny-app:/opt/r-analytics/shiny-app:ro
+      - ../../modelling:/opt/r-analytics/modelling:ro
+      - r-analytics-logs:/opt/r-analytics/logs
+    profiles:
+      - full
+      - analytics
+
+# ============================================================================
+# 📁 VOLUMES
+# ============================================================================
+volumes:
+  postgres-dev-data:
+    external: true
+    name: ifrs9-iaf_postgres-dev-data
+  redis-dev-data:
+    external: true
+    name: ifrs9-iaf_redis-dev-data
+  new-backend-node-modules:
+    driver: local
+  r-analytics-logs:
+    driver: local
+
+# ============================================================================
+# 🌐 NETWORKS
+# ============================================================================
+networks:
+  ifrs9-dev:
+    driver: bridge

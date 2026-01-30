@@ -8,7 +8,7 @@
 
 import React from 'react';
 import { Box, Typography, Container } from '@mui/material';
-import { Category as ParametersIcon } from '@mui/icons-material';
+import ParametersIcon from '@mui/icons-material/Category';
 
 export default function ParametersLayout({
   children,
@@ -18,7 +18,7 @@ export default function ParametersLayout({
   return (
     <Box>
       {/* Optional: Add section-specific header or navigation */}
-      {children}
+      {children as any}
     </Box>
   );
 }

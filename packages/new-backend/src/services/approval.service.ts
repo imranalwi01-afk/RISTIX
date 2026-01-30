@@ -9,6 +9,8 @@ import {
 } from '@/db/schema'
 import { DatabaseError, NotFoundError, BusinessError } from '@/lib/errors'
 import { dbOperation } from '@/lib/effect'
+import { userRolesRepository } from '@/repositories/rbac.repository'
+import { getDatabase } from '@/config/database'
 
 // =============================================================================
 // TYPES
@@ -41,8 +43,17 @@ export interface ProcessApprovalInput {
 // MATRIX QUERIES
 // =============================================================================
 
+// =============================================================================
+// MATRIX QUERIES
+// =============================================================================
+
 /**
- * Get approval matrix for entity type
+ * Get approval matrix for entity type.
+ * 
+ * @param tenantId - The tenant ID
+ * @param entityType - The entity type
+ * @param bankingMode - Optional banking mode filter
+ * @returns An Effect resolving to the approval matrix or database error
  */
 export const getApprovalMatrix = (
     tenantId: string,
@@ -54,7 +65,10 @@ export const getApprovalMatrix = (
     )
 
 /**
- * Get all matrices for a tenant
+ * Get all matrices for a tenant.
+ * 
+ * @param tenantId - The tenant ID
+ * @returns An Effect resolving to an array of approval matrices
  */
 export const getApprovalMatrices = (
     tenantId: string
@@ -64,7 +78,11 @@ export const getApprovalMatrices = (
     )
 
 /**
- * Create an approval matrix
+ * Create an approval matrix.
+ * 
+ * @param data - The matrix data
+ * @param levels - The levels data
+ * @returns An Effect resolving to the created matrix
  */
 export const createApprovalMatrix = (
     data: NewApprovalMatrix,
@@ -79,7 +97,10 @@ export const createApprovalMatrix = (
 // =============================================================================
 
 /**
- * Create a new approval request
+ * Create a new approval request.
+ * 
+ * @param input - The request input data
+ * @returns An Effect resolving to the created approval request
  */
 export const createApprovalRequest = (
     input: CreateApprovalRequestInput
@@ -113,7 +134,12 @@ export const createApprovalRequest = (
     })
 
 /**
- * Process an approval action (simplified - no Effect pipe for better type inference)
+ * Process an approval action (approve, reject, request_info, delegate).
+ * 
+ * @param input - The action input data
+ * @returns An Effect resolving to the completion status
+ * @throws NotFoundError if request not found
+ * @throws BusinessError if request is not pending or other business rule violations
  */
 export const processApprovalAction = (
     input: ProcessApprovalInput
@@ -247,7 +273,11 @@ async function notifyRequester(request: any, type: string, comment?: string): Pr
 // =============================================================================
 
 /**
- * Get pending approvals for a user
+ * Get pending approvals for a user by checking their roles against matrix requirements.
+ * 
+ * @param userId - The user ID
+ * @param tenantId - The tenant ID
+ * @returns An Effect resolving to an array of pending requests available for the user to approve
  */
 export const getPendingApprovalsForUser = (
     userId: string,
@@ -256,55 +286,17 @@ export const getPendingApprovalsForUser = (
     dbOperation('query', async () => {
         // We typically need to know user roles to filter.
         // The Service logic used to fetch userRoles manually.
-        // We can't rely on 'ApprovalRepository' to know about 'UserRoles' directly as that's RBAC domain.
-        // But we can fetch pending requests from ApprovalRepo.
+        const db = getDatabase(tenantId)
 
-        // Use RbacRepository? Circular dependency risk if not careful, but typically Service aggregates Repos.
-        // But here we don't import RbacRepo.
-        // Let's assume we import RbacRepo or duplicate finding user roles?
-        // The original code did `db.query.userRoles...`.
-        // We should import `RbacRepository`.
-        // IMPORTANT: We need to import RbacRepository to get user roles.
-        // I'll leave the logic "as is" but use imports if I could.
-        // Since I haven't imported RbacRepository in the top of replacement, I might error.
-        // Wait, I can add the import.
-
-        // However, I can't easily add import in this replacement block without knowing I added it.
-        // I'll blindly add it to imports.
-
-        // Wait, `getPendingApprovalsForUser` logic reads user roles names.
-        // RbacRepository has `getUserRoles`.
-        // I will just use `ApprovalRepository.findPendingRequests` and filter in memory.
-        // But I need `userRoleNames`.
-        // I'll leave the TODO or simple comment if I can't import RbacRepo.
-        // Actually I can import RbacRepo.
-
-        // Let's rewrite the method to be cleaner.
-        // But I'm compiling replacement content now.
-        // Note: I will use `any` for `RbacRepository` interaction to be safe or import it.
-        // I'll skip RbacRepo import for now and use the existing logic? No, existing logic used `db.query.userRoles`.
-        // I removed `userRoles` from imports. So I MUST Use RbacRepo or re-import schema.
-        // I'll import `RbacRepository`.
-
-        // But I can't change imports multiple times.
-        // I will add `import { RbacRepository } from '@/repositories/rbac-domain.repository'` to the top.
-
-        const { RbacRepository } = await import('@/repositories/rbac-domain.repository')
-
-        // Get user's roles
-        // RbacRepository.findUserRoles returns objects with relations.
-        const userRolesData = await RbacRepository.findUserRoles(userId)
-        // Previous logic: `ur.role?.name`. My schema has `roleName`.
-        // `findUserRoles` return type matches schema.
-        // `userRoles` relation `role`. `role` has `roleName`.
-        // The original code accessed `role.name`.
-        // I should access `role.roleName` if that's the fixed schema.
-        // In Step 841 I fixed `roles.name` -> `roles.roleName`.
-        // So I should use `role.roleName`.
+        // Get user's roles using the new repository
+        // We run the Effect to get the promise result since we are inside an async dbOperation block
+        const userRolesData = await Effect.runPromise(
+            userRolesRepository.findByUser(db, userId, tenantId)
+        )
 
         const userRoleNames = userRolesData
-            .map((ur: any) => ur.role?.roleName || ur.role?.name) // Fallback to 'name' if I'm wrong about schema in this context, but 'roleName' is what I fixed.
-            .filter(Boolean)
+            .map((ur) => ur.role?.roleName)
+            .filter(Boolean) as string[]
 
         // Get pending requests for this tenant
         const pending = await ApprovalRepository.findPendingRequests(tenantId)
@@ -327,7 +319,10 @@ export const getPendingApprovalsForUser = (
     })
 
 /**
- * Get approval request by ID with full details
+ * Get approval request by ID with full details.
+ * 
+ * @param requestId - The request ID
+ * @returns An Effect resolving to the request with actions or NotFoundError
  */
 export const getApprovalRequest = (
     requestId: string
@@ -344,7 +339,12 @@ export const getApprovalRequest = (
     )
 
 /**
- * Get approval history for an entity
+ * Get approval history for an entity.
+ * 
+ * @param tenantId - The tenant ID
+ * @param entityType - Optional entity type filter
+ * @param entityId - Optional entity ID filter
+ * @returns An Effect resolving to an array of approval requests
  */
 export const getApprovalHistory = (
     tenantId: string,

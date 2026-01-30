@@ -324,7 +324,7 @@ export default function ManualUploadPage() {
         return (
           <Grid container spacing={3}>
             {uploadTemplates.map((template) => (
-              <Grid item xs={12} md={6} lg={4} key={template.id}>
+              <Grid size={{ xs: 12, md: 6, lg: 4 }} key={template.id}>
                 <Card 
                   sx={{ 
                     cursor: 'pointer',
@@ -341,7 +341,7 @@ export default function ManualUploadPage() {
                   <CardContent>
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                       <Box sx={{ color: 'primary.main', mr: 2 }}>
-                        {template.icon}
+                        {template.icon as any}
                       </Box>
                       <Typography variant="h6">
                         {template.name}

@@ -1,214 +1,536 @@
-import { Hono } from 'hono'
-import { zValidator } from '@hono/zod-validator'
-import { z } from 'zod'
+import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
 import { legacyDb as db } from '../config'
 import { frs9ParamSegmenth, frs9ParamSegmentd } from '../db/schema'
-import { eq, desc, and, asc } from 'drizzle-orm'
+import { eq, desc, asc } from 'drizzle-orm'
+import type { AppContext } from '../app'
 
-export const segmentationRoutes = new Hono()
+export const segmentationRoutes = new OpenAPIHono<AppContext>()
 
-// Schema definitions matches Backend Drizzle (camelCase)
-const segmentDetailSchema = z.object({
-    queryGroup: z.number().int().optional(),
+// ============================================================================
+// SCHEMAS
+// ============================================================================
+
+const SegmentDetailInputSchema = z.object({
+    query_group: z.number().int().optional(),
     seq: z.number().int().optional(),
-    tableName: z.string().max(30).optional(),
-    columnName: z.string().max(30).optional(),
-    dataType: z.string().max(15).optional(),
+    table_name: z.string().max(30).optional(),
+    column_name: z.string().max(30).optional(),
+    data_type: z.string().max(15).optional(),
     operator: z.string().max(10).optional(),
     value1: z.string().optional(),
     value2: z.string().optional(),
     condition: z.string().max(3).optional(),
-})
+}).openapi('SegmentDetailInput')
 
-const segmentHeaderSchema = z.object({
-    groupSegment: z.string().max(150),
+const SegmentHeaderInputSchema = z.object({
+    group_segment: z.string().max(150),
     segment: z.string().max(150),
-    subSegment: z.string().max(150).optional(),
-    segmentType: z.string().max(50),
+    sub_segment: z.string().max(150).optional(),
+    segment_type: z.string().max(50),
     seq: z.number().int().optional(),
-    activeFlag: z.boolean().default(true),
+    active_flag: z.boolean().default(true),
     createdby: z.string().max(50).default('SYSTEM'),
-})
+}).openapi('SegmentHeaderInput')
+
+const SegmentHeaderResponse = z.object({
+    success: z.boolean(),
+    data: z.any(),
+    message: z.string().optional(),
+}).openapi('SegmentHeaderResponse')
+
+const SegmentListResponse = z.object({
+    success: z.boolean(),
+    data: z.array(z.any()),
+    total: z.number().optional(),
+}).openapi('SegmentListResponse')
+
+const SegmentDetailListResponse = z.object({
+    success: z.boolean(),
+    data: z.array(z.any()),
+}).openapi('SegmentDetailListResponse')
+
+const MetadataListResponse = z.object({
+    success: z.boolean(),
+    data: z.array(z.object({
+        type_code: z.string(),
+        type_name: z.string()
+    }))
+}).openapi('MetadataListResponse')
+
+const ErrorResponse = z.object({
+    success: z.boolean().optional(),
+    error: z.string(),
+    message: z.string().optional()
+}).openapi('ErrorResponse')
+
+// ============================================================================
+// ENDPOINTS
+// ============================================================================
 
 // Metadata Endpoint: Segment Types
-segmentationRoutes.get('/business-settings/segment-types', (c) => {
-    // Return hardcoded types or valid types for now
-    return c.json({
-        success: true,
-        data: [
-            { type_code: 'RISK_SEGMENT', type_name: 'Risk-Based Segmentation' },
-            { type_code: 'PRODUCT_SEGMENT', type_name: 'Product-Based Segmentation' },
-            { type_code: 'GEOGRAPHY_SEGMENT', type_name: 'Geographic Segmentation' },
-            { type_code: 'CUSTOMER_SEGMENT', type_name: 'Customer-Based Segmentation' },
-            { type_code: 'PORTFOLIO_SEGMENT', type_name: 'Portfolio Segmentation' },
-            { type_code: 'BUSINESS_SEGMENT', type_name: 'Business Line Segmentation' },
-            { type_code: 'CUSTOM_SEGMENT', type_name: 'Custom Segmentation' }
-        ]
-    })
-})
+segmentationRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/business-settings/segment-types',
+        tags: ['Segmentation'],
+        summary: 'Get Segment Types',
+        responses: {
+            200: { content: { 'application/json': { schema: MetadataListResponse } }, description: 'Segment Types' }
+        }
+    }),
+    async (c) => {
+        return c.json({
+            success: true,
+            data: [
+                { type_code: 'RISK_SEGMENT', type_name: 'Risk-Based Segmentation' },
+                { type_code: 'PRODUCT_SEGMENT', type_name: 'Product-Based Segmentation' },
+                { type_code: 'GEOGRAPHY_SEGMENT', type_name: 'Geographic Segmentation' },
+                { type_code: 'CUSTOMER_SEGMENT', type_name: 'Customer-Based Segmentation' },
+                { type_code: 'PORTFOLIO_SEGMENT', type_name: 'Portfolio Segmentation' },
+                { type_code: 'BUSINESS_SEGMENT', type_name: 'Business Line Segmentation' },
+                { type_code: 'CUSTOM_SEGMENT', type_name: 'Custom Segmentation' }
+            ]
+        })
+    }
+)
 
 // GET / - List all Segment Headers
-segmentationRoutes.get('/', async (c) => {
-    try {
-        const result = await db.select().from(frs9ParamSegmenth).orderBy(desc(frs9ParamSegmenth.createddate));
-        // Add detail_count?
-        // We can do a join or subquery, but for now basic list.
-        return c.json({ success: true, data: result, total: result.length });
-    } catch (error) {
-        console.error('Error fetching segments:', error);
-        return c.json({ error: 'Failed to fetch segments' }, 500);
+segmentationRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/',
+        tags: ['Segmentation'],
+        summary: 'List Segment Headers',
+        responses: {
+            200: { content: { 'application/json': { schema: SegmentListResponse } }, description: 'List Headers' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        try {
+            const result = await db.select({
+                id: frs9ParamSegmenth.pkid,
+                group_segment: frs9ParamSegmenth.groupSegment,
+                segment: frs9ParamSegmenth.segment,
+                sub_segment: frs9ParamSegmenth.subSegment,
+                segment_type: frs9ParamSegmenth.segmentType,
+                seq: frs9ParamSegmenth.seq,
+                active_flag: frs9ParamSegmenth.activeFlag,
+                createdby: frs9ParamSegmenth.createdby,
+                createddate: frs9ParamSegmenth.createddate,
+                createdhost: frs9ParamSegmenth.createdhost,
+                updatedby: frs9ParamSegmenth.updatedby,
+                updateddate: frs9ParamSegmenth.updateddate,
+                updatedhost: frs9ParamSegmenth.updatedhost
+            }).from(frs9ParamSegmenth).orderBy(desc(frs9ParamSegmenth.createddate));
+            return c.json({ success: true, data: result, total: result.length });
+        } catch (error) {
+            console.error('Error fetching segments:', error);
+            return c.json({ error: 'Failed to fetch segments' }, 500);
+        }
     }
-})
+)
 
 // GET /:id - Get Segment Header
-segmentationRoutes.get('/:id', async (c) => {
-    const id = Number(c.req.param('id'));
-    if (isNaN(id)) return c.json({ error: 'Invalid ID' }, 400);
+segmentationRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/{id}',
+        tags: ['Segmentation'],
+        summary: 'Get Segment Header',
+        request: {
+            params: z.object({ id: z.string().transform(Number) })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: SegmentHeaderResponse } }, description: 'Segment Header' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Invalid ID' },
+            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        const id = c.req.valid('param').id
+        if (isNaN(id)) return c.json({ error: 'Invalid ID' }, 400);
 
-    try {
-        const [header] = await db.select().from(frs9ParamSegmenth).where(eq(frs9ParamSegmenth.pkid, id));
-        if (!header) return c.json({ error: 'Segment not found' }, 404);
+        try {
+            const result = await db.select({
+                id: frs9ParamSegmenth.pkid,
+                group_segment: frs9ParamSegmenth.groupSegment,
+                segment: frs9ParamSegmenth.segment,
+                sub_segment: frs9ParamSegmenth.subSegment,
+                segment_type: frs9ParamSegmenth.segmentType,
+                seq: frs9ParamSegmenth.seq,
+                active_flag: frs9ParamSegmenth.activeFlag,
+                createdby: frs9ParamSegmenth.createdby,
+                createddate: frs9ParamSegmenth.createddate,
+                createdhost: frs9ParamSegmenth.createdhost,
+                updatedby: frs9ParamSegmenth.updatedby,
+                updateddate: frs9ParamSegmenth.updateddate,
+                updatedhost: frs9ParamSegmenth.updatedhost
+            }).from(frs9ParamSegmenth).where(eq(frs9ParamSegmenth.pkid, id));
 
-        return c.json({ success: true, data: header });
-    } catch (error) {
-        console.error('Error fetching segment details:', error);
-        return c.json({ error: 'Failed to fetch segment details' }, 500);
+            const header = result[0];
+            if (!header) return c.json({ error: 'Segment not found' }, 404);
+
+            return c.json({ success: true, data: header });
+        } catch (error) {
+            console.error('Error fetching segment details:', error);
+            return c.json({ error: 'Failed to fetch segment details' }, 500);
+        }
     }
-})
+)
 
 // POST / - Create Segment Header
-segmentationRoutes.post('/', zValidator('json', segmentHeaderSchema), async (c) => {
-    const headerData = c.req.valid('json');
+segmentationRoutes.openapi(
+    createRoute({
+        method: 'post',
+        path: '/',
+        tags: ['Segmentation'],
+        summary: 'Create Segment Header',
+        request: {
+            body: { content: { 'application/json': { schema: SegmentHeaderInputSchema } } }
+        },
+        responses: {
+            201: { content: { 'application/json': { schema: SegmentHeaderResponse } }, description: 'Created' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        const headerData = c.req.valid('json');
 
-    try {
-        const [newHeader] = await db.insert(frs9ParamSegmenth).values({
-            ...headerData,
-            createdhost: 'localhost',
-            createddate: new Date().toISOString()
-        }).returning();
+        try {
+            const result = await db.insert(frs9ParamSegmenth).values({
+                groupSegment: headerData.group_segment,
+                segment: headerData.segment,
+                subSegment: headerData.sub_segment,
+                segmentType: headerData.segment_type,
+                seq: headerData.seq,
+                activeFlag: headerData.active_flag,
+                createdby: headerData.createdby,
+                createdhost: 'localhost',
+                createddate: new Date().toISOString()
+            }).returning({
+                id: frs9ParamSegmenth.pkid,
+                group_segment: frs9ParamSegmenth.groupSegment,
+                segment: frs9ParamSegmenth.segment,
+                sub_segment: frs9ParamSegmenth.subSegment,
+                segment_type: frs9ParamSegmenth.segmentType,
+                seq: frs9ParamSegmenth.seq,
+                active_flag: frs9ParamSegmenth.activeFlag,
+                createdby: frs9ParamSegmenth.createdby,
+                createddate: frs9ParamSegmenth.createddate,
+                createdhost: frs9ParamSegmenth.createdhost
+            });
 
-        return c.json({ success: true, data: newHeader }, 201);
-    } catch (error) {
-        console.error('Error creating segment:', error);
-        return c.json({ error: 'Failed to create segment' }, 500);
+            return c.json({ success: true, data: result[0] }, 201);
+        } catch (error) {
+            console.error('Error creating segment:', error);
+            return c.json({ error: 'Failed to create segment' }, 500);
+        }
     }
-})
+)
 
 // PUT /:id - Update Segment Header
-segmentationRoutes.put('/:id', zValidator('json', segmentHeaderSchema.partial()), async (c) => {
-    const id = Number(c.req.param('id'));
-    if (isNaN(id)) return c.json({ error: 'Invalid ID' }, 400);
+segmentationRoutes.openapi(
+    createRoute({
+        method: 'put',
+        path: '/{id}',
+        tags: ['Segmentation'],
+        summary: 'Update Segment Header',
+        request: {
+            params: z.object({ id: z.string().transform(Number) }),
+            body: { content: { 'application/json': { schema: SegmentHeaderInputSchema.partial() } } }
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: SegmentHeaderResponse } }, description: 'Updated' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Invalid Request' },
+            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        const id = c.req.valid('param').id
+        if (isNaN(id)) return c.json({ error: 'Invalid ID' }, 400);
 
-    const headerData = c.req.valid('json');
+        const headerData = c.req.valid('json');
 
-    try {
-        const [updatedHeader] = await db.update(frs9ParamSegmenth)
-            .set({
-                ...headerData,
-                updateddate: new Date().toISOString(),
-                updatedhost: 'localhost',
-            })
-            .where(eq(frs9ParamSegmenth.pkid, id))
-            .returning();
+        try {
+            const result = await db.update(frs9ParamSegmenth)
+                .set({
+                    groupSegment: headerData.group_segment,
+                    segment: headerData.segment,
+                    subSegment: headerData.sub_segment,
+                    segmentType: headerData.segment_type,
+                    seq: headerData.seq,
+                    activeFlag: headerData.active_flag,
+                    createdby: headerData.createdby,
+                    updateddate: new Date().toISOString(),
+                    updatedhost: 'localhost',
+                })
+                .where(eq(frs9ParamSegmenth.pkid, id))
+                .returning({
+                    id: frs9ParamSegmenth.pkid,
+                    group_segment: frs9ParamSegmenth.groupSegment,
+                    segment: frs9ParamSegmenth.segment,
+                    sub_segment: frs9ParamSegmenth.subSegment,
+                    segment_type: frs9ParamSegmenth.segmentType,
+                    seq: frs9ParamSegmenth.seq,
+                    active_flag: frs9ParamSegmenth.activeFlag,
+                    createdby: frs9ParamSegmenth.createdby,
+                    createddate: frs9ParamSegmenth.createddate,
+                    createdhost: frs9ParamSegmenth.createdhost,
+                    updatedby: frs9ParamSegmenth.updatedby,
+                    updateddate: frs9ParamSegmenth.updateddate,
+                    updatedhost: frs9ParamSegmenth.updatedhost
+                });
 
-        return c.json({ success: true, data: updatedHeader });
-    } catch (error) {
-        console.error('Error updating segment:', error);
-        return c.json({ error: 'Failed to update segment' }, 500);
+            return c.json({ success: true, data: result[0] });
+        } catch (error) {
+            console.error('Error updating segment:', error);
+            return c.json({ error: 'Failed to update segment' }, 500);
+        }
     }
-})
+)
 
 // DELETE /:id - Delete Segment Header (Cascade)
-segmentationRoutes.delete('/:id', async (c) => {
-    const id = Number(c.req.param('id'));
-    if (isNaN(id)) return c.json({ error: 'Invalid ID' }, 400);
+segmentationRoutes.openapi(
+    createRoute({
+        method: 'delete',
+        path: '/{id}',
+        tags: ['Segmentation'],
+        summary: 'Delete Segment Header',
+        request: {
+            params: z.object({ id: z.string().transform(Number) })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), message: z.string() }) } }, description: 'Deleted' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Invalid ID' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        const id = c.req.valid('param').id
+        if (isNaN(id)) return c.json({ error: 'Invalid ID' }, 400);
 
-    try {
-        await db.transaction(async (tx) => {
-            await tx.delete(frs9ParamSegmentd).where(eq(frs9ParamSegmentd.segmentId, id));
-            await tx.delete(frs9ParamSegmenth).where(eq(frs9ParamSegmenth.pkid, id));
-        });
+        try {
+            await db.transaction(async (tx) => {
+                await tx.delete(frs9ParamSegmentd).where(eq(frs9ParamSegmentd.segmentId, id));
+                await tx.delete(frs9ParamSegmenth).where(eq(frs9ParamSegmenth.pkid, id));
+            });
 
-        return c.json({ success: true, message: 'Deleted successfully' });
-    } catch (error) {
-        console.error('Error deleting segment:', error);
-        return c.json({ error: 'Failed to delete segment' }, 500);
+            return c.json({ success: true, message: 'Deleted successfully' });
+        } catch (error) {
+            console.error('Error deleting segment:', error);
+            return c.json({ error: 'Failed to delete segment' }, 500);
+        }
     }
-})
+)
 
 // ==========================================
 // DETAILS ENDPOINTS
 // ==========================================
 
 // GET /:id/details - List Details
-segmentationRoutes.get('/:id/details', async (c) => {
-    const id = Number(c.req.param('id'));
-    if (isNaN(id)) return c.json({ error: 'Invalid ID' }, 400);
+segmentationRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/{id}/details',
+        tags: ['Segmentation'],
+        summary: 'List Segment Details',
+        request: {
+            params: z.object({ id: z.string().transform(Number) })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: SegmentDetailListResponse } }, description: 'List Details' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Invalid ID' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        const id = c.req.valid('param').id
+        if (isNaN(id)) return c.json({ error: 'Invalid ID' }, 400);
 
-    try {
-        const details = await db.select()
-            .from(frs9ParamSegmentd)
-            .where(eq(frs9ParamSegmentd.segmentId, id))
-            .orderBy(asc(frs9ParamSegmentd.seq));
+        try {
+            const details = await db.select({
+                id: frs9ParamSegmentd.pkid,
+                segment_id: frs9ParamSegmentd.segmentId,
+                query_group: frs9ParamSegmentd.queryGroup,
+                seq: frs9ParamSegmentd.seq,
+                table_name: frs9ParamSegmentd.tableName,
+                column_name: frs9ParamSegmentd.columnName,
+                data_type: frs9ParamSegmentd.dataType,
+                operator: frs9ParamSegmentd.operator,
+                value1: frs9ParamSegmentd.value1,
+                value2: frs9ParamSegmentd.value2,
+                condition: frs9ParamSegmentd.condition,
+                createdby: frs9ParamSegmentd.createdby,
+                createddate: frs9ParamSegmentd.createddate,
+                createdhost: frs9ParamSegmentd.createdhost,
+                updatedby: frs9ParamSegmentd.updatedby,
+                updateddate: frs9ParamSegmentd.updateddate,
+                updatedhost: frs9ParamSegmentd.updatedhost
+            })
+                .from(frs9ParamSegmentd)
+                .where(eq(frs9ParamSegmentd.segmentId, id))
+                .orderBy(asc(frs9ParamSegmentd.seq));
 
-        return c.json({ success: true, data: details });
-    } catch (error) {
-        return c.json({ error: 'Failed to fetch details' }, 500);
+            return c.json({ success: true, data: details });
+        } catch (error) {
+            return c.json({ error: 'Failed to fetch details' }, 500);
+        }
     }
-})
+)
 
 // POST /:id/details - Create Detail
-segmentationRoutes.post('/:id/details', zValidator('json', segmentDetailSchema), async (c) => {
-    const id = Number(c.req.param('id'));
-    if (isNaN(id)) return c.json({ error: 'Invalid ID' }, 400);
-    const detailData = c.req.valid('json');
+segmentationRoutes.openapi(
+    createRoute({
+        method: 'post',
+        path: '/{id}/details',
+        tags: ['Segmentation'],
+        summary: 'Create Segment Detail',
+        request: {
+            params: z.object({ id: z.string().transform(Number) }),
+            body: { content: { 'application/json': { schema: SegmentDetailInputSchema } } }
+        },
+        responses: {
+            201: { content: { 'application/json': { schema: SegmentHeaderResponse } }, description: 'Created' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Invalid ID' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        const id = c.req.valid('param').id
+        if (isNaN(id)) return c.json({ error: 'Invalid ID' }, 400);
+        const detailData = c.req.valid('json');
 
-    try {
-        const [newDetail] = await db.insert(frs9ParamSegmentd).values({
-            ...detailData,
-            segmentId: id,
-            createdhost: 'localhost',
-            createddate: new Date().toISOString(),
-            createdby: 'SYSTEM' // data.createdby?
-        }).returning();
+        try {
+            const result = await db.insert(frs9ParamSegmentd).values({
+                segmentId: id,
+                queryGroup: detailData.query_group,
+                seq: detailData.seq,
+                tableName: detailData.table_name,
+                columnName: detailData.column_name,
+                dataType: detailData.data_type,
+                operator: detailData.operator,
+                value1: detailData.value1,
+                value2: detailData.value2,
+                condition: detailData.condition,
+                createdhost: 'localhost',
+                createddate: new Date().toISOString(),
+                createdby: 'SYSTEM'
+            }).returning({
+                id: frs9ParamSegmentd.pkid,
+                segment_id: frs9ParamSegmentd.segmentId,
+                query_group: frs9ParamSegmentd.queryGroup,
+                seq: frs9ParamSegmentd.seq,
+                table_name: frs9ParamSegmentd.tableName,
+                column_name: frs9ParamSegmentd.columnName,
+                data_type: frs9ParamSegmentd.dataType,
+                operator: frs9ParamSegmentd.operator,
+                value1: frs9ParamSegmentd.value1,
+                value2: frs9ParamSegmentd.value2,
+                condition: frs9ParamSegmentd.condition,
+                createdby: frs9ParamSegmentd.createdby,
+                createddate: frs9ParamSegmentd.createddate,
+                createdhost: frs9ParamSegmentd.createdhost,
+            });
 
-        return c.json({ success: true, data: newDetail });
-    } catch (error) {
-        return c.json({ error: 'Failed to create detail' }, 500);
+            return c.json({ success: true, data: result[0] }, 201);
+        } catch (error) {
+            return c.json({ error: 'Failed to create detail' }, 500);
+        }
     }
-})
+)
 
 // PUT /details/:detailId - Update Detail
-segmentationRoutes.put('/details/:detailId', zValidator('json', segmentDetailSchema), async (c) => {
-    const detailId = Number(c.req.param('detailId'));
-    if (isNaN(detailId)) return c.json({ error: 'Invalid ID' }, 400);
-    const detailData = c.req.valid('json');
+segmentationRoutes.openapi(
+    createRoute({
+        method: 'put',
+        path: '/details/{detailId}',
+        tags: ['Segmentation'],
+        summary: 'Update Segment Detail',
+        request: {
+            params: z.object({ detailId: z.string().transform(Number) }),
+            body: { content: { 'application/json': { schema: SegmentDetailInputSchema } } }
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: SegmentHeaderResponse } }, description: 'Updated' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Invalid ID' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        const detailId = c.req.valid('param').detailId
+        if (isNaN(detailId)) return c.json({ error: 'Invalid ID' }, 400);
+        const detailData = c.req.valid('json');
 
-    try {
-        const [updatedDetail] = await db.update(frs9ParamSegmentd)
-            .set({
-                ...detailData,
-                updateddate: new Date().toISOString(),
-                updatedhost: 'localhost'
-            })
-            .where(eq(frs9ParamSegmentd.pkid, detailId))
-            .returning();
+        try {
+            const result = await db.update(frs9ParamSegmentd)
+                .set({
+                    queryGroup: detailData.query_group,
+                    seq: detailData.seq,
+                    tableName: detailData.table_name,
+                    columnName: detailData.column_name,
+                    dataType: detailData.data_type,
+                    operator: detailData.operator,
+                    value1: detailData.value1,
+                    value2: detailData.value2,
+                    condition: detailData.condition,
+                    updateddate: new Date().toISOString(),
+                    updatedhost: 'localhost'
+                })
+                .where(eq(frs9ParamSegmentd.pkid, detailId))
+                .returning({
+                    id: frs9ParamSegmentd.pkid,
+                    segment_id: frs9ParamSegmentd.segmentId,
+                    query_group: frs9ParamSegmentd.queryGroup,
+                    seq: frs9ParamSegmentd.seq,
+                    table_name: frs9ParamSegmentd.tableName,
+                    column_name: frs9ParamSegmentd.columnName,
+                    data_type: frs9ParamSegmentd.dataType,
+                    operator: frs9ParamSegmentd.operator,
+                    value1: frs9ParamSegmentd.value1,
+                    value2: frs9ParamSegmentd.value2,
+                    condition: frs9ParamSegmentd.condition,
+                    updatedby: frs9ParamSegmentd.updatedby,
+                    updateddate: frs9ParamSegmentd.updateddate,
+                    updatedhost: frs9ParamSegmentd.updatedhost
+                });
 
-        return c.json({ success: true, data: updatedDetail });
-    } catch (error) {
-        return c.json({ error: 'Failed to update detail' }, 500);
+            return c.json({ success: true, data: result[0] });
+        } catch (error) {
+            return c.json({ error: 'Failed to update detail' }, 500);
+        }
     }
-})
+)
 
 // DELETE /details/:detailId - Delete Detail
-segmentationRoutes.delete('/details/:detailId', async (c) => {
-    const detailId = Number(c.req.param('detailId'));
-    if (isNaN(detailId)) return c.json({ error: 'Invalid ID' }, 400);
+segmentationRoutes.openapi(
+    createRoute({
+        method: 'delete',
+        path: '/details/{detailId}',
+        tags: ['Segmentation'],
+        summary: 'Delete Segment Detail',
+        request: {
+            params: z.object({ detailId: z.string().transform(Number) })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), message: z.string() }) } }, description: 'Deleted' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Invalid ID' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        const detailId = c.req.valid('param').detailId
+        if (isNaN(detailId)) return c.json({ error: 'Invalid ID' }, 400);
 
-    try {
-        await db.delete(frs9ParamSegmentd).where(eq(frs9ParamSegmentd.pkid, detailId));
-        return c.json({ success: true, message: 'Deleted' });
-    } catch (error) {
-        return c.json({ error: 'Failed to delete detail' }, 500);
+        try {
+            await db.delete(frs9ParamSegmentd).where(eq(frs9ParamSegmentd.pkid, detailId));
+            return c.json({ success: true, message: 'Deleted' });
+        } catch (error) {
+            return c.json({ error: 'Failed to delete detail' }, 500);
+        }
     }
-})
+)

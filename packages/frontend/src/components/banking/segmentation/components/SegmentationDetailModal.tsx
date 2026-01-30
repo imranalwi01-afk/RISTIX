@@ -67,11 +67,12 @@ import {
   Info as InfoIcon
 } from '@mui/icons-material';
 
-import { DataGrid, GridColDef, GridActionsCellItem, GridRowParams } from '@mui/x-data-grid';
+import { GridColDef, GridRowParams } from '@mui/x-data-grid';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { api, handleAPIError } from '../../../../services/api';
+import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 
 // ============================================================================
 // INTERFACES & TYPES
@@ -153,7 +154,7 @@ function TabPanel({ children, value, index, ...other }: TabPanelProps) {
       aria-labelledby={`segmentation-tab-${index}`}
       {...other}
     >
-      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
+      {value === index && <Box sx={{ p: 3 }}>{children as any}</Box>}
     </div>
   );
 }
@@ -735,18 +736,18 @@ export default function SegmentationDetailModal({
       getActions: (params: GridRowParams) => {
         if (!params.row) return [];
         return [
-          <GridActionsCellItem
-            icon={<EditIcon />}
+          <SafeGridActionsCellItem
+            icon={<EditIcon color="primary" />}
             label="Edit"
             onClick={() => handleEditDetail(params.row)}
             key="edit"
           />,
-          <GridActionsCellItem
-            icon={<DeleteIcon />}
+          <SafeGridActionsCellItem
+            icon={<DeleteIcon color="error" />}
             label="Delete"
             onClick={() => handleDeleteDetail(params.row)}
             key="delete"
-            sx={{ color: 'error.main' }}
+
           />
         ];
       }
@@ -926,7 +927,7 @@ export default function SegmentationDetailModal({
           <TabPanel value={tabValue} index={0}>
             {/* Header Information */}
             <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Card>
                   <CardHeader title="Segmentation Information" />
                   <CardContent>
@@ -964,7 +965,7 @@ export default function SegmentationDetailModal({
                 </Card>
               </Grid>
 
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Card>
                   <CardHeader title="Configuration Summary" />
                   <CardContent>
@@ -1020,7 +1021,7 @@ export default function SegmentationDetailModal({
             {loading && <CircularProgress sx={{ display: 'block', mx: 'auto', mb: 2 }} />}
 
             <Box sx={{ height: 400, width: '100%' }}>
-              <DataGrid
+              <SafeDataGrid
                 rows={details}
                 columns={detailColumns}
                 getRowId={(row) => row.pkid}
@@ -1028,7 +1029,6 @@ export default function SegmentationDetailModal({
                 initialState={{
                   pagination: { paginationModel: { pageSize: 10 } }
                 }}
-                disableRowSelectionOnClick
                 loading={loading}
               />
             </Box>
@@ -1055,7 +1055,7 @@ export default function SegmentationDetailModal({
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             {/* Query Group & Sequence */}
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <TextField
                 label="Query Group *"
                 type="number"
@@ -1067,7 +1067,7 @@ export default function SegmentationDetailModal({
                 helperText="Grouping number for related conditions"
               />
             </Grid>
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <TextField
                 label="Sequence *"
                 type="number"
@@ -1081,7 +1081,7 @@ export default function SegmentationDetailModal({
             </Grid>
 
             {/* Table & Column Selection */}
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <TextField
                 label="Table Name *"
                 select
@@ -1098,7 +1098,7 @@ export default function SegmentationDetailModal({
                 ))}
               </TextField>
             </Grid>
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <TextField
                 label="Column Name *"
                 select
@@ -1118,7 +1118,7 @@ export default function SegmentationDetailModal({
             </Grid>
 
             {/* Data Type & Operator */}
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <TextField
                 label="Data Type"
                 value={formData.data_type}
@@ -1128,7 +1128,7 @@ export default function SegmentationDetailModal({
                 helperText="Auto-detected from column metadata"
               />
             </Grid>
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <TextField
                 label="Operator *"
                 select
@@ -1148,12 +1148,12 @@ export default function SegmentationDetailModal({
             </Grid>
 
             {/* Dynamic Value Inputs */}
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               {formData.operator && renderValueInput()}
             </Grid>
 
             {/* Condition */}
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <TextField
                 label="AND/OR Condition"
                 select

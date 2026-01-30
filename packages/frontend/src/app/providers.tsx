@@ -3,7 +3,7 @@
 import React from 'react';
 import { Provider as ReduxProvider } from 'react-redux';
 import { CssBaseline, StyledEngineProvider } from '@mui/material';
-import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
+import { AppRouterCacheProvider } from '@mui/material-nextjs/v16-appRouter';
 
 // ✅ Redux store
 import { store } from '../store';
@@ -28,7 +28,7 @@ const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
             <AuthProvider>
               <BankingThemeProvider>
                 <CssBaseline />
-                {children}
+                {children as any}
               </BankingThemeProvider>
             </AuthProvider>
           </ConfigurationProvider>

@@ -34,8 +34,7 @@ import {
   LineChart,
   Line,
   Area,
-  AreaChart,
-  Cell
+  AreaChart
 } from 'recharts';
 import BaseIfrs9Report from './BaseIfrs9Report';
 
@@ -54,19 +53,12 @@ const ECLMovementReport: React.FC = () => {
   const handleDataLoaded = (data: any[]) => {
     if (data && data.length > 0) {
       const stats = data.reduce((acc, row) => {
-        // Map from Schema fields: stageX (Closing), stageXI (Opening)
-        const opening = Number(row.stage1I) + Number(row.stage2I) + Number(row.stage3I) || 0;
-        const closing = Number(row.stage1) + Number(row.stage2) + Number(row.stage3) || 0;
-
-        acc.openingBalance += opening;
-        acc.closingBalance += closing;
-
-        // Components not available, set to 0
-        acc.newProvisions += 0;
-        acc.releases += 0;
-        acc.writeOffs += 0;
-        acc.stageTransfers += 0;
-
+        acc.openingBalance += row.opening_balance || 0;
+        acc.closingBalance += row.closing_balance || 0;
+        acc.newProvisions += row.new_provisions || 0;
+        acc.releases += row.releases || 0;
+        acc.writeOffs += row.write_offs || 0;
+        acc.stageTransfers += row.stage_transfers || 0;
         return acc;
       }, {
         openingBalance: 0,
@@ -78,9 +70,9 @@ const ECLMovementReport: React.FC = () => {
         stageTransfers: 0,
         movementBreakdown: []
       });
-
+      
       stats.netMovement = stats.closingBalance - stats.openingBalance;
-
+      
       // Create movement breakdown for chart
       const movementData = [
         { category: 'Opening Balance', amount: stats.openingBalance, color: '#8884d8', type: 'balance' },
@@ -90,7 +82,7 @@ const ECLMovementReport: React.FC = () => {
         { category: 'Write-offs', amount: -Math.abs(stats.writeOffs), color: '#96CEB4', type: 'decrease' },
         { category: 'Closing Balance', amount: stats.closingBalance, color: '#FFEAA7', type: 'balance' }
       ];
-
+      
       stats.movementBreakdown = movementData;
       setSummaryStats(stats);
     }
@@ -144,18 +136,18 @@ const ECLMovementReport: React.FC = () => {
 
       {/* Net Movement */}
       <Grid item xs={12} md={3}>
-        <Card sx={{
-          height: '100%',
-          bgcolor: summaryStats.netMovement >= 0 ? 'warning.light' : 'info.light',
-          color: 'white'
+        <Card sx={{ 
+          height: '100%', 
+          bgcolor: summaryStats.netMovement >= 0 ? 'warning.light' : 'info.light', 
+          color: 'white' 
         }}>
           <CardContent sx={{ textAlign: 'center' }}>
-            <Avatar sx={{
-              bgcolor: summaryStats.netMovement >= 0 ? 'warning.dark' : 'info.dark',
-              mx: 'auto', mb: 2, width: 56, height: 56
+            <Avatar sx={{ 
+              bgcolor: summaryStats.netMovement >= 0 ? 'warning.dark' : 'info.dark', 
+              mx: 'auto', mb: 2, width: 56, height: 56 
             }}>
-              {summaryStats.netMovement >= 0 ?
-                <IncreaseIcon sx={{ fontSize: 30 }} /> :
+              {summaryStats.netMovement >= 0 ? 
+                <IncreaseIcon sx={{ fontSize: 30 }} /> : 
                 <DecreaseIcon sx={{ fontSize: 30 }} />
               }
             </Avatar>
@@ -183,7 +175,7 @@ const ECLMovementReport: React.FC = () => {
               <MovementIcon sx={{ fontSize: 30 }} />
             </Avatar>
             <Typography variant="h6" component="div" fontWeight="bold">
-              {summaryStats.openingBalance > 0
+              {summaryStats.openingBalance > 0 
                 ? ((Math.abs(summaryStats.netMovement) / summaryStats.openingBalance) * 100).toFixed(1)
                 : 0}%
             </Typography>
@@ -217,12 +209,12 @@ const ECLMovementReport: React.FC = () => {
                 <TableRow key={index} hover>
                   <TableCell>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Box
-                        sx={{
-                          width: 12,
-                          height: 12,
-                          bgcolor: row.color,
-                          borderRadius: '50%'
+                      <Box 
+                        sx={{ 
+                          width: 12, 
+                          height: 12, 
+                          bgcolor: row.color, 
+                          borderRadius: '50%' 
                         }}
                       />
                       {row.category}
@@ -254,7 +246,7 @@ const ECLMovementReport: React.FC = () => {
                     )}
                   </TableCell>
                   <TableCell align="right">
-                    {summaryStats.openingBalance > 0 && row.category !== 'Opening Balance'
+                    {summaryStats.openingBalance > 0 && row.category !== 'Opening Balance' 
                       ? `${((Math.abs(row.amount) / summaryStats.openingBalance) * 100).toFixed(1)}%`
                       : '-'
                     }
@@ -275,26 +267,26 @@ const ECLMovementReport: React.FC = () => {
           ECL Movement Waterfall Analysis
         </Typography>
         <ResponsiveContainer width="100%" height={400}>
-          <BarChart
+          <BarChart 
             data={summaryStats.movementBreakdown}
             margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
           >
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis
-              dataKey="category"
-              angle={-45}
-              textAnchor="end"
+            <XAxis 
+              dataKey="category" 
+              angle={-45} 
+              textAnchor="end" 
               height={100}
               tick={{ fontSize: 12 }}
             />
-            <YAxis
+            <YAxis 
               tickFormatter={(value) => new Intl.NumberFormat('id-ID', {
                 style: 'currency',
                 currency: 'IDR',
                 notation: 'compact'
               }).format(value)}
             />
-            <Tooltip
+            <Tooltip 
               formatter={(value: number, name) => [
                 new Intl.NumberFormat('id-ID', {
                   style: 'currency',
@@ -304,14 +296,11 @@ const ECLMovementReport: React.FC = () => {
               ]}
               labelFormatter={(label) => `Movement: ${label}`}
             />
-            <Bar
-              dataKey="amount"
+            <Bar 
+              dataKey="amount" 
+              fill={(entry) => entry?.color || '#8884d8'}
               name="Amount"
-            >
-              {summaryStats.movementBreakdown.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color || '#8884d8'} />
-              ))}
-            </Bar>
+            />
           </BarChart>
         </ResponsiveContainer>
       </CardContent>

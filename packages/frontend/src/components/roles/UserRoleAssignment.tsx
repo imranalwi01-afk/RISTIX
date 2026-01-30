@@ -106,7 +106,7 @@ interface Role {
   bankingAccess?: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
   isActive: boolean;
   isBuiltIn: boolean;
-  permissions: Permission[];
+  permissions: Record<string, Permission[]>; // Grouped by category
   assignedUsers: number;
   createdAt: string;
 }
@@ -133,6 +133,8 @@ interface Permission {
   category: 'CORE' | 'BANKING' | 'IFRS9' | 'REPORTING' | 'ADMIN';
   riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   requiresApproval: boolean;
+  requiredApprovalLevel?: number | null;
+  requiredApprovers?: number;
   bankingSpecific: boolean;
   syariahRequired?: boolean;
 }
@@ -151,7 +153,7 @@ const TabPanel: React.FC<TabPanelProps> = ({ children, value, index, ...other })
     aria-labelledby={`user-role-tab-${index}`}
     {...other}
   >
-    {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
+    {value === index && <Box sx={{ p: 3 }}>{children as any}</Box>}
   </div>
 );
 
@@ -183,7 +185,10 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
     user: null,
     role: null
   });
-
+  // Helper function to flatten grouped permissions
+  const flattenPermissions = (groupedPermissions: Record<string, Permission[]>): Permission[] => {
+    return Object.values(groupedPermissions).flat();
+  };
   // Bulk assignment state
   const [bulkDialog, setBulkDialog] = useState<{
     open: boolean;
@@ -452,25 +457,25 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
 
       {/* Statistics */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Paper sx={{ p: 2, textAlign: 'center', borderLeft: `4px solid ${theme.palette.primary.main}` }}>
             <Typography variant="h4" color="primary">{stats.totalUsers}</Typography>
             <Typography variant="body2" color="text.secondary">Total Users</Typography>
           </Paper>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Paper sx={{ p: 2, textAlign: 'center', borderLeft: `4px solid ${theme.palette.success.main}` }}>
             <Typography variant="h4" color="success.main">{stats.activeUsers}</Typography>
             <Typography variant="body2" color="text.secondary">Active Users</Typography>
           </Paper>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Paper sx={{ p: 2, textAlign: 'center', borderLeft: `4px solid ${theme.palette.secondary.main}` }}>
             <Typography variant="h4" color="secondary.main">{stats.totalAssignments}</Typography>
             <Typography variant="body2" color="text.secondary">Total Assignments</Typography>
           </Paper>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Paper sx={{ p: 2, textAlign: 'center', borderLeft: `4px solid ${theme.palette.info.main}` }}>
             <Typography variant="h4" color="info.main">{stats.averageRolesPerUser}</Typography>
             <Typography variant="body2" color="text.secondary">Avg Roles/User</Typography>
@@ -484,19 +489,19 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
           Role Type Distribution
         </Typography>
         <Grid container spacing={2}>
-          <Grid item xs={12} sm={4}>
+          <Grid size={{ xs: 12, sm: 4 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <AdminIcon color="error" />
               <Typography variant="body2">System: {stats.rolesByType.system}</Typography>
             </Box>
           </Grid>
-          <Grid item xs={12} sm={4}>
+          <Grid size={{ xs: 12, sm: 4 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <BankingIcon color="primary" />
               <Typography variant="body2">Banking: {stats.rolesByType.banking}</Typography>
             </Box>
           </Grid>
-          <Grid item xs={12} sm={4}>
+          <Grid size={{ xs: 12, sm: 4 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <SettingsIcon color="secondary" />
               <Typography variant="body2">Custom: {stats.rolesByType.custom}</Typography>
@@ -521,7 +526,7 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
           </AccordionSummary>
           <AccordionDetails>
             <Grid container spacing={2} alignItems="center">
-              <Grid item xs={12} md={3}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <TextField
                   fullWidth
                   size="small"
@@ -534,7 +539,7 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
                 />
               </Grid>
 
-              <Grid item xs={12} md={2}>
+              <Grid size={{ xs: 12, md: 2 }}>
                 <FormControl fullWidth size="small">
                   <InputLabel>Role Type</InputLabel>
                   <Select
@@ -550,7 +555,7 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
                 </FormControl>
               </Grid>
 
-              <Grid item xs={12} md={2}>
+              <Grid size={{ xs: 12, md: 2 }}>
                 <FormControlLabel
                   control={
                     <Switch
@@ -563,7 +568,7 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
                 />
               </Grid>
 
-              <Grid item xs={12} md={2}>
+              <Grid size={{ xs: 12, md: 2 }}>
                 <FormControlLabel
                   control={
                     <Switch
@@ -753,7 +758,7 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge badgeContent={role.permissions.length} color="secondary">
+                      <Badge badgeContent={flattenPermissions(role.permissions).length} color="secondary">
                         <SecurityIcon fontSize="small" />
                       </Badge>
                     </TableCell>

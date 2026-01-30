@@ -5,6 +5,15 @@ import { Effect } from 'effect'
 import { DatabaseError } from '../lib/errors'
 
 export const PdConfigurationsRepository = {
+    /**
+     * Find all PD configurations with filters.
+     * 
+     * @param search - Search term
+     * @param selectedMethod - PD method ID
+     * @param bucket - Bucket group
+     * @param activeFlag - Active status flag
+     * @returns An Effect resolving to an array of PD configurations
+     */
     findAll: (search?: string, selectedMethod?: string, bucket?: string, activeFlag?: boolean) => {
         return Effect.tryPromise({
             try: async () => {
@@ -36,6 +45,12 @@ export const PdConfigurationsRepository = {
         })
     },
 
+    /**
+     * Find a PD configuration by ID.
+     * 
+     * @param id - The configuration ID
+     * @returns An Effect resolving to the configuration or null
+     */
     findById: (id: bigint) => {
         return Effect.tryPromise({
             try: async () => {
@@ -49,6 +64,12 @@ export const PdConfigurationsRepository = {
         })
     },
 
+    /**
+     * Create a new PD configuration.
+     * 
+     * @param data - The configuration data
+     * @returns An Effect resolving to the created configuration
+     */
     create: (data: typeof frs9ImpCaPdConfig.$inferInsert) => {
         return Effect.tryPromise({
             try: async () => {
@@ -62,6 +83,13 @@ export const PdConfigurationsRepository = {
         })
     },
 
+    /**
+     * Update an existing PD configuration.
+     * 
+     * @param id - The configuration ID
+     * @param data - The data to update
+     * @returns An Effect resolving to the updated configuration or null
+     */
     update: (id: bigint, data: Partial<typeof frs9ImpCaPdConfig.$inferInsert>) => {
         return Effect.tryPromise({
             try: async () => {
@@ -76,6 +104,12 @@ export const PdConfigurationsRepository = {
         })
     },
 
+    /**
+     * Delete a PD configuration.
+     * 
+     * @param id - The configuration ID
+     * @returns An Effect resolving to true on success
+     */
     delete: (id: bigint) => {
         return Effect.tryPromise({
             try: async () => {

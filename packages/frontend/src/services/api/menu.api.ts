@@ -10,7 +10,7 @@
 
 import { AxiosResponse } from 'axios';
 import { apiClient, apiClient as menuApiClient } from '../api-client';
-import '../api'; // Ensure interceptors are registered
+import '../api-setup'; // Ensure interceptors are registered
 
 // NOTE: We use the shared apiClient which is already configured with:
 // 1. Correct Base URL (auto-detected via environment-loader -> api.ts)
@@ -44,6 +44,7 @@ export interface MenuItem {
   type: 'group' | 'item' | 'divider';
   children?: MenuItem[];
   permissions?: string[];
+  requiredPermissions?: string[];
   external?: boolean;
   target?: '_self' | '_blank' | '_parent' | '_top';
   breadcrumb?: boolean;

@@ -1,0 +1,10 @@
+node_modules
+.pnpm-store
+.pnpm
+.next
+dist
+build
+.cache
+.vercel
+*.log
+.DS_Store

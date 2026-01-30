@@ -9,7 +9,14 @@ import { DatabaseError, NotFoundError } from '@lib/errors'
 // =============================================================================
 
 /**
- * Get all consultants with pagination and filtering
+ * Get all consultants with pagination and filtering.
+ * 
+ * @param options - Pagination and filtering options
+ * @param options.limit - Number of records to return
+ * @param options.offset - Number of records to skip
+ * @param options.search - Search term for full name or firm name
+ * @param options.status - Filter by consultant status
+ * @returns An Effect resolving to an object with data array and total count
  */
 export const getConsultants = (options: {
     limit: number
@@ -53,29 +60,35 @@ export const getConsultants = (options: {
                 total: Number(totalResult[0]?.count || 0),
             }
         },
-        catch: (e) => new DatabaseError({ message: 'Failed to fetch consultants', cause: e }),
+        catch: (e) => new DatabaseError({ operation: 'query', message: 'Failed to fetch consultants', cause: e }),
     })
 
 /**
- * Get consultant by ID
+ * Get consultant by ID.
+ * 
+ * @param id - The consultant ID
+ * @returns An Effect resolving to the consultant record or NotFoundError
  */
 export const getConsultantById = (id: string) =>
     Effect.tryPromise({
         try: async () => {
             const result = await db.select().from(consultants).where(eq(consultants.id, id)).execute()
             if (result.length === 0) {
-                throw new NotFoundError({ message: `Consultant with ID ${id} not found` })
+                throw new NotFoundError({ resource: 'Consultant', id })
             }
             return result[0]
         },
         catch: (e) =>
             e instanceof NotFoundError
                 ? e
-                : new DatabaseError({ message: 'Failed to fetch consultant', cause: e }),
+                : new DatabaseError({ operation: 'query', message: 'Failed to fetch consultant', cause: e }),
     })
 
 /**
- * Create new consultant
+ * Create new consultant.
+ * 
+ * @param data - The consultant data
+ * @returns An Effect resolving to the created consultant record
  */
 export const createConsultant = (data: NewConsultant) =>
     Effect.tryPromise({
@@ -83,11 +96,15 @@ export const createConsultant = (data: NewConsultant) =>
             const result = await db.insert(consultants).values(data).returning().execute()
             return result[0]
         },
-        catch: (e) => new DatabaseError({ message: 'Failed to create consultant', cause: e }),
+        catch: (e) => new DatabaseError({ operation: 'insert', message: 'Failed to create consultant', cause: e }),
     })
 
 /**
- * Update consultant
+ * Update consultant.
+ * 
+ * @param id - The consultant ID
+ * @param data - The data to update
+ * @returns An Effect resolving to the updated consultant record or NotFoundError
  */
 export const updateConsultant = (id: string, data: Partial<NewConsultant>) =>
     Effect.tryPromise({
@@ -100,18 +117,21 @@ export const updateConsultant = (id: string, data: Partial<NewConsultant>) =>
                 .execute()
 
             if (result.length === 0) {
-                throw new NotFoundError({ message: `Consultant with ID ${id} not found` })
+                throw new NotFoundError({ resource: 'Consultant', id })
             }
             return result[0]
         },
         catch: (e) =>
             e instanceof NotFoundError
                 ? e
-                : new DatabaseError({ message: 'Failed to update consultant', cause: e }),
+                : new DatabaseError({ operation: 'update', message: 'Failed to update consultant', cause: e }),
     })
 
 /**
- * Delete consultant
+ * Delete consultant.
+ * 
+ * @param id - The consultant ID
+ * @returns An Effect resolving to the deleted consultant record or NotFoundError
  */
 export const deleteConsultant = (id: string) =>
     Effect.tryPromise({
@@ -123,12 +143,12 @@ export const deleteConsultant = (id: string) =>
                 .execute()
 
             if (result.length === 0) {
-                throw new NotFoundError({ message: `Consultant with ID ${id} not found` })
+                throw new NotFoundError({ resource: 'Consultant', id })
             }
             return result[0]
         },
         catch: (e) =>
             e instanceof NotFoundError
                 ? e
-                : new DatabaseError({ message: 'Failed to delete consultant', cause: e }),
+                : new DatabaseError({ operation: 'delete', message: 'Failed to delete consultant', cause: e }),
     })

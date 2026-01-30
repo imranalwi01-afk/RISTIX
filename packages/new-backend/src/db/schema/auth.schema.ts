@@ -20,6 +20,10 @@ export const authSchema = pgSchema('auth')
 // SESSIONS TABLE
 // =============================================================================
 
+/**
+ * Sessions table definition.
+ * Stores active user sessions, including device info and expiration.
+ */
 export const sessions = authSchema.table(
     'sessions',
     {
@@ -66,6 +70,10 @@ export const sessions = authSchema.table(
 // PASSWORD RESET TOKENS TABLE
 // =============================================================================
 
+/**
+ * Password reset tokens table definition.
+ * Stores temporary tokens for identifying password reset requests.
+ */
 export const passwordResetTokens = authSchema.table(
     'password_reset_tokens',
     {
@@ -89,6 +97,10 @@ export const passwordResetTokens = authSchema.table(
 // EMAIL VERIFICATION TOKENS TABLE
 // =============================================================================
 
+/**
+ * Email verification tokens table definition.
+ * Stores tokens for verifying new user email addresses.
+ */
 export const emailVerificationTokens = authSchema.table(
     'email_verification_tokens',
     {

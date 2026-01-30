@@ -513,7 +513,7 @@ export class SessionControlConfigManager {
 
       if (hostname.includes('iaf-ifrs.danafin.com')) {
         return 'iafecs';
-      } else if (hostname.includes('ifrs9-iaf.ifrspro.id')) {
+      } else if (hostname.includes('iaf-ifrs.ifrspro.id')) {
         return 'development';
       }
     }

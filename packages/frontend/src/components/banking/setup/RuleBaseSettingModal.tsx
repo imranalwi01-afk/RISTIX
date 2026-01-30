@@ -192,7 +192,7 @@ export default function RuleBaseSettingModal({
   useEffect(() => {
     if (open) {
       loadDropdownData();
-      
+
       if (header) {
         setHeaderForm(header);
         if (header.id) {
@@ -244,7 +244,7 @@ export default function RuleBaseSettingModal({
     try {
       setDetailsLoading(true);
       const response = await ruleBaseSettingAPI.getDetails(ruleId);
-      
+
       if (response.success) {
         setDetails(response.data || []);
       } else {
@@ -338,7 +338,7 @@ export default function RuleBaseSettingModal({
 
       if (mode === 'create') {
         const response = await ruleBaseSettingAPI.createHeader(headerForm);
-        
+
         if (response.success) {
           enqueueSnackbar('Rule base setting created successfully', { variant: 'success' });
           onSave();
@@ -347,7 +347,7 @@ export default function RuleBaseSettingModal({
         }
       } else if (mode === 'edit' && header?.id) {
         const response = await ruleBaseSettingAPI.updateHeader(header.id, headerForm);
-        
+
         if (response.success) {
           enqueueSnackbar('Rule base setting updated successfully', { variant: 'success' });
           onSave();
@@ -539,7 +539,7 @@ export default function RuleBaseSettingModal({
           }}
           renderInput={(params) => (
             <TextField
-              {...params}
+              {...params as any}
               label={`${valueLabel} (Multiple)`}
               placeholder="Type and press Enter to add values"
               required={required}
@@ -593,8 +593,8 @@ export default function RuleBaseSettingModal({
             <RuleIcon />
             <Typography variant="h6">
               {mode === 'create' ? 'Create Rule Base Setting' :
-               mode === 'edit' ? 'Edit Rule Base Setting' :
-               'View Rule Base Setting'}
+                mode === 'edit' ? 'Edit Rule Base Setting' :
+                  'View Rule Base Setting'}
             </Typography>
           </Box>
         </DialogTitle>
@@ -613,7 +613,7 @@ export default function RuleBaseSettingModal({
                 </AccordionSummary>
                 <AccordionDetails>
                   <Grid container spacing={2}>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <TextField
                         label="Rule Name"
                         value={headerForm.rule_name}
@@ -624,7 +624,7 @@ export default function RuleBaseSettingModal({
                         placeholder="Enter descriptive rule name"
                       />
                     </Grid>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <FormControl fullWidth required>
                         <InputLabel>Rule Type</InputLabel>
                         <Select
@@ -641,7 +641,7 @@ export default function RuleBaseSettingModal({
                         </Select>
                       </FormControl>
                     </Grid>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <TextField
                         label="Updated Table"
                         value={headerForm.updated_table}
@@ -652,7 +652,7 @@ export default function RuleBaseSettingModal({
                         placeholder="Target table name"
                       />
                     </Grid>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <TextField
                         label="Updated Column"
                         value={headerForm.updated_column}
@@ -663,7 +663,7 @@ export default function RuleBaseSettingModal({
                         placeholder="Target column name"
                       />
                     </Grid>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <TextField
                         label="Value"
                         value={headerForm.value}
@@ -674,7 +674,7 @@ export default function RuleBaseSettingModal({
                         placeholder="Value to be set"
                       />
                     </Grid>
-                    <Grid item xs={12} md={3}>
+                    <Grid size={{ xs: 12, md: 3 }}>
                       <TextField
                         label="Sequence"
                         type="number"
@@ -685,7 +685,7 @@ export default function RuleBaseSettingModal({
                         inputProps={{ min: 1 }}
                       />
                     </Grid>
-                    <Grid item xs={12} md={3}>
+                    <Grid size={{ xs: 12, md: 3 }}>
                       <FormControlLabel
                         control={
                           <Switch
@@ -769,10 +769,10 @@ export default function RuleBaseSettingModal({
                                     <Chip label={detail.condition} size="small" color="primary" />
                                   </TableCell>
                                   <TableCell>
-                                    {detail.stage_from && detail.stage_to ? 
-                                      `${detail.stage_from} → ${detail.stage_to}` : 
+                                    {detail.stage_from && detail.stage_to ?
+                                      `${detail.stage_from} → ${detail.stage_to}` :
                                       detail.stage_from ? `From ${detail.stage_from}` :
-                                      detail.stage_to ? `To ${detail.stage_to}` : '-'
+                                        detail.stage_to ? `To ${detail.stage_to}` : '-'
                                     }
                                   </TableCell>
                                   {mode !== 'view' && (
@@ -838,7 +838,7 @@ export default function RuleBaseSettingModal({
         </DialogTitle>
         <DialogContent dividers>
           <Grid container spacing={2}>
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <TextField
                 label="Query Group"
                 type="number"
@@ -850,7 +850,7 @@ export default function RuleBaseSettingModal({
                 helperText="Logical grouping for complex conditions"
               />
             </Grid>
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <TextField
                 label="Sequence"
                 type="number"
@@ -862,7 +862,7 @@ export default function RuleBaseSettingModal({
                 helperText="Execution order within group"
               />
             </Grid>
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <FormControl fullWidth required>
                 <InputLabel>Table Name</InputLabel>
                 <Select
@@ -879,7 +879,7 @@ export default function RuleBaseSettingModal({
                 <FormHelperText>Source: Business Settings B0012</FormHelperText>
               </FormControl>
             </Grid>
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <FormControl fullWidth required>
                 <InputLabel>Column Name</InputLabel>
                 <Select
@@ -897,7 +897,7 @@ export default function RuleBaseSettingModal({
                 <FormHelperText>Source: Business Settings B0013</FormHelperText>
               </FormControl>
             </Grid>
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <FormControl fullWidth required>
                 <InputLabel>Data Type</InputLabel>
                 <Select
@@ -913,7 +913,7 @@ export default function RuleBaseSettingModal({
                 <FormHelperText>Auto-detected from column metadata</FormHelperText>
               </FormControl>
             </Grid>
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <FormControl fullWidth required>
                 <InputLabel>Operator</InputLabel>
                 <Select
@@ -933,18 +933,18 @@ export default function RuleBaseSettingModal({
 
             {/* Dynamic Value Inputs */}
             {shouldShowValue1(detailForm.operator) && (
-              <Grid item xs={shouldShowValue2(detailForm.operator) ? 6 : 12}>
+              <Grid size={{ xs: shouldShowValue2(detailForm.operator) ? 6 : 12 }}>
                 {renderValueInput('Value 1', 'value1', true)}
               </Grid>
             )}
 
             {shouldShowValue2(detailForm.operator) && (
-              <Grid item xs={6}>
+              <Grid size={{ xs: 6 }}>
                 {renderValueInput('Value 2', 'value2', true)}
               </Grid>
             )}
 
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <FormControl fullWidth required>
                 <InputLabel>Condition</InputLabel>
                 <Select
@@ -961,7 +961,7 @@ export default function RuleBaseSettingModal({
                 <FormHelperText>Logical operator to next condition</FormHelperText>
               </FormControl>
             </Grid>
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <TextField
                 label="Detail Type"
                 type="number"
@@ -972,13 +972,13 @@ export default function RuleBaseSettingModal({
                 helperText="Optional categorization"
               />
             </Grid>
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <FormControl fullWidth>
                 <InputLabel>Stage From</InputLabel>
                 <Select
                   value={detailForm.stage_from || ''}
                   label="Stage From"
-                  onChange={(e) => handleDetailFormChange('stage_from', e.target.value ? parseInt(e.target.value as string) : undefined)}
+                  onChange={(e) => handleDetailFormChange('stage_from', (e.target.value as any) !== '' ? Number(e.target.value) : undefined)}
                 >
                   <MenuItem value="">None</MenuItem>
                   {stages.map((stage) => (
@@ -990,13 +990,13 @@ export default function RuleBaseSettingModal({
                 <FormHelperText>Source IFRS 9 stage</FormHelperText>
               </FormControl>
             </Grid>
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <FormControl fullWidth>
                 <InputLabel>Stage To</InputLabel>
                 <Select
                   value={detailForm.stage_to || ''}
                   label="Stage To"
-                  onChange={(e) => handleDetailFormChange('stage_to', e.target.value ? parseInt(e.target.value as string) : undefined)}
+                  onChange={(e) => handleDetailFormChange('stage_to', (e.target.value as any) !== '' ? Number(e.target.value) : undefined)}
                 >
                   <MenuItem value="">None</MenuItem>
                   {stages.map((stage) => (

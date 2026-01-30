@@ -24,6 +24,7 @@ const AppSettingDetailSchema = z.object({
 }).openapi('AppSettingDetail')
 
 const AppSettingSchema = z.object({
+    pkid: z.number().int(),
     param_code: z.string(),
     param_name: z.string().nullable(),
     param_usage: z.string().nullable(),
@@ -35,16 +36,58 @@ const AppSettingSchema = z.object({
 }).openapi('AppSetting')
 
 const CreateAppSettingSchema = z.object({
-    paramCode: z.string().max(10),
-    paramName: z.string().max(255),
+    // Accept both camelCase and snake_case from frontend
+    paramCode: z.string().max(10).optional(),
+    param_code: z.string().max(10).optional(),
+    paramName: z.string().max(255).optional(),
+    param_name: z.string().max(255).optional(),
     paramUsage: z.string().max(255).optional(),
+    param_usage: z.string().max(255).optional(),
     paramType: z.string().max(10).optional(),
-    bankingType: z.enum(['conventional', 'syariah', 'dual']).default('conventional'),
-    isActive: z.boolean().default(true),
-    requiresApproval: z.boolean().default(false),
-}).openapi('CreateAppSettingInput')
+    param_type: z.string().max(10).optional(),
+    bankingType: z.enum(['conventional', 'syariah', 'dual']).optional(),
+    banking_type: z.enum(['conventional', 'syariah', 'dual']).optional(),
+    isActive: z.boolean().optional(),
+    is_active: z.boolean().optional(),
+    requiresApproval: z.boolean().optional(),
+    requires_approval: z.boolean().optional(),
+}).transform(data => ({
+    // Normalize to camelCase, preferring snake_case if both provided
+    paramCode: data.param_code || data.paramCode || '',
+    paramName: data.param_name || data.paramName || '',
+    paramUsage: data.param_usage || data.paramUsage || '',
+    paramType: data.param_type || data.paramType || 'S',
+    bankingType: data.banking_type || data.bankingType || 'conventional',
+    isActive: data.is_active ?? data.isActive ?? true,
+    requiresApproval: data.requires_approval ?? data.requiresApproval ?? false,
+})).openapi('CreateAppSettingInput')
 
-const UpdateAppSettingSchema = CreateAppSettingSchema.partial().openapi('UpdateAppSettingInput')
+const UpdateAppSettingSchema = z.object({
+    // Accept both camelCase and snake_case from frontend
+    paramCode: z.string().max(10).optional(),
+    param_code: z.string().max(10).optional(),
+    paramName: z.string().max(255).optional(),
+    param_name: z.string().max(255).optional(),
+    paramUsage: z.string().max(255).optional(),
+    param_usage: z.string().max(255).optional(),
+    paramType: z.string().max(10).optional(),
+    param_type: z.string().max(10).optional(),
+    bankingType: z.enum(['conventional', 'syariah', 'dual']).optional(),
+    banking_type: z.enum(['conventional', 'syariah', 'dual']).optional(),
+    isActive: z.boolean().optional(),
+    is_active: z.boolean().optional(),
+    requiresApproval: z.boolean().optional(),
+    requires_approval: z.boolean().optional(),
+}).transform(data => ({
+    // Normalize to camelCase, only include defined fields
+    ...(data.param_code || data.paramCode ? { paramCode: data.param_code || data.paramCode } : {}),
+    ...(data.param_name || data.paramName ? { paramName: data.param_name || data.paramName } : {}),
+    ...(data.param_usage || data.paramUsage ? { paramUsage: data.param_usage || data.paramUsage } : {}),
+    ...(data.param_type || data.paramType ? { paramType: data.param_type || data.paramType } : {}),
+    ...(data.banking_type || data.bankingType ? { bankingType: data.banking_type || data.bankingType } : {}),
+    ...(data.is_active !== undefined || data.isActive !== undefined ? { isActive: data.is_active ?? data.isActive } : {}),
+    ...(data.requires_approval !== undefined || data.requiresApproval !== undefined ? { requiresApproval: data.requires_approval ?? data.requiresApproval } : {}),
+})).openapi('UpdateAppSettingInput')
 
 const CreateAppSettingDetailSchema = z.object({
     paramCode: z.string().max(50),
@@ -126,6 +169,89 @@ app.openapi(
     }
 )
 
+// GET /api/v1/app-settings/:code/details
+app.openapi(
+    createRoute({
+        method: 'get',
+        path: '/{code}/details',
+        tags: ['Application Settings'],
+        summary: 'Get Application Setting Details',
+        description: 'Gets detail records for a specific application setting by its param_code',
+        request: {
+            params: z.object({ code: z.string() })
+        },
+        responses: {
+            200: {
+                content: {
+                    'application/json': {
+                        schema: z.object({
+                            success: z.boolean(),
+                            data: z.array(AppSettingDetailSchema),
+                            total: z.number(),
+                            message: z.string().optional()
+                        })
+                    }
+                },
+                description: 'Detail records for the setting'
+            },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        const { code } = c.req.valid('param');
+        return runEffect(c, ParametersService.getAppSettingDetails(code) as any) as any
+    }
+)
+
+// POST /api/v1/app-settings/:code/details - Create a detail record for param_code
+app.openapi(
+    createRoute({
+        method: 'post',
+        path: '/{code}/details',
+        tags: ['Application Settings'],
+        summary: 'Create Application Setting Detail',
+        description: 'Creates a new detail record for a specific application setting',
+        request: {
+            params: z.object({ code: z.string() }),
+            body: {
+                content: {
+                    'application/json': {
+                        schema: z.object({
+                            // Accept both snake_case and camelCase
+                            param_seq: z.number().int().optional(),
+                            paramSeq: z.number().int().optional(),
+                            value1: z.string().max(100),
+                            value2: z.string().max(100).optional(),
+                            value3: z.string().max(50).optional(),
+                            paramdesc: z.string().max(1000).optional(),
+                        }).transform(data => ({
+                            paramSeq: data.param_seq ?? data.paramSeq ?? 1,
+                            value1: data.value1,
+                            value2: data.value2 || '',
+                            value3: data.value3 || '',
+                            paramdesc: data.paramdesc || '',
+                        }))
+                    }
+                }
+            }
+        },
+        responses: {
+            201: { content: { 'application/json': { schema: AppSettingDetailResponse } }, description: 'Created' },
+            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Parent Not Found' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        const { code } = c.req.valid('param');
+        const data = c.req.valid('json');
+        const userId = c.get('userId') as string || 'system';
+
+        // Add paramCode from URL to data
+        const payload = { paramCode: code, ...data };
+        return runEffect(c, ParametersService.createAppSettingDetail(payload, userId) as any) as any
+    }
+)
+
 // POST /api/v1/app-settings
 app.openapi(
     createRoute({
@@ -173,6 +299,30 @@ app.openapi(
         const userId = c.get('userId') as string || 'system';
 
         return runEffect(c, ParametersService.updateAppSetting(code, data, userId) as any) as any
+    }
+)
+
+// DELETE /api/v1/app-settings/:code
+app.openapi(
+    createRoute({
+        method: 'delete',
+        path: '/{code}',
+        tags: ['Application Settings'],
+        summary: 'Delete Application Setting',
+        description: 'Deletes an application setting by its param_code',
+        request: {
+            params: z.object({ code: z.string() })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), message: z.string() }) } }, description: 'Deleted' },
+            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        const { code } = c.req.valid('param');
+
+        return runEffect(c, ParametersService.deleteAppSetting(code) as any) as any
     }
 )
 
@@ -224,4 +374,4 @@ app.openapi(
     }
 )
 
-export default app
+export const appSettingsRoutes = app

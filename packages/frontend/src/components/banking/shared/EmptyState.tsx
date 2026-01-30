@@ -58,7 +58,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
     <Box sx={{ textAlign: 'center', py: 8 }}>
       {defaultIcon && (
         <Box sx={{ mb: 2, color: 'text.secondary' }}>
-          {defaultIcon}
+          {defaultIcon as any}
         </Box>
       )}
       <Typography variant="h6" color="text.secondary">

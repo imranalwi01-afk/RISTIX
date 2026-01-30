@@ -15,7 +15,7 @@ import {
   Typography,
   Container,
   Paper,
-  Grid2 as Grid,
+  Grid,
   Button,
   IconButton,
   Chip,
@@ -62,7 +62,8 @@ import {
   Visibility as ViewIcon,
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
-import { DataGrid, GridColDef, GridActionsCellItem } from '@mui/x-data-grid';
+import { GridColDef } from '@mui/x-data-grid';
+import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 import { bankingAPI } from '@/services/api';
 
 // Types and interfaces
@@ -500,7 +501,7 @@ export default function ApprovalManagementPage() {
       width: 120,
       getActions: (params) => {
         const actions = [
-          <GridActionsCellItem
+          <SafeGridActionsCellItem
             key="view"
             icon={<ViewIcon />}
             label="View Details"
@@ -510,19 +511,17 @@ export default function ApprovalManagementPage() {
 
         if (params.row.status === 'pending' || params.row.status === 'info_requested') {
           actions.push(
-            <GridActionsCellItem
+            <SafeGridActionsCellItem
               key="approve"
-              icon={<ApproveIcon />}
+              icon={<ApproveIcon color="success" />}
               label="Approve"
               onClick={() => handleApprovalAction(params.row, 'approve')}
-              sx={{ color: 'success.main' }}
             />,
-            <GridActionsCellItem
+            <SafeGridActionsCellItem
               key="reject"
-              icon={<RejectIcon />}
+              icon={<RejectIcon color="error" />}
               label="Reject"
               onClick={() => handleApprovalAction(params.row, 'reject')}
-              sx={{ color: 'error.main' }}
             />
           );
         }
@@ -605,7 +604,7 @@ export default function ApprovalManagementPage() {
       </Paper>
 
       <Paper sx={{ height: 600 }}>
-        <DataGrid
+        <SafeDataGrid
           rows={filteredRequests}
           columns={columns}
           loading={loading}

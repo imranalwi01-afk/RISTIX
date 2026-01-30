@@ -1,95 +1,132 @@
 import { Effect, pipe } from 'effect'
-import { RbacRepository } from '@/repositories/rbac-domain.repository'
+import {
+    rolesRepository,
+    userRolesRepository,
+    permissionsRepository,
+    rolePermissionsRepository,
+    type RoleWithPermissions
+} from '@/repositories/rbac.repository'
+import { getDatabase } from '@/config/database'
 import {
     type NewRole,
     type Role,
 } from '@/db/schema'
 import { DatabaseError, NotFoundError, ValidationError, BusinessError } from '@/lib/errors'
+import { PermissionApprovalService } from './permission-approval.service'
+
+/**
+ * @module RBACService
+ * @description Provides services for Role-Based Access Control.
+ * Handles role management, user-role assignments, and permission checking.
+ */
 
 // =============================================================================
 // ROLE OPERATIONS
 // =============================================================================
 
 /**
- * Get all roles for a tenant
+ * Retrieve all roles for a given tenant.
+ * 
+ * @param tenantId - The unique identifier of the tenant
+ * @param options - Optional filters (includeInactive, bankingType)
+ * @returns An Effect that succeeds with an array of Roles
  */
 export const getRoles = (
     tenantId: string,
-    options?: { includeInactive?: boolean; bankingType?: string }
+    options?: {
+        includeInactive?: boolean;
+        bankingType?: string;
+        search?: string;
+        type?: string;
+        level?: string;
+    }
 ) =>
-    Effect.tryPromise({
-        try: () => RbacRepository.findRolesByTenant(tenantId, {
-            isActive: options?.includeInactive ? undefined : true,
-            // bankingType filter logic needs to be handled in repo or post-filter if repo doesn't support it. 
-            // RbacRepository.findRolesByTenant supports 'search' and 'isActive'.
-            // For now, we might need to filter bankingType in memory or update repo.
-            // Assuming we fetch all and filter in memory for bankingType as repo changes might be needed.
-        }),
-        catch: (error) => new DatabaseError({ operation: 'query', message: String(error) })
-    }).pipe(
-        Effect.map(({ data }) => {
-            if (options?.bankingType) {
-                return data.filter(role =>
-                    role.bankingTypeSpecific === options.bankingType ||
-                    role.bankingTypeSpecific === 'BOTH' ||
-                    !role.bankingTypeSpecific
-                )
-            }
-            return data
-        })
+    pipe(
+        Effect.try(() => getDatabase(tenantId)),
+        Effect.mapError(error => new DatabaseError({ operation: 'query', message: String(error) })),
+        Effect.flatMap(db =>
+            rolesRepository.findByTenant(db, tenantId, {
+                includeInactive: options?.includeInactive,
+                bankingType: options?.bankingType,
+                search: options?.search,
+                systemRolesOnly: options?.type === 'SYSTEM'
+            })
+        ),
+        Effect.map((result) => result)
     )
 
 /**
- * Get a role by ID
+ * Retrieve a single role by its unique ID.
+ * 
+ * @param roleId - The unique identifier of the role
+ * @param tenantId - Optional tenant ID to resolve the database
+ * @returns An Effect that succeeds with the Role if found
  */
-export const getRoleById = (roleId: string) =>
-    Effect.tryPromise({
-        try: () => RbacRepository.findRoleById(roleId),
-        catch: (error) => new DatabaseError({ operation: 'query', message: String(error) })
-    }).pipe(
-        Effect.flatMap((role) =>
-            role
-                ? Effect.succeed(role)
-                : Effect.fail(new NotFoundError({ resource: 'Role', id: roleId }))
-        )
+export const getRoleById = (roleId: string, tenantId?: string) =>
+    pipe(
+        Effect.try(() => getDatabase(tenantId)),
+        Effect.mapError(error => new DatabaseError({ operation: 'query', message: String(error) })),
+        Effect.flatMap(db => rolesRepository.findById(db, roleId)),
+        // Map NotFound to success undefined? No, findById returns Effect<RoleWithPermissions, NotFoundError>
+        // But if it fails with NotFoundError, do we want that?
+        // The original code mapped: role ? succeed : fail(NotFound).
+        // My repo findById returns Effect.fail(NotFound) if not found (via withNotFound).
+        // So I don't need manual check unless I want to customize.
+        // It returns Effect<RoleWithPermissions, DatabaseError | NotFoundError>.
+        // So this is fine.
+    )
+
+// Helper that requires tenantId
+const findRole = (roleId: string, tenantId?: string) =>
+    pipe(
+        Effect.try(() => getDatabase(tenantId)),
+        Effect.mapError(e => new DatabaseError({ operation: 'query', message: String(e) })),
+        Effect.flatMap(db => rolesRepository.findById(db, roleId))
     )
 
 /**
- * Create a new role
+ * Create a new role for a tenant.
+ * 
+ * @param input - The role definition as NewRole object
+ * @returns An Effect that succeeds with the created Role
+ * @throws {ValidationError} If a role with the same name already exists
  */
 export const createRole = (input: NewRole) =>
     pipe(
-        // Validate role name doesn't exist
-        Effect.tryPromise({
-            try: () => RbacRepository.findRoleByName(input.roleName, input.tenantId ?? undefined),
-            catch: (error) => new DatabaseError({ operation: 'query', message: String(error) })
-        }),
-        Effect.flatMap((existing) =>
-            existing
-                ? Effect.fail(
-                    new ValidationError({
-                        message: `Role with name "${input.roleName}" already exists`,
-                        field: 'roleName',
-                        errors: ['Role name must be unique'],
-                    })
+        Effect.try(() => getDatabase(input.tenantId)),
+        Effect.mapError(error => new DatabaseError({ operation: 'query', message: String(error) })),
+        Effect.flatMap(db =>
+            pipe(
+                // Validate role name doesn't exist
+                rolesRepository.findByName(db, input.roleName, input.tenantId ?? undefined),
+                Effect.flatMap((existing) =>
+                    existing
+                        ? Effect.fail(
+                            new ValidationError({
+                                message: `Role with name "${input.roleName}" already exists`,
+                                field: 'roleName',
+                                errors: ['Role name must be unique'],
+                            })
+                        )
+                        : Effect.succeed(db) // Pass db through
                 )
-                : Effect.succeed(undefined)
+            )
         ),
-        Effect.flatMap(() =>
-            Effect.tryPromise({
-                try: () => RbacRepository.createRole(input),
-                catch: (error) => new DatabaseError({ operation: 'insert', message: String(error) })
-            })
-        )
+        Effect.flatMap(db => rolesRepository.create(db, input))
     )
 
 /**
- * Update an existing role
+ * Update an existing role's properties.
+ * 
+ * @param roleId - The unique identifier of the role to update
+ * @param input - Partial role object containing updates and optional tenantId
+ * @returns An Effect that succeeds with the updated Role
+ * @throws {BusinessError} If attempting to rename a protected system role
  */
-export const updateRole = (roleId: string, input: Partial<NewRole>) =>
+export const updateRole = (roleId: string, input: Partial<NewRole> & { tenantId?: string }) =>
     pipe(
-        getRoleById(roleId),
-        Effect.flatMap((existing) => {
+        findRole(roleId, input.tenantId),
+        Effect.flatMap((existing: Role) => {
             if (existing.isSystemRole && input.roleName && input.roleName !== existing.roleName) {
                 return Effect.fail(
                     new BusinessError({
@@ -101,20 +138,26 @@ export const updateRole = (roleId: string, input: Partial<NewRole>) =>
             return Effect.succeed(existing)
         }),
         Effect.flatMap(() =>
-            Effect.tryPromise({
-                try: () => RbacRepository.updateRole(roleId, input),
-                catch: (error) => new DatabaseError({ operation: 'update', message: String(error) })
-            })
+            pipe(
+                Effect.try(() => getDatabase(input.tenantId)),
+                Effect.mapError(e => new DatabaseError({ operation: 'query', message: String(e) })),
+                Effect.flatMap(db => rolesRepository.update(db, roleId, input))
+            )
         )
     )
 
 /**
- * Delete a role (soft delete by setting isActive = false)
+ * Deactivates a role (Soft delete).
+ * 
+ * @param roleId - The unique identifier of the role to delete
+ * @param tenantId - Optional tenant ID to resolve the database
+ * @returns An Effect that succeeds with the deleted/deactivated Role
+ * @throws {BusinessError} If attempting to delete a protected system role
  */
-export const deleteRole = (roleId: string) =>
+export const deleteRole = (roleId: string, tenantId?: string) =>
     pipe(
-        getRoleById(roleId),
-        Effect.flatMap((existing) => {
+        findRole(roleId, tenantId),
+        Effect.flatMap((existing: Role) => {
             if (existing.isSystemRole) {
                 return Effect.fail(
                     new BusinessError({
@@ -126,10 +169,11 @@ export const deleteRole = (roleId: string) =>
             return Effect.succeed(existing)
         }),
         Effect.flatMap(() =>
-            Effect.tryPromise({
-                try: () => RbacRepository.updateRole(roleId, { isActive: false }),
-                catch: (error) => new DatabaseError({ operation: 'update', message: String(error) })
-            })
+            pipe(
+                Effect.try(() => getDatabase(tenantId)),
+                Effect.mapError(e => new DatabaseError({ operation: 'query', message: String(e) })),
+                Effect.flatMap(db => rolesRepository.delete(db, roleId))
+            )
         )
     )
 
@@ -138,27 +182,33 @@ export const deleteRole = (roleId: string) =>
 // =============================================================================
 
 /**
- * Get all roles for a user
+ * Retrieve all active roles currently assigned to a user.
+ * 
+ * @param userId - The unique identifier of the user
+ * @param tenantId - The unique identifier of the tenant
+ * @returns An Effect that succeeds with an array of active UserRole assignments
  */
 export const getUserRoles = (userId: string, tenantId: string) =>
-    Effect.tryPromise({
-        try: async () => {
-            // RbacRepository.findUserRoles returns all user roles, we need to filter by tenant and validity
-            // Ideally repository should handle this, but for now filtering here to match previous logic
-            const allUserRoles = await RbacRepository.findUserRoles(userId)
+    pipe(
+        Effect.try(() => getDatabase(tenantId)),
+        Effect.mapError(e => new DatabaseError({ operation: 'query', message: String(e) })),
+        Effect.flatMap(db => userRolesRepository.findByUser(db, userId, tenantId)),
+        Effect.map(allUserRoles => {
             const now = new Date()
             return allUserRoles.filter(ur =>
-                ur.tenantId === tenantId &&
                 ur.isActive &&
                 (!ur.validFrom || ur.validFrom <= now) &&
                 (!ur.validUntil || ur.validUntil >= now)
             )
-        },
-        catch: (error) => new DatabaseError({ operation: 'query', message: String(error) })
-    })
+        })
+    )
 
 /**
- * Assign a role to a user
+ * Assign a role to a user with optional temporal constraints.
+ * 
+ * @param input - Assignment details including userId, roleId, and tenure info
+ * @returns An Effect that succeeds with the newly created assignment
+ * @throws {ValidationError} If the role is already assigned to the user
  */
 export const assignRole = (input: {
     userId: string
@@ -172,16 +222,17 @@ export const assignRole = (input: {
 }) =>
     pipe(
         // Check if role exists
-        getRoleById(input.roleId),
+        findRole(input.roleId, input.tenantId),
         // Check if assignment already exists
         Effect.flatMap(() =>
-            Effect.tryPromise({
-                try: () => RbacRepository.findUserRoles(input.userId),
-                catch: (error) => new DatabaseError({ operation: 'query', message: String(error) })
-            })
+            pipe(
+                Effect.try(() => getDatabase(input.tenantId)),
+                Effect.mapError(e => new DatabaseError({ operation: 'query', message: String(e) })),
+                Effect.flatMap(db => userRolesRepository.findByUser(db, input.userId, input.tenantId))
+            )
         ),
         Effect.flatMap((existingRoles) => {
-            const exists = existingRoles.some(ur => ur.roleId === input.roleId) // Loose check, previous logic was by roleId and userId (already filtered)
+            const exists = existingRoles.some(ur => ur.roleId === input.roleId)
             return exists
                 ? Effect.fail(
                     new ValidationError({
@@ -194,43 +245,36 @@ export const assignRole = (input: {
         }),
         // Create assignment
         Effect.flatMap(() =>
-            Effect.tryPromise({
-                try: () => RbacRepository.assignRoleToUser(input.userId, input.roleId, input.tenantId, input.assignedBy),
-                // Note: repository assignRoleToUser might not support all fields like validFrom, isTemporary yet.
-                // We should update repository if these are needed. checking repo...
-                // Repo 'assignRoleToUser' only takes userId, roleId, tenantId, assignedBy.
-                // We need to update REPO to support other fields or accept that we lose them for now.
-                // Given the instruction "Refactor to Domain-Driven", correctness is key.
-                // I should update RbacRepository to accept extra fields in 'assignRoleToUser' OR use 'db.insert' here temporarily? 
-                // No, better to update repo. But I can't update repo in this replacement block.
-                // I will pass what I can.
-                // Wait, I see RbacRepository in my memory (Step 841). It ONLY implemented basic insert.
-                // I should probably fix RbacRepository to accept an object for assignment details.
-                catch: (error) => new DatabaseError({ operation: 'insert', message: String(error) })
-            })
+            pipe(
+                Effect.try(() => getDatabase(input.tenantId)),
+                Effect.mapError(e => new DatabaseError({ operation: 'query', message: String(e) })),
+                Effect.flatMap(db => userRolesRepository.assign(db, {
+                    userId: input.userId,
+                    roleId: input.roleId,
+                    tenantId: input.tenantId,
+                    assignedBy: input.assignedBy,
+                    validFrom: input.validFrom,
+                    validUntil: input.validUntil,
+                    isTemporary: input.isTemporary,
+                    temporaryReason: input.temporaryReason
+                } as any))
+            )
         )
     )
 
 /**
- * Remove a role from a user
+ * Remove a role assignment from a user.
+ * 
+ * @param userId - The unique identifier of the user
+ * @param roleId - The unique identifier of the role to remove
+ * @param tenantId - The unique identifier of the tenant
+ * @returns An Effect that succeeds when the assignment is removed
  */
-export const removeRole = (userId: string, roleId: string) =>
-    Effect.tryPromise({
-        try: () => RbacRepository.removeRoleFromUser(userId, roleId),
-        catch: (error) => new DatabaseError({ operation: 'delete', message: String(error) })
-    }).pipe(
-        Effect.map((result) => {
-            // Repository returns delete result (BatchResponse or similar), or we might want to return the deleted object
-            // The previous logic did a soft delete (update isActive=false).
-            // RbacRepository.removeRoleFromUser does a HARD DELETE (db.delete).
-            // The previous logic was: update(userRoles).set({ isActive: false })...
-            // I should probably stick to repository behavior or update repository.
-            // If domain design says "remove", hard delete is often cleaner for junction tables unless audit is strict.
-            // Given 'userRoles' table has 'isActive', soft delete seems intended.
-            // But RbacRepository implements 'db.delete'. 
-            // I will accept repository behavior for now or flag it.
-            return result
-        })
+export const removeRole = (userId: string, roleId: string, tenantId: string) =>
+    pipe(
+        Effect.try(() => getDatabase(tenantId)),
+        Effect.mapError(e => new DatabaseError({ operation: 'query', message: String(e) })),
+        Effect.flatMap(db => userRolesRepository.remove(db, userId, roleId))
     )
 
 // =============================================================================
@@ -239,7 +283,13 @@ export const removeRole = (userId: string, roleId: string) =>
 
 
 /**
- * Check if a user has a specific permission
+ * Check if a user possesses a specific permission for a resource and action.
+ * 
+ * @param userId - The unique identifier of the user
+ * @param tenantId - The unique identifier of the tenant
+ * @param resource - The resource identifier (e.g., 'users', 'roles')
+ * @param action - The action identifier (e.g., 'read', 'write', '*')
+ * @returns An Effect that succeeds with a boolean flag
  */
 export const hasPermission = (
     userId: string,
@@ -257,7 +307,11 @@ export const hasPermission = (
     )
 
 /**
- * Get all permissions for a user (Grouped by resource)
+ * Aggregates and groups all permissions granted to a user across all their roles.
+ * 
+ * @param userId - The unique identifier of the user
+ * @param tenantId - The unique identifier of the tenant
+ * @returns An Effect that succeeds with a Record of resource-to-actions mappings
  */
 export const getUserPermissions = (
     userId: string,
@@ -285,4 +339,61 @@ export const getUserPermissions = (
 
             return allPermissions
         })
+    )
+
+/**
+ * Update permissions for a specific role by replacing all existing role-permission associations.
+ * 
+ * @param roleId - The unique identifier of the role
+ * @param permissionIds - Array of permission IDs to assign to the role
+ * @param tenantId - Optional tenant ID for database resolution
+ * @returns An Effect that succeeds with the updated Role
+ */
+export const updateRolePermissions = (roleId: string, permissionIds: string[], tenantId?: string) =>
+    pipe(
+        Effect.try(() => getDatabase(tenantId)),
+        Effect.mapError(error => new DatabaseError({ operation: 'query', message: String(error) })),
+        Effect.flatMap(db => rolePermissionsRepository.set(db, roleId, permissionIds)),
+        Effect.flatMap(() =>
+            pipe(
+                Effect.try(() => getDatabase(tenantId)),
+                Effect.mapError(error => new DatabaseError({ operation: 'query', message: String(error) })),
+                Effect.flatMap(db => rolesRepository.findById(db, roleId))
+            )
+        )
+    )
+
+/**
+ * Get all available permissions with approval metadata
+ * 
+ * @param tenantId - The unique identifier of the tenant
+ * @returns An Effect that succeeds with an array of Permissions with approval info
+ */
+export const getAvailablePermissions = (tenantId: string) =>
+    pipe(
+        Effect.try(() => getDatabase(tenantId)),
+        Effect.mapError(error => new DatabaseError({ operation: 'query', message: String(error) })),
+        Effect.flatMap(db =>
+            Effect.gen(function* (_) {
+                const permissions = yield* _(permissionsRepository.findAll(db))
+                const approvalService = new PermissionApprovalService(db)
+
+                // Get approval requirements for all permissions
+                const permissionIds = permissions.map(p => p.id)
+                const approvalMap = yield* _(
+                    approvalService.getBulkApprovalRequirements(tenantId, permissionIds)
+                )
+
+                // Enrich permissions with approval metadata
+                return permissions.map(p => {
+                    const approval = approvalMap.get(p.id)
+                    return {
+                        ...p,
+                        requiresApproval: approval?.requiresApproval ?? false,
+                        requiredApprovalLevel: approval?.minHierarchyLevel ?? null,
+                        requiredApprovers: approval?.requiredApprovers ?? 1,
+                    }
+                })
+            })
+        )
     )

@@ -1,11 +1,15 @@
 import { db } from '../config/database'
 import { jobDefinitions, jobExecutions } from '../db/schema'
 import { eq } from 'drizzle-orm'
+import { Effect } from 'effect'
 import { addJob } from './queue.service'
 import * as approvalService from './approval.service'
 
 /**
- * Check if a job requires approval before execution
+ * Check if a job requires approval before execution.
+ * 
+ * @param jobDefinitionId - The ID of the job definition
+ * @returns A Promise resolving to true if approval is required
  */
 export const requiresApproval = async (jobDefinitionId: string): Promise<boolean> => {
     const [definition] = await db
@@ -18,7 +22,16 @@ export const requiresApproval = async (jobDefinitionId: string): Promise<boolean
 }
 
 /**
- * Create an approval request for a job execution
+ * Create an approval request for a job execution.
+ * 
+ * @param params - Parameters for creating the approval request
+ * @param params.jobDefinitionId - The job definition ID
+ * @param params.executionId - The job execution ID
+ * @param params.triggeredBy - The user who triggered the job
+ * @param params.tenantId - The tenant ID
+ * @param params.parameters - Optional job parameters
+ * @returns A Promise resolving to the created approval request or null if no approval needed
+ * @throws Error if definition not found or matrix not configured
  */
 export const createJobApprovalRequest = async (params: {
     jobDefinitionId: string
@@ -49,7 +62,8 @@ export const createJobApprovalRequest = async (params: {
     }
 
     // Create approval request
-    const approvalRequest = await approvalService.createApprovalRequest({
+    // Unwrap the effect since this service method is async and returns the result directly
+    const approvalRequest = await Effect.runPromise(approvalService.createApprovalRequest({
         tenantId,
         entityType: 'job_execution',
         entityId: executionId,
@@ -64,13 +78,18 @@ export const createJobApprovalRequest = async (params: {
             approvalMatrixId: definition.approvalMatrixId, // Store in requestData
             parameters
         }
-    })
+    }))
 
     return approvalRequest
 }
 
 /**
- * Handle approval completion - queue the job if approved
+ * Handle approval completion - queue the job if approved.
+ * 
+ * @param approvalRequestId - The approval request ID
+ * @param status - The approval status ('approved' or 'rejected')
+ * @param approvedBy - The user who approved/rejected
+ * @returns A Promise resolving when handling is complete
  */
 export const handleJobApprovalComplete = async (
     approvalRequestId: string,
@@ -126,7 +145,10 @@ export const handleJobApprovalComplete = async (
 }
 
 /**
- * Get pending job executions awaiting approval
+ * Get pending job executions awaiting approval.
+ * 
+ * @param tenantId - The tenant ID
+ * @returns A Promise resolving to an array of pending job executions
  */
 export const getPendingJobApprovals = async (tenantId: string) => {
     return await db
@@ -137,8 +159,13 @@ export const getPendingJobApprovals = async (tenantId: string) => {
 }
 
 /**
- * Check auto-approval conditions
- * Returns true if the job can be auto-approved based on conditions
+ * Check auto-approval conditions.
+ * Returns true if the job can be auto-approved based on conditions.
+ * 
+ * @param jobDefinitionId - The job definition ID
+ * @param triggeredBy - The user who triggered the job
+ * @param parameters - Job parameters
+ * @returns A Promise resolving to true if auto-approval conditions are met
  */
 export const checkAutoApprovalConditions = async (
     jobDefinitionId: string,

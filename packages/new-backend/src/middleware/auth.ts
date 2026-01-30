@@ -4,19 +4,24 @@ import { AuthRepository } from '../repositories/auth.repository'
 import { TenantRepository } from '../repositories/tenant.repository'
 import { AuthenticationError, AuthorizationError } from '@lib/errors'
 import { Effect, pipe } from 'effect'
+import { env, isDevelopment, maskDatabaseUrl, getPlatformDatabaseUrl, getDatabaseUrl } from '@/config/env'
+import { getDatabase } from '@/config/database'
+import { redis } from '@/config/redis'
 import type { AppContext } from '../app'
+import { withRequestIds } from '../lib/logger'
 
 /**
  * JWT verification middleware
  * Extracts and validates JWT token from Authorization header
  */
 export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
+    const baseLogger = c.get('logger') || withRequestIds({ requestId: c.get('requestId'), tenantId: c.get('tenantId') })
     const authHeader = c.req.header('Authorization')
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        console.warn('⚠️ [AUTH] Missing or invalid authorization header:', {
+        baseLogger.warn({
             authHeader: authHeader ? `${authHeader.substring(0, 15)}...` : 'null'
-        });
+        }, '[AUTH] Missing or invalid authorization header')
         return c.json(
             {
                 success: false,
@@ -32,40 +37,98 @@ export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
     try {
         // Verify JWT signature
         const payload = await verifyToken(token)
-        console.log(`✅ [AUTH] Token verified for sub: ${payload.sub}, jti: ${payload.jti}`);
+        baseLogger.info({ sub: payload.sub, jti: payload.jti }, '[AUTH] Token verified')
+
+        // Check session in Redis
+        const sessionKey = `session:access:${payload.jti}`
+        const sessionData = await redis.get(sessionKey)
+        if (!sessionData) {
+            console.warn(`[AUTH DEBUG] Session not found in Redis: ${sessionKey}`)
+            baseLogger.warn({ jti: payload.jti, sessionKey }, '[AUTH] Session not found in Redis')
+            throw new Error('Session not found or expired')
+        }
 
         // Contextual validation
-        const session = await AuthRepository.findSessionByTokenId(payload.jti)
+        const tenantId = (payload as any).tenantId as string | undefined
+        const tenantDb = getDatabase(tenantId)
+        
+        console.log(`[AUTH DEBUG] Resolving user: sub=${payload.sub}, tenantId=${tenantId}`)
 
-        if (!session || !session.isActive || new Date() > session.expiresAt) {
-            console.warn(`⚠️ [AUTH] Session invalid or expired: ${payload.jti}`);
-            throw new Error('Session invalid or expired')
+        // Load complete user context - try tenant DB first, then platform DB as fallback
+        let user = await AuthRepository.findUserById(tenantDb, payload.sub)
+        let db = tenantDb
+
+        if (!user) {
+            baseLogger.debug({ sub: payload.sub, tenantId }, '[AUTH] User not found in tenant DB, checking platform DB...')
+            const platformDb = getDatabase(null)
+            user = await AuthRepository.findUserById(platformDb, payload.sub)
+            if (user) {
+                db = platformDb
+                baseLogger.debug({ sub: payload.sub }, '[AUTH] User found in platform DB')
+            }
         }
 
-        // Load complete user context
-        const user = await AuthRepository.findUserById(payload.sub)
         if (!user || !user.isActive) {
-            console.warn(`⚠️ [AUTH] User not found or inactive: ${payload.sub}`);
-            throw new Error('User not found or inactive')
+            const dbUrl = maskDatabaseUrl(getDatabaseUrl(user ? (db === tenantDb ? tenantId : null) : tenantId))
+            const dbContext = db === tenantDb ? 'Tenant DB' : 'Platform DB'
+            
+            baseLogger.warn({ sub: payload.sub, dbContext, dbUrl }, '[AUTH] User not found or inactive')
+            
+            const errorMsg = isDevelopment
+                ? `User not found or inactive (${dbContext}: ${dbUrl})`
+                : 'User not found or inactive'
+            throw new Error(errorMsg)
         }
 
-        const tenant = await TenantRepository.findById(user.tenantId)
-        console.log(`✅ [AUTH] User context loaded: ${user.email} (Tenant: ${tenant?.name})`);
 
-        // Set user context
+        // Resolve tenant - try ID first, then fallback to Slug
+        let tenant = null
+        if (user.tenantId) {
+            try {
+                // First try looking up by ID (UUID)
+                tenant = await TenantRepository.findById(user.tenantId)
+            } catch (e) {
+                // If ID lookup fails (e.g. invalid UUID format), ignore and try slug
+                baseLogger.debug({ tenantId: user.tenantId }, '[AUTH] ID lookup failed or invalid format, trying slug')
+            }
+
+            // Fallback to slug if not found by ID
+            if (!tenant) {
+                tenant = await TenantRepository.findBySlug(user.tenantId)
+            }
+        }
+
+        if (!tenant) {
+            const dbUrl = maskDatabaseUrl(getPlatformDatabaseUrl())
+            const errorMsg = isDevelopment
+                ? `Tenant not found (Target: ${user.tenantId}, Database: ${dbUrl})`
+                : 'Tenant not found'
+            
+            baseLogger.warn({ email: user.email, tenantId: user.tenantId, dbUrl }, '[AUTH] Tenant not found for user')
+            throw new Error(errorMsg)
+        }
+
+        baseLogger.info({ email: user.email, tenantName: tenant.name }, '[AUTH] User context loaded')
+
+        // Set user context - ALWAYS use the resolved UUID from tenant object
         c.set('userId', user.id)
         c.set('user', user)
         c.set('tokenId', payload.jti)
-        c.set('tenantId', user.tenantId)
-        c.set('isSystemUser', !!user.isPlatformAdmin) // Use the flag
+        c.set('tenantId', tenant.id) // Use resolved UUID, not user.tenantId which might be a slug
+        c.set('isSystemUser', !!(user as any).isPlatformAdmin) // Use the flag
 
         await next()
     } catch (error: any) {
-        console.error('❌ [AUTH] authentication error:', error.message);
+        const dbUrl = maskDatabaseUrl(getPlatformDatabaseUrl())
+        const message = isDevelopment
+            ? `Invalid or expired token (${error.message}, Database: ${dbUrl})`
+            : 'Invalid or expired token'
+            
+        baseLogger.error({ err: error, dbUrl }, '[AUTH] authentication error')
         return c.json(
             {
                 success: false,
-                error: 'Invalid or expired token',
+                error: message,
                 code: 'INVALID_TOKEN',
             },
             401
@@ -116,24 +179,29 @@ export function requirePermission(resource: string, action: string) {
 
 // Tenant context middleware
 export const tenantMiddleware = createMiddleware<AppContext>(async (c, next) => {
+    const log = c.get('logger') || withRequestIds({ requestId: c.get('requestId'), tenantId: c.get('tenantId') })
     const requestedTenantId = c.req.header('X-Tenant-ID')
     const requestedTenantSlug = c.req.header('X-Tenant-Slug')
 
     const userTenantId = c.get('tenantId') // This is currently the user's home tenant ID
     const isPlatformAdmin = c.get('isSystemUser') // This is now user.isPlatformAdmin
 
+    log.info({ requestedTenantId, requestedTenantSlug, userTenantId, isPlatformAdmin }, '[TENANT] switch check')
+
     // Default case: No switching requested
     if (!requestedTenantId && !requestedTenantSlug) {
+        log.info('[TENANT] No tenant switch requested, passing through')
         await next()
         return
     }
 
-    // Switching requested
-    // Check if effective tenant changes (need to resolve slug first if used)
-    let targetTenantId = requestedTenantId
+    log.info('[TENANT] Tenant switch requested')
 
+    // Switching requested - resolve to UUID for comparison
+    let targetTenantId: string | undefined = requestedTenantId
+
+    // If slug is provided, resolve it to UUID
     if (requestedTenantSlug) {
-        // Resolve slug to ID
         const targetTenant = await TenantRepository.findBySlug(requestedTenantSlug)
         if (targetTenant) {
             targetTenantId = targetTenant.id
@@ -143,11 +211,23 @@ export const tenantMiddleware = createMiddleware<AppContext>(async (c, next) => 
         }
     }
 
+    // If requestedTenantId looks like a slug (not a UUID), try to resolve it
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    if (targetTenantId && !uuidRegex.test(targetTenantId)) {
+        const targetTenant = await TenantRepository.findBySlug(targetTenantId)
+        if (targetTenant) {
+            targetTenantId = targetTenant.id
+        } else {
+            return c.json({ success: false, error: 'Target tenant not found', code: 'TENANT_NOT_FOUND' }, 404)
+        }
+    }
+
+    // Check if this is actually a tenant switch (comparing UUIDs now)
     if (targetTenantId && targetTenantId !== userTenantId) {
+        // User is trying to switch to a different tenant
         if (isPlatformAdmin) {
             // Validate target tenant exists (if we haven't already from slug fetch)
-            // If we resolved by slug, we know it exists. If passed by ID, verify.
-            if (!requestedTenantSlug) {
+            if (!requestedTenantSlug && uuidRegex.test(requestedTenantId || '')) {
                 const targetTenant = await TenantRepository.findById(targetTenantId)
                 if (!targetTenant) {
                     return c.json({ success: false, error: 'Target tenant not found', code: 'TENANT_NOT_FOUND' }, 404)
@@ -156,9 +236,9 @@ export const tenantMiddleware = createMiddleware<AppContext>(async (c, next) => 
 
             // Switch context
             c.set('tenantId', targetTenantId)
-            console.log(`🔄 [TENANT] Impersonating tenant: ${targetTenantId}`)
+            log.info({ targetTenantId }, '[TENANT] Impersonating tenant')
         } else {
-            console.warn(`🛑 [TENANT] Unauthorized impersonation attempt by user ${c.get('userId')}`)
+            log.warn({ userId: c.get('userId'), userTenantId, targetTenantId }, '[TENANT] Unauthorized impersonation attempt')
             return c.json(
                 {
                     success: false,
@@ -168,6 +248,9 @@ export const tenantMiddleware = createMiddleware<AppContext>(async (c, next) => 
                 403
             )
         }
+    } else {
+        // Same tenant or no valid target - just pass through
+        log.info('[TENANT] Same tenant request, passing through')
     }
 
     await next()

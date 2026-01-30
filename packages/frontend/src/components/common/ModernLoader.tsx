@@ -1,5 +1,7 @@
 import React from 'react';
-import { Box, Typography, keyframes, alpha } from '@mui/material';
+import { Box, Typography } from '@mui/material';
+import { alpha } from '@mui/material/styles';
+import { keyframes } from '@mui/material/styles';
 
 // 🎨 Animations
 const spin = keyframes`
@@ -18,17 +20,17 @@ const shimmer = keyframes`
   100% { background-position: 200% 0; }
 `;
 
-interface ModernLoaderProps {
+export interface ModernLoaderProps {
   open: boolean;
   message?: string;
   subMessage?: string;
 }
 
-const ModernLoader: React.FC<ModernLoaderProps> = ({ 
+export default function ModernLoader({ 
   open, 
   message = "Processing Securely",
   subMessage = "Please wait while we verify your credentials..."
-}) => {
+}: ModernLoaderProps) {
   if (!open) return null;
 
   return (
@@ -126,6 +128,4 @@ const ModernLoader: React.FC<ModernLoaderProps> = ({
       </Typography>
     </Box>
   );
-};
-
-export default ModernLoader;
+}

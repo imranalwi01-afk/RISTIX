@@ -85,7 +85,7 @@ interface Role {
   bankingAccess?: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
   isActive: boolean;
   isBuiltIn: boolean;
-  permissions: Permission[];
+  permissions: Record<string, Permission[]>; // Grouped by category
   assignedUsers: number;
   createdBy: string;
   createdAt: string;
@@ -103,6 +103,8 @@ interface Permission {
   category: 'CORE' | 'BANKING' | 'IFRS9' | 'REPORTING' | 'ADMIN';
   riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   requiresApproval: boolean;
+  requiredApprovalLevel?: number | null;
+  requiredApprovers?: number;
   bankingSpecific: boolean;
   syariahRequired?: boolean;
 }
@@ -133,6 +135,11 @@ const RoleCRUDOperations: React.FC<RoleCRUDOperationsProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // Helper function to flatten grouped permissions
+  const flattenPermissions = (groupedPermissions: Record<string, Permission[]>): Permission[] => {
+    return Object.values(groupedPermissions).flat();
+  };
 
   // Dialog states
   const [crudDialog, setCrudDialog] = useState<{
@@ -329,9 +336,9 @@ const RoleCRUDOperations: React.FC<RoleCRUDOperationsProps> = ({
       level: role.level,
       bankingAccess: role.bankingAccess || 'CONVENTIONAL',
       isActive: role.isActive,
-      permissions: role.permissions.map(p => p.id)
+      permissions: flattenPermissions(role.permissions).map(p => p.id)
     });
-    setSelectedPermissions(role.permissions.map(p => p.id));
+    setSelectedPermissions(flattenPermissions(role.permissions).map(p => p.id));
     setFormErrors({});
     setActiveStep(0);
   };
@@ -458,7 +465,7 @@ const RoleCRUDOperations: React.FC<RoleCRUDOperationsProps> = ({
       case 0: // Basic Information
         return (
           <Grid container spacing={3}>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <TextField
                 fullWidth
                 label="Role Name *"
@@ -471,7 +478,7 @@ const RoleCRUDOperations: React.FC<RoleCRUDOperationsProps> = ({
                 inputProps={{ style: { textTransform: 'uppercase' } }}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <TextField
                 fullWidth
                 label="Display Name *"
@@ -483,7 +490,7 @@ const RoleCRUDOperations: React.FC<RoleCRUDOperationsProps> = ({
                 disabled={crudDialog.mode === 'view' || crudDialog.mode === 'delete'}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <TextField
                 fullWidth
                 label="Description"
@@ -503,7 +510,7 @@ const RoleCRUDOperations: React.FC<RoleCRUDOperationsProps> = ({
       case 1: // Role Configuration
         return (
           <Grid container spacing={3}>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <FormControl fullWidth>
                 <InputLabel>Role Type *</InputLabel>
                 <Select
@@ -522,7 +529,7 @@ const RoleCRUDOperations: React.FC<RoleCRUDOperationsProps> = ({
               </FormControl>
             </Grid>
 
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <FormControl fullWidth>
                 <InputLabel>Role Level *</InputLabel>
                 <Select
@@ -541,7 +548,7 @@ const RoleCRUDOperations: React.FC<RoleCRUDOperationsProps> = ({
               </FormControl>
             </Grid>
 
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <FormControl fullWidth>
                 <InputLabel>Banking Access</InputLabel>
                 <Select
@@ -560,7 +567,7 @@ const RoleCRUDOperations: React.FC<RoleCRUDOperationsProps> = ({
               </FormControl>
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <FormControlLabel
                 control={
                   <Switch
@@ -672,7 +679,7 @@ const RoleCRUDOperations: React.FC<RoleCRUDOperationsProps> = ({
 
             <Paper sx={{ p: 3, mb: 2 }}>
               <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Typography variant="subtitle2">Basic Information</Typography>
                   <Divider sx={{ my: 1 }} />
                   <Typography variant="body2">
@@ -692,7 +699,7 @@ const RoleCRUDOperations: React.FC<RoleCRUDOperationsProps> = ({
                   </Typography>
                 </Grid>
 
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Typography variant="subtitle2">Configuration</Typography>
                   <Divider sx={{ my: 1 }} />
                   {formData.bankingAccess && (

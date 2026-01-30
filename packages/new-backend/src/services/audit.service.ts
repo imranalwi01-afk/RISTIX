@@ -1,13 +1,17 @@
-import { db } from '../config/database'
+import { tenantDb } from '../config/database'
 import { auditLogs, userActivityLogs, dataAccessLogs, calculationAuditLogs } from '../db/schema'
 import type { NewAuditLog, NewUserActivityLog, NewDataAccessLog, NewCalculationAuditLog } from '../db/schema'
 
 /**
- * Core audit logging function
+ * Core audit logging function.
+ * Uses tenantDb since audit schema exists in tenant database.
+ * 
+ * @param params - Partial audit log data used to create the log entry
+ * @returns A Promise that resolves when the log is written, or catches error silently
  */
 export const logAuditEvent = async (params: Partial<NewAuditLog>): Promise<void> => {
     try {
-        await db.insert(auditLogs).values({
+        await tenantDb.insert(auditLogs).values({
             eventType: params.eventType || 'unknown',
             action: params.action || 'unknown',
             ...params
@@ -19,11 +23,14 @@ export const logAuditEvent = async (params: Partial<NewAuditLog>): Promise<void>
 }
 
 /**
- * Log user activity
+ * Log user activity.
+ * 
+ * @param params - Partial user activity log data
+ * @returns A Promise that resolves when the log is written
  */
 export const logUserActivity = async (params: Partial<NewUserActivityLog>): Promise<void> => {
     try {
-        await db.insert(userActivityLogs).values({
+        await tenantDb.insert(userActivityLogs).values({
             userId: params.userId!,
             activityType: params.activityType!,
             ...params
@@ -34,11 +41,14 @@ export const logUserActivity = async (params: Partial<NewUserActivityLog>): Prom
 }
 
 /**
- * Log data access
+ * Log data access.
+ * 
+ * @param params - Partial data access log data
+ * @returns A Promise that resolves when the log is written
  */
 export const logDataAccess = async (params: Partial<NewDataAccessLog>): Promise<void> => {
     try {
-        await db.insert(dataAccessLogs).values({
+        await tenantDb.insert(dataAccessLogs).values({
             userId: params.userId!,
             accessType: params.accessType!,
             resourceType: params.resourceType!,
@@ -50,11 +60,14 @@ export const logDataAccess = async (params: Partial<NewDataAccessLog>): Promise<
 }
 
 /**
- * Log calculation execution
+ * Log calculation execution.
+ * 
+ * @param params - Partial calculation audit log data
+ * @returns A Promise that resolves when the log is written
  */
 export const logCalculation = async (params: Partial<NewCalculationAuditLog>): Promise<void> => {
     try {
-        await db.insert(calculationAuditLogs).values({
+        await tenantDb.insert(calculationAuditLogs).values({
             userId: params.userId!,
             calculationType: params.calculationType!,
             calculationDate: params.calculationDate!,
@@ -83,7 +96,7 @@ export const logAuth = {
             description: 'User logged in successfully',
             ipAddress,
             userAgent,
-            riskLevel: 'low'
+            // riskLevel: 'low'
         })
     },
 
@@ -94,7 +107,7 @@ export const logAuth = {
             action: 'login_failed',
             description: `Login failed for ${email}: ${reason || 'Invalid credentials'}`,
             ipAddress,
-            riskLevel: 'medium',
+            // riskLevel: 'medium',
             entityType: 'user',
             entityName: email
         })
@@ -108,7 +121,7 @@ export const logAuth = {
             action: 'logout',
             description: 'User logged out',
             ipAddress,
-            riskLevel: 'low'
+            // riskLevel: 'low'
         })
     },
 
@@ -119,7 +132,7 @@ export const logAuth = {
             eventType: 'auth',
             action: 'session_expired',
             description: 'User session expired',
-            riskLevel: 'low'
+            // riskLevel: 'low'
         })
     }
 }
@@ -144,7 +157,7 @@ export const logDataChange = {
             entityId: resourceId,
             newValues,
             description: `Created ${resource} ${resourceId}`,
-            riskLevel: 'medium'
+            // riskLevel: 'medium'
         })
     },
 
@@ -171,7 +184,7 @@ export const logDataChange = {
             newValues,
             changedFields,
             description: `Updated ${resource} ${resourceId} (${changedFields.length} fields changed)`,
-            riskLevel: 'medium'
+            // riskLevel: 'medium'
         })
     },
 
@@ -191,7 +204,7 @@ export const logDataChange = {
             entityId: resourceId,
             oldValues,
             description: `Deleted ${resource} ${resourceId}`,
-            riskLevel: 'high'
+            // riskLevel: 'high'
         })
     }
 }
@@ -217,7 +230,7 @@ export const logPermission = {
             entityName: roleName,
             newValues: { userId, roleId, roleName },
             description: `Assigned role "${roleName}" to user`,
-            riskLevel: 'high'
+            // riskLevel: 'high'
         })
     },
 
@@ -238,7 +251,7 @@ export const logPermission = {
             entityName: roleName,
             oldValues: { userId, roleId, roleName },
             description: `Revoked role "${roleName}" from user`,
-            riskLevel: 'high'
+            // riskLevel: 'high'
         })
     },
 
@@ -261,7 +274,7 @@ export const logPermission = {
             oldValues: oldPermissions,
             newValues: newPermissions,
             description: `Updated permissions for role "${roleName}"`,
-            riskLevel: 'critical'
+            // riskLevel: 'critical'
         })
     }
 }
@@ -281,7 +294,7 @@ export const logJob = {
             entityName: jobName,
             newValues: { jobType },
             description: `Created job definition "${jobName}"`,
-            riskLevel: 'medium'
+            // riskLevel: 'medium'
         })
     },
 
@@ -303,7 +316,7 @@ export const logJob = {
             entityName: jobName,
             newValues: { jobType, parameters },
             description: `Triggered job "${jobName}"`,
-            riskLevel: jobType.includes('ECL') ? 'high' : 'medium'
+            // riskLevel: jobType.includes('ECL') ? 'high' : 'medium'
         })
     },
 
@@ -315,9 +328,9 @@ export const logJob = {
             entityType: 'job_execution',
             entityId: executionId,
             entityName: jobName,
-            executionTimeMs: duration,
+            // executionTimeMs: duration,
             description: `Job "${jobName}" completed successfully`,
-            riskLevel: 'low'
+            // riskLevel: 'low'
         })
     },
 
@@ -331,7 +344,7 @@ export const logJob = {
             entityName: jobName,
             newValues: { error },
             description: `Job "${jobName}" failed: ${error}`,
-            riskLevel: 'high'
+            // riskLevel: 'high'
         })
     }
 }
@@ -355,7 +368,7 @@ export const logApproval = {
             entityId: requestId,
             entityName: title,
             description: `Created approval request: ${title}`,
-            riskLevel: 'medium'
+            // riskLevel: 'medium'
         })
     },
 
@@ -376,7 +389,7 @@ export const logApproval = {
             entityName: title,
             newValues: { comment },
             description: `Approved: ${title}`,
-            riskLevel: 'high'
+            // riskLevel: 'high'
         })
     },
 
@@ -397,7 +410,7 @@ export const logApproval = {
             entityName: title,
             newValues: { reason },
             description: `Rejected: ${title}`,
-            riskLevel: 'high'
+            // riskLevel: 'high'
         })
     }
 }
@@ -423,7 +436,7 @@ export const logSystem = {
             oldValues: { [configKey]: oldValue },
             newValues: { [configKey]: newValue },
             description: `System configuration changed: ${configKey}`,
-            riskLevel: 'critical'
+            // riskLevel: 'critical'
         })
     },
 
@@ -436,7 +449,7 @@ export const logSystem = {
             entityType: 'backup',
             entityId: backupId,
             description: 'Database backup created',
-            riskLevel: 'medium'
+            // riskLevel: 'medium'
         })
     }
 }

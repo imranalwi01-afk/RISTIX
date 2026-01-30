@@ -95,7 +95,7 @@ export class AuthenticationService {
 
       // ✅ Use IAF environment configuration
       const config = backendEnvironmentLoader.getConfiguration();
-const iafDbConfig = config.database;
+      const iafDbConfig = config.database;
 
       console.log('🔍 Debug - iafDbConfig:', JSON.stringify(iafDbConfig, null, 2));
       console.log('🔍 Debug - iafDbConfig.platform:', iafDbConfig?.platform);
@@ -167,7 +167,7 @@ const iafDbConfig = config.database;
 
       // ✅ STEP 1: Always check platform admin users first
       const platformUser = await this.findPlatformUser(email);
-      
+
       if (platformUser) {
         console.log(`👑 Found platform admin user: ${email}`);
         return await this.authenticatePlatformUser(platformUser, password, email);
@@ -177,7 +177,7 @@ const iafDbConfig = config.database;
       if (tenantId) {
         console.log(`🏢 Checking tenant user: ${email} in tenant: ${tenantId}`);
         const tenantUser = await this.findTenantUser(email, tenantId);
-        
+
         if (tenantUser) {
           console.log(`🏦 Found tenant user: ${email}`);
           return await this.authenticateTenantUser(tenantUser, password, email, tenantId);
@@ -187,7 +187,7 @@ const iafDbConfig = config.database;
       // ✅ STEP 3: User not found in either system
       console.log(`❌ User not found: ${email}`);
       await this.logAuthEvent('unknown', 'LOGIN_FAILED', `User not found: ${email}`, tenantId);
-      
+
       return {
         success: false,
         error: 'Invalid email or password'
@@ -209,7 +209,7 @@ const iafDbConfig = config.database;
 
       // ✅ Verify password
       const isPasswordValid = await bcrypt.compare(password, user.password_hash);
-      
+
       if (!isPasswordValid) {
         console.log(`❌ Invalid password for platform user: ${email}`);
         await this.logAuthEvent(user.id, 'LOGIN_FAILED', `Invalid password for platform user: ${email}`);
@@ -242,7 +242,7 @@ const iafDbConfig = config.database;
       await this.logAuthEvent(user.id, 'LOGIN_SUCCESS', `Platform user logged in successfully: ${email}`);
 
       console.log(`✅ Platform user authentication successful: ${email}`);
-      
+
       return {
         success: true,
         user: userInfo,
@@ -265,13 +265,13 @@ const iafDbConfig = config.database;
 
       // ✅ Verify password
       const isPasswordValid = await bcrypt.compare(password, user.password_hash);
-      
+
       if (!isPasswordValid) {
         console.log(`❌ Invalid password for tenant user: ${email}`);
         await this.logAuthEvent(user.id, 'LOGIN_FAILED', `Invalid password for tenant user: ${email}`, tenantId);
         return {
           success: false,
-          error: 'Invalid email or password'  
+          error: 'Invalid email or password'
         };
       }
 
@@ -321,12 +321,12 @@ const iafDbConfig = config.database;
   private async findPlatformUser(email: string): Promise<any> {
     try {
       console.log(`🔍 Executing platform user query for: ${email}`);
-      
+
       // 🩹 FIXED: Ensure connection is initialized
       await this.initializePlatformConnection();
-      
+
       const client = await this.platformDB!.connect();
-      
+
       try {
         // 🩹 CRITICAL FIX: Use correct table name (platform_admin.users not platform_users)
         const query = `
@@ -385,13 +385,13 @@ const iafDbConfig = config.database;
   private async findTenantUser(email: string, tenantId: string): Promise<any> {
     try {
       console.log(`🔍 Looking up tenant user: ${email} for tenant: ${tenantId}`);
-      
+
       // ✅ STEP 1: Get tenant info from platform database
       await this.initializePlatformConnection();
       const platformClient = await this.platformDB!.connect();
-      
+
       let tenantInfo: any = null;
-      
+
       try {
         const tenantQuery = `
           SELECT 
@@ -428,7 +428,7 @@ const iafDbConfig = config.database;
 
       // ✅ Use IAF environment configuration
       const config = backendEnvironmentLoader.getConfiguration();
-const iafDbConfig = config.database;
+      const iafDbConfig = config.database;
 
       const tenantPool = new Pool({
         host: iafDbConfig.tenant.host,
@@ -449,7 +449,7 @@ const iafDbConfig = config.database;
       console.log(`🔗 Connecting to tenant DB: ${iafDbConfig.tenant.host}:${iafDbConfig.tenant.port}/${tenantDatabaseName}`);
 
       const tenantClient = await tenantPool.connect();
-      
+
       try {
         // Query the actual tenant user table
         const userQuery = `
@@ -507,7 +507,7 @@ const iafDbConfig = config.database;
         user.tenantName = tenantInfo.tenant_name;
         user.bankingType = tenantInfo.banking_type;
         user.displayName = tenantInfo.display_name;
-        
+
         // ✅ Map position to role for compatibility
         user.role = this.mapPositionToRole(user.position);
 
@@ -631,7 +631,7 @@ const iafDbConfig = config.database;
       console.log(`✅ Found ${uniquePermissions.length} permissions for user ${userId}:`, uniquePermissions);
 
       // If user has admin roles, ensure they get full access
-      const hasAdminRole = permissionsResult.rows.some(row =>
+      const hasAdminRole = permissionsResult.rows.some((row: any) =>
         row.role_code === 'IAF_TENANT_SUPERADMIN' || row.role_code === 'IAF_TENANT_ADMIN'
       );
 
@@ -699,7 +699,7 @@ const iafDbConfig = config.database;
   private async buildPlatformUserInfo(user: any): Promise<UserInfo> {
     // Platform users get default admin permissions
     const defaultPlatformPermissions = ['all', 'users_read', 'users_create', 'users_update', 'users_delete', 'system_manage', 'platform_admin'];
-    
+
     return {
       id: user.id,
       username: user.username,
@@ -726,7 +726,7 @@ const iafDbConfig = config.database;
     try {
       await this.initializePlatformConnection();
       const client = await this.platformDB!.connect();
-      
+
       try {
         const tenantQuery = `
           SELECT 
@@ -746,7 +746,7 @@ const iafDbConfig = config.database;
           actualTenantUuid = tenant.id; // ✅ USE UUID, not slug
           tenantSlug = tenant.tenant_slug;
           bankingType = tenant.banking_type;
-          
+
           console.log(`✅ Found tenant for JWT: UUID=${actualTenantUuid}, slug=${tenantSlug}`);
         } else {
           console.log(`❌ Tenant not found for JWT token: ${tenantIdStr}`);
@@ -823,7 +823,7 @@ const iafDbConfig = config.database;
 
     // Generate session ID for both tokens
     const sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substring(2, 11);
-    
+
     const tokenPayload = {
       userId: user.id,
       username: user.username,
@@ -870,7 +870,7 @@ const iafDbConfig = config.database;
     try {
       await this.initializePlatformConnection();
       const client = await this.platformDB!.connect();
-      
+
       try {
         // 🩹 FIXED: Use correct table name with parameterized query
         await client.query(
@@ -891,9 +891,9 @@ const iafDbConfig = config.database;
       // Get tenant info to find the database name
       await this.initializePlatformConnection();
       const platformClient = await this.platformDB!.connect();
-      
+
       let tenant: any = null;
-      
+
       try {
         const tenantQuery = `
           SELECT tenant_slug, database_name 
@@ -901,7 +901,7 @@ const iafDbConfig = config.database;
           WHERE tenant_slug = $1
         `;
         const tenantResult = await platformClient.query(tenantQuery, [tenantId]);
-        
+
         if (tenantResult.rows.length > 0) {
           tenant = tenantResult.rows[0];
         }
@@ -920,7 +920,7 @@ const iafDbConfig = config.database;
 
         const tenantPool = await this.getTenantConnection(tenant.tenant_slug, tenant.database_name);
         const tenantClient = await tenantPool.connect();
-        
+
         try {
           // 🩹 FIXED: Use correct table name with parameterized query
           await tenantClient.query(
@@ -1015,7 +1015,7 @@ const iafDbConfig = config.database;
     try {
       await this.initializePlatformConnection();
       const client = await this.platformDB!.connect();
-      
+
       try {
         // 🩹 FIXED: Use correct table name (platform_admin.users not platform_users)
         const query = `
@@ -1056,7 +1056,7 @@ const iafDbConfig = config.database;
 
       // ✅ Use IAF environment configuration
       const config = backendEnvironmentLoader.getConfiguration();
-const iafDbConfig = config.database;
+      const iafDbConfig = config.database;
 
       const tenantPool = new Pool({
         host: iafDbConfig.tenant.host,
@@ -1120,7 +1120,7 @@ const iafDbConfig = config.database;
     try {
       await this.initializePlatformConnection();
       const client = await this.platformDB!.connect();
-      
+
       try {
         // 🩹 FIXED: Create audit schema and table if not exists
         await client.query(`
@@ -1136,11 +1136,11 @@ const iafDbConfig = config.database;
             created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
           );
         `);
-        
+
         // ✅ FIXED: Properly handle tenant UUID lookup
         let tenantUuid = null;
         const actualUserId = userId === 'unknown' ? null : userId;
-        
+
         if (tenantSlug && tenantSlug !== 'unknown') {
           try {
             // 🩹 FIXED: Use correct column name with parameterized query
@@ -1148,7 +1148,7 @@ const iafDbConfig = config.database;
               SELECT id FROM platform_admin.tenants WHERE tenant_slug = $1
             `;
             const tenantResult = await client.query(tenantLookupQuery, [tenantSlug]);
-            
+
             if (tenantResult.rows.length > 0) {
               tenantUuid = tenantResult.rows[0].id;
             }
@@ -1156,7 +1156,7 @@ const iafDbConfig = config.database;
             console.warn('Could not resolve tenant UUID for audit log, using NULL');
           }
         }
-        
+
         const query = `
           INSERT INTO platform_audit.global_audit_log (
             tenant_id, user_id, event_type, action, description, created_at
@@ -1165,12 +1165,12 @@ const iafDbConfig = config.database;
 
         await client.query(query, [
           tenantUuid,
-          actualUserId, 
+          actualUserId,
           eventType,
           'AUTH',
           description
         ]);
-        
+
       } finally {
         client.release();
       }
@@ -1286,7 +1286,7 @@ export const authenticationService = AuthenticationService.getInstance();
 // Export types
 export type {
   LoginCredentials,
-  RegisterInput,  
+  RegisterInput,
   AuthResult,
   UserInfo,
   RefreshTokenResult

@@ -38,7 +38,7 @@ export const authDebugger = {
       hasRefreshToken: false,
       backendUrl: typeof window !== 'undefined' && window.location.hostname.includes('danafin.com')
         ? 'https://iaf-ifrs-be.danafin.com'
-        : 'https://bifrs9-iaf.ifrspro.id'
+        : 'https://iaf-ifrs-be.ifrspro.id'
     };
 
     if (typeof window !== 'undefined') {
@@ -118,7 +118,7 @@ export const authDebugger = {
 
     const backendUrl = typeof window !== 'undefined' && window.location.hostname.includes('danafin.com')
       ? 'https://iaf-ifrs-be.danafin.com'
-      : 'https://bifrs9-iaf.ifrspro.id';
+      : 'https://iaf-ifrs-be.ifrspro.id';
 
     try {
       console.log('🔍 Testing token validity...');

@@ -1,2 +1,13 @@
 export { env, isProduction, isDevelopment } from './env'
-export { db, legacyDb, closeDatabase, connection } from './database'
+export {
+    db,
+    platformDb,
+    sharedDb,
+    tenantDb,
+    legacyDb,
+    closeDatabase,
+    platformConnection,
+    sharedConnection,
+    tenantConnection,
+    legacyConnection,
+} from './database'

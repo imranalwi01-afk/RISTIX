@@ -1,29 +1,12 @@
-import { app } from './app'
-import { env, closeDatabase } from './config'
+/**
+ * Main entry point
+ * Starts the Bun server with Socket.IO, Bull queues, and all integrations
+ */
 
-console.log(`
-╔════════════════════════════════════════════════════════╗
-║        IFRS9 New Backend - Hono + Drizzle + Bun        ║
-╠════════════════════════════════════════════════════════╣
-║  Runtime: Bun ${Bun.version.padEnd(42)}║
-║  Environment: ${env.NODE_ENV.padEnd(39)}║
-║  Port: ${env.PORT.toString().padEnd(46)}║
-╚════════════════════════════════════════════════════════╝
-`)
+import { startServer } from './server'
 
-// Graceful shutdown
-const shutdown = async () => {
-    console.log('\n🛑 Shutting down gracefully...')
-    await closeDatabase()
-    process.exit(0)
-}
+// Start the integrated server and get configuration
+const serverConfig = await startServer()
 
-process.on('SIGINT', shutdown)
-process.on('SIGTERM', shutdown)
-
-// Export for Bun server
-export default {
-    port: env.PORT,
-    hostname: env.HOST,
-    fetch: app.fetch,
-}
+// Export for Bun.serve - Bun will automatically serve this
+export default serverConfig

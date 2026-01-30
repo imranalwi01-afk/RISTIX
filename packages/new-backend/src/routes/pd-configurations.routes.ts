@@ -74,7 +74,16 @@ const ErrorResponse = z.object({
 // ROUTES
 // ============================================================================
 
-// GET /api/v1/banking/parameters/pd-configurations
+// ============================================================================
+// ROUTES
+// ============================================================================
+
+/**
+ * List PD Configurations.
+ * Retrieve a list of PD configurations with optional filtering.
+ * 
+ * @route GET /api/v1/banking/parameters/pd-configurations
+ */
 app.openapi(
     createRoute({
         method: 'get',
@@ -91,6 +100,7 @@ app.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: PdListResponse } }, description: 'List of PD configurations' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Server Error' }
         }
     }),
@@ -103,7 +113,12 @@ app.openapi(
     }
 )
 
-// GET /api/v1/banking/parameters/pd-configurations/:id
+/**
+ * Get PD Configuration.
+ * Retrieve a specific PD configuration by ID.
+ * 
+ * @route GET /api/v1/banking/parameters/pd-configurations/:id
+ */
 app.openapi(
     createRoute({
         method: 'get',
@@ -115,7 +130,9 @@ app.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: PdResponse } }, description: 'PD Configuration details' },
-            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' }
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
+            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
     async (c) => {
@@ -125,7 +142,12 @@ app.openapi(
     }
 )
 
-// POST /api/v1/banking/parameters/pd-configurations
+/**
+ * Create PD Configuration.
+ * Create a new PD configuration.
+ * 
+ * @route POST /api/v1/banking/parameters/pd-configurations
+ */
 app.openapi(
     createRoute({
         method: 'post',
@@ -136,7 +158,9 @@ app.openapi(
             body: { content: { 'application/json': { schema: CreatePdConfigSchema } } }
         },
         responses: {
-            201: { content: { 'application/json': { schema: PdResponse } }, description: 'Created' }
+            201: { content: { 'application/json': { schema: PdResponse } }, description: 'Created' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
     async (c) => {
@@ -146,7 +170,12 @@ app.openapi(
     }
 )
 
-// PUT /api/v1/banking/parameters/pd-configurations/:id
+/**
+ * Update PD Configuration.
+ * Update an existing PD configuration.
+ * 
+ * @route PUT /api/v1/banking/parameters/pd-configurations/:id
+ */
 app.openapi(
     createRoute({
         method: 'put',
@@ -158,7 +187,10 @@ app.openapi(
             body: { content: { 'application/json': { schema: UpdatePdConfigSchema } } }
         },
         responses: {
-            200: { content: { 'application/json': { schema: PdResponse } }, description: 'Updated' }
+            200: { content: { 'application/json': { schema: PdResponse } }, description: 'Updated' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
+            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
     async (c) => {
@@ -170,7 +202,12 @@ app.openapi(
     }
 )
 
-// DELETE /api/v1/banking/parameters/pd-configurations/:id
+/**
+ * Delete PD Configuration.
+ * Delete a PD configuration.
+ * 
+ * @route DELETE /api/v1/banking/parameters/pd-configurations/:id
+ */
 app.openapi(
     createRoute({
         method: 'delete',
@@ -181,7 +218,10 @@ app.openapi(
             params: z.object({ id: z.string().transform(Number) })
         },
         responses: {
-            200: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Deleted' }
+            200: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Deleted' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
+            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
     async (c) => {
@@ -192,6 +232,13 @@ app.openapi(
 )
 
 // Metadata endpoints
+
+/**
+ * Get Metadata Methods.
+ * Retrieve available methods metadata.
+ * 
+ * @route GET /api/v1/banking/parameters/pd-configurations/metadata/methods
+ */
 app.openapi(
     createRoute({
         method: 'get',
@@ -207,6 +254,12 @@ app.openapi(
     }
 )
 
+/**
+ * Get Metadata Population Types.
+ * Retrieve available population types metadata.
+ * 
+ * @route GET /api/v1/banking/parameters/pd-configurations/metadata/population-types
+ */
 app.openapi(
     createRoute({
         method: 'get',
@@ -222,4 +275,4 @@ app.openapi(
     }
 )
 
-export default app
+export const pdConfigurationsRoutes = app

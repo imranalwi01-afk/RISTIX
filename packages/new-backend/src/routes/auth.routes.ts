@@ -37,7 +37,6 @@ const UserSchema = z.object({
     firstName: z.string().optional().nullable(),
     lastName: z.string().optional().nullable(),
     tenantId: z.string().optional().nullable(),
-    isPlatformAdmin: z.boolean().optional(),
     permissions: z.array(z.string()),
     roles: z.array(z.string()),
 }).openapi('User')
@@ -127,34 +126,28 @@ authRoutes.openapi(
 
         const effect = pipe(
             authService.login(body, { ip, userAgent }),
-            Effect.flatMap(({ user, tokens }) =>
-                pipe(
-                    Effect.all([
-                        rbacService.getUserPermissions(user.id, user.tenantId),
-                        rbacService.getUserRoles(user.id, user.tenantId)
-                    ]),
-                    Effect.tap(() => {
-                        // Log successful login
-                        auditService.logAuth.login(user.id, user.tenantId, ip, userAgent)
-                        return Effect.succeed(void 0)
-                    }),
-                    Effect.map(([permissions, userRoles]) => ({
-                        user: {
-                            id: user.id,
-                            email: user.email,
-                            firstName: user.firstName,
-                            lastName: user.lastName,
-                            tenantId: user.tenantId,
-                            isPlatformAdmin: user.isPlatformAdmin,
-                            permissions,
-                            roles: userRoles.map((ur: any) => ur.role?.roleName ?? 'UNKNOWN'),
-                        },
-                        ...tokens,
-                        tokens,
-                        token: tokens.accessToken,
-                    }))
-                )
-            ),
+            Effect.tap(({ user, tokens }) => {
+                // Log successful login - extract tenantId from token (it's the resolved UUID)
+                const tokenPayload = JSON.parse(Buffer.from(tokens.accessToken.split('.')[1], 'base64').toString())
+                const resolvedTenantId = tokenPayload.tenantId
+                auditService.logAuth.login(user.id, resolvedTenantId, ip, userAgent)
+                return Effect.succeed(void 0)
+            }),
+            Effect.map(({ user, tokens }) => ({
+                user: {
+                    id: user.id,
+                    email: user.email,
+                    firstName: (user as any).firstName || '',
+                    lastName: (user as any).lastName || '',
+                    tenantId: user.tenantId,
+                    // authService.login returns roles/permissions mapped as strings
+                    permissions: (user as any).permissions ?? [],
+                    roles: (user as any).roles ?? [],
+                },
+                ...tokens,
+                tokens,
+                token: tokens.accessToken,
+            })),
             Effect.tapError((error) => {
                 // Log failed login
                 const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -243,7 +236,7 @@ authRoutes.openapi(
             success: true,
             message: 'Auth service is healthy',
             timestamp: new Date().toISOString(),
-        })
+        } as any)
     }
 )
 
@@ -336,7 +329,7 @@ authRoutes.openapi(
             success: true,
             message: 'Token is valid',
             user: c.get('user'),
-        })
+        } as any)
     }
 )
 
@@ -442,7 +435,7 @@ authRoutes.openapi(
         const ip = c.req.header('x-forwarded-for') || c.req.header('x-real-ip')
 
         if (!tokenId) {
-            return c.json({ success: true, message: 'Logged out' })
+            return c.json({ success: true, message: 'Logged out' } as any)
         }
 
         const effect = pipe(
@@ -463,3 +456,24 @@ authRoutes.openapi(
         return runEffect(c, effect)
     }
 )
+
+/**
+ * TEMPORARY: Hash password for debugging
+ * POST /auth/hash-password
+ */
+authRoutes.post('/hash-password', async (c) => {
+    const body = await c.req.json();
+    const { password } = body;
+    
+    if (!password) {
+        return c.json({ error: 'Password required' }, 400);
+    }
+    
+    const hash = await authService.hashPassword(password);
+    
+    return c.json({
+        password,
+        hash,
+        sql: `UPDATE core.users SET password_hash = '${hash}' WHERE email = 'admin@iaf.co.id';`
+    });
+});

@@ -3,10 +3,11 @@
 
 import React from 'react';
 import dynamic from 'next/dynamic';
+import type { AdminAppProps } from '@/admin/AdminApp';
 
 // Dynamically import AdminApp to avoid SSR issues
-const AdminApp = dynamic(
-  () => import('../../admin/AdminApp'),
+const AdminApp = dynamic<AdminAppProps>(
+  () => import('../../admin/AdminApp').then(m => m.default),
   { 
     ssr: false,
     loading: () => (
@@ -27,7 +28,7 @@ const AdminApp = dynamic(
           height: '40px',
           animation: 'spin 2s linear infinite'
         }}></div>
-        <style jsx>{`
+        <style>{`
           @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }

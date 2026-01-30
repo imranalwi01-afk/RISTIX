@@ -418,7 +418,7 @@ export default function DataUploadPage() {
 
       <Grid container spacing={3}>
         {/* File Upload Section */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
@@ -487,7 +487,7 @@ export default function DataUploadPage() {
         </Grid>
 
         {/* Upload Statistics */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
@@ -496,7 +496,7 @@ export default function DataUploadPage() {
               </Typography>
 
               <Grid container spacing={2}>
-                <Grid item xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <Paper sx={{ p: 2, textAlign: 'center', backgroundColor: 'primary.light' }}>
                     <Typography variant="h4" color="primary.main">
                       {batches.length}
@@ -506,7 +506,7 @@ export default function DataUploadPage() {
                     </Typography>
                   </Paper>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <Paper sx={{ p: 2, textAlign: 'center', backgroundColor: 'success.light' }}>
                     <Typography variant="h4" color="success.main">
                       {batches.filter(b => b.status === 'completed').length}
@@ -516,7 +516,7 @@ export default function DataUploadPage() {
                     </Typography>
                   </Paper>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <Paper sx={{ p: 2, textAlign: 'center', backgroundColor: 'warning.light' }}>
                     <Typography variant="h4" color="warning.main">
                       {batches.filter(b => ['validating', 'processing'].includes(b.status)).length}
@@ -526,7 +526,7 @@ export default function DataUploadPage() {
                     </Typography>
                   </Paper>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <Paper sx={{ p: 2, textAlign: 'center', backgroundColor: 'error.light' }}>
                     <Typography variant="h4" color="error.main">
                       {batches.filter(b => ['invalid', 'failed'].includes(b.status)).length}
@@ -542,7 +542,7 @@ export default function DataUploadPage() {
         </Grid>
 
         {/* Upload History */}
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
@@ -692,7 +692,7 @@ export default function DataUploadPage() {
         <DialogContent>
           {selectedBatch && (
             <Grid container spacing={2}>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="subtitle2" gutterBottom>File Information</Typography>
                 <List dense>
                   <ListItem>
@@ -728,7 +728,7 @@ export default function DataUploadPage() {
                 </List>
               </Grid>
 
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 {selectedBatch.validationResults && (
                   <Box>
                     <Typography variant="subtitle2" gutterBottom>Validation Results</Typography>

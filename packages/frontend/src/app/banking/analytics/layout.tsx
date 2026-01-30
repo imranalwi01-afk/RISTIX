@@ -52,11 +52,15 @@ export default function AnalyticsLayout({ children }: AnalyticsLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
   const dispatch = useDispatch();
-
+  
   // Redux state
-  const { selectedView, realTimeEnabled, refreshInterval, filters, kpiMetrics } = useSelector((state: any) => state.analytics || {});
-  const { bankingMode } = useSelector((state: any) => state.configuration || {});
-
+  const selectedView = useSelector((state: any) => state.analytics?.selectedView);
+  const realTimeEnabled = useSelector((state: any) => state.analytics?.realTimeEnabled);
+  const refreshInterval = useSelector((state: any) => state.analytics?.refreshInterval);
+  const filters = useSelector((state: any) => state.analytics?.filters);
+  const kpiMetrics = useSelector((state: any) => state.analytics?.kpiMetrics);
+  const bankingMode = useSelector((state: any) => state.banking?.mode);
+  
   // Local state
   const [settingsAnchor, setSettingsAnchor] = useState<null | HTMLElement>(null);
   const [filtersAnchor, setFiltersAnchor] = useState<null | HTMLElement>(null);
@@ -160,7 +164,7 @@ export default function AnalyticsLayout({ children }: AnalyticsLayoutProps) {
                 Comprehensive IFRS 9 analytics, R integration, and business intelligence
               </Typography>
             </Box>
-
+            
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               {/* Banking Mode Indicator */}
               <Chip
@@ -169,7 +173,7 @@ export default function AnalyticsLayout({ children }: AnalyticsLayoutProps) {
                 variant="outlined"
                 size="small"
               />
-
+              
               {/* Real-time Toggle */}
               <FormControlLabel
                 control={
@@ -182,7 +186,7 @@ export default function AnalyticsLayout({ children }: AnalyticsLayoutProps) {
                 label="Real-time"
                 sx={{ '& .MuiFormControlLabel-label': { fontSize: '0.875rem' } }}
               />
-
+              
               {/* Settings Menu */}
               <Tooltip title="Analytics Settings">
                 <IconButton
@@ -192,7 +196,7 @@ export default function AnalyticsLayout({ children }: AnalyticsLayoutProps) {
                   <Settings sx={{ fontSize: 18 }} />
                 </IconButton>
               </Tooltip>
-
+              
               {/* Filters Menu */}
               <Tooltip title="Filters">
                 <IconButton
@@ -202,7 +206,7 @@ export default function AnalyticsLayout({ children }: AnalyticsLayoutProps) {
                   <FilterList sx={{ fontSize: 18 }} />
                 </IconButton>
               </Tooltip>
-
+              
               {/* Refresh Button */}
               <Tooltip title="Refresh Data">
                 <IconButton size="small">
@@ -355,7 +359,7 @@ export default function AnalyticsLayout({ children }: AnalyticsLayoutProps) {
 
       {/* Page Content */}
       <Box>
-        {children}
+        {children as any}
       </Box>
     </Box>
   );

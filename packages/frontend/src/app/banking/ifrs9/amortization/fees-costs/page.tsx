@@ -21,7 +21,7 @@ import {
     TablePagination,
     Button
 } from '@mui/material';
-import { Refresh as RefreshIcon } from '@mui/icons-material';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { useApi } from '@/hooks/useApi';
 
 interface FeesCost {

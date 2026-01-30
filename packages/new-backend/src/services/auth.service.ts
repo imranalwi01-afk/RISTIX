@@ -1,9 +1,11 @@
 import { Effect, pipe } from 'effect'
 import * as jose from 'jose'
-import { env } from '@/config/env'
+import crypto from 'crypto'
+import { env, isDevelopment, maskDatabaseUrl, getPlatformDatabaseUrl, getTenantDatabaseUrl, getDatabaseUrl } from '@/config/env'
+import { getDatabase } from '@/config/database' // ✅ Import dynamic DB factory
+import { redis } from '@/config/redis' // ✅ Import Redis for session management
 import {
     type User,
-    type NewSession,
     type NewUser,
 } from '@/db/schema'
 import {
@@ -15,42 +17,91 @@ import { AuthRepository } from '@/repositories/auth.repository'
 import { TenantRepository } from '@/repositories/tenant.repository'
 import { userRolesRepository } from '@/repositories/rbac.repository'
 
+/**
+ * @module AuthService
+ * Provides authentication and session management services.
+ * Handles login, logout, token generation, and password verification.
+ */
+
 // =============================================================================
 // TYPES
 // =============================================================================
 
+/**
+ * Input for the login operation.
+ */
 export interface LoginInput {
+    /** User's email address */
     email: string
+    /** User's plain text password */
     password: string
+    /** Optional tenant ID or slug for split authentication */
     tenantId?: string
 }
 
+/**
+ * Pair of JWT tokens issued upon successful authentication.
+ */
 export interface TokenPair {
+    /** Brief lived access token for authorization */
     accessToken: string
+    /** Longer lived refresh token for obtaining new access tokens */
     refreshToken: string
+    /** Expiry time for the access token in seconds */
     expiresIn: number
+    /** Expiry time for the refresh token in seconds */
     refreshExpiresIn: number
 }
 
+/**
+ * Structure of the JWT payload.
+ */
 export interface JwtPayload {
-    sub: string // userId
+    /** User ID (Subject) */
+    sub: string
+    /** User's email address */
     email: string
+    /** Optional tenant ID associated with the user */
     tenantId?: string
-    jti: string // token id
+    /** Unique Token ID (JWT ID) */
+    jti: string
+    /** Token type: either 'access' or 'refresh' */
     type: 'access' | 'refresh'
+    /** List of role codes assigned to the user */
     roles?: string[]
+    /** Primary/First role code */
     role?: string
-    permissions?: string[] // ✅ Add permissions field
+    /** List of permission codes assigned to the user */
+    permissions?: string[]
+    /** Calculated stakeholder type (banking, platform, etc.) */
+    stakeholderType?: string
 }
 
 // =============================================================================
 // JWT CONFIGURATION
 // =============================================================================
 
+/**
+ * Parse time string like '8h', '15m', '7d' to milliseconds
+ */
+function parseTimeToMs(timeStr: string): number {
+    const match = timeStr.match(/^(\d+)([smhd])$/)
+    if (!match) return 15 * 60 * 1000 // Default 15min
+    const value = parseInt(match[1], 10)
+    const unit = match[2]
+    switch (unit) {
+        case 's': return value * 1000
+        case 'm': return value * 60 * 1000
+        case 'h': return value * 60 * 60 * 1000
+        case 'd': return value * 24 * 60 * 60 * 1000
+        default: return value * 1000
+    }
+}
+
 const JWT_SECRET = new TextEncoder().encode(env.JWT_SECRET)
-const ACCESS_TOKEN_EXPIRY = '15m'
+const ACCESS_TOKEN_EXPIRY = env.JWT_EXPIRES_IN || '8h' // ✅ Use env variable
 const REFRESH_TOKEN_EXPIRY = '7d'
-const ACCESS_TOKEN_EXPIRY_MS = 15 * 60 * 1000 // 15 minutes
+const ACCESS_TOKEN_EXPIRY_MS = parseTimeToMs(ACCESS_TOKEN_EXPIRY) // ✅ Parse from env
 const REFRESH_TOKEN_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
 
 // =============================================================================
@@ -58,28 +109,34 @@ const REFRESH_TOKEN_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
 // =============================================================================
 
 /**
- * Generate a new JWT access token
- */
-/**
- * Generate a new JWT access token
+ * Generate a new JWT access token.
+ * 
+ * @param user - The user object to include in the payload
+ * @param tokenId - Unique identifier for the token
+ * @param tenantId - Optional tenant ID to associate with the token
+ * @param roles - List of roles to include
+ * @param permissions - List of permissions to include
+ * @param stakeholderType - The persona hint for the frontend
+ * @returns A signed JWT string
  */
 const generateAccessToken = async (
     user: User,
     tokenId: string,
     tenantId?: string,
     roles: string[] = [],
-    permissions: string[] = [] // ✅ Add permissions param
+    permissions: string[] = [],
+    stakeholderType: string = 'banking'
 ): Promise<string> => {
     return new jose.SignJWT({
         sub: user.id,
         email: user.email,
-        tenantId: tenantId ?? user.tenantId,
+        tenantId: tenantId ?? user.tenantId, // Use resolved tenantId if available
         jti: tokenId,
         type: 'access',
-        roles, // ✅ Include roles
-        role: roles[0], // ✅ Include primary role for backward compatibility
-        permissions, // ✅ Include permissions
-        isPlatformAdmin: user.isPlatformAdmin // ✅ Include platform admin flag
+        roles,
+        role: roles[0],
+        permissions,
+        stakeholderType,
     })
         .setProtectedHeader({ alg: 'HS256' })
         .setIssuedAt()
@@ -88,14 +145,23 @@ const generateAccessToken = async (
 }
 
 /**
- * Generate a new JWT refresh token
+ * Generate a new JWT refresh token.
+ * 
+ * @param user - The user object to include in the payload
+ * @param tokenId - Unique identifier for the token
+ * @param tenantId - Optional tenant ID to associate with the token
+ * @param roles - List of roles to include
+ * @param permissions - List of permissions to include
+ * @param stakeholderType - The persona hint for the frontend
+ * @returns A signed JWT string
  */
 const generateRefreshToken = async (
     user: User,
     tokenId: string,
     tenantId?: string,
     roles: string[] = [],
-    permissions: string[] = [] // ✅ Add permissions param
+    permissions: string[] = [],
+    stakeholderType: string = 'banking'
 ): Promise<string> => {
     return new jose.SignJWT({
         sub: user.id,
@@ -103,9 +169,10 @@ const generateRefreshToken = async (
         tenantId: tenantId ?? user.tenantId,
         jti: tokenId,
         type: 'refresh',
-        roles, // ✅ Include roles
-        permissions, // ✅ Include permissions
-        isPlatformAdmin: user.isPlatformAdmin, // ✅ Include platform admin flag
+        roles,
+        role: roles[0],
+        permissions,
+        stakeholderType,
     })
         .setProtectedHeader({ alg: 'HS256' })
         .setIssuedAt()
@@ -114,7 +181,11 @@ const generateRefreshToken = async (
 }
 
 /**
- * Verify and decode a JWT token
+ * Verify and decode a JWT token.
+ * 
+ * @param token - The JWT string to verify
+ * @returns The decoded payload as a JwtPayload object
+ * @throws {jose.errors.JWTInvalid} If the token is invalid or expired
  */
 export const verifyToken = async (token: string): Promise<JwtPayload> => {
     const { payload } = await jose.jwtVerify(token, JWT_SECRET)
@@ -126,17 +197,26 @@ export const verifyToken = async (token: string): Promise<JwtPayload> => {
 // =============================================================================
 
 /**
- * Hash a password using Bun's built-in password hashing
+ * Hash a password using Bun's built-in password hashing.
+ * 
+ * @param password - The plain text password to hash
+ * @returns A promise that resolves to the hashed password string
  */
 export const hashPassword = async (password: string): Promise<string> => {
-    return Bun.password.hash(password, {
+    const hash = await Bun.password.hash(password, {
         algorithm: 'bcrypt',
         cost: 10,
     })
+    console.log(`🔐 [HASH DEBUG] Password: "${password}" -> Hash: "${hash}"`);
+    return hash;
 }
 
 /**
- * Verify a password against a hash
+ * Verify a password against a hash.
+ * 
+ * @param password - The plain text password to verify
+ * @param hash - The stored password hash
+ * @returns A promise that resolves to true if the password matches, false otherwise
  */
 export const verifyPassword = async (password: string, hash: string): Promise<boolean> => {
     return Bun.password.verify(password, hash)
@@ -147,40 +227,92 @@ export const verifyPassword = async (password: string, hash: string): Promise<bo
 // =============================================================================
 
 /**
- * Login a user with email and password
+ * Login a user with email and password.
+ * 
+ * Supports Split Authentication:
+ * - If `tenantId` is provided: Authenticates against the Tenant-specific Database.
+ * - If `tenantId` is missing: Authenticates against the Platform/Core Database.
+ * 
+ * @param input - The login credentials and optional tenant ID
+ * @param metadata - Optional metadata like IP address and User Agent for logging
+ * @returns An Effect that succeeds with the user and token pair, or fails with a Database/Authentication error
  */
 export const login = (
     input: LoginInput,
     metadata?: { ip?: string; userAgent?: string }
 ): Effect.Effect<{ user: User; tokens: TokenPair }, DatabaseError | AuthenticationError> =>
     pipe(
-        // Resolve tenant ID if it's a slug
+        // 1. Resolve tenant ID (if provided)
         Effect.tryPromise({
             try: async () => {
-                if (!input.tenantId) return undefined
-                // If it's a UUID, return as is
+                if (!input.tenantId) return undefined // Platform Login
+
+                // Try looking up by ID (UUID) or Slug
+                const db = getDatabase(null) // Registry is in Platform/Core
+                
+                // 1. Try by exact ID (if it looks like a UUID)
                 const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+                let tenant = null
                 if (uuidRegex.test(input.tenantId)) {
-                    return input.tenantId
+                    tenant = await TenantRepository.findById(input.tenantId)
+                }
+                
+                // 2. Fallback to lookup by slug
+                if (!tenant) {
+                    tenant = await TenantRepository.findBySlug(input.tenantId)
                 }
 
-                // Otherwise lookup by slug
-                const tenant = await TenantRepository.findBySlug(input.tenantId)
-                return tenant?.id
+                console.log(`[AuthDebug] input.tenantId=${input.tenantId} -> foundTenant=${!!tenant} id=${tenant?.id}`);
+                if (!tenant) throw new Error('Tenant not found')
+                return tenant.id
             },
-            catch: (error) => new DatabaseError({ message: 'Tenant resolution failed', operation: 'query' })
+            catch: (error: any) =>
+                new DatabaseError({
+                    message: isDevelopment
+                        ? `Tenant resolution failed (Database: ${maskDatabaseUrl(getPlatformDatabaseUrl())})`
+                        : 'Tenant resolution failed',
+                    operation: 'query',
+                    cause: error
+                })
         }),
-        // Find user by email (and resolved tenantId)
+        // 2. Find user in the CORRECT database (check tenant DB first, then platform DB)
         Effect.flatMap((resolvedTenantId) =>
             pipe(
                 Effect.tryPromise({
-                    try: () => AuthRepository.findUserByEmail(input.email, resolvedTenantId),
-                    catch: (error) => new DatabaseError({ message: 'Failed to find user', operation: 'query' })
-                }),
-                Effect.map(user => ({ user, resolvedTenantId }))
+                    try: async () => {
+                        // ✅ Try tenant database first (for tenant-specific users)
+                        const tenantDb = getDatabase(resolvedTenantId)
+                        let user = await AuthRepository.findUserByEmail(tenantDb, input.email)
+                        let db = tenantDb
+
+                        // ✅ Fallback to platform database (for platform admins)
+                        if (!user) {
+                            console.log(`[AuthDebug] User not found in tenant DB, checking platform DB...`)
+                            const platformDb = getDatabase(null)
+                            user = await AuthRepository.findUserByEmail(platformDb, input.email)
+                            if (user) {
+                                console.log(`[AuthDebug] Platform user found: ${user.email}`)
+                                db = platformDb
+                            }
+                        } else {
+                            console.log(`[AuthDebug] User found in tenant DB: ${user.email}`)
+                        }
+
+                        return { user, resolvedTenantId, db }
+                    },
+                    catch: (error: any) =>
+                        new DatabaseError({
+                            message: isDevelopment
+                                ? `Failed to find user (Database: ${maskDatabaseUrl(getDatabaseUrl(resolvedTenantId))})`
+                                : 'Failed to find user',
+                            operation: 'query',
+                            cause: error
+                        })
+                })
             )
         ),
-        Effect.flatMap(({ user, resolvedTenantId }) => {
+        // 3. Verify User Existence & Status
+        Effect.flatMap(({ user, resolvedTenantId, db }) => {
             if (!user || !user.isActive) {
                 return Effect.fail(
                     new AuthenticationError({
@@ -190,37 +322,60 @@ export const login = (
                     })
                 )
             }
-            return Effect.succeed({ user, resolvedTenantId })
+            return Effect.succeed({ user, resolvedTenantId, db })
         }),
-        // Verify password
-        Effect.flatMap(({ user, resolvedTenantId }) =>
+        // 4. Verify password
+        Effect.flatMap(({ user, resolvedTenantId, db }) =>
             Effect.tryPromise({
                 try: async () => {
+                    console.log('🔐 [AUTH DEBUG] Password verification:', {
+                        email: user.email,
+                        inputPassword: input.password,
+                        storedHashPreview: user.passwordHash?.substring(0, 20) + '...',
+                        storedHashLength: user.passwordHash?.length
+                    });
+                    
                     const isValid = await verifyPassword(input.password, user.passwordHash)
+                    
+                    console.log('🔐 [AUTH DEBUG] Password verification result:', {
+                        email: user.email,
+                        isValid
+                    });
+                    
                     if (!isValid) {
                         throw new Error('Invalid password')
                     }
-                    return { user, resolvedTenantId }
+                    return { user, resolvedTenantId, db }
                 },
-                catch: () =>
-                    new AuthenticationError({
+                catch: (error) => {
+                    console.error('❌ [AUTH DEBUG] Password verification failed:', error);
+                    return new AuthenticationError({
                         message: 'Invalid email or password',
                         reason: 'invalid_credentials',
                         code: 'INVALID_CREDENTIALS',
-                    }),
+                    });
+                },
             })
         ),
-        // Load user roles
-        Effect.flatMap(({ user, resolvedTenantId }) =>
+        // 5. Load user roles (from the same DB)
+        Effect.flatMap(({ user, resolvedTenantId, db }) =>
             pipe(
-                userRolesRepository.findByUser(user.id, resolvedTenantId ?? user.tenantId),
+                // Use user.tenantId as stored in the user_roles table (could be slug or UUID)
+                userRolesRepository.findByUser(db, user.id, resolvedTenantId ?? user.tenantId ?? undefined),
                 Effect.map((userRolesList) => {
-                    const roles = userRolesList.map((ur) => ur.role.roleName)
+                    console.log(`[AuthDebug] userRolesList lookup for userId=${user.id} tenantId=${resolvedTenantId ?? user.tenantId} count=${userRolesList.length}`);
+                    console.log(`[AuthDebug] userRolesList raw data:`, JSON.stringify(userRolesList.map(ur => ({
+                        roleId: ur.roleId,
+                        roleCode: ur.role?.roleCode,
+                        permissionsCount: ur.role?.rolePermissions?.length
+                    })), null, 2));
 
-                    // ✅ Extract and flatten permissions from all roles
+                    const roles = userRolesList.map((ur) => ur.role.roleCode)
+                    console.log('🔍 DEBUG: extracted roles:', roles)
+
                     const permissionSet = new Set<string>()
                     userRolesList.forEach(ur => {
-                        // Add table-based permissions
+                        console.log('🔍 DEBUG: role:', ur.role.roleCode, 'rolePermissions:', ur.role.rolePermissions?.length)
                         if (ur.role.rolePermissions) {
                             ur.role.rolePermissions.forEach(rp => {
                                 if (rp.permission && rp.permission.code) {
@@ -229,47 +384,76 @@ export const login = (
                             })
                         }
                     })
+                    console.log('🔍 DEBUG: extracted permissions:', Array.from(permissionSet))
 
-                    const permissions = Array.from(permissionSet)
-
-                    return { user, resolvedTenantId, roles, permissions }
+                    return { user, resolvedTenantId, roles, permissions: Array.from(permissionSet), db }
                 })
             )
         ),
-        // Generate tokens and create session
-        Effect.flatMap(({ user, resolvedTenantId, roles, permissions }) =>
+        // 6. Generate tokens and store session in Redis
+        Effect.flatMap(({ user, resolvedTenantId, roles, permissions, db }) =>
             Effect.tryPromise({
                 try: async () => {
                     const accessTokenId = crypto.randomUUID()
                     const refreshTokenId = crypto.randomUUID()
                     const now = new Date()
 
+                    // Determine stakeholder type based on permissions
+                    let stakeholderType = 'banking'
+                    if (permissions.includes('MANAGE_SYSTEM') || permissions.includes('PLATFORM_ADMIN')) {
+                        stakeholderType = 'platform'
+                    } else if (permissions.includes('CONSULTANT_ACCESS')) {
+                        stakeholderType = 'consultant'
+                    } else if (permissions.includes('REGULATOR_ACCESS')) {
+                        stakeholderType = 'regulator'
+                    }
+
                     const [accessToken, refreshToken] = await Promise.all([
-                        generateAccessToken(user, accessTokenId, resolvedTenantId, roles, permissions),
-                        generateRefreshToken(user, refreshTokenId, resolvedTenantId, roles, permissions),
+                        generateAccessToken(user, accessTokenId, resolvedTenantId, roles, permissions, stakeholderType),
+                        generateRefreshToken(user, refreshTokenId, resolvedTenantId, roles, permissions, stakeholderType),
                     ])
 
-                    // Create session record
-                    await AuthRepository.createSession({
+                    // Store session in Redis (much better than database for sessions!)
+                    const sessionData = {
                         userId: user.id,
                         tenantId: resolvedTenantId ?? user.tenantId,
                         accessTokenId,
                         refreshTokenId,
                         ipAddress: metadata?.ip,
                         userAgent: metadata?.userAgent,
-                        expiresAt: new Date(now.getTime() + ACCESS_TOKEN_EXPIRY_MS),
-                        refreshExpiresAt: new Date(now.getTime() + REFRESH_TOKEN_EXPIRY_MS),
+                        roles,
+                        permissions,
+                        stakeholderType,
+                        createdAt: now.toISOString(),
+                        expiresAt: new Date(now.getTime() + ACCESS_TOKEN_EXPIRY_MS).toISOString(),
+                        refreshExpiresAt: new Date(now.getTime() + REFRESH_TOKEN_EXPIRY_MS).toISOString(),
                         isActive: true,
-                    })
+                    }
+
+                    // Store with TTL matching token expiry
+                    await Promise.all([
+                        redis.setex(
+                            `session:access:${accessTokenId}`,
+                            Math.floor(ACCESS_TOKEN_EXPIRY_MS / 1000),
+                            JSON.stringify(sessionData)
+                        ),
+                        redis.setex(
+                            `session:refresh:${refreshTokenId}`,
+                            Math.floor(REFRESH_TOKEN_EXPIRY_MS / 1000),
+                            JSON.stringify(sessionData)
+                        ),
+                        // Also index by user for easy logout-all
+                        redis.sadd(`user:sessions:${user.id}`, accessTokenId, refreshTokenId),
+                    ])
 
                     // Update last login
-                    await AuthRepository.updateLastLogin(user.id)
+                    await AuthRepository.updateLastLogin(db, user.id)
 
                     return {
                         user: {
                             ...user,
-                            roles, // Return roles in user object too if needed by frontend immediately
-                            permissions // ✅ Return permissions to frontend
+                            roles,
+                            permissions
                         },
                         tokens: {
                             accessToken,
@@ -279,17 +463,24 @@ export const login = (
                         },
                     }
                 },
-                catch: (error) =>
+                catch: (error: any) =>
                     new DatabaseError({
                         operation: 'insert',
-                        message: `Failed to create session: ${error}`,
+                        message: isDevelopment
+                            ? `Failed to create session (Database: ${maskDatabaseUrl(getDatabaseUrl(resolvedTenantId))}): ${error}`
+                            : `Failed to create session: ${error}`,
+                        cause: error
                     }),
             })
         )
     )
 
 /**
- * Logout a user by revoking their session
+ * Logout a user by revoking their session.
+ * 
+ * @param accessTokenId - The unique ID of the access token to revoke
+ * @param reason - Optional reason for logging out
+ * @returns An Effect that succeeds when the session is removed
  */
 export const logout = (
     accessTokenId: string,
@@ -297,72 +488,75 @@ export const logout = (
 ): Effect.Effect<void, DatabaseError> =>
     Effect.tryPromise({
         try: async () => {
-            await AuthRepository.invalidateSession(accessTokenId)
+            // Delete session from Redis
+            await redis.del(`session:access:${accessTokenId}`)
         },
-        catch: (error) => new DatabaseError({
-            message: 'Failed to logout',
-            operation: 'update'
+        catch: (error: any) => new DatabaseError({
+            message: isDevelopment
+                ? `Failed to logout (Redis: ${env.REDIS_HOST || 'localhost'}:${env.REDIS_PORT || '6379'})`
+                : 'Failed to logout',
+            operation: 'update',
+            cause: error
         })
     })
 
 /**
- * Refresh tokens using a valid refresh token
+ * Refresh tokens using a valid refresh token.
+ * 
+ * @param refreshToken - The valid refresh token string
+ * @returns An Effect that succeeds with a new TokenPair
  */
 export const refreshTokens = (
     refreshToken: string
 ): Effect.Effect<TokenPair, DatabaseError | AuthenticationError> =>
     Effect.tryPromise({
         try: async () => {
-            // Verify refresh token
+            // Verify refresh token to get payload (including tenantId)
             const payload = await verifyToken(refreshToken)
             if (payload.type !== 'refresh') {
                 throw new Error('Invalid token type')
             }
 
-            // Find active session by token ID
-            // Since we don't have findSessionByRefreshTokenId in repo, we might need to add it 
-            // or use findSessionByTokenId if we stored refresh token ID or use payload.jti
-            // The repo has findSessionByTokenId for access tokens usually but let's check repo
-            // Actually repo has findSessionByTokenId which matches sessions.tokenId
+            // Check if refresh session exists in Redis
+            const sessionData = await redis.get(`session:refresh:${payload.jti}`)
+            if (!sessionData) {
+                throw new Error('Session not found or expired')
+            }
 
-            // Wait, previous implementation looked up by refreshTokenId = payload.jti
-            // Let's assume findSessionByTokenId matches tokenId column which might be access token ID?
-            // Let's fix repository to support this or adapt here.
+            // ✅ Resolve DB from token payload
+            const db = getDatabase(payload.tenantId)
 
-            // NOTE: The previous code queried: eq(sessions.refreshTokenId, payload.jti)
-            // But AuthRepository.findSessionByTokenId queries: eq(sessions.tokenId, tokenId)
-            // This suggests a schema mismatch or misunderstanding. 
-            // Let's implement active session lookup manually here for safety or update repository.
-            // But since we want to use repository, let's use what we have or update it.
-            // AuthRepository has findSessionByTokenId.
-            // Let's update AuthRepository to include findSessionByRefreshTokenId?
-            // User requested domain repository pattern.
-            // Ideally we stick to repository methods.
+            const user = await AuthRepository.findUserById(db, payload.sub)
+            if (!user || !user.isActive) {
+                throw new Error('User not found or inactive')
+            }
 
-            // Since I cannot change repository in this tool call, I will add a method or query here? 
-            // No, I should use the repository. 
-            // If repository is missing a method, I should add it.
-            // I'll assume for now I will use db directly for this specific complex query or 
-            // just acknowledge I might need to update repository in next step.
-            // Actually, let's just use db direct for now if repository is insufficient, 
-            // OR better, update repository. 
-            // But I am editing service now.
+            // Generate new tokens
+            const accessTokenId = crypto.randomUUID()
+            const refreshTokenId = crypto.randomUUID()
 
-            // Let's stick to previous direct DB usage for complex logic inside TRY block 
-            // BUT use AuthRepository where simple.
-            // Actually, mixing is okay during migration.
-            // However, the goal is to use repositories.
+            const [newAccessToken, newRefreshToken] = await Promise.all([
+                generateAccessToken(user, accessTokenId, payload.tenantId, payload.roles, payload.permissions),
+                generateRefreshToken(user, refreshTokenId, payload.tenantId, payload.roles, payload.permissions),
+            ])
 
-            // Let's use the repo as much as possible.
-            // I'll assume findSessionByTokenId refers to access token ID generally.
-            // For refresh, we need lookup by refresh token ID.
+            // Store new sessions in Redis
+            const sessionInfo = JSON.parse(sessionData)
+            await Promise.all([
+                redis.setex(`session:access:${accessTokenId}`, Math.floor(ACCESS_TOKEN_EXPIRY_MS / 1000), JSON.stringify({ ...sessionInfo, accessTokenId })),
+                redis.setex(`session:refresh:${refreshTokenId}`, Math.floor(REFRESH_TOKEN_EXPIRY_MS / 1000), JSON.stringify({ ...sessionInfo, refreshTokenId })),
+                // Remove old refresh session
+                redis.del(`session:refresh:${payload.jti}`),
+            ])
 
-            // Let's leave direct DB access here for the complex query to avoid breaking changes 
-            // or incorrect repository usage, requiring imports.
-
-            throw new Error('Not implemented fully with new repo yet')
+            return {
+                accessToken: newAccessToken,
+                refreshToken: newRefreshToken,
+                expiresIn: ACCESS_TOKEN_EXPIRY_MS / 1000,
+                refreshExpiresIn: REFRESH_TOKEN_EXPIRY_MS / 1000,
+            }
         },
-        catch: (error) =>
+        catch: () =>
             new AuthenticationError({
                 message: 'Invalid or expired refresh token',
                 reason: 'invalid_token',
@@ -371,46 +565,61 @@ export const refreshTokens = (
     })
 
 /**
- * Get session by access token ID
+ * Get session information from Redis by access token ID.
+ * 
+ * @param accessTokenId - The unique ID of the access token
+ * @returns An Effect that succeeds with the session data object
  */
 export const getSession = (
     accessTokenId: string
-): Effect.Effect<
-    { session: NewSession; user: User },
-    DatabaseError | AuthenticationError
-> =>
-    pipe(
-        Effect.tryPromise({
-            try: () => AuthRepository.findSessionByTokenId(accessTokenId), // Assuming this matches accessTokenId
-            catch: (e) => new DatabaseError({ message: 'DB Error', operation: 'query' })
-        }),
-        Effect.flatMap((session: any) => {
-            // Need user with session. 
-            // The repo method findSessionByTokenId in my previous write_to_file didn't include 'with: { user: true }'
-            // I need to check the repo implementation I just wrote.
-            // Looking at Step 766 (AuthRepository):
-            // findSessionByTokenId: (tokenId: string) => db.query.sessions.findFirst({ ... })
-            // It does NOT have 'with: { user: true }'. 
-            // This is a regression.
-
-            // To fix this, I should update the Repository first to include relations or helper methods.
-            // I will abort full refactor of this function until Repo is better.
-
-            return Effect.fail(new AuthenticationError({ message: 'Refactor pending', reason: 'refactor_pending' }))
+): Effect.Effect<any, DatabaseError | AuthenticationError> =>
+    Effect.tryPromise({
+        try: async () => {
+            const sessionData = await redis.get(`session:access:${accessTokenId}`)
+            if (!sessionData) {
+                throw new Error('Session not found')
+            }
+            return JSON.parse(sessionData)
+        },
+        catch: () => new AuthenticationError({
+            message: 'Session not found or expired',
+            reason: 'invalid_token',
+            code: 'INVALID_TOKEN'
         })
-    )
+    })
 
 /**
- * Revoke all sessions for a user
+ * Revoke all active sessions for a specific user.
+ * 
+ * @param userId - ID of the user whose sessions should be revoked
+ * @param reason - Optional reason for revocation
+ * @returns An Effect that succeeds when all sessions are deleted from Redis
  */
 export const revokeAllSessions = (
     userId: string,
     reason?: string
-): Effect.Effect<void, DatabaseError> => // Changed return type to void to match simplified usage
+): Effect.Effect<void, DatabaseError> =>
     Effect.tryPromise({
         try: async () => {
-            await AuthRepository.invalidateAllUserSessions(userId)
+            // Get all session IDs for this user from Redis set
+            const sessionIds = await redis.smembers(`user:sessions:${userId}`)
+
+            // Delete all sessions
+            const pipeline = redis.pipeline()
+            sessionIds.forEach(sessionId => {
+                pipeline.del(`session:access:${sessionId}`)
+                pipeline.del(`session:refresh:${sessionId}`)
+            })
+            pipeline.del(`user:sessions:${userId}`)
+            await pipeline.exec()
         },
-        catch: () => new DatabaseError({ message: 'Failed to revoke', operation: 'update' })
+        catch: (error: any) =>
+            new DatabaseError({
+                message: isDevelopment
+                    ? `Failed to revoke (Database: ${maskDatabaseUrl(getPlatformDatabaseUrl())})`
+                    : 'Failed to revoke',
+                operation: 'update',
+                cause: error
+            })
     })
 

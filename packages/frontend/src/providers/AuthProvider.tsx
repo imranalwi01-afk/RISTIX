@@ -15,6 +15,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import Cookies from 'js-cookie'
 import { useRouter, usePathname } from 'next/navigation'
 import { useDispatch, useSelector } from 'react-redux'
+import { getCookieConfig } from '../utils/cookie-domain'
 import type { RootState, AppDispatch } from '../store'
 import {
   loginStart,
@@ -34,63 +35,65 @@ import { setBankingMode } from '../store/slices/configurationSlice'
 import { sessionControlService } from '../services/session-control.service'
 
 // ============================================================================
-// ROLE-BASED REDIRECT HELPER
+// STAKEHOLDER LANDING PAGE HELPER
 // ============================================================================
-const getRoleBasedRedirectUrl = (user: any): string => {
+const getLandingPageUrl = (user: any): string => {
   try {
-    const role = user?.role || user?.roles?.[0] || '';
+    const stakeholderType = user?.stakeholderType || (user?.isPlatformAdmin ? 'platform' : 'banking');
     const email = user?.email || '';
-    const tenantId = user?.tenantId || '';
 
-    console.log(`🔍 Determining redirect for user: ${email} with role: ${role}, tenant: ${tenantId}`);
+    console.log(`🔍 Determining landing page for user: ${email} with stakeholderType: ${stakeholderType}`);
 
-    // Platform administrators
-    if (user?.isPlatformAdmin === true || role.includes('PLATFORM_') || role.includes('SUPER_ADMIN')) {
-      console.log('📊 Platform admin user detected - redirecting to React Admin');
-      return '/platform/admin';
+    switch (stakeholderType) {
+      case 'platform':
+        return '/platform/admin';
+      case 'consultant':
+        return '/consultant/dashboard';
+      case 'regulator':
+        return '/regulator/dashboard';
+      case 'banking':
+      default:
+        return '/banking/dashboard';
     }
-
-    // External consultants
-    if (role.includes('CONSULTANT')) {
-      console.log('👨‍💼 Consultant user detected');
-      return '/consultant/dashboard';
-    }
-
-    // Banking regulators
-    if (role.includes('BANKING_SUPERVISION') || role.includes('REGULATOR')) {
-      console.log('🏛️ Regulator user detected');
-      return '/regulator/dashboard';
-    }
-
-    // IAF Banking users (default for IAF tenant)
-    if (tenantId === 'iaf' || role.includes('BANK_') || role.includes('CRO') || role.includes('IFRS_MANAGER')) {
-      console.log('🏦 IAF Banking user detected');
-      return '/banking/dashboard';
-    }
-
-    console.log('🏦 Default banking user detected');
-    return '/banking/dashboard';
   } catch (error) {
-    console.error('❌ Error in getRoleBasedRedirectUrl:', error);
+    console.error('❌ Error in getLandingPageUrl:', error);
     return '/banking/dashboard';
   }
 };
 
 // ✅ SURGICAL FIX: Enhanced token sync function using js-cookie
-const syncTokenToCookie = (token: string | null, user: any = null) => {
+const syncTokenToCookie = (token: string | null, user: any = null, refreshToken?: string | null) => {
   try {
     if (typeof window !== 'undefined') {
       if (token) {
         // Set cookies for middleware and SSR access
         const isSecure = window.location.protocol === 'https:';
 
+        // ✅ Get cookie config with domain detection (supports localhost, ifrspro.id, danafin.com)
+        const cookieConfig = getCookieConfig(7);
+        
+        console.log('🍪 [Cookie Setup] Configuration:', {
+          hostname: window.location.hostname,
+          protocol: window.location.protocol,
+          cookieConfig,
+          hasToken: !!token,
+          hasRefreshToken: !!refreshToken
+        });
+
         // Store auth_token (matches middleware.ts expectation)
         Cookies.set('auth_token', token, {
           path: '/',
-          secure: isSecure,
-          sameSite: 'strict',
-          expires: 7 // 7 days
+          ...cookieConfig
         });
+
+        // ✅ FIX: Store refresh token in cookie for page refresh handling
+        if (refreshToken) {
+          Cookies.set('refresh_token', refreshToken, {
+            path: '/',
+            ...cookieConfig
+          });
+          console.log('🔐 Refresh token synced to cookie');
+        }
 
         // Optionally store basic user data for SSR if needed
         if (user) {
@@ -101,17 +104,28 @@ const syncTokenToCookie = (token: string | null, user: any = null) => {
             tenantId: user.tenantId
           }), {
             path: '/',
-            secure: isSecure,
-            sameSite: 'strict',
-            expires: 7
+            ...cookieConfig
           });
         }
 
-        console.log('🔐 Authentication cookies synced successfully');
+        // Verify cookies were actually set
+        const verifyToken = Cookies.get('auth_token');
+        const verifyRefresh = Cookies.get('refresh_token');
+        console.log('🔐 Authentication cookies synced successfully', { 
+          domain: cookieConfig.domain || 'localhost',
+          authTokenSet: !!verifyToken,
+          refreshTokenSet: !!verifyRefresh,
+          authTokenLength: verifyToken?.length,
+          refreshTokenLength: verifyRefresh?.length
+        });
       } else {
-        // Clear cookies
-        Cookies.remove('auth_token', { path: '/' });
-        Cookies.remove('auth_user', { path: '/' });
+        // Clear cookies with dynamic domain detection
+        const cookieConfig = getCookieConfig();
+        const removeOptions = { path: '/', ...(cookieConfig.domain && { domain: cookieConfig.domain }) };
+        
+        Cookies.remove('auth_token', removeOptions);
+        Cookies.remove('refresh_token', removeOptions);
+        Cookies.remove('auth_user', removeOptions);
         console.log('🗑️ Authentication cookies cleared');
       }
     }
@@ -147,11 +161,8 @@ const detectBankingModeFromUser = (user: any): 'conventional' | 'syariah' | null
       }
     }
 
-    // Check role for banking type indicators
-    const role = user.role || user.roles?.[0] || '';
-    if (role.toLowerCase().includes('syariah') ||
-      role.toLowerCase().includes('islamic') ||
-      role.toLowerCase().includes('dps')) {
+    // Check user preferences or certification for banking type indicators
+    if (user.syariahCertified || user.syariahCertification) {
       return 'syariah';
     }
 
@@ -276,8 +287,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // ✅ SURGICAL FIX: Sync tokens to cookie whenever auth state changes
   useEffect(() => {
-    syncTokenToCookie(authState?.token || null);
-  }, [authState?.token]);
+    const refreshToken = typeof window !== 'undefined' ? localStorage.getItem('refresh_token') : null;
+    syncTokenToCookie(authState?.token || null, authState?.user, refreshToken);
+  }, [authState?.token, authState?.user]);
 
   // ✅ SURGICAL ENHANCEMENT: Sync banking mode when user changes
   useEffect(() => {
@@ -314,7 +326,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           console.log('✅ Found stored auth data for:', parsedUser.email)
 
           // ✅ SURGICAL FIX: Sync token to cookie immediately
-          syncTokenToCookie(token);
+          syncTokenToCookie(token, parsedUser, refreshToken);
 
           // ✅ SURGICAL ENHANCEMENT: Detect and set banking mode
           const detectedBankingMode = detectBankingModeFromUser(parsedUser);
@@ -346,10 +358,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL ||
                   (window.location.hostname.includes('danafin.com')
                     ? 'https://iaf-ifrs-be.danafin.com'
-                    : 'https://bifrs9-iaf.ifrspro.id');
+                    : 'https://iaf-ifrs-be.ifrspro.id');
               } else {
                 // Server-side fallback
-                backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://bifrs9-iaf.ifrspro.id';
+                backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://iaf-ifrs-be.ifrspro.id';
               }
             }
             const response = await fetch(`${backendUrl}/api/v1/auth/verify`, {
@@ -380,11 +392,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               // ✅ LOOP PREVENTION: Only redirect from home page, not from login page
               // This prevents auto-redirect when users visit login URL directly
               if (currentPath === '/' || currentPath === '') {
-                const roleBasedUrl = getRoleBasedRedirectUrl(parsedUser)
-                console.log(`✅ Redirecting authenticated user from home to: ${roleBasedUrl}`)
+                const landingUrl = getLandingPageUrl(parsedUser)
+                console.log(`✅ Redirecting authenticated user from home to: ${landingUrl}`)
 
                 setTimeout(() => {
-                  safeNavigate(router, roleBasedUrl);
+                  safeNavigate(router, landingUrl);
                 }, 100);
               } else if (currentPath === '/login') {
                 // ✅ LOOP PREVENTION: Stay on login page if user navigates there manually
@@ -480,15 +492,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         if (process.env.NEXT_PUBLIC_BACKEND_API_URL) {
           console.log('⚠️ Using NEXT_PUBLIC_BACKEND_API_URL:', process.env.NEXT_PUBLIC_BACKEND_API_URL);
-          return process.env.NEXT_PUBLIC_BACKEND_API_URL.replace('/api/v1', '');
+          // Strip /api/v1 if present to avoid duplication
+          return process.env.NEXT_PUBLIC_BACKEND_API_URL.replace(/\/api\/v1\/?$/, '');
         }
 
         // Priority 3: Final fallback - MUST USE PRODUCTION DOMAIN
-        const fallbackUrl = `https://bifrs9-iaf.ifrspro.id/api/v1/auth/login`;
+        // NOTE: We return the BASE URL (without /api/v1/auth/login) because the caller adds the path
+        const fallbackUrl = `https://iaf-ifrs-be.ifrspro.id`;
         console.log('🚨 Using final fallback URL:', fallbackUrl);
         return fallbackUrl;
       };
-      const apiBaseUrl = getApiBaseUrl();
+      const rawApiBaseUrl = getApiBaseUrl();
+      // Ensure no trailing slash and no /api/v1 suffix
+      const apiBaseUrl = rawApiBaseUrl.replace(/\/?$/, '').replace(/\/api\/v1\/?$/, '');
 
       const response = await fetch(`${apiBaseUrl}/api/v1/auth/login`, {
         method: 'POST',
@@ -520,15 +536,40 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const authData = await response.json()
 
       if (authData.success && authData.data) {
+        // 🔍 DEBUG: Log full response structure
+        console.log('🔍 Full login response:', JSON.stringify(authData, null, 2));
+        
         const { user: userData, accessToken: token, refreshToken, expiresIn } = authData.data
 
         console.log('✅ Login successful for:', userData.email)
+        console.log('🔐 Login response:', {
+          hasToken: !!token,
+          tokenLength: token?.length || 0,
+          hasRefreshToken: !!refreshToken,
+          refreshTokenLength: refreshToken?.length || 0,
+          expiresIn,
+          dataKeys: Object.keys(authData.data)
+        })
+
+        // ✅ CRITICAL FIX: Also try to extract `token` field for compatibility
+        const actualToken = token || authData.data.token;
+        const actualRefreshToken = refreshToken || authData.data.refreshToken;
+
+        if (!actualToken) {
+          console.error('❌ No access token in login response!', authData.data);
+          dispatch(loginFailure('Login response missing access token'));
+          return false;
+        }
+
+        if (!actualRefreshToken) {
+          console.warn('⚠️ No refresh token in login response! User will be logged out on token expiry.');
+        }
 
         // Store in localStorage
-        localStorage.setItem('auth_token', token)
+        localStorage.setItem('auth_token', actualToken)
         localStorage.setItem('user_data', JSON.stringify(userData))
-        if (refreshToken) {
-          localStorage.setItem('refresh_token', refreshToken)
+        if (actualRefreshToken) {
+          localStorage.setItem('refresh_token', actualRefreshToken)
         }
         // ✅ FIXED: Store token expiry for better session management
         if (expiresIn) {
@@ -538,13 +579,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // ✅ CENTRALIZED SESSION CONTROL: Initialize session control service
         await sessionControlService.initializeSession({
           user: userData,
-          token,
-          refreshToken,
+          token: actualToken,
+          refreshToken: actualRefreshToken,
           tokenExpiry: expiresIn ? Date.now() + (expiresIn * 1000) : null
         });
 
+        // ✅ CRITICAL FIX: Wait a bit to ensure all tokens are persisted before continuing
+        // This prevents race conditions where API calls happen before tokens are saved
+        await new Promise(resolve => setTimeout(resolve, 100));
+
         // ✅ SURGICAL FIX: Sync token and user to cookie for middleware/SSR
-        syncTokenToCookie(token, userData);
+        syncTokenToCookie(actualToken, userData, actualRefreshToken);
 
         // ✅ SURGICAL ENHANCEMENT: Detect and set banking mode from login data
         const detectedBankingMode = detectBankingModeFromUser(userData);
@@ -556,21 +601,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // Dispatch Redux success action
         dispatch(loginSuccess({
           user: userData,
-          token,
-          refreshToken,
+          token: actualToken,
+          refreshToken: actualRefreshToken,
           expiresIn,
         }))
 
         // ✅ SURGICAL FIX: Enhanced role-based redirect
         try {
-          const roleBasedUrl = getRoleBasedRedirectUrl(userData)
-          console.log(`🚀 Login successful - preparing redirect to: ${roleBasedUrl}`)
+          const landingUrl = getLandingPageUrl(userData)
+          console.log(`🚀 Login successful - preparing redirect to: ${landingUrl}`)
 
           // ✅ PERFORMANCE OPTIMIZATION: Pre-fetch menu data while user sees the "Login Success" state
           // We fetch it here in parallel with 150ms timeout, effectively making it "free" time
           // We store raw data to 'temp_raw_menu' so BankingSidebar can pick it up immediately
           // avoiding a second network request.
-          if (roleBasedUrl.includes('banking') && token) {
+          if (landingUrl.includes('banking') && token) {
             const detectedMode = detectedBankingMode || 'conventional';
             // Run in background, don't await
             import('../services/api/menu.api').then(({ menuApi }) => {
@@ -589,11 +634,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
           setTimeout(() => {
             try {
-              console.log(`🚀 Executing navigation to: ${roleBasedUrl}`);
-              safeNavigate(router, roleBasedUrl);
+              console.log(`🚀 Executing navigation to: ${landingUrl}`);
+              safeNavigate(router, landingUrl);
             } catch (navError) {
               console.error('❌ Navigation Error:', navError);
-              window.location.href = roleBasedUrl;
+              window.location.href = landingUrl;
             }
           }, 150);
 
@@ -774,13 +819,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       const token = localStorage.getItem('auth_token')
       const userData = localStorage.getItem('user_data')
+      const refreshToken = localStorage.getItem('refresh_token')
 
       if (!token || !userData) {
         return false
       }
 
       // ✅ SURGICAL FIX: Ensure cookie is synced
-      syncTokenToCookie(token);
+      const parsedUser = userData ? JSON.parse(userData) : null;
+      syncTokenToCookie(token, parsedUser, refreshToken);
 
       // ✅ FIXED: Use centralized configuration for dual-mode support
       let backendUrl: string;
@@ -797,10 +844,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL ||
             (window.location.hostname.includes('danafin.com')
               ? 'https://iaf-ifrs-be.danafin.com'
-              : 'https://bifrs9-iaf.ifrspro.id');
+              : 'https://iaf-ifrs-be.ifrspro.id');
         } else {
           // Server-side fallback
-          backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://bifrs9-iaf.ifrspro.id';
+          backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://iaf-ifrs-be.ifrspro.id';
         }
       }
       const response = await fetch(`${backendUrl}/api/v1/auth/verify`, {
@@ -851,7 +898,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   return (
     <AuthContext.Provider value={contextValue}>
-      {children}
+      {children as any}
     </AuthContext.Provider>
   )
 }

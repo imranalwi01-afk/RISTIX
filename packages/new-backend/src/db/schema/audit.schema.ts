@@ -21,60 +21,49 @@ export const auditSchema = pgSchema('audit')
 // AUDIT LOGS TABLE
 // =============================================================================
 
+// =============================================================================
+// AUDIT LOGS TABLE
+// =============================================================================
+
+/**
+ * Audit logs table definition.
+ * Stores system-wide audit trail for critical actions and data changes.
+ */
 export const auditLogs = auditSchema.table(
     'audit_logs',
     {
         id: uuid('id').primaryKey().defaultRandom(),
-        legacyId: integer('legacy_id'),
 
-        // User and session context
+        // User context
         userId: uuid('user_id'),
-        sessionId: varchar('session_id', { length: 255 }),
-        correlationId: uuid('correlation_id').notNull().defaultRandom(),
+
+        // Tenant isolation - varchar to match actual database
+        tenantId: varchar('tenant_id', { length: 100 }).default('dana'),
 
         // Event details
-        eventType: varchar('event_type', { length: 100 }).notNull(),
+        eventType: varchar('event_type', { length: 50 }).notNull(),
         action: varchar('action', { length: 100 }).notNull(),
         description: text('description'),
 
         // Entity information
-        entityType: varchar('entity_type', { length: 100 }),
-        entityId: varchar('entity_id', { length: 255 }),
+        entityType: varchar('entity_type', { length: 50 }),
+        entityId: uuid('entity_id'),
         entityName: varchar('entity_name', { length: 200 }),
 
         // Change tracking
         oldValues: jsonb('old_values'),
         newValues: jsonb('new_values'),
-        changedFields: jsonb('changed_fields').$type<string[]>(),
+        changedFields: text('changed_fields').array(),
+
+        // Additional metadata
+        metadata: jsonb('metadata'),
 
         // Request context
         ipAddress: varchar('ip_address', { length: 45 }),
         userAgent: text('user_agent'),
-        requestPath: varchar('request_path', { length: 500 }),
-        requestMethod: varchar('request_method', { length: 10 }),
-
-        // Application context
-        applicationName: varchar('application_name', { length: 100 }),
-        moduleName: varchar('module_name', { length: 100 }),
-        functionName: varchar('function_name', { length: 100 }),
-
-        // Business context
-        businessDate: timestamp('business_date'),
-        calculationDate: timestamp('calculation_date'),
-
-        // Risk and compliance
-        riskLevel: varchar('risk_level', { length: 20 }).notNull().default('low'),
-        complianceCategory: varchar('compliance_category', { length: 50 }),
-
-        // Performance metrics
-        executionTimeMs: integer('execution_time_ms'),
-
-        // Tenant isolation
-        tenantId: uuid('tenant_id'),
 
         // Timestamps
-        timestamp: timestamp('timestamp').notNull().defaultNow(),
-        createdAt: timestamp('created_at').notNull().defaultNow(),
+        createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     },
     (table) => [
         index('audit_user_idx').on(table.userId),
@@ -83,17 +72,11 @@ export const auditLogs = auditSchema.table(
         index('audit_action_idx').on(table.action),
         index('audit_entity_type_idx').on(table.entityType),
         index('audit_entity_id_idx').on(table.entityId),
-        index('audit_timestamp_idx').on(table.timestamp),
-        index('audit_business_date_idx').on(table.businessDate),
-        index('audit_risk_level_idx').on(table.riskLevel),
-        index('audit_compliance_category_idx').on(table.complianceCategory),
-        index('audit_session_idx').on(table.sessionId),
-        index('audit_correlation_idx').on(table.correlationId),
-        index('audit_ip_address_idx').on(table.ipAddress),
+        index('audit_created_at_idx').on(table.createdAt),
         // Composite indexes for common queries
-        index('audit_tenant_event_time_idx').on(table.tenantId, table.eventType, table.timestamp),
-        index('audit_user_time_idx').on(table.userId, table.timestamp),
-        index('audit_entity_time_idx').on(table.entityType, table.entityId, table.timestamp),
+        index('audit_tenant_event_time_idx').on(table.tenantId, table.eventType, table.createdAt),
+        index('audit_user_time_idx').on(table.userId, table.createdAt),
+        index('audit_entity_time_idx').on(table.entityType, table.entityId, table.createdAt),
     ]
 )
 
@@ -101,25 +84,44 @@ export const auditLogs = auditSchema.table(
 // USER ACTIVITY LOGS TABLE
 // =============================================================================
 
+/**
+ * User activity logs table definition.
+ * Tracks granular user interactions, page views, and API calls for analytics.
+ */
 export const userActivityLogs = auditSchema.table(
     'user_activity_logs',
     {
         id: uuid('id').primaryKey().defaultRandom(),
         userId: uuid('user_id').notNull(),
-        tenantId: uuid('tenant_id'),
+        tenantId: varchar('tenant_id', { length: 100 }),
         activityType: varchar('activity_type', { length: 100 }).notNull(),
-        description: text('description'),
-        metadata: jsonb('metadata'),
+        activityDescription: text('activity_description'),
+
+        // Page navigation
+        pageUrl: varchar('page_url', { length: 1000 }),
+        pageTitle: varchar('page_title', { length: 500 }),
+        previousPage: varchar('previous_page', { length: 1000 }),
+
+        // API details
+        endpoint: varchar('endpoint', { length: 500 }),
+        method: varchar('method', { length: 10 }),
+        statusCode: integer('status_code'),
+        responseTimeMs: integer('response_time_ms'),
+
+        // Session and device
+        sessionId: varchar('session_id', { length: 255 }),
+        deviceInfo: jsonb('device_info'),
         ipAddress: varchar('ip_address', { length: 45 }),
         userAgent: text('user_agent'),
-        sessionId: varchar('session_id', { length: 255 }),
-        timestamp: timestamp('timestamp').notNull().defaultNow(),
+
+        // Timestamps
+        createdAt: timestamp('created_at').notNull().defaultNow(),
     },
     (table) => [
         index('user_activity_user_idx').on(table.userId),
         index('user_activity_tenant_idx').on(table.tenantId),
         index('user_activity_type_idx').on(table.activityType),
-        index('user_activity_timestamp_idx').on(table.timestamp),
+        index('user_activity_created_at_idx').on(table.createdAt),
     ]
 )
 
@@ -127,6 +129,10 @@ export const userActivityLogs = auditSchema.table(
 // DATA ACCESS LOGS TABLE
 // =============================================================================
 
+/**
+ * Data access logs table definition.
+ * Records specific data access patterns (read, export, print) for compliance.
+ */
 export const dataAccessLogs = auditSchema.table(
     'data_access_logs',
     {
@@ -153,6 +159,10 @@ export const dataAccessLogs = auditSchema.table(
 // CALCULATION AUDIT LOGS TABLE
 // =============================================================================
 
+/**
+ * Calculation audit logs table definition.
+ * specialized audit log for tracking complex calculation jobs and their parameters.
+ */
 export const calculationAuditLogs = auditSchema.table(
     'calculation_audit_logs',
     {

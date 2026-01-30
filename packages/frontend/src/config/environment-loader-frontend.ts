@@ -266,11 +266,29 @@ export class FrontendEnvironmentLoader {
     const isLocalDev = deploymentTarget === 'localdev';
     const isProduction = process.env.NODE_ENV === 'production' || isEcs;
 
+    // Detect if running on true localhost (not via Cloudflare Zero Trust)
+    const isTrueLocalhost = typeof window !== 'undefined' &&
+      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') &&
+      window.location.protocol === 'http:';
+
     // API URLs based on environment - 🏭 IAF LOCAL PRODUCTION MODE
+    // Priority: 1) ENV var, 2) True localhost -> localhost:4232, 3) LocalDev -> ifrspro.id, 4) ECS -> danafin.com
+    const getApiUrl = () => {
+      if (this.getEnvVar('NEXT_PUBLIC_BACKEND_URL')) {
+        return this.getEnvVar('NEXT_PUBLIC_BACKEND_URL');
+      }
+      if (isTrueLocalhost) {
+        console.log('🏠 True localhost detected - using http://localhost:4232/api/v1');
+        return 'http://localhost:4232/api/v1';
+      }
+      return isEcs ? 'https://iaf-ifrs-be.danafin.com/api/v1' : 'https://iaf-ifrs-be.ifrspro.id/api/v1';
+    };
+
+    const apiUrl = getApiUrl();
+
     const api = {
-      backend: this.getEnvVar('NEXT_PUBLIC_BACKEND_URL',
-        isEcs ? 'https://iaf-ifrs-be.danafin.com/api/v1' : 'https://iaf-ifrs-be.ifrspro.id/api/v1'),
-      base: this.getEnvVar('NEXT_PUBLIC_API_BASE_URL', isEcs ? 'https://iaf-ifrs-be.danafin.com/api/v1' : 'https://iaf-ifrs-be.ifrspro.id/api/v1'),
+      backend: apiUrl,
+      base: this.getEnvVar('NEXT_PUBLIC_API_BASE_URL') || apiUrl,
       auth: '/auth',
       banking: '/banking',
       user: '/v1/user',
@@ -278,11 +296,18 @@ export class FrontendEnvironmentLoader {
       reports: '/reports'
     };
 
-    // R Analytics URLs - MUST USE IAF GUIDE DOMAINS
+    // R Analytics Configuration
     const rAnalytics = {
-      api: this.getEnvVar('NEXT_PUBLIC_RAPI_BASE_URL', isEcs ? 'https://iaf-ifrs-analytics-calc.danafin.com/api' : 'https://iaf-ifrs-analytics-calc.ifrspro.id/api'),
-      dashboard: this.getEnvVar('NEXT_PUBLIC_R_ANALYTICS_URL', isEcs ? 'https://iaf-ifrs-analytics.danafin.com' : 'https://iaf-ifrs-analytics.ifrspro.id'),
-      calc: this.getEnvVar('NEXT_PUBLIC_R_ANALYTICS_CALC_URL', isEcs ? 'https://iaf-ifrs-analytics-calc.danafin.com' : 'https://iaf-ifrs-analytics-calc.ifrspro.id')
+      api: this.getEnvVar('NEXT_PUBLIC_RAPI_BASE_URL') || (isEcs ? 'https://iaf-ifrs-analytics-calc.danafin.com/api' : 'https://iaf-ifrs-analytics-calc.ifrspro.id/api'),
+      dashboard: (() => {
+        const envUrl = this.getEnvVar('NEXT_PUBLIC_R_ANALYTICS_URL');
+        // If envUrl is set and is NOT localhost, use it.
+        // If it IS localhost but we are in production, or if it's empty, use the fallback.
+        if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
+          return envUrl;
+        }
+        return isEcs ? 'https://iaf-ifrs-analytics.danafin.com' : 'https://iaf-ifrs-analytics.ifrspro.id';
+      })()
     };
 
     // Application URLs

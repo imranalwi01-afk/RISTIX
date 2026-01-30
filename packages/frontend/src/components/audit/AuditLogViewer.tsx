@@ -165,7 +165,7 @@ export const AuditLogViewer: React.FC = () => {
             <Card sx={{ mb: 3 }}>
                 <CardContent>
                     <Grid container spacing={2}>
-                        <Grid item xs={12} sm={6} md={3}>
+                        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                             <FormControl fullWidth size="small">
                                 <InputLabel>Event Type</InputLabel>
                                 <Select
@@ -184,7 +184,7 @@ export const AuditLogViewer: React.FC = () => {
                             </FormControl>
                         </Grid>
 
-                        <Grid item xs={12} sm={6} md={3}>
+                        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                             <FormControl fullWidth size="small">
                                 <InputLabel>Risk Level</InputLabel>
                                 <Select
@@ -201,7 +201,7 @@ export const AuditLogViewer: React.FC = () => {
                             </FormControl>
                         </Grid>
 
-                        <Grid item xs={12} sm={6} md={3}>
+                        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                             <TextField
                                 fullWidth
                                 size="small"
@@ -213,7 +213,7 @@ export const AuditLogViewer: React.FC = () => {
                             />
                         </Grid>
 
-                        <Grid item xs={12} sm={6} md={3}>
+                        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                             <TextField
                                 fullWidth
                                 size="small"
@@ -225,7 +225,7 @@ export const AuditLogViewer: React.FC = () => {
                             />
                         </Grid>
 
-                        <Grid item xs={12}>
+                        <Grid size={{ xs: 12 }}>
                             <TextField
                                 fullWidth
                                 size="small"
@@ -326,15 +326,15 @@ export const AuditLogViewer: React.FC = () => {
                     {selectedLog && (
                         <Box sx={{ mt: 2 }}>
                             <Grid container spacing={2}>
-                                <Grid item xs={6}>
+                                <Grid size={{ xs: 6 }}>
                                     <Typography variant="subtitle2" color="text.secondary">Event Type</Typography>
                                     <Typography>{selectedLog.eventType}</Typography>
                                 </Grid>
-                                <Grid item xs={6}>
+                                <Grid size={{ xs: 6 }}>
                                     <Typography variant="subtitle2" color="text.secondary">Action</Typography>
                                     <Typography>{selectedLog.action}</Typography>
                                 </Grid>
-                                <Grid item xs={6}>
+                                <Grid size={{ xs: 6 }}>
                                     <Typography variant="subtitle2" color="text.secondary">Risk Level</Typography>
                                     <Chip
                                         label={selectedLog.riskLevel}
@@ -342,40 +342,40 @@ export const AuditLogViewer: React.FC = () => {
                                         color={getRiskLevelColor(selectedLog.riskLevel) as any}
                                     />
                                 </Grid>
-                                <Grid item xs={6}>
+                                <Grid size={{ xs: 6 }}>
                                     <Typography variant="subtitle2" color="text.secondary">Timestamp</Typography>
                                     <Typography>{format(new Date(selectedLog.timestamp), 'PPpp')}</Typography>
                                 </Grid>
-                                <Grid item xs={12}>
+                                <Grid size={{ xs: 12 }}>
                                     <Typography variant="subtitle2" color="text.secondary">Description</Typography>
                                     <Typography>{selectedLog.description}</Typography>
                                 </Grid>
                                 {selectedLog.entityType && (
-                                    <Grid item xs={6}>
+                                    <Grid size={{ xs: 6 }}>
                                         <Typography variant="subtitle2" color="text.secondary">Entity Type</Typography>
                                         <Typography>{selectedLog.entityType}</Typography>
                                     </Grid>
                                 )}
                                 {selectedLog.entityId && (
-                                    <Grid item xs={6}>
+                                    <Grid size={{ xs: 6 }}>
                                         <Typography variant="subtitle2" color="text.secondary">Entity ID</Typography>
                                         <Typography>{selectedLog.entityId}</Typography>
                                     </Grid>
                                 )}
                                 {selectedLog.ipAddress && (
-                                    <Grid item xs={6}>
+                                    <Grid size={{ xs: 6 }}>
                                         <Typography variant="subtitle2" color="text.secondary">IP Address</Typography>
                                         <Typography>{selectedLog.ipAddress}</Typography>
                                     </Grid>
                                 )}
                                 {selectedLog.requestMethod && (
-                                    <Grid item xs={6}>
+                                    <Grid size={{ xs: 6 }}>
                                         <Typography variant="subtitle2" color="text.secondary">Request Method</Typography>
                                         <Typography>{selectedLog.requestMethod}</Typography>
                                     </Grid>
                                 )}
                                 {selectedLog.requestPath && (
-                                    <Grid item xs={12}>
+                                    <Grid size={{ xs: 12 }}>
                                         <Typography variant="subtitle2" color="text.secondary">Request Path</Typography>
                                         <Typography>{selectedLog.requestPath}</Typography>
                                     </Grid>

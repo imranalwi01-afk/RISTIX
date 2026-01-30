@@ -512,7 +512,7 @@ export default function PortfolioAccountsPage() {
       {/* Portfolio Summary Cards */}
       {summary && (
         <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid item xs={12} md={3}>
+          <Grid size={{ xs: 12, md: 3 }}>
             <Card>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
@@ -529,7 +529,7 @@ export default function PortfolioAccountsPage() {
             </Card>
           </Grid>
 
-          <Grid item xs={12} md={3}>
+          <Grid size={{ xs: 12, md: 3 }}>
             <Card>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
@@ -546,7 +546,7 @@ export default function PortfolioAccountsPage() {
             </Card>
           </Grid>
 
-          <Grid item xs={12} md={3}>
+          <Grid size={{ xs: 12, md: 3 }}>
             <Card>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
@@ -563,7 +563,7 @@ export default function PortfolioAccountsPage() {
             </Card>
           </Grid>
 
-          <Grid item xs={12} md={3}>
+          <Grid size={{ xs: 12, md: 3 }}>
             <Card>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
@@ -612,7 +612,7 @@ export default function PortfolioAccountsPage() {
           </AccordionSummary>
           <AccordionDetails>
             <Grid container spacing={2}>
-              <Grid item xs={12} md={3}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <TextField
                   fullWidth
                   label="Search Account/Customer"
@@ -628,7 +628,7 @@ export default function PortfolioAccountsPage() {
                 />
               </Grid>
 
-              <Grid item xs={12} md={2}>
+              <Grid size={{ xs: 12, md: 2 }}>
                 <FormControl fullWidth>
                   <InputLabel>Product Type</InputLabel>
                   <Select
@@ -647,7 +647,7 @@ export default function PortfolioAccountsPage() {
                 </FormControl>
               </Grid>
 
-              <Grid item xs={12} md={2}>
+              <Grid size={{ xs: 12, md: 2 }}>
                 <FormControl fullWidth>
                   <InputLabel>Banking Type</InputLabel>
                   <Select
@@ -662,7 +662,7 @@ export default function PortfolioAccountsPage() {
                 </FormControl>
               </Grid>
 
-              <Grid item xs={12} md={2}>
+              <Grid size={{ xs: 12, md: 2 }}>
                 <FormControl fullWidth>
                   <InputLabel>IFRS9 Stage</InputLabel>
                   <Select
@@ -678,7 +678,7 @@ export default function PortfolioAccountsPage() {
                 </FormControl>
               </Grid>
 
-              <Grid item xs={12} md={3}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <Box sx={{ display: 'flex', gap: 1, height: '56px' }}>
                   <Button
                     variant="contained"
@@ -926,7 +926,7 @@ export default function PortfolioAccountsPage() {
             </DialogTitle>
             <DialogContent>
               <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
                     Account Information
                   </Typography>
@@ -949,7 +949,7 @@ export default function PortfolioAccountsPage() {
                   </Box>
                 </Grid>
 
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
                     Financial Information
                   </Typography>
@@ -976,7 +976,7 @@ export default function PortfolioAccountsPage() {
                   </Box>
                 </Grid>
 
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
                     Risk Assessment
                   </Typography>
@@ -1001,7 +1001,7 @@ export default function PortfolioAccountsPage() {
                   </Box>
                 </Grid>
 
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
                     IFRS9 Calculations
                   </Typography>
@@ -1038,7 +1038,7 @@ export default function PortfolioAccountsPage() {
                   </Box>
                 </Grid>
 
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
                     Banking Information
                   </Typography>

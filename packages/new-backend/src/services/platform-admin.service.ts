@@ -51,7 +51,10 @@ export interface TenantOverview {
 // =============================================================================
 
 /**
- * Get platform-wide statistics
+ * Get platform-wide statistics.
+ * Aggregates counts for tenants, users, roles, active sessions, and audit logs.
+ * 
+ * @returns An Effect resolving to PlatformStats object
  */
 export const getPlatformStats = (): Effect.Effect<PlatformStats, DatabaseError> =>
     dbOperation('query', async () => {
@@ -99,7 +102,10 @@ export const getPlatformStats = (): Effect.Effect<PlatformStats, DatabaseError> 
     })
 
 /**
- * Get system health status
+ * Get system health status.
+ * Checks database connectivity and memory usage.
+ * 
+ * @returns An Effect resolving to SystemHealth object
  */
 export const getSystemHealth = (): Effect.Effect<SystemHealth, DatabaseError> =>
     dbOperation('query', async () => {
@@ -130,7 +136,10 @@ export const getSystemHealth = (): Effect.Effect<SystemHealth, DatabaseError> =>
     })
 
 /**
- * Get tenant overview for dashboard
+ * Get tenant overview for dashboard.
+ * Lists tenants with their user counts.
+ * 
+ * @returns An Effect resolving to an array of TenantOverview objects
  */
 export const getTenantOverview = (): Effect.Effect<TenantOverview[], DatabaseError> =>
     dbOperation('query', async () => {
@@ -167,7 +176,11 @@ export const getTenantOverview = (): Effect.Effect<TenantOverview[], DatabaseErr
     })
 
 /**
- * Get recent activity summary
+ * Get recent activity summary.
+ * Returns the most recent audit logs.
+ * 
+ * @param limit - Number of logs to return (default 10)
+ * @returns An Effect resolving to an array of log objects
  */
 export const getRecentActivity = (
     limit: number = 10

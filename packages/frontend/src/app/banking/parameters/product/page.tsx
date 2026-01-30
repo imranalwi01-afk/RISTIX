@@ -9,26 +9,18 @@
 
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import {
   Box,
-  Typography,
   Container,
   Card,
   CardContent,
   Button,
   CircularProgress,
   Alert,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  MenuItem,
   Chip,
-  Snackbar,
-  FormControlLabel,
-  Switch
+  Snackbar
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -36,54 +28,24 @@ import {
   Delete as DeleteIcon,
   Error as ErrorIcon
 } from '@mui/icons-material';
-import { DataGrid, GridColDef, GridActionsCellItem, GridRowParams } from '@mui/x-data-grid';
+import { GridColDef, GridRowParams } from '@mui/x-data-grid';
 import { api, handleAPIError } from '../../../../services/api';
 import { useRouter } from 'next/navigation';
+
+// Safe DataGrid wrapper to prevent bundling issues
+import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 
 // Shared components
 import PageHeader from '@/components/banking/shared/PageHeader';
 import EmptyState from '@/components/banking/shared/EmptyState';
 
-// ✅ FIXED: Interface uses camelCase to match backend Drizzle schema
-interface ProductParameter {
-  pkid: number;
-  dataSource: string;
-  prdGroup: string;
-  prdType: string;
-  prdCode: string;
-  prdDesc: string;
-  currency: string;
-  amortizationType?: string;
-  alFlag?: string; // Maps to Instrument Class
-  impairedFlag?: boolean;
-  bmFlag?: boolean;
-  expectedLife?: number;
-  borrowingRate?: number;
-  marketRate?: number;
-  activeFlag: boolean;
-  createdby?: string;
-  createddate?: string;
-  updatedby?: string;
-  updateddate?: string;
-}
-
-// ✅ FIXED: Form interface uses camelCase
-interface ProductForm {
-  dataSource: string;
-  prdGroup: string;
-  prdType: string;
-  prdCode: string;
-  prdDesc: string;
-  currency: string;
-  amortizationType: string;
-  instrumentClass: string;  // Maps to alFlag
-  impairedFlag: boolean;
-  bmFlag: boolean;
-  expectedLife: number | '';
-  borrowingRate: number | '';
-  marketRate: number | '';
-  activeFlag: boolean;
-}
+// Extracted memoized dialog component
+import {
+  ProductFormDialog,
+  type ProductParameter,
+  type ProductFormData,
+  type DropdownOption
+} from './components';
 
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 
@@ -187,22 +149,7 @@ export default function ProductParametersPage() {
     }
   };
 
-  const [formData, setFormData] = useState<ProductForm>({
-    dataSource: 'Core System',
-    prdGroup: 'Financing',
-    prdType: 'Baru',
-    prdCode: '',
-    prdDesc: '',
-    currency: 'IDR',
-    amortizationType: 'EIR',
-    instrumentClass: '',
-    impairedFlag: false,
-    bmFlag: false,
-    expectedLife: '',
-    borrowingRate: '',
-    marketRate: '',
-    activeFlag: true
-  });
+
 
   const loadData = async () => {
     if (loadingRef.current) return;
@@ -265,7 +212,7 @@ export default function ProductParametersPage() {
   // ============================================================================
   // DATAGRID COLUMNS CONFIGURATION
   // ============================================================================
-  const columns: GridColDef[] = [
+  const columns: GridColDef<ProductParameter>[] = [
     {
       field: 'dataSource',
       headerName: 'Data Source',
@@ -374,14 +321,14 @@ export default function ProductParametersPage() {
       getActions: (params: GridRowParams) => {
         if (!params.row) return [];
         return [
-          <GridActionsCellItem
-            icon={<EditIcon />}
+          <SafeGridActionsCellItem
+            icon={<EditIcon color="primary" />}
             label="Edit"
             onClick={() => handleEdit(params.row)}
             key="edit"
           />,
-          <GridActionsCellItem
-            icon={<DeleteIcon />}
+          <SafeGridActionsCellItem
+            icon={<DeleteIcon color="error" />}
             label="Delete"
             onClick={() => handleDelete(params.row)}
             key="delete"
@@ -408,44 +355,12 @@ export default function ProductParametersPage() {
 
   const handleCreate = () => {
     setSelectedProduct(null);
-    setFormData({
-      dataSource: 'Core System',
-      prdGroup: 'Financing',
-      prdType: 'Baru',
-      prdCode: '',
-      prdDesc: '',
-      currency: 'IDR',
-      amortizationType: 'EIR',
-      instrumentClass: '',
-      impairedFlag: false,
-      bmFlag: false,
-      expectedLife: '',
-      borrowingRate: '',
-      marketRate: '',
-      activeFlag: true
-    });
     setDialogOpen(true);
   };
 
   const handleEdit = (product: ProductParameter) => {
     console.log('✏️ Editing product:', product.prdCode);
     setSelectedProduct(product);
-    setFormData({
-      dataSource: product.dataSource || '',
-      prdGroup: product.prdGroup || '',
-      prdType: product.prdType || '',
-      prdCode: product.prdCode || '',
-      prdDesc: product.prdDesc || '',
-      currency: product.currency || '',
-      amortizationType: product.amortizationType || 'EIR',
-      instrumentClass: product.alFlag || '',
-      impairedFlag: Boolean(product.impairedFlag),
-      bmFlag: Boolean(product.bmFlag),
-      expectedLife: product.expectedLife || '',
-      borrowingRate: product.borrowingRate || '',
-      marketRate: product.marketRate || '',
-      activeFlag: Boolean(product.activeFlag)
-    });
     setDialogOpen(true);
   };
 
@@ -470,20 +385,8 @@ export default function ProductParametersPage() {
     }
   };
 
-  const handleSave = async () => {
-    const errors: string[] = [];
-    if (!formData.dataSource.trim()) errors.push('Data Source is required');
-    if (!formData.prdGroup.trim()) errors.push('Product Group is required');
-    if (!formData.prdType.trim()) errors.push('Product Type is required');
-    if (!formData.prdCode.trim()) errors.push('Product Code is required');
-    if (!formData.currency.trim()) errors.push('Currency is required');
-    if (!formData.instrumentClass.trim()) errors.push('Instrument Class is required');
-
-    if (errors.length > 0) {
-      setError(errors.join(', '));
-      return;
-    }
-
+  // Memoized callback to prevent dialog re-renders
+  const handleSave = useCallback(async (formData: ProductFormData) => {
     try {
       setLoading(true);
       setError(null);
@@ -525,7 +428,12 @@ export default function ProductParametersPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedProduct, loadData]);
+
+  // Memoized close handler
+  const handleCloseDialog = useCallback(() => {
+    setDialogOpen(false);
+  }, []);
 
   if (loading && data.length === 0) {
     return (
@@ -558,178 +466,31 @@ export default function ProductParametersPage() {
       />
 
       <Card>
-        <CardContent>
-          <Box sx={{ height: 600, width: '100%' }}>
-            <DataGrid
-              rows={data}
-              columns={columns}
-              getRowId={(row) => row?.pkid || row?.prdCode || `row_${Math.random()}`}
-              pageSizeOptions={[5, 10, 25, 50]}
-              initialState={{
-                pagination: { paginationModel: { pageSize: 10 } }
-              }}
-              disableRowSelectionOnClick
-              loading={loading}
-              slotProps={{
-                loadingOverlay: {
-                  variant: 'linear-progress' as const,
-                  noRowsVariant: 'skeleton' as const,
-                },
-                noRowsOverlay: {
-                  children: (
-                    <EmptyState
-                      title="No Product Parameters Found"
-                      description={error ? 'Failed to load data from database.' : 'No parameters configured yet.'}
-                      onRetry={error ? loadData : handleCreate}
-                      retryText={error ? 'Retry' : 'Add Product'}
-                      icon={<ErrorIcon />}
-                    />
-                  )
-                }
-              }}
-            />
-          </Box>
+        <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
+          <SafeDataGrid<ProductParameter>
+            rows={data}
+            columns={columns}
+            getRowId={(row) => row.pkid}
+            pageSizeOptions={[5, 10, 25, 50]}
+            initialState={{
+              pagination: { paginationModel: { pageSize: 10 } }
+            }}
+            disableRowSelectionOnClick
+            loading={loading}
+          />
         </CardContent>
       </Card>
 
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>
-          {selectedProduct ? 'Edit Product Parameter' : 'Create Product Parameter'}
-        </DialogTitle>
-        <DialogContent>
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2, mt: 2 }}>
-            <TextField
-              label="Data Source *"
-              value={formData.dataSource}
-              onChange={(e) => setFormData(prev => ({ ...prev, dataSource: e.target.value }))}
-              fullWidth
-              required
-              slotProps={{ htmlInput: { maxLength: 20 } }}
-              error={!formData.dataSource.trim()}
-              helperText={!formData.dataSource.trim() && 'Data Source is required'}
-            />
-            <TextField
-              label="Product Group *"
-              value={formData.prdGroup}
-              onChange={(e) => setFormData(prev => ({ ...prev, prdGroup: e.target.value }))}
-              fullWidth
-              required
-              slotProps={{ htmlInput: { maxLength: 20 } }}
-              error={!formData.prdGroup.trim()}
-              helperText={!formData.prdGroup.trim() && 'Product Group is required'}
-            />
-            <TextField
-              label="Product Type *"
-              value={formData.prdType}
-              onChange={(e) => setFormData(prev => ({ ...prev, prdType: e.target.value }))}
-              fullWidth
-              required
-              slotProps={{ htmlInput: { maxLength: 20 } }}
-              error={!formData.prdType.trim()}
-              helperText={!formData.prdType.trim() && 'Product Type is required'}
-            />
-            <TextField
-              label="Product Code *"
-              value={formData.prdCode}
-              onChange={(e) => setFormData(prev => ({ ...prev, prdCode: e.target.value }))}
-              fullWidth
-              required
-              disabled={!!selectedProduct}
-              slotProps={{ htmlInput: { maxLength: 20 } }}
-              error={!formData.prdCode.trim()}
-              helperText={!formData.prdCode.trim() && 'Product Code is required'}
-            />
-            <TextField
-              label="Product Description"
-              value={formData.prdDesc}
-              onChange={(e) => setFormData(prev => ({ ...prev, prdDesc: e.target.value }))}
-              fullWidth
-              sx={{ gridColumn: 'span 2' }}
-              slotProps={{ htmlInput: { maxLength: 255 } }}
-            />
-            <TextField
-              label="Currency *"
-              select
-              value={formData.currency}
-              onChange={(e) => setFormData(prev => ({ ...prev, currency: e.target.value }))}
-              fullWidth
-              required
-              error={!formData.currency.trim()}
-              helperText={!formData.currency.trim() && 'Currency is required'}
-            >
-              {currencyOptions.map((option) => (
-                <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
-              ))}
-            </TextField>
-            <TextField
-              label="Amortization Type"
-              select
-              value={formData.amortizationType}
-              onChange={(e) => setFormData(prev => ({ ...prev, amortizationType: e.target.value }))}
-              fullWidth
-            >
-              {amortizationOptions.map((option) => (
-                <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
-              ))}
-            </TextField>
-            <TextField
-              label="Instrument Class *"
-              select
-              value={formData.instrumentClass}
-              onChange={(e) => setFormData(prev => ({ ...prev, instrumentClass: e.target.value }))}
-              fullWidth
-              required
-              error={!formData.instrumentClass.trim()}
-              helperText={!formData.instrumentClass.trim() && 'Instrument Class is required'}
-            >
-              {instrumentClassOptions.map((option) => (
-                <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
-              ))}
-            </TextField>
-            <TextField
-              label="Expected Life"
-              type="number"
-              value={formData.expectedLife}
-              onChange={(e) => setFormData(prev => ({ ...prev, expectedLife: e.target.value ? Number(e.target.value) : '' }))}
-              fullWidth
-            />
-            <TextField
-              label="Borrowing Rate"
-              type="number"
-              value={formData.borrowingRate}
-              onChange={(e) => setFormData(prev => ({ ...prev, borrowingRate: e.target.value ? Number(e.target.value) : '' }))}
-              fullWidth
-              slotProps={{ htmlInput: { step: 0.001 } }}
-            />
-            <TextField
-              label="Market Rate"
-              type="number"
-              value={formData.marketRate}
-              onChange={(e) => setFormData(prev => ({ ...prev, marketRate: e.target.value ? Number(e.target.value) : '' }))}
-              fullWidth
-              slotProps={{ htmlInput: { step: 0.001 } }}
-            />
-            <Box sx={{ gridColumn: 'span 2', display: 'flex', gap: 2 }}>
-              <FormControlLabel
-                control={<Switch checked={formData.impairedFlag} onChange={(e) => setFormData(prev => ({ ...prev, impairedFlag: e.target.checked }))} />}
-                label="Impaired Flag"
-              />
-              <FormControlLabel
-                control={<Switch checked={formData.bmFlag} onChange={(e) => setFormData(prev => ({ ...prev, bmFlag: e.target.checked }))} />}
-                label="BM Flag"
-              />
-              <FormControlLabel
-                control={<Switch checked={formData.activeFlag} onChange={(e) => setFormData(prev => ({ ...prev, activeFlag: e.target.checked }))} />}
-                label="Active"
-              />
-            </Box>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDialogOpen(false)} disabled={loading}>Cancel</Button>
-          <Button onClick={handleSave} variant="contained" disabled={loading}>{selectedProduct ? 'Update' : 'Create'}</Button>
-        </DialogActions>
-      </Dialog>
+      <ProductFormDialog
+        open={dialogOpen}
+        onClose={handleCloseDialog}
+        onSave={handleSave}
+        product={selectedProduct}
+        loading={loading}
+        currencyOptions={currencyOptions}
+        amortizationOptions={amortizationOptions}
+        instrumentClassOptions={instrumentClassOptions}
+      />
       <Snackbar open={!!success} autoHideDuration={4000} onClose={() => setSuccess(null)}>
         <Alert severity="success">{success}</Alert>
       </Snackbar>

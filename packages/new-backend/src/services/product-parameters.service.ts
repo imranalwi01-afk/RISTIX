@@ -5,6 +5,12 @@ import { frs9ParamProduct } from '../db/schema'
 
 export const ProductParametersService = {
     // CRUD Operations
+
+    /**
+     * List all product parameters.
+     * 
+     * @returns An Effect resolving to an array of transformed product parameters
+     */
     list: () => {
         return pipe(
             ProductParametersRepository.findAll(),
@@ -12,6 +18,12 @@ export const ProductParametersService = {
         )
     },
 
+    /**
+     * Get a product parameter by ID.
+     * 
+     * @param id - The product parameter ID
+     * @returns An Effect resolving to the product parameter or NotFoundError
+     */
     get: (id: number) => {
         return pipe(
             ProductParametersRepository.findById(BigInt(id)),
@@ -23,6 +35,13 @@ export const ProductParametersService = {
         )
     },
 
+    /**
+     * Create a new product parameter.
+     * 
+     * @param data - The product parameter data
+     * @param userId - The ID of the user creating the parameter
+     * @returns An Effect resolving to the created product parameter
+     */
     create: (data: any, userId: string) => {
         const now = new Date().toISOString()
         const payload = {
@@ -40,6 +59,14 @@ export const ProductParametersService = {
         )
     },
 
+    /**
+     * Update an existing product parameter.
+     * 
+     * @param id - The product parameter ID
+     * @param data - The data to update
+     * @param userId - The ID of the user updating the parameter
+     * @returns An Effect resolving to the updated product parameter or NotFoundError
+     */
     update: (id: number, data: any, userId: string) => {
         const now = new Date().toISOString()
         const payload = {
@@ -58,6 +85,12 @@ export const ProductParametersService = {
         )
     },
 
+    /**
+     * Delete a product parameter.
+     * 
+     * @param id - The product parameter ID
+     * @returns An Effect resolving to a success message or NotFoundError
+     */
     delete: (id: number) => {
         return pipe(
             ProductParametersRepository.delete(BigInt(id)),
@@ -70,6 +103,8 @@ export const ProductParametersService = {
     },
 
     // Options Helper
+
+    /** Get instrument class options. */
     getInstrumentClassOptions: () => {
         return Effect.succeed([
             { id: 'A', name: 'Asset' },

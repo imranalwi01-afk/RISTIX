@@ -78,14 +78,14 @@ export function sendListResponse<T>(
     c.header('X-Total-Count', total.toString())
     c.header('Access-Control-Expose-Headers', 'X-Total-Count')
 
-    return c.json(createListResponse(data, total, pagination))
+    return c.json(createListResponse(data, total, pagination) as any)
 }
 
 /**
  * Send a single item response
  */
 export function sendSingleResponse<T>(c: Context, data: T) {
-    return c.json(createSingleResponse(data))
+    return c.json(createSingleResponse(data) as any)
 }
 
 // =============================================================================

@@ -24,10 +24,10 @@ import {
   ListItemIcon
 } from '@mui/material';
 import {
-  DataGrid,
   GridColDef,
   GridToolbar
 } from '@mui/x-data-grid';
+import { SafeDataGrid } from '@/components/shared/SafeDataGrid';
 import {
   CloudUpload as CloudUploadIcon,
   Home as HomeIcon,
@@ -45,7 +45,7 @@ export default function DcfUploadPage() {
   const [data, setData] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-
+  
   // Upload Dialog State
   const [openDialog, setOpenDialog] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -98,7 +98,7 @@ export default function DcfUploadPage() {
 
   const handleUpload = async () => {
     if (!selectedFile || parsedData.length === 0) return;
-
+    
     setUploading(true);
     try {
       // Transform data to match API expectation
@@ -136,33 +136,33 @@ export default function DcfUploadPage() {
     { field: 'fileName', headerName: 'File Name', flex: 1.5 },
     { field: 'batchId', headerName: 'Batch ID', flex: 1 },
     { field: 'recordCount', headerName: 'Records', width: 100 },
-    {
-      field: 'validationStatus',
-      headerName: 'Status',
+    { 
+      field: 'validationStatus', 
+      headerName: 'Status', 
       width: 120,
       renderCell: (params) => (
-        <Chip
-          label={params.value}
-          color={params.value === 'VALID' ? 'success' : params.value === 'ERROR' ? 'error' : 'warning'}
-          size="small"
+         <Chip 
+          label={params.value} 
+          color={params.value === 'VALID' ? 'success' : params.value === 'ERROR' ? 'error' : 'warning'} 
+          size="small" 
         />
       )
     },
-    {
-      field: 'createdAt',
-      headerName: 'Uploaded At',
-      width: 180,
-      valueFormatter: (value: any) => {
-        if (!value) return '-';
-        return new Date(value).toLocaleString();
-      }
+    { 
+        field: 'createdAt', 
+        headerName: 'Uploaded At', 
+        width: 180,
+        valueFormatter: (params) => {
+            if (!params.value) return '-';
+            return new Date(params.value).toLocaleString();
+        }
     }
   ];
 
   return (
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
       <FullstackIndicator />
-
+      
       {/* Breadcrumbs */}
       <Breadcrumbs sx={{ mb: 2 }}>
         <Link href="/banking/dashboard" underline="hover" color="inherit" sx={{ display: 'flex', alignItems: 'center' }}>
@@ -177,8 +177,8 @@ export default function DcfUploadPage() {
         <Typography variant="h4" component="h1" gutterBottom>
           DCF Uploads
         </Typography>
-        <Button
-          variant="contained"
+        <Button 
+          variant="contained" 
           startIcon={<CloudUploadIcon />}
           onClick={() => setOpenDialog(true)}
         >
@@ -187,7 +187,7 @@ export default function DcfUploadPage() {
       </Box>
 
       <Paper sx={{ height: 600, width: '100%' }}>
-        <DataGrid
+        <SafeDataGrid
           rows={data}
           columns={columns}
           loading={loading}
@@ -200,61 +200,61 @@ export default function DcfUploadPage() {
       <Dialog open={openDialog} onClose={() => !uploading && setOpenDialog(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Upload DCF Cashflows</DialogTitle>
         <DialogContent>
-          <Box
-            sx={{
-              border: '2px dashed #ccc',
-              borderRadius: 2,
-              p: 4,
-              textAlign: 'center',
-              cursor: 'pointer',
-              bgcolor: 'background.default',
-              '&:hover': { bgcolor: 'action.hover' }
+          <Box 
+            sx={{ 
+                border: '2px dashed #ccc', 
+                borderRadius: 2, 
+                p: 4, 
+                textAlign: 'center', 
+                cursor: 'pointer',
+                bgcolor: 'background.default',
+                '&:hover': { bgcolor: 'action.hover' }
             }}
             onClick={() => fileInputRef.current?.click()}
           >
-            <input
-              type="file"
-              hidden
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              accept=".xlsx, .xls, .csv"
+            <input 
+                type="file" 
+                hidden 
+                ref={fileInputRef} 
+                onChange={handleFileChange} 
+                accept=".xlsx, .xls, .csv" 
             />
             <CloudUploadIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
             <Typography variant="h6" color="text.secondary">
-              {selectedFile ? selectedFile.name : 'Click to Select Excel/CSV File'}
+                {selectedFile ? selectedFile.name : 'Click to Select Excel/CSV File'}
             </Typography>
             <Typography variant="caption" color="text.secondary" display="block" mt={1}>
-              Supported formats: .xlsx, .csv
+                Supported formats: .xlsx, .csv
             </Typography>
           </Box>
 
           {selectedFile && (
             <Box mt={3}>
-              <Typography variant="subtitle2" gutterBottom>File Summary:</Typography>
-              <List dense>
-                <ListItem>
-                  <ListItemIcon><FileIcon /></ListItemIcon>
-                  <ListItemText primary={selectedFile.name} secondary={`${(selectedFile.size / 1024).toFixed(2)} KB`} />
-                </ListItem>
-                <ListItem>
-                  <ListItemIcon><ListIcon /></ListItemIcon>
-                  <ListItemText primary="Parsed Records" secondary={parsedData.length > 0 ? `${parsedData.length} rows found` : 'Parsing...'} />
-                </ListItem>
-              </List>
+                <Typography variant="subtitle2" gutterBottom>File Summary:</Typography>
+                <List dense>
+                    <ListItem>
+                        <ListItemIcon><FileIcon /></ListItemIcon>
+                        <ListItemText primary={selectedFile.name} secondary={`${(selectedFile.size / 1024).toFixed(2)} KB`} />
+                    </ListItem>
+                    <ListItem>
+                        <ListItemIcon><ListIcon /></ListItemIcon>
+                        <ListItemText primary="Parsed Records" secondary={parsedData.length > 0 ? `${parsedData.length} rows found` : 'Parsing...'} />
+                    </ListItem>
+                </List>
 
-              {parsedData.length === 0 && (
-                <Alert severity="warning" sx={{ mt: 1 }}>
-                  Parsing file content... Please wait.
-                </Alert>
-              )}
+                {parsedData.length === 0 && (
+                    <Alert severity="warning" sx={{ mt: 1 }}>
+                        Parsing file content... Please wait.
+                    </Alert>
+                )}
             </Box>
           )}
 
           {uploading && (
-            <Box mt={2}>
-              <LinearProgress />
-              <Typography variant="caption" align="center" display="block" mt={1}>Uploading and processing...</Typography>
-            </Box>
+             <Box mt={2}>
+                <LinearProgress />
+                <Typography variant="caption" align="center" display="block" mt={1}>Uploading and processing...</Typography>
+             </Box>
           )}
         </DialogContent>
         <DialogActions>

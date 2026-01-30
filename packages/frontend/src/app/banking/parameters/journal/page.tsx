@@ -9,30 +9,23 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
-  Typography,
   Container,
   Card,
   CardContent,
   Button,
   CircularProgress,
   Alert,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  MenuItem,
   Chip,
   Snackbar,
   InputAdornment,
   Select,
   FormControl,
   InputLabel,
-  FormControlLabel,
-  Switch
+  TextField,
+  MenuItem
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -43,7 +36,10 @@ import {
   FilterList as FilterIcon,
   Clear as ClearIcon
 } from '@mui/icons-material';
-import { DataGrid, GridColDef, GridActionsCellItem, GridRowParams } from '@mui/x-data-grid';
+import { GridColDef, GridRowParams } from '@mui/x-data-grid';
+
+// Safe DataGrid wrapper to prevent bundling issues
+import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 import { useRouter } from 'next/navigation';
 import { api, handleAPIError } from '../../../../services/api';
 
@@ -52,35 +48,13 @@ import PageHeader from '@/components/banking/shared/PageHeader';
 import EmptyState from '@/components/banking/shared/EmptyState';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 
-
-// ✅ FIXED: Interface uses camelCase to match backend Drizzle schema
-interface JournalParameter {
-  pkid: number;
-  glGroup?: string;
-  currency?: string;
-  glType?: string;
-  glCode?: string;
-  glNumber?: string;
-  dbcr?: string;
-  glDesc?: string;
-  activeFlag?: boolean;
-  createdby?: string;
-  createddate?: string;
-  updatedby?: string;
-  updateddate?: string;
-}
-
-// ✅ FIXED: Form interface uses camelCase
-interface JournalForm {
-  glGroup: string;
-  currency: string;
-  glType: string;
-  glCode: string;
-  glNumber: string; // COA
-  dbcr: string;
-  glDesc: string;
-  activeFlag: boolean;
-}
+// Extracted memoized dialog component
+import {
+  JournalFormDialog,
+  type JournalParameter,
+  type JournalFormData,
+  type JournalDropdownOption
+} from './components';
 
 export default function JournalParametersPage() {
   const router = useRouter();
@@ -91,16 +65,7 @@ export default function JournalParametersPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const [formData, setFormData] = useState<JournalForm>({
-    glGroup: '',
-    currency: '',
-    glType: '',
-    glCode: '',
-    glNumber: '',
-    dbcr: '',
-    glDesc: '',
-    activeFlag: true
-  });
+
 
   // State for dropdown options
   const [glGroupOptions, setGlGroupOptions] = useState<Array<{ id: string, name: string }>>([]);
@@ -188,14 +153,14 @@ export default function JournalParametersPage() {
       headerName: 'Actions',
       width: 120,
       getActions: (params: GridRowParams) => [
-        <GridActionsCellItem
-          icon={<EditIcon />}
+        <SafeGridActionsCellItem
+          icon={<EditIcon color="primary" />}
           label="Edit"
           onClick={() => params?.row && handleEdit(params.row)}
           key="edit"
         />,
-        <GridActionsCellItem
-          icon={<DeleteIcon />}
+        <SafeGridActionsCellItem
+          icon={<DeleteIcon color="error" />}
           label="Delete"
           onClick={() => params?.row && handleDelete(params.row)}
           key="delete"
@@ -320,31 +285,11 @@ export default function JournalParametersPage() {
 
   const handleCreate = () => {
     setSelectedJournal(null);
-    setFormData({
-      glGroup: glGroupOptions.length > 0 ? glGroupOptions[0].id : '',
-      currency: currencyOptions.length > 0 ? currencyOptions[0].id : '',
-      glType: journalTypeOptions.length > 0 ? journalTypeOptions[0].id : '',
-      glCode: '',
-      glNumber: '',
-      dbcr: dbcrOptions.length > 0 ? dbcrOptions[0].id : '',
-      glDesc: '',
-      activeFlag: true
-    });
     setDialogOpen(true);
   };
 
   const handleEdit = (journal: JournalParameter) => {
     setSelectedJournal(journal);
-    setFormData({
-      glGroup: journal.glGroup || (glGroupOptions.length > 0 ? glGroupOptions[0].id : ''),
-      currency: journal.currency || (currencyOptions.length > 0 ? currencyOptions[0].id : ''),
-      glType: journal.glType || (journalTypeOptions.length > 0 ? journalTypeOptions[0].id : ''),
-      glCode: journal.glCode || '',
-      glNumber: journal.glNumber || '',
-      dbcr: journal.dbcr || (dbcrOptions.length > 0 ? dbcrOptions[0].id : ''),
-      glDesc: journal.glDesc || '',
-      activeFlag: journal.activeFlag ?? true
-    });
     setDialogOpen(true);
   };
 
@@ -370,19 +315,8 @@ export default function JournalParametersPage() {
     }
   };
 
-  const handleSave = async () => {
-    const errors: string[] = [];
-    if (!formData.glGroup.trim()) errors.push('Journal Group is required');
-    if (!formData.currency.trim()) errors.push('Currency is required');
-    if (!formData.glType.trim()) errors.push('Journal Type is required');
-    if (!formData.glCode.trim()) errors.push('Journal Code is required');
-    if (!formData.dbcr.trim()) errors.push('DB/CR is required');
-
-    if (errors.length > 0) {
-      setError(errors.join(', '));
-      return;
-    }
-
+  // Memoized callback to prevent dialog re-renders
+  const handleSave = useCallback(async (formData: JournalFormData) => {
     try {
       setLoading(true);
       setError(null);
@@ -418,7 +352,12 @@ export default function JournalParametersPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedJournal, loadData]);
+
+  // Memoized close handler
+  const handleCloseDialog = useCallback(() => {
+    setDialogOpen(false);
+  }, []);
 
   if (loading && data.length === 0) {
     return (
@@ -527,7 +466,7 @@ export default function JournalParametersPage() {
       <Card>
         <CardContent>
           <Box sx={{ height: 600, width: '100%' }}>
-            <DataGrid
+            <SafeDataGrid
               rows={filteredData}
               columns={columns}
               getRowId={(row) => row?.pkid || row?.glCode || `row_${Math.random()}`}
@@ -559,140 +498,19 @@ export default function JournalParametersPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>
-          {selectedJournal ? 'Edit Journal Parameter' : 'Create Journal Parameter'}
-        </DialogTitle>
-        <DialogContent>
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2, mt: 2 }}>
-            <TextField
-              label="Journal Group *"
-              select
-              value={formData.glGroup}
-              onChange={(e) => setFormData(prev => ({ ...prev, glGroup: e.target.value }))}
-              fullWidth
-              required
-              disabled={optionsLoading}
-              error={!formData.glGroup.trim()}
-              helperText={!formData.glGroup.trim() && 'Journal Group is required'}
-            >
-              {Array.isArray(glGroupOptions) && glGroupOptions.length > 0 ? (
-                glGroupOptions.map(option => (
-                  <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
-                ))
-              ) : (
-                <MenuItem value="">Loading...</MenuItem>
-              )}
-            </TextField>
-            <TextField
-              label="Currency *"
-              select
-              value={formData.currency}
-              onChange={(e) => setFormData(prev => ({ ...prev, currency: e.target.value }))}
-              fullWidth
-              required
-              disabled={optionsLoading}
-              error={!formData.currency.trim()}
-              helperText={!formData.currency.trim() && 'Currency is required'}
-            >
-              {Array.isArray(currencyOptions) && currencyOptions.length > 0 ? (
-                currencyOptions.map(option => (
-                  <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
-                ))
-              ) : (
-                <MenuItem value="">Loading...</MenuItem>
-              )}
-            </TextField>
-            <TextField
-              label="Journal Type *"
-              select
-              value={formData.glType}
-              onChange={(e) => setFormData(prev => ({ ...prev, glType: e.target.value }))}
-              fullWidth
-              required
-              disabled={optionsLoading}
-              error={!formData.glType.trim()}
-              helperText={!formData.glType.trim() && 'Journal Type is required'}
-            >
-              {Array.isArray(journalTypeOptions) && journalTypeOptions.length > 0 ? (
-                journalTypeOptions.map(option => (
-                  <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
-                ))
-              ) : (
-                <MenuItem value="">Loading...</MenuItem>
-              )}
-            </TextField>
-            <TextField
-              label="Journal Code *"
-              select
-              value={formData.glCode}
-              onChange={(e) => setFormData(prev => ({ ...prev, glCode: e.target.value }))}
-              fullWidth
-              required
-              disabled={optionsLoading}
-              error={!formData.glCode.trim()}
-              helperText={!formData.glCode.trim() && 'Journal Code is required'}
-            >
-              {Array.isArray(journalCodeOptions) && journalCodeOptions.length > 0 ? (
-                journalCodeOptions.map(option => (
-                  <MenuItem key={option.id} value={option.id}>{option.id} - {option.name}</MenuItem>
-                ))
-              ) : (
-                <MenuItem value="">Loading...</MenuItem>
-              )}
-            </TextField>
-            <TextField
-              label="COA (GL Number)"
-              value={formData.glNumber}
-              onChange={(e) => setFormData(prev => ({ ...prev, glNumber: e.target.value }))}
-              fullWidth
-              placeholder="COA Number"
-              slotProps={{ htmlInput: { maxLength: 20 } }}
-              helperText="Chart of Accounts number (optional)"
-            />
-            <TextField
-              label="DB/CR *"
-              select
-              value={formData.dbcr}
-              onChange={(e) => setFormData(prev => ({ ...prev, dbcr: e.target.value }))}
-              fullWidth
-              required
-              disabled={optionsLoading}
-              error={!formData.dbcr.trim()}
-              helperText={!formData.dbcr.trim() && 'DB/CR is required'}
-            >
-              {Array.isArray(dbcrOptions) && dbcrOptions.length > 0 ? (
-                dbcrOptions.map(option => (
-                  <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
-                ))
-              ) : (
-                <MenuItem value="">Loading...</MenuItem>
-              )}
-            </TextField>
-            <TextField
-              label="Journal Description"
-              value={formData.glDesc}
-              onChange={(e) => setFormData(prev => ({ ...prev, glDesc: e.target.value }))}
-              fullWidth
-              multiline
-              rows={3}
-              sx={{ gridColumn: 'span 2' }}
-              placeholder="Journal Description (optional)"
-              slotProps={{ htmlInput: { maxLength: 255 } }}
-            />
-            <Box sx={{ gridColumn: 'span 2' }}>
-              <FormControlLabel
-                control={<Switch checked={formData.activeFlag} onChange={(e) => setFormData(prev => ({ ...prev, activeFlag: e.target.checked }))} />}
-                label="Active"
-              />
-            </Box>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDialogOpen(false)} disabled={loading}>Cancel</Button>
-          <Button onClick={handleSave} variant="contained" disabled={loading}>{selectedJournal ? 'Update' : 'Create'}</Button>
-        </DialogActions>
-      </Dialog>
+      <JournalFormDialog
+        open={dialogOpen}
+        onClose={handleCloseDialog}
+        onSave={handleSave}
+        journal={selectedJournal}
+        loading={loading}
+        optionsLoading={optionsLoading}
+        glGroupOptions={glGroupOptions}
+        currencyOptions={currencyOptions}
+        journalTypeOptions={journalTypeOptions}
+        journalCodeOptions={journalCodeOptions}
+        dbcrOptions={dbcrOptions}
+      />
       <Snackbar open={!!success} autoHideDuration={4000} onClose={() => setSuccess(null)}>
         <Alert severity="success">{success}</Alert>
       </Snackbar>

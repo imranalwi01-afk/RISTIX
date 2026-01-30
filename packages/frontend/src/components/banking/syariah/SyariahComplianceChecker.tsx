@@ -248,7 +248,7 @@ const SyariahComplianceChecker: React.FC<SyariahComplianceCheckerProps> = ({
 
           {/* Quick Status Grid */}
           <Grid container spacing={2} sx={{ mb: 3 }}>
-            <Grid item xs={6} md={3}>
+            <Grid size={{ xs: 6, md: 3 }}>
               <Box sx={{ textAlign: 'center' }}>
                 <CheckCircle
                   color={complianceData.isHalalCertified ? 'success' : 'disabled'}
@@ -259,7 +259,7 @@ const SyariahComplianceChecker: React.FC<SyariahComplianceCheckerProps> = ({
                 </Typography>
               </Box>
             </Grid>
-            <Grid item xs={6} md={3}>
+            <Grid size={{ xs: 6, md: 3 }}>
               <Box sx={{ textAlign: 'center' }}>
                 <Gavel
                   color={complianceData.syariahBoardApproval ? 'success' : 'disabled'}
@@ -270,7 +270,7 @@ const SyariahComplianceChecker: React.FC<SyariahComplianceCheckerProps> = ({
                 </Typography>
               </Box>
             </Grid>
-            <Grid item xs={6} md={3}>
+            <Grid size={{ xs: 6, md: 3 }}>
               <Box sx={{ textAlign: 'center' }}>
                 <Assessment
                   color={complianceData.complianceValidation.aaoifiCompliant ? 'success' : 'disabled'}
@@ -281,7 +281,7 @@ const SyariahComplianceChecker: React.FC<SyariahComplianceCheckerProps> = ({
                 </Typography>
               </Box>
             </Grid>
-            <Grid item xs={6} md={3}>
+            <Grid size={{ xs: 6, md: 3 }}>
               <Box sx={{ textAlign: 'center' }}>
                 <AccountBalance
                   color={complianceData.complianceValidation.ojkCompliant ? 'success' : 'disabled'}
@@ -325,7 +325,7 @@ const SyariahComplianceChecker: React.FC<SyariahComplianceCheckerProps> = ({
             </AccordionSummary>
             <AccordionDetails>
               <Grid container spacing={3}>
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Typography variant="subtitle2" sx={{ mb: 1 }}>Contract Type</Typography>
                   <Chip
                     label={ISLAMIC_CONTRACTS.find(c => c.code === complianceData.islamicContractType)?.name || 'Not Specified'}
@@ -335,7 +335,7 @@ const SyariahComplianceChecker: React.FC<SyariahComplianceCheckerProps> = ({
                     {ISLAMIC_CONTRACTS.find(c => c.code === complianceData.islamicContractType)?.description || 'Contract type not specified'}
                   </Typography>
                 </Grid>
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Typography variant="subtitle2" sx={{ mb: 1 }}>Underlying Asset</Typography>
                   <Typography variant="body1">{complianceData.underlyingAssetType}</Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
@@ -354,7 +354,7 @@ const SyariahComplianceChecker: React.FC<SyariahComplianceCheckerProps> = ({
               <Box>
                 <Typography variant="subtitle2" sx={{ mb: 2 }}>Profit Distribution Ratio</Typography>
                 <Grid container spacing={2}>
-                  <Grid item xs={6}>
+                  <Grid size={{ xs: 6 }}>
                     <Card variant="outlined">
                       <CardContent sx={{ textAlign: 'center' }}>
                         <Typography variant="h4" color="secondary.main">
@@ -364,7 +364,7 @@ const SyariahComplianceChecker: React.FC<SyariahComplianceCheckerProps> = ({
                       </CardContent>
                     </Card>
                   </Grid>
-                  <Grid item xs={6}>
+                  <Grid size={{ xs: 6 }}>
                     <Card variant="outlined">
                       <CardContent sx={{ textAlign: 'center' }}>
                         <Typography variant="h4" color="primary.main">
@@ -389,7 +389,7 @@ const SyariahComplianceChecker: React.FC<SyariahComplianceCheckerProps> = ({
               </Alert>
               <Grid container spacing={1}>
                 {PROHIBITED_SECTORS.map((sector) => (
-                  <Grid item key={sector}>
+                  <Grid key={sector}>
                     <Chip
                       label={sector.replace('_', ' ').toUpperCase()}
                       size="small"

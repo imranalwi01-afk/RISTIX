@@ -19,11 +19,11 @@ import {
   Alert
 } from '@mui/material';
 import {
-  DataGrid,
   GridColDef,
   GridToolbar,
   GridRowModel
 } from '@mui/x-data-grid';
+import { SafeDataGrid } from '@/components/shared/SafeDataGrid';
 import {
   Home as HomeIcon,
   Calculate as CalculateIcon,
@@ -286,7 +286,7 @@ export default function DcfCalculatorPage() {
                         Save Projection
                     </Button>
                 </Box>
-                <DataGrid
+                <SafeDataGrid
                     rows={rows}
                     columns={columns}
                     processRowUpdate={processRowUpdate}
