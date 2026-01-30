@@ -1,6 +1,7 @@
 import { Effect, pipe } from 'effect'
 import { eq, and, or, asc, desc, count, ilike, sql } from 'drizzle-orm'
 import { db } from '@/config'
+import { getDatabase } from '@/config/database'
 import { users, type User, type NewUser } from '@/db/schema'
 import { DatabaseError, NotFoundError } from '@/lib/errors'
 import { dbOperation } from '@/lib/effect'
@@ -54,11 +55,12 @@ export class UsersRepository implements ITenantRepository<User, NewUser> {
         return queryEffect(() => {
             const conditions = [eq(users.email, email)]
             if (tenantId) {
+                // Route to tenant DB when tenantId is provided
+                const dbx = getDatabase(tenantId)
                 conditions.push(eq(users.tenantId, tenantId))
+                return dbx.query.users.findFirst({ where: and(...conditions) })
             }
-            return db.query.users.findFirst({
-                where: and(...conditions),
-            })
+            return db.query.users.findFirst({ where: and(...conditions) })
         })
     }
 
@@ -183,8 +185,9 @@ export class UsersRepository implements ITenantRepository<User, NewUser> {
      * @returns An Effect resolving to the created user
      */
     create(data: NewUser): Effect.Effect<User, DatabaseError> {
-        return insertEffect(() =>
-            db
+        return insertEffect(() => {
+            const dbx = (data as any).tenantId ? getDatabase((data as any).tenantId) : db
+            return dbx
                 .insert(users)
                 .values({
                     ...data,
@@ -192,7 +195,7 @@ export class UsersRepository implements ITenantRepository<User, NewUser> {
                     updatedAt: new Date(),
                 })
                 .returning()
-        )
+        })
     }
 
     /**
@@ -246,7 +249,8 @@ export class UsersRepository implements ITenantRepository<User, NewUser> {
         verifiedEmail: number
     }, DatabaseError> {
         return queryEffect(async () => {
-            const result = await db
+            const dbx = getDatabase(tenantId)
+            const result = await dbx
                 .select({
                     total: count(),
                     active: sql<number>`SUM(CASE WHEN is_active = true THEN 1 ELSE 0 END)`,
