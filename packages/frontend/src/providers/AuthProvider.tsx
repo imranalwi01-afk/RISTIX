@@ -45,12 +45,14 @@ const getLandingPageUrl = (user: any): string => {
     console.log(`🔍 Determining landing page for user: ${email} with stakeholderType: ${stakeholderType}`);
 
     switch (stakeholderType) {
-      case 'platform':
-        return '/platform/admin';
+      // case 'platform':
+      //   return '/platform/admin'; 
+      // DISABLED: User requested to redirect to banking dashboard even for admins
       case 'consultant':
         return '/consultant/dashboard';
       case 'regulator':
         return '/regulator/dashboard';
+      case 'platform':
       case 'banking':
       default:
         return '/banking/dashboard';
@@ -71,7 +73,7 @@ const syncTokenToCookie = (token: string | null, user: any = null, refreshToken?
 
         // ✅ Get cookie config with domain detection (supports localhost, ifrspro.id, danafin.com)
         const cookieConfig = getCookieConfig(7);
-        
+
         console.log('🍪 [Cookie Setup] Configuration:', {
           hostname: window.location.hostname,
           protocol: window.location.protocol,
@@ -111,7 +113,7 @@ const syncTokenToCookie = (token: string | null, user: any = null, refreshToken?
         // Verify cookies were actually set
         const verifyToken = Cookies.get('auth_token');
         const verifyRefresh = Cookies.get('refresh_token');
-        console.log('🔐 Authentication cookies synced successfully', { 
+        console.log('🔐 Authentication cookies synced successfully', {
           domain: cookieConfig.domain || 'localhost',
           authTokenSet: !!verifyToken,
           refreshTokenSet: !!verifyRefresh,
@@ -122,7 +124,7 @@ const syncTokenToCookie = (token: string | null, user: any = null, refreshToken?
         // Clear cookies with dynamic domain detection
         const cookieConfig = getCookieConfig();
         const removeOptions = { path: '/', ...(cookieConfig.domain && { domain: cookieConfig.domain }) };
-        
+
         Cookies.remove('auth_token', removeOptions);
         Cookies.remove('refresh_token', removeOptions);
         Cookies.remove('auth_user', removeOptions);
@@ -538,7 +540,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (authData.success && authData.data) {
         // 🔍 DEBUG: Log full response structure
         console.log('🔍 Full login response:', JSON.stringify(authData, null, 2));
-        
+
         const { user: userData, accessToken: token, refreshToken, expiresIn } = authData.data
 
         console.log('✅ Login successful for:', userData.email)
