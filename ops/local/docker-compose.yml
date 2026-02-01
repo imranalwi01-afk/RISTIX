@@ -90,9 +90,7 @@ services:
       - ../../packages/new-backend/package.json:/app/package.json
       - ../../packages/new-backend/bunfig.toml:/app/bunfig.toml
       - new-backend-node-modules:/app/node_modules
-    depends_on:
-      redis:
-        condition: service_healthy
+
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:4232/health" ]
       interval: 30s
