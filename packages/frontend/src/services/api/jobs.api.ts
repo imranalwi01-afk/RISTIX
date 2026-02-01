@@ -74,4 +74,9 @@ export const jobsAPI = {
     const response = await apiClient.patch(`/jobs/definitions/${id}`, { isEnabled });
     return response.data;
   },
+
+  createDefinition: async (data: Partial<JobDefinition>): Promise<JobDefinition> => {
+    const response = await apiClient.post('/jobs/definitions', data);
+    return response.data;
+  },
 };

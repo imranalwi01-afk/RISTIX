@@ -1,10 +1,10 @@
 import { pgTable, text, varchar, timestamp, boolean, jsonb, integer, uuid } from 'drizzle-orm/pg-core'
-import { tenants } from './core'
+import { tenants, coreSchema } from './core'
 
 // =============================================================================
 // JOB DEFINITIONS (Configuration)
 // =============================================================================
-export const jobDefinitions = pgTable('job_definitions', {
+export const jobDefinitions = coreSchema.table('job_definitions', {
     id: uuid('id').defaultRandom().primaryKey(),
     tenantId: uuid('tenant_id').references(() => tenants.id).notNull(),
     name: varchar('name', { length: 255 }).notNull(),
@@ -33,7 +33,7 @@ export const jobDefinitions = pgTable('job_definitions', {
 // =============================================================================
 // JOB EXECUTIONS (History/Log)
 // =============================================================================
-export const jobExecutions = pgTable('job_executions', {
+export const jobExecutions = coreSchema.table('job_executions', {
     id: varchar('id', { length: 255 }).primaryKey(), // Using BullMQ Job ID or UUID
     jobDefinitionId: uuid('job_definition_id').references(() => jobDefinitions.id),
     tenantId: uuid('tenant_id').references(() => tenants.id).notNull(),

@@ -68,7 +68,12 @@ import {
   CloudDownload as CloudDownloadIcon,
   Search as SearchIcon,
   Clear as ClearIcon,
-  FilterList as FilterListIcon
+  FilterList as FilterListIcon,
+  Add as AddIcon,
+  PlayCircleFilled as RunIcon,
+  Description as ScriptIcon,
+  Code as CodeIcon,
+  Terminal as TerminalIcon
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import { format, parseISO, subDays, addMinutes, differenceInMinutes } from 'date-fns';
@@ -79,20 +84,21 @@ interface JobExecution {
   id: string;
   jobId: string;
   jobName: string;
-  jobType: 'IFRS9_CALCULATION' | 'ETL_PROCESS' | 'DATA_VALIDATION' | 'REPORT_GENERATION' | 'BACKUP' | 'MAINTENANCE';
-  status: 'RUNNING' | 'COMPLETED' | 'FAILED' | 'PENDING' | 'PAUSED' | 'CANCELLED';
+  jobType: 'SQL_SP' | 'INTERNAL_SCRIPT' | 'SHELL_COMMAND' | 'IFRS9_CALCULATION' | 'ETL_PROCESS' | 'DATA_VALIDATION' | 'REPORT_GENERATION' | 'BACKUP' | 'MAINTENANCE';
+  status: 'RUNNING' | 'COMPLETED' | 'FAILED' | 'PENDING' | 'PAUSED' | 'CANCELLED' | 'active' | 'waiting';
   priority: 'LOW' | 'NORMAL' | 'HIGH' | 'CRITICAL';
   startTime: string;
   endTime?: string;
   duration?: number;
   progress: number;
   userId: string;
-  userName: string;
+  userName?: string;
   tenantId?: string;
   tenantName?: string;
   parameters?: any;
   resultData?: any;
   errorMessage?: string;
+  triggeredBy?: string;
   errorDetails?: string;
   resourceUsage?: {
     cpuUsage: number;
@@ -206,6 +212,76 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
     action: null,
   });
 
+  const [createJobDialogOpen, setCreateJobDialogOpen] = useState(false);
+  const [newJobData, setNewJobData] = useState<Partial<JobDefinition>>({
+    name: '',
+    type: 'SQL_SP',
+    parameters: {},
+    priority: 'NORMAL',
+    maxRetries: 3,
+    timeout: 3600,
+    isEnabled: true,
+    scheduleExpression: ''
+  });
+
+  const handleCreateJob = async () => {
+    try {
+      setLoading(true);
+
+      // Construct defaultParameters based on job type
+      const jobData = newJobData as any;
+      const defaultParams: any = { ...(newJobData.parameters || {}) };
+
+      if (jobData.type === 'SQL_SP' && jobData.procedureName) {
+        defaultParams.procedureName = jobData.procedureName;
+        if (jobData.schemaName) {
+          defaultParams.schemaName = jobData.schemaName;
+        }
+        if (jobData.targetDatabase) {
+          defaultParams.targetDatabase = jobData.targetDatabase;
+        }
+      } else if (jobData.type === 'INTERNAL_SCRIPT' && jobData.handlerName) {
+        defaultParams.handlerName = jobData.handlerName;
+      } else if (jobData.type === 'SHELL_COMMAND' && jobData.command) {
+        defaultParams.command = jobData.command;
+      }
+
+      // Map frontend fields to backend schema
+      const payload = {
+        name: newJobData.name,
+        jobType: newJobData.type,
+        cronExpression: newJobData.scheduleExpression || undefined,
+        defaultParameters: defaultParams,
+        priority: newJobData.priority,
+        maxRetries: newJobData.maxRetries,
+        timeout: newJobData.timeout,
+        isEnabled: newJobData.isEnabled,
+      };
+
+      await bankingAPI.jobs.createDefinition(payload as any);
+
+      setCreateJobDialogOpen(false);
+      fetchJobExecutions();
+
+      // Reset form
+      setNewJobData({
+        name: '',
+        type: 'SQL_SP',
+        parameters: {},
+        priority: 'NORMAL',
+        maxRetries: 3,
+        timeout: 3600,
+        isEnabled: true,
+        scheduleExpression: ''
+      });
+    } catch (error) {
+      console.error('Error creating job:', error);
+      setError('Failed to create job definition. Please check your inputs.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
 
   // Fetch data
@@ -238,6 +314,8 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
         resultSummary: e.result || undefined,
         errorMessage: e.error || undefined,
         triggeredBy: e.triggeredBy || undefined,
+        userName: e.userName || e.triggeredBy || 'System',
+        tenantName: e.tenantName || 'Main Tenant',
       }));
 
       setJobExecutions(mapped);
@@ -318,6 +396,27 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
     });
   };
 
+  const handleJobAction = async (jobId: string, action: 'start' | 'pause' | 'stop' | 'restart') => {
+    if (action === 'start') {
+      try {
+        setLoading(true);
+        await bankingAPI.jobs.runJob(jobId);
+        fetchJobExecutions();
+      } catch (error) {
+        console.error('Run job error:', error);
+        setError('Failed to start job execution.');
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      // For existing executions
+      const execution = jobExecutions.find(e => e.id === jobId);
+      if (execution) {
+        handleJobControl(execution, action);
+      }
+    }
+  };
+
   const executeJobControl = async () => {
     if (!jobControlDialog.job || !jobControlDialog.action) return;
 
@@ -382,6 +481,9 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
       case 'REPORT_GENERATION': return <AssignmentIcon />;
       case 'BACKUP': return <CloudDownloadIcon />;
       case 'MAINTENANCE': return <SettingsIcon />;
+      case 'SQL_SP': return <CodeIcon />;
+      case 'INTERNAL_SCRIPT': return <ScriptIcon />;
+      case 'SHELL_COMMAND': return <TerminalIcon />;
       default: return <AssignmentIcon />;
     }
   };
@@ -674,6 +776,21 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<AddIcon />}
+            onClick={() => setCreateJobDialogOpen(true)}
+            sx={{ mr: 1, boxShadow: '0 4px 12px rgba(25, 118, 210, 0.3)' }}
+          >
+            Create Job
+          </Button>
+
+          <Tooltip title="Refresh All Data">
+            <IconButton onClick={handleRefresh} disabled={loading} color="primary" sx={{ border: '1px solid', borderColor: 'primary.light' }}>
+              <RefreshIcon className={loading ? 'animate-spin' : ''} />
+            </IconButton>
+          </Tooltip>
           <FormControlLabel
             control={
               <Switch
@@ -926,6 +1043,9 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
                     label="Type"
                   >
                     <MenuItem value="">All</MenuItem>
+                    <MenuItem value="SQL_SP">Stored Procedure</MenuItem>
+                    <MenuItem value="INTERNAL_SCRIPT">Internal Script</MenuItem>
+                    <MenuItem value="SHELL_COMMAND">Shell Command</MenuItem>
                     <MenuItem value="IFRS9_CALCULATION">IFRS9 Calculation</MenuItem>
                     <MenuItem value="ETL_PROCESS">ETL Process</MenuItem>
                     <MenuItem value="DATA_VALIDATION">Data Validation</MenuItem>
@@ -1057,9 +1177,19 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
                         Priority: {job.priority}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        Max Retries: {job.maxRetries}
+                        Type: {job.type}
                       </Typography>
                     </Box>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={<RunIcon />}
+                      onClick={() => handleJobAction(job.id, 'start')}
+                      disabled={!job.isEnabled || loading}
+                      fullWidth
+                    >
+                      Run Now
+                    </Button>
                   </Stack>
                 </CardContent>
               </Card>
@@ -1120,6 +1250,175 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
           </Grid>
         )}
       </TabPanel>
+
+      {/* Create Job Dialog */}
+      <Dialog
+        open={createJobDialogOpen}
+        onClose={() => setCreateJobDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Create New Job Definition</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid size={{ xs: 12 }}>
+              <TextField
+                fullWidth
+                label="Job Name"
+                value={newJobData.name}
+                onChange={(e) => setNewJobData({ ...newJobData, name: e.target.value })}
+                required
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <FormControl fullWidth>
+                <InputLabel>Job Type</InputLabel>
+                <Select
+                  value={newJobData.type}
+                  label="Job Type"
+                  onChange={(e) => setNewJobData({ ...newJobData, type: e.target.value })}
+                >
+                  <MenuItem value="SQL_SP">Stored Procedure</MenuItem>
+                  <MenuItem value="INTERNAL_SCRIPT">Internal Script</MenuItem>
+                  <MenuItem value="SHELL_COMMAND">Shell Command</MenuItem>
+                  <MenuItem value="IFRS9_CALCULATION">IFRS9 Calculation</MenuItem>
+                  <MenuItem value="ETL_PROCESS">ETL Process</MenuItem>
+                  <MenuItem value="DATA_VALIDATION">Data Validation</MenuItem>
+                  <MenuItem value="REPORT_GENERATION">Report Generation</MenuItem>
+                  <MenuItem value="BACKUP">Backup</MenuItem>
+                  <MenuItem value="MAINTENANCE">Maintenance</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            {/* Dynamic Fields based on Job Type */}
+            {newJobData.type === 'SQL_SP' && (
+              <>
+                <Grid size={{ xs: 12 }}>
+                  <FormControl fullWidth>
+                    <InputLabel>Target Database</InputLabel>
+                    <Select
+                      value={(newJobData as any).targetDatabase || 'TENANT'}
+                      label="Target Database"
+                      onChange={(e) => setNewJobData({ ...newJobData, targetDatabase: e.target.value } as any)}
+                    >
+                      <MenuItem value="TENANT">Tenant DB (Default)</MenuItem>
+                      <MenuItem value="LEGACY">Legacy DB (IFRS9 Engine)</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <TextField
+                    fullWidth
+                    label="Schema Name"
+                    placeholder="e.g. core, risk, public"
+                    value={(newJobData as any).schemaName || ''}
+                    onChange={(e) => setNewJobData({ ...newJobData, schemaName: e.target.value } as any)}
+                    helperText="Database schema (optional, defaults to public/core)"
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <TextField
+                    fullWidth
+                    label="Stored Procedure Name"
+                    placeholder="e.g. calculate_daily_interest"
+                    value={(newJobData as any).procedureName || ''}
+                    onChange={(e) => setNewJobData({ ...newJobData, procedureName: e.target.value } as any)}
+                    helperText="Name of the stored procedure to execute"
+                  />
+                </Grid>
+              </>
+            )}
+
+            {newJobData.type === 'INTERNAL_SCRIPT' && (
+              <Grid size={{ xs: 12 }}>
+                <TextField
+                  fullWidth
+                  label="Handler Name"
+                  placeholder="e.g. test_handler"
+                  value={(newJobData as any).handlerName || ''}
+                  onChange={(e) => setNewJobData({ ...newJobData, handlerName: e.target.value } as any)}
+                  helperText="Registered internal handler name"
+                />
+              </Grid>
+            )}
+
+            {newJobData.type === 'SHELL_COMMAND' && (
+              <Grid size={{ xs: 12 }}>
+                <TextField
+                  fullWidth
+                  label="Shell Command"
+                  placeholder="e.g. ls -la"
+                  value={(newJobData as any).command || ''}
+                  onChange={(e) => setNewJobData({ ...newJobData, command: e.target.value } as any)}
+                  helperText="System command to execute (use with caution)"
+                />
+              </Grid>
+            )}
+
+            <Grid size={{ xs: 12, md: 6 }}>
+              <FormControl fullWidth>
+                <InputLabel>Priority</InputLabel>
+                <Select
+                  value={newJobData.priority}
+                  label="Priority"
+                  onChange={(e) => setNewJobData({ ...newJobData, priority: e.target.value })}
+                >
+                  <MenuItem value="LOW">Low</MenuItem>
+                  <MenuItem value="NORMAL">Normal</MenuItem>
+                  <MenuItem value="HIGH">High</MenuItem>
+                  <MenuItem value="CRITICAL">Critical</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                fullWidth
+                label="Schedule Expression (Cron)"
+                placeholder="0 0 * * *"
+                value={newJobData.scheduleExpression}
+                onChange={(e) => setNewJobData({ ...newJobData, scheduleExpression: e.target.value })}
+                helperText="Leave empty for on-demand only"
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 3 }}>
+              <TextField
+                fullWidth
+                label="Max Retries"
+                type="number"
+                value={newJobData.maxRetries}
+                onChange={(e) => setNewJobData({ ...newJobData, maxRetries: parseInt(e.target.value) || 0 })}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 3 }}>
+              <TextField
+                fullWidth
+                label="Timeout (seconds)"
+                type="number"
+                value={newJobData.timeout}
+                onChange={(e) => setNewJobData({ ...newJobData, timeout: parseInt(e.target.value) || 0 })}
+              />
+            </Grid>
+            <Grid size={{ xs: 12 }}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={newJobData.isEnabled}
+                    onChange={(e) => setNewJobData({ ...newJobData, isEnabled: e.target.checked })}
+                  />
+                }
+                label="Enabled"
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCreateJobDialogOpen(false)}>Cancel</Button>
+          <Button onClick={handleCreateJob} variant="contained" disabled={!newJobData.name}>
+            Create
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Job Details Dialog */}
       <Dialog

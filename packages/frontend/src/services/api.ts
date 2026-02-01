@@ -379,6 +379,10 @@ export const bankingAPI = {
       const response = await apiClient.post(`/jobs/${definitionId}/toggle`)
       return response.data
     },
+    createDefinition: async (data: any) => {
+      const response = await apiClient.post('/jobs/definitions', data)
+      return response.data
+    },
   },
 
 

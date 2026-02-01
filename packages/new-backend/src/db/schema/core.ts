@@ -75,13 +75,13 @@ export const users = coreSchema.table(
         position: varchar('position', { length: 100 }),
         phone: varchar('phone', { length: 50 }),
         employeeId: varchar('employee_id', { length: 50 }),
-        bankId: varchar('bank_id', { length: 50 }),
+        // bankId: varchar('bank_id', { length: 50 }),
 
         // Banking specific
-        bankingAccess: varchar('banking_access', { length: 20 }).default('CONVENTIONAL'),
-        syariahCertified: boolean('syariah_certified').default(false),
-        syariahCertification: boolean('syariah_certification').default(false),
-        syariahCertificationDate: date('syariah_certification_date'),
+        // bankingAccess: varchar('banking_access', { length: 20 }).default('CONVENTIONAL'),
+        // syariahCertified: boolean('syariah_certified').default(false),
+        // syariahCertification: boolean('syariah_certification').default(false),
+        // syariahCertificationDate: date('syariah_certification_date'),
 
         // Security & MFA
         isActive: boolean('is_active').default(true),
