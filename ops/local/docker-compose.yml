@@ -203,6 +203,24 @@ services:
       - full
       - analytics
 
+  # ============================================================================
+  # 📘 DOCUMENTATION (Docusaurus)
+  # ============================================================================
+  docs:
+    build:
+      context: ../../packages/docs
+      dockerfile: Dockerfile
+    container_name: ifrs9-docs-dev
+    environment:
+      NODE_ENV: production
+    ports:
+      - "4235:3000"
+    networks:
+      - ifrs9-dev
+    profiles:
+      - full
+      - docs
+
 # ============================================================================
 # 📁 VOLUMES
 # ============================================================================
