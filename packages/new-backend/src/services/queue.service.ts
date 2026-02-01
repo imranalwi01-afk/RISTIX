@@ -1,46 +1,64 @@
-import { Queue, Worker, Job, QueueEvents } from 'bullmq'
+import { Queue, Worker, Job } from 'bullmq'
 import { env } from '../config/env'
-import { db, legacyDb } from '../config/database'
-import { getDatabase } from '../config/database'
+import { legacyDb, getDatabase } from '../config/database'
+import { JobExecutorService } from './job-executor.service'
+import { jobExecutions } from '../db/schema'
+import { eq } from 'drizzle-orm'
 
-// ... existing imports
-
-// ...
-
-try {
-    // Determine which DB to use
-    const targetDatabase = parameters?.targetDatabase;
-    let targetDb;
-
-    if (targetDatabase === 'LEGACY') {
-        console.log(`[Worker] Job ${job.id} using LEGACY database`);
-        targetDb = legacyDb;
-    } else {
-        // Default to Tenant DB
-        targetDb = getDatabase(tenantId);
-    }
-
-    const tenantExecutor = new JobExecutorService(targetDb)
-
-    const result = await tenantExecutor.execute(job.name, parameters)
-
-    if (!result.success) {
-        throw new Error(result.error || 'Unknown execution error')
-    }
-
-    return result
-} catch (err: any) {
-    console.error(`[Worker] Job ${job.id} failed:`, err)
-    throw err
-}
+// Constants
+const QUEUE_NAME = 'jobs-queue' // Standard queue name
+const connection = {
+    host: env.REDIS_HOST,
+    port: env.REDIS_PORT,
+    // Add password if needed from env
+    // password: env.REDIS_PASSWORD
 }
 
-export const jobsWorker = new Worker(QUEUE_NAME, processor, {
-    connection,
-    concurrency: 5
+// =============================================================================
+// QUEUE DEFINITION
+// =============================================================================
+export const jobsQueue = new Queue(QUEUE_NAME, {
+    connection
 })
-jobsWorker.on('error', err => console.error('[Worker] Global Error:', err))
-console.log(`[QueueService] Worker created and listening on ${QUEUE_NAME}`)
+
+export const jobsQueueRef = jobsQueue;
+
+// =============================================================================
+// PROCESSOR
+// =============================================================================
+const processor = async (job: Job) => {
+    const { tenantId, parameters } = job.data
+
+    try {
+        // Determine which DB to use
+        const targetDatabase = parameters?.targetDatabase;
+        let targetDb;
+
+        if (targetDatabase === 'LEGACY') {
+            console.log(`[Worker] Job ${job.id} using LEGACY database`);
+            targetDb = legacyDb;
+        } else {
+            // Default to Tenant DB
+            // If tenantId is missing, should we fail? Or assume system?
+            // For now, assuming tenantId is provided for tenant-scope jobs.
+            // If explicit system job, we might need handling.
+            targetDb = getDatabase(tenantId || 'public'); // Fallback to public/default if needed, strict ideally
+        }
+
+        const tenantExecutor = new JobExecutorService(targetDb)
+
+        const result = await tenantExecutor.execute(job.name, parameters)
+
+        if (!result.success) {
+            throw new Error(result.error || 'Unknown execution error')
+        }
+
+        return result
+    } catch (err: any) {
+        console.error(`[Worker] Job ${job.id} failed:`, err)
+        throw err
+    }
+}
 
 // =============================================================================
 // SYNC LOGIC: Redis -> Postgres
@@ -49,7 +67,7 @@ console.log(`[QueueService] Worker created and listening on ${QUEUE_NAME}`)
 // Helper to update execution status in DB
 const updateExecutionStatus = async (jobId: string, status: string, tenantId: string | null, data?: any) => {
     try {
-        const targetDb = getDatabase(tenantId)
+        const targetDb = getDatabase(tenantId || 'public') // Ensure we have a DB connection
         await targetDb.update(jobExecutions)
             .set({
                 status,
@@ -63,6 +81,14 @@ const updateExecutionStatus = async (jobId: string, status: string, tenantId: st
         console.error(`[QueueService] Failed to sync status ${status} for job ${jobId} (Tenant: ${tenantId})`, err)
     }
 }
+
+// =============================================================================
+// WORKER
+// =============================================================================
+export const jobsWorker = new Worker(QUEUE_NAME, processor, {
+    connection,
+    concurrency: 5
+})
 
 // Event Listeners
 jobsWorker.on('active', (job) => {
@@ -85,8 +111,11 @@ jobsWorker.on('failed', (job, err) => {
 
 jobsWorker.on('progress', (job, progress) => {
     // Optional: Throttle DB updates for progress
-    // updateExecutionStatus(job.id!, 'active', { progress })
+    // updateExecutionStatus(job.id!, 'active', job.data.tenantId, { progress })
 })
+
+jobsWorker.on('error', err => console.error('[Worker] Global Error:', err))
+console.log(`[QueueService] Worker created and listening on ${QUEUE_NAME}`)
 
 // =============================================================================
 // PUBLIC API

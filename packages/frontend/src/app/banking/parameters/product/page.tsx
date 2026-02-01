@@ -117,7 +117,7 @@ export default function ProductParametersPage() {
           console.log('✅ Found Dynamic Instrument Class options (B0003):', instrParam.details.length);
           const instrClasses = instrParam.details.map((detail: any) => ({
             value: detail.value1, // 'A' or 'L'
-            label: detail.paramdesc // 'Asset' or 'Liabilities'
+            label: detail.param_desc || detail.paramdesc // 'Asset' or 'Liabilities'
           }));
           setInstrumentClassOptions(instrClasses);
         } else {
