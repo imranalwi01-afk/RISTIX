@@ -45,16 +45,16 @@ test.describe('General Setup - Application Setting (Hybrid)', () => {
         await page.getByRole('button', { name: /Add Application Setting|Add Parameter/i }).click();
 
         // 3. Input Common Code
-        await page.getByLabel('Parameter Code').fill('TEST001');
+        await page.getByTestId('input-param-code').fill('TEST001');
 
         // 4. Input Parameter Name
-        await page.getByLabel('Parameter Name').fill('Testing Mock');
+        await page.getByTestId('input-param-name').fill('Testing Mock');
 
         // 5. Input Usage Description
-        await page.getByLabel('Usage Description').fill('Testing_Application_Setting_Mock');
+        await page.getByTestId('input-param-usage').fill('Testing_Application_Setting_Mock');
 
         // 6. Click "Create"
-        await page.getByRole('button', { name: /Create|Save/i }).click();
+        await page.getByTestId('btn-submit-application-setting').click();
 
         // Expected:
         // - Success notification is displayed

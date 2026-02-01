@@ -26,19 +26,26 @@ export async function loginUser(page: Page) {
     // We can interact with the trigger div/button usually labelled "Workspace / Tenant".
 
     // Explicitly select if we want to be robust
+    // Explicitly select IAF tenant
     const tenantSelect = page.getByLabel('Workspace / Tenant');
     if (await tenantSelect.isVisible()) {
         await tenantSelect.click();
-
-        // Find option by name if possible, or by value if we can target it.
-        // We might just pick the first one or try to find "Indonesia"
-        // Or if the user specific tenantID matters, we might not match the specific ID in the dropdown text easily without mapping.
-        // But auto-select usually works. Let's just verify it's not empty text which would disable the button.
+        await page.getByRole('option', { name: 'Indonesia Airawata Finance (IAF)' }).click();
     }
 
-    // Submit
+    // Verify button state explicitly
+    const submitBtn = page.getByRole('button', { name: /Sign In|Access Control/i });
+    if (await submitBtn.isDisabled()) {
+        console.log('⚠️ Submit button is disabled! Waiting for it to enable...');
+        await expect(submitBtn).toBeEnabled({ timeout: 5000 });
+    }
+
+    // Submit via Click first, then fallback to Enter if needed
     console.log('Clicking Sign In...');
-    await page.getByRole('button', { name: /Sign In/i }).click();
+    await submitBtn.click();
+
+    // Optional: Press Enter just in case click was intercepted
+    // await page.keyboard.press('Enter');
 
     // Wait for navigation or error
     console.log('Waiting for navigation to dashboard...');
@@ -46,7 +53,9 @@ export async function loginUser(page: Page) {
         await expect(page).toHaveURL(/dashboard|banking|platform/, { timeout: 10000 });
         console.log('Login successful');
     } catch (e) {
-        console.log('Login timeout occurred. Checking for error messages...');
+        console.log('❌ Login timeout occurred.');
+        console.log('📍 Current URL at timeout:', page.url());
+
         const alerts = page.locator('.MuiAlert-message');
         if (await alerts.count() > 0) {
             const errorText = await alerts.allInnerTexts();
