@@ -329,14 +329,86 @@ export const individualImpairmentAPI = {
       return response.data;
     },
 
-    // Export watchlist to Excel/CSV
-    export: async (format: 'xlsx' | 'csv', filters?: any) => {
+    // Export watchlist to Excel/CSV/PDF
+    export: async (format: 'xlsx' | 'csv' | 'pdf', filters?: any, options?: {
+      fileName?: string;
+      title?: string;
+      columns?: string[];
+      includeFilters?: boolean;
+    }) => {
       console.log(`📤 Exporting Individual Impairment watchlist as ${format}`);
-      const response = await apiClient.post('/banking/individual/impairment/watchlist/export', {
-        format,
-        filters
-      });
-      return response.data;
+      
+      try {
+        // Make request with blob response type
+        const response = await apiClient.post('/banking/individual/impairment/watchlist/export', {
+          format,
+          filters,
+          options
+        }, {
+          responseType: 'blob'
+        });
+
+        // Create blob from response
+        const blob = new Blob([response.data], {
+          type: response.headers['content-type'] || 'application/octet-stream'
+        });
+
+        // Get filename from response headers or use provided one
+        let filename = options?.fileName;
+        if (!filename) {
+          const contentDisposition = response.headers['content-disposition'];
+          if (contentDisposition) {
+            const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(contentDisposition);
+            if (matches != null && matches[1]) {
+              filename = matches[1].replace(/['"]/g, '');
+            }
+          }
+        }
+        
+        // Fallback filename
+        if (!filename) {
+          const timestamp = new Date().toISOString().split('T')[0];
+          filename = `watchlist-${timestamp}.${format}`;
+        }
+
+        // Create download link and trigger download
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        
+        // Cleanup
+        setTimeout(() => {
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(url);
+        }, 100);
+
+        console.log(`✅ Export completed: ${filename}`);
+
+        return {
+          success: true,
+          fileName: filename,
+          recordCount: parseInt(response.headers['x-export-records'] || '0'),
+          message: 'Export completed successfully'
+        };
+      } catch (error: any) {
+        console.error('❌ Export failed:', error);
+        
+        // If error response is blob, convert to JSON for error message
+        if (error.response?.data instanceof Blob) {
+          try {
+            const text = await error.response.data.text();
+            const errorData = JSON.parse(text);
+            throw new Error(errorData.message || 'Export failed');
+          } catch {
+            throw new Error('Export failed: Unable to process response');
+          }
+        }
+        
+        throw error;
+      }
     }
   },
 
@@ -414,12 +486,10 @@ export const individualImpairmentAPI = {
     },
 
     // Calculate DCF present value and ECL
-    calculate: async (accountId: number, assumptions: Partial<DCFAssumptions>) => {
-      console.log(`🧮 Calculating DCF for account ${accountId}`);
-      const response = await apiClient.post(`/banking/individual/impairment/dcf/calculate`, {
-        account_id: accountId,
-        assumptions
-      });
+    calculate: async (accountId: number, dcfPayload: any) => {
+      console.log(`🧮 Calculating DCF for account ${accountId}`, dcfPayload);
+      // Send payload directly - already formatted by page.tsx
+      const response = await apiClient.post(`/banking/individual/impairment/dcf/calculate`, dcfPayload);
       return response.data;
     },
 

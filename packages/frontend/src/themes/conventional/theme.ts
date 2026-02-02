@@ -17,7 +17,6 @@ const getDesignTokens = (mode: PaletteMode): ThemeOptions => {
   const isDark = mode === 'dark';
 
   return {
-    cssVariables: false,
     palette: {
       mode,
       primary: {
