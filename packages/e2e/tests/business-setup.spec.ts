@@ -1,107 +1,77 @@
 import { test, expect } from '@playwright/test';
+import { loginUser } from '../utils/auth-helper';
 
-test.describe('General Setup - Business Setting', () => {
-    test.beforeEach(async ({ context, page }) => {
-        const mockUser = {
-            id: "mock-user-id",
-            email: "admin@iaf.co.id",
-            role: "IAF_TENANT_ADMIN",
-            tenantId: "iaf",
-            tenantSlug: "iaf",
-            bankingType: "conventional",
-            isActive: true,
-            fullName: "Admin User"
-        };
-        const mockToken = "mock-jwt-token";
+test.describe.serial('General Setup - Business Setting (Real CRUD)', () => {
+    // Unique ID for this test run
+    const TIMESTAMP = Date.now().toString().slice(-6);
+    const TEST_CODE = `BZ_${TIMESTAMP}`;
+    const TEST_DESC = `E2E Business Test ${TIMESTAMP}`;
+    const UPDATED_DESC = `E2E Business Test Updated ${TIMESTAMP}`;
+    const TEST_VALUE = 'Test Value';
 
-        await context.addCookies([
-            { name: 'auth_token', value: mockToken, domain: 'localhost', path: '/' },
-            { name: 'auth_token', value: mockToken, domain: '127.0.0.1', path: '/' }
+    test.beforeEach(async ({ page }) => {
+        test.slow();
+        await loginUser(page);
+    });
+
+    test('BS_001: Create Business Setting', async ({ page }) => {
+        await page.goto('/banking/setup/business');
+        await page.waitForLoadState('networkidle');
+
+        await page.getByTestId('btn-create-business-setting').click();
+
+        // Ensure dialog is visible
+        const dialog = page.getByRole('dialog');
+        await expect(dialog).toBeVisible({ timeout: 15000 });
+
+        await page.getByTestId('input-param-code').fill(TEST_CODE);
+        await page.getByTestId('select-param-category').click();
+        await page.getByRole('option', { name: 'Business' }).click();
+        await page.getByTestId('input-param-desc').fill(TEST_DESC);
+        await page.getByTestId('input-param-value').fill(TEST_VALUE);
+
+        const submitBtn = page.getByTestId('btn-submit-business-setting');
+        await expect(submitBtn).toBeEnabled();
+
+        await Promise.all([
+            page.waitForResponse(resp => resp.url().includes('business') && resp.request().method() === 'POST', { timeout: 30000 }),
+            submitBtn.click()
+        ]);
+        await expect(page.getByText(/successfully/i)).toBeVisible({ timeout: 15000 });
+    });
+
+    test('BS_002: Search and View Business Setting', async ({ page }) => {
+        await page.goto('/banking/setup/business');
+        await page.waitForLoadState('networkidle');
+        await page.getByTestId('input-search').fill(TEST_CODE);
+        await expect(page.getByRole('row', { name: TEST_CODE })).toBeVisible({ timeout: 15000 });
+    });
+
+    test('BS_003: Edit Business Setting', async ({ page }) => {
+        await page.goto('/banking/setup/business');
+        await page.waitForLoadState('networkidle');
+
+        await page.getByTestId('input-search').fill(TEST_CODE);
+        const row = page.getByRole('row', { name: TEST_CODE });
+        await expect(row).toBeVisible({ timeout: 15000 });
+
+        await row.getByTestId('btn-edit-business-setting').click();
+
+        const dialog = page.getByRole('dialog');
+        await expect(dialog).toBeVisible({ timeout: 15000 });
+
+        await expect(page.getByTestId('input-param-desc')).toHaveValue(TEST_DESC);
+        await page.getByTestId('input-param-desc').fill(UPDATED_DESC);
+
+        const submitBtn = page.getByTestId('btn-submit-business-setting');
+        await expect(submitBtn).toBeEnabled();
+
+        await Promise.all([
+            page.waitForResponse(resp => resp.url().includes('business') && resp.request().method() === 'PUT', { timeout: 30000 }),
+            submitBtn.click()
         ]);
 
-        await page.addInitScript(({ user, token }) => {
-            localStorage.setItem('auth_token', token);
-            localStorage.setItem('user_data', JSON.stringify(user));
-        }, { user: mockUser, token: mockToken });
-
-        await page.route('**/api/v1/auth/verify', async route => {
-            await route.fulfill({
-                status: 200,
-                contentType: 'application/json',
-                body: JSON.stringify({ success: true, data: { valid: true, user: mockUser } })
-            });
-        });
+        await expect(page.getByText(/successfully/i)).toBeVisible({ timeout: 15000 });
     });
 
-    /**
-     * TestCase: BS_001
-     * Title: Create Business Setting (Normal)
-     */
-    test('BS_001: Create Business Setting (Normal)', async ({ page }) => {
-        // Mock GET
-        await page.route('**/api/v1/banking/setup/business', async route => {
-            if (route.request().method() === 'GET') {
-                await route.fulfill({
-                    status: 200,
-                    body: JSON.stringify({ success: true, data: [] })
-                });
-            } else if (route.request().method() === 'POST') {
-                const postData = route.request().postDataJSON();
-                expect(postData.paramCode).toBe('TESTB001');
-                // expect(postData.category).toBe('Business'); // Verify logic handles category if sent
-
-                await route.fulfill({
-                    status: 201,
-                    body: JSON.stringify({ success: true, message: "Business setting created" })
-                });
-            } else {
-                await route.continue();
-            }
-        });
-
-        // 1. Navigate to Business Setting
-        await page.goto('/banking/setup/business');
-
-        // 2. Click "Add Business Setting" (or similar button)
-        await page.getByRole('button', { name: /Add Business Setting|Create Parameter/i }).click();
-
-        // 3. Fill required fields
-        await page.getByLabel('Parameter Code').fill('TESTB001');
-
-        // Category might be active, or implicit. Spec says "Category: Business".
-        // If there's a Category input/dropdown:
-        // await page.getByLabel('Category').fill('Business'); 
-        // Assuming implementation detail: Input "Test Value" as value
-        await page.getByLabel('Value 1', { exact: false }).fill('Test Value');
-        // Or "Parameter Value"
-
-        // 4. Click "Create"
-        await page.getByRole('button', { name: /Create|Save/i }).click();
-
-        // Expected
-        await expect(page.locator('.MuiAlert-message').or(page.getByText('success'))).toBeVisible();
-    });
-
-    /**
-     * TestCase: BS_002
-     * Title: Create Business Setting with missing required fields
-     */
-    test('BS_002: Create Business Setting with missing required fields', async ({ page }) => {
-        await page.route('**/api/v1/banking/setup/business', async route => {
-            await route.fulfill({
-                status: 200,
-                body: JSON.stringify({ success: true, data: [] })
-            });
-        });
-
-        await page.goto('/banking/setup/business');
-        await page.getByRole('button', { name: /Add Business Setting|Create Parameter/i }).click();
-
-        // 2. Leave Parameter Code empty
-        // 3. Click "Create"
-        await page.getByRole('button', { name: /Create|Save/i }).click();
-
-        // Expected: Validation error
-        await expect(page.getByText(/required/i).first()).toBeVisible();
-    });
 });

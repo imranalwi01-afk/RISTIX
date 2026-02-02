@@ -116,7 +116,7 @@ function DetailFormDialogComponent({
                         onChange={handleSeqNoChange}
                         fullWidth
                         required
-                        inputProps={{ min: 1 }}
+                        slotProps={{ htmlInput: { min: 1, 'data-testid': 'input-detail-seq' } }}
                     />
                     <TextField
                         label="Value 1"
@@ -125,6 +125,7 @@ function DetailFormDialogComponent({
                         fullWidth
                         required
                         placeholder="Primary value"
+                        slotProps={{ htmlInput: { 'data-testid': 'input-detail-value1' } }}
                     />
                     <TextField
                         label="Value 2"
@@ -132,6 +133,7 @@ function DetailFormDialogComponent({
                         onChange={handleValue2Change}
                         fullWidth
                         placeholder="Secondary value (optional)"
+                        slotProps={{ htmlInput: { 'data-testid': 'input-detail-value2' } }}
                     />
                     <TextField
                         label="Value 3"
@@ -139,6 +141,7 @@ function DetailFormDialogComponent({
                         onChange={handleValue3Change}
                         fullWidth
                         placeholder="Tertiary value (optional)"
+                        slotProps={{ htmlInput: { 'data-testid': 'input-detail-value3' } }}
                     />
                     <TextField
                         label="Description"
@@ -148,6 +151,7 @@ function DetailFormDialogComponent({
                         multiline
                         rows={3}
                         placeholder="Describe the purpose of this detail configuration"
+                        slotProps={{ htmlInput: { 'data-testid': 'input-detail-description' } }}
                     />
                 </Box>
             </DialogContent>
@@ -160,6 +164,7 @@ function DetailFormDialogComponent({
                     variant="contained"
                     disabled={loading || !isValid}
                     startIcon={loading ? <CircularProgress size={16} /> : null}
+                    data-testid="btn-submit-detail"
                 >
                     {loading ? 'Saving...' : (selectedDetail ? 'Update' : 'Create')}
                 </Button>

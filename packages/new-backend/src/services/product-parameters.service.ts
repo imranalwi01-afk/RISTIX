@@ -12,6 +12,7 @@ export const ProductParametersService = {
      * @returns An Effect resolving to an array of transformed product parameters
      */
     list: () => {
+        console.log('📝 [PROD-SERVICE] Fetching all product parameters');
         return pipe(
             ProductParametersRepository.findAll(),
             Effect.map(products => products.map(transformProduct))
@@ -25,6 +26,7 @@ export const ProductParametersService = {
      * @returns An Effect resolving to the product parameter or NotFoundError
      */
     get: (id: number) => {
+        console.log(`📝 [PROD-SERVICE] Fetching product parameter ID: ${id}`);
         return pipe(
             ProductParametersRepository.findById(BigInt(id)),
             Effect.flatMap(product =>
@@ -43,6 +45,7 @@ export const ProductParametersService = {
      * @returns An Effect resolving to the created product parameter
      */
     create: (data: any, userId: string) => {
+        console.log('📝 [PROD-SERVICE] Creating product parameter:', data.prdCode);
         const now = new Date().toISOString()
         const payload = {
             ...data,
@@ -68,6 +71,7 @@ export const ProductParametersService = {
      * @returns An Effect resolving to the updated product parameter or NotFoundError
      */
     update: (id: number, data: any, userId: string) => {
+        console.log(`📝 [PROD-SERVICE] Updating product parameter ID: ${id}`, data.prdCode);
         const now = new Date().toISOString()
         const payload = {
             ...data,
@@ -92,6 +96,7 @@ export const ProductParametersService = {
      * @returns An Effect resolving to a success message or NotFoundError
      */
     delete: (id: number) => {
+        console.log(`📝 [PROD-SERVICE] Deleting product parameter ID: ${id}`);
         return pipe(
             ProductParametersRepository.delete(BigInt(id)),
             Effect.flatMap(deleted =>

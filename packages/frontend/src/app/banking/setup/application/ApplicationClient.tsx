@@ -370,6 +370,59 @@ export default function ApplicationSettingPage() {
       } catch(e: any) {
           setError(handleAPIError(e).message);
       }
+  }
+  const handleExport = (format: string) => {
+    const filter = encodeURIComponent(JSON.stringify({
+      search: searchTerm,
+      page: currentPage,
+      pageSize: pageSize
+    }));
+
+    // ✅ FIX: Use proper backend URL for window.open (not relative path)
+    // The /api prefix will be handled by Next.js rewrites
+    const url = `/api/v1/application/headers/export?format=${format}&filter=${filter}`;
+
+    // Use fetch with credentials to download the file
+    fetch(url, {
+      method: 'GET',
+      credentials: 'include', // Send cookies
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
+      }
+    })
+      .then(response => response.blob())
+      .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `application-headers-${format}.${format}`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      })
+      .catch(error => {
+        console.error('Export failed:', error);
+        alert('Export failed. Please try again.');
+      });
+
+    handleExportMenuClose();
+  };
+
+  // Detail CRUD Operations
+  const handleCreateDetail = () => {
+    if (!selectedRecord) return;
+
+    setSelectedDetail(null);
+    setDetailFormData({
+      ParamCode: selectedRecord.CommonCode,
+      SeqNo: detailData.length + 1,
+      Value1: '',
+      Value2: '',
+      Value3: '',
+      Description: ''
+    });
+    setDetailModalOpen(true);
   };
 
   const handleDetailFormSave = async (formData: DetailFormData) => {
@@ -521,6 +574,199 @@ export default function ApplicationSettingPage() {
         loading={loading}
       />
 
+      {/* View Modal with Detail Table - matching legacy Detail.cshtml */}
+      <Dialog open={viewModalOpen} onClose={() => setViewModalOpen(false)} maxWidth="lg" fullWidth>
+        <DialogTitle>
+          Application Setting Details - {selectedRecord?.CommonCode}
+        </DialogTitle>
+        <DialogContent sx={{ mt: 2 }}>
+          {selectedRecord && (
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                Header Information
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                <Box sx={{ minWidth: 200 }}>
+                  <Typography variant="body2" color="text.secondary">Common Code:</Typography>
+                  <Typography variant="body1" sx={{ fontFamily: 'monospace', fontWeight: 'bold' }}>
+                    {selectedRecord.CommonCode}
+                  </Typography>
+                </Box>
+                <Box sx={{ minWidth: 200 }}>
+                  <Typography variant="body2" color="text.secondary">Parameter Name:</Typography>
+                  <Typography variant="body1">
+                    {selectedRecord.Description}
+                  </Typography>
+                </Box>
+                <Box sx={{ minWidth: 300 }}>
+                  <Typography variant="body2" color="text.secondary">Usage Description:</Typography>
+                  <Typography variant="body1">
+                    {selectedRecord.Value}
+                  </Typography>
+                </Box>
+                <Box sx={{ minWidth: 200 }}>
+                  <Typography variant="body2" color="text.secondary">Created By:</Typography>
+                  <Typography variant="body1">
+                    {selectedRecord.CreatedBy}
+                  </Typography>
+                </Box>
+                <Box sx={{ minWidth: 200 }}>
+                  <Typography variant="body2" color="text.secondary">Created Date:</Typography>
+                  <Typography variant="body1">
+                    {new Date(selectedRecord.CreatedDate).toLocaleString()}
+                  </Typography>
+                </Box>
+              </Box>
+            </Box>
+          )}
+
+          <Box sx={{ my: 2, borderTop: 1, borderBottom: 1, borderColor: 'divider', py: 1 }} />
+
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6">
+              Parameter Details
+            </Typography>
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<AddIcon />}
+              onClick={handleCreateDetail}
+              disabled={detailLoading}
+              data-testid="btn-add-detail"
+            >
+              Add Detail
+            </Button>
+          </Box>
+
+          {detailLoading && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+              <CircularProgress size={24} />
+            </Box>
+          )}
+
+          {!detailLoading && detailData.length === 0 && (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              No details configured for this parameter.
+              <Button
+                size="small"
+                startIcon={<AddIcon />}
+                sx={{ ml: 1 }}
+                onClick={handleCreateDetail}
+              >
+                Add First Detail
+              </Button>
+            </Alert>
+          )}
+
+          {!detailLoading && detailData.length > 0 && (
+            <TableContainer component={Paper} variant="outlined">
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Sequence</TableCell>
+                    <TableCell>Value 1</TableCell>
+                    <TableCell>Value 2</TableCell>
+                    <TableCell>Value 3</TableCell>
+                    <TableCell>Description</TableCell>
+                    <TableCell>Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {detailData.map((detail) => (
+                    <TableRow key={detail.ID} hover>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 'bold' }}>
+                          {detail.param_seq ?? detail.SeqNo}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                          {detail.value1 ?? detail.Value1}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                          {detail.value2 ?? detail.Value2 ?? '-'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                          {detail.value3 ?? detail.Value3 ?? '-'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" title={detail.Description}>
+                          {(detail.paramdesc ?? detail.Description)?.length > 50
+                            ? `${(detail.paramdesc ?? detail.Description).substring(0, 50)}...`
+                            : (detail.paramdesc ?? detail.Description)
+                          }
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          <Tooltip title="Edit Detail">
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              onClick={() => {
+                                setSelectedDetail(detail);
+                                setDetailFormData({
+                                  ParamCode: detail.param_code ?? '',
+                                  SeqNo: detail.param_seq ?? 0,
+                                  Value1: detail.value1 ?? '',
+                                  Value2: detail.value2 ?? '',
+                                  Value3: detail.value3 ?? '',
+                                  Description: detail.paramdesc ?? ''
+                                });
+                                setDetailModalOpen(true);
+                              }}
+                              data-testid="btn-edit-detail"
+                            >
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Delete Detail">
+                            <IconButton
+                              size="small"
+                              color="error"
+                              data-testid="btn-delete-detail"
+                              onClick={async () => {
+                                if (!confirm(`Are you sure you want to delete detail sequence ${detail.param_seq ?? detail.SeqNo}?`)) {
+                                  return;
+                                }
+                                try {
+                                  setDetailLoading(true);
+                                  await api.applicationParameter.details.delete(detail.ID.toString());
+                                  await loadDetailData(selectedRecord?.CommonCode || '');
+                                  setSuccess('Parameter detail deleted successfully');
+                                } catch (error: any) {
+                                  console.error('❌ Failed to delete detail:', error);
+                                  setError(`Failed to delete detail: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                                } finally {
+                                  setDetailLoading(false);
+                                }
+                              }}
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setViewModalOpen(false)}>
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Detail Create/Edit Modal - using memoized component for performance */}
       <DetailFormDialog
         open={detailModalOpen}
         onClose={() => setDetailModalOpen(false)}
