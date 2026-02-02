@@ -9,7 +9,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import {
   Box,
@@ -20,7 +20,8 @@ import {
   CircularProgress,
   Alert,
   Chip,
-  Snackbar
+  Snackbar,
+  TextField
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -58,13 +59,13 @@ export default function ProductParametersPage() {
   const [selectedProduct, setSelectedProduct] = useState<ProductParameter | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Search and filter states
   const [searchTerm, setSearchTerm] = useState('');
   const [filterProductGroup, setFilterProductGroup] = useState('');
   const [filterCurrency, setFilterCurrency] = useState('');
   const [filterActive, setFilterActive] = useState<'all' | 'active' | 'inactive'>('all');
-  const [filteredData, setFilteredData] = useState<ProductParameter[]>([]);
 
   // Combo box data
   const [currencyOptions, setCurrencyOptions] = useState<Array<{ value: string, label: string }>>([]);
@@ -179,35 +180,7 @@ export default function ProductParametersPage() {
     }
   };
 
-  const applyFilters = () => {
-    let filtered = [...data];
-
-    if (searchTerm) {
-      const search = searchTerm.toLowerCase();
-      filtered = filtered.filter(item =>
-        item.prdCode?.toLowerCase().includes(search) ||
-        item.prdDesc?.toLowerCase().includes(search) ||
-        item.prdGroup?.toLowerCase().includes(search) ||
-        item.prdType?.toLowerCase().includes(search)
-      );
-    }
-
-    if (filterProductGroup) {
-      filtered = filtered.filter(item => item.prdGroup === filterProductGroup);
-    }
-
-    if (filterCurrency) {
-      filtered = filtered.filter(item => item.currency === filterCurrency);
-    }
-
-    if (filterActive === 'active') {
-      filtered = filtered.filter(item => item.activeFlag === true);
-    } else if (filterActive === 'inactive') {
-      filtered = filtered.filter(item => item.activeFlag === false);
-    }
-
-    setFilteredData(filtered);
-  };
+  // Filtering logic consolidated into useMemo below
 
   // ============================================================================
   // DATAGRID COLUMNS CONFIGURATION
@@ -349,9 +322,42 @@ export default function ProductParametersPage() {
     }
   }, [dialogOpen]);
 
-  useEffect(() => {
-    applyFilters();
-  }, [searchTerm, filterProductGroup, filterCurrency, filterActive, data]);
+  // Filters are now handled by useMemo
+
+  // Consolidatied Client-side filtering logic
+  const filteredData = useMemo(() => {
+    let filtered = [...data];
+
+    // 1. Search filter (unifies searchTerm and searchQuery)
+    const query = (searchQuery || searchTerm).toLowerCase();
+    if (query) {
+      filtered = filtered.filter(item =>
+        item.prdCode?.toLowerCase().includes(query) ||
+        item.prdDesc?.toLowerCase().includes(query) ||
+        item.prdGroup?.toLowerCase().includes(query) ||
+        item.prdType?.toLowerCase().includes(query)
+      );
+    }
+
+    // 2. Product Group filter
+    if (filterProductGroup) {
+      filtered = filtered.filter(item => item.prdGroup === filterProductGroup);
+    }
+
+    // 3. Currency filter
+    if (filterCurrency) {
+      filtered = filtered.filter(item => item.currency === filterCurrency);
+    }
+
+    // 4. Active filter
+    if (filterActive === 'active') {
+      filtered = filtered.filter(item => item.activeFlag === true);
+    } else if (filterActive === 'inactive') {
+      filtered = filtered.filter(item => item.activeFlag === false);
+    }
+
+    return filtered;
+  }, [data, searchQuery, searchTerm, filterProductGroup, filterCurrency, filterActive]);
 
   const handleCreate = () => {
     setSelectedProduct(null);
@@ -371,8 +377,9 @@ export default function ProductParametersPage() {
 
     try {
       setLoading(true);
-      console.log('🗑️ Deleting product:', product.prdCode);
-      await api.banking.productParameters.delete(String(product.pkid));
+      console.log('🗑️ Deleting product:', product.pkid || (product as any).id);
+      // ✅ FIXED: Use numeric ID for new-backend
+      await api.banking.productParameters.delete(String(product.pkid || (product as any).id));
       console.log('✅ Product deleted successfully');
       setSuccess('Product deleted successfully');
       await loadData();
@@ -409,8 +416,9 @@ export default function ProductParametersPage() {
       };
 
       if (selectedProduct) {
-        console.log('✏️ Updating product:', payload.prdCode);
-        await api.banking.productParameters.update(String(selectedProduct.pkid), payload);
+        console.log('✏️ Updating product ID:', selectedProduct.pkid || (selectedProduct as any).id);
+        // ✅ FIXED: Use numeric ID for new-backend
+        await api.banking.productParameters.update(String(selectedProduct.pkid || (selectedProduct as any).id), payload);
         setSuccess('Product updated successfully');
       } else {
         console.log('➕ Creating product:', payload.prdCode);
@@ -418,13 +426,10 @@ export default function ProductParametersPage() {
         setSuccess('Product created successfully');
       }
 
-      setDialogOpen(false);
       await loadData();
-
     } catch (error: any) {
       console.error('❌ Failed to save product:', error);
-      const errorInfo = handleAPIError(error);
-      setError(`Failed to save product: ${errorInfo.message}`);
+      throw error; // Rethrow so dialog can catch and show error
     } finally {
       setLoading(false);
     }
@@ -465,10 +470,32 @@ export default function ProductParametersPage() {
         )}
       />
 
+      <Card sx={{ mb: 3 }}>
+        <CardContent sx={{ p: 2 }}>
+          <Box display="flex" gap={2} alignItems="center">
+            <TextField
+              size="small"
+              placeholder="Search product parameters..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              fullWidth
+              sx={{ maxWidth: 400 }}
+              InputProps={{
+                startAdornment: (
+                  <Box component="span" sx={{ color: 'text.secondary', mr: 1, display: 'flex' }}>
+                    🔍
+                  </Box>
+                )
+              }}
+            />
+          </Box>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
           <SafeDataGrid<ProductParameter>
-            rows={data}
+            rows={filteredData}
             columns={columns}
             getRowId={(row) => row.pkid}
             pageSizeOptions={[5, 10, 25, 50]}
@@ -486,7 +513,7 @@ export default function ProductParametersPage() {
         onClose={handleCloseDialog}
         onSave={handleSave}
         product={selectedProduct}
-        loading={loading}
+        isExternalLoading={loading}
         currencyOptions={currencyOptions}
         amortizationOptions={amortizationOptions}
         instrumentClassOptions={instrumentClassOptions}

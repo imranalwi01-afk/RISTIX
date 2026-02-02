@@ -9,7 +9,7 @@ import { eq } from 'drizzle-orm'
 const QUEUE_NAME = 'jobs-queue' // Standard queue name
 const connection = {
     host: env.REDIS_HOST,
-    port: env.REDIS_PORT,
+    port: env.REDIS_PORT ? Number(env.REDIS_PORT) : 6379,
     // Add password if needed from env
     // password: env.REDIS_PASSWORD
 }

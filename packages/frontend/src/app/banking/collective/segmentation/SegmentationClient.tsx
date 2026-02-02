@@ -1002,6 +1002,7 @@ export default function SegmentationConfigurationPage() {
             startIcon={<AddIcon />}
             onClick={handleCreate}
             disabled={loading}
+            data-testid="add-segmentation-btn"
           >
             Add Segmentation
           </Button>
@@ -1099,6 +1100,7 @@ export default function SegmentationConfigurationPage() {
                   placeholder="Search by group, segment, type, or creator..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
+                  inputProps={{ 'data-testid': 'segment-search-input' }}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -1289,7 +1291,12 @@ export default function SegmentationConfigurationPage() {
               onChange={(e) => setFormData(prev => ({ ...prev, group_segment: e.target.value }))}
               fullWidth
               required
-              slotProps={{ htmlInput: { maxLength: 150 } }}
+              slotProps={{
+                htmlInput: {
+                  maxLength: 150,
+                  'data-testid': 'segment-group-field'
+                }
+              }}
               placeholder="Group Segment"
               error={!formData.group_segment.trim()}
               helperText={!formData.group_segment.trim() ? 'Group Segment is required' : 'Group classification name (max 150 characters)'}
@@ -1302,7 +1309,12 @@ export default function SegmentationConfigurationPage() {
               onChange={(e) => setFormData(prev => ({ ...prev, segment: e.target.value }))}
               fullWidth
               required
-              slotProps={{ htmlInput: { maxLength: 150 } }}
+              slotProps={{
+                htmlInput: {
+                  maxLength: 150,
+                  'data-testid': 'segment-name-field'
+                }
+              }}
               placeholder="Segment"
               error={!formData.segment.trim()}
               helperText={!formData.segment.trim() ? 'Segment is required' : 'Main segment name (max 150 characters)'}
@@ -1314,7 +1326,12 @@ export default function SegmentationConfigurationPage() {
               value={formData.sub_segment}
               onChange={(e) => setFormData(prev => ({ ...prev, sub_segment: e.target.value }))}
               fullWidth
-              slotProps={{ htmlInput: { maxLength: 150 } }}
+              slotProps={{
+                htmlInput: {
+                  maxLength: 150,
+                  'data-testid': 'segment-sub-field'
+                }
+              }}
               placeholder="Sub Segment (optional)"
               helperText="Optional sub-segment for detailed classification (max 150 characters)"
             />
@@ -1329,6 +1346,9 @@ export default function SegmentationConfigurationPage() {
               required
               error={!formData.segment_type.trim()}
               helperText={!formData.segment_type.trim() ? 'Segment Type is required' : 'Type of segmentation classification'}
+              SelectProps={{
+                SelectDisplayProps: { 'data-testid': 'segment-type-select' } as any
+              }}
             >
               <MenuItem value="">Select Segment Type</MenuItem>
               {segmentTypes.map((type) => (
@@ -1347,7 +1367,12 @@ export default function SegmentationConfigurationPage() {
               fullWidth
               placeholder="Display sequence"
               helperText="Optional display order sequence"
-              slotProps={{ htmlInput: { min: 1 } }}
+              slotProps={{
+                htmlInput: {
+                  min: 1,
+                  'data-testid': 'segment-seq-field'
+                }
+              }}
             />
 
             {/* Active Flag */}
@@ -1374,6 +1399,7 @@ export default function SegmentationConfigurationPage() {
             disabled={loading || !formData.group_segment.trim() || !formData.segment.trim() || !formData.segment_type.trim()}
             startIcon={loading ? <CircularProgress size={16} /> : (backendUnavailable ? <SaveIcon /> : null)}
             color={backendUnavailable ? 'warning' : 'primary'}
+            data-testid="save-segmentation-btn"
           >
             {loading ? 'Saving...' :
               backendUnavailable ?

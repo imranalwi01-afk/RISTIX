@@ -488,7 +488,7 @@ export default function ApplicationSettingPage() {
     // ✅ FIX: Use proper backend URL for window.open (not relative path)
     // The /api prefix will be handled by Next.js rewrites
     const url = `/api/v1/application/headers/export?format=${format}&filter=${filter}`;
-    
+
     // Use fetch with credentials to download the file
     fetch(url, {
       method: 'GET',
@@ -497,22 +497,22 @@ export default function ApplicationSettingPage() {
         'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
       }
     })
-    .then(response => response.blob())
-    .then(blob => {
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `application-headers-${format}.${format}`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    })
-    .catch(error => {
-      console.error('Export failed:', error);
-      alert('Export failed. Please try again.');
-    });
-    
+      .then(response => response.blob())
+      .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `application-headers-${format}.${format}`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      })
+      .catch(error => {
+        console.error('Export failed:', error);
+        alert('Export failed. Please try again.');
+      });
+
     handleExportMenuClose();
   };
 
@@ -994,6 +994,7 @@ export default function ApplicationSettingPage() {
                                 size="small"
                                 color="info"
                                 onClick={() => handleView(record)}
+                                data-testid="btn-view-app-setting"
                               >
                                 <ViewIcon fontSize="small" />
                               </IconButton>
@@ -1005,6 +1006,7 @@ export default function ApplicationSettingPage() {
                                 size="small"
                                 color="primary"
                                 onClick={() => handleEdit(record)}
+                                data-testid="btn-edit-app-setting"
                               >
                                 <EditIcon fontSize="small" />
                               </IconButton>
@@ -1016,6 +1018,7 @@ export default function ApplicationSettingPage() {
                                 size="small"
                                 color="error"
                                 onClick={() => handleDelete(record)}
+                                data-testid="btn-delete-app-setting"
                               >
                                 <DeleteIcon fontSize="small" />
                               </IconButton>
@@ -1161,6 +1164,7 @@ export default function ApplicationSettingPage() {
               startIcon={<AddIcon />}
               onClick={handleCreateDetail}
               disabled={detailLoading}
+              data-testid="btn-add-detail"
             >
               Add Detail
             </Button>
@@ -1248,6 +1252,7 @@ export default function ApplicationSettingPage() {
                                 });
                                 setDetailModalOpen(true);
                               }}
+                              data-testid="btn-edit-detail"
                             >
                               <EditIcon fontSize="small" />
                             </IconButton>
@@ -1256,6 +1261,7 @@ export default function ApplicationSettingPage() {
                             <IconButton
                               size="small"
                               color="error"
+                              data-testid="btn-delete-detail"
                               onClick={async () => {
                                 if (!confirm(`Are you sure you want to delete detail sequence ${detail.param_seq ?? detail.SeqNo}?`)) {
                                   return;

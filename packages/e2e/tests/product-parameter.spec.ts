@@ -1,139 +1,158 @@
 import { test, expect } from '@playwright/test';
+import { loginUser } from '../utils/auth-helper';
 
-test.describe('Parameter Management - Product Parameter', () => {
-    test.beforeEach(async ({ context, page }) => {
-        const mockUser = {
-            id: "mock-user-id",
-            email: "admin@iaf.co.id",
-            role: "IAF_TENANT_ADMIN",
-            tenantId: "iaf",
-            tenantSlug: "iaf",
-            bankingType: "conventional",
-            isActive: true,
-            fullName: "Admin User",
-            permissions: ["MANAGE_LOANS"] // Ensure permission
-        };
-        const mockToken = "mock-jwt-token";
+test.describe.serial('Parameter Management - Product Parameter (Real CRUD)', () => {
+    // Unique ID for this test run
+    const TIMESTAMP = Date.now().toString().slice(-6);
+    const TEST_CODE = `PP_${TIMESTAMP}`;
+    const TEST_DESC = `E2E Product Test ${TIMESTAMP}`;
+    const UPDATED_DESC = `E2E Product Test Updated ${TIMESTAMP}`;
 
-        await context.addCookies([
-            { name: 'auth_token', value: mockToken, domain: 'localhost', path: '/' },
-            { name: 'auth_token', value: mockToken, domain: '127.0.0.1', path: '/' }
-        ]);
-
-        await page.addInitScript(({ user, token }) => {
-            localStorage.setItem('auth_token', token);
-            localStorage.setItem('user_data', JSON.stringify(user));
-        }, { user: mockUser, token: mockToken });
-
-        await page.route('**/api/v1/auth/verify', async route => {
-            await route.fulfill({
-                status: 200,
-                body: JSON.stringify({ success: true, data: { valid: true, user: mockUser } })
-            });
-        });
-
-        // Mock Business Settings for Dropdowns (Currency, Instrument Class)
-        await page.route('**/api/v1/banking/setup/business', async route => {
-            await route.fulfill({
-                status: 200,
-                body: JSON.stringify({
-                    success: true,
-                    data: [
-                        { param_code: 'B0001', details: [{ value1: 'IDR', paramdesc: 'Indonesian Rupiah' }] }, // Currency
-                        { param_code: 'B0003', details: [{ value1: 'A', paramdesc: 'Assets' }] } // Instrument Class
-                    ]
-                })
-            });
-        });
+    test.beforeEach(async ({ page }) => {
+        test.slow(); // Product parameters can be slow due to multiple lookups
+        await loginUser(page);
     });
 
-    /**
-     * TestCase: PM_PROD_001
-     * Title: Create Product Parameter (Normal)
-     */
-    test('PM_PROD_001: Create Product Parameter (Normal)', async ({ page }) => {
-        // Mock List
-        await page.route('**/api/v1/banking/parameters/product', async route => {
-            if (route.request().method() === 'GET') {
-                await route.fulfill({ status: 200, body: JSON.stringify({ success: true, data: [] }) });
-            } else if (route.request().method() === 'POST') {
-                const data = route.request().postDataJSON();
-                expect(data.prdCode).toBe('TESTPP001');
-                expect(data.prdGroup).toBe('Financing');
-
-                await route.fulfill({
-                    status: 201,
-                    body: JSON.stringify({ success: true, message: "Product created" })
-                });
-            } else {
-                await route.continue();
-            }
-        });
-
+    test('PM_PROD_001: Create Product Parameter', async ({ page }) => {
         await page.goto('/banking/parameters/product');
+        const addButton = page.getByRole('button', { name: /Add Product/i });
+        await addButton.waitFor({ state: 'visible', timeout: 15000 });
+        await expect(addButton).toBeEnabled({ timeout: 15000 });
+        await addButton.click();
 
-        // 1. Click "Add Product"
-        await page.getByRole('button', { name: /Add Product/i }).click();
+        const dialog = page.getByRole('dialog');
+        await expect(dialog).toBeVisible({ timeout: 15000 });
 
-        // 2. Fill required product fields
-        // Labels from ProductFormDialog.tsx: "Product Code *", "Product Group *", "Product Type *", "Currency *", "Instrument Class *"
-        // "Data Source *"
+        // Fill required fields
+        await page.getByLabel('Data Source *').fill('E2E Test Source');
+        await page.getByLabel('Product Group *').fill('E2E Group');
+        await page.getByLabel('Product Type *').fill('E2E Type');
+        await page.getByLabel('Product Code *').fill(TEST_CODE);
+        await page.getByLabel('Product Description').fill(TEST_DESC);
 
-        await page.getByLabel('Data Source *').fill('Core System');
-        await page.getByLabel('Product Group *').fill('Financing');
-        await page.getByLabel('Product Type *').fill('Baru');
-        await page.getByLabel('Product Code *').fill('TESTPP001');
-
-        // Dropdowns (MUI Select)
+        // Select from dropdowns (Wait for them to load via API)
         await page.getByLabel('Currency *').click();
-        await page.getByRole('option', { name: 'Indonesian Rupiah' }).click(); // Matches mocked paramdesc
+        await page.getByRole('option').first().waitFor(); // Ensure options are loaded
+        const currencyOption = page.getByRole('option', { name: /Indonesian Rupiah|IDR/i }).first();
+        if (await currencyOption.isVisible()) {
+            await currencyOption.click();
+        } else {
+            await page.getByRole('option').first().click();
+        }
 
         await page.getByLabel('Instrument Class *').click();
-        await page.getByRole('option', { name: 'Assets' }).click();
+        await page.getByRole('option').first().waitFor();
+        const instrOption = page.getByRole('option', { name: /Asset/i }).first();
+        if (await instrOption.isVisible()) {
+            await instrOption.click();
+        } else {
+            await page.getByRole('option').first().click();
+        }
 
-        // 3. Click "Create"
-        await page.getByRole('button', { name: /Create/i }).click();
+        const submitBtn = page.getByRole('button', { name: /Create/i });
+        await expect(submitBtn).toBeEnabled();
 
-        // Expected
-        await expect(page.locator('.MuiAlert-message').or(page.getByText('success'))).toBeVisible();
+        // Listen for the POST request
+        const postPromise = page.waitForResponse(resp =>
+            resp.url().includes('parameters/product') && resp.request().method() === 'POST'
+        );
+
+        await submitBtn.click();
+
+        const response = await postPromise;
+        expect([200, 201]).toContain(response.status());
+
+        await expect(page.getByText(/successfully/i)).toBeVisible({ timeout: 15000 });
     });
 
-    /**
-     * TestCase: PM_PROD_002
-     * Title: Create Product Parameter with duplicate code
-     */
-    test('PM_PROD_002: Create Product Parameter with duplicate code', async ({ page }) => {
-        await page.route('**/api/v1/banking/parameters/product', async route => {
-            if (route.request().method() === 'GET') {
-                await route.fulfill({ status: 200, body: JSON.stringify({ success: true, data: [] }) });
-            } else if (route.request().method() === 'POST') {
-                await route.fulfill({
-                    status: 409, // Conflict
-                    body: JSON.stringify({ success: false, message: "Product code already exists" })
-                });
-            } else {
-                await route.continue();
-            }
-        });
-
+    test('PM_PROD_002: Search and View Product Parameter', async ({ page }) => {
         await page.goto('/banking/parameters/product');
-        await page.getByRole('button', { name: /Add Product/i }).click();
+        await page.waitForLoadState('networkidle');
 
-        // Fill fields again... for duplicate attempt
-        await page.getByLabel('Data Source *').fill('Core System');
-        await page.getByLabel('Product Group *').fill('Financing');
-        await page.getByLabel('Product Type *').fill('Baru');
-        await page.getByLabel('Product Code *').fill('TESTPP001'); // Duplicate
+        // Search for the newly created product
+        const searchInput = page.getByPlaceholder(/search/i);
+        await searchInput.waitFor({ state: 'visible', timeout: 15000 });
+        await searchInput.fill(TEST_CODE);
 
-        await page.getByLabel('Currency *').click();
-        await page.getByRole('option', { name: 'Indonesian Rupiah' }).click();
+        // Ensure the row appears
+        const row = page.getByRole('row', { name: TEST_CODE });
+        await expect(row).toBeVisible({ timeout: 15000 });
+        await expect(row).toContainText(TEST_DESC);
+    });
 
-        await page.getByLabel('Instrument Class *').click();
-        await page.getByRole('option', { name: 'Assets' }).click();
+    test('PM_PROD_003: Edit Product Parameter', async ({ page }) => {
+        await page.goto('/banking/parameters/product');
+        await page.waitForLoadState('networkidle');
 
-        await page.getByRole('button', { name: /Create/i }).click();
+        const searchInput = page.getByPlaceholder(/search/i);
+        await searchInput.waitFor({ state: 'visible', timeout: 15000 });
+        await searchInput.fill(TEST_CODE);
+        const row = page.getByRole('row', { name: TEST_CODE });
+        await expect(row).toBeVisible({ timeout: 10000 });
 
-        // Expected: Error message
-        await expect(page.locator('.MuiAlert-message').or(page.getByText('already exists'))).toBeVisible();
+        // Click Edit action button within the row
+        await row.getByTestId('EditIcon').click();
+
+        const dialog = page.getByRole('dialog');
+        await expect(dialog).toBeVisible({ timeout: 15000 });
+
+        // Verify existing values
+        await expect(page.getByLabel('Product Code *')).toBeDisabled();
+        await expect(page.getByLabel('Product Description')).toHaveValue(TEST_DESC);
+
+        // Update description
+        await page.getByLabel('Product Description').fill(UPDATED_DESC);
+
+        const submitBtn = page.getByRole('button', { name: /Update/i });
+        await expect(submitBtn).toBeEnabled();
+
+        // Listen for the PUT request (numeric ID in new-backend)
+        const putPromise = page.waitForResponse(resp =>
+            resp.url().includes('parameters/product/') &&
+            /\/\d+$/.test(resp.url()) &&
+            resp.request().method() === 'PUT'
+        );
+
+        await submitBtn.click();
+
+        const response = await putPromise;
+        expect(response.status()).toBe(200);
+
+        await expect(page.getByText(/successfully/i)).toBeVisible({ timeout: 15000 });
+    });
+
+    test('PM_PROD_004: Delete Product Parameter', async ({ page }) => {
+        await page.goto('/banking/parameters/product');
+        await page.waitForLoadState('networkidle');
+
+        const searchInput = page.getByPlaceholder(/search/i);
+        await searchInput.waitFor({ state: 'visible', timeout: 15000 });
+        await searchInput.fill(TEST_CODE);
+        const row = page.getByRole('row', { name: TEST_CODE });
+        await expect(row).toBeVisible({ timeout: 10000 });
+
+        // Click Delete action button
+        // Need to handle the window.confirm
+        page.once('dialog', dialog => dialog.accept());
+
+        await row.getByTestId('DeleteIcon').click();
+
+        // Listen for the DELETE request (numeric ID in new-backend)
+        const deletePromise = page.waitForResponse(resp =>
+            resp.url().includes('parameters/product/') &&
+            /\/\d+$/.test(resp.url()) &&
+            resp.request().method() === 'DELETE'
+        );
+
+        const response = await deletePromise;
+        expect(response.status()).toBe(200);
+
+        await expect(page.getByText(/successfully/i)).toBeVisible({ timeout: 15000 });
+
+        // Verify it's gone
+        const searchInputFinal = page.getByPlaceholder(/search/i);
+        await searchInputFinal.waitFor({ state: 'visible', timeout: 15000 });
+        await searchInputFinal.fill(TEST_CODE);
+        await expect(page.getByRole('row', { name: TEST_CODE })).not.toBeVisible({ timeout: 5000 });
     });
 });

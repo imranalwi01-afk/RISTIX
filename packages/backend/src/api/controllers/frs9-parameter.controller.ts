@@ -492,7 +492,7 @@ export class FRS9ParameterController {
       console.log('🔄 [FRS9] Transformed payload using unified transformer:', JSON.stringify(transformedData, null, 2));
 
       // ✅ FIXED: Create in frs9_param_commonh table with param_type = 'S' (System/Application)
-      const applicationParam = await ParamCommonh.create(cleanData({...transformedData, param_type: 'S'}));
+      const applicationParam = await ParamCommonh.create(cleanData({ ...transformedData, param_type: 'S' }));
 
       console.log('✅ [FRS9] Application setup parameter created successfully');
 
@@ -991,8 +991,8 @@ export class FRS9ParameterController {
       const { param_code } = req.params;
       console.log('📝 [FRS9] Updating business setup parameter using unified transformers:', param_code);
 
-      // ✅ NEW: Validate required fields using unified validator
-      const validationErrors = validateRequired(req.body, 'business');
+      // ✅ FIXED: Pass true for isUpdate to skip param_code validation in body
+      const validationErrors = validateRequired(req.body, 'business', true);
       if (validationErrors.length > 0) {
         res.status(400).json({
           success: false,
@@ -1406,8 +1406,8 @@ export class FRS9ParameterController {
       const { gl_code } = req.params;
       console.log('📝 [FRS9] Updating journal parameter using unified transformers:', gl_code);
 
-      // ✅ NEW: Validate required fields using unified validator
-      const validationErrors = validateRequired(req.body, 'journal');
+      // ✅ FIXED: Pass true for isUpdate to skip param_code validation in body
+      const validationErrors = validateRequired(req.body, 'journal', true);
       if (validationErrors.length > 0) {
         res.status(400).json({
           success: false,

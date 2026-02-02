@@ -164,9 +164,22 @@ function BusinessSettingPage() {
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedParameterForDetail, setSelectedParameterForDetail] = useState<BusinessParameter | null>(null);
 
+  // Search State
+  const [searchTerm, setSearchTerm] = useState('');
+
   // Pagination
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  // Reset page when search changes
+  useEffect(() => {
+    setPage(0);
+  }, [searchTerm]);
+
+  const filteredBusinessParameters = businessParameters.filter(p =>
+    p.param_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.param_desc.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   // Load business parameters from backend
   const loadBusinessParameters = async () => {
@@ -309,15 +322,18 @@ function BusinessSettingPage() {
 
   // Memoized callback to prevent dialog re-renders
   const handleSaveParameter = useCallback(async (formData: BusinessParameterFormData) => {
+    const editingPk = editingParameter?.pkid;
+    const editingCode = editingParameter?.param_code;
+
     try {
       if (editingParameter) {
         // Update existing parameter
-        const response = await api.banking.businessSetup.update(editingParameter.param_code, formData);
+        const response = await api.banking.businessSetup.update(editingCode!, formData);
 
         if (response.success) {
           setBusinessParameters(prev =>
-            prev.map(p => p.pkid === editingParameter.pkid
-              ? { ...p, ...formData, pkid: editingParameter.pkid }
+            prev.map(p => p.pkid === editingPk
+              ? { ...p, ...formData, pkid: editingPk }
               : p
             )
           );
@@ -337,10 +353,12 @@ function BusinessSettingPage() {
         }
       }
 
-      setDialogOpen(false);
-      setEditingParameter(null);
+      // Note: setDialogOpen(false) and setEditingParameter(null) will be called 
+      // by the dialog's onClose() which is called after this function resolves
     } catch (error: any) {
-      setError(`Failed to save business parameter: ${handleAPIError(error).message}`);
+      const apiError = handleAPIError(error);
+      setError(`Failed to save business parameter: ${apiError.message}`);
+      throw error; // Rethrow so dialog can show error
     }
   }, [editingParameter]);
 
@@ -374,6 +392,7 @@ function BusinessSettingPage() {
             startIcon={<AddIcon />}
             onClick={handleCreateParameter}
             disabled={loading}
+            data-testid="btn-create-business-setting"
           >
             Create Parameter
           </Button>
@@ -383,9 +402,18 @@ function BusinessSettingPage() {
       {/* Business Parameters Table */}
       <Card>
         <CardContent>
-          <Typography variant="h6" gutterBottom>
-            Business Parameters
-          </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6">
+              Business Parameters
+            </Typography>
+            <TextField
+              size="small"
+              placeholder="Search..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              inputProps={{ 'data-testid': 'input-search' }}
+            />
+          </Box>
 
           {businessParameters.length === 0 ? (
             <EmptyState
@@ -410,7 +438,7 @@ function BusinessSettingPage() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {businessParameters
+                  {filteredBusinessParameters
                     .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                     .map((parameter) => (
                       <TableRow key={parameter.pkid} hover>
@@ -471,6 +499,7 @@ function BusinessSettingPage() {
                                 size="small"
                                 color="info"
                                 onClick={() => handleViewDetail(parameter)}
+                                data-testid="btn-view-business-setting"
                               >
                                 <InfoIcon fontSize="small" />
                               </IconButton>
@@ -481,6 +510,7 @@ function BusinessSettingPage() {
                                 color="primary"
                                 onClick={() => handleEditParameter(parameter)}
                                 disabled={!parameter.is_editable}
+                                data-testid="btn-edit-business-setting"
                               >
                                 <EditIcon fontSize="small" />
                               </IconButton>
@@ -491,6 +521,7 @@ function BusinessSettingPage() {
                                 color="error"
                                 onClick={() => handleDeleteParameter(parameter)}
                                 disabled={!parameter.is_editable}
+                                data-testid="btn-delete-business-setting"
                               >
                                 <DeleteIcon fontSize="small" />
                               </IconButton>
@@ -505,10 +536,10 @@ function BusinessSettingPage() {
           )}
 
           {/* Pagination */}
-          {businessParameters.length > rowsPerPage && (
+          {filteredBusinessParameters.length > rowsPerPage && (
             <TablePagination
               component="div"
-              count={businessParameters.length}
+              count={filteredBusinessParameters.length}
               page={page}
               onPageChange={handleChangePage}
               rowsPerPage={rowsPerPage}

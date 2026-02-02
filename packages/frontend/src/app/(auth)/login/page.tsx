@@ -306,6 +306,9 @@ export default function LoginPage() {
                   disabled={tenantsLoading || loginLoading || isPlatformAdmin}
                   size="small"
                   sx={{ mb: 3, bgcolor: '#ffffff' }}
+                  SelectProps={{
+                    SelectDisplayProps: { 'data-testid': 'login-tenant-select' } as any
+                  }}
                 >
                   {tenants.length > 0 ? tenants.map((tenant) => (
                     <MenuItem key={tenant.id} value={tenant.id}>
@@ -325,6 +328,7 @@ export default function LoginPage() {
                   required
                   disabled={loginLoading}
                   sx={{ mb: 2, bgcolor: '#ffffff' }}
+                  inputProps={{ 'data-testid': 'login-email' }}
                 />
 
                 <TextField
@@ -347,6 +351,7 @@ export default function LoginPage() {
                         </IconButton>
                       </InputAdornment>
                     ),
+                    inputProps: { 'data-testid': 'login-password' }
                   }}
                   sx={{ mb: 4, bgcolor: '#ffffff' }}
                 />
@@ -358,6 +363,7 @@ export default function LoginPage() {
                   size="large"
                   disabled={loginLoading || isLoading || !selectedTenantId}
                   endIcon={!loginLoading && <ArrowForwardIcon />}
+                  data-testid="login-submit"
                   sx={{
                     py: 1.8,
                     borderRadius: 2,

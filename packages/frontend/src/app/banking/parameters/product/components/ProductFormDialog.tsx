@@ -73,9 +73,9 @@ export interface DropdownOption {
 interface ProductFormDialogProps {
     open: boolean;
     onClose: () => void;
-    onSave: (data: ProductFormData) => void;
+    onSave: (data: ProductFormData) => Promise<void> | void;
     product?: ProductParameter | null;
-    loading?: boolean;
+    isExternalLoading?: boolean;
     currencyOptions: DropdownOption[];
     amortizationOptions: DropdownOption[];
     instrumentClassOptions: DropdownOption[];
@@ -90,7 +90,7 @@ const ProductFormDialog = memo(function ProductFormDialog({
     onClose,
     onSave,
     product,
-    loading = false,
+    isExternalLoading = false,
     currencyOptions,
     amortizationOptions,
     instrumentClassOptions
@@ -112,6 +112,7 @@ const ProductFormDialog = memo(function ProductFormDialog({
         marketRate: '',
         activeFlag: true
     });
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     // Reset form when dialog opens
@@ -170,7 +171,7 @@ const ProductFormDialog = memo(function ProductFormDialog({
             setFormData(prev => ({ ...prev, [field]: e.target.checked }));
         }, []);
 
-    const handleSubmit = useCallback(() => {
+    const handleSubmit = useCallback(async () => {
         const errors: string[] = [];
         if (!formData.dataSource.trim()) errors.push('Data Source is required');
         if (!formData.prdGroup.trim()) errors.push('Product Group is required');
@@ -185,8 +186,20 @@ const ProductFormDialog = memo(function ProductFormDialog({
         }
 
         setError(null);
-        onSave(formData);
-    }, [formData, onSave]);
+        setLoading(true);
+        console.log('🚀 [ProductDialog] Submitting product parameter:', formData.prdCode);
+
+        try {
+            await onSave(formData);
+            console.log('✅ [ProductDialog] Save successful, closing dialog');
+            onClose();
+        } catch (err: any) {
+            console.error('❌ [ProductDialog] Save failed:', err);
+            setError(err.message || 'Failed to save product parameter');
+        } finally {
+            setLoading(false);
+        }
+    }, [formData, onSave, onClose]);
 
     return (
         <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
@@ -328,9 +341,9 @@ const ProductFormDialog = memo(function ProductFormDialog({
                 )}
             </DialogContent>
             <DialogActions>
-                <Button onClick={onClose} disabled={loading}>Cancel</Button>
-                <Button onClick={handleSubmit} variant="contained" disabled={loading}>
-                    {product ? 'Update' : 'Create'}
+                <Button onClick={onClose} disabled={loading || isExternalLoading}>Cancel</Button>
+                <Button onClick={handleSubmit} variant="contained" disabled={loading || isExternalLoading}>
+                    {loading || isExternalLoading ? 'Saving...' : (product ? 'Update' : 'Create')}
                 </Button>
             </DialogActions>
         </Dialog>
