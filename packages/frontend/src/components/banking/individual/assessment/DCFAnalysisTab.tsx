@@ -135,13 +135,13 @@ export function DCFAnalysisTab({ account, assessment, onCalculate, loading }: DC
 
   return (
     <Box>
-      <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+      <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
         <CalculateIcon sx={{ mr: 1 }} />
         DCF Analysis - {account?.account_number} - {account?.cif_name}
       </Typography>
 
-      <Grid container spacing={3}>
-        {/* Input Parameters */}
+      <Grid container spacing={2}>
+        {/* DCF Parameters - Left Column */}
         <Grid item xs={12} md={6}>
           <Card>
             <CardContent>
@@ -205,7 +205,7 @@ export function DCFAnalysisTab({ account, assessment, onCalculate, loading }: DC
                   </Select>
                 </FormControl>
 
-                <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+                <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
                   <Button
                     variant="contained"
                     startIcon={<RunIcon />}
@@ -228,8 +228,48 @@ export function DCFAnalysisTab({ account, assessment, onCalculate, loading }: DC
           </Card>
         </Grid>
 
-        {/* Scenarios */}
+        {/* Account Information - Right Column beside DCF Parameters */}
         <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                <AccountBalanceIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                Account Information
+              </Typography>
+              <Divider sx={{ mb: 2 }} />
+
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={6}>
+                  <Typography variant="body2" color="text.secondary">Outstanding Balance:</Typography>
+                  <Typography variant="h6">
+                    {formatCurrency(account?.outstanding_balance || 0)}
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Typography variant="body2" color="text.secondary">Current Provision:</Typography>
+                  <Typography variant="h6">
+                    {formatCurrency(account?.provision_amount || 0)}
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Typography variant="body2" color="text.secondary">Current Stage:</Typography>
+                  <Box sx={{ mt: 1 }}>
+                    {account && renderStageChipLocal(account.stage)}
+                  </Box>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Typography variant="body2" color="text.secondary">Impaired Status:</Typography>
+                  <Box sx={{ mt: 1 }}>
+                    {account && renderImpairedFlagLocal(account.impaired_flag)}
+                  </Box>
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Scenario Analysis - Full Width Below */}
+        <Grid item xs={12}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -238,13 +278,14 @@ export function DCFAnalysisTab({ account, assessment, onCalculate, loading }: DC
               </Typography>
               <Divider sx={{ mb: 2 }} />
 
-              <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+              <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
                 {scenarioData.map((scenario) => (
                   <Button
                     key={scenario.name}
                     variant={activeScenario.includes(scenario.name.toLowerCase()) ? 'contained' : 'outlined'}
                     size="small"
                     onClick={() => handleScenarioChange(scenario.name)}
+                    sx={{ flex: '1 1 auto' }}
                   >
                     {scenario.name}
                   </Button>
@@ -273,46 +314,6 @@ export function DCFAnalysisTab({ account, assessment, onCalculate, loading }: DC
                   </TableBody>
                 </Table>
               </TableContainer>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Current Account Info */}
-        <Grid item xs={12}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                <AccountBalanceIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                Account Information
-              </Typography>
-              <Divider sx={{ mb: 2 }} />
-
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={3}>
-                  <Typography variant="body2" color="text.secondary">Outstanding Balance:</Typography>
-                  <Typography variant="h6">
-                    {formatCurrency(account?.outstanding_balance || 0)}
-                  </Typography>
-                </Grid>
-                <Grid item xs={12} md={3}>
-                  <Typography variant="body2" color="text.secondary">Current Stage:</Typography>
-                  <Box sx={{ mt: 1 }}>
-                    {account && renderStageChipLocal(account.stage)}
-                  </Box>
-                </Grid>
-                <Grid item xs={12} md={3}>
-                  <Typography variant="body2" color="text.secondary">Impaired Status:</Typography>
-                  <Box sx={{ mt: 1 }}>
-                    {account && renderImpairedFlagLocal(account.impaired_flag)}
-                  </Box>
-                </Grid>
-                <Grid item xs={12} md={3}>
-                  <Typography variant="body2" color="text.secondary">Current Provision:</Typography>
-                  <Typography variant="h6">
-                    {formatCurrency(account?.provision_amount || 0)}
-                  </Typography>
-                </Grid>
-              </Grid>
             </CardContent>
           </Card>
         </Grid>

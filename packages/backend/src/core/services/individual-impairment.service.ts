@@ -559,6 +559,12 @@ export class IndividualImpairmentService {
   async calculateDCF(dcfData: DCFData): Promise<DCFResult> {
     try {
       console.log(`📋 [II-SERVICE-006] Calculating DCF for account ${dcfData.account_id}`);
+      console.log(`📋 [II-SERVICE-006] DCF Data:`, JSON.stringify(dcfData, null, 2));
+
+      // Validate input data
+      if (!dcfData.cash_flows || dcfData.cash_flows.length === 0) {
+        throw new Error('Cash flows are required for DCF calculation');
+      }
 
       let totalPV = 0;
       let totalECL = 0;
@@ -569,16 +575,19 @@ export class IndividualImpairmentService {
       dcfData.cash_flows.forEach((cf, index) => {
         const period = index + 1;
         const discountFactor = 1 / Math.pow(1 + 0.08, period / 12); // 8% discount rate
-        const cfPV = (cf.principal + cf.interest + cf.collateral) * discountFactor;
+        const principal = cf.principal || 0;
+        const interest = cf.interest || 0;
+        const collateral = cf.collateral || 0;
+        const cfPV = (principal + interest + collateral) * discountFactor;
 
         totalPV += cfPV;
-        principalSum += cf.principal;
-        interestSum += cf.interest;
+        principalSum += principal;
+        interestSum += interest;
       });
 
-      // Calculate ECL using PD rates and recovery rates
-      const pdRate = dcfData.scenario_data.pd_rates[0]; // Use first PD rate
-      const recoveryRate = dcfData.scenario_data.recovery_rates[0] || 0.6; // Use first recovery rate or default
+      // Calculate ECL using PD rates and recovery rates with fallback defaults
+      const pdRate = dcfData.scenario_data?.pd_rates?.[0] || 0.05; // Default 5% PD
+      const recoveryRate = dcfData.scenario_data?.recovery_rates?.[0] || 0.6; // Default 60% recovery
 
       const lgdRate = 1 - recoveryRate;
       totalECL = totalPV * pdRate * lgdRate;
@@ -592,11 +601,12 @@ export class IndividualImpairmentService {
         weighted_recovery_rate: recoveryRate
       };
 
-      console.log(`✅ [II-SERVICE-006] DCF calculation completed for account ${dcfData.account_id}`);
+      console.log(`✅ [II-SERVICE-006] DCF calculation completed:`, result);
       return result;
 
     } catch (error) {
       console.error(`❌ [II-SERVICE-006] Error calculating DCF:`, error);
+      console.error(`❌ [II-SERVICE-006] DCF Data that caused error:`, dcfData);
       throw error;
     }
   }

@@ -19,72 +19,65 @@ import {
   Card,
   CardContent,
   Button,
-  CircularProgress,
   Alert,
   Breadcrumbs,
   Link,
   Chip,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TablePagination,
-  TextField,
-  InputAdornment,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Select,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   IconButton,
   Tooltip,
-  Badge,
   Divider,
   Tabs,
   Tab,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  TextField,
+  Menu,
+  ListItemIcon,
+  Snackbar
 } from '@mui/material';
 import {
   Person as PersonIcon,
   Home as HomeIcon,
-  ArrowBack as BackIcon,
-  Search as SearchIcon,
-  FilterList as FilterIcon,
-  Assessment as AssessmentIcon,
-  Visibility as VisibilityIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Add as AddIcon,
   Refresh as RefreshIcon,
   Download as DownloadIcon,
-  TrendingUp as TrendingUpIcon,
-  MonetizationOn as MoneyIcon,
-  Timeline as TimelineIcon,
-  Warning as WarningIcon,
-  CheckCircle as CheckIcon,
-  Cancel as CancelIcon,
-  Calculate as CalculateIcon,
-  Analytics as AnalyticsIcon,
-  Assignment as AssignmentIcon,
   Save as SaveIcon,
-  PlayArrow as RunIcon,
-  Clear as ClearIcon,
-  Addchart as AddChartIcon,
-  ShowChart as ShowChartIcon,
-  AccountBalance as AccountBalanceIcon
+  Assignment as AssignmentIcon,
+  Assessment as AssessmentIcon,
+  Calculate as CalculateIcon,
+  MonetizationOn as MoneyIcon,
+  History as HistoryIcon,
+  Description as DescriptionIcon,
+  Settings as SettingsIcon,
+  KeyboardArrowDown as ArrowDownIcon
 } from '@mui/icons-material';
-import { useRouter } from 'next/navigation';
-import { individualImpairmentAPI, individualImpairmentHelpers, type IndividualImpairmentWatchlistItem, type IndividualImpairmentAssessment } from '@/services/api.individual-impairment';
+import { useRouter, useSearchParams } from 'next/navigation';
+
+// API & Types
+import { 
+  individualImpairmentAPI, 
+  individualImpairmentHelpers, 
+  type IndividualImpairmentWatchlistItem, 
+  type IndividualImpairmentAssessment 
+} from '@/services/api.individual-impairment';
+
+// Components
 import ModernLoader from '@/components/common/ModernLoader';
 import { DCFAnalysisTab } from '@/components/banking/individual/assessment/DCFAnalysisTab';
 import { ProvisionCalculationTab } from '@/components/banking/individual/assessment/ProvisionCalculationTab';
+import { AssessmentKPI } from '@/components/banking/individual/assessment/AssessmentKPI';
+import { AssessmentFilters } from '@/components/banking/individual/assessment/AssessmentFilters';
+import { AssessmentWatchlist } from '@/components/banking/individual/assessment/AssessmentWatchlist';
+import ExportDialog from '@/components/banking/individual/assessment/ExportDialog';
+
+// Utils & Constants
+import { FILTER_DEFAULTS } from '@/app/banking/individual/assessment/constants';
+import { renderStageChip } from '@/app/banking/individual/assessment/utils';
 
 // Tab Panel Component
 interface TabPanelProps {
@@ -95,7 +88,6 @@ interface TabPanelProps {
 
 function TabPanel(props: TabPanelProps) {
   const { children, value, index, ...other } = props;
-
   return (
     <div
       role="tabpanel"
@@ -111,6 +103,7 @@ function TabPanel(props: TabPanelProps) {
 
 export default function IndividualAssessmentPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   // State management
   const [loading, setLoading] = useState(false);
@@ -129,14 +122,17 @@ export default function IndividualAssessmentPage() {
   });
 
   // Filter state
-  const [filters, setFilters] = useState({
-    search: '',
-    stage: '',
-    impairedFlag: '',
-    assessmentStatus: '',
-    priorityLevel: '',
-    ratingCode: ''
-  });
+  const [filters, setFilters] = useState({ ...FILTER_DEFAULTS });
+
+  // Export state
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [exportMenuAnchor, setExportMenuAnchor] = useState<null | HTMLElement>(null);
+  const [exporting, setExporting] = useState(false);
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    severity: 'success' | 'error' | 'info';
+  }>({ open: false, message: '', severity: 'success' });
 
   // Fetch watchlist data
   const fetchWatchlist = useCallback(async () => {
@@ -208,6 +204,11 @@ export default function IndividualAssessmentPage() {
     setPagination(prev => ({ ...prev, page: 0 })); // Reset to first page
   };
 
+  const handleResetFilters = () => {
+    setFilters({ ...FILTER_DEFAULTS });
+    setPagination(prev => ({ ...prev, page: 0 }));
+  };
+
   // Handle account selection
   const handleAccountSelect = (account: IndividualImpairmentWatchlistItem) => {
     setSelectedAccount(account);
@@ -219,8 +220,13 @@ export default function IndividualAssessmentPage() {
   const handleAssessmentDialog = (open: boolean) => {
     setAssessmentDialogOpen(open);
     if (!open) {
-      setAssessment(null);
+      // Logic when closing if needed
     }
+  };
+
+  const handleEditAssessment = (account: IndividualImpairmentWatchlistItem) => {
+      setSelectedAccount(account);
+      handleAssessmentDialog(true);
   };
 
   // Refresh data
@@ -228,12 +234,62 @@ export default function IndividualAssessmentPage() {
     fetchWatchlist();
   };
 
-  // Export data
-  const handleExport = async (format: 'xlsx' | 'csv') => {
+  // Export handlers
+  const handleExportMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setExportMenuAnchor(event.currentTarget);
+  };
+
+  const handleExportMenuClose = () => {
+    setExportMenuAnchor(null);
+  };
+
+  const handleQuickExport = async (format: 'xlsx' | 'csv' | 'pdf') => {
+    handleExportMenuClose();
+    setExporting(true);
+    
     try {
-      await individualImpairmentAPI.watchlist.export(format, filters);
+      const result = await individualImpairmentAPI.watchlist.export(format, filters);
+      setSnackbar({
+        open: true,
+        message: `Export completed: ${result.fileName} (${result.recordCount} records)`,
+        severity: 'success'
+      });
     } catch (error) {
-      console.error('Error exporting data:', error);
+      console.error('Export error:', error);
+      setSnackbar({
+        open: true,
+        message: error instanceof Error ? error.message : 'Export failed. Please try again.',
+        severity: 'error'
+      });
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleAdvancedExport = () => {
+    handleExportMenuClose();
+    setExportDialogOpen(true);
+  };
+
+  const handleExport = async (format: 'xlsx' | 'csv' | 'pdf', options: any) => {
+    setExporting(true);
+    
+    try {
+      const result = await individualImpairmentAPI.watchlist.export(format, filters, options);
+      setSnackbar({
+        open: true,
+        message: `Export completed: ${result.fileName} (${result.recordCount} records)`,
+        severity: 'success'
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      setSnackbar({
+        open: true,
+        message: error instanceof Error ? error.message : 'Export failed. Please try again.',
+        severity: 'error'
+      });
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -243,12 +299,59 @@ export default function IndividualAssessmentPage() {
 
     setLoading(true);
     try {
-      const response = await individualImpairmentAPI.dcf.calculate(selectedAccount.account_id, parameters);
+      // Transform frontend parameters to match backend schema
+      const prcDate = new Date().toISOString().split('T')[0]; // Current date in YYYY-MM-DD
+      
+      // Generate sample cash flows based on parameters
+      const cashFlows = [];
+      const monthlyPayment = (selectedAccount.outstanding_balance || 0) / (parameters.timeHorizon || 60);
+      
+      for (let i = 0; i < (parameters.timeHorizon || 60); i++) {
+        cashFlows.push({
+          periode: new Date(Date.now() + i * 30 * 24 * 60 * 60 * 1000).toISOString(),
+          principal: monthlyPayment * (parameters.recoveryRate / 100),
+          interest: monthlyPayment * 0.1, // 10% of payment as interest
+          collateral: 0
+        });
+      }
+
+      // Build request payload matching backend schema
+      const requestPayload = {
+        account_id: selectedAccount.account_id,
+        prc_date: prcDate,
+        cash_flows: cashFlows,
+        scenario_data: {
+          scenario_id: parameters.scenarioType === 'optimistic' ? 2 : parameters.scenarioType === 'pessimistic' ? 3 : 1,
+          scenario_name: parameters.scenarioType || 'base',
+          pd_rates: [0.05], // 5% default PD rate
+          recovery_rates: [parameters.recoveryRate / 100] // Convert percentage to decimal
+        }
+      };
+
+      console.log('🧮 DCF Request Payload:', JSON.stringify(requestPayload, null, 2));
+
+      const response = await individualImpairmentAPI.dcf.calculate(selectedAccount.account_id, requestPayload);
+      
+      console.log('✅ DCF Response:', response);
+      
       if (response.success) {
         setSelectedCalculation(response.data);
+        setSnackbar({
+          open: true,
+          message: 'DCF calculation completed successfully',
+          severity: 'success'
+        });
       }
-    } catch (error) {
-      console.error('Error calculating DCF:', error);
+    } catch (error: any) {
+      console.error('❌ Error calculating DCF:', error);
+      console.error('❌ Error response:', error.response?.data);
+      console.error('❌ Error status:', error.response?.status);
+      
+      setSnackbar({
+        open: true,
+        message: error.response?.data?.message || error.message || 'DCF calculation failed',
+        severity: 'error'
+      });
     } finally {
       setLoading(false);
     }
@@ -272,101 +375,15 @@ export default function IndividualAssessmentPage() {
     }
   };
 
-  // Render stage chip
-  const renderStageChip = (stage: number) => {
-    const colors = {
-      1: '#4caf50',
-      2: '#ff9800',
-      3: '#f44336'
-    };
-    const labels = {
-      1: 'Stage 1',
-      2: 'Stage 2',
-      3: 'Stage 3'
-    };
-
-    return (
-      <Chip
-        label={labels[stage as keyof typeof labels]}
-        size="small"
-        sx={{
-          backgroundColor: colors[stage as keyof typeof colors],
-          color: 'white',
-          fontWeight: 'bold'
-        }}
-      />
-    );
-  };
-
-  // Render priority chip
-  const renderPriorityChip = (priority: string) => {
-    const colors = {
-      'LOW': '#4caf50',
-      'MEDIUM': '#ff9800',
-      'HIGH': '#ff5722',
-      'CRITICAL': '#f44336'
-    };
-
-    return (
-      <Chip
-        label={priority}
-        size="small"
-        sx={{
-          backgroundColor: colors[priority as keyof typeof colors],
-          color: 'white',
-          fontWeight: 'bold'
-        }}
-      />
-    );
-  };
-
-  // Render impaired flag
-  const renderImpairedFlag = (flag: string) => {
-    return (
-      <Chip
-        label={flag === 'I' ? 'Impaired' : 'Non-Impaired'}
-        size="small"
-        color={flag === 'I' ? 'error' : 'success'}
-        variant="outlined"
-      />
-    );
-  };
-
-  // Render assessment status
-  const renderAssessmentStatus = (status: string | undefined | null) => {
-    const safeStatus = status || 'PENDING';
-    const colors = {
-      'PENDING': '#757575',
-      'IN_PROGRESS': '#2196f3',
-      'COMPLETED': '#4caf50',
-      'REVIEWED': '#ff9800'
-    };
-    
-    // Default to grey if status not in map
-    const bgColor = colors[safeStatus as keyof typeof colors] || '#757575';
-
-    return (
-      <Chip
-        label={safeStatus.replace('_', ' ')}
-        size="small"
-        sx={{
-          backgroundColor: bgColor,
-          color: 'white',
-          fontWeight: 'bold'
-        }}
-      />
-    );
-  };
-
   return (
-    <Container maxWidth="xl">
+    <Container maxWidth={false} sx={{ px: { xs: 2, md: 3 }, py: 2 }}>
       <ModernLoader 
-        open={loading} 
+        open={loading && watchlist.length === 0} 
         message="Loading Assessment Data" 
         subMessage="Fetching individual impairment details..." 
       />
       {/* Breadcrumb Navigation */}
-      <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
+      <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 1.5 }}>
         <Link
           underline="hover"
           color="inherit"
@@ -387,13 +404,41 @@ export default function IndividualAssessmentPage() {
       </Breadcrumbs>
 
       {/* Page Header */}
-      <Box sx={{ mb: 4 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <PersonIcon sx={{ mr: 2, fontSize: 32, color: 'primary.main' }} />
-            <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
-              Individual Impairment Assessment
-            </Typography>
+      <Box 
+        sx={{ 
+          mb: 1.5,
+          pb: 1.5,
+          borderBottom: '2px solid',
+          borderColor: 'divider',
+          background: 'linear-gradient(to right, rgba(25, 118, 210, 0.03) 0%, rgba(255, 255, 255, 0) 100%)',
+          borderRadius: 2,
+          p: 2
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Box
+              sx={{
+                width: 44,
+                height: 44,
+                borderRadius: 2,
+                background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 3px 8px rgba(25, 118, 210, 0.25)'
+              }}
+            >
+              <PersonIcon sx={{ fontSize: 26, color: 'white' }} />
+            </Box>
+            <Box>
+              <Typography variant="h5" component="h1" sx={{ fontWeight: 700, color: 'primary.dark', mb: 0.25, lineHeight: 1.2 }}>
+                Individual Impairment Assessment
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem' }}>
+                Account impairment assessment, DCF analysis & provision calculation
+              </Typography>
+            </Box>
           </Box>
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Tooltip title="Refresh Data">
@@ -401,138 +446,99 @@ export default function IndividualAssessmentPage() {
                 <RefreshIcon />
               </IconButton>
             </Tooltip>
-            <Tooltip title="Export Excel">
-              <IconButton onClick={() => handleExport('xlsx')}>
-                <DownloadIcon />
-              </IconButton>
-            </Tooltip>
+            <Button
+              variant="outlined"
+              startIcon={<DownloadIcon />}
+              endIcon={<ArrowDownIcon />}
+              onClick={handleExportMenuOpen}
+              disabled={exporting || loading}
+              sx={{ minWidth: 120 }}
+            >
+              {exporting ? 'Exporting...' : 'Export'}
+            </Button>
+            <Menu
+              anchorEl={exportMenuAnchor}
+              open={Boolean(exportMenuAnchor)}
+              onClose={handleExportMenuClose}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+              transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+            >
+              <MenuItem onClick={() => handleQuickExport('xlsx')} disabled={exporting}>
+                <ListItemIcon>
+                  <DescriptionIcon fontSize="small" color="primary" />
+                </ListItemIcon>
+                Quick Export (Excel)
+              </MenuItem>
+              <MenuItem onClick={() => handleQuickExport('csv')} disabled={exporting}>
+                <ListItemIcon>
+                  <DescriptionIcon fontSize="small" color="success" />
+                </ListItemIcon>
+                Quick Export (CSV)
+              </MenuItem>
+              <MenuItem onClick={() => handleQuickExport('pdf')} disabled={exporting}>
+                <ListItemIcon>
+                  <DescriptionIcon fontSize="small" color="error" />
+                </ListItemIcon>
+                Quick Export (PDF)
+              </MenuItem>
+              <Divider />
+              <MenuItem onClick={handleAdvancedExport} disabled={exporting}>
+                <ListItemIcon>
+                  <SettingsIcon fontSize="small" />
+                </ListItemIcon>
+                Advanced Export...
+              </MenuItem>
+            </Menu>
           </Box>
         </Box>
-        <Typography variant="subtitle1" color="text.secondary">
-          Individual account impairment assessment, DCF analysis, and provision calculation
-        </Typography>
+
       </Box>
 
       {/* Main Content */}
-      <Grid container spacing={3}>
+      <Grid container spacing={2}>
         <Grid item xs={12}>
-          <Paper sx={{ p: 3 }}>
-            {/* Filters */}
-            <Box sx={{ mb: 3, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-              <TextField
-                size="small"
-                placeholder="Search accounts..."
-                value={filters.search}
-                onChange={(e) => handleFilterChange('search', e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon />
-                    </InputAdornment>
-                  )
-                }}
-                sx={{ minWidth: 250 }}
-              />
+          <Paper sx={{ p: 2, maxWidth: '100%', overflowX: 'hidden' }}>
+            
+            {/* KPI Cards */}
+            <AssessmentKPI watchlist={watchlist} loading={loading} />
 
-              <FormControl size="small" sx={{ minWidth: 120 }}>
-                <InputLabel>Stage</InputLabel>
-                <Select
-                  value={filters.stage}
-                  label="Stage"
-                  onChange={(e) => handleFilterChange('stage', e.target.value)}
-                >
-                  <MenuItem value="">All Stages</MenuItem>
-                  <MenuItem value="1">Stage 1</MenuItem>
-                  <MenuItem value="2">Stage 2</MenuItem>
-                  <MenuItem value="3">Stage 3</MenuItem>
-                </Select>
-              </FormControl>
-
-              <FormControl size="small" sx={{ minWidth: 150 }}>
-                <InputLabel>Impaired Status</InputLabel>
-                <Select
-                  value={filters.impairedFlag}
-                  label="Impaired Status"
-                  onChange={(e) => handleFilterChange('impairedFlag', e.target.value)}
-                >
-                  <MenuItem value="">All</MenuItem>
-                  <MenuItem value="I">Impaired</MenuItem>
-                  <MenuItem value="N">Non-Impaired</MenuItem>
-                </Select>
-              </FormControl>
-
-              <FormControl size="small" sx={{ minWidth: 150 }}>
-                <InputLabel>Priority</InputLabel>
-                <Select
-                  value={filters.priorityLevel}
-                  label="Priority"
-                  onChange={(e) => handleFilterChange('priorityLevel', e.target.value)}
-                >
-                  <MenuItem value="">All Priorities</MenuItem>
-                  <MenuItem value="LOW">Low</MenuItem>
-                  <MenuItem value="MEDIUM">Medium</MenuItem>
-                  <MenuItem value="HIGH">High</MenuItem>
-                  <MenuItem value="CRITICAL">Critical</MenuItem>
-                </Select>
-              </FormControl>
-            </Box>
-
-            {/* Summary Cards */}
-            <Box sx={{ mb: 3, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-              <Card sx={{ minWidth: 200, flex: 1 }}>
-                <CardContent sx={{ textAlign: 'center', py: 1 }}>
-                  <Typography variant="h4" color="primary.main">
-                    {watchlist.length}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Total Accounts
-                  </Typography>
-                </CardContent>
-              </Card>
-
-              <Card sx={{ minWidth: 200, flex: 1 }}>
-                <CardContent sx={{ textAlign: 'center', py: 1 }}>
-                  <Typography variant="h4" color="error.main">
-                    {watchlist.filter(a => a.impaired_flag === 'I').length}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Impaired Accounts
-                  </Typography>
-                </CardContent>
-              </Card>
-
-              <Card sx={{ minWidth: 200, flex: 1 }}>
-                <CardContent sx={{ textAlign: 'center', py: 1 }}>
-                  <Typography variant="h4" color="warning.main">
-                    {watchlist.filter(a => a.assessment_status === 'PENDING').length}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Pending Assessments
-                  </Typography>
-                </CardContent>
-              </Card>
-
-              <Card sx={{ minWidth: 200, flex: 1 }}>
-                <CardContent sx={{ textAlign: 'center', py: 1 }}>
-                  <Typography variant="h4" color="success.main">
-                    {individualImpairmentHelpers.formatCurrency(
-                      watchlist.reduce((sum, a) => sum + (a.provision_amount || 0), 0)
-                    )}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Total Provisions
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Box>
+             {/* Filters */}
+             <AssessmentFilters 
+                filters={filters} 
+                onFilterChange={handleFilterChange} 
+                onReset={handleResetFilters}
+             />
 
             {/* Tabs */}
             <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-              <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)}>
-                <Tab label="Watchlist" icon={<AssignmentIcon />} />
-                <Tab label="Assessment Details" icon={<AssessmentIcon />} disabled={!selectedAccount} />
-                <Tab label="DCF Analysis" icon={<CalculateIcon />} disabled={!selectedAccount} />
-                <Tab label="Provision Calculation" icon={<MoneyIcon />} disabled={!selectedAccount} />
+              <Tabs 
+                value={tabValue} 
+                onChange={(e, newValue) => setTabValue(newValue)}
+                variant="scrollable"
+                scrollButtons="auto"
+                sx={{
+                  '& .MuiTab-root': {
+                    textTransform: 'none',
+                    fontSize: '0.95rem',
+                    fontWeight: 500,
+                    minHeight: 64,
+                    '&.Mui-selected': {
+                      fontWeight: 700,
+                      color: 'primary.main'
+                    }
+                  },
+                  '& .MuiTabs-indicator': {
+                    height: 3,
+                    borderRadius: '3px 3px 0 0'
+                  }
+                }}
+              >
+                <Tab label="Watchlist" icon={<AssignmentIcon />} iconPosition="start" />
+                <Tab label="Assessment Details" icon={<AssessmentIcon />} iconPosition="start" disabled={!selectedAccount} />
+                <Tab label="DCF Analysis" icon={<CalculateIcon />} iconPosition="start" disabled={!selectedAccount} />
+                <Tab label="Provision Calculation" icon={<MoneyIcon />} iconPosition="start" disabled={!selectedAccount} />
+                <Tab label="History" icon={<HistoryIcon />} iconPosition="start" disabled={!selectedAccount} />
+                <Tab label="Documents" icon={<DescriptionIcon />} iconPosition="start" disabled={!selectedAccount} />
               </Tabs>
             </Box>
 
@@ -540,97 +546,14 @@ export default function IndividualAssessmentPage() {
             {/* Tab Panels */}
             <TabPanel value={tabValue} index={0}>
               {/* Watchlist Table */}
-              <TableContainer sx={{ maxHeight: 600, overflow: 'auto' }}>
-                <Table stickyHeader>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Account Info</TableCell>
-                      <TableCell>Customer</TableCell>
-                      <TableCell>Balance</TableCell>
-                    <TableCell>Stage</TableCell>
-                      <TableCell>Status</TableCell>
-                      <TableCell>Priority</TableCell>
-                      <TableCell>Impaired</TableCell>
-                      <TableCell>Provision</TableCell>
-                      <TableCell>Actions</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {watchlist.map((account) => (
-                      <TableRow key={account.pkid} hover>
-                        <TableCell>
-                          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                            {account.account_number}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            ID: {account.account_id}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2">{account.cif_name}</Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {account.cif_number}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2">
-                            {individualImpairmentHelpers.formatCurrency(account.outstanding_balance)}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          {renderStageChip(account.stage)}
-                        </TableCell>
-                        <TableCell>
-                          {renderAssessmentStatus(account.assessment_status)}
-                        </TableCell>
-                        <TableCell>
-                          {renderPriorityChip(account.priority_level)}
-                        </TableCell>
-                        <TableCell>
-                          {renderImpairedFlag(account.impaired_flag)}
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2">
-                            {individualImpairmentHelpers.formatCurrency(account.provision_amount)}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Box sx={{ display: 'flex', gap: 1 }}>
-                            <Tooltip title="View Details">
-                              <IconButton
-                                size="small"
-                                onClick={() => handleAccountSelect(account)}
-                                color="primary"
-                                >
-                                <VisibilityIcon />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Edit Assessment">
-                              <IconButton
-                                size="small"
-                                onClick={() => handleAssessmentDialog(true)}
-                                disabled={!account.account_id}
-                              >
-                                <EditIcon />
-                              </IconButton>
-                            </Tooltip>
-                          </Box>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-
-              {/* Pagination */}
-              <TablePagination
-                rowsPerPageOptions={[10, 25, 50, 100]}
-                component="div"
-                count={pagination.total}
-                rowsPerPage={pagination.limit}
-                page={pagination.page}
-                onPageChange={handlePageChange}
-                onRowsPerPageChange={handleRowsPerPageChange}
+              <AssessmentWatchlist 
+                 watchlist={watchlist}
+                 loading={loading}
+                 pagination={pagination}
+                 onPageChange={handlePageChange}
+                 onRowsPerPageChange={handleRowsPerPageChange}
+                 onAccountSelect={handleAccountSelect}
+                 onEditAssessment={handleEditAssessment}
               />
             </TabPanel>
 
@@ -780,9 +703,27 @@ export default function IndividualAssessmentPage() {
                 loading={loading}
               />
             </TabPanel>
+
+            <TabPanel value={tabValue} index={4}>
+               <Box sx={{ p: 2 }}>
+                  <Typography variant="h6" gutterBottom>Audit & Override History</Typography>
+                  <Alert severity="info">
+                    History module will be available in Phase 2. This will track all stage overrides, collisions, and approval workflows.
+                  </Alert>
+               </Box>
+            </TabPanel>
+
+           <TabPanel value={tabValue} index={5}>
+               <Box sx={{ p: 2 }}>
+                  <Typography variant="h6" gutterBottom>Documents & Reports</Typography>
+                   <Alert severity="info">
+                    Document management will be available in Phase 2. This will handle DCF upload validations and generated individual reports.
+                  </Alert>
+               </Box>
+            </TabPanel>
           </Box>
 
-          {/* Assessment Dialog */}
+          {/* Assessment Dialog - Refactored slightly to look cleaner */}
           <Dialog
             open={assessmentDialogOpen}
             onClose={() => handleAssessmentDialog(false)}
@@ -841,6 +782,32 @@ export default function IndividualAssessmentPage() {
               </DialogActions>
             </form>
           </Dialog>
+          
+          {/* Export Dialog */}
+          <ExportDialog
+            open={exportDialogOpen}
+            onClose={() => setExportDialogOpen(false)}
+            onExport={handleExport}
+            currentFilters={filters}
+            totalRecords={pagination.total}
+          />
+          
+          {/* Snackbar Notifications */}
+          <Snackbar
+            open={snackbar.open}
+            autoHideDuration={6000}
+            onClose={() => setSnackbar({ ...snackbar, open: false })}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          >
+            <Alert
+              onClose={() => setSnackbar({ ...snackbar, open: false })}
+              severity={snackbar.severity}
+              variant="filled"
+              sx={{ width: '100%' }}
+            >
+              {snackbar.message}
+            </Alert>
+          </Snackbar>
           </Paper>
         </Grid>
       </Grid>

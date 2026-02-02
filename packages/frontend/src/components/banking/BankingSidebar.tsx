@@ -6,6 +6,7 @@
 // ✅ PRESERVED: All existing functionality and responsive behavior
 // ✅ ENHANCED: Proper tree navigation with expand/collapse functionality
 // ✅ FALLBACK: Static menu structure when database unavailable
+// ✅ VISUALS: Ported "Glassmorphism" & Gradients from IAF Main
 // ============================================================================
 
 'use client';
@@ -140,6 +141,7 @@ const SidebarItem = React.memo(({
   onMenuClick?: (id: string, url?: string) => void;
 }) => {
   const { hasPermission } = usePermission();
+  const theme = useTheme(); // Hook for theme access if needed
 
   const isAllowed = React.useMemo(() => {
     if (!item.requiredPermissions || item.requiredPermissions.length === 0) return true;
@@ -178,7 +180,7 @@ const SidebarItem = React.memo(({
 
   return (
     <React.Fragment>
-      <ListItem disablePadding sx={{ pl: collapsed ? 0 : level * 2.5, display: 'block' }}>
+      <ListItem disablePadding sx={{ pl: collapsed ? 0 : level * 1.5, display: 'block' }}>
         <Tooltip title={collapsed ? `${item.title}${item.description ? ' - ' + item.description : ''}` : item.description || ''} placement="right" arrow>
           <ListItemButton
             onClick={(e) => {
@@ -192,45 +194,61 @@ const SidebarItem = React.memo(({
               }
             }}
             sx={{
-              minHeight: level === 0 ? 50 : 42,
-              borderRadius: collapsed ? 0 : '0 24px 24px 0',
+              minHeight: collapsed ? 48 : (level === 0 ? 44 : 36), // Slightly taller for comfort
+              borderRadius: '12px', // Modern Rounded Corners
+              mx: collapsed ? 0.5 : 1, // Add margin
               mb: 0.5,
-              px: collapsed ? 1 : 2,
-              py: 0.75,
+              px: collapsed ? 0.5 : 1.5,
+              py: 0.5,
               position: 'relative',
-              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-              backgroundColor: isSelected ? 'rgba(255, 255, 255, 0.12)' : (isActiveParent && !isSelected ? 'rgba(255, 255, 255, 0.05)' : 'transparent'),
-              background: isSelected ? 'linear-gradient(90deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0.05) 100%)' : 'transparent',
-              '&::before': {
-                content: '""',
-                position: 'absolute',
-                left: level === 0 ? 0 : -2, // Pull bar back slightly for nested items
-                top: 8,
-                bottom: 8,
-                width: 3,
-                borderRadius: '0 4px 4px 0',
-                backgroundColor: '#ffffff',
-                opacity: isSelected ? 1 : 0,
-                transition: 'opacity 0.2s ease',
-                boxShadow: isSelected ? '0 0 6px rgba(255, 255, 255, 0.4)' : 'none'
-              },
+              
+              // MAGIC: Glassmorphism Active State
+              backgroundColor: isSelected 
+                ? 'rgba(255, 255, 255, 0.15)' 
+                : (isActiveParent && !collapsed ? 'rgba(255, 255, 255, 0.05)' : 'transparent'),
+              backdropFilter: isSelected ? 'blur(12px)' : 'none',
+              boxShadow: isSelected ? '0 4px 15px rgba(0,0,0,0.1)' : 'none',
+              border: isSelected 
+                ? '1px solid rgba(255,255,255,0.2)' 
+                : '1px solid transparent', // Prevent layout shift
               justifyContent: collapsed ? 'center' : 'flex-start',
+              
+              // ⚡ TURBO: Extremely snappy transition
+              transition: 'all 0.15s cubic-bezier(0, 0, 0.2, 1)',
+              
+              // Active Left Indicator (Glow)
+              '&::before': isSelected && !collapsed ? {
+                  content: '""',
+                  position: 'absolute',
+                  left: 0,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  width: '4px',
+                  height: '20px',
+                  backgroundColor: '#ffffff',
+                  borderRadius: '0 4px 4px 0',
+                  boxShadow: '0 0 10px rgba(255,255,255,0.5)'
+              } : {},
+
               '&:hover': {
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                transform: collapsed ? 'none' : 'translateX(3px)',
-                '& .MuiListItemIcon-root': { color: '#ffffff', transform: 'scale(1.05)' }
-              }
+                backgroundColor: isSelected 
+                  ? 'rgba(255, 255, 255, 0.25)' 
+                  : 'rgba(255, 255, 255, 0.08)',
+                transform: collapsed ? 'none' : 'translateX(6px)', // Smooth slide effect on hover
+                boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+              },
             }}
           >
             <ListItemIcon
               sx={{
-                minWidth: collapsed ? 'unset' : 36, // Increased from 28 for better spacing
+                minWidth: collapsed ? 'unset' : 32, // Adjusted for new style
                 justifyContent: 'center',
-                color: (isSelected || isActiveParent) ? '#ffffff' : 'rgba(255, 255, 255, 0.6)',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                filter: isSelected ? 'drop-shadow(0 0 4px rgba(255, 255, 255, 0.3))' : 'none',
-                transform: isSelected ? 'scale(1.05)' : 'scale(1)',
-                '& svg': { fontSize: collapsed ? '1.4rem' : '1.3rem', transition: 'all 0.3s ease' }
+                color: (isSelected || isActiveParent) ? '#ffffff' : 'rgba(255,255,255,0.7)',
+                filter: isSelected ? 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))' : 'none',
+                '& svg': {
+                  fontSize: collapsed ? '1.4rem' : '1.2rem',
+                  transition: '0.2s'
+                }
               }}
             >
               {getIconFromDatabaseString(item.icon) as any}
@@ -239,31 +257,76 @@ const SidebarItem = React.memo(({
             {!collapsed && (
               <ListItemText
                 primary={
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Typography variant={level === 0 ? 'body2' : 'caption'} sx={{
-                      fontWeight: isSelected ? 700 : (isActiveParent ? 600 : 500),
-                      color: (isSelected || isActiveParent) ? '#ffffff' : 'rgba(255, 255, 255, 0.85)',
-                      fontSize: level === 0 ? '0.85rem' : '0.8rem',
-                      lineHeight: 1.4,
-                      letterSpacing: level === 0 ? '0.01em' : 'normal'
-                    }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Typography 
+                      variant={level === 0 ? 'body2' : 'caption'} 
+                      sx={{
+                        fontWeight: isSelected ? 700 : (isActiveParent ? 600 : 500),
+                        color: (isSelected || isActiveParent) ? '#ffffff' : 'rgba(255,255,255,0.85)',
+                        fontSize: level === 0 ? '0.85rem' : '0.78rem',
+                        lineHeight: 1.4,
+                        letterSpacing: '0.3px',
+                        textShadow: isSelected ? '0 2px 4px rgba(0,0,0,0.2)' : 'none'
+                      }}
+                    >
                       {item.title}
                     </Typography>
-                    {item.metadata?.badge_info && <Chip label={item.metadata.badge_info.content} size="small" color={item.metadata.badge_info.color || 'primary'} sx={{ height: 16, fontSize: '0.6rem', minWidth: 20 }} />}
-                    {item.metadata?.isNew && <Chip label="NEW" size="small" color="success" sx={{ height: 14, fontSize: '0.6rem', minWidth: 26 }} />}
+                    {item.metadata?.badge_info && (
+                      <Chip 
+                        label={item.metadata.badge_info.content} 
+                        size="small" 
+                        color={item.metadata.badge_info.color || 'primary'} 
+                        sx={{ height: 16, fontSize: '0.65rem', minWidth: 20 }} 
+                      />
+                    )}
+                    {item.metadata?.isNew && (
+                      <Chip 
+                        label="NEW" 
+                        size="small" 
+                        color="success" 
+                        sx={{ height: 14, fontSize: '0.6rem', minWidth: 26 }} 
+                      />
+                    )}
+                     {item.metadata?.requiresSetup && (
+                        <Chip
+                          label="SETUP"
+                          size="small"
+                          color="warning"
+                          sx={{ height: 14, fontSize: '0.6rem', minWidth: 36 }}
+                        />
+                      )}
                   </Box>
                 }
                 secondary={level === 0 && item.description && !item.description.endsWith('Root') ? (
-                  <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.55)', fontSize: '0.68rem', lineHeight: 1.2, mt: 0.25, display: 'block' }}>
+                  <Typography 
+                    variant="caption" 
+                    sx={{ 
+                      color: alpha('#fff', 0.5), // ✅ FIXED: Dimmed white description
+                      fontSize: '0.65rem', 
+                      lineHeight: 1.2, 
+                      mt: 0.25, 
+                      display: 'block' 
+                    }}
+                  >
                     {item.description}
                   </Typography>
                 ) : null}
-                sx={{ my: 0, ml: 0.5 }}
+                sx={{ 
+                  my: 0, 
+                  '& .MuiListItemText-primary': {
+                    mb: level === 0 ? 0.25 : 0
+                  }
+                }}
               />
             )}
 
             {hasChildren && !collapsed && (
-              <Box sx={{ color: isActiveParent ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.4)', ml: 'auto', '& svg': { fontSize: '0.9rem' } }}>
+              <Box sx={{ 
+                color: alpha('#fff', 0.5), // ✅ FIXED: Dimmed white arrow
+                '& svg': {
+                  fontSize: '1rem'
+                }
+              }}>
                 {isExpanded ? <ExpandLess /> : <ExpandMore />}
               </Box>
             )}
@@ -434,59 +497,76 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
       sx={{
         width,
         height: '100%',
-        background: 'linear-gradient(180deg, #1565C0 0%, #0D47A1 100%)',
+        // ✅ MODERN UI: Dynamic Gradient Backgrounds
+        background: bankingMode === 'syariah'
+          ? 'linear-gradient(135deg, #00695c 0%, #004d40 100%)' // Deep Teal for Syariah
+          : bankingMode === 'dual'
+          ? 'linear-gradient(135deg, #37474f 0%, #263238 100%)' // Blue Grey for Dual
+          : 'linear-gradient(135deg, #1976D2 0%, #0D47A1 100%)', // Classic Professional Blue
+        color: '#ffffff',
         borderRight: 'none',
-        overflow: 'auto',
+        overflow: 'hidden', // Hide default scrollbar
         display: 'flex',
         flexDirection: 'column',
+        boxShadow: '4px 0 24px rgba(0,0,0,0.15)', // Stronger shadow for depth
         transition: theme.transitions.create('width', {
           easing: theme.transitions.easing.sharp,
           duration: theme.transitions.duration.enteringScreen,
         }),
-        '&::-webkit-scrollbar': { width: '4px' },
-        '&::-webkit-scrollbar-track': { background: 'transparent' },
-        '&::-webkit-scrollbar-thumb': { background: 'rgba(255, 255, 255, 0.3)', borderRadius: '2px' },
-        scrollbarWidth: 'thin',
-        scrollbarColor: 'rgba(255, 255, 255, 0.3) transparent',
       }}
     >
-      {/* Header */}
-      <Box
-        sx={{
-          px: collapsed ? 1 : 1.5,
-          height: appBarHeight,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: collapsed ? 'center' : 'flex-start',
-          backgroundColor: 'rgba(0, 0, 0, 0.1)',
-          color: 'white',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-          backdropFilter: 'blur(10px)'
-        }}
+      <Box 
+         sx={{ 
+           flex: 1, 
+           overflowY: 'auto', 
+           overflowX: 'hidden',
+           // Custom scrollbar
+           '&::-webkit-scrollbar': { width: '4px' },
+           '&::-webkit-scrollbar-track': { background: 'transparent' },
+           '&::-webkit-scrollbar-thumb': { 
+             background: 'rgba(255,255,255,0.2)', 
+             borderRadius: '10px',
+             '&:hover': { background: 'rgba(255,255,255,0.4)' }
+           } 
+         }}
       >
-        {collapsed ? (
-          <Box sx={{ width: 28, height: 28, borderRadius: '50%', backgroundColor: alpha(theme.palette.common.white, 0.2), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '0.875rem' }}>IAF</Typography>
-          </Box>
-        ) : (
-          <Typography variant="subtitle1" sx={{ fontWeight: 600, fontSize: '0.85rem' }}>IAF IFRS 9 Platform</Typography>
-        )}
-      </Box>
+        {/* Header */}
+        <Box
+          sx={{
+            px: collapsed ? 1 : 1.5,
+            height: appBarHeight,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: collapsed ? 'center' : 'flex-start',
+            backgroundColor: 'transparent', // ✅ FIXED: Transparent
+            color: 'white',
+            borderBottom: `1px solid ${alpha('#fff', 0.1)}`
+          }}
+        >
+          {collapsed ? (
+            <Box sx={{ width: 28, height: 28, borderRadius: '50%', backgroundColor: alpha(theme.palette.common.white, 0.2), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '0.875rem' }}>IAF</Typography>
+            </Box>
+          ) : (
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, fontSize: '0.85rem' }}>IAF IFRS 9 Platform</Typography>
+          )}
+        </Box>
 
-      {/* Navigation Menu */}
-      <List sx={{ p: collapsed ? 0.25 : 0.5, pt: 3, flexGrow: 1 }}>
-        {isMenuLoading && hierarchicalMenu.length === 0 ? (
-          <MenuSkeleton />
-        ) : menuQueryError && hierarchicalMenu.length === 0 ? (
-          <Box sx={{ p: 2, textAlign: 'center' }}>
-            <ErrorOutline sx={{ fontSize: 24, color: 'error.main', mb: 1 }} />
-            <Typography variant="caption" color="text.secondary" display="block">Failed to load menu</Typography>
-            <Typography variant="caption" color="primary" sx={{ cursor: 'pointer' }} onClick={() => window.location.reload()}>Retry</Typography>
-          </Box>
-        ) : (
-          menuItems
-        )}
-      </List>
+        {/* Navigation Menu */}
+        <List sx={{ p: collapsed ? 0.5 : 1.5 }}>
+          {isMenuLoading && hierarchicalMenu.length === 0 ? (
+            <MenuSkeleton />
+          ) : menuQueryError && hierarchicalMenu.length === 0 ? (
+            <Box sx={{ p: 2, textAlign: 'center' }}>
+              <ErrorOutline sx={{ fontSize: 24, color: 'error.main', mb: 1 }} />
+              <Typography variant="caption" color="text.secondary" display="block">Failed to load menu</Typography>
+              <Typography variant="caption" color="primary" sx={{ cursor: 'pointer' }} onClick={() => window.location.reload()}>Retry</Typography>
+            </Box>
+          ) : (
+            menuItems
+          )}
+        </List>
+      </Box>
 
       {/* Flyout Menu for Collapsed Sidebar */}
       <MuiMenu
@@ -522,29 +602,95 @@ export const BankingSidebar: React.FC<BankingSidebarProps> = ({
       </MuiMenu>
 
       {/* Footer Info */}
-      <Box sx={{ mt: 'auto', px: collapsed ? 1 : 2, py: collapsed ? 1 : 2.5, borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+      <Box sx={{ mt: 'auto', px: collapsed ? 1 : 1.5, py: collapsed ? 1 : 1.5, borderTop: `1px solid ${alpha('#fff', 0.1)}`, backgroundColor: 'transparent' }}>
         {!collapsed && (
           <>
             <Link href={getTopLevelRoute()} style={{ textDecoration: 'none' }}>
-              <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-                <img src="/images/logo-iaf.png" alt="IAF Logo" style={{ height: '32px', filter: 'brightness(0) invert(1)' }} />
+              <Box sx={{ 
+                display: 'flex', 
+                flexDirection: 'column',
+                alignItems: 'center', 
+                gap: 1,
+                mb: 1,
+                mt: 1,
+                cursor: 'pointer',
+                '&:hover': { transform: 'scale(1.02)' },
+                transition: 'transform 0.2s'
+              }}>
+                <img 
+                  src="/images/logo-iaf.png" 
+                  alt="IAF Logo" 
+                  style={{ 
+                    height: '28px', 
+                    width: 'auto',
+                    filter: 'brightness(0) invert(1)' 
+                  }} 
+                />
+                 <Typography 
+                  variant="caption" 
+                  align="center" 
+                  display="block"
+                  sx={{ 
+                    fontSize: '0.7rem',
+                    fontWeight: 600,
+                    color: '#ffffff'
+                  }}
+                >
+                  Indonesia Airawata Finance
+                </Typography>
               </Box>
             </Link>
-            <Typography variant="caption" align="center" display="block" sx={{ fontSize: '0.7rem', color: 'rgba(255, 255, 255, 0.9)' }}>
+            <Typography variant="caption" align="center" display="block" sx={{ fontSize: '0.65rem', color: alpha('#fff', 0.7) }}>
               IFRS 9 Platform v2.0
             </Typography>
-            <Typography variant="caption" align="center" display="block" sx={{ fontSize: '0.65rem', color: 'rgba(255, 255, 255, 0.7)', mb: 1.5 }}>
+            <Typography variant="caption" align="center" display="block" sx={{ fontSize: '0.6rem', color: alpha('#fff', 0.7), mb: 0.5 }}>
               {getBankingModeLabel()}
             </Typography>
-            <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+            
+            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.5, mt: 0.5 }}>
               <Chip
                 icon={getBankingModeIcon()}
                 label={bankingMode === 'syariah' ? 'Halal' : 'Compliant'}
                 size="small"
-                sx={{ fontSize: '0.6rem', height: 20, backgroundColor: 'rgba(255, 255, 255, 0.15)', color: 'white', '& .MuiChip-icon': { color: 'white' } }}
+                variant="outlined"
+                sx={{ 
+                  fontSize: '0.55rem', 
+                  height: 18, 
+                  color: 'white', 
+                  borderColor: alpha('#fff', 0.3),
+                  '& .MuiChip-icon': { color: 'white', fontSize: '0.7rem' } 
+                }}
+              />
+              <Chip
+                icon={<CheckCircle />}
+                label="Online"
+                size="small"
+                variant="outlined"
+                sx={{ 
+                  fontSize: '0.55rem', 
+                  height: 18, 
+                  color: 'white', 
+                  borderColor: alpha('#fff', 0.3),
+                  '& .MuiChip-icon': { color: 'white', fontSize: '0.7rem' } 
+                }}
               />
             </Box>
           </>
+        )}
+         {collapsed && (
+          <Link href={getTopLevelRoute()} style={{ textDecoration: 'none' }}>
+             <Box sx={{ display: 'flex', justifyContent: 'center', cursor: 'pointer' }}>
+                <img 
+                  src="/images/logo-iaf.png" 
+                  alt="IAF" 
+                  style={{ 
+                    height: '24px', 
+                    width: 'auto',
+                    filter: 'brightness(0) invert(1)' 
+                  }} 
+                />
+             </Box>
+          </Link>
         )}
       </Box>
     </Box>

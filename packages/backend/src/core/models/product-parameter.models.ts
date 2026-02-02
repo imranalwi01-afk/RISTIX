@@ -101,7 +101,7 @@ ProductParameter.init(
       comment: 'Amortization type (EFFECTIVE, STRAIGHT, etc.)'
     },
     al_flag: {
-      type: DataTypes.STRING(1),
+      type: DataTypes.STRING(10),
       allowNull: true,
       comment: 'AL flag indicator'
     },
