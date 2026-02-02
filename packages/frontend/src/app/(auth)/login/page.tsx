@@ -99,22 +99,22 @@ export default function LoginPage() {
           setTenants(filteredTenants);
 
           // Auto-select logic
-            if (isPlatformAdmin) {
-              // For Platform Admin, ALWAYS select system if available
-              const systemTenant = filteredTenants.find((t: TenantOption) => t.slug === 'system');
-              if (systemTenant) {
-                setSelectedTenantId(systemTenant.id);
-              } else {
-                // Fallback if system not found in list (should not happen with my backend fix)
-                console.warn('System tenant not found in response despite mode=admin');
-                if (filteredTenants.length > 0) setSelectedTenantId(filteredTenants[0].id);
-              }
+          if (isPlatformAdmin) {
+            // For Platform Admin, ALWAYS select system if available
+            const systemTenant = filteredTenants.find((t: TenantOption) => t.slug === 'system');
+            if (systemTenant) {
+              setSelectedTenantId(systemTenant.id);
             } else {
-              // Regular User: Auto-select first available
-              if (filteredTenants.length > 0) {
-                setSelectedTenantId(filteredTenants[0].id);
-              }
+              // Fallback if system not found in list (should not happen with my backend fix)
+              console.warn('System tenant not found in response despite mode=admin');
+              if (filteredTenants.length > 0) setSelectedTenantId(filteredTenants[0].id);
             }
+          } else {
+            // Regular User: Auto-select first available
+            if (filteredTenants.length > 0) {
+              setSelectedTenantId(filteredTenants[0].id);
+            }
+          }
         }
       } catch (error) {
         console.error('Failed to fetch tenant data, using fallback:', error);
@@ -145,6 +145,7 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('🖱️ Login form submitted - calling login()');
     setLoginLoading(true);
     setLocalError('');
 
@@ -161,7 +162,8 @@ export default function LoginPage() {
         setLocalError('Invalid credentials or tenant selection');
         setLoginLoading(false);
       } else {
-        // Success handling
+        console.log('✅ Login function returned TRUE in Page component. Waiting for redirect...');
+        // Success handling handled by AuthProvider
       }
     } catch (err: any) {
       setLocalError(err.message || 'Login failed. Please try again.');
@@ -304,6 +306,9 @@ export default function LoginPage() {
                   disabled={tenantsLoading || loginLoading || isPlatformAdmin}
                   size="small"
                   sx={{ mb: 3, bgcolor: '#ffffff' }}
+                  SelectProps={{
+                    SelectDisplayProps: { 'data-testid': 'login-tenant-select' } as any
+                  }}
                 >
                   {tenants.length > 0 ? tenants.map((tenant) => (
                     <MenuItem key={tenant.id} value={tenant.id}>
@@ -323,6 +328,7 @@ export default function LoginPage() {
                   required
                   disabled={loginLoading}
                   sx={{ mb: 2, bgcolor: '#ffffff' }}
+                  inputProps={{ 'data-testid': 'login-email' }}
                 />
 
                 <TextField
@@ -345,6 +351,7 @@ export default function LoginPage() {
                         </IconButton>
                       </InputAdornment>
                     ),
+                    inputProps: { 'data-testid': 'login-password' }
                   }}
                   sx={{ mb: 4, bgcolor: '#ffffff' }}
                 />
@@ -356,6 +363,7 @@ export default function LoginPage() {
                   size="large"
                   disabled={loginLoading || isLoading || !selectedTenantId}
                   endIcon={!loginLoading && <ArrowForwardIcon />}
+                  data-testid="login-submit"
                   sx={{
                     py: 1.8,
                     borderRadius: 2,

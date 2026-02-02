@@ -61,7 +61,7 @@ export const getCookieConfig = (expiryDays: number = 7): CookieDomainConfig & { 
 
   return {
     ...(domain && { domain }), // Only include domain if it exists
-    secure: isSecure,
+    secure: isSecure && !window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1'),
     sameSite: 'lax', // ✅ Changed back to 'lax' - works for same-site cross-subdomain
     expires: expiryDays
   };
@@ -81,7 +81,7 @@ export const getCookieDomainString = (): string => {
  */
 export const getCookieSameSiteString = (): string => {
   if (typeof window === 'undefined') return 'samesite=lax';
-  
+
   const isSecure = window.location.protocol === 'https:';
   return isSecure ? 'samesite=none' : 'samesite=lax';
 };

@@ -2,7 +2,7 @@ import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
 import { zValidator } from '@hono/zod-validator'
 import type { AppContext } from '../app'
 import { authMiddleware, tenantMiddleware } from '../middleware'
-import { db } from '../config/database'
+import { getDatabase } from '../config/database'
 import { jobDefinitions, jobExecutions } from '../db/schema'
 import { eq, desc, and, like, sql } from 'drizzle-orm'
 import { addJob, getJob } from '../services/queue.service'
@@ -44,6 +44,7 @@ const CreateJobDefinitionSchema = z.object({
     priority: z.string().optional(),
     timeout: z.number().optional(),
     maxRetries: z.number().optional(),
+    isEnabled: z.boolean().optional(),
 }).openapi('CreateJobDefinitionInput')
 
 const JobExecutionSchema = z.object({
@@ -131,7 +132,8 @@ jobsRoutes.openapi(
 
         const whereClause = conditions.length > 0 ? and(...conditions) : undefined
 
-        const executions = await db
+        const tenantId = c.get('tenantId')
+        const executions = await getDatabase(tenantId)
             .select()
             .from(jobExecutions)
             .where(whereClause)
@@ -185,7 +187,8 @@ jobsRoutes.openapi(
     async (c) => {
         const id = c.req.param('id')!
 
-        const execution = await db
+        const tenantId = c.get('tenantId')
+        const execution = await getDatabase(tenantId)
             .select()
             .from(jobExecutions)
             .where(eq(jobExecutions.id, id))
@@ -238,7 +241,8 @@ jobsRoutes.openapi(
         },
     }),
     async (c) => {
-        const definitions = await db
+        const tenantId = c.get('tenantId')
+        const definitions = await getDatabase(tenantId)
             .select()
             .from(jobDefinitions)
             .where(eq(jobDefinitions.isEnabled, true))
@@ -290,7 +294,8 @@ jobsRoutes.openapi(
     async (c) => {
         const id = c.req.param('id')!
 
-        const definition = await db
+        const tenantId = c.get('tenantId')
+        const definition = await getDatabase(tenantId)
             .select()
             .from(jobDefinitions)
             .where(eq(jobDefinitions.id, id))
@@ -352,7 +357,7 @@ jobsRoutes.openapi(
         const userId = c.get('userId')
         const body = c.req.valid('json')
 
-        const [newDef] = await db
+        const [newDef] = await getDatabase(tenantId)
             .insert(jobDefinitions)
             .values({
                 ...body,
@@ -369,8 +374,8 @@ jobsRoutes.openapi(
             priority: newDef.priority ?? null,
             timeout: newDef.timeout ?? null,
             maxRetries: newDef.maxRetries ?? null,
-            createdAt: newDef.createdAt.toISOString(),
-            updatedAt: newDef.updatedAt.toISOString(),
+            createdAt: newDef.createdAt?.toISOString(),
+            updatedAt: newDef.updatedAt?.toISOString(),
             tenantId: newDef.tenantId ?? null,
             createdBy: newDef.createdBy ?? null,
         }, 201) as any
@@ -420,7 +425,7 @@ jobsRoutes.openapi(
         const tenantId = c.get('tenantId') || '00000000-0000-0000-0000-000000000000'
 
         // Get job definition
-        const [definition] = await db
+        const [definition] = await getDatabase(tenantId)
             .select()
             .from(jobDefinitions)
             .where(eq(jobDefinitions.id, id))
@@ -460,7 +465,7 @@ jobsRoutes.openapi(
                 }) as any
 
                 // Create execution record in pending_approval state
-                await db.insert(jobExecutions).values({
+                await getDatabase(tenantId).insert(jobExecutions).values({
                     id: executionId,
                     jobDefinitionId: definition.id,
                     tenantId,
@@ -498,7 +503,7 @@ jobsRoutes.openapi(
         }) as any
 
         // Create execution record
-        await db.insert(jobExecutions).values({
+        await getDatabase(tenantId).insert(jobExecutions).values({
             id: executionId,
             jobDefinitionId: definition.id,
             tenantId,
@@ -608,8 +613,9 @@ jobsRoutes.openapi(
     }),
     async (c) => {
         const id = c.req.param('id')!
+        const tenantId = c.get('tenantId')
 
-        const [definition] = await db
+        const [definition] = await getDatabase(tenantId)
             .select()
             .from(jobDefinitions)
             .where(eq(jobDefinitions.id, id))
@@ -619,7 +625,7 @@ jobsRoutes.openapi(
             return c.json({ error: 'Job definition not found' } as any, 404)
         }
 
-        const [updated] = await db
+        const [updated] = await getDatabase(tenantId)
             .update(jobDefinitions)
             .set({ isEnabled: !definition.isEnabled })
             .where(eq(jobDefinitions.id, id))
@@ -660,7 +666,7 @@ jobsRoutes.openapi(
     async (c) => {
         const tenantId = c.get('tenantId') || '00000000-0000-0000-0000-000000000000'
 
-        const pending = await db
+        const pending = await getDatabase(tenantId)
             .select()
             .from(jobExecutions)
             .where(and(
@@ -719,7 +725,8 @@ jobsRoutes.openapi(
         const id = c.req.param('id')!
         const userId = c.get('userId') || 'system'
 
-        const [execution] = await db
+        const tenantId = c.get('tenantId')
+        const [execution] = await getDatabase(tenantId)
             .select()
             .from(jobExecutions)
             .where(eq(jobExecutions.id, id))
@@ -781,7 +788,8 @@ jobsRoutes.openapi(
         const id = c.req.param('id')!
         const userId = c.get('userId') || 'system'
 
-        const [execution] = await db
+        const tenantId = c.get('tenantId')
+        const [execution] = await getDatabase(tenantId)
             .select()
             .from(jobExecutions)
             .where(eq(jobExecutions.id, id))
@@ -835,17 +843,20 @@ jobsRoutes.openapi(
         },
     }),
     async (c) => {
-        const [activeJobs] = await db
+        const tenantId = c.get('tenantId')
+        const targetDb = getDatabase(tenantId)
+
+        const [activeJobs] = await targetDb
             .select({ count: sql<number>`count(*)` })
             .from(jobExecutions)
             .where(eq(jobExecutions.status, 'active'))
 
-        const [queuedJobs] = await db
+        const [queuedJobs] = await targetDb
             .select({ count: sql<number>`count(*)` })
             .from(jobExecutions)
             .where(eq(jobExecutions.status, 'waiting'))
 
-        const [completedToday] = await db
+        const [completedToday] = await targetDb
             .select({ count: sql<number>`count(*)` })
             .from(jobExecutions)
             .where(and(
@@ -853,7 +864,7 @@ jobsRoutes.openapi(
                 sql`${jobExecutions.startTime} >= CURRENT_DATE`
             ))
 
-        const [failedToday] = await db
+        const [failedToday] = await targetDb
             .select({ count: sql<number>`count(*)` })
             .from(jobExecutions)
             .where(and(

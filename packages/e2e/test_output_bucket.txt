@@ -1,0 +1,141 @@
+
+Running 5 tests using 1 worker
+
+Creating bucket group...
+  ✘  1 [chromium] › tests/bucket-parameter.spec.ts:19:9 › Collective Impairment - Bucket Parameter › CI_BP_001: Create Bucket Group and Detail (2.0m)
+Testing search...
+  ✘  2 [chromium] › tests/bucket-parameter.spec.ts:64:9 › Collective Impairment - Bucket Parameter › CI_BP_002: Search and Filter Buckets (2.0m)
+Editing bucket group...
+  ✘  3 [chromium] › tests/bucket-parameter.spec.ts:84:9 › Collective Impairment - Bucket Parameter › CI_BP_003: Edit Bucket Group (2.0m)
+Expanding first row to delete detail...
+  ✘  4 [chromium] › tests/bucket-parameter.spec.ts:100:9 › Collective Impairment - Bucket Parameter › CI_BP_004: Delete Bucket Detail (2.0m)
+Searching for group to delete: TEST_GROUP_1770025234821
+  ✘  5 [chromium] › tests/bucket-parameter.spec.ts:122:9 › Collective Impairment - Bucket Parameter › CI_BP_005: Delete Bucket Group (2.0m)
+
+
+  1) [chromium] › tests/bucket-parameter.spec.ts:19:9 › Collective Impairment - Bucket Parameter › CI_BP_001: Create Bucket Group and Detail 
+
+    [31mTest timeout of 120000ms exceeded.[39m
+
+    Error: locator.click: Test timeout of 120000ms exceeded.
+    Call log:
+    [2m  - waiting for getByTestId('add-bucket-btn')[22m
+
+
+      20 |         // 1. Create Bucket Group
+      21 |         console.log('Creating bucket group...');
+    > 22 |         await page.getByTestId('add-bucket-btn').click();
+         |                                                  ^
+      23 |
+      24 |         await page.getByTestId('bucket-group-field').locator('input').fill(bucketGroup);
+      25 |         await page.getByTestId('bucket-desc-field').locator('input').fill(bucketDesc);
+        at /Users/antoniusjoshua/PARA/Project/freelance/ifrs9-iaf/packages/e2e/tests/bucket-parameter.spec.ts:22:50
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/bucket-parameter-Collectiv-0640d-ate-Bucket-Group-and-Detail-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/bucket-parameter-Collectiv-0640d-ate-Bucket-Group-and-Detail-chromium/error-context.md
+
+  2) [chromium] › tests/bucket-parameter.spec.ts:64:9 › Collective Impairment - Bucket Parameter › CI_BP_002: Search and Filter Buckets 
+
+    [31mTest timeout of 120000ms exceeded.[39m
+
+    Error: locator.fill: Test timeout of 120000ms exceeded.
+    Call log:
+    [2m  - waiting for getByTestId('bucket-search-input').locator('input')[22m
+
+
+      65 |         // Search by group identifier
+      66 |         console.log('Testing search...');
+    > 67 |         await page.getByTestId('bucket-search-input').locator('input').fill('DEFAULT');
+         |                                                                        ^
+      68 |         await page.getByTestId('bucket-search-btn').click();
+      69 |
+      70 |         // Assuming there's at least one "DEFAULT" group
+        at /Users/antoniusjoshua/PARA/Project/freelance/ifrs9-iaf/packages/e2e/tests/bucket-parameter.spec.ts:67:72
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/bucket-parameter-Collectiv-c31cb-2-Search-and-Filter-Buckets-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/bucket-parameter-Collectiv-c31cb-2-Search-and-Filter-Buckets-chromium/error-context.md
+
+  3) [chromium] › tests/bucket-parameter.spec.ts:84:9 › Collective Impairment - Bucket Parameter › CI_BP_003: Edit Bucket Group 
+
+    [31mTest timeout of 120000ms exceeded.[39m
+
+    Error: locator.click: Test timeout of 120000ms exceeded.
+    Call log:
+    [2m  - waiting for getByTestId('edit-header-btn').first()[22m
+
+
+      87 |         // Use first available row for editing
+      88 |         console.log('Editing bucket group...');
+    > 89 |         await page.getByTestId('edit-header-btn').first().click();
+         |                                                           ^
+      90 |
+      91 |         await page.getByTestId('bucket-desc-field').locator('input').fill(updatedDesc);
+      92 |         await page.getByTestId('save-header-btn').click();
+        at /Users/antoniusjoshua/PARA/Project/freelance/ifrs9-iaf/packages/e2e/tests/bucket-parameter.spec.ts:89:59
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/bucket-parameter-Collectiv-8c5f3-CI-BP-003-Edit-Bucket-Group-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/bucket-parameter-Collectiv-8c5f3-CI-BP-003-Edit-Bucket-Group-chromium/error-context.md
+
+  4) [chromium] › tests/bucket-parameter.spec.ts:100:9 › Collective Impairment - Bucket Parameter › CI_BP_004: Delete Bucket Detail 
+
+    [31mTest timeout of 120000ms exceeded.[39m
+
+    Error: locator.click: Test timeout of 120000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('button').filter({ has: locator('svg[data-testid="KeyboardArrowRightIcon"]') }).first()[22m
+
+
+      102 |         // To make it standalone, we'll expand the first row
+      103 |         console.log('Expanding first row to delete detail...');
+    > 104 |         await page.locator('button').filter({ has: page.locator('svg[data-testid="KeyboardArrowRightIcon"]') }).first().click();
+          |                                                                                                                         ^
+      105 |
+      106 |         // Wait for details to load
+      107 |         await page.waitForTimeout(1000);
+        at /Users/antoniusjoshua/PARA/Project/freelance/ifrs9-iaf/packages/e2e/tests/bucket-parameter.spec.ts:104:121
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/bucket-parameter-Collectiv-c3c6b-BP-004-Delete-Bucket-Detail-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/bucket-parameter-Collectiv-c3c6b-BP-004-Delete-Bucket-Detail-chromium/error-context.md
+
+  5) [chromium] › tests/bucket-parameter.spec.ts:122:9 › Collective Impairment - Bucket Parameter › CI_BP_005: Delete Bucket Group 
+
+    [31mTest timeout of 120000ms exceeded.[39m
+
+    Error: locator.fill: Test timeout of 120000ms exceeded.
+    Call log:
+    [2m  - waiting for getByTestId('bucket-search-input').locator('input')[22m
+
+
+      125 |         console.log(`Searching for group to delete: ${groupToDelete}`);
+      126 |
+    > 127 |         await page.getByTestId('bucket-search-input').locator('input').fill(groupToDelete);
+          |                                                                        ^
+      128 |         await page.getByTestId('bucket-search-btn').click();
+      129 |
+      130 |         const deleteHeaderBtns = page.getByTestId('delete-header-btn');
+        at /Users/antoniusjoshua/PARA/Project/freelance/ifrs9-iaf/packages/e2e/tests/bucket-parameter.spec.ts:127:72
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/bucket-parameter-Collectiv-b8792--BP-005-Delete-Bucket-Group-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/bucket-parameter-Collectiv-b8792--BP-005-Delete-Bucket-Group-chromium/error-context.md
+
+  5 failed
+    [chromium] › tests/bucket-parameter.spec.ts:19:9 › Collective Impairment - Bucket Parameter › CI_BP_001: Create Bucket Group and Detail 
+    [chromium] › tests/bucket-parameter.spec.ts:64:9 › Collective Impairment - Bucket Parameter › CI_BP_002: Search and Filter Buckets 
+    [chromium] › tests/bucket-parameter.spec.ts:84:9 › Collective Impairment - Bucket Parameter › CI_BP_003: Edit Bucket Group 
+    [chromium] › tests/bucket-parameter.spec.ts:100:9 › Collective Impairment - Bucket Parameter › CI_BP_004: Delete Bucket Detail 
+    [chromium] › tests/bucket-parameter.spec.ts:122:9 › Collective Impairment - Bucket Parameter › CI_BP_005: Delete Bucket Group 
