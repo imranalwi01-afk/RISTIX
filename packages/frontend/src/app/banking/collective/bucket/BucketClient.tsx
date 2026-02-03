@@ -132,7 +132,7 @@ const BucketHeaderRow: React.FC<BucketHeaderRowProps> = ({
     <>
       <TableRow hover>
         <TableCell>
-          <IconButton size="small" onClick={handleToggle}>
+          <IconButton size="small" onClick={handleToggle} data-testid="expand-row-btn">
             {open ? <KeyboardArrowDown /> : <KeyboardArrowRight />}
           </IconButton>
         </TableCell>
@@ -152,6 +152,7 @@ const BucketHeaderRow: React.FC<BucketHeaderRowProps> = ({
             size="small"
             color={header.basis === 'D' ? 'primary' : 'info'}
             variant="outlined"
+            data-testid="basis-chip"
           />
         </TableCell>
         <TableCell align="center">
@@ -160,6 +161,7 @@ const BucketHeaderRow: React.FC<BucketHeaderRowProps> = ({
             size="small"
             color={header.include_close ? 'success' : 'default'}
             variant="outlined"
+            data-testid="include-close-chip"
           />
         </TableCell>
         <TableCell align="center">
@@ -168,6 +170,7 @@ const BucketHeaderRow: React.FC<BucketHeaderRowProps> = ({
             size="small"
             color={header.include_wo ? 'warning' : 'default'}
             variant="outlined"
+            data-testid="include-wo-chip"
           />
         </TableCell>
         <TableCell align="center">
@@ -176,6 +179,7 @@ const BucketHeaderRow: React.FC<BucketHeaderRowProps> = ({
             size="small"
             color={header.active_flag ? 'success' : 'default'}
             variant="outlined"
+            data-testid="header-status-chip"
           />
         </TableCell>
         <TableCell>
@@ -261,6 +265,7 @@ const BucketHeaderRow: React.FC<BucketHeaderRowProps> = ({
                               size="small"
                               color={detail.active_flag ? 'success' : 'default'}
                               variant="outlined"
+                              data-testid="detail-status-chip"
                             />
                           </TableCell>
                           <TableCell align="center">
@@ -534,7 +539,7 @@ export default function BucketParameterPage() {
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <BucketIcon sx={{ mr: 2, fontSize: 32, color: 'primary.main' }} />
               <Box>
-                <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', mb: 0.5 }} data-testid="bucket-page-title">
                   Bucket Parameter
                 </Typography>
                 <Typography variant="body1" color="text.secondary">

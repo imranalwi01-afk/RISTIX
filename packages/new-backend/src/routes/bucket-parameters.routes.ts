@@ -27,7 +27,7 @@ const CreateDetailSchema = z.object({
     bucket_name: z.string().min(1).max(100),
     range_start: z.number().int(),
     range_end: z.number().int().optional().nullable(),
-    seq: z.number().int().optional(),
+    seq: z.number().int().optional().nullable(),
     active_flag: z.boolean().default(true)
 }).openapi('CreateBucketDetailInput')
 
