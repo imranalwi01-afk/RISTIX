@@ -39,7 +39,7 @@ import {
   CheckCircle,
   Refresh
 } from '@mui/icons-material';
-import type { RootState } from '../../../../../store';
+import type { RootState } from '../../../../store';
 
 // Simple Error Boundary component for error handling
 class ErrorBoundary extends React.Component<
@@ -77,7 +77,7 @@ import { EmbeddedShinyApp } from '../../../../components/analytics/EmbeddedShiny
 export default function RAnalyticsPage() {
   // Redux state
   const { user } = useSelector((state: RootState) => state.auth);
-  
+
   // Component state
   const [bankingType, setBankingType] = useState<'conventional' | 'syariah' | 'dual'>('conventional');
   const [tenantSlug, setTenantSlug] = useState('iaf');
@@ -99,11 +99,11 @@ export default function RAnalyticsPage() {
 
   if (!user) {
     return (
-      <Box sx={{ 
-        height: '100vh', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center' 
+      <Box sx={{
+        height: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
       }}>
         <CircularProgress />
       </Box>
@@ -112,7 +112,7 @@ export default function RAnalyticsPage() {
 
   return (
     <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <EmbeddedShinyApp 
+      <EmbeddedShinyApp
         tenantSlug={tenantSlug}
         bankingType={bankingType as any}
         height="100%"
