@@ -39,7 +39,7 @@ import {
   CheckCircle,
   Refresh
 } from '@mui/icons-material';
-import type { RootState } from '../../../../store';
+import { RootState, selectUser } from '../../../../store';
 
 // Simple Error Boundary component for error handling
 class ErrorBoundary extends React.Component<
@@ -76,7 +76,7 @@ import { EmbeddedShinyApp } from '../../../../components/analytics/EmbeddedShiny
 
 export default function RAnalyticsPage() {
   // Redux state
-  const { user } = useSelector((state: RootState) => state.auth);
+  const user = useSelector(selectUser);
 
   // Component state
   const [bankingType, setBankingType] = useState<'conventional' | 'syariah' | 'dual'>('conventional');

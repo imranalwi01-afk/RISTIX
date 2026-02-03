@@ -589,7 +589,7 @@ export default function BucketParameterPage() {
               <InputLabel>Filter by Basis</InputLabel>
               <Select
                 label="Filter by Basis"
-                onChange={(e) => setFilterBasis(e.target.value)}
+                onChange={(e) => setFilterBasis(e.target.value as string)}
                 data-testid="bucket-basis-select"
               >
                 <MenuItem value="">All Basis</MenuItem>
