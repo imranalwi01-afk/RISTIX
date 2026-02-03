@@ -87,7 +87,7 @@ export default function HomePage() {
                 />
              </Box>
              <Typography variant="h6" sx={{ fontWeight: 700, letterSpacing: 0.5, display: { xs: 'none', md: 'block' } }}>
-                Indonesia Airawata Finance
+              
              </Typography>
         </Box>
       </Box>
@@ -115,7 +115,7 @@ export default function HomePage() {
                     borderRadius: '50px' 
                 }}>
                     <Typography variant="subtitle2" sx={{ fontWeight: 600, letterSpacing: 1.5 }}>
-                        ENTERPRISE RISK PLATFORM
+                        ENTERPRISE RISK MANAGEMENT PLATFORM
                     </Typography>
                 </Box>
 
@@ -126,8 +126,8 @@ export default function HomePage() {
                     fontSize: { xs: '2.5rem', md: '4.5rem' },
                     textShadow: '0 10px 30px rgba(0,0,0,0.2)'
                 }}>
-                    IFRS 9 Expected<br/>
-                    <span style={{ color: '#90CAF9' }}>Credit Loss Engine</span>
+                    IFRS 9<br/>
+                    <span style={{ color: '#90CAF9' }}> Expected Credit Loss</span>
                 </Typography>
 
                 <Typography variant="h5" sx={{ 
@@ -138,7 +138,7 @@ export default function HomePage() {
                     lineHeight: 1.6,
                     fontWeight: 400
                 }}>
-                    A comprehensive, compliance-ready solution for automated impairment calculation, staging, and reporting.
+                    A comprehensive and compliance-ready solution that simplifies automated impairment calculation, statistical modeling, and regulatory reporting.
                 </Typography>
 
                 <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>

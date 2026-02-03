@@ -31,10 +31,11 @@ import {
     Divider,
     Avatar,
     Badge,
-    alpha, // Added alpha
-    useTheme, // ✅ Added useTheme for dynamic styling
-    Tooltip, // ✅ Added Tooltip for full value display
-    useMediaQuery // ✅ Added for responsiveness
+    alpha,
+    useTheme,
+    Tooltip,
+    useMediaQuery,
+    Container // ✅ Added Container
 } from '@mui/material'
 import {
     AccountBalance,
@@ -571,9 +572,10 @@ export default function DashboardClient() {
     }
 
     return (
-        <Box sx={{ p: 3, backgroundColor: theme.palette.background.default, minHeight: '100vh', transition: 'background-color 0.3s ease' }}>
+        <Box sx={{ transition: 'background-color 0.3s ease', pt: 8, pb: 4 }}>
+            <Container maxWidth="xl">
             {/* Header with Real User Data */}
-            <Paper elevation={1} sx={{ p: 3, mb: 3, background: `linear-gradient(135deg, ${bankingContext.primary} 0%, ${bankingContext.secondary} 100%)` }}>
+            <Paper elevation={1} sx={{ p: 3, mb: 4, borderRadius: 2, background: `linear-gradient(135deg, ${bankingContext.primary} 0%, ${bankingContext.secondary} 100%)` }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Box>
                         <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', color: 'white', mb: 1 }}>
@@ -696,9 +698,9 @@ export default function DashboardClient() {
             {eclSummary && (
                 <Grid container spacing={isMobile ? 2 : 3} sx={{ mb: 4 }}>
                     {/* PRIMARY STATS */}
-                    <Grid item xs={12} md={6}>
-                        <StatCard
-                            title="Total ECL"
+                    <Grid size={{ xs: 12, md: 6 }}>
+                        <StatCard 
+                            title="Total ECL" 
                             value={formatCurrency(eclSummary?.totalECL || 0, eclSummary?.currency || 'IDR')}
                             fullValue={eclSummary?.totalECL || 0}
                             subtitle={`ECL Rate: ${eclSummary?.eclRate ? eclSummary.eclRate.toFixed(2) : '0.00'}%`}
@@ -707,9 +709,9 @@ export default function DashboardClient() {
                             trend={{ label: 'Current', color: '#1976d2' }}
                         />
                     </Grid>
-                    <Grid item xs={12} md={6}>
-                        <StatCard
-                            title="Total Exposure"
+                    <Grid size={{ xs: 12, md: 6 }}>
+                        <StatCard 
+                            title="Total Exposure" 
                             value={formatCurrency(portfolioMetrics?.totalExposure || 0)}
                             fullValue={portfolioMetrics?.totalExposure || 0}
                             subtitle="Total Portfolio Value"
@@ -718,9 +720,9 @@ export default function DashboardClient() {
                             trend={{ label: 'Stable', color: '#00C49F' }}
                         />
                     </Grid>
-                    <Grid item xs={12} md={6}>
-                        <StatCard
-                            title="Active Accounts"
+                    <Grid size={{ xs: 12, md: 6 }}>
+                        <StatCard 
+                            title="Active Accounts" 
                             value={portfolioMetrics?.totalAccounts?.toLocaleString() || '0'}
                             fullValue={portfolioMetrics?.totalAccounts || 0}
                             subtitle="Total Active Loans"
@@ -728,9 +730,9 @@ export default function DashboardClient() {
                             color="#FFBB28"
                         />
                     </Grid>
-                    <Grid item xs={12} md={6}>
-                        <StatCard
-                            title="High Risk (Stage 3)"
+                    <Grid size={{ xs: 12, md: 6 }}>
+                        <StatCard 
+                            title="High Risk (Stage 3)" 
                             value={formatCurrency(eclSummary?.stage3ECL || 0)}
                             fullValue={eclSummary?.stage3ECL || 0}
                             subtitle="Credit Impaired"
@@ -741,7 +743,7 @@ export default function DashboardClient() {
                     </Grid>
 
                     {/* CHARTS SECTION */}
-                    <Grid item xs={12} md={8}>
+                    <Grid size={{ xs: 12, md: 8 }}>
                         <Card sx={{ borderRadius: 3, boxShadow: theme.shadows[2], height: '100%', overflow: 'hidden', background: theme.palette.background.paper }}>
                             <CardContent>
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
@@ -754,7 +756,7 @@ export default function DashboardClient() {
                         </Card>
                     </Grid>
 
-                    <Grid item xs={12} md={4}>
+                    <Grid size={{ xs: 12, md: 4 }}>
                         <Card sx={{ borderRadius: 3, boxShadow: theme.shadows[2], height: '100%', background: theme.palette.background.paper }}>
                             <CardContent>
                                 <Typography variant="h6" fontWeight="bold" sx={{ mb: 3 }}>ECL Distribution</Typography>
@@ -809,7 +811,7 @@ export default function DashboardClient() {
             {/* Main Content Area */}
             <Grid container spacing={3} sx={{ mb: 4 }}>
                 {/* Quick Actions */}
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                     <Card sx={{ height: '100%' }}>
                         <CardContent>
                             <Typography variant="h6" gutterBottom sx={{ color: bankingContext.primary, display: 'flex', alignItems: 'center' }}>
@@ -866,7 +868,7 @@ export default function DashboardClient() {
                 </Grid>
 
                 {/* Recent Activities - Real Data */}
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                     <Card sx={{ height: '100%' }}>
                         <CardContent>
                             <Typography variant="h6" gutterBottom sx={{ color: bankingContext.primary, display: 'flex', alignItems: 'center' }}>
@@ -919,6 +921,7 @@ export default function DashboardClient() {
                     {eclSummary && ` Last calculation: ${eclSummary.lastUpdated || 'Never'}`} • Portfolio health: Excellent
                 </Typography>
             </Alert>
+            </Container>
         </Box>
     )
 }

@@ -361,56 +361,12 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
         roles: ['IAF_TENANT_SUPERADMIN', 'IAF_TENANT_ADMIN', 'IAF Tenant Super Administrator', 'IAF Tenant Administrator', 'IAF_BANK_CRO', 'IAF_IFRS_MANAGER', 'IAF_RISK_ANALYST', 'IAF_PORTFOLIO_MANAGER'],
         children: [
             {
-                id: 'assessment-override',
-                label: 'Assessment Override',
+                id: 'assessment-workspace',
+                label: 'Assessment Workspace',
                 href: '/banking/individual/assessment',
                 icon: <Assessment />,
-                description: '/IFRS9N/IndividualImpairment/AssesmentOverride'
-            },
-            {
-                id: 'list-individual-report',
-                label: 'List of Individual Report',
-                href: '/banking/individual/reports',
-                icon: <TableChart />,
-                description: 'View and download individual reports',
+                description: 'End-to-end impairment assessment',
                 isNew: true
-            },
-            {
-                id: 'review-scenario',
-                label: 'Review Scenario Details',
-                href: '/banking/individual/review/scenario',
-                icon: <Approval />,
-                description: 'Analyze and approve scenarios',
-                isNew: true
-            },
-            {
-                id: 'review-dcf-upload',
-                label: 'Review DCF Upload',
-                href: '/banking/individual/review/dcf-upload-report',
-                icon: <CloudUpload />,
-                description: 'Validation results for DCF uploads',
-                isNew: true
-            },
-            {
-                id: 'ia-dcf-detail',
-                label: 'Review IA DCF Detail',
-                href: '/banking/individual/review/ia-dcf-detail',
-                icon: <ShowChart />,
-                description: 'Detail view of cash flow projections',
-                isNew: true
-            },
-            {
-                id: 'override-history',
-                label: 'Override History',
-                href: '/banking/individual/history',
-                icon: <History />,
-                description: 'Audit trail for overrides',
-                children: [
-                    { id: 'hist-customer', label: 'Customer Details', href: '/banking/individual/history/customer', icon: <Person /> },
-                    { id: 'hist-provision', label: 'IA Provision', href: '/banking/individual/history/provision', icon: <AccountBalance /> },
-                    { id: 'hist-dcf', label: 'DCF Upload', href: '/banking/individual/history/dcf-upload', icon: <CloudUpload /> },
-                    { id: 'hist-collateral', label: 'Collateral', href: '/banking/individual/history/collateral', icon: <Security /> }
-                ]
             }
         ]
     },
@@ -987,18 +943,94 @@ export const getIconForMenuItem = (code: string, level: number): React.ReactElem
     return iconMap[code] || (level === 0 ? <Category /> : <Assessment />);
 };
 
+// Map static menu IDs to icon strings for database persistence
+const MENU_ICON_MAP: Record<string, string> = {
+    'dashboard': 'dashboard',
+    'system-setup': 'settings',
+    'application-configuration': 'settings',
+    'business-configuration': 'business',
+    'parameter-management': 'category',
+    'product-parameters': 'account_balance',
+    'accounting-parameters': 'assessment',
+    'collective-impairment': 'trending_up',
+    'segmentation-configuration': 'category',
+    'rule-base-setting': 'assessment',
+    'bucket-parameter': 'layers',
+    'pd-setup-management': 'trending_up',
+    'fl-scalar': 'functions',
+    'lgd-setup-management': 'monetization_on',
+    'ead-setup-management': 'account_balance',
+    'ecl-configuration': 'calculate',
+    'individual-impairment': 'person',
+    'assessment-override': 'assessment',
+    'list-individual-report': 'table_chart',
+    'review-scenario': 'approval',
+    'review-dcf-upload': 'cloud_upload',
+    'ia-dcf-detail': 'show_chart',
+    'override-history': 'history',
+    'hist-customer': 'person',
+    'hist-provision': 'account_balance',
+    'hist-dcf': 'cloud_upload',
+    'hist-collateral': 'security',
+    'ifrs9': 'calculate',
+    'impairment-module': 'warning',
+    'amortization-module': 'schedule',
+    'ecl-calculations': 'calculate',
+    'ifrs9-staging': 'layers',
+    'model-management': 'view_module',
+    'forecast': 'auto_graph',
+    'ifrs9-report': 'table_chart',
+    'nominative-report': 'table_view',
+    'lifetime-pd': 'trending_up',
+    'lifetime-lgd': 'monetization_on',
+    'ead-model': 'functions',
+    'ecl-result': 'calculate',
+    'ecl-movement': 'swap_horiz',
+    'gca-movement': 'timeline',
+    'advanced-analytics': 'analytics',
+    'r-analytics': 'data_usage',
+    'financial-reports': 'assessment',
+    'executive-dashboard': 'dashboard',
+    'advanced-export': 'get_app',
+    'workflow-management': 'account_tree',
+    'approval-system': 'approval',
+    'workflow-configuration': 'settings',
+    'process-monitoring': 'monitor',
+    'staging-management': 'table_view',
+    'business-process': 'business',
+    'tools': 'cloud_upload',
+    'manual-upload': 'cloud_upload',
+    'bulk-data-import': 'cloud_upload',
+    'data-export': 'get_app',
+    'etl-tools': 'transform',
+    'direct-db-connection': 'storage',
+    'data-scheduler': 'schedule',
+    'maintenance': 'build',
+    'user-management': 'manage_accounts',
+    'role-management': 'vpn_key',
+    'user-assignments': 'supervisor_account',
+    'approval': 'approval',
+    'audit-logs': 'history',
+    'job-monitoring': 'monitor',
+    'menu-management': 'menu'
+};
+
 // Helper function to convert static menu to database format for fallback
 export const convertStaticToDatabaseFormat = (staticMenu: MenuItem[]): DatabaseMenuItem[] => {
     const convertItem = (item: MenuItem, parentId: string | null = null): DatabaseMenuItem => {
         const permissionCodes = item.requiredPermissions && item.requiredPermissions.length > 0
             ? item.requiredPermissions
             : derivePermissionCodes(item.code || item.id);
+            
+        // Look up correct icon string from map, fallback to folder for groups or dashboard for items
+        const iconString = MENU_ICON_MAP[item.id] || (item.children ? 'folder' : 'dashboard');
+
         const dbItem: DatabaseMenuItem = {
             id: item.id,
             menu_key: item.code || item.id,
             title: item.label,
             description: item.description,
-            icon: item.icon ? 'dashboard' : 'menu', // Default icon mapping
+            icon: iconString,
             url: item.href,
             type: item.children && item.children.length > 0 ? 'group' : 'item',
             sort_order: item.sort_order || 999,

@@ -497,19 +497,19 @@ export class IndividualImpairmentController {
 
   /**
    * POST /api/v1/banking/individual/impairment/watchlist/export
-   * Export individual impairment watchlist to Excel/CSV
+   * Export individual impairment watchlist to Excel/CSV/PDF
    */
   async exportWatchlist(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       console.log('📤 [II-009] Exporting individual impairment watchlist');
 
-      const { format, filters } = req.body;
+      const { format, filters, options = {} } = req.body;
 
-      if (!format || !['xlsx', 'csv'].includes(format)) {
+      if (!format || !['xlsx', 'csv', 'pdf'].includes(format)) {
         res.status(400).json({
           success: false,
           error: 'INVALID_FORMAT',
-          message: 'Export format must be xlsx or csv'
+          message: 'Export format must be xlsx, csv, or pdf'
         });
         return;
       }
@@ -524,70 +524,93 @@ export class IndividualImpairmentController {
       });
 
       if (!watchlistData.data || watchlistData.data.length === 0) {
-        res.json({
-          success: true,
-          data: {
-            message: 'No data found to export',
-            filename: `ifrs9-impairment-watchlist.${format}`,
-            download_url: null
-          }
+        res.status(404).json({
+          success: false,
+          error: 'NO_DATA',
+          message: 'No data found to export'
         });
         return;
       }
 
+      // Import export helpers dynamically
+      const { generateExcelBuffer, generatePDFBuffer, generateCSVBuffer, calculateSummaryStats } = 
+        await import('../../utils/export-helpers');
+      
+      // Import types separately
+      type ExportColumn = import('../../utils/export-helpers').ExportColumn;
+
+      // Define export columns
+      const columns: ExportColumn[] = options.columns || [
+        { header: 'Account Number', key: 'account_number', width: 18, type: 'text' as const },
+        { header: 'CIF Number', key: 'cif_number', width: 15, type: 'text' as const },
+        { header: 'Customer Name', key: 'cif_name', width: 30, type: 'text' as const },
+        { header: 'Currency', key: 'currency', width: 10, type: 'text' as const },
+        { header: 'Outstanding', key: 'outstanding', width: 18, type: 'currency' as const },
+        { header: 'ECL Amount', key: 'ecl_ia_amt', width: 18, type: 'currency' as const },
+        { header: 'Provision', key: 'provision_ia_amt', width: 18, type: 'currency' as const },
+        { header: 'Rating', key: 'rating_code', width: 10, type: 'text' as const },
+        { header: 'DPD', key: 'dpd', width: 10, type: 'number' as const },
+        { header: 'Impaired', key: 'impaired_flag', width: 10, type: 'text' as const },
+        { header: 'Method', key: 'method', width: 15, type: 'text' as const },
+        { header: 'Stage', key: 'stage', width: 10, type: 'number' as const },
+        { header: 'Created Date', key: 'createddate', width: 15, type: 'date' as const }
+      ];
+
       // Generate filename
       const timestamp = new Date().toISOString().split('T')[0];
-      const filename = `ifrs9-impairment-watchlist-${timestamp}.${format}`;
+      const filename = options.fileName || `ifrs9-impairment-watchlist-${timestamp}.${format}`;
 
-      // Create export data (in a real implementation, this would generate actual files)
-      const exportData = {
-        headers: [
-          'Account Number',
-          'CIF Number',
-          'Customer Name',
-          'Currency',
-          'Outstanding Balance',
-          'ECL Amount',
-          'Rating Code',
-          'DPD',
-          'Impaired Flag',
-          'Method',
-          'Assessment Status',
-          'Created Date'
-        ],
-        data: watchlistData.data.map(item => [
-          item.account_number,
-          item.cif_number,
-          item.cif_name,
-          item.currency,
-          item.outstanding || 0,
-          item.ecl_ia_amt || 0,
-          item.rating_code,
-          item.dpd || 0,
-          item.impaired_flag,
-          item.method,
-          'COMPLETED', // Default status
-          item.createddate
-        ])
+      // Prepare export options
+      const exportOptions = {
+        title: options.title || 'IFRS9 Individual Impairment Watchlist',
+        columns,
+        data: watchlistData.data,
+        includeFilters: true,
+        filters: filter,
+        includeTimestamp: true,
+        author: (req as any).user?.email || 'System'
       };
 
-      // For now, return data that can be used to generate files on frontend
-      res.json({
-        success: true,
-        data: {
-          filename,
-          format,
-          totalRecords: watchlistData.data.length,
-          exportData,
-          download_url: `/api/v1/banking/individual/impairment/download/${filename}`
-        },
-        message: 'Individual impairment watchlist export generated successfully',
-        meta: {
-          timestamp: new Date().toISOString(),
-          requestId: (req as any).id,
-          tenantId: (req as any).tenant?.id
-        }
-      });
+      let fileBuffer: Buffer;
+      let contentType: string;
+
+      // Generate file based on format
+      if (format === 'xlsx') {
+        console.log('📊 Generating Excel file...');
+        fileBuffer = await generateExcelBuffer(exportOptions);
+        contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      } else if (format === 'pdf') {
+        console.log('📄 Generating PDF file...');
+        
+        // Calculate summary stats for PDF
+        const summaryStats = calculateSummaryStats(watchlistData.data, {
+          totalLabel: 'Total Accounts',
+          sumFields: [
+            { key: 'outstanding', label: 'Total Outstanding', type: 'currency' as const },
+            { key: 'ecl_ia_amt', label: 'Total ECL', type: 'currency' as const },
+            { key: 'provision_ia_amt', label: 'Total Provision', type: 'currency' as const }
+          ]
+        });
+
+        fileBuffer = await generatePDFBuffer(exportOptions, summaryStats);
+        contentType = 'application/pdf';
+      } else {
+        console.log('📝 Generating CSV file...');
+        fileBuffer = generateCSVBuffer(exportOptions);
+        contentType = 'text/csv; charset=utf-8';
+      }
+
+      // Set response headers for file download
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Length', fileBuffer.length);
+      res.setHeader('X-Export-Records', watchlistData.data.length.toString());
+      res.setHeader('X-Export-Format', format);
+
+      // Send file buffer
+      res.send(fileBuffer);
+
+      console.log(`✅ [II-009] Export completed: ${filename} (${watchlistData.data.length} records, ${fileBuffer.length} bytes)`);
 
     } catch (error) {
       console.error('❌ [II-009] Export failed:', error);
