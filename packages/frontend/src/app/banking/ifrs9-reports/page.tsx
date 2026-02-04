@@ -371,7 +371,7 @@ const IFRS9ReportsPage: React.FC = () => {
           <Typography variant="h6">Database Integration Information</Typography>
         </Box>
         <Grid container spacing={2}>
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <Typography variant="body2" sx={{ mb: 1, fontWeight: 'bold' }}>
               Database Server:
             </Typography>
