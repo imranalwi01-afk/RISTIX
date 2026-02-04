@@ -256,25 +256,25 @@ const IFRS9ReportsPage: React.FC = () => {
         {/* Quick Stats */}
         <Paper sx={{ p: 2, bgcolor: 'primary.light', color: 'white' }}>
           <Grid container spacing={3}>
-            <Grid xs={12} md={3}>
+            <Grid size={{ xs: 12, md: 3 }}>
               <Box sx={{ textAlign: 'center' }}>
                 <Typography variant="h4" fontWeight="bold">7</Typography>
                 <Typography variant="body2">Report Types</Typography>
               </Box>
             </Grid>
-            <Grid xs={12} md={3}>
+            <Grid size={{ xs: 12, md: 3 }}>
               <Box sx={{ textAlign: 'center' }}>
                 <Typography variant="h4" fontWeight="bold">Live</Typography>
                 <Typography variant="body2">Database Integration</Typography>
               </Box>
             </Grid>
-            <Grid xs={12} md={3}>
+            <Grid size={{ xs: 12, md: 3 }}>
               <Box sx={{ textAlign: 'center' }}>
                 <Typography variant="h4" fontWeight="bold">Real-time</Typography>
                 <Typography variant="body2">Data Processing</Typography>
               </Box>
             </Grid>
-            <Grid xs={12} md={3}>
+            <Grid size={{ xs: 12, md: 3 }}>
               <Box sx={{ textAlign: 'center' }}>
                 <Typography variant="h4" fontWeight="bold">DS2</Typography>
                 <Typography variant="body2">FRS9PRO Database</Typography>
@@ -298,7 +298,7 @@ const IFRS9ReportsPage: React.FC = () => {
 
               <Grid container spacing={3}>
                 {category.reports.map((report, reportIndex) => (
-                  <Grid xs={12} md={6} lg={4} key={reportIndex}>
+                  <Grid size={{ xs: 12, md: 6, lg: 4 }} key={reportIndex}>
                     <ReportCard report={report} />
                   </Grid>
                 ))}
@@ -371,7 +371,7 @@ const IFRS9ReportsPage: React.FC = () => {
           <Typography variant="h6">Database Integration Information</Typography>
         </Box>
         <Grid container spacing={2}>
-          <Grid xs={12} md={4}>
+          <Grid item xs={12} md={4}>
             <Typography variant="body2" sx={{ mb: 1, fontWeight: 'bold' }}>
               Database Server:
             </Typography>
@@ -379,7 +379,7 @@ const IFRS9ReportsPage: React.FC = () => {
               DS2 FRS9PRO (192.168.0.106:5433)
             </Typography>
           </Grid>
-          <Grid xs={12} md={4}>
+          <Grid item xs={12} md={4}>
             <Typography variant="body2" sx={{ mb: 1, fontWeight: 'bold' }}>
               Data Sources:
             </Typography>
@@ -387,7 +387,7 @@ const IFRS9ReportsPage: React.FC = () => {
               Live PostgreSQL tables with actual banking data
             </Typography>
           </Grid>
-          <Grid xs={12} md={4}>
+          <Grid item xs={12} md={4}>
             <Typography variant="body2" sx={{ mb: 1, fontWeight: 'bold' }}>
               Update Frequency:
             </Typography>
