@@ -1508,7 +1508,7 @@ export const frs9ParamProduct = ifrs9.table("frs9_param_product", {
 	prdDesc: varchar("prd_desc", { length: 255 }).notNull(),
 	currency: varchar({ length: 5 }).notNull(),
 	amortizationType: varchar("amortization_type", { length: 10 }),
-	alFlag: varchar("al_flag", { length: 1 }),
+	alFlag: varchar("al_flag", { length: 10 }),
 	impairedFlag: boolean("impaired_flag"),
 	bmFlag: boolean("bm_flag"),
 	expectedLife: integer("expected_life"),
