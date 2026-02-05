@@ -1,6 +1,7 @@
 import { Effect, pipe } from 'effect'
 import { eq, and, or, asc, desc, count, ilike, sql } from 'drizzle-orm'
 import { db } from '@/config'
+import { getDatabase } from '@/config/database'
 import { users, type User, type NewUser } from '@/db/schema'
 import { DatabaseError, NotFoundError } from '@/lib/errors'
 import { dbOperation } from '@/lib/effect'
@@ -27,7 +28,10 @@ export interface UsersQueryOptions extends QueryOptions {
 
 export class UsersRepository implements ITenantRepository<User, NewUser> {
     /**
-     * Find user by ID
+     * Find user by ID.
+     * 
+     * @param id - The user ID
+     * @returns An Effect resolving to the user or NotFoundError
      */
     findById(id: string): Effect.Effect<User, DatabaseError | NotFoundError> {
         return pipe(
@@ -41,22 +45,30 @@ export class UsersRepository implements ITenantRepository<User, NewUser> {
     }
 
     /**
-     * Find user by email
+     * Find user by email.
+     * 
+     * @param email - The email address
+     * @param tenantId - Optional tenant ID filter
+     * @returns An Effect resolving to the user or undefined
      */
     findByEmail(email: string, tenantId?: string): Effect.Effect<User | undefined, DatabaseError> {
         return queryEffect(() => {
             const conditions = [eq(users.email, email)]
             if (tenantId) {
+                // Route to tenant DB when tenantId is provided
+                const dbx = getDatabase(tenantId)
                 conditions.push(eq(users.tenantId, tenantId))
+                return dbx.query.users.findFirst({ where: and(...conditions) })
             }
-            return db.query.users.findFirst({
-                where: and(...conditions),
-            })
+            return db.query.users.findFirst({ where: and(...conditions) })
         })
     }
 
     /**
-     * Find all users with pagination
+     * Find all users with pagination.
+     * 
+     * @param options - Query options including pagination and filters
+     * @returns An Effect resolving to paginated user results
      */
     findAll(options?: UsersQueryOptions): Effect.Effect<PaginatedResult<User>, DatabaseError> {
         return queryEffect(async () => {
@@ -108,7 +120,11 @@ export class UsersRepository implements ITenantRepository<User, NewUser> {
     }
 
     /**
-     * Find users by tenant
+     * Find users by tenant.
+     * 
+     * @param tenantId - The tenant ID
+     * @param options - Query options including pagination and filters
+     * @returns An Effect resolving to paginated user results for the tenant
      */
     findByTenant(
         tenantId: string,
@@ -163,11 +179,15 @@ export class UsersRepository implements ITenantRepository<User, NewUser> {
     }
 
     /**
-     * Create a new user
+     * Create a new user.
+     * 
+     * @param data - The user data
+     * @returns An Effect resolving to the created user
      */
     create(data: NewUser): Effect.Effect<User, DatabaseError> {
-        return insertEffect(() =>
-            db
+        return insertEffect(() => {
+            const dbx = (data as any).tenantId ? getDatabase((data as any).tenantId) : db
+            return dbx
                 .insert(users)
                 .values({
                     ...data,
@@ -175,11 +195,15 @@ export class UsersRepository implements ITenantRepository<User, NewUser> {
                     updatedAt: new Date(),
                 })
                 .returning()
-        )
+        })
     }
 
     /**
-     * Update an existing user
+     * Update an existing user.
+     * 
+     * @param id - The user ID
+     * @param data - The data to update
+     * @returns An Effect resolving to the updated user or NotFoundError
      */
     update(
         id: string,
@@ -203,14 +227,20 @@ export class UsersRepository implements ITenantRepository<User, NewUser> {
     }
 
     /**
-     * Soft delete a user
+     * Soft delete a user.
+     * 
+     * @param id - The user ID
+     * @returns An Effect resolving to the updated (deleted) user
      */
     delete(id: string): Effect.Effect<User, DatabaseError | NotFoundError> {
         return this.update(id, { isActive: false })
     }
 
     /**
-     * Get user statistics for a tenant
+     * Get user statistics for a tenant.
+     * 
+     * @param tenantId - The tenant ID
+     * @returns An Effect resolving to user statistics (total, active, inactive, verified)
      */
     getStats(tenantId: string): Effect.Effect<{
         total: number
@@ -219,7 +249,8 @@ export class UsersRepository implements ITenantRepository<User, NewUser> {
         verifiedEmail: number
     }, DatabaseError> {
         return queryEffect(async () => {
-            const result = await db
+            const dbx = getDatabase(tenantId)
+            const result = await dbx
                 .select({
                     total: count(),
                     active: sql<number>`SUM(CASE WHEN is_active = true THEN 1 ELSE 0 END)`,

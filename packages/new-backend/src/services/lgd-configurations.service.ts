@@ -4,6 +4,12 @@ import { NotFoundError } from '../lib/errors'
 import { frs9ImpCaLgdConfig } from '../db/schema'
 
 export const LgdConfigurationsService = {
+    /**
+     * List LGD configurations with filtering.
+     * 
+     * @param options - Filter options
+     * @returns An Effect resolving to an array of transformed configurations
+     */
     list: (options: {
         search?: string
         lgd_method?: string
@@ -19,6 +25,12 @@ export const LgdConfigurationsService = {
         )
     },
 
+    /**
+     * Get an LGD configuration by ID.
+     * 
+     * @param id - The configuration ID
+     * @returns An Effect resolving to the configuration or NotFoundError
+     */
     get: (id: number) => {
         return pipe(
             LgdConfigurationsRepository.findById(id),
@@ -30,6 +42,13 @@ export const LgdConfigurationsService = {
         )
     },
 
+    /**
+     * Create a new LGD configuration.
+     * 
+     * @param data - The configuration data
+     * @param userId - The ID of the user creating the configuration
+     * @returns An Effect resolving to the created configuration
+     */
     create: (data: any, userId: string) => {
         const payload = {
             lgdModelName: data.modelName,
@@ -42,6 +61,7 @@ export const LgdConfigurationsService = {
             flScalarId: data.flScalarId,
             lgdRate: data.lgdRate,
             activeFlag: data.isActive,
+            observationStartDate: data.observationStartDate,
             createdby: userId,
             createdhost: 'localhost',
             createddate: new Date().toISOString(),
@@ -56,6 +76,14 @@ export const LgdConfigurationsService = {
         )
     },
 
+    /**
+     * Update an existing LGD configuration.
+     * 
+     * @param id - The configuration ID
+     * @param data - The data to update
+     * @param userId - The ID of the user updating the configuration
+     * @returns An Effect resolving to the updated configuration or NotFoundError
+     */
     update: (id: number, data: any, userId: string) => {
         const payload = {
             lgdModelName: data.modelName,
@@ -68,6 +96,7 @@ export const LgdConfigurationsService = {
             flScalarId: data.flScalarId,
             lgdRate: data.lgdRate,
             activeFlag: data.isActive,
+            observationStartDate: data.observationStartDate,
             updatedby: userId,
             updateddate: new Date().toISOString(),
             updatedhost: 'localhost',
@@ -83,6 +112,12 @@ export const LgdConfigurationsService = {
         )
     },
 
+    /**
+     * Delete an LGD configuration.
+     * 
+     * @param id - The configuration ID
+     * @returns An Effect resolving to a success message or NotFoundError
+     */
     delete: (id: number) => {
         return pipe(
             LgdConfigurationsRepository.delete(id),
@@ -94,6 +129,7 @@ export const LgdConfigurationsService = {
         )
     },
 
+    /** Get available LGD methods options. */
     getMethods: () => {
         return Effect.succeed([
             { value: 1, label: 'Linear' },
@@ -102,6 +138,7 @@ export const LgdConfigurationsService = {
         ])
     },
 
+    /** Get available population types options. */
     getPopulationTypes: () => {
         return Effect.succeed([
             { value: 'Monthly', label: 'Monthly' },

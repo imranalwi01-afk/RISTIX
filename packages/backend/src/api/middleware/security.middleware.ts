@@ -86,7 +86,7 @@ export const corsConfig = cors({
 
       // Development Domains
       process.env.DEV_FRONTEND_URL || 'https://ifrs9.ifrspro.id',
-      process.env.DEV_BACKEND_URL || 'https://bifrs9.ifrspro.id',
+      process.env.DEV_BACKEND_URL || 'https://iaf-ifrs-be.ifrspro.id',
 
       // Fallback centralized config
       frontendUrl,
@@ -111,8 +111,8 @@ export const corsConfig = cors({
         // Development IAF domains
         process.env.DEV_FRONTEND_URL || 'https://ifrs9-iaf.ifrspro.id',
         process.env.DEV_BACKEND_URL || 'https://iaf-ifrs-be.ifrspro.id',
-        process.env.DEV_ANALYTICS_URL || 'https://ifrs9-iaf-analytics.ifrspro.id',
-        process.env.DEV_ANALYTICS_CALC_URL || 'https://ifrs9-iaf-analytics-calc.ifrspro.id',
+        process.env.DEV_ANALYTICS_URL || 'https://iaf-ifrs-analytics.ifrspro.id',
+        process.env.DEV_ANALYTICS_CALC_URL || 'https://iaf-ifrs-analytics-calc.ifrspro.id',
 
         // Alternative development domains
         'https://iaf-ifrs.ifrspro.id',

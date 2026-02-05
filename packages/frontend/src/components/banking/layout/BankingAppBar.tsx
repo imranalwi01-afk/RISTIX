@@ -7,9 +7,8 @@ import {
     IconButton,
     Avatar,
     Tooltip,
-    alpha,
-    useTheme
 } from '@mui/material';
+import { useTheme, alpha } from '@mui/material/styles';
 import {
     Menu as MenuIcon,
     MenuOpen,
@@ -18,8 +17,10 @@ import {
     Brightness7
 } from '@mui/icons-material';
 import { useBankingTheme } from '../../../providers/BankingThemeProvider'; // Adjust path
-import { TenantSwitcher } from '../../admin/TenantSwitcher'; // Adjust path
 import { BankingProfileMenu } from './BankingProfileMenu';
+// import { NotificationBell } from '../NotificationBell';
+// import { TenantSwitcher } from '../../admin/TenantSwitcher'; // Adjust path
+
 
 interface BankingAppBarProps {
     drawerWidth: number;
@@ -134,8 +135,11 @@ export const BankingAppBar: React.FC<BankingAppBarProps> = ({
                         </IconButton>
                     </Tooltip>
 
+                    {/* Notification Bell */}
+                    {/* <NotificationBell colorMode={colorMode} /> */}
+
                     {/* Tenant Switcher */}
-                    <TenantSwitcher />
+                    {/* <TenantSwitcher /> */}
 
                     {/* User avatar */}
                     <Tooltip title="User menu">

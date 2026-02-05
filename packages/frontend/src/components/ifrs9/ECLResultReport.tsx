@@ -49,17 +49,18 @@ const ECLResultReport: React.FC = () => {
   const handleDataLoaded = (data: any[]) => {
     if (data && data.length > 0) {
       const stats = data.reduce((acc, row) => {
-        const eclAmount = Number(row.eclFinal) || 0;
-        const outstanding = Number(row.outstanding) || 0;
-        const stage = Number(row.stage) || 1;
-
+        // Map from SQL OUTPUT: ecl_final, outstanding, stage
+        const eclAmount = parseFloat(row.ecl_final) || 0;
+        const outstanding = parseFloat(row.outstanding) || 0;
+        const stage = row.stage?.toString() || '1';
+        
         acc.totalECL += eclAmount;
         acc.totalOutstanding += outstanding;
-
-        if (stage === 1) acc.stage1ECL += eclAmount;
-        else if (stage === 2) acc.stage2ECL += eclAmount;
-        else if (stage === 3) acc.stage3ECL += eclAmount;
-
+        
+        if (stage === '1') acc.stage1ECL += eclAmount;
+        else if (stage === '2') acc.stage2ECL += eclAmount;
+        else if (stage === '3') acc.stage3ECL += eclAmount;
+        
         return acc;
       }, {
         totalECL: 0,
@@ -71,20 +72,20 @@ const ECLResultReport: React.FC = () => {
         segmentBreakdown: [],
         stageDistribution: []
       });
-
+      
       stats.eclRatio = stats.totalOutstanding > 0 ? (stats.totalECL / stats.totalOutstanding) * 100 : 0;
-
+      
       // Stage distribution for pie chart
       const stageData = [
         { name: 'Stage 1', value: stats.stage1ECL, color: '#4CAF50' },
         { name: 'Stage 2', value: stats.stage2ECL, color: '#FF9800' },
         { name: 'Stage 3', value: stats.stage3ECL, color: '#F44336' }
       ].filter(item => item.value > 0);
-
-      // Segment breakdown (sample aggregation)
+      
+      // Segment breakdown (sample aggregation) - using segment or group_segment from SQL output
       const segmentMap = new Map();
       data.forEach(row => {
-        const segment = String(row.segmentId || 'Default Segment');
+        const segment = row.segment || row.group_segment || 'Default Segment';
         if (!segmentMap.has(segment)) {
           segmentMap.set(segment, {
             segment,
@@ -94,16 +95,16 @@ const ECLResultReport: React.FC = () => {
           });
         }
         const segmentData = segmentMap.get(segment);
-        segmentData.ecl += Number(row.eclFinal) || 0;
-        segmentData.outstanding += Number(row.outstanding) || 0;
+        segmentData.ecl += parseFloat(row.ecl_final) || 0;
+        segmentData.outstanding += parseFloat(row.outstanding) || 0;
         segmentData.accounts += 1;
       });
-
+      
       const segmentBreakdown = Array.from(segmentMap.values()).map(item => ({
         ...item,
         eclRatio: item.outstanding > 0 ? (item.ecl / item.outstanding) * 100 : 0
       }));
-
+      
       stats.segmentBreakdown = segmentBreakdown;
       stats.stageDistribution = stageData;
       setSummaryStats(stats);
@@ -177,16 +178,16 @@ const ECLResultReport: React.FC = () => {
       <Grid item xs={12} md={3}>
         <Card sx={{ height: '100%' }}>
           <CardContent sx={{ textAlign: 'center' }}>
-            <Avatar sx={{
-              bgcolor: summaryStats.eclRatio < 2 ? 'success.main' :
-                summaryStats.eclRatio < 5 ? 'warning.main' : 'error.main',
-              mx: 'auto', mb: 2, width: 56, height: 56
+            <Avatar sx={{ 
+              bgcolor: summaryStats.eclRatio < 2 ? 'success.main' : 
+                       summaryStats.eclRatio < 5 ? 'warning.main' : 'error.main',
+              mx: 'auto', mb: 2, width: 56, height: 56 
             }}>
               <PieIcon sx={{ fontSize: 30 }} />
             </Avatar>
             <Typography variant="h5" component="div" fontWeight="bold">
-              {summaryStats.eclRatio < 2 ? 'Low' :
-                summaryStats.eclRatio < 5 ? 'Medium' : 'High'}
+              {summaryStats.eclRatio < 2 ? 'Low' : 
+               summaryStats.eclRatio < 5 ? 'Medium' : 'High'}
             </Typography>
             <Typography color="text.secondary" sx={{ mt: 1 }}>
               Overall Risk Level
@@ -273,7 +274,7 @@ const ECLResultReport: React.FC = () => {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, value, percent }) =>
+                  label={({ name, value, percent }) => 
                     `${name}: ${new Intl.NumberFormat('id-ID', {
                       style: 'currency',
                       currency: 'IDR',
@@ -288,7 +289,7 @@ const ECLResultReport: React.FC = () => {
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip
+                <Tooltip 
                   formatter={(value: number) => [
                     new Intl.NumberFormat('id-ID', {
                       style: 'currency',
@@ -316,7 +317,7 @@ const ECLResultReport: React.FC = () => {
                 <XAxis dataKey="segment" angle={-45} textAnchor="end" height={100} />
                 <YAxis yAxisId="left" />
                 <YAxis yAxisId="right" orientation="right" />
-                <Tooltip
+                <Tooltip 
                   formatter={(value: any, name: string) => {
                     if (name === 'ecl' || name === 'outstanding') {
                       return [new Intl.NumberFormat('id-ID', {

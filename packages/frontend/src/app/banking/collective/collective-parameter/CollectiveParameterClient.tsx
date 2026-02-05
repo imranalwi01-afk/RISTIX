@@ -121,7 +121,7 @@ function TabPanel({ children, value, index, ...other }: TabPanelProps) {
       aria-labelledby={`collective-tab-${index}`}
       {...other}
     >
-      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
+      {value === index && <Box sx={{ p: 3 }}>{children as any}</Box>}
     </div>
   );
 }
@@ -364,7 +364,7 @@ export default function CollectiveParameterPage() {
 
       <Grid container spacing={3} sx={{ mb: 4 }}>
         {moduleStatuses.map((status, index) => (
-          <Grid item xs={12} md={4} key={index}>
+          <Grid size={{ xs: 12, md: 4 }} key={index}>
             <ModuleStatusCard
               moduleStatus={status}
               onConfigure={() => handleModuleConfigure(status.module)}
@@ -411,7 +411,7 @@ export default function CollectiveParameterPage() {
           />
           <CardContent>
             <Grid container spacing={3}>
-              <Grid item xs={6} md={3}>
+              <Grid size={{ xs: 6, md: 3 }}>
                 <Typography variant="h4" color="primary">
                   {executionSummary.total_accounts.toLocaleString()}
                 </Typography>
@@ -419,7 +419,7 @@ export default function CollectiveParameterPage() {
                   Total Accounts
                 </Typography>
               </Grid>
-              <Grid item xs={6} md={3}>
+              <Grid size={{ xs: 6, md: 3 }}>
                 <Typography variant="h4" color="success.main">
                   {executionSummary.segmented_accounts.toLocaleString()}
                 </Typography>
@@ -427,7 +427,7 @@ export default function CollectiveParameterPage() {
                   Segmented
                 </Typography>
               </Grid>
-              <Grid item xs={6} md={3}>
+              <Grid size={{ xs: 6, md: 3 }}>
                 <Typography variant="h4" color="info.main">
                   {executionSummary.rules_applied.toLocaleString()}
                 </Typography>
@@ -435,7 +435,7 @@ export default function CollectiveParameterPage() {
                   Rules Applied
                 </Typography>
               </Grid>
-              <Grid item xs={6} md={3}>
+              <Grid size={{ xs: 6, md: 3 }}>
                 <Typography variant="h4" color="warning.main">
                   {executionSummary.buckets_assigned.toLocaleString()}
                 </Typography>
@@ -473,7 +473,7 @@ export default function CollectiveParameterPage() {
       ) : (
         <Grid container spacing={3}>
           {collectiveParameters.map((param) => (
-            <Grid item xs={12} md={6} key={param.id}>
+            <Grid size={{ xs: 12, md: 6 }} key={param.id}>
               <Card>
                 <CardHeader
                   title={param.parameter_name}
@@ -549,7 +549,7 @@ export default function CollectiveParameterPage() {
       </Typography>
 
       <Grid container spacing={3}>
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card>
             <CardHeader title="Data Flow" />
             <CardContent>
@@ -577,7 +577,7 @@ export default function CollectiveParameterPage() {
           </Card>
         </Grid>
 
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card>
             <CardHeader title="Dependencies" />
             <CardContent>

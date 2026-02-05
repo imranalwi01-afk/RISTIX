@@ -106,8 +106,30 @@ apiClient.interceptors.request.use(
         // 3. Auth Headers
         if (typeof window !== 'undefined') {
             const token = getAuthToken();
+            
+            // Enhanced logging for debugging
+            const cookieToken = typeof document !== 'undefined' ? document.cookie.split('; ').find(row => row.startsWith('auth_token='))?.split('=')[1] : null;
+            const localToken = localStorage.getItem('auth_token');
+            const allCookies = typeof document !== 'undefined' ? document.cookie : 'N/A';
+            
+            console.log('🔑 [API Setup] Token check:', {
+                hasToken: !!token,
+                tokenPreview: token ? `${token.substring(0, 20)}...` : 'none',
+                tokenSource: cookieToken ? 'cookie' : (localToken ? 'localStorage' : 'none'),
+                cookieExists: !!cookieToken,
+                localStorageExists: !!localToken,
+                withCredentials: config.withCredentials,
+                allCookies: allCookies.substring(0, 100),
+                url: config.url
+            });
+            
             if (token) {
                 config.headers.Authorization = `Bearer ${token}`;
+            } else {
+                console.warn('⚠️ [API Setup] No token available for request:', config.url);
+                console.warn('   → Cookie token:', cookieToken ? 'exists' : 'missing');
+                console.warn('   → LocalStorage token:', localToken ? 'exists' : 'missing');
+                console.warn('   → All cookies:', allCookies);
             }
 
             // Tenant Context
@@ -159,20 +181,33 @@ apiClient.interceptors.response.use(
             }
         }
 
-        // 2. Session Control
+        // 2. Session Control - LENIENT MODE
         if (typeof window !== 'undefined') {
             if (error.response?.status) {
-                const errorHandled = await sessionControlService.handleHttpError(error.response.status, error);
-                if (errorHandled) {
-                    if (error.response.status === 401 && originalRequest && !originalRequest._retry) {
-                        originalRequest._retry = true;
-                        const newToken = getAuthToken();
-                        if (newToken) {
-                            originalRequest.headers.Authorization = `Bearer ${newToken}`;
-                            return apiClient(originalRequest);
-                        }
+                // 🔧 LENIENT: Don't immediately fail on 401, try refresh first
+                if (error.response.status === 401 && originalRequest && !originalRequest._retryCount) {
+                    originalRequest._retryCount = 0;
+                }
+                
+                if (error.response.status === 401 && originalRequest._retryCount < 3) {
+                    originalRequest._retryCount++;
+                    
+                    // Wait before retry
+                    await new Promise(resolve => setTimeout(resolve, 1000 * originalRequest._retryCount));
+                    
+                    const newToken = getAuthToken();
+                    if (newToken) {
+                        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+                        return apiClient(originalRequest);
                     }
-                    return Promise.reject(error);
+                }
+                
+                // Only handle error after retries exhausted
+                if (error.response.status !== 401 || originalRequest._retryCount >= 3) {
+                    const errorHandled = await sessionControlService.handleHttpError(error.response.status, error);
+                    if (errorHandled) {
+                        return Promise.reject(error);
+                    }
                 }
             } else if (!error.response) {
                 await sessionControlService.handleNetworkError(error);

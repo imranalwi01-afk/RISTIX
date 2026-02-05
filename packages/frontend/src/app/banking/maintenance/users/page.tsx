@@ -366,7 +366,7 @@ export default function UserManagementPage() {
 
         {/* Stats Cards */}
         <Grid container spacing={3} sx={{ mb: 3 }}>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Card>
               <CardContent>
                 <Typography color="textSecondary" gutterBottom>
@@ -378,7 +378,7 @@ export default function UserManagementPage() {
               </CardContent>
             </Card>
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Card>
               <CardContent>
                 <Typography color="textSecondary" gutterBottom>
@@ -390,7 +390,7 @@ export default function UserManagementPage() {
               </CardContent>
             </Card>
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Card>
               <CardContent>
                 <Typography color="textSecondary" gutterBottom>
@@ -402,7 +402,7 @@ export default function UserManagementPage() {
               </CardContent>
             </Card>
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Card>
               <CardContent>
                 <Typography color="textSecondary" gutterBottom>
@@ -420,7 +420,7 @@ export default function UserManagementPage() {
       {/* Filters and Search */}
       <Paper sx={{ p: 2, mb: 3 }}>
         <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <TextField
               fullWidth
               placeholder="Search users..."
@@ -435,7 +435,7 @@ export default function UserManagementPage() {
               }}
             />
           </Grid>
-          <Grid item xs={12} sm={6} md={2}>
+          <Grid size={{ xs: 12, sm: 6, md: 2 }}>
             <FormControl fullWidth>
               <InputLabel>Department</InputLabel>
               <Select
@@ -450,7 +450,7 @@ export default function UserManagementPage() {
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={12} sm={6} md={2}>
+          <Grid size={{ xs: 12, sm: 6, md: 2 }}>
             <FormControl fullWidth>
               <InputLabel>Banking Access</InputLabel>
               <Select
@@ -465,7 +465,7 @@ export default function UserManagementPage() {
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={12} sm={6} md={2}>
+          <Grid size={{ xs: 12, sm: 6, md: 2 }}>
             <FormControl fullWidth>
               <InputLabel>Status</InputLabel>
               <Select
@@ -479,7 +479,7 @@ export default function UserManagementPage() {
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Box sx={{ display: 'flex', gap: 1 }}>
               <Button
                 variant="outlined"
@@ -618,7 +618,7 @@ export default function UserManagementPage() {
         </DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="Full Name"
@@ -627,7 +627,7 @@ export default function UserManagementPage() {
                 required
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="Email"
@@ -637,7 +637,7 @@ export default function UserManagementPage() {
                 required
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="Username"
@@ -646,7 +646,7 @@ export default function UserManagementPage() {
                 required
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="Password"
@@ -665,7 +665,7 @@ export default function UserManagementPage() {
                 }}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="Employee ID"
@@ -673,7 +673,7 @@ export default function UserManagementPage() {
                 onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="Department"
@@ -681,7 +681,7 @@ export default function UserManagementPage() {
                 onChange={(e) => setFormData({ ...formData, department: e.target.value })}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="Position"
@@ -689,7 +689,7 @@ export default function UserManagementPage() {
                 onChange={(e) => setFormData({ ...formData, position: e.target.value })}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <FormControl fullWidth>
                 <InputLabel>Banking Access</InputLabel>
                 <Select
@@ -703,7 +703,7 @@ export default function UserManagementPage() {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <FormControlLabel
                 control={
                   <Switch
@@ -734,7 +734,7 @@ export default function UserManagementPage() {
         </DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="Full Name"
@@ -743,7 +743,7 @@ export default function UserManagementPage() {
                 required
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="Email"
@@ -753,7 +753,7 @@ export default function UserManagementPage() {
                 required
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="Username"
@@ -762,7 +762,7 @@ export default function UserManagementPage() {
                 required
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="Employee ID"
@@ -770,7 +770,7 @@ export default function UserManagementPage() {
                 onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="Department"
@@ -778,7 +778,7 @@ export default function UserManagementPage() {
                 onChange={(e) => setFormData({ ...formData, department: e.target.value })}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="Position"
@@ -786,7 +786,7 @@ export default function UserManagementPage() {
                 onChange={(e) => setFormData({ ...formData, position: e.target.value })}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <FormControl fullWidth>
                 <InputLabel>Banking Access</InputLabel>
                 <Select
@@ -800,7 +800,7 @@ export default function UserManagementPage() {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <FormControlLabel
                 control={
                   <Switch
@@ -833,35 +833,35 @@ export default function UserManagementPage() {
           {selectedUser && (
             <Box sx={{ mt: 1 }}>
               <Grid container spacing={2}>
-                <Grid item xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <Typography variant="subtitle2" color="text.secondary">Full Name</Typography>
                   <Typography>{selectedUser.fullName}</Typography>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <Typography variant="subtitle2" color="text.secondary">Email</Typography>
                   <Typography>{selectedUser.email}</Typography>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <Typography variant="subtitle2" color="text.secondary">Username</Typography>
                   <Typography>{selectedUser.username}</Typography>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <Typography variant="subtitle2" color="text.secondary">Employee ID</Typography>
                   <Typography>{selectedUser.employeeId || 'N/A'}</Typography>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <Typography variant="subtitle2" color="text.secondary">Department</Typography>
                   <Typography>{selectedUser.department || 'N/A'}</Typography>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <Typography variant="subtitle2" color="text.secondary">Position</Typography>
                   <Typography>{selectedUser.position || 'N/A'}</Typography>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <Typography variant="subtitle2" color="text.secondary">Banking Access</Typography>
                   <Chip label={selectedUser.bankingAccess} size="small" />
                 </Grid>
-                <Grid item xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <Typography variant="subtitle2" color="text.secondary">Status</Typography>
                   <Chip
                     label={selectedUser.isActive ? 'Active' : 'Inactive'}
@@ -869,7 +869,7 @@ export default function UserManagementPage() {
                     size="small"
                   />
                 </Grid>
-                <Grid item xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <Typography variant="subtitle2" color="text.secondary">Syariah Certified</Typography>
                   <Chip
                     label={selectedUser.syariahCertified ? 'Yes' : 'No'}
@@ -877,7 +877,7 @@ export default function UserManagementPage() {
                     size="small"
                   />
                 </Grid>
-                <Grid item xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <Typography variant="subtitle2" color="text.secondary">MFA Enabled</Typography>
                   <Chip
                     label={selectedUser.mfaEnabled ? 'Yes' : 'No'}
@@ -885,13 +885,13 @@ export default function UserManagementPage() {
                     size="small"
                   />
                 </Grid>
-                <Grid item xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <Typography variant="subtitle2" color="text.secondary">Last Login</Typography>
                   <Typography>
                     {selectedUser.lastLoginAt ? new Date(selectedUser.lastLoginAt).toLocaleString() : 'Never'}
                   </Typography>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <Typography variant="subtitle2" color="text.secondary">Created</Typography>
                   <Typography>{new Date(selectedUser.createdAt).toLocaleString()}</Typography>
                 </Grid>

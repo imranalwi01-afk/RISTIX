@@ -122,7 +122,7 @@ const getDesignTokens = (mode: PaletteMode): ThemeOptions => {
         styleOverrides: {
           root: {
             borderRadius: 12, // Modern rounded corners
-            boxShadow: isDark 
+            boxShadow: isDark
               ? '0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3)' // Deep shadow for dark
               : '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',     // Soft shadow for light
             border: isDark ? '1px solid rgba(255, 255, 255, 0.05)' : 'none', // Subtle border in dark mode
@@ -172,11 +172,11 @@ const getDesignTokens = (mode: PaletteMode): ThemeOptions => {
       MuiTextField: {
         styleOverrides: {
           root: {
-             '& .MuiOutlinedInput-root': {
-                '& fieldset': {
-                   borderColor: isDark ? 'rgba(255, 255, 255, 0.23)' : 'rgba(0, 0, 0, 0.23)',
-                },
-             },
+            '& .MuiOutlinedInput-root': {
+              '& fieldset': {
+                borderColor: isDark ? 'rgba(255, 255, 255, 0.23)' : 'rgba(0, 0, 0, 0.23)',
+              },
+            },
           },
         },
       },
@@ -186,7 +186,16 @@ const getDesignTokens = (mode: PaletteMode): ThemeOptions => {
 
 // Function to generate the theme based on mode
 export const getConventionalTheme = (mode: PaletteMode): Theme => {
-  return createTheme(getDesignTokens(mode));
+  const theme = createTheme(getDesignTokens(mode));
+  
+  // NUCLEAR OPTION: Completely strip any CSS variable references
+  (theme as any).cssVariables = false;
+  (theme as any).vars = undefined;
+  (theme as any).generateCssVars = undefined;
+  // Provide no-op function instead of undefined to prevent errors
+  (theme as any).applyStyles = (_mode: string, _styles: any) => ({});
+  
+  return theme;
 };
 
 // Default export for backward compatibility (defaults to light)

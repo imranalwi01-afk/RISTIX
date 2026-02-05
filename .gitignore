@@ -105,3 +105,11 @@ Thumbs.db
 _unused/
 tmp/
 temp/
+
+# Playwright
+playwright-report/
+test-results/
+packages/e2e/playwright-report/
+packages/e2e/test-results/
+
+deployment_package/

@@ -3,7 +3,8 @@ import {
     rolesRepository,
     userRolesRepository,
     permissionsRepository,
-    rolePermissionsRepository
+    rolePermissionsRepository,
+    type RoleWithPermissions
 } from '@/repositories/rbac.repository'
 import { getDatabase } from '@/config/database'
 import {
@@ -11,17 +12,34 @@ import {
     type Role,
 } from '@/db/schema'
 import { DatabaseError, NotFoundError, ValidationError, BusinessError } from '@/lib/errors'
+import { PermissionApprovalService } from './permission-approval.service'
+
+/**
+ * @module RBACService
+ * @description Provides services for Role-Based Access Control.
+ * Handles role management, user-role assignments, and permission checking.
+ */
 
 // =============================================================================
 // ROLE OPERATIONS
 // =============================================================================
 
 /**
- * Get all roles for a tenant
+ * Retrieve all roles for a given tenant.
+ * 
+ * @param tenantId - The unique identifier of the tenant
+ * @param options - Optional filters (includeInactive, bankingType)
+ * @returns An Effect that succeeds with an array of Roles
  */
 export const getRoles = (
     tenantId: string,
-    options?: { includeInactive?: boolean; bankingType?: string }
+    options?: {
+        includeInactive?: boolean;
+        bankingType?: string;
+        search?: string;
+        type?: string;
+        level?: string;
+    }
 ) =>
     pipe(
         Effect.try(() => getDatabase(tenantId)),
@@ -29,26 +47,32 @@ export const getRoles = (
         Effect.flatMap(db =>
             rolesRepository.findByTenant(db, tenantId, {
                 includeInactive: options?.includeInactive,
-                bankingType: options?.bankingType
+                bankingType: options?.bankingType,
+                search: options?.search,
+                systemRolesOnly: options?.type === 'SYSTEM'
             })
         ),
-        Effect.map(({ data }) => data)
+        Effect.map((result) => result)
     )
 
 /**
- * Get a role by ID
+ * Retrieve a single role by its unique ID.
+ * 
+ * @param roleId - The unique identifier of the role
+ * @param tenantId - Optional tenant ID to resolve the database
+ * @returns An Effect that succeeds with the Role if found
  */
 export const getRoleById = (roleId: string, tenantId?: string) =>
     pipe(
         Effect.try(() => getDatabase(tenantId)),
         Effect.mapError(error => new DatabaseError({ operation: 'query', message: String(error) })),
         Effect.flatMap(db => rolesRepository.findById(db, roleId)),
-        // Map NotFound to success undefined? No, findById returns Effect<Role, NotFoundError>
+        // Map NotFound to success undefined? No, findById returns Effect<RoleWithPermissions, NotFoundError>
         // But if it fails with NotFoundError, do we want that?
         // The original code mapped: role ? succeed : fail(NotFound).
         // My repo findById returns Effect.fail(NotFound) if not found (via withNotFound).
         // So I don't need manual check unless I want to customize.
-        // It returns Effect<Role, DatabaseError | NotFoundError>.
+        // It returns Effect<RoleWithPermissions, DatabaseError | NotFoundError>.
         // So this is fine.
     )
 
@@ -61,7 +85,11 @@ const findRole = (roleId: string, tenantId?: string) =>
     )
 
 /**
- * Create a new role
+ * Create a new role for a tenant.
+ * 
+ * @param input - The role definition as NewRole object
+ * @returns An Effect that succeeds with the created Role
+ * @throws {ValidationError} If a role with the same name already exists
  */
 export const createRole = (input: NewRole) =>
     pipe(
@@ -88,7 +116,12 @@ export const createRole = (input: NewRole) =>
     )
 
 /**
- * Update an existing role
+ * Update an existing role's properties.
+ * 
+ * @param roleId - The unique identifier of the role to update
+ * @param input - Partial role object containing updates and optional tenantId
+ * @returns An Effect that succeeds with the updated Role
+ * @throws {BusinessError} If attempting to rename a protected system role
  */
 export const updateRole = (roleId: string, input: Partial<NewRole> & { tenantId?: string }) =>
     pipe(
@@ -114,7 +147,12 @@ export const updateRole = (roleId: string, input: Partial<NewRole> & { tenantId?
     )
 
 /**
- * Delete a role (soft delete by setting isActive = false)
+ * Deactivates a role (Soft delete).
+ * 
+ * @param roleId - The unique identifier of the role to delete
+ * @param tenantId - Optional tenant ID to resolve the database
+ * @returns An Effect that succeeds with the deleted/deactivated Role
+ * @throws {BusinessError} If attempting to delete a protected system role
  */
 export const deleteRole = (roleId: string, tenantId?: string) =>
     pipe(
@@ -144,7 +182,11 @@ export const deleteRole = (roleId: string, tenantId?: string) =>
 // =============================================================================
 
 /**
- * Get all roles for a user
+ * Retrieve all active roles currently assigned to a user.
+ * 
+ * @param userId - The unique identifier of the user
+ * @param tenantId - The unique identifier of the tenant
+ * @returns An Effect that succeeds with an array of active UserRole assignments
  */
 export const getUserRoles = (userId: string, tenantId: string) =>
     pipe(
@@ -162,7 +204,11 @@ export const getUserRoles = (userId: string, tenantId: string) =>
     )
 
 /**
- * Assign a role to a user
+ * Assign a role to a user with optional temporal constraints.
+ * 
+ * @param input - Assignment details including userId, roleId, and tenure info
+ * @returns An Effect that succeeds with the newly created assignment
+ * @throws {ValidationError} If the role is already assigned to the user
  */
 export const assignRole = (input: {
     userId: string
@@ -217,7 +263,12 @@ export const assignRole = (input: {
     )
 
 /**
- * Remove a role from a user
+ * Remove a role assignment from a user.
+ * 
+ * @param userId - The unique identifier of the user
+ * @param roleId - The unique identifier of the role to remove
+ * @param tenantId - The unique identifier of the tenant
+ * @returns An Effect that succeeds when the assignment is removed
  */
 export const removeRole = (userId: string, roleId: string, tenantId: string) =>
     pipe(
@@ -232,7 +283,13 @@ export const removeRole = (userId: string, roleId: string, tenantId: string) =>
 
 
 /**
- * Check if a user has a specific permission
+ * Check if a user possesses a specific permission for a resource and action.
+ * 
+ * @param userId - The unique identifier of the user
+ * @param tenantId - The unique identifier of the tenant
+ * @param resource - The resource identifier (e.g., 'users', 'roles')
+ * @param action - The action identifier (e.g., 'read', 'write', '*')
+ * @returns An Effect that succeeds with a boolean flag
  */
 export const hasPermission = (
     userId: string,
@@ -250,7 +307,11 @@ export const hasPermission = (
     )
 
 /**
- * Get all permissions for a user (Grouped by resource)
+ * Aggregates and groups all permissions granted to a user across all their roles.
+ * 
+ * @param userId - The unique identifier of the user
+ * @param tenantId - The unique identifier of the tenant
+ * @returns An Effect that succeeds with a Record of resource-to-actions mappings
  */
 export const getUserPermissions = (
     userId: string,
@@ -278,4 +339,61 @@ export const getUserPermissions = (
 
             return allPermissions
         })
+    )
+
+/**
+ * Update permissions for a specific role by replacing all existing role-permission associations.
+ * 
+ * @param roleId - The unique identifier of the role
+ * @param permissionIds - Array of permission IDs to assign to the role
+ * @param tenantId - Optional tenant ID for database resolution
+ * @returns An Effect that succeeds with the updated Role
+ */
+export const updateRolePermissions = (roleId: string, permissionIds: string[], tenantId?: string) =>
+    pipe(
+        Effect.try(() => getDatabase(tenantId)),
+        Effect.mapError(error => new DatabaseError({ operation: 'query', message: String(error) })),
+        Effect.flatMap(db => rolePermissionsRepository.set(db, roleId, permissionIds)),
+        Effect.flatMap(() =>
+            pipe(
+                Effect.try(() => getDatabase(tenantId)),
+                Effect.mapError(error => new DatabaseError({ operation: 'query', message: String(error) })),
+                Effect.flatMap(db => rolesRepository.findById(db, roleId))
+            )
+        )
+    )
+
+/**
+ * Get all available permissions with approval metadata
+ * 
+ * @param tenantId - The unique identifier of the tenant
+ * @returns An Effect that succeeds with an array of Permissions with approval info
+ */
+export const getAvailablePermissions = (tenantId: string) =>
+    pipe(
+        Effect.try(() => getDatabase(tenantId)),
+        Effect.mapError(error => new DatabaseError({ operation: 'query', message: String(error) })),
+        Effect.flatMap(db =>
+            Effect.gen(function* (_) {
+                const permissions = yield* _(permissionsRepository.findAll(db))
+                const approvalService = new PermissionApprovalService(db)
+
+                // Get approval requirements for all permissions
+                const permissionIds = permissions.map(p => p.id)
+                const approvalMap = yield* _(
+                    approvalService.getBulkApprovalRequirements(tenantId, permissionIds)
+                )
+
+                // Enrich permissions with approval metadata
+                return permissions.map(p => {
+                    const approval = approvalMap.get(p.id)
+                    return {
+                        ...p,
+                        requiresApproval: approval?.requiresApproval ?? false,
+                        requiredApprovalLevel: approval?.minHierarchyLevel ?? null,
+                        requiredApprovers: approval?.requiredApprovers ?? 1,
+                    }
+                })
+            })
+        )
     )

@@ -15,7 +15,7 @@ import {
   Typography,
   Container,
   Paper,
-  Grid2 as Grid,
+  Grid,
   Card,
   CardContent,
   Button,
@@ -179,7 +179,7 @@ const ruleTypeIcons = {
 
 export default function DataValidationDashboard() {
   const router = useRouter();
-  
+
   // State management
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(0);
@@ -190,7 +190,7 @@ export default function DataValidationDashboard() {
   const [ruleDialogOpen, setRuleDialogOpen] = useState(false);
   const [filterMenuAnchor, setFilterMenuAnchor] = useState<null | HTMLElement>(null);
   const [refreshing, setRefreshing] = useState(false);
-  
+
   // Filters
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
@@ -442,9 +442,9 @@ export default function DataValidationDashboard() {
       {/* Header */}
       <Box sx={{ mb: 3 }}>
         <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
-          <Link 
-            underline="hover" 
-            color="inherit" 
+          <Link
+            underline="hover"
+            color="inherit"
             href="/banking/dashboard"
             onClick={(e) => {
               e.preventDefault();
@@ -514,9 +514,9 @@ export default function DataValidationDashboard() {
                   <Typography variant="h3" color="primary" sx={{ fontWeight: 'bold' }}>
                     {metrics.overallScore.toFixed(1)}%
                   </Typography>
-                  <LinearProgress 
-                    variant="determinate" 
-                    value={metrics.overallScore} 
+                  <LinearProgress
+                    variant="determinate"
+                    value={metrics.overallScore}
                     sx={{ mt: 1, height: 6, borderRadius: 3 }}
                   />
                 </CardContent>
@@ -612,7 +612,7 @@ export default function DataValidationDashboard() {
               <Typography variant="h6" gutterBottom>
                 Data Quality Rules
               </Typography>
-              
+
               <TableContainer>
                 <Table>
                   <TableHead>
@@ -647,10 +647,10 @@ export default function DataValidationDashboard() {
                             <Chip label={rule.type} size="small" variant="outlined" />
                           </TableCell>
                           <TableCell>
-                            <Chip 
+                            <Chip
                               label={rule.status}
                               size="small"
-                              sx={{ 
+                              sx={{
                                 backgroundColor: getStatusColor(rule.status) + '20',
                                 color: getStatusColor(rule.status),
                                 fontWeight: 'bold'
@@ -675,7 +675,7 @@ export default function DataValidationDashboard() {
                             </Typography>
                           </TableCell>
                           <TableCell>
-                            <Chip 
+                            <Chip
                               label={rule.severity}
                               size="small"
                               sx={{
@@ -726,7 +726,7 @@ export default function DataValidationDashboard() {
               <Typography variant="h6" gutterBottom>
                 Validation Jobs
               </Typography>
-              
+
               <List>
                 {jobs.map((job) => (
                   <React.Fragment key={job.id}>
@@ -734,15 +734,15 @@ export default function DataValidationDashboard() {
                       <ListItemIcon>
                         <Avatar sx={{ backgroundColor: getStatusColor(job.status) + '20' }}>
                           {job.type === 'scheduled' ? <ScheduleIcon sx={{ color: getStatusColor(job.status) }} /> :
-                           job.type === 'batch' ? <DataIcon sx={{ color: getStatusColor(job.status) }} /> :
-                           <NotificationIcon sx={{ color: getStatusColor(job.status) }} />}
+                            job.type === 'batch' ? <DataIcon sx={{ color: getStatusColor(job.status) }} /> :
+                              <NotificationIcon sx={{ color: getStatusColor(job.status) }} />}
                         </Avatar>
                       </ListItemIcon>
                       <ListItemText
                         primary={
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <Typography variant="subtitle1">{job.name}</Typography>
-                            <Chip 
+                            <Chip
                               label={job.status}
                               size="small"
                               sx={{
@@ -810,10 +810,10 @@ export default function DataValidationDashboard() {
                       <XAxis dataKey="date" />
                       <YAxis />
                       <RechartsTooltip />
-                      <Line 
-                        type="monotone" 
-                        dataKey="score" 
-                        stroke={COLORS.info} 
+                      <Line
+                        type="monotone"
+                        dataKey="score"
+                        stroke={COLORS.info}
                         strokeWidth={3}
                         dot={{ r: 4 }}
                       />
@@ -884,7 +884,7 @@ export default function DataValidationDashboard() {
                   <List>
                     <ListItemButton>
                       <ListItemIcon><ReportIcon color="primary" /></ListItemIcon>
-                      <ListItemText 
+                      <ListItemText
                         primary="Daily Quality Summary"
                         secondary="Comprehensive daily data quality report"
                       />
@@ -893,7 +893,7 @@ export default function DataValidationDashboard() {
                     <Divider />
                     <ListItemButton>
                       <ListItemIcon><IssueIcon color="error" /></ListItemIcon>
-                      <ListItemText 
+                      <ListItemText
                         primary="Failed Rules Report"
                         secondary="Detailed analysis of failed validation rules"
                       />
@@ -902,7 +902,7 @@ export default function DataValidationDashboard() {
                     <Divider />
                     <ListItemButton>
                       <ListItemIcon><TrendIcon color="success" /></ListItemIcon>
-                      <ListItemText 
+                      <ListItemText
                         primary="Quality Trend Analysis"
                         secondary="Historical data quality trends and patterns"
                       />
@@ -1002,7 +1002,7 @@ export default function DataValidationDashboard() {
           <>
             <DialogTitle>
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                {React.createElement(ruleTypeIcons[selectedRule.type], { sx: { mr: 1, color: 'primary.main' } })}
+                {(React.createElement(ruleTypeIcons[selectedRule.type] as any, { sx: { mr: 1, color: 'primary.main' } }) as any)}
                 {selectedRule.name}
               </Box>
             </DialogTitle>
@@ -1015,24 +1015,24 @@ export default function DataValidationDashboard() {
                 <Grid size={6}>
                   <Typography variant="subtitle2" gutterBottom>Configuration</Typography>
                   <Typography variant="body2">
-                    <strong>Table:</strong> {selectedRule.table}<br/>
-                    <strong>Column:</strong> {selectedRule.column}<br/>
-                    <strong>Condition:</strong> {selectedRule.condition}<br/>
+                    <strong>Table:</strong> {selectedRule.table}<br />
+                    <strong>Column:</strong> {selectedRule.column}<br />
+                    <strong>Condition:</strong> {selectedRule.condition}<br />
                     <strong>Threshold:</strong> {selectedRule.threshold}%
                   </Typography>
                 </Grid>
                 <Grid size={12}>
                   <Typography variant="subtitle2" gutterBottom>Recent Results</Typography>
                   <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-                    <Chip 
+                    <Chip
                       label={`Score: ${selectedRule.score.toFixed(1)}%`}
                       color="primary"
                     />
-                    <Chip 
+                    <Chip
                       label={`Errors: ${selectedRule.errorCount}`}
                       color={selectedRule.errorCount > 0 ? 'error' : 'success'}
                     />
-                    <Chip 
+                    <Chip
                       label={`Records: ${selectedRule.totalRecords}`}
                       variant="outlined"
                     />

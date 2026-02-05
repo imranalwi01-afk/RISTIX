@@ -271,7 +271,7 @@ export default function PersonalizedWidget({
             <Grid container spacing={2}>
               {customSettings.showStages !== false && widgetData.data && (
                 <>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <Box sx={{ textAlign: 'center', py: 1 }}>
                       <Typography variant="h4" sx={{ fontWeight: 'bold', color: bankingContext?.primary }}>
                         {formatCurrency(widgetData.data.totalECL, widgetData.data.currency)}
@@ -287,7 +287,7 @@ export default function PersonalizedWidget({
                       />
                     </Box>
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <Box sx={{ textAlign: 'center', py: 1 }}>
                       <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#2e7d32' }}>
                         {formatCurrency(widgetData.data.stage1ECL, widgetData.data.currency)}
@@ -314,7 +314,7 @@ export default function PersonalizedWidget({
           <Box sx={{ p: 2 }}>
             <Grid container spacing={2}>
               {customSettings.metrics?.includes('exposure') && widgetData.data && (
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <Box sx={{ textAlign: 'center', py: 1 }}>
                     <Avatar sx={{ backgroundColor: bankingContext?.primary, mx: 'auto', mb: 1 }}>
                       <AccountBalance />
@@ -329,7 +329,7 @@ export default function PersonalizedWidget({
                 </Grid>
               )}
               {customSettings.metrics?.includes('accounts') && widgetData.data && (
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <Box sx={{ textAlign: 'center', py: 1 }}>
                     <Avatar sx={{ backgroundColor: bankingContext?.secondary, mx: 'auto', mb: 1 }}>
                       <PieChart />
@@ -352,7 +352,7 @@ export default function PersonalizedWidget({
           <Box sx={{ p: 2 }}>
             <Grid container spacing={1}>
               {customSettings.actions?.includes('calculate') && (
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <Button
                     variant="contained"
                     fullWidth
@@ -364,7 +364,7 @@ export default function PersonalizedWidget({
                 </Grid>
               )}
               {customSettings.actions?.includes('analyze') && (
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <Button
                     variant="outlined"
                     fullWidth
@@ -375,7 +375,7 @@ export default function PersonalizedWidget({
                 </Grid>
               )}
               {customSettings.actions?.includes('report') && (
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <Button
                     variant="outlined"
                     fullWidth
@@ -530,7 +530,7 @@ export default function PersonalizedWidget({
         )}
 
         {onRemove && (
-          <MenuItem onClick={() => { onRemove(); handleMenuClose(); }} sx={{ color: 'error.main' }}>
+          <MenuItem onClick={() => { onRemove(); handleMenuClose(); }} >
             <Typography sx={{ mr: 1, fontSize: 'small' }}>×</Typography>
             Remove Widget
           </MenuItem>

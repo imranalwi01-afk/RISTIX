@@ -89,7 +89,7 @@ function TabPanel(props: TabPanelProps) {
       aria-labelledby={`impairment-tab-${index}`}
       {...other}
     >
-      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
+      {value === index && <Box sx={{ p: 3 }}>{children as any}</Box>}
     </div>
   );
 }
@@ -495,7 +495,7 @@ export default function ImpairmentPage() {
 
             {/* Filters */}
             <Grid container spacing={2} sx={{ mb: 3 }}>
-              <Grid item xs={12} md={3}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <TextField
                   fullWidth
                   label="Search Account/Customer"
@@ -510,7 +510,7 @@ export default function ImpairmentPage() {
                   }}
                 />
               </Grid>
-              <Grid item xs={12} md={2}>
+              <Grid size={{ xs: 12, md: 2 }}>
                 <FormControl fullWidth>
                   <InputLabel>Stage Filter</InputLabel>
                   <Select
@@ -525,7 +525,7 @@ export default function ImpairmentPage() {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} md={2}>
+              <Grid size={{ xs: 12, md: 2 }}>
                 <FormControl fullWidth>
                   <InputLabel>Impaired Flag</InputLabel>
                   <Select
@@ -539,7 +539,7 @@ export default function ImpairmentPage() {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} md={2}>
+              <Grid size={{ xs: 12, md: 2 }}>
                 <FormControl fullWidth>
                   <InputLabel>Assessment Status</InputLabel>
                   <Select
@@ -555,7 +555,7 @@ export default function ImpairmentPage() {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} md={3}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <Button
                   variant="outlined"
                   onClick={clearFilters}
@@ -573,7 +573,7 @@ export default function ImpairmentPage() {
                 <Typography variant="subtitle2" sx={{ width: '100%', mb: 1 }}>
                   Column-wise Filters
                 </Typography>
-                <Grid item xs={12} md={3}>
+                <Grid size={{ xs: 12, md: 3 }}>
                   <TextField
                     fullWidth
                     size="small"
@@ -582,7 +582,7 @@ export default function ImpairmentPage() {
                     onChange={(e) => setColumnFilters(prev => ({ ...prev, account_number: e.target.value }))}
                   />
                 </Grid>
-                <Grid item xs={12} md={3}>
+                <Grid size={{ xs: 12, md: 3 }}>
                   <TextField
                     fullWidth
                     size="small"
@@ -591,7 +591,7 @@ export default function ImpairmentPage() {
                     onChange={(e) => setColumnFilters(prev => ({ ...prev, cif_name: e.target.value }))}
                   />
                 </Grid>
-                <Grid item xs={12} md={3}>
+                <Grid size={{ xs: 12, md: 3 }}>
                   <TextField
                     fullWidth
                     size="small"
@@ -600,7 +600,7 @@ export default function ImpairmentPage() {
                     onChange={(e) => setColumnFilters(prev => ({ ...prev, rating_code: e.target.value }))}
                   />
                 </Grid>
-                <Grid item xs={12} md={3}>
+                <Grid size={{ xs: 12, md: 3 }}>
                   <TextField
                     fullWidth
                     size="small"
@@ -615,7 +615,7 @@ export default function ImpairmentPage() {
             {/* Summary Cards */}
             {analytics && (
               <Grid container spacing={3} sx={{ mb: 3 }}>
-                <Grid item xs={12} md={3}>
+                <Grid size={{ xs: 12, md: 3 }}>
                   <Card>
                     <CardContent>
                       <Typography variant="h4" color="primary">
@@ -627,7 +627,7 @@ export default function ImpairmentPage() {
                     </CardContent>
                   </Card>
                 </Grid>
-                <Grid item xs={12} md={3}>
+                <Grid size={{ xs: 12, md: 3 }}>
                   <Card>
                     <CardContent>
                       <Typography variant="h4" color="success.main">
@@ -639,7 +639,7 @@ export default function ImpairmentPage() {
                     </CardContent>
                   </Card>
                 </Grid>
-                <Grid item xs={12} md={3}>
+                <Grid size={{ xs: 12, md: 3 }}>
                   <Card>
                     <CardContent>
                       <Typography variant="h4" color="warning.main">
@@ -651,7 +651,7 @@ export default function ImpairmentPage() {
                     </CardContent>
                   </Card>
                 </Grid>
-                <Grid item xs={12} md={3}>
+                <Grid size={{ xs: 12, md: 3 }}>
                   <Card>
                     <CardContent>
                       <Typography variant="h4" color="error.main">
@@ -848,7 +848,7 @@ export default function ImpairmentPage() {
         <DialogContent>
           {selectedRecord && (
             <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   fullWidth
                   label="Account Number"
@@ -856,7 +856,7 @@ export default function ImpairmentPage() {
                   disabled
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   fullWidth
                   label="Customer Name"
@@ -864,7 +864,7 @@ export default function ImpairmentPage() {
                   disabled
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   fullWidth
                   label="CIF Number"
@@ -872,7 +872,7 @@ export default function ImpairmentPage() {
                   disabled
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   fullWidth
                   label="Currency"
@@ -880,7 +880,7 @@ export default function ImpairmentPage() {
                   disabled
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   fullWidth
                   label="Outstanding Balance"
@@ -888,7 +888,7 @@ export default function ImpairmentPage() {
                   disabled
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   fullWidth
                   label="ECL Amount"
@@ -896,7 +896,7 @@ export default function ImpairmentPage() {
                   disabled
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   fullWidth
                   label="Stage"
@@ -904,7 +904,7 @@ export default function ImpairmentPage() {
                   disabled
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   fullWidth
                   label="Impaired Flag"
@@ -912,7 +912,7 @@ export default function ImpairmentPage() {
                   disabled
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   fullWidth
                   label="Rating Code"
@@ -920,7 +920,7 @@ export default function ImpairmentPage() {
                   disabled
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   fullWidth
                   label="Assessment Status"

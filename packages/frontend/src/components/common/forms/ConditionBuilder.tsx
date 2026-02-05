@@ -81,7 +81,7 @@ export const ConditionBuilder: React.FC<ConditionBuilderProps> = ({ value = [], 
                     const columns = row.table ? (MOCK_COLUMNS[row.table] || []) : [];
 
                     return (
-                        <Grid item xs={12} key={row.id}>
+                        <Grid size={{ xs: 12 }} key={row.id}>
                             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
                                 {/* Table Select */}
                                 <TextField

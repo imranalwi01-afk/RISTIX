@@ -44,7 +44,8 @@ import {
   ViewList as ViewDetailIcon,
   Settings as SettingsIcon
 } from '@mui/icons-material';
-import { DataGrid, GridColDef, GridActionsCellItem, GridRowParams } from '@mui/x-data-grid';
+import { GridColDef, GridRowParams } from '@mui/x-data-grid';
+import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 import { api, handleAPIError } from '../../../services/api';
 import SegmentationDetailModal from './components/SegmentationDetailModal';
 
@@ -260,20 +261,20 @@ export default function SegmentationConfigurationPage() {
       getActions: (params: GridRowParams) => {
         if (!params.row) return [];
         return [
-          <GridActionsCellItem
+          <SafeGridActionsCellItem
             icon={<ViewDetailIcon />}
             label="View Details"
             onClick={() => handleViewDetails(params.row)}
             key="details"
           />,
-          <GridActionsCellItem
-            icon={<EditIcon />}
+          <SafeGridActionsCellItem
+            icon={<EditIcon color="primary" />}
             label="Edit"
             onClick={() => handleEdit(params.row)}
             key="edit"
           />,
-          <GridActionsCellItem
-            icon={<DeleteIcon />}
+          <SafeGridActionsCellItem
+            icon={<DeleteIcon color="error" />}
             label="Delete"
             onClick={() => handleDelete(params.row)}
             key="delete"
@@ -472,7 +473,7 @@ export default function SegmentationConfigurationPage() {
       <Card>
         <CardContent>
           <Box sx={{ height: 600, width: '100%' }}>
-            <DataGrid
+            <SafeDataGrid
               rows={data}
               columns={columns}
               getRowId={(row) => row?.pkid || `row_${JSON.stringify(row).slice(0, 50)}`}
@@ -480,38 +481,7 @@ export default function SegmentationConfigurationPage() {
               initialState={{
                 pagination: { paginationModel: { pageSize: 10 } }
               }}
-              disableRowSelectionOnClick
               loading={loading}
-              slotProps={{
-                loadingOverlay: {
-                  variant: 'linear-progress' as const,
-                  noRowsVariant: 'skeleton' as const,
-                },
-                noRowsOverlay: {
-                  children: (
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        height: '100%',
-                        gap: 2
-                      }}
-                    >
-                      <ErrorIcon sx={{ fontSize: 48, color: 'text.secondary' }} />
-                      <Typography variant="h6" color="text.secondary">
-                        No Segmentation Configuration Found
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary" textAlign="center">
-                        {error ? 'Failed to load data from database.' : 'No segmentation rules configured yet.'}
-                        <br />
-                        {error ? 'Check your connection and try refreshing.' : 'Click "Add Segmentation" to create the first one.'}
-                      </Typography>
-                    </Box>
-                  )
-                }
-              }}
             />
           </Box>
         </CardContent>

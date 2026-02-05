@@ -16,16 +16,16 @@ async function seed() {
         '001_seed_roles.sql',
         '002_seed_menus.sql',
         '003_seed_users.sql',
-        '004_seed_product_segments.sql',
-        '005_seed_rule_base_settings.sql',
-        '006_seed_bucket_parameters.sql',
-        '007_seed_bucket_parameter_details.sql',
-        '008_seed_pd_configurations.sql',
-        '009_seed_population_segments.sql',
-        '010_seed_lgd_configurations.sql',
-        '011_seed_ead_configurations.sql',
-        '012_seed_app_settings.sql',
-        '013_seed_business_settings.sql',
+        // '004_seed_product_segments.sql',
+        // '005_seed_rule_base_settings.sql',
+        // '006_seed_bucket_parameters.sql',
+        // '007_seed_bucket_parameter_details.sql',
+        // '008_seed_pd_configurations.sql',
+        // '009_seed_population_segments.sql',
+        // '010_seed_lgd_configurations.sql',
+        // '011_seed_ead_configurations.sql',
+        // '012_seed_app_settings.sql',
+        // '013_seed_business_settings.sql',
     ]
 
     try {
@@ -53,6 +53,15 @@ async function seed() {
         }
 
         console.log('✅ All seed scripts executed successfully!')
+
+        // Execute TypeScript Seeders
+        const { seedPermissions } = await import('./seeds/permissions.seed')
+        await seedPermissions()
+
+        const { seedRoles } = await import('./seeds/roles.seed')
+        await seedRoles()
+
+        console.log('🎉 Database seeding complete!')
         process.exit(0)
     } catch (error) {
         console.error('❌ Seeding failed:', error)

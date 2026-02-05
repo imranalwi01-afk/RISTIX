@@ -1,13 +1,12 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import dynamic from 'next/dynamic';
+
 import {
   Box,
   Typography,
   Container,
   Paper,
-  Grid,
   Card,
   CardContent,
   Button,
@@ -36,24 +35,16 @@ import {
   Refresh as RefreshIcon,
   Search as SearchIcon,
 } from '@mui/icons-material';
-import type { GridColDef } from '@mui/x-data-grid';
+import { GridColDef } from '@mui/x-data-grid';
 import { useRouter } from 'next/navigation';
 import { api } from '../../../../services/api';
 import { EADConfiguration } from '../../../../services/api/ead-configurations.api';
 import { FLScalarWithDetails } from '../../../../services/api/fl-scalar.api';
-import { FullstackIndicator } from '../../../../components/common/feedback/FullstackIndicator';
+import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 import { PopulationSegment } from '../../../../services/api/population-segments.api';
 
-// Dynamic imports for heavy components
-const DataGrid = dynamic(
-  () => import('@mui/x-data-grid').then((mod) => mod.DataGrid),
-  { ssr: false, loading: () => <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress /></Box> }
-);
-
-const GridActionsCellItem = dynamic(
-  () => import('@mui/x-data-grid').then((mod) => mod.GridActionsCellItem),
-  { ssr: false }
-);
+// Safe DataGrid wrapper to prevent bundling issues
+import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 
 // Extended interface for UI display
 interface EADConfigUI extends EADConfiguration {
@@ -157,11 +148,11 @@ export default function EADSetupPage() {
     setLoading(true);
     try {
       const payload: any = {
-        modelName: formData.model_name,
-        segmentId: formData.segment_id,
-        eadMethod: formData.ead_method,
-        calcMethod: formData.calc_method,
-        isActive: formData.is_active
+        model_name: formData.model_name,
+        segment_id: formData.segment_id,
+        ead_method: formData.ead_method,
+        calc_method: formData.calc_method,
+        is_active: formData.is_active
       };
 
       if (isEditing && selectedConfig?.id) {
@@ -219,9 +210,9 @@ export default function EADSetupPage() {
       headerName: 'Actions',
       width: 100,
       getActions: (params) => [
-        <GridActionsCellItem
+        <SafeGridActionsCellItem
           key="edit"
-          icon={<EditIcon />}
+          icon={<EditIcon color="primary" />}
           label="Edit"
           onClick={() => {
             setSelectedConfig(params.row);
@@ -230,9 +221,9 @@ export default function EADSetupPage() {
             setIsDialogOpen(true);
           }}
         />,
-        <GridActionsCellItem
+        <SafeGridActionsCellItem
           key="delete"
-          icon={<DeleteIcon />}
+          icon={<DeleteIcon color="error" />}
           label="Delete"
           onClick={() => handleDelete(params.row.id!)}
         />
@@ -280,7 +271,7 @@ export default function EADSetupPage() {
 
       <Card>
         <Box sx={{ height: 600, width: '100%' }}>
-          <DataGrid
+          <SafeDataGrid
             rows={filteredConfigs}
             columns={columns}
             loading={loading}
@@ -293,66 +284,58 @@ export default function EADSetupPage() {
       <Dialog open={isDialogOpen} onClose={() => setIsDialogOpen(false)} maxWidth="lg" fullWidth>
         <DialogTitle>{selectedConfig ? 'Edit EAD Configuration' : 'New EAD Configuration'}</DialogTitle>
         <DialogContent dividers>
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Model Name"
-                value={formData.model_name || ''}
-                onChange={(e) => setFormData({ ...formData, model_name: e.target.value })}
-                error={!!formErrors.model_name}
-                helperText={formErrors.model_name}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth error={!!formErrors.segment_id}>
-                <InputLabel>Population Segment</InputLabel>
-                <Select
-                  value={formData.segment_id || ''}
-                  label="Population Segment"
-                  onChange={(e) => setFormData({ ...formData, segment_id: Number(e.target.value) })}
-                >
-                  {populationSegments.map(s => (
-                    <MenuItem key={s.id} value={s.id}>{s.segment_name}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
+          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 3 }}>
+            <TextField
+              fullWidth
+              label="Model Name"
+              value={formData.model_name || ''}
+              onChange={(e) => setFormData({ ...formData, model_name: e.target.value })}
+              error={!!formErrors.model_name}
+              helperText={formErrors.model_name}
+            />
+            <FormControl fullWidth error={!!formErrors.segment_id}>
+              <InputLabel>Population Segment</InputLabel>
+              <Select
+                value={formData.segment_id || ''}
+                label="Population Segment"
+                onChange={(e) => setFormData({ ...formData, segment_id: Number(e.target.value) })}
+              >
+                {populationSegments.map(s => (
+                  <MenuItem key={s.id} value={s.id}>{s.segment_name}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
 
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth error={!!formErrors.ead_method}>
-                <InputLabel>EAD Method</InputLabel>
-                <Select
-                  value={formData.ead_method || 'CCF'}
-                  label="EAD Method"
-                  onChange={(e) => setFormData({ ...formData, ead_method: e.target.value })}
-                >
-                  {methodOptions.map(m => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
-                </Select>
-              </FormControl>
-            </Grid>
+            <FormControl fullWidth error={!!formErrors.ead_method}>
+              <InputLabel>EAD Method</InputLabel>
+              <Select
+                value={formData.ead_method || 'CCF'}
+                label="EAD Method"
+                onChange={(e) => setFormData({ ...formData, ead_method: e.target.value })}
+              >
+                {methodOptions.map(m => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
+              </Select>
+            </FormControl>
 
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth error={!!formErrors.calc_method}>
-                <InputLabel>Calc Method</InputLabel>
-                <Select
-                  value={formData.calc_method || 'Revolving'}
-                  label="Calc Method"
-                  onChange={(e) => setFormData({ ...formData, calc_method: e.target.value })}
-                >
-                  {calcMethodOptions.map(m => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
-                </Select>
-              </FormControl>
-            </Grid>
+            <FormControl fullWidth error={!!formErrors.calc_method}>
+              <InputLabel>Calc Method</InputLabel>
+              <Select
+                value={formData.calc_method || 'Revolving'}
+                label="Calc Method"
+                onChange={(e) => setFormData({ ...formData, calc_method: e.target.value })}
+              >
+                {calcMethodOptions.map(m => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
+              </Select>
+            </FormControl>
 
-            <Grid item xs={12}>
+            <Box sx={{ gridColumn: 'span 2' }}>
               <FormControlLabel
                 control={<Switch checked={!!formData.is_active} onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })} />}
                 label="Active"
               />
-            </Grid>
+            </Box>
 
-          </Grid>
+          </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setIsDialogOpen(false)}>Cancel</Button>

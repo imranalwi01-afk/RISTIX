@@ -34,7 +34,7 @@ import {
   FormLabel,
   Checkbox,
   FormGroup,
-  Grid2 as Grid,
+  Grid,
   Snackbar,
   Card,
   CardContent,

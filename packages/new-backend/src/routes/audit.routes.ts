@@ -2,7 +2,7 @@ import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
 import { zValidator } from '@hono/zod-validator'
 import type { AppContext } from '../app'
 import { authMiddleware, tenantMiddleware } from '../middleware'
-import { db } from '../config/database'
+import { db, getDatabase } from '../config/database'
 import { auditLogs, userActivityLogs, dataAccessLogs } from '../db/schema'
 import { eq, and, desc, gte, lte, like, sql, or } from 'drizzle-orm'
 
@@ -203,14 +203,16 @@ auditRoutes.openapi(
 
         const whereClause = and(...conditions)
 
+        const currentDb = getDatabase(tenantId)
+
         // Get total count
-        const [{ count }] = await db
+        const [{ count }] = await currentDb
             .select({ count: sql<number>`count(*)` })
             .from(auditLogs)
             .where(whereClause)
 
         // Get logs
-        const logs = await db
+        const logs = await currentDb
             .select()
             .from(auditLogs)
             .where(whereClause)
@@ -277,7 +279,9 @@ auditRoutes.openapi(
         const { id } = c.req.valid('param')
         const tenantId = c.get('tenantId')!
 
-        const [log] = await db
+        const currentDb = getDatabase(tenantId)
+
+        const [log] = await currentDb
             .select()
             .from(auditLogs)
             .where(and(
@@ -350,10 +354,11 @@ auditRoutes.openapi(
             conditions.push(lte(auditLogs.createdAt, new Date(endDate)))
         }
 
+        const currentDb = getDatabase(tenantId)
         const whereClause = and(...conditions)
 
         // Get stats by event type
-        const eventTypeStats = await db
+        const eventTypeStats = await currentDb
             .select({
                 eventType: auditLogs.eventType,
                 count: sql<number>`count(*)`
@@ -363,7 +368,7 @@ auditRoutes.openapi(
             .groupBy(auditLogs.eventType)
 
         // Get top users
-        const topUsers = await db
+        const topUsers = await currentDb
             .select({
                 userId: auditLogs.userId,
                 count: sql<number>`count(*)`
@@ -375,7 +380,7 @@ auditRoutes.openapi(
             .limit(10)
 
         // Get total count
-        const [{ total }] = await db
+        const [{ total }] = await currentDb
             .select({ total: sql<number>`count(*)` })
             .from(auditLogs)
             .where(whereClause)
@@ -443,7 +448,9 @@ auditRoutes.openapi(
             conditions.push(lte(auditLogs.createdAt, new Date(filters.endDate)))
         }
 
-        const logs = await db
+        const currentDb = getDatabase(tenantId)
+
+        const logs = await currentDb
             .select()
             .from(auditLogs)
             .where(and(...conditions))
@@ -510,14 +517,15 @@ auditRoutes.openapi(
         if (query.userId) { conditions.push(eq(userActivityLogs.userId, query.userId)) }
         if (query.activityType) { conditions.push(eq(userActivityLogs.activityType, query.activityType)) }
 
+        const currentDb = getDatabase(tenantId)
         const whereClause = and(...conditions)
 
-        const [{ count }] = await db
+        const [{ count }] = await currentDb
             .select({ count: sql<number>`count(*)` })
             .from(userActivityLogs)
             .where(whereClause)
 
-        const activities = await db
+        const activities = await currentDb
             .select()
             .from(userActivityLogs)
             .where(whereClause)
@@ -607,14 +615,15 @@ auditRoutes.openapi(
         if (query.userId) { conditions.push(eq(dataAccessLogs.userId, query.userId)) }
         if (query.resourceType) { conditions.push(eq(dataAccessLogs.resourceType, query.resourceType)) }
 
+        const currentDb = getDatabase(tenantId)
         const whereClause = and(...conditions)
 
-        const [{ count }] = await db
+        const [{ count }] = await currentDb
             .select({ count: sql<number>`count(*)` })
             .from(dataAccessLogs)
             .where(whereClause)
 
-        const accessLogs = await db
+        const accessLogs = await currentDb
             .select()
             .from(dataAccessLogs)
             .where(whereClause)

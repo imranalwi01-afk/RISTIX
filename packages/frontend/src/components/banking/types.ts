@@ -218,6 +218,7 @@ export interface DatabaseMenuItem {
   is_active?: boolean;
   user_types?: string[];
   roles?: string[]; // Alternative field name for user types
+  requiredPermissions?: string[];
   banking_types?: string[];
   banking_modes?: ('conventional' | 'syariah' | 'dual')[];
   parent_id?: string | null;
@@ -240,7 +241,7 @@ export interface MenuItem {
   label: string;
   isActive?: boolean;
   href?: string;
-  icon: React.ReactElement;
+  icon: React.ReactElement<any>;
   description?: string;
   parent_id?: string | null;
   sort_order?: number; // Optional for static menu compatibility
@@ -248,6 +249,7 @@ export interface MenuItem {
   path?: string; // Optional for static menu compatibility
   children?: MenuItem[];
   roles?: string[];
+  requiredPermissions?: string[];
   banking_modes?: ('conventional' | 'syariah' | 'dual')[];
   badge?: {
     content: string | number;

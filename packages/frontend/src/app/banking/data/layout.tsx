@@ -13,5 +13,5 @@ export default function DataLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <>{children}</>;
+  return <>{children as any}</>;
 }

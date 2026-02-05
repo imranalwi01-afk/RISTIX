@@ -9,30 +9,24 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box,
-  Typography,
   Container,
   Card,
   CardContent,
   Button,
   CircularProgress,
   Alert,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  MenuItem,
   Chip,
   Snackbar,
   InputAdornment,
   Select,
   FormControl,
   InputLabel,
-  FormControlLabel,
-  Switch
+  TextField,
+  MenuItem,
+  Menu
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -41,46 +35,29 @@ import {
   Error as ErrorIcon,
   Search as SearchIcon,
   FilterList as FilterIcon,
-  Clear as ClearIcon
+  Clear as ClearIcon,
+  Download as DownloadIcon
 } from '@mui/icons-material';
-import { DataGrid, GridColDef, GridActionsCellItem, GridRowParams } from '@mui/x-data-grid';
+import { GridColDef, GridRowParams } from '@mui/x-data-grid';
+
+// Safe DataGrid wrapper to prevent bundling issues
+import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 import { useRouter } from 'next/navigation';
 import { api, handleAPIError } from '../../../../services/api';
+import { exportToXLSX, exportToCSV, exportToPDF } from '@/utils/exportUtils';
 
 // Shared components
 import PageHeader from '@/components/banking/shared/PageHeader';
 import EmptyState from '@/components/banking/shared/EmptyState';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 
-
-// ✅ FIXED: Interface uses camelCase to match backend Drizzle schema
-interface JournalParameter {
-  pkid: number;
-  glGroup?: string;
-  currency?: string;
-  glType?: string;
-  glCode?: string;
-  glNumber?: string;
-  dbcr?: string;
-  glDesc?: string;
-  activeFlag?: boolean;
-  createdby?: string;
-  createddate?: string;
-  updatedby?: string;
-  updateddate?: string;
-}
-
-// ✅ FIXED: Form interface uses camelCase
-interface JournalForm {
-  glGroup: string;
-  currency: string;
-  glType: string;
-  glCode: string;
-  glNumber: string; // COA
-  dbcr: string;
-  glDesc: string;
-  activeFlag: boolean;
-}
+// Extracted memoized dialog component
+import {
+  JournalFormDialog,
+  type JournalParameter,
+  type JournalFormData,
+  type JournalDropdownOption
+} from './components';
 
 export default function JournalParametersPage() {
   const router = useRouter();
@@ -90,17 +67,9 @@ export default function JournalParametersPage() {
   const [selectedJournal, setSelectedJournal] = useState<JournalParameter | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [exportMenuAnchor, setExportMenuAnchor] = useState<null | HTMLElement>(null);
 
-  const [formData, setFormData] = useState<JournalForm>({
-    glGroup: '',
-    currency: '',
-    glType: '',
-    glCode: '',
-    glNumber: '',
-    dbcr: '',
-    glDesc: '',
-    activeFlag: true
-  });
+
 
   // State for dropdown options
   const [glGroupOptions, setGlGroupOptions] = useState<Array<{ id: string, name: string }>>([]);
@@ -115,7 +84,6 @@ export default function JournalParametersPage() {
   const [filterGlGroup, setFilterGlGroup] = useState('');
   const [filterCurrency, setFilterCurrency] = useState('');
   const [filterActive, setFilterActive] = useState<'all' | 'active' | 'inactive'>('all');
-  const [filteredData, setFilteredData] = useState<JournalParameter[]>([]);
 
   // ============================================================================
   // DATAGRID COLUMNS CONFIGURATION
@@ -188,14 +156,14 @@ export default function JournalParametersPage() {
       headerName: 'Actions',
       width: 120,
       getActions: (params: GridRowParams) => [
-        <GridActionsCellItem
-          icon={<EditIcon />}
+        <SafeGridActionsCellItem
+          icon={<EditIcon color="primary" />}
           label="Edit"
           onClick={() => params?.row && handleEdit(params.row)}
           key="edit"
         />,
-        <GridActionsCellItem
-          icon={<DeleteIcon />}
+        <SafeGridActionsCellItem
+          icon={<DeleteIcon color="error" />}
           label="Delete"
           onClick={() => params?.row && handleDelete(params.row)}
           key="delete"
@@ -224,7 +192,6 @@ export default function JournalParametersPage() {
       if (result.success && result.data) {
         console.log('✅ Successfully loaded journal data:', result.data.length, 'parameters');
         setData(result.data);
-        setFilteredData(result.data);
       } else {
         throw new Error(result.message || 'Failed to load journal parameters');
       }
@@ -234,14 +201,81 @@ export default function JournalParametersPage() {
       const errorInfo = handleAPIError(error);
       setError(errorInfo.message);
       setData([]);
-      setFilteredData([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const applyFilters = () => {
-    // ✅ FIXED: Defensive check to prevent spread mechanism error
+  // Filtering logic moved to useMemo below
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setFilterGlGroup('');
+    setFilterCurrency('');
+    setFilterActive('all');
+  };
+
+  const loadDropdownOptions = async () => {
+    setOptionsLoading(true);
+    try {
+      console.log('🔄 Loading dropdown options from FRS9PRO database...');
+
+      const [glGroup, currency, journalType, journalCode, dbcr] = await Promise.all([
+        api.banking.journalParameters.getGlGroupOptions(),
+        api.banking.journalParameters.getCurrencyOptions(),
+        api.banking.journalParameters.getJournalTypeOptions(),
+        api.banking.journalParameters.getJournalCodeOptions(),
+        api.banking.journalParameters.getDbcrOptions()
+      ]);
+
+      // Set options with fallbacks if data is empty or request failed
+      setGlGroupOptions(glGroup.success && glGroup.data?.length ? glGroup.data : [
+        { id: 'ASSETS', name: 'Assets' },
+        { id: 'LIABILITIES', name: 'Liabilities' }
+      ]);
+
+      setCurrencyOptions(currency.success && currency.data?.length ? currency.data : [
+        { id: 'IDR', name: 'Indonesian Rupiah' },
+        { id: 'USD', name: 'US Dollar' }
+      ]);
+
+      setJournalTypeOptions(journalType.success && journalType.data?.length ? journalType.data : [
+        { id: 'GENERAL', name: 'General' },
+        { id: 'ADJUSTMENT', name: 'Adjustment' }
+      ]);
+
+      setJournalCodeOptions(journalCode.success && journalCode.data?.length ? journalCode.data : [
+        { id: 'GJ', name: 'General Journal' },
+        { id: 'AJ', name: 'Adjustment Journal' }
+      ]);
+
+      setDbcrOptions(dbcr.success && dbcr.data?.length ? dbcr.data : [
+        { id: 'D', name: 'Debit' },
+        { id: 'C', name: 'Credit' }
+      ]);
+
+    } catch (error) {
+      console.error('❌ Failed to load dropdown options:', error);
+      // Final hardcoded fallbacks just in case
+      setGlGroupOptions([{ id: 'ASSETS', name: 'Assets' }, { id: 'LIABILITIES', name: 'Liabilities' }]);
+      setCurrencyOptions([{ id: 'IDR', name: 'Indonesian Rupiah' }, { id: 'USD', name: 'US Dollar' }]);
+      setJournalTypeOptions([{ id: 'GENERAL', name: 'General' }, { id: 'ADJUSTMENT', name: 'Adjustment' }]);
+      setJournalCodeOptions([{ id: 'GJ', name: 'General Journal' }, { id: 'AJ', name: 'Adjustment Journal' }]);
+      setDbcrOptions([{ id: 'D', name: 'Debit' }, { id: 'C', name: 'Credit' }]);
+    } finally {
+      setOptionsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+    loadDropdownOptions();
+  }, []);
+
+  // Filters are now handled by useMemo
+
+  // Consolidated Client-side filtering logic
+  const filteredData = useMemo(() => {
     let filtered = [...(Array.isArray(data) ? data : [])];
 
     if (searchTerm) {
@@ -268,83 +302,16 @@ export default function JournalParametersPage() {
       filtered = filtered.filter(item => item.activeFlag === false);
     }
 
-    setFilteredData(filtered);
-  };
-
-  const clearFilters = () => {
-    setSearchTerm('');
-    setFilterGlGroup('');
-    setFilterCurrency('');
-    setFilterActive('all');
-    setFilteredData(data);
-  };
-
-  const loadDropdownOptions = async () => {
-    setOptionsLoading(true);
-    try {
-      console.log('🔄 Loading dropdown options from FRS9PRO database...');
-
-      const [glGroup, currency, journalType, journalCode, dbcr] = await Promise.all([
-        api.banking.journalParameters.getGlGroupOptions(),
-        api.banking.journalParameters.getCurrencyOptions(),
-        api.banking.journalParameters.getJournalTypeOptions(),
-        api.banking.journalParameters.getJournalCodeOptions(),
-        api.banking.journalParameters.getDbcrOptions()
-      ]);
-
-      if (glGroup.success && Array.isArray(glGroup.data)) setGlGroupOptions(glGroup.data);
-      if (currency.success && Array.isArray(currency.data)) setCurrencyOptions(currency.data);
-      if (journalType.success && Array.isArray(journalType.data)) setJournalTypeOptions(journalType.data);
-      if (journalCode.success && Array.isArray(journalCode.data)) setJournalCodeOptions(journalCode.data);
-      if (dbcr.success && Array.isArray(dbcr.data)) setDbcrOptions(dbcr.data);
-
-    } catch (error) {
-      console.error('❌ Failed to load dropdown options:', error);
-      // Fallbacks if API fails
-      setGlGroupOptions([{ id: 'ASSETS', name: 'Assets' }, { id: 'LIABILITIES', name: 'Liabilities' }]);
-      setCurrencyOptions([{ id: 'IDR', name: 'Indonesian Rupiah' }, { id: 'USD', name: 'US Dollar' }]);
-      setDbcrOptions([{ id: 'D', name: 'Debit' }, { id: 'C', name: 'Credit' }]);
-    } finally {
-      setOptionsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadData();
-    loadDropdownOptions();
-  }, []);
-
-  useEffect(() => {
-    applyFilters();
-  }, [searchTerm, filterGlGroup, filterCurrency, filterActive, data]);
+    return filtered;
+  }, [data, searchTerm, filterGlGroup, filterCurrency, filterActive]);
 
   const handleCreate = () => {
     setSelectedJournal(null);
-    setFormData({
-      glGroup: glGroupOptions.length > 0 ? glGroupOptions[0].id : '',
-      currency: currencyOptions.length > 0 ? currencyOptions[0].id : '',
-      glType: journalTypeOptions.length > 0 ? journalTypeOptions[0].id : '',
-      glCode: '',
-      glNumber: '',
-      dbcr: dbcrOptions.length > 0 ? dbcrOptions[0].id : '',
-      glDesc: '',
-      activeFlag: true
-    });
     setDialogOpen(true);
   };
 
   const handleEdit = (journal: JournalParameter) => {
     setSelectedJournal(journal);
-    setFormData({
-      glGroup: journal.glGroup || (glGroupOptions.length > 0 ? glGroupOptions[0].id : ''),
-      currency: journal.currency || (currencyOptions.length > 0 ? currencyOptions[0].id : ''),
-      glType: journal.glType || (journalTypeOptions.length > 0 ? journalTypeOptions[0].id : ''),
-      glCode: journal.glCode || '',
-      glNumber: journal.glNumber || '',
-      dbcr: journal.dbcr || (dbcrOptions.length > 0 ? dbcrOptions[0].id : ''),
-      glDesc: journal.glDesc || '',
-      activeFlag: journal.activeFlag ?? true
-    });
     setDialogOpen(true);
   };
 
@@ -370,19 +337,8 @@ export default function JournalParametersPage() {
     }
   };
 
-  const handleSave = async () => {
-    const errors: string[] = [];
-    if (!formData.glGroup.trim()) errors.push('Journal Group is required');
-    if (!formData.currency.trim()) errors.push('Currency is required');
-    if (!formData.glType.trim()) errors.push('Journal Type is required');
-    if (!formData.glCode.trim()) errors.push('Journal Code is required');
-    if (!formData.dbcr.trim()) errors.push('DB/CR is required');
-
-    if (errors.length > 0) {
-      setError(errors.join(', '));
-      return;
-    }
-
+  // Memoized callback to prevent dialog re-renders
+  const handleSave = useCallback(async (formData: JournalFormData) => {
     try {
       setLoading(true);
       setError(null);
@@ -410,13 +366,68 @@ export default function JournalParametersPage() {
 
       setDialogOpen(false);
       await loadData();
-
     } catch (error: any) {
       console.error('❌ Failed to save journal entry:', error);
-      const errorInfo = handleAPIError(error);
-      setError(`Failed to save journal entry: ${errorInfo.message}`);
+      throw error; // Rethrow for dialog handling
     } finally {
       setLoading(false);
+    }
+  }, [selectedJournal, loadData]);
+
+  // Memoized close handler
+  const handleCloseDialog = useCallback(() => {
+    setDialogOpen(false);
+  }, []);
+
+  // Export handler (Client-side export matching Product Parameters)
+  const handleExport = (format: 'xlsx' | 'csv' | 'pdf') => {
+    try {
+      setExportMenuAnchor(null);
+      
+      // Define columns for export (matching data grid)
+      const exportColumns = [
+        { field: 'glCode', headerName: 'GL Code' },
+        { field: 'glDesc', headerName: 'Description' },
+        { field: 'glGroup', headerName: 'GL Group' },
+        { field: 'glType', headerName: 'GL Type' },
+        { field: 'currency', headerName: 'Currency' },
+        { field: 'glNumber', headerName: 'GL Number' },
+        { field: 'dbcr', headerName: 'DB/CR' },
+        { field: 'activeFlag', headerName: 'Active' }
+      ];
+      
+      // Build filter description
+      const activeFilters: Record<string, any> = {};
+      if (searchTerm) activeFilters['Search'] = searchTerm;
+      if (filterGlGroup) activeFilters['GL Group'] = filterGlGroup;
+      if (filterCurrency) activeFilters['Currency'] = filterCurrency;
+      if (filterActive !== 'all') activeFilters['Status'] = filterActive;
+      
+      const exportOptions = {
+        title: 'Journal Parameters',
+        filename: 'journal_parameters',
+        filters: activeFilters,
+        confidential: true
+      };
+      
+      // Use filtered data
+      const dataToExport = filteredData;
+      
+      let result;
+      switch (format) {
+        case 'xlsx': result = exportToXLSX(dataToExport, exportColumns, exportOptions); break;
+        case 'csv': result = exportToCSV(dataToExport, exportColumns, exportOptions); break;
+        case 'pdf': result = exportToPDF(dataToExport, exportColumns, exportOptions); break;
+      }
+      
+      if (result && result.success) {
+        setSuccess(`Exported ${dataToExport.length} records to ${format.toUpperCase()}`);
+      } else {
+        setError(`Failed to export to ${format.toUpperCase()}`);
+      }
+    } catch (error: any) {
+      console.error('Export error:', error);
+      setError(`Export failed: ${error.message}`);
     }
   };
 
@@ -439,16 +450,52 @@ export default function JournalParametersPage() {
         onRefresh={loadData}
         loading={loading}
         extraActions={(
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleCreate}
-            disabled={loading}
-          >
-            Add Journal Entry
-          </Button>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              variant="outlined"
+              startIcon={<DownloadIcon />}
+              onClick={(e) => setExportMenuAnchor(e.currentTarget)}
+              disabled={loading || data.length === 0}
+            >
+              Export
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleCreate}
+              disabled={loading}
+            >
+              Add Journal Entry
+            </Button>
+          </Box>
         )}
       />
+
+      {/* Export Menu */}
+      <Menu
+        anchorEl={exportMenuAnchor}
+        open={Boolean(exportMenuAnchor)}
+        onClose={() => setExportMenuAnchor(null)}
+      >
+        <MenuItem onClick={() => handleExport('xlsx')}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <DownloadIcon fontSize="small" />
+            Export to Excel (XLSX)
+          </Box>
+        </MenuItem>
+        <MenuItem onClick={() => handleExport('csv')}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <DownloadIcon fontSize="small" />
+            Export to CSV
+          </Box>
+        </MenuItem>
+        <MenuItem onClick={() => handleExport('pdf')}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <DownloadIcon fontSize="small" />
+            Export to PDF
+          </Box>
+        </MenuItem>
+      </Menu>
 
       <Card sx={{ mb: 2 }}>
         <CardContent>
@@ -476,223 +523,137 @@ export default function JournalParametersPage() {
                 onChange={(e) => setFilterGlGroup(e.target.value)}
                 label="GL Group"
               >
-                <MenuItem value="">All</MenuItem>
-                {Array.isArray(glGroupOptions) && glGroupOptions.map(option => (
-                  <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+                Add Journal Entry
+              </Button>
+            )}
+          />
 
-            <FormControl size="small" sx={{ minWidth: 120 }}>
-              <InputLabel>Currency</InputLabel>
-              <Select
-                value={filterCurrency}
-                onChange={(e) => setFilterCurrency(e.target.value)}
-                label="Currency"
-              >
-                <MenuItem value="">All</MenuItem>
-                {Array.isArray(currencyOptions) && currencyOptions.map(option => (
-                  <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
 
-            <FormControl size="small" sx={{ minWidth: 120 }}>
-              <InputLabel>Status</InputLabel>
-              <Select
-                value={filterActive}
-                onChange={(e) => setFilterActive(e.target.value as 'all' | 'active' | 'inactive')}
-                label="Status"
-              >
-                <MenuItem value="all">All</MenuItem>
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="inactive">Inactive</MenuItem>
-              </Select>
-            </FormControl>
+          <Card sx={{ mb: 2 }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+                <TextField
+                  placeholder="Search by GL Code, Description, or GL Number"
+                  variant="outlined"
+                  size="small"
+                  sx={{ flex: '1 1 300px', minWidth: 200 }}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
 
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <Button variant="contained" size="small" onClick={loadData} startIcon={<FilterIcon />}>Apply</Button>
-              <Button variant="outlined" size="small" onClick={clearFilters} startIcon={<ClearIcon />}>Clear</Button>
-            </Box>
-          </Box>
+                <FormControl size="small" sx={{ minWidth: 150 }}>
+                  <InputLabel>GL Group</InputLabel>
+                  <Select
+                    value={filterGlGroup}
+                    onChange={(e) => setFilterGlGroup(e.target.value)}
+                    label="GL Group"
+                  >
+                    <MenuItem value="">All</MenuItem>
+                    {Array.isArray(glGroupOptions) && glGroupOptions.map(option => (
+                      <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
 
-          {filteredData.length !== data.length && (
-            <Box sx={{ mt: 2 }}>
-              <Chip label={`Showing ${filteredData.length} of ${data.length} records`} color="primary" variant="outlined" size="small" />
-            </Box>
-          )}
-        </CardContent>
-      </Card>
+                <FormControl size="small" sx={{ minWidth: 120 }}>
+                  <InputLabel>Currency</InputLabel>
+                  <Select
+                    value={filterCurrency}
+                    onChange={(e) => setFilterCurrency(e.target.value)}
+                    label="Currency"
+                  >
+                    <MenuItem value="">All</MenuItem>
+                    {Array.isArray(currencyOptions) && currencyOptions.map(option => (
+                      <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
 
-      <Card>
-        <CardContent>
-          <Box sx={{ height: 600, width: '100%' }}>
-            <DataGrid
-              rows={filteredData}
-              columns={columns}
-              getRowId={(row) => row?.pkid || row?.glCode || `row_${Math.random()}`}
-              pageSizeOptions={[5, 10, 25, 50]}
-              initialState={{
-                pagination: { paginationModel: { pageSize: 10 } }
-              }}
-              disableRowSelectionOnClick
-              loading={loading}
-              slotProps={{
-                loadingOverlay: {
-                  variant: 'linear-progress' as const,
-                  noRowsVariant: 'skeleton' as const,
-                },
-                noRowsOverlay: {
-                  children: (
-                    <EmptyState
-                      title="No Journal Parameters Found"
-                      description={error ? 'Failed to load data from database.' : 'No parameters configured yet.'}
-                      onRetry={error ? loadData : handleCreate}
-                      retryText={error ? 'Retry' : 'Add Journal Entry'}
-                      icon={<ErrorIcon />}
-                    />
-                  )
-                }
-              }}
-            />
-          </Box>
-        </CardContent>
-      </Card>
+                <FormControl size="small" sx={{ minWidth: 120 }}>
+                  <InputLabel>Status</InputLabel>
+                  <Select
+                    value={filterActive}
+                    onChange={(e) => setFilterActive(e.target.value as 'all' | 'active' | 'inactive')}
+                    label="Status"
+                  >
+                    <MenuItem value="all">All</MenuItem>
+                    <MenuItem value="active">Active</MenuItem>
+                    <MenuItem value="inactive">Inactive</MenuItem>
+                  </Select>
+                </FormControl>
 
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>
-          {selectedJournal ? 'Edit Journal Parameter' : 'Create Journal Parameter'}
-        </DialogTitle>
-        <DialogContent>
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2, mt: 2 }}>
-            <TextField
-              label="Journal Group *"
-              select
-              value={formData.glGroup}
-              onChange={(e) => setFormData(prev => ({ ...prev, glGroup: e.target.value }))}
-              fullWidth
-              required
-              disabled={optionsLoading}
-              error={!formData.glGroup.trim()}
-              helperText={!formData.glGroup.trim() && 'Journal Group is required'}
-            >
-              {Array.isArray(glGroupOptions) && glGroupOptions.length > 0 ? (
-                glGroupOptions.map(option => (
-                  <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
-                ))
-              ) : (
-                <MenuItem value="">Loading...</MenuItem>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Button variant="contained" size="small" onClick={loadData} startIcon={<FilterIcon />}>Apply</Button>
+                  <Button variant="outlined" size="small" onClick={clearFilters} startIcon={<ClearIcon />}>Clear</Button>
+                </Box>
+              </Box>
+
+              {filteredData.length !== data.length && (
+                <Box sx={{ mt: 2 }}>
+                  <Chip label={`Showing ${filteredData.length} of ${data.length} records`} color="primary" variant="outlined" size="small" />
+                </Box>
               )}
-            </TextField>
-            <TextField
-              label="Currency *"
-              select
-              value={formData.currency}
-              onChange={(e) => setFormData(prev => ({ ...prev, currency: e.target.value }))}
-              fullWidth
-              required
-              disabled={optionsLoading}
-              error={!formData.currency.trim()}
-              helperText={!formData.currency.trim() && 'Currency is required'}
-            >
-              {Array.isArray(currencyOptions) && currencyOptions.length > 0 ? (
-                currencyOptions.map(option => (
-                  <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
-                ))
-              ) : (
-                <MenuItem value="">Loading...</MenuItem>
-              )}
-            </TextField>
-            <TextField
-              label="Journal Type *"
-              select
-              value={formData.glType}
-              onChange={(e) => setFormData(prev => ({ ...prev, glType: e.target.value }))}
-              fullWidth
-              required
-              disabled={optionsLoading}
-              error={!formData.glType.trim()}
-              helperText={!formData.glType.trim() && 'Journal Type is required'}
-            >
-              {Array.isArray(journalTypeOptions) && journalTypeOptions.length > 0 ? (
-                journalTypeOptions.map(option => (
-                  <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
-                ))
-              ) : (
-                <MenuItem value="">Loading...</MenuItem>
-              )}
-            </TextField>
-            <TextField
-              label="Journal Code *"
-              select
-              value={formData.glCode}
-              onChange={(e) => setFormData(prev => ({ ...prev, glCode: e.target.value }))}
-              fullWidth
-              required
-              disabled={optionsLoading}
-              error={!formData.glCode.trim()}
-              helperText={!formData.glCode.trim() && 'Journal Code is required'}
-            >
-              {Array.isArray(journalCodeOptions) && journalCodeOptions.length > 0 ? (
-                journalCodeOptions.map(option => (
-                  <MenuItem key={option.id} value={option.id}>{option.id} - {option.name}</MenuItem>
-                ))
-              ) : (
-                <MenuItem value="">Loading...</MenuItem>
-              )}
-            </TextField>
-            <TextField
-              label="COA (GL Number)"
-              value={formData.glNumber}
-              onChange={(e) => setFormData(prev => ({ ...prev, glNumber: e.target.value }))}
-              fullWidth
-              placeholder="COA Number"
-              slotProps={{ htmlInput: { maxLength: 20 } }}
-              helperText="Chart of Accounts number (optional)"
-            />
-            <TextField
-              label="DB/CR *"
-              select
-              value={formData.dbcr}
-              onChange={(e) => setFormData(prev => ({ ...prev, dbcr: e.target.value }))}
-              fullWidth
-              required
-              disabled={optionsLoading}
-              error={!formData.dbcr.trim()}
-              helperText={!formData.dbcr.trim() && 'DB/CR is required'}
-            >
-              {Array.isArray(dbcrOptions) && dbcrOptions.length > 0 ? (
-                dbcrOptions.map(option => (
-                  <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
-                ))
-              ) : (
-                <MenuItem value="">Loading...</MenuItem>
-              )}
-            </TextField>
-            <TextField
-              label="Journal Description"
-              value={formData.glDesc}
-              onChange={(e) => setFormData(prev => ({ ...prev, glDesc: e.target.value }))}
-              fullWidth
-              multiline
-              rows={3}
-              sx={{ gridColumn: 'span 2' }}
-              placeholder="Journal Description (optional)"
-              slotProps={{ htmlInput: { maxLength: 255 } }}
-            />
-            <Box sx={{ gridColumn: 'span 2' }}>
-              <FormControlLabel
-                control={<Switch checked={formData.activeFlag} onChange={(e) => setFormData(prev => ({ ...prev, activeFlag: e.target.checked }))} />}
-                label="Active"
-              />
-            </Box>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDialogOpen(false)} disabled={loading}>Cancel</Button>
-          <Button onClick={handleSave} variant="contained" disabled={loading}>{selectedJournal ? 'Update' : 'Create'}</Button>
-        </DialogActions>
-      </Dialog>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent>
+              <Box sx={{ height: 600, width: '100%' }}>
+                <SafeDataGrid
+                  rows={filteredData}
+                  columns={columns}
+                  getRowId={(row) => row?.pkid || row?.glCode || `row_${Math.random()}`}
+                  pageSizeOptions={[5, 10, 25, 50]}
+                  initialState={{
+                    pagination: { paginationModel: { pageSize: 10 } }
+                  }}
+                  disableRowSelectionOnClick
+                  loading={loading}
+                  slotProps={{
+                    loadingOverlay: {
+                      variant: 'linear-progress' as const,
+                      noRowsVariant: 'skeleton' as const,
+                    },
+                    noRowsOverlay: {
+                      children: (
+                        <EmptyState
+                          title="No Journal Parameters Found"
+                          description={error ? 'Failed to load data from database.' : 'No parameters configured yet.'}
+                          onRetry={error ? loadData : handleCreate}
+                          retryText={error ? 'Retry' : 'Add Journal Entry'}
+                          icon={<ErrorIcon />}
+                        />
+                      )
+                    }
+                  }}
+                />
+              </Box>
+            </CardContent>
+          </Card>
+
+        </>
+      )}
+
+      <JournalFormDialog
+        open={dialogOpen}
+        onClose={handleCloseDialog}
+        onSave={handleSave}
+        journal={selectedJournal}
+        loading={loading}
+        optionsLoading={optionsLoading}
+        glGroupOptions={glGroupOptions}
+        currencyOptions={currencyOptions}
+        journalTypeOptions={journalTypeOptions}
+        journalCodeOptions={journalCodeOptions}
+        dbcrOptions={dbcrOptions}
+      />
       <Snackbar open={!!success} autoHideDuration={4000} onClose={() => setSuccess(null)}>
         <Alert severity="success">{success}</Alert>
       </Snackbar>

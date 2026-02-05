@@ -22,6 +22,10 @@ export const coreSchema = pgSchema('core')
 // TENANTS TABLE
 // =============================================================================
 
+/**
+ * Tenants table definition.
+ * Stores multi-tenancy configuration and details.
+ */
 export const tenants = coreSchema.table(
     'tenants',
     {
@@ -48,32 +52,37 @@ export const tenants = coreSchema.table(
 // USERS TABLE
 // =============================================================================
 
+/**
+ * Users table definition.
+ * Stores user identity, profile information, and security settings.
+ * Note: tenantId is a logical reference, not a database foreign key, to allow for cross-tenant users or data sharding.
+ */
 export const users = coreSchema.table(
     'users',
     {
         id: uuid('id').primaryKey().defaultRandom(),
         // Tenant ID as varchar (not FK) to match actual database
         tenantId: varchar('tenant_id', { length: 100 }).default('dana'),
-        
+
         // Basic info
         username: varchar('username', { length: 100 }).notNull(),
         email: varchar('email', { length: 255 }).notNull(),
         passwordHash: varchar('password_hash', { length: 255 }).notNull(),
         fullName: varchar('full_name', { length: 200 }).notNull(),
-        
+
         // Contact & Organization
         department: varchar('department', { length: 100 }),
         position: varchar('position', { length: 100 }),
         phone: varchar('phone', { length: 50 }),
         employeeId: varchar('employee_id', { length: 50 }),
-        bankId: varchar('bank_id', { length: 50 }),
-        
+        // bankId: varchar('bank_id', { length: 50 }),
+
         // Banking specific
-        bankingAccess: varchar('banking_access', { length: 20 }).default('CONVENTIONAL'),
-        syariahCertified: boolean('syariah_certified').default(false),
-        syariahCertification: boolean('syariah_certification').default(false),
-        syariahCertificationDate: date('syariah_certification_date'),
-        
+        // bankingAccess: varchar('banking_access', { length: 20 }).default('CONVENTIONAL'),
+        // syariahCertified: boolean('syariah_certified').default(false),
+        // syariahCertification: boolean('syariah_certification').default(false),
+        // syariahCertificationDate: date('syariah_certification_date'),
+
         // Security & MFA
         isActive: boolean('is_active').default(true),
         isVerified: boolean('is_verified').default(false),
@@ -81,12 +90,12 @@ export const users = coreSchema.table(
         mfaSecret: varchar('mfa_secret', { length: 255 }),
         backupCodes: text('backup_codes').array(),
         forcePasswordChange: boolean('force_password_change').default(false),
-        
+
         // Activity tracking
         loginCount: integer('login_count').default(0),
         failedLoginAttempts: integer('failed_login_attempts').default(0),
         lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
-        
+
         // Timestamps
         emailVerifiedAt: timestamp('email_verified_at'),
         passwordChangedAt: timestamp('password_changed_at'),

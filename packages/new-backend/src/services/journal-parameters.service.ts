@@ -6,14 +6,28 @@ import { frs9ParamJournal } from '../db/schema'
 
 export const JournalParametersService = {
     // CRUD Operations
+
+    /**
+     * List all journal parameters.
+     * 
+     * @returns An Effect resolving to an array of journal parameters
+     */
     list: () => {
+        console.log('📋 Listing all journal parameters')
         return pipe(
             JournalParametersRepository.findAll(),
             Effect.map(journals => journals.map(transformJournal))
         )
     },
 
+    /**
+     * Get a journal parameter by ID.
+     * 
+     * @param id - The journal parameter ID
+     * @returns An Effect resolving to the journal parameter or NotFoundError
+     */
     get: (id: number) => {
+        console.log(`📄 Getting journal parameter: ${id}`)
         return pipe(
             JournalParametersRepository.findById(BigInt(id)),
             Effect.flatMap(journal =>
@@ -24,7 +38,15 @@ export const JournalParametersService = {
         )
     },
 
+    /**
+     * Create a new journal parameter.
+     * 
+     * @param data - The journal parameter data
+     * @param userId - The ID of the user creating the parameter
+     * @returns An Effect resolving to the created journal parameter
+     */
     create: (data: any, userId: string) => {
+        console.log(`➕ Creating journal parameter: ${data.glCode}`)
         const now = new Date().toISOString()
         const payload = {
             ...data,
@@ -41,7 +63,16 @@ export const JournalParametersService = {
         )
     },
 
+    /**
+     * Update an existing journal parameter.
+     * 
+     * @param id - The journal parameter ID
+     * @param data - The data to update
+     * @param userId - The ID of the user updating the parameter
+     * @returns An Effect resolving to the updated journal parameter or NotFoundError
+     */
     update: (id: number, data: any, userId: string) => {
+        console.log(`✏️ Updating journal parameter: ${id} (${data.glCode})`)
         const now = new Date().toISOString()
         const payload = {
             ...data,
@@ -59,7 +90,14 @@ export const JournalParametersService = {
         )
     },
 
+    /**
+     * Delete a journal parameter.
+     * 
+     * @param id - The journal parameter ID
+     * @returns An Effect resolving to a success message or NotFoundError
+     */
     delete: (id: number) => {
+        console.log(`🗑️ Deleting journal parameter: ${id}`)
         return pipe(
             JournalParametersRepository.delete(BigInt(id)),
             Effect.flatMap(deleted =>
@@ -71,6 +109,10 @@ export const JournalParametersService = {
     },
 
     // Dropdown Options Helpers
+
+    /**
+     * Get dropdown options for a specific parameter code (internal helper).
+     */
     getOptions: (paramCode: string) => {
         return pipe(
             ParametersRepository.findHeaderByCode(paramCode),
@@ -84,10 +126,15 @@ export const JournalParametersService = {
         )
     },
 
+    /** Get GL Group options */
     getGlGroupOptions: () => JournalParametersService.getOptions('B0004'),
+    /** Get Currency options */
     getCurrencyOptions: () => JournalParametersService.getOptions('B0001'),
+    /** Get Journal Type options */
     getJournalTypeOptions: () => JournalParametersService.getOptions('B0006'),
+    /** Get Journal Code options */
     getJournalCodeOptions: () => JournalParametersService.getOptions('B0008'),
+    /** Get Debit/Credit options */
     getDbCrOptions: () => JournalParametersService.getOptions('B0007'),
 }
 

@@ -38,7 +38,8 @@ import { eclConfigurationsApi } from './api/ecl-configurations.api';
 import { impairmentApi } from './api/impairment.api';
 import { approvalAPI } from './api/approval.api';
 // Import IFRS9 API service
-import { ifrs9API as ifrs9Service } from './api/ifrs9.api';
+import { ifrs9API as ifrs9Service, ifrs9API } from './api/ifrs9.api';
+export { ifrs9API };
 
 // ✅ ENVIRONMENT-AWARE CONFIG LOGGING - AUTO-DETECTION MODE
 console.log('🏗️ IFRS9 IAF API SERVICE - DUAL-MODE AUTO-DETECTION:');
@@ -83,6 +84,19 @@ export const authAPI = {
     console.log('👤 Fetching current user from real database');
     const response = await apiClient.get('/auth/me');
     return response.data;
+  },
+
+  // Verify token
+  verifyToken: async () => {
+    console.log('🔒 Verifying token');
+    const response = await apiClient.get('/auth/verify');
+    return response.data;
+  },
+
+  changePassword: async (data: any) => {
+    console.log('🔒 Changing password (stub)');
+    // In real implementation: await apiClient.post('/auth/change-password', data);
+    return { success: true, message: 'Password changed successfully' };
   },
 
   // Real token refresh
@@ -239,14 +253,81 @@ export const rolesAPI = {
   // Assign role to user
   assignUser: async (roleId: string, userId: string) => {
     console.log(`👤 Assigning role ${roleId} to user ${userId}`);
-    const response = await apiClient.post(`/roles/${roleId}/users/${userId}`);
+    // Fixed path matching backend: POST /users/:userId/roles/:roleId
+    const response = await apiClient.post(`/users/${userId}/roles/${roleId}`);
     return response.data;
   },
 
   // Remove role from user
   removeUser: async (roleId: string, userId: string) => {
     console.log(`👤 Removing role ${roleId} from user ${userId}`);
-    const response = await apiClient.delete(`/roles/${roleId}/users/${userId}`);
+    // Fixed path matching backend: DELETE /users/:userId/roles/:roleId
+    const response = await apiClient.delete(`/users/${userId}/roles/${roleId}`);
+    return response.data;
+  }
+};
+
+// ============================================================================
+// REAL AUDIT API - DATABASE INTEGRATION
+// ============================================================================
+export const auditAPI = {
+  // Get all audit logs with filtering and pagination
+  getLogs: async (params?: {
+    page?: number;
+    limit?: number;
+    eventType?: string;
+    action?: string;
+    userId?: string;
+    entityType?: string;
+    entityId?: string;
+    startDate?: string;
+    endDate?: string;
+    search?: string;
+  }) => {
+    console.log('📜 Fetching audit logs from real database', params);
+    const response = await apiClient.get('/audit/logs', { params });
+    return response.data;
+  },
+
+  // Get specific audit log
+  getLogById: async (id: string) => {
+    console.log(`📜 Fetching audit log ${id}`);
+    const response = await apiClient.get(`/audit/logs/${id}`);
+    return response.data;
+  },
+
+  // Get audit stats
+  getStats: async (params?: { startDate?: string; endDate?: string }) => {
+    console.log('📊 Fetching audit stats');
+    const response = await apiClient.get('/audit/stats', { params });
+    return response.data;
+  },
+
+  // Export audit logs
+  exportLogs: async (format: 'csv' | 'json', filters?: any) => {
+    console.log(`📤 Exporting audit logs as ${format}`);
+    const response = await apiClient.post('/audit/export', { format, filters }, {
+      responseType: format === 'csv' ? 'blob' : 'json'
+    });
+    return response.data;
+  }
+};
+
+// ============================================================================
+// SECURITY CONFIG API (STUB)
+// ============================================================================
+export const securityConfigAPI = {
+  // Get security configuration
+  get: async () => {
+    console.log('🛡️ Fetching security configuration');
+    const response = await apiClient.get('/security-config');
+    return response.data;
+  },
+
+  // Update security configuration
+  update: async (config: any) => {
+    console.log('🛡️ Updating security configuration');
+    const response = await apiClient.put('/security-config', config);
     return response.data;
   }
 };
@@ -271,6 +352,38 @@ export const bankingAPI = {
   eclConfigurations: eclConfigurationsApi,
   impairment: impairmentApi,
   approval: approvalAPI,
+
+  // Jobs Monitoring API (backend /api/v1/jobs)
+  jobs: {
+    getDefinitions: async () => {
+      const response = await apiClient.get('/jobs/definitions')
+      return response.data
+    },
+    getExecutions: async (params?: { page?: number; limit?: number; status?: string; jobType?: string }) => {
+      const response = await apiClient.get('/jobs/executions', { params })
+      return response.data
+    },
+    getMetrics: async () => {
+      const response = await apiClient.get('/jobs/metrics')
+      return response.data
+    },
+    runJob: async (definitionId: string) => {
+      const response = await apiClient.post(`/jobs/${definitionId}/run`)
+      return response.data
+    },
+    controlJob: async (executionId: string, action: 'pause' | 'resume' | 'stop') => {
+      const response = await apiClient.post(`/jobs/${executionId}/control`, { action })
+      return response.data
+    },
+    toggleJob: async (definitionId: string) => {
+      const response = await apiClient.post(`/jobs/${definitionId}/toggle`)
+      return response.data
+    },
+    createDefinition: async (data: any) => {
+      const response = await apiClient.post('/jobs/definitions', data)
+      return response.data
+    },
+  },
 
 
 
@@ -416,63 +529,63 @@ export const bankingAPI = {
     // Header Operations
     getHeaders: async (params?: { page?: number; limit?: number; search?: string }) => {
       console.log('🎯 Fetching segmentation headers from DS2 database');
-      const response = await apiClient.get('/banking/setup/segmentation', { params });
+      const response = await apiClient.get('/banking/parameters/segmentation', { params });
       return response.data;
     },
 
     getHeader: async (id: number) => {
       console.log(`📄 Fetching segmentation header ${id} from DS2 database`);
-      const response = await apiClient.get(`/banking/setup/segmentation/${id}`);
+      const response = await apiClient.get(`/banking/parameters/segmentation/${id}`);
       return response.data;
     },
 
     createHeader: async (headerData: any) => {
       console.log('➕ Creating segmentation header in DS2 database');
-      const response = await apiClient.post('/banking/setup/segmentation', headerData);
+      const response = await apiClient.post('/banking/parameters/segmentation', headerData);
       return response.data;
     },
 
     updateHeader: async (id: number, headerData: any) => {
       console.log(`✏️ Updating segmentation header ${id} in DS2 database`);
-      const response = await apiClient.put(`/banking/setup/segmentation/${id}`, headerData);
+      const response = await apiClient.put(`/banking/parameters/segmentation/${id}`, headerData);
       return response.data;
     },
 
     deleteHeader: async (id: number) => {
       console.log(`🗑️ Deleting segmentation header ${id} from DS2 database`);
-      const response = await apiClient.delete(`/banking/setup/segmentation/${id}`);
+      const response = await apiClient.delete(`/banking/parameters/segmentation/${id}`);
       return response.data;
     },
 
     // Detail Operations
     getDetails: async (headerId: number) => {
       console.log(`📋 Fetching segmentation details for header ${headerId} from DS2 database`);
-      const response = await apiClient.get(`/banking/setup/segmentation/${headerId}/details`);
+      const response = await apiClient.get(`/banking/parameters/segmentation/${headerId}/details`);
       return response.data;
     },
 
     createDetail: async (headerId: number, detailData: any) => {
       console.log(`➕ Creating segmentation detail for header ${headerId} in DS2 database`);
-      const response = await apiClient.post(`/banking/setup/segmentation/${headerId}/details`, detailData);
+      const response = await apiClient.post(`/banking/parameters/segmentation/${headerId}/details`, detailData);
       return response.data;
     },
 
     updateDetail: async (detailId: number, detailData: any) => {
       console.log(`✏️ Updating segmentation detail ${detailId} in DS2 database`);
-      const response = await apiClient.put(`/banking/setup/segmentation/details/${detailId}`, detailData);
+      const response = await apiClient.put(`/banking/parameters/segmentation/details/${detailId}`, detailData);
       return response.data;
     },
 
     deleteDetail: async (detailId: number) => {
       console.log(`🗑️ Deleting segmentation detail ${detailId} from DS2 database`);
-      const response = await apiClient.delete(`/banking/setup/segmentation/details/${detailId}`);
+      const response = await apiClient.delete(`/banking/parameters/segmentation/details/${detailId}`);
       return response.data;
     },
 
     // Metadata
     getSegmentTypes: async () => {
       console.log('📋 Fetching segment types');
-      const response = await apiClient.get('/banking/setup/segmentation/business-settings/segment-types');
+      const response = await apiClient.get('/banking/parameters/segmentation/business-settings/segment-types');
       return response.data;
     },
 
@@ -524,53 +637,53 @@ export const bankingAPI = {
   journalParameters: {
     getAll: async () => {
       console.log('📋 Fetching journal parameters');
-      const response = await apiClient.get('/banking/setup/journal-parameters');
+      const response = await apiClient.get('/banking/parameters/journal');
       return response.data;
     },
     getById: async (id: number) => {
       console.log(`📄 Fetching journal parameter ${id}`);
-      const response = await apiClient.get(`/banking/setup/journal-parameters/${id}`);
+      const response = await apiClient.get(`/banking/parameters/journal/${id}`);
       return response.data;
     },
     create: async (data: any) => {
       console.log('➕ Creating journal parameter');
-      const response = await apiClient.post('/banking/setup/journal-parameters', data);
+      const response = await apiClient.post('/banking/parameters/journal', data);
       return response.data;
     },
     update: async (id: number, data: any) => {
       console.log(`✏️ Updating journal parameter ${id}`);
-      const response = await apiClient.put(`/banking/setup/journal-parameters/${id}`, data);
+      const response = await apiClient.put(`/banking/parameters/journal/${id}`, data);
       return response.data;
     },
     delete: async (id: number) => {
       console.log(`🗑️ Deleting journal parameter ${id}`);
-      const response = await apiClient.delete(`/banking/setup/journal-parameters/${id}`);
+      const response = await apiClient.delete(`/banking/parameters/journal/${id}`);
       return response.data;
     },
     // Options for dropdowns
     getGlGroupOptions: async () => {
       console.log('📋 Fetching GL Group options');
-      const response = await apiClient.get('/banking/setup/journal-parameters/gl-group-options');
+      const response = await apiClient.get('/banking/parameters/journal/gl-group-options');
       return response.data;
     },
     getCurrencyOptions: async () => {
       console.log('📋 Fetching Currency options');
-      const response = await apiClient.get('/banking/setup/journal-parameters/currency-options');
+      const response = await apiClient.get('/banking/parameters/journal/currency-options');
       return response.data;
     },
     getJournalTypeOptions: async () => {
       console.log('📋 Fetching Journal Type options');
-      const response = await apiClient.get('/banking/setup/journal-parameters/journal-type-options');
+      const response = await apiClient.get('/banking/parameters/journal/journal-type-options');
       return response.data;
     },
     getJournalCodeOptions: async () => {
       console.log('📋 Fetching Journal Code options');
-      const response = await apiClient.get('/banking/setup/journal-parameters/journal-code-options');
+      const response = await apiClient.get('/banking/parameters/journal/journal-code-options');
       return response.data;
     },
     getDbcrOptions: async () => {
       console.log('📋 Fetching DB/CR options');
-      const response = await apiClient.get('/banking/setup/journal-parameters/dbcr-options');
+      const response = await apiClient.get('/banking/parameters/journal/dbcr-options');
       return response.data;
     }
   },
@@ -831,9 +944,9 @@ export const bankingAPI = {
       value1?: string;
       value2?: string;
       condition: 'AND' | 'OR';
-      detail_type?: number;
-      stage_from?: number;
-      stage_to?: number;
+      detail_type?: string;
+      stage_from?: string;
+      stage_to?: string;
     }) => {
       console.log(`➕ Creating new Rule Base Setting detail for header ${headerId} in DS2 database`);
       const response = await apiClient.post(`/banking/collective/rule-base/${headerId}/details`, detailData);

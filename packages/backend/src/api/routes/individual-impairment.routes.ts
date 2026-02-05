@@ -58,7 +58,7 @@ router.get('/watchlist',
 router.post('/watchlist/export',
   [
     body('format').isIn(['xlsx', 'csv']).withMessage('Format must be xlsx or csv'),
-    body('filters').optional().isJSON().withMessage('Filters must be valid JSON')
+    body('filters').optional().isObject().withMessage('Filters must be an object')
   ],
   validateRequest,
   individualImpairmentController.exportWatchlist.bind(individualImpairmentController)
@@ -143,7 +143,7 @@ router.get('/dcf/:accountId',
 /**
  * POST /api/v1/banking/individual/impairment/dcf/calculate
  * @desc    Calculate DCF results
- * @access  Private (Banking users with IFRS9 permissions)
+ * @access  Private (All authenticated banking users)
  * @body    DCF calculation data (account_id, prc_date, scenario_data)
  * @return  DCF calculation results (PV, ECL, rates)
  */
@@ -157,7 +157,7 @@ router.post('/dcf/calculate',
     body('scenario_data.recovery_rates').optional().isArray().withMessage('Recovery rates must be an array')
   ],
   validateRequest,
-  requireRoles(['BANK_IFRS_MANAGER', 'BANK_CRO', 'SENIOR_IFRS9_CONSULTANT']),
+  // Removed requireRoles - allow all authenticated banking users to calculate DCF
   individualImpairmentController.calculateDCF.bind(individualImpairmentController)
 );
 

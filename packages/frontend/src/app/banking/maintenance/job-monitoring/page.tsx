@@ -39,7 +39,8 @@ import {
   FormControlLabel
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { DataGrid, GridColDef, GridRowParams, GridRenderCellParams } from '@mui/x-data-grid';
+import { GridColDef, GridRowParams, GridRenderCellParams } from '@mui/x-data-grid';
+import { SafeDataGrid } from '@/components/shared/SafeDataGrid';
 import {
   Visibility as VisibilityIcon,
   Download as DownloadIcon,
@@ -67,7 +68,12 @@ import {
   CloudDownload as CloudDownloadIcon,
   Search as SearchIcon,
   Clear as ClearIcon,
-  FilterList as FilterListIcon
+  FilterList as FilterListIcon,
+  Add as AddIcon,
+  PlayCircleFilled as RunIcon,
+  Description as ScriptIcon,
+  Code as CodeIcon,
+  Terminal as TerminalIcon
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import { format, parseISO, subDays, addMinutes, differenceInMinutes } from 'date-fns';
@@ -78,20 +84,21 @@ interface JobExecution {
   id: string;
   jobId: string;
   jobName: string;
-  jobType: 'IFRS9_CALCULATION' | 'ETL_PROCESS' | 'DATA_VALIDATION' | 'REPORT_GENERATION' | 'BACKUP' | 'MAINTENANCE';
-  status: 'RUNNING' | 'COMPLETED' | 'FAILED' | 'PENDING' | 'PAUSED' | 'CANCELLED';
+  jobType: 'SQL_SP' | 'INTERNAL_SCRIPT' | 'SHELL_COMMAND' | 'IFRS9_CALCULATION' | 'ETL_PROCESS' | 'DATA_VALIDATION' | 'REPORT_GENERATION' | 'BACKUP' | 'MAINTENANCE';
+  status: 'RUNNING' | 'COMPLETED' | 'FAILED' | 'PENDING' | 'PAUSED' | 'CANCELLED' | 'active' | 'waiting';
   priority: 'LOW' | 'NORMAL' | 'HIGH' | 'CRITICAL';
   startTime: string;
   endTime?: string;
   duration?: number;
   progress: number;
   userId: string;
-  userName: string;
+  userName?: string;
   tenantId?: string;
   tenantName?: string;
   parameters?: any;
   resultData?: any;
   errorMessage?: string;
+  triggeredBy?: string;
   errorDetails?: string;
   resourceUsage?: {
     cpuUsage: number;
@@ -158,7 +165,7 @@ interface TabPanelProps {
   value: number;
 }
 
-const TabPanel: React.FC<TabPanelProps> = ({ children, value, index, ...other }) => (
+const TabPanel = ({ children, value, index, ...other }: TabPanelProps) => (
   <div
     role="tabpanel"
     hidden={value !== index}
@@ -166,13 +173,15 @@ const TabPanel: React.FC<TabPanelProps> = ({ children, value, index, ...other })
     aria-labelledby={`job-monitoring-tab-${index}`}
     {...other}
   >
-    {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
+    {value === index && <Box sx={{ p: 3 }}>{children as any}</Box>}
   </div>
 );
 
-const JobMonitoringPage: React.FC = () => {
+export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
+  void params; // required by typed routes signature, unused in this page
   const theme = useTheme();
   const [currentTab, setCurrentTab] = useState(0);
+  const [statusTab, setStatusTab] = useState(0); // 0: All, 1: Ongoing, 2: Running, 3: Completed, 4: Failed
   const [jobExecutions, setJobExecutions] = useState<JobExecution[]>([]);
   const [jobDefinitions, setJobDefinitions] = useState<JobDefinition[]>([]);
   const [systemMetrics, setSystemMetrics] = useState<SystemMetrics | null>(null);
@@ -203,6 +212,76 @@ const JobMonitoringPage: React.FC = () => {
     action: null,
   });
 
+  const [createJobDialogOpen, setCreateJobDialogOpen] = useState(false);
+  const [newJobData, setNewJobData] = useState<Partial<JobDefinition>>({
+    name: '',
+    type: 'SQL_SP',
+    parameters: {},
+    priority: 'NORMAL',
+    maxRetries: 3,
+    timeout: 3600,
+    isEnabled: true,
+    scheduleExpression: ''
+  });
+
+  const handleCreateJob = async () => {
+    try {
+      setLoading(true);
+
+      // Construct defaultParameters based on job type
+      const jobData = newJobData as any;
+      const defaultParams: any = { ...(newJobData.parameters || {}) };
+
+      if (jobData.type === 'SQL_SP' && jobData.procedureName) {
+        defaultParams.procedureName = jobData.procedureName;
+        if (jobData.schemaName) {
+          defaultParams.schemaName = jobData.schemaName;
+        }
+        if (jobData.targetDatabase) {
+          defaultParams.targetDatabase = jobData.targetDatabase;
+        }
+      } else if (jobData.type === 'INTERNAL_SCRIPT' && jobData.handlerName) {
+        defaultParams.handlerName = jobData.handlerName;
+      } else if (jobData.type === 'SHELL_COMMAND' && jobData.command) {
+        defaultParams.command = jobData.command;
+      }
+
+      // Map frontend fields to backend schema
+      const payload = {
+        name: newJobData.name,
+        jobType: newJobData.type,
+        cronExpression: newJobData.scheduleExpression || undefined,
+        defaultParameters: defaultParams,
+        priority: newJobData.priority,
+        maxRetries: newJobData.maxRetries,
+        timeout: newJobData.timeout,
+        isEnabled: newJobData.isEnabled,
+      };
+
+      await bankingAPI.jobs.createDefinition(payload as any);
+
+      setCreateJobDialogOpen(false);
+      fetchJobExecutions();
+
+      // Reset form
+      setNewJobData({
+        name: '',
+        type: 'SQL_SP',
+        parameters: {},
+        priority: 'NORMAL',
+        maxRetries: 3,
+        timeout: 3600,
+        isEnabled: true,
+        scheduleExpression: ''
+      });
+    } catch (error) {
+      console.error('Error creating job:', error);
+      setError('Failed to create job definition. Please check your inputs.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
 
   // Fetch data
@@ -211,26 +290,46 @@ const JobMonitoringPage: React.FC = () => {
     setError(null);
 
     try {
-      // TODO: Implement jobs API endpoints
-      // const [executions, definitions, metrics] = await Promise.all([
-      //   bankingAPI.jobs.getExecutions(),
-      //   bankingAPI.jobs.getDefinitions(),
-      //   bankingAPI.jobs.getMetrics()
-      // ]);
+      const [executions, definitions, metrics] = await Promise.all([
+        bankingAPI.jobs.getExecutions({ limit: 100 }),
+        bankingAPI.jobs.getDefinitions(),
+        bankingAPI.jobs.getMetrics()
+      ]);
 
-      // Mock data for now
-      setJobExecutions([]);
-      setJobDefinitions([]);
+      // Map backend statuses to UI statuses
+      const mapped: JobExecution[] = (executions || []).map((e: any) => ({
+        id: e.id,
+        jobId: e.id,
+        jobName: e.jobName || e.jobType,
+        jobType: e.jobType,
+        status:
+          e.status === 'active' ? 'RUNNING'
+            : e.status === 'completed' ? 'COMPLETED'
+              : e.status === 'failed' ? 'FAILED'
+                : e.status === 'waiting' ? 'PENDING'
+                  : 'PENDING',
+        startTime: e.startTime || new Date().toISOString(),
+        endTime: e.endTime || undefined,
+        progress: typeof e.progress === 'number' ? e.progress : 0,
+        resultSummary: e.result || undefined,
+        errorMessage: e.error || undefined,
+        triggeredBy: e.triggeredBy || undefined,
+        userName: e.userName || e.triggeredBy || 'System',
+        tenantName: e.tenantName || 'Main Tenant',
+      }));
+
+      setJobExecutions(mapped);
+      setJobDefinitions(definitions || []);
       setSystemMetrics({
-        cpuUsage: 0,
-        memoryUsage: 0,
-        diskUsage: 0,
-        activeJobs: 0,
-        queuedJobs: 0,
-        completedJobsToday: 0,
-        failedJobsToday: 0,
-        averageExecutionTime: 0,
-        throughputPerHour: 0
+        cpuUsage: metrics?.cpuUsage || 0,
+        memoryUsage: metrics?.memoryUsage || 0,
+        diskUsage: metrics?.diskUsage || 0,
+        activeJobs: metrics?.activeJobs || 0,
+        queuedJobs: metrics?.queuedJobs || 0,
+        completedJobsToday: metrics?.completedJobsToday || 0,
+        failedJobsToday: metrics?.failedJobsToday || 0,
+        averageExecutionTime: metrics?.averageExecutionTime || 0,
+        throughputPerHour: metrics?.throughputPerHour || 0,
       });
     } catch (error) {
       console.error('Error fetching job data:', error);
@@ -258,6 +357,10 @@ const JobMonitoringPage: React.FC = () => {
   // Handlers
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setCurrentTab(newValue);
+  };
+
+  const handleStatusTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    setStatusTab(newValue);
   };
 
   const handleFilterChange = (field: keyof JobFilters, value: any) => {
@@ -293,32 +396,48 @@ const JobMonitoringPage: React.FC = () => {
     });
   };
 
+  const handleJobAction = async (jobId: string, action: 'start' | 'pause' | 'stop' | 'restart') => {
+    if (action === 'start') {
+      try {
+        setLoading(true);
+        await bankingAPI.jobs.runJob(jobId);
+        fetchJobExecutions();
+      } catch (error) {
+        console.error('Run job error:', error);
+        setError('Failed to start job execution.');
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      // For existing executions
+      const execution = jobExecutions.find(e => e.id === jobId);
+      if (execution) {
+        handleJobControl(execution, action);
+      }
+    }
+  };
+
   const executeJobControl = async () => {
     if (!jobControlDialog.job || !jobControlDialog.action) return;
 
     try {
-      // TODO: Implement jobs API endpoints
-      // if (jobControlDialog.action === 'start' || jobControlDialog.action === 'restart') {
-      //   await bankingAPI.jobs.runJob(jobControlDialog.job.jobId || jobControlDialog.job.id);
-      // } else if (jobControlDialog.action === 'stop' || jobControlDialog.action === 'pause') {
-      //   await bankingAPI.jobs.controlJob(jobControlDialog.job.id, jobControlDialog.action);
-      // }
-
-      console.warn('Job control not implemented yet');
+      if (jobControlDialog.action === 'start' || jobControlDialog.action === 'restart') {
+        await bankingAPI.jobs.runJob(jobControlDialog.job.jobId || jobControlDialog.job.id);
+      } else if (jobControlDialog.action === 'stop' || jobControlDialog.action === 'pause') {
+        await bankingAPI.jobs.controlJob(jobControlDialog.job.id, jobControlDialog.action);
+      }
 
       setJobControlDialog({ open: false, job: null, action: null });
       fetchJobExecutions();
     } catch (error) {
       console.error('Job control error:', error);
+      setError('Failed to control job. Please try again.');
     }
   };
 
   const toggleJobDefinition = async (jobId: string, enabled: boolean) => {
     try {
-      // TODO: Implement jobs API endpoints
-      // await bankingAPI.jobs.toggleJob(jobId, enabled);
-
-      console.warn('Job toggle not implemented yet');
+      await bankingAPI.jobs.toggleJob(jobId);
 
       setJobDefinitions(prev =>
         prev.map(job =>
@@ -327,6 +446,7 @@ const JobMonitoringPage: React.FC = () => {
       );
     } catch (error) {
       console.error('Toggle job error:', error);
+      setError('Failed to toggle job. Please try again.');
     }
   };
 
@@ -361,6 +481,9 @@ const JobMonitoringPage: React.FC = () => {
       case 'REPORT_GENERATION': return <AssignmentIcon />;
       case 'BACKUP': return <CloudDownloadIcon />;
       case 'MAINTENANCE': return <SettingsIcon />;
+      case 'SQL_SP': return <CodeIcon />;
+      case 'INTERNAL_SCRIPT': return <ScriptIcon />;
+      case 'SHELL_COMMAND': return <TerminalIcon />;
       default: return <AssignmentIcon />;
     }
   };
@@ -372,7 +495,64 @@ const JobMonitoringPage: React.FC = () => {
     return `${minutes}m ${seconds}s`;
   };
 
-  // DataGrid columns for job executions
+  // Filter jobs by status tab
+  const getFilteredJobsByStatus = () => {
+    let filtered = jobExecutions;
+
+    // Apply status tab filter
+    switch (statusTab) {
+      case 1: // Ongoing
+        filtered = filtered.filter(job => job.status === 'PENDING');
+        break;
+      case 2: // Running
+        filtered = filtered.filter(job => job.status === 'RUNNING');
+        break;
+      case 3: // Completed
+        filtered = filtered.filter(job => job.status === 'COMPLETED');
+        break;
+      case 4: // Failed
+        filtered = filtered.filter(job => job.status === 'FAILED');
+        break;
+      default: // All
+        break;
+    }
+
+    // Apply additional filters
+    if (filters.status) {
+      filtered = filtered.filter(job => job.status === filters.status);
+    }
+    if (filters.type) {
+      filtered = filtered.filter(job => job.jobType === filters.type);
+    }
+    if (filters.priority) {
+      filtered = filtered.filter(job => job.priority === filters.priority);
+    }
+    if (filters.searchTerm) {
+      const term = filters.searchTerm.toLowerCase();
+      filtered = filtered.filter(job =>
+        job.jobName.toLowerCase().includes(term) ||
+        (job.userName && job.userName.toLowerCase().includes(term)) ||
+        (job.tenantName && job.tenantName.toLowerCase().includes(term))
+      );
+    }
+
+    return filtered;
+  };
+
+  // Get counts for each status
+  const getStatusCounts = () => {
+    return {
+      all: jobExecutions.length,
+      ongoing: jobExecutions.filter(job => job.status === 'PENDING').length,
+      running: jobExecutions.filter(job => job.status === 'RUNNING').length,
+      completed: jobExecutions.filter(job => job.status === 'COMPLETED').length,
+      failed: jobExecutions.filter(job => job.status === 'FAILED').length,
+    };
+  };
+
+  const statusCounts = getStatusCounts();
+  const filteredJobs = getFilteredJobsByStatus();
+
   const executionColumns: GridColDef[] = [
     {
       field: 'jobName',
@@ -429,7 +609,7 @@ const JobMonitoringPage: React.FC = () => {
     {
       field: 'priority',
       headerName: 'Priority',
-      width: 100,
+      width: 110,
       renderCell: (params: GridRenderCellParams) => (
         <Chip
           label={params.row.priority}
@@ -558,7 +738,7 @@ const JobMonitoringPage: React.FC = () => {
             )}
           </Box>
           <Box sx={{ color, opacity: 0.7 }}>
-            {icon}
+            {icon as any}
           </Box>
         </Box>
         {trend && (
@@ -596,6 +776,21 @@ const JobMonitoringPage: React.FC = () => {
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<AddIcon />}
+            onClick={() => setCreateJobDialogOpen(true)}
+            sx={{ mr: 1, boxShadow: '0 4px 12px rgba(25, 118, 210, 0.3)' }}
+          >
+            Create Job
+          </Button>
+
+          <Tooltip title="Refresh All Data">
+            <IconButton onClick={handleRefresh} disabled={loading} color="primary" sx={{ border: '1px solid', borderColor: 'primary.light' }}>
+              <RefreshIcon className={loading ? 'animate-spin' : ''} />
+            </IconButton>
+          </Tooltip>
           <FormControlLabel
             control={
               <Switch
@@ -628,7 +823,7 @@ const JobMonitoringPage: React.FC = () => {
       {/* System Metrics */}
       {systemMetrics && (
         <Grid container spacing={3} sx={{ mb: 3 }}>
-          <Grid item xs={12} md={3}>
+          <Grid size={{ xs: 12, md: 3 }}>
             <StatCard
               title="Active Jobs"
               value={systemMetrics.activeJobs}
@@ -637,7 +832,7 @@ const JobMonitoringPage: React.FC = () => {
               subtitle="Currently running"
             />
           </Grid>
-          <Grid item xs={12} md={3}>
+          <Grid size={{ xs: 12, md: 3 }}>
             <StatCard
               title="Queued Jobs"
               value={systemMetrics.queuedJobs}
@@ -646,7 +841,7 @@ const JobMonitoringPage: React.FC = () => {
               subtitle="Waiting to start"
             />
           </Grid>
-          <Grid item xs={12} md={3}>
+          <Grid size={{ xs: 12, md: 3 }}>
             <StatCard
               title="Completed Today"
               value={systemMetrics.completedJobsToday}
@@ -656,7 +851,7 @@ const JobMonitoringPage: React.FC = () => {
               subtitle="Successful jobs"
             />
           </Grid>
-          <Grid item xs={12} md={3}>
+          <Grid size={{ xs: 12, md: 3 }}>
             <StatCard
               title="Failed Today"
               value={systemMetrics.failedJobsToday}
@@ -703,6 +898,108 @@ const JobMonitoringPage: React.FC = () => {
 
       {/* Active Jobs Tab */}
       <TabPanel value={currentTab} index={0}>
+        {/* Status Tabs */}
+        <Paper sx={{ mb: 3 }}>
+          <Tabs
+            value={statusTab}
+            onChange={handleStatusTabChange}
+            indicatorColor="primary"
+            textColor="primary"
+            variant="fullWidth"
+            sx={{
+              borderBottom: 1,
+              borderColor: 'divider',
+              '& .MuiTab-root': {
+                minHeight: 64,
+              },
+            }}
+          >
+            <Tab
+              label={
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                    All Jobs
+                  </Typography>
+                  <Chip
+                    label={statusCounts.all}
+                    size="small"
+                    color="default"
+                    sx={{ mt: 0.5, minWidth: 40 }}
+                  />
+                </Box>
+              }
+            />
+            <Tab
+              icon={<HourglassEmptyIcon />}
+              iconPosition="start"
+              label={
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                    Ongoing
+                  </Typography>
+                  <Chip
+                    label={statusCounts.ongoing}
+                    size="small"
+                    color="warning"
+                    sx={{ mt: 0.5, minWidth: 40 }}
+                  />
+                </Box>
+              }
+            />
+            <Tab
+              icon={<PlayArrowIcon />}
+              iconPosition="start"
+              label={
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                    Running
+                  </Typography>
+                  <Chip
+                    label={statusCounts.running}
+                    size="small"
+                    color="info"
+                    sx={{ mt: 0.5, minWidth: 40 }}
+                  />
+                </Box>
+              }
+            />
+            <Tab
+              icon={<CheckCircleIcon />}
+              iconPosition="start"
+              label={
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                    Completed
+                  </Typography>
+                  <Chip
+                    label={statusCounts.completed}
+                    size="small"
+                    color="success"
+                    sx={{ mt: 0.5, minWidth: 40 }}
+                  />
+                </Box>
+              }
+            />
+            <Tab
+              icon={<ErrorIcon />}
+              iconPosition="start"
+              label={
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                    Failed
+                  </Typography>
+                  <Chip
+                    label={statusCounts.failed}
+                    size="small"
+                    color="error"
+                    sx={{ mt: 0.5, minWidth: 40 }}
+                  />
+                </Box>
+              }
+            />
+          </Tabs>
+        </Paper>
+
         {/* Filters */}
         <Card sx={{ mb: 3 }}>
           <CardHeader
@@ -720,7 +1017,7 @@ const JobMonitoringPage: React.FC = () => {
           />
           <CardContent>
             <Grid container spacing={2}>
-              <Grid item xs={12} md={2}>
+              <Grid size={{ xs: 12, md: 2 }}>
                 <FormControl fullWidth size="small">
                   <InputLabel>Status</InputLabel>
                   <Select
@@ -737,7 +1034,7 @@ const JobMonitoringPage: React.FC = () => {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} md={2}>
+              <Grid size={{ xs: 12, md: 2 }}>
                 <FormControl fullWidth size="small">
                   <InputLabel>Type</InputLabel>
                   <Select
@@ -746,6 +1043,9 @@ const JobMonitoringPage: React.FC = () => {
                     label="Type"
                   >
                     <MenuItem value="">All</MenuItem>
+                    <MenuItem value="SQL_SP">Stored Procedure</MenuItem>
+                    <MenuItem value="INTERNAL_SCRIPT">Internal Script</MenuItem>
+                    <MenuItem value="SHELL_COMMAND">Shell Command</MenuItem>
                     <MenuItem value="IFRS9_CALCULATION">IFRS9 Calculation</MenuItem>
                     <MenuItem value="ETL_PROCESS">ETL Process</MenuItem>
                     <MenuItem value="DATA_VALIDATION">Data Validation</MenuItem>
@@ -755,7 +1055,7 @@ const JobMonitoringPage: React.FC = () => {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} md={2}>
+              <Grid size={{ xs: 12, md: 2 }}>
                 <FormControl fullWidth size="small">
                   <InputLabel>Priority</InputLabel>
                   <Select
@@ -771,7 +1071,7 @@ const JobMonitoringPage: React.FC = () => {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   fullWidth
                   size="small"
@@ -791,12 +1091,12 @@ const JobMonitoringPage: React.FC = () => {
         {/* Active Jobs DataGrid */}
         <Card>
           <CardHeader
-            title={`Job Executions (${jobExecutions.length})`}
+            title={`Job Executions (${filteredJobs.length}${filteredJobs.length !== jobExecutions.length ? ` of ${jobExecutions.length}` : ''})`}
             subheader={`Last updated: ${format(new Date(), 'MMM dd, yyyy HH:mm')}`}
           />
           <CardContent>
-            <DataGrid
-              rows={jobExecutions}
+            <SafeDataGrid
+              rows={filteredJobs}
               columns={executionColumns}
               loading={loading}
               pageSizeOptions={[10, 25, 50]}
@@ -806,9 +1106,7 @@ const JobMonitoringPage: React.FC = () => {
                 },
               }}
               checkboxSelection
-              disableRowSelectionOnClick
               sx={{ height: 600 }}
-              onRowDoubleClick={(params: GridRowParams) => handleViewJobDetails(params.row)}
             />
           </CardContent>
         </Card>
@@ -831,7 +1129,7 @@ const JobMonitoringPage: React.FC = () => {
       <TabPanel value={currentTab} index={2}>
         <Grid container spacing={3}>
           {jobDefinitions.map((job) => (
-            <Grid item xs={12} md={6} lg={4} key={job.id}>
+            <Grid size={{ xs: 12, md: 6, lg: 4 }} key={job.id}>
               <Card>
                 <CardHeader
                   title={job.name}
@@ -879,9 +1177,19 @@ const JobMonitoringPage: React.FC = () => {
                         Priority: {job.priority}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        Max Retries: {job.maxRetries}
+                        Type: {job.type}
                       </Typography>
                     </Box>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={<RunIcon />}
+                      onClick={() => handleJobAction(job.id, 'start')}
+                      disabled={!job.isEnabled || loading}
+                      fullWidth
+                    >
+                      Run Now
+                    </Button>
                   </Stack>
                 </CardContent>
               </Card>
@@ -894,7 +1202,7 @@ const JobMonitoringPage: React.FC = () => {
       <TabPanel value={currentTab} index={3}>
         {systemMetrics && (
           <Grid container spacing={3}>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <StatCard
                 title="CPU Usage"
                 value={`${systemMetrics.cpuUsage}%`}
@@ -903,7 +1211,7 @@ const JobMonitoringPage: React.FC = () => {
                 subtitle="System CPU utilization"
               />
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <StatCard
                 title="Memory Usage"
                 value={`${systemMetrics.memoryUsage}%`}
@@ -912,7 +1220,7 @@ const JobMonitoringPage: React.FC = () => {
                 subtitle="System memory utilization"
               />
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <StatCard
                 title="Disk Usage"
                 value={`${systemMetrics.diskUsage}%`}
@@ -921,7 +1229,7 @@ const JobMonitoringPage: React.FC = () => {
                 subtitle="System disk utilization"
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <StatCard
                 title="Avg Execution Time"
                 value={formatDuration(systemMetrics.averageExecutionTime)}
@@ -930,7 +1238,7 @@ const JobMonitoringPage: React.FC = () => {
                 subtitle="Average job completion time"
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <StatCard
                 title="Throughput"
                 value={`${systemMetrics.throughputPerHour.toLocaleString()}/hr`}
@@ -942,6 +1250,175 @@ const JobMonitoringPage: React.FC = () => {
           </Grid>
         )}
       </TabPanel>
+
+      {/* Create Job Dialog */}
+      <Dialog
+        open={createJobDialogOpen}
+        onClose={() => setCreateJobDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Create New Job Definition</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid size={{ xs: 12 }}>
+              <TextField
+                fullWidth
+                label="Job Name"
+                value={newJobData.name}
+                onChange={(e) => setNewJobData({ ...newJobData, name: e.target.value })}
+                required
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <FormControl fullWidth>
+                <InputLabel>Job Type</InputLabel>
+                <Select
+                  value={newJobData.type}
+                  label="Job Type"
+                  onChange={(e) => setNewJobData({ ...newJobData, type: e.target.value })}
+                >
+                  <MenuItem value="SQL_SP">Stored Procedure</MenuItem>
+                  <MenuItem value="INTERNAL_SCRIPT">Internal Script</MenuItem>
+                  <MenuItem value="SHELL_COMMAND">Shell Command</MenuItem>
+                  <MenuItem value="IFRS9_CALCULATION">IFRS9 Calculation</MenuItem>
+                  <MenuItem value="ETL_PROCESS">ETL Process</MenuItem>
+                  <MenuItem value="DATA_VALIDATION">Data Validation</MenuItem>
+                  <MenuItem value="REPORT_GENERATION">Report Generation</MenuItem>
+                  <MenuItem value="BACKUP">Backup</MenuItem>
+                  <MenuItem value="MAINTENANCE">Maintenance</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            {/* Dynamic Fields based on Job Type */}
+            {newJobData.type === 'SQL_SP' && (
+              <>
+                <Grid size={{ xs: 12 }}>
+                  <FormControl fullWidth>
+                    <InputLabel>Target Database</InputLabel>
+                    <Select
+                      value={(newJobData as any).targetDatabase || 'TENANT'}
+                      label="Target Database"
+                      onChange={(e) => setNewJobData({ ...newJobData, targetDatabase: e.target.value } as any)}
+                    >
+                      <MenuItem value="TENANT">Tenant DB (Default)</MenuItem>
+                      <MenuItem value="LEGACY">Legacy DB (IFRS9 Engine)</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <TextField
+                    fullWidth
+                    label="Schema Name"
+                    placeholder="e.g. core, risk, public"
+                    value={(newJobData as any).schemaName || ''}
+                    onChange={(e) => setNewJobData({ ...newJobData, schemaName: e.target.value } as any)}
+                    helperText="Database schema (optional, defaults to public/core)"
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <TextField
+                    fullWidth
+                    label="Stored Procedure Name"
+                    placeholder="e.g. calculate_daily_interest"
+                    value={(newJobData as any).procedureName || ''}
+                    onChange={(e) => setNewJobData({ ...newJobData, procedureName: e.target.value } as any)}
+                    helperText="Name of the stored procedure to execute"
+                  />
+                </Grid>
+              </>
+            )}
+
+            {newJobData.type === 'INTERNAL_SCRIPT' && (
+              <Grid size={{ xs: 12 }}>
+                <TextField
+                  fullWidth
+                  label="Handler Name"
+                  placeholder="e.g. test_handler"
+                  value={(newJobData as any).handlerName || ''}
+                  onChange={(e) => setNewJobData({ ...newJobData, handlerName: e.target.value } as any)}
+                  helperText="Registered internal handler name"
+                />
+              </Grid>
+            )}
+
+            {newJobData.type === 'SHELL_COMMAND' && (
+              <Grid size={{ xs: 12 }}>
+                <TextField
+                  fullWidth
+                  label="Shell Command"
+                  placeholder="e.g. ls -la"
+                  value={(newJobData as any).command || ''}
+                  onChange={(e) => setNewJobData({ ...newJobData, command: e.target.value } as any)}
+                  helperText="System command to execute (use with caution)"
+                />
+              </Grid>
+            )}
+
+            <Grid size={{ xs: 12, md: 6 }}>
+              <FormControl fullWidth>
+                <InputLabel>Priority</InputLabel>
+                <Select
+                  value={newJobData.priority}
+                  label="Priority"
+                  onChange={(e) => setNewJobData({ ...newJobData, priority: e.target.value })}
+                >
+                  <MenuItem value="LOW">Low</MenuItem>
+                  <MenuItem value="NORMAL">Normal</MenuItem>
+                  <MenuItem value="HIGH">High</MenuItem>
+                  <MenuItem value="CRITICAL">Critical</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                fullWidth
+                label="Schedule Expression (Cron)"
+                placeholder="0 0 * * *"
+                value={newJobData.scheduleExpression}
+                onChange={(e) => setNewJobData({ ...newJobData, scheduleExpression: e.target.value })}
+                helperText="Leave empty for on-demand only"
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 3 }}>
+              <TextField
+                fullWidth
+                label="Max Retries"
+                type="number"
+                value={newJobData.maxRetries}
+                onChange={(e) => setNewJobData({ ...newJobData, maxRetries: parseInt(e.target.value) || 0 })}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 3 }}>
+              <TextField
+                fullWidth
+                label="Timeout (seconds)"
+                type="number"
+                value={newJobData.timeout}
+                onChange={(e) => setNewJobData({ ...newJobData, timeout: parseInt(e.target.value) || 0 })}
+              />
+            </Grid>
+            <Grid size={{ xs: 12 }}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={newJobData.isEnabled}
+                    onChange={(e) => setNewJobData({ ...newJobData, isEnabled: e.target.checked })}
+                  />
+                }
+                label="Enabled"
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCreateJobDialogOpen(false)}>Cancel</Button>
+          <Button onClick={handleCreateJob} variant="contained" disabled={!newJobData.name}>
+            Create
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Job Details Dialog */}
       <Dialog
@@ -956,7 +1433,7 @@ const JobMonitoringPage: React.FC = () => {
         <DialogContent>
           {jobDetailsDialog.job && (
             <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="h6" gutterBottom>
                   Job Information
                 </Typography>
@@ -988,7 +1465,7 @@ const JobMonitoringPage: React.FC = () => {
                   </Box>
                 </Stack>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="h6" gutterBottom>
                   Execution Details
                 </Typography>
@@ -1032,7 +1509,7 @@ const JobMonitoringPage: React.FC = () => {
                 </Stack>
               </Grid>
               {jobDetailsDialog.job.resourceUsage && (
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Typography variant="h6" gutterBottom>
                     Resource Usage
                   </Typography>
@@ -1053,7 +1530,7 @@ const JobMonitoringPage: React.FC = () => {
                 </Grid>
               )}
               {jobDetailsDialog.job.performanceMetrics && (
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Typography variant="h6" gutterBottom>
                     Performance Metrics
                   </Typography>
@@ -1080,7 +1557,7 @@ const JobMonitoringPage: React.FC = () => {
                 </Grid>
               )}
               {jobDetailsDialog.job.errorMessage && (
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <Typography variant="h6" gutterBottom>
                     Error Information
                   </Typography>
@@ -1152,5 +1629,3 @@ const JobMonitoringPage: React.FC = () => {
     </Box>
   );
 };
-
-export default JobMonitoringPage;

@@ -5,12 +5,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { ThemeProvider, Theme } from '@mui/material/styles';
 import { useConfiguration } from './ConfigurationProvider';
 import { getConventionalTheme, PaletteMode } from '../themes/conventional/theme';
-// We'll treat syariah as conventional for now or need similar refactor. 
-// For this step, we'll focus on making the main conventional theme dynamic.
-// If syariah theme isn't refactored yet, we can fallback to light mode for it or wrap it later.
-// To keep it simple, we assume syariah is currently static or less critical for this user request.
-// Importing static for syariah for now to avoid breaking imports.
-import { syariahBankingTheme as staticSyariahTheme } from '../themes/syariah/theme';
+import { getSyariahTheme } from '../themes/syariah/theme';
 
 export type BankingMode = 'conventional' | 'syariah' | 'dual';
 
@@ -43,7 +38,14 @@ export const BankingThemeProvider: React.FC<BankingThemeProviderProps> = ({ chil
 
   const [bankingMode, setBankingModeState] = useState<BankingMode>('conventional');
   const [colorMode, setColorMode] = useState<PaletteMode>('light');
-  const [currentTheme, setCurrentTheme] = useState<Theme>(getConventionalTheme('light'));
+  const [currentTheme, setCurrentTheme] = useState<Theme>(() => {
+    const theme = getConventionalTheme('light');
+    (theme as any).cssVariables = false;
+    delete (theme as any).vars;
+    delete (theme as any).generateCssVars;
+    (theme as any).applyStyles = (_mode: string, _styles: any) => ({});
+    return theme;
+  });
   const [isLoading, setIsLoading] = useState(true);
 
   // Initialize state on mount
@@ -66,15 +68,36 @@ export const BankingThemeProvider: React.FC<BankingThemeProviderProps> = ({ chil
     setIsLoading(false);
   }, [storedBankingMode]);
 
+  useEffect(() => {
+    if ((currentTheme as any).cssVariables === true) {
+      console.warn(
+        '[BankingThemeProvider] cssVariables=true detected. This will break Next 16.'
+      );
+    }
+    console.log('[BankingThemeProvider] Theme state:', {
+      cssVariables: (currentTheme as any).cssVariables,
+      hasVars: !!(currentTheme as any).vars,
+      hasGenerateCssVars: !!(currentTheme as any).generateCssVars,
+      hasApplyStyles: !!(currentTheme as any).applyStyles,
+    });
+  }, [currentTheme]);
+
   // Update Theme whenever bankingMode or colorMode changes
   useEffect(() => {
     let theme: Theme;
     if (bankingMode === 'syariah') {
-      // Fallback for Syariah (using static for now, or could map it similarly)
-      theme = staticSyariahTheme || getConventionalTheme(colorMode);
+      theme = getSyariahTheme(colorMode);
     } else {
       theme = getConventionalTheme(colorMode);
     }
+    
+    // AGGRESSIVE: Strip all CSS variable properties before setting
+    // Keep vars as undefined to avoid breaking palette access
+    (theme as any).cssVariables = false;
+    delete (theme as any).vars;
+    delete (theme as any).generateCssVars;
+    (theme as any).applyStyles = (_mode: string, _styles: any) => ({});
+    
     setCurrentTheme(theme);
   }, [bankingMode, colorMode]);
 
@@ -121,7 +144,7 @@ export const BankingThemeProvider: React.FC<BankingThemeProviderProps> = ({ chil
   return (
     <BankingThemeContext.Provider value={contextValue}>
       <ThemeProvider theme={currentTheme}>
-        {children}
+        {children as any}
       </ThemeProvider>
     </BankingThemeContext.Provider>
   );

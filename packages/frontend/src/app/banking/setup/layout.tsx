@@ -8,7 +8,7 @@
 
 import React from 'react';
 import { Box, Typography, Container } from '@mui/material';
-import { Settings as SetupIcon } from '@mui/icons-material';
+import SetupIcon from '@mui/icons-material/Settings';
 
 export default function SetupLayout({
   children,
@@ -18,7 +18,7 @@ export default function SetupLayout({
   return (
     <Box>
       {/* Optional: Add section-specific header or navigation */}
-      {children}
+      {children as any}
     </Box>
   );
 }

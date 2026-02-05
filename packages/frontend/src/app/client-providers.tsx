@@ -1,10 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
-import { StyledEngineProvider } from '@mui/material/styles';
-import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
+import { AppRouterCacheProvider } from '@mui/material-nextjs/v16-appRouter';
 import CssBaseline from '@mui/material/CssBaseline';
 
 // ✅ Import our custom providers
@@ -15,22 +14,27 @@ import { BankingThemeProvider } from '../providers/BankingThemeProvider';
 import { store, persistor } from '../store';
 
 export default function ClientProviders({ children }: { children: React.ReactNode }) {
+  // WORKAROUND: Prevent MUI v7 SvgIcon from trying to access _theme_vars
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any)._theme_vars = {};
+    }
+  }, []);
+
   return (
-    <AppRouterCacheProvider options={{ enableCssLayer: true }}>
-      <StyledEngineProvider injectFirst>
-        <Provider store={store}>
-          <PersistGate loading={null} persistor={persistor}>
-            <ConfigurationProvider>
-              <AuthProvider>
-                <BankingThemeProvider>
-                  <CssBaseline />
-                  {children}
-                </BankingThemeProvider>
-              </AuthProvider>
-            </ConfigurationProvider>
-          </PersistGate>
-        </Provider>
-      </StyledEngineProvider>
+    <AppRouterCacheProvider options={{ key: 'mui' }}>
+      <Provider store={store}>
+        <PersistGate loading={null} persistor={persistor}>
+          <ConfigurationProvider>
+            <AuthProvider>
+              <BankingThemeProvider>
+                <CssBaseline />
+                {children as any}
+              </BankingThemeProvider>
+            </AuthProvider>
+          </ConfigurationProvider>
+        </PersistGate>
+      </Provider>
     </AppRouterCacheProvider>
   );
 }

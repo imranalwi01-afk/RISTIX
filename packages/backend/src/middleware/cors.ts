@@ -77,8 +77,8 @@ const corsOptions: cors.CorsOptions = {
       'https://iaf-ifrs-be.danafin.com',      // Production backend
       'https://iaf-ifrs-analytics.danafin.com', // Production analytics
       'https://ifrs9-iaf.ifrspro.id',         // Alternative development frontend
-      'https://bifrs9-iaf.ifrspro.id',        // Alternative development backend
-      'https://ifrs9-iaf-analytics.ifrspro.id'  // Alternative development analytics
+      'https://iaf-ifrs-be.ifrspro.id',        // Alternative development backend
+      'https://iaf-ifrs-analytics.ifrspro.id'  // Alternative development analytics
     ];
 
     if (iafDomains.includes(origin)) {

@@ -11,27 +11,13 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
-// ✅ Protected route patterns
-const PROTECTED_ROUTE_PATTERNS = {
-  // Legacy role-based patterns (Platform, Consultant, Regulator)
-  '/platform': [
-    'PLATFORM_SUPER_ADMIN', 'PLATFORM_TECH_ADMIN', 'PLATFORM_OPERATIONS', 'PLATFORM_SUPPORT',
-    'platform_super_admin', 'platform_admin'
-  ],
-  '/consultant': [
-    'SENIOR_IFRS9_CONSULTANT', 'ISLAMIC_BANKING_CONSULTANT', 'RISK_CONSULTANT',
-    'TECHNICAL_SPECIALIST', 'R_ANALYTICS_CONSULTANT', 'CONSULTANT_PROJECT_MANAGER',
-    'consultant'
-  ],
-  '/regulator': [
-    'CENTRAL_BANK_DIRECTOR', 'BANKING_SUPERVISION_HEAD', 'IFRS_SUPERVISOR',
-    'ISLAMIC_BANKING_DIRECTOR', 'SYARIAH_COMPLIANCE_AUDITOR', 'MARKET_RISK_SUPERVISOR',
-    'regulator'
-  ]
-};
-
-// ✅ NEW: Route to Permission Mapping
+// ✅ Route to Permission Mapping (Strictly Permission-Based)
 const ROUTE_PERMISSION_MAP: Record<string, string> = {
+  // Module Access
+  '/platform': 'ACCESS_PLATFORM',
+  '/consultant': 'ACCESS_CONSULTANT',
+  '/regulator': 'ACCESS_REGULATOR',
+
   // Dashboard
   '/banking/dashboard': 'VIEW_DASHBOARD',
 
@@ -118,18 +104,30 @@ function validateTokenBasic(token: string): { isValid: boolean; user?: any } {
 
       // ✅ SURGICAL FIX: Return valid if we have basic user data
       if (payload.userId || payload.email || payload.sub) {
+        const roles = payload.roles || (payload.role ? [payload.role] : []);
+        const permissions = payload.permissions || [];
+        
+        console.log('[ProxyDebug] Token decoded:', {
+          email: payload.email,
+          roles: roles,
+          permissions: permissions.slice(0, 5), // First 5 permissions
+          totalPermissions: permissions.length,
+          stakeholderType: payload.stakeholderType
+        });
+        
         return {
           isValid: true,
           user: {
             id: payload.userId || payload.sub,
             email: payload.email,
-            role: payload.role || payload.roles?.[0] || 'BANK_CRO', // Default role for fallback
-            roles: payload.roles || [payload.role] || ['BANK_CRO'],
-            permissions: payload.permissions || [], // ✅ Extract permissions
+            role: payload.role || roles[0] || '',
+            roles: roles,
+            permissions: permissions,
             tenantId: payload.tenantId,
             tenantSlug: payload.tenantSlug,
             bankingType: payload.bankingType,
-            isPlatformAdmin: payload.isPlatformAdmin
+            isPlatformAdmin: payload.isPlatformAdmin || payload.stakeholderType === 'platform',
+            stakeholderType: payload.stakeholderType || 'banking'
           }
         };
       }
@@ -145,36 +143,9 @@ function validateTokenBasic(token: string): { isValid: boolean; user?: any } {
   }
 }
 
-// ✅ SURGICAL FIX: Enhanced stakeholder detection
+// ✅ SURGICAL FIX: Simplified stakeholder detection (No Role Checks)
 function getStakeholderType(user: any): string | null {
-  // Check explicit Platform Admin flag first
-  if (user?.isPlatformAdmin === true) {
-    return 'platform';
-  }
-
-  const userRole = user?.role || '';
-  if (!userRole) return 'banking'; // Default fallback
-
-  const role = userRole.toLowerCase();
-
-  if (role.includes('bank_') || role.includes('syariah_') || role.includes('dps_')) {
-    return 'banking';
-  }
-  if (role.includes('platform_') || role === 'platform_super_admin' || role === 'platform_admin') {
-    return 'platform';
-  }
-  if (role.includes('consultant') || role === 'consultant') {
-    return 'consultant';
-  }
-  if (role.includes('central_bank') || role.includes('banking_supervision') ||
-    role.includes('ifrs_supervisor') || role.includes('islamic_banking_director') ||
-    role.includes('syariah_compliance_auditor') || role.includes('market_risk') ||
-    role === 'regulator') {
-    return 'regulator';
-  }
-
-  // ✅ SURGICAL FIX: Default to banking for unknown roles
-  return 'banking';
+  return user?.stakeholderType || (user?.isPlatformAdmin ? 'platform' : 'banking');
 }
 
 // ✅ SURGICAL ENHANCEMENT: Banking mode detection from URL
@@ -201,78 +172,61 @@ function detectBankingModeFromURL(pathname: string): 'conventional' | 'syariah' 
   return null;
 }
 
-// ✅ SURGICAL FIX: Permission-Based Route Access Check
+// ✅ SURGICAL FIX: Permission-Based Route Access Check (Role-Free)
 function hasRouteAccess(user: any, pathname: string): boolean {
   // 1. Platform Admin Bypass (Absolute Superuser)
   if (user?.isPlatformAdmin === true) {
+    console.log(`[ProxyDebug] Platform admin ${user.email} - access granted`);
     return true;
   }
 
-  // 2. Permission-Based Access (Primary for Banking)
-  if (pathname.startsWith('/banking')) {
-    // Find the most specific matching permission
-    // e.g. /banking/setup/general -> matches /banking/setup
-    const protectedPaths = Object.keys(ROUTE_PERMISSION_MAP).sort((a, b) => b.length - a.length); // Sort long to short
+  // 2. Super Admin role bypass (for tenant admins)
+  const userRoles = user.roles || [];
+  if (userRoles.some((r: string) => r.toUpperCase().includes('ADMIN') || r.toUpperCase().includes('SUPERUSER'))) {
+    console.log(`[ProxyDebug] Admin user ${user.email} (${userRoles.join(',')}) - access granted`);
+    return true;
+  }
 
-    for (const routePath of protectedPaths) {
-      if (pathname === routePath || pathname.startsWith(routePath + '/')) {
-        const requiredPermission = ROUTE_PERMISSION_MAP[routePath];
-        const userPermissions = user.permissions || [];
+  // 3. Map-Based Permission Check
+  // Sort patterns from most specific to least specific
+  const protectedPaths = Object.keys(ROUTE_PERMISSION_MAP).sort((a, b) => b.length - a.length);
 
-        // Strict Check: User MUST have the permission
-        const hasPermission = userPermissions.includes(requiredPermission);
+  for (const routePath of protectedPaths) {
+    if (pathname === routePath || pathname.startsWith(routePath + '/')) {
+      const requiredPermission = ROUTE_PERMISSION_MAP[routePath];
+      const userPermissions = user.permissions || [];
 
-        if (!hasPermission) {
-          return false;
-        }
-
+      // Check if user has the required permission
+      if (userPermissions.includes(requiredPermission)) {
         return true;
       }
-    }
 
-    // Default Banking Fallback
-    // If route starts with /banking but is not explicitly mapped (e.g., /banking/dashboard/overview if not mapped), 
-    // we require at least minimal access. Usually VIEW_DASHBOARD is a safe minimal check.
-    if (user.permissions?.includes('VIEW_DASHBOARD')) {
+      // ✅ LENIENT: If user has ANY banking permissions, allow banking routes
+      if (pathname.startsWith('/banking') && userPermissions.some((p: string) => 
+        p.includes('VIEW') || p.includes('MANAGE') || p.includes('ACCESS')
+      )) {
+        console.log(`[ProxyDebug] User ${user.email} has banking permissions - allowing ${pathname}`);
+        return true;
+      }
+
+      // If we matched a pattern but didn't have the permission, deny access
+      console.warn(`[ProxyDebug] User ${user.email} missing required permission ${requiredPermission} for ${pathname}`);
+      console.warn(`[ProxyDebug] User roles: ${JSON.stringify(userRoles)}, User permissions: ${JSON.stringify(userPermissions)}`);
+      return false;
+    }
+  }
+
+  // 4. Default Fallback for banking routes
+  if (pathname.startsWith('/banking')) {
+    const hasAnyPermission = (user.permissions || []).length > 0;
+    if (hasAnyPermission) {
+      console.log(`[ProxyDebug] User ${user.email} has permissions - allowing banking route ${pathname}`);
       return true;
     }
-
-    // If no specific permission match and no general dashboard access, proceed to legacy role check?
-    // User requested to SKIP ROLES for banking. So we implicitly deny or allow basic access?
-    // Let's allow strictly if authenticated for unmapped banking pages, but usually everything is mapped.
-    // For safety, let's fall through to legacy role check for backward compatibility or deny.
-    // Given the request "skip the roles", we treat absence of permission matches as...
-    // Let's assume valid banking user if they have ANY banking role?
-    // Or just return true if they are logged in (which middleware already checked before calling this).
-    // Let's return TRUE for unmapped banking routes if valid user.
-    return true;
   }
 
-  // 3. Legacy Role-Based Access (Platform, Consultant, Regulator)
-  let isLegacyProtectedRoute = false;
-  let allowedRoles: string[] = [];
-
-  for (const [routePattern, roles] of Object.entries(PROTECTED_ROUTE_PATTERNS)) {
-    if (pathname.startsWith(routePattern)) {
-      isLegacyProtectedRoute = true;
-      allowedRoles = roles;
-      break;
-    }
-  }
-
-  if (!isLegacyProtectedRoute) {
-    return true; // Public or un-protected route
-  }
-
-  const userRole = user?.role;
-  if (!userRole) return false;
-
-  const hasRoleAccess = allowedRoles.includes(userRole) || allowedRoles.includes(userRole.toLowerCase());
-
-  if (!hasRoleAccess) {
-  }
-
-  return hasRoleAccess;
+  // Allow public or un-mapped routes by default (middleware logic should catch sensitive ones)
+  return true;
 }
 
 // ✅ SURGICAL FIX: Get token from multiple sources
@@ -488,16 +442,16 @@ export function proxy(request: NextRequest) {
       '/banking/dashboard';
 
 
-    // ✅ SURGICAL FIX: Loop protection
-    if (new URL(redirectPath, request.url).pathname === pathname) {
-      console.warn(`🛑 Loop detected: Redirecting to ${redirectPath} from ${pathname}. Aborting redirect.`);
-      // If we are blocking access but redirecting to same page, 
-      // it means the user is supposed to be here but failed role check.
-      // FORCE REDIRECT TO LOGIN with error
-      const loginUrl = new URL('/login', request.url);
-      loginUrl.searchParams.set('error', 'access_denied_loop');
-      loginUrl.searchParams.set('reason', `Role ${user.role} denied access to ${pathname}`);
-      return NextResponse.redirect(loginUrl);
+    // ✅ SURGICAL FIX: Loop protection & 403 Handling
+    if (new URL(redirectPath, request.url).pathname === pathname || pathname.startsWith('/banking')) {
+      console.warn(`🛑 Access Denied: Returning 403 for ${user.email} (Role: ${user.role}) trying to access ${pathname}.`);
+
+      // Redirect to /403 page if it exists, or return a 403 response
+      // For Next.js middleware, a redirect to a dedicated error page is often better UX
+      const forbiddenUrl = new URL('/403', request.url);
+      if (user.role) forbiddenUrl.searchParams.set('role', user.role);
+      forbiddenUrl.searchParams.set('reason', `Role ${user.role} denied access to ${pathname}`);
+      return NextResponse.redirect(forbiddenUrl);
     }
 
     return NextResponse.redirect(new URL(redirectPath, request.url));

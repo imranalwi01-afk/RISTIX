@@ -72,18 +72,7 @@ import { FullstackIndicator } from '@/components/common/feedback/FullstackIndica
 // DYNAMIC IMPORTS FOR HEAVY COMPONENTS (Performance Optimization)
 // ============================================================================
 
-const DataGrid = dynamic(
-  () => import('@mui/x-data-grid').then((mod) => mod.DataGrid),
-  {
-    ssr: false,
-    loading: () => <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress /></Box>
-  }
-);
-
-const GridActionsCellItem = dynamic(
-  () => import('@mui/x-data-grid').then((mod) => mod.GridActionsCellItem),
-  { ssr: false }
-);
+import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 
 const EnhancedSegmentationDetailModal = dynamic(
   () => import('../../segmentation/components/EnhancedSegmentationDetailModal'),
@@ -94,7 +83,7 @@ const EnhancedSegmentationDetailModal = dynamic(
 );
 
 const ConditionBuilder = dynamic(
-  () => import('@/components/common/forms/ConditionBuilder').then((mod) => mod.ConditionBuilder),
+  () => import('@/components/common/forms/ConditionBuilder').then((mod) => mod.ConditionBuilder as any),
   { ssr: false }
 );
 
@@ -111,10 +100,10 @@ interface SegmentationHeader {
   seq?: number;
   active_flag: boolean;
   detail_count?: number;
-  created_by?: string;
-  created_date?: string;
-  updated_by?: string;
-  updated_date?: string;
+  createdby?: string;
+  createddate?: string;
+  updatedby?: string;
+  updateddate?: string;
 }
 
 interface SegmentationHeaderForm {
@@ -146,20 +135,20 @@ const initialDemoData: SegmentationHeader[] = [
     seq: 1,
     active_flag: true,
     detail_count: 5,
-    created_by: 'system',
-    created_date: new Date().toISOString()
+    createdby: 'system',
+    createddate: new Date().toISOString()
   },
   {
     id: 2,
-    group_segment: 'SME Banking',
-    segment: 'Small Medium Enterprise',
-    sub_segment: 'Trading',
-    segment_type: 'BUSINESS_SEGMENT',
+    group_segment: 'Retail Banking',
+    segment: 'Personal Banking',
+    sub_segment: 'Mortgage',
+    segment_type: 'PRODUCT_SEGMENT',
     seq: 2,
     active_flag: true,
     detail_count: 3,
-    created_by: 'system',
-    created_date: new Date().toISOString()
+    createdby: 'system',
+    createddate: new Date().toISOString()
   },
   {
     id: 3,
@@ -170,8 +159,8 @@ const initialDemoData: SegmentationHeader[] = [
     seq: 3,
     active_flag: false,
     detail_count: 4,
-    created_by: 'system',
-    created_date: new Date().toISOString()
+    createdby: 'system',
+    createddate: new Date().toISOString()
   }
 ];
 
@@ -395,7 +384,7 @@ export default function SegmentationConfigurationPage() {
         item.segment?.toLowerCase().includes(search) ||
         item.sub_segment?.toLowerCase().includes(search) ||
         item.segment_type?.toLowerCase().includes(search) ||
-        item.created_by?.toLowerCase().includes(search)
+        item.createdby?.toLowerCase().includes(search)
       );
     }
 
@@ -499,7 +488,7 @@ export default function SegmentationConfigurationPage() {
       getActions: (params: GridRowParams) => {
         if (!params.row) return [];
         return [
-          <GridActionsCellItem
+          <SafeGridActionsCellItem
             icon={<ViewDetailIcon fontSize="small" />}
             label="View"
             onClick={() => handleViewDetails(params.row)}
@@ -507,7 +496,7 @@ export default function SegmentationConfigurationPage() {
             disabled={backendUnavailable}
             showInMenu={false}
           />,
-          <GridActionsCellItem
+          <SafeGridActionsCellItem
             icon={<EditIcon fontSize="small" />}
             label="Edit"
             onClick={() => handleEdit(params.row)}
@@ -515,7 +504,7 @@ export default function SegmentationConfigurationPage() {
             disabled={backendUnavailable}
             showInMenu={false}
           />,
-          <GridActionsCellItem
+          <SafeGridActionsCellItem
             icon={<DeleteIcon fontSize="small" />}
             label="Delete"
             onClick={() => handleDelete(params.row)}
@@ -527,7 +516,7 @@ export default function SegmentationConfigurationPage() {
       }
     },
     {
-      field: 'groupSegment',
+      field: 'group_segment',
       headerName: 'Group Segment',
       flex: 1,
       minWidth: 200,
@@ -569,7 +558,7 @@ export default function SegmentationConfigurationPage() {
       ),
     },
     {
-      field: 'subSegment',
+      field: 'sub_segment',
       headerName: 'Sub Segment',
       flex: 1,
       minWidth: 200,
@@ -590,7 +579,7 @@ export default function SegmentationConfigurationPage() {
       renderCell: (params) => params.value || '-'
     },
     {
-      field: 'segmentType',
+      field: 'segment_type',
       headerName: 'Segment Type',
       flex: 1,
       minWidth: 200,
@@ -614,7 +603,7 @@ export default function SegmentationConfigurationPage() {
       }
     },
     {
-      field: 'activeFlag',
+      field: 'active_flag',
       headerName: 'Is Active',
       width: 100,
       headerAlign: 'center',
@@ -895,7 +884,7 @@ export default function SegmentationConfigurationPage() {
         // Update existing
         const updatedData = data.map(item =>
           item.id === selectedHeader.id
-            ? { ...item, ...payload, updated_by: 'user', updated_date: new Date().toISOString() }
+            ? { ...item, ...payload, updatedby: 'user', updateddate: new Date().toISOString() }
             : item
         );
         setData(updatedData);
@@ -908,8 +897,8 @@ export default function SegmentationConfigurationPage() {
           id: newId,
           ...payload,
           detail_count: 0,
-          created_by: 'user',
-          created_date: new Date().toISOString()
+          createdby: 'user',
+          createddate: new Date().toISOString()
         };
         const updatedData = [...data, newItem];
         setData(updatedData);
@@ -1013,6 +1002,7 @@ export default function SegmentationConfigurationPage() {
             startIcon={<AddIcon />}
             onClick={handleCreate}
             disabled={loading}
+            data-testid="add-segmentation-btn"
           >
             Add Segmentation
           </Button>
@@ -1103,13 +1093,14 @@ export default function SegmentationConfigurationPage() {
           <Paper elevation={1} sx={{ p: 2, mb: 2 }}>
             <Grid container spacing={2} alignItems="center">
               {/* Search Field */}
-              <Grid item xs={12} md={4}>
+              <Grid size={{ xs: 12, md: 4 }}>
                 <TextField
                   fullWidth
                   size="small"
                   placeholder="Search by group, segment, type, or creator..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
+                  inputProps={{ 'data-testid': 'segment-search-input' }}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -1128,7 +1119,7 @@ export default function SegmentationConfigurationPage() {
               </Grid>
 
               {/* Segment Type Filter */}
-              <Grid item xs={12} md={3}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <FormControl fullWidth size="small">
                   <InputLabel>Segment Type</InputLabel>
                   <Select
@@ -1147,7 +1138,7 @@ export default function SegmentationConfigurationPage() {
               </Grid>
 
               {/* Status Filter */}
-              <Grid item xs={12} md={2}>
+              <Grid size={{ xs: 12, md: 2 }}>
                 <FormControl fullWidth size="small">
                   <InputLabel>Status</InputLabel>
                   <Select
@@ -1163,7 +1154,7 @@ export default function SegmentationConfigurationPage() {
               </Grid>
 
               {/* Sort Controls */}
-              <Grid item xs={12} md={2}>
+              <Grid size={{ xs: 12, md: 2 }}>
                 <FormControl fullWidth size="small">
                   <InputLabel>Sort By</InputLabel>
                   <Select
@@ -1181,7 +1172,7 @@ export default function SegmentationConfigurationPage() {
               </Grid>
 
               {/* Action Buttons */}
-              <Grid item xs={12} md={1}>
+              <Grid size={{ xs: 12, md: 1 }}>
                 <Stack direction="row" spacing={1}>
                   <Tooltip title={`Sort ${sortDirection === 'asc' ? 'Descending' : 'Ascending'}`}>
                     <IconButton
@@ -1218,16 +1209,27 @@ export default function SegmentationConfigurationPage() {
           </Paper>
 
           <Box sx={{ height: 600, width: '100%' }}>
-            <DataGrid
+            <SafeDataGrid
               rows={filteredData}
               columns={columns}
-              getRowId={(row) => row?.id || `row_${JSON.stringify(row).slice(0, 50)}`}
-              pageSizeOptions={[5, 10, 25, 50]}
+              getRowId={(row) => row.id}
               initialState={{
-                pagination: { paginationModel: { pageSize: 10 } }
+                pagination: { paginationModel: { pageSize: 10 } },
               }}
+              pageSizeOptions={[10, 25, 50, 100]}
               disableRowSelectionOnClick
               loading={loading}
+              slots={{
+                toolbar: () => (
+                  <Box sx={{ p: 1, display: 'flex', gap: 1 }}>
+                    <Button startIcon={<DownloadIcon />} onClick={handleExport}>Export</Button>
+                    <Button component="label" startIcon={<UploadIcon />}>
+                      Import
+                      <input type="file" hidden accept=".json" onChange={handleImport} />
+                    </Button>
+                  </Box>
+                )
+              }}
               slotProps={{
                 loadingOverlay: {
                   variant: 'linear-progress' as const,
@@ -1289,7 +1291,12 @@ export default function SegmentationConfigurationPage() {
               onChange={(e) => setFormData(prev => ({ ...prev, group_segment: e.target.value }))}
               fullWidth
               required
-              slotProps={{ htmlInput: { maxLength: 150 } }}
+              slotProps={{
+                htmlInput: {
+                  maxLength: 150,
+                  'data-testid': 'segment-group-field'
+                }
+              }}
               placeholder="Group Segment"
               error={!formData.group_segment.trim()}
               helperText={!formData.group_segment.trim() ? 'Group Segment is required' : 'Group classification name (max 150 characters)'}
@@ -1302,7 +1309,12 @@ export default function SegmentationConfigurationPage() {
               onChange={(e) => setFormData(prev => ({ ...prev, segment: e.target.value }))}
               fullWidth
               required
-              slotProps={{ htmlInput: { maxLength: 150 } }}
+              slotProps={{
+                htmlInput: {
+                  maxLength: 150,
+                  'data-testid': 'segment-name-field'
+                }
+              }}
               placeholder="Segment"
               error={!formData.segment.trim()}
               helperText={!formData.segment.trim() ? 'Segment is required' : 'Main segment name (max 150 characters)'}
@@ -1314,7 +1326,12 @@ export default function SegmentationConfigurationPage() {
               value={formData.sub_segment}
               onChange={(e) => setFormData(prev => ({ ...prev, sub_segment: e.target.value }))}
               fullWidth
-              slotProps={{ htmlInput: { maxLength: 150 } }}
+              slotProps={{
+                htmlInput: {
+                  maxLength: 150,
+                  'data-testid': 'segment-sub-field'
+                }
+              }}
               placeholder="Sub Segment (optional)"
               helperText="Optional sub-segment for detailed classification (max 150 characters)"
             />
@@ -1329,6 +1346,9 @@ export default function SegmentationConfigurationPage() {
               required
               error={!formData.segment_type.trim()}
               helperText={!formData.segment_type.trim() ? 'Segment Type is required' : 'Type of segmentation classification'}
+              SelectProps={{
+                SelectDisplayProps: { 'data-testid': 'segment-type-select' } as any
+              }}
             >
               <MenuItem value="">Select Segment Type</MenuItem>
               {segmentTypes.map((type) => (
@@ -1347,7 +1367,12 @@ export default function SegmentationConfigurationPage() {
               fullWidth
               placeholder="Display sequence"
               helperText="Optional display order sequence"
-              slotProps={{ htmlInput: { min: 1 } }}
+              slotProps={{
+                htmlInput: {
+                  min: 1,
+                  'data-testid': 'segment-seq-field'
+                }
+              }}
             />
 
             {/* Active Flag */}
@@ -1374,6 +1399,7 @@ export default function SegmentationConfigurationPage() {
             disabled={loading || !formData.group_segment.trim() || !formData.segment.trim() || !formData.segment_type.trim()}
             startIcon={loading ? <CircularProgress size={16} /> : (backendUnavailable ? <SaveIcon /> : null)}
             color={backendUnavailable ? 'warning' : 'primary'}
+            data-testid="save-segmentation-btn"
           >
             {loading ? 'Saving...' :
               backendUnavailable ?

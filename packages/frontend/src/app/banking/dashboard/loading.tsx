@@ -27,7 +27,7 @@ export default function DashboardLoading() {
             {/* Stats Grid Skeleton */}
             <Grid container spacing={3} sx={{ mb: 4 }}>
                 {[1, 2, 3, 4].map((i) => (
-                    <Grid item xs={12} md={6} key={i}>
+                    <Grid size={{ xs: 12, md: 6 }} key={i}>
                         <Card sx={{ height: 140 }}>
                             <CardContent>
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -46,20 +46,20 @@ export default function DashboardLoading() {
 
             {/* Charts Skeleton */}
             <Grid container spacing={3} sx={{ mb: 4 }}>
-                <Grid item xs={12} md={8}>
+                <Grid size={{ xs: 12, md: 8 }}>
                     <Skeleton variant="rectangular" height={340} sx={{ borderRadius: 3 }} />
                 </Grid>
-                <Grid item xs={12} md={4}>
+                <Grid size={{ xs: 12, md: 4 }}>
                     <Skeleton variant="rectangular" height={340} sx={{ borderRadius: 3 }} />
                 </Grid>
             </Grid>
 
             {/* Quick Actions Skeleton */}
             <Grid container spacing={3}>
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                     <Skeleton variant="rectangular" height={280} sx={{ borderRadius: 2 }} />
                 </Grid>
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                     <Skeleton variant="rectangular" height={280} sx={{ borderRadius: 2 }} />
                 </Grid>
             </Grid>

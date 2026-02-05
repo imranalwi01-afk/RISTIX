@@ -1,14 +1,15 @@
 import React from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
     Box,
     Paper,
     Breadcrumbs,
     Typography,
     Link,
-    useTheme
 } from '@mui/material';
-import { ChevronRight, Home as HomeIcon } from '@mui/icons-material';
+import { useTheme } from '@mui/material/styles';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import HomeIcon from '@mui/icons-material/Home';
 
 interface BankingBreadcrumbsProps {
     drawerWidth: number;
@@ -21,6 +22,7 @@ export const BankingBreadcrumbs: React.FC<BankingBreadcrumbsProps> = ({
 }) => {
     const theme = useTheme();
     const pathname = usePathname();
+    const router = useRouter();
 
     // Generate breadcrumbs from pathname
     const generateBreadcrumbs = () => {
@@ -74,7 +76,7 @@ export const BankingBreadcrumbs: React.FC<BankingBreadcrumbsProps> = ({
         >
             <Box sx={{ px: 2, py: 0.4 }}>
                 <Breadcrumbs
-                    separator={<ChevronRight fontSize="small" />}
+                    separator={<ChevronRightIcon fontSize="small" />}
                     aria-label="breadcrumb"
                     sx={{
                         '& .MuiBreadcrumbs-separator': {
@@ -115,11 +117,11 @@ export const BankingBreadcrumbs: React.FC<BankingBreadcrumbsProps> = ({
                                 onClick={(e) => {
                                     e.preventDefault();
                                     if (crumb.href) {
-                                        window.location.href = crumb.href;
+                                        router.push(crumb.href);
                                     }
                                 }}
                             >
-                                {crumb.icon}
+                                {crumb.icon as any}
                                 {crumb.label}
                             </Link>
                         )

@@ -43,7 +43,6 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Grid,
   Divider
 } from '@mui/material';
 import {
@@ -71,7 +70,7 @@ import { FullstackIndicator } from '@/components/common/feedback/FullstackIndica
 // =====================================================
 
 interface RuleBaseHeader {
-  pkid: number;
+  id: number;
   rule_name: string;
   rule_type: string;
   rule_type_desc?: string;
@@ -89,7 +88,7 @@ interface RuleBaseHeader {
 }
 
 interface RuleBaseDetail {
-  pkid: number;
+  id: number;
   rule_id: number;
   query_group: number;
   seq: number;
@@ -119,6 +118,7 @@ interface ExpandableRowProps {
   onEditDetail: (detail: RuleBaseDetail) => void;
   onDeleteDetail: (detail: RuleBaseDetail) => void;
   loading: boolean;
+  refreshTrigger?: number;
 }
 
 function ExpandableRow({
@@ -128,7 +128,8 @@ function ExpandableRow({
   onCreateDetail,
   onEditDetail,
   onDeleteDetail,
-  loading
+  loading,
+  refreshTrigger
 }: ExpandableRowProps) {
   const [open, setOpen] = useState(false);
   const [details, setDetails] = useState<RuleBaseDetail[]>([]);
@@ -141,12 +142,18 @@ function ExpandableRow({
     setOpen(!open);
   };
 
+  useEffect(() => {
+    if (refreshTrigger) {
+      loadDetails();
+    }
+  }, [refreshTrigger]);
+
   const loadDetails = async () => {
     setLoadingDetails(true);
     try {
-      console.log(`🔍 Loading Rule Base Setting details for rule ${header.pkid}`);
+      console.log(`🔍 Loading Rule Base Setting details for rule ${header.id}`);
 
-      const response = await bankingAPI.ruleBaseSetting.getDetails(header.pkid);
+      const response = await bankingAPI.ruleBaseSetting.getDetails(header.id);
       if (response.success) {
         setDetails(response.data);
         console.log(`✅ Loaded ${response.data.length} rule details from DS2 database`);
@@ -175,12 +182,12 @@ function ExpandableRow({
           </IconButton>
         </TableCell>
         <TableCell>
-          <Typography variant="body2" sx={{ fontWeight: 'bold', fontFamily: 'monospace' }}>
-            {header.pkid}
+          <Typography variant="body2" sx={{ fontWeight: 'bold', fontFamily: 'monospace' }} data-testid="rule-id-cell">
+            {header.id}
           </Typography>
         </TableCell>
         <TableCell>
-          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+          <Typography variant="body2" sx={{ fontWeight: 'bold' }} data-testid="rule-name-cell">
             {header.rule_name}
           </Typography>
         </TableCell>
@@ -234,6 +241,7 @@ function ExpandableRow({
               color="primary"
               onClick={() => onEditHeader(header)}
               disabled={loading}
+              data-testid="edit-header-btn"
             >
               <EditIcon fontSize="small" />
             </IconButton>
@@ -244,6 +252,7 @@ function ExpandableRow({
               color="error"
               onClick={() => onDeleteHeader(header)}
               disabled={loading}
+              data-testid="delete-header-btn"
             >
               <DeleteIcon fontSize="small" />
             </IconButton>
@@ -263,9 +272,10 @@ function ExpandableRow({
                 <Button
                   size="small"
                   startIcon={<AddIcon />}
-                  onClick={() => onCreateDetail(header.pkid)}
+                  onClick={() => onCreateDetail(header.id)}
                   disabled={loading}
                   variant="outlined"
+                  data-testid="add-detail-btn"
                 >
                   Add Detail
                 </Button>
@@ -299,7 +309,7 @@ function ExpandableRow({
                     </TableHead>
                     <TableBody>
                       {details.map((detail, index) => (
-                        <TableRow key={detail.pkid ? `detail-${detail.pkid}` : `detail-idx-${index}`} hover>
+                        <TableRow key={detail.id ? `detail-${detail.id}` : `detail-idx-${index}`} hover>
                           <TableCell>
                             <Chip label={detail.query_group} size="small" color="info" />
                           </TableCell>
@@ -355,6 +365,7 @@ function ExpandableRow({
                                 color="primary"
                                 onClick={() => onEditDetail(detail)}
                                 disabled={loading}
+                                data-testid="edit-detail-btn"
                               >
                                 <EditIcon fontSize="small" />
                               </IconButton>
@@ -365,6 +376,7 @@ function ExpandableRow({
                                 color="error"
                                 onClick={() => onDeleteDetail(detail)}
                                 disabled={loading}
+                                data-testid="delete-detail-btn"
                               >
                                 <DeleteIcon fontSize="small" />
                               </IconButton>
@@ -414,6 +426,11 @@ export default function RuleBaseSettingPage() {
   // Form States
   const [headerFormData, setHeaderFormData] = useState<Partial<RuleBaseHeader>>({});
   const [detailFormData, setDetailFormData] = useState<Partial<RuleBaseDetail>>({});
+  const [refreshTriggers, setRefreshTriggers] = useState<Record<number, number>>({});
+
+  const triggerRefresh = (headerId: number) => {
+    setRefreshTriggers(prev => ({ ...prev, [headerId]: Date.now() }));
+  };
 
   // Dropdown Options - Live Database Metadata
   const [ruleTypes, setRuleTypes] = useState<{ label: string, value: string }[]>([]);
@@ -575,7 +592,7 @@ export default function RuleBaseSettingPage() {
       setLoading(true);
       setError(null);
 
-      await bankingAPI.ruleBaseSetting.deleteHeader(header.pkid);
+      await bankingAPI.ruleBaseSetting.deleteHeader(header.id);
       setSuccess('Rule header deleted successfully');
       await loadHeaders();
 
@@ -610,7 +627,7 @@ export default function RuleBaseSettingPage() {
 
       if (selectedHeader) {
         // Update existing header
-        await bankingAPI.ruleBaseSetting.updateHeader(selectedHeader.pkid, payload);
+        await bankingAPI.ruleBaseSetting.updateHeader(selectedHeader.id, payload);
         setSuccess('Rule header updated successfully');
       } else {
         // Create new header
@@ -664,8 +681,10 @@ export default function RuleBaseSettingPage() {
       setLoading(true);
       setError(null);
 
-      await bankingAPI.ruleBaseSetting.deleteDetail(detail.pkid);
+      await bankingAPI.ruleBaseSetting.deleteDetail(detail.id);
       setSuccess('Rule detail deleted successfully');
+
+      triggerRefresh(detail.rule_id);
       await loadHeaders();
 
     } catch (error: any) {
@@ -688,8 +707,8 @@ export default function RuleBaseSettingPage() {
       setError(null);
 
       const payload = {
-        query_group: detailFormData.query_group || 1,
-        seq: detailFormData.seq || 1,
+        query_group: Number(detailFormData.query_group) || 1,
+        seq: Number(detailFormData.seq) || 1,
         table_name: detailFormData.table_name!.trim(),
         column_name: detailFormData.column_name!.trim(),
         data_type: detailFormData.data_type!.trim(),
@@ -697,14 +716,14 @@ export default function RuleBaseSettingPage() {
         value1: detailFormData.value1?.trim() || '',
         value2: detailFormData.value2?.trim() || '',
         condition: detailFormData.condition || 'AND',
-        detail_type: detailFormData.detail_type ? Number(detailFormData.detail_type) : undefined,
-        stage_from: detailFormData.stage_from ? Number(detailFormData.stage_from) : undefined,
-        stage_to: detailFormData.stage_to ? Number(detailFormData.stage_to) : undefined
+        detail_type: detailFormData.detail_type?.toString() || undefined,
+        stage_from: detailFormData.stage_from?.toString() || undefined,
+        stage_to: detailFormData.stage_to?.toString() || undefined
       };
 
       if (selectedDetail) {
         // Update existing detail
-        await bankingAPI.ruleBaseSetting.updateDetail(selectedDetail.pkid, payload);
+        await bankingAPI.ruleBaseSetting.updateDetail(selectedDetail.id, payload);
         setSuccess('Rule detail updated successfully');
       } else {
         // Create new detail
@@ -713,6 +732,11 @@ export default function RuleBaseSettingPage() {
       }
 
       setDetailDialogOpen(false);
+
+      if (selectedHeaderId) {
+        triggerRefresh(selectedHeaderId);
+      }
+
       await loadHeaders();
 
     } catch (error: any) {
@@ -838,6 +862,7 @@ export default function RuleBaseSettingPage() {
             startIcon={<AddIcon />}
             onClick={handleCreateHeader}
             disabled={loading}
+            data-testid="add-rule-btn"
           >
             Add Rule
           </Button>
@@ -860,8 +885,8 @@ export default function RuleBaseSettingPage() {
             />
           </Box>
 
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={3}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '3fr 2fr 2fr 2fr 3fr' }, gap: 2 }}>
+            <Box>
               <TextField
                 fullWidth
                 label="Search Rules"
@@ -872,16 +897,18 @@ export default function RuleBaseSettingPage() {
                   startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />
                 }}
                 size="small"
+                data-testid="rule-search-input"
               />
-            </Grid>
+            </Box>
 
-            <Grid item xs={12} md={2}>
+            <Box>
               <FormControl fullWidth size="small">
                 <InputLabel>Rule Type</InputLabel>
                 <Select
                   value={filterRuleType}
                   onChange={(e) => setFilterRuleType(e.target.value)}
                   label="Rule Type"
+                  data-testid="rule-type-select"
                 >
                   <MenuItem value="">All Types</MenuItem>
                   {getUniqueRuleTypes().map((type) => (
@@ -889,30 +916,32 @@ export default function RuleBaseSettingPage() {
                   ))}
                 </Select>
               </FormControl>
-            </Grid>
+            </Box>
 
-            <Grid item xs={12} md={2}>
+            <Box>
               <FormControl fullWidth size="small">
                 <InputLabel>Status</InputLabel>
                 <Select
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
                   label="Status"
+                  data-testid="rule-status-select"
                 >
                   <MenuItem value="">All Status</MenuItem>
                   <MenuItem value="active">Active</MenuItem>
                   <MenuItem value="inactive">Inactive</MenuItem>
                 </Select>
               </FormControl>
-            </Grid>
+            </Box>
 
-            <Grid item xs={12} md={2}>
+            <Box>
               <FormControl fullWidth size="small">
                 <InputLabel>Created By</InputLabel>
                 <Select
                   value={filterCreatedBy}
                   onChange={(e) => setFilterCreatedBy(e.target.value)}
                   label="Created By"
+                  data-testid="rule-creator-select"
                 >
                   <MenuItem value="">All Creators</MenuItem>
                   {getUniqueCreatedBy().map((creator) => (
@@ -920,9 +949,9 @@ export default function RuleBaseSettingPage() {
                   ))}
                 </Select>
               </FormControl>
-            </Grid>
+            </Box>
 
-            <Grid item xs={12} md={3}>
+            <Box>
               <Box sx={{ display: 'flex', gap: 1, height: '40px' }}>
                 <Button
                   variant="outlined"
@@ -930,6 +959,7 @@ export default function RuleBaseSettingPage() {
                   onClick={handleClearFilters}
                   disabled={loading}
                   size="small"
+                  data-testid="clear-filters-btn"
                 >
                   Clear Filters
                 </Button>
@@ -943,8 +973,8 @@ export default function RuleBaseSettingPage() {
                   Refresh
                 </Button>
               </Box>
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
         </CardContent>
       </Card>
 
@@ -981,7 +1011,7 @@ export default function RuleBaseSettingPage() {
                 <TableBody>
                   {filteredHeaders.map((header, index) => (
                     <ExpandableRow
-                      key={header.pkid ? `row-${header.pkid}` : `row-idx-${index}`}
+                      key={header.id ? `row-${header.id}` : `row-idx-${index}`}
                       header={header}
                       onEditHeader={handleEditHeader}
                       onDeleteHeader={handleDeleteHeader}
@@ -989,6 +1019,7 @@ export default function RuleBaseSettingPage() {
                       onEditDetail={handleEditDetail}
                       onDeleteDetail={handleDeleteDetail}
                       loading={loading}
+                      refreshTrigger={refreshTriggers[header.id]}
                     />
                   ))}
                 </TableBody>
@@ -1016,6 +1047,7 @@ export default function RuleBaseSettingPage() {
               fullWidth
               required
               placeholder="e.g., Stage Classification Rule"
+              data-testid="rule-name-field"
             />
             <FormControl fullWidth required>
               <InputLabel>Rule Type</InputLabel>
@@ -1023,6 +1055,7 @@ export default function RuleBaseSettingPage() {
                 value={headerFormData.rule_type || ''}
                 onChange={(e) => setHeaderFormData(prev => ({ ...prev, rule_type: e.target.value }))}
                 label="Rule Type"
+                data-testid="rule-type-field"
               >
                 {ruleTypes.length > 0 ? (
                   ruleTypes.map((type) => (
@@ -1046,6 +1079,7 @@ export default function RuleBaseSettingPage() {
               fullWidth
               required
               placeholder="e.g., FRS9_MASTER_ACCOUNT"
+              data-testid="updated-table-field"
             />
             <TextField
               label="Updated Column"
@@ -1054,6 +1088,7 @@ export default function RuleBaseSettingPage() {
               fullWidth
               required
               placeholder="e.g., STAGE"
+              data-testid="updated-column-field"
             />
             <TextField
               label="Value"
@@ -1062,6 +1097,7 @@ export default function RuleBaseSettingPage() {
               fullWidth
               required
               placeholder="Target value to set"
+              data-testid="rule-value-field"
             />
             <TextField
               label="Sequence"
@@ -1071,6 +1107,7 @@ export default function RuleBaseSettingPage() {
               fullWidth
               required
               inputProps={{ min: 1 }}
+              data-testid="rule-seq-field"
             />
           </Box>
           <Box sx={{ mt: 2 }}>
@@ -1081,6 +1118,7 @@ export default function RuleBaseSettingPage() {
                   type="checkbox"
                   checked={headerFormData.active_flag !== false}
                   onChange={(e) => setHeaderFormData(prev => ({ ...prev, active_flag: e.target.checked }))}
+                  data-testid="rule-active-checkbox"
                 />
                 <Typography sx={{ ml: 1 }}>Active</Typography>
               </Box>
@@ -1091,7 +1129,7 @@ export default function RuleBaseSettingPage() {
           <Button onClick={() => setHeaderDialogOpen(false)} disabled={loading}>
             Cancel
           </Button>
-          <Button onClick={handleSaveHeader} variant="contained" disabled={loading}>
+          <Button onClick={handleSaveHeader} variant="contained" disabled={loading} data-testid="save-rule-header-btn">
             {loading ? <CircularProgress size={20} /> : (selectedHeader ? 'Update' : 'Create')}
           </Button>
         </DialogActions>
@@ -1116,6 +1154,7 @@ export default function RuleBaseSettingPage() {
               fullWidth
               required
               inputProps={{ min: 1 }}
+              data-testid="group-field"
             />
             <TextField
               label="Sequence"
@@ -1125,6 +1164,7 @@ export default function RuleBaseSettingPage() {
               fullWidth
               required
               inputProps={{ min: 1 }}
+              data-testid="detail-seq-field"
             />
             <TextField
               label="Table Name"
@@ -1133,6 +1173,7 @@ export default function RuleBaseSettingPage() {
               fullWidth
               required
               placeholder="e.g., FRS9_MASTER_ACCOUNT"
+              data-testid="table-field"
             />
             <TextField
               label="Column Name"
@@ -1141,6 +1182,7 @@ export default function RuleBaseSettingPage() {
               fullWidth
               required
               placeholder="e.g., DPD"
+              data-testid="column-field"
             />
             <TextField
               label="Data Type"
@@ -1149,6 +1191,7 @@ export default function RuleBaseSettingPage() {
               fullWidth
               required
               placeholder="e.g., NUMBER, VARCHAR, DATE"
+              data-testid="datatype-field"
             />
             <FormControl fullWidth required>
               <InputLabel>Operator</InputLabel>
@@ -1156,6 +1199,7 @@ export default function RuleBaseSettingPage() {
                 value={detailFormData.operator || '='}
                 onChange={(e) => setDetailFormData(prev => ({ ...prev, operator: e.target.value }))}
                 label="Operator"
+                data-testid="operator-select"
               >
                 <MenuItem value="=">=</MenuItem>
                 <MenuItem value="!=">!=</MenuItem>
@@ -1179,6 +1223,7 @@ export default function RuleBaseSettingPage() {
               onChange={(e) => setDetailFormData(prev => ({ ...prev, value1: e.target.value }))}
               fullWidth
               placeholder="Primary comparison value"
+              data-testid="val1-field"
             />
             <TextField
               label="Value 2"
@@ -1186,6 +1231,7 @@ export default function RuleBaseSettingPage() {
               onChange={(e) => setDetailFormData(prev => ({ ...prev, value2: e.target.value }))}
               fullWidth
               placeholder="Secondary value (for BETWEEN, etc.)"
+              data-testid="val2-field"
             />
             <FormControl fullWidth required>
               <InputLabel>Condition</InputLabel>
@@ -1193,6 +1239,7 @@ export default function RuleBaseSettingPage() {
                 value={detailFormData.condition || 'AND'}
                 onChange={(e) => setDetailFormData(prev => ({ ...prev, condition: e.target.value as 'AND' | 'OR' }))}
                 label="Condition"
+                data-testid="condition-select"
               >
                 {conditions.length > 0 ? (
                   conditions.map((cond) => (
@@ -1212,6 +1259,7 @@ export default function RuleBaseSettingPage() {
               onChange={(e) => setDetailFormData(prev => ({ ...prev, detail_type: e.target.value }))}
               fullWidth
               placeholder="e.g., SICR, DEFAULT, 1, 2, 3"
+              data-testid="detail-type-field"
             />
             <TextField
               label="Stage From"
@@ -1219,6 +1267,7 @@ export default function RuleBaseSettingPage() {
               onChange={(e) => setDetailFormData(prev => ({ ...prev, stage_from: e.target.value }))}
               fullWidth
               placeholder="Source stage (1, 2, or 3)"
+              data-testid="stage-from-field"
             />
             <TextField
               label="Stage To"
@@ -1226,6 +1275,7 @@ export default function RuleBaseSettingPage() {
               onChange={(e) => setDetailFormData(prev => ({ ...prev, stage_to: e.target.value }))}
               fullWidth
               placeholder="Target stage (1, 2, or 3)"
+              data-testid="stage-to-field"
             />
           </Box>
         </DialogContent>
@@ -1233,7 +1283,7 @@ export default function RuleBaseSettingPage() {
           <Button onClick={() => setDetailDialogOpen(false)} disabled={loading}>
             Cancel
           </Button>
-          <Button onClick={handleSaveDetail} variant="contained" disabled={loading}>
+          <Button onClick={handleSaveDetail} variant="contained" disabled={loading} data-testid="save-rule-detail-btn">
             {loading ? <CircularProgress size={20} /> : (selectedDetail ? 'Update' : 'Create')}
           </Button>
         </DialogActions>

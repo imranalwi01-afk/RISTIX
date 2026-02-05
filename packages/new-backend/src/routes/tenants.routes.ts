@@ -1,11 +1,18 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
 import { Effect, pipe } from 'effect'
+import { NotFoundError, BusinessError } from '../lib/errors'
 import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
 import { runEffect } from '../lib/effect'
 import { parsePaginationParams, parseFilterParams } from '../lib/react-admin'
 import * as tenantsService from '../services/tenants.service'
 
+/**
+ * Tenants Routes
+ * Handles CRUD operations for Tenants.
+ * 
+ * Base Path: /tenants
+ */
 export const tenantsRoutes = new OpenAPIHono<AppContext>()
 
 // Apply auth middleware
@@ -69,6 +76,11 @@ const TenantListResponse = z.object({
     total: z.number(),
 }).openapi('TenantListResponse')
 
+const ErrorSchema = z.object({
+    success: z.boolean(),
+    error: z.any(),
+}).openapi('ErrorResponse')
+
 // =============================================================================
 // ROUTES
 // =============================================================================
@@ -104,7 +116,14 @@ tenantsRoutes.openapi(
                 },
                 description: 'List of tenants',
             },
-            403: { description: 'Unauthorized' }
+            403: {
+                content: {
+                    'application/json': {
+                        schema: ErrorSchema,
+                    },
+                },
+                description: 'Unauthorized'
+            }
         },
     }),
     async (c) => {
@@ -142,7 +161,7 @@ tenantsRoutes.openapi(
                 updatedAt: t.updatedAt.toISOString(),
             })),
             total: result.total
-        })
+        }, 200)
     }
 )
 
@@ -178,6 +197,14 @@ tenantsRoutes.openapi(
                 },
                 description: 'Tenant created',
             },
+            403: {
+                content: {
+                    'application/json': {
+                        schema: ErrorSchema,
+                    },
+                },
+                description: 'Unauthorized'
+            }
         },
     }),
     async (c) => {
@@ -199,7 +226,7 @@ tenantsRoutes.openapi(
         )
 
         const result = await runEffect(c, effect)
-        return c.json(result)
+        return c.json(result, 200)
     }
 )
 
@@ -222,7 +249,22 @@ tenantsRoutes.openapi(
                 },
                 description: 'Current tenant details',
             },
-            400: { description: 'No tenant context' }
+            400: {
+                content: {
+                    'application/json': {
+                        schema: ErrorSchema,
+                    },
+                },
+                description: 'No tenant context'
+            },
+            404: {
+                content: {
+                    'application/json': {
+                        schema: ErrorSchema,
+                    },
+                },
+                description: 'Tenant not found'
+            }
         },
     }),
     async (c) => {
@@ -233,16 +275,26 @@ tenantsRoutes.openapi(
 
         const effect = pipe(
             tenantsService.getTenantById(tenantId),
-            Effect.map(t => ({
-                ...t,
-                createdAt: t.createdAt.toISOString(),
-                updatedAt: t.updatedAt.toISOString(),
-                settings: t.settings as Record<string, unknown>
-            }))
+            Effect.flatMap(t => {
+                if (!t) return Effect.fail(new NotFoundError({
+                    resource: 'Tenant',
+                    id: tenantId
+                }))
+                return Effect.succeed({
+                    ...t,
+                    createdAt: t.createdAt.toISOString(),
+                    updatedAt: t.updatedAt.toISOString(),
+                    settings: t.settings as Record<string, unknown>
+                })
+            })
         )
 
-        const result = await runEffect(c, effect)
-        return c.json(result)
+        try {
+            const result = await runEffect(c, effect)
+            return c.json(result, 200)
+        } catch (e: any) {
+            return c.json({ success: false, error: e.message }, 404)
+        }
     }
 )
 
@@ -273,7 +325,14 @@ tenantsRoutes.openapi(
                 },
                 description: 'Tenant details',
             },
-            404: { description: 'Tenant not found' }
+            404: {
+                content: {
+                    'application/json': {
+                        schema: ErrorSchema,
+                    },
+                },
+                description: 'Tenant not found'
+            }
         },
     }),
     async (c) => {
@@ -291,7 +350,7 @@ tenantsRoutes.openapi(
                 updatedAt: tenant.updatedAt.toISOString(),
                 settings: tenant.settings as Record<string, unknown>
             }
-        })
+        }, 200)
     }
 )
 
@@ -314,11 +373,19 @@ tenantsRoutes.openapi(
             200: {
                 content: {
                     'application/json': {
-                        schema: TenantSchema, // Direct return or wrapped? Previous implementation returned direct object logic from valid runEffect? No, runEffect returns result.
+                        schema: TenantSchema,
                     },
                 },
                 description: 'Tenant details',
             },
+            404: {
+                content: {
+                    'application/json': {
+                        schema: ErrorSchema,
+                    },
+                },
+                description: 'Tenant not found'
+            }
         },
     }),
     async (c) => {
@@ -326,16 +393,26 @@ tenantsRoutes.openapi(
 
         const effect = pipe(
             tenantsService.getTenantById(id),
-            Effect.map(t => ({
-                ...t,
-                createdAt: t.createdAt.toISOString(),
-                updatedAt: t.updatedAt.toISOString(),
-                settings: t.settings as Record<string, unknown>
-            }))
+            Effect.flatMap(t => {
+                if (!t) return Effect.fail(new NotFoundError({
+                    resource: 'Tenant',
+                    id: id
+                }))
+                return Effect.succeed({
+                    ...t,
+                    createdAt: t.createdAt.toISOString(),
+                    updatedAt: t.updatedAt.toISOString(),
+                    settings: t.settings as Record<string, unknown>
+                })
+            })
         )
 
-        const result = await runEffect(c, effect)
-        return c.json(result)
+        try {
+            const result = await runEffect(c, effect)
+            return c.json(result, 200)
+        } catch (e: any) {
+            return c.json({ success: false, error: e.message } as any, 404)
+        }
     }
 )
 
@@ -371,6 +448,22 @@ tenantsRoutes.openapi(
                 },
                 description: 'Tenant updated',
             },
+            403: {
+                content: {
+                    'application/json': {
+                        schema: ErrorSchema,
+                    },
+                },
+                description: 'Unauthorized'
+            },
+            404: {
+                content: {
+                    'application/json': {
+                        schema: ErrorSchema,
+                    },
+                },
+                description: 'Tenant not found'
+            }
         },
     }),
     async (c) => {
@@ -381,16 +474,26 @@ tenantsRoutes.openapi(
 
         const effect = pipe(
             tenantsService.updateTenant(id, body),
-            Effect.map(t => ({
-                ...t,
-                createdAt: t.createdAt.toISOString(),
-                updatedAt: t.updatedAt.toISOString(),
-                settings: t.settings as Record<string, unknown>
-            }))
+            Effect.flatMap(t => {
+                if (!t) return Effect.fail(new NotFoundError({
+                    resource: 'Tenant',
+                    id: id
+                }))
+                return Effect.succeed({
+                    ...t,
+                    createdAt: t.createdAt.toISOString(),
+                    updatedAt: t.updatedAt.toISOString(),
+                    settings: t.settings as Record<string, unknown>
+                })
+            })
         )
 
-        const result = await runEffect(c, effect)
-        return c.json(result)
+        try {
+            const result = await runEffect(c, effect)
+            return c.json(result, 200)
+        } catch (e: any) {
+            return c.json({ success: false, error: e.message } as any, 404)
+        }
     }
 )
 
@@ -421,6 +524,14 @@ tenantsRoutes.openapi(
                 },
                 description: 'Tenant deleted',
             },
+            403: {
+                content: {
+                    'application/json': {
+                        schema: ErrorSchema,
+                    },
+                },
+                description: 'Unauthorized'
+            }
         },
     }),
     async (c) => {
@@ -429,7 +540,7 @@ tenantsRoutes.openapi(
         const { id } = c.req.valid('param')
         const effect = tenantsService.deleteTenant(id)
         const result = await runEffect(c, effect)
-        return c.json({ id }) // consistent with other delete routes
+        return c.json({ id }, 200)
     }
 )
 
@@ -471,7 +582,7 @@ tenantsRoutes.openapi(
         )
 
         const result = await runEffect(c, effect)
-        return c.json(result)
+        return c.json(result, 200)
     }
 )
 
@@ -513,6 +624,6 @@ tenantsRoutes.openapi(
         )
 
         const result = await runEffect(c, effect)
-        return c.json(result)
+        return c.json(result, 200)
     }
 )

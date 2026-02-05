@@ -13,5 +13,5 @@ export default function IFRS9Layout({
 }: {
   children: React.ReactNode;
 }) {
-  return <>{children}</>;
+  return <>{children as any}</>;
 }

@@ -131,13 +131,13 @@ export default function ProductSegmentPage() {
                 if (!params.row) return [];
                 return [
                     <GridActionsCellItem
-                        icon={<EditIcon />}
+                        icon={<EditIcon color="primary" />}
                         label="Edit"
                         onClick={() => handleEdit(params.row)}
                         key="edit"
                     />,
                     <GridActionsCellItem
-                        icon={<DeleteIcon />}
+                        icon={<DeleteIcon color="error" />}
                         label="Delete"
                         onClick={() => handleDelete(params.row)}
                         key="delete"

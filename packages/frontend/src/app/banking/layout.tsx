@@ -15,9 +15,9 @@ import type { RootState } from '../../store';
 import {
   Box,
   Drawer,
-  useTheme,
   useMediaQuery,
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 
 // Import our enhanced sidebar
 import BankingSidebar from '../../components/banking/BankingSidebar';
@@ -26,6 +26,7 @@ import { useBankingTheme } from '../../providers/BankingThemeProvider';
 // Import extracted layout components
 import { BankingAppBar } from '../../components/banking/layout/BankingAppBar';
 import { BankingBreadcrumbs } from '../../components/banking/layout/BankingBreadcrumbs';
+import { NotificationProvider } from '../../providers/NotificationProvider';
 
 const DRAWER_WIDTH = 280;
 const DRAWER_WIDTH_COLLAPSED = 60;
@@ -66,23 +67,6 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
         role = role[0] || '';
       }
 
-      // 🔧 FORCE IAF ROLES FOR ADMIN USERS
-      if (authState.user?.email === 'admin@iaf.co.id') {
-        if (role === 'BANK_USER') {
-          role = 'IAF_TENANT_SUPERADMIN';
-        }
-      }
-      if (authState.user?.email === 'superadmin@iaf.co.id') {
-        if (role === 'BANK_USER') {
-          role = 'IAF_TENANT_SUPERADMIN';
-        }
-      }
-
-      // ✅ FIX: Normalize verbose roles to codes
-      if (role === 'IAF Tenant Super Administrator' || role === 'IAF Tenant Administrator') {
-        role = role === 'IAF Tenant Super Administrator' ? 'IAF_TENANT_SUPERADMIN' : 'IAF_TENANT_ADMIN';
-      }
-
       setUserRole(role);
       setUserName(authState.user.fullName || authState.user.email || authState.user.username || 'User');
       return;
@@ -120,9 +104,10 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
   const handleSidebarToggle = () => setSidebarCollapsed(!sidebarCollapsed);
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
-      {/* AppBar */}
-      <BankingAppBar
+    <NotificationProvider>
+      <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+        {/* AppBar */}
+        <BankingAppBar
         drawerWidth={currentDrawerWidth}
         appBarHeight={COMPACT_APPBAR_HEIGHT}
         sidebarCollapsed={sidebarCollapsed}
@@ -222,9 +207,10 @@ export default function BankingLayout({ children }: { children: React.ReactNode 
         }} />
 
         <Box sx={{ p: 2 }}>
-          {children}
+          {children as any}
         </Box>
       </Box>
     </Box>
+    </NotificationProvider>
   );
 }

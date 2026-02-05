@@ -155,9 +155,9 @@ const backendUrl = config.api.backend;
 
 ### **Service Port Mappings**
 **Local Development**:
-- Frontend: 4231 → https://ifrs9-iaf.ifrspro.id
-- Backend: 4232 → https://bifrs9-iaf.ifrspro.id
-- R Analytics: 4236 → https://ifrs9-iaf-analytics.ifrspro.id
+- Frontend: 4231 → https://iaf-ifrs.ifrspro.id
+- Backend: 4232 → https://iaf-ifrs-be.ifrspro.id
+- R Analytics: 4236 → https://iaf-ifrs-analytics.ifrspro.id
 
 **IAF ECS Production**:
 - Frontend: 4231 → https://iaf-ifrs.danafin.com
@@ -291,7 +291,7 @@ const backendUrl = config.api.backend;
 # =============================================================================
 ```
 
-#### **LOCAL DEVELOPMENT (ifrs9-iaf.ifrspro.id):**
+#### **LOCAL DEVELOPMENT (iaf-ifrs.ifrspro.id):**
 ```bash
 # Local Development Database Connections (NO SSL - MANDATORY)
 DS1 Primary Server:
@@ -356,7 +356,7 @@ const dbConfig = {
 ```typescript
 // Local Development: HTTP via Cloudflare Zero Trust
 const backendUrl = isLocalDevelopment
-  ? 'https://bifrs9-iaf.ifrspro.id'  // Cloudflare Zero Trust
+  ? 'https://iaf-ifrs-be.ifrspro.id'  // Cloudflare Zero Trust
   : 'https://iaf-ifrs-be.danafin.com'; // IAF ECS Production
 
 // NO hardcoded localhost URLs
@@ -549,7 +549,7 @@ Any use of mock/fallback data or development configurations violates user requir
 #### **IAF Development Environment (LOCALDEV)**
 ```bash
 # Frontend URLs
-Frontend: https://ifrs9-iaf.ifrspro.id
+Frontend: https://iaf-ifrs.ifrspro.id
 Backend API: https://iaf-ifrs-be.ifrspro.id
 R Analytics: https://iaf-ifrs-analytics.ifrspro.id
 R Analytics API: https://iaf-ifrs-analytics-calc.ifrspro.id

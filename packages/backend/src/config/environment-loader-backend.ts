@@ -340,19 +340,19 @@ class BackendEnvironmentLoader {
             iaf: this.getEnvVar('R_ANALYTICS_IAF_DOMAIN',
               environment === 'iafecs' ?
                 'https://iaf-ifrs-analytics.danafin.com' :
-                'https://ifrs9-iaf-analytics.ifrspro.id'),
+                'https://iaf-ifrs-analytics.ifrspro.id'),
             dana: this.getEnvVar('R_ANALYTICS_DANA_DOMAIN',
               environment === 'iafecs' ?
                 'https://iaf-ifrs-analytics.danafin.com' :
-                'https://ifrs9-iaf-analytics.ifrspro.id'),
+                'https://iaf-ifrs-analytics.ifrspro.id'),
             syariah: this.getEnvVar('R_ANALYTICS_SYARIAH_DOMAIN',
               environment === 'iafecs' ?
                 'https://iaf-ifrs-analytics.danafin.com' :
-                'https://ifrs9-iaf-analytics.ifrspro.id'),
+                'https://iaf-ifrs-analytics.ifrspro.id'),
             conventional: this.getEnvVar('R_ANALYTICS_CONVENTIONAL_DOMAIN',
               environment === 'iafecs' ?
                 'https://iaf-ifrs-analytics.danafin.com' :
-                'https://ifrs9-iaf-analytics.ifrspro.id')
+                'https://iaf-ifrs-analytics.ifrspro.id')
           }
         },
 

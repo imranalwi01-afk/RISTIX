@@ -22,7 +22,7 @@ import {
   Button
 } from '@mui/material';
 
-import { Refresh as RefreshIcon } from '@mui/icons-material';
+import RefreshIcon from '@mui/icons-material/Refresh';
 
 import { useApi } from '@/hooks/useApi';
 import { useAuth } from '@/providers/AuthProvider';

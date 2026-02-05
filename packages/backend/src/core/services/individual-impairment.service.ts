@@ -20,7 +20,10 @@ interface PaginationOptions {
   limit: number;
   search?: string;
   filter?: {
+    stage?: number;
     impairedFlag?: 'I' | 'N' | 'ALL';
+    assessmentStatus?: string;
+    priorityLevel?: string;
     ratingCode?: string;
     dpdFrom?: number;
     dpdTo?: number;
@@ -54,6 +57,7 @@ interface IndividualImpairmentHeaderCreateData {
   rating_code: string;
   impaired_flag: 'I' | 'N';
   method: string;
+  status?: number;
   plafond: number;
   outstanding: number;
   accrued_interest: number;
@@ -167,6 +171,58 @@ export class IndividualImpairmentService {
       }
 
       if (filter) {
+        // 1. Stage Filter (Calculated)
+        if (filter.stage) {
+          // SQL Logic:
+          // Stage 3: impaired_flag = 'I' OR dpd > 90
+          // Stage 2: dpd > 30 AND dpd <= 90 AND impaired_flag = 'N'
+          // Stage 1: dpd <= 30 AND impaired_flag = 'N'
+          
+          if (filter.stage === 3) {
+            whereClause += ` AND (h.impaired_flag = 'I' OR h.dpd > 90)`;
+          } else if (filter.stage === 2) {
+             whereClause += ` AND (h.impaired_flag = 'N' AND h.dpd > 30 AND h.dpd <= 90)`;
+          } else if (filter.stage === 1) {
+             whereClause += ` AND (h.impaired_flag = 'N' AND h.dpd <= 30)`;
+          }
+        }
+
+        // 2. Assessment Status Filter (Mapped)
+        // Frontend sends string: 'PENDING', 'APPROVED', etc.
+        // DB uses int: 1=PENDING, 2=IN_PROGRESS, 3=COMPLETED, 4=APPROVED (Assuming logic)
+        if (filter.assessmentStatus) {
+           let statusInt = 0;
+           switch (filter.assessmentStatus) {
+             case 'PENDING': statusInt = 1; break;
+             case 'IN_PROGRESS': statusInt = 2; break;
+             case 'COMPLETED': statusInt = 3; break;
+             case 'APPROVED': statusInt = 4; break;
+             default: statusInt = 0;
+           }
+           if (statusInt > 0) {
+             whereClause += ` AND h.status = $${paramIndex}`;
+             searchParams.push(statusInt);
+             paramIndex++;
+           }
+        }
+
+        // 3. Priority Level Filter (Calculated)
+        // CRITICAL: impaired_flag = 'I'
+        // HIGH: dpd > 30
+        // MEDIUM: Default
+        if (filter.priorityLevel) {
+           if (filter.priorityLevel === 'CRITICAL') {
+              whereClause += ` AND h.impaired_flag = 'I'`;
+           } else if (filter.priorityLevel === 'HIGH') {
+              whereClause += ` AND (h.impaired_flag = 'N' AND h.dpd > 30)`;
+           } else if (filter.priorityLevel === 'MEDIUM') {
+              whereClause += ` AND (h.impaired_flag = 'N' AND h.dpd <= 30)`;
+           } else if (filter.priorityLevel === 'LOW') {
+               // Maybe same as Medium for now logic wise, or stricter
+               whereClause += ` AND (h.impaired_flag = 'N' AND h.dpd <= 7)`;
+           }
+        }
+
         if (filter.impairedFlag && filter.impairedFlag !== 'ALL') {
           whereClause += ` AND h.impaired_flag = $${paramIndex}`;
           searchParams.push(filter.impairedFlag);
@@ -226,13 +282,33 @@ export class IndividualImpairmentService {
           h.account_id,
           h.account_number,
           h.currency,
+          h.outstanding as outstanding_balance,
           h.outstanding,
+          h.ecl_ia_amt as ecl_amount,
+          h.ecl_ia_amt as provision_amount,
           h.ecl_ia_amt,
           h.rating_code,
           h.dpd,
           h.impaired_flag,
           h.method,
           h.status,
+          CASE 
+            WHEN h.status = 1 THEN 'PENDING'
+            WHEN h.status = 2 THEN 'IN_PROGRESS'
+            WHEN h.status = 3 THEN 'COMPLETED'
+            WHEN h.status = 4 THEN 'APPROVED'
+            ELSE 'PENDING'
+          END as assessment_status,
+          CASE
+            WHEN h.impaired_flag = 'I' OR h.dpd > 90 THEN 3
+            WHEN h.dpd > 30 THEN 2
+            ELSE 1
+          END as stage,
+          CASE
+            WHEN h.impaired_flag = 'I' THEN 'CRITICAL'
+            WHEN h.dpd > 30 THEN 'HIGH'
+            ELSE 'MEDIUM'
+          END as priority_level,
           h.createdby,
           h.createddate,
           h.updatedby,
@@ -559,6 +635,12 @@ export class IndividualImpairmentService {
   async calculateDCF(dcfData: DCFData): Promise<DCFResult> {
     try {
       console.log(`📋 [II-SERVICE-006] Calculating DCF for account ${dcfData.account_id}`);
+      console.log(`📋 [II-SERVICE-006] DCF Data:`, JSON.stringify(dcfData, null, 2));
+
+      // Validate input data
+      if (!dcfData.cash_flows || dcfData.cash_flows.length === 0) {
+        throw new Error('Cash flows are required for DCF calculation');
+      }
 
       let totalPV = 0;
       let totalECL = 0;
@@ -569,16 +651,19 @@ export class IndividualImpairmentService {
       dcfData.cash_flows.forEach((cf, index) => {
         const period = index + 1;
         const discountFactor = 1 / Math.pow(1 + 0.08, period / 12); // 8% discount rate
-        const cfPV = (cf.principal + cf.interest + cf.collateral) * discountFactor;
+        const principal = cf.principal || 0;
+        const interest = cf.interest || 0;
+        const collateral = cf.collateral || 0;
+        const cfPV = (principal + interest + collateral) * discountFactor;
 
         totalPV += cfPV;
-        principalSum += cf.principal;
-        interestSum += cf.interest;
+        principalSum += principal;
+        interestSum += interest;
       });
 
-      // Calculate ECL using PD rates and recovery rates
-      const pdRate = dcfData.scenario_data.pd_rates[0]; // Use first PD rate
-      const recoveryRate = dcfData.scenario_data.recovery_rates[0] || 0.6; // Use first recovery rate or default
+      // Calculate ECL using PD rates and recovery rates with fallback defaults
+      const pdRate = dcfData.scenario_data?.pd_rates?.[0] || 0.05; // Default 5% PD
+      const recoveryRate = dcfData.scenario_data?.recovery_rates?.[0] || 0.6; // Default 60% recovery
 
       const lgdRate = 1 - recoveryRate;
       totalECL = totalPV * pdRate * lgdRate;
@@ -592,11 +677,12 @@ export class IndividualImpairmentService {
         weighted_recovery_rate: recoveryRate
       };
 
-      console.log(`✅ [II-SERVICE-006] DCF calculation completed for account ${dcfData.account_id}`);
+      console.log(`✅ [II-SERVICE-006] DCF calculation completed:`, result);
       return result;
 
     } catch (error) {
       console.error(`❌ [II-SERVICE-006] Error calculating DCF:`, error);
+      console.error(`❌ [II-SERVICE-006] DCF Data that caused error:`, dcfData);
       throw error;
     }
   }

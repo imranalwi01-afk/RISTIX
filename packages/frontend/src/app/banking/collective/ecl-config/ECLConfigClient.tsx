@@ -16,7 +16,6 @@ import {
   Typography,
   Container,
   Paper,
-  Grid,
   Card,
   CardContent,
   Button,
@@ -63,19 +62,13 @@ import {
   PlayArrow as RunIcon,
   Schedule as ScheduleIcon
 } from '@mui/icons-material';
-import type { GridColDef } from '@mui/x-data-grid';
+
 import { useRouter } from 'next/navigation';
 
-// Dynamic imports for heavy components
-const DataGrid = dynamic(
-  () => import('@mui/x-data-grid').then((mod) => mod.DataGrid),
-  { ssr: false, loading: () => <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress /></Box> }
-);
+import { GridColDef, GridRowId, GridToolbar } from '@mui/x-data-grid';
 
-const GridActionsCellItem = dynamic(
-  () => import('@mui/x-data-grid').then((mod) => mod.GridActionsCellItem),
-  { ssr: false }
-);
+// Safe DataGrid wrapper to prevent bundling issues
+import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 
 // Types based on live database structure: frs9_imp_ca_ecl_configh + frs9_imp_ca_ecl_configd
 interface ECLConfigHeader {
@@ -697,23 +690,23 @@ export default function ECLConfigurationPage() {
       headerName: 'Actions',
       width: 150,
       getActions: (params) => [
-        <GridActionsCellItem
+        <SafeGridActionsCellItem
           key="run"
           icon={<RunIcon />}
           label="Run ECL"
           onClick={() => console.log('Run ECL calculation for', params.row.pkid)}
           color="primary"
         />,
-        <GridActionsCellItem
+        <SafeGridActionsCellItem
           key="edit"
-          icon={<EditIcon />}
+          icon={<EditIcon color="primary" />}
           label="Edit"
           onClick={() => handleEdit(params.row)}
           color="primary"
         />,
-        <GridActionsCellItem
+        <SafeGridActionsCellItem
           key="delete"
-          icon={<DeleteIcon />}
+          icon={<DeleteIcon color="error" />}
           label="Delete"
           onClick={() => handleDelete(params.row)}
           color="error"
@@ -786,8 +779,8 @@ export default function ECLConfigurationPage() {
         </Box>
 
         {/* Statistics Cards */}
-        <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid item xs={12} sm={3}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 2, mb: 3 }}>
+          <Box>
             <Card>
               <CardContent sx={{ textAlign: 'center', py: 2 }}>
                 <Typography variant="h4" color="primary.main" fontWeight="bold">
@@ -798,8 +791,8 @@ export default function ECLConfigurationPage() {
                 </Typography>
               </CardContent>
             </Card>
-          </Grid>
-          <Grid item xs={12} sm={3}>
+          </Box>
+          <Box>
             <Card>
               <CardContent sx={{ textAlign: 'center', py: 2 }}>
                 <Typography variant="h4" color="success.main" fontWeight="bold">
@@ -810,8 +803,8 @@ export default function ECLConfigurationPage() {
                 </Typography>
               </CardContent>
             </Card>
-          </Grid>
-          <Grid item xs={12} sm={3}>
+          </Box>
+          <Box>
             <Card>
               <CardContent sx={{ textAlign: 'center', py: 2 }}>
                 <Typography variant="h4" color="info.main" fontWeight="bold">
@@ -822,8 +815,8 @@ export default function ECLConfigurationPage() {
                 </Typography>
               </CardContent>
             </Card>
-          </Grid>
-          <Grid item xs={12} sm={3}>
+          </Box>
+          <Box>
             <Card>
               <CardContent sx={{ textAlign: 'center', py: 2 }}>
                 <Typography variant="h4" color="warning.main" fontWeight="bold">
@@ -834,8 +827,8 @@ export default function ECLConfigurationPage() {
                 </Typography>
               </CardContent>
             </Card>
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
       </Box>
 
       {/* Error Alert */}
@@ -852,8 +845,8 @@ export default function ECLConfigurationPage() {
             <SearchIcon />
             Search and Filters
           </Typography>
-          <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={4}>
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+            <Box sx={{ flex: 4, minWidth: 200 }}>
               <TextField
                 fullWidth
                 label="Search ECL Configurations"
@@ -864,8 +857,8 @@ export default function ECLConfigurationPage() {
                   startAdornment: <SearchIcon color="action" sx={{ mr: 1 }} />
                 }}
               />
-            </Grid>
-            <Grid item xs={12} md={3}>
+            </Box>
+            <Box sx={{ flex: 3, minWidth: 150 }}>
               <FormControl fullWidth>
                 <InputLabel>Filter by Module</InputLabel>
                 <Select
@@ -881,8 +874,8 @@ export default function ECLConfigurationPage() {
                   ))}
                 </Select>
               </FormControl>
-            </Grid>
-            <Grid item xs={12} md={3}>
+            </Box>
+            <Box sx={{ flex: 3, minWidth: 150 }}>
               <Button
                 variant="outlined"
                 startIcon={<RunIcon />}
@@ -891,8 +884,8 @@ export default function ECLConfigurationPage() {
               >
                 Run All ECL
               </Button>
-            </Grid>
-            <Grid item xs={12} md={2}>
+            </Box>
+            <Box sx={{ flex: 2, minWidth: 100 }}>
               <Button
                 variant="outlined"
                 startIcon={<ExportIcon />}
@@ -900,8 +893,8 @@ export default function ECLConfigurationPage() {
               >
                 Export
               </Button>
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
         </CardContent>
       </Card>
 
@@ -912,7 +905,7 @@ export default function ECLConfigurationPage() {
             ECL Configurations ({filteredConfigs.length})
           </Typography>
           <Box sx={{ height: 600, width: '100%' }}>
-            <DataGrid
+            <SafeDataGrid
               rows={filteredConfigs}
               columns={columns}
               getRowId={(row) => row.pkid}
@@ -954,8 +947,8 @@ export default function ECLConfigurationPage() {
               <Typography variant="h6" color="primary" gutterBottom>
                 ECL Model Information
               </Typography>
-              <Grid container spacing={3}>
-                <Grid item xs={12}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 3 }}>
+                <Box sx={{ gridColumn: 'span 2' }}>
                   <TextField
                     fullWidth
                     label="ECL Model Name"
@@ -965,9 +958,9 @@ export default function ECLConfigurationPage() {
                     helperText={formErrors.ecl_model_name}
                     required
                   />
-                </Grid>
+                </Box>
 
-                <Grid item xs={12} md={6}>
+                <Box>
                   <FormControl fullWidth error={!!formErrors.module} required>
                     <InputLabel>Module</InputLabel>
                     <Select
@@ -987,9 +980,9 @@ export default function ECLConfigurationPage() {
                       </Typography>
                     )}
                   </FormControl>
-                </Grid>
+                </Box>
 
-                <Grid item xs={12} md={6}>
+                <Box>
                   <TextField
                     fullWidth
                     label="Effective Date"
@@ -1001,9 +994,9 @@ export default function ECLConfigurationPage() {
                     required
                     InputLabelProps={{ shrink: true }}
                   />
-                </Grid>
+                </Box>
 
-                <Grid item xs={12}>
+                <Box sx={{ gridColumn: 'span 2' }}>
                   <FormControlLabel
                     control={
                       <Checkbox
@@ -1013,8 +1006,8 @@ export default function ECLConfigurationPage() {
                     }
                     label="Active Configuration"
                   />
-                </Grid>
-              </Grid>
+                </Box>
+              </Box>
             </Box>
           )}
 
@@ -1024,8 +1017,8 @@ export default function ECLConfigurationPage() {
                 Add Segment Configuration
               </Typography>
 
-              <Grid container spacing={3} sx={{ mb: 3 }}>
-                <Grid item xs={12} md={4}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 3, mb: 3 }}>
+                <Box>
                   <FormControl fullWidth required>
                     <InputLabel>Segment</InputLabel>
                     <Select
@@ -1040,9 +1033,9 @@ export default function ECLConfigurationPage() {
                       ))}
                     </Select>
                   </FormControl>
-                </Grid>
+                </Box>
 
-                <Grid item xs={12} md={4}>
+                <Box>
                   <FormControl fullWidth>
                     <InputLabel>Stage Rule</InputLabel>
                     <Select
@@ -1057,9 +1050,9 @@ export default function ECLConfigurationPage() {
                       ))}
                     </Select>
                   </FormControl>
-                </Grid>
+                </Box>
 
-                <Grid item xs={12} md={4}>
+                <Box>
                   <FormControl fullWidth required>
                     <InputLabel>PD Model</InputLabel>
                     <Select
@@ -1074,9 +1067,9 @@ export default function ECLConfigurationPage() {
                       ))}
                     </Select>
                   </FormControl>
-                </Grid>
+                </Box>
 
-                <Grid item xs={12} md={4}>
+                <Box>
                   <FormControl fullWidth required>
                     <InputLabel>LGD Model</InputLabel>
                     <Select
@@ -1091,9 +1084,9 @@ export default function ECLConfigurationPage() {
                       ))}
                     </Select>
                   </FormControl>
-                </Grid>
+                </Box>
 
-                <Grid item xs={12} md={4}>
+                <Box>
                   <FormControl fullWidth required>
                     <InputLabel>EAD Model</InputLabel>
                     <Select
@@ -1108,9 +1101,9 @@ export default function ECLConfigurationPage() {
                       ))}
                     </Select>
                   </FormControl>
-                </Grid>
+                </Box>
 
-                <Grid item xs={12} md={4}>
+                <Box>
                   <TextField
                     fullWidth
                     label="Overlay Rate (%)"
@@ -1119,9 +1112,9 @@ export default function ECLConfigurationPage() {
                     onChange={(e) => handleDetailFieldChange('overlay_rate', Number(e.target.value))}
                     inputProps={{ min: 0, max: 500, step: 1 }}
                   />
-                </Grid>
+                </Box>
 
-                <Grid item xs={12} md={8}>
+                <Box sx={{ gridColumn: 'span 2' }}>
                   <Button
                     variant="contained"
                     startIcon={<AddIcon />}
@@ -1131,8 +1124,8 @@ export default function ECLConfigurationPage() {
                   >
                     Add Segment Configuration
                   </Button>
-                </Grid>
-              </Grid>
+                </Box>
+              </Box>
 
               <Divider sx={{ my: 2 }} />
 
@@ -1164,18 +1157,18 @@ export default function ECLConfigurationPage() {
                     </Typography>
                   </AccordionSummary>
                   <AccordionDetails>
-                    <Grid container spacing={2}>
-                      <Grid item xs={6}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>
+                      <Box sx={{ flex: 1 }}>
                         <Typography variant="body2"><strong>Segment:</strong> {detail.pf_segment_name}</Typography>
                         <Typography variant="body2"><strong>Stage Rule:</strong> {detail.stage_rule_name || 'Default'}</Typography>
                         <Typography variant="body2"><strong>PD Model:</strong> {detail.pd_model_name}</Typography>
-                      </Grid>
-                      <Grid item xs={6}>
+                      </Box>
+                      <Box sx={{ flex: 1 }}>
                         <Typography variant="body2"><strong>LGD Model:</strong> {detail.lgd_model_name}</Typography>
                         <Typography variant="body2"><strong>EAD Model:</strong> {detail.ead_model_name}</Typography>
                         <Typography variant="body2"><strong>Overlay Rate:</strong> {detail.overlay_rate}%</Typography>
-                      </Grid>
-                    </Grid>
+                      </Box>
+                    </Box>
                   </AccordionDetails>
                 </Accordion>
               ))}

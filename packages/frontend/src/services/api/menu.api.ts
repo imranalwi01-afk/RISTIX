@@ -44,6 +44,7 @@ export interface MenuItem {
   type: 'group' | 'item' | 'divider';
   children?: MenuItem[];
   permissions?: string[];
+  requiredPermissions?: string[];
   external?: boolean;
   target?: '_self' | '_blank' | '_parent' | '_top';
   breadcrumb?: boolean;

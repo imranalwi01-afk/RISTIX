@@ -80,7 +80,7 @@ export const metadata: Metadata = {
   // Additional metadata
   category: 'business',
   classification: 'Banking Software',
-  generator: 'Next.js 15',
+  generator: 'Next.js 16',
 }
 
 // ============================================================================
@@ -155,7 +155,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
         {/* ✅ SURGICAL FIX: Use ClientProviders with correct import */}
         <ClientProviders>
           <div id="__next" className="h-full">
-            {children}
+            {children as any}
           </div>
         </ClientProviders>
       </body>

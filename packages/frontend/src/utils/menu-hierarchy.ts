@@ -45,6 +45,7 @@ export interface HierarchicalMenuItem {
   active: boolean;
   visible: boolean;
   permissions: string[];
+  requiredPermissions?: string[];
   banking_modes: string[];
   banking_types?: string[]; // Backend field name compatibility
   user_types: string[];
@@ -80,7 +81,8 @@ export const transformFlatToHierarchical = (
         expanded: false,
         active: false,
         visible: true,
-        permissions: item.requiredPermissions || item.user_types || item.roles || [],
+        permissions: item.user_types || item.roles || [],
+        requiredPermissions: item.requiredPermissions,
         banking_modes: item.bankingTypes || item.banking_types || item.banking_modes || [],
         user_types: item.requiredPermissions || item.user_types || item.roles || [],
         tenant_types: [],
@@ -120,7 +122,8 @@ export const transformFlatToHierarchical = (
       expanded: false,
       active: false,
       visible: true,
-      permissions: item.requiredPermissions || item.user_types || item.roles || [],
+      permissions: item.user_types || item.roles || [],
+      requiredPermissions: item.requiredPermissions,
       banking_modes: item.bankingTypes || item.banking_types || item.banking_modes || [],
       user_types: item.requiredPermissions || item.user_types || item.roles || [],
       tenant_types: [],
@@ -241,133 +244,68 @@ export const getParentIds = (
 // Filter hierarchical menu by user role, roleCodes and banking mode
 export const filterHierarchicalMenu = (
   hierarchicalItems: HierarchicalMenuItem[],
-  userRole: string | undefined,
   bankingMode: 'conventional' | 'syariah' | 'dual',
-  roleCodes?: string[], // ✅ Add roleCodes parameter for accurate menu filtering
   userPermissions?: string[] // ✅ Add permissions parameter for granular filtering
 ): HierarchicalMenuItem[] => {
+  // Normalize inputs once for re-use
+  const normalizedPermissions = (userPermissions || []).map(p => p?.toLowerCase()).filter(Boolean);
 
+  const isSuperAdmin =
+    normalizedPermissions.includes('*') ||
+    normalizedPermissions.includes('super_admin');
 
   const filterItems = (items: HierarchicalMenuItem[]): HierarchicalMenuItem[] => {
     return items
       .filter(item => {
         // Defensive check: ensure item is not null or undefined
         if (!item || typeof item !== 'object') {
-          console.warn('⚠️ [MENU FILTER] Invalid menu item:', item);
           return false;
         }
 
-        // Banking mode filter - handle both banking_modes and banking_types field names
+        // Global super admin bypass (after hard-hides)
+        if (isSuperAdmin) {
+          return true;
+        }
+
+        // Banking mode filter
         const bankingModes = item.banking_modes || item.banking_types || [];
         if (bankingModes.length > 0 && !bankingModes.includes(bankingMode)) {
-
           return false;
         }
 
-        // Role-based filter with roleCodes support
-        if (item.permissions && item.permissions.length > 0) {
-
-          // ✅ PERMISSION-BASED FILTERING (Primary Strategy)
-          if (userPermissions && userPermissions.length > 0) {
-            const hasExplicitPermission = item.permissions.some(requiredPerm =>
-              userPermissions.some(userPerm => userPerm.toLowerCase() === requiredPerm.toLowerCase())
+        // Permission-based filter (explicit permission codes)
+        const requiredPerms = item.requiredPermissions || [];
+        if (requiredPerms.length > 0) {
+          if (normalizedPermissions.length > 0) {
+            const hasPermission = requiredPerms.some(requiredPerm =>
+              normalizedPermissions.some(userPerm => userPerm === (requiredPerm || '').toLowerCase())
             );
-
-            // If we have permissions configured on the user, strictly enforce them
-            // UNLESS the item's permission is actually a Role code (legacy support)
-            // We'll proceed to role check if permission check fails, BUT ideally permission check should be definitive.
-            // For now, let's treat it as: IF permission match OR role match.
-
-            if (hasExplicitPermission) return true;
+            if (hasPermission) {
+              // Allow even if role checks below would fail
+              return true;
+            }
           }
-
-          // Use roleCodes if available, otherwise fall back to userRole
-          const effectiveRoles = roleCodes && roleCodes.length > 0 ? roleCodes : (userRole ? [userRole] : []);
-
-
-
-          const hasPermission = item.permissions.some(permission => {
-            // Normalize role comparison
-            const normalizedPermission = permission.toLowerCase().trim();
-
-            // Check against all effective roles (roleCodes + userRole fallback)
-            return effectiveRoles.some(effectiveRole => {
-              const normalizedEffectiveRole = effectiveRole.toLowerCase().trim();
-
-              // Exact match
-              if (normalizedPermission === normalizedEffectiveRole) {
-
-                return true;
-              }
-
-              // Role hierarchy matching - Enhanced IAF role support
-              const roleHierarchy = {
-                // Primary IAF roles (current standard)
-                'iaf_tenant_superadmin': ['iaf_tenant_admin', 'iaf_bank_cro', 'iaf_ifrs_manager', 'iaf_risk_analyst', 'iaf_portfolio_manager', 'iaf_data_admin', 'iaf_report_analyst', 'iaf_auditor', 'iaf_viewer'],
-                'iaf_tenant_admin': ['iaf_bank_cro', 'iaf_ifrs_manager', 'iaf_risk_analyst', 'iaf_portfolio_manager', 'iaf_data_admin', 'iaf_report_analyst', 'iaf_auditor', 'iaf_viewer'],
-                'iaf_bank_cro': ['iaf_ifrs_manager', 'iaf_risk_analyst', 'iaf_portfolio_manager', 'iaf_report_analyst', 'iaf_auditor'],
-                'iaf_ifrs_manager': ['iaf_risk_analyst', 'iaf_portfolio_manager', 'iaf_report_analyst', 'iaf_auditor'],
-                'iaf_risk_analyst': ['iaf_auditor'],
-                'iaf_portfolio_manager': ['iaf_auditor'],
-                'iaf_data_admin': ['iaf_auditor'],
-                'iaf_report_analyst': ['iaf_auditor'],
-                'iaf_auditor': ['iaf_viewer'],
-
-                // Legacy role compatibility (mapped to primary roles)
-                'iaf_super_admin': ['iaf_tenant_admin', 'iaf_bank_cro', 'iaf_ifrs_manager', 'iaf_risk_analyst', 'iaf_portfolio_manager', 'iaf_data_admin', 'iaf_report_analyst', 'iaf_auditor', 'iaf_viewer'],
-                'iaf_admin': ['iaf_tenant_admin', 'iaf_bank_cro', 'iaf_ifrs_manager', 'iaf_risk_analyst', 'iaf_portfolio_manager', 'iaf_data_admin', 'iaf_report_analyst', 'iaf_auditor', 'iaf_viewer'],
-                'iaf_cro': ['iaf_bank_cro', 'iaf_ifrs_manager', 'iaf_risk_analyst', 'iaf_portfolio_manager', 'iaf_report_analyst', 'iaf_auditor'],
-
-                // Category-based mapping for flexibility
-                'super_admin': ['iaf_tenant_superadmin', 'iaf_super_admin'],
-                'admin': ['iaf_tenant_admin', 'iaf_admin'],
-                'cro': ['iaf_bank_cro', 'iaf_cro'],
-                'manager': ['iaf_ifrs_manager', 'iaf_portfolio_manager'],
-                'analyst': ['iaf_risk_analyst', 'iaf_report_analyst'],
-                'auditor': ['iaf_auditor'],
-                'viewer': ['iaf_viewer']
-              };
-
-              // Check if effective role matches permission or has higher privileges
-              for (const [higherRole, lowerRoles] of Object.entries(roleHierarchy)) {
-                if (normalizedPermission === higherRole && lowerRoles.includes(normalizedEffectiveRole)) {
-                  // console.log(`✅ [ROLE HIERARCHY] Higher role match: ${higherRole} -> ${normalizedEffectiveRole}`);
-                  return true;
-                }
-                if (lowerRoles.includes(normalizedPermission) && higherRole === normalizedEffectiveRole) {
-                  // console.log(`✅ [ROLE HIERARCHY] Lower role match: ${normalizedEffectiveRole} -> ${lowerRoles.join(', ')}`);
-                  return true;
-                }
-              }
-
-              return false;
-            });
-          });
-
-          if (!hasPermission) {
-            // console.log(`🚫 [MENU FILTER] Item filtered by role: ${item.key}, required: ${item.permissions}, effective roles: ${effectiveRoles.join(', ')}`);
-            return false;
-          }
+        } else if (item.permissions && item.permissions.length > 0) {
+          // Treat legacy item.permissions as permission codes (not roles)
+          const hasPermission = item.permissions.some(perm =>
+            normalizedPermissions.includes((perm || '').toLowerCase())
+          );
+          if (hasPermission) return true;
+          return false;
         }
 
         return true;
       })
       .map(item => {
-        // Recursively filter children
         const filteredChildren = item.children && item.children.length > 0
           ? filterItems(item.children)
           : undefined;
 
-        // If this is a group but has no visible children, hide it
         if (item.type === 'group' && (!filteredChildren || filteredChildren.length === 0)) {
-
           return null;
         }
 
-        return {
-          ...item,
-          children: filteredChildren
-        };
+        return { ...item, children: filteredChildren };
       })
       .filter((item): item is NonNullable<typeof item> => item !== null);
   };

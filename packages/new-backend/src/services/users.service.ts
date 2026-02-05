@@ -36,7 +36,11 @@ export interface UpdateUserInput {
 // =============================================================================
 
 /**
- * Get users with pagination and filtering
+ * Get users with pagination and filtering.
+ * 
+ * @param tenantId - The tenant ID
+ * @param options - Query options including search, active status, pagination, and sorting
+ * @returns An Effect resolving to paginated user results
  */
 export const getUsers = (tenantId: string, options?: { search?: string; isActive?: boolean; limit?: number; offset?: number; sort?: string; order?: 'asc' | 'desc' }) =>
     Effect.tryPromise({
@@ -48,7 +52,11 @@ export const getUsers = (tenantId: string, options?: { search?: string; isActive
     })
 
 /**
- * Get user by ID
+ * Get user by ID.
+ * 
+ * @param userId - The user ID
+ * @param tenantId - Optional tenant ID to pick the database
+ * @returns An Effect resolving to the user or NotFoundError
  */
 export const getUserById = (userId: string, tenantId?: string) =>
     Effect.tryPromise({
@@ -66,7 +74,11 @@ export const getUserById = (userId: string, tenantId?: string) =>
     )
 
 /**
- * Get user by email
+ * Get user by email.
+ * 
+ * @param email - The email address
+ * @param tenantId - Optional tenant ID
+ * @returns An Effect resolving to the user or undefined
  */
 export const getUserByEmail = (email: string, tenantId?: string) =>
     Effect.tryPromise({
@@ -78,7 +90,10 @@ export const getUserByEmail = (email: string, tenantId?: string) =>
     })
 
 /**
- * Get user statistics
+ * Get user statistics.
+ * 
+ * @param tenantId - The tenant ID
+ * @returns An Effect resolving to user statistics
  */
 export const getUserStats = (tenantId: string) =>
     Effect.tryPromise({
@@ -94,7 +109,11 @@ export const getUserStats = (tenantId: string) =>
 // =============================================================================
 
 /**
- * Create a new user
+ * Create a new user.
+ * Hashes the password and creates the user record.
+ * 
+ * @param input - The user creation data
+ * @returns An Effect resolving to the created User or an error (DatabaseError/ValidationError)
  */
 export const createUser = (
     input: CreateUserInput
@@ -156,7 +175,11 @@ export const createUser = (
     )
 
 /**
- * Update a user
+ * Update a user.
+ * 
+ * @param userId - The user ID
+ * @param input - The data to update
+ * @returns An Effect resolving to the updated User or error
  */
 export const updateUser = (
     userId: string,
@@ -173,7 +196,12 @@ export const updateUser = (
     )
 
 /**
- * Delete a user (soft delete)
+ * Delete a user (soft delete).
+ * Sets isActive to false.
+ * 
+ * @param userId - The user ID
+ * @param tenantId - Optional tenant ID
+ * @returns An Effect resolving to the updated user
  */
 export const deleteUser = (
     userId: string,
@@ -190,7 +218,13 @@ export const deleteUser = (
     )
 
 /**
- * Update user password
+ * Update user password.
+ * Hashes the new password before updating.
+ * 
+ * @param userId - The user ID
+ * @param newPassword - The new password
+ * @param tenantId - Optional tenant ID
+ * @returns An Effect resolving to the updated user
  */
 export const updatePassword = (
     userId: string,
@@ -219,7 +253,12 @@ export const updatePassword = (
     )
 
 /**
- * Enable a user
+ * Enable a user.
+ * Sets isActive to true.
+ * 
+ * @param userId - The user ID
+ * @param tenantId - Optional tenant ID
+ * @returns An Effect resolving to the updated user
  */
 export const enableUser = (userId: string, tenantId?: string): Effect.Effect<User, DatabaseError | NotFoundError> =>
     Effect.tryPromise({
@@ -231,7 +270,12 @@ export const enableUser = (userId: string, tenantId?: string): Effect.Effect<Use
     })
 
 /**
- * Disable a user
+ * Disable a user.
+ * Sets isActive to false.
+ * 
+ * @param userId - The user ID
+ * @param tenantId - Optional tenant ID
+ * @returns An Effect resolving to the updated user
  */
 export const disableUser = (userId: string, tenantId?: string): Effect.Effect<User, DatabaseError | NotFoundError> =>
     Effect.tryPromise({
@@ -243,7 +287,11 @@ export const disableUser = (userId: string, tenantId?: string): Effect.Effect<Us
     })
 
 /**
- * Mark email as verified
+ * Mark email as verified.
+ * 
+ * @param userId - The user ID
+ * @param tenantId - Optional tenant ID
+ * @returns An Effect resolving to the updated user
  */
 export const verifyEmail = (userId: string, tenantId?: string): Effect.Effect<User, DatabaseError | NotFoundError> =>
     Effect.tryPromise({

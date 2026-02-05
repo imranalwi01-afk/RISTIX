@@ -13,5 +13,5 @@ export default function WorkflowLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <>{children}</>;
+  return <>{children as any}</>;
 }

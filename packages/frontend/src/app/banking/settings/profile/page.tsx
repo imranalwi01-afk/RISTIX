@@ -195,7 +195,7 @@ export default function ProfileSettingsPage() {
       // Fallback to hostname detection
       const isProductionDomain = typeof window !== 'undefined' && window.location.hostname.includes('danafin.com');
       const fallbackUrl = process.env.NEXT_PUBLIC_API_URL ||
-        (isProductionDomain ? 'https://iaf-ifrs-be.danafin.com/api/v1' : 'https://bifrs9-iaf.ifrspro.id/api/v1');
+        (isProductionDomain ? 'https://iaf-ifrs-be.danafin.com/api/v1' : 'https://iaf-ifrs-be.ifrspro.id/api/v1');
 
       console.log('🔧 Profile Page: Using fallback API base URL:', fallbackUrl);
       return fallbackUrl;
@@ -668,7 +668,7 @@ export default function ProfileSettingsPage() {
       {profile && (
         <Grid container spacing={3}>
           {/* Profile Overview Card */}
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <Card>
               <CardContent>
                 <Box sx={{ textAlign: 'center', mb: 3 }}>
@@ -784,7 +784,7 @@ export default function ProfileSettingsPage() {
           </Grid>
 
           {/* Personal Information Card */}
-          <Grid item xs={12} md={8}>
+          <Grid size={{ xs: 12, md: 8 }}>
             <Card sx={{ mb: 3 }}>
               <CardContent>
                 <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
@@ -793,7 +793,7 @@ export default function ProfileSettingsPage() {
                 </Typography>
 
                 <Grid container spacing={3}>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <TextField
                       fullWidth
                       label="Full Name"
@@ -803,7 +803,7 @@ export default function ProfileSettingsPage() {
                       required
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <TextField
                       fullWidth
                       label="Phone Number"
@@ -819,7 +819,7 @@ export default function ProfileSettingsPage() {
                       }}
                     />
                   </Grid>
-                  <Grid item xs={12}>
+                  <Grid size={{ xs: 12 }}>
                     <TextField
                       fullWidth
                       label="Address"
@@ -850,7 +850,7 @@ export default function ProfileSettingsPage() {
                 </Typography>
 
                 <Grid container spacing={3}>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <FormControl fullWidth>
                       <InputLabel>Language</InputLabel>
                       <Select
@@ -865,7 +865,7 @@ export default function ProfileSettingsPage() {
                       </Select>
                     </FormControl>
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <FormControl fullWidth>
                       <InputLabel>Timezone</InputLabel>
                       <Select
@@ -935,7 +935,7 @@ export default function ProfileSettingsPage() {
           </Grid>
 
           {/* Security Settings Card */}
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
@@ -944,7 +944,7 @@ export default function ProfileSettingsPage() {
                 </Typography>
 
                 <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <Button
                       variant="outlined"
                       startIcon={<PasswordIcon />}
@@ -955,7 +955,7 @@ export default function ProfileSettingsPage() {
                       Change Password
                     </Button>
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <Button
                       variant="outlined"
                       startIcon={<FingerprintIcon />}
@@ -966,7 +966,7 @@ export default function ProfileSettingsPage() {
                       {profile?.twoFactorEnabled ? 'Disable MFA' : 'Enable MFA'}
                     </Button>
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <Button
                       variant="outlined"
                       startIcon={<ActivityIcon />}
@@ -977,7 +977,7 @@ export default function ProfileSettingsPage() {
                       View Activity Log
                     </Button>
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <Button
                       variant="outlined"
                       startIcon={<SyncIcon />}
@@ -988,7 +988,7 @@ export default function ProfileSettingsPage() {
                       Logout All Sessions
                     </Button>
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <Button
                       variant="outlined"
                       startIcon={<ExportIcon />}
@@ -999,7 +999,7 @@ export default function ProfileSettingsPage() {
                       Export My Data
                     </Button>
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <Button
                       variant="outlined"
                       startIcon={<BackupIcon />}

@@ -20,7 +20,7 @@ export default function SetupLoading() {
             {/* Content Skeleton */}
             <Grid container spacing={3}>
                 {[1, 2, 3, 4].map((i) => (
-                    <Grid item xs={12} md={6} key={i}>
+                    <Grid size={{ xs: 12, md: 6 }} key={i}>
                         <Card>
                             <CardContent>
                                 <Skeleton variant="text" width="60%" height={28} sx={{ mb: 2 }} />

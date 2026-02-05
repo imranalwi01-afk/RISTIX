@@ -420,7 +420,7 @@ export default function BucketParameterModal({
                 </AccordionSummary>
                 <AccordionDetails>
                   <Grid container spacing={2}>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <TextField
                         label="Bucket Name"
                         value={headerForm.bucket_name}
@@ -431,7 +431,7 @@ export default function BucketParameterModal({
                         placeholder="Enter unique bucket name"
                       />
                     </Grid>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <FormControl fullWidth required>
                         <InputLabel>Bucket Type</InputLabel>
                         <Select
@@ -448,7 +448,7 @@ export default function BucketParameterModal({
                         </Select>
                       </FormControl>
                     </Grid>
-                    <Grid item xs={12}>
+                    <Grid size={{ xs: 12 }}>
                       <TextField
                         label="Description"
                         value={headerForm.bucket_description || ''}
@@ -460,7 +460,7 @@ export default function BucketParameterModal({
                         placeholder="Describe the purpose and usage of this bucket parameter"
                       />
                     </Grid>
-                    <Grid item xs={12} md={4}>
+                    <Grid size={{ xs: 12, md: 4 }}>
                       <TextField
                         label="Min Range"
                         type="number"
@@ -471,7 +471,7 @@ export default function BucketParameterModal({
                         placeholder="Minimum range value"
                       />
                     </Grid>
-                    <Grid item xs={12} md={4}>
+                    <Grid size={{ xs: 12, md: 4 }}>
                       <TextField
                         label="Max Range"
                         type="number"
@@ -482,7 +482,7 @@ export default function BucketParameterModal({
                         placeholder="Maximum range value"
                       />
                     </Grid>
-                    <Grid item xs={12} md={4}>
+                    <Grid size={{ xs: 12, md: 4 }}>
                       <FormControl fullWidth>
                         <InputLabel>Range Unit</InputLabel>
                         <Select
@@ -499,7 +499,7 @@ export default function BucketParameterModal({
                         </Select>
                       </FormControl>
                     </Grid>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <TextField
                         label="Sequence"
                         type="number"
@@ -510,7 +510,7 @@ export default function BucketParameterModal({
                         inputProps={{ min: 1 }}
                       />
                     </Grid>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <FormControlLabel
                         control={
                           <Switch
@@ -686,7 +686,7 @@ export default function BucketParameterModal({
         </DialogTitle>
         <DialogContent dividers>
           <Grid container spacing={2}>
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <TextField
                 label="Range From"
                 type="number"
@@ -697,7 +697,7 @@ export default function BucketParameterModal({
                 inputProps={{ min: 0, step: 0.01 }}
               />
             </Grid>
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <TextField
                 label="Range To"
                 type="number"
@@ -708,7 +708,7 @@ export default function BucketParameterModal({
                 inputProps={{ min: 0, step: 0.01 }}
               />
             </Grid>
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <TextField
                 label="Bucket Label"
                 value={detailForm.bucket_label}
@@ -718,7 +718,7 @@ export default function BucketParameterModal({
                 placeholder="Display label for this range"
               />
             </Grid>
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <TextField
                 label="Bucket Code"
                 value={detailForm.bucket_code}
@@ -728,7 +728,7 @@ export default function BucketParameterModal({
                 placeholder="Unique code for this range"
               />
             </Grid>
-            <Grid item xs={4}>
+            <Grid size={{ xs: 4 }}>
               <TextField
                 label="PD Rate"
                 type="number"
@@ -739,7 +739,7 @@ export default function BucketParameterModal({
                 helperText="Probability of Default (0-1)"
               />
             </Grid>
-            <Grid item xs={4}>
+            <Grid size={{ xs: 4 }}>
               <TextField
                 label="LGD Rate"
                 type="number"
@@ -750,7 +750,7 @@ export default function BucketParameterModal({
                 helperText="Loss Given Default (0-1)"
               />
             </Grid>
-            <Grid item xs={4}>
+            <Grid size={{ xs: 4 }}>
               <TextField
                 label="Weight"
                 type="number"
@@ -762,7 +762,7 @@ export default function BucketParameterModal({
                 helperText="Weight factor (0-1)"
               />
             </Grid>
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <TextField
                 label="Sequence"
                 type="number"
@@ -774,7 +774,7 @@ export default function BucketParameterModal({
                 helperText="Display order"
               />
             </Grid>
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <FormControlLabel
                 control={
                   <Switch

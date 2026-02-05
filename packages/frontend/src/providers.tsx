@@ -32,7 +32,7 @@ const Providers: React.FC<ProvidersProps> = ({ children }) => {
           <BankingThemeProvider>
             <ThemeProvider theme={conventionalBankingTheme}>
               <CssBaseline />
-              {children}
+              {children as any}
             </ThemeProvider>
           </BankingThemeProvider>
         </AuthProvider>

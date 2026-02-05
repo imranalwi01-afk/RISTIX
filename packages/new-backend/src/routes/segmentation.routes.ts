@@ -11,11 +11,11 @@ export const segmentationRoutes = new OpenAPIHono<AppContext>()
 // ============================================================================
 
 const SegmentDetailInputSchema = z.object({
-    queryGroup: z.number().int().optional(),
+    query_group: z.number().int().optional(),
     seq: z.number().int().optional(),
-    tableName: z.string().max(30).optional(),
-    columnName: z.string().max(30).optional(),
-    dataType: z.string().max(15).optional(),
+    table_name: z.string().max(30).optional(),
+    column_name: z.string().max(30).optional(),
+    data_type: z.string().max(15).optional(),
     operator: z.string().max(10).optional(),
     value1: z.string().optional(),
     value2: z.string().optional(),
@@ -23,18 +23,18 @@ const SegmentDetailInputSchema = z.object({
 }).openapi('SegmentDetailInput')
 
 const SegmentHeaderInputSchema = z.object({
-    groupSegment: z.string().max(150),
+    group_segment: z.string().max(150),
     segment: z.string().max(150),
-    subSegment: z.string().max(150).optional(),
-    segmentType: z.string().max(50),
+    sub_segment: z.string().max(150).optional(),
+    segment_type: z.string().max(50),
     seq: z.number().int().optional(),
-    activeFlag: z.boolean().default(true),
+    active_flag: z.boolean().default(true),
     createdby: z.string().max(50).default('SYSTEM'),
 }).openapi('SegmentHeaderInput')
 
 const SegmentHeaderResponse = z.object({
     success: z.boolean(),
-    data: z.any(), // Generic since we are returning Drizzle selects primarily
+    data: z.any(),
     message: z.string().optional(),
 }).openapi('SegmentHeaderResponse')
 
@@ -103,12 +103,27 @@ segmentationRoutes.openapi(
         summary: 'List Segment Headers',
         responses: {
             200: { content: { 'application/json': { schema: SegmentListResponse } }, description: 'List Headers' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
     async (c) => {
         try {
-            const result = await db.select().from(frs9ParamSegmenth).orderBy(desc(frs9ParamSegmenth.createddate));
+            const result = await db.select({
+                id: frs9ParamSegmenth.pkid,
+                group_segment: frs9ParamSegmenth.groupSegment,
+                segment: frs9ParamSegmenth.segment,
+                sub_segment: frs9ParamSegmenth.subSegment,
+                segment_type: frs9ParamSegmenth.segmentType,
+                seq: frs9ParamSegmenth.seq,
+                active_flag: frs9ParamSegmenth.activeFlag,
+                createdby: frs9ParamSegmenth.createdby,
+                createddate: frs9ParamSegmenth.createddate,
+                createdhost: frs9ParamSegmenth.createdhost,
+                updatedby: frs9ParamSegmenth.updatedby,
+                updateddate: frs9ParamSegmenth.updateddate,
+                updatedhost: frs9ParamSegmenth.updatedhost
+            }).from(frs9ParamSegmenth).orderBy(desc(frs9ParamSegmenth.createddate));
             return c.json({ success: true, data: result, total: result.length });
         } catch (error) {
             console.error('Error fetching segments:', error);
@@ -129,6 +144,7 @@ segmentationRoutes.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: SegmentHeaderResponse } }, description: 'Segment Header' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Invalid ID' },
             404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
@@ -138,7 +154,23 @@ segmentationRoutes.openapi(
         if (isNaN(id)) return c.json({ error: 'Invalid ID' }, 400);
 
         try {
-            const [header] = await db.select().from(frs9ParamSegmenth).where(eq(frs9ParamSegmenth.pkid, id));
+            const result = await db.select({
+                id: frs9ParamSegmenth.pkid,
+                group_segment: frs9ParamSegmenth.groupSegment,
+                segment: frs9ParamSegmenth.segment,
+                sub_segment: frs9ParamSegmenth.subSegment,
+                segment_type: frs9ParamSegmenth.segmentType,
+                seq: frs9ParamSegmenth.seq,
+                active_flag: frs9ParamSegmenth.activeFlag,
+                createdby: frs9ParamSegmenth.createdby,
+                createddate: frs9ParamSegmenth.createddate,
+                createdhost: frs9ParamSegmenth.createdhost,
+                updatedby: frs9ParamSegmenth.updatedby,
+                updateddate: frs9ParamSegmenth.updateddate,
+                updatedhost: frs9ParamSegmenth.updatedhost
+            }).from(frs9ParamSegmenth).where(eq(frs9ParamSegmenth.pkid, id));
+
+            const header = result[0];
             if (!header) return c.json({ error: 'Segment not found' }, 404);
 
             return c.json({ success: true, data: header });
@@ -161,6 +193,7 @@ segmentationRoutes.openapi(
         },
         responses: {
             201: { content: { 'application/json': { schema: SegmentHeaderResponse } }, description: 'Created' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
@@ -168,13 +201,30 @@ segmentationRoutes.openapi(
         const headerData = c.req.valid('json');
 
         try {
-            const [newHeader] = await db.insert(frs9ParamSegmenth).values({
-                ...headerData,
+            const result = await db.insert(frs9ParamSegmenth).values({
+                groupSegment: headerData.group_segment,
+                segment: headerData.segment,
+                subSegment: headerData.sub_segment,
+                segmentType: headerData.segment_type,
+                seq: headerData.seq,
+                activeFlag: headerData.active_flag,
+                createdby: headerData.createdby,
                 createdhost: 'localhost',
                 createddate: new Date().toISOString()
-            }).returning();
+            }).returning({
+                id: frs9ParamSegmenth.pkid,
+                group_segment: frs9ParamSegmenth.groupSegment,
+                segment: frs9ParamSegmenth.segment,
+                sub_segment: frs9ParamSegmenth.subSegment,
+                segment_type: frs9ParamSegmenth.segmentType,
+                seq: frs9ParamSegmenth.seq,
+                active_flag: frs9ParamSegmenth.activeFlag,
+                createdby: frs9ParamSegmenth.createdby,
+                createddate: frs9ParamSegmenth.createddate,
+                createdhost: frs9ParamSegmenth.createdhost
+            });
 
-            return c.json({ success: true, data: newHeader }, 201);
+            return c.json({ success: true, data: result[0] }, 201);
         } catch (error) {
             console.error('Error creating segment:', error);
             return c.json({ error: 'Failed to create segment' }, 500);
@@ -195,6 +245,7 @@ segmentationRoutes.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: SegmentHeaderResponse } }, description: 'Updated' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Invalid Request' },
             404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
@@ -206,16 +257,36 @@ segmentationRoutes.openapi(
         const headerData = c.req.valid('json');
 
         try {
-            const [updatedHeader] = await db.update(frs9ParamSegmenth)
+            const result = await db.update(frs9ParamSegmenth)
                 .set({
-                    ...headerData,
+                    groupSegment: headerData.group_segment,
+                    segment: headerData.segment,
+                    subSegment: headerData.sub_segment,
+                    segmentType: headerData.segment_type,
+                    seq: headerData.seq,
+                    activeFlag: headerData.active_flag,
+                    createdby: headerData.createdby,
                     updateddate: new Date().toISOString(),
                     updatedhost: 'localhost',
                 })
                 .where(eq(frs9ParamSegmenth.pkid, id))
-                .returning();
+                .returning({
+                    id: frs9ParamSegmenth.pkid,
+                    group_segment: frs9ParamSegmenth.groupSegment,
+                    segment: frs9ParamSegmenth.segment,
+                    sub_segment: frs9ParamSegmenth.subSegment,
+                    segment_type: frs9ParamSegmenth.segmentType,
+                    seq: frs9ParamSegmenth.seq,
+                    active_flag: frs9ParamSegmenth.activeFlag,
+                    createdby: frs9ParamSegmenth.createdby,
+                    createddate: frs9ParamSegmenth.createddate,
+                    createdhost: frs9ParamSegmenth.createdhost,
+                    updatedby: frs9ParamSegmenth.updatedby,
+                    updateddate: frs9ParamSegmenth.updateddate,
+                    updatedhost: frs9ParamSegmenth.updatedhost
+                });
 
-            return c.json({ success: true, data: updatedHeader });
+            return c.json({ success: true, data: result[0] });
         } catch (error) {
             console.error('Error updating segment:', error);
             return c.json({ error: 'Failed to update segment' }, 500);
@@ -273,6 +344,7 @@ segmentationRoutes.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: SegmentDetailListResponse } }, description: 'List Details' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Invalid ID' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
@@ -281,7 +353,25 @@ segmentationRoutes.openapi(
         if (isNaN(id)) return c.json({ error: 'Invalid ID' }, 400);
 
         try {
-            const details = await db.select()
+            const details = await db.select({
+                id: frs9ParamSegmentd.pkid,
+                segment_id: frs9ParamSegmentd.segmentId,
+                query_group: frs9ParamSegmentd.queryGroup,
+                seq: frs9ParamSegmentd.seq,
+                table_name: frs9ParamSegmentd.tableName,
+                column_name: frs9ParamSegmentd.columnName,
+                data_type: frs9ParamSegmentd.dataType,
+                operator: frs9ParamSegmentd.operator,
+                value1: frs9ParamSegmentd.value1,
+                value2: frs9ParamSegmentd.value2,
+                condition: frs9ParamSegmentd.condition,
+                createdby: frs9ParamSegmentd.createdby,
+                createddate: frs9ParamSegmentd.createddate,
+                createdhost: frs9ParamSegmentd.createdhost,
+                updatedby: frs9ParamSegmentd.updatedby,
+                updateddate: frs9ParamSegmentd.updateddate,
+                updatedhost: frs9ParamSegmentd.updatedhost
+            })
                 .from(frs9ParamSegmentd)
                 .where(eq(frs9ParamSegmentd.segmentId, id))
                 .orderBy(asc(frs9ParamSegmentd.seq));
@@ -306,6 +396,7 @@ segmentationRoutes.openapi(
         },
         responses: {
             201: { content: { 'application/json': { schema: SegmentHeaderResponse } }, description: 'Created' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Invalid ID' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
@@ -315,15 +406,38 @@ segmentationRoutes.openapi(
         const detailData = c.req.valid('json');
 
         try {
-            const [newDetail] = await db.insert(frs9ParamSegmentd).values({
-                ...detailData,
+            const result = await db.insert(frs9ParamSegmentd).values({
                 segmentId: id,
+                queryGroup: detailData.query_group,
+                seq: detailData.seq,
+                tableName: detailData.table_name,
+                columnName: detailData.column_name,
+                dataType: detailData.data_type,
+                operator: detailData.operator,
+                value1: detailData.value1,
+                value2: detailData.value2,
+                condition: detailData.condition,
                 createdhost: 'localhost',
                 createddate: new Date().toISOString(),
                 createdby: 'SYSTEM'
-            }).returning();
+            }).returning({
+                id: frs9ParamSegmentd.pkid,
+                segment_id: frs9ParamSegmentd.segmentId,
+                query_group: frs9ParamSegmentd.queryGroup,
+                seq: frs9ParamSegmentd.seq,
+                table_name: frs9ParamSegmentd.tableName,
+                column_name: frs9ParamSegmentd.columnName,
+                data_type: frs9ParamSegmentd.dataType,
+                operator: frs9ParamSegmentd.operator,
+                value1: frs9ParamSegmentd.value1,
+                value2: frs9ParamSegmentd.value2,
+                condition: frs9ParamSegmentd.condition,
+                createdby: frs9ParamSegmentd.createdby,
+                createddate: frs9ParamSegmentd.createddate,
+                createdhost: frs9ParamSegmentd.createdhost,
+            });
 
-            return c.json({ success: true, data: newDetail }, 201);
+            return c.json({ success: true, data: result[0] }, 201);
         } catch (error) {
             return c.json({ error: 'Failed to create detail' }, 500);
         }
@@ -343,6 +457,7 @@ segmentationRoutes.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: SegmentHeaderResponse } }, description: 'Updated' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Invalid ID' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
@@ -352,16 +467,39 @@ segmentationRoutes.openapi(
         const detailData = c.req.valid('json');
 
         try {
-            const [updatedDetail] = await db.update(frs9ParamSegmentd)
+            const result = await db.update(frs9ParamSegmentd)
                 .set({
-                    ...detailData,
+                    queryGroup: detailData.query_group,
+                    seq: detailData.seq,
+                    tableName: detailData.table_name,
+                    columnName: detailData.column_name,
+                    dataType: detailData.data_type,
+                    operator: detailData.operator,
+                    value1: detailData.value1,
+                    value2: detailData.value2,
+                    condition: detailData.condition,
                     updateddate: new Date().toISOString(),
                     updatedhost: 'localhost'
                 })
                 .where(eq(frs9ParamSegmentd.pkid, detailId))
-                .returning();
+                .returning({
+                    id: frs9ParamSegmentd.pkid,
+                    segment_id: frs9ParamSegmentd.segmentId,
+                    query_group: frs9ParamSegmentd.queryGroup,
+                    seq: frs9ParamSegmentd.seq,
+                    table_name: frs9ParamSegmentd.tableName,
+                    column_name: frs9ParamSegmentd.columnName,
+                    data_type: frs9ParamSegmentd.dataType,
+                    operator: frs9ParamSegmentd.operator,
+                    value1: frs9ParamSegmentd.value1,
+                    value2: frs9ParamSegmentd.value2,
+                    condition: frs9ParamSegmentd.condition,
+                    updatedby: frs9ParamSegmentd.updatedby,
+                    updateddate: frs9ParamSegmentd.updateddate,
+                    updatedhost: frs9ParamSegmentd.updatedhost
+                });
 
-            return c.json({ success: true, data: updatedDetail });
+            return c.json({ success: true, data: result[0] });
         } catch (error) {
             return c.json({ error: 'Failed to update detail' }, 500);
         }
@@ -380,6 +518,7 @@ segmentationRoutes.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), message: z.string() }) } }, description: 'Deleted' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Invalid ID' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),

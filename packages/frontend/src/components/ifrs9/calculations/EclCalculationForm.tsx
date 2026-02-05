@@ -136,7 +136,7 @@ export const EclCalculationForm: React.FC<EclCalculationFormProps> = ({
                 <DatePicker
                   label="Calculation Date"
                   value={calculationDate}
-                  onChange={(date: any) => setCalculationDate(date || new Date())}
+                  onChange={(date) => setCalculationDate(date || new Date())}
                   slotProps={{
                     textField: {
                       fullWidth: true,
@@ -223,12 +223,12 @@ export const EclCalculationForm: React.FC<EclCalculationFormProps> = ({
                   <Box display="flex" alignItems="center">
                     <TuneOutlined sx={{ mr: 1 }} />
                     <Typography variant="subtitle1">Advanced Options</Typography>
-                    <Chip
-                      label="Optional"
-                      size="small"
-                      color="default"
-                      variant="outlined"
-                      sx={{ ml: 2 }}
+                    <Chip 
+                      label="Optional" 
+                      size="small" 
+                      color="default" 
+                      variant="outlined" 
+                      sx={{ ml: 2 }} 
                     />
                   </Box>
                 </AccordionSummary>
@@ -288,7 +288,7 @@ export const EclCalculationForm: React.FC<EclCalculationFormProps> = ({
                         </Grid>
                         <Grid item xs={12}>
                           <Typography variant="body2" color={
-                            Math.abs(baseWeight + upsideWeight + downsideWeight - 100) < 0.01
+                            Math.abs(baseWeight + upsideWeight + downsideWeight - 100) < 0.01 
                               ? 'success.main' : 'error.main'
                           }>
                             Total: {baseWeight + upsideWeight + downsideWeight}%

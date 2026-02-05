@@ -10,7 +10,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import dynamic from 'next/dynamic';
+
 import {
   Box,
   Paper,
@@ -23,7 +23,6 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  Grid,
   Switch,
   FormControlLabel,
   Chip,
@@ -40,7 +39,9 @@ import {
   Divider,
   CircularProgress,
 } from '@mui/material';
-import type { GridColDef, GridRowId } from '@mui/x-data-grid';
+// Safe DataGrid wrapper to prevent bundling issues
+import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
+import { GridColDef, GridRowId, GridToolbar } from '@mui/x-data-grid';
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -51,23 +52,9 @@ import {
   Timeline as TimelineIcon,
   TrendingUp as TrendingUpIcon,
 } from '@mui/icons-material';
-import { FullstackIndicator } from '../../../../components/common/feedback/FullstackIndicator';
+import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 
-// Dynamic imports for heavy components
-const DataGrid = dynamic(
-  () => import('@mui/x-data-grid').then((mod) => mod.DataGrid),
-  { ssr: false, loading: () => <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress /></Box> }
-);
 
-const GridToolbar = dynamic(
-  () => import('@mui/x-data-grid').then((mod) => mod.GridToolbar),
-  { ssr: false }
-);
-
-const GridActionsCellItem = dynamic(
-  () => import('@mui/x-data-grid').then((mod) => mod.GridActionsCellItem),
-  { ssr: false }
-);
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -124,7 +111,7 @@ function TabPanel(props: TabPanelProps) {
       aria-labelledby={`simple-tab-${index}`}
       {...other}
     >
-      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
+      {value === index && <Box sx={{ p: 3 }}>{children as any}</Box>}
     </div>
   );
 }
@@ -388,21 +375,21 @@ export default function FLScalarManagementPage() {
       width: 120,
       type: 'actions',
       getActions: (params) => [
-        <GridActionsCellItem
+        <SafeGridActionsCellItem
           key="view"
           icon={<ViewIcon />}
           label="View"
           onClick={() => openDialog('view', params.row)}
         />,
-        <GridActionsCellItem
+        <SafeGridActionsCellItem
           key="edit"
-          icon={<EditIcon />}
+          icon={<EditIcon color="primary" />}
           label="Edit"
           onClick={() => openDialog('edit', params.row)}
         />,
-        <GridActionsCellItem
+        <SafeGridActionsCellItem
           key="delete"
-          icon={<DeleteIcon />}
+          icon={<DeleteIcon color="error" />}
           label="Delete"
           onClick={() => handleDelete(params.id)}
         />,
@@ -492,8 +479,8 @@ export default function FLScalarManagementPage() {
 
         {/* Tab 1: Basic Information */}
         <TabPanel value={tabValue} index={0}>
-          <Grid container spacing={3}>
-            <Grid item xs={12}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 3 }}>
+            <Box sx={{ gridColumn: 'span 2' }}>
               <TextField
                 fullWidth
                 label="Scalar Name"
@@ -504,72 +491,64 @@ export default function FLScalarManagementPage() {
                 helperText={formErrors.scalar_name}
                 required
               />
-            </Grid>
+            </Box>
 
-            <Grid item xs={12}>
+            <Box sx={{ gridColumn: 'span 2' }}>
               <FormControlLabel
                 control={
                   <Switch
-                    checked={formData.active_flag ?? true}
+                    checked={formData.active_flag !== false}
                     onChange={(e) => handleFormChange('active_flag', e.target.checked)}
                     disabled={isReadOnly}
                   />
                 }
                 label="Active"
               />
-            </Grid>
+            </Box>
 
             {dialogState.mode !== 'create' && (
               <>
-                <Grid item xs={12}>
+                <Box sx={{ gridColumn: 'span 2' }}>
                   <Divider sx={{ my: 2 }} />
                   <Typography variant="h6" gutterBottom>
                     Audit Information
                   </Typography>
-                </Grid>
+                </Box>
 
-                <Grid item xs={6}>
-                  <TextField
-                    fullWidth
-                    label="Created By"
-                    value={formData.created_by || ''}
-                    disabled
-                  />
-                </Grid>
+                <TextField
+                  fullWidth
+                  label="Created By"
+                  value={formData.created_by || ''}
+                  disabled
+                />
 
-                <Grid item xs={6}>
-                  <TextField
-                    fullWidth
-                    label="Created Date"
-                    value={formData.created_date ? new Date(formData.created_date).toLocaleString() : ''}
-                    disabled
-                  />
-                </Grid>
+                <TextField
+                  fullWidth
+                  label="Created Date"
+                  value={formData.created_date ? new Date(formData.created_date).toLocaleString() : ''}
+                  disabled
+                />
 
                 {formData.updated_by && (
                   <>
-                    <Grid item xs={6}>
-                      <TextField
-                        fullWidth
-                        label="Updated By"
-                        value={formData.updated_by || ''}
-                        disabled
-                      />
-                    </Grid>
+                    <TextField
+                      fullWidth
+                      label="Updated By"
+                      value={formData.updated_by || ''}
+                      disabled
+                    />
 
-                    <Grid item xs={6}>
-                      <TextField
-                        fullWidth
-                        label="Updated Date"
-                        value={formData.updated_date ? new Date(formData.updated_date).toLocaleString() : ''}
-                        disabled
-                      />
-                    </Grid>
+                    <TextField
+                      fullWidth
+                      label="Updated Date"
+                      value={formData.updated_date ? new Date(formData.updated_date).toLocaleString() : ''}
+                      disabled
+                    />
                   </>
                 )}
               </>
             )}
-          </Grid>
+          </Box>
         </TabPanel>
 
         {/* Tab 2: Scalar Periods */}
@@ -721,7 +700,8 @@ export default function FLScalarManagementPage() {
         </Box>
 
         {/* Data Grid */}
-        <DataGrid
+        {/* Data Grid */}
+        <SafeDataGrid
           rows={scalars}
           columns={columns}
           loading={loading}

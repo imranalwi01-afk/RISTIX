@@ -88,6 +88,49 @@ import { MenuItem, DatabaseMenuItem, BankingMode } from './types';
 import { getMenuIcon } from '@/config/menu-config';
 
 // IAF-SPECIFIC SITEMAP STRUCTURE - Based on IAF Navigation Requirements
+// Default permission mapping for static menu (can be overridden per id/code)
+const PERMISSION_OVERRIDES: Record<string, string | string[]> = {
+    dashboard: 'VIEW_DASHBOARD',
+    'system-setup': 'MANAGE_SYSTEM_SETUP',
+    'application-configuration': 'MANAGE_APP_CONFIG',
+    'business-configuration': 'MANAGE_BUSINESS_CONFIG',
+    'parameter-management': 'MANAGE_PARAMETERS',
+    'product-parameters': 'MANAGE_PRODUCT_PARAMS',
+    'accounting-parameters': 'MANAGE_ACCOUNTING_PARAMS',
+    'segmentation-configuration': 'MANAGE_SEGMENTATION',
+    'rule-base-setting': 'MANAGE_RULES',
+    'bucket-parameter': 'MANAGE_BUCKETS',
+    'pd-setup-management': 'MANAGE_PD',
+    'lgd-setup-management': 'MANAGE_LGD',
+    'ead-setup-management': 'MANAGE_EAD',
+    'ecl-configuration': 'MANAGE_ECL_CONFIG',
+    'ifrs9': 'VIEW_IFRS9',
+    'ifrs9-report': 'VIEW_IFRS9_REPORTS',
+    'maintenance': 'ADMIN_MAINTENANCE',
+    'user-management': 'ADMIN_USERS',
+    'role-management': 'ADMIN_ROLES',
+    'menu-management': 'ADMIN_MENUS',
+    'job-monitoring': 'VIEW_JOB_MONITORING',
+    'workflow-management': 'VIEW_WORKFLOWS',
+    'approval-system': 'VIEW_APPROVALS',
+    'workflow-configuration': 'CONFIGURE_WORKFLOWS',
+    'process-monitoring': 'VIEW_PROCESS_MONITORING',
+    'tools': 'USE_TOOLS',
+    'manual-upload': 'USE_MANUAL_UPLOAD',
+    'bulk-data-import': 'USE_BULK_IMPORT',
+    'data-export': 'USE_EXPORT',
+    'etl-tools': 'USE_ETL',
+    'direct-db-connection': 'USE_DIRECT_DB',
+    'data-scheduler': 'USE_DATA_SCHEDULER',
+};
+
+const derivePermissionCodes = (idOrCode: string | undefined): string[] => {
+    if (!idOrCode) return [];
+    const key = idOrCode.toLowerCase();
+    const override = PERMISSION_OVERRIDES[key];
+    if (override) return Array.isArray(override) ? override : [override];
+    return [`VIEW_${idOrCode.replace(/[^a-zA-Z0-9]+/g, '_').toUpperCase()}`];
+};
 const BANKING_MENU_STRUCTURE: MenuItem[] = [
     {
         id: 'dashboard',
@@ -100,7 +143,8 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
         level: 1,
         path: '/dashboard',
         isActive: true,
-        status: 'active'
+        status: 'active',
+        requiredPermissions: derivePermissionCodes('dashboard')
     },
 
     // CORE SYSTEM SETUP
@@ -184,59 +228,59 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
                 isActive: true,
                 status: 'active'
             },
-            {
-                id: 'risk-parameters',
-                code: 'risk-parameters',
-                label: 'Risk Parameters',
-                href: '/banking/parameters/risk',
-                icon: <TrendingUp />,
-                description: 'Risk Assessment Parameters',
-                sort_order: 8,
-                level: 2,
-                path: '/risk-parameters',
-                isActive: true,
-                status: 'active'
-            }
+            // {
+            //     id: 'risk-parameters',
+            //     code: 'risk-parameters',
+            //     label: 'Risk Parameters',
+            //     href: '/banking/parameters/risk',
+            //     icon: <TrendingUp />,
+            //     description: 'Risk Assessment Parameters',
+            //     sort_order: 8,
+            //     level: 2,
+            //     path: '/risk-parameters',
+            //     isActive: true,
+            //     status: 'active'
+            // }
         ]
     },
 
     // PORTFOLIO MANAGEMENT
-    {
-        id: 'portfolio-management',
-        label: 'Portfolio Management',
-        icon: <Business />,
-        description: 'Banking Operations',
-        children: [
-            {
-                id: 'portfolio-accounts',
-                label: 'Portfolio Accounts',
-                href: '/banking/portfolio/accounts',
-                icon: <AccountCircle />,
-                description: 'Account Management'
-            },
-            {
-                id: 'customer-management',
-                label: 'Customer Management',
-                href: '/banking/portfolio/customers',
-                icon: <People />,
-                description: 'Client Information'
-            },
-            {
-                id: 'banking-products',
-                label: 'Banking Products',
-                href: '/banking/portfolio/products',
-                icon: <AccountBalance />,
-                description: 'Product Configuration'
-            },
-            {
-                id: 'portfolio-monitoring',
-                label: 'Portfolio Monitoring',
-                href: '/banking/portfolio/overview',
-                icon: <Visibility />,
-                description: 'Real-time Tracking'
-            }
-        ]
-    },
+    // {
+    //     id: 'portfolio-management',
+    //     label: 'Portfolio Management',
+    //     icon: <Business />,
+    //     description: 'Banking Operations',
+    //     children: [
+    //         {
+    //             id: 'portfolio-accounts',
+    //             label: 'Portfolio Accounts',
+    //             href: '/banking/portfolio/accounts',
+    //             icon: <AccountCircle />,
+    //             description: 'Account Management'
+    //         },
+    //         {
+    //             id: 'customer-management',
+    //             label: 'Customer Management',
+    //             href: '/banking/portfolio/customers',
+    //             icon: <People />,
+    //             description: 'Client Information'
+    //         },
+    //         {
+    //             id: 'banking-products',
+    //             label: 'Banking Products',
+    //             href: '/banking/portfolio/products',
+    //             icon: <AccountBalance />,
+    //             description: 'Product Configuration'
+    //         },
+    //         {
+    //             id: 'portfolio-monitoring',
+    //             label: 'Portfolio Monitoring',
+    //             href: '/banking/portfolio/overview',
+    //             icon: <Visibility />,
+    //             description: 'Real-time Tracking'
+    //         }
+    //     ]
+    // },
 
     // COLLECTIVE IMPAIRMENT
     {
@@ -245,7 +289,7 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
         icon: <TrendingUp />,
         description: 'Portfolio Assessment',
         banking_modes: ['conventional', 'syariah', 'dual'],
-        roles: ['IAF_TENANT_SUPERADMIN', 'IAF_TENANT_ADMIN', 'IAF Tenant Super Administrator', 'IAF Tenant Administrator', 'IAF_BANK_CRO', 'IAF_IFRS_MANAGER', 'IAF_RISK_ANALYST', 'IAF_PORTFOLIO_MANAGER'],
+        // roles: ['IAF_TENANT_SUPERADMIN', 'IAF_TENANT_ADMIN', 'IAF Tenant Super Administrator', 'IAF Tenant Administrator', 'IAF_BANK_CRO', 'IAF_IFRS_MANAGER', 'IAF_RISK_ANALYST', 'IAF_PORTFOLIO_MANAGER'],
         children: [
             {
                 id: 'segmentation-configuration',
@@ -317,56 +361,12 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
         roles: ['IAF_TENANT_SUPERADMIN', 'IAF_TENANT_ADMIN', 'IAF Tenant Super Administrator', 'IAF Tenant Administrator', 'IAF_BANK_CRO', 'IAF_IFRS_MANAGER', 'IAF_RISK_ANALYST', 'IAF_PORTFOLIO_MANAGER'],
         children: [
             {
-                id: 'assessment-override',
-                label: 'Assessment Override',
+                id: 'assessment-workspace',
+                label: 'Assessment Workspace',
                 href: '/banking/individual/assessment',
                 icon: <Assessment />,
-                description: '/IFRS9N/IndividualImpairment/AssesmentOverride'
-            },
-            {
-                id: 'list-individual-report',
-                label: 'List of Individual Report',
-                href: '/banking/individual/reports',
-                icon: <TableChart />,
-                description: 'View and download individual reports',
+                description: 'End-to-end impairment assessment',
                 isNew: true
-            },
-            {
-                id: 'review-scenario',
-                label: 'Review Scenario Details',
-                href: '/banking/individual/review/scenario',
-                icon: <Approval />,
-                description: 'Analyze and approve scenarios',
-                isNew: true
-            },
-            {
-                id: 'review-dcf-upload',
-                label: 'Review DCF Upload',
-                href: '/banking/individual/review/dcf-upload-report',
-                icon: <CloudUpload />,
-                description: 'Validation results for DCF uploads',
-                isNew: true
-            },
-            {
-                id: 'ia-dcf-detail',
-                label: 'Review IA DCF Detail',
-                href: '/banking/individual/review/ia-dcf-detail',
-                icon: <ShowChart />,
-                description: 'Detail view of cash flow projections',
-                isNew: true
-            },
-            {
-                id: 'override-history',
-                label: 'Override History',
-                href: '/banking/individual/history',
-                icon: <History />,
-                description: 'Audit trail for overrides',
-                children: [
-                    { id: 'hist-customer', label: 'Customer Details', href: '/banking/individual/history/customer', icon: <Person /> },
-                    { id: 'hist-provision', label: 'IA Provision', href: '/banking/individual/history/provision', icon: <AccountBalance /> },
-                    { id: 'hist-dcf', label: 'DCF Upload', href: '/banking/individual/history/dcf-upload', icon: <CloudUpload /> },
-                    { id: 'hist-collateral', label: 'Collateral', href: '/banking/individual/history/collateral', icon: <Security /> }
-                ]
             }
         ]
     },
@@ -508,7 +508,8 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
                 label: 'R Analytics',
                 href: '/banking/analytics/r-analytics',
                 icon: <DataUsage />,
-                description: 'Statistical Analysis'
+                description: 'Statistical Analysis',
+
             },
             {
                 id: 'financial-reports',
@@ -634,10 +635,31 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
     // MAINTENANCE
     {
         id: 'maintenance',
-        label: 'Maintenance',
+        label: 'Admin & Maintenance',
         icon: <Build />,
         description: 'System Administration',
         children: [
+            {
+                id: 'user-management',
+                label: 'User Management',
+                href: '/banking/maintenance/users',
+                icon: <ManageAccounts />,
+                description: 'Manage system users'
+            },
+            {
+                id: 'role-management',
+                label: 'Role Management',
+                href: '/banking/maintenance/roles',
+                icon: <VpnKey />,
+                description: 'Manage roles and permissions'
+            },
+            {
+                id: 'user-assignments',
+                label: 'User Assignments',
+                href: '/banking/maintenance/assignments',
+                icon: <SupervisorAccount />,
+                description: 'Assign roles to users'
+            },
             {
                 id: 'approval',
                 label: 'Approval',
@@ -646,32 +668,19 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
                 description: '/IFRS9N/Approval'
             },
             {
-                id: 'user-activity',
+                id: 'audit-logs',
                 label: 'User Activity',
-                href: '/banking/maintenance/user-activity',
+                href: '/banking/maintenance/audit',
                 icon: <History />,
-                description: '/IFRS9N/UserActivity'
+                description: 'System audit logs'
             },
             {
                 id: 'job-monitoring',
+                code: 'job-monitoring',
                 label: 'Job Monitoring',
                 href: '/banking/maintenance/job-monitoring',
                 icon: <Monitor />,
                 description: '/IFRS9N/JobMonitoring'
-            },
-            {
-                id: 'user-management',
-                label: 'User Management',
-                href: '/banking/maintenance/users',
-                icon: <ManageAccounts />,
-                description: '/IFRS9N/UserManagement'
-            },
-            {
-                id: 'role-management',
-                label: 'Role Management',
-                href: '/banking/maintenance/roles',
-                icon: <VpnKey />,
-                description: '/IFRS9N/RoleManagement'
             },
             {
                 id: 'menu-management',
@@ -684,8 +693,23 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
     }
 ];
 
+// Ensure every static menu item has requiredPermissions (explicit or derived)
+const applyRequiredPermissions = (items: MenuItem[]) => {
+    items.forEach((item) => {
+        if (!item.requiredPermissions || item.requiredPermissions.length === 0) {
+            const codes = derivePermissionCodes(item.code || item.id);
+            item.requiredPermissions = codes;
+        }
+        if (item.children && item.children.length > 0) {
+            applyRequiredPermissions(item.children);
+        }
+    });
+};
+
+applyRequiredPermissions(BANKING_MENU_STRUCTURE);
+
 // Convert icon string to React element helper
-export const convertIconStringToElement = (iconString: string): React.ReactElement => {
+export const convertIconStringToElement = (iconString: string): React.ReactElement<any> => {
     // Handle undefined/null iconString - return fallback menu icon
     if (!iconString || typeof iconString !== 'string') {
         return <Menu />;
@@ -761,7 +785,7 @@ export const convertIconStringToElement = (iconString: string): React.ReactEleme
 };
 
 // Enhanced icon conversion function - CENTRALIZED CONFIGURATION
-export const getIconFromDatabaseString = (iconString: string, bankingMode?: string): React.ReactElement => {
+export const getIconFromDatabaseString = (iconString: string, bankingMode?: string): React.ReactElement<any> => {
     // Handle undefined/null iconString - return fallback menu icon
     if (!iconString || typeof iconString !== 'string') {
         return <Menu />;
@@ -775,7 +799,7 @@ export const getIconFromDatabaseString = (iconString: string, bankingMode?: stri
     }
 
     // Fallback to local icon mapping for comprehensive coverage
-    const fallbackIconMap: Record<string, React.ReactElement> = {
+    const fallbackIconMap: Record<string, React.ReactElement<any>> = {
         // Core Navigation
         'dashboard': <Dashboard />,
         'settings': <Settings />,
@@ -863,9 +887,9 @@ export const getIconFromDatabaseString = (iconString: string, bankingMode?: stri
 };
 
 // Get appropriate icon for menu item based on code and level
-export const getIconForMenuItem = (code: string, level: number): React.ReactElement => {
+export const getIconForMenuItem = (code: string, level: number): React.ReactElement<any> => {
     // Map common menu codes to icons
-    const iconMap: Record<string, React.ReactElement> = {
+    const iconMap: Record<string, React.ReactElement<any>> = {
         'dashboard': <Dashboard />,
         'application-setting': <Settings />,
         'business-setting': <Business />,
@@ -902,6 +926,7 @@ export const getIconForMenuItem = (code: string, level: number): React.ReactElem
         'approval-system': <Approval />,
         'workflow-configuration': <Settings />,
         'process-monitoring': <Monitor />,
+        'job-monitoring': <Monitor />,
         'staging-management': <TableView />,
         'business-process': <Business />,
         'manual-upload': <CloudUpload />,
@@ -918,21 +943,101 @@ export const getIconForMenuItem = (code: string, level: number): React.ReactElem
     return iconMap[code] || (level === 0 ? <Category /> : <Assessment />);
 };
 
+// Map static menu IDs to icon strings for database persistence
+const MENU_ICON_MAP: Record<string, string> = {
+    'dashboard': 'dashboard',
+    'system-setup': 'settings',
+    'application-configuration': 'settings',
+    'business-configuration': 'business',
+    'parameter-management': 'category',
+    'product-parameters': 'account_balance',
+    'accounting-parameters': 'assessment',
+    'collective-impairment': 'trending_up',
+    'segmentation-configuration': 'category',
+    'rule-base-setting': 'assessment',
+    'bucket-parameter': 'layers',
+    'pd-setup-management': 'trending_up',
+    'fl-scalar': 'functions',
+    'lgd-setup-management': 'monetization_on',
+    'ead-setup-management': 'account_balance',
+    'ecl-configuration': 'calculate',
+    'individual-impairment': 'person',
+    'assessment-override': 'assessment',
+    'list-individual-report': 'table_chart',
+    'review-scenario': 'approval',
+    'review-dcf-upload': 'cloud_upload',
+    'ia-dcf-detail': 'show_chart',
+    'override-history': 'history',
+    'hist-customer': 'person',
+    'hist-provision': 'account_balance',
+    'hist-dcf': 'cloud_upload',
+    'hist-collateral': 'security',
+    'ifrs9': 'calculate',
+    'impairment-module': 'warning',
+    'amortization-module': 'schedule',
+    'ecl-calculations': 'calculate',
+    'ifrs9-staging': 'layers',
+    'model-management': 'view_module',
+    'forecast': 'auto_graph',
+    'ifrs9-report': 'table_chart',
+    'nominative-report': 'table_view',
+    'lifetime-pd': 'trending_up',
+    'lifetime-lgd': 'monetization_on',
+    'ead-model': 'functions',
+    'ecl-result': 'calculate',
+    'ecl-movement': 'swap_horiz',
+    'gca-movement': 'timeline',
+    'advanced-analytics': 'analytics',
+    'r-analytics': 'data_usage',
+    'financial-reports': 'assessment',
+    'executive-dashboard': 'dashboard',
+    'advanced-export': 'get_app',
+    'workflow-management': 'account_tree',
+    'approval-system': 'approval',
+    'workflow-configuration': 'settings',
+    'process-monitoring': 'monitor',
+    'staging-management': 'table_view',
+    'business-process': 'business',
+    'tools': 'cloud_upload',
+    'manual-upload': 'cloud_upload',
+    'bulk-data-import': 'cloud_upload',
+    'data-export': 'get_app',
+    'etl-tools': 'transform',
+    'direct-db-connection': 'storage',
+    'data-scheduler': 'schedule',
+    'maintenance': 'build',
+    'user-management': 'manage_accounts',
+    'role-management': 'vpn_key',
+    'user-assignments': 'supervisor_account',
+    'approval': 'approval',
+    'audit-logs': 'history',
+    'job-monitoring': 'monitor',
+    'menu-management': 'menu'
+};
+
 // Helper function to convert static menu to database format for fallback
 export const convertStaticToDatabaseFormat = (staticMenu: MenuItem[]): DatabaseMenuItem[] => {
     const convertItem = (item: MenuItem, parentId: string | null = null): DatabaseMenuItem => {
+        const permissionCodes = item.requiredPermissions && item.requiredPermissions.length > 0
+            ? item.requiredPermissions
+            : derivePermissionCodes(item.code || item.id);
+            
+        // Look up correct icon string from map, fallback to folder for groups or dashboard for items
+        const iconString = MENU_ICON_MAP[item.id] || (item.children ? 'folder' : 'dashboard');
+
         const dbItem: DatabaseMenuItem = {
             id: item.id,
             menu_key: item.code || item.id,
             title: item.label,
             description: item.description,
-            icon: item.icon ? 'dashboard' : 'menu', // Default icon mapping
+            icon: iconString,
             url: item.href,
             type: item.children && item.children.length > 0 ? 'group' : 'item',
             sort_order: item.sort_order || 999,
             is_active: true,
             user_types: item.roles || [],
             banking_types: item.banking_modes || ['conventional', 'syariah', 'dual'],
+            requiredPermissions: permissionCodes,
             parent_id: parentId
         };
         return dbItem;
@@ -983,6 +1088,7 @@ export const convertDatabaseMenuToMenuItem = (dbMenuItems: DatabaseMenuItem[], b
             icon: item.icon ? getIconFromDatabaseString(item.icon, bankingMode) : <Menu />,
             banking_modes: item.banking_types as ('conventional' | 'syariah' | 'dual')[],
             roles: item.user_types,
+            requiredPermissions: item.requiredPermissions,
             // ✅ CRITICAL: Preserve children from database - DON'T RECURSIVELY CONVERT
             children: item.children && item.children.length > 0 ? item.children.map(child => ({
                 id: child.id,
@@ -997,6 +1103,7 @@ export const convertDatabaseMenuToMenuItem = (dbMenuItems: DatabaseMenuItem[], b
                 icon: child.icon ? getIconFromDatabaseString(child.icon, bankingMode) : <Menu />,
                 banking_modes: child.banking_types as ('conventional' | 'syariah' | 'dual')[],
                 roles: child.user_types,
+                requiredPermissions: child.requiredPermissions,
                 status: child.is_active ? 'active' : 'disabled'
             })) : undefined,
             status: item.is_active ? 'active' : 'disabled'

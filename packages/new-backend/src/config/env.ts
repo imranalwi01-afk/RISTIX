@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { logger } from '../lib/logger'
 
 /**
  * Environment schema with Zod validation
@@ -10,7 +11,7 @@ const envSchema = z.object({
     HOST: z.string().default('0.0.0.0'),
 
     // CORS Configuration
-    CORS_ORIGINS: z.string().default('http://localhost:4231,https://iaf-ifrs.ifrspro.id,https://iaf-ifrs-be.ifrspro.id,https://ifrs9-iaf.ifrspro.id,https://bifrs9-iaf.ifrspro.id'),
+    CORS_ORIGINS: z.string().default('http://localhost:4231,https://iaf-ifrs.ifrspro.id,https://iaf-ifrs-be.ifrspro.id'),
 
     // Database Configuration (Generic)
     DB_HOST: z.string().default('localhost'),
@@ -93,7 +94,7 @@ function parseEnv(): Env {
             const envPath = path.resolve(process.cwd(), '.env')
 
             if (fs.existsSync(envPath)) {
-                console.log('📝 Manually loading .env from:', envPath)
+                logger.info({ envPath }, 'Manually loading .env from file')
                 const content = fs.readFileSync(envPath, 'utf-8')
                 content.split('\n').forEach((line: string) => {
                     const match = line.match(/^\s*([\w_]+)\s*=\s*(.*)?\s*$/)
@@ -108,15 +109,14 @@ function parseEnv(): Env {
                 })
             }
         } catch (e) {
-            console.warn('⚠️ Failed to manually load .env file:', e)
+            logger.warn({ err: e }, 'Failed to manually load .env file')
         }
     }
 
     const result = envSchema.safeParse(process.env)
 
     if (!result.success) {
-        console.error('❌ Invalid environment variables:')
-        console.error(result.error.flatten().fieldErrors)
+        logger.error({ errors: result.error.flatten().fieldErrors }, 'Invalid environment variables')
         process.exit(1)
     }
 
@@ -207,6 +207,28 @@ export function getLegacyDatabaseUrl(): string {
     const ssl = env.LEGACY_DB_SSL
 
     return constructDatabaseUrl(host, port, user, password, database, ssl)
+}
+
+/**
+ * Mask sensitive information in a database URL
+ */
+export function maskDatabaseUrl(url: string): string {
+    try {
+        // Matches postgresql://user:password@host:port/database
+        return url.replace(/(postgresql:\/\/)([^:]+):([^@]+)(@.+)/, '$1$2:****$4')
+    } catch {
+        return 'invalid-url'
+    }
+}
+
+/**
+ * Get Database URL based on tenant context
+ */
+export function getDatabaseUrl(tenantId?: string | null): string {
+    if (tenantId) {
+        return getTenantDatabaseUrl()
+    }
+    return getPlatformDatabaseUrl()
 }
 
 /**

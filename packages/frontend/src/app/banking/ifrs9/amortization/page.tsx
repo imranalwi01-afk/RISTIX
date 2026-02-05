@@ -91,7 +91,7 @@ function TabPanel(props: TabPanelProps) {
       aria-labelledby={`amortization-tab-${index}`}
       {...other}
     >
-      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
+      {value === index && <Box sx={{ p: 3 }}>{children as any}</Box>}
     </div>
   );
 }
@@ -262,7 +262,7 @@ export default function AmortizationPage() {
 
             {/* Filters */}
             <Grid container spacing={2} sx={{ mb: 3 }}>
-              <Grid item xs={12} md={4}>
+              <Grid size={{ xs: 12, md: 4 }}>
                 <TextField
                   fullWidth
                   label="Search Account/Customer"
@@ -270,7 +270,7 @@ export default function AmortizationPage() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </Grid>
-              <Grid item xs={12} md={3}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <FormControl fullWidth>
                   <InputLabel>Status Filter</InputLabel>
                   <Select
@@ -290,7 +290,7 @@ export default function AmortizationPage() {
 
             {/* Summary Cards */}
             <Grid container spacing={3} sx={{ mb: 3 }}>
-              <Grid item xs={12} md={3}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <Card>
                   <CardContent>
                     <Typography variant="h4" color="primary">
@@ -302,7 +302,7 @@ export default function AmortizationPage() {
                   </CardContent>
                 </Card>
               </Grid>
-              <Grid item xs={12} md={3}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <Card>
                   <CardContent>
                     <Typography variant="h4" color="success.main">
@@ -314,7 +314,7 @@ export default function AmortizationPage() {
                   </CardContent>
                 </Card>
               </Grid>
-              <Grid item xs={12} md={3}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <Card>
                   <CardContent>
                     <Typography variant="h4" color="info.main">
@@ -326,7 +326,7 @@ export default function AmortizationPage() {
                   </CardContent>
                 </Card>
               </Grid>
-              <Grid item xs={12} md={3}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <Card>
                   <CardContent>
                     <Typography variant="h4" color="warning.main">
@@ -464,7 +464,7 @@ export default function AmortizationPage() {
         <DialogContent>
           {selectedRecord && (
             <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   fullWidth
                   label="Account Number"
@@ -472,7 +472,7 @@ export default function AmortizationPage() {
                   disabled
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   fullWidth
                   label="Customer Name"
@@ -480,7 +480,7 @@ export default function AmortizationPage() {
                   disabled
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   fullWidth
                   label="Original Balance"
@@ -488,7 +488,7 @@ export default function AmortizationPage() {
                   disabled
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   fullWidth
                   label="Current Balance"
@@ -496,7 +496,7 @@ export default function AmortizationPage() {
                   disabled
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   fullWidth
                   label="Interest Rate"
@@ -504,7 +504,7 @@ export default function AmortizationPage() {
                   disabled
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   fullWidth
                   label="Effective Interest Rate"
@@ -512,7 +512,7 @@ export default function AmortizationPage() {
                   disabled
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   fullWidth
                   label="Remaining Term"
@@ -520,7 +520,7 @@ export default function AmortizationPage() {
                   disabled
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   fullWidth
                   label="Next Payment Amount"

@@ -5,6 +5,11 @@ import { Effect } from 'effect'
 import { DatabaseError } from '../lib/errors'
 
 export const JournalParametersRepository = {
+    /**
+     * Find all journal parameters.
+     * 
+     * @returns An Effect resolving to an array of journal parameters
+     */
     findAll: () => {
         return Effect.tryPromise({
             try: async () => {
@@ -17,6 +22,12 @@ export const JournalParametersRepository = {
         })
     },
 
+    /**
+     * Find a journal parameter by ID.
+     * 
+     * @param id - The journal parameter ID
+     * @returns An Effect resolving to the journal parameter or null
+     */
     findById: (id: bigint) => {
         return Effect.tryPromise({
             try: async () => {
@@ -30,6 +41,12 @@ export const JournalParametersRepository = {
         })
     },
 
+    /**
+     * Create a new journal parameter.
+     * 
+     * @param data - The journal parameter data
+     * @returns An Effect resolving to the created journal parameter
+     */
     create: (data: typeof frs9ParamJournal.$inferInsert) => {
         return Effect.tryPromise({
             try: async () => {
@@ -43,6 +60,13 @@ export const JournalParametersRepository = {
         })
     },
 
+    /**
+     * Update an existing journal parameter.
+     * 
+     * @param id - The journal parameter ID
+     * @param data - The data to update
+     * @returns An Effect resolving to the updated journal parameter or null
+     */
     update: (id: bigint, data: Partial<typeof frs9ParamJournal.$inferInsert>) => {
         return Effect.tryPromise({
             try: async () => {
@@ -57,6 +81,12 @@ export const JournalParametersRepository = {
         })
     },
 
+    /**
+     * Delete a journal parameter.
+     * 
+     * @param id - The journal parameter ID
+     * @returns An Effect resolving to true if deleted, false otherwise
+     */
     delete: (id: bigint) => {
         return Effect.tryPromise({
             try: async () => {

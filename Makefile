@@ -42,6 +42,16 @@ frontend: ## [LOCAL] Start ONLY frontend (Docker)
 dev-frontend: ## [LOCAL] Run frontend LOCALLY (pnpm)
 	pnpm --filter frontend run dev
 
+.PHONY: frontend-dev
+frontend-dev: ## [LOCAL] Start frontend in Docker (hot-reload)
+	@echo "🌐 Starting frontend (hot-reload) in Docker..."
+	$(COMPOSE) --profile dev --profile dev-frontend up -d frontend-dev
+
+.PHONY: frontend-dev-no-deps
+frontend-dev-no-deps: ## [LOCAL] Start frontend in Docker (hot-reload) WITHOUT starting dependencies
+	@echo "🌐 Starting frontend (hot-reload) in Docker (no dependencies)..."
+	$(COMPOSE) --profile dev-frontend up -d --no-deps frontend-dev
+
 .PHONY: dev
 dev: ## [LOCAL] Start Development Env (Backend + DB)
 	$(COMPOSE) --profile dev up -d
@@ -73,7 +83,7 @@ local-backend: ## [LOCAL] Quick start: Backend only
 .PHONY: local-frontend
 local-frontend: ## [LOCAL] Quick start: Frontend only (requires backend running)
 	@echo "🌐 Starting frontend..."
-	$(COMPOSE) --profile backend-only --profile frontend-only up
+	$(COMPOSE) --profile backend-only --profile frontend-only up -d
 
 .PHONY: local-logs
 local-logs: ## [LOCAL] View logs for all local services

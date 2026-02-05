@@ -4,6 +4,11 @@ import { NotFoundError } from '../lib/errors'
 import { frs9ImpCaEclConfigh, frs9ImpCaEclConfigd } from '../db/schema'
 
 export const EclConfigurationsService = {
+    /**
+     * List all ECL configurations with simplified header information.
+     * 
+     * @returns An Effect resolving to an array of transformed ECL headers
+     */
     list: () => {
         return pipe(
             EclConfigurationsRepository.findAllHeaders(),
@@ -11,6 +16,12 @@ export const EclConfigurationsService = {
         ) as any
     },
 
+    /**
+     * Get an ECL configuration by ID, including its details.
+     * 
+     * @param id - The ECL configuration ID
+     * @returns An Effect resolving to the transformed configuration with details, or NotFoundError
+     */
     get: (id: number) => {
         return pipe(
             Effect.all([
@@ -28,6 +39,13 @@ export const EclConfigurationsService = {
         ) as any
     },
 
+    /**
+     * Create a new ECL configuration.
+     * 
+     * @param data - The configuration data (header and details)
+     * @param userId - The ID of the user creating the configuration
+     * @returns An Effect resolving to the created configuration with details
+     */
     create: (data: any, userId: string) => {
         const now = new Date().toISOString()
         const headerData = {
@@ -76,6 +94,14 @@ export const EclConfigurationsService = {
         ) as any
     },
 
+    /**
+     * Update an existing ECL configuration.
+     * 
+     * @param id - The ECL configuration ID
+     * @param data - The data to update
+     * @param userId - The ID of the user updating the configuration
+     * @returns An Effect resolving to the updated configuration with details or NotFoundError
+     */
     update: (id: number, data: any, userId: string) => {
         const now = new Date().toISOString()
         const headerData = {
@@ -123,6 +149,12 @@ export const EclConfigurationsService = {
         ) as any
     },
 
+    /**
+     * Delete an ECL configuration.
+     * 
+     * @param id - The ECL configuration ID
+     * @returns An Effect resolving to a success message
+     */
     delete: (id: number) => {
         return pipe(
             EclConfigurationsRepository.delete(BigInt(id)),

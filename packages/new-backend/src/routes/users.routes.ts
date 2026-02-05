@@ -53,8 +53,15 @@ const UpdateUserSchema = z.object({
 }).openapi('UpdateUserInput')
 
 const UserListResponse = z.object({
-    data: z.array(UserSchema),
-    total: z.number(),
+    success: z.boolean(),
+    data: z.object({
+        users: z.array(UserSchema),
+    }),
+    pagination: z.object({
+        total: z.number(),
+        page: z.number(),
+        limit: z.number(),
+    }),
 }).openapi('UserListResponse')
 
 const UserStatsResponse = z.object({
@@ -67,8 +74,16 @@ const UserStatsResponse = z.object({
 // ROUTES
 // =============================================================================
 
+// =============================================================================
+// ROUTES
+// =============================================================================
+
 /**
- * GET /users - List users (react-admin compatible)
+ * List Users.
+ * Retrieve a list of users with pagination and filtering.
+ * Compatible with react-admin data provider.
+ * 
+ * @route GET /users
  */
 usersRoutes.openapi(
     createRoute({
@@ -81,10 +96,13 @@ usersRoutes.openapi(
         request: {
             query: z.object({
                 page: z.string().optional().openapi({ example: '1', description: 'Page number' }),
-                perPage: z.string().optional().openapi({ example: '10', description: 'Items per page' }),
+                limit: z.string().optional().openapi({ example: '10', description: 'Items per page' }),
+                search: z.string().optional().openapi({ example: 'john', description: 'Search term' }),
+                isActive: z.string().optional().openapi({ example: 'true', description: 'Include inactive users' }),
+                department: z.string().optional().openapi({ example: 'IT', description: 'Filter by department' }),
+                bankingAccess: z.string().optional().openapi({ example: 'CONVENTIONAL', description: 'Filter by banking access' }),
                 sort: z.string().optional().openapi({ example: 'createdAt', description: 'Sort field' }),
                 order: z.string().optional().openapi({ example: 'DESC', description: 'Sort order' }),
-                filter: z.string().optional().openapi({ example: '{"q": "john"}', description: 'JSON string of filters' }),
             }),
         },
         responses: {
@@ -100,43 +118,56 @@ usersRoutes.openapi(
     }),
     async (c) => {
         const tenantId = c.get('tenantId')!
-        const pagination = parsePaginationParams(c)
-        const filters = parseFilterParams(c)
+        const query = c.req.valid('query')
+
+        const page = parseInt(query.page || '1')
+        const limit = parseInt(query.limit || '10')
 
         const effect = pipe(
             usersService.getUsers(tenantId, {
-                limit: pagination.limit,
-                offset: (pagination.page - 1) * pagination.limit,
-                search: filters.q as string | undefined,
-                isActive: filters.includeInactive === 'true' ? undefined : true,
+                limit,
+                offset: (page - 1) * limit,
+                search: query.search,
+                isActive: query.isActive === 'true' ? undefined : true,
+                // Add sorting if needed
+                sort: query.sort,
+                order: (query.order?.toLowerCase() as 'asc' | 'desc') || 'desc'
             }),
             Effect.map((result) => ({
-                data: result.data.map(u => ({
-                    ...u,
-                    // Transform dates to strings for JSON response
-                    emailVerifiedAt: u.emailVerifiedAt ? u.emailVerifiedAt.toISOString() : null,
-                    lastLoginAt: u.lastLoginAt ? u.lastLoginAt.toISOString() : null,
-                    // Ensure nulls are handled
-                    phone: u.phone ?? null,
-                    department: u.department ?? null,
-                    position: u.position ?? null,
-                    tenantId: u.tenantId ?? null,
-                    isActive: u.isActive ?? false,
-                    isVerified: u.isVerified ?? false,
-                })),
-                total: result.total
+                success: true,
+                data: {
+                    users: result.data.map(u => ({
+                        ...u,
+                        emailVerifiedAt: u.emailVerifiedAt ? u.emailVerifiedAt.toISOString() : null,
+                        lastLoginAt: u.lastLoginAt ? u.lastLoginAt.toISOString() : null,
+                        phone: u.phone ?? null,
+                        department: u.department ?? null,
+                        position: u.position ?? null,
+                        tenantId: u.tenantId ?? null,
+                        isActive: u.isActive ?? false,
+                        isVerified: u.isVerified ?? false,
+                    })),
+                },
+                pagination: {
+                    total: result.total,
+                    page,
+                    limit
+                }
             }))
         )
 
         const result = await Effect.runPromise(effect)
 
-        c.header('X-Total-Count', result.total.toString())
+        c.header('X-Total-Count', (result as any).pagination.total.toString())
         return c.json(result)
     }
 )
 
 /**
- * POST /users - Create user
+ * Create User.
+ * Register a new user in the tenant.
+ * 
+ * @route POST /users
  */
 usersRoutes.openapi(
     createRoute({
@@ -173,10 +204,6 @@ usersRoutes.openapi(
             usersService.createUser({
                 ...body,
                 tenantId,
-                // Map API fields to Service/DB fields if needed
-                // Service likely expects fullName etc now if updated, 
-                // but checking the Service signature earlier it might have expected firstName/lastName 
-                // We'll need to check the service, but assuming it takes Partial<User>
             }),
             Effect.map((user) => ({
                 id: user.id,
@@ -200,7 +227,10 @@ usersRoutes.openapi(
 )
 
 /**
- * GET /users/stats - User statistics
+ * Get User Statistics.
+ * Returns counts of total, active, and inactive users.
+ * 
+ * @route GET /users/stats
  */
 usersRoutes.openapi(
     createRoute({
@@ -228,7 +258,10 @@ usersRoutes.openapi(
 )
 
 /**
- * GET /users/profile - Current user profile
+ * Get My Profile.
+ * Retrieve the profile of the currently authenticated user.
+ * 
+ * @route GET /users/profile
  */
 usersRoutes.openapi(
     createRoute({
@@ -275,7 +308,11 @@ usersRoutes.openapi(
 
 
 /**
- * GET /users/:id/dashboard/personalization - Get user dashboard settings (Stub)
+ * Get Dashboard Settings.
+ * Retrieve personalization settings for the user's dashboard.
+ * (Currently returns a mock/stub response)
+ * 
+ * @route GET /users/:id/dashboard/personalization
  */
 usersRoutes.openapi(
     createRoute({
@@ -322,7 +359,11 @@ usersRoutes.openapi(
 )
 
 /**
- * PUT /users/:id/dashboard/personalization - Update user dashboard settings (Stub)
+ * Update Dashboard Settings.
+ * Save personalization settings for the user's dashboard.
+ * (Currently returns a mock/stub response)
+ * 
+ * @route PUT /users/:id/dashboard/personalization
  */
 usersRoutes.openapi(
     createRoute({
@@ -359,7 +400,10 @@ usersRoutes.openapi(
 )
 
 /**
- * GET /users/:id - Get user by ID
+ * Get User by ID.
+ * Retrieve details of a specific user.
+ * 
+ * @route GET /users/:id
  */
 usersRoutes.openapi(
     createRoute({
@@ -375,12 +419,15 @@ usersRoutes.openapi(
         },
         responses: {
             200: {
+                description: 'User details',
                 content: {
                     'application/json': {
-                        schema: UserSchema,
-                    },
-                },
-                description: 'User details',
+                        schema: z.object({
+                            success: z.boolean(),
+                            data: UserSchema,
+                        })
+                    }
+                }
             },
         },
     }),
@@ -389,18 +436,21 @@ usersRoutes.openapi(
         const effect = pipe(
             usersService.getUserById(id),
             Effect.map((user) => ({
-                id: user.id,
-                email: user.email,
-                fullName: user.fullName,
-                username: user.username,
-                phone: user.phone ?? null,
-                department: user.department ?? null,
-                position: user.position ?? null,
-                tenantId: user.tenantId ?? null,
-                isVerified: user.isVerified ?? false,
-                emailVerifiedAt: user.emailVerifiedAt ? user.emailVerifiedAt.toISOString() : null,
-                lastLoginAt: user.lastLoginAt ? user.lastLoginAt.toISOString() : null,
-                isActive: user.isActive ?? false,
+                success: true,
+                data: {
+                    id: user.id,
+                    email: user.email,
+                    fullName: user.fullName,
+                    username: user.username,
+                    phone: user.phone ?? null,
+                    department: user.department ?? null,
+                    position: user.position ?? null,
+                    tenantId: user.tenantId ?? null,
+                    isVerified: user.isVerified ?? false,
+                    emailVerifiedAt: user.emailVerifiedAt ? user.emailVerifiedAt.toISOString() : null,
+                    lastLoginAt: user.lastLoginAt ? user.lastLoginAt.toISOString() : null,
+                    isActive: user.isActive ?? false,
+                },
             }))
         )
         return runEffect(c, effect)
@@ -408,7 +458,10 @@ usersRoutes.openapi(
 )
 
 /**
- * PUT /users/:id - Update user
+ * Update User.
+ * Update details of a specific user.
+ * 
+ * @route PUT /users/:id
  */
 usersRoutes.openapi(
     createRoute({
@@ -431,12 +484,15 @@ usersRoutes.openapi(
         },
         responses: {
             200: {
+                description: 'User updated',
                 content: {
                     'application/json': {
-                        schema: UserSchema,
-                    },
-                },
-                description: 'User updated',
+                        schema: z.object({
+                            success: z.boolean(),
+                            data: UserSchema,
+                        })
+                    }
+                }
             },
         },
     }),
@@ -447,27 +503,32 @@ usersRoutes.openapi(
         const effect = pipe(
             usersService.updateUser(id, body),
             Effect.map((user) => ({
-                id: user.id,
-                email: user.email,
-                fullName: user.fullName,
-                username: user.username,
-                phone: user.phone ?? null,
-                department: user.department ?? null,
-                position: user.position ?? null,
-                tenantId: user.tenantId ?? null,
-                isVerified: user.isVerified ?? false,
-                emailVerifiedAt: user.emailVerifiedAt ? user.emailVerifiedAt.toISOString() : null,
-                lastLoginAt: user.lastLoginAt ? user.lastLoginAt.toISOString() : null,
-                isActive: user.isActive ?? false,
+                success: true,
+                data: {
+                    id: user.id,
+                    email: user.email,
+                    fullName: user.fullName,
+                    username: user.username,
+                    phone: user.phone ?? null,
+                    department: user.department ?? null,
+                    position: user.position ?? null,
+                    tenantId: user.tenantId ?? null,
+                    isVerified: user.isVerified ?? false,
+                    emailVerifiedAt: user.emailVerifiedAt ? user.emailVerifiedAt.toISOString() : null,
+                    lastLoginAt: user.lastLoginAt ? user.lastLoginAt.toISOString() : null,
+                    isActive: user.isActive ?? false,
+                },
             }))
         )
-        const result = await runEffect(c, effect)
-        return c.json(result)
+        return runEffect(c, effect)
     }
 )
 
 /**
- * DELETE /users/:id - Delete user (soft delete)
+ * Delete User.
+ * Soft delete a user (mark as inactive).
+ * 
+ * @route DELETE /users/:id
  */
 usersRoutes.openapi(
     createRoute({
@@ -503,7 +564,10 @@ usersRoutes.openapi(
 )
 
 /**
- * POST /users/:id/enable - Enable user
+ * Enable User.
+ * Reactivate a disabled user.
+ * 
+ * @route POST /users/:id/enable
  */
 usersRoutes.openapi(
     createRoute({
@@ -544,7 +608,10 @@ usersRoutes.openapi(
 )
 
 /**
- * POST /users/:id/disable - Disable user
+ * Disable User.
+ * Deactivate a user account.
+ * 
+ * @route POST /users/:id/disable
  */
 usersRoutes.openapi(
     createRoute({

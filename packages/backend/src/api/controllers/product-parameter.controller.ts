@@ -20,8 +20,8 @@ const handleValidationErrors = (req: Request, res: Response): boolean => {
     res.status(400).json({
       success: false,
       error: 'Validation failed',
-      details: errors.array().map(err => ({
-        field: err.param,
+      details: errors.array().map((err: any) => ({
+        field: err.path || err.param,
         message: err.msg,
         value: err.value
       }))
@@ -37,7 +37,7 @@ export class ProductParameterController {
    */
   async getProducts(req: Request, res: Response): Promise<void> {
     try {
-      console.log('🔍 [PROD-002] Getting product parameters with query:', req.query);
+      console.log('📝 [PROD] getProducts ENTRY:', req.query);
 
       // Check validation errors from express-validator
       if (handleValidationErrors(req, res)) return;
@@ -112,7 +112,7 @@ export class ProductParameterController {
    */
   async createProduct(req: Request, res: Response): Promise<void> {
     try {
-      console.log('✨ [PROD-002] Creating product parameter:', req.body);
+      console.log('📝 [PROD] createProduct ENTRY:', req.body);
 
       // Check validation errors from express-validator
       if (handleValidationErrors(req, res)) return;
@@ -159,7 +159,7 @@ export class ProductParameterController {
   async updateProduct(req: Request, res: Response): Promise<void> {
     try {
       const productCode = req.params.prd_code;
-      console.log(`🔄 [PROD-002] Updating product parameter by code: ${productCode}`, req.body);
+      console.log(`📝 [PROD] updateProduct ENTRY: ${productCode}`, req.body);
 
       // Check validation errors from express-validator
       if (handleValidationErrors(req, res)) return;
@@ -206,7 +206,7 @@ export class ProductParameterController {
   async deleteProduct(req: Request, res: Response): Promise<void> {
     try {
       const productCode = req.params.prd_code;
-      console.log(`🗑️ [PROD-002] Deleting product parameter by code: ${productCode}`);
+      console.log(`📝 [PROD] deleteProduct ENTRY: ${productCode}`);
 
       // Check validation errors from express-validator
       if (handleValidationErrors(req, res)) return;

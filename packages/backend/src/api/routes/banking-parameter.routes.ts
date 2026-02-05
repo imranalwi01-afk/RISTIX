@@ -44,7 +44,7 @@ router.get('/setup/application/debug', async (req, res) => {
 const authenticateToken = async (req: any, res: any, next: any) => {
   try {
     const authHeader = req.headers.authorization;
-    
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({
         success: false,
@@ -52,12 +52,12 @@ const authenticateToken = async (req: any, res: any, next: any) => {
         code: 'UNAUTHORIZED'
       });
     }
-    
+
     const token = authHeader.substring(7);
-    
+
     // Use existing JWT verification
     const jwt = require('jsonwebtoken');
-    
+
     try {
       const jwtConfig = jwtConfigService.getConfiguration();
       const decoded = jwt.verify(token, jwtConfig.secret, {
@@ -65,7 +65,7 @@ const authenticateToken = async (req: any, res: any, next: any) => {
         audience: jwtConfig.audience,
         algorithms: [jwtConfig.algorithm]
       });
-      
+
       // Set user context from JWT
       req.user = {
         userId: decoded.userId || decoded.id,
@@ -75,7 +75,7 @@ const authenticateToken = async (req: any, res: any, next: any) => {
         roles: decoded.roles || ['user'],
         permissions: decoded.permissions || []
       };
-      
+
       console.log('✅ Banking Routes: User authenticated:', req.user.email);
       next();
     } catch (jwtError) {
@@ -161,7 +161,7 @@ router.get('/', (req, res) => {
     version: '2.0.0',
     description: 'DS2 FRS9PRO database integration for banking parameter management',
     timestamp: new Date().toISOString(),
-    
+
     database_info: {
       host: `${process.env.FRS9_DB_HOST || 'localhost'}:${process.env.FRS9_DB_PORT || '5433'}`,
       database: process.env.FRS9_DB_NAME || 'FRS9PRO',
@@ -172,15 +172,15 @@ router.get('/', (req, res) => {
         'frs9_param_journal (journal parameters)'
       ]
     },
-    
+
     endpoints: {
       service_info: 'GET /banking',
       health_check: 'GET /banking/health',
-      
+
       // ✅ NEW: Dashboard endpoints
       portfolio_summary: 'GET /banking/portfolio/summary',
       recent_activities: 'GET /banking/activities/recent',
-      
+
       application_setup: {
         list: 'GET /banking/setup/application',
         create: 'POST /banking/setup/application',
@@ -328,11 +328,11 @@ router.delete('/setup/application/:param_code', async (req, res) => {
 
 /**
  * Get application setup parameter details - FIXED VERSION
- * GET /banking/setup/application/:param_code/details
+ * GET /banking/setup/application/:paramCode/details
  */
-router.get('/setup/application/:param_code/details', async (req, res) => {
+router.get('/setup/application/:paramCode/details', async (req, res) => {
   try {
-    console.log('📋 Application setup details requested:', req.params.param_code);
+    console.log('📋 Application setup details requested:', req.params.paramCode);
     await frs9Controller.getApplicationSetupDetails(req, res);
   } catch (error) {
     console.error('❌ Application setup details route error:', error);
@@ -704,7 +704,7 @@ import pdSetupController from '../controllers/pd-setup.controller';
 router.get('/pd-setup/health', async (req, res) => {
   try {
     console.log('🏥 PD Setup health check requested');
-    await pdSetupController.healthCheck(req, res, () => {});
+    await pdSetupController.healthCheck(req, res, () => { });
   } catch (error) {
     console.error('❌ PD Setup health check route error:', error);
     res.status(500).json({
@@ -722,7 +722,7 @@ router.get('/pd-setup/health', async (req, res) => {
 router.get('/pd-setup/configs', async (req, res) => {
   try {
     console.log('📋 PD Setup configs requested');
-    await pdSetupController.getPDConfigs(req, res, () => {});
+    await pdSetupController.getPDConfigs(req, res, () => { });
   } catch (error) {
     console.error('❌ PD Setup configs route error:', error);
     res.status(500).json({
@@ -740,7 +740,7 @@ router.get('/pd-setup/configs', async (req, res) => {
 router.get('/pd-setup/segments', async (req, res) => {
   try {
     console.log('🎯 PD Setup segments requested');
-    await pdSetupController.getPopulationSegments(req, res, () => {});
+    await pdSetupController.getPopulationSegments(req, res, () => { });
   } catch (error) {
     console.error('❌ PD Setup segments route error:', error);
     res.status(500).json({
@@ -758,7 +758,7 @@ router.get('/pd-setup/segments', async (req, res) => {
 router.get('/pd-setup/business-parameters', async (req, res) => {
   try {
     console.log('⚙️ PD Setup business parameters requested');
-    await pdSetupController.getBusinessParameters(req, res, () => {});
+    await pdSetupController.getBusinessParameters(req, res, () => { });
   } catch (error) {
     console.error('❌ PD Setup business parameters route error:', error);
     res.status(500).json({
@@ -776,7 +776,7 @@ router.get('/pd-setup/business-parameters', async (req, res) => {
 router.get('/pd-setup/fl-scalars', async (req, res) => {
   try {
     console.log('🔢 PD Setup FL scalars requested');
-    await pdSetupController.getFLScalars(req, res, () => {});
+    await pdSetupController.getFLScalars(req, res, () => { });
   } catch (error) {
     console.error('❌ PD Setup FL scalars route error:', error);
     res.status(500).json({
@@ -794,7 +794,7 @@ router.get('/pd-setup/fl-scalars', async (req, res) => {
 router.get('/pd-setup/bucket-groups', async (req, res) => {
   try {
     console.log('🪣 PD Setup bucket groups requested');
-    await pdSetupController.getBucketGroups(req, res, () => {});
+    await pdSetupController.getBucketGroups(req, res, () => { });
   } catch (error) {
     console.error('❌ PD Setup bucket groups route error:', error);
     res.status(500).json({

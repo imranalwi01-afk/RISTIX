@@ -227,7 +227,7 @@ export default function ThemeSettingsPage() {
       // Fallback to hostname detection
       const isProductionDomain = typeof window !== 'undefined' && window.location.hostname.includes('danafin.com');
       const fallbackUrl = process.env.NEXT_PUBLIC_API_URL ||
-        (isProductionDomain ? 'https://iaf-ifrs-be.danafin.com/api/v1' : 'https://bifrs9-iaf.ifrspro.id/api/v1');
+        (isProductionDomain ? 'https://iaf-ifrs-be.danafin.com/api/v1' : 'https://iaf-ifrs-be.ifrspro.id/api/v1');
 
       console.log('🔧 Theme Settings Page: Using fallback API base URL:', fallbackUrl);
       return fallbackUrl;
@@ -482,7 +482,7 @@ export default function ThemeSettingsPage() {
 
       <Grid container spacing={3}>
         {/* Theme Mode Selection */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
@@ -565,7 +565,7 @@ export default function ThemeSettingsPage() {
         </Grid>
 
         {/* Color Customization */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
@@ -650,7 +650,7 @@ export default function ThemeSettingsPage() {
         </Grid>
 
         {/* Font and Appearance */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
@@ -720,7 +720,7 @@ export default function ThemeSettingsPage() {
         </Grid>
 
         {/* Behavior Settings */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
@@ -760,7 +760,7 @@ export default function ThemeSettingsPage() {
         </Grid>
 
         {/* Advanced Theme Customization Card */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
@@ -907,7 +907,7 @@ export default function ThemeSettingsPage() {
         </Grid>
 
         {/* Background & Gradients Card */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
@@ -1033,7 +1033,7 @@ export default function ThemeSettingsPage() {
         </Grid>
 
         {/* Preview Card */}
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>

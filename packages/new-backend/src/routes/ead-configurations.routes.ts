@@ -14,11 +14,11 @@ eadConfigurationsRoutes.use('*', authMiddleware)
 // ============================================================================
 
 const CreateEadConfigSchema = z.object({
-    modelName: z.string().min(1).max(250).openapi({ example: 'EAD Model 2024' }),
-    segmentId: z.number().int().optional(),
-    eadMethod: z.string().max(10).openapi({ example: 'CCF' }),
-    calcMethod: z.string().max(10).openapi({ example: 'Revolving' }),
-    isActive: z.boolean().default(true),
+    model_name: z.string().min(1).max(250).openapi({ example: 'EAD Model 2024' }),
+    segment_id: z.number().int().optional(),
+    ead_method: z.string().max(10).openapi({ example: 'CCF' }),
+    calc_method: z.string().max(10).openapi({ example: 'Revolving' }),
+    is_active: z.boolean().default(true),
 }).openapi('CreateEadConfigInput')
 
 const UpdateEadConfigSchema = CreateEadConfigSchema.partial().openapi('UpdateEadConfigInput')
@@ -101,6 +101,7 @@ eadConfigurationsRoutes.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: EadConfigListResponse } }, description: 'List Configurations' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
@@ -150,6 +151,7 @@ eadConfigurationsRoutes.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: EadConfigResponse } }, description: 'Configuration Details' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
             404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
@@ -187,6 +189,7 @@ eadConfigurationsRoutes.openapi(
         },
         responses: {
             201: { content: { 'application/json': { schema: EadConfigResponse } }, description: 'Created' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
@@ -198,11 +201,11 @@ eadConfigurationsRoutes.openapi(
             const [config] = await db
                 .insert(frs9ImpCaEadConfig)
                 .values({
-                    eadModelName: data.modelName,
-                    segmentId: data.segmentId,
-                    eadMethod: data.eadMethod,
-                    calcMethod: data.calcMethod,
-                    activeFlag: data.isActive,
+                    eadModelName: data.model_name,
+                    segmentId: data.segment_id,
+                    eadMethod: data.ead_method,
+                    calcMethod: data.calc_method,
+                    activeFlag: data.is_active,
                     createdby: userId,
                     createdhost: 'localhost',
                     createddate: new Date().toISOString(),
@@ -237,6 +240,7 @@ eadConfigurationsRoutes.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: EadConfigResponse } }, description: 'Updated' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
             404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
@@ -251,11 +255,11 @@ eadConfigurationsRoutes.openapi(
             const [updated] = await db
                 .update(frs9ImpCaEadConfig)
                 .set({
-                    eadModelName: data.modelName,
-                    segmentId: data.segmentId,
-                    eadMethod: data.eadMethod,
-                    calcMethod: data.calcMethod,
-                    activeFlag: data.isActive,
+                    eadModelName: data.model_name,
+                    segmentId: data.segment_id,
+                    eadMethod: data.ead_method,
+                    calcMethod: data.calc_method,
+                    activeFlag: data.is_active,
                     updatedby: userId,
                     updateddate: new Date().toISOString(),
                     updatedhost: 'localhost',
@@ -291,6 +295,7 @@ eadConfigurationsRoutes.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), message: z.string() }) } }, description: 'Deleted' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
             404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }

@@ -299,7 +299,7 @@ export default function WidgetManager({ userId, tenantId, onLayoutChange }: Widg
         <DialogContent>
           <Grid container spacing={2}>
             {widgets.map((widget) => (
-              <Grid item xs={12} sm={6} md={4} key={widget.id}>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }} key={widget.id}>
                 <Card
                   sx={{
                     border: selectedWidget?.id === widget.id ? 2 : 1,
@@ -376,7 +376,7 @@ export default function WidgetManager({ userId, tenantId, onLayoutChange }: Widg
 
           <DialogContent>
             <Grid container spacing={3}>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Typography variant="subtitle2" gutterBottom>
                   Widget Size
                 </Typography>
@@ -408,7 +408,7 @@ export default function WidgetManager({ userId, tenantId, onLayoutChange }: Widg
                 </Box>
               </Grid>
 
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Typography variant="subtitle2" gutterBottom>
                   Refresh Interval (seconds)
                 </Typography>

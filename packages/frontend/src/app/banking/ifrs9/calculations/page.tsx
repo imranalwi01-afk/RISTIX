@@ -69,7 +69,8 @@ import {
   Schedule as PendingIcon,
   Info as InfoIcon
 } from '@mui/icons-material';
-import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
+import { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
+import { SafeDataGrid } from '@/components/shared/SafeDataGrid';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import { useRouter } from 'next/navigation';
 import api, { handleAPIError } from '../../../../services/api';
@@ -133,7 +134,7 @@ function TabPanel(props: TabPanelProps) {
       aria-labelledby={`simple-tab-${index}`}
       {...other}
     >
-      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
+      {value === index && <Box sx={{ p: 3 }}>{children as any}</Box>}
     </div>
   );
 }
@@ -331,12 +332,102 @@ export default function IFRS9CalculationDashboard() {
     }
   };
 
-  const handleViewResults = (processData: ProcessDate) => {
-    console.log('Viewing results for:', processData);
+  const handleViewResults = async (processData: ProcessDate) => {
+    console.log("Viewing results for:", processData);
+    setLoading(true);
+    try {
+      setTabValue(1);
+      const results = await fetchBatchResults(processData.currdate);
+      setCalculationResults(results);
+
+      if (results.length > 0) {
+        setSuccess(
+          `Loaded ${results.length} results for batch ${processData.currdate}`,
+        );
+      } else {
+        setError(`No results found for batch ${processData.currdate}`);
+      }
+    } catch (error: any) {
+      console.error("Failed to view results:", error);
+      setError("Failed to load batch results");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleExportResults = (processData: ProcessDate) => {
-    console.log('Exporting results for:', processData);
+  const fetchBatchResults = async (date: string) => {
+    const response = await api.ifrs9.getCalculationResults(date);
+    if (response && response.data) {
+      return response.data.map((r: any) => ({
+        prc_date: date,
+        account_id: r.accountId,
+        facility_number: r.accountNumber || r.accountId?.toString(),
+        cif_number: r.cifNumber || "-",
+        segment_id: 1,
+        stage: r.stage,
+        currency: "IDR",
+        outstanding: r.outstanding,
+        ecl_amount: r.eclAmount,
+        ecl_final: r.eclAmount,
+        bucket_group: "-",
+        bucket_id: 0,
+        internal_rating_code: "-",
+        ext_rating_code: "-",
+      }));
+    }
+    return [];
+  };
+
+  const handleExportResults = async (processData: ProcessDate) => {
+    console.log("Exporting results for:", processData);
+    setLoading(true);
+    try {
+      // Always fetch fresh data for the selected batch to ensure correct export
+      const results = await fetchBatchResults(processData.currdate);
+
+      if (results.length === 0) {
+        setError(`No data found to export for batch ${processData.currdate}`);
+        return;
+      }
+
+      const headers = [
+        "Process Date",
+        "Account ID",
+        "Facility",
+        "Stage",
+        "Outstanding",
+        "ECL Amount",
+      ];
+      const csvContent = [
+        headers.join(","),
+        ...results.map((row: any) =>
+          [
+            row.prc_date,
+            row.account_id,
+            row.facility_number,
+            row.stage,
+            row.outstanding,
+            row.ecl_amount,
+          ].join(","),
+        ),
+      ].join("\n");
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `ecl_results_${processData.currdate}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      setSuccess(`Exported results for ${processData.currdate}`);
+    } catch (error: any) {
+      console.error("Export failed:", error);
+      setError("Failed to export results");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleViewResultDetails = (result: CalculationResult) => {
@@ -522,7 +613,7 @@ export default function IFRS9CalculationDashboard() {
 
       {/* Summary Cards */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
@@ -535,7 +626,7 @@ export default function IFRS9CalculationDashboard() {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
@@ -548,7 +639,7 @@ export default function IFRS9CalculationDashboard() {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
@@ -561,7 +652,7 @@ export default function IFRS9CalculationDashboard() {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
@@ -590,12 +681,10 @@ export default function IFRS9CalculationDashboard() {
         {/* Process History Tab */}
         <TabPanel value={tabValue} index={0}>
           <Box sx={{ height: 500, width: '100%' }}>
-            <DataGrid
+            <SafeDataGrid
               rows={processHistory}
               columns={processHistoryColumns}
               getRowId={(row) => row.pkid}
-              initialState={{ pagination: { paginationModel: { pageSize: 10, page: 0 } } }}
-              pageSizeOptions={[10, 25, 50]}
               checkboxSelection
               disableRowSelectionOnClick
               sx={{
@@ -614,12 +703,10 @@ export default function IFRS9CalculationDashboard() {
         {/* Calculation Results Tab */}
         <TabPanel value={tabValue} index={1}>
           <Box sx={{ height: 500, width: '100%' }}>
-            <DataGrid
+            <SafeDataGrid
               rows={calculationResults}
               columns={calculationResultColumns}
               getRowId={(row) => row.account_id}
-              initialState={{ pagination: { paginationModel: { pageSize: 10, page: 0 } } }}
-              pageSizeOptions={[10, 25, 50]}
               checkboxSelection
               disableRowSelectionOnClick
               sx={{
@@ -638,7 +725,7 @@ export default function IFRS9CalculationDashboard() {
         {/* Analytics Tab */}
         <TabPanel value={tabValue} index={2}>
           <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>Stage Distribution</Typography>
@@ -664,7 +751,7 @@ export default function IFRS9CalculationDashboard() {
                 </CardContent>
               </Card>
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>ECL Trend by Stage</Typography>
@@ -689,7 +776,7 @@ export default function IFRS9CalculationDashboard() {
         {/* Configuration Tab */}
         <TabPanel value={tabValue} index={3}>
           <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>Calculation Settings</Typography>
@@ -701,7 +788,7 @@ export default function IFRS9CalculationDashboard() {
                 </CardContent>
               </Card>
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>Model Parameters</Typography>
@@ -722,7 +809,7 @@ export default function IFRS9CalculationDashboard() {
         <DialogTitle>Run ECL Calculation</DialogTitle>
         <DialogContent>
           <Grid container spacing={3} sx={{ mt: 1 }}>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 label="Process Date"
                 type="date"
@@ -732,7 +819,7 @@ export default function IFRS9CalculationDashboard() {
                 InputLabelProps={{ shrink: true }}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <FormControl fullWidth>
                 <InputLabel>Calculation Type</InputLabel>
                 <Select
@@ -746,7 +833,7 @@ export default function IFRS9CalculationDashboard() {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Alert severity="warning">
                 This will execute IFRS9 ECL calculations for all configured segments and models.
                 The process may take several minutes to complete.
@@ -768,30 +855,30 @@ export default function IFRS9CalculationDashboard() {
         <DialogContent>
           {selectedResult && (
             <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="subtitle2">Facility Number:</Typography>
                 <Typography variant="body1">{selectedResult.facility_number}</Typography>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="subtitle2">CIF Number:</Typography>
                 <Typography variant="body1">{selectedResult.cif_number}</Typography>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="subtitle2">Current Stage:</Typography>
                 <Chip
                   label={`Stage ${selectedResult.stage}`}
                   color={selectedResult.stage === 1 ? 'success' : selectedResult.stage === 2 ? 'warning' : 'error'}
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="subtitle2">Outstanding Amount:</Typography>
                 <Typography variant="body1">{formatCurrency(selectedResult.outstanding)}</Typography>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="subtitle2">ECL Amount:</Typography>
                 <Typography variant="body1">{formatCurrency(selectedResult.ecl_amount)}</Typography>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="subtitle2">Final ECL:</Typography>
                 <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
                   {formatCurrency(selectedResult.ecl_final)}

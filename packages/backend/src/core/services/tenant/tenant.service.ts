@@ -401,6 +401,9 @@ export class TenantService {
         const data = results.rows.map(row => this.mapDatabaseResultToTenantInfo(row));
         const total = parseInt(countResults.rows[0].total);
 
+        // ✅ CRITICAL FIX: Release client connection after successful query
+        client.release();
+        
         return { data, total };
         
       } catch (queryError) {

@@ -7,3 +7,11 @@
 **/.DS_Store
 **/*.log
 tmp
+
+# Exclude pnpm and frontend caches to reduce Docker build context
+/packages/frontend/node_modules
+/packages/frontend/.pnpm-store
+/packages/frontend/.pnpm
+/packages/frontend/.next
+/packages/frontend/.vercel
+/packages/frontend/.cache

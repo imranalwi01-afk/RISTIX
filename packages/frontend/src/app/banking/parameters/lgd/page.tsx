@@ -32,7 +32,8 @@ import {
     Delete as DeleteIcon,
     Refresh as RefreshIcon
 } from '@mui/icons-material';
-import { DataGrid, GridColDef, GridActionsCellItem, GridRowParams } from '@mui/x-data-grid';
+import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
+import { GridColDef, GridRowParams } from '@mui/x-data-grid';
 import { useRouter } from 'next/navigation';
 import { lgdConfigurationsApi, LGDConfiguration, CreateLGDConfigurationDto } from '../../../../services/api/lgd-configurations.api';
 import { populationSegmentsApi, PopulationSegment } from '../../../../services/api/population-segments.api';
@@ -186,14 +187,14 @@ export default function LGDConfigurationsPage() {
             headerName: 'Actions',
             width: 100,
             getActions: (params: GridRowParams) => [
-                <GridActionsCellItem
-                    icon={<EditIcon />}
+                <SafeGridActionsCellItem
+                    icon={<EditIcon color="primary" />}
                     label="Edit"
                     onClick={() => handleEdit(params.row as LGDConfiguration)}
                     key="edit"
                 />,
-                <GridActionsCellItem
-                    icon={<DeleteIcon />}
+                <SafeGridActionsCellItem
+                    icon={<DeleteIcon color="error" />}
                     label="Delete"
                     onClick={() => handleDelete(params.row as LGDConfiguration)}
                     key="delete"
@@ -262,7 +263,7 @@ export default function LGDConfigurationsPage() {
             <Card>
                 <CardContent>
                     <Box sx={{ height: 600, width: '100%' }}>
-                        <DataGrid
+                        <SafeDataGrid
                             rows={data}
                             columns={columns}
                             getRowId={(row) => row.id || Math.random()}
@@ -270,7 +271,6 @@ export default function LGDConfigurationsPage() {
                             initialState={{
                                 pagination: { paginationModel: { pageSize: 10 } }
                             }}
-                            disableRowSelectionOnClick
                             loading={loading}
                         />
                     </Box>
