@@ -91,16 +91,16 @@ const ECLDetailModal: React.FC<ECLDetailModalProps> = ({
   const fetchECLDetail = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       // API call to fetch ECL detail
       // const response = await apiClient.get(`/api/v1/banking/ifrs9/ecl-detail/${accountId}`, {
       //   params: { as_of_date: asOfDate }
       // });
-      
+
       // Mock data for demonstration
       await new Promise(resolve => setTimeout(resolve, 800));
-      
+
       const mockData: ECLDetailData = {
         account_id: accountId || '',
         contract_no: contractNo || '',
@@ -117,7 +117,7 @@ const ECLDetailModal: React.FC<ECLDetailModalProps> = ({
         profit_center: profitCenter,
         branch_code: branchCode
       };
-      
+
       setEclData(mockData);
     } catch (err) {
       console.error('Failed to fetch ECL detail:', err);
@@ -177,10 +177,10 @@ const ECLDetailModal: React.FC<ECLDetailModalProps> = ({
   }
 
   return (
-    <Dialog 
-      open={open} 
-      onClose={onClose} 
-      maxWidth="lg" 
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="lg"
       fullWidth
       PaperProps={{
         sx: {
@@ -226,19 +226,19 @@ const ECLDetailModal: React.FC<ECLDetailModalProps> = ({
             {/* Context Information */}
             <Paper elevation={0} sx={{ p: 2, mb: 3, bgcolor: 'primary.50', border: '1px solid', borderColor: 'primary.200' }}>
               <Grid container spacing={2}>
-                <Grid item xs={12} md={3}>
+                <Grid size={{ xs: 12, md: 3 }}>
                   <Typography variant="caption" color="text.secondary">Account ID</Typography>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>{eclData.account_id}</Typography>
                 </Grid>
-                <Grid item xs={12} md={3}>
+                <Grid size={{ xs: 12, md: 3 }}>
                   <Typography variant="caption" color="text.secondary">As-of Date</Typography>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>{eclData.as_of_date}</Typography>
                 </Grid>
-                <Grid item xs={12} md={3}>
+                <Grid size={{ xs: 12, md: 3 }}>
                   <Typography variant="caption" color="text.secondary">Profit Center</Typography>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>{eclData.profit_center || 'N/A'}</Typography>
                 </Grid>
-                <Grid item xs={12} md={3}>
+                <Grid size={{ xs: 12, md: 3 }}>
                   <Typography variant="caption" color="text.secondary">Branch Code</Typography>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>{eclData.branch_code || 'N/A'}</Typography>
                 </Grid>
@@ -247,12 +247,12 @@ const ECLDetailModal: React.FC<ECLDetailModalProps> = ({
 
             {/* Key Metrics Cards */}
             <Grid container spacing={2} sx={{ mb: 3 }}>
-              <Grid item xs={12} md={3}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <Paper sx={{ p: 2, textAlign: 'center' }}>
                   <Typography variant="caption" color="text.secondary">Current Stage</Typography>
                   <Box sx={{ mt: 1 }}>
-                    <Chip 
-                      label={`Stage ${eclData.stage}`} 
+                    <Chip
+                      label={`Stage ${eclData.stage}`}
                       color={getStageColor(eclData.stage)}
                       size="medium"
                       sx={{ fontWeight: 600 }}
@@ -260,8 +260,8 @@ const ECLDetailModal: React.FC<ECLDetailModalProps> = ({
                   </Box>
                 </Paper>
               </Grid>
-              
-              <Grid item xs={12} md={3}>
+
+              <Grid size={{ xs: 12, md: 3 }}>
                 <Paper sx={{ p: 2, textAlign: 'center' }}>
                   <Typography variant="caption" color="text.secondary">ECL Amount</Typography>
                   <Typography variant="h6" sx={{ mt: 1, color: 'warning.main', fontWeight: 600 }}>
@@ -269,8 +269,8 @@ const ECLDetailModal: React.FC<ECLDetailModalProps> = ({
                   </Typography>
                 </Paper>
               </Grid>
-              
-              <Grid item xs={12} md={3}>
+
+              <Grid size={{ xs: 12, md: 3 }}>
                 <Paper sx={{ p: 2, textAlign: 'center' }}>
                   <Typography variant="caption" color="text.secondary">EAD Amount</Typography>
                   <Typography variant="h6" sx={{ mt: 1, color: 'info.main', fontWeight: 600 }}>
@@ -278,8 +278,8 @@ const ECLDetailModal: React.FC<ECLDetailModalProps> = ({
                   </Typography>
                 </Paper>
               </Grid>
-              
-              <Grid item xs={12} md={3}>
+
+              <Grid size={{ xs: 12, md: 3 }}>
                 <Paper sx={{ p: 2, textAlign: 'center' }}>
                   <Typography variant="caption" color="text.secondary">Method Version</Typography>
                   <Typography variant="h6" sx={{ mt: 1, fontWeight: 600 }}>
@@ -318,7 +318,7 @@ const ECLDetailModal: React.FC<ECLDetailModalProps> = ({
                       </Typography>
                     </TableCell>
                   </TableRow>
-                  
+
                   <TableRow sx={{ bgcolor: 'grey.50' }}>
                     <TableCell sx={{ fontWeight: 600 }}>LGD Rate</TableCell>
                     <TableCell>{formatPercentage(eclData.lgd_rate)}</TableCell>
@@ -328,7 +328,7 @@ const ECLDetailModal: React.FC<ECLDetailModalProps> = ({
                       </Typography>
                     </TableCell>
                   </TableRow>
-                  
+
                   <TableRow>
                     <TableCell sx={{ fontWeight: 600 }}>EAD Amount</TableCell>
                     <TableCell>{formatCurrency(eclData.ead_amount)}</TableCell>
@@ -338,7 +338,7 @@ const ECLDetailModal: React.FC<ECLDetailModalProps> = ({
                       </Typography>
                     </TableCell>
                   </TableRow>
-                  
+
                   <TableRow sx={{ bgcolor: 'warning.50' }}>
                     <TableCell sx={{ fontWeight: 600 }}>ECL Amount</TableCell>
                     <TableCell sx={{ fontWeight: 600, color: 'warning.main' }}>
@@ -362,23 +362,23 @@ const ECLDetailModal: React.FC<ECLDetailModalProps> = ({
                 </Typography>
                 <Paper sx={{ p: 2, bgcolor: eclData.movement_amount < 0 ? 'success.50' : 'error.50' }}>
                   <Grid container spacing={2} alignItems="center">
-                    <Grid item>
-                      <TrendingUpIcon 
-                        sx={{ 
-                          fontSize: 40, 
+                    <Grid>
+                      <TrendingUpIcon
+                        sx={{
+                          fontSize: 40,
                           color: eclData.movement_amount < 0 ? 'success.main' : 'error.main',
                           transform: eclData.movement_amount < 0 ? 'rotate(180deg)' : 'none'
-                        }} 
+                        }}
                       />
                     </Grid>
-                    <Grid item xs>
+                    <Grid size="grow">
                       <Typography variant="body2" color="text.secondary">Movement Type</Typography>
                       <Typography variant="body1" sx={{ fontWeight: 600 }}>
                         {eclData.movement_type}
                       </Typography>
                     </Grid>
-                    <Grid item>
-                      <Typography variant="h5" sx={{ 
+                    <Grid>
+                      <Typography variant="h5" sx={{
                         fontWeight: 600,
                         color: eclData.movement_amount < 0 ? 'success.main' : 'error.main'
                       }}>
@@ -394,9 +394,9 @@ const ECLDetailModal: React.FC<ECLDetailModalProps> = ({
             <Box sx={{ mt: 3, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
               <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center' }}>
                 <InfoIcon sx={{ fontSize: 14, mr: 0.5 }} />
-                Last Updated: {new Date(eclData.last_updated).toLocaleString('id-ID', { 
-                  dateStyle: 'long', 
-                  timeStyle: 'short' 
+                Last Updated: {new Date(eclData.last_updated).toLocaleString('id-ID', {
+                  dateStyle: 'long',
+                  timeStyle: 'short'
                 })} WIB
               </Typography>
             </Box>
@@ -407,9 +407,9 @@ const ECLDetailModal: React.FC<ECLDetailModalProps> = ({
       <Divider />
 
       <DialogActions sx={{ p: 2 }}>
-        <Button 
-          onClick={onClose} 
-          variant="outlined" 
+        <Button
+          onClick={onClose}
+          variant="outlined"
           startIcon={<BackIcon />}
         >
           Back to List

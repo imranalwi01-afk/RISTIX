@@ -64,13 +64,13 @@ const GCAMovementReport: React.FC = () => {
         acc.newBusinessGCA += row.new_business || 0;
         acc.repayments += row.repayments || 0;
         acc.writeOffs += row.write_offs || 0;
-        
+
         // Stage transfers
         acc.stageTransfers.stage1To2 += row.stage1_to_stage2 || 0;
         acc.stageTransfers.stage2To1 += row.stage2_to_stage1 || 0;
         acc.stageTransfers.stage2To3 += row.stage2_to_stage3 || 0;
         acc.stageTransfers.stage3To2 += row.stage3_to_stage2 || 0;
-        
+
         return acc;
       }, {
         openingGCA: 0,
@@ -88,15 +88,15 @@ const GCAMovementReport: React.FC = () => {
         gcaByStage: [],
         movementTrend: []
       });
-      
+
       stats.netGCAMovement = stats.closingGCA - stats.openingGCA;
-      
+
       // GCA by Stage (aggregated from data)
       const stageMap = new Map();
       data.forEach(row => {
         const stage = row.current_stage || 1;
         const stageKey = `Stage ${stage}`;
-        
+
         if (!stageMap.has(stageKey)) {
           stageMap.set(stageKey, {
             stage: stageKey,
@@ -106,13 +106,13 @@ const GCAMovementReport: React.FC = () => {
             color: stage === 1 ? '#4CAF50' : stage === 2 ? '#FF9800' : '#F44336'
           });
         }
-        
+
         const stageData = stageMap.get(stageKey);
         stageData.opening += row.opening_gca || 0;
         stageData.closing += row.closing_gca || 0;
         stageData.accounts += 1;
       });
-      
+
       // Movement trend (sample data - would be time series in real implementation)
       const trendData = [
         { period: 'Opening', gca: stats.openingGCA, cumulative: stats.openingGCA },
@@ -121,7 +121,7 @@ const GCAMovementReport: React.FC = () => {
         { period: 'Write-offs', gca: -stats.writeOffs, cumulative: stats.openingGCA + stats.newBusinessGCA - stats.repayments - stats.writeOffs },
         { period: 'Closing', gca: stats.closingGCA, cumulative: stats.closingGCA }
       ];
-      
+
       stats.gcaByStage = Array.from(stageMap.values());
       stats.movementTrend = trendData;
       setSummaryStats(stats);
@@ -131,7 +131,7 @@ const GCAMovementReport: React.FC = () => {
   const SummaryCards = () => (
     <Grid container spacing={3} sx={{ mb: 3 }}>
       {/* Opening GCA */}
-      <Grid item xs={12} md={3}>
+      <Grid size={{ xs: 12, md: 3 }}>
         <Card sx={{ height: '100%', bgcolor: 'info.light', color: 'white' }}>
           <CardContent sx={{ textAlign: 'center' }}>
             <Avatar sx={{ bgcolor: 'info.dark', mx: 'auto', mb: 2, width: 56, height: 56 }}>
@@ -153,7 +153,7 @@ const GCAMovementReport: React.FC = () => {
       </Grid>
 
       {/* Closing GCA */}
-      <Grid item xs={12} md={3}>
+      <Grid size={{ xs: 12, md: 3 }}>
         <Card sx={{ height: '100%', bgcolor: 'success.light', color: 'white' }}>
           <CardContent sx={{ textAlign: 'center' }}>
             <Avatar sx={{ bgcolor: 'success.dark', mx: 'auto', mb: 2, width: 56, height: 56 }}>
@@ -175,16 +175,16 @@ const GCAMovementReport: React.FC = () => {
       </Grid>
 
       {/* Net Movement */}
-      <Grid item xs={12} md={3}>
-        <Card sx={{ 
-          height: '100%', 
-          bgcolor: summaryStats.netGCAMovement >= 0 ? 'primary.light' : 'warning.light', 
-          color: 'white' 
+      <Grid size={{ xs: 12, md: 3 }}>
+        <Card sx={{
+          height: '100%',
+          bgcolor: summaryStats.netGCAMovement >= 0 ? 'primary.light' : 'warning.light',
+          color: 'white'
         }}>
           <CardContent sx={{ textAlign: 'center' }}>
-            <Avatar sx={{ 
-              bgcolor: summaryStats.netGCAMovement >= 0 ? 'primary.dark' : 'warning.dark', 
-              mx: 'auto', mb: 2, width: 56, height: 56 
+            <Avatar sx={{
+              bgcolor: summaryStats.netGCAMovement >= 0 ? 'primary.dark' : 'warning.dark',
+              mx: 'auto', mb: 2, width: 56, height: 56
             }}>
               <GrowthIcon sx={{ fontSize: 30 }} />
             </Avatar>
@@ -205,14 +205,14 @@ const GCAMovementReport: React.FC = () => {
       </Grid>
 
       {/* Growth Rate */}
-      <Grid item xs={12} md={3}>
+      <Grid size={{ xs: 12, md: 3 }}>
         <Card sx={{ height: '100%', bgcolor: 'error.light', color: 'white' }}>
           <CardContent sx={{ textAlign: 'center' }}>
             <Avatar sx={{ bgcolor: 'error.dark', mx: 'auto', mb: 2, width: 56, height: 56 }}>
               <ReportIcon sx={{ fontSize: 30 }} />
             </Avatar>
             <Typography variant="h6" component="div" fontWeight="bold">
-              {summaryStats.openingGCA > 0 
+              {summaryStats.openingGCA > 0
                 ? `${((summaryStats.netGCAMovement / summaryStats.openingGCA) * 100).toFixed(1)}%`
                 : '0%'}
             </Typography>
@@ -232,7 +232,7 @@ const GCAMovementReport: React.FC = () => {
           Stage Transfer Analysis
         </Typography>
         <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Paper sx={{ p: 2 }}>
               <Typography variant="subtitle1" gutterBottom>
                 Deterioration (Increased Risk)
@@ -248,14 +248,14 @@ const GCAMovementReport: React.FC = () => {
                     }).format(summaryStats.stageTransfers.stage1To2)}
                   </Typography>
                 </Box>
-                <LinearProgress 
-                  variant="determinate" 
+                <LinearProgress
+                  variant="determinate"
                   value={summaryStats.openingGCA > 0 ? (summaryStats.stageTransfers.stage1To2 / summaryStats.openingGCA) * 100 : 0}
                   color="warning"
                   sx={{ height: 8, borderRadius: 4 }}
                 />
               </Box>
-              
+
               <Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                   <Typography variant="body2">Stage 2 → Stage 3</Typography>
@@ -267,8 +267,8 @@ const GCAMovementReport: React.FC = () => {
                     }).format(summaryStats.stageTransfers.stage2To3)}
                   </Typography>
                 </Box>
-                <LinearProgress 
-                  variant="determinate" 
+                <LinearProgress
+                  variant="determinate"
                   value={summaryStats.openingGCA > 0 ? (summaryStats.stageTransfers.stage2To3 / summaryStats.openingGCA) * 100 : 0}
                   color="error"
                   sx={{ height: 8, borderRadius: 4 }}
@@ -276,8 +276,8 @@ const GCAMovementReport: React.FC = () => {
               </Box>
             </Paper>
           </Grid>
-          
-          <Grid item xs={12} md={6}>
+
+          <Grid size={{ xs: 12, md: 6 }}>
             <Paper sx={{ p: 2 }}>
               <Typography variant="subtitle1" gutterBottom>
                 Improvement (Decreased Risk)
@@ -293,14 +293,14 @@ const GCAMovementReport: React.FC = () => {
                     }).format(summaryStats.stageTransfers.stage2To1)}
                   </Typography>
                 </Box>
-                <LinearProgress 
-                  variant="determinate" 
+                <LinearProgress
+                  variant="determinate"
                   value={summaryStats.openingGCA > 0 ? (summaryStats.stageTransfers.stage2To1 / summaryStats.openingGCA) * 100 : 0}
                   color="success"
                   sx={{ height: 8, borderRadius: 4 }}
                 />
               </Box>
-              
+
               <Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                   <Typography variant="body2">Stage 3 → Stage 2</Typography>
@@ -312,8 +312,8 @@ const GCAMovementReport: React.FC = () => {
                     }).format(summaryStats.stageTransfers.stage3To2)}
                   </Typography>
                 </Box>
-                <LinearProgress 
-                  variant="determinate" 
+                <LinearProgress
+                  variant="determinate"
                   value={summaryStats.openingGCA > 0 ? (summaryStats.stageTransfers.stage3To2 / summaryStats.openingGCA) * 100 : 0}
                   color="info"
                   sx={{ height: 8, borderRadius: 4 }}
@@ -329,7 +329,7 @@ const GCAMovementReport: React.FC = () => {
   const GCACharts = () => (
     <Grid container spacing={3} sx={{ mb: 3 }}>
       {/* GCA Movement Trend */}
-      <Grid item xs={12} md={8}>
+      <Grid size={{ xs: 12, md: 8 }}>
         <Card>
           <CardContent>
             <Typography variant="h6" gutterBottom>
@@ -339,14 +339,14 @@ const GCAMovementReport: React.FC = () => {
               <ComposedChart data={summaryStats.movementTrend}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="period" />
-                <YAxis 
+                <YAxis
                   tickFormatter={(value) => new Intl.NumberFormat('id-ID', {
                     style: 'currency',
                     currency: 'IDR',
                     notation: 'compact'
                   }).format(value)}
                 />
-                <Tooltip 
+                <Tooltip
                   formatter={(value: number, name) => [
                     new Intl.NumberFormat('id-ID', {
                       style: 'currency',
@@ -356,15 +356,15 @@ const GCAMovementReport: React.FC = () => {
                   ]}
                 />
                 <Legend />
-                <Bar 
-                  dataKey="gca" 
-                  fill="#8884d8" 
+                <Bar
+                  dataKey="gca"
+                  fill="#8884d8"
                   name="Movement"
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="cumulative" 
-                  stroke="#ff7300" 
+                <Line
+                  type="monotone"
+                  dataKey="cumulative"
+                  stroke="#ff7300"
                   strokeWidth={3}
                   name="Cumulative GCA"
                 />
@@ -375,7 +375,7 @@ const GCAMovementReport: React.FC = () => {
       </Grid>
 
       {/* GCA by Stage */}
-      <Grid item xs={12} md={4}>
+      <Grid size={{ xs: 12, md: 4 }}>
         <Card>
           <CardContent>
             <Typography variant="h6" gutterBottom>
@@ -397,8 +397,8 @@ const GCAMovementReport: React.FC = () => {
                     return (
                       <TableRow key={index}>
                         <TableCell>
-                          <Chip 
-                            size="small" 
+                          <Chip
+                            size="small"
                             label={row.stage}
                             sx={{ backgroundColor: row.color, color: 'white' }}
                           />

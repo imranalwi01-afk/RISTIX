@@ -418,43 +418,7 @@ export default function ApplicationSettingPage() {
       setError(handleAPIError(e).message);
     }
   }
-  const handleExport = (format: string) => {
-    const filter = encodeURIComponent(JSON.stringify({
-      search: searchTerm,
-      page: currentPage,
-      pageSize: pageSize
-    }));
 
-    // ✅ FIX: Use proper backend URL for window.open (not relative path)
-    // The /api prefix will be handled by Next.js rewrites
-    const url = `/api/v1/application/headers/export?format=${format}&filter=${filter}`;
-
-    // Use fetch with credentials to download the file
-    fetch(url, {
-      method: 'GET',
-      credentials: 'include', // Send cookies
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
-      }
-    })
-      .then(response => response.blob())
-      .then(blob => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `application-headers-${format}.${format}`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-      })
-      .catch(error => {
-        console.error('Export failed:', error);
-        alert('Export failed. Please try again.');
-      });
-
-    handleExportMenuClose();
-  };
 
   // Detail CRUD Operations
   const handleCreateDetail = () => {

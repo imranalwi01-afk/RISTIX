@@ -726,7 +726,7 @@ export default function IndividualAssessmentPage() {
               </TabPanel>
             </Box>
 
-            {/* Assessment Dialog - Refactored slightly to look cleaner */}
+            {/* Assessment Dialog */}
             <Dialog
               open={assessmentDialogOpen}
               onClose={() => handleAssessmentDialog(false)}
@@ -749,7 +749,7 @@ export default function IndividualAssessmentPage() {
               }}>
                 <DialogContent>
                   <Grid container spacing={2} sx={{ mt: 1 }}>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <FormControl fullWidth>
                         <InputLabel>Override Stage</InputLabel>
                         <Select
@@ -764,7 +764,7 @@ export default function IndividualAssessmentPage() {
                         </Select>
                       </FormControl>
                     </Grid>
-                    <Grid item xs={12}>
+                    <Grid size={12}>
                       <TextField
                         fullWidth
                         name="justification"
@@ -786,8 +786,6 @@ export default function IndividualAssessmentPage() {
               </form>
             </Dialog>
 
-
-
             {/* Snackbar Notifications */}
             <Snackbar
               open={snackbar.open}
@@ -801,84 +799,9 @@ export default function IndividualAssessmentPage() {
                 variant="filled"
                 sx={{ width: '100%' }}
               >
-                <DialogTitle>Individual Assessment Override: {selectedAccount?.account_number}</DialogTitle>
-                <form onSubmit={async (e) => {
-                  e.preventDefault();
-                  const formData = new FormData(e.currentTarget);
-                  const data = {
-                    accountNumber: selectedAccount?.account_number,
-                    overrideStage: formData.get('overrideStage'),
-                    justification: formData.get('justification'),
-                    status: 'APPROVED',
-                    createdBy: 'Analyst'
-                  };
-                  await handleSaveAssessment(data);
-                  handleAssessmentDialog(false);
-                }}>
-                  <DialogContent>
-                    <Grid container spacing={2} sx={{ mt: 1 }}>
-                      <Grid size={{ xs: 12, md: 6 }}>
-                        <FormControl fullWidth>
-                          <InputLabel>Override Stage</InputLabel>
-                          <Select
-                            name="overrideStage"
-                            defaultValue={selectedAccount?.stage.toString() || '1'}
-                            label="Override Stage"
-                            required
-                          >
-                            <MenuItem value="1">Stage 1: Low Credit Risk</MenuItem>
-                            <MenuItem value="2">Stage 2: Significant Increase (SICR)</MenuItem>
-                            <MenuItem value="3">Stage 3: Default / Impaired</MenuItem>
-                          </Select>
-                        </FormControl>
-                      </Grid>
-                      <Grid size={12}>
-                        <TextField
-                          fullWidth
-                          name="justification"
-                          label="Justification"
-                          multiline
-                          rows={4}
-                          required
-                          placeholder="Provide reasoning for manual stage override..."
-                        />
-                      </Grid>
-                    </Grid>
-                  </DialogContent>
-                  <DialogActions>
-                    <Button onClick={() => handleAssessmentDialog(false)}>Cancel</Button>
-                    <Button type="submit" variant="contained" color="primary" startIcon={<SaveIcon />}>
-                      Save Override
-                    </Button>
-                  </DialogActions>
-                </form>
-              </Dialog>
-
-              {/* Export Dialog */}
-              <ExportDialog
-                open={exportDialogOpen}
-                onClose={() => setExportDialogOpen(false)}
-                onExport={handleExport}
-                currentFilters={filters}
-                totalRecords={pagination.total}
-              />
-
-              {/* Snackbar Notifications */}
-              <Snackbar
-                open={snackbar.open}
-                autoHideDuration={6000}
-                onClose={() => setSnackbar({ ...snackbar, open: false })}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-              >
-                <Alert
-                  onClose={() => setSnackbar({ ...snackbar, open: false })}
-                  severity={snackbar.severity}
-                  variant="filled"
-                  sx={{ width: '100%' }}
-                >
-                  {snackbar.message}
-                </Alert>
-              </Snackbar>
+                {snackbar.message}
+              </Alert>
+            </Snackbar>
           </Paper>
         </Grid>
       </Grid>

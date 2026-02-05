@@ -425,7 +425,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
 
               <Grid container spacing={2}>
                 {/* Processing Date (Required) */}
-                <Grid item xs={12} md={3}>
+                <Grid size={{ xs: 12, md: 3 }}>
                   <DatePicker
                     label="Processing Date *"
                     value={filters.prc_date}
@@ -442,7 +442,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
 
                 {/* Optional Parameters */}
                 {optionalParams.includes('segment_id') && (
-                  <Grid item xs={12} md={2}>
+                  <Grid size={{ xs: 12, md: 2 }}>
                     <TextField
                       label="Segment ID"
                       type="number"
@@ -454,7 +454,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                 )}
 
                 {optionalParams.includes('pd_config_id') && (
-                  <Grid item xs={12} md={2}>
+                  <Grid size={{ xs: 12, md: 2 }}>
                     <TextField
                       label="PD Config ID"
                       type="number"
@@ -466,7 +466,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                 )}
 
                 {optionalParams.includes('pd_method') && (
-                  <Grid item xs={12} md={2}>
+                  <Grid size={{ xs: 12, md: 2 }}>
                     <FormControl fullWidth>
                       <InputLabel>PD Method</InputLabel>
                       <Select
@@ -483,7 +483,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                 )}
 
                 {optionalParams.includes('scalar_id') && (
-                  <Grid item xs={12} md={2}>
+                  <Grid size={{ xs: 12, md: 2 }}>
                     <TextField
                       label="Scalar ID"
                       type="number"
@@ -496,7 +496,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                 )}
 
                 {optionalParams.includes('fl_flag') && (
-                  <Grid item xs={12} md={2}>
+                  <Grid size={{ xs: 12, md: 2 }}>
                     <FormControlLabel
                       control={
                         <Switch
@@ -512,7 +512,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                 )}
 
                 {optionalParams.includes('stage') && (
-                  <Grid item xs={12} md={2}>
+                  <Grid size={{ xs: 12, md: 2 }}>
                     <FormControl fullWidth>
                       <InputLabel>Stage</InputLabel>
                       <Select
@@ -530,7 +530,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                 )}
 
                 {optionalParams.includes('lgd_config_id') && (
-                  <Grid item xs={12} md={2}>
+                  <Grid size={{ xs: 12, md: 2 }}>
                     <TextField
                       label="LGD Config ID"
                       type="number"
@@ -542,7 +542,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                 )}
 
                 {optionalParams.includes('lgd_method') && (
-                  <Grid item xs={12} md={2}>
+                  <Grid size={{ xs: 12, md: 2 }}>
                     <FormControl fullWidth>
                       <InputLabel>LGD Method</InputLabel>
                       <Select
@@ -559,7 +559,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                 )}
 
                 {optionalParams.includes('model_id') && (
-                  <Grid item xs={12} md={2}>
+                  <Grid size={{ xs: 12, md: 2 }}>
                     <TextField
                       label="Model ID"
                       type="number"
@@ -572,7 +572,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                 )}
 
                 {optionalParams.includes('ead_config_id') && (
-                  <Grid item xs={12} md={2}>
+                  <Grid size={{ xs: 12, md: 2 }}>
                     <TextField
                       label="EAD Config ID"
                       type="number"
@@ -584,7 +584,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                 )}
 
                 {optionalParams.includes('branch_code') && (
-                  <Grid item xs={12} md={2}>
+                  <Grid size={{ xs: 12, md: 2 }}>
                     <TextField
                       label="Branch Code"
                       value={filters.branch_code || ''}
