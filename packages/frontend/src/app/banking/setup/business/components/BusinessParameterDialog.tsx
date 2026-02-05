@@ -56,7 +56,7 @@ export interface BusinessParameterFormData {
 interface BusinessParameterDialogProps {
     open: boolean;
     onClose: () => void;
-    onSave: (data: BusinessParameterFormData) => void;
+    onSave: (data: BusinessParameterFormData) => Promise<void> | void;
     parameter?: BusinessParameter | null;
     loading?: boolean;
 }
@@ -70,7 +70,7 @@ const BusinessParameterDialog = memo(function BusinessParameterDialog({
     onClose,
     onSave,
     parameter,
-    loading = false
+    loading: isExternalLoading = false
 }: BusinessParameterDialogProps) {
     // Internal form state - isolated from parent re-renders
     const [formData, setFormData] = useState<BusinessParameterFormData>({
@@ -82,6 +82,7 @@ const BusinessParameterDialog = memo(function BusinessParameterDialog({
         is_editable: true,
         active_flag: true
     });
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     // Reset form when dialog opens with a different parameter
@@ -141,29 +142,30 @@ const BusinessParameterDialog = memo(function BusinessParameterDialog({
         setFormData(prev => ({ ...prev, active_flag: e.target.checked }));
     }, []);
 
-    const handleSubmit = useCallback(() => {
+    const handleSubmit = useCallback(async () => {
         // Validation
         if (!formData.param_code?.trim()) {
             setError('Parameter Code is required');
             return;
         }
-        if (!formData.param_desc?.trim()) {
-            setError('Description is required');
-            return;
-        }
-        if (!formData.param_value?.trim()) {
-            setError('Parameter Value is required');
-            return;
-        }
 
         setError(null);
-        onSave({
-            ...formData,
-            param_code: formData.param_code.trim(),
-            param_desc: formData.param_desc.trim(),
-            param_value: formData.param_value.trim()
-        });
-    }, [formData, onSave]);
+        setLoading(true);
+
+        try {
+            await onSave({
+                ...formData,
+                param_code: formData.param_code.trim(),
+                param_desc: formData.param_desc.trim(),
+                param_value: formData.param_value.trim()
+            });
+            onClose();
+        } catch (err: any) {
+            setError(err.message || 'Failed to save parameter');
+        } finally {
+            setLoading(false);
+        }
+    }, [formData, onSave, onClose]);
 
     return (
         <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
@@ -180,13 +182,16 @@ const BusinessParameterDialog = memo(function BusinessParameterDialog({
                         placeholder="e.g., BIZ001"
                         required
                         disabled={!!parameter}
+                        inputProps={{ 'data-testid': 'input-param-code' }}
                     />
                     <FormControl fullWidth>
-                        <InputLabel>Parameter Category</InputLabel>
+                        <InputLabel id="param-category-label">Parameter Category</InputLabel>
                         <Select
+                            labelId="param-category-label"
                             value={formData.param_category}
                             onChange={handleCategoryChange}
                             label="Parameter Category"
+                            data-testid="select-param-category"
                         >
                             <MenuItem value="B">Business</MenuItem>
                             <MenuItem value="A">Application</MenuItem>
@@ -203,6 +208,7 @@ const BusinessParameterDialog = memo(function BusinessParameterDialog({
                         multiline
                         rows={2}
                         sx={{ gridColumn: 'span 2' }}
+                        inputProps={{ 'data-testid': 'input-param-desc' }}
                     />
                     <TextField
                         fullWidth
@@ -212,13 +218,16 @@ const BusinessParameterDialog = memo(function BusinessParameterDialog({
                         placeholder="Enter parameter value"
                         required
                         sx={{ gridColumn: 'span 2' }}
+                        inputProps={{ 'data-testid': 'input-param-value' }}
                     />
                     <FormControl fullWidth>
-                        <InputLabel>Parameter Type</InputLabel>
+                        <InputLabel id="param-type-label">Parameter Type</InputLabel>
                         <Select
+                            labelId="param-type-label"
                             value={formData.param_type}
                             onChange={handleTypeChange}
                             label="Parameter Type"
+                            data-testid="select-param-type"
                         >
                             <MenuItem value="BUSINESS">Business</MenuItem>
                             <MenuItem value="APPLICATION">Application</MenuItem>
@@ -259,6 +268,7 @@ const BusinessParameterDialog = memo(function BusinessParameterDialog({
                     onClick={handleSubmit}
                     variant="contained"
                     disabled={loading}
+                    data-testid="btn-submit-business-setting"
                 >
                     {parameter ? 'Update' : 'Create'}
                 </Button>

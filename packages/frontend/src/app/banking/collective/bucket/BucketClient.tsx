@@ -181,12 +181,12 @@ const BucketHeaderRow: React.FC<BucketHeaderRowProps> = ({
         <TableCell>
           <Box sx={{ display: 'flex', gap: 0.5 }}>
             <Tooltip title="Edit Bucket Group">
-              <IconButton size="small" onClick={() => onEdit(header)} color="primary">
+              <IconButton size="small" onClick={() => onEdit(header)} color="primary" data-testid="edit-header-btn">
                 <EditIcon fontSize="small" />
               </IconButton>
             </Tooltip>
             <Tooltip title="Delete Bucket Group">
-              <IconButton size="small" onClick={() => onDelete(header)} color="error">
+              <IconButton size="small" onClick={() => onDelete(header)} color="error" data-testid="delete-header-btn">
                 <DeleteIcon fontSize="small" />
               </IconButton>
             </Tooltip>
@@ -209,6 +209,7 @@ const BucketHeaderRow: React.FC<BucketHeaderRowProps> = ({
                   onClick={() => onAddDetail(header)}
                   variant="contained"
                   color="primary"
+                  data-testid="add-detail-btn"
                 >
                   Add Detail
                 </Button>
@@ -265,12 +266,12 @@ const BucketHeaderRow: React.FC<BucketHeaderRowProps> = ({
                           <TableCell align="center">
                             <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
                               <Tooltip title="Edit Detail">
-                                <IconButton size="small" onClick={() => onEditDetail(detail)} color="primary">
+                                <IconButton size="small" onClick={() => onEditDetail(detail)} color="primary" data-testid="edit-detail-btn">
                                   <EditIcon fontSize="small" />
                                 </IconButton>
                               </Tooltip>
                               <Tooltip title="Delete Detail">
-                                <IconButton size="small" onClick={() => onDeleteDetail(detail)} color="error">
+                                <IconButton size="small" onClick={() => onDeleteDetail(detail)} color="error" data-testid="delete-detail-btn">
                                   <DeleteIcon fontSize="small" />
                                 </IconButton>
                               </Tooltip>
@@ -547,6 +548,7 @@ export default function BucketParameterPage() {
                 startIcon={<AddIcon />}
                 onClick={handleAddHeader}
                 size="large"
+                data-testid="add-bucket-btn"
               >
                 Add Bucket Group
               </Button>
@@ -555,6 +557,7 @@ export default function BucketParameterPage() {
                 startIcon={<RefreshIcon />}
                 onClick={handleRefresh}
                 size="large"
+                data-testid="refresh-buckets-btn"
               >
                 Refresh
               </Button>
@@ -575,13 +578,14 @@ export default function BucketParameterPage() {
               InputProps={{
                 startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />
               }}
+              data-testid="bucket-search-input"
             />
             <FormControl sx={{ minWidth: 200 }}>
               <InputLabel>Filter by Basis</InputLabel>
               <Select
-                value={filterBasis}
                 label="Filter by Basis"
                 onChange={(e) => setFilterBasis(e.target.value)}
+                data-testid="bucket-basis-select"
               >
                 <MenuItem value="">All Basis</MenuItem>
                 {basisOptions.map((option) => (
@@ -596,6 +600,7 @@ export default function BucketParameterPage() {
               startIcon={<SearchIcon />}
               onClick={handleSearch}
               sx={{ px: 3 }}
+              data-testid="bucket-search-btn"
             >
               Search
             </Button>
@@ -669,6 +674,7 @@ export default function BucketParameterPage() {
                   value={headerFormData.bucket_group || ''}
                   onChange={(e) => setHeaderFormData(prev => ({ ...prev, bucket_group: e.target.value }))}
                   required
+                  data-testid="bucket-group-field"
                 />
               </Box>
               <Box>
@@ -678,6 +684,7 @@ export default function BucketParameterPage() {
                     value={headerFormData.basis || ''}
                     label="Basis"
                     onChange={(e) => setHeaderFormData(prev => ({ ...prev, basis: e.target.value }))}
+                    data-testid="bucket-basis-field"
                   >
                     {basisOptions.map((option) => (
                       <MenuItem key={option.value1} value={option.value1}>
@@ -693,6 +700,7 @@ export default function BucketParameterPage() {
                   label="Description"
                   value={headerFormData.bucket_group_desc || ''}
                   onChange={(e) => setHeaderFormData(prev => ({ ...prev, bucket_group_desc: e.target.value }))}
+                  data-testid="bucket-desc-field"
                 />
               </Box>
               <Box sx={{ display: 'grid', gridColumn: 'span 2', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2 }}>
@@ -702,6 +710,7 @@ export default function BucketParameterPage() {
                       <Switch
                         checked={headerFormData.include_close || false}
                         onChange={(e) => setHeaderFormData(prev => ({ ...prev, include_close: e.target.checked }))}
+                        data-testid="include-close-switch"
                       />
                     }
                     label="Include Closed"
@@ -713,6 +722,7 @@ export default function BucketParameterPage() {
                       <Switch
                         checked={headerFormData.include_wo || false}
                         onChange={(e) => setHeaderFormData(prev => ({ ...prev, include_wo: e.target.checked }))}
+                        data-testid="include-wo-switch"
                       />
                     }
                     label="Include WO"
@@ -724,6 +734,7 @@ export default function BucketParameterPage() {
                       <Switch
                         checked={headerFormData.active_flag !== false}
                         onChange={(e) => setHeaderFormData(prev => ({ ...prev, active_flag: e.target.checked }))}
+                        data-testid="active-flag-switch"
                       />
                     }
                     label="Active"
@@ -735,7 +746,7 @@ export default function BucketParameterPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setHeaderDialogOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleSaveHeader}>Save</Button>
+          <Button variant="contained" onClick={handleSaveHeader} data-testid="save-header-btn">Save</Button>
         </DialogActions>
       </Dialog>
 
@@ -754,6 +765,7 @@ export default function BucketParameterPage() {
                   value={detailFormData.bucket_name || ''}
                   onChange={(e) => setDetailFormData(prev => ({ ...prev, bucket_name: e.target.value }))}
                   required
+                  data-testid="bucket-name-field"
                 />
               </Box>
               <Box>
@@ -764,6 +776,7 @@ export default function BucketParameterPage() {
                   value={detailFormData.range_start || 0}
                   onChange={(e) => setDetailFormData(prev => ({ ...prev, range_start: Number(e.target.value) }))}
                   required
+                  data-testid="range-start-field"
                 />
               </Box>
               <Box>
@@ -773,6 +786,7 @@ export default function BucketParameterPage() {
                   label="Range End (Leave empty for infinity)"
                   value={detailFormData.range_end || ''}
                   onChange={(e) => setDetailFormData(prev => ({ ...prev, range_end: e.target.value ? Number(e.target.value) : undefined }))}
+                  data-testid="range-end-field"
                 />
               </Box>
               <Box sx={{ gridColumn: 'span 2' }}>
@@ -781,6 +795,7 @@ export default function BucketParameterPage() {
                     <Switch
                       checked={detailFormData.active_flag !== false}
                       onChange={(e) => setDetailFormData(prev => ({ ...prev, active_flag: e.target.checked }))}
+                      data-testid="active-detail-switch"
                     />
                   }
                   label="Active"
@@ -791,7 +806,7 @@ export default function BucketParameterPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDetailDialogOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleSaveDetail}>Save</Button>
+          <Button variant="contained" onClick={handleSaveDetail} data-testid="save-detail-btn">Save</Button>
         </DialogActions>
       </Dialog>
     </Container>

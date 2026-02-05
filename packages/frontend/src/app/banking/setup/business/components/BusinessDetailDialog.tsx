@@ -241,6 +241,7 @@ export function BusinessDetailDialog({ open, onClose, parameter }: BusinessDetai
                                     boxShadow: 2
                                 }}
                                 onClick={handleAddNew}
+                                data-testid="btn-add-detail"
                             >
                                 <AddIcon />
                             </IconButton>
@@ -268,6 +269,7 @@ export function BusinessDetailDialog({ open, onClose, parameter }: BusinessDetai
                                     value={formData.seqNo}
                                     onChange={(e) => setFormData({ ...formData, seqNo: Number(e.target.value) })}
                                     size="small"
+                                    inputProps={{ 'data-testid': 'input-detail-seq' }}
                                 />
                             </Box>
                             <Box>
@@ -278,7 +280,7 @@ export function BusinessDetailDialog({ open, onClose, parameter }: BusinessDetai
                                     onChange={(e) => setFormData({ ...formData, value1: e.target.value })}
                                     placeholder="Value 1"
                                     variant="standard"
-                                    InputProps={{ disableUnderline: false }}
+                                    InputProps={{ disableUnderline: false, inputProps: { 'data-testid': 'input-detail-value1' } }}
                                 />
                             </Box>
                             <Box>
@@ -289,6 +291,7 @@ export function BusinessDetailDialog({ open, onClose, parameter }: BusinessDetai
                                     onChange={(e) => setFormData({ ...formData, value2: e.target.value })}
                                     placeholder="Value 2"
                                     variant="standard"
+                                    inputProps={{ 'data-testid': 'input-detail-value2' }}
                                 />
                             </Box>
                             <Box>
@@ -299,6 +302,7 @@ export function BusinessDetailDialog({ open, onClose, parameter }: BusinessDetai
                                     onChange={(e) => setFormData({ ...formData, value3: e.target.value })}
                                     placeholder="Value 3"
                                     variant="standard"
+                                    inputProps={{ 'data-testid': 'input-detail-value3' }}
                                 />
                             </Box>
                             <Box>
@@ -310,6 +314,7 @@ export function BusinessDetailDialog({ open, onClose, parameter }: BusinessDetai
                                     value={formData.description}
                                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                     variant="standard"
+                                    inputProps={{ 'data-testid': 'input-detail-desc' }}
                                 />
                             </Box>
 
@@ -320,6 +325,7 @@ export function BusinessDetailDialog({ open, onClose, parameter }: BusinessDetai
                                     onClick={handleSave}
                                     disabled={loading}
                                     sx={{ minWidth: 120 }}
+                                    data-testid="btn-submit-detail"
                                 >
                                     {loading ? <CircularProgress size={24} color="inherit" /> : 'Save'}
                                 </Button>
@@ -327,6 +333,7 @@ export function BusinessDetailDialog({ open, onClose, parameter }: BusinessDetai
                                     onClick={handleCancelForm}
                                     disabled={loading}
                                     sx={{ ml: 2, color: 'text.secondary' }}
+                                    data-testid="btn-cancel-detail"
                                 >
                                     Cancel
                                 </Button>
@@ -384,10 +391,10 @@ export function BusinessDetailDialog({ open, onClose, parameter }: BusinessDetai
                                                             <IconButton size="small" sx={{ color: 'text.secondary' }}><Box component="span" sx={{ fontSize: '18px' }}>👁️</Box></IconButton>
                                                         </Tooltip>
                                                         <Tooltip title="Edit">
-                                                            <IconButton size="small" onClick={() => handleEdit(detail)} sx={{ color: 'text.secondary' }}><EditIcon fontSize="small" /></IconButton>
+                                                            <IconButton size="small" onClick={() => handleEdit(detail)} sx={{ color: 'text.secondary' }} data-testid="btn-edit-detail"><EditIcon fontSize="small" /></IconButton>
                                                         </Tooltip>
                                                         <Tooltip title="Delete">
-                                                            <IconButton size="small" onClick={() => handleDelete(detail)} sx={{ color: 'text.secondary' }}><DeleteIcon fontSize="small" /></IconButton>
+                                                            <IconButton size="small" onClick={() => handleDelete(detail)} sx={{ color: 'text.secondary' }} data-testid="btn-delete-detail"><DeleteIcon fontSize="small" /></IconButton>
                                                         </Tooltip>
                                                     </Box>
                                                 </TableCell>

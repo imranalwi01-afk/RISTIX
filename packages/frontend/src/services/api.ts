@@ -529,63 +529,63 @@ export const bankingAPI = {
     // Header Operations
     getHeaders: async (params?: { page?: number; limit?: number; search?: string }) => {
       console.log('🎯 Fetching segmentation headers from DS2 database');
-      const response = await apiClient.get('/banking/setup/segmentation', { params });
+      const response = await apiClient.get('/banking/parameters/segmentation', { params });
       return response.data;
     },
 
     getHeader: async (id: number) => {
       console.log(`📄 Fetching segmentation header ${id} from DS2 database`);
-      const response = await apiClient.get(`/banking/setup/segmentation/${id}`);
+      const response = await apiClient.get(`/banking/parameters/segmentation/${id}`);
       return response.data;
     },
 
     createHeader: async (headerData: any) => {
       console.log('➕ Creating segmentation header in DS2 database');
-      const response = await apiClient.post('/banking/setup/segmentation', headerData);
+      const response = await apiClient.post('/banking/parameters/segmentation', headerData);
       return response.data;
     },
 
     updateHeader: async (id: number, headerData: any) => {
       console.log(`✏️ Updating segmentation header ${id} in DS2 database`);
-      const response = await apiClient.put(`/banking/setup/segmentation/${id}`, headerData);
+      const response = await apiClient.put(`/banking/parameters/segmentation/${id}`, headerData);
       return response.data;
     },
 
     deleteHeader: async (id: number) => {
       console.log(`🗑️ Deleting segmentation header ${id} from DS2 database`);
-      const response = await apiClient.delete(`/banking/setup/segmentation/${id}`);
+      const response = await apiClient.delete(`/banking/parameters/segmentation/${id}`);
       return response.data;
     },
 
     // Detail Operations
     getDetails: async (headerId: number) => {
       console.log(`📋 Fetching segmentation details for header ${headerId} from DS2 database`);
-      const response = await apiClient.get(`/banking/setup/segmentation/${headerId}/details`);
+      const response = await apiClient.get(`/banking/parameters/segmentation/${headerId}/details`);
       return response.data;
     },
 
     createDetail: async (headerId: number, detailData: any) => {
       console.log(`➕ Creating segmentation detail for header ${headerId} in DS2 database`);
-      const response = await apiClient.post(`/banking/setup/segmentation/${headerId}/details`, detailData);
+      const response = await apiClient.post(`/banking/parameters/segmentation/${headerId}/details`, detailData);
       return response.data;
     },
 
     updateDetail: async (detailId: number, detailData: any) => {
       console.log(`✏️ Updating segmentation detail ${detailId} in DS2 database`);
-      const response = await apiClient.put(`/banking/setup/segmentation/details/${detailId}`, detailData);
+      const response = await apiClient.put(`/banking/parameters/segmentation/details/${detailId}`, detailData);
       return response.data;
     },
 
     deleteDetail: async (detailId: number) => {
       console.log(`🗑️ Deleting segmentation detail ${detailId} from DS2 database`);
-      const response = await apiClient.delete(`/banking/setup/segmentation/details/${detailId}`);
+      const response = await apiClient.delete(`/banking/parameters/segmentation/details/${detailId}`);
       return response.data;
     },
 
     // Metadata
     getSegmentTypes: async () => {
       console.log('📋 Fetching segment types');
-      const response = await apiClient.get('/banking/setup/segmentation/business-settings/segment-types');
+      const response = await apiClient.get('/banking/parameters/segmentation/business-settings/segment-types');
       return response.data;
     },
 
@@ -637,53 +637,53 @@ export const bankingAPI = {
   journalParameters: {
     getAll: async () => {
       console.log('📋 Fetching journal parameters');
-      const response = await apiClient.get('/banking/setup/journal-parameters');
+      const response = await apiClient.get('/banking/parameters/journal');
       return response.data;
     },
     getById: async (id: number) => {
       console.log(`📄 Fetching journal parameter ${id}`);
-      const response = await apiClient.get(`/banking/setup/journal-parameters/${id}`);
+      const response = await apiClient.get(`/banking/parameters/journal/${id}`);
       return response.data;
     },
     create: async (data: any) => {
       console.log('➕ Creating journal parameter');
-      const response = await apiClient.post('/banking/setup/journal-parameters', data);
+      const response = await apiClient.post('/banking/parameters/journal', data);
       return response.data;
     },
     update: async (id: number, data: any) => {
       console.log(`✏️ Updating journal parameter ${id}`);
-      const response = await apiClient.put(`/banking/setup/journal-parameters/${id}`, data);
+      const response = await apiClient.put(`/banking/parameters/journal/${id}`, data);
       return response.data;
     },
     delete: async (id: number) => {
       console.log(`🗑️ Deleting journal parameter ${id}`);
-      const response = await apiClient.delete(`/banking/setup/journal-parameters/${id}`);
+      const response = await apiClient.delete(`/banking/parameters/journal/${id}`);
       return response.data;
     },
     // Options for dropdowns
     getGlGroupOptions: async () => {
       console.log('📋 Fetching GL Group options');
-      const response = await apiClient.get('/banking/setup/journal-parameters/gl-group-options');
+      const response = await apiClient.get('/banking/parameters/journal/gl-group-options');
       return response.data;
     },
     getCurrencyOptions: async () => {
       console.log('📋 Fetching Currency options');
-      const response = await apiClient.get('/banking/setup/journal-parameters/currency-options');
+      const response = await apiClient.get('/banking/parameters/journal/currency-options');
       return response.data;
     },
     getJournalTypeOptions: async () => {
       console.log('📋 Fetching Journal Type options');
-      const response = await apiClient.get('/banking/setup/journal-parameters/journal-type-options');
+      const response = await apiClient.get('/banking/parameters/journal/journal-type-options');
       return response.data;
     },
     getJournalCodeOptions: async () => {
       console.log('📋 Fetching Journal Code options');
-      const response = await apiClient.get('/banking/setup/journal-parameters/journal-code-options');
+      const response = await apiClient.get('/banking/parameters/journal/journal-code-options');
       return response.data;
     },
     getDbcrOptions: async () => {
       console.log('📋 Fetching DB/CR options');
-      const response = await apiClient.get('/banking/setup/journal-parameters/dbcr-options');
+      const response = await apiClient.get('/banking/parameters/journal/dbcr-options');
       return response.data;
     }
   },

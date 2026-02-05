@@ -631,9 +631,7 @@ export default function ProductParametersPage() {
         else throw new Error(response.error || 'Failed to create product');
       }
 
-      setDialogOpen(false);
       await loadData();
-
     } catch (error: any) {
       console.error('Save error:', error);
       const errorMsg = error?.response?.data?.error || error.message || 'Failed to save product';
