@@ -58,7 +58,7 @@ router.get('/watchlist',
 router.post('/watchlist/export',
   [
     body('format').isIn(['xlsx', 'csv']).withMessage('Format must be xlsx or csv'),
-    body('filters').optional().isJSON().withMessage('Filters must be valid JSON')
+    body('filters').optional().isObject().withMessage('Filters must be an object')
   ],
   validateRequest,
   individualImpairmentController.exportWatchlist.bind(individualImpairmentController)

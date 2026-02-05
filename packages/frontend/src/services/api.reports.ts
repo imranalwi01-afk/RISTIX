@@ -3,7 +3,7 @@ import { apiClient } from './api-client';
 export const reportsAPI = {
     nominativeReport: {
         get: async (params?: any) => {
-            const response = await apiClient.get('/ifrs9/reports/ecl-result', { params });
+            const response = await apiClient.get('/ifrs9/reports/nominative-report', { params });
             return response.data;
         }
     },
