@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import type { ModernLoaderProps } from '@/components/common/ModernLoader';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import {
   Box,
   Typography,
@@ -18,7 +18,6 @@ import {
   InputAdornment,
   IconButton,
   Fade,
-  useTheme,
   ThemeProvider,
   createTheme
 } from '@mui/material';
@@ -52,12 +51,13 @@ interface TenantOption {
 }
 
 export default function LoginPage() {
-  const router = useRouter();
+  // const router = useRouter(); // Unused
   const searchParams = useSearchParams();
   const { login, isLoading, error, clearError } = useAuth();
-  const theme = useTheme();
+  // const theme = useTheme(); // Unused
   
   // ✅ PERFORMANCE: Prefetch dashboard routes while user is on login page
+  // Trigger HMR update
   useLoginPrefetch();
 
   // Form state
@@ -100,7 +100,7 @@ export default function LoginPage() {
            // 🛡️ SECURITY: Hide 'system' tenant unless specifically requested via magic param
            const showSystem = isPlatformAdmin;
 
-           let filteredTenants = result.data.tenants.filter((t: TenantOption) =>
+           const filteredTenants = result.data.tenants.filter((t: TenantOption) =>
              t.isActive && (showSystem || t.slug !== 'system')
            );
 

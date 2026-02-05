@@ -25,7 +25,8 @@ import {
   FormControl,
   InputLabel,
   TextField,
-  MenuItem
+  MenuItem,
+  Menu
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -34,7 +35,8 @@ import {
   Error as ErrorIcon,
   Search as SearchIcon,
   FilterList as FilterIcon,
-  Clear as ClearIcon
+  Clear as ClearIcon,
+  Download as DownloadIcon
 } from '@mui/icons-material';
 import { GridColDef, GridRowParams } from '@mui/x-data-grid';
 
@@ -42,6 +44,7 @@ import { GridColDef, GridRowParams } from '@mui/x-data-grid';
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 import { useRouter } from 'next/navigation';
 import { api, handleAPIError } from '../../../../services/api';
+import { exportToXLSX, exportToCSV, exportToPDF } from '@/utils/exportUtils';
 
 // Shared components
 import PageHeader from '@/components/banking/shared/PageHeader';
@@ -64,6 +67,7 @@ export default function JournalParametersPage() {
   const [selectedJournal, setSelectedJournal] = useState<JournalParameter | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [exportMenuAnchor, setExportMenuAnchor] = useState<null | HTMLElement>(null);
 
 
 
@@ -359,6 +363,58 @@ export default function JournalParametersPage() {
     setDialogOpen(false);
   }, []);
 
+  // Export handler (Client-side export matching Product Parameters)
+  const handleExport = (format: 'xlsx' | 'csv' | 'pdf') => {
+    try {
+      setExportMenuAnchor(null);
+      
+      // Define columns for export (matching data grid)
+      const exportColumns = [
+        { field: 'glCode', headerName: 'GL Code' },
+        { field: 'glDesc', headerName: 'Description' },
+        { field: 'glGroup', headerName: 'GL Group' },
+        { field: 'glType', headerName: 'GL Type' },
+        { field: 'currency', headerName: 'Currency' },
+        { field: 'glNumber', headerName: 'GL Number' },
+        { field: 'dbcr', headerName: 'DB/CR' },
+        { field: 'activeFlag', headerName: 'Active' }
+      ];
+      
+      // Build filter description
+      const activeFilters: Record<string, any> = {};
+      if (searchTerm) activeFilters['Search'] = searchTerm;
+      if (filterGlGroup) activeFilters['GL Group'] = filterGlGroup;
+      if (filterCurrency) activeFilters['Currency'] = filterCurrency;
+      if (filterActive !== 'all') activeFilters['Status'] = filterActive;
+      
+      const exportOptions = {
+        title: 'Journal Parameters',
+        filename: 'journal_parameters',
+        filters: activeFilters,
+        confidential: true
+      };
+      
+      // Use filtered data
+      const dataToExport = filteredData;
+      
+      let result;
+      switch (format) {
+        case 'xlsx': result = exportToXLSX(dataToExport, exportColumns, exportOptions); break;
+        case 'csv': result = exportToCSV(dataToExport, exportColumns, exportOptions); break;
+        case 'pdf': result = exportToPDF(dataToExport, exportColumns, exportOptions); break;
+      }
+      
+      if (result && result.success) {
+        setSuccess(`Exported ${dataToExport.length} records to ${format.toUpperCase()}`);
+      } else {
+        setError(`Failed to export to ${format.toUpperCase()}`);
+      }
+    } catch (error: any) {
+      console.error('Export error:', error);
+      setError(`Export failed: ${error.message}`);
+    }
+  };
+
   if (loading && data.length === 0) {
     return (
       <Container maxWidth="xl">
@@ -378,16 +434,52 @@ export default function JournalParametersPage() {
         onRefresh={loadData}
         loading={loading}
         extraActions={(
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleCreate}
-            disabled={loading}
-          >
-            Add Journal Entry
-          </Button>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              variant="outlined"
+              startIcon={<DownloadIcon />}
+              onClick={(e) => setExportMenuAnchor(e.currentTarget)}
+              disabled={loading || data.length === 0}
+            >
+              Export
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleCreate}
+              disabled={loading}
+            >
+              Add Journal Entry
+            </Button>
+          </Box>
         )}
       />
+
+      {/* Export Menu */}
+      <Menu
+        anchorEl={exportMenuAnchor}
+        open={Boolean(exportMenuAnchor)}
+        onClose={() => setExportMenuAnchor(null)}
+      >
+        <MenuItem onClick={() => handleExport('xlsx')}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <DownloadIcon fontSize="small" />
+            Export to Excel (XLSX)
+          </Box>
+        </MenuItem>
+        <MenuItem onClick={() => handleExport('csv')}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <DownloadIcon fontSize="small" />
+            Export to CSV
+          </Box>
+        </MenuItem>
+        <MenuItem onClick={() => handleExport('pdf')}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <DownloadIcon fontSize="small" />
+            Export to PDF
+          </Box>
+        </MenuItem>
+      </Menu>
 
       <Card sx={{ mb: 2 }}>
         <CardContent>

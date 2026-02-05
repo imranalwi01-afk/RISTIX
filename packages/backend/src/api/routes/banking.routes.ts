@@ -52,13 +52,9 @@ import {
   deleteJournalParameter,
   getApplicationSetupHeaders,
   getApplicationSetupDetails,
-  getBusinessSetupDetails,
   createApplicationSetupDetail,
   updateApplicationSetupDetail,
-  deleteApplicationSetupDetail,
-  createBusinessSetupDetail,
-  updateBusinessSetupDetail,
-  deleteBusinessSetupDetail
+  deleteApplicationSetupDetail
 } from '../controllers/frs9-parameter.controller';
 
 // Import class-based controller for additional methods
