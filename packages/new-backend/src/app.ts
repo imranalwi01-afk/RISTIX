@@ -88,6 +88,10 @@ export function createApp() {
         cors({
             origin: (origin) => {
                 const allowedOrigins = env.CORS_ORIGINS.split(',').map((o) => o.trim())
+                // Ensure local dev origins are always allowed in development
+                if (env.NODE_ENV === 'development') {
+                    allowedOrigins.push('http://127.0.0.1:4231', 'http://localhost:4231')
+                }
 
                 // Debug logging only when LOG_LEVEL is 'debug'
                 if (env.LOG_LEVEL === 'debug') {

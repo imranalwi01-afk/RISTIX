@@ -1,5 +1,5 @@
 import React from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
     Box,
     Paper,
@@ -22,6 +22,7 @@ export const BankingBreadcrumbs: React.FC<BankingBreadcrumbsProps> = ({
 }) => {
     const theme = useTheme();
     const pathname = usePathname();
+    const router = useRouter();
 
     // Generate breadcrumbs from pathname
     const generateBreadcrumbs = () => {
@@ -116,7 +117,7 @@ export const BankingBreadcrumbs: React.FC<BankingBreadcrumbsProps> = ({
                                 onClick={(e) => {
                                     e.preventDefault();
                                     if (crumb.href) {
-                                        window.location.href = crumb.href;
+                                        router.push(crumb.href);
                                     }
                                 }}
                             >

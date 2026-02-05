@@ -93,7 +93,7 @@ function ApplicationFormDialogComponent({
                         required
                         disabled={!!selectedRecord}
                         placeholder="e.g., APP001"
-                        inputProps={{ maxLength: 10 }}
+                        slotProps={{ htmlInput: { maxLength: 10, 'data-testid': 'input-param-code' } }}
                     />
                     <TextField
                         label="Parameter Name"
@@ -102,6 +102,7 @@ function ApplicationFormDialogComponent({
                         fullWidth
                         required
                         placeholder="e.g., System Configuration"
+                        slotProps={{ htmlInput: { 'data-testid': 'input-param-name' } }}
                     />
                     <TextField
                         label="Usage Description"
@@ -111,6 +112,7 @@ function ApplicationFormDialogComponent({
                         multiline
                         rows={3}
                         placeholder="Describe how this parameter is used in the system"
+                        slotProps={{ htmlInput: { 'data-testid': 'input-param-usage' } }}
                     />
                 </Box>
             </DialogContent>
@@ -123,6 +125,7 @@ function ApplicationFormDialogComponent({
                     variant="contained"
                     disabled={loading || !isValid}
                     startIcon={loading ? <CircularProgress size={16} /> : null}
+                    data-testid="btn-submit-application-setting"
                 >
                     {loading ? 'Saving...' : (selectedRecord ? 'Update' : 'Create')}
                 </Button>

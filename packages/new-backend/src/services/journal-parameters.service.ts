@@ -13,6 +13,7 @@ export const JournalParametersService = {
      * @returns An Effect resolving to an array of journal parameters
      */
     list: () => {
+        console.log('📋 Listing all journal parameters')
         return pipe(
             JournalParametersRepository.findAll(),
             Effect.map(journals => journals.map(transformJournal))
@@ -26,6 +27,7 @@ export const JournalParametersService = {
      * @returns An Effect resolving to the journal parameter or NotFoundError
      */
     get: (id: number) => {
+        console.log(`📄 Getting journal parameter: ${id}`)
         return pipe(
             JournalParametersRepository.findById(BigInt(id)),
             Effect.flatMap(journal =>
@@ -44,6 +46,7 @@ export const JournalParametersService = {
      * @returns An Effect resolving to the created journal parameter
      */
     create: (data: any, userId: string) => {
+        console.log(`➕ Creating journal parameter: ${data.glCode}`)
         const now = new Date().toISOString()
         const payload = {
             ...data,
@@ -69,6 +72,7 @@ export const JournalParametersService = {
      * @returns An Effect resolving to the updated journal parameter or NotFoundError
      */
     update: (id: number, data: any, userId: string) => {
+        console.log(`✏️ Updating journal parameter: ${id} (${data.glCode})`)
         const now = new Date().toISOString()
         const payload = {
             ...data,
@@ -93,6 +97,7 @@ export const JournalParametersService = {
      * @returns An Effect resolving to a success message or NotFoundError
      */
     delete: (id: number) => {
+        console.log(`🗑️ Deleting journal parameter: ${id}`)
         return pipe(
             JournalParametersRepository.delete(BigInt(id)),
             Effect.flatMap(deleted =>

@@ -285,6 +285,33 @@ app.openapi(
     }
 )
 
+// POST /api/v1/business-settings/:code/details
+// Create Business Setting Detail (Frontend compatibility)
+app.openapi(
+    createRoute({
+        method: 'post',
+        path: '/{code}/details',
+        tags: ['Business Settings'],
+        summary: 'Create Business Setting Detail',
+        request: {
+            params: z.object({ code: z.string() }),
+            body: { content: { 'application/json': { schema: CreateBusinessDetailSchema } } }
+        },
+        responses: {
+            201: { content: { 'application/json': { schema: z.object({ success: z.boolean(), data: BusinessSettingDetailSchema }) } }, description: 'Created' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        const { code } = c.req.valid('param')
+        const data = c.req.valid('json')
+        const userId = c.get('userId') as string || 'system'
+        // Ensure paramCode matches path
+        data.paramCode = code
+        return runEffect(c, ParametersService.createAppSettingDetail(data, userId) as any) as any
+    }
+)
+
 // POST /api/v1/business-settings/details
 // Create Business Setting Detail
 app.openapi(

@@ -9,13 +9,17 @@
         "./src/lib/*.ts",
         "./src/app.ts"
     ],
-    "out": "docs",
-    "plugin": [],
+    "out": "../../packages/docs/docs/backend-api",
+    "plugin": [
+        "typedoc-plugin-markdown"
+    ],
     "theme": "default",
-    "name": "IFRS 9 Backend",
+    "name": "Backend API Reference",
     "includeVersion": true,
     "readme": "README.md",
     "skipErrorChecking": true,
     "hideGenerator": true,
-    "cleanOutputDir": true
+    "cleanOutputDir": true,
+    "githubPages": false,
+    "hideBreadcrumbs": true
 }

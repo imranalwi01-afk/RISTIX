@@ -9,7 +9,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box,
   Container,
@@ -80,7 +80,6 @@ export default function JournalParametersPage() {
   const [filterGlGroup, setFilterGlGroup] = useState('');
   const [filterCurrency, setFilterCurrency] = useState('');
   const [filterActive, setFilterActive] = useState<'all' | 'active' | 'inactive'>('all');
-  const [filteredData, setFilteredData] = useState<JournalParameter[]>([]);
 
   // ============================================================================
   // DATAGRID COLUMNS CONFIGURATION
@@ -189,7 +188,6 @@ export default function JournalParametersPage() {
       if (result.success && result.data) {
         console.log('✅ Successfully loaded journal data:', result.data.length, 'parameters');
         setData(result.data);
-        setFilteredData(result.data);
       } else {
         throw new Error(result.message || 'Failed to load journal parameters');
       }
@@ -199,14 +197,81 @@ export default function JournalParametersPage() {
       const errorInfo = handleAPIError(error);
       setError(errorInfo.message);
       setData([]);
-      setFilteredData([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const applyFilters = () => {
-    // ✅ FIXED: Defensive check to prevent spread mechanism error
+  // Filtering logic moved to useMemo below
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setFilterGlGroup('');
+    setFilterCurrency('');
+    setFilterActive('all');
+  };
+
+  const loadDropdownOptions = async () => {
+    setOptionsLoading(true);
+    try {
+      console.log('🔄 Loading dropdown options from FRS9PRO database...');
+
+      const [glGroup, currency, journalType, journalCode, dbcr] = await Promise.all([
+        api.banking.journalParameters.getGlGroupOptions(),
+        api.banking.journalParameters.getCurrencyOptions(),
+        api.banking.journalParameters.getJournalTypeOptions(),
+        api.banking.journalParameters.getJournalCodeOptions(),
+        api.banking.journalParameters.getDbcrOptions()
+      ]);
+
+      // Set options with fallbacks if data is empty or request failed
+      setGlGroupOptions(glGroup.success && glGroup.data?.length ? glGroup.data : [
+        { id: 'ASSETS', name: 'Assets' },
+        { id: 'LIABILITIES', name: 'Liabilities' }
+      ]);
+
+      setCurrencyOptions(currency.success && currency.data?.length ? currency.data : [
+        { id: 'IDR', name: 'Indonesian Rupiah' },
+        { id: 'USD', name: 'US Dollar' }
+      ]);
+
+      setJournalTypeOptions(journalType.success && journalType.data?.length ? journalType.data : [
+        { id: 'GENERAL', name: 'General' },
+        { id: 'ADJUSTMENT', name: 'Adjustment' }
+      ]);
+
+      setJournalCodeOptions(journalCode.success && journalCode.data?.length ? journalCode.data : [
+        { id: 'GJ', name: 'General Journal' },
+        { id: 'AJ', name: 'Adjustment Journal' }
+      ]);
+
+      setDbcrOptions(dbcr.success && dbcr.data?.length ? dbcr.data : [
+        { id: 'D', name: 'Debit' },
+        { id: 'C', name: 'Credit' }
+      ]);
+
+    } catch (error) {
+      console.error('❌ Failed to load dropdown options:', error);
+      // Final hardcoded fallbacks just in case
+      setGlGroupOptions([{ id: 'ASSETS', name: 'Assets' }, { id: 'LIABILITIES', name: 'Liabilities' }]);
+      setCurrencyOptions([{ id: 'IDR', name: 'Indonesian Rupiah' }, { id: 'USD', name: 'US Dollar' }]);
+      setJournalTypeOptions([{ id: 'GENERAL', name: 'General' }, { id: 'ADJUSTMENT', name: 'Adjustment' }]);
+      setJournalCodeOptions([{ id: 'GJ', name: 'General Journal' }, { id: 'AJ', name: 'Adjustment Journal' }]);
+      setDbcrOptions([{ id: 'D', name: 'Debit' }, { id: 'C', name: 'Credit' }]);
+    } finally {
+      setOptionsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+    loadDropdownOptions();
+  }, []);
+
+  // Filters are now handled by useMemo
+
+  // Consolidated Client-side filtering logic
+  const filteredData = useMemo(() => {
     let filtered = [...(Array.isArray(data) ? data : [])];
 
     if (searchTerm) {
@@ -233,55 +298,8 @@ export default function JournalParametersPage() {
       filtered = filtered.filter(item => item.activeFlag === false);
     }
 
-    setFilteredData(filtered);
-  };
-
-  const clearFilters = () => {
-    setSearchTerm('');
-    setFilterGlGroup('');
-    setFilterCurrency('');
-    setFilterActive('all');
-    setFilteredData(data);
-  };
-
-  const loadDropdownOptions = async () => {
-    setOptionsLoading(true);
-    try {
-      console.log('🔄 Loading dropdown options from FRS9PRO database...');
-
-      const [glGroup, currency, journalType, journalCode, dbcr] = await Promise.all([
-        api.banking.journalParameters.getGlGroupOptions(),
-        api.banking.journalParameters.getCurrencyOptions(),
-        api.banking.journalParameters.getJournalTypeOptions(),
-        api.banking.journalParameters.getJournalCodeOptions(),
-        api.banking.journalParameters.getDbcrOptions()
-      ]);
-
-      if (glGroup.success && Array.isArray(glGroup.data)) setGlGroupOptions(glGroup.data);
-      if (currency.success && Array.isArray(currency.data)) setCurrencyOptions(currency.data);
-      if (journalType.success && Array.isArray(journalType.data)) setJournalTypeOptions(journalType.data);
-      if (journalCode.success && Array.isArray(journalCode.data)) setJournalCodeOptions(journalCode.data);
-      if (dbcr.success && Array.isArray(dbcr.data)) setDbcrOptions(dbcr.data);
-
-    } catch (error) {
-      console.error('❌ Failed to load dropdown options:', error);
-      // Fallbacks if API fails
-      setGlGroupOptions([{ id: 'ASSETS', name: 'Assets' }, { id: 'LIABILITIES', name: 'Liabilities' }]);
-      setCurrencyOptions([{ id: 'IDR', name: 'Indonesian Rupiah' }, { id: 'USD', name: 'US Dollar' }]);
-      setDbcrOptions([{ id: 'D', name: 'Debit' }, { id: 'C', name: 'Credit' }]);
-    } finally {
-      setOptionsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadData();
-    loadDropdownOptions();
-  }, []);
-
-  useEffect(() => {
-    applyFilters();
-  }, [searchTerm, filterGlGroup, filterCurrency, filterActive, data]);
+    return filtered;
+  }, [data, searchTerm, filterGlGroup, filterCurrency, filterActive]);
 
   const handleCreate = () => {
     setSelectedJournal(null);
@@ -344,11 +362,9 @@ export default function JournalParametersPage() {
 
       setDialogOpen(false);
       await loadData();
-
     } catch (error: any) {
       console.error('❌ Failed to save journal entry:', error);
-      const errorInfo = handleAPIError(error);
-      setError(`Failed to save journal entry: ${errorInfo.message}`);
+      throw error; // Rethrow for dialog handling
     } finally {
       setLoading(false);
     }
@@ -359,144 +375,144 @@ export default function JournalParametersPage() {
     setDialogOpen(false);
   }, []);
 
-  if (loading && data.length === 0) {
-    return (
-      <Container maxWidth="xl">
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
-          <CircularProgress size={48} />
-        </Box>
-      </Container>
-    );
-  }
-
   return (
     <Container maxWidth="xl" sx={{ position: 'relative' }}>
       <FullstackIndicator />
-      <PageHeader
-        title="Journal Parameters"
-        subtitle="Journal entry and accounting parameter configuration"
-        onRefresh={loadData}
-        loading={loading}
-        extraActions={(
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleCreate}
-            disabled={loading}
-          >
-            Add Journal Entry
-          </Button>
-        )}
-      />
-
-      <Card sx={{ mb: 2 }}>
-        <CardContent>
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-            <TextField
-              placeholder="Search by GL Code, Description, or GL Number"
-              variant="outlined"
-              size="small"
-              sx={{ flex: '1 1 300px', minWidth: 200 }}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              }}
-            />
-
-            <FormControl size="small" sx={{ minWidth: 150 }}>
-              <InputLabel>GL Group</InputLabel>
-              <Select
-                value={filterGlGroup}
-                onChange={(e) => setFilterGlGroup(e.target.value)}
-                label="GL Group"
+      {loading && data.length === 0 ? (
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+          <CircularProgress size={48} />
+        </Box>
+      ) : (
+        <>
+          <PageHeader
+            title="Journal Parameters"
+            subtitle="Journal entry and accounting parameter configuration"
+            onRefresh={loadData}
+            loading={loading}
+            extraActions={(
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={handleCreate}
+                disabled={loading}
               >
-                <MenuItem value="">All</MenuItem>
-                {Array.isArray(glGroupOptions) && glGroupOptions.map(option => (
-                  <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+                Add Journal Entry
+              </Button>
+            )}
+          />
 
-            <FormControl size="small" sx={{ minWidth: 120 }}>
-              <InputLabel>Currency</InputLabel>
-              <Select
-                value={filterCurrency}
-                onChange={(e) => setFilterCurrency(e.target.value)}
-                label="Currency"
-              >
-                <MenuItem value="">All</MenuItem>
-                {Array.isArray(currencyOptions) && currencyOptions.map(option => (
-                  <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
 
-            <FormControl size="small" sx={{ minWidth: 120 }}>
-              <InputLabel>Status</InputLabel>
-              <Select
-                value={filterActive}
-                onChange={(e) => setFilterActive(e.target.value as 'all' | 'active' | 'inactive')}
-                label="Status"
-              >
-                <MenuItem value="all">All</MenuItem>
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="inactive">Inactive</MenuItem>
-              </Select>
-            </FormControl>
+          <Card sx={{ mb: 2 }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+                <TextField
+                  placeholder="Search by GL Code, Description, or GL Number"
+                  variant="outlined"
+                  size="small"
+                  sx={{ flex: '1 1 300px', minWidth: 200 }}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
 
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <Button variant="contained" size="small" onClick={loadData} startIcon={<FilterIcon />}>Apply</Button>
-              <Button variant="outlined" size="small" onClick={clearFilters} startIcon={<ClearIcon />}>Clear</Button>
-            </Box>
-          </Box>
+                <FormControl size="small" sx={{ minWidth: 150 }}>
+                  <InputLabel>GL Group</InputLabel>
+                  <Select
+                    value={filterGlGroup}
+                    onChange={(e) => setFilterGlGroup(e.target.value)}
+                    label="GL Group"
+                  >
+                    <MenuItem value="">All</MenuItem>
+                    {Array.isArray(glGroupOptions) && glGroupOptions.map(option => (
+                      <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
 
-          {filteredData.length !== data.length && (
-            <Box sx={{ mt: 2 }}>
-              <Chip label={`Showing ${filteredData.length} of ${data.length} records`} color="primary" variant="outlined" size="small" />
-            </Box>
-          )}
-        </CardContent>
-      </Card>
+                <FormControl size="small" sx={{ minWidth: 120 }}>
+                  <InputLabel>Currency</InputLabel>
+                  <Select
+                    value={filterCurrency}
+                    onChange={(e) => setFilterCurrency(e.target.value)}
+                    label="Currency"
+                  >
+                    <MenuItem value="">All</MenuItem>
+                    {Array.isArray(currencyOptions) && currencyOptions.map(option => (
+                      <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
 
-      <Card>
-        <CardContent>
-          <Box sx={{ height: 600, width: '100%' }}>
-            <SafeDataGrid
-              rows={filteredData}
-              columns={columns}
-              getRowId={(row) => row?.pkid || row?.glCode || `row_${Math.random()}`}
-              pageSizeOptions={[5, 10, 25, 50]}
-              initialState={{
-                pagination: { paginationModel: { pageSize: 10 } }
-              }}
-              disableRowSelectionOnClick
-              loading={loading}
-              slotProps={{
-                loadingOverlay: {
-                  variant: 'linear-progress' as const,
-                  noRowsVariant: 'skeleton' as const,
-                },
-                noRowsOverlay: {
-                  children: (
-                    <EmptyState
-                      title="No Journal Parameters Found"
-                      description={error ? 'Failed to load data from database.' : 'No parameters configured yet.'}
-                      onRetry={error ? loadData : handleCreate}
-                      retryText={error ? 'Retry' : 'Add Journal Entry'}
-                      icon={<ErrorIcon />}
-                    />
-                  )
-                }
-              }}
-            />
-          </Box>
-        </CardContent>
-      </Card>
+                <FormControl size="small" sx={{ minWidth: 120 }}>
+                  <InputLabel>Status</InputLabel>
+                  <Select
+                    value={filterActive}
+                    onChange={(e) => setFilterActive(e.target.value as 'all' | 'active' | 'inactive')}
+                    label="Status"
+                  >
+                    <MenuItem value="all">All</MenuItem>
+                    <MenuItem value="active">Active</MenuItem>
+                    <MenuItem value="inactive">Inactive</MenuItem>
+                  </Select>
+                </FormControl>
+
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Button variant="contained" size="small" onClick={loadData} startIcon={<FilterIcon />}>Apply</Button>
+                  <Button variant="outlined" size="small" onClick={clearFilters} startIcon={<ClearIcon />}>Clear</Button>
+                </Box>
+              </Box>
+
+              {filteredData.length !== data.length && (
+                <Box sx={{ mt: 2 }}>
+                  <Chip label={`Showing ${filteredData.length} of ${data.length} records`} color="primary" variant="outlined" size="small" />
+                </Box>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent>
+              <Box sx={{ height: 600, width: '100%' }}>
+                <SafeDataGrid
+                  rows={filteredData}
+                  columns={columns}
+                  getRowId={(row) => row?.pkid || row?.glCode || `row_${Math.random()}`}
+                  pageSizeOptions={[5, 10, 25, 50]}
+                  initialState={{
+                    pagination: { paginationModel: { pageSize: 10 } }
+                  }}
+                  disableRowSelectionOnClick
+                  loading={loading}
+                  slotProps={{
+                    loadingOverlay: {
+                      variant: 'linear-progress' as const,
+                      noRowsVariant: 'skeleton' as const,
+                    },
+                    noRowsOverlay: {
+                      children: (
+                        <EmptyState
+                          title="No Journal Parameters Found"
+                          description={error ? 'Failed to load data from database.' : 'No parameters configured yet.'}
+                          onRetry={error ? loadData : handleCreate}
+                          retryText={error ? 'Retry' : 'Add Journal Entry'}
+                          icon={<ErrorIcon />}
+                        />
+                      )
+                    }
+                  }}
+                />
+              </Box>
+            </CardContent>
+          </Card>
+
+        </>
+      )}
 
       <JournalFormDialog
         open={dialogOpen}

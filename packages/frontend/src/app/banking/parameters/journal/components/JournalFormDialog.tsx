@@ -19,7 +19,10 @@ import {
     MenuItem,
     Box,
     FormControlLabel,
-    Switch
+    Switch,
+    CircularProgress,
+    Alert,
+    Typography
 } from '@mui/material';
 
 // =====================================================
@@ -61,7 +64,7 @@ export interface JournalDropdownOption {
 interface JournalFormDialogProps {
     open: boolean;
     onClose: () => void;
-    onSave: (data: JournalFormData) => void;
+    onSave: (data: JournalFormData) => Promise<void>;
     journal?: JournalParameter | null;
     loading?: boolean;
     optionsLoading?: boolean;
@@ -101,6 +104,7 @@ const JournalFormDialog = memo(function JournalFormDialog({
         activeFlag: true
     });
     const [error, setError] = useState<string | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
 
     // Reset form when dialog opens
     useEffect(() => {
@@ -117,18 +121,31 @@ const JournalFormDialog = memo(function JournalFormDialog({
                     activeFlag: journal.activeFlag ?? true
                 });
             } else {
-                setFormData({
-                    glGroup: glGroupOptions.length > 0 ? glGroupOptions[0].id : '',
-                    currency: currencyOptions.length > 0 ? currencyOptions[0].id : '',
-                    glType: journalTypeOptions.length > 0 ? journalTypeOptions[0].id : '',
-                    glCode: '',
-                    glNumber: '',
-                    dbcr: dbcrOptions.length > 0 ? dbcrOptions[0].id : '',
-                    glDesc: '',
-                    activeFlag: true
-                });
+                // For new entry: initialize if empty, but don't overwrite if user already typed something
+                setFormData(prev => ({
+                    glGroup: prev.glGroup || (glGroupOptions.length > 0 ? glGroupOptions[0].id : ''),
+                    currency: prev.currency || (currencyOptions.length > 0 ? currencyOptions[0].id : ''),
+                    glType: prev.glType || (journalTypeOptions.length > 0 ? journalTypeOptions[0].id : ''),
+                    glCode: prev.glCode || '',
+                    glNumber: prev.glNumber || '',
+                    dbcr: prev.dbcr || (dbcrOptions.length > 0 ? dbcrOptions[0].id : ''),
+                    glDesc: prev.glDesc || '',
+                    activeFlag: prev.activeFlag ?? true
+                }));
             }
             setError(null);
+        } else {
+            // Reset form when closed to ensure a clean state for next time
+            setFormData({
+                glGroup: '',
+                currency: '',
+                glType: '',
+                glCode: '',
+                glNumber: '',
+                dbcr: '',
+                glDesc: '',
+                activeFlag: true
+            });
         }
     }, [open, journal, glGroupOptions, currencyOptions, journalTypeOptions, dbcrOptions]);
 
@@ -143,7 +160,7 @@ const JournalFormDialog = memo(function JournalFormDialog({
             setFormData(prev => ({ ...prev, [field]: e.target.checked }));
         }, []);
 
-    const handleSubmit = useCallback(() => {
+    const handleSubmit = useCallback(async () => {
         const errors: string[] = [];
         if (!formData.glGroup.trim()) errors.push('Journal Group is required');
         if (!formData.currency.trim()) errors.push('Currency is required');
@@ -156,8 +173,17 @@ const JournalFormDialog = memo(function JournalFormDialog({
             return;
         }
 
-        setError(null);
-        onSave(formData);
+        try {
+            setIsSaving(true);
+            setError(null);
+            await onSave(formData);
+            // Dialog will be closed by parent after success
+        } catch (err: any) {
+            console.error('❌ Error saving journal parameter:', err);
+            setError(err.message || 'Failed to save journal parameter');
+        } finally {
+            setIsSaving(false);
+        }
     }, [formData, onSave]);
 
     return (
@@ -296,8 +322,13 @@ const JournalFormDialog = memo(function JournalFormDialog({
                 )}
             </DialogContent>
             <DialogActions>
-                <Button onClick={onClose} disabled={loading}>Cancel</Button>
-                <Button onClick={handleSubmit} variant="contained" disabled={loading}>
+                <Button onClick={onClose} disabled={loading || isSaving}>Cancel</Button>
+                <Button
+                    onClick={handleSubmit}
+                    variant="contained"
+                    disabled={loading || isSaving}
+                    startIcon={(loading || isSaving) ? <CircularProgress size={20} color="inherit" /> : null}
+                >
                     {journal ? 'Update' : 'Create'}
                 </Button>
             </DialogActions>

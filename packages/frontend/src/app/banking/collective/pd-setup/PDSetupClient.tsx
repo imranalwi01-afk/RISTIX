@@ -274,13 +274,13 @@ const PdSetupPage = () => {
     <Container maxWidth="xl">
       <Breadcrumbs sx={{ mb: 2 }}>
         <Link href="/banking/dashboard" underline="hover" color="inherit">Dashboard</Link>
-        <Typography color="text.primary">PD Setup</Typography>
+        <Typography color="text.primary" data-testid="pd-setup-title">PD Setup</Typography>
       </Breadcrumbs>
 
       <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Typography variant="h4" component="h1">PD Setup Management</Typography>
         <Box>
-          <Button startIcon={<RefreshIcon />} onClick={loadData} disabled={loading} sx={{ mr: 1 }}>Refresh</Button>
+          <Button startIcon={<RefreshIcon />} onClick={loadData} disabled={loading} sx={{ mr: 1 }} data-testid="refresh-btn">Refresh</Button>
           <Button variant="contained" startIcon={<AddIcon />} onClick={() => {
             setSelectedConfig(null);
             setFormData({
@@ -293,7 +293,7 @@ const PdSetupPage = () => {
             });
             setIsEditing(false);
             setIsDialogOpen(true);
-          }}>Add Configuration</Button>
+          }} data-testid="add-config-btn">Add Configuration</Button>
         </Box>
       </Box>
 
@@ -307,6 +307,7 @@ const PdSetupPage = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             InputProps={{ startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} /> }}
+            data-testid="search-input"
           />
         </CardContent>
       </Card>
@@ -337,6 +338,7 @@ const PdSetupPage = () => {
                   onChange={(e) => setFormData({ ...formData, model_name: e.target.value })}
                   error={!!formErrors.model_name}
                   helperText={formErrors.model_name}
+                  data-testid="model-name-input"
                 />
               </Box>
               <Box>
@@ -346,6 +348,7 @@ const PdSetupPage = () => {
                     value={formData.population_segment_id || ''}
                     label="Population Segment"
                     onChange={(e) => setFormData({ ...formData, population_segment_id: e.target.value })}
+                    data-testid="segment-select"
                   >
                     {populationSegments.map(s => (
                       <MenuItem key={s.id} value={s.id}>{s.segment_name}</MenuItem>
@@ -361,6 +364,7 @@ const PdSetupPage = () => {
                     value={formData.selected_method || 1}
                     label="Method"
                     onChange={(e) => setFormData({ ...formData, selected_method: Number(e.target.value) })}
+                    data-testid="method-select"
                   >
                     {methodOptions.map(m => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
                   </Select>
@@ -375,6 +379,7 @@ const PdSetupPage = () => {
                   value={formData.migration_interval || ''}
                   onChange={(e) => setFormData({ ...formData, migration_interval: Number(e.target.value) })}
                   disabled={isFieldDisabled('migration_interval')}
+                  data-testid="migration-interval-input"
                 />
               </Box>
 
@@ -386,6 +391,7 @@ const PdSetupPage = () => {
                     label="Bucket Group"
                     onChange={(e) => setFormData({ ...formData, bucket: e.target.value })}
                     error={!!formErrors.bucket}
+                    data-testid="bucket-group-select"
                   >
                     {bucketGroups.map((b: any) => (
                       <MenuItem key={b.id} value={b.bucket_group}>{b.bucket_group}</MenuItem>
@@ -402,6 +408,7 @@ const PdSetupPage = () => {
                     label="Population Type"
                     onChange={(e) => setFormData({ ...formData, population_type: Number(e.target.value) })}
                     disabled={isFieldDisabled('population_type')}
+                    data-testid="population-type-select"
                   >
                     {popTypeOptions.map(m => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
                   </Select>
@@ -416,6 +423,7 @@ const PdSetupPage = () => {
                   value={formData.historical_month || ''}
                   onChange={(e) => setFormData({ ...formData, historical_month: Number(e.target.value) })}
                   disabled={isFieldDisabled('historical_month')}
+                  data-testid="historical-month-input"
                 />
               </Box>
 
@@ -425,7 +433,7 @@ const PdSetupPage = () => {
                   value={formData.first_historical_date ? dayjs(formData.first_historical_date) : null}
                   onChange={(date) => setFormData({ ...formData, first_historical_date: date ? dayjs(date).format('YYYY-MM-DD') : undefined })}
                   disabled={isFieldDisabled('first_historical_date')}
-                  slotProps={{ textField: { fullWidth: true } }}
+                  slotProps={{ textField: { fullWidth: true, 'data-testid': 'first-historical-date-picker' } as any }}
                 />
               </Box>
 
@@ -437,20 +445,21 @@ const PdSetupPage = () => {
                   value={formData.multiplication || ''}
                   onChange={(e) => setFormData({ ...formData, multiplication: Number(e.target.value) })}
                   disabled={isFieldDisabled('multiplication')}
+                  data-testid="multiplication-input"
                 />
               </Box>
 
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <FormControlLabel
-                  control={<Switch checked={!!formData.is_active} onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })} />}
+                  control={<Switch checked={!!formData.is_active} onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })} data-testid="active-switch" />}
                   label="Active"
                 />
                 <FormControlLabel
-                  control={<Switch checked={!!formData.fl_flag} onChange={(e) => setFormData({ ...formData, fl_flag: e.target.checked })} />}
+                  control={<Switch checked={!!formData.fl_flag} onChange={(e) => setFormData({ ...formData, fl_flag: e.target.checked })} data-testid="fl-flag-switch" />}
                   label="FL Flag"
                 />
                 <FormControlLabel
-                  control={<Switch checked={!!formData.ia_flag} onChange={(e) => setFormData({ ...formData, ia_flag: e.target.checked })} />}
+                  control={<Switch checked={!!formData.ia_flag} onChange={(e) => setFormData({ ...formData, ia_flag: e.target.checked })} data-testid="ia-flag-switch" />}
                   label="IA Flag"
                 />
               </Box>
@@ -459,8 +468,8 @@ const PdSetupPage = () => {
           </LocalizationProvider>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleSave} disabled={loading}>{selectedConfig ? 'Update' : 'Create'}</Button>
+          <Button onClick={() => setIsDialogOpen(false)} data-testid="cancel-btn">Cancel</Button>
+          <Button variant="contained" onClick={handleSave} disabled={loading} data-testid="save-config-btn">{selectedConfig ? 'Update' : 'Create'}</Button>
         </DialogActions>
       </Dialog>
     </Container>
