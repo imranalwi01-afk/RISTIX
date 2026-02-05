@@ -337,7 +337,7 @@ export const individualImpairmentAPI = {
       includeFilters?: boolean;
     }) => {
       console.log(`📤 Exporting Individual Impairment watchlist as ${format}`);
-      
+
       try {
         // Make request with blob response type
         const response = await apiClient.post('/banking/individual/impairment/watchlist/export', {
@@ -364,7 +364,7 @@ export const individualImpairmentAPI = {
             }
           }
         }
-        
+
         // Fallback filename
         if (!filename) {
           const timestamp = new Date().toISOString().split('T')[0];
@@ -378,7 +378,7 @@ export const individualImpairmentAPI = {
         link.download = filename;
         document.body.appendChild(link);
         link.click();
-        
+
         // Cleanup
         setTimeout(() => {
           document.body.removeChild(link);
@@ -391,11 +391,12 @@ export const individualImpairmentAPI = {
           success: true,
           fileName: filename,
           recordCount: parseInt(response.headers['x-export-records'] || '0'),
-          message: 'Export completed successfully'
+          message: 'Export completed successfully',
+          download_url: url
         };
       } catch (error: any) {
         console.error('❌ Export failed:', error);
-        
+
         // If error response is blob, convert to JSON for error message
         if (error.response?.data instanceof Blob) {
           try {
@@ -406,7 +407,7 @@ export const individualImpairmentAPI = {
             throw new Error('Export failed: Unable to process response');
           }
         }
-        
+
         throw error;
       }
     }

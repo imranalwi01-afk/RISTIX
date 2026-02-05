@@ -9,10 +9,10 @@ FROM oven/bun:1.1 AS builder
 WORKDIR /app
 
 # Copy package files and bunfig.toml
-COPY package.json bunfig.toml ./
+COPY package.json bun.lockb bunfig.toml ./
 
-# Install dependencies (no lockfile)
-RUN bun install
+# Install dependencies (frozen lockfile)
+RUN bun install --frozen-lockfile
 
 # Copy source code
 COPY . .

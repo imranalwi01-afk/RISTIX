@@ -7,6 +7,10 @@ const withBundleAnalyzer = bundleAnalyzer({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  turbopack: {
+    root: '../../',
+  },
+
   // ============================================================================
   // PERFORMANCE OPTIMIZATIONS
   // ============================================================================
@@ -44,6 +48,7 @@ const nextConfig = {
 
   // Optimize package imports to reduce bundle size
   experimental: {
+
     optimizePackageImports: [
       'recharts',
       'lucide-react',
