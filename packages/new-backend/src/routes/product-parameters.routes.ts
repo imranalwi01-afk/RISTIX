@@ -20,7 +20,7 @@ const ProductParamSchema = z.object({
     prdDesc: z.string().max(255),
     currency: z.string().max(5),
     amortizationType: z.string().max(10).optional(),
-    alFlag: z.string().max(1).optional(),
+    alFlag: z.string().max(10).optional(),
     impairedFlag: z.boolean().optional(),
     bmFlag: z.boolean().optional(),
     expectedLife: z.number().int().optional(),

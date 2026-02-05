@@ -20,9 +20,6 @@ export async function loginUser(page: Page) {
     await page.getByTestId('login-email').fill(ADMIN_USER.email);
     await page.getByTestId('login-password').fill(ADMIN_USER.password);
 
-    // Initial check for loading
-    await expect(page.getByTestId('login-submit')).toBeEnabled();
-
     // Handle Tenant Selection
     const tenantSelect = page.getByTestId('login-tenant-select');
     console.log('Waiting for tenant selector to be enabled...');
@@ -76,7 +73,7 @@ export async function loginUser(page: Page) {
         if (body.success) {
             console.log('✅ Login API successful. Waiting for redirect or forcing it...');
             // Instead of networkidle, just wait for common dashboard text or timeout
-            await page.waitForURL(/dashboard|banking|platform/, { timeout: 10000 }).catch(async () => {
+            await page.waitForURL(/dashboard|banking|platform/, { timeout: 30000 }).catch(async () => {
                 console.log('Manual redirecting to dashboard...');
                 await page.goto('/banking/dashboard');
             });

@@ -36,7 +36,11 @@ import {
   TableRow,
   Paper,
   IconButton,
-  Tooltip
+  Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material';
 
 import {
@@ -118,59 +122,59 @@ const ApplicationDetailPanel = ({ row, onEditDetail, onDeleteDetail, onAddDetail
 
   return (
     <Box sx={{ p: 2, bgcolor: 'grey.50' }}>
-       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
         <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-            Parameter Details for {row.CommonCode}
+          Parameter Details for {row.CommonCode}
         </Typography>
         <Button
-            size="small"
-            startIcon={<AddIcon />}
-            variant="contained"
-            onClick={() => onAddDetail(row)}
+          size="small"
+          startIcon={<AddIcon />}
+          variant="contained"
+          onClick={() => onAddDetail(row)}
         >
-            Add Detail
+          Add Detail
         </Button>
-       </Box>
-       
-       {details.length === 0 ? (
-           <Typography variant="body2" color="text.secondary">No details found.</Typography>
-       ) : (
+      </Box>
+
+      {details.length === 0 ? (
+        <Typography variant="body2" color="text.secondary">No details found.</Typography>
+      ) : (
         <TableContainer component={Paper} variant="outlined">
-            <Table size="small">
-                <TableHead>
-                    <TableRow>
-                        <TableCell>Sequence</TableCell>
-                        <TableCell>Value 1</TableCell>
-                        <TableCell>Value 2</TableCell>
-                        <TableCell>Value 3</TableCell>
-                        <TableCell>Description</TableCell>
-                        <TableCell>Actions</TableCell>
-                    </TableRow>
-                </TableHead>
-                <TableBody>
-                    {details.map((detail) => (
-                        <TableRow key={detail.ID} hover>
-                            <TableCell>{detail.SeqNo}</TableCell>
-                            <TableCell>{detail.Value1}</TableCell>
-                            <TableCell>{detail.Value2 || '-'}</TableCell>
-                            <TableCell>{detail.Value3 || '-'}</TableCell>
-                            <TableCell>{detail.Description}</TableCell>
-                            <TableCell>
-                                <Box sx={{ display: 'flex' }}>
-                                    <IconButton size="small" color="primary" onClick={() => onEditDetail(detail, row)}>
-                                        <EditIcon fontSize="small" />
-                                    </IconButton>
-                                    <IconButton size="small" color="error" onClick={() => onDeleteDetail(detail, row.CommonCode, loadDetails)}>
-                                        <DeleteIcon fontSize="small" />
-                                    </IconButton>
-                                </Box>
-                            </TableCell>
-                        </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>Sequence</TableCell>
+                <TableCell>Value 1</TableCell>
+                <TableCell>Value 2</TableCell>
+                <TableCell>Value 3</TableCell>
+                <TableCell>Description</TableCell>
+                <TableCell>Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {details.map((detail) => (
+                <TableRow key={detail.ID} hover>
+                  <TableCell>{detail.SeqNo}</TableCell>
+                  <TableCell>{detail.Value1}</TableCell>
+                  <TableCell>{detail.Value2 || '-'}</TableCell>
+                  <TableCell>{detail.Value3 || '-'}</TableCell>
+                  <TableCell>{detail.Description}</TableCell>
+                  <TableCell>
+                    <Box sx={{ display: 'flex' }}>
+                      <IconButton size="small" color="primary" onClick={() => onEditDetail(detail, row)}>
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton size="small" color="error" onClick={() => onDeleteDetail(detail, row.CommonCode, loadDetails)}>
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </TableContainer>
-       )}
+      )}
     </Box>
   );
 };
@@ -201,43 +205,86 @@ export default function ApplicationSettingPage() {
   const [showColumnFilters, setShowColumnFilters] = useState(false);
 
   // Modals
+  // Modals
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
-  
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+
   const [selectedRecord, setSelectedRecord] = useState<ApplicationSettingDataTable | null>(null);
   const [selectedDetail, setSelectedDetail] = useState<ApplicationSettingDetailDataTable | null>(null);
-  
+
+  const [detailData, setDetailData] = useState<ApplicationSettingDetailDataTable[]>([]);
+
   const [detailDataForModal, setDetailDataForModal] = useState<ApplicationSettingDetailDataTable[]>([]); // To calculate next seq
   const [detailLoading, setDetailLoading] = useState(false);
+  const [detailFormData, setDetailFormData] = useState<DetailFormData>({
+    ParamCode: '',
+    SeqNo: 0,
+    Value1: '',
+    Value2: '',
+    Value3: '',
+    Description: ''
+  });
 
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
   // Helper to re-fetch details for modal logic
   const fetchDetailsForModal = async (paramCode: string) => {
-      try {
-          const result = await api.applicationParameter.details.getForHeader(paramCode);
-          if (result.success && result.data) {
-             setDetailDataForModal(result.data.map((item: any) => ({
-                 ID: item.id || item.pkid,
-                 SeqNo: item.param_seq,
-                 // other fields not strictly needed for sequence calc but good to have
-                 Value1: item.value1,
-                 Value2: item.value2,
-                 Value3: item.value3,
-                 Description: item.paramdesc,
-                 // compat
-                 pkid: item.pkid,
-                 param_code: item.param_code,
-                 param_seq: item.param_seq,
-                 value1: item.value1,
-                 value2: item.value2,
-                 value3: item.value3,
-                 paramdesc: item.paramdesc
-             })));
-          }
-      } catch (e) { console.error(e); }
+    try {
+      const result = await api.applicationParameter.details.getForHeader(paramCode);
+      if (result.success && result.data) {
+        setDetailDataForModal(result.data.map((item: any) => ({
+          ID: item.id || item.pkid,
+          SeqNo: item.param_seq,
+          // other fields not strictly needed for sequence calc but good to have
+          Value1: item.value1,
+          Value2: item.value2,
+          Value3: item.value3,
+          Description: item.paramdesc,
+          // compat
+          pkid: item.pkid,
+          param_code: item.param_code,
+          param_seq: item.param_seq,
+          value1: item.value1,
+          value2: item.value2,
+          value3: item.value3,
+          paramdesc: item.paramdesc
+        })));
+      }
+    } catch (e) { console.error(e); }
+  };
+
+  const loadDetailData = async (paramCode: string) => {
+    try {
+      setDetailLoading(true);
+      const result = await api.applicationParameter.details.getForHeader(paramCode);
+      if (result.success && result.data) {
+        setDetailData(result.data.map((item: any) => ({
+          ID: item.id || item.pkid,
+          SeqNo: item.param_seq,
+          Value1: item.value1,
+          Value2: item.value2,
+          Value3: item.value3,
+          Description: item.paramdesc,
+          pkid: item.pkid,
+          param_code: item.param_code,
+          param_seq: item.param_seq,
+          value1: item.value1,
+          value2: item.value2,
+          value3: item.value3,
+          paramdesc: item.paramdesc
+        })));
+      } else {
+        setDetailData([]);
+      }
+    } catch (error) {
+      console.error('Failed to load details:', error);
+      setDetailData([]);
+    } finally {
+      setDetailLoading(false);
+    }
   };
 
   const loadData = async () => {
@@ -246,22 +293,22 @@ export default function ApplicationSettingPage() {
       const result = await api.applicationParameter.headers.getAll({ include_details: true });
       if (result.success && result.data) {
         const transformedData: ApplicationSettingDataTable[] = result.data.map((item: any) => ({
-            ID: item.ID || item.id || item.pkid,
-            CommonCode: item.CommonCode || item.param_code || item.paramCode,
-            Description: item.Description || item.param_name || item.paramName,
-            Value: item.Value || item.param_usage || item.paramUsage || 'No details configured',
-            ParamType: item.ParamType || item.param_type || item.paramType || 'S',
-            CreatedBy: item.created_by || item.CreatedBy || item.createdby || 'SYSTEM',
-            CreatedDate: item.created_date || item.CreatedDate || item.createddate,
-            UpdatedBy: item.updated_by || item.UpdatedBy || item.updatedby,
-            UpdatedDate: item.updated_date || item.UpdatedDate || item.updateddate,
-            pkid: item.pkid || item.id || item.ID,
-            param_code: item.CommonCode || item.param_code || item.paramCode,
-            param_name: item.Description || item.param_name || item.paramName,
-            param_usage: item.ParamUsage || item.param_usage || item.paramUsage,
-            param_type: item.ParamType || item.param_type || item.paramType || 'A',
-            createdby: item.created_by || item.createdby,
-            createddate: item.created_date || item.createddate
+          ID: item.ID || item.id || item.pkid,
+          CommonCode: item.CommonCode || item.param_code || item.paramCode,
+          Description: item.Description || item.param_name || item.paramName,
+          Value: item.Value || item.param_usage || item.paramUsage || 'No details configured',
+          ParamType: item.ParamType || item.param_type || item.paramType || 'S',
+          CreatedBy: item.created_by || item.CreatedBy || item.createdby || 'SYSTEM',
+          CreatedDate: item.created_date || item.CreatedDate || item.createddate,
+          UpdatedBy: item.updated_by || item.UpdatedBy || item.updatedby,
+          UpdatedDate: item.updated_date || item.UpdatedDate || item.updateddate,
+          pkid: item.pkid || item.id || item.ID,
+          param_code: item.CommonCode || item.param_code || item.paramCode,
+          param_name: item.Description || item.param_name || item.paramName,
+          param_usage: item.ParamUsage || item.param_usage || item.paramUsage,
+          param_type: item.ParamType || item.param_type || item.paramType || 'A',
+          createdby: item.created_by || item.createdby,
+          createddate: item.created_date || item.createddate
         }));
         // Filter S and A types
         const appParams = transformedData.filter(item => item.CommonCode && (item.ParamType === 'S' || item.ParamType === 'A'));
@@ -281,9 +328,9 @@ export default function ApplicationSettingPage() {
     let filtered = [...data];
     if (searchTerm.trim()) {
       const s = searchTerm.toLowerCase();
-      filtered = filtered.filter(i => 
-        i.CommonCode.toLowerCase().includes(s) || 
-        i.Description.toLowerCase().includes(s) || 
+      filtered = filtered.filter(i =>
+        i.CommonCode.toLowerCase().includes(s) ||
+        i.Description.toLowerCase().includes(s) ||
         i.Value.toLowerCase().includes(s)
       );
     }
@@ -292,7 +339,7 @@ export default function ApplicationSettingPage() {
     if (columnFilters.description) filtered = filtered.filter(i => i.Description.toLowerCase().includes(columnFilters.description.toLowerCase()));
     if (columnFilters.value) filtered = filtered.filter(i => i.Value.toLowerCase().includes(columnFilters.value.toLowerCase()));
     if (columnFilters.createdBy) filtered = filtered.filter(i => i.CreatedBy.toLowerCase().includes(columnFilters.createdBy.toLowerCase()));
-    
+
     return filtered;
   }, [data, searchTerm, columnFilters]);
 
@@ -310,66 +357,66 @@ export default function ApplicationSettingPage() {
   const handleDelete = async (row: ApplicationSettingDataTable) => {
     if (!confirm(`Are you sure you want to delete "${row.CommonCode}"?`)) return;
     try {
-        setLoading(true);
-        await api.applicationParameter.headers.delete(row.CommonCode);
-        setSuccess('Deleted successfully');
-        await loadData();
+      setLoading(true);
+      await api.applicationParameter.headers.delete(row.CommonCode);
+      setSuccess('Deleted successfully');
+      await loadData();
     } catch (e: any) {
-        setError(handleAPIError(e).message);
+      setError(handleAPIError(e).message);
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
   };
 
   const handleApplicationFormSave = async (formData: ApplicationSettingFormData) => {
-      try {
-          setLoading(true);
-          const payload = {
-            param_code: formData.ParamCode.trim().toUpperCase(),
-            param_name: formData.ParamName.trim(),
-            param_usage: formData.ParamUsage?.trim() || ''
-          };
+    try {
+      setLoading(true);
+      const payload = {
+        param_code: formData.ParamCode.trim().toUpperCase(),
+        param_name: formData.ParamName.trim(),
+        param_usage: formData.ParamUsage?.trim() || ''
+      };
 
-          if (selectedRecord) {
-              await api.applicationParameter.headers.update(selectedRecord.CommonCode, payload);
-              setSuccess('Updated successfully');
-          } else {
-              await api.applicationParameter.headers.create(payload);
-              setSuccess('Created successfully');
-          }
-          setCreateModalOpen(false);
-          setEditModalOpen(false);
-          loadData();
-      } catch (e: any) {
-          setError(handleAPIError(e).message);
-      } finally {
-          setLoading(false);
+      if (selectedRecord) {
+        await api.applicationParameter.headers.update(selectedRecord.CommonCode, payload);
+        setSuccess('Updated successfully');
+      } else {
+        await api.applicationParameter.headers.create(payload);
+        setSuccess('Created successfully');
       }
+      setCreateModalOpen(false);
+      setEditModalOpen(false);
+      loadData();
+    } catch (e: any) {
+      setError(handleAPIError(e).message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Detail CRUD
   const handleAddDetail = async (row: ApplicationSettingDataTable) => {
-      setSelectedRecord(row);
-      await fetchDetailsForModal(row.CommonCode);
-      setSelectedDetail(null);
-      setDetailModalOpen(true);
+    setSelectedRecord(row);
+    await fetchDetailsForModal(row.CommonCode);
+    setSelectedDetail(null);
+    setDetailModalOpen(true);
   };
 
   const handleEditDetail = (detail: ApplicationSettingDetailDataTable, row: ApplicationSettingDataTable) => {
-      setSelectedRecord(row);
-      setSelectedDetail(detail);
-      setDetailModalOpen(true);
+    setSelectedRecord(row);
+    setSelectedDetail(detail);
+    setDetailModalOpen(true);
   };
 
   const handleDeleteDetail = async (detail: ApplicationSettingDetailDataTable, paramCode: string, refreshCallback: () => void) => {
-      if(!confirm(`Delete detail sequence ${detail.SeqNo}?`)) return;
-      try {
-          await api.applicationParameter.details.delete(detail.ID.toString());
-          setSuccess('Detail deleted');
-          refreshCallback();
-      } catch(e: any) {
-          setError(handleAPIError(e).message);
-      }
+    if (!confirm(`Delete detail sequence ${detail.SeqNo}?`)) return;
+    try {
+      await api.applicationParameter.details.delete(detail.ID.toString());
+      setSuccess('Detail deleted');
+      refreshCallback();
+    } catch (e: any) {
+      setError(handleAPIError(e).message);
+    }
   }
   const handleExport = (format: string) => {
     const filter = encodeURIComponent(JSON.stringify({
@@ -426,43 +473,43 @@ export default function ApplicationSettingPage() {
   };
 
   const handleDetailFormSave = async (formData: DetailFormData) => {
-      if (!selectedRecord) return;
-      try {
-          setDetailLoading(true);
-          const payload = {
-            param_seq: formData.SeqNo,
-            value1: formData.Value1.trim(),
-            value2: formData.Value2?.trim() || '',
-            value3: formData.Value3?.trim() || '',
-            paramdesc: formData.Description?.trim() || ''
-          };
+    if (!selectedRecord) return;
+    try {
+      setDetailLoading(true);
+      const payload = {
+        param_seq: formData.SeqNo,
+        value1: formData.Value1.trim(),
+        value2: formData.Value2?.trim() || '',
+        value3: formData.Value3?.trim() || '',
+        paramdesc: formData.Description?.trim() || ''
+      };
 
-          if (selectedDetail) {
-             await api.applicationParameter.details.update(selectedDetail.ID.toString(), payload);
-          } else {
-             await api.applicationParameter.details.create(selectedRecord.CommonCode, payload);
-          }
-          setSuccess('Detail saved');
-          setDetailModalOpen(false);
-          // Force refresh of the grid - simpler to just let user re-expand or auto-refresh if we tracked expanded state
-          // For now, the detail panel itself fetches on mount/update so we are good if we trigger a re-render or if the user collapses/expands
-          loadData(); // This refreshes the parent, but details are fetched by the panel
-      } catch (e: any) {
-          setError(handleAPIError(e).message);
-      } finally {
-          setDetailLoading(false);
+      if (selectedDetail) {
+        await api.applicationParameter.details.update(selectedDetail.ID.toString(), payload);
+      } else {
+        await api.applicationParameter.details.create(selectedRecord.CommonCode, payload);
       }
+      setSuccess('Detail saved');
+      setDetailModalOpen(false);
+      // Force refresh of the grid - simpler to just let user re-expand or auto-refresh if we tracked expanded state
+      // For now, the detail panel itself fetches on mount/update so we are good if we trigger a re-render or if the user collapses/expands
+      loadData(); // This refreshes the parent, but details are fetched by the panel
+    } catch (e: any) {
+      setError(handleAPIError(e).message);
+    } finally {
+      setDetailLoading(false);
+    }
   };
 
   // SafeDataGrid Columns
   const columns: GridColDef[] = [
-    { 
-        field: 'CommonCode', 
-        headerName: 'Common Code', 
-        flex: 1,
-        renderCell: (params: GridRenderCellParams) => (
-            <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{params.value}</Typography>
-        ) 
+    {
+      field: 'CommonCode',
+      headerName: 'Common Code',
+      flex: 1,
+      renderCell: (params: GridRenderCellParams) => (
+        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{params.value}</Typography>
+      )
     },
     { field: 'Description', headerName: 'Description', flex: 2 },
     { field: 'Value', headerName: 'Value', flex: 1 },
@@ -493,7 +540,7 @@ export default function ApplicationSettingPage() {
     <Container maxWidth="xl">
       <Box sx={{ mb: 3, py: 1, bgcolor: 'grey.50', borderRadius: 1, px: 2 }}>
         <Typography variant="body2" color="text.secondary">
-            General Setup / Application Setting
+          General Setup / Application Setting
         </Typography>
       </Box>
 
@@ -505,60 +552,60 @@ export default function ApplicationSettingPage() {
         <CardContent>
           {/* Toolbar */}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-             {/* Export not fully implemented in refactor yet, placeholder */}
-             <Button variant="outlined" startIcon={<DownloadIcon />} disabled>Export</Button>
-             
-             <Button variant="contained" startIcon={<AddIcon />} onClick={handleCreate}>
-                 Add Application Setting
-             </Button>
+            {/* Export not fully implemented in refactor yet, placeholder */}
+            <Button variant="outlined" startIcon={<DownloadIcon />} disabled>Export</Button>
+
+            <Button variant="contained" startIcon={<AddIcon />} onClick={handleCreate}>
+              Add Application Setting
+            </Button>
           </Box>
 
           <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-             <TextField
-                placeholder="Search..."
-                size="small"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                InputProps={{ startAdornment: <SearchIcon color="action" /> }}
-             />
-             <Button 
-                variant={showColumnFilters ? 'contained' : 'outlined'}
-                onClick={() => setShowColumnFilters(!showColumnFilters)}
-                startIcon={<FilterIcon />}
-             >
-                Filters
-             </Button>
-             <Button onClick={() => { setSearchTerm(''); setColumnFilters({ commonCode: '', description: '', value: '', createdBy: '' }); }}>
-                <ClearIcon /> Clear
-             </Button>
+            <TextField
+              placeholder="Search..."
+              size="small"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              InputProps={{ startAdornment: <SearchIcon color="action" /> }}
+            />
+            <Button
+              variant={showColumnFilters ? 'contained' : 'outlined'}
+              onClick={() => setShowColumnFilters(!showColumnFilters)}
+              startIcon={<FilterIcon />}
+            >
+              Filters
+            </Button>
+            <Button onClick={() => { setSearchTerm(''); setColumnFilters({ commonCode: '', description: '', value: '', createdBy: '' }); }}>
+              <ClearIcon /> Clear
+            </Button>
           </Box>
 
           {showColumnFilters && (
-              <Box sx={{ display: 'flex', gap: 2, mb: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-                  <TextField label="Code" size="small" value={columnFilters.commonCode} onChange={e => setColumnFilters({...columnFilters, commonCode: e.target.value})} />
-                  <TextField label="Description" size="small" value={columnFilters.description} onChange={e => setColumnFilters({...columnFilters, description: e.target.value})} />
-                  <TextField label="Value" size="small" value={columnFilters.value} onChange={e => setColumnFilters({...columnFilters, value: e.target.value})} />
-                  <TextField label="Created By" size="small" value={columnFilters.createdBy} onChange={e => setColumnFilters({...columnFilters, createdBy: e.target.value})} />
-              </Box>
+            <Box sx={{ display: 'flex', gap: 2, mb: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+              <TextField label="Code" size="small" value={columnFilters.commonCode} onChange={e => setColumnFilters({ ...columnFilters, commonCode: e.target.value })} />
+              <TextField label="Description" size="small" value={columnFilters.description} onChange={e => setColumnFilters({ ...columnFilters, description: e.target.value })} />
+              <TextField label="Value" size="small" value={columnFilters.value} onChange={e => setColumnFilters({ ...columnFilters, value: e.target.value })} />
+              <TextField label="Created By" size="small" value={columnFilters.createdBy} onChange={e => setColumnFilters({ ...columnFilters, createdBy: e.target.value })} />
+            </Box>
           )}
 
           <div style={{ height: 600, width: '100%' }}>
             <SafeDataGrid
-                rows={filteredData}
-                columns={columns}
-                getRowId={(row) => row.pkid || row.ID || `${row.CommonCode}-${Math.random()}`}
-                loading={loading}
-                initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
-                pageSizeOptions={[10, 25, 50, 100]}
-                getDetailPanelContent={(params) => (
-                    <ApplicationDetailPanel 
-                        row={params.row} 
-                        onEditDetail={handleEditDetail} 
-                        onDeleteDetail={handleDeleteDetail}
-                        onAddDetail={handleAddDetail}
-                    />
-                )}
-                getDetailPanelHeight={() => 'auto'}
+              rows={filteredData}
+              columns={columns}
+              getRowId={(row) => row.pkid || row.ID || `${row.CommonCode}-${Math.random()}`}
+              loading={loading}
+              initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
+              pageSizeOptions={[10, 25, 50, 100]}
+              getDetailPanelContent={(params) => (
+                <ApplicationDetailPanel
+                  row={params.row}
+                  onEditDetail={handleEditDetail}
+                  onDeleteDetail={handleDeleteDetail}
+                  onAddDetail={handleAddDetail}
+                />
+              )}
+              getDetailPanelHeight={() => 'auto'}
             />
           </div>
 
