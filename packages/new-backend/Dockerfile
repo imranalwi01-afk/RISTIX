@@ -24,21 +24,16 @@ COPY . .
 RUN bun build src/index.ts --compile --outfile ./server
 
 # Stage 2: Minimal production image
-FROM debian:bookworm-slim AS runner
+FROM gcr.io/distroless/cc-debian12 AS runner
 
 WORKDIR /app
-
-# Install minimal runtime dependencies (libssl for HTTPS, ca-certificates)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
 
 # Copy the single executable
 COPY --from=builder /app/server ./server
 
 # Make executable
-RUN chmod +x ./server
+# Make executable (handled by builder or copy)
+# RUN chmod +x ./server
 
 ENV NODE_ENV=production
 ENV PORT=4232
@@ -47,8 +42,9 @@ ENV HOST=0.0.0.0
 EXPOSE 4232
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:4232/api/health || exit 1
+# Health check (Disabled in distroless as curl/wget are missing)
+# HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+#     CMD curl -f http://localhost:4232/api/health || exit 1
 
 # Run the standalone executable
 CMD ["./server"]

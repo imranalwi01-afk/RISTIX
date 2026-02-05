@@ -8,8 +8,8 @@ FROM base AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Copy package files and source (context is packages/frontend)
-COPY package.json pnpm-lock.yaml ./
+# Copy package files (make lockfiles optional with wildcard)
+COPY package.json pnpm-lock.yaml* package-lock.json* bun.lockb* ./
 COPY . .
 
 # Install dependencies for frontend package
@@ -22,7 +22,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app ./
 
 # Next.js telemetry
-ENV NEXT_TELEMETRY_DISABLED 1
+ENV NEXT_TELEMETRY_DISABLED=1
 
 # Build
 RUN pnpm run build
@@ -31,8 +31,8 @@ RUN pnpm run build
 FROM base AS runner
 WORKDIR /app
 
-ENV NODE_ENV production
-ENV NEXT_TELEMETRY_DISABLED 1
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
@@ -59,8 +59,8 @@ USER nextjs
 
 EXPOSE 4231
 
-ENV PORT 4231
-ENV HOSTNAME "0.0.0.0"
+ENV PORT=4231
+ENV HOSTNAME="0.0.0.0"
 
 # Startup logic
 CMD ["node", "server.js"]
