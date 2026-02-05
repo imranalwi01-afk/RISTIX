@@ -14,6 +14,8 @@ import { IndividualImpairmentService } from '../../core/services/individual-impa
 import { handleAPIError } from '../../utils/error-handler';
 import { AuthenticatedRequest } from '../../api/middleware/auth.middleware';
 
+import type { ExportColumn } from '../../utils/export-helpers';
+
 // ============================================================================
 // VALIDATION SCHEMAS
 // ============================================================================
@@ -516,28 +518,44 @@ export class IndividualImpairmentController {
 
       // Get filtered data
       const { page = 1, limit = 10000, search, filter } = filters || {};
+      
+      console.log(`📤 [II-009] Export filters received:`, { 
+        search, 
+        filterType: typeof filter, 
+        filterKeys: filter ? Object.keys(filter) : [] 
+      });
+
+      // Ensure filter is an object
+      let parsedFilter = filter;
+      if (filter && typeof filter === 'string') {
+        try {
+          parsedFilter = JSON.parse(filter);
+        } catch (e) {
+          console.warn('⚠️ [II-009] Failed to parse filter string:', e);
+          parsedFilter = {};
+        }
+      }
+
       const watchlistData = await this.individualImpairmentService.getWatchlist({
         page,
         limit,
         search,
-        filter
+        filter: parsedFilter
       });
 
-      if (!watchlistData.data || watchlistData.data.length === 0) {
-        res.status(404).json({
-          success: false,
-          error: 'NO_DATA',
-          message: 'No data found to export'
-        });
-        return;
+      console.log(`📊 [II-009] Found ${watchlistData.data?.length || 0} records to export`);
+
+      // Dynamic import with error handling
+      let exportHelpers;
+      try {
+        exportHelpers = await import('../../utils/export-helpers');
+        console.log('✅ [II-009] export-helpers loaded successfully');
+      } catch (importError) {
+        console.error('❌ [II-009] Failed to load export-helpers:', importError);
+        throw new Error(`Failed to load export dependencies: ${importError instanceof Error ? importError.message : String(importError)}`);
       }
 
-      // Import export helpers dynamically
-      const { generateExcelBuffer, generatePDFBuffer, generateCSVBuffer, calculateSummaryStats } = 
-        await import('../../utils/export-helpers');
-      
-      // Import types separately
-      type ExportColumn = import('../../utils/export-helpers').ExportColumn;
+      const { generateExcelBuffer, generatePDFBuffer, generateCSVBuffer, calculateSummaryStats } = exportHelpers;
 
       // Define export columns
       const columns: ExportColumn[] = options.columns || [
@@ -545,14 +563,16 @@ export class IndividualImpairmentController {
         { header: 'CIF Number', key: 'cif_number', width: 15, type: 'text' as const },
         { header: 'Customer Name', key: 'cif_name', width: 30, type: 'text' as const },
         { header: 'Currency', key: 'currency', width: 10, type: 'text' as const },
-        { header: 'Outstanding', key: 'outstanding', width: 18, type: 'currency' as const },
-        { header: 'ECL Amount', key: 'ecl_ia_amt', width: 18, type: 'currency' as const },
-        { header: 'Provision', key: 'provision_ia_amt', width: 18, type: 'currency' as const },
+        { header: 'Outstanding', key: 'outstanding_balance', width: 18, type: 'currency' as const }, 
+        { header: 'ECL Amount', key: 'ecl_amount', width: 18, type: 'currency' as const },
+        { header: 'Provision', key: 'provision_amount', width: 18, type: 'currency' as const },
         { header: 'Rating', key: 'rating_code', width: 10, type: 'text' as const },
         { header: 'DPD', key: 'dpd', width: 10, type: 'number' as const },
         { header: 'Impaired', key: 'impaired_flag', width: 10, type: 'text' as const },
         { header: 'Method', key: 'method', width: 15, type: 'text' as const },
         { header: 'Stage', key: 'stage', width: 10, type: 'number' as const },
+        { header: 'Priority', key: 'priority_level', width: 12, type: 'text' as const },
+        { header: 'Status', key: 'assessment_status', width: 15, type: 'text' as const },
         { header: 'Created Date', key: 'createddate', width: 15, type: 'date' as const }
       ];
 
