@@ -3,6 +3,16 @@ FROM node:20-alpine AS base
 # Install pnpm
 RUN npm install -g pnpm
 
+# Accept build arguments
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_R_ANALYTICS_BASE_URL
+ARG NEXT_PUBLIC_ENVIRONMENT
+
+# Make them available as environment variables during build
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_R_ANALYTICS_BASE_URL=$NEXT_PUBLIC_R_ANALYTICS_BASE_URL
+ENV NEXT_PUBLIC_ENVIRONMENT=$NEXT_PUBLIC_ENVIRONMENT
+
 # Install dependencies only when needed (package-level build)
 FROM base AS deps
 RUN apk add --no-cache libc6-compat
