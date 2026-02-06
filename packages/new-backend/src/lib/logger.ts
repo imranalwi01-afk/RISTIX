@@ -1,6 +1,6 @@
 import pino from 'pino'
 
-const isDev = (process.env.NODE_ENV || 'development') === 'development'
+const isDev = process.env.NODE_ENV === 'development'
 
 // Central Pino logger for the new backend
 export const logger = pino({
@@ -11,15 +11,15 @@ export const logger = pino({
         environment: process.env.NODE_ENV || 'development',
     },
     timestamp: pino.stdTimeFunctions.isoTime,
-    transport: isDev
+    transport: (isDev && process.stdout.isTTY)
         ? {
-              target: 'pino-pretty',
-              options: {
-                  colorize: true,
-                  translateTime: 'HH:MM:ss.l',
-                  singleLine: false,
-              },
-          }
+            target: 'pino-pretty',
+            options: {
+                colorize: true,
+                translateTime: 'HH:MM:ss.l',
+                singleLine: false,
+            },
+        }
         : undefined,
 })
 
