@@ -114,37 +114,9 @@ jobs:
           echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io \
             -u ${{ github.actor }} --password-stdin
 
-      # -----------------------------
-      # FRONTEND
-      # -----------------------------
-      - name: Pull frontend image
+      - name: Deploy with Docker Compose
         run: |
-          docker pull ghcr.io/${{ github.repository }}/frontend:production
+          cd /opt/ifrspro
+          docker compose pull
+          docker compose --profile app up -d
 
-      - name: Restart frontend container
-        run: |
-          docker stop frontend || true
-          docker rm frontend || true
-          docker run -d \
-            --name frontend \
-            -p 4231:3000 \
-            --restart unless-stopped \
-            ghcr.io/${{ github.repository }}/frontend:production
-
-      # -----------------------------
-      # BACKEND
-      # -----------------------------
-      - name: Pull backend image
-        run: |
-          docker pull ghcr.io/${{ github.repository }}/backend:production
-
-      - name: Restart backend container
-        run: |
-          docker stop backend || true
-          docker rm backend || true
-          docker run -d \
-            --name backend \
-            -p 4232:8080 \
-            --env-file /opt/env/backend.env \
-            --restart unless-stopped \
-            ghcr.io/${{ github.repository }}/backend:production
