@@ -289,6 +289,12 @@ export interface TrendData {
   stage_3_count: number;
 }
 
+export interface HistoryParams {
+  entityType?: string;
+  limit?: number;
+  offset?: number;
+}
+
 // ============================================================================
 // INDIVIDUAL IMPAIRMENT API SERVICE
 // ============================================================================
@@ -337,7 +343,7 @@ export const individualImpairmentAPI = {
       includeFilters?: boolean;
     }) => {
       console.log(`📤 Exporting Individual Impairment watchlist as ${format}`);
-      
+
       try {
         // Make request with blob response type
         const response = await apiClient.post('/banking/individual/impairment/watchlist/export', {
@@ -364,7 +370,7 @@ export const individualImpairmentAPI = {
             }
           }
         }
-        
+
         // Fallback filename
         if (!filename) {
           const timestamp = new Date().toISOString().split('T')[0];
@@ -378,7 +384,7 @@ export const individualImpairmentAPI = {
         link.download = filename;
         document.body.appendChild(link);
         link.click();
-        
+
         // Cleanup
         setTimeout(() => {
           document.body.removeChild(link);
@@ -391,22 +397,28 @@ export const individualImpairmentAPI = {
           success: true,
           fileName: filename,
           recordCount: parseInt(response.headers['x-export-records'] || '0'),
-          message: 'Export completed successfully'
+          message: 'Export completed successfully',
+          download_url: url
         };
       } catch (error: any) {
         console.error('❌ Export failed:', error);
-        
+
         // If error response is blob, convert to JSON for error message
         if (error.response?.data instanceof Blob) {
           try {
             const text = await error.response.data.text();
+            console.error('❌ Export error response body:', text); // Log the raw body
             const errorData = JSON.parse(text);
-            throw new Error(errorData.message || 'Export failed');
-          } catch {
+            console.error('❌ Export error parsed:', errorData);
+            const errorMessage = errorData.message || 'Export failed';
+            const errorDetails = errorData.details ? `: ${errorData.details}` : '';
+            throw new Error(`${errorMessage}${errorDetails}`);
+          } catch (parseError) {
+            console.error('❌ Failed to parse export error blob:', parseError);
             throw new Error('Export failed: Unable to process response');
           }
         }
-        
+
         throw error;
       }
     }
@@ -512,6 +524,65 @@ export const individualImpairmentAPI = {
       });
       return response.data;
     }
+  },
+
+  // Batch Upload Support
+  getDcfUploads: async () => {
+    const response = await apiClient.get('/banking/individual/impairment/dcf-uploads');
+    return response.data;
+  },
+  getDcfCashflows: async (uploadId: string) => {
+    const response = await apiClient.get(`/banking/individual/impairment/dcf-uploads/${uploadId}/cashflows`);
+    return response.data;
+  },
+  createBatchUpload: async (data: any) => {
+    const response = await apiClient.post('/banking/individual/impairment/dcf-uploads', data);
+    return response.data;
+  },
+  getDcfCalculations: async () => {
+    const response = await apiClient.get('/banking/individual/impairment/dcf-calculations');
+    return response.data;
+  },
+
+  // History / Audit Trail
+  getHistory: async (params: HistoryParams) => {
+    console.log('📜 Fetching individual impairment history', params);
+    const response = await apiClient.get('/banking/individual/impairment/history', { params });
+    return response.data;
+  },
+
+  // Standardized Flat Methods
+  getWatchlist: async (params?: { segment?: string; status?: string }) => {
+    const response = await apiClient.get('/banking/individual/impairment/watchlist', { params });
+    return response.data;
+  },
+  addToWatchlist: async (data: any) => {
+    const response = await apiClient.post('/banking/individual/impairment/watchlist', data);
+    return response.data;
+  },
+  removeFromWatchlist: async (id: string) => {
+    const response = await apiClient.delete(`/banking/individual/impairment/watchlist/${id}`);
+    return response.data;
+  },
+  getOverrides: async (params?: { status?: string }) => {
+    const response = await apiClient.get('/banking/individual/impairment/overrides', { params });
+    return response.data;
+  },
+  createOverride: async (data: any) => {
+    const response = await apiClient.post('/banking/individual/impairment/overrides', data);
+    return response.data;
+  },
+  getScenarios: async (params?: { status?: string }) => {
+    const response = await apiClient.get('/banking/individual/impairment/scenarios', { params });
+    return response.data;
+  },
+  createScenario: async (data: any) => {
+    const response = await apiClient.post('/banking/individual/impairment/scenarios', data);
+    return response.data;
+  },
+  updateScenarioStatus: async (id: string, status: string) => {
+    const response = await apiClient.put(`/banking/individual/impairment/scenarios/${id}/status`, { status });
+    return response.data;
   },
 
   // Provision Calculation

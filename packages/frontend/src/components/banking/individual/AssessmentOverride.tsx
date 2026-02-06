@@ -51,7 +51,7 @@ export const AssessmentOverride = () => {
   const [data, setData] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  
+
   // Dialog State
   const [openDialog, setOpenDialog] = useState(false);
   const [formData, setFormData] = useState({
@@ -82,18 +82,18 @@ export const AssessmentOverride = () => {
 
   const handleCreate = async () => {
     if (!formData.customerName || !formData.accountNumber || !formData.justification) return;
-    
+
     try {
       setLoading(true);
       await individualImpairmentAPI.createOverride(formData);
       setSuccess('Override request submitted successfully');
       setOpenDialog(false);
-      setFormData({ 
-        customerName: '', 
-        accountNumber: '', 
-        originalStage: 'Stage 1', 
-        overrideStage: 'Stage 2', 
-        justification: '' 
+      setFormData({
+        customerName: '',
+        accountNumber: '',
+        originalStage: 'Stage 1',
+        overrideStage: 'Stage 2',
+        justification: ''
       });
       loadData();
     } catch (err: any) {
@@ -106,63 +106,63 @@ export const AssessmentOverride = () => {
   const columns: GridColDef[] = [
     { field: 'customerName', headerName: 'Customer Name', flex: 1, minWidth: 200 },
     { field: 'accountNumber', headerName: 'Account Number', flex: 1, minWidth: 150 },
-    { 
-      field: 'originalStage', 
-      headerName: 'Original Stage', 
+    {
+      field: 'originalStage',
+      headerName: 'Original Stage',
       width: 130,
       renderCell: (params) => (
-        <Chip 
-          label={params.value} 
-          size="small" 
-          variant="outlined" 
+        <Chip
+          label={params.value}
+          size="small"
+          variant="outlined"
           color="default"
         />
       )
     },
-    { 
-      field: 'overrideStage', 
-      headerName: 'Override Stage', 
+    {
+      field: 'overrideStage',
+      headerName: 'Override Stage',
       width: 130,
       renderCell: (params) => (
-        <Chip 
-          label={params.value} 
-          color="warning" 
-          size="small" 
+        <Chip
+          label={params.value}
+          color="warning"
+          size="small"
         />
       )
     },
     { field: 'justification', headerName: 'Justification', flex: 1.5, minWidth: 250 },
-    { 
-      field: 'status', 
-      headerName: 'Status', 
+    {
+      field: 'status',
+      headerName: 'Status',
       width: 120,
       renderCell: (params) => (
-         <Chip 
-          label={params.value} 
-          color={params.value === 'APPROVED' ? 'success' : params.value === 'REJECTED' ? 'error' : 'default'} 
-          size="small" 
+        <Chip
+          label={params.value}
+          color={params.value === 'APPROVED' ? 'success' : params.value === 'REJECTED' ? 'error' : 'default'}
+          size="small"
         />
       )
     },
-    { 
-        field: 'createdAt', 
-        headerName: 'Requested At', 
-        width: 180,
-        valueFormatter: (params) => {
-            if (!params.value) return '-';
-            return new Date(params.value).toLocaleString();
-        }
+    {
+      field: 'createdAt',
+      headerName: 'Requested At',
+      width: 180,
+      valueFormatter: (value: any) => {
+        if (!value) return '-';
+        return new Date(value).toLocaleString();
+      }
     }
   ];
 
   return (
     <Container maxWidth="xl" sx={{ position: 'relative', minHeight: '80vh' }}>
-      <ModernLoader 
-        open={loading} 
-        message="Loading Overrides" 
-        subMessage="Fetching assessment override requests..." 
+      <ModernLoader
+        open={loading}
+        message="Loading Overrides"
+        subMessage="Fetching assessment override requests..."
       />
-      
+
       {/* Breadcrumbs */}
       <Breadcrumbs sx={{ mb: 2 }}>
         <Link href="/banking/dashboard" underline="hover" color="inherit" sx={{ display: 'flex', alignItems: 'center' }}>
@@ -177,8 +177,8 @@ export const AssessmentOverride = () => {
         <Typography variant="h4" component="h1">
           Impairment Override Trigger
         </Typography>
-        <Button 
-          variant="contained" 
+        <Button
+          variant="contained"
           startIcon={<AddIcon />}
           onClick={() => setOpenDialog(true)}
         >
@@ -188,7 +188,7 @@ export const AssessmentOverride = () => {
 
       {/* 📊 Summary Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} md={3}>
+        <Grid size={{ xs: 12, md: 3 }}>
           <StatCard
             title="Total Requests"
             value={data.length}
@@ -197,7 +197,7 @@ export const AssessmentOverride = () => {
             subtitle="All Override Requests"
           />
         </Grid>
-        <Grid item xs={12} md={3}>
+        <Grid size={{ xs: 12, md: 3 }}>
           <StatCard
             title="Pending"
             value={data.filter(c => c.status === 'PENDING').length}
@@ -206,7 +206,7 @@ export const AssessmentOverride = () => {
             subtitle="Awaiting Approval"
           />
         </Grid>
-        <Grid item xs={12} md={3}>
+        <Grid size={{ xs: 12, md: 3 }}>
           <StatCard
             title="Approved"
             value={data.filter(c => c.status === 'APPROVED').length}
@@ -215,7 +215,7 @@ export const AssessmentOverride = () => {
             subtitle="Successfully Overridden"
           />
         </Grid>
-        <Grid item xs={12} md={3}>
+        <Grid size={{ xs: 12, md: 3 }}>
           <StatCard
             title="Rejected"
             value={data.filter(c => c.status === 'REJECTED').length}
@@ -258,33 +258,33 @@ export const AssessmentOverride = () => {
               value={formData.accountNumber}
               onChange={(e) => setFormData({ ...formData, accountNumber: e.target.value })}
             />
-            
+
             <Box display="flex" gap={2} mt={2}>
-                 <FormControl fullWidth>
-                  <InputLabel>Original Stage</InputLabel>
-                  <Select
-                    value={formData.originalStage}
-                    label="Original Stage"
-                    onChange={(e) => setFormData({ ...formData, originalStage: e.target.value })}
-                  >
-                    <MenuItem value="Stage 1">Stage 1</MenuItem>
-                    <MenuItem value="Stage 2">Stage 2</MenuItem>
-                    <MenuItem value="Stage 3">Stage 3</MenuItem>
-                  </Select>
-                </FormControl>
-                
-                <FormControl fullWidth>
-                  <InputLabel>Override Stage</InputLabel>
-                  <Select
-                    value={formData.overrideStage}
-                    label="Override Stage"
-                    onChange={(e) => setFormData({ ...formData, overrideStage: e.target.value })}
-                  >
-                    <MenuItem value="Stage 1">Stage 1</MenuItem>
-                    <MenuItem value="Stage 2">Stage 2</MenuItem>
-                    <MenuItem value="Stage 3">Stage 3</MenuItem>
-                  </Select>
-                </FormControl>
+              <FormControl fullWidth>
+                <InputLabel>Original Stage</InputLabel>
+                <Select
+                  value={formData.originalStage}
+                  label="Original Stage"
+                  onChange={(e) => setFormData({ ...formData, originalStage: e.target.value })}
+                >
+                  <MenuItem value="Stage 1">Stage 1</MenuItem>
+                  <MenuItem value="Stage 2">Stage 2</MenuItem>
+                  <MenuItem value="Stage 3">Stage 3</MenuItem>
+                </Select>
+              </FormControl>
+
+              <FormControl fullWidth>
+                <InputLabel>Override Stage</InputLabel>
+                <Select
+                  value={formData.overrideStage}
+                  label="Override Stage"
+                  onChange={(e) => setFormData({ ...formData, overrideStage: e.target.value })}
+                >
+                  <MenuItem value="Stage 1">Stage 1</MenuItem>
+                  <MenuItem value="Stage 2">Stage 2</MenuItem>
+                  <MenuItem value="Stage 3">Stage 3</MenuItem>
+                </Select>
+              </FormControl>
             </Box>
 
             <TextField
