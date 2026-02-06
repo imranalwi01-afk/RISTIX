@@ -65,7 +65,7 @@ const UserProfile: React.FC = () => {
     }
 
     const { control: profileControl, handleSubmit: handleProfileSubmit, formState: { errors: profileErrors, isDirty: profileDirty } } = useForm<ProfileFormData>({
-        resolver: zodResolver(profileSchema),
+        resolver: zodResolver(profileSchema as any),
         defaultValues: initialValues,
         values: initialValues,
     });
@@ -86,7 +86,7 @@ const UserProfile: React.FC = () => {
     };
 
     const { control: passwordControl, handleSubmit: handlePasswordSubmit, reset: resetPassword, formState: { errors: passwordErrors, isValid: passwordValid, isDirty: passwordDirty } } = useForm<PasswordFormData>({
-        resolver: zodResolver(passwordSchema),
+        resolver: zodResolver(passwordSchema as any),
         defaultValues: {
             currentPassword: '',
             newPassword: '',

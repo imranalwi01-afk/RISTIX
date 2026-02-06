@@ -25,6 +25,7 @@ import {
 import {
   BarChart,
   Bar,
+  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -298,9 +299,12 @@ const ECLMovementReport: React.FC = () => {
             />
             <Bar
               dataKey="amount"
-              fill={(entry) => entry?.color || '#8884d8'}
               name="Amount"
-            />
+            >
+              {summaryStats.movementBreakdown.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={entry?.color || '#8884d8'} />
+              ))}
+            </Bar>
           </BarChart>
         </ResponsiveContainer>
       </CardContent>

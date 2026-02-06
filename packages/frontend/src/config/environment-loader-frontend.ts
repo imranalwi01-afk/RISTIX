@@ -307,7 +307,8 @@ export class FrontendEnvironmentLoader {
           return envUrl;
         }
         return isEcs ? 'https://iaf-ifrs-analytics.danafin.com' : 'https://iaf-ifrs-analytics.ifrspro.id';
-      })()
+      })(),
+      calc: this.getEnvVar('NEXT_PUBLIC_R_ANALYTICS_CALC_URL') || (isEcs ? 'https://iaf-ifrs-analytics-calc.danafin.com' : 'https://iaf-ifrs-analytics-calc.ifrspro.id')
     };
 
     // Application URLs

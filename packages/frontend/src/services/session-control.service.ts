@@ -30,6 +30,7 @@ export interface SessionControlState {
   lastRefreshFailure?: number;
   refreshFailureCount?: number;
   lastRefreshAttempt?: number; // 🔧 ADDED: Track last refresh attempt time
+  loginTimestamp: number | null; // 🔧 ADDED: Track login time
 }
 
 export interface SessionControlOptions {
@@ -106,7 +107,7 @@ export class SessionControlService {
     refreshToken?: string;
     tokenExpiry?: number | null;
   }): Promise<void> {
-    this.log('Initializing session', { 
+    this.log('Initializing session', {
       user: sessionData.user?.email || sessionData.user?.username || 'unknown',
       hasRefreshToken: !!sessionData.refreshToken,
       refreshTokenLength: sessionData.refreshToken?.length || 0
@@ -118,7 +119,7 @@ export class SessionControlService {
     // ✅ FIX: Don't default to empty string if refreshToken is missing
     // Instead, use null so we can detect if it's actually missing
     const refreshToken = sessionData.refreshToken || null;
-    
+
     if (!refreshToken) {
       console.warn('⚠️ Session initialized WITHOUT refresh token!');
     }
@@ -210,7 +211,7 @@ export class SessionControlService {
         localStorage.removeItem('user_data');
         localStorage.removeItem('token_expiry');
       }
-      
+
       // ✅ FIX: Clear cookies with dynamic domain detection
       if (typeof document !== 'undefined') {
         document.cookie = buildCookieRemovalString('auth_token');
@@ -232,17 +233,17 @@ export class SessionControlService {
         if (this.state.tokenExpiry) {
           localStorage.setItem('token_expiry', this.state.tokenExpiry.toString());
         }
-        
+
         // ✅ CRITICAL FIX: Sync to cookies with dynamic domain detection
         if (typeof document !== 'undefined') {
           if (this.state.token) {
             document.cookie = buildCookieString('auth_token', this.state.token);
           }
-          
+
           if (this.state.refreshToken) {
             document.cookie = buildCookieString('refresh_token', this.state.refreshToken);
           }
-          
+
           this.log('✅ Tokens synced to cookies for API requests (multi-domain support)');
         }
       }
@@ -489,16 +490,16 @@ export class SessionControlService {
         if (response.status === 401) {
           this.state.refreshFailureCount = (this.state.refreshFailureCount || 0) + 1;
           this.log('Refresh token failed (401)', { failureCount: this.state.refreshFailureCount });
-          
+
           // ✅ GRACE PERIOD: Don't auto-logout within 60 seconds of login
           const timeSinceLogin = this.state.loginTimestamp ? Date.now() - this.state.loginTimestamp : Infinity;
           const gracePeriod = 60000; // 60 seconds
-          
+
           if (timeSinceLogin < gracePeriod) {
             this.log(`🛡️ Refresh token failed during grace period (${Math.round(timeSinceLogin / 1000)}s since login) - skipping auto-logout`);
             return { success: false, error: 'Refresh token failed (grace period active)' };
           }
-          
+
           // Only logout after 3 consecutive failures AND after grace period
           if (this.state.refreshFailureCount >= 3) {
             this.log('Refresh token failed 3 times (after grace period), logging out');
@@ -1088,18 +1089,18 @@ export class SessionControlService {
           // ✅ GRACE PERIOD: Skip all 401 handling within 60 seconds of login
           const timeSinceLogin = this.state.loginTimestamp ? Date.now() - this.state.loginTimestamp : Infinity;
           const gracePeriod = 60000; // 60 seconds
-          
+
           if (timeSinceLogin < gracePeriod) {
             this.log(`🛡️ 401 during grace period (${Math.round(timeSinceLogin / 1000)}s since login) - skipping token refresh, allowing normal flow`);
             return false; // Let the error propagate without any intervention
           }
-          
+
           this.log('Handling 401 Unauthorized error (lenient mode)');
 
           // 🔧 LENIENT: Always try token refresh with multiple retries
           if (config.unauthorized401.retryTokenRefresh) {
             // Reset failure count if it's been a while since last failure
-            if (this.state.refreshFailureCount > 0) {
+            if ((this.state.refreshFailureCount || 0) > 0) {
               const now = Date.now();
               const lastRefreshAttempt = this.state.lastRefreshAttempt || 0;
               if (now - lastRefreshAttempt > 60000) { // Reset after 1 minute
@@ -1107,7 +1108,7 @@ export class SessionControlService {
               }
             }
             this.state.lastRefreshAttempt = Date.now();
-            
+
             const refreshed = await this.refreshTokenWithRetry();
             if (refreshed) {
               this.log('401 handled successfully via token refresh');
