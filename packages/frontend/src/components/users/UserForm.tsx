@@ -73,7 +73,7 @@ const UserForm: React.FC<UserFormProps> = ({
     loading = false,
 }) => {
     const { control, handleSubmit, reset, formState: { errors, isValid } } = useForm<UserFormSchema>({
-        resolver: zodResolver(mode === 'create' ? createUserSchema : editUserSchema),
+        resolver: zodResolver((mode === 'create' ? createUserSchema : editUserSchema) as any),
         mode: 'onBlur',
         defaultValues: {
             email: '',

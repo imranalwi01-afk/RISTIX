@@ -9,9 +9,9 @@ import {
   Alert
 } from '@mui/material';
 import { MonetizationOn as MoneyIcon } from '@mui/icons-material';
-import { 
-  type IndividualImpairmentWatchlistItem, 
-  type IndividualImpairmentAssessment 
+import {
+  type IndividualImpairmentWatchlistItem,
+  type IndividualImpairmentAssessment
 } from '@/services/api.individual-impairment';
 
 interface ProvisionCalculationTabProps {
@@ -41,7 +41,7 @@ export function ProvisionCalculationTab({ account, assessment, calculation, load
 
       {calculation ? (
         <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>DCF Results</Typography>
@@ -73,7 +73,7 @@ export function ProvisionCalculationTab({ account, assessment, calculation, load
             </Card>
           </Grid>
 
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>Provision Recommendation</Typography>

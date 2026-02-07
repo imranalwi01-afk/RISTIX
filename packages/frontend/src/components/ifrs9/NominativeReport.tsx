@@ -106,7 +106,7 @@ const NominativeReport: React.FC = () => {
         limit: paginationModel.pageSize,
         branch_code: filters.branches.length > 0 ? filters.branches[0] : undefined // API currently supports one branch filter in query
       };
-      
+
       // Add stage filter if specific stages are selected (API supports single stage value usually, or we filter client side if multiple?)
       // The backend controller supports `stage` param.
       // If multiple stages are selected in UI, and backend only supports one, we might need to adjust.
@@ -116,14 +116,14 @@ const NominativeReport: React.FC = () => {
       }
 
       const tableResponse = await reportsAPI.nominativeReport.get(tableParams);
-      
-      if (tableResponse.success) {
+
+      if (tableResponse && tableResponse.data) {
         setData(tableResponse.data);
         if (tableResponse.pagination) {
           setTotalRows(tableResponse.pagination.total);
         } else {
-             // Fallback if pagination metadata is missing
-             setTotalRows(tableResponse.data.length);
+          // Fallback if pagination metadata is missing
+          setTotalRows(tableResponse.data.length);
         }
       }
 
@@ -134,9 +134,9 @@ const NominativeReport: React.FC = () => {
       };
       const statsResponse = await reportsAPI.eclResult.get(statsParams);
 
-      if (statsResponse.success) {
+      if (statsResponse && statsResponse.data) {
         const statsData = statsResponse.data;
-        
+
         // Aggregate stats locally based on current filters (especially if we want to filter by branch/stage on client side)
         const newStats = statsData.reduce((acc: any, row: any) => {
           // Apply client-side filtering for stats to match user selection
@@ -155,7 +155,7 @@ const NominativeReport: React.FC = () => {
             // For stage counts, eclResult might not give "count of accounts", only sums. 
             // If we need account count, we might rely on the pagination.total from nominative report, 
             // but that respects the filters we passed to it.
-            
+
             // Let's assume for now we use the sums. 
             // Stage distribution by count might be tricky without a specific 'count' field in eclResult. 
             // Let's check controller... it SUMs amounts. It does NOT count rows.
@@ -166,8 +166,8 @@ const NominativeReport: React.FC = () => {
           return acc;
         }, {
           totalAccounts: 0,
-          stage1Count: 0, 
-          stage2Count: 0, 
+          stage1Count: 0,
+          stage2Count: 0,
           stage3Count: 0,
           totalECL: 0,
           totalOutstanding: 0
@@ -178,7 +178,7 @@ const NominativeReport: React.FC = () => {
         // We will approximate or hide stage counts if 0.
         // Actually, let's use the total from the table query for Total Accounts.
         if (tableResponse.pagination) {
-            newStats.totalAccounts = tableResponse.pagination.total;
+          newStats.totalAccounts = tableResponse.pagination.total;
         }
 
         // Calculate distribution percentages roughly or leave 0 if we can't get counts
@@ -195,7 +195,7 @@ const NominativeReport: React.FC = () => {
 
   // Initial load
   useEffect(() => {
-     fetchData();
+    fetchData();
   }, [fetchData]);
 
   // Handle Clear
@@ -214,51 +214,51 @@ const NominativeReport: React.FC = () => {
   // Handle Export to Excel
   const handleExport = async () => {
     try {
-        setLoading(true);
-        // Request export from backend (or fetch all pages - discouraged for large data)
-        // Ideally backend handles export.
-        // For now, we'll try to use the backend export endpoint if available, or just export current view?
-        // The API service has an export method: reportsAPI.export('nominative-report', params)
-        
-        const params = {
-          prc_date: filters.asOfDate,
-          branch_code: filters.branches.length > 0 ? filters.branches[0] : undefined,
-          format: 'xlsx'
-        };
+      setLoading(true);
+      // Request export from backend (or fetch all pages - discouraged for large data)
+      // Ideally backend handles export.
+      // For now, we'll try to use the backend export endpoint if available, or just export current view?
+      // The API service has an export method: reportsAPI.export('nominative-report', params)
 
-        const response = await reportsAPI.export('nominative-report', params);
-        
-        if (response.success && response.data) {
-             const url = window.URL.createObjectURL(new Blob([response.data]));
-             const link = document.createElement('a');
-             link.href = url;
-             link.setAttribute('download', `Nominative_Report_${filters.asOfDate}.xlsx`);
-             document.body.appendChild(link);
-             link.click();
-             link.parentNode?.removeChild(link);
-        } else {
-             // Fallback: Client side export of current data (better than nothing)
-              const exportData = data.map(row => ({
-                'Contract No': row.facility_number,
-                'Customer': row.cif_name,
-                'Account No': row.account_number,
-                'Outstanding (IDR)': row.outstanding,
-                'ECL Amount (IDR)': row.ecl_final_amt,
-                'Stage': row.stage,
-                'Profit Center': row.segment,
-                'Branch': row.branch_code
-              }));
-              
-              const ws = XLSX.utils.json_to_sheet(exportData);
-              const wb = XLSX.utils.book_new();
-              XLSX.utils.book_append_sheet(wb, ws, "Nominative Report");
-              XLSX.writeFile(wb, `Nominative_Report_Page_${filters.asOfDate}.xlsx`);
-        }
+      const params = {
+        prc_date: filters.asOfDate,
+        branch_code: filters.branches.length > 0 ? filters.branches[0] : undefined,
+        format: 'xlsx'
+      };
+
+      const response = await reportsAPI.export('nominative-report', params);
+
+      if (response && response.data) {
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `Nominative_Report_${filters.asOfDate}.xlsx`);
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode?.removeChild(link);
+      } else {
+        // Fallback: Client side export of current data (better than nothing)
+        const exportData = data.map(row => ({
+          'Contract No': row.facility_number,
+          'Customer': row.cif_name,
+          'Account No': row.account_number,
+          'Outstanding (IDR)': row.outstanding,
+          'ECL Amount (IDR)': row.ecl_final_amt,
+          'Stage': row.stage,
+          'Profit Center': row.segment,
+          'Branch': row.branch_code
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(exportData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Nominative Report");
+        XLSX.writeFile(wb, `Nominative_Report_Page_${filters.asOfDate}.xlsx`);
+      }
     } catch (error) {
       console.error('❌ Export failed:', error);
       alert('Export failed. Please try again.');
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
   };
 
@@ -292,7 +292,7 @@ const NominativeReport: React.FC = () => {
     if (!quickSearch.trim()) return data;
 
     const searchTerm = quickSearch.toLowerCase().trim();
-    return data.filter(row => 
+    return data.filter(row =>
       row.facility_number?.toLowerCase().includes(searchTerm) ||
       row.cif_name?.toLowerCase().includes(searchTerm) ||
       row.account_number?.toLowerCase().includes(searchTerm) ||
@@ -302,10 +302,10 @@ const NominativeReport: React.FC = () => {
   }, [data, quickSearch]);
 
   const mapEclRatio = () => {
-      if (summaryStats.totalOutstanding > 0) {
-          return (summaryStats.totalECL / summaryStats.totalOutstanding) * 100;
-      }
-      return 0;
+    if (summaryStats.totalOutstanding > 0) {
+      return (summaryStats.totalECL / summaryStats.totalOutstanding) * 100;
+    }
+    return 0;
   }
 
   return (
@@ -356,8 +356,8 @@ const NominativeReport: React.FC = () => {
             format: (v: number) => `${v.toFixed(2)}%`
           }
         ].map((item, index) => (
-          <Grid item xs={12} sm={6} md={3} key={index}>
-            <Card sx={{ 
+          <Grid size={{ xs: 12, sm: 6, md: 3 }} key={index}>
+            <Card sx={{
               height: '100%',
               borderRadius: 3,
               boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.05)',
@@ -382,9 +382,9 @@ const NominativeReport: React.FC = () => {
                       </Typography>
                     </Box>
                   </Box>
-                  <Box sx={{ 
-                    p: 1.5, 
-                    borderRadius: 2, 
+                  <Box sx={{
+                    p: 1.5,
+                    borderRadius: 2,
                     bgcolor: (theme) => alpha(theme.palette[item.color as 'primary' | 'success' | 'warning' | 'info'].main, 0.1),
                     display: 'flex',
                     alignItems: 'center',
@@ -405,7 +405,7 @@ const NominativeReport: React.FC = () => {
           <Stack direction="row" spacing={1} alignItems="center">
             <Typography variant="subtitle1" fontWeight={600}>Filter Options</Typography>
             {(filters.profitCenters.length > 0 || filters.branches.length > 0) && (
-              <Chip label={`${filters.profitCenters.length + filters.branches.length} active`} size="small" color="primary" variant="soft" />
+              <Chip label={`${filters.profitCenters.length + filters.branches.length} active`} size="small" color="primary" variant="filled" />
             )}
           </Stack>
         </Box>
@@ -413,7 +413,7 @@ const NominativeReport: React.FC = () => {
         <CardContent sx={{ p: 3 }}>
           <Grid container spacing={3}>
             {/* Primary Filters (Always Visible) */}
-            <Grid item xs={12} md={3}>
+            <Grid size={{ xs: 12, md: 3 }}>
               <TextField
                 fullWidth
                 label="As-of Date"
@@ -425,7 +425,7 @@ const NominativeReport: React.FC = () => {
               />
             </Grid>
 
-            <Grid item xs={12} md={5}>
+            <Grid size={{ xs: 12, md: 5 }}>
               <FormControl fullWidth size="small">
                 <InputLabel>Stage</InputLabel>
                 <Select
@@ -454,100 +454,100 @@ const NominativeReport: React.FC = () => {
               </FormControl>
             </Grid>
 
-            <Grid item xs={12} md={4}>
-               <Stack direction="row" spacing={1} justifyContent="flex-end">
-                  <Button 
-                    variant="contained" 
-                    startIcon={<SearchIcon />} 
-                    onClick={fetchData} 
-                    disabled={loading}
-                    sx={{ px: 3 }}
-                  >
-                    Search
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    startIcon={<ExportIcon />}
-                    onClick={handleExport}
-                    disabled={loading}
-                  >
-                    Export
-                  </Button>
-                  <Button 
-                    variant="outlined" 
-                    onClick={handleClear}
-                  >
-                    Clear
-                  </Button>
-               </Stack>
+            <Grid size={{ xs: 12, md: 4 }}>
+              <Stack direction="row" spacing={1} justifyContent="flex-end">
+                <Button
+                  variant="contained"
+                  startIcon={<SearchIcon />}
+                  onClick={fetchData}
+                  disabled={loading}
+                  sx={{ px: 3 }}
+                >
+                  Search
+                </Button>
+                <Button
+                  variant="outlined"
+                  startIcon={<ExportIcon />}
+                  onClick={handleExport}
+                  disabled={loading}
+                >
+                  Export
+                </Button>
+                <Button
+                  variant="outlined"
+                  onClick={handleClear}
+                >
+                  Clear
+                </Button>
+              </Stack>
             </Grid>
 
             {/* Advanced Filters */}
-                 <Grid item xs={12} md={3}>
-                  <TextField
-                    fullWidth
-                    label="Download Start Date"
-                    type="date"
-                    size="small"
-                    value={filters.downloadDateStart}
-                    onChange={(e) => setFilters(prev => ({ ...prev, downloadDateStart: e.target.value }))}
-                    InputLabelProps={{ shrink: true }}
-                  />
-                </Grid>
+            <Grid size={{ xs: 12, md: 3 }}>
+              <TextField
+                fullWidth
+                label="Download Start Date"
+                type="date"
+                size="small"
+                value={filters.downloadDateStart}
+                onChange={(e) => setFilters(prev => ({ ...prev, downloadDateStart: e.target.value }))}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
 
-                <Grid item xs={12} md={3}>
-                  <TextField
-                    fullWidth
-                    label="Download End Date"
-                    type="date"
-                    size="small"
-                    value={filters.downloadDateEnd}
-                    onChange={(e) => setFilters(prev => ({ ...prev, downloadDateEnd: e.target.value }))}
-                    InputLabelProps={{ shrink: true }}
-                  />
-                </Grid>
+            <Grid size={{ xs: 12, md: 3 }}>
+              <TextField
+                fullWidth
+                label="Download End Date"
+                type="date"
+                size="small"
+                value={filters.downloadDateEnd}
+                onChange={(e) => setFilters(prev => ({ ...prev, downloadDateEnd: e.target.value }))}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
 
-                <Grid item xs={12} md={6} />
+            <Grid size={{ xs: 12, md: 6 }} />
 
-                <Grid item xs={12} md={6}>
-                  <Autocomplete
-                    multiple
-                    size="small"
-                    options={profitCenterOptions}
-                    value={filters.profitCenters}
-                    onChange={(_, newValue) => setFilters(prev => ({ ...prev, profitCenters: newValue }))}
-                    renderInput={(params) => <TextField {...params} label="Profit Center" placeholder="Select centers..." />}
-                    renderTags={(value, getTagProps) =>
-                      value.map((option, index) => {
-                         const { key, ...tagProps } = getTagProps({ index });
-                         return <Chip label={option} size="small" {...tagProps} key={key} />;
-                      })
-                    }
-                  />
-                </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Autocomplete
+                multiple
+                size="small"
+                options={profitCenterOptions}
+                value={filters.profitCenters}
+                onChange={(_, newValue) => setFilters(prev => ({ ...prev, profitCenters: newValue }))}
+                renderInput={(params) => <TextField {...params} label="Profit Center" placeholder="Select centers..." />}
+                renderTags={(value, getTagProps) =>
+                  value.map((option, index) => {
+                    const { key, ...tagProps } = getTagProps({ index });
+                    return <Chip label={option} size="small" {...tagProps} key={key} />;
+                  })
+                }
+              />
+            </Grid>
 
-                <Grid item xs={12} md={6}>
-                  <Autocomplete
-                    multiple
-                    size="small"
-                    options={branchOptions}
-                    value={filters.branches}
-                    onChange={(_, newValue) => setFilters(prev => ({ ...prev, branches: newValue }))}
-                    renderInput={(params) => <TextField {...params} label="Branch Code" placeholder="Select branches..." />}
-                    renderTags={(value, getTagProps) =>
-                      value.map((option, index) => {
-                         const { key, ...tagProps } = getTagProps({ index });
-                         return <Chip label={option} size="small" {...tagProps} key={key} />;
-                      })
-                    }
-                  />
-                </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Autocomplete
+                multiple
+                size="small"
+                options={branchOptions}
+                value={filters.branches}
+                onChange={(_, newValue) => setFilters(prev => ({ ...prev, branches: newValue }))}
+                renderInput={(params) => <TextField {...params} label="Branch Code" placeholder="Select branches..." />}
+                renderTags={(value, getTagProps) =>
+                  value.map((option, index) => {
+                    const { key, ...tagProps } = getTagProps({ index });
+                    return <Chip label={option} size="small" {...tagProps} key={key} />;
+                  })
+                }
+              />
+            </Grid>
 
 
 
             {/* Active Filter Chips */}
             {(filters.profitCenters.length > 0 || filters.branches.length > 0) && (
-              <Grid item xs={12}>
+              <Grid size={12}>
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, pt: 1, borderTop: 1, borderColor: 'divider' }}>
                   <Typography variant="caption" color="text.secondary" sx={{ mr: 1, lineHeight: '24px' }}>
                     Active Filters:
@@ -647,7 +647,7 @@ const NominativeReport: React.FC = () => {
                 const baseCol: GridColDef = {
                   field: col.key,
                   headerName: col.label,
-                  width: col.width || 150, 
+                  width: col.width || 150,
                   sortable: true,
                   align: col.align || 'left',
                   headerAlign: col.headerAlign || 'left' as any

@@ -383,7 +383,7 @@ export default function JournalParametersPage() {
   const handleExport = (format: 'xlsx' | 'csv' | 'pdf') => {
     try {
       setExportMenuAnchor(null);
-      
+
       // Define columns for export (matching data grid)
       const exportColumns = [
         { field: 'glCode', headerName: 'GL Code' },
@@ -395,31 +395,31 @@ export default function JournalParametersPage() {
         { field: 'dbcr', headerName: 'DB/CR' },
         { field: 'activeFlag', headerName: 'Active' }
       ];
-      
+
       // Build filter description
       const activeFilters: Record<string, any> = {};
       if (searchTerm) activeFilters['Search'] = searchTerm;
       if (filterGlGroup) activeFilters['GL Group'] = filterGlGroup;
       if (filterCurrency) activeFilters['Currency'] = filterCurrency;
       if (filterActive !== 'all') activeFilters['Status'] = filterActive;
-      
+
       const exportOptions = {
         title: 'Journal Parameters',
         filename: 'journal_parameters',
         filters: activeFilters,
         confidential: true
       };
-      
+
       // Use filtered data
       const dataToExport = filteredData;
-      
+
       let result;
       switch (format) {
         case 'xlsx': result = exportToXLSX(dataToExport, exportColumns, exportOptions); break;
         case 'csv': result = exportToCSV(dataToExport, exportColumns, exportOptions); break;
         case 'pdf': result = exportToPDF(dataToExport, exportColumns, exportOptions); break;
       }
-      
+
       if (result && result.success) {
         setSuccess(`Exported ${dataToExport.length} records to ${format.toUpperCase()}`);
       } else {
@@ -523,123 +523,88 @@ export default function JournalParametersPage() {
                 onChange={(e) => setFilterGlGroup(e.target.value)}
                 label="GL Group"
               >
-                Add Journal Entry
-              </Button>
-            )}
-          />
+                <MenuItem value="">All</MenuItem>
+                {Array.isArray(glGroupOptions) && glGroupOptions.map(option => (
+                  <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
 
+            <FormControl size="small" sx={{ minWidth: 120 }}>
+              <InputLabel>Currency</InputLabel>
+              <Select
+                value={filterCurrency}
+                onChange={(e) => setFilterCurrency(e.target.value)}
+                label="Currency"
+              >
+                <MenuItem value="">All</MenuItem>
+                {Array.isArray(currencyOptions) && currencyOptions.map(option => (
+                  <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
 
-          <Card sx={{ mb: 2 }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-                <TextField
-                  placeholder="Search by GL Code, Description, or GL Number"
-                  variant="outlined"
-                  size="small"
-                  sx={{ flex: '1 1 300px', minWidth: 200 }}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
+            <FormControl size="small" sx={{ minWidth: 120 }}>
+              <InputLabel>Status</InputLabel>
+              <Select
+                value={filterActive}
+                onChange={(e) => setFilterActive(e.target.value as 'all' | 'active' | 'inactive')}
+                label="Status"
+              >
+                <MenuItem value="all">All</MenuItem>
+                <MenuItem value="active">Active</MenuItem>
+                <MenuItem value="inactive">Inactive</MenuItem>
+              </Select>
+            </FormControl>
 
-                <FormControl size="small" sx={{ minWidth: 150 }}>
-                  <InputLabel>GL Group</InputLabel>
-                  <Select
-                    value={filterGlGroup}
-                    onChange={(e) => setFilterGlGroup(e.target.value)}
-                    label="GL Group"
-                  >
-                    <MenuItem value="">All</MenuItem>
-                    {Array.isArray(glGroupOptions) && glGroupOptions.map(option => (
-                      <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button variant="contained" size="small" onClick={loadData} startIcon={<FilterIcon />}>Apply</Button>
+              <Button variant="outlined" size="small" onClick={clearFilters} startIcon={<ClearIcon />}>Clear</Button>
+            </Box>
+          </Box>
 
-                <FormControl size="small" sx={{ minWidth: 120 }}>
-                  <InputLabel>Currency</InputLabel>
-                  <Select
-                    value={filterCurrency}
-                    onChange={(e) => setFilterCurrency(e.target.value)}
-                    label="Currency"
-                  >
-                    <MenuItem value="">All</MenuItem>
-                    {Array.isArray(currencyOptions) && currencyOptions.map(option => (
-                      <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+          {filteredData.length !== data.length && (
+            <Box sx={{ mt: 2 }}>
+              <Chip label={`Showing ${filteredData.length} of ${data.length} records`} color="primary" variant="outlined" size="small" />
+            </Box>
+          )}
+        </CardContent>
+      </Card>
 
-                <FormControl size="small" sx={{ minWidth: 120 }}>
-                  <InputLabel>Status</InputLabel>
-                  <Select
-                    value={filterActive}
-                    onChange={(e) => setFilterActive(e.target.value as 'all' | 'active' | 'inactive')}
-                    label="Status"
-                  >
-                    <MenuItem value="all">All</MenuItem>
-                    <MenuItem value="active">Active</MenuItem>
-                    <MenuItem value="inactive">Inactive</MenuItem>
-                  </Select>
-                </FormControl>
-
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <Button variant="contained" size="small" onClick={loadData} startIcon={<FilterIcon />}>Apply</Button>
-                  <Button variant="outlined" size="small" onClick={clearFilters} startIcon={<ClearIcon />}>Clear</Button>
-                </Box>
-              </Box>
-
-              {filteredData.length !== data.length && (
-                <Box sx={{ mt: 2 }}>
-                  <Chip label={`Showing ${filteredData.length} of ${data.length} records`} color="primary" variant="outlined" size="small" />
-                </Box>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent>
-              <Box sx={{ height: 600, width: '100%' }}>
-                <SafeDataGrid
-                  rows={filteredData}
-                  columns={columns}
-                  getRowId={(row) => row?.pkid || row?.glCode || `row_${Math.random()}`}
-                  pageSizeOptions={[5, 10, 25, 50]}
-                  initialState={{
-                    pagination: { paginationModel: { pageSize: 10 } }
-                  }}
-                  disableRowSelectionOnClick
-                  loading={loading}
-                  slotProps={{
-                    loadingOverlay: {
-                      variant: 'linear-progress' as const,
-                      noRowsVariant: 'skeleton' as const,
-                    },
-                    noRowsOverlay: {
-                      children: (
-                        <EmptyState
-                          title="No Journal Parameters Found"
-                          description={error ? 'Failed to load data from database.' : 'No parameters configured yet.'}
-                          onRetry={error ? loadData : handleCreate}
-                          retryText={error ? 'Retry' : 'Add Journal Entry'}
-                          icon={<ErrorIcon />}
-                        />
-                      )
-                    }
-                  }}
-                />
-              </Box>
-            </CardContent>
-          </Card>
-
-        </>
-      )}
+      <Card>
+        <CardContent>
+          <Box sx={{ height: 600, width: '100%' }}>
+            <SafeDataGrid
+              rows={filteredData}
+              columns={columns}
+              getRowId={(row) => row?.pkid || row?.glCode || `row_${Math.random()}`}
+              pageSizeOptions={[5, 10, 25, 50]}
+              initialState={{
+                pagination: { paginationModel: { pageSize: 10 } }
+              }}
+              disableRowSelectionOnClick
+              loading={loading}
+              slotProps={{
+                loadingOverlay: {
+                  variant: 'linear-progress' as const,
+                  noRowsVariant: 'skeleton' as const,
+                },
+                noRowsOverlay: {
+                  children: (
+                    <EmptyState
+                      title="No Journal Parameters Found"
+                      description={error ? 'Failed to load data from database.' : 'No parameters configured yet.'}
+                      onRetry={error ? loadData : handleCreate}
+                      retryText={error ? 'Retry' : 'Add Journal Entry'}
+                      icon={<ErrorIcon />}
+                    />
+                  )
+                }
+              }}
+            />
+          </Box>
+        </CardContent>
+      </Card>
 
       <JournalFormDialog
         open={dialogOpen}
@@ -654,9 +619,11 @@ export default function JournalParametersPage() {
         journalCodeOptions={journalCodeOptions}
         dbcrOptions={dbcrOptions}
       />
+
       <Snackbar open={!!success} autoHideDuration={4000} onClose={() => setSuccess(null)}>
         <Alert severity="success">{success}</Alert>
       </Snackbar>
+
       <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError(null)}>
         <Alert severity="error">{error}</Alert>
       </Snackbar>
