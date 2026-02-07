@@ -61,6 +61,8 @@ RUN chown nextjs:nodejs .next
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+RUN echo "Debugging server deployment - /app content:" && ls -R /app
+
 USER nextjs
 
 EXPOSE 4231
