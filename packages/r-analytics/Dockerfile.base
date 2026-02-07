@@ -39,6 +39,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libfreetype6-dev \
     libfribidi-dev \
     libharfbuzz-dev \
+    libwebp-dev \
+    libjpeg62-turbo-dev \
     # Mathematical libraries & Optimization
     libgsl-dev \
     libfftw3-dev \
