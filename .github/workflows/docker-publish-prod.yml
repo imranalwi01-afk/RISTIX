@@ -117,6 +117,6 @@ jobs:
       - name: Deploy with Docker Compose
         run: |
           cd /opt/ifrspro
-          docker compose pull
+          docker compose --profile app pull
           docker compose --profile app up -d
 
