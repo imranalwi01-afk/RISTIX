@@ -1,3 +1,0 @@
-ALTER TABLE "ifrs9"."pd_configurations" ALTER COLUMN "population_segment" DROP NOT NULL;--> statement-breakpoint
-ALTER TABLE "ifrs9"."pd_configurations" ADD COLUMN "population_segment_id" uuid;--> statement-breakpoint
-ALTER TABLE "ifrs9"."pd_configurations" ADD CONSTRAINT "pd_configurations_population_segment_id_population_segments_id_fk" FOREIGN KEY ("population_segment_id") REFERENCES "ifrs9"."population_segments"("id") ON DELETE no action ON UPDATE no action;

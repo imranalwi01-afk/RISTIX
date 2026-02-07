@@ -1,9 +1,8 @@
-import { pgTable, date, varchar, numeric, integer, bigserial, timestamp, serial, bigint, doublePrecision, smallint, smallserial, boolean, char, text, check, pgView, pgSchema } from "drizzle-orm/pg-core"
+import { pgTable, date, varchar, numeric, integer, bigserial, timestamp, serial, bigint, doublePrecision, smallint, smallserial, boolean, char, text, check, pgView } from "drizzle-orm/pg-core"
 import { sql, relations } from "drizzle-orm"
 
 
 // Legacy tables are in public schema of the legacy DB
-// export const ifrs9 = pgSchema("ifrs9");
 
 
 
@@ -1476,12 +1475,9 @@ export const frs9ParamCommonh = pgTable("frs9_param_commonh", {
 	updatedby: varchar({ length: 50 }),
 	updateddate: timestamp({ mode: 'string' }),
 	updatedhost: varchar({ length: 50 }),
-	bankingType: varchar("banking_type", { length: 20 }).default('conventional'),
-	isActive: boolean("is_active").default(true),
-	requiresApproval: boolean("requires_approval").default(false),
-}, (table) => [
-	check("chk_banking_type", sql`(banking_type)::text = ANY (ARRAY[('conventional'::character varying)::text, ('syariah'::character varying)::text, ('dual'::character varying)::text])`),
-]);
+	// isActive: boolean("is_active").default(true),
+	// requiresApproval: boolean("requires_approval").default(false),
+}, (table) => []);
 
 // Relation definitions
 export const frs9ParamCommonhRelations = relations(frs9ParamCommonh, ({ many }) => ({
