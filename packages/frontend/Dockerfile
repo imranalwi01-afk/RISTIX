@@ -66,8 +66,5 @@ USER nextjs
 EXPOSE 4231
 
 ENV PORT=4231
-ENV HOSTNAME="0.0.0.0"
-
 # Startup logic
-# Check if server.js is in the root or in a subfolder (common in monorepos)
-CMD if [ -f "./packages/frontend/server.js" ]; then node packages/frontend/server.js; else node server.js; fi
+CMD ["node", "server.js"]
