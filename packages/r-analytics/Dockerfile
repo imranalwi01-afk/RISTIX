@@ -36,7 +36,8 @@ RUN chmod +x docker-entrypoint.sh
 # ============================================================================
 
 # Create custom Shiny server configuration
-RUN echo "server { \
+RUN echo "run_as r-analytics; \n\
+    server { \
     listen 3838 0.0.0.0; \
     location / { \
     app_dir /opt/r-analytics/shiny-app; \
