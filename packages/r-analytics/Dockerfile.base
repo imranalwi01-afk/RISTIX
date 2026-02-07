@@ -64,37 +64,37 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Use all available cores for compilation
 # Step 1: Core & DB Connectivity
 RUN R -e "options(Ncpus = parallel::detectCores()); \
-    install.packages(c('DBI', 'RPostgres', 'jsonlite', 'httr', 'curl', 'xml2'), repos='https://cran.rstudio.com/'); \
+    install.packages(c('DBI', 'RPostgres', 'jsonlite', 'httr', 'curl', 'xml2'), repos='https://packagemanager.posit.co/cran/__linux__/jammy/latest'); \
     if (!all(c('DBI', 'RPostgres', 'jsonlite', 'httr', 'curl', 'xml2') %in% installed.packages()[,1])) stop('Step 1 failed')"
 
 # Step 2: Data Manipulation (Splitting tidyverse for reliability)
 RUN R -e "options(Ncpus = parallel::detectCores()); \
-    install.packages(c('dplyr', 'data.table', 'tibble', 'magrittr', 'purrr', 'stringr', 'forcats'), repos='https://cran.rstudio.com/'); \
+    install.packages(c('dplyr', 'data.table', 'tibble', 'magrittr', 'purrr', 'stringr', 'forcats'), repos='https://packagemanager.posit.co/cran/__linux__/jammy/latest'); \
     if (!all(c('dplyr', 'data.table', 'tibble', 'magrittr') %in% installed.packages()[,1])) stop('Step 2 failed')"
 
 # Step 3: Tidyverse and Time Series
 RUN R -e "options(Ncpus = parallel::detectCores()); \
-    install.packages(c('tidyverse', 'lubridate', 'date', 'zoo', 'xts'), repos='https://cran.rstudio.com/'); \
+    install.packages(c('tidyverse', 'lubridate', 'date', 'zoo', 'xts'), repos='https://packagemanager.posit.co/cran/__linux__/jammy/latest'); \
     if (!all(c('tidyverse', 'lubridate', 'zoo', 'xts') %in% installed.packages()[,1])) stop('Step 3 failed')"
 
 # Step 4: Statistical Analysis & Tests
 RUN R -e "options(Ncpus = parallel::detectCores()); \
-    install.packages(c('MASS', 'nortest', 'lmtest', 'car', 'combinat', 'tseries', 'smooth'), repos='https://cran.rstudio.com/'); \
+    install.packages(c('MASS', 'nortest', 'lmtest', 'car', 'combinat', 'tseries', 'smooth'), repos='https://packagemanager.posit.co/cran/__linux__/jammy/latest'); \
     if (!all(c('MASS', 'nortest', 'lmtest', 'car', 'combinat', 'tseries', 'smooth') %in% installed.packages()[,1])) stop('Step 4 failed')"
 
 # Step 5: Forecasting & Advanced Analytics
 RUN R -e "options(Ncpus = parallel::detectCores()); \
-    install.packages(c('forecast', 'fpp2', 'aTSA', 'vars', 'urca', 'tsDyn'), repos='https://cran.rstudio.com/'); \
+    install.packages(c('forecast', 'fpp2', 'aTSA', 'vars', 'urca', 'tsDyn'), repos='https://packagemanager.posit.co/cran/__linux__/jammy/latest'); \
     if (!all(c('forecast', 'fpp2', 'aTSA', 'vars', 'urca', 'tsDyn') %in% installed.packages()[,1])) stop('Step 5 failed')"
 
 # Step 6: Shiny & Visualization
 RUN R -e "options(Ncpus = parallel::detectCores()); \
-    install.packages(c('shiny', 'shinydashboard', 'shinyWidgets', 'shinycssloaders', 'shinyjs', 'DT', 'ggplot2', 'plotly'), repos='https://cran.rstudio.com/'); \
+    install.packages(c('shiny', 'shinydashboard', 'shinyWidgets', 'shinycssloaders', 'shinyjs', 'DT', 'ggplot2', 'plotly'), repos='https://packagemanager.posit.co/cran/__linux__/jammy/latest'); \
     if (!all(c('shiny', 'shinydashboard', 'shinyWidgets', 'shinycssloaders', 'shinyjs', 'DT', 'ggplot2', 'plotly') %in% installed.packages()[,1])) stop('Step 6 failed')"
 
 # Step 7: File I/O & Machine Learning
 RUN R -e "options(Ncpus = parallel::detectCores()); \
-    install.packages(c('openxlsx', 'readxl', 'future', 'future.apply', 'randomForest', 'caret', 'parallel', 'foreach', 'doParallel'), repos='https://cran.rstudio.com/'); \
+    install.packages(c('openxlsx', 'readxl', 'future', 'future.apply', 'randomForest', 'caret', 'parallel', 'foreach', 'doParallel'), repos='https://packagemanager.posit.co/cran/__linux__/jammy/latest'); \
     if (!all(c('openxlsx', 'readxl', 'future', 'parallel') %in% installed.packages()[,1])) stop('Step 7 failed')"
 
 # ============================================================================
