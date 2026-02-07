@@ -56,8 +56,8 @@ RUN chown nextjs:nodejs .next
 
 # Automatically leverage output traces to reduce image size
 # https://nextjs.org/docs/advanced-features/output-file-tracing
-# Note: standalone mode needs to be enabled in next.config.js/mjs
-# This includes the server.js and a minimal node_modules
+# In standalone mode, we copy the standalone folder content
+# Note: Next.js standalone includes the server.js and a minimal node_modules
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
@@ -66,7 +66,5 @@ USER nextjs
 EXPOSE 4231
 
 ENV PORT=4231
-ENV HOSTNAME="0.0.0.0"
-
 # Startup logic
 CMD ["node", "server.js"]
