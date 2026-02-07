@@ -40,7 +40,7 @@ frontend: ## [LOCAL] Start ONLY frontend (Docker)
 
 .PHONY: dev-frontend
 dev-frontend: ## [LOCAL] Run frontend LOCALLY (pnpm)
-	pnpm --filter frontend run dev
+	cd packages/frontend && pnpm run dev
 
 .PHONY: frontend-dev
 frontend-dev: ## [LOCAL] Start frontend in Docker (hot-reload)
