@@ -74,6 +74,21 @@ services:
       - backend
     profiles: [ "app", "full" ]
 
+  # ============================================================================
+  # 📈 R ANALYTICS (PRODUCTION IMAGE)
+  # ============================================================================
+  r-analytics:
+    image: ghcr.io/ifrspro/ifrs9-iaf/r-analytics:production
+    container_name: ifrs9-r-analytics-prod
+    restart: always
+    env_file:
+      - ./env/r-analytics.env
+    ports:
+      - "4236:3838"
+    networks:
+      - ifrs9-prod
+    profiles: [ "analytics", "full" ]
+
 # ============================================================================
 # 📁 VOLUMES
 # ============================================================================

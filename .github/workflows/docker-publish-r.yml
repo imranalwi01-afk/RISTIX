@@ -1,0 +1,80 @@
+name: Docker R Analytics Publish
+
+on:
+  push:
+    tags: [ 'v*.*.*' ]
+    paths:
+      - 'packages/r-analytics/**'
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # ==============================================================================
+  # R ANALYTICS BUILD JOB
+  # ==============================================================================
+  r-analytics:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Login to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Metadata (tags, labels)
+        id: meta-r
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/r-analytics
+          tags: |
+            type=semver,pattern={{version}}
+            type=raw,value=production
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and Push (R Analytics)
+        uses: docker/build-push-action@v5
+        with:
+          context: packages/r-analytics
+          file: packages/r-analytics/Dockerfile
+          push: true
+          tags: ${{ steps.meta-r.outputs.tags }}
+          labels: ${{ steps.meta-r.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ==============================================================================
+  # DEPLOY TO PRODUCTION (SELF-HOSTED RUNNER)
+  # ==============================================================================
+  deploy-r:
+    name: Deploy R Analytics to Production
+    runs-on: [self-hosted, linux, vpn]
+    needs: [r-analytics]
+
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Login to GHCR
+        run: |
+          echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io \
+            -u ${{ github.actor }} --password-stdin
+
+      - name: Deploy R Analytics with Docker Compose
+        run: |
+          cd /opt/ifrspro
+          docker compose --profile analytics pull
+          docker compose --profile analytics up -d
