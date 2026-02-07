@@ -33,14 +33,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxt-dev \
     # Image & Font processing (for tidyverse/ggplot2)
     libpng-dev \
-    libjpeg-dev \
+
     libtiff5-dev \
     libfontconfig1-dev \
     libfreetype6-dev \
     libfribidi-dev \
     libharfbuzz-dev \
     libwebp-dev \
-    libjpeg62-turbo-dev \
+    libjpeg-dev \
     # Mathematical libraries & Optimization
     libgsl-dev \
     libfftw3-dev \
