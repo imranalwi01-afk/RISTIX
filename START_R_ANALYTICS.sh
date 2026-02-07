@@ -9,7 +9,7 @@ echo "This script runs the R Analytics module natively on macOS."
 echo "Ensure you have R installed and added to your PATH."
 echo ""
 
-cd modelling || { echo "Error: 'modelling' directory not found. Exiting."; exit 1; }
+cd packages/r-analytics/shiny-app || { echo "Error: 'packages/r-analytics/shiny-app' directory not found. Exiting."; exit 1; }
 
 # Check if R is installed
 if ! command -v Rscript &> /dev/null

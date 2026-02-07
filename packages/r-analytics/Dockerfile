@@ -20,6 +20,9 @@ LABEL version="1.0.0"
 # Copy R application files if they exist
 COPY --chown=r-analytics:r-analytics shiny-app/*.R ./shiny-app/
 
+# Rename entry point to standard app.R
+RUN if [ -f ./shiny-app/app34.R ]; then mv ./shiny-app/app34.R ./shiny-app/app.R; fi
+
 # Copy configuration files if they exist
 COPY --chown=r-analytics:r-analytics config/ ./config/
 # COPY --chown=r-analytics:r-analytics functions/ ./functions/ # Removed as directory is missing
