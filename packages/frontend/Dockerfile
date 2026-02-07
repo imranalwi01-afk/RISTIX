@@ -47,11 +47,6 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Copy node_modules to ensure symlinks in standalone work
-COPY --from=builder /app/node_modules ./node_modules
-# Symlink root node_modules to /node_modules because pnpm links point to /node_modules
-RUN ln -s /app/node_modules /node_modules || true
-
 # Copy built artifacts from builder
 COPY --from=builder /app/public ./public
 
@@ -62,6 +57,7 @@ RUN chown nextjs:nodejs .next
 # Automatically leverage output traces to reduce image size
 # https://nextjs.org/docs/advanced-features/output-file-tracing
 # Note: standalone mode needs to be enabled in next.config.js/mjs
+# This includes the server.js and a minimal node_modules
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 

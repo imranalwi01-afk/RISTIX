@@ -7,10 +7,6 @@ const withBundleAnalyzer = bundleAnalyzer({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  turbopack: {
-    root: '../../',
-  },
-
   // ============================================================================
   // PERFORMANCE OPTIMIZATIONS
   // ============================================================================
