@@ -84,27 +84,7 @@ export {
     type NewApprovalAction,
 } from './approval.schema'
 
-// IFRS9 (Banking-specific tables)
 // IFRS9 (Banking-specific tables) - Replaced by legacy schema
-// export {
-//     ifrs9Schema,
-//     productSegments,
-//     productSegmentsRelations,
-//     ruleBaseSettingHeaders,
-//     ruleBaseSettingDetails,
-//     ruleBaseSettingHeadersRelations,
-//     ruleBaseSettingDetailsRelations,
-//     bucketParameters,
-//     bucketParametersRelations,
-//     bucketParameterDetails,
-//     bucketParameterDetailsRelations,
-//     pdConfigurations,
-//     pdConfigurationsRelations,
-//     populationSegments,
-//     lgdConfigurations,
-//     eadConfigurations,
-// } from './ifrs9.schema'
-
 export * from './legacy'
 
 
