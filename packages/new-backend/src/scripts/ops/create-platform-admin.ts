@@ -1,32 +1,13 @@
-
 import { db } from '../../config/database'
 import { sql } from 'drizzle-orm'
-import { pgTable, text, boolean, uuid, timestamp, varchar } from 'drizzle-orm/pg-core'
-import { pgSchema } from 'drizzle-orm/pg-core'
-
-// Define schema locally since it might not be fully exported or I want to be explicit
-const platformAdminSchema = pgSchema('platform_admin')
-
-const platformUsers = platformAdminSchema.table('platform_users', {
-    id: uuid('id').primaryKey().defaultRandom(),
-    email: varchar('email', { length: 255 }).notNull().unique(),
-    username: varchar('username', { length: 100 }).notNull(),
-    passwordHash: varchar('password_hash', { length: 255 }).notNull(),
-    fullName: varchar('full_name', { length: 200 }).notNull(),
-    isActive: boolean('is_active').default(true),
-    isVerified: boolean('is_verified').default(false),
-    createdAt: timestamp('created_at').defaultNow(),
-    updatedAt: timestamp('updated_at').defaultNow(),
-    // Add other columns as needed based on inspection, but these are core for login
-})
-
+import { platformUsers } from '../../db/schema' // Use explicit platformUsers table
 
 async function createPlatformAdmin() {
     console.log('🔒 Starting Platform Superadmin Creation/Reset...')
 
     const USERNAME = 'superadmin'
-    const EMAIL = 'superadmin@iaf.co.id' // or platform@ifrspro.id? letting user change if needed
-    const PASSWORD = 'password123'
+    const EMAIL = 'superadmin@iaf.co.id'
+    const PASSWORD = '1019181716'
 
     try {
         // 1. Hash Password
@@ -40,7 +21,7 @@ async function createPlatformAdmin() {
         console.log(`🔍 Checking for existing user: ${EMAIL}`)
         // We use 'db' which is platformDb by default
         const [existing] = await db
-            .select()
+            .select() // Select all fields (no tenant_id in platformUsers)
             .from(platformUsers)
             .where(sql`${platformUsers.email} = ${EMAIL}`)
             .limit(1)
@@ -51,6 +32,7 @@ async function createPlatformAdmin() {
                 .set({
                     passwordHash,
                     isActive: true,
+                    role: 'SUPER_ADMIN', // Ensure role is set
                     updatedAt: new Date(),
                 })
                 .where(sql`${platformUsers.id} = ${existing.id}`)
@@ -63,6 +45,7 @@ async function createPlatformAdmin() {
                 email: EMAIL,
                 passwordHash,
                 fullName: 'Platform Superadmin',
+                role: 'SUPER_ADMIN', // Required field
                 isActive: true,
                 isVerified: true,
             })

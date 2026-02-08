@@ -11,7 +11,7 @@ import { env } from '../config/env'
 
 // Redis connection for Bull queues
 const redisOptions = getRedisConnectionOptions(parseInt(env.REDIS_QUEUE_DB)) // Use Queue DB (default 0)
-const redis = new Redis(redisOptions as any)
+const redis = new Redis({ ...redisOptions, maxRetriesPerRequest: null })
 
 // Suppress error logging during initial connection attempts
 let isConnected = false

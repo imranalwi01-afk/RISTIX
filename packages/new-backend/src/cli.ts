@@ -126,6 +126,18 @@ program.command('create-platform-admin')
     .description('Create or reset Platform Superadmin (Cross-tenant)')
     .action(createPlatformAdmin);
 
+// ... existing imports
+import { run as resetPassword } from './scripts/ops/reset-password';
+
+// ... existing commands
+
+program.command('reset-password')
+    .description('Reset password for Platform Admin or Tenant User')
+    .requiredOption('-e, --email <email>', 'User email')
+    .requiredOption('-p, --password <password>', 'New plain-text password')
+    .option('-t, --tenant-id <tenantId>', 'Tenant ID (if resetting a tenant user)')
+    .action(resetPassword);
+
 program.parse();
 
 

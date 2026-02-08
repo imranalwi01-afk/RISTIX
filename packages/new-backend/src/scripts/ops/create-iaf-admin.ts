@@ -1,6 +1,6 @@
 
 import { db } from '../../config/database'
-import { users, tenants } from '../../db/schema/core'
+import { users, tenants } from '../../db/schema'
 import { roles, userRoles } from '../../db/schema/rbac.schema'
 import { eq, and } from 'drizzle-orm'
 import { sql } from 'drizzle-orm'

@@ -10,7 +10,9 @@ import { logger, withRequestIds } from '../lib/logger'
 import { getRedisConnectionOptions } from '../config/redis'
 import { env } from '../config/env'
 
-const redis = new Redis(getRedisConnectionOptions(parseInt(env.REDIS_QUEUE_DB)) as any)
+const connectionOptions = getRedisConnectionOptions(parseInt(env.REDIS_QUEUE_DB))
+console.log('Worker Redis Options:', JSON.stringify(connectionOptions, null, 2)) // DEBUG
+const redis = new Redis({ ...connectionOptions, maxRetriesPerRequest: null })
 
 /**
  * Approval Notification Worker
