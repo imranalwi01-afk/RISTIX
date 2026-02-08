@@ -20,7 +20,6 @@ WORKDIR /app
 
 # Copy package files (make lockfiles optional with wildcard)
 COPY package.json pnpm-lock.yaml* package-lock.json* bun.lockb* ./
-COPY . .
 
 # Install dependencies for frontend package
 RUN pnpm install --no-frozen-lockfile
@@ -29,7 +28,7 @@ RUN pnpm install --no-frozen-lockfile
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app ./
+COPY . .
 
 # Next.js telemetry
 ENV NEXT_TELEMETRY_DISABLED=1
