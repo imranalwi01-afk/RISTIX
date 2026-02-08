@@ -54,7 +54,7 @@ export default function OverrideHistoryPage() {
           approved: 89,
           rejected: 12,
           pending: 55
-        }); 
+        });
       } catch (error) {
         console.error('Error loading Override History data:', error);
       } finally {
@@ -67,16 +67,16 @@ export default function OverrideHistoryPage() {
 
   return (
     <Container maxWidth="xl">
-      <ModernLoader 
-        open={loading} 
-        message="Loading History" 
-        subMessage="Fetching override audit trail..." 
+      <ModernLoader
+        open={loading}
+        message="Loading History"
+        subMessage="Fetching override audit trail..."
       />
       {/* Breadcrumb Navigation */}
       <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
-        <Link 
-          underline="hover" 
-          color="inherit" 
+        <Link
+          underline="hover"
+          color="inherit"
           href="/dashboard"
           onClick={(e) => {
             e.preventDefault();
@@ -108,7 +108,7 @@ export default function OverrideHistoryPage() {
 
       {/* Stat Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <StatCard
             title="Total Records"
             value={data?.total || 0}
@@ -118,7 +118,7 @@ export default function OverrideHistoryPage() {
 
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <StatCard
             title="Pending Review"
             value={data?.pending || 0}
@@ -128,7 +128,7 @@ export default function OverrideHistoryPage() {
 
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <StatCard
             title="Approved"
             value={data?.approved || 0}
@@ -138,47 +138,46 @@ export default function OverrideHistoryPage() {
 
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <StatCard
             title="Rejected"
             value={data?.rejected || 0}
             icon={<RejectedIcon sx={{ fontSize: 40 }} />}
             color="#d32f2f"
             subtitle="Denied Requests"
-            loading={loading}
           />
         </Grid>
       </Grid>
 
       {/* Main Content */}
       <Grid container spacing={3}>
-        <Grid item xs={12}>
+        <Grid size={12}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
                 History Details
               </Typography>
               <Typography variant="body2" color="text.secondary" paragraph>
-                This page provides individual assessment override history and audit trail. 
+                This page provides individual assessment override history and audit trail.
               </Typography>
-              
+
               <Alert severity="info" sx={{ mt: 2 }}>
                 <Typography variant="body2">
-                  <strong>Development Note:</strong> Detailed history table integration with backend API 
+                  <strong>Development Note:</strong> Detailed history table integration with backend API
                   (/banking/individual/impairment/assessment/history) is pending.
                 </Typography>
               </Alert>
 
               <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
-                <Button 
-                  variant="contained" 
+                <Button
+                  variant="contained"
                   startIcon={<PageIcon />}
                   disabled
                 >
                   Export Log
                 </Button>
-                <Button 
-                  variant="outlined" 
+                <Button
+                  variant="outlined"
                   startIcon={<BackIcon />}
                   onClick={() => router.back()}
                 >

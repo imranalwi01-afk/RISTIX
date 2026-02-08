@@ -2,39 +2,39 @@
 -- Based on legacy scripts/fix-application-setup.sql
 
 -- Clear existing data to avoid conflicts
-TRUNCATE TABLE ifrs9.frs9_param_commond, ifrs9.frs9_param_commonh RESTART IDENTITY CASCADE;
+TRUNCATE TABLE frs9_param_commond, frs9_param_commonh RESTART IDENTITY CASCADE;
 
 -- 1. Insert Headers
-INSERT INTO ifrs9.frs9_param_commonh (param_code, param_name, param_usage, param_type, createdby, createddate, createdhost, banking_type, is_active) VALUES
+INSERT INTO frs9_param_commonh (param_code, param_name, param_usage, param_type, createdby, createddate, createdhost, is_active) VALUES
 -- System Configuration Parameters
-('APP001', 'System Configuration', 'Core system settings and configuration', 'A', 'SYSTEM', NOW(), 'localhost', 'conventional', true),
-('APP002', 'Database Settings', 'Database connection and configuration settings', 'A', 'SYSTEM', NOW(), 'localhost', 'conventional', true),
-('APP003', 'Security Settings', 'Security and authentication configuration', 'A', 'SYSTEM', NOW(), 'localhost', 'conventional', true),
-('APP004', 'Logging Configuration', 'System logging and audit settings', 'A', 'SYSTEM', NOW(), 'localhost', 'conventional', true),
-('APP005', 'IFRS9 Engine Settings', 'IFRS9 calculation engine configuration', 'A', 'SYSTEM', NOW(), 'localhost', 'conventional', true),
+('APP001', 'System Configuration', 'Core system settings and configuration', 'A', 'SYSTEM', NOW(), 'localhost', true),
+('APP002', 'Database Settings', 'Database connection and configuration settings', 'A', 'SYSTEM', NOW(), 'localhost', true),
+('APP003', 'Security Settings', 'Security and authentication configuration', 'A', 'SYSTEM', NOW(), 'localhost', true),
+('APP004', 'Logging Configuration', 'System logging and audit settings', 'A', 'SYSTEM', NOW(), 'localhost', true),
+('APP005', 'IFRS9 Engine Settings', 'IFRS9 calculation engine configuration', 'A', 'SYSTEM', NOW(), 'localhost', true),
 
 -- User Interface Parameters
-('APP006', 'UI Configuration', 'User interface and display settings', 'A', 'SYSTEM', NOW(), 'localhost', 'conventional', true),
-('APP007', 'Theme Settings', 'Application theme and visual configuration', 'A', 'SYSTEM', NOW(), 'localhost', 'conventional', true),
-('APP008', 'Language Settings', 'Language and localization configuration', 'A', 'SYSTEM', NOW(), 'localhost', 'conventional', true),
+('APP006', 'UI Configuration', 'User interface and display settings', 'A', 'SYSTEM', NOW(), 'localhost', true),
+('APP007', 'Theme Settings', 'Application theme and visual configuration', 'A', 'SYSTEM', NOW(), 'localhost', true),
+('APP008', 'Language Settings', 'Language and localization configuration', 'A', 'SYSTEM', NOW(), 'localhost', true),
 
 -- Processing Parameters
-('APP009', 'Batch Processing', 'Batch job and processing configuration', 'A', 'SYSTEM', NOW(), 'localhost', 'conventional', true),
-('APP010', 'Data Validation', 'Data validation and quality control settings', 'A', 'SYSTEM', NOW(), 'localhost', 'conventional', true),
-('APP011', 'Calculation Methods', 'Default calculation methods and parameters', 'A', 'SYSTEM', NOW(), 'localhost', 'conventional', true),
+('APP009', 'Batch Processing', 'Batch job and processing configuration', 'A', 'SYSTEM', NOW(), 'localhost', true),
+('APP010', 'Data Validation', 'Data validation and quality control settings', 'A', 'SYSTEM', NOW(), 'localhost', true),
+('APP011', 'Calculation Methods', 'Default calculation methods and parameters', 'A', 'SYSTEM', NOW(), 'localhost', true),
 
 -- Integration Parameters
-('APP012', 'API Configuration', 'External API integration settings', 'A', 'SYSTEM', NOW(), 'localhost', 'conventional', true),
-('APP013', 'File Processing', 'File upload and processing configuration', 'A', 'SYSTEM', NOW(), 'localhost', 'conventional', true),
-('APP014', 'Export Settings', 'Data export and report generation settings', 'A', 'SYSTEM', NOW(), 'localhost', 'conventional', true),
+('APP012', 'API Configuration', 'External API integration settings', 'A', 'SYSTEM', NOW(), 'localhost', true),
+('APP013', 'File Processing', 'File upload and processing configuration', 'A', 'SYSTEM', NOW(), 'localhost', true),
+('APP014', 'Export Settings', 'Data export and report generation settings', 'A', 'SYSTEM', NOW(), 'localhost', true),
 
 -- Banking Parameters
-('APP015', 'Banking Mode', 'Banking mode configuration (Conventional/Syariah)', 'A', 'SYSTEM', NOW(), 'localhost', 'dual', true),
-('APP016', 'Product Types', 'Banking product types and categories', 'A', 'SYSTEM', NOW(), 'localhost', 'conventional', true),
-('APP017', 'Risk Parameters', 'Risk assessment and parameter configuration', 'A', 'SYSTEM', NOW(), 'localhost', 'conventional', true);
+('APP015', 'Banking Mode', 'Banking mode configuration (Conventional/Syariah)', 'A', 'SYSTEM', NOW(), 'localhost', true),
+('APP016', 'Product Types', 'Banking product types and categories', 'A', 'SYSTEM', NOW(), 'localhost', true),
+('APP017', 'Risk Parameters', 'Risk assessment and parameter configuration', 'A', 'SYSTEM', NOW(), 'localhost', true);
 
 -- 2. Insert Details
-INSERT INTO ifrs9.frs9_param_commond (param_code, param_seq, value1, value2, value3, paramdesc, createdby, createddate, createdhost) VALUES
+INSERT INTO frs9_param_commond (param_code, param_seq, value1, value2, value3, paramdesc, createdby, createddate, createdhost) VALUES
 -- System Configuration Details
 ('APP001', 1, 'ACTIVE', 'TRUE', 'SYS', 'System active status', 'SYSTEM', NOW(), 'localhost'),
 ('APP001', 2, 'VERSION', '1.0.0', 'SYS', 'Application version', 'SYSTEM', NOW(), 'localhost'),

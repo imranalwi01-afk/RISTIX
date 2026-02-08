@@ -167,8 +167,8 @@ services:
   # ============================================================================
   frontend:
     build:
-      context: ../..
-      dockerfile: packages/frontend/Dockerfile
+      context: ../../packages/frontend
+      dockerfile: Dockerfile
       args:
         - NEXT_PUBLIC_API_URL=${API_BASE_URL}
         - NEXT_PUBLIC_R_ANALYTICS_BASE_URL=${RAPI_BASE_URL}

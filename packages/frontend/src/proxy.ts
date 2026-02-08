@@ -58,6 +58,7 @@ const BANKING_MODE_PATTERNS = {
 const PUBLIC_ROUTES = [
   '/',
   '/login',
+  '/platform/login', // ✅ Allow platform login page
   '/register',
   '/forgot-password',
   '/reset-password',
@@ -106,7 +107,7 @@ function validateTokenBasic(token: string): { isValid: boolean; user?: any } {
       if (payload.userId || payload.email || payload.sub) {
         const roles = payload.roles || (payload.role ? [payload.role] : []);
         const permissions = payload.permissions || [];
-        
+
         console.log('[ProxyDebug] Token decoded:', {
           email: payload.email,
           roles: roles,
@@ -114,7 +115,7 @@ function validateTokenBasic(token: string): { isValid: boolean; user?: any } {
           totalPermissions: permissions.length,
           stakeholderType: payload.stakeholderType
         });
-        
+
         return {
           isValid: true,
           user: {
@@ -202,7 +203,7 @@ function hasRouteAccess(user: any, pathname: string): boolean {
       }
 
       // ✅ LENIENT: If user has ANY banking permissions, allow banking routes
-      if (pathname.startsWith('/banking') && userPermissions.some((p: string) => 
+      if (pathname.startsWith('/banking') && userPermissions.some((p: string) =>
         p.includes('VIEW') || p.includes('MANAGE') || p.includes('ACCESS')
       )) {
         console.log(`[ProxyDebug] User ${user.email} has banking permissions - allowing ${pathname}`);

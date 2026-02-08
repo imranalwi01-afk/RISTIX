@@ -18,35 +18,7 @@ import { relations } from 'drizzle-orm'
  */
 export const coreSchema = pgSchema('core')
 
-// =============================================================================
-// TENANTS TABLE
-// =============================================================================
 
-/**
- * Tenants table definition.
- * Stores multi-tenancy configuration and details.
- */
-export const tenants = coreSchema.table(
-    'tenants',
-    {
-        id: uuid('id').primaryKey().defaultRandom(),
-        code: varchar('code', { length: 50 }).notNull(),
-        name: varchar('name', { length: 255 }).notNull(),
-        slug: varchar('slug', { length: 100 }),
-        description: text('description'),
-        type: varchar('type', { length: 50 }).default('banking'),
-        bankingMode: varchar('banking_mode', { length: 20 }).default('conventional'),
-        settings: jsonb('settings').default({}),
-        isActive: boolean('is_active').notNull().default(true),
-        createdAt: timestamp('created_at').notNull().defaultNow(),
-        updatedAt: timestamp('updated_at').notNull().defaultNow(),
-    },
-    (table) => [
-        uniqueIndex('tenants_code_idx').on(table.code),
-        index('tenants_slug_idx').on(table.slug),
-        index('tenants_active_idx').on(table.isActive),
-    ]
-)
 
 // =============================================================================
 // USERS TABLE
@@ -114,21 +86,8 @@ export const users = coreSchema.table(
 )
 
 // =============================================================================
-// RELATIONS
-// =============================================================================
-
-export const tenantsRelations = relations(tenants, ({ many }) => ({
-    users: many(users),
-}))
-
-// Note: tenantId in users is varchar, not FK, so no direct relation
-
-// =============================================================================
 // TYPE EXPORTS
 // =============================================================================
-
-export type Tenant = typeof tenants.$inferSelect
-export type NewTenant = typeof tenants.$inferInsert
 
 export type User = typeof users.$inferSelect
 export type NewUser = typeof users.$inferInsert

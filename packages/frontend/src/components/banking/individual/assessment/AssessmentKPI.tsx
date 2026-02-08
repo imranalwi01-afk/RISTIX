@@ -143,7 +143,7 @@ export const AssessmentKPI: React.FC<AssessmentKPIProps> = ({ watchlist, loading
       />
       <KPICard
         title="Pending Assessments"
-        value={watchlist.filter(a => a.assessment_status === 'PENDING' || a.assessment_status === '2').length}
+        value={watchlist.filter(a => a.assessment_status === 'PENDING').length}
         gradient="linear-gradient(135deg, #f57c00 0%, #ef6c00 100%)"
         icon={<PendingIcon sx={{ fontSize: 28 }} />}
         loading={loading}

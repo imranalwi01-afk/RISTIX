@@ -7,8 +7,7 @@ import {
     frs9ImpIaResultH,
     frs9ImpIaResultD
 } from '../db/schema/legacy';
-import { frs9MasterAccount } from '../db/schema/introspected/schema';
-import { users } from '../db/schema';
+import { frs9MasterAccount, users } from '../db/schema';
 import { and, eq, desc, sql, inArray } from 'drizzle-orm';
 
 

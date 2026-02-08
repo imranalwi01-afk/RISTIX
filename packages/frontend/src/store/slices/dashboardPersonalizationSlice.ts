@@ -87,7 +87,7 @@ export const fetchDashboardPersonalization = createAsyncThunk(
   async ({ userId, tenantId }: { userId: string; tenantId: string }, { rejectWithValue }) => {
     // 🚫 DISABLED: Skip API call to prevent 401 errors
     console.log('🚫 Dashboard personalization API disabled, using defaults')
-    
+
     // Return default personalization structure immediately
     return {
       userId,
@@ -117,7 +117,7 @@ export const saveDashboardPersonalization = createAsyncThunk(
       // 🚫 DISABLED: Skip save to prevent 401 errors
       console.log('🚫 DashboardPersonalization: Save disabled, returning settings as-is')
       return settings
-      
+
       /* ORIGINAL SAVE CALL - DISABLED
       // Transform frontend settings to backend format
       const backendFormat = {
@@ -193,7 +193,7 @@ export const createDashboardLayout = createAsyncThunk(
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       }
-      
+
       /* ORIGINAL CREATE CALL - DISABLED
       const response = await apiClient.post(`/users/${userId}/dashboard/layouts`, layout, {
         headers: {
@@ -220,7 +220,7 @@ export const deleteDashboardLayout = createAsyncThunk(
       // 🚫 DISABLED: Skip delete to prevent 401 errors
       console.log('🚫 DashboardPersonalization: Delete layout disabled')
       return { layoutId }
-      
+
       /* ORIGINAL DELETE CALL - DISABLED
       const response = await apiClient.delete(`/users/${userId}/dashboard/layouts/${layoutId}`, {
         headers: {
@@ -377,7 +377,7 @@ const dashboardPersonalizationSlice = createSlice({
         // Set current widgets from current layout
         // Defensive check: ensure layouts is an array and has valid data
         if (action.payload.layouts && Array.isArray(action.payload.layouts)) {
-          const currentLayout = action.payload.layouts.find((l: DashboardLayout) => l.id === action.payload.currentLayout)
+          const currentLayout = action.payload.layouts.find((l: DashboardLayout) => l.id === action.payload.currentLayout) as DashboardLayout | undefined
           if (currentLayout) {
             state.currentWidgets = currentLayout.widgets
           } else {
@@ -430,7 +430,7 @@ const dashboardPersonalizationSlice = createSlice({
     builder
       .addCase(deleteDashboardLayout.fulfilled, (state, action) => {
         if (state.settings) {
-          state.settings.layouts = state.settings.layouts.filter(l => l.id !== action.payload)
+          state.settings.layouts = state.settings.layouts.filter(l => l.id !== action.payload.layoutId)
         }
       })
       .addCase(deleteDashboardLayout.rejected, (state, action) => {
