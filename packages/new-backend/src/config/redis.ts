@@ -6,27 +6,34 @@ import { logger } from '../lib/logger'
  * Redis client for session management and caching
  * Supports both REDIS_URL (for Docker) and individual env vars (for local dev)
  */
-export const redis = env.REDIS_URL
-    ? new IORedis(env.REDIS_URL, {
-        maxRetriesPerRequest: null,
-        lazyConnect: true,
-        retryStrategy(times) {
-            const delay = Math.min(times * 100, 2000)
-            return delay
-        },
-    })
-    : new IORedis({
+/**
+ * Get Redis connection options
+ */
+export const getRedisConnectionOptions = (dbIndex?: number) => {
+    // If REDIS_URL is provided, specific options might be limited if parsed manually, 
+    // but IORedis handles URL in constructor. 
+    // However, to support standard options object for BullMQ:
+
+    if (env.REDIS_URL) {
+        return env.REDIS_URL
+    }
+
+    return {
         host: env.REDIS_HOST || 'localhost',
         port: parseInt(env.REDIS_PORT || '6379'),
         password: env.REDIS_PASSWORD || undefined,
-        db: parseInt(env.REDIS_SESSION_DB || '11'),
-        lazyConnect: true,
-        retryStrategy(times) {
-            const delay = Math.min(times * 100, 2000)
-            return delay
-        },
-        maxRetriesPerRequest: null,
-    })
+        db: dbIndex !== undefined ? dbIndex : parseInt(env.REDIS_SESSION_DB || '11'),
+        maxRetriesPerRequest: null, // Required by BullMQ
+    }
+}
+
+export const redis = new IORedis(getRedisConnectionOptions() as any, {
+    maxRetriesPerRequest: null,
+    lazyConnect: true,
+    retryStrategy(times) {
+        return Math.min(times * 100, 2000)
+    },
+})
 
 // Track connection state to suppress initial errors
 let isConnected = false
