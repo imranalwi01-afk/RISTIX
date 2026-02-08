@@ -407,14 +407,9 @@ export const individualImpairmentAPI = {
         if (error.response?.data instanceof Blob) {
           try {
             const text = await error.response.data.text();
-            console.error('❌ Export error response body:', text); // Log the raw body
             const errorData = JSON.parse(text);
-            console.error('❌ Export error parsed:', errorData);
-            const errorMessage = errorData.message || 'Export failed';
-            const errorDetails = errorData.details ? `: ${errorData.details}` : '';
-            throw new Error(`${errorMessage}${errorDetails}`);
-          } catch (parseError) {
-            console.error('❌ Failed to parse export error blob:', parseError);
+            throw new Error(errorData.message || 'Export failed');
+          } catch {
             throw new Error('Export failed: Unable to process response');
           }
         }

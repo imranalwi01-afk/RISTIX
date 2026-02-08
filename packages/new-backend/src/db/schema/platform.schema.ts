@@ -1,14 +1,18 @@
+export * from './core'
+export * from './menu.schema'
+export * from './consultants.schema'
+
 import {
     pgSchema,
     uuid,
     varchar,
-    text,
-    boolean,
     timestamp,
-    jsonb,
+    boolean,
     integer,
     index,
-    uniqueIndex
+    text,
+    jsonb,
+    uniqueIndex,
 } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 
@@ -26,7 +30,6 @@ export const platformSchema = pgSchema('platform_admin')
  * Platform Users table definition.
  * Stores platform administrators and system operators.
  * Distinct from tenant users; no tenant_id column required.
- * Maps to 'core.users' in the Platform DB.
  */
 export const platformUsers = platformSchema.table(
     'users',
@@ -65,7 +68,8 @@ export const platformUsers = platformSchema.table(
     ]
 )
 
-
+export type PlatformUser = typeof platformUsers.$inferSelect
+export type NewPlatformUser = typeof platformUsers.$inferInsert
 
 // =============================================================================
 // TENANTS TABLE
@@ -115,5 +119,33 @@ export const tenantsRelations = relations(tenants, ({ many }) => ({
 
 export type Tenant = typeof tenants.$inferSelect
 export type NewTenant = typeof tenants.$inferInsert
-export type PlatformUser = typeof platformUsers.$inferSelect
-export type NewPlatformUser = typeof platformUsers.$inferInsert
+
+// Re-export specific RBAC items as in index.ts to avoid "coreSchema" conflict
+export {
+    roles,
+    userRoles,
+    permissions,
+    rolePermissions,
+    permissionApprovalPolicies,
+    rolesRelations,
+    userRolesRelations,
+    permissionsRelations,
+    rolePermissionsRelations,
+    permissionApprovalPoliciesRelations,
+    type Role,
+    type NewRole,
+    type UserRole,
+    type NewUserRole,
+    type Permission,
+    type NewPermission,
+    type RolePermission,
+    type NewRolePermission,
+    type PermissionApprovalPolicy,
+    type NewPermissionApprovalPolicy,
+} from './rbac.schema'
+
+export * from './audit.schema'
+export * from './auth.schema'
+export * from './approval.schema'
+export * from './jobs.schema'
+export * from './workflows.schema'

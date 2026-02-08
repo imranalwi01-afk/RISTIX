@@ -411,8 +411,10 @@ export default function ProductParametersPage() {
       try {
         const result = await api.banking.productParameters?.getAll?.();
         if (result?.success && result?.data) {
-          setData(result.data);
-          setFilteredData(result.data);
+          // Sort by PKID descending (Newest first)
+          const sortedData = [...result.data].sort((a, b) => b.pkid - a.pkid);
+          setData(sortedData);
+          setFilteredData(sortedData);
           console.log('✅ Loaded from API:', result.data.length, 'products');
           return;
         }
@@ -599,6 +601,17 @@ export default function ProductParametersPage() {
       return;
     }
 
+    // Duplicate Check
+    const isDuplicate = data.some(p => 
+      p.prdCode.trim().toUpperCase() === formData.prdCode.trim().toUpperCase() && 
+      (!selectedProduct || p.pkid !== selectedProduct.pkid)
+    );
+
+    if (isDuplicate) {
+      setError(`Product Code '${formData.prdCode}' already exists.`);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -614,9 +627,9 @@ export default function ProductParametersPage() {
         alFlag: formData.alFlag || undefined,
         impairedFlag: formData.impairedFlag,
         bmFlag: formData.bmFlag,
-        expectedLife: typeof formData.expectedLife === 'number' ? formData.expectedLife : undefined,
-        borrowingRate: typeof formData.borrowingRate === 'number' ? formData.borrowingRate : undefined,
-        marketRate: typeof formData.marketRate === 'number' ? formData.marketRate : undefined,
+        expectedLife: formData.expectedLife === '' ? undefined : Number(formData.expectedLife),
+        borrowingRate: formData.borrowingRate === '' ? undefined : Number(formData.borrowingRate),
+        marketRate: formData.marketRate === '' ? undefined : Number(formData.marketRate),
         activeFlag: formData.activeFlag,
         createdby: 'SYSTEM'
       };
@@ -634,7 +647,7 @@ export default function ProductParametersPage() {
       await loadData();
     } catch (error: any) {
       console.error('Save error:', error);
-      const errorMsg = error?.response?.data?.error || error.message || 'Failed to save product';
+      const errorMsg = error?.response?.data?.message || error?.response?.data?.error || error.message || 'Failed to save product';
       setError(errorMsg);
     } finally {
       setLoading(false);

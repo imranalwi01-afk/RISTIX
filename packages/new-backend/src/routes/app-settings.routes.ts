@@ -83,13 +83,39 @@ const UpdateAppSettingSchema = z.object({
 })).openapi('UpdateAppSettingInput')
 
 const CreateAppSettingDetailSchema = z.object({
-    paramCode: z.string().max(50),
-    paramSeq: z.number().int(),
+    // Accept both snake_case and camelCase
+    param_code: z.string().max(50).optional(),
+    paramCode: z.string().max(50).optional(),
+    param_seq: z.number().int().optional(),
+    paramSeq: z.number().int().optional(),
     value1: z.string().max(100),
-    value2: z.string().max(100),
-    value3: z.string().max(50),
-    paramdesc: z.string().max(1000),
-}).openapi('CreateAppSettingDetailInput')
+    value2: z.string().max(100).optional(),
+    value3: z.string().max(50).optional(),
+    paramdesc: z.string().max(1000).optional(),
+}).transform(data => ({
+    paramCode: data.param_code || data.paramCode || '',
+    paramSeq: data.param_seq ?? data.paramSeq ?? 1,
+    value1: data.value1,
+    value2: data.value2 || '',
+    value3: data.value3 || '',
+    paramdesc: data.paramdesc || '',
+})).openapi('CreateAppSettingDetailInput')
+
+const UpdateAppSettingDetailSchema = z.object({
+    // Accept both snake_case and camelCase
+    param_seq: z.number().int().optional(),
+    paramSeq: z.number().int().optional(),
+    value1: z.string().max(100).optional(),
+    value2: z.string().max(100).optional(),
+    value3: z.string().max(50).optional(),
+    paramdesc: z.string().max(1000).optional(),
+}).transform(data => ({
+    ...(data.param_seq !== undefined || data.paramSeq !== undefined ? { paramSeq: data.param_seq ?? data.paramSeq } : {}),
+    ...(data.value1 !== undefined ? { value1: data.value1 } : {}),
+    ...(data.value2 !== undefined ? { value2: data.value2 } : {}),
+    ...(data.value3 !== undefined ? { value3: data.value3 } : {}),
+    ...(data.paramdesc !== undefined ? { paramdesc: data.paramdesc } : {}),
+})).openapi('UpdateAppSettingDetailInput')
 
 const AppSettingListResponse = z.object({
     success: z.boolean(),
@@ -340,6 +366,32 @@ app.openapi(
         const userId = c.get('userId') as string || 'system';
 
         return runEffect(c, ParametersService.createAppSettingDetail(data, userId) as any) as any
+    }
+)
+
+// PUT /api/v1/app-settings/details/:id
+app.openapi(
+    createRoute({
+        method: 'put',
+        path: '/details/{id}',
+        tags: ['Application Settings'],
+        summary: 'Update Application Setting Detail',
+        request: {
+            params: z.object({ id: z.string().transform(Number) }),
+            body: { content: { 'application/json': { schema: UpdateAppSettingDetailSchema } } }
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: AppSettingDetailResponse } }, description: 'Updated' },
+            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        const id = c.req.valid('param').id;
+        const data = c.req.valid('json');
+        const userId = c.get('userId') as string || 'system';
+
+        return runEffect(c, ParametersService.updateAppSettingDetail(id, data, userId) as any) as any
     }
 )
 

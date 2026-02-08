@@ -1,5 +1,5 @@
 // packages/frontend/src/components/ifrs9/LifetimeLGDReport.tsx
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -7,7 +7,7 @@ import {
   CardContent,
   Grid,
   Chip,
-  Avatar
+  alpha
 } from '@mui/material';
 import {
   TrendingDown as TrendingDownIcon,
@@ -30,20 +30,298 @@ import {
 } from 'recharts';
 import BaseIfrs9Report from './BaseIfrs9Report';
 
+interface LGDDistributionItem {
+  range: string;
+  min: number;
+  max: number;
+  count: number;
+  color: string;
+}
+
+interface SummaryStats {
+  totalAccounts: number;
+  averageLGD: number;
+  totalRecoveryAmount: number;
+  avgRecoveryRate: number;
+  lgdDistribution: LGDDistributionItem[];
+}
+
+const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
+  const items = [
+    {
+      title: 'Total Accounts',
+      value: stats.totalAccounts.toLocaleString('id-ID'),
+      format: 'raw',
+      icon: <BankIcon sx={{ fontSize: 32 }} />,
+      gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      mainColor: '#667eea'
+    },
+    {
+      title: 'Average LGD Rate',
+      value: stats.averageLGD,
+      format: 'percentage',
+      icon: <TrendingDownIcon sx={{ fontSize: 32 }} />,
+      gradient: 'linear-gradient(135deg, #f9d423 0%, #ff4e50 100%)',
+      mainColor: '#ff4e50'
+    },
+    {
+      title: 'Total Recovery',
+      value: stats.totalRecoveryAmount,
+      format: 'currency',
+      icon: <AssessmentIcon sx={{ fontSize: 32 }} />,
+      gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+      mainColor: '#4facfe'
+    },
+    {
+      title: 'LGD Risk Level',
+      value: stats.averageLGD < 0.3 ? 'Low' : stats.averageLGD < 0.6 ? 'Medium' : 'High',
+      format: 'raw',
+      icon: <PieIcon sx={{ fontSize: 32 }} />,
+      gradient: stats.averageLGD < 0.3 
+        ? 'linear-gradient(135deg, #42E695 0%, #3BB2B8 100%)' 
+        : stats.averageLGD < 0.6 
+          ? 'linear-gradient(135deg, #FAD961 0%, #F76B1C 100%)'
+          : 'linear-gradient(135deg, #F44336 0%, #E57373 100%)',
+      mainColor: stats.averageLGD < 0.3 ? '#42E695' : stats.averageLGD < 0.6 ? '#F76B1C' : '#F44336'
+    }
+  ];
+
+  return (
+    <Grid container spacing={3} sx={{ mb: 5 }}>
+      {items.map((item, index) => (
+        <Grid size={{ xs: 12, sm: 6, md: 3 }} key={index}>
+          <Card sx={{ 
+            height: '100%',
+            borderRadius: 4,
+            position: 'relative',
+            overflow: 'hidden',
+            background: 'white',
+            boxShadow: `0 4px 12px ${alpha(item.mainColor, 0.12)}`,
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            border: `1px solid ${alpha(item.mainColor, 0.1)}`,
+            '&:hover': {
+              transform: 'translateY(-8px)',
+              boxShadow: `0 12px 32px ${alpha(item.mainColor, 0.25)}`,
+              '& .card-icon-container': {
+                transform: 'rotate(10deg) scale(1.1)'
+              }
+            }
+          }}>
+            <CardContent sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
+              <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography 
+                  variant="caption" 
+                  sx={{ 
+                    fontWeight: 800, 
+                    textTransform: 'uppercase', 
+                    letterSpacing: 1.5, 
+                    color: 'text.secondary',
+                    opacity: 0.8
+                  }}
+                >
+                  {item.title}
+                </Typography>
+                <Box 
+                  className="card-icon-container"
+                  sx={{ 
+                    p: 1.5, 
+                    borderRadius: 2, 
+                    background: item.gradient,
+                    color: 'white',
+                    display: 'flex',
+                    transition: 'transform 0.3s ease',
+                    boxShadow: `0 4px 12px ${alpha(item.mainColor, 0.4)}`
+                  }}
+                >
+                  {item.icon}
+                </Box>
+              </Box>
+              
+              <Box sx={{ mt: 'auto' }}>
+                <Typography 
+                  variant="h4" 
+                  sx={{ 
+                    fontWeight: 800,
+                    background: item.gradient,
+                    backgroundClip: 'text',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    mb: 0.5
+                  }}
+                >
+                  {item.format === 'currency' 
+                    ? new Intl.NumberFormat('id-ID', {
+                        style: 'currency',
+                        currency: 'IDR',
+                        notation: 'compact',
+                        maximumFractionDigits: 1
+                      }).format(item.value as number)
+                    : item.format === 'percentage'
+                      ? `${((item.value as number) * 100).toFixed(2)}%`
+                      : item.value
+                  }
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', opacity: 0.7 }}>
+                  <Chip 
+                    size="small" 
+                    label="LGD METRIC" 
+                    variant="outlined"
+                    sx={{ 
+                      height: 20, 
+                      fontSize: '0.65rem', 
+                      fontWeight: 700,
+                      borderColor: alpha(item.mainColor, 0.3),
+                      color: item.mainColor
+                    }} 
+                  />
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+      ))}
+    </Grid>
+  );
+};
+
+const LGDCharts: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
+  <Grid container spacing={3} sx={{ mb: 5 }}>
+    <Grid size={{ xs: 12, md: 6 }}>
+      <Card sx={{ borderRadius: 4, boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)', height: '100%' }}>
+        <CardContent sx={{ p: 4 }}>
+          <Typography variant="h6" fontWeight={700} gutterBottom sx={{ mb: 3 }}>
+            LGD Rate Distribution
+          </Typography>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={stats.lgdDistribution}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={alpha('#000', 0.05)} />
+              <XAxis dataKey="range" axisLine={false} tickLine={false} />
+              <YAxis axisLine={false} tickLine={false} />
+              <Tooltip 
+                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}
+                formatter={(value: number) => [value, 'Accounts']}
+              />
+              <Bar dataKey="count" fill="#667eea" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+    </Grid>
+
+    <Grid size={{ xs: 12, md: 6 }}>
+      <Card sx={{ borderRadius: 4, boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)', height: '100%' }}>
+        <CardContent sx={{ p: 4 }}>
+          <Typography variant="h6" fontWeight={700} gutterBottom sx={{ mb: 3 }}>
+            LGD Rate Categories
+          </Typography>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={stats.lgdDistribution}
+                cx="50%"
+                cy="50%"
+                innerRadius={60}
+                outerRadius={100}
+                paddingAngle={5}
+                dataKey="count"
+                label={({ range, percent }) => `${range} (${(percent * 100).toFixed(0)}%)`}
+              >
+                {stats.lgdDistribution.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip />
+              <Legend iconType="circle" />
+            </PieChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+    </Grid>
+  </Grid>
+);
+
+const LGDPivotTable: React.FC<{ data: any[]; columns: string[] }> = ({ data, columns }) => {
+  if (!data || data.length === 0) return null;
+
+  const baseColumns = columns.filter(col => !col.match(/^(seq|recovery|period)_\d+$/));
+  const dynamicColumns = columns.filter(col => col.match(/^(seq|recovery|period)_\d+$/));
+
+  const finalBase = dynamicColumns.length > 0 ? baseColumns : columns;
+  const finalDynamic = dynamicColumns.length > 0 ? dynamicColumns : [];
+
+  return (
+    <Card sx={{ borderRadius: 4, boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)', overflow: 'hidden', mt: 3 }}>
+      <Box sx={{ p: 3, borderBottom: '1px solid rgba(0,0,0,0.05)', bgcolor: '#f8faff' }}>
+        <Typography variant="h6" fontWeight={700}>
+          Recovery Sequence Analysis (Pivoted)
+        </Typography>
+      </Box>
+      <Box sx={{ width: '100%', overflow: 'hidden' }}>
+        <Box sx={{ maxHeight: 600, overflow: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+            <thead style={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: '#764ba2', color: 'white' }}>
+              <tr>
+                {finalBase.map(col => (
+                  <th key={col} style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 700 }}>
+                    {col.replace(/_/g, ' ').toUpperCase()}
+                  </th>
+                ))}
+                {finalDynamic.map(col => (
+                  <th key={col} style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, minWidth: 100 }}>
+                    {col.replace(/^(seq|recovery|period)_/, '').toUpperCase()}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {data.slice(0, 100).map((row, index) => (
+                <tr key={index} style={{ borderBottom: '1px solid #f0f0f0', backgroundColor: index % 2 === 0 ? 'white' : '#fcfcff' }}>
+                  {finalBase.map(col => (
+                    <td key={col} style={{ padding: '12px 16px' }}>
+                      {col === 'product_type' ? (
+                         <Chip size="small" label={row[col]} sx={{ fontWeight: 600, bgcolor: alpha('#764ba2', 0.08), color: '#764ba2', border: 'none' }} />
+                      ) : (
+                        row[col] || '-'
+                      )}
+                    </td>
+                  ))}
+                  {finalDynamic.map(col => (
+                    <td key={col} style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 600 }}>
+                         {row[col] !== null && row[col] !== undefined ? (
+                            new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(row[col])
+                         ) : '-'}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Box>
+        {data.length > 100 && (
+           <Box sx={{ p: 2, textAlign: 'center' }}>
+             <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+               Showing first 100 records. Export to view full dataset.
+             </Typography>
+           </Box>
+        )}
+      </Box>
+    </Card>
+  );
+};
+
 const LifetimeLGDReport: React.FC = () => {
-  const [summaryStats, setSummaryStats] = useState({
+  const [summaryStats, setSummaryStats] = useState<SummaryStats>({
     totalAccounts: 0,
     averageLGD: 0,
     totalRecoveryAmount: 0,
     avgRecoveryRate: 0,
-    lgdDistribution: [] as any[]
+    lgdDistribution: []
   });
-
+  
   const [pivotData, setPivotData] = useState<any[]>([]);
   const [pivotColumns, setPivotColumns] = useState<string[]>([]);
 
-  const handleDataLoaded = (data: any[]) => {
-    // Process Pivot Data
+  const handleDataLoaded = React.useCallback((data: any[]) => {
     const { pivotData: pData, columns: pCols } = processPivotData(data);
     setPivotData(pData);
     setPivotColumns(pCols);
@@ -51,181 +329,69 @@ const LifetimeLGDReport: React.FC = () => {
     if (data && data.length > 0) {
       const stats = data.reduce((acc, row) => {
         acc.totalAccounts += 1;
-        acc.totalRecoveryAmount += row.recovery_amount || 0;
-        acc.averageLGD += row.lgd_rate || 0;
+        acc.totalRecoveryAmount += parseFloat(row.recovery_amount as string) || 0;
+        acc.averageLGD += parseFloat(row.lgd_rate as string) || 0;
         return acc;
       }, {
         totalAccounts: 0,
         averageLGD: 0,
         totalRecoveryAmount: 0,
         avgRecoveryRate: 0,
-        lgdDistribution: []
+        lgdDistribution: [] as LGDDistributionItem[]
       });
-
-      stats.averageLGD = stats.averageLGD / data.length;
-
-      // Calculate LGD distribution
+      
+      const averageLGD = stats.averageLGD / data.length;
+      
       const lgdRanges = [
         { range: '0-20%', min: 0, max: 0.2, count: 0, color: '#4CAF50' },
-        { range: '21-40%', min: 0.2, max: 0.4, count: 0, color: '#FF9800' },
-        { range: '41-60%', min: 0.4, max: 0.6, count: 0, color: '#FF5722' },
-        { range: '61-80%', min: 0.6, max: 0.8, count: 0, color: '#F44336' },
-        { range: '81-100%', min: 0.8, max: 1.0, count: 0, color: '#9C27B0' }
+        { range: '21-40%', min: 0.2, max: 0.4, count: 0, color: '#8BC34A' },
+        { range: '41-60%', min: 0.4, max: 0.6, count: 0, color: '#FFC107' },
+        { range: '61-80%', min: 0.6, max: 0.8, count: 0, color: '#FF9800' },
+        { range: '81-100%', min: 0.8, max: 1.1, count: 0, color: '#F44336' }
       ];
-
+      
       data.forEach(row => {
-        const lgd = row.lgd_rate || 0;
+        const lgd = parseFloat(row.lgd_rate as string) || 0;
         lgdRanges.forEach(range => {
           if (lgd >= range.min && lgd < range.max) {
             range.count += 1;
           }
         });
       });
-
-      stats.lgdDistribution = lgdRanges.filter(range => range.count > 0);
-      setSummaryStats(stats);
+      
+      setSummaryStats({
+        ...stats,
+        averageLGD,
+        lgdDistribution: lgdRanges.filter(range => range.count > 0)
+      });
     }
+  }, []);
+
+  const processPivotData = (data: any[]) => {
+      if (!data || data.length === 0) return { pivotData: [], columns: [] };
+
+      const firstRow = data[0];
+      const baseColumns = ['account_id', 'customer_name', 'segment_name', 'product_type'];
+      
+      const dynamicColumns = Object.keys(firstRow).filter(key => 
+          key.match(/^(seq|recovery|period)_\d+$/)
+      ).sort((a, b) => {
+          const numA = parseInt(a.split('_')[1]);
+          const numB = parseInt(b.split('_')[1]);
+          return numA - numB;
+      });
+
+      const pivotCols = dynamicColumns.length > 0 ? dynamicColumns : Object.keys(firstRow).filter(k => !baseColumns.includes(k) && typeof firstRow[k] === 'number');
+      const allColumns = [...baseColumns.filter(k => k in firstRow), ...pivotCols];
+      
+      return {
+        pivotData: data,
+        columns: allColumns
+      };
   };
 
-  const SummaryCards = () => (
-    <Grid container spacing={2} sx={{ mb: 3 }}>
-      {/* Total Accounts */}
-      <Grid size={{ xs: 12, md: 3 }}>
-        <Card>
-          <CardContent sx={{ textAlign: 'center' }}>
-            <Avatar sx={{ bgcolor: 'primary.main', mx: 'auto', mb: 1 }}>
-              <BankIcon />
-            </Avatar>
-            <Typography variant="h4" component="div">
-              {summaryStats.totalAccounts.toLocaleString('id-ID')}
-            </Typography>
-            <Typography color="text.secondary">
-              Total Accounts
-            </Typography>
-          </CardContent>
-        </Card>
-      </Grid>
-
-      {/* Average LGD */}
-      <Grid size={{ xs: 12, md: 3 }}>
-        <Card>
-          <CardContent sx={{ textAlign: 'center' }}>
-            <Avatar sx={{ bgcolor: 'warning.main', mx: 'auto', mb: 1 }}>
-              <TrendingDownIcon />
-            </Avatar>
-            <Typography variant="h4" component="div">
-              {(summaryStats.averageLGD * 100).toFixed(2)}%
-            </Typography>
-            <Typography color="text.secondary">
-              Average LGD Rate
-            </Typography>
-          </CardContent>
-        </Card>
-      </Grid>
-
-      {/* Total Recovery */}
-      <Grid size={{ xs: 12, md: 3 }}>
-        <Card>
-          <CardContent sx={{ textAlign: 'center' }}>
-            <Avatar sx={{ bgcolor: 'success.main', mx: 'auto', mb: 1 }}>
-              <AssessmentIcon />
-            </Avatar>
-            <Typography variant="h6" component="div">
-              {new Intl.NumberFormat('id-ID', {
-                style: 'currency',
-                currency: 'IDR',
-                notation: 'compact',
-                maximumFractionDigits: 1
-              }).format(summaryStats.totalRecoveryAmount)}
-            </Typography>
-            <Typography color="text.secondary">
-              Total Recovery
-            </Typography>
-          </CardContent>
-        </Card>
-      </Grid>
-
-      {/* LGD Quality */}
-      <Grid size={{ xs: 12, md: 3 }}>
-        <Card>
-          <CardContent sx={{ textAlign: 'center' }}>
-            <Avatar sx={{ bgcolor: 'info.main', mx: 'auto', mb: 1 }}>
-              <PieIcon />
-            </Avatar>
-            <Typography variant="h6" component="div">
-              {summaryStats.averageLGD < 0.3 ? 'Low' :
-                summaryStats.averageLGD < 0.6 ? 'Medium' : 'High'}
-            </Typography>
-            <Typography color="text.secondary">
-              LGD Risk Level
-            </Typography>
-          </CardContent>
-        </Card>
-      </Grid>
-    </Grid>
-  );
-
-  const LGDCharts = () => (
-    <Grid container spacing={3} sx={{ mb: 3 }}>
-      {/* LGD Distribution Bar Chart */}
-      <Grid size={{ xs: 12, md: 6 }}>
-        <Card>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              LGD Rate Distribution
-            </Typography>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={summaryStats.lgdDistribution}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="range" />
-                <YAxis />
-                <Tooltip
-                  formatter={(value: number) => [value, 'Accounts']}
-                />
-                <Bar dataKey="count" fill="#8884d8" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </Grid>
-
-      {/* LGD Distribution Pie Chart */}
-      <Grid size={{ xs: 12, md: 6 }}>
-        <Card>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              LGD Rate Categories
-            </Typography>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={summaryStats.lgdDistribution}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ range, count, percent }) =>
-                    `${range}: ${count} (${(percent * 100).toFixed(1)}%)`
-                  }
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="count"
-                >
-                  {summaryStats.lgdDistribution.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </Grid>
-    </Grid>
-  );
-
-  // Memoize params to prevent infinite loops (loading flicker)
-  const requiredParams = React.useMemo(() => ['prc_date'], []);
-  const optionalParams = React.useMemo(() => ['lgd_config_id', 'lgd_method', 'model_id', 'segment_id'], []);
+  const requiredParams = useMemo(() => ['prc_date'], []);
+  const optionalParams = useMemo(() => ['lgd_config_id', 'lgd_method', 'model_id', 'segment_id'], []);
 
   return (
     <BaseIfrs9Report
@@ -238,105 +404,10 @@ const LifetimeLGDReport: React.FC = () => {
       supportsCharts={true}
       onDataLoaded={handleDataLoaded}
     >
-      <SummaryCards />
-      <LGDCharts />
-
-      {/* Pivot Table Section */}
-      <Card sx={{ mt: 3 }}>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
-            Recovery Sequence Analysis (Pivot)
-          </Typography>
-          <PivotTable
-            data={pivotData}
-            columns={pivotColumns}
-          />
-        </CardContent>
-      </Card>
+      <SummaryCards stats={summaryStats} />
+      <LGDCharts stats={summaryStats} />
+      <LGDPivotTable data={pivotData} columns={pivotColumns} />
     </BaseIfrs9Report>
-  );
-};
-
-// --- Pivot Components & Logic ---
-
-const processPivotData = (data: any[]) => {
-  if (!data || data.length === 0) return { pivotData: [], columns: [] };
-
-  const firstRow = data[0];
-  const baseColumns = ['account_id', 'customer_name', 'segment_name', 'product_type'];
-
-  // Detect dynamic sequence columns (e.g. seq_1, seq_2 or period_1...)
-  // Assuming backend returns seq_X for sequences or similar
-  // We will look for keys starting with 'seq_' or 'recovery_'
-  const dynamicColumns = Object.keys(firstRow).filter(key =>
-    key.match(/^(seq|recovery|period)_\d+$/)
-  ).sort();
-
-  // If no dynamic columns found, fallback to standard numeric columns excluding base
-  const pivotCols = dynamicColumns.length > 0 ? dynamicColumns : Object.keys(firstRow).filter(k => !baseColumns.includes(k) && typeof firstRow[k] === 'number');
-
-  const allColumns = [...baseColumns.filter(k => k in firstRow), ...pivotCols];
-
-  return {
-    pivotData: data,
-    columns: allColumns
-  };
-};
-
-const PivotTable = ({ data, columns }: { data: any[], columns: string[] }) => {
-  if (!data || data.length === 0) return null;
-
-  const baseColumns = columns.filter(col => !col.match(/^(seq|recovery|period)_\d+$/));
-  const dynamicColumns = columns.filter(col => col.match(/^(seq|recovery|period)_\d+$/));
-
-  // Fallback if regex didn't catch anything (standard grid)
-  const finalBase = dynamicColumns.length > 0 ? baseColumns : columns;
-  const finalDynamic = dynamicColumns.length > 0 ? dynamicColumns : [];
-
-  return (
-    <Box sx={{ width: '100%', overflow: 'hidden' }}>
-      <Box sx={{ maxHeight: 600, overflow: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
-          <thead style={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: '#1976d2', color: 'white' }}>
-            <tr>
-              {finalBase.map(col => (
-                <th key={col} style={{ padding: '10px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>
-                  {col.replace(/_/g, ' ').toUpperCase()}
-                </th>
-              ))}
-              {finalDynamic.map(col => (
-                <th key={col} style={{ padding: '10px', textAlign: 'right', borderBottom: '1px solid #ddd', minWidth: 80 }}>
-                  {col.replace(/^(seq|recovery|period)_/, '').toUpperCase()}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {data.slice(0, 100).map((row, index) => (
-              <tr key={index} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                {finalBase.map(col => (
-                  <td key={col} style={{ padding: '8px' }}>
-                    {row[col] || '-'}
-                  </td>
-                ))}
-                {finalDynamic.map(col => (
-                  <td key={col} style={{ padding: '8px', textAlign: 'right' }}>
-                    {row[col] !== null && row[col] !== undefined ? (
-                      new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(row[col])
-                    ) : '-'}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </Box>
-      {data.length > 100 && (
-        <Typography variant="caption" sx={{ display: 'block', mt: 1, color: 'text.secondary' }}>
-          Showing first 100 rows. Export to see full data.
-        </Typography>
-      )}
-    </Box>
   );
 };
 

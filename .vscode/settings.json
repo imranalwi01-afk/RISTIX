@@ -1,17 +1,4 @@
 {
-    "files.exclude": {
-        "**/.git": true,
-        "**/.DS_Store": true,
-        "**/node_modules": true,
-        "deployment_package": true,
-        ".next": true,
-        "dist": true
-    },
-    "search.exclude": {
-        "**/node_modules": true,
-        "deployment_package": true,
-        ".next": true,
-        "dist": true
-    },
-    "typescript.tsdk": "node_modules/typescript/lib"
+    "cloudcode.cloudrun.defaultProject": "ifrs9-486815",
+    "cloudcode.gke.defaultProject": "ifrs9-486815"
 }

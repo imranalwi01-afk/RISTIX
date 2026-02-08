@@ -118,7 +118,7 @@ export class Ifrs9ReportsService {
                 conditions.push(eq(frs9ImpCaPdStructure.scalarId, scalarId));
             }
             // Query frs9_imp_ca_pd_structure
-            const rawData = await frs9Db
+            const rawData = await legacyDb
                 .select()
                 .from(frs9ImpCaPdStructure)
                 .where(and(...conditions))
@@ -266,23 +266,30 @@ export class Ifrs9ReportsService {
      * Get Nominative Report (Detailed Account Level)
      * Queries: frs9_master_account - Account level IFRS9 data
      */
-    async getNominativeReport(tenantId: string, page: number, limit: number, params?: { prc_date?: string, segment_id?: number, stage?: string, branch_code?: string }) {
+    async getNominativeReport(tenantId: string, page: number, limit: number, params?: { prc_date?: string, segment?: string[], stage?: string, branch_code?: string[] }) {
         try {
             const prcDate = params?.prc_date || '2023-12-31';
-            const segmentId = params?.segment_id;
+            const segment = params?.segment;
             const stage = params?.stage;
             const branchCode = params?.branch_code;
-            console.log('📊 [Nominative Report] Fetching with params:', { prcDate, segmentId, stage, branchCode });
+            console.log('📊 [Nominative Report] Fetching with params:', { prcDate, segment, stage, branchCode });
             // Build dynamic WHERE clause
             let whereClause = `prc_date = '${prcDate}'`;
-            if (segmentId !== undefined && segmentId !== null) {
-                whereClause += ` AND segment_id = ${segmentId}`;
+            
+            // Handle multiple segments (Profit Centers)
+            if (segment && segment.length > 0) {
+                const segmentList = segment.map(s => `'${s}'`).join(',');
+                whereClause += ` AND segment IN (${segmentList})`;
             }
+
             if (stage !== undefined && stage !== null && stage !== '') {
                 whereClause += ` AND stage = '${stage}'`;
             }
-            if (branchCode !== undefined && branchCode !== null && branchCode !== '') {
-                whereClause += ` AND branch_code = '${branchCode}'`;
+
+            // Handle multiple branch codes
+            if (branchCode && branchCode.length > 0) {
+                const branchList = branchCode.map(b => `'${b}'`).join(',');
+                whereClause += ` AND branch_code IN (${branchList})`;
             }
             // Query account-level data from frs9_master_account
             const rawData = await legacyDb.execute(sql.raw(`
@@ -323,14 +330,25 @@ export class Ifrs9ReportsService {
                 id: index + 1,
                 ...row
             }));
-            // Get total count
-            const countResult = await legacyDb.execute(sql.raw(`
-                SELECT COUNT(*) as total FROM public.frs9_master_account WHERE ${whereClause}
+            // Get total count and summary stats
+            const summaryResult = await legacyDb.execute(sql.raw(`
+                SELECT 
+                    COUNT(*) as total,
+                    COALESCE(SUM(CAST(outstanding AS DECIMAL)), 0) as total_outstanding,
+                    COALESCE(SUM(CAST(ecl_final_amt AS DECIMAL)), 0) as total_ecl
+                FROM public.frs9_master_account 
+                WHERE ${whereClause}
             `));
-            const total = Number((countResult as any[])[0]?.total || 0);
+            const summaryRow = (summaryResult as any[])[0] || {};
+            const total = Number(summaryRow.total || 0);
+            
             return {
                 data,
                 total,
+                summary: {
+                    totalOutstanding: Number(summaryRow.total_outstanding || 0),
+                    totalECL: Number(summaryRow.total_ecl || 0)
+                },
                 page,
                 totalPages: Math.ceil(total / limit)
             };
@@ -704,7 +722,7 @@ export class Ifrs9ReportsService {
             };
         } catch (error) {
             console.error('❌ Error in getGCAMovement service:', error);
-            return { data: [], total: 0, page, totalPages: 0 };
+            return { data: [], total: 0, page: 1, totalPages: 0 };
         }
     }
 }
