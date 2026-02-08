@@ -7,11 +7,10 @@ import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import * as schema from '../db/schema'
 import { logger, withRequestIds } from '../lib/logger'
 
-const redis = new Redis({
-    host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT || '6379'),
-    maxRetriesPerRequest: null,
-})
+import { getRedisConnectionOptions } from '../config/redis'
+import { env } from '../config/env'
+
+const redis = new Redis(getRedisConnectionOptions(parseInt(env.REDIS_QUEUE_DB)) as any)
 
 /**
  * Approval Notification Worker
