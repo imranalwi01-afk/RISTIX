@@ -23,6 +23,8 @@ import { run as inspectDbSchema } from './scripts/ops/inspect-db-schema';
 import { run as inspectPlatformUsers } from './scripts/ops/inspect-platform-users';
 import { run as listTenantCoreTables } from './scripts/ops/list-tenant-core-tables';
 import { run as listTenantRoles } from './scripts/ops/list-tenant-roles';
+import { run as createIafAdmin } from './scripts/ops/create-iaf-admin';
+import { run as createPlatformAdmin } from './scripts/ops/create-platform-admin';
 
 const program = new Command();
 
@@ -114,4 +116,16 @@ program.command('verify-job')
     .description('Run e2e test: create and execute a dummy job via API')
     .action(createDummyJob);
 
+
+program.command('create-iaf-admin')
+    .description('Create or reset IAF Tenant Superadmin (iaf tenant)')
+    .action(createIafAdmin);
+
+
+program.command('create-platform-admin')
+    .description('Create or reset Platform Superadmin (Cross-tenant)')
+    .action(createPlatformAdmin);
+
 program.parse();
+
+
