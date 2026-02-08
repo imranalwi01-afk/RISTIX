@@ -1,5 +1,6 @@
 import { Queue, Worker, Job } from 'bullmq'
 import { env } from '../config/env'
+import { getRedisConnectionOptions } from '../config/redis' // ✅ Centralized config
 import { legacyDb, getDatabase } from '../config/database'
 import { JobExecutorService } from './job-executor.service'
 import { jobExecutions } from '../db/schema'
@@ -7,12 +8,7 @@ import { eq } from 'drizzle-orm'
 
 // Constants
 const QUEUE_NAME = 'jobs-queue' // Standard queue name
-const connection = {
-    host: env.REDIS_HOST,
-    port: env.REDIS_PORT ? Number(env.REDIS_PORT) : 6379,
-    // Add password if needed from env
-    // password: env.REDIS_PASSWORD
-}
+const connection = getRedisConnectionOptions(parseInt(env.REDIS_QUEUE_DB))
 
 // =============================================================================
 // QUEUE DEFINITION

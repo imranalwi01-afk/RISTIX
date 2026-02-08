@@ -2,25 +2,16 @@ import { Queue, Worker } from 'bullmq'
 import Redis from 'ioredis'
 import { logger } from '../lib/logger'
 import { Effect } from 'effect'
+import { getRedisConnectionOptions } from '../config/redis' // ✅ Centralized config
+import { env } from '../config/env'
 
 /**
  * Approval job queue configuration for notifications, ECL calculations, and workflows
  */
 
 // Redis connection for Bull queues
-const redis = new Redis({
-    host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT || '6379'),
-    maxRetriesPerRequest: null,
-    enableReadyCheck: false,
-    retryStrategy(times) {
-        // Retry with exponential backoff, max 2 seconds
-        const delay = Math.min(times * 100, 2000)
-        return delay
-    },
-    // Suppress connection errors during retries
-    lazyConnect: true,
-})
+const redisOptions = getRedisConnectionOptions(parseInt(env.REDIS_QUEUE_DB)) // Use Queue DB (default 0)
+const redis = new Redis(redisOptions as any)
 
 // Suppress error logging during initial connection attempts
 let isConnected = false
