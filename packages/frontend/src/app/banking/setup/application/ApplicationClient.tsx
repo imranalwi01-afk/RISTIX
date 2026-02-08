@@ -80,7 +80,7 @@ interface ViewBagPermissions {
 // =====================================================
 // DETAIL PANEL COMPONENT
 // =====================================================
-const ApplicationDetailPanel = ({ row, onEditDetail, onDeleteDetail, onAddDetail }: any) => {
+const ApplicationDetailPanel = ({ row, onEditDetail, onDeleteDetail, onAddDetail, refreshTrigger }: any) => {
   const [details, setDetails] = useState<ApplicationSettingDetailDataTable[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -95,14 +95,14 @@ const ApplicationDetailPanel = ({ row, onEditDetail, onDeleteDetail, onAddDetail
           Value1: item.value1 || item.Value1,
           Value2: item.value2 || item.Value2 || '',
           Value3: item.value3 || item.Value3 || '',
-          Description: item.paramdesc || item.Description,
+          Description: item.param_desc || item.paramdesc || item.Description,
           pkid: item.pkid || item.id,
           param_code: item.param_code || row.CommonCode,
           param_seq: item.param_seq,
           value1: item.value1,
           value2: item.value2,
           value3: item.value3,
-          paramdesc: item.paramdesc
+          paramdesc: item.param_desc || item.paramdesc || item.Description
         })));
       } else {
         setDetails([]);
@@ -116,7 +116,7 @@ const ApplicationDetailPanel = ({ row, onEditDetail, onDeleteDetail, onAddDetail
 
   useEffect(() => {
     loadDetails();
-  }, [row.CommonCode]);
+  }, [row.CommonCode, refreshTrigger]);
 
   if (loading) return <Box sx={{ p: 2, textAlign: 'center' }}><CircularProgress size={20} /></Box>;
 
@@ -229,6 +229,7 @@ export default function ApplicationSettingPage() {
 
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [detailRefreshTrigger, setDetailRefreshTrigger] = useState(0);
 
   // Helper to re-fetch details for modal logic
   const fetchDetailsForModal = async (paramCode: string) => {
@@ -242,7 +243,7 @@ export default function ApplicationSettingPage() {
           Value1: item.value1,
           Value2: item.value2,
           Value3: item.value3,
-          Description: item.paramdesc,
+          Description: item.param_desc || item.paramdesc || item.Description,
           // compat
           pkid: item.pkid,
           param_code: item.param_code,
@@ -250,7 +251,7 @@ export default function ApplicationSettingPage() {
           value1: item.value1,
           value2: item.value2,
           value3: item.value3,
-          paramdesc: item.paramdesc
+          paramdesc: item.param_desc || item.paramdesc || item.Description
         })));
       }
     } catch (e) { console.error(e); }
@@ -267,14 +268,14 @@ export default function ApplicationSettingPage() {
           Value1: item.value1,
           Value2: item.value2,
           Value3: item.value3,
-          Description: item.paramdesc,
+          Description: item.param_desc || item.paramdesc || item.Description,
           pkid: item.pkid,
           param_code: item.param_code,
           param_seq: item.param_seq,
           value1: item.value1,
           value2: item.value2,
           value3: item.value3,
-          paramdesc: item.paramdesc
+          paramdesc: item.param_desc || item.paramdesc || item.Description
         })));
       } else {
         setDetailData([]);
@@ -312,7 +313,7 @@ export default function ApplicationSettingPage() {
         }));
         // Filter S and A types
         const appParams = transformedData.filter(item => item.CommonCode && (item.ParamType === 'S' || item.ParamType === 'A'));
-        setData(appParams);
+        setData(appParams.sort((a: any, b: any) => new Date(b.created_date || b.CreatedDate).getTime() - new Date(a.created_date || a.CreatedDate).getTime()));
       }
     } catch (error: any) {
       setError(`Failed to load data: ${handleAPIError(error).message}`);
@@ -381,6 +382,10 @@ export default function ApplicationSettingPage() {
         await api.applicationParameter.headers.update(selectedRecord.CommonCode, payload);
         setSuccess('Updated successfully');
       } else {
+        if (data.some(p => p.CommonCode === payload.param_code)) {
+            setError(`Parameter code '${payload.param_code}' already exists.`);
+            return;
+        }
         await api.applicationParameter.headers.create(payload);
         setSuccess('Created successfully');
       }
@@ -413,47 +418,17 @@ export default function ApplicationSettingPage() {
     try {
       await api.applicationParameter.details.delete(detail.ID.toString());
       setSuccess('Detail deleted');
-      refreshCallback();
+      refreshCallback(); // For ApplicationDetailPanel
+      setDetailRefreshTrigger(prev => prev + 1); // For other panels if needed
+      if (selectedRecord) loadDetailData(selectedRecord.CommonCode); // For View Dialog
+
     } catch (e: any) {
       setError(handleAPIError(e).message);
     }
   }
+  // Export function removed temporarily due to missing dependencies
   const handleExport = (format: string) => {
-    const filter = encodeURIComponent(JSON.stringify({
-      search: searchTerm,
-      page: currentPage,
-      pageSize: pageSize
-    }));
-
-    // ✅ FIX: Use proper backend URL for window.open (not relative path)
-    // The /api prefix will be handled by Next.js rewrites
-    const url = `/api/v1/application/headers/export?format=${format}&filter=${filter}`;
-
-    // Use fetch with credentials to download the file
-    fetch(url, {
-      method: 'GET',
-      credentials: 'include', // Send cookies
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
-      }
-    })
-      .then(response => response.blob())
-      .then(blob => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `application-headers-${format}.${format}`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-      })
-      .catch(error => {
-        console.error('Export failed:', error);
-        alert('Export failed. Please try again.');
-      });
-
-    handleExportMenuClose();
+     alert("Export feature is currently disabled.");
   };
 
   // Detail CRUD Operations
@@ -491,6 +466,7 @@ export default function ApplicationSettingPage() {
       }
       setSuccess('Detail saved');
       setDetailModalOpen(false);
+      setDetailRefreshTrigger(prev => prev + 1);
       // Force refresh of the grid - simpler to just let user re-expand or auto-refresh if we tracked expanded state
       // For now, the detail panel itself fetches on mount/update so we are good if we trigger a re-render or if the user collapses/expands
       loadData(); // This refreshes the parent, but details are fetched by the panel
@@ -603,6 +579,7 @@ export default function ApplicationSettingPage() {
                   onEditDetail={handleEditDetail}
                   onDeleteDetail={handleDeleteDetail}
                   onAddDetail={handleAddDetail}
+                  refreshTrigger={detailRefreshTrigger}
                 />
               )}
               getDetailPanelHeight={() => 'auto'}
@@ -820,7 +797,7 @@ export default function ApplicationSettingPage() {
         onSave={handleDetailFormSave}
         selectedDetail={selectedDetail}
         parentParamCode={selectedRecord?.CommonCode || ''}
-        nextSeqNo={detailDataForModal.length + 1} // Approximate
+        nextSeqNo={detailDataForModal.length > 0 ? Math.max(...detailDataForModal.map(d => d.SeqNo)) + 1 : 1}
         loading={detailLoading}
       />
 

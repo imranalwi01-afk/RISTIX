@@ -14,8 +14,6 @@ import { IndividualImpairmentService } from '../../core/services/individual-impa
 import { handleAPIError } from '../../utils/error-handler';
 import { AuthenticatedRequest } from '../../api/middleware/auth.middleware';
 
-import type { ExportColumn } from '../../utils/export-helpers';
-
 // ============================================================================
 // VALIDATION SCHEMAS
 // ============================================================================
@@ -545,17 +543,15 @@ export class IndividualImpairmentController {
 
       console.log(`📊 [II-009] Found ${watchlistData.data?.length || 0} records to export`);
 
-      // Dynamic import with error handling
-      let exportHelpers;
-      try {
-        exportHelpers = await import('../../utils/export-helpers');
-        console.log('✅ [II-009] export-helpers loaded successfully');
-      } catch (importError) {
-        console.error('❌ [II-009] Failed to load export-helpers:', importError);
-        throw new Error(`Failed to load export dependencies: ${importError instanceof Error ? importError.message : String(importError)}`);
-      }
+      // Allow export of empty data (headers only)
+      // if (!watchlistData.data || watchlistData.data.length === 0) { ... }
 
-      const { generateExcelBuffer, generatePDFBuffer, generateCSVBuffer, calculateSummaryStats } = exportHelpers;
+      // Import export helpers dynamically
+      const { generateExcelBuffer, generatePDFBuffer, generateCSVBuffer, calculateSummaryStats } = 
+        await import('../../utils/export-helpers');
+      
+      // Import types separately
+      type ExportColumn = import('../../utils/export-helpers').ExportColumn;
 
       // Define export columns
       const columns: ExportColumn[] = options.columns || [

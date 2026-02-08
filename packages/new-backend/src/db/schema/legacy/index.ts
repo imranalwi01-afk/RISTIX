@@ -1455,7 +1455,7 @@ export const frs9ParamCommond = pgTable("frs9_param_commond", {
 	value1: varchar({ length: 100 }).notNull(),
 	value2: varchar({ length: 100 }).notNull(),
 	value3: varchar({ length: 50 }).notNull(),
-	paramdesc: varchar({ length: 1000 }).notNull(),
+	paramdesc: varchar("paramdesc", { length: 1000 }), // Re-enabled for Business Setup
 	createdby: varchar({ length: 50 }).notNull(),
 	createddate: timestamp({ mode: 'string' }).notNull(),
 	createdhost: varchar({ length: 50 }).notNull(),
@@ -1476,11 +1476,11 @@ export const frs9ParamCommonh = pgTable("frs9_param_commonh", {
 	updatedby: varchar({ length: 50 }),
 	updateddate: timestamp({ mode: 'string' }),
 	updatedhost: varchar({ length: 50 }),
-	bankingType: varchar("banking_type", { length: 20 }).default('conventional'),
-	isActive: boolean("is_active").default(true),
-	requiresApproval: boolean("requires_approval").default(false),
+	// bankingType: varchar("banking_type", { length: 20 }).default('conventional'), // Missing in physical DB
+	// isActive: boolean("is_active").default(true), // Missing in physical DB
+	// requiresApproval: boolean("requires_approval").default(false), // Missing in physical DB
 }, (table) => [
-	check("chk_banking_type", sql`(banking_type)::text = ANY (ARRAY[('conventional'::character varying)::text, ('syariah'::character varying)::text, ('dual'::character varying)::text])`),
+	// check("chk_banking_type", sql`(banking_type)::text = ANY (ARRAY[('conventional'::character varying)::text, ('syariah'::character varying)::text, ('dual'::character varying)::text])`),
 ]);
 
 // Relation definitions

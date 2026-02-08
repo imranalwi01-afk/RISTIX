@@ -497,37 +497,6 @@ export default function JournalParametersPage() {
         </MenuItem>
       </Menu>
 
-      <Card sx={{ mb: 2 }}>
-        <CardContent>
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-            <TextField
-              placeholder="Search by GL Code, Description, or GL Number"
-              variant="outlined"
-              size="small"
-              sx={{ flex: '1 1 300px', minWidth: 200 }}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              }}
-            />
-
-            <FormControl size="small" sx={{ minWidth: 150 }}>
-              <InputLabel>GL Group</InputLabel>
-              <Select
-                value={filterGlGroup}
-                onChange={(e) => setFilterGlGroup(e.target.value)}
-                label="GL Group"
-              >
-                Add Journal Entry
-              </Button>
-            )}
-          />
-
 
           <Card sx={{ mb: 2 }}>
             <CardContent>
@@ -638,8 +607,6 @@ export default function JournalParametersPage() {
             </CardContent>
           </Card>
 
-        </>
-      )}
 
       <JournalFormDialog
         open={dialogOpen}

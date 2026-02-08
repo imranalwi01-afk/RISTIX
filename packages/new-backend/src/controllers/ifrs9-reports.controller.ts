@@ -242,14 +242,14 @@ export const ifrs9ReportsController = {
             const limit = Number(c.req.query('limit') || 20);
             // Extract filter parameters
             const prc_date = c.req.query('prc_date') || '2023-12-31';
-            const segment_id = c.req.query('segment_id') ? Number(c.req.query('segment_id')) : undefined;
+            const segment = c.req.queries('segment') || (c.req.query('segment') ? [c.req.query('segment')!] : undefined);
             const stage = c.req.query('stage') || undefined;
-            const branch_code = c.req.query('branch_code') || undefined;
+            const branch_code = c.req.queries('branch_code') || (c.req.query('branch_code') ? [c.req.query('branch_code')!] : undefined);
             const result = await ifrs9ReportsService.getNominativeReport(
                 user?.tenantId || 'default',
                 page,
                 limit,
-                { prc_date, segment_id, stage, branch_code }
+                { prc_date, segment, stage, branch_code }
             );
             return c.json({
                 success: true,
@@ -260,6 +260,7 @@ export const ifrs9ReportsController = {
                     total: result.total,
                     totalPages: result.totalPages
                 },
+                summary: result.summary,
                 message: result.total === 0 ? "No Nominative Report Data available" : undefined
             });
         } catch (error: any) {

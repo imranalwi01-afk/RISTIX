@@ -63,24 +63,29 @@ export const ParametersService = {
      * @returns An Effect resolving to the created setting header
      */
     createAppSetting: (data: any, userId: string) => {
-        const now = new Date().toISOString()
-        const payload = {
-            paramCode: data.paramCode,
-            paramName: data.paramName,
-            paramUsage: data.paramUsage,
-            paramType: data.paramType,
-            bankingType: data.bankingType,
-            isActive: data.isActive,
-            requiresApproval: data.requiresApproval,
-            createdby: userId,
-            createdhost: 'localhost',
-            createddate: now,
-            updatedby: userId,
-            updatedhost: 'localhost',
-            updateddate: now,
-        }
         return pipe(
-            ParametersRepository.createHeader(payload as any),
+            ParametersRepository.findHeaderByCode(data.paramCode),
+            Effect.flatMap(existing => {
+                if (existing) {
+                    return Effect.fail(new Error(`Parameter code '${data.paramCode}' already exists`)) as any
+                }
+
+                const now = new Date().toISOString()
+                const payload = {
+                    paramCode: data.paramCode,
+                    paramName: data.paramName,
+                    paramUsage: data.paramUsage,
+                    paramType: data.paramType,
+                    // bankingType, isActive, requiresApproval removed as they don't exist in physical legacy DB
+                    createdby: userId,
+                    createdhost: 'localhost',
+                    createddate: now,
+                    updatedby: userId,
+                    updatedhost: 'localhost',
+                    updateddate: now,
+                }
+                return ParametersRepository.createHeader(payload as any)
+            }),
             Effect.map(transformHeader)
         )
     },
@@ -100,9 +105,7 @@ export const ParametersService = {
             paramName: data.paramName,
             paramUsage: data.paramUsage,
             paramType: data.paramType,
-            bankingType: data.bankingType,
-            isActive: data.isActive,
-            requiresApproval: data.requiresApproval,
+            // bankingType, isActive, requiresApproval removed as they don't exist in physical legacy DB
             updatedby: userId,
             updatedhost: 'localhost',
             updateddate: now,
@@ -138,8 +141,7 @@ export const ParametersService = {
                     value1: data.value1,
                     value2: data.value2,
                     value3: data.value3,
-                    paramdesc: data.paramdesc,
-                    // activeFlag removed as it doesn't exist in schema
+                    paramdesc: data.paramdesc, 
                     createdby: userId,
                     createdhost: 'localhost',
                     createddate: now,
@@ -345,5 +347,7 @@ const transformHeader = (h: any) => ({
     banking_type: h.bankingType,
     is_active: h.isActive,
     requires_approval: h.requiresApproval,
+    created_date: h.createddate,
     details: h.details ? h.details.map(transformDetail) : [],
 })
+
