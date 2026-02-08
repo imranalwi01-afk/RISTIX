@@ -85,6 +85,7 @@ services:
       - ./env/r-analytics.env
     ports:
       - "4236:3838"
+      - "4241:4241"
     networks:
       - ifrs9-prod
     profiles: [ "analytics", "full" ]

@@ -31,6 +31,10 @@ COPY --chown=r-analytics:r-analytics config/ ./config/
 COPY --chown=r-analytics:r-analytics docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh
 
+# Copy API files
+COPY --chown=r-analytics:r-analytics iaf-r-api.R start_api.R ./
+COPY --chown=r-analytics:r-analytics api/ ./api/
+
 # ============================================================================
 # 🌐 SHINY SERVER CONFIGURATION
 # ============================================================================
@@ -87,8 +91,8 @@ USER r-analytics
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:3838/ || exit 1
 
-# Expose Shiny port
-EXPOSE 3838
+# Expose Shiny port and API port
+EXPOSE 3838 4241
 
 # Volume for logs and temporary files
 VOLUME ["/opt/r-analytics/logs", "/opt/r-analytics/temp"]
