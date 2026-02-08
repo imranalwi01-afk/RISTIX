@@ -8,6 +8,9 @@ echo "Starting R Analytics Entrypoint..."
 if [ $# -gt 0 ]; then
   exec "$@"
 else
-  echo "Starting Shiny Server..."
+  echo "Starting R Analytics API (Port 4241)..."
+  Rscript start_api.R > /opt/r-analytics/logs/api.log 2>&1 &
+  
+  echo "Starting Shiny Server (Port 3838)..."
   exec shiny-server
 fi
