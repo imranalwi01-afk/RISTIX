@@ -8,7 +8,7 @@ ECHO This script runs the R Analytics module natively on Windows.
 ECHO ensure you have R installed and added to your PATH.
 ECHO.
 
-cd modelling
+cd packages\r-analytics\shiny-app
 
 REM Check if R is installed
 WHERE Rscript >nul 2>nul
