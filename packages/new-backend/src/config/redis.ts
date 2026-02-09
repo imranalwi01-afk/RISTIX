@@ -1,4 +1,4 @@
-import IORedis from 'ioredis'
+import IORedis, { type RedisOptions } from 'ioredis'
 import { env } from './env'
 import { logger } from '../lib/logger'
 
@@ -9,25 +9,40 @@ import { logger } from '../lib/logger'
 /**
  * Get Redis connection options
  */
-export const getRedisConnectionOptions = (dbIndex?: number) => {
-    // If REDIS_URL is provided, specific options might be limited if parsed manually, 
-    // but IORedis handles URL in constructor. 
-    // However, to support standard options object for BullMQ:
-
-    if (env.REDIS_URL) {
-        return env.REDIS_URL
-    }
-
-    return {
+export const getRedisConnectionOptions = (dbIndex?: number): RedisOptions => {
+    const options: RedisOptions = {
+        maxRetriesPerRequest: null, // Required by BullMQ
+        enableReadyCheck: false,
         host: env.REDIS_HOST || 'localhost',
         port: parseInt(env.REDIS_PORT || '6379'),
         password: env.REDIS_PASSWORD || undefined,
-        db: dbIndex !== undefined ? dbIndex : parseInt(env.REDIS_SESSION_DB || '11'),
-        maxRetriesPerRequest: null, // Required by BullMQ
+        db: parseInt(env.REDIS_SESSION_DB || '11'),
     }
+
+    if (env.REDIS_URL) {
+        try {
+            const url = new URL(env.REDIS_URL)
+            options.host = url.hostname
+            options.port = Number(url.port) || 6379
+            options.password = url.password || undefined
+            options.username = url.username || undefined
+            if (url.pathname.length > 1) {
+                options.db = Number(url.pathname.slice(1))
+            }
+        } catch (e) {
+            logger.warn({ err: e }, 'Invalid REDIS_URL')
+        }
+    }
+
+    if (dbIndex !== undefined) {
+        options.db = dbIndex
+    }
+
+    return options
 }
 
-export const redis = new IORedis(getRedisConnectionOptions() as any, {
+export const redis = new IORedis({
+    ...getRedisConnectionOptions(),
     maxRetriesPerRequest: null,
     lazyConnect: true,
     retryStrategy(times) {

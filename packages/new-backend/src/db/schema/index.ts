@@ -89,6 +89,18 @@ export * from './legacy'
 
 
 
+// Platform Admin Schema
+export {
+    platformSchema,
+    platformUsers,
+    tenants,
+    tenantsRelations, // ✅ Export tenantsRelations
+    type PlatformUser,
+    type NewPlatformUser,
+    type Tenant,
+    type NewTenant,
+} from './platform.schema'
+
 // Jobs / Queue
 export {
     jobDefinitions,

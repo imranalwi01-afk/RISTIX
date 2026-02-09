@@ -249,14 +249,14 @@ export const login = (
 
                 // Try looking up by ID (UUID) or Slug
                 const db = getDatabase(null) // Registry is in Platform/Core
-                
+
                 // 1. Try by exact ID (if it looks like a UUID)
                 const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
                 let tenant = null
                 if (uuidRegex.test(input.tenantId)) {
                     tenant = await TenantRepository.findById(input.tenantId)
                 }
-                
+
                 // 2. Fallback to lookup by slug
                 if (!tenant) {
                     tenant = await TenantRepository.findBySlug(input.tenantId)
@@ -289,7 +289,8 @@ export const login = (
                         if (!user) {
                             console.log(`[AuthDebug] User not found in tenant DB, checking platform DB...`)
                             const platformDb = getDatabase(null)
-                            user = await AuthRepository.findUserByEmail(platformDb, input.email)
+                            // Use specific platform user lookup
+                            user = (await AuthRepository.findPlatformUserByEmail(platformDb, input.email)) as any
                             if (user) {
                                 console.log(`[AuthDebug] Platform user found: ${user.email}`)
                                 db = platformDb
@@ -334,14 +335,14 @@ export const login = (
                         storedHashPreview: user.passwordHash?.substring(0, 20) + '...',
                         storedHashLength: user.passwordHash?.length
                     });
-                    
+
                     const isValid = await verifyPassword(input.password, user.passwordHash)
-                    
+
                     console.log('🔐 [AUTH DEBUG] Password verification result:', {
                         email: user.email,
                         isValid
                     });
-                    
+
                     if (!isValid) {
                         throw new Error('Invalid password')
                     }

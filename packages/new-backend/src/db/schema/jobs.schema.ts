@@ -1,5 +1,6 @@
 import { pgTable, text, varchar, timestamp, boolean, jsonb, integer, uuid } from 'drizzle-orm/pg-core'
-import { tenants, coreSchema } from './core'
+import { coreSchema } from './core'
+import { tenants } from './platform.schema'
 
 // =============================================================================
 // JOB DEFINITIONS (Configuration)

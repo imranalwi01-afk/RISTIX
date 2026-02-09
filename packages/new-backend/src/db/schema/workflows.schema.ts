@@ -11,7 +11,8 @@ import {
     index,
 } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
-import { tenants, users } from './core'
+import { users } from './core'
+import { tenants } from './platform.schema'
 
 /**
  * Workflow schema for approval state machines, ECL tracking, and audit logs

@@ -122,4 +122,7 @@ export const ProductParametersService = {
 const transformProduct = (p: typeof frs9ParamProduct.$inferSelect) => ({
     ...p,
     id: p.pkid,
+    // Safely convert dates to ISO strings for JSON serialization and Zod validation
+    createddate: p.createddate ? new Date(p.createddate).toISOString() : null,
+    updateddate: p.updateddate ? new Date(p.updateddate).toISOString() : null,
 })

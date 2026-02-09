@@ -3,6 +3,7 @@ import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import * as schema from '@/db/schema'
 import {
     users,
+    platformUsers, // ✅ Import platformUsers
     sessions,
     passwordResetTokens,
     emailVerificationTokens,
@@ -59,6 +60,14 @@ export const AuthRepository = {
             where: tenantId
                 ? and(eq(users.email, email), eq(users.tenantId, tenantId))
                 : eq(users.email, email),
+        }),
+
+    /**
+     * Find a platform user by email (using platformUsers schema)
+     */
+    findPlatformUserByEmail: (db: DrizzleDB, email: string) =>
+        db.query.platformUsers.findFirst({
+            where: eq(platformUsers.email, email),
         }),
 
     /**

@@ -10,7 +10,8 @@ import {
     index,
 } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
-import { tenants, users } from './core'
+import { users } from './core'
+import { tenants } from './platform.schema'
 
 /**
  * Audit schema for audit-related tables

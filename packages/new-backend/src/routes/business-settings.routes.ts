@@ -88,13 +88,41 @@ const UpdateBusinessSettingSchema = z.object({
 })).openapi('UpdateBusinessSettingInput')
 
 const CreateBusinessDetailSchema = z.object({
-    paramCode: z.string().max(50),
-    paramSeq: z.number().int(),
+    // Accept both snake_case and camelCase
+    param_code: z.string().max(50).optional(),
+    paramCode: z.string().max(50).optional(),
+    param_seq: z.number().int().optional(),
+    paramSeq: z.number().int().optional(),
     value1: z.string().max(100),
-    value2: z.string().max(100),
-    value3: z.string().max(50),
-    paramdesc: z.string().max(1000),
-}).openapi('CreateBusinessDetailInput')
+    value2: z.string().max(100).optional(),
+    value3: z.string().max(50).optional(),
+    param_desc: z.string().max(1000).optional(),
+    paramdesc: z.string().max(1000).optional(),
+}).transform(data => ({
+    paramCode: data.param_code || data.paramCode || '',
+    paramSeq: data.param_seq ?? data.paramSeq ?? 1,
+    value1: data.value1,
+    value2: data.value2 || '',
+    value3: data.value3 || '',
+    paramdesc: data.param_desc || data.paramdesc || '',
+})).openapi('CreateBusinessDetailInput')
+
+const UpdateBusinessDetailSchema = z.object({
+    // Accept both snake_case and camelCase for updates
+    param_seq: z.number().int().optional(),
+    paramSeq: z.number().int().optional(),
+    value1: z.string().max(100).optional(),
+    value2: z.string().max(100).optional(),
+    value3: z.string().max(50).optional(),
+    param_desc: z.string().max(1000).optional(),
+    paramdesc: z.string().max(1000).optional(),
+}).transform(data => ({
+    ...(data.param_seq !== undefined || data.paramSeq !== undefined ? { paramSeq: data.param_seq ?? data.paramSeq } : {}),
+    ...(data.value1 !== undefined ? { value1: data.value1 } : {}),
+    ...(data.value2 !== undefined ? { value2: data.value2 } : {}),
+    ...(data.value3 !== undefined ? { value3: data.value3 } : {}),
+    ...(data.param_desc || data.paramdesc ? { paramdesc: data.param_desc || data.paramdesc } : {}),
+})).openapi('UpdateBusinessDetailInput')
 
 const BusinessSettingResponse = z.object({
     success: z.boolean(),
@@ -361,7 +389,7 @@ app.openapi(
         summary: 'Update Business Setting Detail',
         request: {
             params: z.object({ id: z.string().transform(Number) }),
-            body: { content: { 'application/json': { schema: CreateBusinessDetailSchema.partial() } } }
+            body: { content: { 'application/json': { schema: UpdateBusinessDetailSchema } } }
         },
         responses: {
             200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), data: BusinessSettingDetailSchema }) } }, description: 'Updated' },

@@ -7,7 +7,6 @@
 
 import { Router, Request, Response } from 'express';
 import authRoutes from './auth.routes';
-import individualImpairmentRoutes from './individual-impairment.routes';
 
 // ✅ DEFERRED: Load problematic routes using async import in loadRouteModules function
 
@@ -415,12 +414,13 @@ async function loadRouteModules() {
   }
 
   // ✅ FIXED: Load individual impairment banking route specific override BEFORE generic banking routes
-  // STATIC IMPORT to ensure it loads
-  if (individualImpairmentRoutes) {
-      router.use('/banking/individual/impairment', individualImpairmentRoutes);
+  try {
+    const individualImpairmentRoutes = await import('./individual-impairment.routes');
+    if (individualImpairmentRoutes.default) {
+      router.use('/banking/individual/impairment', individualImpairmentRoutes.default);
       console.log('✅ Individual Impairment mounted at /banking/individual/impairment (Priority Override)');
-      loadedModules.push('Individual Impairment');
-  }
+    }
+  } catch (err) { console.warn('Could not mount priority ii route'); }
 
   // ✅ FIXED: Load banking main routes FIRST for portfolio/activities endpoints
   try {
@@ -971,13 +971,17 @@ router.get('/docs', (req: Request, res: Response) => {
         ...(loadedModules.includes('Individual Impairment') && {
           '/ifrs9/individual-impairment/watchlist': 'GET - Individual impairment watchlist with pagination and filtering',
           '/ifrs9/individual-impairment/watchlist/:accountId': 'GET - Get specific account details for impairment assessment',
-          '/ifrs9/individual-impairment/assessment': 'GET/POST - Manage impairment assessment',
+          '/ifrs9/individual-impairment/assessment': 'GET - Get impairment assessment data for an account',
+          '/ifrs9/individual-impairment/assessment': 'POST - Create or update impairment assessment',
           '/ifrs9/individual-impairment/assessment/:id': 'PUT - Update impairment assessment',
           '/ifrs9/individual-impairment/dcf/:accountId': 'GET - Get DCF analysis data for an account',
           '/ifrs9/individual-impairment/dcf/calculate': 'POST - Calculate DCF present value and ECL',
-          '/ifrs9/individual-impairment/provision': 'GET/POST - Provision calculation results and actions',
-          '/ifrs9/individual-impairment/trigger': 'GET/POST - Impairment trigger conditions and status',
-          '/ifrs9/individual-impairment/scenario': 'GET/POST - DCF scenario analysis',
+          '/ifrs9/individual-impairment/provision': 'GET - Get provision calculation results',
+          '/ifrs9/individual-impairment/provision': 'POST - Calculate provision amounts',
+          '/ifrs9/individual-impairment/trigger': 'GET - Get impairment trigger conditions',
+          '/ifrs9/individual-impairment/trigger': 'POST - Update impairment trigger status',
+          '/ifrs9/individual-impairment/scenario': 'GET - Get DCF scenario analysis data',
+          '/ifrs9/individual-impairment/scenario': 'POST - Create scenario analysis',
           '/ifrs9/individual-impairment/scenario/:id': 'PUT - Update scenario analysis',
           '/ifrs9/individual-impairment/report': 'GET - Generate individual impairment assessment report',
           '/ifrs9/individual-impairment/health': 'GET - Individual impairment service health check'

@@ -19,7 +19,8 @@ import {
   IconButton,
   Tooltip,
   Switch,
-  FormControlLabel
+  FormControlLabel,
+  alpha
 } from '@mui/material';
 import {
   DatePicker,
@@ -30,14 +31,18 @@ import {
   Download as DownloadIcon,
   Refresh as RefreshIcon,
   FilterList as FilterIcon,
-  BarChart as ChartIcon
+  BarChart as ChartIcon,
+  Search as SearchIcon,
+  ClearAll as ClearIcon,
+  Assessment as AssessmentIcon
 } from '@mui/icons-material';
-import { SafeDataGrid, SafeGridActionsCellItem, SafeDataGridProps } from '@/components/shared/SafeDataGrid';
-import { GridColDef, GridToolbar, GridValidRowModel } from '@mui/x-data-grid';
+import { SafeDataGrid } from '@/components/shared/SafeDataGrid';
+import { GridColDef } from '@mui/x-data-grid';
 import { useAuth } from '../../providers/AuthProvider';
 import api from '../../services/api';
 import ModernLoader from '../common/ModernLoader'; // ✅ Import ModernLoader
 import * as XLSX from 'xlsx'; // ✅ Import xlsx for client-side export
+import { useBankingTheme } from '../../providers/BankingThemeProvider';
 
 export interface BaseIfrs9ReportProps {
   title: string;
@@ -48,7 +53,11 @@ export interface BaseIfrs9ReportProps {
   optionalParams?: string[];
   supportsPagination?: boolean;
   supportsCharts?: boolean;
-  onDataLoaded?: (data: any[]) => void;
+  headerIcon?: React.ReactNode;
+  statusLabel?: string;
+  granularity?: string;
+  scope?: string;
+  onDataLoaded?: (data: Record<string, unknown>[]) => void;
   children?: React.ReactNode;
 }
 
@@ -71,7 +80,7 @@ export interface ReportFilters {
 
 export interface ReportResponse {
   success: boolean;
-  data: any[];
+  data: Record<string, unknown>[];
   pagination?: {
     page: number;
     limit: number;
@@ -95,10 +104,15 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
   optionalParams = [],
   supportsPagination = false,
   supportsCharts = false,
+  headerIcon,
+  statusLabel = 'Live Production Data',
+  granularity = 'Transaction / Account Level',
+  scope = 'IFRS 9 Regulatory Compliance',
   onDataLoaded,
   children
 }) => {
   const { user } = useAuth();
+  const { bankingMode } = useBankingTheme();
 
   // Extract tenant from user data - Memoized to prevent infinite loops
   const tenant = React.useMemo(() =>
@@ -106,7 +120,8 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
     , [user?.tenantId, user?.tenantSlug]);
 
   // State management
-  const [data, setData] = useState<any[]>([]);
+  const fetchRef = React.useRef(false);
+  const [data, setData] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [columns, setColumns] = useState<GridColDef[]>([]);
@@ -124,8 +139,32 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
   const [showFilters, setShowFilters] = useState(true);
   const [exportLoading, setExportLoading] = useState(false);
 
+  // Dynamic Theme Colors based on Sidebar
+  const themeStyles = React.useMemo(() => {
+    switch (bankingMode) {
+      case 'syariah':
+        return {
+          gradient: 'linear-gradient(135deg, #00695c 0%, #004d40 100%)',
+          primary: '#00695c',
+          shadow: 'rgba(0, 105, 92, 0.3)'
+        };
+      case 'dual':
+        return {
+          gradient: 'linear-gradient(135deg, #37474f 0%, #263238 100%)',
+          primary: '#37474f',
+          shadow: 'rgba(55, 71, 79, 0.3)'
+        };
+      default:
+        return {
+          gradient: 'linear-gradient(135deg, #1976D2 0%, #0D47A1 100%)',
+          primary: '#1976D2',
+          shadow: 'rgba(25, 118, 210, 0.3)'
+        };
+    }
+  }, [bankingMode]);
+
   // Dynamic column generation for pivot tables
-  const generateDynamicColumns = useCallback((data: any[]): GridColDef[] => {
+  const generateDynamicColumns = useCallback((data: Record<string, unknown>[]): GridColDef[] => {
     if (!data || data.length === 0) return [];
 
     const firstRow = data[0];
@@ -134,7 +173,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
     // Generate columns based on data structure
     Object.keys(firstRow).forEach(key => {
       const value = firstRow[key];
-      let column: GridColDef = {
+      const column: GridColDef = {
         field: key,
         headerName: key.replace(/_/g, ' ').toUpperCase(),
         width: 150,
@@ -145,7 +184,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
       // Type-specific column configuration
       if (typeof value === 'number') {
         column.type = 'number';
-        column.valueFormatter = (value: any) => {
+        column.valueFormatter = (value: number | null | undefined) => {
           if (value === null || value === undefined) return '';
           return new Intl.NumberFormat('id-ID', {
             minimumFractionDigits: 2,
@@ -156,7 +195,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
         column.headerAlign = 'right';
       } else if (key.includes('date') || key.includes('_dt')) {
         column.type = 'date';
-        column.valueFormatter = (value: any) => {
+        column.valueFormatter = (value: string | number | Date | null | undefined) => {
           if (!value) return '';
           return new Date(value).toLocaleDateString('id-ID');
         };
@@ -184,7 +223,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
 
       // Special formatting for specific fields
       if (key.includes('amount') || key.includes('balance') || key.includes('ecl')) {
-        column.valueFormatter = (value: any) => {
+        column.valueFormatter = (value: number | null | undefined) => {
           if (value === null || value === undefined) return '';
           return new Intl.NumberFormat('id-ID', {
             style: 'currency',
@@ -194,6 +233,10 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
         };
         column.width = 180;
       }
+
+      column.renderCell = (params) => (
+        <Box sx={{ fontWeight: 500 }}>{params.formattedValue}</Box>
+      );
 
       baseColumns.push(column);
     });
@@ -219,6 +262,9 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
       return;
     }
 
+    if (fetchRef.current) return;
+    fetchRef.current = true;
+    
     setLoading(true);
     setError(null);
 
@@ -283,16 +329,18 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
       } else {
         setError('Failed to fetch report data');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Report fetch error:', err);
-      setError(err.message || 'Failed to fetch report data');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch report data';
+      setError(errorMessage);
     } finally {
       setLoading(false);
+      fetchRef.current = false;
     }
-  }, [reportType, filters, tenant, requiredParams, generateDynamicColumns]);
+  }, [reportType, filters, tenant, requiredParams, generateDynamicColumns, onDataLoaded]);
 
   // Handle filter changes
-  const handleFilterChange = (field: keyof ReportFilters, value: any) => {
+  const handleFilterChange = (field: keyof ReportFilters, value: string | number | boolean | Date | null | undefined) => {
     setFilters(prev => ({
       ...prev,
       [field]: value
@@ -352,16 +400,15 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
     }
   };
 
-  // Initial data fetch
   useEffect(() => {
     if (tenant && filters.prc_date) {
       fetchData();
     }
-  }, [tenant, fetchData]);
+  }, [tenant, fetchData, filters.prc_date]);
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Box sx={{ p: 3, position: 'relative', minHeight: '60vh' }}>
+      <Box sx={{ p: 0, position: 'relative', minHeight: '60vh' }}>
         {/* ✅ ADD: Modern Loader Overlay */}
         <ModernLoader
           open={loading}
@@ -369,110 +416,293 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
           subMessage="Retrieving financial data..."
         />
 
-        {/* Header */}
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="h4" gutterBottom>
-            {title}
-          </Typography>
-          {description && (
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              {description}
-            </Typography>
-          )}
+        {/* Enhanced Page Header with Gradient - Premium Look */}
+        <Paper
+          elevation={0}
+          sx={{
+            mb: 4,
+            p: { xs: 3, md: 5 },
+            background: themeStyles.gradient,
+            color: 'white',
+            borderRadius: 4,
+            position: 'relative',
+            overflow: 'hidden',
+            boxShadow: themeStyles.shadow,
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              top: -100,
+              right: -100,
+              width: 300,
+              height: 300,
+              borderRadius: '50%',
+              background: 'rgba(255, 255, 255, 0.1)',
+              filter: 'blur(50px)',
+              pointerEvents: 'none'
+            },
+            '&::after': {
+              content: '""',
+              position: 'absolute',
+              bottom: -50,
+              left: -50,
+              width: 200,
+              height: 200,
+              borderRadius: '50%',
+              background: 'rgba(255, 255, 255, 0.05)',
+              filter: 'blur(40px)',
+              pointerEvents: 'none'
+            }
+          }}
+        >
+          <Box sx={{ position: 'relative', zIndex: 1 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <Box
+                  sx={{
+                    fontSize: 48,
+                    mr: 2.5,
+                    p: 1.2,
+                    bgcolor: 'rgba(255, 255, 255, 0.15)',
+                    borderRadius: 2,
+                    backdropFilter: 'blur(10px)',
+                    boxShadow: '0 8px 16px rgba(0, 0, 0, 0.1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'inherit'
+                  }}
+                >
+                  {headerIcon || <AssessmentIcon sx={{ fontSize: 32 }} />}
+                </Box>
+                <Box>
+                  <Typography variant="h3" component="h1" sx={{ fontWeight: 800, mb: 1, letterSpacing: '-0.02em', fontSize: { xs: '1.75rem', md: '2.5rem' } }}>
+                    {title}
+                  </Typography>
+                  {description && (
+                    <Typography
+                      variant="body1"
+                      sx={{
+                        opacity: 0.9,
+                        maxWidth: '800px',
+                        fontWeight: 500,
+                        lineHeight: 1.6
+                      }}
+                    >
+                      {description}
+                    </Typography>
+                  )}
+                </Box>
+              </Box>
+              <Chip
+                icon={<AssessmentIcon sx={{ color: 'white !important', fontSize: '1.2rem' }} />}
+                label={statusLabel}
+                sx={{
+                  bgcolor: 'rgba(255, 255, 255, 0.2)',
+                  color: 'white',
+                  fontWeight: 600,
+                  backdropFilter: 'blur(10px)',
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  display: { xs: 'none', sm: 'flex' },
+                  px: 1
+                }}
+              />
+            </Box>
 
-          {/* Action buttons */}
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-            <Button
-              variant="outlined"
-              startIcon={<FilterIcon />}
-              onClick={() => setShowFilters(!showFilters)}
+            {/* Quick Stats / Info Bar */}
+            <Box
+              sx={{
+                display: 'flex',
+                gap: { xs: 3, md: 5 },
+                mt: 4,
+                pt: 3,
+                borderTop: '1px solid rgba(255, 255, 255, 0.2)',
+                flexWrap: 'wrap'
+              }}
             >
-              {showFilters ? 'Hide Filters' : 'Show Filters'}
-            </Button>
+              <Box>
+                <Typography variant="caption" sx={{ opacity: 0.7, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, display: 'block', mb: 0.5 }}>
+                  Report Granularity
+                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>{granularity}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" sx={{ opacity: 0.7, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, display: 'block', mb: 0.5 }}>
+                  Scope
+                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>{scope}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" sx={{ opacity: 0.7, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, display: 'block', mb: 0.5 }}>
+                  Last Calculation
+                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
+        </Paper>
 
+        {/* Action buttons & Control Bar */}
+        <Box sx={{ mb: 4, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+          <Button
+            variant={showFilters ? "contained" : "outlined"}
+            startIcon={<FilterIcon />}
+            onClick={() => setShowFilters(!showFilters)}
+            sx={{
+              borderRadius: 2,
+              textTransform: 'none',
+              fontWeight: 600,
+              ...(showFilters && {
+                background: themeStyles.gradient,
+                boxShadow: `0 4px 12px ${alpha(themeStyles.primary, 0.3)}`
+              })
+            }}
+          >
+            {showFilters ? 'Hide Filters' : 'Analysis Parameters'}
+          </Button>
+
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
             <Tooltip title="Refresh Data">
-              <IconButton onClick={fetchData} disabled={loading}>
-                <RefreshIcon />
+              <IconButton
+                onClick={fetchData}
+                disabled={loading}
+                sx={{
+                  bgcolor: alpha(themeStyles.primary, 0.05),
+                  '&:hover': { bgcolor: alpha(themeStyles.primary, 0.1) }
+                }}
+              >
+                <RefreshIcon sx={{ color: themeStyles.primary }} />
               </IconButton>
             </Tooltip>
 
             {supportsCharts && (
-              <Tooltip title="Charts View">
-                <IconButton>
-                  <ChartIcon />
+              <Tooltip title="Toggle Charts">
+                <IconButton
+                  sx={{
+                    bgcolor: alpha(themeStyles.primary, 0.05),
+                    '&:hover': { bgcolor: alpha(themeStyles.primary, 0.1) }
+                  }}
+                >
+                  <ChartIcon sx={{ color: themeStyles.primary }} />
                 </IconButton>
               </Tooltip>
             )}
-
-            <Button
-              variant="contained"
-              startIcon={<DownloadIcon />}
-              onClick={() => handleExport('xlsx')}
-              disabled={exportLoading || data.length === 0}
-            >
-              Export XLSX
-            </Button>
           </Box>
+
+          <Box sx={{ flexGrow: 1 }} />
+
+          <Button
+            variant="contained"
+            startIcon={<DownloadIcon />}
+            onClick={() => handleExport('xlsx')}
+            disabled={exportLoading || data.length === 0}
+            sx={{
+              borderRadius: 2,
+              px: 3,
+              textTransform: 'none',
+              fontWeight: 700,
+              background: themeStyles.gradient,
+              boxShadow: `0 4px 14px ${alpha(themeStyles.primary, 0.4)}`,
+              '&:hover': {
+                boxShadow: `0 6px 20px ${alpha(themeStyles.primary, 0.5)}`,
+                transform: 'translateY(-1px)'
+              },
+              transition: 'all 0.2s ease'
+            }}
+          >
+            {exportLoading ? 'Processing...' : 'Export Excellence'}
+          </Button>
         </Box>
 
         {/* Filters */}
         {showFilters && (
-          <Card sx={{ mb: 3 }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Report Filters
+          <Card sx={{ 
+            mb: 4, 
+            borderRadius: 3,
+            overflow: 'hidden',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
+            border: '1px solid rgba(0, 0, 0, 0.05)'
+          }}>
+            <Box sx={{ 
+              p: 2, 
+              display: 'flex', 
+              alignItems: 'center', 
+              bgcolor: alpha(themeStyles.primary, 0.03),
+              borderBottom: '1px solid rgba(0, 0, 0, 0.05)'
+            }}>
+              <FilterIcon sx={{ mr: 1, color: themeStyles.primary, fontSize: 20 }} />
+              <Typography variant="subtitle1" fontWeight={700} sx={{ color: themeStyles.primary }}>
+                Analysis Configuration
               </Typography>
-
-              <Grid container spacing={2}>
+            </Box>
+            <CardContent sx={{ p: 3 }}>
+              <Grid container spacing={2.5}>
                 {/* Processing Date (Required) */}
-                <Grid size={{ xs: 12, md: 3 }}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                   <DatePicker
-                    label="Processing Date *"
+                    label="Processing Date"
                     value={filters.prc_date}
-                    onChange={(date) => handleFilterChange('prc_date', date)}
+                    onChange={(date: unknown) => {
+                      // Handle Dayjs or Date
+                      const finalDate = date && (date as { toDate?: () => Date }).toDate 
+                        ? (date as { toDate: () => Date }).toDate() 
+                        : (date as Date | null);
+                      handleFilterChange('prc_date', finalDate);
+                    }}
                     enableAccessibleFieldDOMStructure={false}
                     slots={{
                       textField: TextField
                     }}
                     slotProps={{
-                      textField: { fullWidth: true, required: true }
+                      textField: { 
+                        fullWidth: true, 
+                        required: true,
+                        size: 'small',
+                        sx: { '& .MuiOutlinedInput-root': { borderRadius: 2 } }
+                      }
                     }}
                   />
                 </Grid>
 
                 {/* Optional Parameters */}
                 {optionalParams.includes('segment_id') && (
-                  <Grid size={{ xs: 12, md: 2 }}>
+                  <Grid size={{ xs: 12, sm: 4, md: 2 }}>
                     <TextField
                       label="Segment ID"
                       type="number"
+                      size="small"
                       value={filters.segment_id || ''}
                       onChange={(e) => handleFilterChange('segment_id', parseInt(e.target.value) || undefined)}
                       fullWidth
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                     />
                   </Grid>
                 )}
 
                 {optionalParams.includes('pd_config_id') && (
-                  <Grid size={{ xs: 12, md: 2 }}>
+                  <Grid size={{ xs: 12, sm: 4, md: 2 }}>
                     <TextField
                       label="PD Config ID"
                       type="number"
+                      size="small"
                       value={filters.pd_config_id || ''}
                       onChange={(e) => handleFilterChange('pd_config_id', parseInt(e.target.value) || undefined)}
                       fullWidth
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                     />
                   </Grid>
                 )}
 
                 {optionalParams.includes('pd_method') && (
-                  <Grid size={{ xs: 12, md: 2 }}>
-                    <FormControl fullWidth>
+                  <Grid size={{ xs: 12, sm: 4, md: 2 }}>
+                    <FormControl fullWidth size="small">
                       <InputLabel>PD Method</InputLabel>
                       <Select
                         value={filters.pd_method || ''}
                         onChange={(e) => handleFilterChange('pd_method', e.target.value ? Number(e.target.value) : undefined)}
                         label="PD Method"
+                        sx={{ borderRadius: 2 }}
                       >
                         <MenuItem value="">All Methods</MenuItem>
                         <MenuItem value={1}>TTC (Through-the-Cycle)</MenuItem>
@@ -483,20 +713,21 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                 )}
 
                 {optionalParams.includes('scalar_id') && (
-                  <Grid size={{ xs: 12, md: 2 }}>
+                  <Grid size={{ xs: 12, sm: 4, md: 2 }}>
                     <TextField
                       label="Scalar ID"
                       type="number"
+                      size="small"
                       value={filters.scalar_id || ''}
                       onChange={(e) => handleFilterChange('scalar_id', parseInt(e.target.value) || undefined)}
                       fullWidth
-                      helperText="Optional FL scalar"
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                     />
                   </Grid>
                 )}
 
                 {optionalParams.includes('fl_flag') && (
-                  <Grid size={{ xs: 12, md: 2 }}>
+                  <Grid size={{ xs: 12, sm: 4, md: 2 }}>
                     <FormControlLabel
                       control={
                         <Switch
@@ -505,20 +736,21 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                           color="primary"
                         />
                       }
-                      label="Forward Looking"
-                      sx={{ mt: 1 }}
+                      label={<Typography variant="body2" fontWeight={500}>Forward Looking</Typography>}
+                      sx={{ mt: 0.5 }}
                     />
                   </Grid>
                 )}
 
                 {optionalParams.includes('stage') && (
-                  <Grid size={{ xs: 12, md: 2 }}>
-                    <FormControl fullWidth>
+                  <Grid size={{ xs: 12, sm: 4, md: 2 }}>
+                    <FormControl fullWidth size="small">
                       <InputLabel>Stage</InputLabel>
                       <Select
                         value={filters.stage || ''}
                         onChange={(e) => handleFilterChange('stage', e.target.value)}
                         label="Stage"
+                        sx={{ borderRadius: 2 }}
                       >
                         <MenuItem value="">All Stages</MenuItem>
                         <MenuItem value="1">Stage 1</MenuItem>
@@ -530,25 +762,28 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                 )}
 
                 {optionalParams.includes('lgd_config_id') && (
-                  <Grid size={{ xs: 12, md: 2 }}>
+                  <Grid size={{ xs: 12, sm: 4, md: 2 }}>
                     <TextField
                       label="LGD Config ID"
                       type="number"
+                      size="small"
                       value={filters.lgd_config_id || ''}
                       onChange={(e) => handleFilterChange('lgd_config_id', parseInt(e.target.value) || undefined)}
                       fullWidth
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                     />
                   </Grid>
                 )}
 
                 {optionalParams.includes('lgd_method') && (
-                  <Grid size={{ xs: 12, md: 2 }}>
-                    <FormControl fullWidth>
+                  <Grid size={{ xs: 12, sm: 4, md: 2 }}>
+                    <FormControl fullWidth size="small">
                       <InputLabel>LGD Method</InputLabel>
                       <Select
                         value={filters.lgd_method || ''}
                         onChange={(e) => handleFilterChange('lgd_method', e.target.value ? Number(e.target.value) : undefined)}
                         label="LGD Method"
+                        sx={{ borderRadius: 2 }}
                       >
                         <MenuItem value="">All Methods</MenuItem>
                         <MenuItem value={1}>Workout</MenuItem>
@@ -559,50 +794,79 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                 )}
 
                 {optionalParams.includes('model_id') && (
-                  <Grid size={{ xs: 12, md: 2 }}>
+                  <Grid size={{ xs: 12, sm: 4, md: 2 }}>
                     <TextField
                       label="Model ID"
                       type="number"
+                      size="small"
                       value={filters.model_id || ''}
                       onChange={(e) => handleFilterChange('model_id', parseInt(e.target.value) || undefined)}
                       fullWidth
-                      helperText="Optional LGD model"
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                     />
                   </Grid>
                 )}
 
                 {optionalParams.includes('ead_config_id') && (
-                  <Grid size={{ xs: 12, md: 2 }}>
+                  <Grid size={{ xs: 12, sm: 4, md: 2 }}>
                     <TextField
                       label="EAD Config ID"
                       type="number"
+                      size="small"
                       value={filters.ead_config_id || ''}
                       onChange={(e) => handleFilterChange('ead_config_id', parseInt(e.target.value) || undefined)}
                       fullWidth
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                     />
                   </Grid>
                 )}
 
                 {optionalParams.includes('branch_code') && (
-                  <Grid size={{ xs: 12, md: 2 }}>
+                  <Grid size={{ xs: 12, sm: 4, md: 2 }}>
                     <TextField
                       label="Branch Code"
+                      size="small"
                       value={filters.branch_code || ''}
                       onChange={(e) => handleFilterChange('branch_code', e.target.value)}
                       fullWidth
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                     />
                   </Grid>
                 )}
               </Grid>
 
-              <Box sx={{ mt: 2 }}>
+              <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
                 <Button
                   variant="contained"
                   onClick={fetchData}
                   disabled={loading}
-                  startIcon={loading ? <CircularProgress size={20} /> : <RefreshIcon />}
+                  startIcon={loading ? <CircularProgress size={20} /> : <SearchIcon />}
+                  sx={{ 
+                    borderRadius: 2,
+                    px: 4,
+                    background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
+                    boxShadow: '0 4px 12px rgba(25, 118, 210, 0.3)',
+                    textTransform: 'none',
+                    fontWeight: 700
+                  }}
                 >
-                  {loading ? 'Loading...' : 'Apply Filters'}
+                  {loading ? 'Processing...' : 'Run Analysis'}
+                </Button>
+                <Button
+                  variant="outlined"
+                  onClick={() => setFilters({
+                    prc_date: new Date('2023-12-31'),
+                    page: 1,
+                    limit: 20
+                  })}
+                  startIcon={<ClearIcon />}
+                  sx={{ 
+                    borderRadius: 2,
+                    textTransform: 'none',
+                    fontWeight: 600
+                  }}
+                >
+                  Clear Filters
                 </Button>
               </Box>
             </CardContent>
@@ -645,8 +909,8 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                   fontSize: '0.875rem'
                 },
                 '& .MuiDataGrid-columnHeader': {
-                  backgroundColor: 'primary.main',
-                  color: 'primary.contrastText',
+                  backgroundColor: themeStyles.primary,
+                  color: '#ffffff',
                   fontWeight: 'bold'
                 }
               }}
