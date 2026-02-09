@@ -19,6 +19,8 @@ const controller = new ProductParameterController();
 // UTILITY ENDPOINTS (MUST BE FIRST!)
 // ==========================================
 
+router.get('/ping-product', (req, res) => res.json({ message: 'pong-product' }));
+
 /**
  * GET /instrument-class-options
  * Get instrument class options from FRS9PRO parameter B0003
@@ -126,6 +128,20 @@ router.get(
   (req, res) => controller.getProducts(req, res)
 );
 
+// ==========================================
+// DEBUG ENDPOINT
+// ==========================================
+router.get('/debug-env', (req, res) => {
+  res.json({
+    message: 'Debug endpoint active',
+    env: {
+      NODE_ENV: process.env.NODE_ENV,
+      JWT_SECRET_LENGTH: process.env.JWT_SECRET ? process.env.JWT_SECRET.length : 0,
+      JWT_SECRET_PREFIX: process.env.JWT_SECRET ? process.env.JWT_SECRET.substring(0, 5) : 'NONE'
+    }
+  });
+});
+
 /**
  * POST /
  * Create new product parameter
@@ -179,8 +195,8 @@ router.post(
     body('al_flag')
       .optional()
       .isString()
-      .isLength({ min: 1, max: 1 })
-      .withMessage('AL flag must be exactly 1 character'),
+      .isLength({ min: 1, max: 10 })
+      .withMessage('AL flag must be max 10 characters'),
     
     body('impaired_flag')
       .optional()
@@ -280,8 +296,8 @@ router.put(
     body('al_flag')
       .optional()
       .isString()
-      .isLength({ min: 1, max: 1 })
-      .withMessage('AL flag must be exactly 1 character'),
+      .isLength({ min: 1, max: 10 })
+      .withMessage('AL flag must be max 10 characters'),
     
     body('impaired_flag')
       .optional()

@@ -9,12 +9,16 @@ export const reportsAPI = {
     },
 
     lifetimePD: {
-        getYearly: async (params?: any) => {
+        getYearly: async (params?: { prcDate?: string; pdModelId?: string; page?: string; limit?: string }) => {
             const response = await apiClient.get('/ifrs9/reports/lifetime-pd/yearly', { params });
             return response.data;
         },
-        getMonthly: async (params?: any) => {
+        getMonthly: async (params?: { prcDate?: string; pdModelId?: string; page?: string; limit?: string }) => {
             const response = await apiClient.get('/ifrs9/reports/lifetime-pd/monthly', { params });
+            return response.data;
+        },
+        getAccountDetails: async (params?: { prcDate?: string; pdModelId?: string; page?: string; limit?: string }) => {
+            const response = await apiClient.get('/ifrs9/reports/lifetime-pd/account-details', { params });
             return response.data;
         }
     },

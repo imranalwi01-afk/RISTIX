@@ -1,7 +1,7 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
 import { legacyDb as db } from '../config'
 import { frs9ParamSegmenth, frs9ParamSegmentd } from '../db/schema'
-import { eq, desc, asc } from 'drizzle-orm'
+import { eq, desc, asc, sql } from 'drizzle-orm'
 import type { AppContext } from '../app'
 
 export const segmentationRoutes = new OpenAPIHono<AppContext>()
@@ -101,6 +101,12 @@ segmentationRoutes.openapi(
         path: '/',
         tags: ['Segmentation'],
         summary: 'List Segment Headers',
+        request: {
+            query: z.object({
+                limit: z.string().optional().transform(v => v ? parseInt(v, 10) : 50),
+                page: z.string().optional().transform(v => v ? parseInt(v, 10) : 0),
+            })
+        },
         responses: {
             200: { content: { 'application/json': { schema: SegmentListResponse } }, description: 'List Headers' },
             400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
@@ -108,7 +114,14 @@ segmentationRoutes.openapi(
         }
     }),
     async (c) => {
+        const { limit, page } = c.req.valid('query');
+        const offset = page * limit;
+
         try {
+            // Get total count for pagination efficiently
+            const countResult = await db.execute(sql`SELECT count(*) as count FROM frs9_param_segmenth`);
+            const total = Number(countResult[0]?.count || 0);
+
             const result = await db.select({
                 id: frs9ParamSegmenth.pkid,
                 group_segment: frs9ParamSegmenth.groupSegment,
@@ -123,8 +136,23 @@ segmentationRoutes.openapi(
                 updatedby: frs9ParamSegmenth.updatedby,
                 updateddate: frs9ParamSegmenth.updateddate,
                 updatedhost: frs9ParamSegmenth.updatedhost
-            }).from(frs9ParamSegmenth).orderBy(desc(frs9ParamSegmenth.createddate));
-            return c.json({ success: true, data: result, total: result.length });
+            })
+            .from(frs9ParamSegmenth)
+            .orderBy(desc(frs9ParamSegmenth.createddate))
+            .limit(limit)
+            .offset(offset);
+
+            return c.json({ 
+                success: true, 
+                data: result, 
+                total,
+                pagination: {
+                    total,
+                    limit,
+                    page,
+                    pages: Math.ceil(total / limit)
+                }
+            });
         } catch (error) {
             console.error('Error fetching segments:', error);
             return c.json({ error: 'Failed to fetch segments' }, 500);

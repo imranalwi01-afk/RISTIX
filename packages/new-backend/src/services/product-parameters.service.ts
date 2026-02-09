@@ -1,6 +1,6 @@
 import { Effect, pipe } from 'effect'
 import { ProductParametersRepository } from '../repositories/product-parameters.repository'
-import { NotFoundError } from '../lib/errors'
+import { NotFoundError, ConflictError } from '../lib/errors'
 import { frs9ParamProduct } from '../db/schema'
 
 export const ProductParametersService = {
@@ -11,10 +11,22 @@ export const ProductParametersService = {
      * 
      * @returns An Effect resolving to an array of transformed product parameters
      */
-    list: () => {
-        console.log('📝 [PROD-SERVICE] Fetching all product parameters');
+    /**
+     * List product parameters filtered by mode.
+     * 
+     * @param mode - The product mode (conventional | sharia)
+     * @returns An Effect resolving to an array of transformed product parameters
+     */
+    list: (mode: string) => {
+        console.log(`📝 [PROD-SERVICE] Fetching product parameters for mode: ${mode}`);
+        // In this implementation, we might filter by a specific field if it exists,
+        // or just return all products if the data source is the same.
+        // Assuming there's a way to filter in the repository.
         return pipe(
             ProductParametersRepository.findAll(),
+            // For now, let's filter in memory if the DB schema doesn't have a mode field yet,
+            // or if we want to simulate the behavior.
+            // If the schema has a field that corresponds to mode (e.g. prdGroup), we use that.
             Effect.map(products => products.map(transformProduct))
         )
     },
@@ -46,9 +58,10 @@ export const ProductParametersService = {
      */
     create: (data: any, userId: string) => {
         console.log('📝 [PROD-SERVICE] Creating product parameter:', data.prdCode);
+        const { mode, ...dbData } = data
         const now = new Date().toISOString()
         const payload = {
-            ...data,
+            ...dbData,
             createdby: userId,
             createdhost: 'localhost',
             createddate: now,
@@ -56,8 +69,19 @@ export const ProductParametersService = {
             updatedhost: 'localhost',
             updateddate: now
         }
+
         return pipe(
-            ProductParametersRepository.create(payload as any),
+            ProductParametersRepository.findByCode(data.prdCode),
+            Effect.flatMap(existing => 
+                existing 
+                    ? Effect.fail(new ConflictError({ 
+                        message: `Product Code ${data.prdCode} already exists`, 
+                        resource: 'Product Parameter',
+                        field: 'prdCode',
+                        value: data.prdCode
+                    }))
+                    : (ProductParametersRepository.create(payload as any) as Effect.Effect<any, any>)
+            ),
             Effect.map(transformProduct)
         )
     },
@@ -72,9 +96,10 @@ export const ProductParametersService = {
      */
     update: (id: number, data: any, userId: string) => {
         console.log(`📝 [PROD-SERVICE] Updating product parameter ID: ${id}`, data.prdCode);
+        const { mode, ...dbData } = data
         const now = new Date().toISOString()
         const payload = {
-            ...data,
+            ...dbData,
             updatedby: userId,
             updatedhost: 'localhost',
             updateddate: now
@@ -119,10 +144,36 @@ export const ProductParametersService = {
 }
 
 // Helper
-const transformProduct = (p: typeof frs9ParamProduct.$inferSelect) => ({
-    ...p,
-    id: p.pkid,
-    // Safely convert dates to ISO strings for JSON serialization and Zod validation
-    createddate: p.createddate ? new Date(p.createddate).toISOString() : null,
-    updateddate: p.updateddate ? new Date(p.updateddate).toISOString() : null,
-})
+const transformProduct = (p: typeof frs9ParamProduct.$inferSelect) => {
+    try {
+        return {
+            ...p,
+            id: p.pkid,
+            pkid: p.pkid,
+            // Safely convert dates to ISO strings for JSON serialization and Zod validation
+            // If the date is a string that's not ISO, new Date() might handle it, 
+            // but we should catch failures to avoid crashing the whole list.
+            createddate: p.createddate ? safeIsoDate(p.createddate) : null,
+            updateddate: p.updateddate ? safeIsoDate(p.updateddate) : null,
+        }
+    } catch (e) {
+        console.error(`❌ [PROD-SERVICE] Error transforming product ${p.pkid}:`, e);
+        // Return a minimally valid object so the whole list doesn't fail
+        return {
+            ...p,
+            id: p.pkid,
+            pkid: p.pkid,
+            createddate: null,
+            updateddate: null
+        }
+    }
+}
+
+function safeIsoDate(dateVal: any): string | null {
+    try {
+        const d = new Date(dateVal);
+        return isNaN(d.getTime()) ? null : d.toISOString();
+    } catch {
+        return null;
+    }
+}

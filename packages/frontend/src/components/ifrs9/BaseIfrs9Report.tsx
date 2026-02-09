@@ -12,16 +12,38 @@ import {
   CircularProgress,
   Alert,
   Chip,
+  Switch,
+  FormControlLabel,
+  Autocomplete,
+  Checkbox,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Radio,
+  RadioGroup,
+  Drawer,
+  Divider,
+  List,
+  ListItem,
+  ListItemText,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
   IconButton,
   Tooltip,
-  Switch,
-  FormControlLabel,
+  InputAdornment,
   alpha
 } from '@mui/material';
+import {
+  CheckBox as CheckBoxIcon,
+  CheckBoxOutlineBlank as CheckBoxOutlineBlankIcon,
+  Visibility as ViewIcon,
+  Info as InfoIcon,
+  Launch as LaunchIcon,
+  SettingsSuggest as SettingsIcon
+} from '@mui/icons-material';
 import {
   DatePicker,
   LocalizationProvider
@@ -47,7 +69,7 @@ import { useBankingTheme } from '../../providers/BankingThemeProvider';
 export interface BaseIfrs9ReportProps {
   title: string;
   description?: string;
-  reportType: 'nominative-report' | 'lifetime-pd-yearly' | 'lifetime-pd-monthly' |
+  reportType: 'nominative-report' | 'lifetime-pd-yearly' | 'lifetime-pd-monthly' | 'lifetime-pd-account-details' |
   'lifetime-lgd' | 'ead-model' | 'ecl-result' | 'ecl-movement' | 'gca-movement';
   requiredParams: string[];
   optionalParams?: string[];
@@ -59,6 +81,8 @@ export interface BaseIfrs9ReportProps {
   scope?: string;
   onDataLoaded?: (data: Record<string, unknown>[]) => void;
   children?: React.ReactNode;
+  hideHeader?: boolean;
+  externalFilters?: Partial<ReportFilters>;
 }
 
 export interface ReportFilters {
@@ -71,6 +95,8 @@ export interface ReportFilters {
   model_id?: number;
   ead_config_id?: number;
   segment_id?: number;
+  segment_ids?: number[]; // Added for multi-select
+  scenario_id?: number;   // Added for FL
   stage?: '1' | '2' | '3';
   fl_flag?: boolean;
   branch_code?: string;
@@ -109,15 +135,17 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
   granularity = 'Transaction / Account Level',
   scope = 'IFRS 9 Regulatory Compliance',
   onDataLoaded,
-  children
+  children,
+  hideHeader,
+  externalFilters
 }) => {
   const { user } = useAuth();
   const { bankingMode } = useBankingTheme();
 
   // Extract tenant from user data - Memoized to prevent infinite loops
-  const tenant = React.useMemo(() =>
-    user?.tenantId ? { id: user.tenantId, slug: user.tenantSlug } : null
-    , [user?.tenantId, user?.tenantSlug]);
+  const tenant = React.useMemo(() => {
+    return user?.tenantId ? { id: user.tenantId, slug: user.tenantSlug } : null;
+  }, [user?.tenantId, user?.tenantSlug]);
 
   // State management
   const fetchRef = React.useRef(false);
@@ -128,8 +156,11 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
   const [filters, setFilters] = useState<ReportFilters>({
     prc_date: new Date('2023-12-31'), // Use date with available FRS9PRO data
     page: 1,
-    limit: 20
+    limit: 20,
+    segment_ids: [],
+    fl_flag: false
   });
+
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 20,
@@ -138,30 +169,32 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
   });
   const [showFilters, setShowFilters] = useState(true);
   const [exportLoading, setExportLoading] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [exportOptions, setExportOptions] = useState({
+    scope: 'summary',
+    format: 'xlsx'
+  });
+  const [segments, setSegments] = useState<any[]>([]);
+  const [scalars, setScalars] = useState<any[]>([]);
+  const [lgdMethods, setLgdMethods] = useState<any[]>([]);
+  const [configDrawerOpen, setConfigDrawerOpen] = useState(false);
 
-  // Dynamic Theme Colors based on Sidebar
-  const themeStyles = React.useMemo(() => {
-    switch (bankingMode) {
-      case 'syariah':
-        return {
-          gradient: 'linear-gradient(135deg, #00695c 0%, #004d40 100%)',
-          primary: '#00695c',
-          shadow: 'rgba(0, 105, 92, 0.3)'
-        };
-      case 'dual':
-        return {
-          gradient: 'linear-gradient(135deg, #37474f 0%, #263238 100%)',
-          primary: '#37474f',
-          shadow: 'rgba(55, 71, 79, 0.3)'
-        };
-      default:
-        return {
-          gradient: 'linear-gradient(135deg, #1976D2 0%, #0D47A1 100%)',
-          primary: '#1976D2',
-          shadow: 'rgba(25, 118, 210, 0.3)'
-        };
-    }
-  }, [bankingMode]);
+  // --- Handlers & Logic (Defined early to avoid hoisting issues) ---
+
+  const handleFilterChange = useCallback((field: keyof ReportFilters, value: any) => {
+    setFilters(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  }, []);
+
+  const handlePaginationChange = useCallback((page: number, pageSize: number) => {
+    setFilters(prev => ({
+      ...prev,
+      page,
+      limit: pageSize
+    }));
+  }, []);
 
   // Dynamic column generation for pivot tables
   const generateDynamicColumns = useCallback((data: Record<string, unknown>[]): GridColDef[] => {
@@ -291,6 +324,9 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
         case 'lifetime-pd-monthly':
           response = await api.banking.ifrs9Reports.lifetimePD.getMonthly(params);
           break;
+        case 'lifetime-pd-account-details':
+          response = await api.banking.ifrs9Reports.lifetimePD.getAccountDetails(params);
+          break;
         case 'lifetime-lgd':
           response = await api.banking.ifrs9Reports.lifetimeLGD.get(params);
           break;
@@ -339,38 +375,65 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
     }
   }, [reportType, filters, tenant, requiredParams, generateDynamicColumns, onDataLoaded]);
 
-  // Handle filter changes
-  const handleFilterChange = (field: keyof ReportFilters, value: string | number | boolean | Date | null | undefined) => {
-    setFilters(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
+  const handleRun = useCallback(() => {
+    fetchData();
+  }, [fetchData]);
 
-  // Handle pagination change
-  const handlePaginationChange = (page: number, pageSize: number) => {
-    setFilters(prev => ({
-      ...prev,
-      page,
-      limit: pageSize
-    }));
-  };
+  const handleClear = useCallback(() => {
+    setFilters({
+      prc_date: new Date('2023-12-31'),
+      page: 1,
+      limit: 20,
+      segment_ids: [],
+      fl_flag: false
+    });
+  }, []);
 
-  // Export functionality - Client-side using xlsx library
-  const handleExport = async (format: 'xlsx' | 'csv' | 'pdf') => {
+  // --- Effects ---
+
+  // Export functionality - Client-side using xlsx library with Audit Header (T1)
+  const handleExportExecute = async () => {
     if (data.length === 0) {
       console.warn('No data to export');
       return;
     }
 
     setExportLoading(true);
+    setExportDialogOpen(false);
+    
     try {
-      // Create worksheet from data
-      const worksheet = XLSX.utils.json_to_sheet(data);
+      const format = exportOptions.format as 'xlsx' | 'csv' | 'pdf';
+      const scope = exportOptions.scope;
+      
+      // Inject T1 Header if it's Excel/CSV
+      const headerT1 = [
+        ['Report Name', title],
+        ['Processing Date', filters.prc_date?.toISOString().split('T')[0] || 'N/A'],
+        ['Segments', filters.segment_ids?.length ? filters.segment_ids.join(', ') : 'All'],
+        ['LGD Config / Method', `${filters.lgd_config_id || 'N/A'} / ${filters.lgd_method || 'N/A'}`],
+        ['Model Version / ID', `v1.2 / ${filters.model_id || 'DEFAULT'}`],
+        ['Forward Looking', filters.fl_flag ? `ON (Scenario=${filters.scenario_id}; Scalar=${filters.scalar_id})` : 'OFF'],
+        ['Last Calculation', new Date().toISOString()],
+        ['Environment', 'Production'],
+        ['Generated By', user?.fullName || user?.email || 'System'],
+        ['Generated At', new Date().toLocaleString()],
+        ['Notes', 'Confidential – Internal Use Only'],
+        [] // Spacer
+      ];
 
       // Create workbook
       const workbook = XLSX.utils.book_new();
-      const sheetName = title.substring(0, 31).replace(/[/\\*?[\]]/g, ''); // Max 31 chars, no special chars
+      let worksheet: XLSX.WorkSheet;
+
+      if (scope === 'summary' && supportsCharts) {
+        worksheet = XLSX.utils.aoa_to_sheet(headerT1);
+        XLSX.utils.sheet_add_json(worksheet, data.slice(0, 10), { origin: 'A13' });
+      } else {
+        worksheet = XLSX.utils.aoa_to_sheet(headerT1);
+        XLSX.utils.sheet_add_json(worksheet, data, { origin: 'A13' });
+      }
+
+      const sheetName = title.substring(0, 31).replace(/[/\\*?[\]]/g, '');
       XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
 
       // Auto-size columns
@@ -380,19 +443,16 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
       }));
       worksheet['!cols'] = colWidths;
 
-      // Generate filename
       const dateStr = filters.prc_date?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0];
       const filename = `${reportType}-${dateStr}`;
 
       if (format === 'xlsx') {
-        // Export as XLSX
         XLSX.writeFile(workbook, `${filename}.xlsx`);
       } else if (format === 'csv') {
-        // Export as CSV
         XLSX.writeFile(workbook, `${filename}.csv`, { bookType: 'csv' });
       }
 
-      console.log(`✅ Exported ${data.length} rows to ${filename}.${format}`);
+      console.log(`✅ Exported ${data.length} rows with audit header to ${filename}.${format}`);
     } catch (err) {
       console.error('Export error:', err);
     } finally {
@@ -400,11 +460,92 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
     }
   };
 
+  // Sync external filters
+  useEffect(() => {
+    if (externalFilters) {
+      setFilters(prev => ({
+        ...prev,
+        ...externalFilters
+      }));
+    }
+  }, [externalFilters]);
+
+  // Fetch lookups
+  useEffect(() => {
+    const loadLookups = async () => {
+      try {
+        const [segData, scalData] = await Promise.all([
+          api.banking.populationSegments.getAll({ active_flag: true }),
+          api.banking.pdSetup.getFLScalars()
+        ]);
+        setSegments(segData || []);
+        setScalars(scalData || []);
+        
+        if (reportType === 'lifetime-lgd') {
+          const methods = await api.banking.lgdConfigurations.getMethods();
+          setLgdMethods(methods || []);
+        }
+      } catch (err) {
+        console.error('Failed to load lookups:', err);
+      }
+    };
+    loadLookups();
+  }, [reportType]);
+
+  // Fetch data on initial load and date change
   useEffect(() => {
     if (tenant && filters.prc_date) {
       fetchData();
     }
   }, [tenant, fetchData, filters.prc_date]);
+
+  // Keyboard Shortcuts (Accessibility)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.altKey) {
+        switch (e.key.toLowerCase()) {
+          case 'r':
+            e.preventDefault();
+            handleRun();
+            break;
+          case 'e':
+            e.preventDefault();
+            if (data.length > 0) setExportDialogOpen(true);
+            break;
+          case 'c':
+            e.preventDefault();
+            handleClear();
+            break;
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleRun, handleClear, data.length]);
+
+  // Dynamic Theme Colors based on Sidebar
+  const themeStyles = React.useMemo(() => {
+    switch (bankingMode) {
+      case 'syariah':
+        return {
+          gradient: 'linear-gradient(135deg, #00695c 0%, #004d40 100%)',
+          primary: '#00695c',
+          shadow: 'rgba(0, 105, 92, 0.3)'
+        };
+      case 'dual':
+        return {
+          gradient: 'linear-gradient(135deg, #37474f 0%, #263238 100%)',
+          primary: '#37474f',
+          shadow: 'rgba(55, 71, 79, 0.3)'
+        };
+      default:
+        return {
+          gradient: 'linear-gradient(135deg, #1976D2 0%, #0D47A1 100%)',
+          primary: '#1976D2',
+          shadow: 'rgba(25, 118, 210, 0.3)'
+        };
+    }
+  }, [bankingMode]);
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
@@ -417,8 +558,9 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
         />
 
         {/* Enhanced Page Header with Gradient - Premium Look */}
-        <Paper
-          elevation={0}
+        {!hideHeader && (
+          <Paper
+            elevation={0}
           sx={{
             mb: 4,
             p: { xs: 3, md: 5 },
@@ -493,19 +635,31 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                   )}
                 </Box>
               </Box>
-              <Chip
-                icon={<AssessmentIcon sx={{ color: 'white !important', fontSize: '1.2rem' }} />}
-                label={statusLabel}
-                sx={{
-                  bgcolor: 'rgba(255, 255, 255, 0.2)',
-                  color: 'white',
-                  fontWeight: 600,
-                  backdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(255, 255, 255, 0.3)',
-                  display: { xs: 'none', sm: 'flex' },
-                  px: 1
-                }}
-              />
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Chip
+                  icon={<AssessmentIcon sx={{ color: 'white !important', fontSize: '1.2rem' }} />}
+                  label={statusLabel}
+                  sx={{
+                    bgcolor: 'rgba(255, 255, 255, 0.2)',
+                    color: 'white',
+                    fontWeight: 600,
+                    backdropFilter: 'blur(10px)',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    display: { xs: 'none', sm: 'flex' },
+                    px: 1
+                  }}
+                />
+                <Chip
+                  label="Live Production Data"
+                  color="success"
+                  size="small"
+                  sx={{ 
+                    fontWeight: 700, 
+                    boxShadow: '0 2px 8px rgba(76, 175, 80, 0.4)',
+                    display: { xs: 'none', md: 'flex' }
+                  }}
+                />
+              </Box>
             </Box>
 
             {/* Quick Stats / Info Bar */}
@@ -541,10 +695,12 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
               </Box>
             </Box>
           </Box>
-        </Paper>
+          </Paper>
+        )}
 
         {/* Action buttons & Control Bar */}
-        <Box sx={{ mb: 4, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+        {!hideHeader && (
+          <Box sx={{ mb: 4, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
           <Button
             variant={showFilters ? "contained" : "outlined"}
             startIcon={<FilterIcon />}
@@ -592,32 +748,33 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
 
           <Box sx={{ flexGrow: 1 }} />
 
-          <Button
-            variant="contained"
-            startIcon={<DownloadIcon />}
-            onClick={() => handleExport('xlsx')}
-            disabled={exportLoading || data.length === 0}
-            sx={{
-              borderRadius: 2,
-              px: 3,
-              textTransform: 'none',
-              fontWeight: 700,
-              background: themeStyles.gradient,
-              boxShadow: `0 4px 14px ${alpha(themeStyles.primary, 0.4)}`,
-              '&:hover': {
-                boxShadow: `0 6px 20px ${alpha(themeStyles.primary, 0.5)}`,
-                transform: 'translateY(-1px)'
-              },
-              transition: 'all 0.2s ease'
-            }}
-          >
-            {exportLoading ? 'Processing...' : 'Export Excellence'}
-          </Button>
+            <Button
+              variant="contained"
+              startIcon={<DownloadIcon />}
+              onClick={() => setExportDialogOpen(true)}
+              disabled={exportLoading || data.length === 0}
+              sx={{
+                borderRadius: 2,
+                px: 3,
+                textTransform: 'none',
+                fontWeight: 700,
+                background: themeStyles.gradient,
+                boxShadow: `0 4px 14px ${alpha(themeStyles.primary, 0.4)}`,
+                '&:hover': {
+                  boxShadow: `0 6px 20px ${alpha(themeStyles.primary, 0.5)}`,
+                  transform: 'translateY(-1px)'
+                },
+                transition: 'all 0.2s ease'
+              }}
+            >
+              {exportLoading ? 'Processing...' : 'Export Excellence'}
+            </Button>
         </Box>
+      )}
 
-        {/* Filters */}
-        {showFilters && (
-          <Card sx={{ 
+      {/* Filters */}
+      {!hideHeader && showFilters && (
+        <Card sx={{ 
             mb: 4, 
             borderRadius: 3,
             overflow: 'hidden',
@@ -665,17 +822,50 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                   />
                 </Grid>
 
-                {/* Optional Parameters */}
+                {/* Segment ID (Multi-select Autocomplete) */}
                 {optionalParams.includes('segment_id') && (
-                  <Grid size={{ xs: 12, sm: 4, md: 2 }}>
-                    <TextField
-                      label="Segment ID"
-                      type="number"
+                  <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                    <Autocomplete
+                      multiple
                       size="small"
-                      value={filters.segment_id || ''}
-                      onChange={(e) => handleFilterChange('segment_id', parseInt(e.target.value) || undefined)}
-                      fullWidth
-                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                      options={segments}
+                      disableCloseOnSelect
+                      getOptionLabel={(option) => option.segment_name || String(option.id)}
+                      value={segments.filter(s => filters.segment_ids?.includes(Number(s.id)))}
+                      onChange={(_, newValue) => {
+                        handleFilterChange('segment_ids', newValue.map(v => Number(v.id)));
+                      }}
+                      renderOption={(props, option, { selected }) => (
+                        <li {...props}>
+                          <Checkbox
+                            icon={<CheckBoxOutlineBlankIcon fontSize="small" />}
+                            checkedIcon={<CheckBoxIcon fontSize="small" />}
+                            style={{ marginRight: 8 }}
+                            checked={selected}
+                          />
+                          {option.segment_name}
+                        </li>
+                      )}
+                      renderInput={(params) => (
+                        <TextField 
+                          {...params}
+                          // @ts-expect-error MUI Autocomplete/TextField type clash in strict mode
+                          InputProps={params.InputProps}
+                          label="Segment ID" 
+                          placeholder="All Segments"
+                          sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                        />
+                      )}
+                      renderTags={(value, getTagProps) =>
+                        value.map((option, index) => (
+                          <Chip
+                            label={option.segment_name}
+                            size="small"
+                            {...getTagProps({ index })}
+                            sx={{ borderRadius: 1, fontWeight: 600 }}
+                          />
+                        ))
+                      }
                     />
                   </Grid>
                 )}
@@ -732,14 +922,62 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                       control={
                         <Switch
                           checked={filters.fl_flag || false}
-                          onChange={(e) => handleFilterChange('fl_flag', e.target.checked)}
+                          onChange={(e) => {
+                            handleFilterChange('fl_flag', e.target.checked);
+                            if (!e.target.checked) {
+                              handleFilterChange('scenario_id', undefined);
+                              handleFilterChange('scalar_id', undefined);
+                            }
+                          }}
                           color="primary"
                         />
                       }
-                      label={<Typography variant="body2" fontWeight={500}>Forward Looking</Typography>}
+                      label={
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Typography variant="body2" fontWeight={600}>Forward Looking</Typography>
+                          <Tooltip title="When ON, Scenario/Scalar are required">
+                            <InfoIcon sx={{ ml: 0.5, fontSize: 14, opacity: 0.5 }} />
+                          </Tooltip>
+                        </Box>
+                      }
                       sx={{ mt: 0.5 }}
                     />
                   </Grid>
+                )}
+
+                {filters.fl_flag && (
+                  <>
+                    <Grid size={{ xs: 12, sm: 4, md: 2 }}>
+                      <FormControl fullWidth size="small" required>
+                        <InputLabel>Scenario</InputLabel>
+                        <Select
+                          value={filters.scenario_id || ''}
+                          onChange={(e) => handleFilterChange('scenario_id', Number(e.target.value))}
+                          label="Scenario"
+                          sx={{ borderRadius: 2 }}
+                        >
+                          <MenuItem value={1}>Baseline</MenuItem>
+                          <MenuItem value={2}>Optimistic</MenuItem>
+                          <MenuItem value={3}>Pessimistic</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 4, md: 2 }}>
+                      <FormControl fullWidth size="small" required>
+                        <InputLabel>Scalar</InputLabel>
+                        <Select
+                          value={filters.scalar_id || ''}
+                          onChange={(e) => handleFilterChange('scalar_id', Number(e.target.value))}
+                          label="Scalar"
+                          sx={{ borderRadius: 2 }}
+                        >
+                          {scalars.map(s => (
+                            <MenuItem key={s.pkid} value={s.pkid}>{s.scalar_name}</MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                  </>
                 )}
 
                 {optionalParams.includes('stage') && (
@@ -771,6 +1009,27 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                       onChange={(e) => handleFilterChange('lgd_config_id', parseInt(e.target.value) || undefined)}
                       fullWidth
                       sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                      slotProps={{
+                        input: {
+                          endAdornment: (
+                            <InputAdornment position="end">
+                              <Tooltip title="View Calculation Config Detailed Summary">
+                                 <IconButton 
+                                   size="small" 
+                                   onClick={() => setConfigDrawerOpen(true)}
+                                   sx={{ 
+                                     color: themeStyles.primary,
+                                     bgcolor: alpha(themeStyles.primary, 0.05),
+                                     '&:hover': { bgcolor: alpha(themeStyles.primary, 0.1) }
+                                   }}
+                                 >
+                                   <LaunchIcon sx={{ fontSize: '1.2rem' }} />
+                                 </IconButton>
+                              </Tooltip>
+                            </InputAdornment>
+                          )
+                        }
+                      }}
                     />
                   </Grid>
                 )}
@@ -786,8 +1045,15 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                         sx={{ borderRadius: 2 }}
                       >
                         <MenuItem value="">All Methods</MenuItem>
-                        <MenuItem value={1}>Workout</MenuItem>
-                        <MenuItem value={2}>Model-Based</MenuItem>
+                        {lgdMethods.length > 0 ? (
+                          lgdMethods.map(m => (
+                            <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>
+                          ))
+                        ) : [
+                          <MenuItem key={1} value={1}>Workout</MenuItem>,
+                          <MenuItem key={2} value={2}>Collateral</MenuItem>,
+                          <MenuItem key={3} value={3}>Hybrid</MenuItem>
+                        ]}
                       </Select>
                     </FormControl>
                   </Grid>
@@ -803,6 +1069,26 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                       onChange={(e) => handleFilterChange('model_id', parseInt(e.target.value) || undefined)}
                       fullWidth
                       sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                      slotProps={{
+                        input: {
+                          endAdornment: (
+                            <InputAdornment position="end">
+                              <Tooltip title="View Model Development Details">
+                                <IconButton 
+                                  size="small"
+                                  sx={{ 
+                                    color: themeStyles.primary,
+                                    bgcolor: alpha(themeStyles.primary, 0.05),
+                                    '&:hover': { bgcolor: alpha(themeStyles.primary, 0.1) }
+                                  }}
+                                >
+                                  <SettingsIcon sx={{ fontSize: '1.2rem' }} />
+                                </IconButton>
+                              </Tooltip>
+                            </InputAdornment>
+                          )
+                        }
+                      }}
                     />
                   </Grid>
                 )}
@@ -838,7 +1124,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
               <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
                 <Button
                   variant="contained"
-                  onClick={fetchData}
+                  onClick={handleRun}
                   disabled={loading}
                   startIcon={loading ? <CircularProgress size={20} /> : <SearchIcon />}
                   sx={{ 
@@ -854,11 +1140,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                 </Button>
                 <Button
                   variant="outlined"
-                  onClick={() => setFilters({
-                    prc_date: new Date('2023-12-31'),
-                    page: 1,
-                    limit: 20
-                  })}
+                  onClick={handleClear}
                   startIcon={<ClearIcon />}
                   sx={{ 
                     borderRadius: 2,
@@ -929,6 +1211,128 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
             </Typography>
           </Box>
         )}
+        {/* Export Excellence Dialog */}
+        <Dialog open={exportDialogOpen} onClose={() => setExportDialogOpen(false)} maxWidth="xs" fullWidth>
+          <DialogTitle sx={{ fontWeight: 800, bgcolor: alpha(themeStyles.primary, 0.03) }}>
+            Export Excellence
+          </DialogTitle>
+          <DialogContent sx={{ mt: 2 }}>
+            <Typography variant="subtitle2" fontWeight={700} gutterBottom>
+              Export Scope
+            </Typography>
+            <RadioGroup
+              value={exportOptions.scope}
+              onChange={(e) => setExportOptions(prev => ({ ...prev, scope: e.target.value }))}
+            >
+              <FormControlLabel value="summary" control={<Radio />} label="Summary & Top Results" />
+              <FormControlLabel value="account" control={<Radio />} label="Account-level Details" />
+              <FormControlLabel value="all" control={<Radio />} label="All Data (ZIP)" disabled />
+            </RadioGroup>
+
+            <Typography variant="subtitle2" fontWeight={700} gutterBottom sx={{ mt: 3 }}>
+              Format
+            </Typography>
+            <RadioGroup
+              row
+              value={exportOptions.format}
+              onChange={(e) => setExportOptions(prev => ({ ...prev, format: e.target.value }))}
+            >
+              <FormControlLabel value="xlsx" control={<Radio />} label="Excel" />
+              <FormControlLabel value="csv" control={<Radio />} label="CSV" />
+              <FormControlLabel value="pdf" control={<Radio />} label="PDF" disabled />
+            </RadioGroup>
+
+            <Box sx={{ mt: 2, p: 2, borderRadius: 2, bgcolor: 'info.light', color: 'info.contrastText', display: 'flex', gap: 1.5 }}>
+               <InfoIcon fontSize="small" />
+               <Typography variant="caption" fontWeight={600}>
+                 Export will include Audit Header (T1) and calculation metadata.
+               </Typography>
+            </Box>
+          </DialogContent>
+          <DialogActions sx={{ p: 3 }}>
+            <Button onClick={() => setExportDialogOpen(false)} color="inherit" sx={{ fontWeight: 600 }}>Cancel</Button>
+            <Button 
+              variant="contained" 
+              onClick={handleExportExecute}
+              sx={{ 
+                background: themeStyles.gradient,
+                fontWeight: 700,
+                borderRadius: 2
+              }}
+            >
+              Start Export
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* View Config Drawer */}
+        <Drawer
+          anchor="right"
+          open={configDrawerOpen}
+          onClose={() => setConfigDrawerOpen(false)}
+          PaperProps={{ sx: { width: 400, p: 3 } }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6" fontWeight={800} sx={{ flexGrow: 1 }}>
+              Analysis Configuration
+            </Typography>
+            <IconButton onClick={() => setConfigDrawerOpen(false)}>
+              <ClearIcon />
+            </IconButton>
+          </Box>
+          <Divider sx={{ mb: 3 }} />
+          
+          <Typography variant="subtitle2" color="primary" fontWeight={700} gutterBottom>
+            EXECUTION PARAMETERS
+          </Typography>
+          <List dense>
+            <ListItem>
+              <ListItemText 
+                primary="LGD Method" 
+                secondary={filters.lgd_method === 1 ? 'Workout (Recovery Curve)' : filters.lgd_method === 2 ? 'Collateral/Model-Based' : 'Hybrid/Selected'} 
+              />
+            </ListItem>
+            <ListItem>
+              <ListItemText 
+                primary="Processing Date" 
+                secondary={filters.prc_date?.toLocaleDateString() || 'N/A'} 
+              />
+            </ListItem>
+            <ListItem>
+              <ListItemText 
+                primary="Model Version" 
+                secondary={`LGD Model v1.2 (ID: ${filters.model_id || 'DEFAULT'})`} 
+              />
+            </ListItem>
+            <ListItem>
+              <ListItemText 
+                primary="Forward Looking" 
+                secondary={filters.fl_flag ? 'ENABLED' : 'DISABLED'} 
+              />
+            </ListItem>
+          </List>
+
+          <Typography variant="subtitle2" color="primary" fontWeight={700} sx={{ mt: 3 }} gutterBottom>
+            RECOVERY ASSUMPTIONS
+          </Typography>
+          <List dense>
+            <ListItem>
+              <ListItemText primary="Discount Horizon" secondary="Lifetime (to legal maturity)" />
+            </ListItem>
+            <ListItem>
+              <ListItemText primary="Indirect Costs" secondary="3.5% of Recovery PV" />
+            </ListItem>
+            <ListItem>
+              <ListItemText primary="Cure Rate Assumption" secondary="Model-derived (24 months)" />
+            </ListItem>
+          </List>
+
+          <Box sx={{ mt: 'auto', p: 2, bgcolor: alpha(themeStyles.primary, 0.05), borderRadius: 2 }}>
+             <Typography variant="caption" color="text.secondary">
+               Configurations are read-only in this view. To modify global parameters, please go to <b>LGD Setup</b>.
+             </Typography>
+          </Box>
+        </Drawer>
       </Box>
     </LocalizationProvider>
   );

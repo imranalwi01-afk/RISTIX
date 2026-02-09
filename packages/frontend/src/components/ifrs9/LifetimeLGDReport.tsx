@@ -161,6 +161,11 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
                       : item.value
                   }
                 </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', opacity: 0.7, mb: 1 }}>
+                  <Typography variant="caption" sx={{ fontSize: '0.6rem', fontWeight: 600, color: 'text.secondary' }}>
+                    {item.title === 'Average LGD Rate' ? 'EAD-WEIGHTED' : item.title === 'Total Recovery' ? 'PRESENT VALUE' : 'REPORTED'}
+                  </Typography>
+                </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', opacity: 0.7 }}>
                   <Chip 
                     size="small" 
@@ -246,7 +251,12 @@ const LGDPivotTable: React.FC<{ data: any[]; columns: string[] }> = ({ data, col
   const baseColumns = columns.filter(col => !col.match(/^(seq|recovery|period)_\d+$/));
   const dynamicColumns = columns.filter(col => col.match(/^(seq|recovery|period)_\d+$/));
 
-  const finalBase = dynamicColumns.length > 0 ? baseColumns : columns;
+  // Required columns per spec: Segment, Collateral Type, Product, LGD%, Recovery PV, Discount Factor, Time-to-Recovery, EAD, Category, Model/Config Version
+  const specColumns = [
+    'segment_name', 'collateral_type', 'product_type', 'lgd_rate', 'recovery_amount_pv', 'discount_factor', 'time_to_recovery', 'ead_amount', 'risk_category', 'model_version'
+  ];
+
+  const finalBase = dynamicColumns.length > 0 ? baseColumns : specColumns.filter(c => columns.includes(c) || data[0]?.[c] !== undefined);
   const finalDynamic = dynamicColumns.length > 0 ? dynamicColumns : [];
 
   return (
@@ -327,10 +337,20 @@ const LifetimeLGDReport: React.FC = () => {
     setPivotColumns(pCols);
 
     if (data && data.length > 0) {
+      let totalEad = 0;
+      let weightedLgsSum = 0;
+      let totalRecoveryPv = 0;
+
       const stats = data.reduce((acc, row) => {
+        const ead = parseFloat(row.ead_amount as string) || parseFloat(row.ead as string) || 0;
+        const lgd = parseFloat(row.lgd_rate as string) || 0;
+        const recoveryPv = parseFloat(row.recovery_amount_pv as string) || parseFloat(row.recovery_amount as string) || 0;
+
         acc.totalAccounts += 1;
-        acc.totalRecoveryAmount += parseFloat(row.recovery_amount as string) || 0;
-        acc.averageLGD += parseFloat(row.lgd_rate as string) || 0;
+        totalEad += ead;
+        weightedLgsSum += (lgd * ead);
+        totalRecoveryPv += recoveryPv;
+
         return acc;
       }, {
         totalAccounts: 0,
@@ -340,13 +360,13 @@ const LifetimeLGDReport: React.FC = () => {
         lgdDistribution: [] as LGDDistributionItem[]
       });
       
-      const averageLGD = stats.averageLGD / data.length;
+      const averageLGD = totalEad > 0 ? weightedLgsSum / totalEad : 0;
       
       const lgdRanges = [
-        { range: '0-20%', min: 0, max: 0.2, count: 0, color: '#4CAF50' },
-        { range: '21-40%', min: 0.2, max: 0.4, count: 0, color: '#8BC34A' },
-        { range: '41-60%', min: 0.4, max: 0.6, count: 0, color: '#FFC107' },
-        { range: '61-80%', min: 0.6, max: 0.8, count: 0, color: '#FF9800' },
+        { range: '0-20%', min: 0, max: 0.2, count: 0, color: '#42E695' },
+        { range: '21-40%', min: 0.2, max: 0.4, count: 0, color: '#A0E642' },
+        { range: '41-60%', min: 0.4, max: 0.6, count: 0, color: '#FAD961' },
+        { range: '61-80%', min: 0.6, max: 0.8, count: 0, color: '#F76B1C' },
         { range: '81-100%', min: 0.8, max: 1.1, count: 0, color: '#F44336' }
       ];
       
@@ -362,6 +382,7 @@ const LifetimeLGDReport: React.FC = () => {
       setSummaryStats({
         ...stats,
         averageLGD,
+        totalRecoveryAmount: totalRecoveryPv,
         lgdDistribution: lgdRanges.filter(range => range.count > 0)
       });
     }
@@ -391,7 +412,7 @@ const LifetimeLGDReport: React.FC = () => {
   };
 
   const requiredParams = useMemo(() => ['prc_date'], []);
-  const optionalParams = useMemo(() => ['lgd_config_id', 'lgd_method', 'model_id', 'segment_id'], []);
+  const optionalParams = useMemo(() => ['lgd_config_id', 'lgd_method', 'model_id', 'segment_id', 'fl_flag'], []);
 
   return (
     <BaseIfrs9Report
