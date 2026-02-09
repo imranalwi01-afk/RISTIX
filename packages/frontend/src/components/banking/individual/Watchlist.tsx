@@ -50,7 +50,7 @@ export const Watchlist = () => {
   const [data, setData] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  
+
   // Dialog State
   const [openDialog, setOpenDialog] = useState(false);
   const [formData, setFormData] = useState({
@@ -82,7 +82,7 @@ export const Watchlist = () => {
 
   const handleCreate = async () => {
     if (!formData.customerName || !formData.accountNumber) return;
-    
+
     try {
       setLoading(true);
       await individualImpairmentAPI.addToWatchlist(formData);
@@ -98,7 +98,7 @@ export const Watchlist = () => {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to remove this customer from watchlist?')) return;
-    
+
     try {
       setLoading(true);
       await individualImpairmentAPI.removeFromWatchlist(id);
@@ -114,28 +114,28 @@ export const Watchlist = () => {
     { field: 'customerName', headerName: 'Customer Name', flex: 1, minWidth: 200 },
     { field: 'accountNumber', headerName: 'Account Number', flex: 1, minWidth: 150 },
     { field: 'segment', headerName: 'Segment', width: 150 },
-    { 
-      field: 'impairmentStatus', 
-      headerName: 'Status', 
+    {
+      field: 'impairmentStatus',
+      headerName: 'Status',
       width: 150,
       renderCell: (params) => (
-        <Chip 
-          label={params.value || 'WATCHLIST'} 
-          color={params.value === 'WATCHLIST' ? 'warning' : 'default'} 
-          size="small" 
+        <Chip
+          label={params.value || 'WATCHLIST'}
+          color={params.value === 'WATCHLIST' ? 'warning' : 'default'}
+          size="small"
           variant="outlined"
         />
       )
     },
     { field: 'remarks', headerName: 'Remarks', flex: 1.5, minWidth: 250 },
-    { 
-        field: 'triggerDate', 
-        headerName: 'Trigger Date', 
-        width: 180,
-        valueFormatter: (params) => {
-            if (!params.value) return '-';
-            return new Date(params.value).toLocaleString();
-        }
+    {
+      field: 'triggerDate',
+      headerName: 'Trigger Date',
+      width: 180,
+      valueFormatter: (value: any) => {
+        if (!value) return '-';
+        return new Date(value).toLocaleString();
+      }
     },
     {
       field: 'actions',
@@ -148,8 +148,8 @@ export const Watchlist = () => {
           icon={<AssessmentIcon color="primary" />}
           label="Assessment"
           onClick={() => {
-              // Navigate to assessment or open dialog
-              router.push(`/banking/individual/assessment?accountId=${params.row.accountNumber}`);
+            // Navigate to assessment or open dialog
+            router.push(`/banking/individual/assessment?accountId=${params.row.accountNumber}`);
           }}
           showInMenu={false}
         />,
@@ -165,12 +165,12 @@ export const Watchlist = () => {
 
   return (
     <Container maxWidth="xl" sx={{ position: 'relative', minHeight: '80vh' }}>
-      <ModernLoader 
-        open={loading} 
-        message="Loading Watchlist" 
-        subMessage="Fetching flagged accounts..." 
+      <ModernLoader
+        open={loading}
+        message="Loading Watchlist"
+        subMessage="Fetching flagged accounts..."
       />
-      
+
       {/* Breadcrumbs */}
       <Breadcrumbs sx={{ mb: 2 }}>
         <Link href="/banking/dashboard" underline="hover" color="inherit" sx={{ display: 'flex', alignItems: 'center' }}>
@@ -185,8 +185,8 @@ export const Watchlist = () => {
         <Typography variant="h4" component="h1">
           Individual Watchlist
         </Typography>
-        <Button 
-          variant="contained" 
+        <Button
+          variant="contained"
           startIcon={<AddIcon />}
           onClick={() => setOpenDialog(true)}
         >
@@ -194,9 +194,9 @@ export const Watchlist = () => {
         </Button>
       </Box>
 
-        {/* 📊 Summary Cards */}
+      {/* 📊 Summary Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} md={3}>
+        <Grid size={{ xs: 12, md: 3 }}>
           <StatCard
             title="Total Watchlist"
             value={data.length}
@@ -205,7 +205,7 @@ export const Watchlist = () => {
             subtitle="Flagged Customers"
           />
         </Grid>
-        <Grid item xs={12} md={3}>
+        <Grid size={{ xs: 12, md: 3 }}>
           <StatCard
             title="SME Segment"
             value={data.filter(c => c.segment === 'SME').length}
@@ -214,7 +214,7 @@ export const Watchlist = () => {
             subtitle="SME Customers"
           />
         </Grid>
-         <Grid item xs={12} md={3}>
+        <Grid size={{ xs: 12, md: 3 }}>
           <StatCard
             title="Retail Segment"
             value={data.filter(c => c.segment === 'Retail').length}
@@ -223,10 +223,10 @@ export const Watchlist = () => {
             subtitle="Retail Customers"
           />
         </Grid>
-        <Grid item xs={12} md={3}>
+        <Grid size={{ xs: 12, md: 3 }}>
           <StatCard
             title="Needs Review"
-            value={data.length} 
+            value={data.length}
             icon={<WarningIcon sx={{ fontSize: 40 }} />}
             color="#d32f2f"
             subtitle="Pending Assessment"

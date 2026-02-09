@@ -4,6 +4,7 @@ import { db } from '@/config'
 import {
     tenants,
     users,
+    platformUsers, // ✅ Import platformUsers
     roles,
     auditLogs,
     sessions,
@@ -73,11 +74,11 @@ export const getPlatformStats = (): Effect.Effect<PlatformStats, DatabaseError> 
                 total: count(),
                 active: sql<number>`SUM(CASE WHEN is_active = true THEN 1 ELSE 0 END)`,
             }).from(tenants),
-            // User stats
+            // User stats (Platform Admins only for now, as we can't query all tenant DBs easily)
             db.select({
                 total: count(),
                 active: sql<number>`SUM(CASE WHEN is_active = true THEN 1 ELSE 0 END)`,
-            }).from(users),
+            }).from(platformUsers),
             // Role stats
             db.select({ total: count() }).from(roles),
             // Active sessions last 24h
@@ -157,6 +158,11 @@ export const getTenantOverview = (): Effect.Effect<TenantOverview[], DatabaseErr
             .limit(50)
 
         // Get user counts per tenant
+        // ⚠️ DISABLED: platformUsers table does not have tenantId. 
+        // To get actual tenant user counts, we would need to query each Tenant DB.
+        // For now, returning 0 to prevent SQL error.
+
+        /*
         const userCounts = await db
             .select({
                 tenantId: users.tenantId,
@@ -168,6 +174,8 @@ export const getTenantOverview = (): Effect.Effect<TenantOverview[], DatabaseErr
         const userCountMap = new Map(
             userCounts.map((uc) => [uc.tenantId, uc.count])
         )
+        */
+        const userCountMap = new Map()
 
         return result.map((t) => ({
             ...t,

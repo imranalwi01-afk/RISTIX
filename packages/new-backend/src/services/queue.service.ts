@@ -1,18 +1,21 @@
 import { Queue, Worker, Job } from 'bullmq'
 import { env } from '../config/env'
+import { getRedisConnectionOptions } from '../config/redis' // ✅ Centralized config
 import { legacyDb, getDatabase } from '../config/database'
 import { JobExecutorService } from './job-executor.service'
 import { jobExecutions } from '../db/schema'
 import { eq } from 'drizzle-orm'
 
+import Redis from 'ioredis'
+
 // Constants
 const QUEUE_NAME = 'jobs-queue' // Standard queue name
-const connection = {
-    host: env.REDIS_HOST,
-    port: env.REDIS_PORT ? Number(env.REDIS_PORT) : 6379,
-    // Add password if needed from env
-    // password: env.REDIS_PASSWORD
-}
+const redisOptions = getRedisConnectionOptions(parseInt(env.REDIS_QUEUE_DB))
+
+// Debug logging (masked)
+console.log(`[QueueService] Initializing Redis with host=${redisOptions.host} port=${redisOptions.port} db=${redisOptions.db} hasPassword=${!!redisOptions.password}`);
+
+const connection = new Redis(redisOptions as any)
 
 // =============================================================================
 // QUEUE DEFINITION
@@ -86,7 +89,7 @@ const updateExecutionStatus = async (jobId: string, status: string, tenantId: st
 // WORKER
 // =============================================================================
 export const jobsWorker = new Worker(QUEUE_NAME, processor, {
-    connection,
+    connection: redisOptions as any, // Worker needs its own connection (blocking)
     concurrency: 5
 })
 

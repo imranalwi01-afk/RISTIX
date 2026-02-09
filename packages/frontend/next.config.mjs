@@ -44,6 +44,7 @@ const nextConfig = {
 
   // Optimize package imports to reduce bundle size
   experimental: {
+
     optimizePackageImports: [
       'recharts',
       'lucide-react',

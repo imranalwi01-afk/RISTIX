@@ -12,7 +12,10 @@ async function test() {
 
     // Dynamic import to avoid issues if not needed
     const { Redis } = await import('ioredis');
-    const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+    const { getRedisConnectionOptions } = await import('./config/redis');
+    const { env } = await import('./config/env');
+
+    const redis = new Redis(getRedisConnectionOptions(parseInt(env.REDIS_QUEUE_DB)) as any);
     try {
         const pong = await redis.ping();
         console.log('📬 Redis Ping:', pong);

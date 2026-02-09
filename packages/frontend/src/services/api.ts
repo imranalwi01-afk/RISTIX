@@ -113,50 +113,64 @@ export const authAPI = {
 // ============================================================================
 export const usersAPI = {
   // Get all users from real database
-  getAll: async (params?: { page?: number; limit?: number; search?: string }) => {
-    console.log('👥 Fetching users from real database', params);
-    const response = await apiClient.get('/users', { params });
+  getAll: async (params?: { page?: number; limit?: number; search?: string }, tenantId?: string) => {
+    console.log(`👥 Fetching users from real database${tenantId ? ` (tenant: ${tenantId})` : ''}`, params);
+    const config: any = { params };
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.get('/users', config);
     return response.data;
   },
 
   // Get user by ID from real database
-  getById: async (id: string) => {
-    console.log(`👤 Fetching user ${id} from real database`);
-    const response = await apiClient.get(`/users/${id}`);
+  getById: async (id: string, tenantId?: string) => {
+    console.log(`👤 Fetching user ${id} from real database${tenantId ? ` (tenant: ${tenantId})` : ''}`);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.get(`/users/${id}`, config);
     return response.data;
   },
 
   // Create user in real database
-  create: async (userData: any) => {
-    console.log('➕ Creating user in real database', userData.email);
-    const response = await apiClient.post('/users', userData);
+  create: async (userData: any, tenantId?: string) => {
+    console.log(`➕ Creating user in real database${tenantId ? ` (tenant: ${tenantId})` : ''}`, userData.email);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.post('/users', userData, config);
     return response.data;
   },
 
   // Update user in real database
-  update: async (id: string, userData: any) => {
-    console.log(`✏️ Updating user ${id} in real database`);
-    const response = await apiClient.put(`/users/${id}`, userData);
+  update: async (id: string, userData: any, tenantId?: string) => {
+    console.log(`✏️ Updating user ${id} in real database${tenantId ? ` (tenant: ${tenantId})` : ''}`);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.put(`/users/${id}`, userData, config);
     return response.data;
   },
 
   // Delete user from real database
-  delete: async (id: string) => {
-    console.log(`🗑️ Deleting user ${id} from real database`);
-    const response = await apiClient.delete(`/users/${id}`);
+  delete: async (id: string, tenantId?: string) => {
+    console.log(`🗑️ Deleting user ${id} from real database${tenantId ? ` (tenant: ${tenantId})` : ''}`);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.delete(`/users/${id}`, config);
     return response.data;
   },
 
   // ✅ NEW: Enable/disable user actions
-  enable: async (id: string) => {
-    console.log(`✅ Enabling user ${id}`);
-    const response = await apiClient.post(`/users/${id}/enable`);
+  enable: async (id: string, tenantId?: string) => {
+    console.log(`✅ Enabling user ${id}${tenantId ? ` (tenant: ${tenantId})` : ''}`);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.post(`/users/${id}/enable`, {}, config);
     return response.data;
   },
 
-  disable: async (id: string) => {
-    console.log(`❌ Disabling user ${id}`);
-    const response = await apiClient.post(`/users/${id}/disable`);
+  disable: async (id: string, tenantId?: string) => {
+    console.log(`❌ Disabling user ${id}${tenantId ? ` (tenant: ${tenantId})` : ''}`);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.post(`/users/${id}/disable`, {}, config);
     return response.data;
   }
 };
@@ -1552,5 +1566,100 @@ if (typeof window !== 'undefined') {
   console.log('🏗️ Run window.__IFRS9_IAF_API__.diagnose() for diagnostics');
   console.log('🏗️ IAF Single Tenant Deployment: ECS Server URLs CONFIGURED');
 }
+
+
+// ============================================================================
+// REAL PLATFORM USERS API - PLATFORM DB INTEGRATION
+// ============================================================================
+export const platformUsersAPI = {
+  // Get all platform users
+  getAll: async (params?: { page?: number; limit?: number; search?: string }) => {
+    console.log('👥 Fetching platform users from real database', params);
+    const response = await apiClient.get('/platform-users', { params });
+    return response.data;
+  },
+
+  // Get platform user by ID
+  getById: async (id: string) => {
+    console.log(`👤 Fetching platform user ${id} from real database`);
+    const response = await apiClient.get(`/platform-users/${id}`);
+    return response.data;
+  },
+
+  // Create platform user
+  create: async (userData: any) => {
+    console.log('➕ Creating platform user', userData.email);
+    const response = await apiClient.post('/platform-users', userData);
+    return response.data;
+  },
+
+  // Update platform user
+  update: async (id: string, userData: any) => {
+    console.log(`✏️ Updating platform user ${id}`);
+    const response = await apiClient.put(`/platform-users/${id}`, userData);
+    return response.data;
+  },
+
+  // Delete platform user
+  delete: async (id: string) => {
+    console.log(`🗑️ Deleting platform user ${id}`);
+    const response = await apiClient.delete(`/platform-users/${id}`);
+    return response.data;
+  }
+};
+
+// ============================================================================
+// REAL TENANTS API - PLATFORM DB INTEGRATION
+// ============================================================================
+export const tenantsAPI = {
+  // Get all tenants
+  getAll: async (params?: { page?: number; limit?: number; search?: string; mode?: 'admin' }) => {
+    console.log('🏢 Fetching tenants from real database', params);
+    const response = await apiClient.get('/tenants', { params });
+    return response.data;
+  },
+
+  // Get tenant by ID
+  getById: async (id: string) => {
+    console.log(`🏢 Fetching tenant ${id} from real database`);
+    const response = await apiClient.get(`/tenants/${id}`);
+    return response.data;
+  },
+
+  // Create tenant
+  create: async (tenantData: any) => {
+    console.log('➕ Creating tenant', tenantData.name);
+    const response = await apiClient.post('/tenants', tenantData);
+    return response.data;
+  },
+
+  // Update tenant
+  update: async (id: string, tenantData: any) => {
+    console.log(`✏️ Updating tenant ${id}`);
+    const response = await apiClient.put(`/tenants/${id}`, tenantData);
+    return response.data;
+  },
+
+  // Delete tenant
+  delete: async (id: string) => {
+    console.log(`🗑️ Deleting tenant ${id}`);
+    const response = await apiClient.delete(`/tenants/${id}`);
+    return response.data;
+  },
+
+  // Enable tenant
+  enable: async (id: string) => {
+    console.log(`✅ Enabling tenant ${id}`);
+    const response = await apiClient.post(`/tenants/${id}/enable`);
+    return response.data;
+  },
+
+  // Disable tenant
+  disable: async (id: string) => {
+    console.log(`❌ Disabling tenant ${id}`);
+    const response = await apiClient.post(`/tenants/${id}/disable`);
+    return response.data;
+  }
+};
 
 export default api;

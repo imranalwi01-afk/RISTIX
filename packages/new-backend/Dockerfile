@@ -9,9 +9,9 @@ FROM oven/bun:1.1 AS builder
 WORKDIR /app
 
 # Copy package files and bunfig.toml
-COPY package.json bunfig.toml ./
+COPY package.json bunfig.toml bun.lockb* pnpm-lock.yaml* ./
 
-# Install dependencies (no lockfile)
+# Install dependencies
 RUN bun install
 
 # Copy source code
@@ -22,6 +22,7 @@ COPY . .
 # - On Apple Silicon (M1/M2/M3), this builds a linux-aarch64 binary (Native performance, no Rosetta)
 # - On Windows/Intel Linux, this builds a linux-x64 binary (Native performance)
 RUN bun build src/index.ts --compile --outfile ./server
+RUN bun build src/cli.ts --compile --outfile ./ops
 
 # Stage 2: Minimal production image
 FROM gcr.io/distroless/cc-debian12 AS runner
@@ -30,6 +31,7 @@ WORKDIR /app
 
 # Copy the single executable
 COPY --from=builder /app/server ./server
+COPY --from=builder /app/ops ./ops
 
 # Make executable
 # Make executable (handled by builder or copy)

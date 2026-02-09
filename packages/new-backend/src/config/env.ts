@@ -73,6 +73,7 @@ const envSchema = z.object({
     REDIS_PORT: z.string().optional(), // Using string to match redis.ts parsing logic or coerce? redis.ts parses int.
     REDIS_PASSWORD: z.string().optional(),
     REDIS_SESSION_DB: z.string().optional(),
+    REDIS_QUEUE_DB: z.string().default('0'),
 
     // Logging
     LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
