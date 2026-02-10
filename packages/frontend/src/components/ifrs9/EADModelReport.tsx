@@ -60,7 +60,7 @@ interface SummaryStats {
 
 const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
   const { bankingMode } = useBankingTheme();
-  
+
   const getThemeColors = () => {
     switch (bankingMode) {
       case 'syariah':
@@ -131,7 +131,7 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
     <Grid container spacing={3} sx={{ mb: 5 }}>
       {items.map((item, index) => (
         <Grid size={{ xs: 12, sm: 6, md: 3 }} key={index}>
-          <Card sx={{ 
+          <Card sx={{
             height: '100%',
             borderRadius: 4,
             position: 'relative',
@@ -150,23 +150,23 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
           }}>
             <CardContent sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
               <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography 
-                  variant="caption" 
-                  sx={{ 
-                    fontWeight: 800, 
-                    textTransform: 'uppercase', 
-                    letterSpacing: 1.5, 
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontWeight: 800,
+                    textTransform: 'uppercase',
+                    letterSpacing: 1.5,
                     color: 'text.secondary',
                     opacity: 0.8
                   }}
                 >
                   {item.title}
                 </Typography>
-                <Box 
+                <Box
                   className="card-icon-container"
-                  sx={{ 
-                    p: 1.5, 
-                    borderRadius: 2, 
+                  sx={{
+                    p: 1.5,
+                    borderRadius: 2,
                     background: item.gradient,
                     color: 'white',
                     display: 'flex',
@@ -177,11 +177,11 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
                   {item.icon}
                 </Box>
               </Box>
-              
+
               <Box sx={{ mt: 'auto' }}>
-                <Typography 
-                  variant="h4" 
-                  sx={{ 
+                <Typography
+                  variant="h4"
+                  sx={{
                     fontWeight: 800,
                     background: item.gradient,
                     backgroundClip: 'text',
@@ -191,28 +191,28 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
                     fontSize: item.value.toString().length > 12 ? '1.5rem' : '2.125rem'
                   }}
                 >
-                  {item.format === 'currency' 
+                  {item.format === 'currency'
                     ? new Intl.NumberFormat('id-ID', {
-                        style: 'currency',
-                        currency: 'IDR',
-                        notation: 'compact',
-                        maximumFractionDigits: 1
-                      }).format(item.value as number)
+                      style: 'currency',
+                      currency: 'IDR',
+                      notation: 'compact',
+                      maximumFractionDigits: 1
+                    }).format(item.value as number)
                     : item.value
                   }
                 </Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', opacity: 0.7 }}>
-                  <Chip 
-                    size="small" 
-                    label="MODEL METRIC" 
+                  <Chip
+                    size="small"
+                    label="MODEL METRIC"
                     variant="outlined"
-                    sx={{ 
-                      height: 20, 
-                      fontSize: '0.65rem', 
+                    sx={{
+                      height: 20,
+                      fontSize: '0.65rem',
                       fontWeight: 700,
                       borderColor: alpha(item.mainColor, 0.3),
                       color: item.mainColor
-                    }} 
+                    }}
                   />
                 </Box>
               </Box>
@@ -226,7 +226,7 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
 
 const ModelParametersCard: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
   const { bankingMode } = useBankingTheme();
-  
+
   const getThemeColors = () => {
     switch (bankingMode) {
       case 'syariah':
@@ -262,8 +262,8 @@ const ModelParametersCard: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
   const themeColors = getThemeColors();
 
   return (
-    <Card sx={{ 
-      mb: 5, 
+    <Card sx={{
+      mb: 5,
       borderRadius: 4,
       boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
       background: 'linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(249, 250, 251, 1) 100%)'
@@ -274,10 +274,10 @@ const ModelParametersCard: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
         </Typography>
         <Grid container spacing={3}>
           <Grid size={{ xs: 12, md: 4 }}>
-            <Paper sx={{ 
-              p: 4, 
-              textAlign: 'center', 
-              background: `linear-gradient(135deg, ${themeColors.primary} 0%, ${alpha(themeColors.primary, 0.7)} 100%)`, 
+            <Paper sx={{
+              p: 4,
+              textAlign: 'center',
+              background: `linear-gradient(135deg, ${themeColors.primary} 0%, ${alpha(themeColors.primary, 0.7)} 100%)`,
               color: 'white',
               borderRadius: 3,
               boxShadow: `0 8px 24px ${themeColors.shadowPrimary}`,
@@ -297,10 +297,10 @@ const ModelParametersCard: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
             </Paper>
           </Grid>
           <Grid size={{ xs: 12, md: 4 }}>
-            <Paper sx={{ 
-              p: 4, 
-              textAlign: 'center', 
-              background: `linear-gradient(135deg, ${themeColors.secondary} 0%, ${alpha(themeColors.secondary, 0.7)} 100%)`, 
+            <Paper sx={{
+              p: 4,
+              textAlign: 'center',
+              background: `linear-gradient(135deg, ${themeColors.secondary} 0%, ${alpha(themeColors.secondary, 0.7)} 100%)`,
               color: 'white',
               borderRadius: 3,
               boxShadow: `0 8px 24px ${themeColors.shadowSecondary}`,
@@ -319,11 +319,11 @@ const ModelParametersCard: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
               </Typography>
             </Paper>
           </Grid>
-          <Grid item xs={12} md={4}>
-            <Paper sx={{ 
-              p: 4, 
-              textAlign: 'center', 
-              background: `linear-gradient(135deg, ${themeColors.tertiary} 0%, ${alpha(themeColors.tertiary, 0.7)} 100%)`, 
+          <Grid size={{ xs: 12, md: 4 }}>
+            <Paper sx={{
+              p: 4,
+              textAlign: 'center',
+              background: `linear-gradient(135deg, ${themeColors.tertiary} 0%, ${alpha(themeColors.tertiary, 0.7)} 100%)`,
               color: 'white',
               borderRadius: 3,
               boxShadow: `0 8px 24px ${themeColors.shadowTertiary}`,
@@ -357,7 +357,7 @@ const EADCharts: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
   <Grid container spacing={3} sx={{ mb: 5 }}>
     {/* EAD Trend */}
     <Grid size={{ xs: 12, md: 8 }}>
-      <Card sx={{ 
+      <Card sx={{
         height: '100%',
         borderRadius: 4,
         boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)'
@@ -372,7 +372,7 @@ const EADCharts: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
               <XAxis dataKey="month" axisLine={false} tickLine={false} />
               <YAxis yAxisId="left" axisLine={false} tickLine={false} />
               <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} />
-              <Tooltip 
+              <Tooltip
                 contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}
                 formatter={(value: number, name: string) => {
                   if (name === 'EAD Amount') {
@@ -397,8 +397,8 @@ const EADCharts: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
               />
               <defs>
                 <linearGradient id="colorEad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#667eea" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#667eea" stopOpacity={0}/>
+                  <stop offset="5%" stopColor="#667eea" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#667eea" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <Line
@@ -426,8 +426,8 @@ const EADCharts: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
     </Grid>
 
     {/* Product Distribution */}
-    <Grid item xs={12} md={4}>
-      <Card sx={{ 
+    <Grid size={{ xs: 12, md: 4 }}>
+      <Card sx={{
         height: '100%',
         borderRadius: 4,
         boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)'
@@ -449,10 +449,10 @@ const EADCharts: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
                 {stats.productDistribution.map((row, index) => (
                   <TableRow key={index} sx={{ '&:hover': { bgcolor: alpha('#000', 0.02) } }}>
                     <TableCell>
-                      <Chip 
-                        size="small" 
-                        label={row.product} 
-                        sx={{ 
+                      <Chip
+                        size="small"
+                        label={row.product}
+                        sx={{
                           fontWeight: 600,
                           bgcolor: alpha('#667eea', 0.1),
                           color: '#667eea',
@@ -488,7 +488,7 @@ const EADModelReport: React.FC = () => {
     eadTrend: [],
     productDistribution: []
   });
-  
+
   const [pivotData, setPivotData] = useState<Record<string, unknown>[]>([]);
   const [pivotColumns, setPivotColumns] = useState<string[]>([]);
 
@@ -498,11 +498,16 @@ const EADModelReport: React.FC = () => {
     setPivotColumns(pCols);
 
     if (data && data.length > 0) {
-      const stats = data.reduce((acc, row) => {
+      const stats = data.reduce<{
+        totalAccounts: number;
+        avgEAD: number;
+        avgCCF: number;
+        avgUtilization: number;
+      }>((acc, row) => {
         const rowEad = parseFloat(row.ead_amount as string) || 0;
         const rowCcf = parseFloat(row.ccf_rate as string) || 0;
         const rowUtil = parseFloat(row.utilization_rate as string) || 0;
-        
+
         return {
           totalAccounts: acc.totalAccounts + 1,
           avgEAD: acc.avgEAD + rowEad,
@@ -515,32 +520,32 @@ const EADModelReport: React.FC = () => {
         avgCCF: 0,
         avgUtilization: 0
       });
-      
+
       const avgEAD = stats.avgEAD / data.length;
       const avgCCF = stats.avgCCF / data.length;
       const avgUtilization = stats.avgUtilization / data.length;
-      
+
       const trendData = data.slice(0, 12).map((row, index) => ({
         month: `M${index + 1}`,
         ead: parseFloat(row.ead_amount as string) || 0,
         ccf: parseFloat(row.ccf_rate as string) || 0,
         utilization: parseFloat(row.utilization_rate as string) || 0
       }));
-      
+
       const productMap = new Map<string, number>();
       data.forEach(row => {
         const product = (row.product_type || 'Unknown') as string;
         productMap.set(product, (productMap.get(product) || 0) + 1);
       });
-      
+
       const productDist = Array.from(productMap.entries()).map(([product, count]) => ({
         product,
         count,
         percentage: (count / data.length) * 100
       }));
-      
+
       setSummaryStats({
-        ...stats,
+        totalAccounts: stats.totalAccounts,
         avgEAD,
         avgCCF,
         avgUtilization,
@@ -573,8 +578,8 @@ const EADModelReport: React.FC = () => {
           <Typography variant="h6" fontWeight={700} gutterBottom sx={{ mb: 3 }}>
             Payment Average by Tenor (Pivoted)
           </Typography>
-          <EADPivotTable 
-            data={pivotData} 
+          <EADPivotTable
+            data={pivotData}
             columns={pivotColumns}
           />
         </CardContent>
@@ -584,81 +589,81 @@ const EADModelReport: React.FC = () => {
 };
 
 const processEADPivotData = (data: Record<string, unknown>[]) => {
-    if (!data || data.length === 0) return { pivotData: [], columns: [] };
+  if (!data || data.length === 0) return { pivotData: [], columns: [] };
 
-    const firstRow = data[0];
-    const baseColumns = ['account_id', 'product_type', 'segment_name', 'tenor'];
-    
-    const dynamicColumns = Object.keys(firstRow).filter(key => 
-        key.match(/^(tenor|month|paym)_\d+$/)
-    ).sort();
+  const firstRow = data[0];
+  const baseColumns = ['account_id', 'product_type', 'segment_name', 'tenor'];
 
-    const pivotCols = dynamicColumns.length > 0 ? dynamicColumns : Object.keys(firstRow).filter(k => !baseColumns.includes(k) && typeof firstRow[k] === 'number');
-    const allColumns = [...baseColumns.filter(k => k in firstRow), ...pivotCols];
-    
-    return {
-      pivotData: data,
-      columns: allColumns
-    };
+  const dynamicColumns = Object.keys(firstRow).filter(key =>
+    key.match(/^(tenor|month|paym)_\d+$/)
+  ).sort();
+
+  const pivotCols = dynamicColumns.length > 0 ? dynamicColumns : Object.keys(firstRow).filter(k => !baseColumns.includes(k) && typeof firstRow[k] === 'number');
+  const allColumns = [...baseColumns.filter(k => k in firstRow), ...pivotCols];
+
+  return {
+    pivotData: data,
+    columns: allColumns
+  };
 };
 
 const EADPivotTable = ({ data, columns }: { data: Record<string, any>[], columns: string[] }) => {
-    if (!data || data.length === 0) return null;
+  if (!data || data.length === 0) return null;
 
-    const baseColumns = columns.filter(col => !col.match(/^(tenor|month|paym)_\d+$/));
-    const dynamicColumns = columns.filter(col => col.match(/^(tenor|month|paym)_\d+$/));
+  const baseColumns = columns.filter(col => !col.match(/^(tenor|month|paym)_\d+$/));
+  const dynamicColumns = columns.filter(col => col.match(/^(tenor|month|paym)_\d+$/));
 
-    const finalBase = dynamicColumns.length > 0 ? baseColumns : columns;
-    const finalDynamic = dynamicColumns.length > 0 ? dynamicColumns : [];
+  const finalBase = dynamicColumns.length > 0 ? baseColumns : columns;
+  const finalDynamic = dynamicColumns.length > 0 ? dynamicColumns : [];
 
-    const { bankingMode } = useBankingTheme();
-    const headerBg = bankingMode === 'syariah' ? '#004d40' : bankingMode === 'dual' ? '#263238' : '#0D47A1';
+  const { bankingMode } = useBankingTheme();
+  const headerBg = bankingMode === 'syariah' ? '#004d40' : bankingMode === 'dual' ? '#263238' : '#0D47A1';
 
-    return (
-      <Box sx={{ width: '100%', overflow: 'hidden' }}>
-        <Box sx={{ maxHeight: 600, overflow: 'auto', borderRadius: 2, border: '1px solid rgba(0,0,0,0.08)' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
-            <thead style={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: headerBg, color: 'white' }}>
-              <tr>
+  return (
+    <Box sx={{ width: '100%', overflow: 'hidden' }}>
+      <Box sx={{ maxHeight: 600, overflow: 'auto', borderRadius: 2, border: '1px solid rgba(0,0,0,0.08)' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+          <thead style={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: headerBg, color: 'white' }}>
+            <tr>
+              {finalBase.map(col => (
+                <th key={col} style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 700 }}>
+                  {col.replace(/_/g, ' ').toUpperCase()}
+                </th>
+              ))}
+              {finalDynamic.map(col => (
+                <th key={col} style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, minWidth: 80 }}>
+                  {col.replace(/^(tenor|month|paym)_/, '').toUpperCase()}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {data.slice(0, 100).map((row, index) => (
+              <tr key={index} style={{ borderBottom: '1px solid #f0f0f0', backgroundColor: index % 2 === 0 ? 'white' : '#f9faff' }}>
                 {finalBase.map(col => (
-                  <th key={col} style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 700 }}>
-                    {col.replace(/_/g, ' ').toUpperCase()}
-                  </th>
+                  <td key={col} style={{ padding: '12px 16px' }}>
+                    {row[col]?.toString() || '-'}
+                  </td>
                 ))}
                 {finalDynamic.map(col => (
-                  <th key={col} style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, minWidth: 80 }}>
-                    {col.replace(/^(tenor|month|paym)_/, '').toUpperCase()}
-                  </th>
+                  <td key={col} style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 600 }}>
+                    {row[col] !== null && row[col] !== undefined ? (
+                      new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(row[col])
+                    ) : '-'}
+                  </td>
                 ))}
               </tr>
-            </thead>
-            <tbody>
-              {data.slice(0, 100).map((row, index) => (
-                <tr key={index} style={{ borderBottom: '1px solid #f0f0f0', backgroundColor: index % 2 === 0 ? 'white' : '#f9faff' }}>
-                  {finalBase.map(col => (
-                    <td key={col} style={{ padding: '12px 16px' }}>
-                      {row[col]?.toString() || '-'}
-                    </td>
-                  ))}
-                  {finalDynamic.map(col => (
-                    <td key={col} style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 600 }}>
-                         {row[col] !== null && row[col] !== undefined ? (
-                            new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(row[col])
-                         ) : '-'}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Box>
-        {data.length > 100 && (
-           <Typography variant="caption" sx={{ display: 'block', mt: 1, color: 'text.secondary', textAlign: 'center' }}>
-             Showing first 100 rows. Export to see full data.
-           </Typography>
-        )}
+            ))}
+          </tbody>
+        </table>
       </Box>
-    );
+      {data.length > 100 && (
+        <Typography variant="caption" sx={{ display: 'block', mt: 1, color: 'text.secondary', textAlign: 'center' }}>
+          Showing first 100 rows. Export to see full data.
+        </Typography>
+      )}
+    </Box>
+  );
 };
 
 export default EADModelReport;

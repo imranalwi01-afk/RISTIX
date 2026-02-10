@@ -92,14 +92,14 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
       value: stats.netGCAMovement,
       format: 'currency',
       icon: <GrowthIcon sx={{ fontSize: 32 }} />,
-      gradient: stats.netGCAMovement >= 0 
-        ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' 
+      gradient: stats.netGCAMovement >= 0
+        ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
         : 'linear-gradient(135deg, #ff4e50 0%, #f9d423 100%)',
       mainColor: stats.netGCAMovement >= 0 ? '#667eea' : '#ff4e50'
     },
     {
       title: 'Growth Rate',
-      value: stats.openingGCA > 0 
+      value: stats.openingGCA > 0
         ? `${((stats.netGCAMovement / stats.openingGCA) * 100).toFixed(1)}%`
         : '0.0%',
       format: 'raw',
@@ -113,7 +113,7 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
     <Grid container spacing={3} sx={{ mb: 5 }}>
       {items.map((item, index) => (
         <Grid size={{ xs: 12, sm: 6, md: 3 }} key={index}>
-          <Card sx={{ 
+          <Card sx={{
             height: '100%',
             borderRadius: 4,
             position: 'relative',
@@ -132,23 +132,23 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
           }}>
             <CardContent sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
               <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography 
-                  variant="caption" 
-                  sx={{ 
-                    fontWeight: 800, 
-                    textTransform: 'uppercase', 
-                    letterSpacing: 1.5, 
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontWeight: 800,
+                    textTransform: 'uppercase',
+                    letterSpacing: 1.5,
                     color: 'text.secondary',
                     opacity: 0.8
                   }}
                 >
                   {item.title}
                 </Typography>
-                <Box 
+                <Box
                   className="card-icon-container"
-                  sx={{ 
-                    p: 1.5, 
-                    borderRadius: 2, 
+                  sx={{
+                    p: 1.5,
+                    borderRadius: 2,
                     background: item.gradient,
                     color: 'white',
                     display: 'flex',
@@ -159,11 +159,11 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
                   {item.icon}
                 </Box>
               </Box>
-              
+
               <Box sx={{ mt: 'auto' }}>
-                <Typography 
-                  variant="h4" 
-                  sx={{ 
+                <Typography
+                  variant="h4"
+                  sx={{
                     fontWeight: 800,
                     background: item.gradient,
                     backgroundClip: 'text',
@@ -172,28 +172,28 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
                     mb: 0.5
                   }}
                 >
-                  {item.format === 'currency' 
+                  {item.format === 'currency'
                     ? new Intl.NumberFormat('id-ID', {
-                        style: 'currency',
-                        currency: 'IDR',
-                        notation: 'compact',
-                        maximumFractionDigits: 1
-                      }).format(item.value as number)
+                      style: 'currency',
+                      currency: 'IDR',
+                      notation: 'compact',
+                      maximumFractionDigits: 1
+                    }).format(item.value as number)
                     : item.value
                   }
                 </Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', opacity: 0.7 }}>
-                  <Chip 
-                    size="small" 
-                    label="GCA TRACKER" 
+                  <Chip
+                    size="small"
+                    label="GCA TRACKER"
                     variant="outlined"
-                    sx={{ 
-                      height: 20, 
-                      fontSize: '0.65rem', 
+                    sx={{
+                      height: 20,
+                      fontSize: '0.65rem',
                       fontWeight: 700,
                       borderColor: alpha(item.mainColor, 0.3),
                       color: item.mainColor
-                    }} 
+                    }}
                   />
                 </Box>
               </Box>
@@ -206,8 +206,8 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
 };
 
 const StageTransferMatrix: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
-  <Card sx={{ 
-    mb: 5, 
+  <Card sx={{
+    mb: 5,
     borderRadius: 4,
     boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
     background: 'linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(249, 250, 251, 1) 100%)'
@@ -233,13 +233,13 @@ const StageTransferMatrix: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
                   }).format(stats.stageTransfers.stage1To2)}
                 </Typography>
               </Box>
-              <LinearProgress 
-                variant="determinate" 
+              <LinearProgress
+                variant="determinate"
                 value={stats.openingGCA > 0 ? (stats.stageTransfers.stage1To2 / stats.openingGCA) * 100 : 0}
                 sx={{ height: 10, borderRadius: 5, bgcolor: alpha('#ed6c02', 0.1), '& .MuiLinearProgress-bar': { bgcolor: '#ed6c02' } }}
               />
             </Box>
-            
+
             <Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                 <Typography variant="body2" fontWeight={600}>Stage 2 → Stage 3</Typography>
@@ -251,15 +251,15 @@ const StageTransferMatrix: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
                   }).format(stats.stageTransfers.stage2To3)}
                 </Typography>
               </Box>
-              <LinearProgress 
-                variant="determinate" 
+              <LinearProgress
+                variant="determinate"
                 value={stats.openingGCA > 0 ? (stats.stageTransfers.stage2To3 / stats.openingGCA) * 100 : 0}
                 sx={{ height: 10, borderRadius: 5, bgcolor: alpha('#d32f2f', 0.1), '& .MuiLinearProgress-bar': { bgcolor: '#d32f2f' } }}
               />
             </Box>
           </Paper>
         </Grid>
-        
+
         <Grid size={{ xs: 12, md: 6 }}>
           <Paper sx={{ p: 3, borderRadius: 3, border: '1px solid rgba(0,0,0,0.05)' }}>
             <Typography variant="subtitle1" gutterBottom fontWeight={700} color="success.main">
@@ -276,13 +276,13 @@ const StageTransferMatrix: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
                   }).format(stats.stageTransfers.stage2To1)}
                 </Typography>
               </Box>
-              <LinearProgress 
-                variant="determinate" 
+              <LinearProgress
+                variant="determinate"
                 value={stats.openingGCA > 0 ? (stats.stageTransfers.stage2To1 / stats.openingGCA) * 100 : 0}
                 sx={{ height: 10, borderRadius: 5, bgcolor: alpha('#2e7d32', 0.1), '& .MuiLinearProgress-bar': { bgcolor: '#2e7d32' } }}
               />
             </Box>
-            
+
             <Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                 <Typography variant="body2" fontWeight={600}>Stage 3 → Stage 2</Typography>
@@ -294,8 +294,8 @@ const StageTransferMatrix: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
                   }).format(stats.stageTransfers.stage3To2)}
                 </Typography>
               </Box>
-              <LinearProgress 
-                variant="determinate" 
+              <LinearProgress
+                variant="determinate"
                 value={stats.openingGCA > 0 ? (stats.stageTransfers.stage3To2 / stats.openingGCA) * 100 : 0}
                 sx={{ height: 10, borderRadius: 5, bgcolor: alpha('#0288d1', 0.1), '& .MuiLinearProgress-bar': { bgcolor: '#0288d1' } }}
               />
@@ -319,8 +319,8 @@ const GCACharts: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
             <ComposedChart data={stats.movementTrend}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={alpha('#000', 0.05)} />
               <XAxis dataKey="period" axisLine={false} tickLine={false} />
-              <YAxis 
-                axisLine={false} 
+              <YAxis
+                axisLine={false}
                 tickLine={false}
                 tickFormatter={(value) => new Intl.NumberFormat('id-ID', {
                   style: 'currency',
@@ -328,7 +328,7 @@ const GCACharts: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
                   notation: 'compact'
                 }).format(value)}
               />
-              <Tooltip 
+              <Tooltip
                 contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}
                 formatter={(value: number, name: string) => [
                   new Intl.NumberFormat('id-ID', {
@@ -339,16 +339,16 @@ const GCACharts: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
                 ]}
               />
               <Legend iconType="circle" />
-              <Bar 
-                dataKey="gca" 
-                fill="#667eea" 
+              <Bar
+                dataKey="gca"
+                fill="#667eea"
                 radius={[4, 4, 0, 0]}
                 name="Movement"
               />
-              <Line 
-                type="monotone" 
-                dataKey="cumulative" 
-                stroke="#ff7300" 
+              <Line
+                type="monotone"
+                dataKey="cumulative"
+                stroke="#ff7300"
                 strokeWidth={3}
                 dot={{ r: 6, fill: '#ff7300', strokeWidth: 2, stroke: '#fff' }}
                 name="Cumulative GCA"
@@ -380,10 +380,10 @@ const GCACharts: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
                   return (
                     <TableRow key={index} sx={{ '&:hover': { bgcolor: alpha('#000', 0.02) } }}>
                       <TableCell>
-                        <Chip 
-                          size="small" 
+                        <Chip
+                          size="small"
                           label={row.stage}
-                          sx={{ 
+                          sx={{
                             fontWeight: 700,
                             bgcolor: alpha(row.color, 0.1),
                             color: row.color,
@@ -463,28 +463,28 @@ const GCAMovementReport: React.FC = () => {
         movementTrend: []
       };
 
-      const stats = data.reduce((acc, row) => {
+      const stats = data.reduce<SummaryStats>((acc, row) => {
         acc.openingGCA += parseFloat(row.opening_gca as string) || 0;
         acc.closingGCA += parseFloat(row.closing_gca as string) || 0;
         acc.newBusinessGCA += parseFloat(row.new_business as string) || 0;
         acc.repayments += parseFloat(row.repayments as string) || 0;
         acc.writeOffs += parseFloat(row.write_offs as string) || 0;
-        
+
         acc.stageTransfers.stage1To2 += parseFloat(row.stage1_to_stage2 as string) || 0;
         acc.stageTransfers.stage2To1 += parseFloat(row.stage2_to_stage1 as string) || 0;
         acc.stageTransfers.stage2To3 += parseFloat(row.stage2_to_stage3 as string) || 0;
         acc.stageTransfers.stage3To2 += parseFloat(row.stage3_to_stage2 as string) || 0;
-        
+
         return acc;
       }, initialStats);
-      
+
       const netGCAMovement = stats.closingGCA - stats.openingGCA;
-      
+
       const stageMap = new Map<string, GCAByStageItem>();
       data.forEach(row => {
         const stage = (row.current_stage || 1) as number;
         const stageKey = `Stage ${stage}`;
-        
+
         if (!stageMap.has(stageKey)) {
           stageMap.set(stageKey, {
             stage: stageKey,
@@ -494,13 +494,13 @@ const GCAMovementReport: React.FC = () => {
             color: stage === 1 ? '#4CAF50' : stage === 2 ? '#FF9800' : '#F44336'
           });
         }
-        
+
         const stageData = stageMap.get(stageKey)!;
         stageData.opening += parseFloat(row.opening_gca as string) || 0;
         stageData.closing += parseFloat(row.closing_gca as string) || 0;
         stageData.accounts += 1;
       });
-      
+
       const trendData: MovementTrendItem[] = [
         { period: 'Opening', gca: stats.openingGCA, cumulative: stats.openingGCA },
         { period: 'New Business', gca: stats.newBusinessGCA, cumulative: stats.openingGCA + stats.newBusinessGCA },
@@ -508,7 +508,7 @@ const GCAMovementReport: React.FC = () => {
         { period: 'Write-offs', gca: -stats.writeOffs, cumulative: stats.openingGCA + stats.newBusinessGCA - stats.repayments - stats.writeOffs },
         { period: 'Closing', gca: stats.closingGCA, cumulative: stats.closingGCA }
       ];
-      
+
       setSummaryStats({
         ...stats,
         netGCAMovement,

@@ -74,14 +74,14 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
       value: stats.netMovement,
       format: 'currency',
       icon: stats.netMovement >= 0 ? <IncreaseIcon sx={{ fontSize: 32 }} /> : <DecreaseIcon sx={{ fontSize: 32 }} />,
-      gradient: stats.netMovement >= 0 
-        ? 'linear-gradient(135deg, #f9d423 0%, #ff4e50 100%)' 
+      gradient: stats.netMovement >= 0
+        ? 'linear-gradient(135deg, #f9d423 0%, #ff4e50 100%)'
         : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
       mainColor: stats.netMovement >= 0 ? '#ff4e50' : '#667eea'
     },
     {
       title: 'Movement Ratio',
-      value: stats.openingBalance > 0 
+      value: stats.openingBalance > 0
         ? `${((Math.abs(stats.netMovement) / stats.openingBalance) * 100).toFixed(1)}%`
         : '0.0%',
       format: 'raw',
@@ -95,7 +95,7 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
     <Grid container spacing={3} sx={{ mb: 5 }}>
       {items.map((item, index) => (
         <Grid size={{ xs: 12, sm: 6, md: 3 }} key={index}>
-          <Card sx={{ 
+          <Card sx={{
             height: '100%',
             borderRadius: 4,
             position: 'relative',
@@ -114,23 +114,23 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
           }}>
             <CardContent sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
               <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography 
-                  variant="caption" 
-                  sx={{ 
-                    fontWeight: 800, 
-                    textTransform: 'uppercase', 
-                    letterSpacing: 1.5, 
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontWeight: 800,
+                    textTransform: 'uppercase',
+                    letterSpacing: 1.5,
                     color: 'text.secondary',
                     opacity: 0.8
                   }}
                 >
                   {item.title}
                 </Typography>
-                <Box 
+                <Box
                   className="card-icon-container"
-                  sx={{ 
-                    p: 1.5, 
-                    borderRadius: 2, 
+                  sx={{
+                    p: 1.5,
+                    borderRadius: 2,
                     background: item.gradient,
                     color: 'white',
                     display: 'flex',
@@ -141,11 +141,11 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
                   {item.icon}
                 </Box>
               </Box>
-              
+
               <Box sx={{ mt: 'auto' }}>
-                <Typography 
-                  variant="h4" 
-                  sx={{ 
+                <Typography
+                  variant="h4"
+                  sx={{
                     fontWeight: 800,
                     background: item.gradient,
                     backgroundClip: 'text',
@@ -154,28 +154,28 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
                     mb: 0.5
                   }}
                 >
-                  {item.format === 'currency' 
+                  {item.format === 'currency'
                     ? new Intl.NumberFormat('id-ID', {
-                        style: 'currency',
-                        currency: 'IDR',
-                        notation: 'compact',
-                        maximumFractionDigits: 1
-                      }).format(item.value as number)
+                      style: 'currency',
+                      currency: 'IDR',
+                      notation: 'compact',
+                      maximumFractionDigits: 1
+                    }).format(item.value as number)
                     : item.value
                   }
                 </Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', opacity: 0.7 }}>
-                  <Chip 
-                    size="small" 
-                    label="PROVISION TRACK" 
+                  <Chip
+                    size="small"
+                    label="PROVISION TRACK"
                     variant="outlined"
-                    sx={{ 
-                      height: 20, 
-                      fontSize: '0.65rem', 
+                    sx={{
+                      height: 20,
+                      fontSize: '0.65rem',
                       fontWeight: 700,
                       borderColor: alpha(item.mainColor, 0.3),
                       color: item.mainColor
-                    }} 
+                    }}
                   />
                 </Box>
               </Box>
@@ -188,9 +188,9 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
 };
 
 const MovementBreakdownTable: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
-  <Card sx={{ 
-    mb: 5, 
-    borderRadius: 4, 
+  <Card sx={{
+    mb: 5,
+    borderRadius: 4,
     boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
     overflow: 'hidden'
   }}>
@@ -215,11 +215,11 @@ const MovementBreakdownTable: React.FC<{ stats: SummaryStats }> = ({ stats }) =>
             <TableRow key={index} sx={{ '&:hover': { bgcolor: alpha('#667eea', 0.02) } }}>
               <TableCell sx={{ py: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Box 
-                    sx={{ 
-                      width: 10, 
-                      height: 10, 
-                      bgcolor: row.color, 
+                  <Box
+                    sx={{
+                      width: 10,
+                      height: 10,
+                      bgcolor: row.color,
                       borderRadius: '50%',
                       boxShadow: `0 0 8px ${alpha(row.color, 0.5)}`
                     }}
@@ -269,9 +269,9 @@ const MovementBreakdownTable: React.FC<{ stats: SummaryStats }> = ({ stats }) =>
 );
 
 const MovementWaterfallChart: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
-  <Card sx={{ 
-    mb: 5, 
-    borderRadius: 4, 
+  <Card sx={{
+    mb: 5,
+    borderRadius: 4,
     boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
     overflow: 'hidden'
   }}>
@@ -280,21 +280,21 @@ const MovementWaterfallChart: React.FC<{ stats: SummaryStats }> = ({ stats }) =>
         ECL Movement Waterfall Analysis
       </Typography>
       <ResponsiveContainer width="100%" height={400}>
-        <BarChart 
+        <BarChart
           data={stats.movementBreakdown}
           margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
         >
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={alpha('#000', 0.05)} />
-          <XAxis 
-            dataKey="category" 
-            angle={-45} 
-            textAnchor="end" 
+          <XAxis
+            dataKey="category"
+            angle={-45}
+            textAnchor="end"
             height={100}
             axisLine={false}
             tickLine={false}
             tick={{ fontSize: 12, fontWeight: 600 }}
           />
-          <YAxis 
+          <YAxis
             axisLine={false}
             tickLine={false}
             tick={{ fontWeight: 600 }}
@@ -304,7 +304,7 @@ const MovementWaterfallChart: React.FC<{ stats: SummaryStats }> = ({ stats }) =>
               notation: 'compact'
             }).format(value)}
           />
-          <Tooltip 
+          <Tooltip
             contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}
             formatter={(value: number) => [
               new Intl.NumberFormat('id-ID', {
@@ -314,8 +314,8 @@ const MovementWaterfallChart: React.FC<{ stats: SummaryStats }> = ({ stats }) =>
               value >= 0 ? 'Increase / Balance' : 'Decrease'
             ]}
           />
-          <Bar 
-            dataKey="amount" 
+          <Bar
+            dataKey="amount"
             radius={[4, 4, 0, 0]}
           >
             {stats.movementBreakdown.map((entry, index) => (
@@ -342,7 +342,16 @@ const ECLMovementReport: React.FC = () => {
 
   const handleDataLoaded = React.useCallback((data: Record<string, unknown>[]) => {
     if (data && data.length > 0) {
-      const stats = data.reduce((acc, row) => {
+      const stats = data.reduce<{
+        openingBalance: number;
+        closingBalance: number;
+        netMovement: number;
+        newProvisions: number;
+        releases: number;
+        writeOffs: number;
+        stageTransfers: number;
+        movementBreakdown: MovementBreakdownItem[];
+      }>((acc, row) => {
         acc.openingBalance += parseFloat(row.opening_balance as string) || 0;
         acc.closingBalance += parseFloat(row.closing_balance as string) || 0;
         acc.newProvisions += parseFloat(row.new_provisions as string) || 0;
@@ -360,9 +369,9 @@ const ECLMovementReport: React.FC = () => {
         stageTransfers: 0,
         movementBreakdown: [] as MovementBreakdownItem[]
       });
-      
+
       const netMovement = stats.closingBalance - stats.openingBalance;
-      
+
       const movementData: MovementBreakdownItem[] = [
         { category: 'Opening Balance', amount: stats.openingBalance, color: '#667eea', type: 'balance' },
         { category: 'New Provisions', amount: stats.newProvisions, color: '#ff4e50', type: 'increase' },
@@ -371,7 +380,7 @@ const ECLMovementReport: React.FC = () => {
         { category: 'Write-offs', amount: -Math.abs(stats.writeOffs), color: '#38f9d7', type: 'decrease' },
         { category: 'Closing Balance', amount: stats.closingBalance, color: '#764ba2', type: 'balance' }
       ];
-      
+
       setSummaryStats({
         ...stats,
         netMovement,
