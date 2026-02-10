@@ -71,6 +71,16 @@ export class RateLimitError extends Data.TaggedError('RateLimitError')<{
 }> { }
 
 /**
+ * Conflict error - duplicate resource or version mismatch
+ */
+export class ConflictError extends Data.TaggedError('ConflictError')<{
+    readonly message: string
+    readonly resource: string
+    readonly field?: string
+    readonly value?: unknown
+}> { }
+
+/**
  * Type alias for common error union
  */
 export type CommonError =
@@ -80,3 +90,4 @@ export type CommonError =
     | AuthenticationError
     | AuthorizationError
     | BusinessError
+    | ConflictError

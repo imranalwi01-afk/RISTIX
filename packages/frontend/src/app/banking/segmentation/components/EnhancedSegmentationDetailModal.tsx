@@ -397,8 +397,8 @@ export default function EnhancedSegmentationDetailModal({
       const tablesResult = await api.banking.businessSettings.getTables();
       if (tablesResult.success && tablesResult.data) {
         setTables(tablesResult.data.map((table: any) => ({
-          table_name: table.value,
-          table_display: table.label || table.value
+          table_name: typeof table === 'string' ? table : table.value,
+          table_display: typeof table === 'string' ? table : (table.label || table.value)
         })));
         console.log('✅ Loaded tables from business-settings:', tablesResult.data.length);
       }
@@ -407,8 +407,8 @@ export default function EnhancedSegmentationDetailModal({
       const conditionsResult = await api.banking.businessSettings.getConditions();
       if (conditionsResult.success && conditionsResult.data) {
         setConditions(conditionsResult.data.map((condition: any) => ({
-          condition: condition.value,
-          condition_display: condition.label || condition.value
+          condition: typeof condition === 'string' ? condition : condition.value,
+          condition_display: typeof condition === 'string' ? condition : (condition.label || condition.value)
         })));
         console.log('✅ Loaded conditions from business-settings:', conditionsResult.data.length);
       }
@@ -444,9 +444,9 @@ export default function EnhancedSegmentationDetailModal({
       if (result.success && result.data) {
         // Transform business-settings API response to expected format
         const transformedColumns = result.data.map((col: any) => ({
-          column_name: col.value || col.column_name,
-          column_display: col.label || col.display || col.column_display || col.value,
-          data_type: col.data_type || col.type || 'VARCHAR'
+          column_name: typeof col === 'string' ? col : (col.value || col.column_name),
+          column_display: typeof col === 'string' ? col : (col.label || col.display || col.column_display || col.value),
+          data_type: typeof col === 'string' ? 'VARCHAR' : (col.data_type || col.type || 'VARCHAR') // Default to VARCHAR if string
         }));
         setColumns(transformedColumns);
         console.log('✅ Loaded columns for', tableName, ':', transformedColumns.length);
@@ -483,12 +483,15 @@ export default function EnhancedSegmentationDetailModal({
 
       if (result.success && result.data) {
         // Transform business-settings API response to expected format
-        const transformedOperators = result.data.map((op: any) => ({
-          operator: op.value || op.operator,
-          operator_display: op.label || op.display || op.operator_display || op.value,
-          requires_value2: op.value === 'BETWEEN',
-          supports_multiple: op.value === 'IN' || op.value === 'NOT IN'
-        }));
+        const transformedOperators = result.data.map((op: any) => {
+          const opValue = typeof op === 'string' ? op : (op.value || op.operator);
+          return {
+            operator: opValue,
+            operator_display: typeof op === 'string' ? op : (op.label || op.display || op.operator_display || op.value),
+            requires_value2: opValue === 'BETWEEN',
+            supports_multiple: opValue === 'IN' || opValue === 'NOT IN'
+          };
+        });
         setOperators(transformedOperators);
         console.log('✅ Loaded operators for', dataType, ':', transformedOperators.length);
       } else {
@@ -568,8 +571,8 @@ export default function EnhancedSegmentationDetailModal({
       if (result.success && result.data && Array.isArray(result.data) && result.data.length > 0) {
         // Transform business-settings API response to expected format
         const transformedValues = result.data.map((val: any) => ({
-          value: val.value || val.column_value,
-          display: val.label || val.display || val.value || val.column_value
+          value: typeof val === 'string' ? val : (val.value || val.column_value),
+          display: typeof val === 'string' ? val : (val.label || val.display || val.value || val.column_value)
         }));
         console.log('✅ Loaded', transformedValues.length, 'values for', `${tableName}.${columnName}`);
         setColumnValues(transformedValues);
@@ -695,7 +698,21 @@ export default function EnhancedSegmentationDetailModal({
     console.log('🔄 Column changed to:', columnName);
 
     const selectedColumn = columns.find(col => col.column_name === columnName);
-    const dataType = selectedColumn?.data_type || '';
+    let dataType = selectedColumn?.data_type || '';
+
+    // If data type is not available or defaulted to VARCHAR, fetch it from backend
+    if (!dataType || dataType === 'VARCHAR') {
+      try {
+        console.log('🔄 Fetching real data type for:', columnName);
+        const typeResult = await api.banking.businessSettings.getBusinessSettingsDataType(formData.table_name, columnName);
+        if (typeResult.success && typeResult.data) {
+          console.log('✅ Found real data type:', typeResult.data);
+          dataType = typeResult.data;
+        }
+      } catch (error) {
+        console.error('⚠️ Failed to fetch data type:', error);
+      }
+    }
 
     setFormData(prev => ({
       ...prev,
@@ -949,7 +966,7 @@ export default function EnhancedSegmentationDetailModal({
       await api.banking.segmentation.deleteDetail(detail.id);
 
       console.log('✅ Segmentation detail deleted successfully');
-      setSuccess('Segmentation rule deleted successfully');
+      setSuccess(`Segmentation rule "${detail.table_name}.${detail.column_name}" deleted successfully`);
       await loadDetails(); // Reload details
 
     } catch (error: any) {
@@ -1012,12 +1029,12 @@ export default function EnhancedSegmentationDetailModal({
         // Update existing detail
         console.log('✏️ Updating segmentation detail:', payload);
         await api.banking.segmentation.updateDetail(selectedDetail.id, payload);
-        setSuccess('Segmentation rule updated successfully');
+        setSuccess(`Segmentation rule "${payload.table_name}.${payload.column_name}" updated successfully`);
       } else {
         // Create new detail
         console.log('➕ Creating segmentation detail:', payload);
         await api.banking.segmentation.createDetail(header.id, payload);
-        setSuccess('Segmentation rule created successfully');
+        setSuccess(`Segmentation rule "${payload.table_name}.${payload.column_name}" created successfully`);
       }
 
       setDetailDialogOpen(false);
@@ -1943,7 +1960,7 @@ export default function EnhancedSegmentationDetailModal({
         open={!!success}
         autoHideDuration={4000}
         onClose={() => setSuccess(null)}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
       >
         <Alert onClose={() => setSuccess(null)} severity="success" sx={{ width: '100%' }}>
           {success}
@@ -1954,7 +1971,7 @@ export default function EnhancedSegmentationDetailModal({
         open={!!error}
         autoHideDuration={6000}
         onClose={() => setError(null)}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
       >
         <Alert onClose={() => setError(null)} severity="error" sx={{ width: '100%' }}>
           {error}

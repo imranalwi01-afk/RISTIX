@@ -9,7 +9,7 @@ import { usersRoutes } from './users.routes'
 import { tenantsRoutes } from './tenants.routes'
 import { platformAdminRoutes } from './platform-admin.routes'
 import { approvalRoutes } from './approval.routes'
-import { menuRoutes } from './menu.routes'
+
 import { productSegmentsRoutes } from './product-segments.routes'
 import { ruleBaseSettingsRoutes } from './rule-base-settings.routes'
 import { bucketParametersRoutes } from './bucket-parameters.routes'
@@ -48,6 +48,10 @@ import { ifrs9Routes } from './ifrs9.routes'
 import { securityConfigRoutes } from './security-config.routes'
 import { bankingResourceRoutes } from './banking-resource.routes'
 
+// DEBUG ROUTE
+const debugRoutes = new OpenAPIHono<AppContext>()
+debugRoutes.get('/check', (c) => c.json({ success: true, message: 'Routes are loaded correctly', timestamp: new Date().toISOString() }))
+
 /**
  * Main API router
  * All routes are mounted under /api/v1
@@ -63,7 +67,7 @@ routes.route('/platform-admin', platformAdminRoutes)
 routes.route('/approvals', approvalRoutes)
 routes.route('/rbac', rbacRoutes)
 routes.route('/audit', auditRoutes)
-routes.route('/menu', menuRoutes)
+
 routes.route('/consultants', consultantsRoutes)
 routes.route('/platform-users', platformUsersRoutes)
 
@@ -82,6 +86,7 @@ routes.route('/banking/parameters/product', productParameterRoutes)
 routes.route('/banking/parameters/journal', journalParameterRoutes)
 routes.route('/banking/setup/application', appSettingsRoutes)
 routes.route('/banking/setup/business', businessSettingsRoutes)
+routes.route('/banking/business-settings', businessSettingsRoutes)
 routes.route('/banking/parameters/segmentation', segmentationRoutes)
 routes.route('/banking/individual/impairment', individualImpairmentRoutes)
 routes.route('/banking/ifrs9/impairment-module', impairmentRoutes)
@@ -123,3 +128,4 @@ routes.route('/jobs', jobsRoutes)
 routes.route('/roles', rbacRoutes)
 routes.route('/user', usersRoutes)
 routes.route('/approval', approvalRoutes)
+routes.route('/debug-routes', debugRoutes)

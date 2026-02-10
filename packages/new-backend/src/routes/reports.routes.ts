@@ -5,11 +5,13 @@ import {
     frs9ImpCaLgdRecData,
     frs9ImpCaResultH,
     frs9ImpMovementData,
-    frs9AccountId
+    frs9AccountId,
+    frs9ImpCaResultD
 } from '../db/schema'
-import { desc, eq, getTableColumns } from 'drizzle-orm'
+import { desc, eq, getTableColumns, and } from 'drizzle-orm'
 import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
+import { ifrs9ReportsController } from '../controllers/ifrs9-reports.controller'
 
 export const reportsRoutes = new OpenAPIHono<AppContext>()
 
@@ -24,14 +26,34 @@ const PaginationSchema = z.object({
     limit: z.string().optional()
 })
 
+const PDReportQuerySchema = PaginationSchema.extend({
+    prcDate: z.string().optional(),
+    pdModelId: z.string().optional(),
+    pdYear: z.string().optional(),
+})
+
+const NominativeReportQuerySchema = PaginationSchema.extend({
+    prc_date: z.string().optional(),
+    segment: z.union([z.string(), z.array(z.string())]).optional(),
+    stage: z.string().optional(),
+    branch_code: z.union([z.string(), z.array(z.string())]).optional(),
+})
+
 const GenericListResponse = (schema: z.ZodTypeAny) => z.object({
     success: z.boolean(),
-    data: z.array(schema)
+    data: z.array(schema),
+    pagination: z.object({
+        page: z.number(),
+        limit: z.number(),
+        total: z.number(),
+        totalPages: z.number()
+    }).optional(),
+    message: z.string().optional()
 }).openapi('GenericListResponse')
 
 const ErrorResponse = z.object({
     success: z.boolean(),
-    message: z.string(),
+    message: z.string().optional(),
     error: z.string().optional()
 }).openapi('ErrorResponse')
 
@@ -54,8 +76,6 @@ const getPagination = (c: any) => {
 // ENDPOINTS
 // ============================================================================
 
-// ... (keeping imports)
-
 // GET /lifetime-pd/yearly
 reportsRoutes.openapi(
     createRoute({
@@ -64,23 +84,14 @@ reportsRoutes.openapi(
         tags: ['Reports'],
         summary: 'Get Lifetime PD Yearly',
         request: {
-            query: PaginationSchema
+            query: PDReportQuerySchema
         },
         responses: {
             200: { content: { 'application/json': { schema: GenericListResponse(ReportDataSchema) } }, description: 'Report Data' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    async (c) => {
-        try {
-            const { limit, offset } = getPagination(c)
-            const data = await db.select().from(frs9ImpCaPdTs)
-                .limit(limit).offset(offset)
-            return c.json({ success: true, data } as any)
-        } catch (e) {
-            return c.json({ success: false, message: String(e) }, 500)
-        }
-    }
+    (c) => ifrs9ReportsController.getLifetimePDYearly(c)
 )
 
 // GET /lifetime-pd/monthly
@@ -91,23 +102,32 @@ reportsRoutes.openapi(
         tags: ['Reports'],
         summary: 'Get Lifetime PD Monthly',
         request: {
-            query: PaginationSchema
+            query: PDReportQuerySchema
         },
         responses: {
             200: { content: { 'application/json': { schema: GenericListResponse(ReportDataSchema) } }, description: 'Report Data' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    async (c) => {
-        try {
-            const { limit, offset } = getPagination(c)
-            const data = await db.select().from(frs9ImpCaPdTs)
-                .limit(limit).offset(offset)
-            return c.json({ success: true, data } as any)
-        } catch (e) {
-            return c.json({ success: false, message: String(e) }, 500)
+    (c) => ifrs9ReportsController.getLifetimePDMonthly(c)
+)
+
+// GET /lifetime-pd/account-details
+reportsRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/lifetime-pd/account-details',
+        tags: ['Reports'],
+        summary: 'Get Lifetime PD Account Details',
+        request: {
+            query: PDReportQuerySchema
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: GenericListResponse(ReportDataSchema) } }, description: 'Report Data' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
-    }
+    }),
+    (c) => ifrs9ReportsController.getLifetimePDYearly(c) // Use Yearly fallback if not specialized
 )
 
 // GET /lifetime-lgd
@@ -125,22 +145,7 @@ reportsRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    async (c) => {
-        try {
-            const { limit, offset } = getPagination(c)
-            const data = await db.select({
-                ...getTableColumns(frs9ImpCaLgdRecData),
-                cifName: frs9AccountId.cifName,
-                accountNumber: frs9AccountId.accountNumber
-            })
-                .from(frs9ImpCaLgdRecData)
-                .leftJoin(frs9AccountId, eq(frs9ImpCaLgdRecData.accountId, frs9AccountId.accountId as any))
-                .limit(limit).offset(offset)
-            return c.json({ success: true, data } as any)
-        } catch (e) {
-            return c.json({ success: false, message: String(e) }, 500)
-        }
-    }
+    (c) => ifrs9ReportsController.getLifetimeLGD(c)
 )
 
 // GET /ead-model
@@ -158,22 +163,7 @@ reportsRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    async (c) => {
-        try {
-            const { limit, offset } = getPagination(c)
-            const data = await db.select({
-                ...getTableColumns(frs9ImpCaResultH),
-                cifName: frs9AccountId.cifName,
-                accountNumber: frs9AccountId.accountNumber
-            })
-                .from(frs9ImpCaResultH)
-                .leftJoin(frs9AccountId, eq(frs9ImpCaResultH.accountId, frs9AccountId.accountId as any))
-                .limit(limit).offset(offset)
-            return c.json({ success: true, data } as any)
-        } catch (e) {
-            return c.json({ success: false, message: String(e) }, 500)
-        }
-    }
+    (c) => ifrs9ReportsController.getEADModel(c)
 )
 
 // GET /ecl-result
@@ -191,23 +181,7 @@ reportsRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    async (c) => {
-        try {
-            const { limit, offset } = getPagination(c)
-            const data = await db.select({
-                ...getTableColumns(frs9ImpCaResultH),
-                cifName: frs9AccountId.cifName,
-                accountNumber: frs9AccountId.accountNumber
-            })
-                .from(frs9ImpCaResultH)
-                .leftJoin(frs9AccountId, eq(frs9ImpCaResultH.accountId, frs9AccountId.accountId as any))
-                .orderBy(desc(frs9ImpCaResultH.prcDate))
-                .limit(limit).offset(offset)
-            return c.json({ success: true, data } as any)
-        } catch (e) {
-            return c.json({ success: false, message: String(e) }, 500)
-        }
-    }
+    (c) => ifrs9ReportsController.getECLResult(c)
 )
 
 // GET /ecl-movement
@@ -225,17 +199,7 @@ reportsRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    async (c) => {
-        try {
-            const { limit, offset } = getPagination(c)
-            const data = await db.select()
-                .from(frs9ImpMovementData)
-                .limit(limit).offset(offset)
-            return c.json({ success: true, data } as any)
-        } catch (e) {
-            return c.json({ success: false, message: String(e) }, 500)
-        }
-    }
+    (c) => ifrs9ReportsController.getECLMovement(c)
 )
 
 // GET /gca-movement
@@ -253,17 +217,25 @@ reportsRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    async (c) => {
-        try {
-            const { limit, offset } = getPagination(c)
-            const data = await db.select()
-                .from(frs9ImpMovementData)
-                .limit(limit).offset(offset)
-            return c.json({ success: true, data } as any)
-        } catch (e) {
-            return c.json({ success: false, message: String(e) }, 500)
+    (c) => ifrs9ReportsController.getGCAMovement(c)
+)
+
+// GET /nominative-report
+reportsRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/nominative-report',
+        tags: ['Reports'],
+        summary: 'Get Nominative Report',
+        request: {
+            query: NominativeReportQuerySchema
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: GenericListResponse(ReportDataSchema) } }, description: 'Report Data' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
-    }
+    }),
+    (c) => ifrs9ReportsController.getNominativeReport(c)
 )
 
 // POST /export
@@ -277,7 +249,5 @@ reportsRoutes.openapi(
             200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), message: z.string() }) } }, description: 'Export Initiated' }
         }
     }),
-    async (c) => {
-        return c.json({ success: true, message: "Export initiated" })
-    }
+    (c) => ifrs9ReportsController.exportReport(c)
 )

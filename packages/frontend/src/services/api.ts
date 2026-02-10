@@ -505,9 +505,9 @@ export const bankingAPI = {
 
   // Product parameters (FRS9_PARAM_PRODUCT)
   productParameters: {
-    getAll: async (params?: { page?: number; limit?: number; search?: string }) => {
-      console.log('🏦 Fetching product parameters from DS2 database', params);
-      const response = await apiClient.get('/banking/parameters/product', { params });
+    getAll: async (mode: string, params?: { page?: number; limit?: number; search?: string }) => {
+      console.log(`🏦 Fetching product parameters for ${mode} from DS2 database`, params);
+      const response = await apiClient.get('/banking/parameters/product', { params: { ...params, mode } });
       return response.data;
     },
 
@@ -606,37 +606,37 @@ export const bankingAPI = {
     // Business Settings for Segmentation
     getBusinessSettingsTables: async () => {
       console.log('📋 Fetching segmentation business settings tables');
-      const response = await apiClient.get('/banking/business-settings/tables');
+      const response = await apiClient.get('/banking/setup/business/tables');
       return response.data;
     },
 
     getBusinessSettingsColumns: async (tableName: string) => {
       console.log(`📋 Fetching segmentation business settings columns for ${tableName}`);
-      const response = await apiClient.get(`/banking/business-settings/columns?table=${encodeURIComponent(tableName)}`);
+      const response = await apiClient.get(`/banking/setup/business/columns?table=${encodeURIComponent(tableName)}`);
       return response.data;
     },
 
     getBusinessSettingsDataType: async (tableName: string, columnName: string) => {
       console.log(`📋 Fetching segmentation data type for ${tableName}.${columnName}`);
-      const response = await apiClient.get(`/banking/business-settings/data-type?column=${encodeURIComponent(columnName)}&table=${encodeURIComponent(tableName)}`);
+      const response = await apiClient.get(`/banking/setup/business/data-type?column=${encodeURIComponent(columnName)}&table=${encodeURIComponent(tableName)}`);
       return response.data;
     },
 
     getBusinessSettingsOperators: async (dataType: string) => {
       console.log(`📋 Fetching segmentation operators for data type: ${dataType}`);
-      const response = await apiClient.get(`/banking/business-settings/operators?dataType=${encodeURIComponent(dataType)}`);
+      const response = await apiClient.get(`/banking/setup/business/operators?dataType=${encodeURIComponent(dataType)}`);
       return response.data;
     },
 
     getBusinessSettingsConditions: async () => {
       console.log('📋 Fetching segmentation business settings conditions');
-      const response = await apiClient.get('/banking/business-settings/conditions');
+      const response = await apiClient.get('/banking/setup/business/conditions');
       return response.data;
     },
 
     getBusinessSettingsValues: async (tableName: string, columnName: string) => {
       console.log(`📋 Fetching segmentation column values for ${tableName}.${columnName}`);
-      const response = await apiClient.get(`/banking/business-settings/column-values?column=${encodeURIComponent(columnName)}&table=${encodeURIComponent(tableName)}`);
+      const response = await apiClient.get(`/banking/setup/business/column-values?column=${encodeURIComponent(columnName)}&table=${encodeURIComponent(tableName)}`);
       return response.data;
     }
   },
@@ -759,7 +759,7 @@ export const bankingAPI = {
     // Get FL scalar data for dropdown
     getFLScalars: async () => {
       console.log('📈 Fetching FL scalars from DS2 database');
-      const response = await apiClient.get('/banking/pd-setup/fl-scalars');
+      const response = await apiClient.get('/banking/collective/fl-scalar');
       return response.data;
     },
 
@@ -1188,6 +1188,19 @@ export const bankingAPI = {
       }) => {
         console.log('📊 Getting Lifetime PD Monthly data from DS2 database');
         const response = await apiClient.get('/ifrs9/reports/lifetime-pd/monthly', { params });
+        return response.data;
+      },
+      getAccountDetails: async (params: {
+        prc_date: string;
+        pd_config_id?: number;
+        pd_method?: number;
+        scalar_id?: number;
+        fl_flag?: boolean;
+        page?: number;
+        limit?: number;
+      }) => {
+        console.log('📊 Getting Lifetime PD Account Details from DS2 database');
+        const response = await apiClient.get('/ifrs9/reports/lifetime-pd/account-details', { params });
         return response.data;
       }
     },

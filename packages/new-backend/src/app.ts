@@ -22,6 +22,7 @@ import { env, isProduction } from './config'
     return this.toString()
 }
 import { routes } from './routes'
+import { businessSettingsRoutes } from './routes/business-settings.routes'
 import { errorHandler } from './middleware/error-handler'
 
 import type { User } from './db/schema'
@@ -146,6 +147,7 @@ export function createApp() {
     )
 
     // API routes
+    app.route('/api/v1/banking/business-settings', businessSettingsRoutes) // Explicit mount for business settings
     app.route('/api/v1', routes)
 
     // OpenAPI Specification
