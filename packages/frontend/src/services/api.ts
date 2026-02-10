@@ -1316,7 +1316,7 @@ export const bankingAPI = {
         } else {
           throw new Error(`Export failed: ${response.statusText}`);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Export error:', error);
         return {
           success: false,
