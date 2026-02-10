@@ -1,5 +1,5 @@
 export * from './core'
-export * from './menu.schema'
+
 export * from './consultants.schema'
 
 import {
@@ -86,6 +86,7 @@ export const tenants = platformSchema.table(
         code: varchar('code', { length: 50 }).notNull(),
         name: varchar('name', { length: 255 }).notNull(),
         slug: varchar('slug', { length: 100 }),
+        displayName: varchar('display_name', { length: 255 }),
         description: text('description'),
         type: varchar('type', { length: 50 }).default('banking'),
         bankingMode: varchar('banking_mode', { length: 20 }).default('conventional'),
