@@ -1,4 +1,5 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
+import { Effect, pipe } from 'effect'
 import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
 import { ProductParametersService } from '../services/product-parameters.service'
@@ -12,15 +13,18 @@ app.use('*', authMiddleware)
 // VALIDATION SCHEMAS
 // ============================================================================
 
-const ProductParamSchema = z.object({
-    dataSource: z.string().max(20),
-    prdGroup: z.string().max(20),
-    prdType: z.string().max(20),
-    prdCode: z.string().max(20),
+export const ProductModeSchema = z.enum(['conventional', 'sharia']).openapi('ProductMode')
+
+export const ProductParamSchema = z.object({
+    mode: ProductModeSchema.optional(), // Added for flexibility in CRUD
+    dataSource: z.string().max(50),
+    prdGroup: z.string().max(50),
+    prdType: z.string().max(50),
+    prdCode: z.string().max(50),
     prdDesc: z.string().max(255),
-    currency: z.string().max(5),
-    amortizationType: z.string().max(10).optional(),
-    alFlag: z.string().max(10).optional(),
+    currency: z.string().max(10),
+    amortizationType: z.string().max(50).optional(),
+    alFlag: z.string().max(50).optional(),
     impairedFlag: z.boolean().optional(),
     bmFlag: z.boolean().optional(),
     expectedLife: z.number().int().optional(),
@@ -30,10 +34,11 @@ const ProductParamSchema = z.object({
     createdby: z.string().max(50).default('SYSTEM'),
 }).openapi('CreateProductParamInput')
 
-const UpdateProductParamSchema = ProductParamSchema.partial().openapi('UpdateProductParamInput')
+export const UpdateProductParamSchema = ProductParamSchema.partial().openapi('UpdateProductParamInput')
 
 const ProductParamResponse = z.object({
-    id: z.number(),
+    id: z.number().openapi({ description: 'Alias for pkid' }),
+    pkid: z.number(),
     dataSource: z.string().nullable(),
     prdGroup: z.string().nullable(),
     prdType: z.string().nullable(),
@@ -56,7 +61,9 @@ const ProductParamResponse = z.object({
 
 const ProductListResponse = z.object({
     success: z.boolean(),
-    data: z.array(ProductParamResponse)
+    products: z.array(ProductParamResponse),
+    mode: ProductModeSchema,
+    timestamp: z.string()
 }).openapi('ProductListResponse')
 
 const ProductDetailResponse = z.object({
@@ -122,13 +129,36 @@ app.openapi(
         path: '/',
         tags: ['Product Parameters'],
         summary: 'List Product Parameters',
+        request: {
+            query: z.object({
+                mode: ProductModeSchema
+            })
+        },
         responses: {
             200: { content: { 'application/json': { schema: ProductListResponse } }, description: 'List Products' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Invalid Mode' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
     async (c) => {
-        return runEffect(c, ProductParametersService.list() as any) as any
+        const { mode } = c.req.valid('query')
+        console.log(`📡 [PROD-ROUTES] Listing products for mode: ${mode}`);
+        
+        // Use runPromiseExit directly to get the data instead of a Response object
+        const result = await Effect.runPromiseExit(ProductParametersService.list(mode) as any)
+        
+        if (result._tag === 'Success') {
+            return c.json({
+                success: true,
+                products: result.value,
+                mode,
+                timestamp: new Date().toISOString()
+            })
+        } else {
+            // Use the internal handleEffectError logic if possible, 
+            // but for simplicity here we just use runEffect for errors if we want to be consistent
+            return runEffect(c, ProductParametersService.list(mode) as any)
+        }
     }
 )
 
@@ -173,10 +203,17 @@ app.openapi(
         tags: ['Product Parameters'],
         summary: 'Create Product Parameter',
         request: {
-            body: { content: { 'application/json': { schema: ProductParamSchema } } }
+            body: { 
+                content: { 
+                    'application/json': { 
+                        schema: ProductParamSchema.extend({ mode: ProductModeSchema }) 
+                    } 
+                } 
+            }
         },
         responses: {
             201: { content: { 'application/json': { schema: ProductDetailResponse } }, description: 'Created' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Invalid Input' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),

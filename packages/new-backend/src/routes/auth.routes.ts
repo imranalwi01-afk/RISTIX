@@ -137,12 +137,12 @@ authRoutes.openapi(
                 user: {
                     id: user.id,
                     email: user.email,
-                    firstName: (user as any).firstName || '',
-                    lastName: (user as any).lastName || '',
+                    firstName: user.firstName,
+                    lastName: user.lastName,
                     tenantId: user.tenantId,
                     // authService.login returns roles/permissions mapped as strings
-                    permissions: (user as any).permissions ?? [],
-                    roles: (user as any).roles ?? [],
+                    permissions: user.permissions,
+                    roles: user.roles,
                 },
                 ...tokens,
                 tokens,
@@ -276,7 +276,7 @@ authRoutes.openapi(
                     id: t.id,
                     slug: t.slug,
                     name: t.name,
-                    displayName: t.name,
+                    displayName: t.displayName ?? t.name,
                     bankingType: t.bankingMode,
                     isActive: t.isActive,
                 })),
@@ -464,13 +464,13 @@ authRoutes.openapi(
 authRoutes.post('/hash-password', async (c) => {
     const body = await c.req.json();
     const { password } = body;
-    
+
     if (!password) {
         return c.json({ error: 'Password required' }, 400);
     }
-    
+
     const hash = await authService.hashPassword(password);
-    
+
     return c.json({
         password,
         hash,

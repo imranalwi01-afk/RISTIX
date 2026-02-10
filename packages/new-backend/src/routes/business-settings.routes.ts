@@ -6,7 +6,7 @@ import { authMiddleware } from '../middleware'
 
 const app = new OpenAPIHono<AppContext>()
 
-app.use('*', authMiddleware)
+// app.use('*', authMiddleware) // Removed global auth to allow public metadata endpoints
 
 // ============================================================================
 // VALIDATION SCHEMAS
@@ -200,8 +200,8 @@ app.openapi(
         request: {
             body: { content: { 'application/json': { schema: CreateBusinessSettingSchema } } }
         },
+        middleware: [authMiddleware] as const,
         responses: {
-            201: { content: { 'application/json': { schema: BusinessSettingResponse } }, description: 'Created' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
@@ -213,199 +213,9 @@ app.openapi(
     }
 )
 
-// GET /api/v1/business-settings/:code
-// Get Business Setting Header
-app.openapi(
-    createRoute({
-        method: 'get',
-        path: '/{code}',
-        tags: ['Business Settings'],
-        summary: 'Get Business Setting',
-        request: {
-            params: z.object({ code: z.string() })
-        },
-        responses: {
-            200: { content: { 'application/json': { schema: BusinessSettingResponse } }, description: 'Get Setting' },
-            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' }
-        }
-    }),
-    async (c) => {
-        const { code } = c.req.valid('param')
-        return runEffect(c, ParametersService.getAppSetting(code) as any) as any
-    }
-)
-
-// GET /api/v1/business-settings/:code/details
-// Get Business Setting Details
-app.openapi(
-    createRoute({
-        method: 'get',
-        path: '/{code}/details',
-        tags: ['Business Settings'],
-        summary: 'Get Business Setting Details',
-        request: {
-            params: z.object({ code: z.string() })
-        },
-        responses: {
-            200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), data: z.array(BusinessSettingDetailSchema) }) } }, description: 'Get Setting Details' },
-            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' }
-        }
-    }),
-    async (c) => {
-        const { code } = c.req.valid('param')
-        return runEffect(c, ParametersService.getAppSettingDetails(code) as any) as any
-    }
-)
-
-// PUT /api/v1/business-settings/:code
-// Update Business Setting Header
-app.openapi(
-    createRoute({
-        method: 'put',
-        path: '/{code}',
-        tags: ['Business Settings'],
-        summary: 'Update Business Setting',
-        request: {
-            params: z.object({ code: z.string() }),
-            body: { content: { 'application/json': { schema: UpdateBusinessSettingSchema } } }
-        },
-        responses: {
-            200: { content: { 'application/json': { schema: BusinessSettingResponse } }, description: 'Updated' },
-            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' }
-        }
-    }),
-    async (c) => {
-        const { code } = c.req.valid('param')
-        const data = c.req.valid('json')
-        const userId = c.get('userId') as string || 'system'
-        return runEffect(c, ParametersService.updateAppSetting(code, data, userId) as any) as any
-    }
-)
-
-// DELETE /api/v1/business-settings/:code
-// Delete Business Setting Header
-app.openapi(
-    createRoute({
-        method: 'delete',
-        path: '/{code}',
-        tags: ['Business Settings'],
-        summary: 'Delete Business Setting',
-        description: 'Deletes a business setting by its param_code',
-        request: {
-            params: z.object({ code: z.string() })
-        },
-        responses: {
-            200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), message: z.string() }) } }, description: 'Deleted' },
-            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
-            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
-        }
-    }),
-    async (c) => {
-        const { code } = c.req.valid('param')
-        return runEffect(c, ParametersService.deleteAppSetting(code) as any) as any
-    }
-)
-
-// POST /api/v1/business-settings/:code/details
-// Create Business Setting Detail (Frontend compatibility)
-app.openapi(
-    createRoute({
-        method: 'post',
-        path: '/{code}/details',
-        tags: ['Business Settings'],
-        summary: 'Create Business Setting Detail',
-        request: {
-            params: z.object({ code: z.string() }),
-            body: { content: { 'application/json': { schema: CreateBusinessDetailSchema } } }
-        },
-        responses: {
-            201: { content: { 'application/json': { schema: z.object({ success: z.boolean(), data: BusinessSettingDetailSchema }) } }, description: 'Created' },
-            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
-        }
-    }),
-    async (c) => {
-        const { code } = c.req.valid('param')
-        const data = c.req.valid('json')
-        const userId = c.get('userId') as string || 'system'
-        // Ensure paramCode matches path
-        data.paramCode = code
-        return runEffect(c, ParametersService.createAppSettingDetail(data, userId) as any) as any
-    }
-)
-
-// POST /api/v1/business-settings/details
-// Create Business Setting Detail
-app.openapi(
-    createRoute({
-        method: 'post',
-        path: '/details',
-        tags: ['Business Settings'],
-        summary: 'Create Business Setting Detail',
-        request: {
-            body: { content: { 'application/json': { schema: CreateBusinessDetailSchema } } }
-        },
-        responses: {
-            201: { content: { 'application/json': { schema: z.object({ success: z.boolean(), data: BusinessSettingDetailSchema }) } }, description: 'Created' },
-            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
-        }
-    }),
-    async (c) => {
-        const data = c.req.valid('json')
-        const userId = c.get('userId') as string || 'system'
-        return runEffect(c, ParametersService.createAppSettingDetail(data, userId) as any) as any
-    }
-)
-
-// DELETE /api/v1/business-settings/details/:id
-// Delete Business Setting Detail
-app.openapi(
-    createRoute({
-        method: 'delete',
-        path: '/details/{id}',
-        tags: ['Business Settings'],
-        summary: 'Delete Business Setting Detail',
-        request: {
-            params: z.object({ id: z.string().transform(Number) })
-        },
-        responses: {
-            200: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Deleted' },
-            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
-        }
-    }),
-    async (c) => {
-        const { id } = c.req.valid('param')
-        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
-        return runEffect(c, ParametersService.deleteAppSettingDetail(id) as any) as any
-    }
-)
-
-// PUT /api/v1/business-settings/details/:id
-// Update Business Setting Detail
-app.openapi(
-    createRoute({
-        method: 'put',
-        path: '/details/{id}',
-        tags: ['Business Settings'],
-        summary: 'Update Business Setting Detail',
-        request: {
-            params: z.object({ id: z.string().transform(Number) }),
-            body: { content: { 'application/json': { schema: UpdateBusinessDetailSchema } } }
-        },
-        responses: {
-            200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), data: BusinessSettingDetailSchema }) } }, description: 'Updated' },
-            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Invalid Input' },
-            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
-        }
-    }),
-    async (c) => {
-        const { id } = c.req.valid('param')
-        const data = c.req.valid('json')
-        const userId = c.get('userId') as string || 'system'
-        return runEffect(c, ParametersService.updateAppSettingDetail(id, data, userId) as any) as any
-    }
-)
-
-// ... Preserving Metadata Endpoints ...
+// ============================================================================
+// METADATA ENDPOINTS (Must be before dynamic routes)
+// ============================================================================
 
 // GET /api/v1/business-settings/tables
 app.openapi(
@@ -538,6 +348,205 @@ app.openapi(
         return runEffect(c, ParametersService.getColumnValues(table, column) as any) as any
     }
 )
+
+// GET /api/v1/business-settings/:code
+
+// Get Business Setting Header
+app.openapi(
+    createRoute({
+        method: 'get',
+        path: '/{code}',
+        tags: ['Business Settings'],
+        summary: 'Get Business Setting',
+        request: {
+            params: z.object({ code: z.string() })
+        },
+        middleware: [authMiddleware] as const,
+        responses: {
+            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' }
+        }
+    }),
+    async (c) => {
+        const { code } = c.req.valid('param')
+        return runEffect(c, ParametersService.getAppSetting(code) as any) as any
+    }
+)
+
+// GET /api/v1/business-settings/:code/details
+// Get Business Setting Details
+app.openapi(
+    createRoute({
+        method: 'get',
+        path: '/{code}/details',
+        tags: ['Business Settings'],
+        summary: 'Get Business Setting Details',
+        request: {
+            params: z.object({ code: z.string() })
+        },
+        middleware: [authMiddleware] as const,
+        responses: {
+            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' }
+        }
+    }),
+    async (c) => {
+        const { code } = c.req.valid('param')
+        return runEffect(c, ParametersService.getAppSettingDetails(code) as any) as any
+    }
+)
+
+// PUT /api/v1/business-settings/:code
+// Update Business Setting Header
+app.openapi(
+    createRoute({
+        method: 'put',
+        path: '/{code}',
+        tags: ['Business Settings'],
+        summary: 'Update Business Setting',
+        request: {
+            params: z.object({ code: z.string() }),
+            body: { content: { 'application/json': { schema: UpdateBusinessSettingSchema } } }
+        },
+        middleware: [authMiddleware] as const,
+        responses: {
+            200: { content: { 'application/json': { schema: BusinessSettingResponse } }, description: 'Updated' },
+            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' }
+        }
+    }),
+    async (c) => {
+        const { code } = c.req.valid('param')
+        const data = c.req.valid('json')
+        const userId = c.get('userId') as string || 'system'
+        return runEffect(c, ParametersService.updateAppSetting(code, data, userId) as any) as any
+    }
+)
+
+// DELETE /api/v1/business-settings/:code
+// Delete Business Setting Header
+app.openapi(
+    createRoute({
+        method: 'delete',
+        path: '/{code}',
+        tags: ['Business Settings'],
+        summary: 'Delete Business Setting',
+        description: 'Deletes a business setting by its param_code',
+        request: {
+            params: z.object({ code: z.string() })
+        },
+        middleware: [authMiddleware] as const,
+        responses: {
+            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        const { code } = c.req.valid('param')
+        return runEffect(c, ParametersService.deleteAppSetting(code) as any) as any
+    }
+)
+
+// POST /api/v1/business-settings/:code/details
+// Create Business Setting Detail (Frontend compatibility)
+app.openapi(
+    createRoute({
+        method: 'post',
+        path: '/{code}/details',
+        tags: ['Business Settings'],
+        summary: 'Create Business Setting Detail',
+        request: {
+            params: z.object({ code: z.string() }),
+            body: { content: { 'application/json': { schema: CreateBusinessDetailSchema } } }
+        },
+        middleware: [authMiddleware] as const,
+        responses: {
+            201: { content: { 'application/json': { schema: z.object({ success: z.boolean(), data: BusinessSettingDetailSchema }) } }, description: 'Created' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        const { code } = c.req.valid('param')
+        const data = c.req.valid('json')
+        const userId = c.get('userId') as string || 'system'
+        // Ensure paramCode matches path
+        data.paramCode = code
+        return runEffect(c, ParametersService.createAppSettingDetail(data, userId) as any) as any
+    }
+)
+
+// POST /api/v1/business-settings/details
+// Create Business Setting Detail
+app.openapi(
+    createRoute({
+        method: 'post',
+        path: '/details',
+        tags: ['Business Settings'],
+        summary: 'Create Business Setting Detail',
+        request: {
+            body: { content: { 'application/json': { schema: CreateBusinessDetailSchema } } }
+        },
+        middleware: [authMiddleware] as const,
+        responses: {
+            201: { content: { 'application/json': { schema: z.object({ success: z.boolean(), data: BusinessSettingDetailSchema }) } }, description: 'Created' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        const data = c.req.valid('json')
+        const userId = c.get('userId') as string || 'system'
+        return runEffect(c, ParametersService.createAppSettingDetail(data, userId) as any) as any
+    }
+)
+
+// DELETE /api/v1/business-settings/details/:id
+// Delete Business Setting Detail
+app.openapi(
+    createRoute({
+        method: 'delete',
+        path: '/details/{id}',
+        tags: ['Business Settings'],
+        summary: 'Delete Business Setting Detail',
+        request: {
+            params: z.object({ id: z.string().transform(Number) })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Deleted' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        const { id } = c.req.valid('param')
+        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
+        return runEffect(c, ParametersService.deleteAppSettingDetail(id) as any) as any
+    }
+)
+
+// PUT /api/v1/business-settings/details/:id
+// Update Business Setting Detail
+app.openapi(
+    createRoute({
+        method: 'put',
+        path: '/details/{id}',
+        tags: ['Business Settings'],
+        summary: 'Update Business Setting Detail',
+        request: {
+            params: z.object({ id: z.string().transform(Number) }),
+            body: { content: { 'application/json': { schema: UpdateBusinessDetailSchema } } }
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), data: BusinessSettingDetailSchema }) } }, description: 'Updated' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Invalid Input' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        const { id } = c.req.valid('param')
+        const data = c.req.valid('json')
+        const userId = c.get('userId') as string || 'system'
+        return runEffect(c, ParametersService.updateAppSettingDetail(id, data, userId) as any) as any
+    }
+)
+
+// ... Preserving Metadata Endpoints ...
+
 
 /**
  * Business Settings Routes

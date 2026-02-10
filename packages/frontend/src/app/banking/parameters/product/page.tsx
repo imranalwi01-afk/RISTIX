@@ -56,7 +56,7 @@ import {
   MoreVert as MoreVertIcon
 } from '@mui/icons-material';
 import { GridColDef, GridRowParams } from '@mui/x-data-grid';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { api, handleAPIError } from '@/services/api';
 import { exportToXLSX, exportToCSV, exportToPDF, getCurrentUser } from '@/utils/exportUtils';
 
@@ -150,6 +150,9 @@ const PRODUCT_TYPE_OPTIONS = [
 
 export default function ProductParametersPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const modeFromUrl = searchParams.get('mode') || 'conventional';
+  
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<ProductParameter[]>([]);
   const [filteredData, setFilteredData] = useState<ProductParameter[]>([]);
@@ -405,24 +408,33 @@ export default function ProductParametersPage() {
       // 1. Load Settings first
       await loadBusinessSettings();
 
-      console.log('🔄 Loading product parameters...');
+      console.log(`🔄 Loading product parameters for mode: ${modeFromUrl}...`);
       
       // Try to load from API
       try {
-        const result = await api.banking.productParameters?.getAll?.();
-        if (result?.success && result?.data) {
+        const result = await api.banking.productParameters?.getAll?.(modeFromUrl);
+        console.log('📡 API Response:', result);
+
+        if (result?.success && Array.isArray(result?.products)) {
           // Sort by PKID descending (Newest first)
-          const sortedData = [...result.data].sort((a, b) => b.pkid - a.pkid);
+          const sortedData = [...result.products].sort((a, b) => (b.pkid || 0) - (a.pkid || 0));
           setData(sortedData);
           setFilteredData(sortedData);
-          console.log('✅ Loaded from API:', result.data.length, 'products');
+          console.log('✅ Loaded from API:', result.products.length, 'products');
           return;
+        } else {
+          console.warn('⚠️ API returned unsuccessful or invalid products structure:', result);
+          if (result?.message) setError(result.message);
         }
-      } catch (apiError) {
-        console.log('⚠️ API not available, using mock data');
+      } catch (apiError: any) {
+        console.error('❌ API Error:', apiError);
+        const errorMessage = apiError.response?.data?.message || apiError.message || 'Unknown error';
+        console.log('⚠️ API not available, using mock data as fallback. Error:', errorMessage);
+        setError(`API Error: ${errorMessage}. Showing mock data for preview.`);
       }
 
       // Mock data for development (Fallback from Reference)
+      // Only set mock data if it's really needed (e.g. in dev or if API threw)
       const mockData: ProductParameter[] = [
         {
           pkid: 1,
@@ -593,6 +605,7 @@ export default function ProductParametersPage() {
     if (!formData.prdGroup) errors.push('Product Group is required');
     if (!formData.prdType) errors.push('Product Type is required');
     if (!formData.prdCode.trim()) errors.push('Product Code is required');
+    if (!formData.prdDesc.trim()) errors.push('Product Description is required');
     if (!formData.currency) errors.push('Currency is required');
     if (!formData.alFlag) errors.push('Instrument Class is required');
     
@@ -603,7 +616,7 @@ export default function ProductParametersPage() {
 
     // Duplicate Check
     const isDuplicate = data.some(p => 
-      p.prdCode.trim().toUpperCase() === formData.prdCode.trim().toUpperCase() && 
+      p.prdCode?.trim().toUpperCase() === formData.prdCode.trim().toUpperCase() && 
       (!selectedProduct || p.pkid !== selectedProduct.pkid)
     );
 
@@ -617,6 +630,7 @@ export default function ProductParametersPage() {
       setError(null);
 
       const payload = {
+        mode: modeFromUrl,
         dataSource: formData.dataSource,
         prdGroup: formData.prdGroup,
         prdType: formData.prdType,
@@ -634,24 +648,44 @@ export default function ProductParametersPage() {
         createdby: 'SYSTEM'
       };
 
+      console.log('🚀 Sending Save Payload:', payload);
+
       if (selectedProduct) {
         const response = await api.banking.productParameters.update(String(selectedProduct.pkid), payload);
-        if (response.success) setSuccess('Product updated successfully');
-        else throw new Error(response.error || 'Failed to update product');
+        if (response.success) {
+          setSuccess('Product updated successfully');
+          setDialogOpen(false);
+        } else throw new Error(response.error || 'Failed to update product');
       } else {
         const response = await api.banking.productParameters.create(payload);
-        if (response.success) setSuccess('Product created successfully');
-        else throw new Error(response.error || 'Failed to create product');
+        if (response.success) {
+          setSuccess('Product created successfully');
+          setDialogOpen(false);
+        } else throw new Error(response.error || 'Failed to create product');
       }
 
       await loadData();
     } catch (error: any) {
       console.error('Save error:', error);
-      const errorMsg = error?.response?.data?.message || error?.response?.data?.error || error.message || 'Failed to save product';
+      const errorData = error?.response?.data;
+      let errorMsg = errorData?.message || errorData?.error || error.message || 'Failed to save product';
+      
+      if (errorData?.details && Array.isArray(errorData.details)) {
+        // Handle backend z.path format
+        const details = errorData.details.map((d: any) => `${d.path || d.field || 'unknown'}: ${d.message}`).join('; ');
+        errorMsg += ` [Details: ${details}]`;
+      }
+
       setError(errorMsg);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCloseSnackbar = (event?: React.SyntheticEvent | Event, reason?: string) => {
+    if (reason === 'clickaway') return;
+    setSuccess(null);
+    setError(null);
   };
 
   // ============================================================================
@@ -1038,6 +1072,23 @@ export default function ProductParametersPage() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Notifications */}
+      <Snackbar
+        open={Boolean(success || error)}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={handleCloseSnackbar} 
+          severity={error ? 'error' : 'success'} 
+          sx={{ width: '100%', boxShadow: 3 }}
+          variant="filled"
+        >
+          {success || error}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 }

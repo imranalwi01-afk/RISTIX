@@ -8,6 +8,14 @@ import {
     type User,
     type NewUser,
 } from '@/db/schema'
+
+/**
+ * Extended User type with roles and permissions injected at runtime.
+ */
+export interface UserWithRoles extends User {
+    roles: string[]
+    permissions: string[]
+}
 import {
     DatabaseError,
     NotFoundError,
@@ -240,7 +248,7 @@ export const verifyPassword = async (password: string, hash: string): Promise<bo
 export const login = (
     input: LoginInput,
     metadata?: { ip?: string; userAgent?: string }
-): Effect.Effect<{ user: User; tokens: TokenPair }, DatabaseError | AuthenticationError> =>
+): Effect.Effect<{ user: UserWithRoles; tokens: TokenPair }, DatabaseError | AuthenticationError> =>
     pipe(
         // 1. Resolve tenant ID (if provided)
         Effect.tryPromise({

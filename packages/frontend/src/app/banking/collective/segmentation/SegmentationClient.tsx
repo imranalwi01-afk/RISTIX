@@ -196,6 +196,11 @@ export default function SegmentationConfigurationPage() {
   const [sortField, setSortField] = useState<keyof SegmentationHeader>('seq');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [syncing, setSyncing] = useState(false);
+  const [paginationModel, setPaginationModel] = useState({
+    page: 0,
+    pageSize: 10,
+  });
+  const [totalRows, setTotalRows] = useState(0);
 
   const [formData, setFormData] = useState<SegmentationHeaderForm>({
     group_segment: '',
@@ -282,26 +287,22 @@ export default function SegmentationConfigurationPage() {
     setError(null);
 
     try {
-      console.log('🔄 Loading segmentation headers from database...');
-
       // Load segmentation headers with enhanced pagination
-      const result = await api.banking.segmentation.getHeaders({ limit: 50 });
+      const result = await api.banking.segmentation.getHeaders({ 
+        limit: paginationModel.pageSize,
+        page: paginationModel.page
+      });
 
       if (result.success && result.data) {
-        console.log('✅ Successfully loaded segmentation data:', result.data.length, 'headers from FRS9PRO');
-        console.log('📊 Total records available:', result.pagination?.total || result.total || result.data.length);
-
-        setData(prevData => {
-          if (JSON.stringify(prevData) === JSON.stringify(result.data)) {
-            console.log('📝 Data unchanged, skipping update');
-            return prevData;
-          }
-          // Save backend data to localStorage
-          saveDataToStorage(result.data);
-          return result.data;
-        });
+        console.log('✅ Successfully loaded segmentation data:', result.data.length, 'headers');
+        
+        setData(result.data);
+        setTotalRows(result.pagination?.total || result.total || result.data.length);
+        
+        // Save backend data to localStorage
+        saveDataToStorage(result.data);
+        
         setBackendUnavailable(false);
-        showMessage(`✅ Loaded ${result.data.length} records from FRS9PRO database (Total: ${result.pagination?.total || result.total || result.data.length})`);
       } else {
         throw new Error(result.message || 'Failed to load segmentation headers');
       }
@@ -332,6 +333,11 @@ export default function SegmentationConfigurationPage() {
       loadingRef.current = false;
     }
   };
+
+  // Reload when pagination model changes
+  useEffect(() => {
+    loadData();
+  }, [paginationModel.page, paginationModel.pageSize]);
 
   const loadSegmentTypes = async () => {
     try {
@@ -800,7 +806,7 @@ export default function SegmentationConfigurationPage() {
         try {
           await api.banking.segmentation.deleteHeader(header.id);
           console.log('✅ Segmentation deleted via backend');
-          showMessage('✅ Segmentation deleted successfully');
+          showMessage(`✅ Segmentation "${header.group_segment} - ${header.segment}" deleted successfully`);
           await loadData(); // Reload data
           return;
         } catch (error: any) {
@@ -861,14 +867,14 @@ export default function SegmentationConfigurationPage() {
           if (selectedHeader) {
             console.log('✏️ Updating segmentation header via backend:', payload);
             await api.banking.segmentation.updateHeader(selectedHeader.id, payload);
-            showMessage('✅ Segmentation updated successfully');
+            showMessage(`Segmentation "${payload.group_segment} - ${payload.segment}" Updated Successfully`);
             setDialogOpen(false);
             await loadData(); // Reload data from backend
             return;
           } else {
             console.log('➕ Creating segmentation header via backend:', payload);
             await api.banking.segmentation.createHeader(payload);
-            showMessage('✅ Segmentation created successfully');
+            showMessage(`Segmentation "${payload.group_segment} - ${payload.segment}" Created Successfully`);
             setDialogOpen(false);
             await loadData(); // Reload data from backend  
             return;
@@ -1068,7 +1074,7 @@ export default function SegmentationConfigurationPage() {
                 />
               )}
               <Chip
-                label={`${filteredData.length} of ${data.length} records`}
+                label={`${filteredData.length} of ${totalRows} records`}
                 size="small"
                 variant="outlined"
               />
@@ -1208,14 +1214,15 @@ export default function SegmentationConfigurationPage() {
             )}
           </Paper>
 
-          <Box sx={{ height: 600, width: '100%' }}>
+          <Box sx={{ width: '100%', minHeight: 400 }}>
             <SafeDataGrid
               rows={filteredData}
               columns={columns}
               getRowId={(row) => row.id}
-              initialState={{
-                pagination: { paginationModel: { pageSize: 10 } },
-              }}
+              rowCount={totalRows}
+              paginationMode="server"
+              paginationModel={paginationModel}
+              onPaginationModelChange={setPaginationModel}
               pageSizeOptions={[10, 25, 50, 100]}
               disableRowSelectionOnClick
               loading={loading}
@@ -1424,7 +1431,7 @@ export default function SegmentationConfigurationPage() {
         open={!!success}
         autoHideDuration={4000}
         onClose={() => setSuccess(null)}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
       >
         <Alert onClose={() => setSuccess(null)} severity="success" sx={{ width: '100%' }}>
           {success}
@@ -1435,7 +1442,7 @@ export default function SegmentationConfigurationPage() {
         open={!!error}
         autoHideDuration={6000}
         onClose={() => setError(null)}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
       >
         <Alert onClose={() => setError(null)} severity="error" sx={{ width: '100%' }}>
           {error}

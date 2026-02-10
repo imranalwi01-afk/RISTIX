@@ -1,6 +1,6 @@
 import { legacyDb } from '../config'
 import { frs9ParamCommonh, frs9ParamCommond } from '../db/schema'
-import { eq, and, asc, inArray } from 'drizzle-orm'
+import { eq, and, asc, inArray, ilike } from 'drizzle-orm'
 import { queryEffect } from './base.repository'
 import type { InferInsertModel } from 'drizzle-orm'
 
@@ -196,9 +196,9 @@ export const ParametersRepository = {
             const conditions = [eq(frs9ParamCommond.paramCode, code)]
 
             if (filters) {
-                if (filters.value1) conditions.push(eq(frs9ParamCommond.value1, filters.value1))
-                if (filters.value2) conditions.push(eq(frs9ParamCommond.value2, filters.value2))
-                if (filters.value3) conditions.push(eq(frs9ParamCommond.value3, filters.value3))
+                if (filters.value1) conditions.push(ilike(frs9ParamCommond.value1, filters.value1))
+                if (filters.value2) conditions.push(ilike(frs9ParamCommond.value2, filters.value2))
+                if (filters.value3) conditions.push(ilike(frs9ParamCommond.value3, filters.value3))
             }
 
             const column = frs9ParamCommond[field]
@@ -225,9 +225,9 @@ export const ParametersRepository = {
         return queryEffect(async () => {
             const conditions = [eq(frs9ParamCommond.paramCode, code)]
 
-            if (filters.value1) conditions.push(eq(frs9ParamCommond.value1, filters.value1))
-            if (filters.value2) conditions.push(eq(frs9ParamCommond.value2, filters.value2))
-            if (filters.value3) conditions.push(eq(frs9ParamCommond.value3, filters.value3))
+            if (filters.value1) conditions.push(ilike(frs9ParamCommond.value1, filters.value1))
+            if (filters.value2) conditions.push(ilike(frs9ParamCommond.value2, filters.value2))
+            if (filters.value3) conditions.push(ilike(frs9ParamCommond.value3, filters.value3))
 
             return await legacyDb
                 .select()

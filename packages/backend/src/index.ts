@@ -362,6 +362,10 @@ app.use(bankingErrorHandler);
 app.use(notFoundHandler);
 app.use(globalErrorHandler);
 
+// Mount simple test route
+import simpleTestRoutes from './api/routes/simple-test.routes';
+app.use('/test', simpleTestRoutes);
+
 // ✅ GRACEFUL SHUTDOWN HANDLING
 process.on('SIGTERM', async () => {
   logger.info('SIGTERM received, shutting down gracefully...');

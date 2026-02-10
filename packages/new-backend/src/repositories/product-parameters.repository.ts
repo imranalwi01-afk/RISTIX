@@ -42,6 +42,25 @@ export const ProductParametersRepository = {
     },
 
     /**
+     * Find a product parameter by its code.
+     * 
+     * @param prdCode - The product code
+     * @returns An Effect resolving to the product parameter or null
+     */
+    findByCode: (prdCode: string) => {
+        return Effect.tryPromise({
+            try: async () => {
+                const results = await db
+                    .select()
+                    .from(frs9ParamProduct)
+                    .where(eq(frs9ParamProduct.prdCode, prdCode))
+                return results[0] || null
+            },
+            catch: (error) => new DatabaseError({ message: 'Failed to find product parameter by code', operation: 'query', cause: error })
+        })
+    },
+
+    /**
      * Create a new product parameter.
      * 
      * @param data - The product parameter data
