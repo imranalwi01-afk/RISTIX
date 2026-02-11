@@ -13,6 +13,7 @@ LABEL maintainer="IFRS9 Platform Team"
 LABEL description="Multi-tenant R Analytics App Layer"
 LABEL version="1.0.0"
 
+
 # ============================================================================
 # 📄 COPY APPLICATION FILES
 # ============================================================================

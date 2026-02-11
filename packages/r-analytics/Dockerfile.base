@@ -64,8 +64,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Use all available cores for compilation
 # Step 1: Core & DB Connectivity
 RUN R -e "options(Ncpus = parallel::detectCores()); \
-    install.packages(c('DBI', 'RPostgres', 'jsonlite', 'httr', 'curl', 'xml2'), repos='https://packagemanager.posit.co/cran/__linux__/jammy/latest'); \
-    if (!all(c('DBI', 'RPostgres', 'jsonlite', 'httr', 'curl', 'xml2') %in% installed.packages()[,1])) stop('Step 1 failed')"
+    install.packages(c('DBI', 'RPostgres', 'jsonlite', 'httr', 'curl', 'xml2', 'plumber'), repos='https://packagemanager.posit.co/cran/__linux__/jammy/latest'); \
+    if (!all(c('DBI', 'RPostgres', 'jsonlite', 'httr', 'curl', 'xml2', 'plumber') %in% installed.packages()[,1])) stop('Step 1 failed')"
+
 
 # Step 2: Data Manipulation (Splitting tidyverse for reliability)
 RUN R -e "options(Ncpus = parallel::detectCores()); \
