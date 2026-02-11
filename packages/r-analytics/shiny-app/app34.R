@@ -29,14 +29,11 @@ source("global.R")
 # Koneksi database PostgreSQL
 con <- dbConnect(
   RPostgres::Postgres(),
-  dbname = "IFRS9_pro",
-  # host ="pgm-d9j5id443p7876n9.pgsql.ap-southeast-5.rds.aliyuncs.com",
-  host = "10.8.0.2",
-  port = 5433,
-  # user ="admin_iaf",
-  user = "postgres",
-  # password = "P@ssw0rd2025!"
-  password = "postgres"
+  dbname = Sys.getenv("DB_NAME", "IFRS9_pro"),
+  host = Sys.getenv("DB_HOST", "10.8.0.2"),
+  port = as.integer(Sys.getenv("DB_PORT", "5433")),
+  user = Sys.getenv("DB_USER", "postgres"),
+  password = Sys.getenv("DB_PASSWORD", "postgres")
 )
 
 dbExecute(con, "SET search_path TO dbo;")
