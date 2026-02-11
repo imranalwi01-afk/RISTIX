@@ -17,7 +17,8 @@ log_info("🚀 Starting IAF R Analytics API Service...")
 
 #* @filter cors
 function(res) {
-  res$setHeader("Access-Control-Allow-Origin", "*")
+  # Remove explicit Origin header to avoid conflict with upstream proxy (Nginx/Ingress)
+  # res$setHeader("Access-Control-Allow-Origin", "*") 
   res$setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
   res$setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Tenant-ID, Origin, Accept")
   plumber::forward()
@@ -29,7 +30,8 @@ function(res) {
 #* @options /health
 #* @options /api/status
 function(res) {
-  res$setHeader("Access-Control-Allow-Origin", "*")
+  # Remove explicit Origin header to prevent conflict
+  # res$setHeader("Access-Control-Allow-Origin", "*")
   res$setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
   res$setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Tenant-ID, Origin, Accept")
   res$status <- 200
