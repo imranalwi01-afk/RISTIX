@@ -1,4 +1,7 @@
 # setwd("D:/shiny dan database/ifrs dan stres testing")
+message(paste0("[", Sys.time(), "] 🚀 STARTING APP INITIALIZATION..."))
+message(paste0("[", Sys.time(), "] 📦 Loading libraries..."))
+
 library(shiny)
 library(shinydashboard)
 library(DT)
@@ -22,7 +25,10 @@ library(lubridate)
 library(shinycssloaders)
 library(future)
 library(future.apply)
+
+message(paste0("[", Sys.time(), "] 📦 Libraries loaded. Sourcing global.R..."))
 source("global.R")
+message(paste0("[", Sys.time(), "] ✅ global.R sourced successfully."))
 
 
 
