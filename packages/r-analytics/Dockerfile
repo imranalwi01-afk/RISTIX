@@ -80,6 +80,10 @@ ENV SHINY_PORT=3838
 # Create R library directory
 RUN mkdir -p $R_LIBS_USER && chown r-analytics:r-analytics $R_LIBS_USER
 
+# Fix permissions for shiny-server runtime directories
+RUN mkdir -p /var/lib/shiny-server/bookmarks && \
+    chown -R r-analytics:r-analytics /var/lib/shiny-server
+
 # ============================================================================
 # 🚀 STARTUP CONFIGURATION
 # ============================================================================

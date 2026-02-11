@@ -33,6 +33,7 @@ import { setBankingMode } from '../store/slices/configurationSlice'
 
 // ✅ CENTRALIZED SESSION CONTROL: Import session control service
 import { sessionControlService } from '../services/session-control.service'
+import { menuApi } from '../services/api/menu.api';
 
 // ============================================================================
 // STAKEHOLDER LANDING PAGE HELPER
@@ -131,7 +132,7 @@ const syncTokenToCookie = (token: string | null, user: any = null, refreshToken?
         console.log('🗑️ Authentication cookies cleared');
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     console.warn('⚠️ Failed to sync authentication to cookies:', error);
   }
 };
@@ -619,19 +620,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           // avoiding a second network request.
           if (landingUrl.includes('banking') && token) {
             const detectedMode = detectedBankingMode || 'conventional';
-            // Run in background, don't await
-            import('../services/api/menu.api').then(({ menuApi }) => {
-              console.log('⚡ [PERF] Pre-fetching menu data for:', detectedMode);
-              menuApi.getMenuTree({
-                bankingMode: detectedMode,
-                includeInactive: false
-              }).then(response => {
-                if (response.success && response.data) {
-                  localStorage.setItem('temp_raw_menu', JSON.stringify(response.data));
-                  console.log('⚡ [PERF] Menu data pre-fetched and cached to temp storage');
-                }
-              }).catch(err => console.warn('⚠️ Menu pre-fetch failed:', err));
-            });
+            // Pre-fetch menu data
+            console.log('⚡ [PERF] Pre-fetching menu data for:', detectedMode);
+            menuApi.getMenuTree({
+              bankingMode: detectedMode,
+              includeInactive: false
+            }).then(response => {
+              if (response.success && response.data) {
+                localStorage.setItem('temp_raw_menu', JSON.stringify(response.data));
+                console.log('⚡ [PERF] Menu data pre-fetched and cached to temp storage');
+              }
+            }).catch(err => console.warn('⚠️ Menu pre-fetch failed:', err));
           }
 
           setTimeout(() => {

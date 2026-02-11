@@ -297,7 +297,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
 
     if (fetchRef.current) return;
     fetchRef.current = true;
-    
+
     setLoading(true);
     setError(null);
 
@@ -400,11 +400,11 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
 
     setExportLoading(true);
     setExportDialogOpen(false);
-    
+
     try {
       const format = exportOptions.format as 'xlsx' | 'csv' | 'pdf';
       const scope = exportOptions.scope;
-      
+
       // Inject T1 Header if it's Excel/CSV
       const headerT1 = [
         ['Report Name', title],
@@ -480,7 +480,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
         ]);
         setSegments(segData || []);
         setScalars(scalData || []);
-        
+
         if (reportType === 'lifetime-lgd') {
           const methods = await api.banking.lgdConfigurations.getMethods();
           setLgdMethods(methods || []);
@@ -561,192 +561,192 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
         {!hideHeader && (
           <Paper
             elevation={0}
-          sx={{
-            mb: 4,
-            p: { xs: 3, md: 5 },
-            background: themeStyles.gradient,
-            color: 'white',
-            borderRadius: 4,
-            position: 'relative',
-            overflow: 'hidden',
-            boxShadow: themeStyles.shadow,
-            '&::before': {
-              content: '""',
-              position: 'absolute',
-              top: -100,
-              right: -100,
-              width: 300,
-              height: 300,
-              borderRadius: '50%',
-              background: 'rgba(255, 255, 255, 0.1)',
-              filter: 'blur(50px)',
-              pointerEvents: 'none'
-            },
-            '&::after': {
-              content: '""',
-              position: 'absolute',
-              bottom: -50,
-              left: -50,
-              width: 200,
-              height: 200,
-              borderRadius: '50%',
-              background: 'rgba(255, 255, 255, 0.05)',
-              filter: 'blur(40px)',
-              pointerEvents: 'none'
-            }
-          }}
-        >
-          <Box sx={{ position: 'relative', zIndex: 1 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <Box
-                  sx={{
-                    fontSize: 48,
-                    mr: 2.5,
-                    p: 1.2,
-                    bgcolor: 'rgba(255, 255, 255, 0.15)',
-                    borderRadius: 2,
-                    backdropFilter: 'blur(10px)',
-                    boxShadow: '0 8px 16px rgba(0, 0, 0, 0.1)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'inherit'
-                  }}
-                >
-                  {headerIcon || <AssessmentIcon sx={{ fontSize: 32 }} />}
+            sx={{
+              mb: 4,
+              p: { xs: 3, md: 5 },
+              background: themeStyles.gradient,
+              color: 'white',
+              borderRadius: 4,
+              position: 'relative',
+              overflow: 'hidden',
+              boxShadow: themeStyles.shadow,
+              '&::before': {
+                content: '""',
+                position: 'absolute',
+                top: -100,
+                right: -100,
+                width: 300,
+                height: 300,
+                borderRadius: '50%',
+                background: 'rgba(255, 255, 255, 0.1)',
+                filter: 'blur(50px)',
+                pointerEvents: 'none'
+              },
+              '&::after': {
+                content: '""',
+                position: 'absolute',
+                bottom: -50,
+                left: -50,
+                width: 200,
+                height: 200,
+                borderRadius: '50%',
+                background: 'rgba(255, 255, 255, 0.05)',
+                filter: 'blur(40px)',
+                pointerEvents: 'none'
+              }
+            }}
+          >
+            <Box sx={{ position: 'relative', zIndex: 1 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <Box
+                    sx={{
+                      fontSize: 48,
+                      mr: 2.5,
+                      p: 1.2,
+                      bgcolor: 'rgba(255, 255, 255, 0.15)',
+                      borderRadius: 2,
+                      backdropFilter: 'blur(10px)',
+                      boxShadow: '0 8px 16px rgba(0, 0, 0, 0.1)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'inherit'
+                    }}
+                  >
+                    {headerIcon || <AssessmentIcon sx={{ fontSize: 32 }} />}
+                  </Box>
+                  <Box>
+                    <Typography variant="h3" component="h1" sx={{ fontWeight: 800, mb: 1, letterSpacing: '-0.02em', fontSize: { xs: '1.75rem', md: '2.5rem' } }}>
+                      {title}
+                    </Typography>
+                    {description && (
+                      <Typography
+                        variant="body1"
+                        sx={{
+                          opacity: 0.9,
+                          maxWidth: '800px',
+                          fontWeight: 500,
+                          lineHeight: 1.6
+                        }}
+                      >
+                        {description}
+                      </Typography>
+                    )}
+                  </Box>
+                </Box>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Chip
+                    icon={<AssessmentIcon sx={{ color: 'white !important', fontSize: '1.2rem' }} />}
+                    label={statusLabel}
+                    sx={{
+                      bgcolor: 'rgba(255, 255, 255, 0.2)',
+                      color: 'white',
+                      fontWeight: 600,
+                      backdropFilter: 'blur(10px)',
+                      border: '1px solid rgba(255, 255, 255, 0.3)',
+                      display: { xs: 'none', sm: 'flex' },
+                      px: 1
+                    }}
+                  />
+                  <Chip
+                    label="Live Production Data"
+                    color="success"
+                    size="small"
+                    sx={{
+                      fontWeight: 700,
+                      boxShadow: '0 2px 8px rgba(76, 175, 80, 0.4)',
+                      display: { xs: 'none', md: 'flex' }
+                    }}
+                  />
+                </Box>
+              </Box>
+
+              {/* Quick Stats / Info Bar */}
+              <Box
+                sx={{
+                  display: 'flex',
+                  gap: { xs: 3, md: 5 },
+                  mt: 4,
+                  pt: 3,
+                  borderTop: '1px solid rgba(255, 255, 255, 0.2)',
+                  flexWrap: 'wrap'
+                }}
+              >
+                <Box>
+                  <Typography variant="caption" sx={{ opacity: 0.7, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, display: 'block', mb: 0.5 }}>
+                    Report Granularity
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{granularity}</Typography>
                 </Box>
                 <Box>
-                  <Typography variant="h3" component="h1" sx={{ fontWeight: 800, mb: 1, letterSpacing: '-0.02em', fontSize: { xs: '1.75rem', md: '2.5rem' } }}>
-                    {title}
+                  <Typography variant="caption" sx={{ opacity: 0.7, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, display: 'block', mb: 0.5 }}>
+                    Scope
                   </Typography>
-                  {description && (
-                    <Typography
-                      variant="body1"
-                      sx={{
-                        opacity: 0.9,
-                        maxWidth: '800px',
-                        fontWeight: 500,
-                        lineHeight: 1.6
-                      }}
-                    >
-                      {description}
-                    </Typography>
-                  )}
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{scope}</Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" sx={{ opacity: 0.7, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, display: 'block', mb: 0.5 }}>
+                    Last Calculation
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  </Typography>
                 </Box>
               </Box>
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <Chip
-                  icon={<AssessmentIcon sx={{ color: 'white !important', fontSize: '1.2rem' }} />}
-                  label={statusLabel}
-                  sx={{
-                    bgcolor: 'rgba(255, 255, 255, 0.2)',
-                    color: 'white',
-                    fontWeight: 600,
-                    backdropFilter: 'blur(10px)',
-                    border: '1px solid rgba(255, 255, 255, 0.3)',
-                    display: { xs: 'none', sm: 'flex' },
-                    px: 1
-                  }}
-                />
-                <Chip
-                  label="Live Production Data"
-                  color="success"
-                  size="small"
-                  sx={{ 
-                    fontWeight: 700, 
-                    boxShadow: '0 2px 8px rgba(76, 175, 80, 0.4)',
-                    display: { xs: 'none', md: 'flex' }
-                  }}
-                />
-              </Box>
             </Box>
-
-            {/* Quick Stats / Info Bar */}
-            <Box
-              sx={{
-                display: 'flex',
-                gap: { xs: 3, md: 5 },
-                mt: 4,
-                pt: 3,
-                borderTop: '1px solid rgba(255, 255, 255, 0.2)',
-                flexWrap: 'wrap'
-              }}
-            >
-              <Box>
-                <Typography variant="caption" sx={{ opacity: 0.7, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, display: 'block', mb: 0.5 }}>
-                  Report Granularity
-                </Typography>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>{granularity}</Typography>
-              </Box>
-              <Box>
-                <Typography variant="caption" sx={{ opacity: 0.7, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, display: 'block', mb: 0.5 }}>
-                  Scope
-                </Typography>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>{scope}</Typography>
-              </Box>
-              <Box>
-                <Typography variant="caption" sx={{ opacity: 0.7, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, display: 'block', mb: 0.5 }}>
-                  Last Calculation
-                </Typography>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
-                </Typography>
-              </Box>
-            </Box>
-          </Box>
           </Paper>
         )}
 
         {/* Action buttons & Control Bar */}
         {!hideHeader && (
           <Box sx={{ mb: 4, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-          <Button
-            variant={showFilters ? "contained" : "outlined"}
-            startIcon={<FilterIcon />}
-            onClick={() => setShowFilters(!showFilters)}
-            sx={{
-              borderRadius: 2,
-              textTransform: 'none',
-              fontWeight: 600,
-              ...(showFilters && {
-                background: themeStyles.gradient,
-                boxShadow: `0 4px 12px ${alpha(themeStyles.primary, 0.3)}`
-              })
-            }}
-          >
-            {showFilters ? 'Hide Filters' : 'Analysis Parameters'}
-          </Button>
+            <Button
+              variant={showFilters ? "contained" : "outlined"}
+              startIcon={<FilterIcon />}
+              onClick={() => setShowFilters(!showFilters)}
+              sx={{
+                borderRadius: 2,
+                textTransform: 'none',
+                fontWeight: 600,
+                ...(showFilters && {
+                  background: themeStyles.gradient,
+                  boxShadow: `0 4px 12px ${alpha(themeStyles.primary, 0.3)}`
+                })
+              }}
+            >
+              {showFilters ? 'Hide Filters' : 'Analysis Parameters'}
+            </Button>
 
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-            <Tooltip title="Refresh Data">
-              <IconButton
-                onClick={fetchData}
-                disabled={loading}
-                sx={{
-                  bgcolor: alpha(themeStyles.primary, 0.05),
-                  '&:hover': { bgcolor: alpha(themeStyles.primary, 0.1) }
-                }}
-              >
-                <RefreshIcon sx={{ color: themeStyles.primary }} />
-              </IconButton>
-            </Tooltip>
-
-            {supportsCharts && (
-              <Tooltip title="Toggle Charts">
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+              <Tooltip title="Refresh Data">
                 <IconButton
+                  onClick={fetchData}
+                  disabled={loading}
                   sx={{
                     bgcolor: alpha(themeStyles.primary, 0.05),
                     '&:hover': { bgcolor: alpha(themeStyles.primary, 0.1) }
                   }}
                 >
-                  <ChartIcon sx={{ color: themeStyles.primary }} />
+                  <RefreshIcon sx={{ color: themeStyles.primary }} />
                 </IconButton>
               </Tooltip>
-            )}
-          </Box>
 
-          <Box sx={{ flexGrow: 1 }} />
+              {supportsCharts && (
+                <Tooltip title="Toggle Charts">
+                  <IconButton
+                    sx={{
+                      bgcolor: alpha(themeStyles.primary, 0.05),
+                      '&:hover': { bgcolor: alpha(themeStyles.primary, 0.1) }
+                    }}
+                  >
+                    <ChartIcon sx={{ color: themeStyles.primary }} />
+                  </IconButton>
+                </Tooltip>
+              )}
+            </Box>
+
+            <Box sx={{ flexGrow: 1 }} />
 
             <Button
               variant="contained"
@@ -769,22 +769,22 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
             >
               {exportLoading ? 'Processing...' : 'Export Excellence'}
             </Button>
-        </Box>
-      )}
+          </Box>
+        )}
 
-      {/* Filters */}
-      {!hideHeader && showFilters && (
-        <Card sx={{ 
-            mb: 4, 
+        {/* Filters */}
+        {!hideHeader && showFilters && (
+          <Card sx={{
+            mb: 4,
             borderRadius: 3,
             overflow: 'hidden',
             boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
             border: '1px solid rgba(0, 0, 0, 0.05)'
           }}>
-            <Box sx={{ 
-              p: 2, 
-              display: 'flex', 
-              alignItems: 'center', 
+            <Box sx={{
+              p: 2,
+              display: 'flex',
+              alignItems: 'center',
               bgcolor: alpha(themeStyles.primary, 0.03),
               borderBottom: '1px solid rgba(0, 0, 0, 0.05)'
             }}>
@@ -802,8 +802,8 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                     value={filters.prc_date}
                     onChange={(date: unknown) => {
                       // Handle Dayjs or Date
-                      const finalDate = date && (date as { toDate?: () => Date }).toDate 
-                        ? (date as { toDate: () => Date }).toDate() 
+                      const finalDate = date && (date as { toDate?: () => Date }).toDate
+                        ? (date as { toDate: () => Date }).toDate()
                         : (date as Date | null);
                       handleFilterChange('prc_date', finalDate);
                     }}
@@ -812,8 +812,8 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                       textField: TextField
                     }}
                     slotProps={{
-                      textField: { 
-                        fullWidth: true, 
+                      textField: {
+                        fullWidth: true,
                         required: true,
                         size: 'small',
                         sx: { '& .MuiOutlinedInput-root': { borderRadius: 2 } }
@@ -847,11 +847,10 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                         </li>
                       )}
                       renderInput={(params) => (
-                        <TextField 
+                        <TextField
                           {...params}
-                          // @ts-expect-error MUI Autocomplete/TextField type clash in strict mode
                           InputProps={params.InputProps}
-                          label="Segment ID" 
+                          label="Segment ID"
                           placeholder="All Segments"
                           sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                         />
@@ -1014,17 +1013,17 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                           endAdornment: (
                             <InputAdornment position="end">
                               <Tooltip title="View Calculation Config Detailed Summary">
-                                 <IconButton 
-                                   size="small" 
-                                   onClick={() => setConfigDrawerOpen(true)}
-                                   sx={{ 
-                                     color: themeStyles.primary,
-                                     bgcolor: alpha(themeStyles.primary, 0.05),
-                                     '&:hover': { bgcolor: alpha(themeStyles.primary, 0.1) }
-                                   }}
-                                 >
-                                   <LaunchIcon sx={{ fontSize: '1.2rem' }} />
-                                 </IconButton>
+                                <IconButton
+                                  size="small"
+                                  onClick={() => setConfigDrawerOpen(true)}
+                                  sx={{
+                                    color: themeStyles.primary,
+                                    bgcolor: alpha(themeStyles.primary, 0.05),
+                                    '&:hover': { bgcolor: alpha(themeStyles.primary, 0.1) }
+                                  }}
+                                >
+                                  <LaunchIcon sx={{ fontSize: '1.2rem' }} />
+                                </IconButton>
                               </Tooltip>
                             </InputAdornment>
                           )
@@ -1074,9 +1073,9 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                           endAdornment: (
                             <InputAdornment position="end">
                               <Tooltip title="View Model Development Details">
-                                <IconButton 
+                                <IconButton
                                   size="small"
-                                  sx={{ 
+                                  sx={{
                                     color: themeStyles.primary,
                                     bgcolor: alpha(themeStyles.primary, 0.05),
                                     '&:hover': { bgcolor: alpha(themeStyles.primary, 0.1) }
@@ -1127,7 +1126,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                   onClick={handleRun}
                   disabled={loading}
                   startIcon={loading ? <CircularProgress size={20} /> : <SearchIcon />}
-                  sx={{ 
+                  sx={{
                     borderRadius: 2,
                     px: 4,
                     background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
@@ -1142,7 +1141,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                   variant="outlined"
                   onClick={handleClear}
                   startIcon={<ClearIcon />}
-                  sx={{ 
+                  sx={{
                     borderRadius: 2,
                     textTransform: 'none',
                     fontWeight: 600
@@ -1243,18 +1242,18 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
             </RadioGroup>
 
             <Box sx={{ mt: 2, p: 2, borderRadius: 2, bgcolor: 'info.light', color: 'info.contrastText', display: 'flex', gap: 1.5 }}>
-               <InfoIcon fontSize="small" />
-               <Typography variant="caption" fontWeight={600}>
-                 Export will include Audit Header (T1) and calculation metadata.
-               </Typography>
+              <InfoIcon fontSize="small" />
+              <Typography variant="caption" fontWeight={600}>
+                Export will include Audit Header (T1) and calculation metadata.
+              </Typography>
             </Box>
           </DialogContent>
           <DialogActions sx={{ p: 3 }}>
             <Button onClick={() => setExportDialogOpen(false)} color="inherit" sx={{ fontWeight: 600 }}>Cancel</Button>
-            <Button 
-              variant="contained" 
+            <Button
+              variant="contained"
               onClick={handleExportExecute}
-              sx={{ 
+              sx={{
                 background: themeStyles.gradient,
                 fontWeight: 700,
                 borderRadius: 2
@@ -1281,33 +1280,33 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
             </IconButton>
           </Box>
           <Divider sx={{ mb: 3 }} />
-          
+
           <Typography variant="subtitle2" color="primary" fontWeight={700} gutterBottom>
             EXECUTION PARAMETERS
           </Typography>
           <List dense>
             <ListItem>
-              <ListItemText 
-                primary="LGD Method" 
-                secondary={filters.lgd_method === 1 ? 'Workout (Recovery Curve)' : filters.lgd_method === 2 ? 'Collateral/Model-Based' : 'Hybrid/Selected'} 
+              <ListItemText
+                primary="LGD Method"
+                secondary={filters.lgd_method === 1 ? 'Workout (Recovery Curve)' : filters.lgd_method === 2 ? 'Collateral/Model-Based' : 'Hybrid/Selected'}
               />
             </ListItem>
             <ListItem>
-              <ListItemText 
-                primary="Processing Date" 
-                secondary={filters.prc_date?.toLocaleDateString() || 'N/A'} 
+              <ListItemText
+                primary="Processing Date"
+                secondary={filters.prc_date?.toLocaleDateString() || 'N/A'}
               />
             </ListItem>
             <ListItem>
-              <ListItemText 
-                primary="Model Version" 
-                secondary={`LGD Model v1.2 (ID: ${filters.model_id || 'DEFAULT'})`} 
+              <ListItemText
+                primary="Model Version"
+                secondary={`LGD Model v1.2 (ID: ${filters.model_id || 'DEFAULT'})`}
               />
             </ListItem>
             <ListItem>
-              <ListItemText 
-                primary="Forward Looking" 
-                secondary={filters.fl_flag ? 'ENABLED' : 'DISABLED'} 
+              <ListItemText
+                primary="Forward Looking"
+                secondary={filters.fl_flag ? 'ENABLED' : 'DISABLED'}
               />
             </ListItem>
           </List>
@@ -1328,9 +1327,9 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
           </List>
 
           <Box sx={{ mt: 'auto', p: 2, bgcolor: alpha(themeStyles.primary, 0.05), borderRadius: 2 }}>
-             <Typography variant="caption" color="text.secondary">
-               Configurations are read-only in this view. To modify global parameters, please go to <b>LGD Setup</b>.
-             </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Configurations are read-only in this view. To modify global parameters, please go to <b>LGD Setup</b>.
+            </Typography>
           </Box>
         </Drawer>
       </Box>
