@@ -25,6 +25,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     # SSL/TLS support
     libssl-dev \
     libcurl4-openssl-dev \
+    curl \
     libssh2-1-dev \
     # XML processing
     libxml2-dev \
