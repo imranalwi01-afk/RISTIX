@@ -15,6 +15,27 @@ log_error <- function(message) {
 
 log_info("🚀 Starting IAF R Analytics API Service...")
 
+#* @filter cors
+function(res) {
+  res$setHeader("Access-Control-Allow-Origin", "*")
+  res$setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+  res$setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Tenant-ID, Origin, Accept")
+  plumber::forward()
+}
+
+#* @options /api/session
+#* @options /api/ecl/calculate
+#* @options /api/models/pd
+#* @options /health
+#* @options /api/status
+function(res) {
+  res$setHeader("Access-Control-Allow-Origin", "*")
+  res$setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+  res$setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Tenant-ID, Origin, Accept")
+  res$status <- 200
+  return(list())
+}
+
 #* @apiTitle IAF IFRS9 R Analytics API
 #* @apiDescription Statistical Computing and Analytics for Indonesia Airawata Finance
 #* @apiVersion 1.0.0

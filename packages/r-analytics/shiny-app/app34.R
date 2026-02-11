@@ -27,14 +27,39 @@ source("global.R")
 
 
 # Koneksi database PostgreSQL
-con <- dbConnect(
-  RPostgres::Postgres(),
-  dbname = Sys.getenv("DB_NAME", "IFRS9_pro"),
-  host = Sys.getenv("DB_HOST", "10.8.0.2"),
-  port = as.integer(Sys.getenv("DB_PORT", "5433")),
-  user = Sys.getenv("DB_USER", "postgres"),
-  password = Sys.getenv("DB_PASSWORD", "postgres")
-)
+# Database Configuration Logging
+db_host <- Sys.getenv("DB_HOST", "10.8.0.2")
+db_port <- as.integer(Sys.getenv("DB_PORT", "5433"))
+db_name <- Sys.getenv("DB_NAME", "IFRS9_pro")
+db_user <- Sys.getenv("DB_USER", "postgres")
+db_password <- Sys.getenv("DB_PASSWORD", "postgres")
+
+cat(paste0("\n=============================================\n"))
+cat(paste0("🚀 Starting Database Connection...\n"))
+cat(paste0("📌 Host: ", db_host, "\n"))
+cat(paste0("📌 Port: ", db_port, "\n"))
+cat(paste0("📌 Name: ", db_name, "\n"))
+cat(paste0("📌 User: ", db_user, "\n"))
+cat(paste0("=============================================\n"))
+
+# Koneksi database PostgreSQL with Error Handling
+con <- tryCatch({
+  conn <- dbConnect(
+    RPostgres::Postgres(),
+    dbname = db_name,
+    host = db_host,
+    port = db_port,
+    user = db_user,
+    password = db_password
+  )
+  cat("✅ Database connection successful!\n")
+  conn
+}, error = function(e) {
+  cat(paste0("❌ Database connection failed: ", e$message, "\n"))
+  # cat("⚠️ Falling back to offline mode (if supported)...\n")
+  NULL
+})
+
 
 dbExecute(con, "SET search_path TO dbo;")
 
