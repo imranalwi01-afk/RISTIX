@@ -16,6 +16,11 @@ else
   touch /opt/r-analytics/logs/api.log
   tail -F /opt/r-analytics/logs/*.log &
   
+  echo "Preserving environment variables for Shiny Server..."
+  # Explicitly preserve connection and tenant variables so Shiny Server sees them
+  env | grep -E '^(DB_|FRS9_|TENANT_|BANKING_|USER_|SHINY_|R_)' > /opt/r-analytics/shiny-app/.Renviron
+  chown r-analytics:r-analytics /opt/r-analytics/shiny-app/.Renviron
+  
   echo "Starting Shiny Server (Port 3838)..."
   exec shiny-server
 fi
