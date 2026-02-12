@@ -290,7 +290,21 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
       const data = await response.json();
 
       // 🛡️ DEFENSIVE: Handle both data.data and direct data response structures
-      let sessionData: RSessionData = data.data || data;
+      const rawData = data.data || data;
+
+      // ✅ NORMALIZE: Handle mixed snake_case (legacy) and camelCase (new) keys
+      let sessionData: RSessionData = {
+        sessionId: rawData.sessionId || rawData.session_id,
+        tenantSlug: rawData.tenantSlug || rawData.tenant_id || rawData.tenantId,
+        bankingType: rawData.bankingType || rawData.banking_mode || rawData.bankingMode,
+        status: rawData.status || 'running',
+        port: rawData.port || rawData.session_port,
+        url: rawData.url,
+        iframeUrl: rawData.iframeUrl || rawData.iframe_url,
+        startTime: rawData.startTime || rawData.start_time || new Date().toISOString(),
+        uptime: rawData.uptime || 0,
+        domainUrl: rawData.domainUrl || rawData.domain_url
+      };
 
       // � Normalize legacy/incorrect hostnames returned by older backend versions
       if (sessionData?.iframeUrl && typeof sessionData.iframeUrl === 'string') {
