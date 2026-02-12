@@ -25,10 +25,18 @@ function(res) {
 }
 
 #* @options /api/session
+#* @options /session
 #* @options /api/ecl/calculate
+#* @options /ecl/calculate
 #* @options /api/models/pd
+#* @options /models/pd
 #* @options /health
 #* @options /api/status
+#* @options /status
+#* @options /api/system/info
+#* @options /system/info
+#* @options /api/test/generate-data
+#* @options /test/generate-data
 function(res) {
   # Remove explicit Origin header to prevent conflict
   # res$setHeader("Access-Control-Allow-Origin", "*")
@@ -65,6 +73,7 @@ function() {
 
 #* API status endpoint
 #* @get /api/status
+#* @get /status
 #* @serializer unboxedJSON
 function() {
   list(
@@ -86,6 +95,7 @@ function() {
 
 #* Initialize session for frontend iframe
 #* @post /api/session
+#* @post /session
 #* @serializer unboxedJSON
 function(req) {
   tryCatch({
@@ -156,6 +166,7 @@ function(req) {
 
 #* Basic ECL calculation endpoint
 #* @post /api/ecl/calculate
+#* @post /ecl/calculate
 #* @serializer unboxedJSON
 function(req) {
   tryCatch({
@@ -205,6 +216,7 @@ function(req) {
 
 #* PD model execution endpoint
 #* @post /api/models/pd
+#* @post /models/pd
 #* @serializer unboxedJSON  
 function(req) {
   tryCatch({
@@ -241,6 +253,7 @@ function(req) {
 
 #* System information endpoint
 #* @get /api/system/info
+#* @get /system/info
 #* @serializer unboxedJSON
 function() {
   list(
@@ -261,6 +274,7 @@ function() {
 
 #* Test data generation endpoint
 #* @get /api/test/generate-data
+#* @get /test/generate-data
 #* @serializer unboxedJSON
 function() {
   tryCatch({
