@@ -814,7 +814,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
             {session && (
               <Chip
                 icon={getStatusIcon(session.status) || undefined}
-                label={session.status.toUpperCase()}
+                label={session.status?.toUpperCase() || 'UNKNOWN'}
                 color={getStatusColor(session.status) as any}
                 size="small"
                 sx={styles.statusChip}

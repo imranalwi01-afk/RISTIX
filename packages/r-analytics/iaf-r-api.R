@@ -120,9 +120,13 @@ function(req) {
       success = TRUE,
       message = "Session initialized successfully",
       data = list(
-        session_id = session_id,
-        tenant_id = tenant_id,
-        banking_mode = banking_mode,
+        sessionId = session_id,
+        tenantSlug = tenant_id,
+        bankingType = banking_mode,
+        status = "running",
+        port = 4236,
+        startTime = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ"),
+        uptime = 0,
         service = "IAF IFRS9 R Analytics",
         version = "1.0.0",
         api_endpoints = list(
@@ -139,12 +143,12 @@ function(req) {
           real_time_processing = TRUE,
           statistical_modeling = TRUE
         ),
-        session_config = list(
+        sessionConfig = list(
           tenant = "iaf",
           company = "Indonesia Airawata Finance",
-          banking_type = banking_mode,
+          bankingType = banking_mode,
           currency = "IDR",
-          time_zone = "Asia/Jakarta"
+          timeZone = "Asia/Jakarta"
         )
       ),
       timestamp = Sys.time()
