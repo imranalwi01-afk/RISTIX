@@ -509,38 +509,52 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
   // 🔄 LIFECYCLE EFFECTS
   // ============================================================================
 
+  // Ref to track initialization status and prevent infinite loops
+  const isInitialized = useRef<boolean>(false);
+
   // Auto-start session on mount
   useEffect(() => {
-    if (autoStart && !session && !loading && !error) {
+    // Prevent re-initialization if already started or if critical dependencies are missing
+    if (isInitialized.current || !autoStart || loading || session || error) {
+      return;
+    }
 
-      const config = frontendEnvironmentLoader.getConfiguration();
-      const currentDashboardUrl = config.rAnalytics.dashboard;
-      const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    const config = frontendEnvironmentLoader.getConfiguration();
+    const currentDashboardUrl = config.rAnalytics.dashboard;
+    const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 
-      console.log('🔍 EmbeddedShinyApp - URL Resolution:', {
-        configDashboard: currentDashboardUrl,
-        isLocalhost,
-        isProduction: config.isProduction,
-        envVar: process.env.NEXT_PUBLIC_R_ANALYTICS_URL
-      });
+    console.log('🔍 EmbeddedShinyApp - URL Resolution:', {
+      configDashboard: currentDashboardUrl,
+      isLocalhost,
+      isProduction: config.isProduction,
+      envVar: process.env.NEXT_PUBLIC_R_ANALYTICS_URL
+    });
 
-      let domainBase = '';
+    let domainBase = '';
+    let useDirectEmbed = false;
 
-      // ✅ PRIORITY 1: If we have a configured remote domain, use it regardless of localhost
-      if (currentDashboardUrl && !currentDashboardUrl.includes('localhost') && !currentDashboardUrl.includes('127.0.0.1')) {
-        console.log('📡 REMOTE DOMAIN DETECTED - Using configured URL:', currentDashboardUrl);
-        domainBase = currentDashboardUrl;
-      }
-      // ✅ PRIORITY 2: If we are not on localhost, use whatever is configured
-      else if (!isLocalhost || config.isProduction) {
-        domainBase = currentDashboardUrl;
-      }
-      // ✅ FALLBACK: Localhost development
-      else {
-        console.log('💻 LOCALHOST DETECTED - Falling back to local R Analytics');
-        domainBase = `http://localhost:4236`;
-      }
+    // ✅ PRIORITY 1: If we have a configured remote domain, use it regardless of localhost
+    if (currentDashboardUrl && !currentDashboardUrl.includes('localhost') && !currentDashboardUrl.includes('127.0.0.1')) {
+      console.log('📡 REMOTE DOMAIN DETECTED - Using configured URL:', currentDashboardUrl);
+      domainBase = currentDashboardUrl;
+      useDirectEmbed = true;
+    }
+    // ✅ PRIORITY 2: If we are not on localhost (and not forced production API), use whatever is configured
+    else if (!isLocalhost && !config.isProduction) {
+      domainBase = currentDashboardUrl;
+      useDirectEmbed = true;
+    }
+    // ✅ FALLBACK: Localhost development
+    else if (!config.isProduction) {
+      console.log('💻 LOCALHOST DETECTED - Falling back to local R Analytics');
+      domainBase = `http://localhost:4236`;
+      useDirectEmbed = true;
+    }
 
+    // Mark as initialized to prevent loops
+    isInitialized.current = true;
+
+    if (useDirectEmbed) {
       const directSession: RSessionData = {
         sessionId: `direct-${Date.now()}`,
         tenantSlug: tenantSlug || 'iaf',
@@ -562,7 +576,10 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
 
     // Only call createRSession if NOT local/direct embed
     if (autoStart && API_CONFIG.IS_PRODUCTION) {
-      createRSession();
+      createRSession().catch(() => {
+        // Optional: Reset initialization on failure if retry is desired
+        // isInitialized.current = false; 
+      });
     }
   }, [autoStart, session, loading, error, tenantSlug, bankingType, onSessionCreate, createRSession]);
 
