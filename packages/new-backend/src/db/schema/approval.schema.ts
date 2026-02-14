@@ -15,6 +15,7 @@ import { tenants } from './platform.schema'
 
 /**
  * Approval schema for multi-level approval workflow
+ * Uses dedicated 'approval' schema for approval-related tables
  */
 export const approvalSchema = pgSchema('approval')
 

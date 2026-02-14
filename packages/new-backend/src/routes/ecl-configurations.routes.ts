@@ -3,6 +3,8 @@ import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
 import { EclConfigurationsService } from '../services/ecl-configurations.service'
 import { runEffect } from '../lib/effect/runtime'
+import { interceptCreate, interceptUpdate, interceptDelete } from '../middleware/approval-interceptor.middleware'
+import type { ApprovalResponse } from '../lib/approval-helpers'
 
 const app = new OpenAPIHono<AppContext>()
 
@@ -77,6 +79,14 @@ const ErrorResponse = z.object({
     message: z.string()
 }).openapi('ErrorResponse')
 
+const ApprovalWorkflowResponse = z.object({
+    success: z.boolean(),
+    approvalRequired: z.boolean(),
+    requestId: z.string().optional(),
+    data: z.any().optional(),
+    message: z.string().optional()
+}).openapi('ApprovalWorkflowResponse')
+
 // ============================================================================
 // ENDPOINTS
 // ============================================================================
@@ -130,13 +140,27 @@ app.openapi(
         },
         responses: {
             201: { content: { 'application/json': { schema: EclResponse } }, description: 'Created' },
+            202: { content: { 'application/json': { schema: ApprovalWorkflowResponse } }, description: 'Pending Approval' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
     async (c) => {
         const data = c.req.valid('json')
         const userId = c.get('userId') as string || 'system'
-        return runEffect(c, EclConfigurationsService.create(data, userId) as any) as any
+        const tenantId = c.get('tenantId') as string
+        const userPermissions = c.get('permissions') || []
+
+        const effect = interceptCreate(
+            tenantId,
+            userId,
+            userPermissions,
+            'ecl_configuration',
+            data,
+            () => EclConfigurationsService.create(data, userId) as any
+        )
+
+        const result = await runEffect(c, effect)
+        return c.json(result, result.approvalRequired ? 202 : 201)
     }
 )
 
@@ -152,6 +176,7 @@ app.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: EclResponse } }, description: 'Updated' },
+            202: { content: { 'application/json': { schema: ApprovalWorkflowResponse } }, description: 'Update Pending Approval' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
@@ -159,8 +184,23 @@ app.openapi(
         const { id } = c.req.valid('param')
         const data = c.req.valid('json')
         const userId = c.get('userId') as string || 'system'
+        const tenantId = c.get('tenantId') as string
+        const userPermissions = c.get('permissions') || []
+
         if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
-        return runEffect(c, EclConfigurationsService.update(id, data, userId) as any) as any
+
+        const effect = interceptUpdate(
+            tenantId,
+            userId,
+            userPermissions,
+            'ecl_configuration',
+            id.toString(),
+            data,
+            () => EclConfigurationsService.update(id, data, userId) as any
+        )
+
+        const result = await runEffect(c, effect)
+        return c.json(result, result.approvalRequired ? 202 : 200)
     }
 )
 
@@ -175,13 +215,29 @@ app.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Deleted' },
+            202: { content: { 'application/json': { schema: ApprovalWorkflowResponse } }, description: 'Deletion Pending Approval' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
     async (c) => {
         const { id } = c.req.valid('param')
+        const userId = c.get('userId') as string || 'system'
+        const tenantId = c.get('tenantId') as string
+        const userPermissions = c.get('permissions') || []
+
         if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
-        return runEffect(c, EclConfigurationsService.delete(id) as any) as any
+
+        const effect = interceptDelete(
+            tenantId,
+            userId,
+            userPermissions,
+            'ecl_configuration',
+            id.toString(),
+            () => EclConfigurationsService.delete(id) as any
+        )
+
+        const result = await runEffect(c, effect)
+        return c.json(result, result.approvalRequired ? 202 : 200)
     }
 )
 

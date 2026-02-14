@@ -1,4 +1,5 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
+import { Effect, pipe } from 'effect'
 import { ParametersService } from '../services/parameters.service'
 import { runEffect } from '../lib/effect/runtime'
 import type { AppContext } from '../app'
@@ -150,6 +151,14 @@ const ErrorResponse = z.object({
     error: z.string().optional()
 }).openapi('ErrorResponse')
 
+const ApprovalWorkflowResponse = z.object({
+    success: z.boolean(),
+    approvalRequired: z.boolean(),
+    requestId: z.string().optional(),
+    data: z.any().optional(),
+    message: z.string().optional()
+}).openapi('ApprovalWorkflowResponse')
+
 // Export schemas for unit testing
 export { CreateBusinessSettingSchema, UpdateBusinessSettingSchema }
 
@@ -202,14 +211,41 @@ app.openapi(
         },
         middleware: [authMiddleware] as const,
         responses: {
+            201: { content: { 'application/json': { schema: BusinessSettingResponse } }, description: 'Created' },
+            202: { content: { 'application/json': { schema: ApprovalWorkflowResponse } }, description: 'Pending Approval' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
     async (c) => {
-        const data = c.req.valid('json')
+        const tenantId = c.get('tenantId')!
         const userId = c.get('userId') as string || 'system'
+        const userPermissions = (c.get('permissions') as string[]) || []
+        const data = c.req.valid('json')
         data.paramType = 'B' // Enforce Business Type
-        return runEffect(c, ParametersService.createAppSetting(data, userId) as any) as any
+
+        const executeCreate = () => ParametersService.createAppSetting(data, userId)
+
+        const effect = pipe(
+            interceptCreate(
+                tenantId,
+                userId,
+                userPermissions,
+                'parameter',
+                data,
+                executeCreate,
+                'medium'
+            ),
+            Effect.map((response: ApprovalResponse) => {
+                if (response.approvalRequired) {
+                    return response
+                } else {
+                    return { success: true, approvalRequired: false, data: response.data }
+                }
+            })
+        )
+
+        const result = await runEffect(c, effect)
+        return c.json(result, result.approvalRequired ? 202 : 201)
     }
 )
 
@@ -409,14 +445,42 @@ app.openapi(
         middleware: [authMiddleware] as const,
         responses: {
             200: { content: { 'application/json': { schema: BusinessSettingResponse } }, description: 'Updated' },
-            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' }
+            202: { content: { 'application/json': { schema: ApprovalWorkflowResponse } }, description: 'Update Pending Approval' },
+            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
     async (c) => {
         const { code } = c.req.valid('param')
-        const data = c.req.valid('json')
+        const tenantId = c.get('tenantId')!
         const userId = c.get('userId') as string || 'system'
-        return runEffect(c, ParametersService.updateAppSetting(code, data, userId) as any) as any
+        const userPermissions = (c.get('permissions') as string[]) || []
+        const data = c.req.valid('json')
+
+        const executeUpdate = () => ParametersService.updateAppSetting(code, data, userId)
+
+        const effect = pipe(
+            interceptUpdate(
+                tenantId,
+                userId,
+                userPermissions,
+                'parameter',
+                code,
+                data,
+                executeUpdate,
+                'medium'
+            ),
+            Effect.map((response: ApprovalResponse) => {
+                if (response.approvalRequired) {
+                    return response
+                } else {
+                    return { success: true, approvalRequired: false, data: response.data }
+                }
+            })
+        )
+
+        const result = await runEffect(c, effect)
+        return c.json(result, result.approvalRequired ? 202 : 200)
     }
 )
 
@@ -434,13 +498,41 @@ app.openapi(
         },
         middleware: [authMiddleware] as const,
         responses: {
+            200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), message: z.string() }) } }, description: 'Deleted' },
+            202: { content: { 'application/json': { schema: ApprovalWorkflowResponse } }, description: 'Deletion Pending Approval' },
             404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
     async (c) => {
         const { code } = c.req.valid('param')
-        return runEffect(c, ParametersService.deleteAppSetting(code) as any) as any
+        const tenantId = c.get('tenantId')!
+        const userId = c.get('userId')!
+        const userPermissions = (c.get('permissions') as string[]) || []
+
+        const executeDelete = () => ParametersService.deleteAppSetting(code)
+
+        const effect = pipe(
+            interceptDelete(
+                tenantId,
+                userId,
+                userPermissions,
+                'parameter',
+                code,
+                executeDelete,
+                'high'
+            ),
+            Effect.map((response: ApprovalResponse) => {
+                if (response.approvalRequired) {
+                    return response
+                } else {
+                    return { success: true, approvalRequired: false, message: 'Business setting deleted successfully' }
+                }
+            })
+        )
+
+        const result = await runEffect(c, effect)
+        return c.json(result, result.approvalRequired ? 202 : 200)
     }
 )
 

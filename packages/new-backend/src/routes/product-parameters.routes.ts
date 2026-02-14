@@ -4,6 +4,8 @@ import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
 import { ProductParametersService } from '../services/product-parameters.service'
 import { runEffect } from '../lib/effect/runtime'
+import { interceptCreate, interceptUpdate, interceptDelete } from '../middleware/approval-interceptor.middleware'
+import type { ApprovalResponse } from '../lib/approval-helpers'
 
 const app = new OpenAPIHono<AppContext>()
 
@@ -87,6 +89,14 @@ const ErrorResponse = z.object({
     error: z.string().optional()
 }).openapi('ErrorResponse')
 
+const ApprovalWorkflowResponse = z.object({
+    success: z.boolean(),
+    approvalRequired: z.boolean(),
+    requestId: z.string().optional(),
+    data: z.any().optional(),
+    message: z.string().optional()
+}).openapi('ApprovalWorkflowResponse')
+
 // ============================================================================
 // ROUTES
 // ============================================================================
@@ -138,14 +148,20 @@ app.openapi(
             })
         },
         responses: {
-            200: { content: { 'application/json': { schema: ProductListResponse.extend({ 
-                pagination: z.object({
-                    total: z.number(),
-                    page: z.number(),
-                    limit: z.number(),
-                    pages: z.number()
-                })
-            }) } }, description: 'List Products' },
+            200: {
+                content: {
+                    'application/json': {
+                        schema: ProductListResponse.extend({
+                            pagination: z.object({
+                                total: z.number(),
+                                page: z.number(),
+                                limit: z.number(),
+                                pages: z.number()
+                            })
+                        })
+                    }
+                }, description: 'List Products'
+            },
             400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Invalid Mode' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
@@ -153,7 +169,7 @@ app.openapi(
     async (c) => {
         const { mode, page, limit, search } = c.req.valid('query')
         console.log(`📡 [PROD-ROUTES] Listing products for mode: ${mode}, page: ${page}, limit: ${limit}, search: ${search}`);
-        
+
         return runEffect(c, ProductParametersService.list(mode, { page, limit, search }) as any) as any
     }
 )
@@ -199,16 +215,17 @@ app.openapi(
         tags: ['Product Parameters'],
         summary: 'Create Product Parameter',
         request: {
-            body: { 
-                content: { 
-                    'application/json': { 
-                        schema: ProductParamSchema.extend({ mode: ProductModeSchema }) 
-                    } 
-                } 
+            body: {
+                content: {
+                    'application/json': {
+                        schema: ProductParamSchema.extend({ mode: ProductModeSchema })
+                    }
+                }
             }
         },
         responses: {
             201: { content: { 'application/json': { schema: ProductDetailResponse } }, description: 'Created' },
+            202: { content: { 'application/json': { schema: ApprovalWorkflowResponse } }, description: 'Pending Approval' },
             400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Invalid Input' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
@@ -216,7 +233,20 @@ app.openapi(
     async (c) => {
         const data = c.req.valid('json')
         const userId = c.get('userId') as string || 'system'
-        return runEffect(c, ProductParametersService.create(data, userId) as any) as any
+        const tenantId = c.get('tenantId') as string
+        const userPermissions = c.get('permissions') || []
+
+        const effect = interceptCreate(
+            tenantId,
+            userId,
+            userPermissions,
+            'product_parameter',
+            data,
+            () => ProductParametersService.create(data, userId)
+        )
+
+        const result = await runEffect(c, effect)
+        return c.json(result, result.approvalRequired ? 202 : 201)
     }
 )
 
@@ -238,6 +268,8 @@ app.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: ProductDetailResponse } }, description: 'Updated' },
+            202: { content: { 'application/json': { schema: ApprovalWorkflowResponse } }, description: 'Update Pending Approval' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Invalid Input' },
             404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
@@ -246,8 +278,22 @@ app.openapi(
         const { id } = c.req.valid('param')
         const data = c.req.valid('json')
         const userId = c.get('userId') as string || 'system'
+        const tenantId = c.get('tenantId') as string
+        const userPermissions = c.get('permissions') || []
         if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' } as any, 400)
-        return runEffect(c, ProductParametersService.update(id, data, userId) as any) as any
+
+        const effect = interceptUpdate(
+            tenantId,
+            userId,
+            userPermissions,
+            'product_parameter',
+            id.toString(),
+            data,
+            () => ProductParametersService.update(id, data, userId)
+        )
+
+        const result = await runEffect(c, effect)
+        return c.json(result, result.approvalRequired ? 202 : 200)
     }
 )
 
@@ -267,15 +313,31 @@ app.openapi(
             params: z.object({ id: z.string().transform(Number) })
         },
         responses: {
-            200: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Deleted' },
+            200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), message: z.string() }) } }, description: 'Deleted' },
+            202: { content: { 'application/json': { schema: ApprovalWorkflowResponse } }, description: 'Deletion Pending Approval' },
             400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Invalid ID' },
+            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
     async (c) => {
         const { id } = c.req.valid('param')
+        const userId = c.get('userId') as string || 'system'
+        const tenantId = c.get('tenantId') as string
+        const userPermissions = c.get('permissions') || []
         if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' } as any, 400)
-        return runEffect(c, ProductParametersService.delete(id) as any) as any
+
+        const effect = interceptDelete(
+            tenantId,
+            userId,
+            userPermissions,
+            'product_parameter',
+            id.toString(),
+            () => ProductParametersService.delete(id)
+        )
+
+        const result = await runEffect(c, effect)
+        return c.json(result, result.approvalRequired ? 202 : 200)
     }
 )
 

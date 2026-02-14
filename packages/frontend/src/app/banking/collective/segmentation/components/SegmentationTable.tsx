@@ -23,6 +23,7 @@ import {
   ContentCopy as DuplicateIcon,
   FileDownload as ExportIcon
 } from '@mui/icons-material';
+import { ApprovalStatusBadge } from '@/components/approval/ApprovalStatusBadge';
 
 interface SegmentationTableProps {
   data: any[];
@@ -39,6 +40,7 @@ interface SegmentationTableProps {
   totalCount: number;
   onPageChange: (newPage: number) => void;
   onRowsPerPageChange: (newRowsPerPage: number) => void;
+  pendingRequests?: any[];
 }
 
 export default function SegmentationTable({
@@ -55,9 +57,10 @@ export default function SegmentationTable({
   rowsPerPage,
   totalCount,
   onPageChange,
-  onRowsPerPageChange
+  onRowsPerPageChange,
+  pendingRequests = []
 }: SegmentationTableProps) {
-  
+
   const isSelected = (id: number) => selectedIds.indexOf(id) !== -1;
 
   const handleSelectAllClick = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -65,11 +68,10 @@ export default function SegmentationTable({
   };
 
   const getStatusColor = (status: string) => {
-    // Mapping active_flag boolean or string status to color
     if (status === 'Active' || status === 'Approved') return 'success';
-    if (status === 'Pending' || status === 'Submitted') return 'warning';
+    if (status === 'Pending' || status === 'Submitted' || status === 'pending') return 'warning';
     if (status === 'Draft') return 'default';
-    if (status === 'Rejected') return 'error';
+    if (status === 'Rejected' || status === 'rejected') return 'error';
     return 'default';
   };
 
@@ -104,7 +106,7 @@ export default function SegmentationTable({
                 <TableCell colSpan={9} align="center">Loading...</TableCell>
               </TableRow>
             ) : data.length === 0 ? (
-               <TableRow style={{ height: 53 * 5 }}>
+              <TableRow style={{ height: 53 * 5 }}>
                 <TableCell colSpan={9} align="center">
                   <Typography color="text.secondary">No records found matching your criteria</Typography>
                 </TableCell>
@@ -165,12 +167,16 @@ export default function SegmentationTable({
                     </TableCell>
                     <TableCell align="center">{row.seq}</TableCell>
                     <TableCell align="center">
-                      <Chip 
-                        label={status} 
-                        size="small" 
-                        color={getStatusColor(status)} 
-                        variant="outlined"
-                      />
+                      {pendingRequests.some(r => r.entityId === row.id.toString()) ? (
+                        <ApprovalStatusBadge status="pending" />
+                      ) : (
+                        <Chip
+                          label={status}
+                          size="small"
+                          color={getStatusColor(status)}
+                          variant="outlined"
+                        />
+                      )}
                     </TableCell>
                     <TableCell>
                       <Typography variant="caption" color="text.secondary">

@@ -84,7 +84,7 @@ interface ApprovalRequest {
   requestedBy: string;
   requestedByName: string;
   requestedAt: string;
-  status: 'pending' | 'approved' | 'rejected' | 'info_requested' | 'delegated' | 'cancelled';
+  status: 'pending' | 'approved' | 'rejected' | 'info_requested' | 'delegated' | 'cancelled' | 'completed';
   impactLevel?: 'low' | 'medium' | 'high' | 'critical'; // Mapped to priority
   approvalsRequired: number;
   approvalsReceived: number;
@@ -742,6 +742,165 @@ export default function ApprovalManagementPage() {
     )
   );
 
+  const renderApprovalHistory = () => {
+    // Filter for completed requests (approved or rejected)
+    const historyRequests = approvalRequests.filter(
+      req => req.status === 'approved' || req.status === 'rejected' || req.status === 'completed'
+    );
+
+    const historyColumns: GridColDef[] = [
+      {
+        field: 'requestTitle',
+        headerName: 'Request',
+        flex: 1,
+        minWidth: 200,
+      },
+      {
+        field: 'requestType',
+        headerName: 'Type',
+        width: 150,
+        renderCell: (params) => (
+          <Chip
+            label={params.value.replace('_', ' ').toUpperCase()}
+            size="small"
+            variant="outlined"
+          />
+        ),
+      },
+      {
+        field: 'requestedByName',
+        headerName: 'Requested By',
+        width: 180,
+      },
+      {
+        field: 'requestedAt',
+        headerName: 'Requested',
+        width: 150,
+        renderCell: (params) => formatDate(params.value),
+      },
+      {
+        field: 'completedAt',
+        headerName: 'Completed',
+        width: 150,
+        renderCell: (params) => params.value ? formatDate(params.value) : '-',
+      },
+      {
+        field: 'status',
+        headerName: 'Status',
+        width: 130,
+        renderCell: (params) => (
+          <Chip
+            label={params.value.toUpperCase()}
+            color={getStatusColor(params.value) as any}
+            size="small"
+          />
+        ),
+      },
+      {
+        field: 'approvalsReceived',
+        headerName: 'Approvals',
+        width: 120,
+        renderCell: (params) => (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <ApproveIcon fontSize="small" color="success" />
+            <Typography variant="body2">
+              {params.row.approvalsReceived} / {params.row.approvalsRequired}
+            </Typography>
+          </Box>
+        ),
+      },
+      {
+        field: 'actions',
+        headerName: 'Actions',
+        width: 100,
+        sortable: false,
+        renderCell: (params) => (
+          <IconButton
+            size="small"
+            onClick={() => handleViewDetails(params.row)}
+            color="primary"
+          >
+            <ViewIcon />
+          </IconButton>
+        ),
+      },
+    ];
+
+    return (
+      <Box>
+        <Paper sx={{ mb: 2, p: 2 }}>
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+            <Typography variant="h6" sx={{ flexGrow: 1 }}>
+              Approval History ({historyRequests.length} records)
+            </Typography>
+            <FormControl size="small" sx={{ minWidth: 150 }}>
+              <InputLabel>Status</InputLabel>
+              <Select
+                value={statusFilter}
+                label="Status"
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <MenuItem value="all">All</MenuItem>
+                <MenuItem value="approved">Approved</MenuItem>
+                <MenuItem value="rejected">Rejected</MenuItem>
+                <MenuItem value="completed">Completed</MenuItem>
+              </Select>
+            </FormControl>
+            <TextField
+              size="small"
+              placeholder="Search..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              InputProps={{
+                startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />,
+              }}
+              sx={{ minWidth: 250 }}
+            />
+          </Box>
+        </Paper>
+
+        {historyRequests.length === 0 ? (
+          <Paper sx={{ p: 4, textAlign: 'center' }}>
+            <HistoryIcon sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
+            <Typography variant="h6" color="text.secondary" gutterBottom>
+              No Approval History
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Completed approval requests will appear here
+            </Typography>
+          </Paper>
+        ) : (
+          <Paper>
+            <SafeDataGrid
+              rows={historyRequests}
+              columns={historyColumns}
+              initialState={{
+                pagination: {
+                  paginationModel: { pageSize: 10 },
+                },
+                sorting: {
+                  sortModel: [{ field: 'completedAt', sort: 'desc' }],
+                },
+              }}
+              pageSizeOptions={[10, 25, 50]}
+              disableRowSelectionOnClick
+              autoHeight
+              sx={{
+                border: 'none',
+                '& .MuiDataGrid-cell:focus': {
+                  outline: 'none',
+                },
+                '& .MuiDataGrid-row:hover': {
+                  backgroundColor: 'action.hover',
+                },
+              }}
+            />
+          </Paper>
+        )}
+      </Box>
+    );
+  };
+
   if (loading && !approvalRequests.length) {
     return (
       <Container maxWidth="xl">
@@ -843,11 +1002,7 @@ export default function ApprovalManagementPage() {
       <Box>
         {activeTab === 0 && renderPendingApprovals()}
         {activeTab === 1 && renderStatistics()}
-        {activeTab === 2 && (
-          <Alert severity="info">
-            Approval history functionality will be implemented soon.
-          </Alert>
-        )}
+        {activeTab === 2 && renderApprovalHistory()}
         {activeTab === 3 && (
           <Alert severity="info">
             Approval matrix configuration will be implemented soon.

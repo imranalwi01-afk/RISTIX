@@ -50,6 +50,8 @@ import { useRouter } from 'next/navigation';
 import { api } from '@/services/api';
 import { PDConfiguration } from '@/services/api/pd-configurations.api';
 import { PopulationSegment } from '@/services/api/population-segments.api';
+import { ApprovalNotification, ApprovalStatusBadge } from '@/components/approval';
+import { bankingAPI } from '@/services/api';
 import { PDStructureVisualization, FLScalarVisualization } from '@/components/banking/pd-setup/PDStructureVisualization';
 import { Assessment as ResultsIcon, Close as CloseIcon } from '@mui/icons-material';
 
@@ -107,6 +109,10 @@ const PdSetupPage = () => {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [searchTerm, setSearchTerm] = useState('');
 
+  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+  const [approvalNotification, setApprovalNotification] = useState<{ open: boolean, message: string }>({ open: false, message: '' });
+  const [snackbar, setSnackbar] = useState<{ open: boolean, message: string, type: 'success' | 'error' }>({ open: false, message: '', type: 'success' });
+
   // Load Data
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -144,9 +150,20 @@ const PdSetupPage = () => {
     }
   }, []);
 
+  const loadPendingApprovals = useCallback(async () => {
+    try {
+      const response = await bankingAPI.approval.getPendingApprovals();
+      const requests = Array.isArray(response) ? response : response.data || [];
+      setPendingRequests(requests.filter((r: any) => r.entityType === 'pd_configuration'));
+    } catch (err) {
+      console.error('Error loading pending approvals:', err);
+    }
+  }, []);
+
   useEffect(() => {
     loadData();
-  }, [loadData]);
+    loadPendingApprovals();
+  }, [loadData, loadPendingApprovals]);
 
   // Filtering
   useEffect(() => {
@@ -187,22 +204,36 @@ const PdSetupPage = () => {
 
   const handleSave = async () => {
     if (!validateForm()) return;
-    setLoading(true);
     try {
       const payload = {
         ...formData,
-        // Ensure legacy fields are handled if needed, or just send what we have
-        population_segment: undefined, // Clear legacy int if we are updating
-        // Wait, backend expects int optional.
+        population_segment: undefined,
       };
 
+      let response: any;
       if (isEditing && selectedConfig?.id) {
-        await api.banking.pdConfigurations.update(selectedConfig.id, payload);
+        response = await api.banking.pdConfigurations.update(selectedConfig.id, payload);
       } else {
-        await api.banking.pdConfigurations.create(payload as any);
+        response = await api.banking.pdConfigurations.create(payload as any);
+      }
+
+      const isApprovalResponse = response.approvalRequired || response.status === 202;
+
+      if (isApprovalResponse) {
+        setApprovalNotification({
+          open: true,
+          message: response.message || 'Request submitted for approval'
+        });
+      } else {
+        setSnackbar({
+          open: true,
+          message: isEditing ? 'Configuration updated' : 'Configuration created',
+          type: 'success'
+        });
       }
 
       await loadData();
+      await loadPendingApprovals();
       setIsDialogOpen(false);
       setFormData({});
       setSelectedConfig(null);
@@ -216,10 +247,21 @@ const PdSetupPage = () => {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this configuration?')) return;
-    setLoading(true);
     try {
-      await api.banking.pdConfigurations.delete(id);
+      const response = await api.banking.pdConfigurations.delete(id) as any;
+      const isApprovalResponse = response.approvalRequired || response.status === 202;
+
+      if (isApprovalResponse) {
+        setApprovalNotification({
+          open: true,
+          message: response.message || 'Deletion request submitted for approval'
+        });
+      } else {
+        setSnackbar({ open: true, message: 'Configuration deleted', type: 'success' });
+      }
+
       await loadData();
+      await loadPendingApprovals();
     } catch (err: any) {
       console.error('Delete failed:', err);
       setError('Failed to delete configuration.');
@@ -275,13 +317,17 @@ const PdSetupPage = () => {
       field: 'is_active',
       headerName: 'Status',
       width: 100,
-      renderCell: (params) => (
-        <Chip
-          label={params.value ? 'Active' : 'Inactive'}
-          color={params.value ? 'success' : 'default'}
-          size="small"
-        />
-      )
+      renderCell: (params) => {
+        const isPending = pendingRequests.some(r => r.entityId === params.row.id);
+        if (isPending) return <ApprovalStatusBadge status="pending" />;
+        return (
+          <Chip
+            label={params.value ? 'Active' : 'Inactive'}
+            color={params.value ? 'success' : 'default'}
+            size="small"
+          />
+        );
+      }
     },
     {
       field: 'actions',
@@ -343,6 +389,14 @@ const PdSetupPage = () => {
           }} data-testid="add-config-btn">Add Configuration</Button>
         </Box>
       </Box>
+
+      {snackbar.open && (
+        <Snackbar sx={{ mb: 2 }} open={snackbar.open} autoHideDuration={6000} onClose={() => setSnackbar({ ...snackbar, open: false })}>
+          <Alert severity={snackbar.type || 'info'} onClose={() => setSnackbar({ ...snackbar, open: false })}>
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
+      )}
 
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
 
@@ -521,10 +575,10 @@ const PdSetupPage = () => {
       </Dialog>
 
       {/* Results Visualization Dialog */}
-      <Dialog 
-        open={isResultsDialogOpen} 
-        onClose={() => setIsResultsDialogOpen(false)} 
-        maxWidth="lg" 
+      <Dialog
+        open={isResultsDialogOpen}
+        onClose={() => setIsResultsDialogOpen(false)}
+        maxWidth="lg"
         fullWidth
         PaperProps={{
           sx: { borderRadius: 3 }
@@ -555,7 +609,7 @@ const PdSetupPage = () => {
                   <PDStructureVisualization data={pdStructure} />
                 </Paper>
               </Grid>
-              
+
               {selectedConfig?.fl_flag && (
                 <Grid size={{ xs: 12 }}>
                   <Paper sx={{ p: 3, borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
@@ -570,8 +624,8 @@ const PdSetupPage = () => {
           <Button variant="outlined" onClick={() => setIsResultsDialogOpen(false)}>
             Close
           </Button>
-          <Button 
-            variant="contained" 
+          <Button
+            variant="contained"
             startIcon={<CalculateIcon />}
             onClick={() => {
               // Future: Trigger calculation logic
@@ -582,6 +636,12 @@ const PdSetupPage = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <ApprovalNotification
+        open={approvalNotification.open}
+        message={approvalNotification.message}
+        onClose={() => setApprovalNotification({ ...approvalNotification, open: false })}
+      />
     </Container>
   );
 }

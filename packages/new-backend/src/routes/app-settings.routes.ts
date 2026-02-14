@@ -1,8 +1,11 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
+import { Effect, pipe } from 'effect'
 import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
 import { ParametersService } from '../services/parameters.service'
 import { runEffect } from '../lib/effect/runtime'
+import { interceptCreate, interceptUpdate, interceptDelete } from '../middleware/approval-interceptor.middleware'
+import type { ApprovalResponse } from '../lib/approval-helpers'
 
 const app = new OpenAPIHono<AppContext>()
 
@@ -138,6 +141,14 @@ const ErrorResponse = z.object({
     message: z.string(),
     error: z.string().optional()
 }).openapi('ErrorResponse')
+
+const ApprovalWorkflowResponse = z.object({
+    success: z.boolean(),
+    approvalRequired: z.boolean(),
+    requestId: z.string().optional(),
+    data: z.any().optional(),
+    message: z.string().optional()
+}).openapi('ApprovalWorkflowResponse')
 
 // ============================================================================
 // ENDPOINTS
@@ -283,15 +294,40 @@ app.openapi(
         },
         responses: {
             201: { content: { 'application/json': { schema: AppSettingResponse } }, description: 'Created' },
+            202: { content: { 'application/json': { schema: ApprovalWorkflowResponse } }, description: 'Pending Approval' },
             409: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Conflict' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
     async (c) => {
-        const data = c.req.valid('json');
-        const userId = c.get('userId') as string || 'system';
+        const tenantId = c.get('tenantId')!
+        const userId = c.get('userId') as string || 'system'
+        const userPermissions = (c.get('permissions') as string[]) || []
+        const data = c.req.valid('json')
 
-        return runEffect(c, ParametersService.createAppSetting(data, userId)) as any
+        const executeCreate = () => ParametersService.createAppSetting(data, userId) as Effect.Effect<any, any, never>
+
+        const effect = pipe(
+            interceptCreate(
+                tenantId,
+                userId,
+                userPermissions,
+                'parameter',
+                data,
+                executeCreate,
+                'medium'
+            ),
+            Effect.map((response: ApprovalResponse) => {
+                if (response.approvalRequired) {
+                    return response
+                } else {
+                    return { success: true, approvalRequired: false, data: response.data }
+                }
+            })
+        )
+
+        const result = await runEffect(c, effect)
+        return c.json(result, result.approvalRequired ? 202 : 201)
     }
 )
 
@@ -308,16 +344,42 @@ app.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: AppSettingResponse } }, description: 'Updated' },
+            202: { content: { 'application/json': { schema: ApprovalWorkflowResponse } }, description: 'Pending Approval' },
             404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
     async (c) => {
-        const { code } = c.req.valid('param');
-        const data = c.req.valid('json');
-        const userId = c.get('userId') as string || 'system';
+        const { code } = c.req.valid('param')
+        const tenantId = c.get('tenantId')!
+        const userId = c.get('userId') as string || 'system'
+        const userPermissions = (c.get('permissions') as string[]) || []
+        const data = c.req.valid('json')
 
-        return runEffect(c, ParametersService.updateAppSetting(code, data, userId) as any) as any
+        const executeUpdate = () => ParametersService.updateAppSetting(code, data, userId) as Effect.Effect<any, any, never>
+
+        const effect = pipe(
+            interceptUpdate(
+                tenantId,
+                userId,
+                userPermissions,
+                'parameter',
+                code,
+                data,
+                executeUpdate,
+                'medium'
+            ),
+            Effect.map((response: ApprovalResponse) => {
+                if (response.approvalRequired) {
+                    return response
+                } else {
+                    return { success: true, approvalRequired: false, data: response.data }
+                }
+            })
+        )
+
+        const result = await runEffect(c, effect)
+        return c.json(result, result.approvalRequired ? 202 : 200)
     }
 )
 
@@ -334,14 +396,40 @@ app.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), message: z.string() }) } }, description: 'Deleted' },
+            202: { content: { 'application/json': { schema: ApprovalWorkflowResponse } }, description: 'Deletion Pending Approval' },
             404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
     async (c) => {
-        const { code } = c.req.valid('param');
+        const { code } = c.req.valid('param')
+        const tenantId = c.get('tenantId')!
+        const userId = c.get('userId')!
+        const userPermissions = (c.get('permissions') as string[]) || []
 
-        return runEffect(c, ParametersService.deleteAppSetting(code) as any) as any
+        const executeDelete = () => ParametersService.deleteAppSetting(code) as Effect.Effect<any, any, never>
+
+        const effect = pipe(
+            interceptDelete(
+                tenantId,
+                userId,
+                userPermissions,
+                'parameter',
+                code,
+                executeDelete,
+                'high'
+            ),
+            Effect.map((response: ApprovalResponse) => {
+                if (response.approvalRequired) {
+                    return response
+                } else {
+                    return { success: true, approvalRequired: false, message: 'Parameter deleted successfully' }
+                }
+            })
+        )
+
+        const result = await runEffect(c, effect)
+        return c.json(result, result.approvalRequired ? 202 : 200)
     }
 )
 

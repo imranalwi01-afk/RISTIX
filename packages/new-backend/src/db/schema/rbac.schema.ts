@@ -11,8 +11,7 @@ import {
     index,
 } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
-import { users } from './core'
-import { tenants } from './platform.schema' // ✅ Import tenants from platform schema
+import { users, tenants } from './core'
 
 /**
  * Core schema for RBAC tables
