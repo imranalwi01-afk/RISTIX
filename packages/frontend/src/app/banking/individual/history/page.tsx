@@ -36,6 +36,7 @@ import {
 import { useRouter } from 'next/navigation';
 import ModernLoader from '@/components/common/ModernLoader';
 import { StatCard } from '@/components/common/StatCard';
+import { Can } from '@/components/rbac/Can';
 
 export default function OverrideHistoryPage() {
   const router = useRouter();
@@ -169,13 +170,15 @@ export default function OverrideHistoryPage() {
               </Alert>
 
               <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
-                <Button
-                  variant="contained"
-                  startIcon={<PageIcon />}
-                  disabled
-                >
-                  Export Log
-                </Button>
+                <Can permission={['banking.individual.export', 'banking.individual.manage', 'admin.super_admin']}>
+                  <Button
+                    variant="contained"
+                    startIcon={<PageIcon />}
+                    disabled
+                  >
+                    Export Log
+                  </Button>
+                </Can>
                 <Button
                   variant="outlined"
                   startIcon={<BackIcon />}

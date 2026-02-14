@@ -19,25 +19,25 @@ const ROUTE_PERMISSION_MAP: Record<string, string> = {
   '/regulator': 'ACCESS_REGULATOR',
 
   // Dashboard
-  '/banking/dashboard': 'VIEW_DASHBOARD',
+  '/banking/dashboard': 'banking.dashboard.view',
 
   // Impairment Modules
-  '/banking/collective': 'VIEW_COLLECTIVE_IMPAIRMENT',
-  '/banking/individual': 'VIEW_INDIVIDUAL_IMPAIRMENT',
+  '/banking/collective': 'banking.collective.view',
+  '/banking/individual': 'banking.individual.view',
 
   // Processing & Reports
-  '/banking/processing': 'VIEW_IFRS9_PROCESSING',
-  '/banking/reports': 'VIEW_IFRS9_REPORTS',
-  '/banking/analytics': 'VIEW_R_ANALYTICS',
+  '/banking/processing': 'banking.processing.view',
+  '/banking/reports': 'banking.reports.ifrs9.view',
+  '/banking/analytics': 'banking.analytics.r.view',
 
   // System Setup (Strictly Protected)
-  '/banking/setup': 'MANAGE_IFRS9_CONFIG',
-  '/banking/parameters': 'MANAGE_IFRS9_CONFIG',
-  '/banking/administration': 'MANAGE_USERS',
-  '/banking/maintenance': 'MANAGE_USERS', // Often includes role management
+  '/banking/setup': 'banking.setup.application',
+  '/banking/parameters': 'banking.parameter',
+  '/banking/administration': 'admin.users.manage',
+  '/banking/maintenance': 'admin.users.manage', // Often includes role management
 
   // Tools
-  '/banking/tools': 'MANAGE_IFRS9_CONFIG'
+  '/banking/tools': 'banking.configuration.ifrs9.manage'
 };
 
 // ✅ SURGICAL ENHANCEMENT: Banking mode URL patterns
@@ -181,6 +181,12 @@ function hasRouteAccess(user: any, pathname: string): boolean {
     return true;
   }
 
+  const userPermissions = user.permissions || [];
+  if (userPermissions.includes('admin.super_admin') || userPermissions.includes('SUPER_ADMIN')) {
+    console.log(`[ProxyDebug] Super admin permission for ${user.email} - access granted`);
+    return true;
+  }
+
   // 2. Super Admin role bypass (for tenant admins)
   const userRoles = user.roles || [];
   if (userRoles.some((r: string) => r.toUpperCase().includes('ADMIN') || r.toUpperCase().includes('SUPERUSER'))) {
@@ -195,18 +201,19 @@ function hasRouteAccess(user: any, pathname: string): boolean {
   for (const routePath of protectedPaths) {
     if (pathname === routePath || pathname.startsWith(routePath + '/')) {
       const requiredPermission = ROUTE_PERMISSION_MAP[routePath];
-      const userPermissions = user.permissions || [];
+      const candidatePermissions = [
+        requiredPermission,
+        `${requiredPermission}.view`,
+        `${requiredPermission}.access`,
+        `${requiredPermission}.manage`,
+      ];
 
-      // Check if user has the required permission
-      if (userPermissions.includes(requiredPermission)) {
-        return true;
-      }
+      // Allow if user has exact permission, common action variants, or child permissions under the same module.
+      const hasPermission =
+        candidatePermissions.some((permission) => userPermissions.includes(permission)) ||
+        userPermissions.some((permission: string) => permission.startsWith(`${requiredPermission}.`));
 
-      // ✅ LENIENT: If user has ANY banking permissions, allow banking routes
-      if (pathname.startsWith('/banking') && userPermissions.some((p: string) =>
-        p.includes('VIEW') || p.includes('MANAGE') || p.includes('ACCESS')
-      )) {
-        console.log(`[ProxyDebug] User ${user.email} has banking permissions - allowing ${pathname}`);
+      if (hasPermission) {
         return true;
       }
 

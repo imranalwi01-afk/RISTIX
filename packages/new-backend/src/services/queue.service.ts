@@ -3,7 +3,7 @@ import { env } from '../config/env'
 import { getRedisConnectionOptions } from '../config/redis' // ✅ Centralized config
 import { legacyDb, getDatabase } from '../config/database'
 import { JobExecutorService } from './job-executor.service'
-import { jobExecutions } from '../db/schema'
+import { jobExecutions, jobDefinitions } from '../db/schema'
 import { eq } from 'drizzle-orm'
 
 import Redis from 'ioredis'
@@ -71,17 +71,53 @@ const processor = async (job: Job) => {
 const updateExecutionStatus = async (jobId: string, status: string, tenantId: string | null, data?: any) => {
     try {
         const targetDb = getDatabase(tenantId || 'public') // Ensure we have a DB connection
+        const isTerminal = ['completed', 'failed'].includes(status)
+        const durationMs = data?.durationMs
+            ?? (data?.finishedOn && data?.processedOn ? Math.max(0, data.finishedOn - data.processedOn) : undefined)
+
         await targetDb.update(jobExecutions)
             .set({
                 status,
                 progress: data?.progress,
                 result: data?.result,
                 error: data?.error,
-                endTime: ['completed', 'failed'].includes(status) ? new Date() : undefined
+                duration: typeof durationMs === 'number' ? Math.round(durationMs) : undefined,
+                endTime: isTerminal ? new Date() : undefined
             })
             .where(eq(jobExecutions.id, jobId))
     } catch (err) {
         console.error(`[QueueService] Failed to sync status ${status} for job ${jobId} (Tenant: ${tenantId})`, err)
+    }
+}
+
+const mapDefinitionStatus = (status: string): string => {
+    switch (status) {
+        case 'active':
+            return 'RUNNING'
+        case 'completed':
+            return 'COMPLETED'
+        case 'failed':
+            return 'FAILED'
+        case 'waiting':
+            return 'PENDING'
+        default:
+            return status.toUpperCase()
+    }
+}
+
+const updateDefinitionStatus = async (definitionId: string | null | undefined, tenantId: string | null, status: string) => {
+    if (!definitionId) return
+    try {
+        const targetDb = getDatabase(tenantId || 'public')
+        await targetDb.update(jobDefinitions)
+            .set({
+                lastRunStatus: mapDefinitionStatus(status),
+                lastRunTime: new Date(),
+                updatedAt: new Date(),
+            })
+            .where(eq(jobDefinitions.id, definitionId))
+    } catch (err) {
+        console.error(`[QueueService] Failed to sync definition status ${status} for definition ${definitionId} (Tenant: ${tenantId})`, err)
     }
 }
 
@@ -98,18 +134,30 @@ jobsWorker.on('active', (job) => {
     if (!job) return
     console.log(`[Worker] Job ${job.id} active`)
     updateExecutionStatus(job.id!, 'active', job.data.tenantId)
+    updateDefinitionStatus(job.data.definitionId, job.data.tenantId, 'active')
 })
 
 jobsWorker.on('completed', (job, result) => {
     if (!job) return
     console.log(`[Worker] Job ${job.id} completed`)
-    if (job.id) updateExecutionStatus(job.id, 'completed', job.data.tenantId, { result })
+    if (job.id) updateExecutionStatus(job.id, 'completed', job.data.tenantId, {
+        result,
+        processedOn: job.processedOn,
+        finishedOn: job.finishedOn,
+    })
+    updateDefinitionStatus(job.data.definitionId, job.data.tenantId, 'completed')
 })
 
 jobsWorker.on('failed', (job, err) => {
     if (!job || !err) return
     console.error(`[Worker] Job ${job.id} failed`, err)
-    if (job.id) updateExecutionStatus(job.id, 'failed', job.data.tenantId, { error: err.message })
+    const verboseError = [err.message, err.stack].filter(Boolean).join('\n\n')
+    if (job.id) updateExecutionStatus(job.id, 'failed', job.data.tenantId, {
+        error: verboseError,
+        processedOn: job.processedOn,
+        finishedOn: job.finishedOn,
+    })
+    updateDefinitionStatus(job.data.definitionId, job.data.tenantId, 'failed')
 })
 
 jobsWorker.on('progress', (job, progress) => {

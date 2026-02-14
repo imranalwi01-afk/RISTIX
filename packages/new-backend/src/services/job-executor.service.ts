@@ -15,8 +15,50 @@ export type JobResult = {
     executionTimeMs: number;
 };
 
-export class JobExecutorService {
-    constructor(private db: PostgresJsDatabase<typeof schema>) { }
+export class JobExecutorService<TSchema extends Record<string, unknown> = typeof schema> {
+    constructor(private db: PostgresJsDatabase<TSchema>) { }
+
+    private formatExecutionError(error: any, context: { jobType: string; parameters: any }): string {
+        const parts: string[] = []
+        const message = error?.message || 'Unknown execution error'
+        parts.push(message)
+
+        if (context.jobType === 'SQL_SP') {
+            const schemaName = context.parameters?.schemaName || '(default schema)'
+            const procedureName = context.parameters?.procedureName || '(unknown procedure)'
+            const targetDatabase = context.parameters?.targetDatabase || 'TENANT'
+            const args = context.parameters?.parameters ?? context.parameters?.params ?? []
+            parts.push(`Context: SQL_SP ${schemaName}.${procedureName} on ${targetDatabase} DB`)
+            parts.push(`Args: ${JSON.stringify(args)}`)
+        }
+
+        const errorCode = error?.code || error?.errno
+        if (errorCode) parts.push(`Code: ${errorCode}`)
+        if (error?.severity) parts.push(`Severity: ${error.severity}`)
+        if (error?.detail) parts.push(`Detail: ${error.detail}`)
+        if (error?.hint) parts.push(`Hint: ${error.hint}`)
+        if (error?.where) parts.push(`Where: ${error.where}`)
+        if (error?.routine) parts.push(`Routine: ${error.routine}`)
+        if (error?.schema_name) parts.push(`Schema: ${error.schema_name}`)
+        if (error?.table_name) parts.push(`Table: ${error.table_name}`)
+        if (error?.column_name) parts.push(`Column: ${error.column_name}`)
+
+        const lowerMessage = String(message).toLowerCase()
+        if (
+            lowerMessage.includes('invalid input syntax for type boolean')
+            && (lowerMessage.includes('s1003') || lowerMessage.includes('payment upload'))
+        ) {
+            parts.push('Suggestion: check S1003 param_usage in frs9_param_commonh; expected 1/0 (or true/false).')
+        }
+        if (
+            lowerMessage.includes('invalid input syntax for type smallint')
+            && (lowerMessage.includes('interval') || lowerMessage.includes('model run') || lowerMessage.includes('s1004'))
+        ) {
+            parts.push('Suggestion: check S1004 param_usage in frs9_param_commonh; expected numeric interval (1/7/30).')
+        }
+
+        return parts.join('\n')
+    }
 
     /**
      * Main entry point to execute a job based on its type
@@ -49,10 +91,11 @@ export class JobExecutorService {
                 executionTimeMs: Date.now() - startTime,
             };
         } catch (error: any) {
-            logger.error({ jobType, error: error.message }, 'Job execution failed');
+            const formattedError = this.formatExecutionError(error, { jobType, parameters })
+            logger.error({ jobType, error: formattedError, rawError: error }, 'Job execution failed')
             return {
                 success: false,
-                error: error.message,
+                error: formattedError,
                 executionTimeMs: Date.now() - startTime,
             };
         }
@@ -77,11 +120,36 @@ export class JobExecutorService {
             ? sql`${sql.identifier(schemaName)}.${sql.identifier(procedureName)}`
             : sql`${sql.raw(procedureName)}`; // Keep raw behavior for backward compatibility if name includes dots
 
-        const result = await this.db.execute(
-            sql`SELECT * FROM ${procIdentifier}(${sql.join(finalArgs.map((a: any) => sql`${a}`), sql`, `)})`
-        );
+        const sqlArgs = sql.join(finalArgs.map((a: any) => sql`${a}`), sql`, `);
 
-        return result;
+        try {
+            // Function-style execution (SELECT)
+            const result = await this.db.execute(
+                sql`SELECT * FROM ${procIdentifier}(${sqlArgs})`
+            );
+            return result;
+        } catch (error: any) {
+            const message = String(error?.message || '').toLowerCase();
+            const isProcedureOnly =
+                message.includes('is a procedure')
+                || message.includes('cannot be used in from clause');
+
+            if (!isProcedureOnly) {
+                throw error;
+            }
+
+            logger.info(
+                { schemaName, procedureName },
+                'Stored procedure detected, retrying with CALL syntax'
+            );
+
+            // Procedure-style execution (CALL)
+            await this.db.execute(
+                sql`CALL ${procIdentifier}(${sqlArgs})`
+            );
+
+            return { called: true };
+        }
     }
 
     /**

@@ -25,6 +25,8 @@ interface ProductToolbarProps {
   onRefreshClick: () => void;
   loading: boolean;
   activeFilterCount: number;
+  canManage: boolean;
+  canExport: boolean;
 }
 
 export default function ProductToolbar({
@@ -35,7 +37,9 @@ export default function ProductToolbar({
   onAddClick,
   onRefreshClick,
   loading,
-  activeFilterCount
+  activeFilterCount,
+  canManage,
+  canExport
 }: ProductToolbarProps) {
   return (
     <Box sx={{ 
@@ -83,22 +87,26 @@ export default function ProductToolbar({
             <RefreshIcon />
           </IconButton>
         </Tooltip>
-        <Button
-          variant="outlined"
-          startIcon={<DownloadIcon />}
-          onClick={onExportClick}
-          disabled={loading}
-        >
-          Export
-        </Button>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={onAddClick}
-          disabled={loading}
-        >
-          Add Product
-        </Button>
+        {canExport && (
+          <Button
+            variant="outlined"
+            startIcon={<DownloadIcon />}
+            onClick={onExportClick}
+            disabled={loading}
+          >
+            Export
+          </Button>
+        )}
+        {canManage && (
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={onAddClick}
+            disabled={loading}
+          >
+            Add Product
+          </Button>
+        )}
       </Stack>
     </Box>
   );

@@ -81,6 +81,63 @@ const MetricsSchema = z.object({
     throughputPerHour: z.number(),
 }).openapi('JobMetrics')
 
+const normalizeDbStatus = (status?: string | null): string => (status || '').toLowerCase()
+
+const mapQueueStateToDbStatus = (queueState: string): string | null => {
+    switch (queueState) {
+        case 'active':
+            return 'active'
+        case 'waiting':
+        case 'paused':
+        case 'delayed':
+        case 'prioritized':
+            return 'waiting'
+        case 'completed':
+            return 'completed'
+        case 'failed':
+            return 'failed'
+        default:
+            return null
+    }
+}
+
+const reconcileExecutionStatus = async (targetDb: any, execution: any) => {
+    const currentStatus = normalizeDbStatus(execution.status)
+
+    // Nothing to reconcile for terminal rows.
+    if (['completed', 'failed', 'cancelled'].includes(currentStatus)) {
+        return execution
+    }
+
+    const queueJob = await getJob(execution.id)
+    if (!queueJob) return execution
+
+    const queueState = await queueJob.getState()
+    const mappedStatus = mapQueueStateToDbStatus(queueState)
+    if (!mappedStatus || mappedStatus === currentStatus) return execution
+
+    const patch: Record<string, unknown> = { status: mappedStatus }
+    if (['completed', 'failed'].includes(mappedStatus)) {
+        patch.endTime = queueJob.finishedOn ? new Date(queueJob.finishedOn) : new Date()
+    }
+    if (mappedStatus === 'failed' && queueJob.failedReason) {
+        patch.error = queueJob.failedReason
+    }
+
+    await targetDb
+        .update(jobExecutions)
+        .set(patch)
+        .where(eq(jobExecutions.id, execution.id))
+        .execute()
+
+    return {
+        ...execution,
+        ...patch,
+        endTime: patch.endTime ?? execution.endTime,
+        error: patch.error ?? execution.error,
+    }
+}
+
 // =============================================================================
 // ROUTES
 // =============================================================================
@@ -133,7 +190,8 @@ jobsRoutes.openapi(
         const whereClause = conditions.length > 0 ? and(...conditions) : undefined
 
         const tenantId = c.get('tenantId')
-        const executions = await getDatabase(tenantId)
+        const targetDb = getDatabase(tenantId)
+        const executions = await targetDb
             .select()
             .from(jobExecutions)
             .where(whereClause)
@@ -141,7 +199,11 @@ jobsRoutes.openapi(
             .limit(limit)
             .offset(offset)
 
-        return c.json(executions.map(e => ({
+        const reconciledExecutions = await Promise.all(
+            executions.map((execution) => reconcileExecutionStatus(targetDb, execution))
+        )
+
+        return c.json(reconciledExecutions.map(e => ({
             ...e,
             startTime: e.startTime ? e.startTime.toISOString() : null,
             endTime: e.endTime ? e.endTime.toISOString() : null,
@@ -188,7 +250,8 @@ jobsRoutes.openapi(
         const id = c.req.param('id')!
 
         const tenantId = c.get('tenantId')
-        const execution = await getDatabase(tenantId)
+        const targetDb = getDatabase(tenantId)
+        const execution = await targetDb
             .select()
             .from(jobExecutions)
             .where(eq(jobExecutions.id, id))
@@ -198,7 +261,7 @@ jobsRoutes.openapi(
             return c.json({ error: 'Execution not found' } as any, 404)
         }
 
-        const e = execution[0]
+        const e = await reconcileExecutionStatus(targetDb, execution[0])
         return c.json({
             ...e,
             startTime: e.startTime ? e.startTime.toISOString() : null,
@@ -480,6 +543,17 @@ jobsRoutes.openapi(
                     startTime: new Date()
                 }) as any
 
+                // Update definition run state immediately for UI visibility
+                await getDatabase(tenantId)
+                    .update(jobDefinitions)
+                    .set({
+                        lastRunStatus: 'PENDING',
+                        lastRunTime: new Date(),
+                        updatedAt: new Date(),
+                    })
+                    .where(eq(jobDefinitions.id, definition.id))
+                    .execute()
+
                 return c.json({
                     success: true,
                     status: 'pending_approval',
@@ -490,19 +564,8 @@ jobsRoutes.openapi(
             }
         }
 
-        // No approval required or auto-approved - queue immediately
-        const job = await addJob(definition.jobType, {
-            definitionId: definition.id,
-            tenantId,
-            parameters: definition.defaultParameters,
-        }, {
-            jobId: executionId,
-            priority: definition.priority === 'HIGH' ? 1 : definition.priority === 'CRITICAL' ? 0 : 5,
-            attempts: (definition.maxRetries || 0) + 1,
-            timeout: (definition.timeout || 3600) * 1000,
-        }) as any
-
-        // Create execution record
+        // No approval required or auto-approved.
+        // Insert execution row first to avoid race where worker becomes active before row exists.
         await getDatabase(tenantId).insert(jobExecutions).values({
             id: executionId,
             jobDefinitionId: definition.id,
@@ -517,10 +580,53 @@ jobsRoutes.openapi(
             startTime: new Date()
         }) as any
 
+        let job: any
+        try {
+            job = await addJob(definition.jobType, {
+                definitionId: definition.id,
+                tenantId,
+                parameters: definition.defaultParameters,
+            }, {
+                jobId: executionId,
+                priority: definition.priority === 'HIGH' ? 1 : definition.priority === 'CRITICAL' ? 0 : 5,
+                attempts: (definition.maxRetries || 0) + 1,
+                timeout: (definition.timeout || 3600) * 1000,
+            }) as any
+        } catch (queueError: any) {
+            const queueErrorMessage = queueError?.message || 'Failed to enqueue job'
+            await getDatabase(tenantId)
+                .update(jobExecutions)
+                .set({
+                    status: 'failed',
+                    error: `Queue enqueue failed: ${queueErrorMessage}`,
+                    endTime: new Date(),
+                })
+                .where(eq(jobExecutions.id, executionId))
+                .execute()
+            return c.json({
+                success: false,
+                executionId,
+                status: 'FAILED',
+                message: `Queue enqueue failed: ${queueErrorMessage}`,
+            } as any, 500)
+        }
+
+        // Update definition run state immediately after queueing
+        await getDatabase(tenantId)
+            .update(jobDefinitions)
+            .set({
+                lastRunStatus: 'PENDING',
+                lastRunTime: new Date(),
+                updatedAt: new Date(),
+            })
+            .where(eq(jobDefinitions.id, definition.id))
+            .execute()
+
         return c.json({
             success: true,
             jobId: job.id,
             executionId,
+            status: 'PENDING',
             message: 'Job queued successfully'
         }) as any
     }
@@ -846,31 +952,64 @@ jobsRoutes.openapi(
         const tenantId = c.get('tenantId')
         const targetDb = getDatabase(tenantId)
 
+        const openExecutions = await targetDb
+            .select()
+            .from(jobExecutions)
+            .where(sql`
+                ${jobExecutions.endTime} is null
+                and lower(${jobExecutions.status}) in ('waiting', 'pending', 'queued', 'active', 'running')
+            `)
+            .orderBy(desc(jobExecutions.startTime))
+            .limit(200)
+
+        await Promise.all(openExecutions.map((execution) => reconcileExecutionStatus(targetDb, execution)))
+
         const [activeJobs] = await targetDb
             .select({ count: sql<number>`count(*)` })
             .from(jobExecutions)
-            .where(eq(jobExecutions.status, 'active'))
+            .where(sql`
+                lower(${jobExecutions.status}) in ('active', 'running')
+                and ${jobExecutions.endTime} is null
+                and coalesce(${jobExecutions.error}, '') = ''
+            `)
 
         const [queuedJobs] = await targetDb
             .select({ count: sql<number>`count(*)` })
             .from(jobExecutions)
-            .where(eq(jobExecutions.status, 'waiting'))
+            .where(sql`
+                lower(${jobExecutions.status}) in ('waiting', 'queued', 'pending', 'pending_approval')
+                and ${jobExecutions.endTime} is null
+            `)
 
         const [completedToday] = await targetDb
             .select({ count: sql<number>`count(*)` })
             .from(jobExecutions)
-            .where(and(
-                eq(jobExecutions.status, 'completed'),
-                sql`${jobExecutions.startTime} >= CURRENT_DATE`
-            ))
+            .where(sql`
+                (
+                    lower(${jobExecutions.status}) = 'completed'
+                    or (
+                        lower(${jobExecutions.status}) in ('active', 'running')
+                        and ${jobExecutions.endTime} is not null
+                        and coalesce(${jobExecutions.error}, '') = ''
+                    )
+                )
+                and coalesce(${jobExecutions.endTime}, ${jobExecutions.startTime}) >= CURRENT_DATE
+            `)
 
         const [failedToday] = await targetDb
             .select({ count: sql<number>`count(*)` })
             .from(jobExecutions)
-            .where(and(
-                eq(jobExecutions.status, 'failed'),
-                sql`${jobExecutions.startTime} >= CURRENT_DATE`
-            ))
+            .where(sql`
+                (
+                    lower(${jobExecutions.status}) = 'failed'
+                    or (
+                        lower(${jobExecutions.status}) in ('active', 'running')
+                        and ${jobExecutions.endTime} is not null
+                        and coalesce(${jobExecutions.error}, '') <> ''
+                    )
+                )
+                and coalesce(${jobExecutions.endTime}, ${jobExecutions.startTime}) >= CURRENT_DATE
+            `)
 
         return c.json({
             activeJobs: Number(activeJobs.count) || 0,

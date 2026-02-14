@@ -409,7 +409,13 @@ export const login = (
 
                     // Determine stakeholder type based on permissions
                     let stakeholderType = 'banking'
-                    if (permissions.includes('MANAGE_SYSTEM') || permissions.includes('PLATFORM_ADMIN')) {
+                    if (
+                        permissions.includes('admin.super_admin') ||
+                        permissions.includes('SUPER_ADMIN') ||
+                        permissions.includes('admin.system.manage') ||
+                        permissions.includes('MANAGE_SYSTEM') || // backward-compat
+                        permissions.includes('PLATFORM_ADMIN')
+                    ) {
                         stakeholderType = 'platform'
                     } else if (permissions.includes('CONSULTANT_ACCESS')) {
                         stakeholderType = 'consultant'
@@ -631,4 +637,3 @@ export const revokeAllSessions = (
                 cause: error
             })
     })
-

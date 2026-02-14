@@ -22,6 +22,7 @@ import PageHeader from '@/components/banking/shared/PageHeader';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 import ModernLoader from '@/components/common/ModernLoader';
 import { PendingChangesDialog } from '@/components/approval';
+import { usePermission } from '@/hooks/usePermission';
 import ProductTable from './components/ProductTable';
 import ProductDrawer from './components/ProductDrawer';
 import ProductToolbar from './components/ProductToolbar';
@@ -54,6 +55,11 @@ const PRODUCT_TYPE_OPTIONS = [
 ];
 
 export default function ProductParametersPage() {
+  const { hasAnyPermission } = usePermission();
+  const canViewProduct = hasAnyPermission(['banking.parameter.product.view', 'banking.parameter.product.manage', 'banking.parameter.product', 'admin.super_admin']);
+  const canManageProduct = hasAnyPermission(['banking.parameter.product.manage', 'banking.parameter.product.create', 'banking.parameter.product.update', 'banking.parameter.product.delete', 'admin.super_admin']);
+  const canExportProduct = hasAnyPermission(['banking.parameter.product.export', 'banking.parameter.product.manage', 'admin.super_admin']);
+
   const searchParams = useSearchParams();
   const mode = searchParams.get('mode') || 'conventional';
 
@@ -140,28 +146,30 @@ export default function ProductParametersPage() {
       ]);
 
       if (businessRes.success) {
-        // Extract B0001 (Currency) and B0002 (Amortization)
-        const currencies = businessRes.data.find((p: any) => p.param_code === 'B0001')?.details.map((d: any) => ({
-          id: d.value1 || d.param_value,
-          name: d.paramdesc || d.value1
-        })) || options.currencies;
+        setOptions(prev => {
+          // Extract B0001 (Currency) and B0002 (Amortization)
+          const currencies = businessRes.data.find((p: any) => p.param_code === 'B0001')?.details.map((d: any) => ({
+            id: d.value1 || d.param_value,
+            name: d.paramdesc || d.value1
+          })) || prev.currencies;
 
-        const amortMethods = businessRes.data.find((p: any) => p.param_code === 'B0002')?.details.map((d: any) => ({
-          id: d.value1,
-          name: d.paramdesc || d.value1
-        })) || options.amortizationTypes;
+          const amortMethods = businessRes.data.find((p: any) => p.param_code === 'B0002')?.details.map((d: any) => ({
+            id: d.value1,
+            name: d.paramdesc || d.value1
+          })) || prev.amortizationTypes;
 
-        setOptions(prev => ({
-          ...prev,
-          currencies,
-          amortizationTypes: amortMethods,
-          instrumentClasses: instrumentRes.success ? instrumentRes.data : prev.instrumentClasses
-        }));
+          return {
+            ...prev,
+            currencies,
+            amortizationTypes: amortMethods,
+            instrumentClasses: instrumentRes.success ? instrumentRes.data : prev.instrumentClasses
+          };
+        });
       }
     } catch (err) {
       console.warn('Failed to load dynamic options', err);
     }
-  }, [options.currencies, options.amortizationTypes, options.instrumentClasses]);
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -173,16 +181,19 @@ export default function ProductParametersPage() {
 
   // Handlers
   const handleEdit = (product: any) => {
+    if (!canManageProduct) return;
     setSelectedProduct(product);
     setDrawerOpen(true);
   };
 
   const handleClone = (product: any) => {
+    if (!canManageProduct) return;
     setSelectedProduct({ ...product, pkid: undefined, _clone: true });
     setDrawerOpen(true);
   };
 
   const handleSave = async (formData: any) => {
+    if (!canManageProduct) return;
     setLoading(true);
     try {
       const payload = { ...formData, mode };
@@ -209,6 +220,7 @@ export default function ProductParametersPage() {
   };
 
   const handleDelete = async (product: any) => {
+    if (!canManageProduct) return;
     if (!confirm(`Delete product "${product.prdCode}"?`)) return;
     setLoading(true);
     try {
@@ -229,6 +241,7 @@ export default function ProductParametersPage() {
   };
 
   const handleExport = (format: 'xlsx' | 'csv' | 'pdf') => {
+    if (!canExportProduct) return;
     setExportMenuAnchor(null);
     const cols = [
       { field: 'prdCode', headerName: 'Code' },
@@ -252,6 +265,11 @@ export default function ProductParametersPage() {
     <Container maxWidth="xl" sx={{ py: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
       <ModernLoader open={loading} message="Processing Product Data..." />
       <FullstackIndicator />
+      {!canViewProduct && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          You do not have permission to view product parameters.
+        </Alert>
+      )}
 
       <PageHeader
         title="Product Parameters"
@@ -268,6 +286,8 @@ export default function ProductParametersPage() {
         onRefreshClick={loadData}
         loading={loading}
         activeFilterCount={activeFilterCount}
+        canManage={canManageProduct}
+        canExport={canExportProduct}
       />
 
       <Box sx={{ flexGrow: 1, minHeight: 0 }}>
@@ -280,6 +300,7 @@ export default function ProductParametersPage() {
           paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
           rowCount={rowCount}
+          canManage={canManageProduct}
           onViewPending={(request, record) => {
             setSelectedPendingRequest(request);
             setCurrentRecordForPending(record);
@@ -295,6 +316,7 @@ export default function ProductParametersPage() {
         onSave={handleSave}
         initialData={selectedProduct}
         loading={loading}
+        canManage={canManageProduct}
         options={options}
       />
 
@@ -315,7 +337,7 @@ export default function ProductParametersPage() {
         options={{ currencies: options.currencies, dataSources: options.dataSources }}
       />
 
-      <Menu anchorEl={exportMenuAnchor} open={Boolean(exportMenuAnchor)} onClose={() => setExportMenuAnchor(null)}>
+      <Menu anchorEl={exportMenuAnchor} open={canExportProduct && Boolean(exportMenuAnchor)} onClose={() => setExportMenuAnchor(null)}>
         <MenuItem onClick={() => handleExport('xlsx')}>
           <ListItemIcon><DownloadIcon fontSize="small" /></ListItemIcon>
           <ListItemText>Export to Excel</ListItemText>

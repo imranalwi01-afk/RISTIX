@@ -37,6 +37,7 @@ export type AppContext = {
         userId?: string
         tokenId?: string
         permissions?: string[]
+        userPermissions?: string[]
         isSystemUser?: boolean
         user?: User
         logger?: Logger

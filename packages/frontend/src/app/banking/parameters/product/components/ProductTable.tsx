@@ -42,6 +42,7 @@ interface ProductTableProps {
   onPaginationModelChange: (model: { page: number; pageSize: number }) => void;
   rowCount: number;
   onViewPending?: (request: any, record: ProductParameter) => void;
+  canManage: boolean;
 }
 
 export default function ProductTable({
@@ -53,7 +54,8 @@ export default function ProductTable({
   paginationModel,
   onPaginationModelChange,
   rowCount,
-  onViewPending
+  onViewPending,
+  canManage
 }: ProductTableProps) {
   const columns: GridColDef[] = [
     {
@@ -150,7 +152,7 @@ export default function ProductTable({
       type: 'actions',
       headerName: 'Actions',
       width: 140,
-      getActions: (params: GridRowParams) => [
+      getActions: (params: GridRowParams) => canManage ? [
         <SafeGridActionsCellItem
           icon={<EditIcon color="primary" />}
           label="Edit"
@@ -172,7 +174,7 @@ export default function ProductTable({
           showInMenu={false}
           key="delete"
         />
-      ]
+      ] : []
     }
   ];
 

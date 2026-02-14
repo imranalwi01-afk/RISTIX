@@ -31,8 +31,12 @@ import {
   ArrowBack as BackIcon
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
+import { usePermission } from '@/hooks/usePermission';
 
 export default function DataExportPage() {
+  const { hasAnyPermission } = usePermission();
+  const canViewToolsExport = hasAnyPermission(['banking.tools.export.view', 'banking.tools.export.manage', 'banking.tools.manage', 'admin.super_admin']);
+  const canManageToolsExport = hasAnyPermission(['banking.tools.export.manage', 'banking.tools.manage', 'admin.super_admin']);
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any>(null);
@@ -67,6 +71,11 @@ export default function DataExportPage() {
 
   return (
     <Container maxWidth="xl">
+      {!canViewToolsExport && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          You do not have permission to view export tools.
+        </Alert>
+      )}
       {/* Breadcrumb Navigation */}
       <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
         <Link
@@ -123,13 +132,15 @@ export default function DataExportPage() {
               </Alert>
 
               <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
-                <Button
-                  variant="contained"
-                  startIcon={<PageIcon />}
-                  disabled
-                >
-                  Configure Data Export
-                </Button>
+                {canManageToolsExport && (
+                  <Button
+                    variant="contained"
+                    startIcon={<PageIcon />}
+                    disabled
+                  >
+                    Configure Data Export
+                  </Button>
+                )}
                 <Button
                   variant="outlined"
                   startIcon={<BackIcon />}

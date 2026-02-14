@@ -71,6 +71,7 @@ import {
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { useDropzone } from 'react-dropzone';
+import { usePermission } from '@/hooks/usePermission';
 
 // ============================================================================
 // INTERFACES
@@ -116,6 +117,10 @@ interface ProcessingStep {
 // ============================================================================
 
 export default function ManualUploadPage() {
+  const { hasAnyPermission } = usePermission();
+  const canViewToolsUpload = hasAnyPermission(['banking.tools.upload.view', 'banking.tools.upload.manage', 'banking.tools.manage', 'admin.super_admin']);
+  const canManageToolsUpload = hasAnyPermission(['banking.tools.upload.manage', 'banking.tools.upload.create', 'banking.tools.manage', 'admin.super_admin']);
+
   const router = useRouter();
   const [activeTab, setActiveTab] = useState(0);
   const [selectedTemplate, setSelectedTemplate] = useState<UploadTemplate | null>(null);
@@ -200,6 +205,7 @@ export default function ManualUploadPage() {
 
   // File drop zone
   const onDrop = useCallback((acceptedFiles: File[]) => {
+    if (!canManageToolsUpload) return;
     if (!selectedTemplate) {
       alert('Please select a template first');
       return;
@@ -221,7 +227,7 @@ export default function ManualUploadPage() {
 
       setUploadedFiles(prev => [...prev, newFile]);
     });
-  }, [selectedTemplate]);
+  }, [selectedTemplate, canManageToolsUpload]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -229,7 +235,8 @@ export default function ManualUploadPage() {
       Object.fromEntries(selectedTemplate.fileType.map(type => [`.${type}`, []])) : 
       {},
     maxSize: selectedTemplate?.maxSize || 50 * 1024 * 1024,
-    multiple: true
+    multiple: true,
+    disabled: !canManageToolsUpload
   });
 
   // Handle template selection
@@ -240,6 +247,7 @@ export default function ManualUploadPage() {
 
   // Handle file processing
   const handleProcessFiles = () => {
+    if (!canManageToolsUpload) return;
     setShowProcessDialog(true);
     setProcessing(true);
     setProcessingSteps(processingStepTemplates);
@@ -392,6 +400,11 @@ export default function ManualUploadPage() {
           <Box>
             {selectedTemplate ? (
               <Box>
+                {!canManageToolsUpload && (
+                  <Alert severity="warning" sx={{ mb: 2 }}>
+                    You do not have permission to upload or process files.
+                  </Alert>
+                )}
                 <Alert severity="info" sx={{ mb: 3 }}>
                   <Typography variant="body2">
                     <strong>Selected Template:</strong> {selectedTemplate.name} - {selectedTemplate.description}
@@ -486,21 +499,25 @@ export default function ManualUploadPage() {
 
                       {uploadedFiles.length > 0 && (
                         <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
-                          <Button 
-                            variant="contained" 
-                            startIcon={<PlayArrow />}
-                            onClick={handleProcessFiles}
-                            disabled={processing || uploadedFiles.every(f => f.status === 'COMPLETED')}
-                          >
-                            Process Files
-                          </Button>
-                          <Button 
-                            variant="outlined" 
-                            startIcon={<Refresh />}
-                            onClick={() => setUploadedFiles([])}
-                          >
-                            Clear All
-                          </Button>
+                          {canManageToolsUpload && (
+                            <>
+                              <Button 
+                                variant="contained" 
+                                startIcon={<PlayArrow />}
+                                onClick={handleProcessFiles}
+                                disabled={processing || uploadedFiles.every(f => f.status === 'COMPLETED')}
+                              >
+                                Process Files
+                              </Button>
+                              <Button 
+                                variant="outlined" 
+                                startIcon={<Refresh />}
+                                onClick={() => setUploadedFiles([])}
+                              >
+                                Clear All
+                              </Button>
+                            </>
+                          )}
                         </Box>
                       )}
                     </CardContent>
@@ -540,6 +557,11 @@ export default function ManualUploadPage() {
 
   return (
     <Container maxWidth="xl">
+      {!canViewToolsUpload && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          You do not have permission to view manual upload tools.
+        </Alert>
+      )}
       {/* Breadcrumb Navigation */}
       <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
         <Link 

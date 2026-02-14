@@ -10,6 +10,149 @@ import { redis } from '@/config/redis'
 import type { AppContext } from '../app'
 import { withRequestIds } from '../lib/logger'
 
+type RoutePermissionRule = {
+    prefix: string
+    base?: string
+    fixed?: string[]
+}
+
+const LEGACY_PERMISSION_ALIASES: Record<string, string> = {
+    MANAGE_SYSTEM: 'admin.system.manage',
+    MANAGE_USERS: 'admin.users.manage',
+    VIEW_USERS: 'admin.users.view',
+    MANAGE_ROLES: 'admin.roles.manage',
+    VIEW_DASHBOARD: 'banking.dashboard.view',
+    VIEW_ANALYTICS: 'banking.analytics.view',
+    VIEW_LOANS: 'banking.portfolio.loans.view',
+    MANAGE_LOANS: 'banking.portfolio.loans.manage',
+    VIEW_IFRS9_REPORTS: 'banking.reports.ifrs9.view',
+    MANAGE_IFRS9_CONFIG: 'banking.configuration.ifrs9.manage',
+    VIEW_COLLECTIVE_IMPAIRMENT: 'banking.collective.view',
+    VIEW_INDIVIDUAL_IMPAIRMENT: 'banking.individual.view',
+    VIEW_IFRS9_PROCESSING: 'banking.processing.view',
+    VIEW_R_ANALYTICS: 'banking.analytics.r.view',
+    SUPER_ADMIN: 'admin.super_admin',
+}
+
+const ROUTE_PERMISSION_RULES: RoutePermissionRule[] = [
+    { prefix: '/api/v1/banking/setup/application', base: 'banking.setup.application' },
+    { prefix: '/api/v1/banking/setup/business', base: 'banking.setup.business' },
+    { prefix: '/api/v1/banking/business-settings', base: 'banking.setup.business' },
+
+    { prefix: '/api/v1/banking/parameters/product', base: 'banking.parameter.product' },
+    { prefix: '/api/v1/banking/parameters/journal', base: 'banking.parameter.journal' },
+    { prefix: '/api/v1/banking/parameters/app-settings', base: 'banking.setup.application' },
+    { prefix: '/api/v1/banking/parameters/segmentation', base: 'banking.parameter.segmentation' },
+    { prefix: '/api/v1/banking/parameters/population-segments', base: 'banking.parameter.segmentation' },
+    { prefix: '/api/v1/banking/parameters/product-segments', base: 'banking.parameter.segmentation' },
+    { prefix: '/api/v1/banking/parameters', base: 'banking.parameter' },
+
+    { prefix: '/api/v1/banking/collective/rule-base', base: 'banking.collective.rule_base' },
+    { prefix: '/api/v1/banking/collective/bucket', base: 'banking.collective.bucket' },
+    { prefix: '/api/v1/banking/collective/pd-configurations', base: 'banking.collective.pd' },
+    { prefix: '/api/v1/banking/collective/lgd-configurations', base: 'banking.collective.lgd' },
+    { prefix: '/api/v1/banking/collective/ead-configurations', base: 'banking.collective.ead' },
+    { prefix: '/api/v1/banking/collective/ecl-config', base: 'banking.collective.ecl' },
+    { prefix: '/api/v1/banking/collective/fl-scalar', base: 'banking.collective.fl_scalar' },
+    { prefix: '/api/v1/banking/collective', base: 'banking.collective' },
+    { prefix: '/api/v1/banking/individual', base: 'banking.individual' },
+    { prefix: '/api/v1/banking/ifrs9', base: 'banking.processing' },
+    { prefix: '/api/v1/banking/dashboard', base: 'banking.dashboard' },
+    { prefix: '/api/v1/banking', base: 'banking.processing' },
+
+    { prefix: '/api/v1/ifrs9/reports', base: 'banking.reports.ifrs9' },
+    { prefix: '/api/v1/reports', base: 'banking.reports.ifrs9' },
+    { prefix: '/api/v1/ifrs9', base: 'banking.processing' },
+    { prefix: '/api/v1/r-analytics', base: 'banking.analytics.r' },
+
+    { prefix: '/api/v1/users', base: 'admin.users' },
+    { prefix: '/api/v1/user', base: 'admin.users' },
+    { prefix: '/api/v1/rbac', base: 'admin.roles' },
+    { prefix: '/api/v1/roles', base: 'admin.roles' },
+    { prefix: '/api/v1/approvals', fixed: ['approval.requests.approve', 'approval.all'] },
+    { prefix: '/api/v1/approval', fixed: ['approval.requests.approve', 'approval.all'] },
+    { prefix: '/api/v1/workflow', fixed: ['approval.requests.approve', 'approval.all'] },
+    { prefix: '/api/v1/forms', base: 'admin.system' },
+    { prefix: '/api/v1/security', base: 'admin.system' },
+    { prefix: '/api/v1/security-config', base: 'admin.system' },
+    { prefix: '/api/v1/portfolio-management', base: 'banking.portfolio' },
+    { prefix: '/api/v1/banking-resource', base: 'banking.processing' },
+    { prefix: '/api/v1/user-activity', base: 'admin.system' },
+    { prefix: '/api/v1/user-registration', base: 'admin.users' },
+
+    { prefix: '/api/v1/audit', base: 'admin.system' },
+    { prefix: '/api/v1/jobs', base: 'admin.system' },
+    { prefix: '/api/v1/platform-admin', base: 'admin.system' },
+    { prefix: '/api/v1/platform-users', base: 'admin.system' },
+    { prefix: '/api/v1/tenants', base: 'admin.system' },
+    { prefix: '/api/v1/consultants', base: 'admin.system' },
+    { prefix: '/api/v1/admin-dashboard', base: 'admin.system' },
+    { prefix: '/api/v1/tenant-registry', base: 'admin.system' },
+    { prefix: '/api/v1/platform-infrastructure', base: 'admin.system' },
+]
+
+const routePermissionRules = [...ROUTE_PERMISSION_RULES].sort(
+    (a, b) => b.prefix.length - a.prefix.length
+)
+
+const toPermissionAction = (method: string): 'view' | 'create' | 'update' | 'delete' => {
+    switch (method.toUpperCase()) {
+        case 'POST':
+            return 'create'
+        case 'PUT':
+        case 'PATCH':
+            return 'update'
+        case 'DELETE':
+            return 'delete'
+        case 'GET':
+        default:
+            return 'view'
+    }
+}
+
+const normalizePermissions = (permissions: string[]): string[] => {
+    const normalized = new Set<string>()
+
+    for (const permission of permissions) {
+        normalized.add(permission)
+        const alias = LEGACY_PERMISSION_ALIASES[permission]
+        if (alias) normalized.add(alias)
+    }
+
+    return Array.from(normalized)
+}
+
+const getRequiredPermissionCandidates = (path: string, method: string): string[] => {
+    const matchedRule = routePermissionRules.find(
+        (rule) => path === rule.prefix || path.startsWith(`${rule.prefix}/`)
+    )
+    if (!matchedRule) return []
+
+    if (matchedRule.fixed && matchedRule.fixed.length > 0) {
+        return matchedRule.fixed
+    }
+
+    if (!matchedRule.base) return []
+
+    const action = toPermissionAction(method)
+    const candidates = new Set<string>([
+        `${matchedRule.base}.${action}`,
+        `${matchedRule.base}.manage`,
+        `${matchedRule.base}.access`,
+        matchedRule.base,
+    ])
+
+    return Array.from(candidates)
+}
+
+const hasAnyPermission = (permissions: string[], candidates: string[]): boolean => {
+    if (permissions.includes('*')) return true
+    if (permissions.includes('admin.super_admin')) return true
+    if (permissions.includes('SUPER_ADMIN')) return true
+    if (permissions.includes('PLATFORM_ADMIN')) return true
+    return candidates.some((candidate) => permissions.includes(candidate))
+}
+
 /**
  * JWT verification middleware
  * Extracts and validates JWT token from Authorization header
@@ -59,6 +202,8 @@ export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
         c.set('tokenId', 'demo-token-jti')
         c.set('tenantId', 'iaf') 
         c.set('isSystemUser', mockUser.isPlatformAdmin)
+        c.set('permissions', ['*'])
+        c.set('userPermissions', ['*'])
 
         await next()
         return
@@ -141,11 +286,45 @@ export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
         baseLogger.info({ email: user.email, tenantName: tenant.name }, '[AUTH] User context loaded')
 
         // Set user context - ALWAYS use the resolved UUID from tenant object
+        const payloadPermissions = Array.isArray((payload as any).permissions)
+            ? ((payload as any).permissions as unknown[]).filter((permission): permission is string => typeof permission === 'string')
+            : []
+        const resolvedPermissions = normalizePermissions(payloadPermissions)
+
         c.set('userId', user.id)
         c.set('user', user)
         c.set('tokenId', payload.jti)
         c.set('tenantId', tenant.id) // Use resolved UUID, not user.tenantId which might be a slug
         c.set('isSystemUser', !!(user as any).isPlatformAdmin) // Use the flag
+        c.set('permissions', resolvedPermissions)
+        c.set('userPermissions', resolvedPermissions)
+
+        const requiredPermissions = getRequiredPermissionCandidates(c.req.path, c.req.method)
+        const hasRouteAccess =
+            c.get('isSystemUser') ||
+            requiredPermissions.length === 0 ||
+            hasAnyPermission(resolvedPermissions, requiredPermissions)
+
+        if (!hasRouteAccess) {
+            baseLogger.warn(
+                {
+                    path: c.req.path,
+                    method: c.req.method,
+                    requiredPermissions,
+                    userPermissions: resolvedPermissions,
+                },
+                '[AUTHZ] Missing required permission for route'
+            )
+            return c.json(
+                {
+                    success: false,
+                    error: `Missing required permission for ${c.req.method} ${c.req.path}`,
+                    requiredPermissions,
+                    code: 'UNAUTHORIZED',
+                },
+                403
+            )
+        }
 
         await next()
     } catch (error: any) {

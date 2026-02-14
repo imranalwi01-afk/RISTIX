@@ -27,6 +27,7 @@ import { ApprovalStatusBadge } from '@/components/approval/ApprovalStatusBadge';
 
 interface SegmentationTableProps {
   data: any[];
+  canManage: boolean;
   selectedIds: number[];
   onSelect: (id: number) => void;
   onSelectAll: (checked: boolean) => void;
@@ -45,6 +46,7 @@ interface SegmentationTableProps {
 
 export default function SegmentationTable({
   data,
+  canManage,
   selectedIds,
   onSelect,
   onSelectAll,
@@ -87,6 +89,7 @@ export default function SegmentationTable({
                   indeterminate={selectedIds.length > 0 && selectedIds.length < data.length}
                   checked={data.length > 0 && selectedIds.length === data.length}
                   onChange={handleSelectAllClick}
+                  disabled={!canManage}
                 />
               </TableCell>
               <TableCell><strong>Actions</strong></TableCell>
@@ -131,6 +134,7 @@ export default function SegmentationTable({
                         color="primary"
                         checked={isItemSelected}
                         onChange={() => onSelect(row.id)}
+                        disabled={!canManage}
                       />
                     </TableCell>
                     <TableCell>
@@ -140,21 +144,25 @@ export default function SegmentationTable({
                             <ViewIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
-                        <Tooltip title="Edit">
-                          <IconButton size="small" onClick={() => onEdit(row)} color="warning">
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Duplicate">
-                          <IconButton size="small" onClick={() => onDuplicate(row)} >
-                            <DuplicateIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Delete">
-                          <IconButton size="small" onClick={() => onDelete(row)} color="error">
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
+                        {canManage && (
+                          <>
+                            <Tooltip title="Edit">
+                              <IconButton size="small" onClick={() => onEdit(row)} color="warning">
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Duplicate">
+                              <IconButton size="small" onClick={() => onDuplicate(row)} >
+                                <DuplicateIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Delete">
+                              <IconButton size="small" onClick={() => onDelete(row)} color="error">
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          </>
+                        )}
                       </Box>
                     </TableCell>
                     <TableCell sx={{ fontWeight: 600, color: 'primary.main' }}>

@@ -5,6 +5,7 @@ import { eq, and, inArray, or, sql } from 'drizzle-orm'
 const PREFERRED_TENANT_ID = process.env.TENANT_UUID || 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be'
 const TARGET_TENANT_SLUG = process.env.TENANT_SLUG || 'iaf'
 const PASSWORD_HASH = '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj/RK.s5uO.GG' // Password: 1019181716
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 async function setupMakerChecker() {
     console.log(`🏗️  Setting up Maker and Checker roles/users for tenant '${TARGET_TENANT_SLUG}'...`)
@@ -20,24 +21,37 @@ async function setupMakerChecker() {
                OR to_jsonb(t)->>'tenant_slug' = ${TARGET_TENANT_SLUG}
                OR upper(coalesce(to_jsonb(t)->>'code', '')) = ${TARGET_TENANT_SLUG.toUpperCase()}
             LIMIT 1
-        `) as { rows?: Array<{ id: string }> }
+        `) as any
 
-        let tenantId = platformTenantResult.rows?.[0]?.id
+        const firstPlatformRow = Array.isArray(platformTenantResult)
+            ? platformTenantResult[0]
+            : platformTenantResult?.rows?.[0]
+
+        let tenantId = firstPlatformRow?.id as string | undefined
 
         if (!tenantId) {
             console.log('  ⚠ Not found in platform registry, trying tenant DB core.tenants...')
-            const [tenantRecord] = await db
-                .select({ id: tenants.id })
-                .from(tenants)
-                .where(
-                    or(
-                        eq(tenants.id, PREFERRED_TENANT_ID),
-                        eq(tenants.slug, TARGET_TENANT_SLUG),
-                        eq(tenants.code, TARGET_TENANT_SLUG.toUpperCase())
+            try {
+                const [tenantRecord] = await db
+                    .select({ id: tenants.id })
+                    .from(tenants)
+                    .where(
+                        or(
+                            eq(tenants.id, PREFERRED_TENANT_ID),
+                            eq(tenants.slug, TARGET_TENANT_SLUG),
+                            eq(tenants.code, TARGET_TENANT_SLUG.toUpperCase())
+                        )
                     )
-                )
-                .limit(1)
-            tenantId = tenantRecord?.id
+                    .limit(1)
+                tenantId = tenantRecord?.id
+            } catch (error) {
+                console.log('  ⚠ core.tenants unavailable on this tenant DB, skipping fallback lookup')
+            }
+        }
+
+        if (!tenantId && UUID_REGEX.test(PREFERRED_TENANT_ID)) {
+            tenantId = PREFERRED_TENANT_ID
+            console.log(`  ⚠ Using TENANT_UUID directly: ${tenantId}`)
         }
 
         if (!tenantId) {

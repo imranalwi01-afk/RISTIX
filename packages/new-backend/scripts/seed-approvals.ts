@@ -6,13 +6,13 @@
  * Run with: bun run scripts/seed-approvals.ts
  */
 
-import { platformDb, tenantDb } from '../src/config/database'
-import { tenants } from '../src/db/schema/platform.schema'
+import { platformDb } from '../src/config/database'
+import { platformTenants } from '../src/db/schema/platform.schema'
 import { seedApprovalMatrices, assignApprovalPermissionsToRoles } from '../src/db/seeds/seed-approval-matrices'
 
 async function getTenantId(): Promise<string> {
-    // Query tenants from platform database
-    const result = await platformDb.select({ id: tenants.id }).from(tenants).limit(1)
+    // Query tenant from platform_admin.tenants
+    const result = await platformDb.select({ id: platformTenants.id }).from(platformTenants).limit(1)
     if (!result || result.length === 0) {
         throw new Error('No tenant found in database. Please create a tenant first.')
     }

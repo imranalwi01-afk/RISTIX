@@ -65,6 +65,7 @@ import { bankingAPI } from '../../../../services/api';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 import { ApprovalNotification, ApprovalStatusBadge } from '@/components/approval';
 import { useCallback } from 'react';
+import { usePermission } from '@/hooks/usePermission';
 
 
 // =====================================================
@@ -114,6 +115,7 @@ interface RuleBaseDetail {
 
 interface ExpandableRowProps {
   header: RuleBaseHeader;
+  canManage: boolean;
   onEditHeader: (header: RuleBaseHeader) => void;
   onDeleteHeader: (header: RuleBaseHeader) => void;
   onCreateDetail: (headerId: number) => void;
@@ -126,6 +128,7 @@ interface ExpandableRowProps {
 
 function ExpandableRow({
   header,
+  canManage,
   onEditHeader,
   onDeleteHeader,
   onCreateDetail,
@@ -243,28 +246,32 @@ function ExpandableRow({
           />
         </TableCell>
         <TableCell>
-          <Tooltip title="Edit Rule Header">
-            <IconButton
-              size="small"
-              color="primary"
-              onClick={() => onEditHeader(header)}
-              disabled={loading}
-              data-testid="edit-header-btn"
-            >
-              <EditIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Delete Rule Header">
-            <IconButton
-              size="small"
-              color="error"
-              onClick={() => onDeleteHeader(header)}
-              disabled={loading}
-              data-testid="delete-header-btn"
-            >
-              <DeleteIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+          {canManage && (
+            <>
+              <Tooltip title="Edit Rule Header">
+                <IconButton
+                  size="small"
+                  color="primary"
+                  onClick={() => onEditHeader(header)}
+                  disabled={loading}
+                  data-testid="edit-header-btn"
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Delete Rule Header">
+                <IconButton
+                  size="small"
+                  color="error"
+                  onClick={() => onDeleteHeader(header)}
+                  disabled={loading}
+                  data-testid="delete-header-btn"
+                >
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </>
+          )}
         </TableCell>
       </TableRow>
 
@@ -277,16 +284,18 @@ function ExpandableRow({
                 <Typography variant="h6" gutterBottom component="div" sx={{ fontWeight: 'bold' }}>
                   Rule Details for: {header.rule_name}
                 </Typography>
-                <Button
-                  size="small"
-                  startIcon={<AddIcon />}
-                  onClick={() => onCreateDetail(header.id)}
-                  disabled={loading}
-                  variant="outlined"
-                  data-testid="add-detail-btn"
-                >
-                  Add Detail
-                </Button>
+                {canManage && (
+                  <Button
+                    size="small"
+                    startIcon={<AddIcon />}
+                    onClick={() => onCreateDetail(header.id)}
+                    disabled={loading}
+                    variant="outlined"
+                    data-testid="add-detail-btn"
+                  >
+                    Add Detail
+                  </Button>
+                )}
               </Box>
 
               {loadingDetails ? (
@@ -367,28 +376,32 @@ function ExpandableRow({
                             </Typography>
                           </TableCell>
                           <TableCell>
-                            <Tooltip title="Edit Detail">
-                              <IconButton
-                                size="small"
-                                color="primary"
-                                onClick={() => onEditDetail(detail)}
-                                disabled={loading}
-                                data-testid="edit-detail-btn"
-                              >
-                                <EditIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Delete Detail">
-                              <IconButton
-                                size="small"
-                                color="error"
-                                onClick={() => onDeleteDetail(detail)}
-                                disabled={loading}
-                                data-testid="delete-detail-btn"
-                              >
-                                <DeleteIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
+                            {canManage && (
+                              <>
+                                <Tooltip title="Edit Detail">
+                                  <IconButton
+                                    size="small"
+                                    color="primary"
+                                    onClick={() => onEditDetail(detail)}
+                                    disabled={loading}
+                                    data-testid="edit-detail-btn"
+                                  >
+                                    <EditIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Delete Detail">
+                                  <IconButton
+                                    size="small"
+                                    color="error"
+                                    onClick={() => onDeleteDetail(detail)}
+                                    disabled={loading}
+                                    data-testid="delete-detail-btn"
+                                  >
+                                    <DeleteIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                              </>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -409,6 +422,10 @@ function ExpandableRow({
 // =====================================================
 
 export default function RuleBaseSettingPage() {
+  const { hasAnyPermission } = usePermission();
+  const canViewRuleBase = hasAnyPermission(['banking.collective.rule_base.view', 'banking.collective.rule_base.manage', 'banking.collective.manage', 'banking.collective', 'admin.super_admin']);
+  const canManageRuleBase = hasAnyPermission(['banking.collective.rule_base.manage', 'banking.collective.rule_base.create', 'banking.collective.rule_base.update', 'banking.collective.rule_base.delete', 'banking.collective.manage', 'admin.super_admin']);
+
   const router = useRouter();
 
   // State Management - Live Database Integration
@@ -579,6 +596,7 @@ export default function RuleBaseSettingPage() {
 
   // Header CRUD operations
   const handleCreateHeader = () => {
+    if (!canManageRuleBase) return;
     setSelectedHeader(null);
     setHeaderFormData({
       rule_name: '',
@@ -593,6 +611,7 @@ export default function RuleBaseSettingPage() {
   };
 
   const handleEditHeader = (header: RuleBaseHeader) => {
+    if (!canManageRuleBase) return;
     setSelectedHeader(header);
     setHeaderFormData({
       rule_name: header.rule_name,
@@ -607,6 +626,7 @@ export default function RuleBaseSettingPage() {
   };
 
   const handleDeleteHeader = async (header: RuleBaseHeader) => {
+    if (!canManageRuleBase) return;
     if (!confirm(`Are you sure you want to delete rule "${header.rule_name}"? This will also delete all associated details.`)) {
       return;
     }
@@ -640,6 +660,7 @@ export default function RuleBaseSettingPage() {
   };
 
   const handleSaveHeader = async () => {
+    if (!canManageRuleBase) return;
     if (!headerFormData.rule_name?.trim() || !headerFormData.rule_type?.trim()) {
       setError('Rule name and type are required');
       return;
@@ -692,6 +713,7 @@ export default function RuleBaseSettingPage() {
 
   // Detail CRUD operations
   const handleCreateDetail = (headerId: number) => {
+    if (!canManageRuleBase) return;
     setSelectedDetail(null);
     setSelectedHeaderId(headerId);
     setDetailFormData({
@@ -709,6 +731,7 @@ export default function RuleBaseSettingPage() {
   };
 
   const handleEditDetail = (detail: RuleBaseDetail) => {
+    if (!canManageRuleBase) return;
     setSelectedDetail(detail);
     setSelectedHeaderId(detail.rule_id);
     setDetailFormData(detail);
@@ -716,6 +739,7 @@ export default function RuleBaseSettingPage() {
   };
 
   const handleDeleteDetail = async (detail: RuleBaseDetail) => {
+    if (!canManageRuleBase) return;
     if (!confirm(`Are you sure you want to delete this rule detail?`)) {
       return;
     }
@@ -750,6 +774,7 @@ export default function RuleBaseSettingPage() {
   };
 
   const handleSaveDetail = async () => {
+    if (!canManageRuleBase) return;
     if (!detailFormData.table_name?.trim() || !detailFormData.column_name?.trim()) {
       setError('Table name and column name are required');
       return;
@@ -837,6 +862,11 @@ export default function RuleBaseSettingPage() {
   return (
     <Container maxWidth="xl" sx={{ position: 'relative' }}>
       <FullstackIndicator />
+      {!canViewRuleBase && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          You do not have permission to view rule base settings.
+        </Alert>
+      )}
       {/* Breadcrumb Navigation */}
       <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
         <Link
@@ -919,15 +949,17 @@ export default function RuleBaseSettingPage() {
               <RefreshIcon />
             </IconButton>
           </Tooltip>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleCreateHeader}
-            disabled={loading}
-            data-testid="add-rule-btn"
-          >
-            Add Rule
-          </Button>
+          {canManageRuleBase && (
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleCreateHeader}
+              disabled={loading}
+              data-testid="add-rule-btn"
+            >
+              Add Rule
+            </Button>
+          )}
         </Box>
       </Box>
 
@@ -1075,6 +1107,7 @@ export default function RuleBaseSettingPage() {
                     <ExpandableRow
                       key={header.id ? `row-${header.id}` : `row-idx-${index}`}
                       header={header}
+                      canManage={canManageRuleBase}
                       onEditHeader={handleEditHeader}
                       onDeleteHeader={handleDeleteHeader}
                       onCreateDetail={handleCreateDetail}
@@ -1192,9 +1225,11 @@ export default function RuleBaseSettingPage() {
           <Button onClick={() => setHeaderDialogOpen(false)} disabled={loading}>
             Cancel
           </Button>
-          <Button onClick={handleSaveHeader} variant="contained" disabled={loading} data-testid="save-rule-header-btn">
-            {loading ? <CircularProgress size={20} /> : (selectedHeader ? 'Update' : 'Create')}
-          </Button>
+          {canManageRuleBase && (
+            <Button onClick={handleSaveHeader} variant="contained" disabled={loading} data-testid="save-rule-header-btn">
+              {loading ? <CircularProgress size={20} /> : (selectedHeader ? 'Update' : 'Create')}
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
 
@@ -1346,9 +1381,11 @@ export default function RuleBaseSettingPage() {
           <Button onClick={() => setDetailDialogOpen(false)} disabled={loading}>
             Cancel
           </Button>
-          <Button onClick={handleSaveDetail} variant="contained" disabled={loading} data-testid="save-rule-detail-btn">
-            {loading ? <CircularProgress size={20} /> : (selectedDetail ? 'Update' : 'Create')}
-          </Button>
+          {canManageRuleBase && (
+            <Button onClick={handleSaveDetail} variant="contained" disabled={loading} data-testid="save-rule-detail-btn">
+              {loading ? <CircularProgress size={20} /> : (selectedDetail ? 'Update' : 'Create')}
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
       <ApprovalNotification

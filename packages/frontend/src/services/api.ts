@@ -264,11 +264,18 @@ export const rolesAPI = {
     return response.data;
   },
 
+  // Get roles assigned to user
+  getUserRoles: async (userId: string) => {
+    console.log(`👤 Fetching role assignments for user ${userId}`);
+    const response = await apiClient.get(`/roles/users/${userId}/roles`);
+    return response.data;
+  },
+
   // Assign role to user
   assignUser: async (roleId: string, userId: string) => {
     console.log(`👤 Assigning role ${roleId} to user ${userId}`);
-    // Fixed path matching backend: POST /users/:userId/roles/:roleId
-    const response = await apiClient.post(`/users/${userId}/roles/${roleId}`);
+    // Backend expects assignment payload object
+    const response = await apiClient.post(`/users/${userId}/roles/${roleId}`, { isTemporary: false });
     return response.data;
   },
 

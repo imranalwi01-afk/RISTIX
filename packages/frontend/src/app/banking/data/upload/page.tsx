@@ -72,6 +72,7 @@ import { useRouter } from 'next/navigation';
 import { getAuthToken } from '@/utils/auth-token';
 // getUploadHistory and uploadDataFile imports removed as they are unused and the module does not exist
 import { useDropzone } from 'react-dropzone';
+import { usePermission } from '@/hooks/usePermission';
 
 interface UploadBatch {
   batchId: string;
@@ -130,6 +131,12 @@ const STATUS_ICONS = {
 };
 
 export default function DataUploadPage() {
+  const { hasAnyPermission } = usePermission();
+  const canViewDataUpload = hasAnyPermission(['banking.data.upload.view', 'banking.data.upload.manage', 'banking.data.upload', 'admin.super_admin']);
+  const canUploadData = hasAnyPermission(['banking.data.upload.create', 'banking.data.upload.manage', 'admin.super_admin']);
+  const canValidateData = hasAnyPermission(['banking.data.validation.run', 'banking.data.upload.manage', 'admin.super_admin']);
+  const canProcessData = hasAnyPermission(['banking.data.upload.process', 'banking.data.upload.manage', 'admin.super_admin']);
+
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -172,6 +179,7 @@ export default function DataUploadPage() {
   };
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    if (!canUploadData) return;
     if (acceptedFiles.length === 0) return;
 
     const file = acceptedFiles[0];
@@ -246,7 +254,7 @@ export default function DataUploadPage() {
       setUploading(false);
       setUploadProgress(0);
     }
-  }, []);
+  }, [canUploadData]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -257,10 +265,11 @@ export default function DataUploadPage() {
       'application/json': ['.json']
     },
     multiple: false,
-    disabled: uploading
+    disabled: uploading || !canUploadData
   });
 
   const handleValidateData = async (batchId: string) => {
+    if (!canValidateData) return;
     try {
       const response = await fetch(`/api/v1/etl/validate/${batchId}`, {
         method: 'POST',
@@ -297,6 +306,7 @@ export default function DataUploadPage() {
   };
 
   const handleProcessData = async (batchId: string) => {
+    if (!canProcessData) return;
     try {
       const response = await fetch(`/api/v1/etl/process/${batchId}`, {
         method: 'POST',
@@ -370,6 +380,11 @@ export default function DataUploadPage() {
 
   return (
     <Container maxWidth="xl">
+      {!canViewDataUpload && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          You do not have permission to view data upload.
+        </Alert>
+      )}
       {/* Breadcrumb Navigation */}
       <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
         <Link
@@ -480,6 +495,11 @@ export default function DataUploadPage() {
                   <Typography variant="body2">
                     File is being uploaded and processed. This may take a few moments depending on file size.
                   </Typography>
+                </Alert>
+              )}
+              {!canUploadData && (
+                <Alert severity="warning" sx={{ mt: 2 }}>
+                  You do not have permission to upload files.
                 </Alert>
               )}
             </CardContent>
@@ -638,7 +658,7 @@ export default function DataUploadPage() {
                                 </IconButton>
                               </Tooltip>
 
-                              {batch.status === 'uploaded' && (
+                              {canValidateData && batch.status === 'uploaded' && (
                                 <Tooltip title="Validate Data">
                                   <IconButton
                                     size="small"
@@ -650,7 +670,7 @@ export default function DataUploadPage() {
                                 </Tooltip>
                               )}
 
-                              {batch.status === 'valid' && (
+                              {canProcessData && batch.status === 'valid' && (
                                 <Tooltip title="Process Data">
                                   <IconButton
                                     size="small"
