@@ -41,7 +41,8 @@ import {
   CircularProgress,
   Container,
   Switch,
-  FormControlLabel
+  FormControlLabel,
+  Snackbar
 } from '@mui/material';
 import {
   KeyboardArrowDown,
@@ -57,6 +58,8 @@ import {
 import { useRouter } from 'next/navigation';
 import { bucketParameterAPI, BucketParameterHeader, BucketParameterDetail } from '../../../../services/api.bucketparameter';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
+import { ApprovalNotification, ApprovalStatusBadge } from '@/components/approval';
+import { bankingAPI } from '@/services/api';
 
 
 // ============================================================================
@@ -71,6 +74,7 @@ interface BucketHeaderRowProps {
   onAddDetail: (header: BucketParameterHeader) => void;
   onEditDetail: (detail: BucketParameterDetail) => void;
   onDeleteDetail: (detail: BucketParameterDetail) => void;
+  pendingRequests?: any[];
 }
 
 const BucketHeaderRow: React.FC<BucketHeaderRowProps> = ({
@@ -80,7 +84,8 @@ const BucketHeaderRow: React.FC<BucketHeaderRowProps> = ({
   onDelete,
   onAddDetail,
   onEditDetail,
-  onDeleteDetail
+  onDeleteDetail,
+  pendingRequests = []
 }) => {
   const [open, setOpen] = useState(false);
   const [details, setDetails] = useState<BucketParameterDetail[]>([]);
@@ -174,13 +179,17 @@ const BucketHeaderRow: React.FC<BucketHeaderRowProps> = ({
           />
         </TableCell>
         <TableCell align="center">
-          <Chip
-            label={header.active_flag ? 'Active' : 'Inactive'}
-            size="small"
-            color={header.active_flag ? 'success' : 'default'}
-            variant="outlined"
-            data-testid="header-status-chip"
-          />
+          {pendingRequests.some(r => r.entityId === header.id?.toString()) ? (
+            <ApprovalStatusBadge status="pending" />
+          ) : (
+            <Chip
+              label={header.active_flag ? 'Active' : 'Inactive'}
+              size="small"
+              color={header.active_flag ? 'success' : 'default'}
+              variant="outlined"
+              data-testid="header-status-chip"
+            />
+          )}
         </TableCell>
         <TableCell>
           <Box sx={{ display: 'flex', gap: 0.5 }}>
@@ -326,6 +335,10 @@ export default function BucketParameterPage() {
   const [headerFormData, setHeaderFormData] = useState<Partial<BucketParameterHeader>>({});
   const [detailFormData, setDetailFormData] = useState<Partial<BucketParameterDetail>>({});
 
+  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+  const [approvalNotification, setApprovalNotification] = useState<{ open: boolean, message: string }>({ open: false, message: '' });
+  const [snackbar, setSnackbar] = useState<{ open: boolean, message: string, type: 'success' | 'error' }>({ open: false, message: '', type: 'success' });
+
   // Error State
   const [error, setError] = useState<string | null>(null);
 
@@ -366,6 +379,16 @@ export default function BucketParameterPage() {
       setLoading(false);
     }
   }, [searchTerm, filterBasis]);
+
+  const loadPendingApprovals = useCallback(async () => {
+    try {
+      const response = await bankingAPI.approval.getPendingApprovals();
+      const requests = Array.isArray(response) ? response : response.data || [];
+      setPendingRequests(requests.filter((r: any) => r.entityType === 'bucket_parameter'));
+    } catch (err) {
+      console.error('Error loading pending approvals:', err);
+    }
+  }, []);
 
   // ============================================================================
   // EVENT HANDLERS
@@ -409,14 +432,21 @@ export default function BucketParameterPage() {
 
     try {
       if (!header.id) return;
-      const response = await bucketParameterAPI.deleteHeader(header.id);
-      if (response.success) {
-        await loadBucketHeaders();
+      const response = await bucketParameterAPI.deleteHeader(header.id) as any;
+      const isApprovalResponse = response.approvalRequired || response.status === 202;
+
+      if (isApprovalResponse) {
+        setApprovalNotification({
+          open: true,
+          message: response.message || 'Deletion request submitted for approval'
+        });
       } else {
-        alert('Failed to delete bucket parameter');
+        setSnackbar({ open: true, message: 'Bucket group deleted', type: 'success' });
       }
+      loadBucketHeaders();
+      loadPendingApprovals();
     } catch (error: any) {
-      alert(error.message || 'Error deleting bucket parameter');
+      setSnackbar({ open: true, message: error.message || 'Error deleting bucket parameter', type: 'error' });
     }
   };
 
@@ -446,15 +476,21 @@ export default function BucketParameterPage() {
 
     try {
       if (!detail.id) return;
-      const response = await bucketParameterAPI.deleteDetail(detail.id);
-      if (response.success && selectedHeader) {
-        alert('Deleted successfully');
-        loadBucketHeaders();
+      const response = await bucketParameterAPI.deleteDetail(detail.id) as any;
+      const isApprovalResponse = response.approvalRequired || response.status === 202;
+
+      if (isApprovalResponse) {
+        setApprovalNotification({
+          open: true,
+          message: response.message || 'Deletion request submitted for approval'
+        });
       } else {
-        alert('Failed to delete detail');
+        setSnackbar({ open: true, message: 'Detail deleted successfully', type: 'success' });
       }
+      loadBucketHeaders();
+      loadPendingApprovals();
     } catch (error: any) {
-      alert(error.message || 'Error deleting detail');
+      setSnackbar({ open: true, message: error.message || 'Error deleting detail', type: 'error' });
     }
   };
 
@@ -462,18 +498,30 @@ export default function BucketParameterPage() {
     try {
       if (editMode && !selectedHeader?.id) return;
 
-      const response = editMode
+      const response = (editMode
         ? await bucketParameterAPI.updateHeader(selectedHeader!.id!, headerFormData)
-        : await bucketParameterAPI.createHeader(headerFormData as any);
+        : await bucketParameterAPI.createHeader(headerFormData as any)) as any;
 
-      if (response.success) {
-        setHeaderDialogOpen(false);
-        await loadBucketHeaders();
+      const isApprovalResponse = response.approvalRequired || response.status === 202;
+
+      if (isApprovalResponse) {
+        setApprovalNotification({
+          open: true,
+          message: response.message || 'Request submitted for approval'
+        });
       } else {
-        alert('Failed to save bucket parameter');
+        setSnackbar({
+          open: true,
+          message: editMode ? 'Bucket group updated' : 'Bucket group created',
+          type: 'success'
+        });
       }
+
+      setHeaderDialogOpen(false);
+      loadBucketHeaders();
+      loadPendingApprovals();
     } catch (error: any) {
-      alert(error.message || 'Error saving bucket parameter');
+      setSnackbar({ open: true, message: error.message || 'Error saving bucket parameter', type: 'error' });
     }
   };
 
@@ -482,18 +530,30 @@ export default function BucketParameterPage() {
       if (!editMode && !selectedHeader?.id) return;
       if (editMode && !detailFormData.id) return;
 
-      const response = editMode
+      const response = (editMode
         ? await bucketParameterAPI.updateDetail(detailFormData.id!, detailFormData)
-        : await bucketParameterAPI.createDetail(selectedHeader!.id!, detailFormData as any);
+        : await bucketParameterAPI.createDetail(selectedHeader!.id!, detailFormData as any)) as any;
 
-      if (response.success) {
-        setDetailDialogOpen(false);
-        window.location.reload();
+      const isApprovalResponse = response.approvalRequired || response.status === 202;
+
+      if (isApprovalResponse) {
+        setApprovalNotification({
+          open: true,
+          message: response.message || 'Request submitted for approval'
+        });
       } else {
-        alert('Failed to save bucket detail');
+        setSnackbar({
+          open: true,
+          message: editMode ? 'Detail updated' : 'Detail created',
+          type: 'success'
+        });
       }
+
+      setDetailDialogOpen(false);
+      loadBucketHeaders();
+      loadPendingApprovals();
     } catch (error: any) {
-      alert(error.message || 'Error saving bucket detail');
+      setSnackbar({ open: true, message: error.message || 'Error saving bucket detail', type: 'error' });
     }
   };
 
@@ -504,7 +564,8 @@ export default function BucketParameterPage() {
   useEffect(() => {
     loadBasisOptions();
     loadBucketHeaders();
-  }, [loadBasisOptions, loadBucketHeaders]);
+    loadPendingApprovals();
+  }, [loadBasisOptions, loadBucketHeaders, loadPendingApprovals]);
 
   // ============================================================================
   // RENDER
@@ -613,10 +674,12 @@ export default function BucketParameterPage() {
         </CardContent>
       </Card>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
-          <strong>Error:</strong> {error}
-        </Alert>
+      {snackbar.open && (
+        <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={() => setSnackbar({ ...snackbar, open: false })}>
+          <Alert severity={snackbar.type || 'info'} onClose={() => setSnackbar({ ...snackbar, open: false })}>
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
       )}
 
       <Card>
@@ -651,6 +714,7 @@ export default function BucketParameterPage() {
                       onAddDetail={handleAddDetail}
                       onEditDetail={handleEditDetail}
                       onDeleteDetail={handleDeleteDetail}
+                      pendingRequests={pendingRequests}
                     />
                   ))}
                 </TableBody>
@@ -814,6 +878,11 @@ export default function BucketParameterPage() {
           <Button variant="contained" onClick={handleSaveDetail} data-testid="save-detail-btn">Save</Button>
         </DialogActions>
       </Dialog>
+      <ApprovalNotification
+        open={approvalNotification.open}
+        message={approvalNotification.message}
+        onClose={() => setApprovalNotification({ ...approvalNotification, open: false })}
+      />
     </Container>
   );
 }

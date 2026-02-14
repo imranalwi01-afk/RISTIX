@@ -6,7 +6,7 @@ import {
     getTenantDatabaseUrl,
     getLegacyDatabaseUrl
 } from './env'
-import * as platformSchema from '../db/schema/platform.schema'
+import * as schema from '../db/schema'
 import * as legacySchema from '../db/schema/legacy.schema'
 
 /**
@@ -31,17 +31,17 @@ const legacyConnection = postgres(getLegacyDatabaseUrl(), connectionConfig)
  * Drizzle ORM instance for Platform Admin DB
  * The schema is needed for the relational query API (db.query.*)
  */
-export const platformDb = drizzle(platformConnection, { schema: platformSchema })
+export const platformDb = drizzle(platformConnection, { schema })
 
 /**
  * Drizzle ORM instance for Shared Services DB
  */
-export const sharedDb = drizzle(sharedConnection, { schema: platformSchema })
+export const sharedDb = drizzle(sharedConnection, { schema })
 
 /**
  * Drizzle ORM instance for Tenant DB
  */
-export const tenantDb = drizzle(tenantConnection, { schema: platformSchema, logger: true })
+export const tenantDb = drizzle(tenantConnection, { schema, logger: true })
 
 /**
  * Legacy Drizzle ORM instance

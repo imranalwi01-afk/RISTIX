@@ -12,8 +12,6 @@ import { hashPassword } from './auth.service'
 export interface CreateUserInput {
     email: string
     password: string
-    firstName?: string
-    lastName?: string
     phone?: string
     department?: string
     position?: string
@@ -22,8 +20,6 @@ export interface CreateUserInput {
 }
 
 export interface UpdateUserInput {
-    firstName?: string
-    lastName?: string
     phone?: string
     department?: string
     position?: string
@@ -160,7 +156,7 @@ export const createUser = (
                         email: input.email,
                         username: input.email.split('@')[0],
                         passwordHash,
-                        fullName: `${input.firstName || ''} ${input.lastName || ''}`.trim() || input.email.split('@')[0],
+                        fullName: input.email.split('@')[0],
                         phone: input.phone,
                         department: input.department,
                         position: input.position,

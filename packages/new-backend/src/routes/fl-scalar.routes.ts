@@ -2,8 +2,11 @@ import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
 import { legacyDb as db } from '../config'
 import { frs9ImpCaFlScalarh, frs9ImpCaFlScalard } from '../db/schema'
 import { eq, desc, inArray } from 'drizzle-orm'
+import { Effect } from 'effect'
 import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
+import { interceptCreate, interceptUpdate, interceptDelete } from '../middleware/approval-interceptor.middleware'
+import { runEffect } from '../lib/effect/runtime'
 
 /**
  * FL Scalar Routes
@@ -71,6 +74,14 @@ const ErrorResponse = z.object({
     message: z.string(),
     details: z.string().optional()
 }).openapi('ErrorResponse')
+
+const ApprovalWorkflowResponse = z.object({
+    success: z.boolean(),
+    approvalRequired: z.boolean(),
+    requestId: z.string().optional(),
+    data: z.any().optional(),
+    message: z.string().optional()
+}).openapi('ApprovalWorkflowResponse')
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -207,59 +218,71 @@ flScalarRoutes.openapi(
         },
         responses: {
             201: { content: { 'application/json': { schema: FlScalarResponse } }, description: 'Created' },
+            202: { content: { 'application/json': { schema: ApprovalWorkflowResponse } }, description: 'Pending Approval' },
             400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
     async (c) => {
-        try {
-            const userId = c.get('userId') as string || 'SYSTEM'
-            const data = c.req.valid('json')
+        const userId = c.get('userId') as string || 'SYSTEM'
+        const tenantId = c.get('tenantId') as string
+        const userPermissions = c.get('permissions') || []
+        const data = c.req.valid('json')
 
-            // Transaction to save header and details
-            const result = await db.transaction(async (tx) => {
-                // 1. Insert Header
-                const [header] = await tx
-                    .insert(frs9ImpCaFlScalarh)
-                    .values({
-                        scalarName: data.scalar_name,
-                        activeFlag: data.active_flag,
-                        createdby: userId,
-                        createdhost: 'localhost',
-                        createddate: new Date().toISOString(),
-                        updatedby: userId,
-                        updatedhost: 'localhost',
-                        updateddate: new Date().toISOString()
-                    } as any)
-                    .returning()
+        const effect = interceptCreate(
+            tenantId,
+            userId,
+            userPermissions,
+            'fl_scalar',
+            data,
+            () => Effect.tryPromise({
+                try: async () => {
+                    // Transaction to save header and details
+                    const result = await db.transaction(async (tx) => {
+                        // 1. Insert Header
+                        const [header] = await tx
+                            .insert(frs9ImpCaFlScalarh)
+                            .values({
+                                scalarName: data.scalar_name,
+                                activeFlag: data.active_flag,
+                                createdby: userId,
+                                createdhost: 'localhost',
+                                createddate: new Date().toISOString(),
+                                updatedby: userId,
+                                updatedhost: 'localhost',
+                                updateddate: new Date().toISOString()
+                            } as any)
+                            .returning()
 
-                // 2. Insert Details if any
-                let details: (typeof frs9ImpCaFlScalard.$inferSelect)[] = []
-                if (data.details && data.details.length > 0) {
-                    details = await tx
-                        .insert(frs9ImpCaFlScalard)
-                        .values(data.details.map(d => ({
-                            scalarId: header.pkid,
-                            period: d.period,
-                            weightedScalar: d.weighted_scalar,
-                            createdby: userId,
-                            createdhost: 'localhost',
-                            createddate: new Date().toISOString(),
-                            updatedby: userId,
-                            updatedhost: 'localhost',
-                            updateddate: new Date().toISOString()
-                        } as any)))
-                        .returning()
-                }
+                        // 2. Insert Details if any
+                        let details: (typeof frs9ImpCaFlScalard.$inferSelect)[] = []
+                        if (data.details && data.details.length > 0) {
+                            details = await tx
+                                .insert(frs9ImpCaFlScalard)
+                                .values(data.details.map(d => ({
+                                    scalarId: header.pkid,
+                                    period: d.period,
+                                    weightedScalar: d.weighted_scalar,
+                                    createdby: userId,
+                                    createdhost: 'localhost',
+                                    createddate: new Date().toISOString(),
+                                    updatedby: userId,
+                                    updatedhost: 'localhost',
+                                    updateddate: new Date().toISOString()
+                                } as any)))
+                                .returning()
+                        }
 
-                return transformHeader(header, details)
+                        return transformHeader(header, details)
+                    })
+                    return { success: true, data: result };
+                },
+                catch: (error) => error
             })
+        )
 
-            return c.json({ success: true, data: result } as any, 201)
-        } catch (error) {
-            console.error('Error creating FL scalar:', error)
-            return c.json({ success: false, message: 'Failed to create FL scalar' }, 500)
-        }
+        const result = await runEffect(c, effect)
+        return c.json(result, result.approvalRequired ? 202 : 201)
     }
 )
 
@@ -276,72 +299,82 @@ flScalarRoutes.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: FlScalarResponse } }, description: 'Updated' },
+            202: { content: { 'application/json': { schema: ApprovalWorkflowResponse } }, description: 'Update Pending Approval' },
             400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
             404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
     async (c) => {
-        try {
-            const { id } = c.req.valid('param')
-            if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400);
-            const userId = c.get('userId') as string || 'SYSTEM'
-            const data = c.req.valid('json')
+        const { id } = c.req.valid('param')
+        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400);
+        const userId = c.get('userId') as string || 'SYSTEM'
+        const tenantId = c.get('tenantId') as string
+        const userPermissions = c.get('permissions') || []
+        const data = c.req.valid('json')
 
-            const result = await db.transaction(async (tx) => {
-                // 1. Update Header
-                const [header] = await tx
-                    .update(frs9ImpCaFlScalarh)
-                    .set({
-                        scalarName: data.scalar_name,
-                        activeFlag: data.active_flag,
-                        updatedby: userId,
-                        updateddate: new Date().toISOString(),
-                        updatedhost: 'localhost'
-                    } as any)
-                    .where(eq(frs9ImpCaFlScalarh.pkid, id))
-                    .returning()
+        const effect = interceptUpdate(
+            tenantId,
+            userId,
+            userPermissions,
+            'fl_scalar',
+            id.toString(),
+            data,
+            () => Effect.tryPromise({
+                try: async () => {
+                    const result = await db.transaction(async (tx) => {
+                        // 1. Update Header
+                        const [header] = await tx
+                            .update(frs9ImpCaFlScalarh)
+                            .set({
+                                scalarName: data.scalar_name,
+                                activeFlag: data.active_flag,
+                                updatedby: userId,
+                                updateddate: new Date().toISOString(),
+                                updatedhost: 'localhost'
+                            } as any)
+                            .where(eq(frs9ImpCaFlScalarh.pkid, id))
+                            .returning()
 
-                if (!header) {
-                    throw new Error('FL Scalar not found')
-                }
+                        if (!header) {
+                            throw new Error('FL Scalar not found')
+                        }
 
-                // 2. Update Details (Full Replace Strategy for simplicity)
-                // First delete existing details
-                await tx
-                    .delete(frs9ImpCaFlScalard)
-                    .where(eq(frs9ImpCaFlScalard.scalarId, id))
+                        // 2. Update Details (Full Replace Strategy for simplicity)
+                        // First delete existing details
+                        await tx
+                            .delete(frs9ImpCaFlScalard)
+                            .where(eq(frs9ImpCaFlScalard.scalarId, id))
 
-                // Then insert new details
-                let details: (typeof frs9ImpCaFlScalard.$inferSelect)[] = []
-                if (data.details && data.details.length > 0) {
-                    details = await tx
-                        .insert(frs9ImpCaFlScalard)
-                        .values(data.details.map(d => ({
-                            scalarId: id,
-                            period: d.period,
-                            weightedScalar: d.weighted_scalar,
-                            createdby: userId,
-                            createdhost: 'localhost',
-                            createddate: new Date().toISOString(),
-                            updatedby: userId,
-                            updatedhost: 'localhost',
-                            updateddate: new Date().toISOString()
-                        } as any)))
-                        .returning()
-                }
+                        // Then insert new details
+                        let details: (typeof frs9ImpCaFlScalard.$inferSelect)[] = []
+                        if (data.details && data.details.length > 0) {
+                            details = await tx
+                                .insert(frs9ImpCaFlScalard)
+                                .values(data.details.map(d => ({
+                                    scalarId: id,
+                                    period: d.period,
+                                    weightedScalar: d.weighted_scalar,
+                                    createdby: userId,
+                                    createdhost: 'localhost',
+                                    createddate: new Date().toISOString(),
+                                    updatedby: userId,
+                                    updatedhost: 'localhost',
+                                    updateddate: new Date().toISOString()
+                                } as any)))
+                                .returning()
+                        }
 
-                return transformHeader(header, details)
+                        return transformHeader(header, details)
+                    })
+                    return { success: true, data: result };
+                },
+                catch: (error) => error
             })
+        )
 
-            return c.json({ success: true, data: result } as any)
-        } catch (error: any) {
-            console.error('Error updating FL scalar:', error)
-            if (error.message === 'FL Scalar not found') {
-                return c.json({ success: false, message: 'FL Scalar not found' }, 404)
-            }
-            return c.json({ success: false, message: 'Failed to update FL scalar' }, 500)
-        }
+        const result = await runEffect(c, effect)
+        return c.json(result as any, result.approvalRequired ? 202 : 200)
     }
 )
 
@@ -357,26 +390,41 @@ flScalarRoutes.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), message: z.string() }) } }, description: 'Deleted' },
+            202: { content: { 'application/json': { schema: ApprovalWorkflowResponse } }, description: 'Deletion Pending Approval' },
             400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
             404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
     async (c) => {
-        try {
-            const { id } = c.req.valid('param')
-            if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400);
+        const { id } = c.req.valid('param')
+        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400);
 
-            await db.transaction(async (tx) => {
-                // Delete details first (FK constraint)
-                await tx.delete(frs9ImpCaFlScalard).where(eq(frs9ImpCaFlScalard.scalarId, id))
-                // Delete header
-                await tx.delete(frs9ImpCaFlScalarh).where(eq(frs9ImpCaFlScalarh.pkid, id))
+        const userId = c.get('userId') as string || 'SYSTEM'
+        const tenantId = c.get('tenantId') as string
+        const userPermissions = c.get('permissions') || []
+
+        const effect = interceptDelete(
+            tenantId,
+            userId,
+            userPermissions,
+            'fl_scalar',
+            id.toString(),
+            () => Effect.tryPromise({
+                try: async () => {
+                    await db.transaction(async (tx) => {
+                        // Delete details first (FK constraint)
+                        await tx.delete(frs9ImpCaFlScalard).where(eq(frs9ImpCaFlScalard.scalarId, id))
+                        // Delete header
+                        await tx.delete(frs9ImpCaFlScalarh).where(eq(frs9ImpCaFlScalarh.pkid, id))
+                    })
+                    return { success: true, message: 'Deleted successfully' };
+                },
+                catch: (error) => error
             })
+        )
 
-            return c.json({ success: true, message: 'Deleted successfully' } as any)
-        } catch (error) {
-            return c.json({ success: false, message: 'Failed to delete FL scalar' }, 500)
-        }
+        const result = await runEffect(c, effect)
+        return c.json(result as any, result.approvalRequired ? 202 : 200)
     }
 )

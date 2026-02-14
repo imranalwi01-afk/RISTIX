@@ -63,6 +63,8 @@ import {
 import { useRouter } from 'next/navigation';
 import { bankingAPI } from '../../../../services/api';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
+import { ApprovalNotification, ApprovalStatusBadge } from '@/components/approval';
+import { useCallback } from 'react';
 
 
 // =====================================================
@@ -119,6 +121,7 @@ interface ExpandableRowProps {
   onDeleteDetail: (detail: RuleBaseDetail) => void;
   loading: boolean;
   refreshTrigger?: number;
+  pendingRequests?: any[];
 }
 
 function ExpandableRow({
@@ -129,7 +132,8 @@ function ExpandableRow({
   onEditDetail,
   onDeleteDetail,
   loading,
-  refreshTrigger
+  refreshTrigger,
+  pendingRequests = []
 }: ExpandableRowProps) {
   const [open, setOpen] = useState(false);
   const [details, setDetails] = useState<RuleBaseDetail[]>([]);
@@ -221,11 +225,15 @@ function ExpandableRow({
           />
         </TableCell>
         <TableCell>
-          <Chip
-            label={header.active_flag ? 'Active' : 'Inactive'}
-            size="small"
-            color={header.active_flag ? 'success' : 'default'}
-          />
+          {pendingRequests.some(r => r.entityId === header.id.toString()) ? (
+            <ApprovalStatusBadge status="pending" />
+          ) : (
+            <Chip
+              label={header.active_flag ? 'Active' : 'Inactive'}
+              size="small"
+              color={header.active_flag ? 'success' : 'default'}
+            />
+          )}
         </TableCell>
         <TableCell>
           <Chip
@@ -428,6 +436,10 @@ export default function RuleBaseSettingPage() {
   const [detailFormData, setDetailFormData] = useState<Partial<RuleBaseDetail>>({});
   const [refreshTriggers, setRefreshTriggers] = useState<Record<number, number>>({});
 
+  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+  const [approvalNotification, setApprovalNotification] = useState<{ open: boolean, message: string }>({ open: false, message: '' });
+  const [snackbar, setSnackbar] = useState<{ open: boolean, message: string, type: 'success' | 'error' }>({ open: false, message: '', type: 'success' });
+
   const triggerRefresh = (headerId: number) => {
     setRefreshTriggers(prev => ({ ...prev, [headerId]: Date.now() }));
   };
@@ -512,6 +524,16 @@ export default function RuleBaseSettingPage() {
     }
   };
 
+  const loadPendingApprovals = useCallback(async () => {
+    try {
+      const response = await bankingAPI.approval.getPendingApprovals();
+      const requests = Array.isArray(response) ? response : response.data || [];
+      setPendingRequests(requests.filter((r: any) => r.entityType === 'rule_base_setting'));
+    } catch (err) {
+      console.error('Error loading pending approvals:', err);
+    }
+  }, []);
+
   // Load dropdown metadata from DS2 database
   const loadMetadata = async () => {
     try {
@@ -547,6 +569,7 @@ export default function RuleBaseSettingPage() {
   useEffect(() => {
     loadHeaders();
     loadMetadata();
+    loadPendingApprovals();
   }, []);
 
   // Apply filters when dependencies change
@@ -592,9 +615,20 @@ export default function RuleBaseSettingPage() {
       setLoading(true);
       setError(null);
 
-      await bankingAPI.ruleBaseSetting.deleteHeader(header.id);
-      setSuccess('Rule header deleted successfully');
+      const response = await bankingAPI.ruleBaseSetting.deleteHeader(header.id);
+      const isApprovalResponse = response.approvalRequired || response.status === 202;
+
+      if (isApprovalResponse) {
+        setApprovalNotification({
+          open: true,
+          message: response.message || 'Deletion request submitted for approval'
+        });
+      } else {
+        setSuccess('Rule header deleted successfully');
+      }
+
       await loadHeaders();
+      await loadPendingApprovals();
 
     } catch (error: any) {
       console.error('❌ Failed to delete rule header:', error);
@@ -625,18 +659,27 @@ export default function RuleBaseSettingPage() {
         active_flag: headerFormData.active_flag !== false
       };
 
+      let response: any;
       if (selectedHeader) {
-        // Update existing header
-        await bankingAPI.ruleBaseSetting.updateHeader(selectedHeader.id, payload);
-        setSuccess('Rule header updated successfully');
+        response = await bankingAPI.ruleBaseSetting.updateHeader(selectedHeader.id, payload);
       } else {
-        // Create new header
-        await bankingAPI.ruleBaseSetting.createHeader(payload);
-        setSuccess('Rule header created successfully');
+        response = await bankingAPI.ruleBaseSetting.createHeader(payload);
+      }
+
+      const isApprovalResponse = response.approvalRequired || response.status === 202;
+
+      if (isApprovalResponse) {
+        setApprovalNotification({
+          open: true,
+          message: response.message || 'Request submitted for approval'
+        });
+      } else {
+        setSuccess(selectedHeader ? 'Rule header updated successfully' : 'Rule header created successfully');
       }
 
       setHeaderDialogOpen(false);
       await loadHeaders();
+      await loadPendingApprovals();
 
     } catch (error: any) {
       console.error('❌ Failed to save rule header:', error);
@@ -681,11 +724,21 @@ export default function RuleBaseSettingPage() {
       setLoading(true);
       setError(null);
 
-      await bankingAPI.ruleBaseSetting.deleteDetail(detail.id);
-      setSuccess('Rule detail deleted successfully');
+      const response = await bankingAPI.ruleBaseSetting.deleteDetail(detail.id);
+      const isApprovalResponse = response.approvalRequired || response.status === 202;
+
+      if (isApprovalResponse) {
+        setApprovalNotification({
+          open: true,
+          message: response.message || 'Deletion request submitted for approval'
+        });
+      } else {
+        setSuccess('Rule detail deleted successfully');
+      }
 
       triggerRefresh(detail.rule_id);
       await loadHeaders();
+      await loadPendingApprovals();
 
     } catch (error: any) {
       console.error('❌ Failed to delete rule detail:', error);
@@ -721,14 +774,22 @@ export default function RuleBaseSettingPage() {
         stage_to: detailFormData.stage_to?.toString() || undefined
       };
 
+      let response: any;
       if (selectedDetail) {
-        // Update existing detail
-        await bankingAPI.ruleBaseSetting.updateDetail(selectedDetail.id, payload);
-        setSuccess('Rule detail updated successfully');
+        response = await bankingAPI.ruleBaseSetting.updateDetail(selectedDetail.id, payload);
       } else {
-        // Create new detail
-        await bankingAPI.ruleBaseSetting.createDetail(selectedHeaderId!, payload);
-        setSuccess('Rule detail created successfully');
+        response = await bankingAPI.ruleBaseSetting.createDetail(selectedHeaderId!, payload);
+      }
+
+      const isApprovalResponse = response.approvalRequired || response.status === 202;
+
+      if (isApprovalResponse) {
+        setApprovalNotification({
+          open: true,
+          message: response.message || 'Request submitted for approval'
+        });
+      } else {
+        setSuccess(selectedDetail ? 'Rule detail updated successfully' : 'Rule detail created successfully');
       }
 
       setDetailDialogOpen(false);
@@ -738,6 +799,7 @@ export default function RuleBaseSettingPage() {
       }
 
       await loadHeaders();
+      await loadPendingApprovals();
 
     } catch (error: any) {
       console.error('❌ Failed to save rule detail:', error);
@@ -1020,6 +1082,7 @@ export default function RuleBaseSettingPage() {
                       onDeleteDetail={handleDeleteDetail}
                       loading={loading}
                       refreshTrigger={refreshTriggers[header.id]}
+                      pendingRequests={pendingRequests}
                     />
                   ))}
                 </TableBody>

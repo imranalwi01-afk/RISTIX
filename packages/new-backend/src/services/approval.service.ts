@@ -158,6 +158,14 @@ export const processApprovalAction = (
             })
         }
 
+        // Prevent users from approving their own requests
+        if (input.action === 'approve' && input.approverId === request.requestedBy) {
+            throw new BusinessError({
+                message: 'You cannot approve your own request',
+                code: 'SELF_APPROVAL_NOT_ALLOWED',
+            })
+        }
+
         // Insert the action
         await ApprovalRepository.createAction({
             requestId: input.requestId,
@@ -237,7 +245,108 @@ export const processApprovalAction = (
  */
 async function executeApprovedAction(request: any): Promise<void> {
     console.log(`[ApprovalService] Executing approved action for ${request.entityType}:${request.entityId}`)
-    // TODO: Map entityType to actual service calls (e.g., UserService.createPendingUser)
+
+    const requestData = request.requestData as any
+    if (!requestData || !requestData.operation) {
+        console.error('[ApprovalService] Invalid request data structure')
+        return
+    }
+
+    const { operation, entityType, data } = requestData
+    const tenantId = request.tenantId
+
+    try {
+        // Map entity types to their service executors
+        switch (entityType) {
+            case 'user':
+                await executeUserAction(operation, data, tenantId)
+                break
+
+            case 'parameter':
+            case 'app_setting':
+            case 'business_setting':
+                await executeParameterAction(operation, data, tenantId, entityType)
+                break
+
+            case 'pd_configuration':
+            case 'lgd_configuration':
+            case 'ead_configuration':
+            case 'ecl_configuration':
+                await executeConfigurationAction(operation, data, tenantId, entityType)
+                break
+
+            default:
+                console.warn(`[ApprovalService] No executor defined for entity type: ${entityType}`)
+            // For unknown entity types, just log - they may be handled by custom logic
+        }
+    } catch (error) {
+        console.error(`[ApprovalService] Failed to execute approved action:`, error)
+        throw error
+    }
+}
+
+/**
+ * Execute user-related actions
+ */
+async function executeUserAction(
+    operation: 'create' | 'update' | 'delete',
+    data: any,
+    tenantId: string
+): Promise<void> {
+    // Import dynamically to avoid circular dependencies
+    const { createUser, updateUser, deleteUser } = await import('./users.service')
+    const { runEffect } = await import('../lib/effect/runtime')
+
+    switch (operation) {
+        case 'create':
+            await runEffect(null as any, createUser(data))
+            break
+        case 'update':
+            await runEffect(null as any, updateUser(data.id, data))
+            break
+        case 'delete':
+            await runEffect(null as any, deleteUser(data.id))
+            break
+    }
+}
+
+/**
+ * Execute parameter-related actions
+ */
+async function executeParameterAction(
+    operation: 'create' | 'update' | 'delete',
+    data: any,
+    tenantId: string,
+    entityType: string
+): Promise<void> {
+    const { ParametersService } = await import('./parameters.service')
+    const { runEffect } = await import('../lib/effect/runtime')
+
+    switch (operation) {
+        case 'create':
+            await runEffect(null as any, ParametersService.createAppSetting(data, 'system') as any)
+            break
+        case 'update':
+            await runEffect(null as any, ParametersService.updateAppSetting(data.paramCode, data, 'system') as any)
+            break
+        case 'delete':
+            await runEffect(null as any, ParametersService.deleteAppSetting(data.paramCode) as any)
+            break
+    }
+}
+
+/**
+ * Execute configuration-related actions
+ */
+async function executeConfigurationAction(
+    operation: 'create' | 'update' | 'delete',
+    data: any,
+    tenantId: string,
+    entityType: string
+): Promise<void> {
+    // Configuration services would be imported and executed here
+    // This is a placeholder for now
+    console.log(`[ApprovalService] Executing ${operation} for ${entityType}`, data)
 }
 
 /**

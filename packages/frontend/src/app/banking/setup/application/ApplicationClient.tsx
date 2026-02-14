@@ -58,7 +58,8 @@ import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeD
 import { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 
 import EmptyState from '@/components/banking/shared/EmptyState';
-import api, { handleAPIError } from '../../../../services/api';
+import api, { handleAPIError, bankingAPI } from '../../../../services/api';
+import { ApprovalStatusBadge, PendingChangesDialog } from '@/components/approval';
 
 import {
   ApplicationFormDialog,
@@ -237,6 +238,11 @@ export default function ApplicationSettingPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [detailRefreshTrigger, setDetailRefreshTrigger] = useState(0);
 
+  // Approval Modal State
+  const [pendingChangesDialogOpen, setPendingChangesDialogOpen] = useState(false);
+  const [selectedPendingRequest, setSelectedPendingRequest] = useState<any>(null);
+  const [currentRecordForPending, setCurrentRecordForPending] = useState<any>(null);
+
   // Helper to re-fetch details for modal logic
   const fetchDetailsForModal = async (paramCode: string) => {
     try {
@@ -319,7 +325,25 @@ export default function ApplicationSettingPage() {
         }));
         // Filter S and A types
         const appParams = transformedData.filter(item => item.CommonCode && (item.ParamType === 'S' || item.ParamType === 'A'));
-        setData(appParams.sort((a: any, b: any) => new Date(b.created_date || b.CreatedDate).getTime() - new Date(a.created_date || a.CreatedDate).getTime()));
+
+        // Fetch pending approvals for these parameters
+        try {
+          const pendingRes = await bankingAPI.approval.getPendingApprovals();
+          const pendingRequests = Array.isArray(pendingRes) ? pendingRes : (pendingRes as any).data || [];
+
+          const mappedData = appParams.map(item => {
+            const pending = pendingRequests.find((r: any) => r.entityType === 'parameter' && r.entityId === item.CommonCode);
+            return {
+              ...item,
+              approvalStatus: pending ? 'pending' : 'active',
+              pendingRequest: pending || null
+            };
+          });
+          setData(mappedData.sort((a: any, b: any) => new Date(b.created_date || b.CreatedDate).getTime() - new Date(a.created_date || a.CreatedDate).getTime()));
+        } catch (e) {
+          console.warn('Failed to load pending approvals:', e);
+          setData(appParams.sort((a: any, b: any) => new Date(b.created_date || b.CreatedDate).getTime() - new Date(a.created_date || a.CreatedDate).getTime()));
+        }
       }
     } catch (error: any) {
       setError(`Failed to load data: ${handleAPIError(error).message}`);
@@ -368,8 +392,13 @@ export default function ApplicationSettingPage() {
     if (!confirm(`Are you sure you want to delete "${row.CommonCode}"?`)) return;
     try {
       setLoading(true);
-      await api.applicationParameter.headers.delete(row.CommonCode);
-      setSuccess('Deleted successfully');
+      const result = await api.applicationParameter.headers.delete(row.CommonCode);
+      // Check if approval is required
+      if (result.approvalRequired) {
+        setSuccess('Deletion submitted for approval');
+      } else {
+        setSuccess('Deleted successfully');
+      }
       await loadData();
     } catch (e: any) {
       setError(handleAPIError(e).message);
@@ -388,15 +417,25 @@ export default function ApplicationSettingPage() {
       };
 
       if (selectedRecord) {
-        await api.applicationParameter.headers.update(selectedRecord.CommonCode, payload);
-        setSuccess('Updated successfully');
+        const result = await api.applicationParameter.headers.update(selectedRecord.CommonCode, payload);
+        // Check if approval is required
+        if (result.approvalRequired) {
+          setSuccess('Update submitted for approval');
+        } else {
+          setSuccess('Updated successfully');
+        }
       } else {
         if (data.some(p => p.CommonCode === payload.param_code)) {
-            setError(`Parameter code '${payload.param_code}' already exists.`);
-            return;
+          setError(`Parameter code '${payload.param_code}' already exists.`);
+          return;
         }
-        await api.applicationParameter.headers.create(payload);
-        setSuccess('Created successfully');
+        const result = await api.applicationParameter.headers.create(payload);
+        // Check if approval is required
+        if (result.approvalRequired) {
+          setSuccess('Creation submitted for approval');
+        } else {
+          setSuccess('Created successfully');
+        }
       }
       setCreateModalOpen(false);
       setEditModalOpen(false);
@@ -437,7 +476,7 @@ export default function ApplicationSettingPage() {
   }
   // Export function removed temporarily due to missing dependencies
   const handleExport = (format: string) => {
-     alert("Export feature is currently disabled.");
+    alert("Export feature is currently disabled.");
   };
 
   // Detail CRUD Operations
@@ -462,8 +501,8 @@ export default function ApplicationSettingPage() {
       setDetailLoading(true);
 
       // Client-side duplicate check
-      const isDuplicateSeq = detailDataForModal.some(d => 
-        d.SeqNo === formData.SeqNo && 
+      const isDuplicateSeq = detailDataForModal.some(d =>
+        d.SeqNo === formData.SeqNo &&
         (!selectedDetail || d.ID !== selectedDetail.ID)
       );
 
@@ -513,6 +552,26 @@ export default function ApplicationSettingPage() {
     { field: 'Value', headerName: 'Value', flex: 1 },
     { field: 'CreatedBy', headerName: 'Created By', flex: 1 },
     {
+      field: 'status',
+      headerName: 'Status',
+      width: 140,
+      renderCell: (p) => (
+        <Box
+          onClick={(e) => {
+            if ((p.row as any).approvalStatus === 'pending') {
+              e.stopPropagation();
+              setSelectedPendingRequest((p.row as any).pendingRequest);
+              setCurrentRecordForPending(p.row);
+              setPendingChangesDialogOpen(true);
+            }
+          }}
+          sx={{ cursor: (p.row as any).approvalStatus === 'pending' ? 'pointer' : 'default' }}
+        >
+          <ApprovalStatusBadge status={(p.row as any).approvalStatus || 'active'} size="small" />
+        </Box>
+      )
+    },
+    {
       field: 'actions',
       headerName: 'Actions',
       type: 'actions',
@@ -543,7 +602,7 @@ export default function ApplicationSettingPage() {
       </Box>
 
       <Typography variant="h4" sx={{ mb: 3, fontWeight: 'bold', color: 'primary.main' }}>
-        Application Setting (Refactored)
+        Application Setting
       </Typography>
 
       <Card sx={{ mb: 2 }}>
@@ -842,10 +901,23 @@ export default function ApplicationSettingPage() {
         loading={detailLoading}
       />
 
+      <PendingChangesDialog
+        open={pendingChangesDialogOpen}
+        onClose={() => setPendingChangesDialogOpen(false)}
+        request={selectedPendingRequest}
+        currentData={currentRecordForPending}
+        title={`Pending Changes for ${currentRecordForPending?.CommonCode}`}
+      />
+
       <Snackbar open={!!success} autoHideDuration={4000} onClose={() => setSuccess(null)}>
         <Alert severity="success">{success}</Alert>
       </Snackbar>
-      <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError(null)}>
+      <Snackbar
+        open={!!error}
+        autoHideDuration={6000}
+        onClose={() => setError(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
         <Alert severity="error">{error}</Alert>
       </Snackbar>
     </Container>

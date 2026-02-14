@@ -12,6 +12,7 @@ import {
 } from '@mui/icons-material';
 import { GridColDef, GridRowParams } from '@mui/x-data-grid';
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
+import { ApprovalStatusBadge } from '@/components/approval';
 
 interface ProductParameter {
   pkid: number;
@@ -40,6 +41,7 @@ interface ProductTableProps {
   paginationModel: { page: number; pageSize: number };
   onPaginationModelChange: (model: { page: number; pageSize: number }) => void;
   rowCount: number;
+  onViewPending?: (request: any, record: ProductParameter) => void;
 }
 
 export default function ProductTable({
@@ -50,7 +52,8 @@ export default function ProductTable({
   onDelete,
   paginationModel,
   onPaginationModelChange,
-  rowCount
+  rowCount,
+  onViewPending
 }: ProductTableProps) {
   const columns: GridColDef[] = [
     {
@@ -58,12 +61,12 @@ export default function ProductTable({
       headerName: 'Product Code',
       width: 140,
       renderCell: (params) => (
-        <Chip 
-          label={params.value || '-'} 
-          color="primary" 
-          variant="outlined" 
+        <Chip
+          label={params.value || '-'}
+          color="primary"
+          variant="outlined"
           size="small"
-          sx={{ fontWeight: 'bold' }} 
+          sx={{ fontWeight: 'bold' }}
         />
       )
     },
@@ -103,25 +106,43 @@ export default function ProductTable({
         const map: any = { 'A': 'Asset', 'L': 'Liabilities' };
         const label = map[params.value] || params.value;
         return (
-          <Chip 
-            label={label || '-'} 
-            color={colors[params.value] || 'default'} 
-            size="small" 
+          <Chip
+            label={label || '-'}
+            color={colors[params.value] || 'default'}
+            size="small"
           />
         );
       }
     },
     {
       field: 'activeFlag',
-      headerName: 'Status',
-      width: 100,
+      headerName: 'Active',
+      width: 80,
       renderCell: (params) => (
         <Chip
-          label={params.value ? 'Active' : 'Inactive'}
+          label={params.value ? 'Yes' : 'No'}
           color={params.value ? 'success' : 'default'}
           size="small"
           variant={params.value ? 'filled' : 'outlined'}
         />
+      )
+    },
+    {
+      field: 'approvalStatus',
+      headerName: 'Approval',
+      width: 140,
+      renderCell: (params) => (
+        <Box
+          onClick={(e) => {
+            if (params.row.approvalStatus === 'pending' && onViewPending) {
+              e.stopPropagation();
+              onViewPending(params.row.pendingRequest, params.row);
+            }
+          }}
+          sx={{ cursor: params.row.approvalStatus === 'pending' ? 'pointer' : 'default' }}
+        >
+          <ApprovalStatusBadge status={params.row.approvalStatus || 'active'} size="small" />
+        </Box>
       )
     },
     {

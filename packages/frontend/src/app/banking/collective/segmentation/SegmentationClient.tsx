@@ -43,6 +43,9 @@ import { FullstackIndicator } from '@/components/common/feedback/FullstackIndica
 import SegmentationDrawer from './components/SegmentationDrawer';
 import SegmentationTable from './components/SegmentationTable';
 import SegmentationFilterDrawer from './components/SegmentationFilterDrawer';
+import { useApprovalStatus } from '@/hooks/useApprovalStatus';
+import { bankingAPI } from '@/services/api';
+import { ApprovalNotification, ApprovalStatusBadge } from '@/components/approval';
 
 // ============================================================================
 // TYPES
@@ -56,26 +59,26 @@ interface SegmentationHeader {
   segment_type: string;
   seq: number;
   active_flag: boolean;
-  status?: string; 
+  status?: string;
   updated_date?: string;
 }
 
-const MOCK_HISTORY = [
+const MOCK_HISTORY: any[] = [
   { id: '1', status: 'Approved', timestamp: '2026-02-09T08:00:00Z', user: 'Manager User', role: 'Approver', comment: 'Approved for production.' },
   { id: '2', status: 'Submitted', timestamp: '2026-02-08T14:30:00Z', user: 'Analyst User', role: 'Maker', comment: 'Ready for review.' },
   { id: '3', status: 'Draft', timestamp: '2026-02-08T10:00:00Z', user: 'Analyst User', role: 'Maker', comment: 'Initial creation.' },
-] as const;
+];
 
 export default function SegmentationClient() {
   const router = useRouter();
-  
+
   // Refs for Keyboard Shortcuts
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // ============================================================================
   // STATE
   // ============================================================================
-  
+
   // Data
   const [headers, setHeaders] = useState<SegmentationHeader[]>([]);
   const [loading, setLoading] = useState(false);
@@ -99,9 +102,11 @@ export default function SegmentationClient() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerMode, setDrawerMode] = useState<'add' | 'edit' | 'view'>('view');
   const [selectedHeader, setSelectedHeader] = useState<SegmentationHeader | null>(null);
-  
+
   const [details, setDetails] = useState<any[]>([]);
-  const [formData, setFormData] = useState<any>({}); 
+  const [formData, setFormData] = useState<any>({});
+  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+  const [approvalNotification, setApprovalNotification] = useState<{ open: boolean, message: string }>({ open: false, message: '' });
 
   // UI
   const [error, setError] = useState<string | null>(null);
@@ -124,8 +129,8 @@ export default function SegmentationClient() {
       const response = await api.banking.segmentation.getHeaders(params);
       if (response && response.data) {
         const transformedData = response.data.map((item: any) => ({
-            ...item,
-            status: item.active_flag ? 'Active' : 'Inactive' 
+          ...item,
+          status: item.active_flag ? 'Active' : 'Inactive'
         }));
         setHeaders(transformedData);
         setTotalCount(response.total || transformedData.length);
@@ -141,43 +146,54 @@ export default function SegmentationClient() {
     }
   }, [searchTerm, page, rowsPerPage, filters]);
 
+  const loadPendingApprovals = useCallback(async () => {
+    try {
+      const response = await bankingAPI.approval.getPendingApprovals();
+      const requests = Array.isArray(response) ? response : response.data || [];
+      setPendingRequests(requests.filter((r: any) => r.entityType === 'segmentation'));
+    } catch (err) {
+      console.error('Error loading pending approvals:', err);
+    }
+  }, []);
+
   useEffect(() => {
     loadHeaders();
-  }, [loadHeaders]);
+    loadPendingApprovals();
+  }, [loadHeaders, loadPendingApprovals]);
 
   // Keyboard Shortcuts
   useEffect(() => {
-     const handleKeyDown = (e: KeyboardEvent) => {
-         // Ignore if input is focused (except ESC)
-         const isInput = (e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'TEXTAREA';
-         
-         if (e.key === 'Escape') {
-             if (drawerOpen) setDrawerOpen(false);
-             if (filterDrawerOpen) setFilterDrawerOpen(false);
-         }
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if input is focused (except ESC)
+      const isInput = (e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'TEXTAREA';
 
-         if (isInput) return;
+      if (e.key === 'Escape') {
+        if (drawerOpen) setDrawerOpen(false);
+        if (filterDrawerOpen) setFilterDrawerOpen(false);
+      }
 
-         if (e.key === '/') {
-             e.preventDefault();
-             searchInputRef.current?.focus();
-         }
-         if (e.key.toLowerCase() === 'f') {
-             e.preventDefault();
-             setFilterDrawerOpen(true);
-         }
-         if (e.key.toLowerCase() === 'a') {
-              e.preventDefault();
-              handleOpenDrawer('add');
-         }
-         if (e.key.toLowerCase() === 'r') {
-             e.preventDefault();
-             loadHeaders();
-         }
-     };
+      if (isInput) return;
 
-     document.addEventListener('keydown', handleKeyDown);
-     return () => document.removeEventListener('keydown', handleKeyDown);
+      if (e.key === '/') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+      if (e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        setFilterDrawerOpen(true);
+      }
+      if (e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        handleOpenDrawer('add');
+      }
+      if (e.key.toLowerCase() === 'r') {
+        e.preventDefault();
+        loadHeaders();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
   }, [drawerOpen, filterDrawerOpen, loadHeaders]);
 
 
@@ -194,14 +210,19 @@ export default function SegmentationClient() {
     }
   };
 
+  const handleSearch = () => {
+    setPage(0);
+    loadHeaders();
+  };
+
   const handleOpenDrawer = async (mode: 'add' | 'edit' | 'view', header?: SegmentationHeader) => {
     setDrawerMode(mode);
     setDrawerOpen(true);
-    
+
     if (header) {
       setSelectedHeader(header);
-      setFormData({ ...header }); 
-      await loadDetails(header.id); 
+      setFormData({ ...header });
+      await loadDetails(header.id);
     } else {
       setSelectedHeader(null);
       setDetails([]);
@@ -223,31 +244,57 @@ export default function SegmentationClient() {
 
   const handleSaveHeader = async (isDraft: boolean) => {
     try {
-      // If Draft, status = 'Draft', else 'Pending' or 'Submitted'
-      const payload = { ...formData, rules: details, status: isDraft ? 'Draft' : 'Pending Approval' };
+      const payload = { ...formData, rules: details };
 
+      let response: any;
       if (drawerMode === 'edit') {
         if (!selectedHeader?.id) return;
-        await api.banking.segmentation.updateHeader(selectedHeader.id, payload);
-        alert(isDraft ? 'Saved as Draft' : 'Submitted for Approval');
+        response = await api.banking.segmentation.updateHeader(selectedHeader.id, payload);
       } else {
-        await api.banking.segmentation.createHeader(payload);
-        alert(isDraft ? 'Created Draft' : 'Created and Submitted');
+        response = await api.banking.segmentation.createHeader(payload);
       }
+
+      const isApprovalResponse = response.approvalRequired || response.status === 202;
+
+      if (isApprovalResponse) {
+        setApprovalNotification({
+          open: true,
+          message: response.message || 'Request submitted for approval'
+        });
+      } else {
+        setSnackbar({
+          open: true,
+          message: drawerMode === 'edit' ? 'Segmentation updated' : 'Segmentation created',
+          type: 'success'
+        });
+      }
+
       setDrawerOpen(false);
       loadHeaders();
+      loadPendingApprovals();
     } catch (err: any) {
-       console.error(err);
-       alert('Error saving data: ' + err.message);
+      console.error(err);
+      setSnackbar({ open: true, message: 'Error saving data: ' + err.message, type: 'error' });
     }
   };
 
   const handleDelete = async (header: SegmentationHeader) => {
-     if (!confirm(`Are you sure you want to delete "${header.group_segment}"?`)) return;
-     try {
-       await api.banking.segmentation.deleteHeader(header.id);
-       loadHeaders();
-     } catch (err) { alert('Delete failed'); }
+    if (!confirm(`Are you sure you want to delete "${header.group_segment}"?`)) return;
+    try {
+      const response = await api.banking.segmentation.deleteHeader(header.id);
+      const isApprovalResponse = response.approvalRequired || response.status === 202;
+
+      if (isApprovalResponse) {
+        setApprovalNotification({
+          open: true,
+          message: response.message || 'Deletion request submitted for approval'
+        });
+      } else {
+        setSnackbar({ open: true, message: 'Segmentation deleted', type: 'success' });
+      }
+      loadHeaders();
+      loadPendingApprovals();
+    } catch (err) { setSnackbar({ open: true, message: 'Delete failed', type: 'error' }); }
   };
 
   // ============================================================================
@@ -257,7 +304,7 @@ export default function SegmentationClient() {
   return (
     <Container maxWidth="xl" sx={{ position: 'relative', pb: 5 }}>
       <FullstackIndicator />
-      
+
       {/* Breadcrumbs */}
       <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
         <Link underline="hover" color="inherit" onClick={() => router.push('/banking/dashboard')} sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
@@ -282,21 +329,21 @@ export default function SegmentationClient() {
               </Typography>
             </Box>
             <Box sx={{ display: 'flex', gap: 1 }}>
-               <Tooltip title="Shortcut: R"><Button startIcon={<RefreshIcon />} onClick={() => loadHeaders()}>Refresh</Button></Tooltip>
-               <Button startIcon={<ExportIcon />} onClick={(e) => setExportAnchorEl(e.currentTarget)}>Export</Button>
-               <Menu anchorEl={exportAnchorEl} open={Boolean(exportAnchorEl)} onClose={() => setExportAnchorEl(null)}>
-                  <MenuItem onClick={() => setExportAnchorEl(null)}>Export to Excel</MenuItem>
-                  <MenuItem onClick={() => setExportAnchorEl(null)}>Export to CSV</MenuItem>
-                  <MenuItem onClick={() => setExportAnchorEl(null)}>Export to PDF</MenuItem>
-               </Menu>
-               <Button variant="outlined" startIcon={<HelpIcon />}>Help</Button>
+              <Tooltip title="Shortcut: R"><Button startIcon={<RefreshIcon />} onClick={() => loadHeaders()}>Refresh</Button></Tooltip>
+              <Button startIcon={<ExportIcon />} onClick={(e) => setExportAnchorEl(e.currentTarget)}>Export</Button>
+              <Menu anchorEl={exportAnchorEl} open={Boolean(exportAnchorEl)} onClose={() => setExportAnchorEl(null)}>
+                <MenuItem onClick={() => setExportAnchorEl(null)}>Export to Excel</MenuItem>
+                <MenuItem onClick={() => setExportAnchorEl(null)}>Export to CSV</MenuItem>
+                <MenuItem onClick={() => setExportAnchorEl(null)}>Export to PDF</MenuItem>
+              </Menu>
+              <Button variant="outlined" startIcon={<HelpIcon />}>Help</Button>
             </Box>
           </Box>
           <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-             <Typography variant="caption" color="text.secondary" sx={{ mr: 2 }}>
-                Last updated: {new Date().toLocaleTimeString()}
-             </Typography>
-             <Chip label="Database Active" size="small" color="success" variant="outlined" />
+            <Typography variant="caption" color="text.secondary" sx={{ mr: 2 }}>
+              Last updated: {new Date().toLocaleTimeString()}
+            </Typography>
+            <Chip label="Database Active" size="small" color="success" variant="outlined" />
           </Box>
         </CardContent>
       </Card>
@@ -317,26 +364,26 @@ export default function SegmentationClient() {
                 startAdornment: <InputAdornment position="start"><SearchIcon color="action" /></InputAdornment>
               }}
             />
-            
+
             <Tooltip title="Shortcut: F">
-                <Button variant="outlined" startIcon={<FilterIcon />} onClick={() => setFilterDrawerOpen(true)}>
-                  Filters
-                </Button>
+              <Button variant="outlined" startIcon={<FilterIcon />} onClick={() => setFilterDrawerOpen(true)}>
+                Filters
+              </Button>
             </Tooltip>
-            
+
             <Tooltip title="Shortcut: A">
-                <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenDrawer('add')} sx={{ px: 4 }}>
-                  Add Segmentation
-                </Button>
+              <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenDrawer('add')} sx={{ px: 4 }}>
+                Add Segmentation
+              </Button>
             </Tooltip>
           </Stack>
 
           {(filters.segmentType || filters.status || filters.tableName) && (
             <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
-               {filters.segmentType && <Chip label={`Type: ${filters.segmentType}`} onDelete={() => setFilters(prev => ({...prev, segmentType: ''}))} />}
-               <Typography variant="caption" sx={{ alignSelf: 'center', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => setFilters({segmentType: '', status: '', tableName: '', columnName: '', operator: ''})}>
-                 Clear All
-               </Typography>
+              {filters.segmentType && <Chip label={`Type: ${filters.segmentType}`} onDelete={() => setFilters(prev => ({ ...prev, segmentType: '' }))} />}
+              <Typography variant="caption" sx={{ alignSelf: 'center', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => setFilters({ segmentType: '', status: '', tableName: '', columnName: '', operator: '' })}>
+                Clear All
+              </Typography>
             </Stack>
           )}
         </CardContent>
@@ -346,7 +393,7 @@ export default function SegmentationClient() {
       {error && <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>{error}</Alert>}
 
       {/* Main Table */}
-      <SegmentationTable 
+      <SegmentationTable
         data={headers}
         loading={loading}
         page={page}
@@ -354,16 +401,17 @@ export default function SegmentationClient() {
         totalCount={totalCount}
         selectedIds={selectedIds}
         onSelect={(id) => {
-             const idx = selectedIds.indexOf(id);
-             setSelectedIds(idx === -1 ? [...selectedIds, id] : selectedIds.filter(x => x !== id));
+          const idx = selectedIds.indexOf(id);
+          setSelectedIds(idx === -1 ? [...selectedIds, id] : selectedIds.filter(x => x !== id));
         }}
         onSelectAll={(checked) => setSelectedIds(checked ? headers.map(h => h.id) : [])}
         onView={(item) => handleOpenDrawer('view', item)}
         onEdit={(item) => handleOpenDrawer('edit', item)}
         onDelete={handleDelete}
-        onDuplicate={() => {}} 
+        onDuplicate={() => { }}
         onPageChange={setPage}
         onRowsPerPageChange={setRowsPerPage}
+        pendingRequests={pendingRequests}
       />
 
       {/* Drawers */}
@@ -377,15 +425,21 @@ export default function SegmentationClient() {
         rules={details}
         onRulesChange={setDetails}
         onSaveHeader={handleSaveHeader}
-        history={MOCK_HISTORY} 
+        history={MOCK_HISTORY}
       />
 
       <SegmentationFilterDrawer
         open={filterDrawerOpen}
         onClose={() => setFilterDrawerOpen(false)}
         onApply={(f: any) => { setFilters(f); setPage(0); }}
-        onClear={() => setFilters({segmentType: '', status: '', tableName: '', columnName: '', operator: ''})}
+        onClear={() => setFilters({ segmentType: '', status: '', tableName: '', columnName: '', operator: '' })}
         currentFilters={filters}
+      />
+
+      <ApprovalNotification
+        open={approvalNotification.open}
+        message={approvalNotification.message}
+        onClose={() => setApprovalNotification({ ...approvalNotification, open: false })}
       />
 
     </Container>

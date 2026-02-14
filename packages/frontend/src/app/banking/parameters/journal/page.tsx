@@ -44,13 +44,14 @@ import { GridColDef, GridRowParams } from '@mui/x-data-grid';
 // Safe DataGrid wrapper to prevent bundling issues
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 import { useRouter } from 'next/navigation';
-import { api, handleAPIError } from '../../../../services/api';
+import { api, handleAPIError, bankingAPI } from '../../../../services/api';
 import { exportToXLSX, exportToCSV, exportToPDF } from '@/utils/exportUtils';
 
 // Shared components
 import PageHeader from '@/components/banking/shared/PageHeader';
 import EmptyState from '@/components/banking/shared/EmptyState';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
+import { ApprovalStatusBadge, PendingChangesDialog } from '@/components/approval';
 
 // Extracted memoized dialog component
 import {
@@ -69,6 +70,11 @@ export default function JournalParametersPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [exportMenuAnchor, setExportMenuAnchor] = useState<null | HTMLElement>(null);
+
+  // Approval Modal State
+  const [pendingChangesDialogOpen, setPendingChangesDialogOpen] = useState(false);
+  const [selectedPendingRequest, setSelectedPendingRequest] = useState<any>(null);
+  const [currentRecordForPending, setCurrentRecordForPending] = useState<any>(null);
 
   // Pagination State
   const [paginationModel, setPaginationModel] = useState({
@@ -157,6 +163,26 @@ export default function JournalParametersPage() {
       )
     },
     {
+      field: 'status',
+      headerName: 'Status',
+      width: 150,
+      renderCell: (params) => (
+        <Box
+          onClick={(e) => {
+            if ((params.row as any).approvalStatus === 'pending') {
+              e.stopPropagation();
+              setSelectedPendingRequest((params.row as any).pendingRequest);
+              setCurrentRecordForPending(params.row);
+              setPendingChangesDialogOpen(true);
+            }
+          }}
+          sx={{ cursor: (params.row as any).approvalStatus === 'pending' ? 'pointer' : 'default' }}
+        >
+          <ApprovalStatusBadge status={params.row.approvalStatus || 'active'} size="small" />
+        </Box>
+      )
+    },
+    {
       field: 'actions',
       type: 'actions',
       headerName: 'Actions',
@@ -197,7 +223,25 @@ export default function JournalParametersPage() {
 
       if (result.success && result.data) {
         console.log('✅ Successfully loaded journal data:', result.data.length, 'parameters');
-        setData(result.data);
+
+        // Fetch pending approvals for journal parameters
+        try {
+          const pendingRes = await bankingAPI.approval.getPendingApprovals();
+          const pendingRequests = Array.isArray(pendingRes) ? pendingRes : (pendingRes as any).data || [];
+
+          const mappedData = result.data.map((item: any) => {
+            const pending = pendingRequests.find((r: any) => r.entityType === 'journal_parameter' && r.entityId === item.pkid?.toString());
+            return {
+              ...item,
+              approvalStatus: pending ? 'pending' : 'active',
+              pendingRequest: pending || null
+            };
+          });
+          setData(mappedData);
+        } catch (e) {
+          console.warn('Failed to load pending approvals:', e);
+          setData(result.data);
+        }
       } else {
         throw new Error(result.message || 'Failed to load journal parameters');
       }
@@ -332,9 +376,14 @@ export default function JournalParametersPage() {
     try {
       setLoading(true);
       console.log('🗑️ Deleting journal entry:', journal.glCode);
-      await api.banking.journalParameters.delete(journal.pkid);
-      console.log('✅ Journal entry deleted successfully');
-      setSuccess('Journal entry deleted successfully');
+      const result = await api.banking.journalParameters.delete(journal.pkid);
+      // Check if approval is required
+      if (result.approvalRequired) {
+        setSuccess('Deletion submitted for approval');
+      } else {
+        console.log('✅ Journal entry deleted successfully');
+        setSuccess('Journal entry deleted successfully');
+      }
       await loadData();
 
     } catch (error: any) {
@@ -365,12 +414,22 @@ export default function JournalParametersPage() {
 
       if (selectedJournal) {
         console.log('✏️ Updating journal entry:', payload.glCode);
-        await api.banking.journalParameters.update(selectedJournal.pkid, payload);
-        setSuccess('Journal entry updated successfully');
+        const result = await api.banking.journalParameters.update(selectedJournal.pkid, payload);
+        // Check if approval is required
+        if (result.approvalRequired) {
+          setSuccess('Update submitted for approval');
+        } else {
+          setSuccess('Journal entry updated successfully');
+        }
       } else {
         console.log('➕ Creating journal entry:', payload.glCode);
-        await api.banking.journalParameters.create(payload);
-        setSuccess('Journal entry created successfully');
+        const result = await api.banking.journalParameters.create(payload);
+        // Check if approval is required
+        if (result.approvalRequired) {
+          setSuccess('Creation submitted for approval');
+        } else {
+          setSuccess('Journal entry created successfully');
+        }
       }
 
       setDialogOpen(false);
@@ -392,7 +451,7 @@ export default function JournalParametersPage() {
   const handleExport = (format: 'xlsx' | 'csv' | 'pdf') => {
     try {
       setExportMenuAnchor(null);
-      
+
       // Define columns for export (matching data grid)
       const exportColumns = [
         { field: 'glCode', headerName: 'GL Code' },
@@ -404,31 +463,31 @@ export default function JournalParametersPage() {
         { field: 'dbcr', headerName: 'DB/CR' },
         { field: 'activeFlag', headerName: 'Active' }
       ];
-      
+
       // Build filter description
       const activeFilters: Record<string, any> = {};
       if (searchTerm) activeFilters['Search'] = searchTerm;
       if (filterGlGroup) activeFilters['GL Group'] = filterGlGroup;
       if (filterCurrency) activeFilters['Currency'] = filterCurrency;
       if (filterActive !== 'all') activeFilters['Status'] = filterActive;
-      
+
       const exportOptions = {
         title: 'Journal Parameters',
         filename: 'journal_parameters',
         filters: activeFilters,
         confidential: true
       };
-      
+
       // Use filtered data
       const dataToExport = filteredData;
-      
+
       let result;
       switch (format) {
         case 'xlsx': result = exportToXLSX(dataToExport, exportColumns, exportOptions); break;
         case 'csv': result = exportToCSV(dataToExport, exportColumns, exportOptions); break;
         case 'pdf': result = exportToPDF(dataToExport, exportColumns, exportOptions); break;
       }
-      
+
       if (result && result.success) {
         setSuccess(`Exported ${dataToExport.length} records to ${format.toUpperCase()}`);
       } else {
@@ -507,137 +566,137 @@ export default function JournalParametersPage() {
       </Menu>
 
 
-          <Card sx={{ mb: 2 }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-                <TextField
-                  placeholder="Search by GL Code, Description, or GL Number"
-                  variant="outlined"
-                  size="small"
-                  sx={{ flex: '1 1 300px', minWidth: 200 }}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
+      <Card sx={{ mb: 2 }}>
+        <CardContent>
+          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+            <TextField
+              placeholder="Search by GL Code, Description, or GL Number"
+              variant="outlined"
+              size="small"
+              sx={{ flex: '1 1 300px', minWidth: 200 }}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              }}
+            />
 
-                <FormControl size="small" sx={{ minWidth: 150 }}>
-                  <InputLabel>GL Group</InputLabel>
-                  <Select
-                    value={filterGlGroup}
-                    onChange={(e) => setFilterGlGroup(e.target.value)}
-                    label="GL Group"
-                  >
-                    <MenuItem value="">All</MenuItem>
-                    {Array.isArray(glGroupOptions) && glGroupOptions.map(option => (
-                      <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+            <FormControl size="small" sx={{ minWidth: 150 }}>
+              <InputLabel>GL Group</InputLabel>
+              <Select
+                value={filterGlGroup}
+                onChange={(e) => setFilterGlGroup(e.target.value)}
+                label="GL Group"
+              >
+                <MenuItem value="">All</MenuItem>
+                {Array.isArray(glGroupOptions) && glGroupOptions.map(option => (
+                  <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
 
-                <FormControl size="small" sx={{ minWidth: 120 }}>
-                  <InputLabel>Currency</InputLabel>
-                  <Select
-                    value={filterCurrency}
-                    onChange={(e) => setFilterCurrency(e.target.value)}
-                    label="Currency"
-                  >
-                    <MenuItem value="">All</MenuItem>
-                    {Array.isArray(currencyOptions) && currencyOptions.map(option => (
-                      <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+            <FormControl size="small" sx={{ minWidth: 120 }}>
+              <InputLabel>Currency</InputLabel>
+              <Select
+                value={filterCurrency}
+                onChange={(e) => setFilterCurrency(e.target.value)}
+                label="Currency"
+              >
+                <MenuItem value="">All</MenuItem>
+                {Array.isArray(currencyOptions) && currencyOptions.map(option => (
+                  <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
 
-                <FormControl size="small" sx={{ minWidth: 120 }}>
-                  <InputLabel>Status</InputLabel>
-                  <Select
-                    value={filterActive}
-                    onChange={(e) => setFilterActive(e.target.value as 'all' | 'active' | 'inactive')}
-                    label="Status"
-                  >
-                    <MenuItem value="all">All</MenuItem>
-                    <MenuItem value="active">Active</MenuItem>
-                    <MenuItem value="inactive">Inactive</MenuItem>
-                  </Select>
-                </FormControl>
+            <FormControl size="small" sx={{ minWidth: 120 }}>
+              <InputLabel>Status</InputLabel>
+              <Select
+                value={filterActive}
+                onChange={(e) => setFilterActive(e.target.value as 'all' | 'active' | 'inactive')}
+                label="Status"
+              >
+                <MenuItem value="all">All</MenuItem>
+                <MenuItem value="active">Active</MenuItem>
+                <MenuItem value="inactive">Inactive</MenuItem>
+              </Select>
+            </FormControl>
 
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <Button variant="contained" size="small" onClick={loadData} startIcon={<FilterIcon />}>Apply</Button>
-                  <Button variant="outlined" size="small" onClick={clearFilters} startIcon={<ClearIcon />}>Clear</Button>
-                </Box>
-              </Box>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button variant="contained" size="small" onClick={loadData} startIcon={<FilterIcon />}>Apply</Button>
+              <Button variant="outlined" size="small" onClick={clearFilters} startIcon={<ClearIcon />}>Clear</Button>
+            </Box>
+          </Box>
 
-              {filteredData.length !== data.length && (
-                <Box sx={{ mt: 2 }}>
-                  <Chip label={`Showing ${filteredData.length} of ${data.length} records`} color="primary" variant="outlined" size="small" />
-                </Box>
-              )}
-            </CardContent>
-          </Card>
+          {filteredData.length !== data.length && (
+            <Box sx={{ mt: 2 }}>
+              <Chip label={`Showing ${filteredData.length} of ${data.length} records`} color="primary" variant="outlined" size="small" />
+            </Box>
+          )}
+        </CardContent>
+      </Card>
 
-          <Card sx={{ display: 'flex', flexDirection: 'column' }}>
-            <CardContent sx={{ flex: 1, p: 0, '&:last-child': { pb: 0 }, display: 'flex', flexDirection: 'column' }}>
-              <Box sx={{ flex: 1, width: '100%', minHeight: 500, display: 'flex', flexDirection: 'column' }}>
-                <Box sx={{ flex: 1, overflow: 'hidden' }}>
-                  <SafeDataGrid
-                    rows={filteredData.slice(paginationModel.page * paginationModel.pageSize, (paginationModel.page + 1) * paginationModel.pageSize)}
-                    columns={columns}
-                    getRowId={(row) => row?.pkid || row?.glCode || `row_${Math.random()}`}
-                    hideFooterPagination
-                    hideFooter
-                    disableRowSelectionOnClick
-                    loading={loading}
-                    slotProps={{
-                      loadingOverlay: {
-                        variant: 'linear-progress' as const,
-                        noRowsVariant: 'skeleton' as const,
-                      },
-                      noRowsOverlay: {
-                        children: (
-                          <EmptyState
-                            title="No Journal Parameters Found"
-                            description={error ? 'Failed to load data from database.' : 'No parameters configured yet.'}
-                            onRetry={error ? loadData : handleCreate}
-                            retryText={error ? 'Retry' : 'Add Journal Entry'}
-                            icon={<ErrorIcon />}
-                          />
-                        )
-                      }
-                    }}
-                  />
-                </Box>
-                <TablePagination
-                  rowsPerPageOptions={[10, 25, 50, 100]}
-                  component="div"
-                  count={rowCount}
-                  rowsPerPage={paginationModel.pageSize}
-                  page={paginationModel.page}
-                  onPageChange={(event, newPage) => {
-                    setPaginationModel({ ...paginationModel, page: newPage });
-                  }}
-                  onRowsPerPageChange={(event) => {
-                    setPaginationModel({ 
-                      page: 0, 
-                      pageSize: parseInt(event.target.value, 10) 
-                    });
-                  }}
-                  labelDisplayedRows={({ from, to, count }) => 
-                    `Showing ${from}–${to} of ${count} • Page ${paginationModel.page + 1}`
+      <Card sx={{ display: 'flex', flexDirection: 'column' }}>
+        <CardContent sx={{ flex: 1, p: 0, '&:last-child': { pb: 0 }, display: 'flex', flexDirection: 'column' }}>
+          <Box sx={{ flex: 1, width: '100%', minHeight: 500, display: 'flex', flexDirection: 'column' }}>
+            <Box sx={{ flex: 1, overflow: 'hidden' }}>
+              <SafeDataGrid
+                rows={filteredData.slice(paginationModel.page * paginationModel.pageSize, (paginationModel.page + 1) * paginationModel.pageSize)}
+                columns={columns}
+                getRowId={(row) => row?.pkid || row?.glCode || `row_${Math.random()}`}
+                hideFooterPagination
+                hideFooter
+                disableRowSelectionOnClick
+                loading={loading}
+                slotProps={{
+                  loadingOverlay: {
+                    variant: 'linear-progress' as const,
+                    noRowsVariant: 'skeleton' as const,
+                  },
+                  noRowsOverlay: {
+                    children: (
+                      <EmptyState
+                        title="No Journal Parameters Found"
+                        description={error ? 'Failed to load data from database.' : 'No parameters configured yet.'}
+                        onRetry={error ? loadData : handleCreate}
+                        retryText={error ? 'Retry' : 'Add Journal Entry'}
+                        icon={<ErrorIcon />}
+                      />
+                    )
                   }
-                  sx={{
-                    borderTop: '2px solid #e0e0e0',
-                    bgcolor: '#fafafa',
-                  }}
-                />
-              </Box>
-            </CardContent>
-          </Card>
+                }}
+              />
+            </Box>
+            <TablePagination
+              rowsPerPageOptions={[10, 25, 50, 100]}
+              component="div"
+              count={rowCount}
+              rowsPerPage={paginationModel.pageSize}
+              page={paginationModel.page}
+              onPageChange={(event, newPage) => {
+                setPaginationModel({ ...paginationModel, page: newPage });
+              }}
+              onRowsPerPageChange={(event) => {
+                setPaginationModel({
+                  page: 0,
+                  pageSize: parseInt(event.target.value, 10)
+                });
+              }}
+              labelDisplayedRows={({ from, to, count }) =>
+                `Showing ${from}–${to} of ${count} • Page ${paginationModel.page + 1}`
+              }
+              sx={{
+                borderTop: '2px solid #e0e0e0',
+                bgcolor: '#fafafa',
+              }}
+            />
+          </Box>
+        </CardContent>
+      </Card>
 
 
       <JournalFormDialog
@@ -653,6 +712,15 @@ export default function JournalParametersPage() {
         journalCodeOptions={journalCodeOptions}
         dbcrOptions={dbcrOptions}
       />
+
+      <PendingChangesDialog
+        open={pendingChangesDialogOpen}
+        onClose={() => setPendingChangesDialogOpen(false)}
+        request={selectedPendingRequest}
+        currentData={currentRecordForPending}
+        title={`Pending Changes for Journal: ${currentRecordForPending?.glCode}`}
+      />
+
       <Snackbar open={!!success} autoHideDuration={4000} onClose={() => setSuccess(null)}>
         <Alert severity="success">{success}</Alert>
       </Snackbar>

@@ -90,7 +90,7 @@ export interface NativeTableProps<T = any> {
  * @template T - The row data type (optional, defaults to any for backwards compatibility)
  */
 export function NativeTable<T = any>({
-  rows,
+  rows = [],
   columns,
   loading = false,
   getRowId = (row: T) => (row as any).id,

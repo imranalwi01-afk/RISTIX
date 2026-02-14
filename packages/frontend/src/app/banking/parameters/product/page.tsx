@@ -14,13 +14,14 @@ import {
 } from '@mui/material';
 import { Download as DownloadIcon } from '@mui/icons-material';
 import { useSearchParams } from 'next/navigation';
-import { api, handleAPIError } from '@/services/api';
+import { api, handleAPIError, bankingAPI } from '@/services/api';
 import { exportToXLSX, exportToCSV, exportToPDF } from '@/utils/exportUtils';
 
 // Modular Components
 import PageHeader from '@/components/banking/shared/PageHeader';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 import ModernLoader from '@/components/common/ModernLoader';
+import { PendingChangesDialog } from '@/components/approval';
 import ProductTable from './components/ProductTable';
 import ProductDrawer from './components/ProductDrawer';
 import ProductToolbar from './components/ProductToolbar';
@@ -55,7 +56,7 @@ const PRODUCT_TYPE_OPTIONS = [
 export default function ProductParametersPage() {
   const searchParams = useSearchParams();
   const mode = searchParams.get('mode') || 'conventional';
-  
+
   // State
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any[]>([]);
@@ -63,14 +64,19 @@ export default function ProductParametersPage() {
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 25 });
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({ currency: '', activeOnly: 'all', dataSource: '' });
-  
+
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
-  
+
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [exportMenuAnchor, setExportMenuAnchor] = useState<null | HTMLElement>(null);
+
+  // Approval Modal State
+  const [pendingChangesDialogOpen, setPendingChangesDialogOpen] = useState(false);
+  const [selectedPendingRequest, setSelectedPendingRequest] = useState<any>(null);
+  const [currentRecordForPending, setCurrentRecordForPending] = useState<any>(null);
 
   // Options state
   const [options, setOptions] = useState({
@@ -95,8 +101,27 @@ export default function ProductParametersPage() {
       });
 
       if (result.success) {
-        setData(result.products);
-        setRowCount(result.pagination?.total || result.products.length);
+        // Fetch pending approvals for product parameters
+        try {
+          const pendingRes = await bankingAPI.approval.getPendingApprovals();
+          const pendingRequests = Array.isArray(pendingRes) ? pendingRes : (pendingRes as any).data || [];
+
+          const mappedProducts = result.products.map((item: any) => {
+            const pending = pendingRequests.find((r: any) => r.entityType === 'product_parameter' && r.entityId === item.prdCode);
+            return {
+              ...item,
+              approvalStatus: pending ? 'pending' : 'active',
+              pendingRequest: pending || null
+            };
+          });
+
+          setData(mappedProducts);
+          setRowCount(result.pagination?.total || result.products.length);
+        } catch (e) {
+          console.warn('Failed to load pending approvals:', e);
+          setData(result.products);
+          setRowCount(result.pagination?.total || result.products.length);
+        }
       } else {
         setError(result.message || 'Failed to load products');
       }
@@ -122,13 +147,13 @@ export default function ProductParametersPage() {
         })) || options.currencies;
 
         const amortMethods = businessRes.data.find((p: any) => p.param_code === 'B0002')?.details.map((d: any) => ({
-           id: d.value1,
-           name: d.paramdesc || d.value1
+          id: d.value1,
+          name: d.paramdesc || d.value1
         })) || options.amortizationTypes;
 
-        setOptions(prev => ({ 
-          ...prev, 
-          currencies, 
+        setOptions(prev => ({
+          ...prev,
+          currencies,
           amortizationTypes: amortMethods,
           instrumentClasses: instrumentRes.success ? instrumentRes.data : prev.instrumentClasses
         }));
@@ -147,6 +172,16 @@ export default function ProductParametersPage() {
   }, [loadOptions]);
 
   // Handlers
+  const handleEdit = (product: any) => {
+    setSelectedProduct(product);
+    setDrawerOpen(true);
+  };
+
+  const handleClone = (product: any) => {
+    setSelectedProduct({ ...product, pkid: undefined, _clone: true });
+    setDrawerOpen(true);
+  };
+
   const handleSave = async (formData: any) => {
     setLoading(true);
     try {
@@ -156,7 +191,11 @@ export default function ProductParametersPage() {
         : await api.banking.productParameters.create(payload);
 
       if (res.success) {
-        setSuccess(`Product ${selectedProduct ? 'updated' : 'created'} successfully`);
+        if (res.approvalRequired) {
+          setSuccess(`${selectedProduct && !formData._clone ? 'Update' : 'Creation'} submitted for approval`);
+        } else {
+          setSuccess(`Product ${selectedProduct && !formData._clone ? 'updated' : 'created'} successfully`);
+        }
         setDrawerOpen(false);
         loadData();
       } else {
@@ -175,7 +214,11 @@ export default function ProductParametersPage() {
     try {
       const res = await api.banking.productParameters.delete(String(product.pkid));
       if (res.success) {
-        setSuccess('Product deleted successfully');
+        if (res.approvalRequired) {
+          setSuccess('Deletion submitted for approval');
+        } else {
+          setSuccess('Product deleted successfully');
+        }
         loadData();
       }
     } catch (err) {
@@ -194,10 +237,10 @@ export default function ProductParametersPage() {
       { field: 'currency', headerName: 'Currency' },
       { field: 'activeFlag', headerName: 'Status' }
     ];
-    
+
     const opts = { title: 'Product Parameters', confidential: true };
     const exporter = format === 'xlsx' ? exportToXLSX : format === 'csv' ? exportToCSV : exportToPDF;
-    
+
     if (exporter(data, cols, opts).success) setSuccess(`Exported to ${format.toUpperCase()}`);
     else setError('Export failed');
   };
@@ -231,12 +274,17 @@ export default function ProductParametersPage() {
         <ProductTable
           data={data}
           loading={loading}
-          onEdit={(p) => { setSelectedProduct(p); setDrawerOpen(true); }}
-          onClone={(p) => { setSelectedProduct({ ...p, pkid: undefined, _clone: true }); setDrawerOpen(true); }}
+          onEdit={handleEdit}
+          onClone={handleClone}
           onDelete={handleDelete}
           paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
           rowCount={rowCount}
+          onViewPending={(request, record) => {
+            setSelectedPendingRequest(request);
+            setCurrentRecordForPending(record);
+            setPendingChangesDialogOpen(true);
+          }}
         />
       </Box>
 
@@ -250,6 +298,14 @@ export default function ProductParametersPage() {
         options={options}
       />
 
+      <PendingChangesDialog
+        open={pendingChangesDialogOpen}
+        onClose={() => setPendingChangesDialogOpen(false)}
+        request={selectedPendingRequest}
+        currentData={currentRecordForPending}
+        title={`Pending Changes for Product: ${currentRecordForPending?.prdCode}`}
+      />
+
       <ProductFilterDrawer
         open={filterDrawerOpen}
         onClose={() => setFilterDrawerOpen(false)}
@@ -261,23 +317,23 @@ export default function ProductParametersPage() {
 
       <Menu anchorEl={exportMenuAnchor} open={Boolean(exportMenuAnchor)} onClose={() => setExportMenuAnchor(null)}>
         <MenuItem onClick={() => handleExport('xlsx')}>
-           <ListItemIcon><DownloadIcon fontSize="small" /></ListItemIcon>
-           <ListItemText>Export to Excel</ListItemText>
+          <ListItemIcon><DownloadIcon fontSize="small" /></ListItemIcon>
+          <ListItemText>Export to Excel</ListItemText>
         </MenuItem>
         <MenuItem onClick={() => handleExport('csv')}>
-           <ListItemIcon><DownloadIcon fontSize="small" /></ListItemIcon>
-           <ListItemText>Export to CSV</ListItemText>
+          <ListItemIcon><DownloadIcon fontSize="small" /></ListItemIcon>
+          <ListItemText>Export to CSV</ListItemText>
         </MenuItem>
         <Divider />
         <MenuItem onClick={() => handleExport('pdf')}>
-           <ListItemIcon><DownloadIcon fontSize="small" /></ListItemIcon>
-           <ListItemText>Export to PDF</ListItemText>
+          <ListItemIcon><DownloadIcon fontSize="small" /></ListItemIcon>
+          <ListItemText>Export to PDF</ListItemText>
         </MenuItem>
       </Menu>
 
-      <Snackbar 
-        open={!!error || !!success} 
-        autoHideDuration={6000} 
+      <Snackbar
+        open={!!error || !!success}
+        autoHideDuration={6000}
         onClose={() => { setError(null); setSuccess(null); }}
       >
         <Alert severity={error ? "error" : "success"} variant="filled">

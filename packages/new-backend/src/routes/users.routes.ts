@@ -5,6 +5,8 @@ import { authMiddleware, tenantMiddleware } from '../middleware'
 import { runEffect } from '../lib/effect'
 import { parsePaginationParams, parseFilterParams } from '../lib/react-admin'
 import * as usersService from '../services/users.service'
+import { interceptCreate, interceptUpdate, interceptDelete } from '../middleware/approval-interceptor.middleware'
+import type { ApprovalResponse } from '../lib/approval-helpers'
 
 export const usersRoutes = new OpenAPIHono<AppContext>()
 
@@ -198,31 +200,58 @@ usersRoutes.openapi(
     }),
     async (c) => {
         const tenantId = c.get('tenantId')!
+        const userId = c.get('userId')!
+        const userPermissions = (c.get('userPermissions') as string[]) || []
         const body = c.req.valid('json')
 
+        // Define the actual user creation operation
+        const executeCreate = () => usersService.createUser({
+            ...body,
+            tenantId,
+        })
+
+        // Use approval interceptor
         const effect = pipe(
-            usersService.createUser({
-                ...body,
+            interceptCreate(
                 tenantId,
-            }),
-            Effect.map((user) => ({
-                id: user.id,
-                email: user.email,
-                fullName: user.fullName,
-                username: user.username,
-                phone: user.phone ?? null,
-                department: user.department ?? null,
-                position: user.position ?? null,
-                tenantId: user.tenantId ?? null,
-                isVerified: user.isVerified ?? false,
-                emailVerifiedAt: user.emailVerifiedAt ? user.emailVerifiedAt.toISOString() : null,
-                lastLoginAt: user.lastLoginAt ? user.lastLoginAt.toISOString() : null,
-                isActive: user.isActive ?? false,
-            }))
+                userId,
+                userPermissions,
+                'user',
+                { ...body, tenantId },
+                executeCreate,
+                'medium' // impact level
+            ),
+            Effect.map((response: ApprovalResponse) => {
+                if (response.approvalRequired) {
+                    // Return approval pending response
+                    return response
+                } else {
+                    // Return created user
+                    const user = response.data as any
+                    return {
+                        success: true,
+                        approvalRequired: false,
+                        data: {
+                            id: user.id,
+                            email: user.email,
+                            fullName: user.fullName,
+                            username: user.username,
+                            phone: user.phone ?? null,
+                            department: user.department ?? null,
+                            position: user.position ?? null,
+                            tenantId: user.tenantId ?? null,
+                            isVerified: user.isVerified ?? false,
+                            emailVerifiedAt: user.emailVerifiedAt ? user.emailVerifiedAt.toISOString() : null,
+                            lastLoginAt: user.lastLoginAt ? user.lastLoginAt.toISOString() : null,
+                            isActive: user.isActive ?? false,
+                        }
+                    }
+                }
+            })
         )
 
         const result = await runEffect(c, effect)
-        return c.json(result, 201)
+        return c.json(result, result.approvalRequired ? 202 : 201)
     }
 )
 
@@ -498,27 +527,51 @@ usersRoutes.openapi(
     }),
     async (c) => {
         const { id } = c.req.valid('param')
+        const tenantId = c.get('tenantId')!
+        const userId = c.get('userId')!
+        const userPermissions = (c.get('userPermissions') as string[]) || []
         const body = c.req.valid('json')
 
+        // Define the actual user update operation
+        const executeUpdate = () => usersService.updateUser(id, body)
+
+        // Use approval interceptor
         const effect = pipe(
-            usersService.updateUser(id, body),
-            Effect.map((user) => ({
-                success: true,
-                data: {
-                    id: user.id,
-                    email: user.email,
-                    fullName: user.fullName,
-                    username: user.username,
-                    phone: user.phone ?? null,
-                    department: user.department ?? null,
-                    position: user.position ?? null,
-                    tenantId: user.tenantId ?? null,
-                    isVerified: user.isVerified ?? false,
-                    emailVerifiedAt: user.emailVerifiedAt ? user.emailVerifiedAt.toISOString() : null,
-                    lastLoginAt: user.lastLoginAt ? user.lastLoginAt.toISOString() : null,
-                    isActive: user.isActive ?? false,
-                },
-            }))
+            interceptUpdate(
+                tenantId,
+                userId,
+                userPermissions,
+                'user',
+                id,
+                body,
+                executeUpdate,
+                'medium'
+            ),
+            Effect.map((response: ApprovalResponse) => {
+                if (response.approvalRequired) {
+                    return response
+                } else {
+                    const user = response.data as any
+                    return {
+                        success: true,
+                        approvalRequired: false,
+                        data: {
+                            id: user.id,
+                            email: user.email,
+                            fullName: user.fullName,
+                            username: user.username,
+                            phone: user.phone ?? null,
+                            department: user.department ?? null,
+                            position: user.position ?? null,
+                            tenantId: user.tenantId ?? null,
+                            isVerified: user.isVerified ?? false,
+                            emailVerifiedAt: user.emailVerifiedAt ? user.emailVerifiedAt.toISOString() : null,
+                            lastLoginAt: user.lastLoginAt ? user.lastLoginAt.toISOString() : null,
+                            isActive: user.isActive ?? false,
+                        },
+                    }
+                }
+            })
         )
         return runEffect(c, effect)
     }
@@ -557,9 +610,39 @@ usersRoutes.openapi(
     }),
     async (c) => {
         const { id } = c.req.valid('param')
-        const effect = usersService.deleteUser(id)
+        const tenantId = c.get('tenantId')!
+        const userId = c.get('userId')!
+        const userPermissions = (c.get('userPermissions') as string[]) || []
+
+        // Define the actual user deletion operation
+        const executeDelete = () => usersService.deleteUser(id)
+
+        // Use approval interceptor
+        const effect = pipe(
+            interceptDelete(
+                tenantId,
+                userId,
+                userPermissions,
+                'user',
+                id,
+                executeDelete,
+                'high' // Deleting users is high impact
+            ),
+            Effect.map((response: ApprovalResponse) => {
+                if (response.approvalRequired) {
+                    return response
+                } else {
+                    return {
+                        success: true,
+                        approvalRequired: false,
+                        id,
+                    }
+                }
+            })
+        )
+
         const result = await runEffect(c, effect)
-        return c.json({ id })
+        return c.json(result)
     }
 )
 
