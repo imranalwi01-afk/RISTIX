@@ -7,7 +7,19 @@
 -- REPORTING permissions require Level 2 approval (1 approver)
 -- Other categories have no approval requirements (requires_approval=false)
 
-INSERT INTO core.permission_approval_policies 
+WITH tenant_ids AS (
+  SELECT DISTINCT tenant_id::text::uuid AS id
+  FROM core.roles
+  WHERE tenant_id IS NOT NULL
+    AND tenant_id::text ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+
+  UNION
+
+  SELECT DISTINCT tenant_id AS id
+  FROM approval.approval_matrices
+  WHERE tenant_id IS NOT NULL
+)
+INSERT INTO approval.permission_approval_policies
   (tenant_id, permission_id, requires_approval, min_hierarchy_level, required_approvers, description, is_active)
 SELECT 
   t.id as tenant_id,
@@ -34,12 +46,12 @@ SELECT
     END
   ) as description,
   true as is_active
-FROM core.tenants t
+FROM tenant_ids t
 CROSS JOIN core.permissions p
 WHERE p.is_active = true
   AND NOT EXISTS (
     SELECT 1 
-    FROM core.permission_approval_policies pap 
+    FROM approval.permission_approval_policies pap 
     WHERE pap.tenant_id = t.id 
       AND pap.permission_id = p.id
   )
@@ -51,7 +63,7 @@ DECLARE
   policies_created INT;
 BEGIN
   SELECT COUNT(*) INTO policies_created 
-  FROM core.permission_approval_policies;
+  FROM approval.permission_approval_policies;
   
   RAISE NOTICE 'Created % permission approval policies', policies_created;
 END $$;

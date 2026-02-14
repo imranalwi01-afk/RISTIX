@@ -17,6 +17,7 @@ import { users, tenants } from './core'
  * Core schema for RBAC tables
  */
 export const coreSchema = pgSchema('core')
+export const approvalPolicySchema = pgSchema('approval')
 
 // =============================================================================
 // ROLES TABLE
@@ -184,7 +185,7 @@ export const rolePermissions = coreSchema.table(
  * Permission approval policies table definition.
  * Links permissions to approval requirements based on role hierarchy levels.
  */
-export const permissionApprovalPolicies = coreSchema.table(
+export const permissionApprovalPolicies = approvalPolicySchema.table(
     'permission_approval_policies',
     {
         id: uuid('id').primaryKey().defaultRandom(),

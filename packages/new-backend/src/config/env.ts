@@ -27,13 +27,13 @@ const envSchema = z.object({
     PLATFORM_DB_NAME: z.string().default('ifrspro_platform_admin'),
     PLATFORM_DB_SSL: z.string().transform(val => val === 'true').default('false'),
 
-    // Shared Services Database
-    SHARED_DB_HOST: z.string().optional(),
-    SHARED_DB_PORT: z.coerce.number().optional(),
-    SHARED_DB_USER: z.string().optional(),
-    SHARED_DB_PASSWORD: z.string().optional(),
-    SHARED_DB_NAME: z.string().default('ifrspro_shared_services'),
-    SHARED_DB_SSL: z.string().transform(val => val === 'true').default('false'),
+    // // Shared Services Database
+    // SHARED_DB_HOST: z.string().optional(),
+    // SHARED_DB_PORT: z.coerce.number().optional(),
+    // SHARED_DB_USER: z.string().optional(),
+    // SHARED_DB_PASSWORD: z.string().optional(),
+    // SHARED_DB_NAME: z.string().default('ifrspro_shared_services'),
+    // SHARED_DB_SSL: z.string().transform(val => val === 'true').default('false'),
 
     // Tenant Database
     TENANT_DB_HOST: z.string().optional(),
@@ -162,19 +162,19 @@ export function getPlatformDatabaseUrl(): string {
     return constructDatabaseUrl(host, port, user, password, database, ssl)
 }
 
-/**
- * Get Shared Services Database URL
- */
-export function getSharedDatabaseUrl(): string {
-    const host = env.SHARED_DB_HOST || env.DB_HOST
-    const port = env.SHARED_DB_PORT || env.DB_PORT
-    const user = env.SHARED_DB_USER || env.DB_USER
-    const password = env.SHARED_DB_PASSWORD || env.DB_PASSWORD
-    const database = env.SHARED_DB_NAME
-    const ssl = env.SHARED_DB_SSL
+// /**a
+//  * Get Shared Services Database URL
+//  */
+// export function getSharedDatabaseUrl(): string {
+//     const host = env.SHARED_DB_HOST || env.DB_HOST
+//     const port = env.SHARED_DB_PORT || env.DB_PORT
+//     const user = env.SHARED_DB_USER || env.DB_USER
+//     const password = env.SHARED_DB_PASSWORD || env.DB_PASSWORD
+//     const database = env.SHARED_DB_NAME
+//     const ssl = env.SHARED_DB_SSL
 
-    return constructDatabaseUrl(host, port, user, password, database, ssl)
-}
+//     return constructDatabaseUrl(host, port, user, password, database, ssl)
+// }
 
 /**
  * Get Tenant Database URL

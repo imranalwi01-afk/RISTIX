@@ -6,7 +6,6 @@ import {
     boolean,
     text,
     integer,
-    date,
     index,
     jsonb,
     uniqueIndex,
@@ -40,25 +39,15 @@ export const users = coreSchema.table(
         fullName: varchar('full_name', { length: 200 }).notNull(),
 
         // Profile info
-        firstName: varchar('first_name', { length: 100 }),
-        lastName: varchar('last_name', { length: 100 }),
         phone: varchar('phone', { length: 50 }),
         department: varchar('department', { length: 100 }),
         position: varchar('position', { length: 100 }),
         employeeId: varchar('employee_id', { length: 50 }),
         bankId: varchar('bank_id', { length: 50 }),
 
-        // Banking specific
-        bankingAccess: varchar('banking_access', { length: 20 }).default('CONVENTIONAL'),
-        syariahCertified: boolean('syariah_certified').default(false),
-        syariahCertification: boolean('syariah_certification').default(false),
-        syariahCertificationDate: date('syariah_certification_date'),
-
         // Status & Perms
         isActive: boolean('is_active').default(true),
         isVerified: boolean('is_verified').default(false),
-        isEmailVerified: boolean('is_email_verified').default(false).notNull(),
-        isPlatformAdmin: boolean('is_platform_admin').default(false).notNull(),
 
         // Security & MFA
         mfaEnabled: boolean('mfa_enabled').default(false),

@@ -2,12 +2,12 @@ export { env, isProduction, isDevelopment } from './env'
 export {
     db,
     platformDb,
-    sharedDb,
+    // sharedDb,
     tenantDb,
     legacyDb,
     closeDatabase,
     platformConnection,
-    sharedConnection,
+    // sharedConnection,
     tenantConnection,
     legacyConnection,
 } from './database'

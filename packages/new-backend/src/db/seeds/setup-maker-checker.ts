@@ -1,15 +1,34 @@
 
 import { tenantDb as db } from '../../config'
-import { users, roles, userRoles, rolePermissions, permissions } from '../schema'
-import { eq, and, inArray } from 'drizzle-orm'
+import { users, roles, userRoles, rolePermissions, permissions, tenants } from '../schema'
+import { eq, and, inArray, or } from 'drizzle-orm'
 
-const TENANT_ID = 'a24af6d2-3032-4d53-ae82-9cfa84f97a20'
+const PREFERRED_TENANT_ID = process.env.TENANT_UUID || 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be'
+const TARGET_TENANT_SLUG = process.env.TENANT_SLUG || 'iaf'
 const PASSWORD_HASH = '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj/RK.s5uO.GG' // Password: 1019181716
 
 async function setupMakerChecker() {
     console.log('🏗️  Setting up Maker and Checker roles/users in TENANT database...')
 
     try {
+        const [tenantRecord] = await db
+            .select({ id: tenants.id })
+            .from(tenants)
+            .where(
+                or(
+                    eq(tenants.id, PREFERRED_TENANT_ID),
+                    eq(tenants.slug, TARGET_TENANT_SLUG),
+                    eq(tenants.code, TARGET_TENANT_SLUG.toUpperCase())
+                )
+            )
+            .limit(1)
+
+        const tenantId = tenantRecord?.id
+        if (!tenantId) {
+            throw new Error(`Tenant not found for slug='${TARGET_TENANT_SLUG}' or id='${PREFERRED_TENANT_ID}'`)
+        }
+        console.log(`  ✓ Resolved tenant ID: ${tenantId}`)
+
         // 1. Ensure Roles Exist
         const rolesToCreate = [
             {
@@ -17,7 +36,7 @@ async function setupMakerChecker() {
                 roleName: 'Maker',
                 description: 'Can initiate changes but requires approval',
                 hierarchyLevel: 10,
-                tenantId: TENANT_ID,
+                tenantId,
                 isActive: true,
                 isSystemRole: false,
             },
@@ -26,7 +45,7 @@ async function setupMakerChecker() {
                 roleName: 'Checker',
                 description: 'Can approve changes initiated by makers',
                 hierarchyLevel: 50,
-                tenantId: TENANT_ID,
+                tenantId,
                 isActive: true,
                 isSystemRole: false,
             }
@@ -48,7 +67,12 @@ async function setupMakerChecker() {
         }
 
         // Get the role IDs
-        const dbRoles = await db.select().from(roles).where(inArray(roles.roleCode, ['MAKER', 'CHECKER']))
+        const dbRoles = await db.select().from(roles).where(
+            and(
+                inArray(roles.roleCode, ['MAKER', 'CHECKER']),
+                eq(roles.tenantId, tenantId)
+            )
+        )
         const makerRoleId = dbRoles.find(r => r.roleCode === 'MAKER')?.id
         const checkerRoleId = dbRoles.find(r => r.roleCode === 'CHECKER')?.id
 
@@ -84,9 +108,9 @@ async function setupMakerChecker() {
                 username: 'maker_iaf',
                 fullName: 'IAF Maker User',
                 passwordHash: PASSWORD_HASH,
-                tenantId: TENANT_ID,
+                tenantId,
                 isActive: true,
-                isEmailVerified: true,
+                emailVerifiedAt: new Date(),
                 createdAt: new Date(),
                 updatedAt: new Date(),
             })
@@ -103,7 +127,7 @@ async function setupMakerChecker() {
             .values({
                 userId: makerUser.id,
                 roleId: makerRoleId,
-                tenantId: TENANT_ID,
+                tenantId,
                 isActive: true,
                 assignedAt: new Date(),
             })
@@ -114,7 +138,7 @@ async function setupMakerChecker() {
         console.log('👤 Configuring Admin as Checker...')
         const adminEmail = 'admin@iaf.co.id'
         const adminUser = await db.query.users.findFirst({
-            where: and(eq(users.email, adminEmail), eq(users.tenantId, TENANT_ID))
+            where: and(eq(users.email, adminEmail), eq(users.tenantId, tenantId))
         })
 
         if (adminUser) {
@@ -122,7 +146,7 @@ async function setupMakerChecker() {
                 .values({
                     userId: adminUser.id,
                     roleId: checkerRoleId,
-                    tenantId: TENANT_ID,
+                    tenantId,
                     isActive: true,
                     assignedAt: new Date(),
                 })
