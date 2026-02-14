@@ -1,6 +1,10 @@
 import { eq, and, or, asc, desc, count, ilike, sql } from 'drizzle-orm'
 import { db } from '@/config'
-import { tenants, type Tenant, type NewTenant } from '@/db/schema'
+import {
+    platformTenants as tenants,
+    type PlatformTenant as Tenant,
+    type NewPlatformTenant as NewTenant,
+} from '@/db/schema/platform.schema'
 
 // =============================================================================
 // TENANT REPOSITORY - Domain: Multi-Tenancy
@@ -31,9 +35,12 @@ export const TenantRepository = {
     findById: (id: string) => {
         const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
         if (!uuidRegex.test(id)) return Promise.resolve(undefined)
-        return db.query.tenants.findFirst({
-            where: eq(tenants.id, id),
-        })
+        return db
+            .select()
+            .from(tenants)
+            .where(eq(tenants.id, id))
+            .limit(1)
+            .then((rows) => rows[0])
     },
 
     /**
@@ -43,9 +50,12 @@ export const TenantRepository = {
      * @returns A promise that resolves to the Tenant record or undefined
      */
     findByCode: (code: string) =>
-        db.query.tenants.findFirst({
-            where: eq(tenants.code, code),
-        }),
+        db
+            .select()
+            .from(tenants)
+            .where(eq(tenants.code, code))
+            .limit(1)
+            .then((rows) => rows[0]),
 
     /**
      * Find a tenant by its URL-friendly slug.
@@ -54,9 +64,12 @@ export const TenantRepository = {
      * @returns A promise that resolves to the Tenant record or undefined
      */
     findBySlug: (slug: string) =>
-        db.query.tenants.findFirst({
-            where: eq(tenants.slug, slug),
-        }),
+        db
+            .select()
+            .from(tenants)
+            .where(eq(tenants.slug, slug))
+            .limit(1)
+            .then((rows) => rows[0]),
 
     /**
      * Find all tenants matching criteria with search and sorting.
@@ -92,12 +105,13 @@ export const TenantRepository = {
         const orderDir = options?.order === 'desc' ? desc : asc
 
         const [data, countResult] = await Promise.all([
-            db.query.tenants.findMany({
-                where: whereClause,
-                limit: options?.limit ?? 50,
-                offset: options?.offset ?? 0,
-                orderBy: [orderDir(orderColumn)],
-            }),
+            db
+                .select()
+                .from(tenants)
+                .where(whereClause)
+                .orderBy(orderDir(orderColumn))
+                .limit(options?.limit ?? 50)
+                .offset(options?.offset ?? 0),
             db.select({ count: count() }).from(tenants).where(whereClause),
         ])
 
@@ -111,8 +125,14 @@ export const TenantRepository = {
      * @returns The newly created Tenant record
      */
     create: async (data: NewTenant) => {
+        const normalizedSettings =
+            typeof data.settings === 'string' || data.settings == null
+                ? data.settings
+                : JSON.stringify(data.settings)
+
         const [tenant] = await db.insert(tenants).values({
             ...data,
+            settings: normalizedSettings,
             createdAt: new Date(),
             updatedAt: new Date(),
         }).returning()
@@ -127,8 +147,14 @@ export const TenantRepository = {
      * @returns The updated Tenant record
      */
     update: async (id: string, data: Partial<NewTenant>) => {
+        const normalizedSettings =
+            typeof data.settings === 'string' || data.settings == null
+                ? data.settings
+                : JSON.stringify(data.settings)
+
         const [tenant] = await db.update(tenants).set({
             ...data,
+            settings: normalizedSettings,
             updatedAt: new Date(),
         }).where(eq(tenants.id, id)).returning()
         return tenant

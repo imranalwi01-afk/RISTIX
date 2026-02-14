@@ -4,6 +4,12 @@ import { ParametersService } from '../services/parameters.service'
 import { runEffect } from '../lib/effect/runtime'
 import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
+import {
+    interceptCreate,
+    interceptUpdate,
+    interceptDelete,
+} from '../middleware/approval-interceptor.middleware'
+import type { ApprovalResponse } from '../lib/approval-helpers'
 
 const app = new OpenAPIHono<AppContext>()
 
@@ -223,7 +229,8 @@ app.openapi(
         const data = c.req.valid('json')
         data.paramType = 'B' // Enforce Business Type
 
-        const executeCreate = () => ParametersService.createAppSetting(data, userId)
+        const executeCreate = (): Effect.Effect<any, any> =>
+            ParametersService.createAppSetting(data, userId) as Effect.Effect<any, any>
 
         const effect = pipe(
             interceptCreate(
@@ -244,7 +251,7 @@ app.openapi(
             })
         )
 
-        const result = await runEffect(c, effect)
+        const result = await runEffect(c, effect as any)
         return c.json(result, result.approvalRequired ? 202 : 201)
     }
 )
@@ -457,7 +464,8 @@ app.openapi(
         const userPermissions = (c.get('permissions') as string[]) || []
         const data = c.req.valid('json')
 
-        const executeUpdate = () => ParametersService.updateAppSetting(code, data, userId)
+        const executeUpdate = (): Effect.Effect<any, any> =>
+            ParametersService.updateAppSetting(code, data, userId) as Effect.Effect<any, any>
 
         const effect = pipe(
             interceptUpdate(
@@ -479,7 +487,7 @@ app.openapi(
             })
         )
 
-        const result = await runEffect(c, effect)
+        const result = await runEffect(c, effect as any)
         return c.json(result, result.approvalRequired ? 202 : 200)
     }
 )
@@ -510,7 +518,8 @@ app.openapi(
         const userId = c.get('userId')!
         const userPermissions = (c.get('permissions') as string[]) || []
 
-        const executeDelete = () => ParametersService.deleteAppSetting(code)
+        const executeDelete = (): Effect.Effect<any, any> =>
+            ParametersService.deleteAppSetting(code) as Effect.Effect<any, any>
 
         const effect = pipe(
             interceptDelete(
@@ -531,7 +540,7 @@ app.openapi(
             })
         )
 
-        const result = await runEffect(c, effect)
+        const result = await runEffect(c, effect as any)
         return c.json(result, result.approvalRequired ? 202 : 200)
     }
 )

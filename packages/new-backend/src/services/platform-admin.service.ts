@@ -2,13 +2,13 @@ import { Effect, pipe } from 'effect'
 import { sql, count, eq, and, gte, lte } from 'drizzle-orm'
 import { db } from '@/config'
 import {
-    tenants,
     users,
     platformUsers, // ✅ Import platformUsers
     roles,
     auditLogs,
     sessions,
 } from '@/db/schema'
+import { platformTenants as tenants } from '@/db/schema/platform.schema'
 import { DatabaseError } from '@/lib/errors'
 import { dbOperation } from '@/lib/effect'
 

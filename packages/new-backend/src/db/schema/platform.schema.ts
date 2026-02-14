@@ -23,6 +23,43 @@ import { relations } from 'drizzle-orm'
 export const platformSchema = pgSchema('platform_admin')
 
 // =============================================================================
+// PLATFORM TENANTS TABLE
+// =============================================================================
+
+/**
+ * Platform Tenants table definition.
+ * Maps tenant registry records in platform_admin.tenants.
+ */
+export const platformTenants = platformSchema.table(
+    'tenants',
+    {
+        id: uuid('id').primaryKey().defaultRandom(),
+        code: varchar('code', { length: 50 }).notNull(),
+        name: varchar('name', { length: 255 }).notNull(),
+        slug: varchar('slug', { length: 100 }),
+        description: text('description'),
+        type: varchar('type', { length: 50 }).default('banking'),
+        bankingMode: varchar('banking_mode', { length: 20 }).default('conventional'),
+        settings: text('settings').default('{}'),
+        isActive: boolean('is_active').notNull().default(true),
+        createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+        updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    },
+    (table) => [
+        uniqueIndex('platform_tenants_code_idx').on(table.code),
+        index('platform_tenants_slug_idx').on(table.slug),
+        index('platform_tenants_active_idx').on(table.isActive),
+    ]
+)
+
+export const platformTenantsRelations = relations(platformTenants, ({ many }) => ({
+    // Relational query support
+}))
+
+export type PlatformTenant = typeof platformTenants.$inferSelect
+export type NewPlatformTenant = typeof platformTenants.$inferInsert
+
+// =============================================================================
 // PLATFORM USERS TABLE
 // =============================================================================
 

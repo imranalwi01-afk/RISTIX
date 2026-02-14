@@ -28,6 +28,7 @@ import {
   Checkbox,
   CircularProgress
 } from '@mui/material';
+import { ApprovalNotification, ApprovalStatusBadge } from '@/components/approval';
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -38,6 +39,7 @@ import {
 import { GridColDef } from '@mui/x-data-grid';
 import { useRouter } from 'next/navigation';
 import { api } from '../../../../services/api';
+import { bankingAPI } from '@/services/api';
 import { EADConfiguration } from '../../../../services/api/ead-configurations.api';
 import { FLScalarWithDetails } from '../../../../services/api/fl-scalar.api';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
@@ -80,6 +82,12 @@ export default function EADSetupPage() {
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [searchTerm, setSearchTerm] = useState('');
+  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+  const [approvalNotification, setApprovalNotification] = useState<{
+    open: boolean;
+    message: string;
+    requestId?: string;
+  }>({ open: false, message: '' });
 
   // Load Data
   const loadData = useCallback(async () => {
@@ -114,9 +122,20 @@ export default function EADSetupPage() {
     }
   }, []);
 
+  const loadPendingApprovals = useCallback(async () => {
+    try {
+      const response = await bankingAPI.approval.getPendingApprovals();
+      const requests = Array.isArray(response) ? response : response.data || [];
+      setPendingRequests(requests.filter((r: any) => r.entityType === 'ead_configuration'));
+    } catch (err) {
+      console.error('Error loading pending approvals:', err);
+    }
+  }, []);
+
   useEffect(() => {
     loadData();
-  }, [loadData]);
+    loadPendingApprovals();
+  }, [loadData, loadPendingApprovals]);
 
   // Filtering
   useEffect(() => {
@@ -155,13 +174,22 @@ export default function EADSetupPage() {
         is_active: formData.is_active
       };
 
-      if (isEditing && selectedConfig?.id) {
-        await api.banking.eadConfigurations.update(String(selectedConfig.id), payload);
-      } else {
-        await api.banking.eadConfigurations.create(payload);
+      const response = isEditing && selectedConfig?.id
+        ? await api.banking.eadConfigurations.update(String(selectedConfig.id), payload)
+        : await api.banking.eadConfigurations.create(payload);
+
+      const isApprovalResponse = response?.approvalRequired || response?.status === 202;
+
+      if (isApprovalResponse) {
+        setApprovalNotification({
+          open: true,
+          message: response?.message || 'Request submitted for approval',
+          requestId: response?.requestId
+        });
       }
 
       await loadData();
+      await loadPendingApprovals();
       setIsDialogOpen(false);
       setFormData({});
       setSelectedConfig(null);
@@ -177,8 +205,17 @@ export default function EADSetupPage() {
     if (!confirm('Are you sure you want to delete this configuration?')) return;
     setLoading(true);
     try {
-      await api.banking.eadConfigurations.delete(String(id));
+      const response = await api.banking.eadConfigurations.delete(String(id));
+      const isApprovalResponse = response?.approvalRequired || response?.status === 202;
+      if (isApprovalResponse) {
+        setApprovalNotification({
+          open: true,
+          message: response?.message || 'Deletion request submitted for approval',
+          requestId: response?.requestId
+        });
+      }
       await loadData();
+      await loadPendingApprovals();
     } catch (err: any) {
       console.error('Delete failed:', err);
       setError('Failed to delete configuration.');
@@ -196,13 +233,17 @@ export default function EADSetupPage() {
       field: 'is_active',
       headerName: 'Status',
       width: 100,
-      renderCell: (params) => (
-        <Chip
-          label={params.value ? 'Active' : 'Inactive'}
-          color={params.value ? 'success' : 'default'}
-          size="small"
-        />
-      )
+      renderCell: (params) => {
+        const isPending = pendingRequests.some(r => r.entityId === params.row.id?.toString());
+        if (isPending) return <ApprovalStatusBadge status="pending" />;
+        return (
+          <Chip
+            label={params.value ? 'Active' : 'Inactive'}
+            color={params.value ? 'success' : 'default'}
+            size="small"
+          />
+        );
+      }
     },
     {
       field: 'actions',
@@ -342,6 +383,12 @@ export default function EADSetupPage() {
           <Button variant="contained" onClick={handleSave} disabled={loading}>{selectedConfig ? 'Update' : 'Create'}</Button>
         </DialogActions>
       </Dialog>
+      <ApprovalNotification
+        open={approvalNotification.open}
+        message={approvalNotification.message}
+        requestId={approvalNotification.requestId}
+        onClose={() => setApprovalNotification({ ...approvalNotification, open: false })}
+      />
       <FullstackIndicator />
     </Container>
   );

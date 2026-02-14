@@ -2,11 +2,12 @@ import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import {
     getPlatformDatabaseUrl,
-    getSharedDatabaseUrl,
     getTenantDatabaseUrl,
     getLegacyDatabaseUrl
 } from './env'
 import * as schema from '../db/schema'
+import * as platformSchema from '../db/schema/platform.schema'
+import * as tenantSchema from '../db/schema/tenant.schema'
 import * as legacySchema from '../db/schema/legacy.schema'
 
 /**
@@ -23,7 +24,6 @@ const connectionConfig = {
  * For platform-wide administration, users, roles, etc.
  */
 const platformConnection = postgres(getPlatformDatabaseUrl(), connectionConfig)
-const sharedConnection = postgres(getSharedDatabaseUrl(), connectionConfig)
 const tenantConnection = postgres(getTenantDatabaseUrl(), connectionConfig)
 const legacyConnection = postgres(getLegacyDatabaseUrl(), connectionConfig)
 
@@ -31,17 +31,18 @@ const legacyConnection = postgres(getLegacyDatabaseUrl(), connectionConfig)
  * Drizzle ORM instance for Platform Admin DB
  * The schema is needed for the relational query API (db.query.*)
  */
-export const platformDb = drizzle(platformConnection, { schema })
+export const platformDb = drizzle(platformConnection, {
+    schema: platformSchema as unknown as typeof schema,
+})
 
-/**
- * Drizzle ORM instance for Shared Services DB
- */
-export const sharedDb = drizzle(sharedConnection, { schema })
 
 /**
  * Drizzle ORM instance for Tenant DB
  */
-export const tenantDb = drizzle(tenantConnection, { schema, logger: true })
+export const tenantDb = drizzle(tenantConnection, {
+    schema: tenantSchema as unknown as typeof schema,
+    logger: true,
+})
 
 /**
  * Legacy Drizzle ORM instance
@@ -59,7 +60,6 @@ export const db = platformDb
 export async function closeDatabase(): Promise<void> {
     await Promise.all([
         platformConnection.end(),
-        sharedConnection.end(),
         tenantConnection.end(),
         legacyConnection.end()
     ])
@@ -67,7 +67,6 @@ export async function closeDatabase(): Promise<void> {
 
 export {
     platformConnection,
-    sharedConnection,
     tenantConnection,
     legacyConnection
 }

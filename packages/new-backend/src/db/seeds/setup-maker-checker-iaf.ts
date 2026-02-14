@@ -1,30 +1,49 @@
 import { tenantDb as db, platformDb } from '../../config'
 import { users, roles, userRoles, rolePermissions, permissions, tenants } from '../schema'
-import { eq, and, inArray } from 'drizzle-orm'
+import { eq, and, inArray, or, sql } from 'drizzle-orm'
 
-const TENANT_ID = 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be'
+const PREFERRED_TENANT_ID = process.env.TENANT_UUID || 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be'
+const TARGET_TENANT_SLUG = process.env.TENANT_SLUG || 'iaf'
 const PASSWORD_HASH = '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj/RK.s5uO.GG' // Password: 1019181716
 
 async function setupMakerChecker() {
-    console.log(`🏗️  Setting up Maker and Checker roles/users for Tenant ${TENANT_ID}...`)
+    console.log(`🏗️  Setting up Maker and Checker roles/users for tenant '${TARGET_TENANT_SLUG}'...`)
 
     try {
-        // 0. Ensure Tenant Exists in Tenant DB (core.tenants)
-        console.log('🏢 Ensuring tenant exists in core.tenants...')
-        await db.insert(tenants)
-            .values({
-                id: TENANT_ID,
-                code: 'IAF_IAF',
-                name: 'Indonesia Airawata Finance (IAF)',
-                slug: 'iaf-iaf',
-                isActive: true,
-                bankingMode: 'dual'
-            })
-            .onConflictDoUpdate({
-                target: tenants.id,
-                set: { isActive: true }
-            })
-        console.log(`  ✓ Tenant ${TENANT_ID} synced in Tenant DB`)
+        // 0. Resolve tenant ID from platform registry first, then tenant DB fallback
+        console.log('🏢 Resolving tenant from platform_admin.tenants...')
+        const platformTenantResult = await platformDb.execute(sql`
+            SELECT id::text AS id
+            FROM platform_admin.tenants t
+            WHERE id = ${PREFERRED_TENANT_ID}::uuid
+               OR to_jsonb(t)->>'slug' = ${TARGET_TENANT_SLUG}
+               OR to_jsonb(t)->>'tenant_slug' = ${TARGET_TENANT_SLUG}
+               OR upper(coalesce(to_jsonb(t)->>'code', '')) = ${TARGET_TENANT_SLUG.toUpperCase()}
+            LIMIT 1
+        `) as { rows?: Array<{ id: string }> }
+
+        let tenantId = platformTenantResult.rows?.[0]?.id
+
+        if (!tenantId) {
+            console.log('  ⚠ Not found in platform registry, trying tenant DB core.tenants...')
+            const [tenantRecord] = await db
+                .select({ id: tenants.id })
+                .from(tenants)
+                .where(
+                    or(
+                        eq(tenants.id, PREFERRED_TENANT_ID),
+                        eq(tenants.slug, TARGET_TENANT_SLUG),
+                        eq(tenants.code, TARGET_TENANT_SLUG.toUpperCase())
+                    )
+                )
+                .limit(1)
+            tenantId = tenantRecord?.id
+        }
+
+        if (!tenantId) {
+            throw new Error(`Tenant not found for slug='${TARGET_TENANT_SLUG}' or id='${PREFERRED_TENANT_ID}'`)
+        }
+        console.log(`  ✓ Resolved tenant ID: ${tenantId}`)
 
         // 1. Ensure Roles Exist
         const rolesToCreate = [
@@ -33,7 +52,7 @@ async function setupMakerChecker() {
                 roleName: 'Maker',
                 description: 'Can initiate changes but requires approval',
                 hierarchyLevel: 10,
-                tenantId: TENANT_ID,
+                tenantId,
                 isActive: true,
                 isSystemRole: false,
             },
@@ -42,7 +61,7 @@ async function setupMakerChecker() {
                 roleName: 'Checker',
                 description: 'Can approve changes initiated by makers',
                 hierarchyLevel: 50,
-                tenantId: TENANT_ID,
+                tenantId,
                 isActive: true,
                 isSystemRole: false,
             }
@@ -57,7 +76,7 @@ async function setupMakerChecker() {
                         roleName: roleData.roleName,
                         description: roleData.description,
                         hierarchyLevel: roleData.hierarchyLevel,
-                        tenantId: TENANT_ID,
+                        tenantId,
                         isActive: true,
                     }
                 })
@@ -68,7 +87,7 @@ async function setupMakerChecker() {
         const dbRoles = await db.select().from(roles).where(
             and(
                 inArray(roles.roleCode, ['MAKER', 'CHECKER']),
-                eq(roles.tenantId, TENANT_ID)
+                eq(roles.tenantId, tenantId)
             )
         )
         const makerRoleId = dbRoles.find(r => r.roleCode === 'MAKER')?.id
@@ -106,9 +125,9 @@ async function setupMakerChecker() {
                 username: 'maker_iaf',
                 fullName: 'IAF Maker User',
                 passwordHash: PASSWORD_HASH,
-                tenantId: TENANT_ID,
+                tenantId,
                 isActive: true,
-                isEmailVerified: true,
+                emailVerifiedAt: new Date(),
                 createdAt: new Date(),
                 updatedAt: new Date(),
             })
@@ -116,7 +135,7 @@ async function setupMakerChecker() {
                 target: [users.email],
                 set: {
                     isActive: true,
-                    tenantId: TENANT_ID
+                    tenantId
                 }
             })
             .returning()
@@ -128,7 +147,7 @@ async function setupMakerChecker() {
             .values({
                 userId: makerUser.id,
                 roleId: makerRoleId,
-                tenantId: TENANT_ID,
+                tenantId,
                 isActive: true,
                 assignedAt: new Date(),
             })
@@ -139,20 +158,20 @@ async function setupMakerChecker() {
         console.log('👤 Configuring Admin as Checker...')
         const adminEmail = 'admin@iaf.co.id'
         let adminUser = await db.query.users.findFirst({
-            where: and(eq(users.email, adminEmail), eq(users.tenantId, TENANT_ID))
+            where: and(eq(users.email, adminEmail), eq(users.tenantId, tenantId))
         })
 
         if (!adminUser) {
-            console.log(`  👤 Creating/Updating Admin user for tenant ${TENANT_ID}...`)
+            console.log(`  👤 Creating/Updating Admin user for tenant ${tenantId}...`)
             const [newAdmin] = await db.insert(users)
                 .values({
-                    tenantId: TENANT_ID,
+                    tenantId,
                     username: 'admin_iaf',
                     email: adminEmail,
                     passwordHash: PASSWORD_HASH,
                     fullName: 'IAF Admin User',
                     isActive: true,
-                    isEmailVerified: true,
+                    emailVerifiedAt: new Date(),
                     createdAt: new Date(),
                     updatedAt: new Date(),
                 })
@@ -160,7 +179,7 @@ async function setupMakerChecker() {
                     target: [users.email],
                     set: {
                         isActive: true,
-                        tenantId: TENANT_ID
+                        tenantId
                     }
                 })
                 .returning()
@@ -175,7 +194,7 @@ async function setupMakerChecker() {
                 .values({
                     userId: adminUser.id,
                     roleId: checkerRoleId,
-                    tenantId: TENANT_ID,
+                    tenantId,
                     isActive: true,
                     assignedAt: new Date(),
                 })

@@ -1,4 +1,4 @@
-import { eq, and, desc } from 'drizzle-orm'
+import { eq, and, desc, sql } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import * as schema from '../schema'
 import {
@@ -8,22 +8,64 @@ import {
 } from '../schema'
 
 export class PermissionApprovalPolicyRepository {
+    private tableAvailable: boolean | null = null
+
     constructor(private db: PostgresJsDatabase<typeof schema>) { }
+
+    private isMissingTableError(error: unknown): boolean {
+        const maybe = error as { code?: string; message?: string }
+        return (
+            maybe?.code === '42P01' ||
+            (maybe?.message?.includes('permission_approval_policies') &&
+                maybe?.message?.includes('does not exist')) ||
+            false
+        )
+    }
+
+    private async hasPolicyTable(): Promise<boolean> {
+        if (this.tableAvailable !== null) return this.tableAvailable
+
+        try {
+            const result = await this.db.execute(
+                sql`SELECT to_regclass('approval.permission_approval_policies') AS policy_table`
+            ) as any
+
+            const firstRow = Array.isArray(result)
+                ? result[0]
+                : result?.rows?.[0]
+
+            this.tableAvailable = Boolean(firstRow?.policy_table)
+        } catch {
+            this.tableAvailable = false
+        }
+
+        return this.tableAvailable
+    }
 
     /**
      * Find all policies for a tenant
      */
     async findByTenantId(tenantId: string): Promise<PermissionApprovalPolicy[]> {
-        return this.db
-            .select()
-            .from(permissionApprovalPolicies)
-            .where(
-                and(
-                    eq(permissionApprovalPolicies.tenantId, tenantId),
-                    eq(permissionApprovalPolicies.isActive, true)
+        if (!(await this.hasPolicyTable())) return []
+
+        try {
+            return await this.db
+                .select()
+                .from(permissionApprovalPolicies)
+                .where(
+                    and(
+                        eq(permissionApprovalPolicies.tenantId, tenantId),
+                        eq(permissionApprovalPolicies.isActive, true)
+                    )
                 )
-            )
-            .orderBy(desc(permissionApprovalPolicies.createdAt))
+                .orderBy(desc(permissionApprovalPolicies.createdAt))
+        } catch (error) {
+            if (this.isMissingTableError(error)) {
+                this.tableAvailable = false
+                return []
+            }
+            throw error
+        }
     }
 
     /**
@@ -33,42 +75,66 @@ export class PermissionApprovalPolicyRepository {
         tenantId: string,
         permissionId: string
     ): Promise<PermissionApprovalPolicy | undefined> {
-        const [policy] = await this.db
-            .select()
-            .from(permissionApprovalPolicies)
-            .where(
-                and(
-                    eq(permissionApprovalPolicies.tenantId, tenantId),
-                    eq(permissionApprovalPolicies.permissionId, permissionId),
-                    eq(permissionApprovalPolicies.isActive, true)
-                )
-            )
-            .limit(1)
+        if (!(await this.hasPolicyTable())) return undefined
 
-        return policy
+        try {
+            const [policy] = await this.db
+                .select()
+                .from(permissionApprovalPolicies)
+                .where(
+                    and(
+                        eq(permissionApprovalPolicies.tenantId, tenantId),
+                        eq(permissionApprovalPolicies.permissionId, permissionId),
+                        eq(permissionApprovalPolicies.isActive, true)
+                    )
+                )
+                .limit(1)
+
+            return policy
+        } catch (error) {
+            if (this.isMissingTableError(error)) {
+                this.tableAvailable = false
+                return undefined
+            }
+            throw error
+        }
     }
 
     /**
      * Find all policies that require approval for a tenant
      */
     async findRequiringApproval(tenantId: string): Promise<PermissionApprovalPolicy[]> {
-        return this.db
-            .select()
-            .from(permissionApprovalPolicies)
-            .where(
-                and(
-                    eq(permissionApprovalPolicies.tenantId, tenantId),
-                    eq(permissionApprovalPolicies.requiresApproval, true),
-                    eq(permissionApprovalPolicies.isActive, true)
+        if (!(await this.hasPolicyTable())) return []
+
+        try {
+            return await this.db
+                .select()
+                .from(permissionApprovalPolicies)
+                .where(
+                    and(
+                        eq(permissionApprovalPolicies.tenantId, tenantId),
+                        eq(permissionApprovalPolicies.requiresApproval, true),
+                        eq(permissionApprovalPolicies.isActive, true)
+                    )
                 )
-            )
-            .orderBy(desc(permissionApprovalPolicies.minHierarchyLevel))
+                .orderBy(desc(permissionApprovalPolicies.minHierarchyLevel))
+        } catch (error) {
+            if (this.isMissingTableError(error)) {
+                this.tableAvailable = false
+                return []
+            }
+            throw error
+        }
     }
 
     /**
      * Create a new approval policy
      */
     async create(policy: NewPermissionApprovalPolicy): Promise<PermissionApprovalPolicy> {
+        if (!(await this.hasPolicyTable())) {
+            throw new Error('approval.permission_approval_policies is not configured')
+        }
+
         const [created] = await this.db
             .insert(permissionApprovalPolicies)
             .values({
@@ -92,6 +158,10 @@ export class PermissionApprovalPolicyRepository {
         id: string,
         data: Partial<NewPermissionApprovalPolicy>
     ): Promise<PermissionApprovalPolicy> {
+        if (!(await this.hasPolicyTable())) {
+            throw new Error('approval.permission_approval_policies is not configured')
+        }
+
         const [updated] = await this.db
             .update(permissionApprovalPolicies)
             .set({
@@ -133,6 +203,8 @@ export class PermissionApprovalPolicyRepository {
      * Soft delete a policy (mark as inactive)
      */
     async softDelete(id: string): Promise<void> {
+        if (!(await this.hasPolicyTable())) return
+
         await this.db
             .update(permissionApprovalPolicies)
             .set({
@@ -146,6 +218,7 @@ export class PermissionApprovalPolicyRepository {
      * Hard delete a policy
      */
     async delete(id: string): Promise<void> {
+        if (!(await this.hasPolicyTable())) return
         await this.db.delete(permissionApprovalPolicies).where(eq(permissionApprovalPolicies.id, id))
     }
 

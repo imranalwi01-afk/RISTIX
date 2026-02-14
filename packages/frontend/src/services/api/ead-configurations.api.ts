@@ -58,18 +58,19 @@ export const eadConfigurationsApi = {
         return response.data!;
     },
 
-    async create(data: CreateEADConfigurationDto): Promise<EADConfiguration> {
-        const response = await apiClient.post<EADConfiguration>(BASE_URL, data);
-        return response.data!;
+    async create(data: CreateEADConfigurationDto): Promise<any> {
+        const response = await apiClient.post<any>(BASE_URL, data);
+        return response as any;
     },
 
-    async update(id: string, data: UpdateEADConfigurationDto): Promise<EADConfiguration> {
-        const response = await apiClient.put<EADConfiguration>(`${BASE_URL}/${id}`, data);
-        return response.data!;
+    async update(id: string, data: UpdateEADConfigurationDto): Promise<any> {
+        const response = await apiClient.put<any>(`${BASE_URL}/${id}`, data);
+        return response as any;
     },
 
-    async delete(id: string): Promise<void> {
-        await apiClient.delete(`${BASE_URL}/${id}`);
+    async delete(id: string): Promise<any> {
+        const response = await apiClient.delete<any>(`${BASE_URL}/${id}`);
+        return response as any;
     },
 
     async getMethods(): Promise<Array<{ value: string; label: string }>> {

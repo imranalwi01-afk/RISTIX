@@ -10,6 +10,18 @@ import * as rbacService from '../services/rbac.service'
 
 export const authRoutes = new OpenAPIHono<AppContext>()
 
+const splitName = (fullName?: string | null) => {
+    const normalized = (fullName ?? '').trim()
+    if (!normalized) {
+        return { firstName: null, lastName: null }
+    }
+    const parts = normalized.split(/\s+/)
+    return {
+        firstName: parts[0] ?? null,
+        lastName: parts.length > 1 ? parts.slice(1).join(' ') : null,
+    }
+}
+
 // =============================================================================
 // SCHEMAS
 // =============================================================================
@@ -133,21 +145,24 @@ authRoutes.openapi(
                 auditService.logAuth.login(user.id, resolvedTenantId, ip, userAgent)
                 return Effect.succeed(void 0)
             }),
-            Effect.map(({ user, tokens }) => ({
-                user: {
-                    id: user.id,
-                    email: user.email,
-                    firstName: user.firstName,
-                    lastName: user.lastName,
-                    tenantId: user.tenantId,
-                    // authService.login returns roles/permissions mapped as strings
-                    permissions: user.permissions,
-                    roles: user.roles,
-                },
-                ...tokens,
-                tokens,
-                token: tokens.accessToken,
-            })),
+            Effect.map(({ user, tokens }) => {
+                const { firstName, lastName } = splitName((user as any).fullName)
+                return {
+                    user: {
+                        id: user.id,
+                        email: user.email,
+                        firstName,
+                        lastName,
+                        tenantId: user.tenantId,
+                        // authService.login returns roles/permissions mapped as strings
+                        permissions: user.permissions,
+                        roles: user.roles,
+                    },
+                    ...tokens,
+                    tokens,
+                    token: tokens.accessToken,
+                }
+            }),
             Effect.tapError((error) => {
                 // Log failed login
                 const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
