@@ -36,6 +36,9 @@ export interface SafeDataGridProps<T extends GridValidRowModel = any> extends Om
   // Detail panel support (not in base DataGridProps)
   getDetailPanelContent?: (params: { row: T }) => any;
   getDetailPanelHeight?: (params: { row: T }) => number | 'auto';
+  // Standard DataGrid footer controls
+  hideFooter?: boolean;
+  hideFooterPagination?: boolean;
 }
 
 /**
@@ -79,6 +82,7 @@ export function SafeDataGrid<T extends GridValidRowModel = any>(props: SafeDataG
       align: col.align,
       renderCell: renderCell,
       valueGetter: col.valueGetter,
+      valueFormatter: col.valueFormatter,
       type: col.type,
     };
   });
@@ -114,6 +118,8 @@ export function SafeDataGrid<T extends GridValidRowModel = any>(props: SafeDataG
           pageSize: newPageSize
         }, {} as any);
       } : undefined}
+      hideFooter={props.hideFooter}
+      hideFooterPagination={props.hideFooterPagination}
     />
   );
 }

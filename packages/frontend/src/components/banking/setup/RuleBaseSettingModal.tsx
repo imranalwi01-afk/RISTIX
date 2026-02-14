@@ -546,14 +546,17 @@ export default function RuleBaseSettingModal({
             />
           )}
           renderTags={(value, getTagProps) =>
-            value.map((option, index) => (
-              <Chip
-                variant="outlined"
-                label={option}
-                {...getTagProps({ index })}
-                key={index}
-              />
-            ))
+            value.map((option, index) => {
+              const { key, ...tagProps } = getTagProps({ index });
+              return (
+                <Chip
+                  key={key}
+                  variant="outlined"
+                  label={option}
+                  {...tagProps}
+                />
+              );
+            })
           }
         />
       );

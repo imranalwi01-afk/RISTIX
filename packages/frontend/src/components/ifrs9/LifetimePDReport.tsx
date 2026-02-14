@@ -31,7 +31,7 @@ import SurvivalChart from './LifetimePDCharts/SurvivalChart';
 import MarginalPDChart from './LifetimePDCharts/MarginalPDChart';
 import LifetimePDExportDialog from './LifetimePDExportDialog';
 import BaseIfrs9Report from './BaseIfrs9Report';
-import { reportsAPI } from '@/services/api.reports';
+import api from '@/services/api';
 import { impairmentApi } from '@/services/api/impairment.api';
 import { format } from 'date-fns';
 
@@ -56,6 +56,19 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
+const mapPdMethodToCode = (method: string | number | undefined): number => {
+  if (typeof method === 'number') return method;
+  switch (method) {
+    case 'PIT':
+      return 2;
+    case 'Hybrid':
+      return 3;
+    case 'TTC':
+    default:
+      return 1;
+  }
+};
+
 const LifetimePDReport: React.FC = () => {
   const theme = useTheme();
   const [tabValue, setTabValue] = useState(0);
@@ -73,18 +86,25 @@ const LifetimePDReport: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [currentFilters, setCurrentFilters] = useState<any>({
     prcDate: format(new Date(), 'yyyy-MM-dd'),
-    pdModelId: '',
+    pdConfigId: '',
+    pdMethod: mapPdMethodToCode('PIT'),
+    isForwardLooking: false,
+    scalarId: undefined,
     isCompareMode: false,
-    pdModelIdB: ''
+    pdConfigIdB: '',
+    pdMethodB: mapPdMethodToCode('PIT'),
+    scalarIdB: undefined
   });
 
   const fetchData = useCallback(async (filters: any) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await reportsAPI.lifetimePD.getYearly({
-        prcDate: filters.prcDate,
-        pdModelId: filters.pdModelId
+      const response = await api.banking.ifrs9Reports.lifetimePD.getYearly({
+        prc_date: filters.prcDate,
+        pd_config_id: filters.pdConfigId ? Number(filters.pdConfigId) : undefined,
+        pd_method: filters.pdMethod,
+        fl_flag: filters.isForwardLooking
       });
       if (response.success) {
         setYearlyData(response.data);
@@ -93,11 +113,13 @@ const LifetimePDReport: React.FC = () => {
         setError(response.message || 'Failed to fetch yearly data');
       }
 
-      // Fetch comparison yearly data if active
-      if (filters.isCompareMode && filters.pdModelIdB) {
-        const responseB = await reportsAPI.lifetimePD.getYearly({
-          prcDate: filters.prcDate,
-          pdModelId: filters.pdModelIdB
+      // Fetch comparison yearly data if active (Model B)
+      if (filters.isCompareMode && filters.pdConfigIdB) {
+        const responseB = await api.banking.ifrs9Reports.lifetimePD.getYearly({
+          prc_date: filters.prcDate,
+          pd_config_id: Number(filters.pdConfigIdB),
+          pd_method: filters.pdMethodB,
+          fl_flag: filters.isForwardLooking
         });
         if (responseB.success) setYearlyDataB(responseB.data);
       } else {
@@ -105,19 +127,23 @@ const LifetimePDReport: React.FC = () => {
       }
 
       // Fetch monthly data
-      const monthlyResponse = await reportsAPI.lifetimePD.getMonthly({
-        prcDate: filters.prcDate,
-        pdModelId: filters.pdModelId
+      const monthlyResponse = await api.banking.ifrs9Reports.lifetimePD.getMonthly({
+        prc_date: filters.prcDate,
+        pd_config_id: filters.pdConfigId ? Number(filters.pdConfigId) : undefined,
+        pd_method: filters.pdMethod,
+        fl_flag: filters.isForwardLooking
       });
       if (monthlyResponse.success) {
         setMonthlyData(monthlyResponse.data);
       }
 
       // Fetch comparison monthly data if active
-      if (filters.isCompareMode && filters.pdModelIdB) {
-        const monthlyResponseB = await reportsAPI.lifetimePD.getMonthly({
-          prcDate: filters.prcDate,
-          pdModelId: filters.pdModelIdB
+      if (filters.isCompareMode && filters.pdConfigIdB) {
+        const monthlyResponseB = await api.banking.ifrs9Reports.lifetimePD.getMonthly({
+          prc_date: filters.prcDate,
+          pd_config_id: Number(filters.pdConfigIdB),
+          pd_method: filters.pdMethodB,
+          fl_flag: filters.isForwardLooking
         });
         if (monthlyResponseB.success) setMonthlyDataB(monthlyResponseB.data);
       } else {
@@ -157,9 +183,14 @@ const LifetimePDReport: React.FC = () => {
         setLastCalculation(new Date());
         setCurrentFilters({
           prcDate: format(config.procDate, 'yyyy-MM-dd'),
-          pdModelId: config.pdConfigId,
+          pdConfigId: config.pdConfigId,
+          pdMethod: mapPdMethodToCode(config.pdMethod),
+          isForwardLooking: config.isForwardLooking,
+          scalarId: config.scalarId,
           isCompareMode: config.isCompareMode,
-          pdModelIdB: config.pdConfigIdB
+          pdConfigIdB: config.pdConfigIdB,
+          pdMethodB: mapPdMethodToCode(config.pdMethodB),
+          scalarIdB: config.scalarIdB
         });
       }
     } catch (err) {
@@ -175,32 +206,40 @@ const LifetimePDReport: React.FC = () => {
   const chartData = useMemo(() => {
     if (!yearlyData || yearlyData.length === 0) return [];
     
-    // Backend returns flat list of pdYear, pdRate
-    // We sort by year and calculate survival rate
-    const sorted = [...yearlyData].sort((a, b) => (a.pdYear || 0) - (b.pdYear || 0));
-    const sortedB = currentFilters.isCompareMode ? [...yearlyDataB].sort((a, b) => (a.pdYear || 0) - (b.pdYear || 0)) : [];
+    // Backend (DS2) returns:
+    // bucket_year, fl_year, pd_rate (0-1)
+    const sorted = [...yearlyData].sort(
+      (a, b) => (a.bucket_year || a.fl_year || 0) - (b.bucket_year || b.fl_year || 0)
+    );
+    const sortedB = currentFilters.isCompareMode
+      ? [...yearlyDataB].sort(
+          (a, b) => (a.bucket_year || a.fl_year || 0) - (b.bucket_year || b.fl_year || 0)
+        )
+      : [];
     
-    let cumulativeSurvival = 100;
-    let cumulativeSurvivalB = 100;
+    let survivalA = 1; // start at 100% survival
+    let survivalB = 1;
     
     return sorted.map((item, index) => {
-      const marginalPD = (item.pdRate || 0) * 100;
-      cumulativeSurvival = cumulativeSurvival * (1 - (item.pdRate || 0));
+      const yearIndex = item.bucket_year || item.fl_year || index + 1;
+      const pdA = item.pd_rate || 0; // already 0-1
+      survivalA = survivalA * (1 - pdA);
       
       const itemB = sortedB[index];
-      const marginalPDB = itemB ? (itemB.pdRate || 0) * 100 : undefined;
+      const pdB = itemB?.pd_rate || 0;
       if (itemB) {
-        cumulativeSurvivalB = cumulativeSurvivalB * (1 - (itemB.pdRate || 0));
+        survivalB = survivalB * (1 - pdB);
       }
 
       return {
-        year: `Year ${item.pdYear}`,
-        marginalPD: item.pdRate || 0,
-        marginalPDB: itemB ? (itemB.pdRate || 0) : undefined,
-        survival: cumulativeSurvival / 100,
-        survivalB: itemB ? (cumulativeSurvivalB / 100) : undefined,
-        cumulativePD: 1 - (cumulativeSurvival / 100),
-        cumulativePDB: itemB ? (1 - (cumulativeSurvivalB / 100)) : undefined
+        year: `Year ${yearIndex}`,
+        bucketYear: yearIndex,
+        marginalPD: pdA,
+        marginalPDB: itemB ? pdB : undefined,
+        survival: survivalA,
+        survivalB: itemB ? survivalB : undefined,
+        cumulativePD: 1 - survivalA,
+        cumulativePDB: itemB ? 1 - survivalB : undefined
       };
     });
   }, [yearlyData, yearlyDataB, currentFilters.isCompareMode]);
@@ -208,28 +247,46 @@ const LifetimePDReport: React.FC = () => {
   const monthlyChartData = useMemo(() => {
     if (!monthlyData || monthlyData.length === 0) return [];
     
-    const sorted = [...monthlyData].sort((a, b) => (a.pdMonth || 0) - (b.pdMonth || 0));
-    const sortedB = currentFilters.isCompareMode ? [...monthlyDataB].sort((a, b) => (a.pdMonth || 0) - (b.pdMonth || 0)) : [];
+    // Backend returns: bucket_month, fl_seq, pd_rate
+    const sorted = [...monthlyData].sort(
+      (a, b) => (a.bucket_month || a.fl_seq || 0) - (b.bucket_month || b.fl_seq || 0)
+    );
+    const sortedB = currentFilters.isCompareMode
+      ? [...monthlyDataB].sort(
+          (a, b) => (a.bucket_month || a.fl_seq || 0) - (b.bucket_month || b.fl_seq || 0)
+        )
+      : [];
 
     return sorted.map((item, index) => {
+      const monthIndex = item.bucket_month || item.fl_seq || index + 1;
       const itemB = sortedB[index];
       return {
-        month: `M${item.pdMonth}`,
-        marginalPD: item.pdRate || 0,
-        marginalPDB: itemB?.pdRate || 0
+        month: `M${monthIndex}`,
+        marginalPD: item.pd_rate || 0,
+        marginalPDB: itemB?.pd_rate || 0
       };
     });
   }, [monthlyData, monthlyDataB, currentFilters.isCompareMode]);
 
-  // Transform KPIs
+  // Transform KPIs (expressed in percentage units 0-100)
   const kpiData = useMemo(() => {
     if (chartData.length === 0) return { y1: 0, y3: 0, y5: 0, survival: 100 };
-    const getY = (y: number) => chartData.find(d => d.year === `Year ${y}`);
+
+    const getByBucketYear = (y: number) =>
+      chartData.find(d => d.bucketYear === y);
+
+    const y1Row = getByBucketYear(1);
+    const y3Row = getByBucketYear(3);
+    const y5Row = getByBucketYear(5);
+    const lastRow = chartData[chartData.length - 1];
+
     return {
-      y1: getY(1)?.marginalPD || 0,
-      y3: 1 - (getY(3)?.survival || 1),
-      y5: 1 - (getY(5)?.survival || 1),
-      survival: chartData[chartData.length - 1]?.survival || 1
+      // Cumulative PD at each horizon (0-100%)
+      y1: (y1Row?.cumulativePD || 0) * 100,
+      y3: (y3Row?.cumulativePD || 0) * 100,
+      y5: (y5Row?.cumulativePD || 0) * 100,
+      // Survival rate at final year (0-100%)
+      survival: (lastRow?.survival || 1) * 100
     };
   }, [chartData]);
 
@@ -250,9 +307,11 @@ const LifetimePDReport: React.FC = () => {
           {/* Title & Badges */}
           <Box>
             <Typography variant="h4" fontWeight={800} gutterBottom sx={{ 
+              color: theme.palette.primary.dark,
               background: 'linear-gradient(90deg, #1a237e 0%, #0d47a1 100%)',
+              backgroundClip: 'text',
               WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent'
+              WebkitTextFillColor: 'transparent',
             }}>
               Yearly Lifetime PD
             </Typography>
@@ -330,9 +389,9 @@ const LifetimePDReport: React.FC = () => {
       {/* Results KPIs */}
       <LifetimePDKPIs 
         y1pd={kpiData.y1}
-        y3pd={kpiData.y3 * 100}
-        y5pd={kpiData.y5 * 100}
-        survivalRate={kpiData.survival * 100}
+        y3pd={kpiData.y3}
+        y5pd={kpiData.y5}
+        survivalRate={kpiData.survival}
         validationMetrics={validationMetadata}
       />
 
@@ -385,15 +444,17 @@ const LifetimePDReport: React.FC = () => {
 
         {/* Detailed Data Table */}
         <BaseIfrs9Report 
-            title="Account PD Details" 
-            reportType="lifetime-pd-account-details"
-            hideHeader
-            requiredParams={['prc_date']}
-            externalFilters={{
-              prc_date: currentFilters.prcDate ? new Date(currentFilters.prcDate) : null,
-              pd_config_id: currentFilters.pdModelId ? Number(currentFilters.pdModelId) : undefined
-            }}
-            onDataLoaded={(data) => console.log('Account Details Loaded:', data.length)}
+          title="Account PD Details" 
+          reportType="lifetime-pd-account-details"
+          hideHeader
+          requiredParams={['prc_date']}
+          externalFilters={{
+            prc_date: currentFilters.prcDate ? new Date(currentFilters.prcDate) : null,
+            pd_config_id: currentFilters.pdConfigId ? Number(currentFilters.pdConfigId) : undefined,
+            pd_method: currentFilters.pdMethod,
+            fl_flag: currentFilters.isForwardLooking
+          }}
+          onDataLoaded={(data) => console.log('Account Details Loaded:', data.length)}
         />
         
         <LifetimePDExportDialog 
@@ -404,9 +465,9 @@ const LifetimePDReport: React.FC = () => {
                   reportName: 'Yearly Lifetime PD',
                   procDate: currentFilters.prcDate,
                   segments: currentFilters.selectedSegments || 'All Segments',
-                  pdConfigId: currentFilters.pdModelId,
+                  pdConfigId: currentFilters.pdConfigId,
                   compareMode: currentFilters.isCompareMode,
-                  pdConfigIdB: currentFilters.pdModelIdB,
+                  pdConfigIdB: currentFilters.pdConfigIdB,
                   modelVersion: validationMetadata?.modelVersion || 'v2.1.0-prod',
                   generatedAt: new Date().toISOString()
                 };

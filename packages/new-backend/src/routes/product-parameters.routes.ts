@@ -131,34 +131,30 @@ app.openapi(
         summary: 'List Product Parameters',
         request: {
             query: z.object({
-                mode: ProductModeSchema
+                mode: ProductModeSchema,
+                page: z.string().optional().transform(v => v ? parseInt(v) : 1),
+                limit: z.string().optional().transform(v => v ? parseInt(v) : 10),
+                search: z.string().optional()
             })
         },
         responses: {
-            200: { content: { 'application/json': { schema: ProductListResponse } }, description: 'List Products' },
+            200: { content: { 'application/json': { schema: ProductListResponse.extend({ 
+                pagination: z.object({
+                    total: z.number(),
+                    page: z.number(),
+                    limit: z.number(),
+                    pages: z.number()
+                })
+            }) } }, description: 'List Products' },
             400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Invalid Mode' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
     async (c) => {
-        const { mode } = c.req.valid('query')
-        console.log(`📡 [PROD-ROUTES] Listing products for mode: ${mode}`);
+        const { mode, page, limit, search } = c.req.valid('query')
+        console.log(`📡 [PROD-ROUTES] Listing products for mode: ${mode}, page: ${page}, limit: ${limit}, search: ${search}`);
         
-        // Use runPromiseExit directly to get the data instead of a Response object
-        const result = await Effect.runPromiseExit(ProductParametersService.list(mode) as any)
-        
-        if (result._tag === 'Success') {
-            return c.json({
-                success: true,
-                products: result.value,
-                mode,
-                timestamp: new Date().toISOString()
-            })
-        } else {
-            // Use the internal handleEffectError logic if possible, 
-            // but for simplicity here we just use runEffect for errors if we want to be consistent
-            return runEffect(c, ProductParametersService.list(mode) as any)
-        }
+        return runEffect(c, ProductParametersService.list(mode, { page, limit, search }) as any) as any
     }
 )
 

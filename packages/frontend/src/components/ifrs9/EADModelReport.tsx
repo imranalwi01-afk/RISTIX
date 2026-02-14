@@ -183,6 +183,7 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
                   variant="h4"
                   sx={{
                     fontWeight: 800,
+                    color: item.mainColor, // Fallback
                     background: item.gradient,
                     backgroundClip: 'text',
                     WebkitBackgroundClip: 'text',
@@ -320,10 +321,10 @@ const ModelParametersCard: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
             </Paper>
           </Grid>
           <Grid size={{ xs: 12, md: 4 }}>
-            <Paper sx={{
-              p: 4,
-              textAlign: 'center',
-              background: `linear-gradient(135deg, ${themeColors.tertiary} 0%, ${alpha(themeColors.tertiary, 0.7)} 100%)`,
+            <Paper sx={{ 
+              p: 4, 
+              textAlign: 'center', 
+              background: `linear-gradient(135deg, ${themeColors.tertiary} 0%, ${alpha(themeColors.tertiary, 0.7)} 100%)`, 
               color: 'white',
               borderRadius: 3,
               boxShadow: `0 8px 24px ${themeColors.shadowTertiary}`,
@@ -427,7 +428,7 @@ const EADCharts: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
 
     {/* Product Distribution */}
     <Grid size={{ xs: 12, md: 4 }}>
-      <Card sx={{
+      <Card sx={{ 
         height: '100%',
         borderRadius: 4,
         boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)'
@@ -498,12 +499,7 @@ const EADModelReport: React.FC = () => {
     setPivotColumns(pCols);
 
     if (data && data.length > 0) {
-      const stats = data.reduce<{
-        totalAccounts: number;
-        avgEAD: number;
-        avgCCF: number;
-        avgUtilization: number;
-      }>((acc, row) => {
+      const stats = data.reduce<{ totalAccounts: number; avgEAD: number; avgCCF: number; avgUtilization: number }>((acc, row) => {
         const rowEad = parseFloat(row.ead_amount as string) || 0;
         const rowCcf = parseFloat(row.ccf_rate as string) || 0;
         const rowUtil = parseFloat(row.utilization_rate as string) || 0;

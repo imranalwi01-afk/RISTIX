@@ -138,10 +138,10 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
               </Box>
 
               <Box sx={{ mt: 'auto' }}>
-                <Typography
-                  variant="h4"
-                  sx={{
-                    fontWeight: 800,
+                <Typography 
+                  variant="h4" 
+                  sx={{ 
+                    color: item.mainColor, // Fallback
                     background: item.gradient,
                     backgroundClip: 'text',
                     WebkitBackgroundClip: 'text',

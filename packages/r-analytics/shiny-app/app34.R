@@ -1,4 +1,12 @@
-# setwd("D:/shiny dan database/ifrs dan stres testing")
+# Ensure we are in the correct directory for relative imports
+if (!is.null(tryCatch(setwd(dirname(rstudioapi::getSourceEditorContext()$path)), error = function(e) NULL))) {
+  setwd(dirname(rstudioapi::getSourceEditorContext()$path))
+} else {
+  # Fallback for Docker/Production environments
+  if (dir.exists("/opt/r-analytics/shiny-app")) {
+    setwd("/opt/r-analytics/shiny-app")
+  }
+}
 message(paste0("[", Sys.time(), "] 🚀 STARTING APP INITIALIZATION..."))
 message(paste0("[", Sys.time(), "] 📦 Loading libraries..."))
 

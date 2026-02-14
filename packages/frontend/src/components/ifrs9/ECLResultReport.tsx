@@ -33,7 +33,10 @@ import {
   Pie,
   Cell,
   ComposedChart,
-  Line
+  Line,
+  Area,
+  AreaChart,
+  LabelList
 } from 'recharts';
 import { useTheme } from '@mui/material/styles';
 import { useBankingTheme } from '../../providers/BankingThemeProvider';
@@ -54,6 +57,8 @@ interface SummaryStats {
   stage3ECL: number;
   totalOutstanding: number;
   eclRatio: number;
+  totalOverlay: number;
+  totalImpaired: number;
   segmentBreakdown: SegmentBreakdownItem[];
   stageDistribution: { name: string; value: number; color: string }[];
 }
@@ -124,14 +129,30 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
       icon: <PieIcon sx={{ fontSize: 32 }} />,
       gradient: themeColors.quaternaryGradient,
       mainColor: themeColors.mainColor
+    },
+    {
+      title: 'ECL Overlay',
+      value: stats.totalOverlay,
+      format: 'currency',
+      icon: <AssessmentIcon sx={{ fontSize: 32 }} />,
+      gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      mainColor: '#667eea'
+    },
+    {
+      title: 'Impaired ECL (IA)',
+      value: stats.totalImpaired,
+      format: 'currency',
+      icon: <LossIcon sx={{ fontSize: 32 }} />,
+      gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+      mainColor: '#f5576c'
     }
   ];
 
   return (
     <Grid container spacing={3} sx={{ mb: 5 }}>
       {items.map((item, index) => (
-        <Grid size={{ xs: 12, sm: 6, md: 3 }} key={index}>
-          <Card sx={{
+        <Grid size={{ xs: 12, sm: 6, md: index < 4 ? 3 : 6 }} key={index}>
+          <Card sx={{ 
             height: '100%',
             borderRadius: 4,
             position: 'relative',
@@ -183,6 +204,7 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
                   variant="h4"
                   sx={{
                     fontWeight: 800,
+                    color: item.mainColor, // Fallback
                     background: item.gradient,
                     backgroundClip: 'text',
                     WebkitBackgroundClip: 'text',
@@ -303,10 +325,10 @@ const StageBreakdownCard: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
             </Paper>
           </Grid>
           <Grid size={{ xs: 12, md: 4 }}>
-            <Paper sx={{
-              p: 4,
-              textAlign: 'center',
-              background: `linear-gradient(135deg, ${getStageColor(3)} 0%, ${alpha(getStageColor(3), 0.7)} 100%)`,
+            <Paper sx={{ 
+              p: 4, 
+              textAlign: 'center', 
+              background: `linear-gradient(135deg, ${getStageColor(3)} 0%, ${alpha(getStageColor(3), 0.7)} 100%)`, 
               color: 'white',
               borderRadius: 3,
               boxShadow: `0 8px 24px ${alpha(getStageColor(3), 0.3)}`,
@@ -336,102 +358,218 @@ const StageBreakdownCard: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
   );
 };
 
-const ECLCharts: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
-  <Grid container spacing={3} sx={{ mb: 5 }}>
-    {/* Stage Distribution Pie Chart */}
-    <Grid size={{ xs: 12, md: 6 }}>
-      <Card sx={{
-        borderRadius: 4,
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
-        transition: 'all 0.3s ease',
-        '&:hover': {
-          boxShadow: '0 12px 40px rgba(0, 0, 0, 0.12)'
-        }
-      }}>
-        <CardContent sx={{ p: 4 }}>
-          <Typography variant="h6" fontWeight={700} gutterBottom sx={{ mb: 3 }}>
-            ECL Distribution by Stage
-          </Typography>
-          <ResponsiveContainer width="100%" height={350}>
-            <PieChart>
-              <Pie
-                data={stats.stageDistribution}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ name, value, percent }: { name: string; value: number; percent: number }) =>
-                  `${name}: ${new Intl.NumberFormat('id-ID', {
-                    style: 'currency',
-                    currency: 'IDR',
-                    notation: 'compact'
-                  }).format(value)} (${(percent * 100).toFixed(1)}%)`
-                }
-                outerRadius={100}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {stats.stageDistribution.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <RechartsTooltip
-                formatter={(value: number) => [
-                  new Intl.NumberFormat('id-ID', {
-                    style: 'currency',
-                    currency: 'IDR'
-                  }).format(value),
-                  'ECL Amount'
-                ]}
-              />
-            </PieChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-    </Grid>
+const ECLCharts: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
+  const { bankingMode } = useBankingTheme();
+  
+  const getColors = () => {
+    if (bankingMode === 'syariah') {
+      return ['#00695c', '#00796b', '#00897b', '#26a69a', '#4db6ac'];
+    }
+    return ['#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6'];
+  };
 
-    {/* Segment Analysis */}
-    <Grid size={{ xs: 12, md: 6 }}>
-      <Card sx={{
-        borderRadius: 4,
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
-        transition: 'all 0.3s ease',
-        '&:hover': {
-          boxShadow: '0 12px 40px rgba(0, 0, 0, 0.12)'
-        }
-      }}>
-        <CardContent sx={{ p: 4 }}>
-          <Typography variant="h6" fontWeight={700} gutterBottom sx={{ mb: 3 }}>
-            ECL Analysis by Segment
-          </Typography>
-          <ResponsiveContainer width="100%" height={350}>
-            <ComposedChart data={stats.segmentBreakdown}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="segment" angle={-45} textAnchor="end" height={100} />
-              <YAxis yAxisId="left" />
-              <YAxis yAxisId="right" orientation="right" />
-              <RechartsTooltip
-                formatter={(value: number | string, name: string) => {
-                  if (name === 'ecl' || name === 'outstanding') {
-                    return [new Intl.NumberFormat('id-ID', {
-                      style: 'currency',
-                      currency: 'IDR',
-                      notation: 'compact'
-                    }).format(typeof value === 'string' ? parseFloat(value) : value), name === 'ecl' ? 'ECL Amount' : 'Outstanding'];
-                  }
-                  return [`${(typeof value === 'string' ? parseFloat(value) : value).toFixed(2)}%`, 'ECL Ratio'];
-                }}
-              />
-              <Legend />
-              <Bar yAxisId="left" dataKey="ecl" fill="#FF6B6B" name="ECL Amount" />
-              <Bar yAxisId="left" dataKey="outstanding" fill="#4ECDC4" name="Outstanding" opacity={0.7} />
-              <Line yAxisId="right" dataKey="eclRatio" stroke="#45B7D1" strokeWidth={3} name="ECL Ratio %" />
-            </ComposedChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+  const colors = getColors();
+
+  return (
+    <Grid container spacing={4} sx={{ mb: 5 }}>
+      {/* Stage Distribution Pie Chart */}
+      <Grid size={{ xs: 12, md: 5 }}>
+        <Card sx={{ 
+          height: '100%',
+          borderRadius: 4,
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
+          background: 'white',
+          overflow: 'visible'
+        }}>
+          <CardContent sx={{ p: 4 }}>
+            <Typography variant="h6" fontWeight={800} gutterBottom sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+              <PieIcon color="primary" />
+              ECL Distribution by Stage
+            </Typography>
+            <Box sx={{ height: 350, width: '100%', position: 'relative' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <defs>
+                    {stats.stageDistribution.map((entry, index) => (
+                      <linearGradient key={`pie-grad-${index}`} id={`pie-gradient-${index}`} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={entry.color} stopOpacity={1}/>
+                        <stop offset="100%" stopColor={alpha(entry.color, 0.6)} stopOpacity={1}/>
+                      </linearGradient>
+                    ))}
+                  </defs>
+                  <Pie
+                    data={stats.stageDistribution}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={80}
+                    outerRadius={110}
+                    paddingAngle={5}
+                    dataKey="value"
+                    animationBegin={0}
+                    animationDuration={1500}
+                  >
+                    {stats.stageDistribution.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={`url(#pie-gradient-${index})`} stroke="none" />
+                    ))}
+                  </Pie>
+                  <RechartsTooltip 
+                    contentStyle={{ 
+                      borderRadius: 12, 
+                      border: 'none', 
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                      padding: '12px 16px'
+                    }}
+                    formatter={(value: number) => [
+                      new Intl.NumberFormat('id-ID', {
+                        style: 'currency',
+                        currency: 'IDR'
+                      }).format(value),
+                      'ECL Amount'
+                    ]}
+                  />
+                  <Legend 
+                    verticalAlign="bottom" 
+                    height={36}
+                    content={({ payload }) => (
+                      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 3, mt: 2 }}>
+                        {payload?.map((entry: any, index: number) => (
+                          <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: entry.color }} />
+                            <Typography variant="caption" fontWeight={700} color="text.secondary">
+                              {entry.value}
+                            </Typography>
+                          </Box>
+                        ))}
+                      </Box>
+                    )}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+              <Box sx={{ 
+                position: 'absolute', 
+                top: '50%', 
+                left: '50%', 
+                transform: 'translate(-50%, -70%)', // Centered relative to the donut
+                textAlign: 'center',
+                pointerEvents: 'none'
+              }}>
+                <Typography variant="h5" fontWeight={800} color="primary" sx={{ lineHeight: 1 }}>
+                  {((stats.totalECL / stats.totalOutstanding) * 100 || 0).toFixed(2)}%
+                </Typography>
+                <Typography variant="caption" sx={{ opacity: 0.6, fontWeight: 800, fontSize: '0.6rem', letterSpacing: 0.5 }}>
+                  AVG RATIO
+                </Typography>
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
+      </Grid>
+  
+      {/* Segment Analysis */}
+      <Grid size={{ xs: 12, md: 7 }}>
+        <Card sx={{ 
+          height: '100%',
+          borderRadius: 4,
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
+          background: 'white'
+        }}>
+          <CardContent sx={{ p: 4 }}>
+            <Typography variant="h6" fontWeight={800} gutterBottom sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+              <AssessmentIcon color="primary" />
+              ECL Analysis by Segment
+            </Typography>
+            <Box sx={{ height: 350, width: '100%' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={stats.segmentBreakdown} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                  <defs>
+                    <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#3b82f6" stopOpacity={1}/>
+                      <stop offset="100%" stopColor="#60a5fa" stopOpacity={0.8}/>
+                    </linearGradient>
+                    <linearGradient id="osGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#10b981" stopOpacity={1}/>
+                      <stop offset="100%" stopColor="#34d399" stopOpacity={0.8}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={alpha('#000', 0.05)} />
+                  <XAxis 
+                    dataKey="segment" 
+                    angle={-45} 
+                    textAnchor="end" 
+                    interval={0}
+                    height={80}
+                    tick={{ fontSize: 10, fontWeight: 600, fill: alpha('#000', 0.6) }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis 
+                    yAxisId="left" 
+                    axisLine={false} 
+                    tickLine={false}
+                    tick={{ fontSize: 11, fontWeight: 600 }}
+                    tickFormatter={(v) => new Intl.NumberFormat('id-ID', { notation: 'compact' }).format(v)}
+                  />
+                  <YAxis 
+                    yAxisId="right" 
+                    orientation="right" 
+                    axisLine={false} 
+                    tickLine={false}
+                    tick={{ fontSize: 11, fontWeight: 600 }}
+                    tickFormatter={(v) => `${v}%`}
+                  />
+                  <RechartsTooltip 
+                    contentStyle={{ 
+                      borderRadius: 12, 
+                      border: 'none', 
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                      padding: '12px 16px'
+                    }}
+                    formatter={(value: number, name: string) => {
+                      if (name === 'ECL Amount' || name === 'Outstanding') {
+                        return [new Intl.NumberFormat('id-ID', {
+                          style: 'currency',
+                          currency: 'IDR',
+                          notation: 'compact'
+                        }).format(value), name];
+                      }
+                      return [`${value.toFixed(2)}%`, name];
+                    }}
+                  />
+                  <Legend verticalAlign="top" align="right" />
+                  <Bar yAxisId="left" dataKey="ecl" fill="url(#barGradient)" name="ECL Amount" radius={[6, 6, 0, 0]} barSize={24}>
+                    <LabelList 
+                      dataKey="ecl" 
+                      position="top" 
+                      content={(props: any) => {
+                        const { x, y, width, value } = props;
+                        return (
+                          <text x={x + width / 2} y={y - 10} fill={alpha('#000', 0.6)} textAnchor="middle" fontSize={9} fontWeight={800}>
+                            {new Intl.NumberFormat('id-ID', { notation: 'compact' }).format(value)}
+                          </text>
+                        );
+                      }}
+                    />
+                  </Bar>
+                  <Bar yAxisId="left" dataKey="outstanding" fill="url(#osGradient)" name="Outstanding" opacity={0.3} radius={[6, 6, 0, 0]} barSize={24} />
+                  <Line 
+                    yAxisId="right" 
+                    type="monotone" 
+                    dataKey="eclRatio" 
+                    stroke="#ef4444" 
+                    strokeWidth={3} 
+                    name="ECL Ratio %" 
+                    dot={{ r: 4, strokeWidth: 2, fill: 'white' }}
+                    activeDot={{ r: 6, strokeWidth: 0 }}
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </Box>
+          </CardContent>
+        </Card>
+      </Grid>
     </Grid>
-  </Grid>
-);
+  );
+};
 
 const ECLResultReport: React.FC = () => {
   const [summaryStats, setSummaryStats] = useState<SummaryStats>({
@@ -441,6 +579,8 @@ const ECLResultReport: React.FC = () => {
     stage3ECL: 0,
     totalOutstanding: 0,
     eclRatio: 0,
+    totalOverlay: 0,
+    totalImpaired: 0,
     segmentBreakdown: [],
     stageDistribution: []
   });
@@ -448,7 +588,7 @@ const ECLResultReport: React.FC = () => {
   const handleDataLoaded = React.useCallback((data: Record<string, unknown>[]) => {
     if (data && data.length > 0) {
       const aggregatedStats = data.reduce((acc: Partial<SummaryStats>, row: Record<string, unknown>) => {
-        const eclAmount = Number(row.ecl_amount) || Number(row.total_ecl) || 0;
+        const eclAmount = Number(row.ecl_final) || Number(row.ecl_amount) || Number(row.total_ecl) || 0;
         const outstanding = Number(row.outstanding) || Number(row.total_outstanding) || 0;
         const stage = row.stage?.toString() || '1';
 
@@ -458,6 +598,8 @@ const ECLResultReport: React.FC = () => {
           stage1ECL: (acc.stage1ECL || 0) + (stage === '1' ? eclAmount : 0),
           stage2ECL: (acc.stage2ECL || 0) + (stage === '2' ? eclAmount : 0),
           stage3ECL: (acc.stage3ECL || 0) + (stage === '3' ? eclAmount : 0),
+          totalOverlay: (acc.totalOverlay || 0) + (Number(row.ecl_overlay) || 0),
+          totalImpaired: (acc.totalImpaired || 0) + (Number(row.ecl_ia) || 0),
           eclRatio: 0,
           segmentBreakdown: [],
           stageDistribution: []
@@ -476,7 +618,7 @@ const ECLResultReport: React.FC = () => {
 
       const segmentMap = new Map<string, Omit<SegmentBreakdownItem, 'eclRatio'>>();
       data.forEach(row => {
-        const segment = (row.segment || row.group_segment || 'Default Segment') as string;
+        const segment = (row.segment || row.group_segment || row.sub_segment || 'Uncategorized') as string;
         if (!segmentMap.has(segment)) {
           segmentMap.set(segment, {
             segment,
@@ -486,7 +628,7 @@ const ECLResultReport: React.FC = () => {
           });
         }
         const segmentData = segmentMap.get(segment)!;
-        segmentData.ecl += parseFloat(row.ecl_final as string) || 0;
+        segmentData.ecl += parseFloat(row.ecl_final as string) || parseFloat(row.ecl_amount as string) || 0;
         segmentData.outstanding += parseFloat(row.outstanding as string) || 0;
         segmentData.accounts += 1;
       });

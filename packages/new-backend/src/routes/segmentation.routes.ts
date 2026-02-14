@@ -1,6 +1,6 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
 import { legacyDb as db } from '../config'
-import { frs9ParamSegmenth, frs9ParamSegmentd } from '../db/schema'
+import { frs9ParamSegmenth, frs9ParamSegmentd, frs9ParamCommond } from '../db/schema'
 import { eq, desc, asc, sql } from 'drizzle-orm'
 import type { AppContext } from '../app'
 
@@ -58,7 +58,7 @@ const MetadataListResponse = z.object({
 }).openapi('MetadataListResponse')
 
 const ErrorResponse = z.object({
-    success: z.boolean().optional(),
+    success: z.literal(false),
     error: z.string(),
     message: z.string().optional()
 }).openapi('ErrorResponse')
@@ -75,22 +75,31 @@ segmentationRoutes.openapi(
         tags: ['Segmentation'],
         summary: 'Get Segment Types',
         responses: {
-            200: { content: { 'application/json': { schema: MetadataListResponse } }, description: 'Segment Types' }
+            200: { content: { 'application/json': { schema: MetadataListResponse } }, description: 'Segment Types' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
     async (c) => {
-        return c.json({
-            success: true,
-            data: [
-                { type_code: 'RISK_SEGMENT', type_name: 'Risk-Based Segmentation' },
-                { type_code: 'PRODUCT_SEGMENT', type_name: 'Product-Based Segmentation' },
-                { type_code: 'GEOGRAPHY_SEGMENT', type_name: 'Geographic Segmentation' },
-                { type_code: 'CUSTOMER_SEGMENT', type_name: 'Customer-Based Segmentation' },
-                { type_code: 'PORTFOLIO_SEGMENT', type_name: 'Portfolio Segmentation' },
-                { type_code: 'BUSINESS_SEGMENT', type_name: 'Business Line Segmentation' },
-                { type_code: 'CUSTOM_SEGMENT', type_name: 'Custom Segmentation' }
-            ]
-        })
+        try {
+            const results = await db.select({
+                type_code: frs9ParamCommond.value1,
+                type_name: frs9ParamCommond.paramdesc
+            })
+            .from(frs9ParamCommond)
+            .where(eq(frs9ParamCommond.paramCode, 'B0011'))
+            .orderBy(asc(frs9ParamCommond.paramSeq));
+
+            return c.json({
+                success: true,
+                data: results.map(r => ({
+                    type_code: r.type_code || '',
+                    type_name: r.type_name || r.type_code || ''
+                }))
+            });
+        } catch (error) {
+            console.error('Error fetching segment types:', error);
+            return c.json({ success: false, error: 'Failed to fetch segment types' }, 500);
+        }
     }
 )
 

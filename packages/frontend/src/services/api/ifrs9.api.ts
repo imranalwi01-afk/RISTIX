@@ -8,87 +8,24 @@ export const ifrs9API = {
     // Get IFRS9 calculation summary from real backend
     getCalculationsSummary: async () => {
         console.log('📊 Fetching IFRS9 calculation summary from real database');
-        try {
-            const response = await apiClient.get('/ifrs9/calculations/summary');
-            return response.data;
-        } catch (error: any) {
-            if (error.response?.status === 401) {
-                // Silently return demo data for unauthenticated users
-                return {
-                    success: true,
-                    data: {
-                        totalECL: 2500000000,
-                        stage1ECL: 1200000000,
-                        stage2ECL: 800000000,
-                        stage3ECL: 500000000,
-                        totalPortfolio: 50000000000,
-                        impairedRatio: 0.05,
-                        coverageRatio: 0.85,
-                        lastUpdated: new Date().toISOString()
-                    }
-                };
-            }
-            throw error;
-        }
-    },
-
-    getCalculationResults: async (date: string) => {
-        console.log(`📋 Fetching calculation results for date: ${date}`);
-        const response = await apiClient.get(
-            `/ifrs9/calculations/batch-results?date=${date}`,
-        );
+        // ✅ NO FALLBACK: Let errors propagate naturally for proper error handling
+        const response = await apiClient.get('/ifrs9/calculations/summary');
         return response.data;
     },
 
     // Get calculation batches from real backend
     getCalculationBatches: async () => {
         console.log('📋 Fetching IFRS9 calculation batches from real database');
-        try {
-            const response = await apiClient.get('/ifrs9/calculation-batches');
-            return response.data;
-        } catch (error: any) {
-            if (error.response?.status === 401) {
-                console.warn('⚠️ Authentication required for calculation batches, returning demo data');
-                return {
-                    success: true,
-                    data: [
-                        {
-                            id: 'demo-batch-1',
-                            name: 'End of Month Calculation - Dec 2025',
-                            date: '2025-12-31',
-                            status: 'Completed',
-                            progress: 100,
-                            type: 'ECL_FULL'
-                        }
-                    ]
-                };
-            }
-            throw error;
-        }
+        // ✅ NO FALLBACK: Let errors propagate for proper handling
+        const response = await apiClient.get('/ifrs9/calculation-batches');
+        return response.data;
     },
 
     getPortfolioTrend: async () => {
         console.log('📉 Fetching portfolio trend from real database');
-        try {
-            const response = await apiClient.get('/ifrs9/calculations/portfolio-trend');
-            return response.data;
-        } catch (error: any) {
-            if (error.response?.status === 401) {
-                return {
-                    success: true,
-                    data: [
-                        { name: 'Jan', value: 4000 },
-                        { name: 'Feb', value: 3000 },
-                        { name: 'Mar', value: 2000 },
-                        { name: 'Apr', value: 2780 },
-                        { name: 'May', value: 1890 },
-                        { name: 'Jun', value: 2390 },
-                        { name: 'Jul', value: 3490 },
-                    ]
-                };
-            }
-            throw error;
-        }
+        // ✅ NO FALLBACK: Let errors propagate for proper error handling
+        const response = await apiClient.get('/ifrs9/calculations/portfolio-trend');
+        return response.data;
     },
 
     // Get portfolio summary from real backend

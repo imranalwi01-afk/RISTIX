@@ -147,7 +147,10 @@ export class RolesRepository {
                     where: whereClause,
                     limit: pagination.limit,
                     offset,
-                    orderBy: [asc((roles as any).hierarchyLevel || roles.roleName), asc(roles.roleName)],
+                    orderBy: [
+                        asc((roles as any).hierarchyLevel || roles.roleName),
+                        asc(roles.roleName)
+                    ],
                     with: { rolePermissions: { with: { permission: true } } },
                 }),
                 db.select({ count: count() }).from(roles).where(whereClause),
@@ -215,7 +218,7 @@ export class RolesRepository {
                     limit: pagination.limit,
                     offset,
                     orderBy: [
-                        asc((roles as any).hierarchyLevel || (roles as any).level || roles.roleName),
+                        asc((roles as any).hierarchyLevel || roles.roleName),
                         asc(roles.roleName)
                     ],
                     with: { rolePermissions: { with: { permission: true } } },

@@ -1,0 +1,28 @@
+
+import { legacyDb } from './src/config';
+import { frs9ImpIaResultH, frs9ImpIaHeader } from './src/db/schema/legacy';
+import { sql } from 'drizzle-orm';
+
+async function diagnose() {
+    try {
+        console.log('🔍 Diagnosing Individual Impairment Tables...');
+        
+        const resultHCount = await legacyDb.select({ count: sql<number>`count(*)` }).from(frs9ImpIaResultH);
+        console.log(`📊 frs9_imp_ia_result_h count: ${resultHCount[0].count}`);
+
+        const headerCount = await legacyDb.select({ count: sql<number>`count(*)` }).from(frs9ImpIaHeader);
+        console.log(`📊 frs9_imp_ia_header count: ${headerCount[0].count}`);
+
+        if (resultHCount[0].count > 0) {
+            const sample = await legacyDb.select().from(frs9ImpIaResultH).limit(1);
+            console.log('📝 Sample ResultH:', JSON.stringify(sample[0], null, 2));
+        }
+
+        process.exit(0);
+    } catch (error) {
+        console.error('❌ Diagnosis failed:', error);
+        process.exit(1);
+    }
+}
+
+diagnose();
