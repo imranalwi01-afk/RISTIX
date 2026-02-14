@@ -200,7 +200,7 @@ export class Ifrs9ReportsDS2Controller {
       res.status(500).json({
         success: false,
         error: 'Failed to retrieve Lifetime PD Yearly data',
-        details: error.message
+        details: (error as Error).message
       });
     }
   }
@@ -280,7 +280,122 @@ export class Ifrs9ReportsDS2Controller {
       res.status(500).json({
         success: false,
         error: 'Failed to retrieve Lifetime PD Monthly data',
-        details: error.message
+        details: (error as Error).message
+      });
+    }
+  }
+
+  /**
+   * Get Lifetime PD Account-level details from PD structure table
+   * This endpoint exposes raw rows from frs9_imp_ca_pd_structure
+   * so the frontend can build a dynamic pivot table / data grid.
+   */
+  static async getLifetimePDAccountDetails(req: Request, res: Response) {
+    try {
+      const {
+        prc_date,
+        pd_config_id = 1,
+        pd_method = 1,
+        fl_flag = false,
+        page,
+        limit
+      } = req.query;
+
+      if (!prc_date) {
+        return res.status(400).json({
+          success: false,
+          error: 'Processing date is required'
+        });
+      }
+
+      // Optional simple pagination (frontend currently does client-side pagination)
+      const pageNumber = page ? Number(page) : 1;
+      const pageSize = limit ? Number(limit) : 1000;
+      const offset = (pageNumber - 1) * pageSize;
+
+      const query = `
+        SELECT *
+        FROM frs9_imp_ca_pd_structure
+        WHERE prc_date = $1
+          AND pd_config_id = $2
+          AND pd_method = $3
+        ORDER BY bucket_id, fl_year, fl_seq
+        LIMIT $4 OFFSET $5;
+      `;
+
+      const result = await frs9ProPool.query(query, [
+        prc_date,
+        pd_config_id,
+        pd_method,
+        pageSize,
+        offset
+      ]);
+
+      // Get total count for pagination
+      const countQuery = `
+        SELECT COUNT(*) as total
+        FROM frs9_imp_ca_pd_structure
+        WHERE prc_date = $1
+          AND pd_config_id = $2
+          AND pd_method = $3;
+      `;
+      const countResult = await frs9ProPool.query(countQuery, [
+        prc_date,
+        pd_config_id,
+        pd_method
+      ]);
+      const total = parseInt(countResult.rows[0]?.total || '0', 10);
+      const totalPages = Math.ceil(total / pageSize);
+
+      // Get column structure from table metadata (even if data is empty)
+      const columnsQuery = `
+        SELECT 
+          column_name,
+          data_type,
+          is_nullable
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'frs9_imp_ca_pd_structure'
+        ORDER BY ordinal_position;
+      `;
+      const columnsResult = await frs9ProPool.query(columnsQuery);
+
+      // Build column metadata for frontend
+      const columnMetadata = columnsResult.rows.map(col => ({
+        field: col.column_name,
+        headerName: col.column_name.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
+        type: col.data_type === 'numeric' || col.data_type === 'double precision' || col.data_type === 'integer' ? 'number' : 'string',
+        width: col.data_type === 'date' || col.data_type === 'timestamp without time zone' ? 120 : 150
+      }));
+
+      // Return response with column metadata even if data is empty
+      res.json({
+        success: true,
+        data: result.rows,
+        columns: columnMetadata, // ✅ Add column metadata so frontend can render grid even with empty data
+        pagination: {
+          page: pageNumber,
+          limit: pageSize,
+          total: total,
+          totalPages: totalPages
+        },
+        message: result.rows.length === 0 
+          ? 'No Lifetime PD Data available' 
+          : 'Lifetime PD account details retrieved successfully from DS2 database',
+        database_info: {
+          host: `${databaseConfig.frs9.host}:${databaseConfig.frs9.port}`,
+          database: databaseConfig.frs9.database,
+          table: 'frs9_imp_ca_pd_structure',
+          ssl: databaseConfig.frs9.ssl,
+          environment: databaseConfig.frs9.host.includes('rds.aliyuncs.com') ? 'production' : 'development'
+        }
+      });
+    } catch (error) {
+      console.error('Error in getLifetimePDAccountDetails:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to retrieve Lifetime PD account details',
+        details: (error as Error).message
       });
     }
   }
@@ -310,28 +425,46 @@ export class Ifrs9ReportsDS2Controller {
         });
       }
 
-      // Calculate pagination
-      const offset = (Number(page) - 1) * Number(limit);
+      // 1. Get distinct sequences for dynamic pivot columns
+      const distinctSeqQuery = `
+        SELECT DISTINCT c.seq 
+        FROM frs9_imp_ca_lgd_data b
+        INNER JOIN frs9_imp_ca_lgd_rec_d c ON b.account_id = c.account_id 
+        WHERE b.prc_date <= $1 AND b.lgd_config_id = $2
+        ORDER BY c.seq;
+      `;
+      const distinctSeqResult = await frs9ProPool.query(distinctSeqQuery, [prc_date, lgd_config_id]);
+      const seqs = distinctSeqResult.rows.map(r => r.seq);
+      
+      // Build dynamic pivot columns using conditional aggregation (PostgreSQL equivalent of PIVOT)
+      const pivotCols = seqs.map(s => `SUM(CASE WHEN c.seq = ${s} THEN c.npv_eqv_rec ELSE 0 END) AS "seq_${s}"`).join(',\n          ');
+      const pivotSelectList = seqs.length > 0 ? `, ${pivotCols}` : '';
 
-      // Main LGD data query with pagination based on legacy logic
-      let query = `
+      // 2. Main LGD data query with dynamic pivot and pagination
+      const offset = (Number(page) - 1) * Number(limit);
+      const query = `
         SELECT 
-          a.account_number,
-          a.cif_name,
+          a.account_number AS account_id,
+          a.cif_name AS customer_name,
           b.prc_date AS first_npl_date,
-          b.eqv_at_default AS os_at_default,
-          c.seq,
-          c.npv_eqv_rec AS pv_recovery
+          b.eqv_at_default AS ead_amount,
+          b.lgd AS lgd_rate,
+          b.pv_recovery AS recovery_amount_pv,
+          COALESCE(m.segment_name, 'Unknown') AS segment_name,
+          COALESCE(m.prd_type, 'Unknown') AS product_type
+          ${pivotSelectList}
         FROM frs9_account_id a
         INNER JOIN frs9_imp_ca_lgd_data b ON a.account_id = b.account_id
         INNER JOIN frs9_imp_ca_lgd_rec_d c ON b.account_id = c.account_id 
+        LEFT JOIN frs9_master_account m ON a.account_number = m.account_number AND b.prc_date = m.prc_date
         WHERE b.prc_date <= $1
           AND b.lgd_config_id = $2
-        ORDER BY a.account_number, c.seq
+        GROUP BY a.account_number, a.cif_name, b.prc_date, b.eqv_at_default, b.lgd, b.pv_recovery, m.segment_name, m.prd_type
+        ORDER BY a.account_number
         LIMIT $3 OFFSET $4;
       `;
 
-      // Count query for total records
+      // 3. Count query for total records
       const countQuery = `
         SELECT COUNT(DISTINCT a.account_number) as total
         FROM frs9_account_id a
@@ -350,21 +483,7 @@ export class Ifrs9ReportsDS2Controller {
         parseInt(countResult.rows[0].total || 0) : 0;
       const totalPages = Math.ceil(total / Number(limit));
 
-      // Get pivot columns for recovery sequences
-      const columnsQuery = `
-        SELECT DISTINCT c.seq 
-        FROM frs9_imp_ca_lgd_data b
-        INNER JOIN frs9_imp_ca_lgd_rec_d c ON b.account_id = c.account_id 
-        WHERE b.prc_date <= $1 AND b.lgd_config_id = $2
-        ORDER BY c.seq;
-      `;
-
-      const columnsResult = await frs9ProPool.query(columnsQuery, [
-        prc_date,
-        lgd_config_id
-      ]);
-
-      // Get LGD summary data
+      // 4. Get LGD summary data (updated to match user's SQL)
       const summaryQuery = `
         SELECT 
           a.prc_date AS period,
@@ -375,7 +494,8 @@ export class Ifrs9ReportsDS2Controller {
           a.lgd AS lgd_rate 
         FROM frs9_imp_ca_lgd_h a
         INNER JOIN frs9_imp_ca_lgd_config b ON a.lgd_config_id = b.pkid
-        WHERE a.prc_date = $1 AND a.lgd_config_id = $2;
+        WHERE a.prc_date = $1 
+          AND a.lgd_config_id = $2;
       `;
 
       const summaryResult = await frs9ProPool.query(summaryQuery, [
@@ -386,7 +506,7 @@ export class Ifrs9ReportsDS2Controller {
       res.json({
         success: true,
         data: result.rows,
-        columns: columnsResult.rows.map(row => ({ data: `seq_${row.seq}`, title: `Seq ${row.seq}` })),
+        columns: seqs.map(s => ({ data: `seq_${s}`, title: `Seq ${s}` })),
         summary: summaryResult.rows,
         pagination: {
           page: Number(page),
@@ -394,13 +514,12 @@ export class Ifrs9ReportsDS2Controller {
           total: total,
           totalPages: totalPages
         },
-        message: 'Lifetime LGD data retrieved successfully from DS2 database',
+        message: 'Lifetime LGD data retrieved successfully from DS2 database with dynamic pivot',
         database_info: {
           host: `${databaseConfig.frs9.host}:${databaseConfig.frs9.port}`,
           database: databaseConfig.frs9.database,
-          tables: ['frs9_account_id', 'frs9_imp_ca_lgd_data', 'frs9_imp_ca_lgd_rec_d', 'frs9_imp_ca_lgd_h'],
-          ssl: databaseConfig.frs9.ssl,
-          environment: databaseConfig.frs9.host.includes('rds.aliyuncs.com') ? 'production' : 'development'
+          tables: ['frs9_account_id', 'frs9_imp_ca_lgd_data', 'frs9_imp_ca_lgd_rec_d', 'frs9_imp_ca_lgd_h', 'frs9_imp_ca_lgd_config'],
+          ssl: databaseConfig.frs9.ssl
         }
       });
 
@@ -409,7 +528,7 @@ export class Ifrs9ReportsDS2Controller {
       res.status(500).json({
         success: false,
         error: 'Failed to retrieve Lifetime LGD data',
-        details: error.message
+        details: (error as Error).message
       });
     }
   }
@@ -483,7 +602,7 @@ export class Ifrs9ReportsDS2Controller {
       res.status(500).json({
         success: false,
         error: 'Failed to retrieve EAD Model data',
-        details: error.message
+        details: (error as Error).message
       });
     }
   }
@@ -499,7 +618,8 @@ export class Ifrs9ReportsDS2Controller {
     try {
       const { 
         prc_date,
-        segment_id = 2,
+        segment_id,
+        segment_ids,
         stage,
         sub_segment
       } = req.query;
@@ -511,7 +631,7 @@ export class Ifrs9ReportsDS2Controller {
         });
       }
 
-      let query = `
+      let baseQuery = `
         SELECT 
           prc_date AS period,
           branch_code,
@@ -541,34 +661,69 @@ export class Ifrs9ReportsDS2Controller {
           SUM(unwinding_ia_sum_amt) AS total_unwinding_ia
         FROM frs9_master_account
         WHERE prc_date = $1
-          AND segment_id = $2
       `;
 
-      const params = [prc_date, segment_id];
+      const params: any[] = [prc_date];
+
+      // Dynamic Segment Filtering
+      if (segment_ids && Array.isArray(segment_ids) && segment_ids.length > 0) {
+        baseQuery += ` AND segment_id = ANY($${params.length + 1})`;
+        params.push(segment_ids.map(id => Number(id)));
+      } else if (segment_id) {
+        baseQuery += ` AND segment_id = $${params.length + 1}`;
+        params.push(Number(segment_id));
+      }
 
       // Add optional filters
       if (stage) {
-        query += ` AND stage = $${params.length + 1}`;
+        baseQuery += ` AND stage = $${params.length + 1}`;
         params.push(stage);
       }
 
       if (sub_segment) {
-        query += ` AND sub_segment = $${params.length + 1}`;
+        baseQuery += ` AND sub_segment = $${params.length + 1}`;
         params.push(sub_segment);
       }
 
-      query += `
-        GROUP BY 
-          prc_date, branch_code, segment_id, group_segment, segment, sub_segment,
-          currency, impaired_flag, impaired_status, bucket_id, sicr_flag, stage
-        ORDER BY branch_code, stage, bucket_id;
+      const finalQuery = `
+        WITH summary AS (
+          ${baseQuery}
+          GROUP BY 
+            prc_date, branch_code, segment_id, group_segment, segment, sub_segment,
+            currency, impaired_flag, impaired_status, bucket_id, sicr_flag, stage
+        )
+        SELECT 
+          ROW_NUMBER() OVER(ORDER BY branch_code, stage, bucket_id) as id,
+          *
+        FROM summary
+        ORDER BY id;
       `;
 
-      const result = await frs9ProPool.query(query, params);
+      const result = await frs9ProPool.query(finalQuery, params);
+
+      // Define explicit column metadata for the datagrid
+      const columnMetadata = [
+        { field: 'id', headerName: 'ID', type: 'number', width: 70 },
+        { field: 'period', headerName: 'Period', type: 'date', width: 120 },
+        { field: 'branch_code', headerName: 'Branch', type: 'string', width: 100 },
+        { field: 'segment', headerName: 'Segment', type: 'string', width: 150 },
+        { field: 'sub_segment', headerName: 'Sub-Segment', type: 'string', width: 150 },
+        { field: 'stage', headerName: 'Stage', type: 'number', width: 80 },
+        { field: 'outstanding', headerName: 'Outstanding', type: 'number', width: 180 },
+        { field: 'accrued_interest', headerName: 'Accrued Interest', type: 'number', width: 150 },
+        { field: 'ecl_ca_on_bs', headerName: 'ECL On-BS', type: 'number', width: 150 },
+        { field: 'ecl_ca_off_bs', headerName: 'ECL Off-BS', type: 'number', width: 150 },
+        { field: 'ecl_ia', headerName: 'ECL IA', type: 'number', width: 150 },
+        { field: 'ecl_overlay', headerName: 'ECL Overlay', type: 'number', width: 150 },
+        { field: 'ecl_final', headerName: 'ECL Final', type: 'number', width: 180 },
+        { field: 'ecl_coverage', headerName: 'ECL Coverage %', type: 'number', width: 140 },
+        { field: 'total_unwinding_ia', headerName: 'Unwinding IA', type: 'number', width: 140 }
+      ];
 
       res.json({
         success: true,
         data: result.rows,
+        columns: columnMetadata,
         total: result.rows.length,
         message: 'ECL Result data retrieved successfully from DS2 database',
         database_info: {
@@ -585,7 +740,7 @@ export class Ifrs9ReportsDS2Controller {
       res.status(500).json({
         success: false,
         error: 'Failed to retrieve ECL Result data',
-        details: error.message
+        details: (error as Error).message
       });
     }
   }
@@ -641,7 +796,7 @@ export class Ifrs9ReportsDS2Controller {
       res.status(500).json({
         success: false,
         error: 'Failed to retrieve ECL Movement data',
-        details: error.message
+        details: (error as Error).message
       });
     }
   }
@@ -651,7 +806,7 @@ export class Ifrs9ReportsDS2Controller {
   // ==========================================================================
 
   /**
-   * Get GCA Movement data
+   * Get GCA Movement data from frs9_gca_movement table
    */
   static async getGCAMovement(req: Request, res: Response) {
     try {
@@ -668,27 +823,30 @@ export class Ifrs9ReportsDS2Controller {
         });
       }
 
-      // GCA Movement query (custom report logic)
+      // Query from dedicated GCA Movement table
       const query = `
         SELECT 
           prc_date,
           segment_id,
-          stage,
+          stage as current_stage,
           account_number,
-          outstanding,
-          ecl_final_amt,
-          ecl_beginning_balance,
-          ecl_charge,
-          ecl_writeback,
-          ecl_ending_balance
-        FROM frs9_master_account
+          opening_gca,
+          closing_gca,
+          new_business,
+          repayments,
+          write_offs,
+          stage1_to_stage2,
+          stage2_to_stage1,
+          stage2_to_stage3,
+          stage3_to_stage2
+        FROM frs9_gca_movement
         WHERE prc_date = $1
       `;
 
-      const params = [prc_date];
-
-      // Add optional filters for GCA movement
+      const params: any[] = [prc_date];
       let finalQuery = query;
+
+      // Add optional filters
       if (segment_id) {
         finalQuery += ` AND segment_id = $${params.length + 1}`;
         params.push(segment_id);
@@ -699,7 +857,7 @@ export class Ifrs9ReportsDS2Controller {
         params.push(stage);
       }
 
-      finalQuery += ' ORDER BY account_number, stage;';
+      finalQuery += ' ORDER BY account_number, stage LIMIT 1000;';
 
       const result = await frs9ProPool.query(finalQuery, params);
 
@@ -711,7 +869,7 @@ export class Ifrs9ReportsDS2Controller {
         database_info: {
           host: `${databaseConfig.frs9.host}:${databaseConfig.frs9.port}`,
           database: databaseConfig.frs9.database,
-          table: 'frs9_master_account',
+          table: 'frs9_gca_movement',
           ssl: databaseConfig.frs9.ssl,
           environment: databaseConfig.frs9.host.includes('rds.aliyuncs.com') ? 'production' : 'development'
         }
@@ -722,7 +880,7 @@ export class Ifrs9ReportsDS2Controller {
       res.status(500).json({
         success: false,
         error: 'Failed to retrieve GCA Movement data',
-        details: error.message
+        details: (error as Error).message
       });
     }
   }
@@ -786,7 +944,7 @@ export class Ifrs9ReportsDS2Controller {
         WHERE prc_date = $1
       `;
 
-      const params = [prc_date];
+      const params: any[] = [prc_date];
 
       // Add optional filters
       if (segment_id) {
@@ -858,7 +1016,7 @@ export class Ifrs9ReportsDS2Controller {
       res.status(500).json({
         success: false,
         error: 'Failed to retrieve Nominative Report data',
-        details: error.message
+        details: (error as Error).message
       });
     }
   }

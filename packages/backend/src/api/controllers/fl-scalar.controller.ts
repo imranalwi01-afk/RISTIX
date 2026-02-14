@@ -533,6 +533,46 @@ class FLScalarController {
   }
 
   // ==========================================================================
+  // GET FL SCALAR DETAILS BY SCALAR ID
+  // ==========================================================================
+  async getFLScalarDetails(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      console.log(`📊 Fetching FL Scalar details for scalar_id ${id}`);
+      
+      const query = `
+        SELECT 
+          pkid,
+          scalar_id,
+          period,
+          weighted_scalar,
+          createdby AS created_by,
+          createddate AS created_date,
+          createdhost AS created_host
+        FROM frs9_imp_ca_fl_scalard
+        WHERE scalar_id = $1
+        ORDER BY period ASC
+      `;
+      
+      const result = await frs9ProPool.query(query, [id]);
+      
+      res.json({
+        success: true,
+        data: result.rows,
+        total: result.rows.length,
+        message: 'FL Scalar details retrieved successfully'
+      });
+    } catch (error) {
+      console.error('❌ Error fetching FL Scalar details:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch FL Scalar details',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+
+  // ==========================================================================
   // HELPER METHODS
   // ==========================================================================
   private async getFLScalarByIdInternal(id: string) {
@@ -592,7 +632,8 @@ export const getFLScalars = FLScalarController.getFLScalars;
 export const getFLScalarById = FLScalarController.getFLScalarById;
 export const createFLScalar = FLScalarController.createFLScalar;
 export const updateFLScalar = FLScalarController.updateFLScalar;
-export const deleteFLScalar = FLScalarController.deleteFLScalar;
+export const deleteFLScalar = FLScalarController.prototype.deleteFLScalar;
+export const getFLScalarDetails = FLScalarController.prototype.getFLScalarDetails;
 
 // Health check
 export const healthCheck = FLScalarController.healthCheck;

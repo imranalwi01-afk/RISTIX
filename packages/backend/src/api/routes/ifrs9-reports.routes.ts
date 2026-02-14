@@ -119,9 +119,29 @@ router.get('/lifetime-pd/monthly',
   }
 );
 
+/**
+ * GET /api/v1/ifrs9/reports/lifetime-pd/account-details
+ * Get Lifetime PD account-level details from PD structure table
+ */
+router.get('/lifetime-pd/account-details',
+  [
+    ...validateReportRequest,
+    ...validatePaginationRequest
+  ],
+  handleValidationErrors,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await Ifrs9ReportsDS2Controller.getLifetimePDAccountDetails(req, res);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 // ============================================================================
 // LIFETIME LGD ROUTES
 // ============================================================================
+
 
 /**
  * GET /api/v1/ifrs9/reports/lifetime-lgd
@@ -366,6 +386,15 @@ router.get('/metadata',
               description: 'Probability of Default data by month with dynamic pivot columns',
               required_params: ['prc_date'],
               optional_params: ['pd_config_id', 'pd_method', 'scalar_id', 'fl_flag'],
+              database_table: 'frs9_imp_ca_pd_structure'
+            },
+            {
+              id: 'lifetime-pd-account-details',
+              name: 'Lifetime PD - Account Details',
+              endpoint: '/api/v1/ifrs9/reports/lifetime-pd/account-details',
+              description: 'Account-level PD structure and scalar details from frs9_imp_ca_pd_structure',
+              required_params: ['prc_date'],
+              optional_params: ['pd_config_id', 'pd_method', 'scalar_id', 'fl_flag', 'page', 'limit'],
               database_table: 'frs9_imp_ca_pd_structure'
             },
             {

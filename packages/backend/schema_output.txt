@@ -1,0 +1,209 @@
+
+--- Schema for table: frs9_master_account ---
+pkid: bigint
+prc_date: date
+account_id: bigint
+account_number: character varying
+facility_number: character varying
+cif_type: character varying
+cif_number: character varying
+cif_name: character varying
+account_status: character varying
+data_source: character varying
+prd_group: character varying
+prd_type: character varying
+prd_code: character varying
+gl_group: character varying
+branch_code: character varying
+tenor_org: smallint
+remaining_tenor: smallint
+start_date: date
+maturity_date: date
+start_amort_date: date
+end_amort_date: date
+paid_off_date: date
+write_off_date: date
+first_payment_date: date
+next_payment_date: date
+last_payment_date: date
+next_sch_prin_date: date
+next_sch_int_date: date
+grace_type: character varying
+grace_start_date: date
+grace_end_date: date
+market_rate: double precision
+interest_rate: double precision
+eff_interest_rate: double precision
+collectability: smallint
+collectability_group: smallint
+dpd: smallint
+dpd_group: smallint
+dpd_counter: smallint
+internal_rating_code_initial: character varying
+internal_rating_code: character varying
+ext_rating_id_initial: smallint
+ext_rating_code_initial: character varying
+ext_rating_agency_initial: character varying
+ext_rating_id: smallint
+ext_rating_code: character varying
+ext_rating_agency: character varying
+payment_code: character varying
+payment_term: character varying
+payment_freq: smallint
+int_pmt_term: character varying
+int_pmt_freq: smallint
+amortization_type: character varying
+pmt_sch_status: character varying
+eir_sch_status: character varying
+repo_flag: boolean
+revolving_flag: boolean
+bm_flag: boolean
+committed_flag: boolean
+npl_flag: boolean
+npl_date: date
+restructure_flag: boolean
+restructure_date: date
+restructure_review_date: date
+fib_flag: boolean
+fib_start_date: date
+fib_tenor: smallint
+fib_amt: numeric
+special_case_flag: boolean
+impaired_flag: boolean
+impaired_status: character
+segment_id: smallint
+group_segment: character varying
+segment: character varying
+sub_segment: character varying
+ecl_model_id: smallint
+ead_config_id: smallint
+pd_config_id: smallint
+lgd_config_id: smallint
+sicr_flag: boolean
+stage_original: character varying
+stage_override: character varying
+stage: character varying
+bucket_id_original: smallint
+bucket_id_override: smallint
+bucket_id: smallint
+bucket_id_obligor: smallint
+bucket_id_ed: smallint
+interest_base: character varying
+sppi_status: character varying
+bm_status: character varying
+asset_class: character varying
+currency: character varying
+exchange_rate: double precision
+plafond: numeric
+full_release_amt: numeric
+unused_amt: numeric
+outstanding: numeric
+outstanding_wo: numeric
+accrued_interest: numeric
+installment_amt: numeric
+fix_principal_amt: numeric
+fix_interest_amt: numeric
+initial_fee_amt: numeric
+unamort_fee_amt: numeric
+amort_fee_amt: numeric
+initial_cost_amt: numeric
+unamort_cost_amt: numeric
+amort_cost_amt: numeric
+initial_bm_amt: numeric
+unamort_bm_amt: numeric
+amort_bm_amt: numeric
+initial_gainloss_amt: numeric
+unamort_gainloss_amt: numeric
+amort_gainloss_amt: numeric
+carrying_amt: numeric
+fair_value_amt: numeric
+ecl_ca_onbs_amt: numeric
+ecl_ca_offbs_amt: numeric
+ecl_ia_onbs_amt: numeric
+ecl_overlay_amt: numeric
+ecl_final_amt: numeric
+unwinding_ca_amt: numeric
+unwinding_ia_amt: numeric
+unwinding_ia_sum_amt: numeric
+ecl_beginning_balance: numeric
+ecl_charge: numeric
+ecl_writeback: numeric
+ecl_ending_balance: numeric
+lgd: double precision
+weighted_eff_interest_rate: double precision
+weighted_interest_rate: double precision
+
+--- Schema for table: frs9_account_id ---
+account_id: bigint
+account_number: character varying
+facility_number: character varying
+cif_number: character varying
+cif_name: character varying
+createdby: character varying
+createddate: timestamp without time zone
+
+--- Schema for table: frs9_imp_ca_lgd_data ---
+prc_date: date
+lgd_config_id: bigint
+lgd_method: bigint
+account_id: bigint
+eqv_at_default: numeric
+wo_date: date
+closed_date: date
+account_status: character
+eqv_wo: numeric
+eir_at_default: double precision
+createdby: character varying
+createddate: timestamp without time zone
+updatedby: character varying
+updateddate: timestamp without time zone
+repo_date: date
+eqv_repo: numeric
+
+--- Schema for table: frs9_imp_ca_lgd_rec_d ---
+prc_date: date
+lgd_config_id: bigint
+lgd_method: bigint
+account_id: bigint
+eqv_os: numeric
+eir: double precision
+seq: smallint
+eqv_rec: numeric
+npv_eqv_rec: numeric
+createdby: character varying
+createddate: timestamp without time zone
+rn: integer
+
+--- Schema for table: frs9_imp_ca_lgd_h ---
+prc_date: date
+lgd_config_id: bigint
+lgd_method: bigint
+model_id: bigint
+eqv_os: numeric
+eqv_rec: numeric
+npv_eqv_rec: numeric
+rec_rate: double precision
+lgd: double precision
+createdby: character varying
+createddate: timestamp without time zone
+
+--- Schema for table: frs9_imp_ca_lgd_config ---
+pkid: smallint
+lgd_model_name: character varying
+segment_id: bigint
+lgd_method: bigint
+population_type: character varying
+observation_period: character varying
+observation_start_date: date
+workout_period: integer
+fl_flag: boolean
+fl_scalar_id: smallint
+lgd_rate: double precision
+active_flag: boolean
+createdby: character varying
+createddate: timestamp without time zone
+createdhost: character varying
+updatedby: character varying
+updateddate: timestamp without time zone
+updatedhost: character varying
+tenant_id: uuid

@@ -19,9 +19,16 @@ export class Ifrs9CalculationsService {
                 .from(frs9ImpCaResultH);
 
             const row = result[0];
-            const totalECL = Number(row?.totalECL || 0);
-            const totalPortfolio = Number(row?.totalPortfolio || 0);
-            const count = Number(row?.count || 0);
+            
+            // ✅ DATA VALIDATION: Check if we have any results
+            if (!result || result.length === 0 || !row || row.count === 0) {
+                console.warn('⚠️ No calculation results found in database');
+                throw new Error('No calculation results available. Please run ECL calculation first.');
+            }
+
+            const totalECL = Number(row.totalECL || 0);
+            const totalPortfolio = Number(row.totalPortfolio || 0);
+            const count = Number(row.count || 0);
 
             // Fetch stage distribution for breakdown
             const stages = await legacyDb
@@ -36,36 +43,27 @@ export class Ifrs9CalculationsService {
             const stage2 = Number(stages.find(s => s.stage === 2)?.ecl || 0);
             const stage3 = Number(stages.find(s => s.stage === 3)?.ecl || 0);
 
+            console.log(`✅ Calculation summary loaded: ${count} accounts, Total ECL: ${totalECL}`);
+
             return {
                 totalECL,
                 stage1ECL: stage1,
                 stage2ECL: stage2,
                 stage3ECL: stage3,
                 totalPortfolio,
-                totalExposure: totalPortfolio, // Alias for frontend
-                totalAccounts: count, // Add count for frontend
-                activeAccounts: count, // Alias for frontend
+                totalExposure: totalPortfolio,
+                totalAccounts: count,
+                activeAccounts: count,
+                eclRate: totalPortfolio > 0 ? (totalECL / totalPortfolio) * 100 : 0,
                 impairedRatio: totalPortfolio > 0 ? (stage3 / totalPortfolio) : 0,
                 coverageRatio: totalPortfolio > 0 ? (totalECL / totalPortfolio) : 0,
                 lastUpdated: new Date().toISOString(),
                 currency: 'IDR'
             };
-        } catch (error) {
-            console.error('Error fetching calculation summary:', error);
-            return {
-                totalECL: 0,
-                stage1ECL: 0,
-                stage2ECL: 0,
-                stage3ECL: 0,
-                totalPortfolio: 0,
-                totalExposure: 0,
-                totalAccounts: 0,
-                activeAccounts: 0,
-                impairedRatio: 0,
-                coverageRatio: 0,
-                lastUpdated: new Date().toISOString(),
-                currency: 'IDR'
-            };
+        } catch (error: any) {
+            console.error('❌ Error fetching calculation summary:', error);
+            // Re-throw the error with context for better debugging
+            throw new Error(error.message || 'Failed to fetch calculation summary from database');
         }
     }
 
@@ -147,10 +145,16 @@ export class Ifrs9CalculationsService {
                 .orderBy(frs9ImpCaResultH.prcDate)
                 .limit(12); // Last 12 periods
 
+            // ✅ DATA VALIDATION: Return empty array if no data (not an error)
+            if (!trend || trend.length === 0) {
+                console.warn('⚠️ No portfolio trend data found');
+                return [];
+            }
+
             // Format for frontend (Month names or partial dates)
             const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-            return trend.map(t => {
+            const formattedTrend = trend.map(t => {
                 const dateObj = t.date ? new Date(t.date) : new Date();
                 return {
                     name: monthNames[dateObj.getMonth()],
@@ -158,9 +162,12 @@ export class Ifrs9CalculationsService {
                     fullDate: t.date
                 };
             });
-        } catch (error) {
-            console.error('Error fetching portfolio trend:', error);
-            return [];
+
+            console.log(`✅ Portfolio trend loaded: ${formattedTrend.length} periods`);
+            return formattedTrend;
+        } catch (error: any) {
+            console.error('❌ Error fetching portfolio trend:', error);
+            throw new Error(error.message || 'Failed to fetch portfolio trend from database');
         }
     }
 

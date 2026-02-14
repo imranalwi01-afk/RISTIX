@@ -51,6 +51,7 @@ function handleEffectError(c: Context, cause: unknown): Response {
                 {
                     success: false,
                     error: error.message,
+                    message: error.message, // Standardize with frontend expectations
                     code: 'VALIDATION_ERROR',
                     details: { field: error.field, errors: error.errors },
                 } as any,
@@ -101,6 +102,7 @@ function handleEffectError(c: Context, cause: unknown): Response {
                 {
                     success: false,
                     error: error.message,
+                    message: error.message, // Standardize with frontend expectations
                     code: 'CONFLICT',
                     details: { resource: error.resource, field: error.field, value: error.value },
                 } as any,

@@ -37,8 +37,9 @@ export interface NativeTableColumn<T = any> {
   minWidth?: number;
   flex?: number;
   align?: 'left' | 'center' | 'right';
-  renderCell?: (params: { row: T; value: any }) => React.ReactNode;
+  renderCell?: (params: { row: T; value: any; formattedValue: any }) => React.ReactNode;
   valueGetter?: (params: { row: T }) => any;
+  valueFormatter?: (value: any, row: T) => any;
   type?: 'string' | 'number' | 'date' | 'boolean' | 'actions';
   hideMobile?: boolean; // Hide column on mobile
 }
@@ -78,6 +79,10 @@ export interface NativeTableProps<T = any> {
   onPageChange?: (event: unknown, newPage: number) => void;
   rowsPerPage?: number;
   onRowsPerPageChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
+
+  // Global UI controls
+  hideFooter?: boolean;
+  hideFooterPagination?: boolean;
 }
 
 /**
@@ -103,6 +108,8 @@ export function NativeTable<T = any>({
   onPageChange: propOnPageChange,
   rowsPerPage: propRowsPerPage,
   onRowsPerPageChange: propOnRowsPerPageChange,
+  hideFooter = false,
+  hideFooterPagination = false,
 }: NativeTableProps<T>) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -248,7 +255,11 @@ export function NativeTable<T = any>({
                         </Grid>
                         <Grid size={{ xs: 7 }}>
                           <Typography variant="body2">
-                            {column.renderCell ? column.renderCell({ row, value }) : value}
+                            {(() => {
+                              const value = getCellValue(row, column);
+                              const formattedValue = column.valueFormatter ? column.valueFormatter(value, row) : value;
+                              return column.renderCell ? column.renderCell({ row, value, formattedValue }) : formattedValue;
+                            })()}
                           </Typography>
                         </Grid>
                       </React.Fragment>
@@ -266,15 +277,17 @@ export function NativeTable<T = any>({
             </Card>
           );
         })}
-        <TablePagination
-          rowsPerPageOptions={pageSizeOptions}
-          component="div"
-          count={count !== undefined ? count : rows.length}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-        />
+        {!hideFooter && !hideFooterPagination && (
+          <TablePagination
+            rowsPerPageOptions={pageSizeOptions}
+            component="div"
+            count={count !== undefined ? count : rows.length}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={handleChangePage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+          />
+        )}
       </Box>
     );
   }
@@ -341,9 +354,10 @@ export function NativeTable<T = any>({
                       )}
                       {visibleColumns.map((column) => {
                         const value = getCellValue(row, column);
+                        const formattedValue = column.valueFormatter ? column.valueFormatter(value, row) : value;
                         return (
                           <TableCell key={String(column.field)} align={column.align || 'left'}>
-                            {column.renderCell ? column.renderCell({ row, value }) : value}
+                            {column.renderCell ? column.renderCell({ row, value, formattedValue }) : formattedValue}
                           </TableCell>
                         );
                       })}
@@ -365,15 +379,17 @@ export function NativeTable<T = any>({
             </TableBody>
           </Table>
         </TableContainer>
-        <TablePagination
-          rowsPerPageOptions={pageSizeOptions}
-          component="div"
-          count={count !== undefined ? count : rows.length}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-        />
+        {!hideFooter && !hideFooterPagination && (
+          <TablePagination
+            rowsPerPageOptions={pageSizeOptions}
+            component="div"
+            count={count !== undefined ? count : rows.length}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={handleChangePage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+          />
+        )}
       </Paper>
     </Box>
   );

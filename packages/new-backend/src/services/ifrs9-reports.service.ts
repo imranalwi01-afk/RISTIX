@@ -15,6 +15,7 @@ import {
     frs9MasterAccount
 } from '../db/schema';
 import { legacyDb } from '@/config';
+
 export interface LifetimePDParams {
     prc_date: string;
     pd_config_id?: number;
@@ -23,41 +24,50 @@ export interface LifetimePDParams {
     segment_id?: number;
     fl_flag?: boolean;
 }
+
 export interface LifetimeLGDParams {
     prc_date: string;
     lgd_config_id?: number;
     lgd_method?: number;
     model_id?: number;
 }
+
 export interface EADModelParams {
     prc_date: string;
     ead_config_id?: number;
     segment_id?: number;
 }
+
 export interface ECLResultParams {
     prc_date: string;
     segment_id?: number;
-    stage?: string;
+    stage?: string | string[];
 }
+
 export class Ifrs9ReportsService {
     // Helper to get pagination params
     private getPagination(page: number = 1, limit: number = 20) {
         const offset = (page - 1) * limit;
         return { limit, offset };
     }
+
     /**
      * Transform flat PD data into pivot format (bucket_id as rows, fl_year as columns)
      */
     private transformToPivotYearly(data: any[], flFlag: boolean) {
         if (!data || data.length === 0) return [];
+
         // Group by bucket_id
         const bucketMap = new Map<number, any>();
         const years = new Set<number>();
+
         data.forEach(row => {
             const bucketId = row.bucketId;
             const flYear = row.flYear;
             const pdRate = flFlag ? row.pd : row.pdNonFl;
+
             years.add(flYear);
+
             if (!bucketMap.has(bucketId)) {
                 bucketMap.set(bucketId, {
                     id: bucketId,
@@ -65,23 +75,29 @@ export class Ifrs9ReportsService {
                     bucket_group: row.bucketGroup || `Bucket ${bucketId}`
                 });
             }
+
             const bucket = bucketMap.get(bucketId);
             bucket[`year_${flYear}`] = pdRate;
         });
+
         // Sort and return
         return Array.from(bucketMap.values()).sort((a, b) => a.bucket_id - b.bucket_id);
     }
+
     /**
      * Transform flat PD data into pivot format (bucket_id as rows, fl_seq as columns)
      */
     private transformToPivotMonthly(data: any[], flFlag: boolean) {
         if (!data || data.length === 0) return [];
+
         // Group by bucket_id
         const bucketMap = new Map<number, any>();
+
         data.forEach(row => {
             const bucketId = row.bucketId;
             const flSeq = row.flSeq;
             const pdRate = flFlag ? row.pd : row.pdNonFl;
+
             if (!bucketMap.has(bucketId)) {
                 bucketMap.set(bucketId, {
                     id: bucketId,
@@ -89,12 +105,15 @@ export class Ifrs9ReportsService {
                     bucket_group: row.bucketGroup || `Bucket ${bucketId}`
                 });
             }
+
             const bucket = bucketMap.get(bucketId);
             bucket[`month_${flSeq}`] = pdRate;
         });
+
         // Sort and return
         return Array.from(bucketMap.values()).sort((a, b) => a.bucket_id - b.bucket_id);
     }
+
     /**
      * Get Lifetime PD Report (Yearly)
      * Queries: frs9_imp_ca_pd_structure with pivot transformation
@@ -106,27 +125,34 @@ export class Ifrs9ReportsService {
             const pdMethod = params?.pd_method || 1;
             const scalarId = params?.scalar_id;
             const flFlag = params?.fl_flag ?? false;
+
             console.log('📊 [Lifetime PD Yearly] Fetching with params:', { prcDate, pdConfigId, pdMethod, scalarId, flFlag });
+
             // Build query conditions
             const conditions = [
                 eq(frs9ImpCaPdStructure.prcDate, prcDate),
                 eq(frs9ImpCaPdStructure.pdConfigId, pdConfigId),
                 eq(frs9ImpCaPdStructure.pdMethod, pdMethod)
             ];
+
             // Add scalar_id filter if provided
-            if (scalarId !== undefined && scalarId !== null) {
+            if (scalarId !== undefined && scalar_id !== null) {
                 conditions.push(eq(frs9ImpCaPdStructure.scalarId, scalarId));
             }
+
             // Query frs9_imp_ca_pd_structure
             const rawData = await legacyDb
                 .select()
                 .from(frs9ImpCaPdStructure)
                 .where(and(...conditions))
                 .orderBy(frs9ImpCaPdStructure.bucketId, frs9ImpCaPdStructure.flYear);
+
             console.log(`📊 [Lifetime PD Yearly] Retrieved ${rawData.length} raw records`);
+
             // Transform to pivot format
             const pivotData = this.transformToPivotYearly(rawData, flFlag);
             console.log(`📊 [Lifetime PD Yearly] Transformed to ${pivotData.length} pivot rows`);
+
             return {
                 data: pivotData,
                 total: pivotData.length,
@@ -138,6 +164,7 @@ export class Ifrs9ReportsService {
             return { data: [], total: 0, page, totalPages: 0 };
         }
     }
+
     /**
      * Get Lifetime PD Report (Monthly)
      * Queries: frs9_imp_ca_pd_structure with monthly pivot transformation
@@ -149,27 +176,34 @@ export class Ifrs9ReportsService {
             const pdMethod = params?.pd_method || 1;
             const scalarId = params?.scalar_id;
             const flFlag = params?.fl_flag ?? false;
+
             console.log('📊 [Lifetime PD Monthly] Fetching with params:', { prcDate, pdConfigId, pdMethod, scalarId, flFlag });
+
             // Build query conditions
             const conditions = [
                 eq(frs9ImpCaPdStructure.prcDate, prcDate),
                 eq(frs9ImpCaPdStructure.pdConfigId, pdConfigId),
                 eq(frs9ImpCaPdStructure.pdMethod, pdMethod)
             ];
+
             // Add scalar_id filter if provided
-            if (scalarId !== undefined && scalarId !== null) {
+            if (scalarId !== undefined && scalar_id !== null) {
                 conditions.push(eq(frs9ImpCaPdStructure.scalarId, scalarId));
             }
+
             // Query frs9_imp_ca_pd_structure
             const rawData = await legacyDb
                 .select()
                 .from(frs9ImpCaPdStructure)
                 .where(and(...conditions))
                 .orderBy(frs9ImpCaPdStructure.bucketId, frs9ImpCaPdStructure.flSeq);
+
             console.log(`📊 [Lifetime PD Monthly] Retrieved ${rawData.length} raw records`);
+
             // Transform to pivot format
             const pivotData = this.transformToPivotMonthly(rawData, flFlag);
             console.log(`📊 [Lifetime PD Monthly] Transformed to ${pivotData.length} pivot rows`);
+
             return {
                 data: pivotData,
                 total: pivotData.length,
@@ -181,6 +215,7 @@ export class Ifrs9ReportsService {
             return { data: [], total: 0, page, totalPages: 0 };
         }
     }
+
     /**
      * Get ECL Result Report
      * SQL Script: SELECT SUM(OUTSTANDING), SUM(ECL_CA_ONBS_AMT), SUM(ECL_FINAL_AMT), etc.
@@ -192,15 +227,24 @@ export class Ifrs9ReportsService {
             const prcDate = params?.prc_date || '2023-12-31';
             const segmentId = params?.segment_id;
             const stage = params?.stage;
+
             console.log('📊 [ECL Result] Fetching with params:', { prcDate, segmentId, stage });
+
             // Build dynamic WHERE clause
             let whereClause = `prc_date = '${prcDate}'`;
             if (segmentId !== undefined && segmentId !== null) {
                 whereClause += ` AND segment_id = ${segmentId}`;
             }
+
             if (stage !== undefined && stage !== null && stage !== '') {
-                whereClause += ` AND stage = '${stage}'`;
+                if (Array.isArray(stage)) {
+                    const stageList = stage.map(s => `'${s}'`).join(',');
+                    whereClause += ` AND stage IN (${stageList})`;
+                } else {
+                    whereClause += ` AND stage = '${stage}'`;
+                }
             }
+
             // Execute aggregation query matching SQL script
             const rawData = await legacyDb.execute(sql.raw(`
                 SELECT 
@@ -244,13 +288,16 @@ export class Ifrs9ReportsService {
                     stage
                 ORDER BY segment_id, stage
             `));
+
             const rows = Array.from(rawData as any[]);
             console.log(`📊 [ECL Result] Retrieved ${rows.length} aggregated records`);
+
             // Add id field for DataGrid
             const data = rows.map((row, index) => ({
                 id: index + 1,
                 ...row
             }));
+
             return {
                 data,
                 total: data.length,
@@ -262,17 +309,20 @@ export class Ifrs9ReportsService {
             return { data: [], total: 0, page, totalPages: 0 };
         }
     }
+
     /**
      * Get Nominative Report (Detailed Account Level)
      * Queries: frs9_master_account - Account level IFRS9 data
      */
-    async getNominativeReport(tenantId: string, page: number, limit: number, params?: { prc_date?: string, segment?: string[], stage?: string, branch_code?: string[] }) {
+    async getNominativeReport(tenantId: string, page: number, limit: number, params?: { prc_date?: string, segment?: string[], stage?: string | string[], branch_code?: string[] }) {
         try {
             const prcDate = params?.prc_date || '2023-12-31';
             const segment = params?.segment;
             const stage = params?.stage;
             const branchCode = params?.branch_code;
+
             console.log('📊 [Nominative Report] Fetching with params:', { prcDate, segment, stage, branchCode });
+
             // Build dynamic WHERE clause
             let whereClause = `prc_date = '${prcDate}'`;
             
@@ -283,7 +333,12 @@ export class Ifrs9ReportsService {
             }
 
             if (stage !== undefined && stage !== null && stage !== '') {
-                whereClause += ` AND stage = '${stage}'`;
+                if (Array.isArray(stage)) {
+                    const stageList = stage.map(s => `'${s}'`).join(',');
+                    whereClause += ` AND stage IN (${stageList})`;
+                } else {
+                    whereClause += ` AND stage = '${stage}'`;
+                }
             }
 
             // Handle multiple branch codes
@@ -291,6 +346,7 @@ export class Ifrs9ReportsService {
                 const branchList = branchCode.map(b => `'${b}'`).join(',');
                 whereClause += ` AND branch_code IN (${branchList})`;
             }
+
             // Query account-level data from frs9_master_account
             const rawData = await legacyDb.execute(sql.raw(`
                 SELECT 
@@ -323,13 +379,16 @@ export class Ifrs9ReportsService {
                 ORDER BY account_number
                 LIMIT ${limit}
             `));
+
             const rows = Array.from(rawData as any[]);
             console.log(`📊 [Nominative Report] Retrieved ${rows.length} records`);
+
             // Add id field for DataGrid
             const data = rows.map((row, index) => ({
                 id: index + 1,
                 ...row
             }));
+
             // Get total count and summary stats
             const summaryResult = await legacyDb.execute(sql.raw(`
                 SELECT 
@@ -339,6 +398,7 @@ export class Ifrs9ReportsService {
                 FROM public.frs9_master_account 
                 WHERE ${whereClause}
             `));
+
             const summaryRow = (summaryResult as any[])[0] || {};
             const total = Number(summaryRow.total || 0);
             
@@ -357,6 +417,7 @@ export class Ifrs9ReportsService {
             return { data: [], total: 0, page, totalPages: 0 };
         }
     }
+
     /**
      * Get Lifetime LGD Detail Report (Account Level with Recovery Pivot)
      * Queries: frs9_account_id + frs9_imp_ca_lgd_data + frs9_imp_ca_lgd_rec_d
@@ -366,7 +427,9 @@ export class Ifrs9ReportsService {
         try {
             const prcDate = params?.prc_date || '2023-12-31';
             const lgdConfigId = params?.lgd_config_id || 1;
+
             console.log('📊 [Lifetime LGD Detail] Fetching with params:', { prcDate, lgdConfigId });
+
             // Query with raw SQL for the complex join
             // Added JOIN conditions to strictly match prc_date and lgd_config_id
             const rawData = await legacyDb.execute(sql`
@@ -386,16 +449,20 @@ export class Ifrs9ReportsService {
                 AND B.lgd_config_id = ${lgdConfigId}
                 ORDER BY A.account_number, C.seq
             `);
+
             const rows = Array.from(rawData as any[]);
             console.log(`📊 [Lifetime LGD Detail] Retrieved ${rows.length} raw records`);
+
             // Transform to pivot format (account as rows, seq as columns)
             const pivotData = this.transformLgdToPivot(rows as any[]);
 
             console.log(`📊 [Lifetime LGD Detail] Transformed to ${pivotData.length} pivot rows`);
+
             // Apply pagination (in-memory slicing)
             const startIndex = (page - 1) * limit;
             const endIndex = startIndex + limit;
             const paginatedData = pivotData.slice(startIndex, endIndex);
+
             return {
                 data: paginatedData,
                 total: pivotData.length,
@@ -409,16 +476,20 @@ export class Ifrs9ReportsService {
             return { data: [], total: 0, page, totalPages: 0 };
         }
     }
+
     /**
      * Transform LGD data to pivot format (account as rows, seq as columns)
      */
     private transformLgdToPivot(data: any[]) {
         if (!data || data.length === 0) return [];
+
         const accountMap = new Map<string, any>();
+
         data.forEach(row => {
             const accountNumber = row.account_number;
             const seq = row.seq;
             const pvRecovery = row.pv_recovery;
+
             if (!accountMap.has(accountNumber)) {
                 accountMap.set(accountNumber, {
                     id: accountNumber,
@@ -428,11 +499,14 @@ export class Ifrs9ReportsService {
                     os_at_default: row.os_at_default
                 });
             }
+
             const account = accountMap.get(accountNumber);
             account[`seq_${seq}`] = pvRecovery;
         });
+
         return Array.from(accountMap.values());
     }
+
     /**
      * Get Lifetime LGD Summary Report
      * Queries: frs9_imp_ca_lgd_h + frs9_imp_ca_lgd_config
@@ -441,7 +515,9 @@ export class Ifrs9ReportsService {
         try {
             const prcDate = params?.prc_date || '2023-12-31';
             const lgdConfigId = params?.lgd_config_id || 1;
+
             console.log('📊 [Lifetime LGD Summary] Fetching with params:', { prcDate, lgdConfigId });
+
             // Matching SQL:
             // SELECT PRC_DATE AS PERIOD, B.LGD_MODEL_NAME AS LGD_MODEL, EQV_OS AS TOTAL_EAD,
             //        NPV_EQV_REC AS TOTAL_PV_RECOVERY, REC_RATE, LGD AS LGD_RATE
@@ -460,13 +536,16 @@ export class Ifrs9ReportsService {
                 WHERE A.prc_date = ${prcDate}
                 AND A.lgd_config_id = ${lgdConfigId}
             `);
+
             const rows = Array.from(rawData as any[]);
             console.log(`📊 [Lifetime LGD Summary] Retrieved ${rows.length} records`);
+
             // Add id field for DataGrid
             const data = (rows as any[]).map((row, index) => ({
                 id: index + 1,
                 ...row
             }));
+
             return {
                 data,
                 total: data.length,
@@ -478,6 +557,7 @@ export class Ifrs9ReportsService {
             return { data: [], total: 0, page, totalPages: 0 };
         }
     }
+
     /**
      * Get EAD Model Report (Payment Average by Tenor)
      * SQL: SELECT TENOR AS [LT/MONTH], COUNTER AS SEQ, PAYM_AVG
@@ -490,23 +570,29 @@ export class Ifrs9ReportsService {
             const prcDate = params?.prc_date || '2023-12-31';
             // Note: SQL uses SEGMENT_ID = @EAD_CONFIG_ID, so ead_config_id maps to segment_id
             const segmentId = params?.ead_config_id || params?.segment_id || 1;
+
             console.log('📊 [EAD Model] Fetching with params:', { prcDate, segmentId });
+
             // Query frs9_imp_ca_ead_paym_avg matching SQL script
             const conditions = [
                 eq(frs9ImpCaEadPaymAvg.prcDate, prcDate),
                 eq(frs9ImpCaEadPaymAvg.segmentId, segmentId)
             ];
+
             const rawData = await legacyDb
                 .select()
                 .from(frs9ImpCaEadPaymAvg)
                 .where(and(...conditions))
                 .orderBy(frs9ImpCaEadPaymAvg.tenor, frs9ImpCaEadPaymAvg.counter);
+
             const rows = Array.from(rawData as any[]);
             console.log(`📊 [EAD Model] Retrieved ${rows.length} records`);
+
             // Transform to pivot format matching SQL:
             // PIVOT (SUM(PAYM_AVG) FOR SEQ IN (...)) - TENOR as rows, SEQ/COUNTER as columns
             const pivotData = this.transformEadToPivot(rows);
             console.log(`📊 [EAD Model] Transformed to ${pivotData.length} pivot rows`);
+
             return {
                 data: pivotData,
                 total: pivotData.length,
@@ -518,17 +604,21 @@ export class Ifrs9ReportsService {
             return { data: [], total: 0, page, totalPages: 0 };
         }
     }
+
     /**
      * Transform EAD data to pivot format (TENOR as rows, SEQ/COUNTER as columns)
      * Matches SQL: PIVOT (SUM(PAYM_AVG) FOR SEQ IN (...))
      */
     private transformEadToPivot(data: any[]) {
         if (!data || data.length === 0) return [];
+
         const tenorMap = new Map<number, any>();
+
         data.forEach(row => {
             const tenor = row.tenor;
             const counter = row.counter;  // This is SEQ in SQL script
             const paymAvg = row.paymAvg;
+
             if (!tenorMap.has(tenor)) {
                 tenorMap.set(tenor, {
                     id: tenor,
@@ -536,12 +626,15 @@ export class Ifrs9ReportsService {
                     tenor: tenor
                 });
             }
+
             const tenorRow = tenorMap.get(tenor);
             // Dynamic column: seq_1, seq_2, etc. (COUNTER as SEQ in SQL)
             tenorRow[`seq_${counter}`] = paymAvg;
         });
+
         return Array.from(tenorMap.values()).sort((a, b) => a.tenor - b.tenor);
     }
+
     /**
      * Get EAD Payment Average by Tenor
      * Queries: frs9_imp_ca_ead_paym_avg with pivot on counter
@@ -550,20 +643,26 @@ export class Ifrs9ReportsService {
         try {
             const prcDate = params?.prc_date || '2023-12-31';
             const segmentId = params?.segment_id;
+
             console.log('📊 [EAD Payment Avg] Fetching with params:', { prcDate, segmentId });
+
             const conditions = [eq(frs9ImpCaEadPaymAvg.prcDate, prcDate)];
             if (segmentId !== undefined && segmentId !== null) {
                 conditions.push(eq(frs9ImpCaEadPaymAvg.segmentId, segmentId));
             }
+
             const rawData = await legacyDb
                 .select()
                 .from(frs9ImpCaEadPaymAvg)
                 .where(and(...conditions))
                 .orderBy(frs9ImpCaEadPaymAvg.tenor, frs9ImpCaEadPaymAvg.counter);
+
             const rows = Array.from(rawData as any[]);
             console.log(`📊 [EAD Payment Avg] Retrieved ${rows.length} records`);
+
             // Transform to pivot format (tenor as rows, counter as columns)
             const pivotData = this.transformEadPaymToPivot(rows);
+
             return {
                 data: pivotData,
                 total: pivotData.length,
@@ -575,16 +674,20 @@ export class Ifrs9ReportsService {
             return { data: [], total: 0, page, totalPages: 0 };
         }
     }
+
     /**
      * Transform EAD payment average to pivot (tenor as rows, counter as columns)
      */
     private transformEadPaymToPivot(data: any[]) {
         if (!data || data.length === 0) return [];
+
         const tenorMap = new Map<number, any>();
+
         data.forEach(row => {
             const tenor = row.tenor;
             const counter = row.counter;
             const paymAvg = row.paymAvg;
+
             if (!tenorMap.has(tenor)) {
                 tenorMap.set(tenor, {
                     id: tenor,
@@ -592,20 +695,24 @@ export class Ifrs9ReportsService {
                     segment_id: row.segmentId
                 });
             }
+
             const tenorRow = tenorMap.get(tenor);
             tenorRow[`paym_${counter}`] = paymAvg;
         });
+
         return Array.from(tenorMap.values()).sort((a, b) => a.tenor - b.tenor);
     }
+
     /**
      * Get ECL Movement Report
      * Calculates Opening Balance, Provisions, Releases, Writes-offs, and Closing Balance
      */
-    async getECLMovement(tenantId: string, params?: { prc_date: string, segment_id?: number, stage?: string }) {
+    async getECLMovement(tenantId: string, params?: { prc_date: string, segment_id?: number, stage?: string | string[] }) {
         try {
             const prcDate = params?.prc_date || '2023-12-31';
             const segmentId = params?.segment_id;
             const stage = params?.stage;
+
             // Robust Date Selection: Get the latest date <= requested date
             const dateQuery = await legacyDb.execute(sql.raw(`
                 SELECT MAX(prc_date) as max_date 
@@ -614,10 +721,20 @@ export class Ifrs9ReportsService {
             `));
 
             const effectiveDate = (dateQuery as any[])[0]?.max_date || prcDate;
+
             // Base WHERE clause
             let whereClause = `prc_date = '${effectiveDate}'`;
             if (segmentId) whereClause += ` AND segment_id = ${segmentId}`;
-            if (stage) whereClause += ` AND stage = '${stage}'`;
+            
+            if (stage) {
+                if (Array.isArray(stage)) {
+                    const stageList = stage.map(s => `'${s}'`).join(',');
+                    whereClause += ` AND stage IN (${stageList})`;
+                } else {
+                    whereClause += ` AND stage = '${stage}'`;
+                }
+            }
+
             // Aggregation query - Simplified casting and added COALESCE
             const rawData = await legacyDb.execute(sql.raw(`
                 SELECT 
@@ -628,14 +745,17 @@ export class Ifrs9ReportsService {
                 FROM public.frs9_master_account
                 WHERE ${whereClause}
             `));
+
             const row = (rawData as any[])[0];
             const closingBalance = Number(row?.closing_balance || 0);
+
             // Mocking movement components for display
             // Use Math.max to prevent negative opening balance if something is weird
             const openingBalance = closingBalance > 0 ? closingBalance * 0.95 : 1000000000; // Fallback dummy if 0
             const netMovement = closingBalance - openingBalance;
             const newProvisions = netMovement > 0 ? netMovement : 0;
             const releases = netMovement < 0 ? Math.abs(netMovement) : 0;
+
             return {
                 data: [{
                     opening_balance: openingBalance,
@@ -661,15 +781,17 @@ export class Ifrs9ReportsService {
             };
         }
     }
+
     /**
      * Get GCA Movement Report
      * Calculates Gross Carrying Amount movement
      */
-    async getGCAMovement(tenantId: string, params?: { prc_date: string, segment_id?: number, stage?: string }) {
+    async getGCAMovement(tenantId: string, params?: { prc_date: string, segment_id?: number, stage?: string | string[] }) {
         try {
             const prcDate = params?.prc_date || '2023-12-31';
             const segmentId = params?.segment_id;
             const stage = params?.stage;
+
             // Robust Date Selection
             const dateQuery = await legacyDb.execute(sql.raw(`
                 SELECT MAX(prc_date) as max_date 
@@ -680,7 +802,16 @@ export class Ifrs9ReportsService {
             const effectiveDate = (dateQuery as any[])[0]?.max_date || prcDate;
             let whereClause = `prc_date = '${effectiveDate}'`;
             if (segmentId) whereClause += ` AND segment_id = ${segmentId}`;
-            if (stage) whereClause += ` AND stage = '${stage}'`;
+            
+            if (stage) {
+                if (Array.isArray(stage)) {
+                    const stageList = stage.map(s => `'${s}'`).join(',');
+                    whereClause += ` AND stage IN (${stageList})`;
+                } else {
+                    whereClause += ` AND stage = '${stage}'`;
+                }
+            }
+
             const rawData = await legacyDb.execute(sql.raw(`
                 SELECT 
                     COALESCE(SUM(outstanding), 0) AS closing_gca,
@@ -690,12 +821,14 @@ export class Ifrs9ReportsService {
                 FROM public.frs9_master_account
                 WHERE ${whereClause}
             `));
+
             const row = (rawData as any[])[0];
             const closingGCA = Number(row?.closing_gca || 0);
 
             // Mocking movement components
             const openingGCA = closingGCA > 0 ? closingGCA * 0.98 : 5000000000; // Fallback dummy
             const newBusiness = closingGCA - openingGCA;
+
             return {
                 data: [{
                     opening_gca: openingGCA,
@@ -726,4 +859,5 @@ export class Ifrs9ReportsService {
         }
     }
 }
+
 export const ifrs9ReportsService = new Ifrs9ReportsService();

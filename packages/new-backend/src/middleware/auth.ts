@@ -34,6 +34,36 @@ export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
 
     const token = authHeader.substring(7)
 
+    // ✅ Handle demo tokens for development
+    if (token.startsWith('demo_token_')) {
+        console.log('🎭 [AUTH] Using demo token authentication:', token)
+        const userRole = token.replace('demo_token_', '')
+        
+        // Define mock user
+        const mockUser = {
+            id: '550e8400-e29b-41d4-a716-446655440001', // Standard platform-super-admin ID
+            username: 'admin',
+            email: 'admin@ifrspro.id',
+            fullName: 'Platform Administrator',
+            tenantId: 'iaf',
+            isActive: true,
+            isPlatformAdmin: userRole === 'PLATFORM_SUPER_ADMIN' || userRole === 'ADMIN',
+            role: userRole,
+            permissions: ['*'],
+            createdAt: new Date(),
+            updatedAt: new Date()
+        }
+
+        c.set('userId', mockUser.id)
+        c.set('user', mockUser as any)
+        c.set('tokenId', 'demo-token-jti')
+        c.set('tenantId', 'iaf') 
+        c.set('isSystemUser', mockUser.isPlatformAdmin)
+
+        await next()
+        return
+    }
+
     try {
         // Verify JWT signature
         const payload = await verifyToken(token)

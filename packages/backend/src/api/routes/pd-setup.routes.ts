@@ -43,8 +43,11 @@ import {
   getBusinessParameters,
   getFLScalars,
   getBucketGroups,
-  healthCheck
+  healthCheck,
+  getPDStructure
 } from '../controllers/pd-setup.controller';
+
+import { getFLScalarDetails } from '../controllers/fl-scalar.controller';
 
 const router = Router();
 
@@ -227,6 +230,34 @@ router.get(
 );
 
 /**
+ * GET /api/v1/banking/pd-setup/configs/:id/structure
+ * Get PD structure (marginal PD rates) for a specific configuration
+ */
+router.get(
+  '/configs/:id/structure',
+  requireAuth,
+  idValidationRules,
+  async (req: Request, res: Response, next: NextFunction) => {
+    if (resolveTenant) {
+      try {
+        await new Promise<void>((resolve, reject) => {
+          resolveTenant(req, res, (err: any) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
+      } catch (error) {}
+    }
+
+    try {
+      await getPDStructure(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
  * POST /api/v1/banking/pd-setup/configs
  * Create new PD configuration
  */
@@ -369,6 +400,34 @@ router.get(
 
     try {
       await getFLScalars(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * GET /api/v1/banking/pd-setup/fl-scalars/:id/details
+ * Get FL scalar details for a specific scalar ID
+ */
+router.get(
+  '/fl-scalars/:id/details',
+  requireAuth,
+  idValidationRules,
+  async (req: Request, res: Response, next: NextFunction) => {
+    if (resolveTenant) {
+      try {
+        await new Promise<void>((resolve, reject) => {
+          resolveTenant(req, res, (err: any) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
+      } catch (error) {}
+    }
+
+    try {
+      await getFLScalarDetails(req, res, next);
     } catch (error) {
       next(error);
     }

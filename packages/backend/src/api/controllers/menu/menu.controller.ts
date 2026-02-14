@@ -68,6 +68,7 @@ export class MenuController {
 
       res.status(500).json({
         success: false,
+        message: `Menu hierarchy error: ${errorMessage}`,
         error: {
           code: 'MENU_HIERARCHY_ERROR',
           message: errorMessage
@@ -117,6 +118,7 @@ export class MenuController {
 
       res.status(500).json({
         success: false,
+        message: `Menu creation error: ${errorMessage}`,
         error: {
           code: 'MENU_CREATION_ERROR',
           message: errorMessage
@@ -148,13 +150,14 @@ export class MenuController {
       const menuItem = await this.menuService.updateMenuItem(id, req.body, user.userId || user.id);
 
       if (!menuItem) {
-        return res.status(404).json({
+        res.status(404).json({
           success: false,
           error: {
             code: 'MENU_ITEM_NOT_FOUND',
             message: 'Menu item not found'
           }
         });
+        return;
       }
 
       console.log(`Menu item updated: ${menuItem.title} by user: ${user.userId}`);
@@ -178,6 +181,7 @@ export class MenuController {
 
       res.status(500).json({
         success: false,
+        message: `Menu update error: ${errorMessage}`,
         error: {
           code: 'MENU_UPDATE_ERROR',
           message: errorMessage
@@ -209,13 +213,14 @@ export class MenuController {
       const deleted = await this.menuService.deleteMenuItem(id);
 
       if (!deleted) {
-        return res.status(404).json({
+        res.status(404).json({
           success: false,
           error: {
             code: 'MENU_ITEM_NOT_FOUND',
             message: 'Menu item not found'
           }
         });
+        return;
       }
 
       console.log(`Menu item deleted: ${id} by user: ${user.userId}`);
@@ -232,6 +237,7 @@ export class MenuController {
 
       res.status(500).json({
         success: false,
+        message: `Menu deletion error: ${errorMessage}`,
         error: {
           code: 'MENU_DELETION_ERROR',
           message: errorMessage

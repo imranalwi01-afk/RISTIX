@@ -168,6 +168,7 @@ export class PDSetupController {
       res.status(500).json({
         success: false,
         error: 'Failed to retrieve PD configurations',
+        message: error instanceof Error ? error.message : 'Unknown error',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
     }
@@ -208,6 +209,7 @@ export class PDSetupController {
       res.status(500).json({
         success: false,
         error: 'Failed to retrieve population segments',
+        message: error instanceof Error ? error.message : 'Unknown error',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
     }
@@ -271,6 +273,7 @@ export class PDSetupController {
       res.status(500).json({
         success: false,
         error: 'Failed to retrieve business parameters',
+        message: error instanceof Error ? error.message : 'Unknown error',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
     }
@@ -304,6 +307,7 @@ export class PDSetupController {
       res.status(500).json({
         success: false,
         error: 'Failed to retrieve FL scalars',
+        message: error instanceof Error ? error.message : 'Unknown error',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
     }
@@ -334,6 +338,7 @@ export class PDSetupController {
       res.status(500).json({
         success: false,
         error: 'Failed to retrieve bucket groups',
+        message: error instanceof Error ? error.message : 'Unknown error',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
     }
@@ -385,6 +390,7 @@ export class PDSetupController {
         return res.status(404).json({
           success: false,
           error: 'PD configuration not found',
+          message: 'PD configuration not found',
           code: 'PD_CONFIG_NOT_FOUND'
         });
       }
@@ -401,6 +407,7 @@ export class PDSetupController {
       res.status(500).json({
         success: false,
         error: 'Failed to retrieve PD configuration',
+        message: error instanceof Error ? error.message : 'Unknown error',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
     }
@@ -465,6 +472,7 @@ export class PDSetupController {
       res.status(500).json({
         success: false,
         error: 'Failed to create PD configuration',
+        message: error instanceof Error ? error.message : 'Unknown error',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
     }
@@ -518,6 +526,7 @@ export class PDSetupController {
         return res.status(404).json({
           success: false,
           error: 'PD configuration not found',
+          message: 'PD configuration not found',
           code: 'PD_CONFIG_NOT_FOUND'
         });
       }
@@ -545,6 +554,58 @@ export class PDSetupController {
       res.status(500).json({
         success: false,
         error: 'Failed to update PD configuration',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+
+  // GET /api/v1/banking/pd-setup/configs/:id/structure
+  // Get PD structure (marginal PD rates) for a specific configuration
+  async getPDStructure(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const { prc_date, pd_method } = req.query;
+
+      // Default to latest prc_date if not provided
+      const prcDateQuery = prc_date ? 'AND prc_date = $2' : 'AND prc_date = (SELECT MAX(prc_date) FROM frs9_imp_ca_pd_structure WHERE pd_config_id = $1)';
+      const methodQuery = pd_method ? 'AND pd_method = $3' : '';
+      
+      const values = [id];
+      if (prc_date) values.push(prc_date as string);
+      if (pd_method) values.push(pd_method as string);
+
+      const query = `
+        SELECT 
+          bucket_id,
+          fl_year,
+          fl_seq,
+          pd,
+          pd_non_fl,
+          prc_date
+        FROM frs9_imp_ca_pd_structure 
+        WHERE pd_config_id = $1 
+        ${prcDateQuery}
+        ${methodQuery}
+        ORDER BY fl_year ASC, fl_seq ASC
+      `;
+
+      const result = await frs9ProPool.query(query, values);
+
+      res.json({
+        success: true,
+        data: result.rows,
+        total: result.rows.length,
+        message: 'PD structure details retrieved successfully',
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (error) {
+      console.error('Error getting PD structure details:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to retrieve PD structure details',
+        message: error instanceof Error ? error.message : 'Unknown error',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
     }
@@ -568,6 +629,7 @@ export class PDSetupController {
         return res.status(404).json({
           success: false,
           error: 'PD configuration not found',
+          message: 'PD configuration not found',
           code: 'PD_CONFIG_NOT_FOUND'
         });
       }
@@ -583,6 +645,7 @@ export class PDSetupController {
       res.status(500).json({
         success: false,
         error: 'Failed to delete PD configuration',
+        message: error instanceof Error ? error.message : 'Unknown error',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
     }
@@ -659,6 +722,8 @@ export const updatePDConfig = (req: Request, res: Response, next: NextFunction) 
   PDSetupController.prototype.updatePDConfig(req, res, next);
 export const deletePDConfig = (req: Request, res: Response, next: NextFunction) =>
   PDSetupController.prototype.deletePDConfig(req, res, next);
+export const getPDStructure = (req: Request, res: Response, next: NextFunction) =>
+  PDSetupController.prototype.getPDStructure(req, res, next);
 
 // Metadata operations
 export const getPopulationSegments = (req: Request, res: Response, next: NextFunction) =>

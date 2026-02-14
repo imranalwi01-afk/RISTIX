@@ -35,6 +35,7 @@ router.get('/setup/application/debug', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to debug application setup',
+      message: error instanceof Error ? error.message : 'Unknown error',
       code: 'ROUTE_ERROR'
     });
   }
@@ -91,6 +92,7 @@ const authenticateToken = async (req: any, res: any, next: any) => {
     return res.status(500).json({
       success: false,
       error: 'Authentication service error',
+      message: error instanceof Error ? error.message : 'Unknown error',
       code: 'AUTH_ERROR'
     });
   }
@@ -127,7 +129,7 @@ router.get('/portfolio/summary', authenticateToken, async (req, res) => {
 
   } catch (error) {
     console.error('❌ Portfolio summary error:', error);
-    res.status(500).json({ success: false, error: 'Portfolio summary failed' });
+    res.status(500).json({ success: false, error: 'Portfolio summary failed', message: error instanceof Error ? error.message : 'Unknown error' });
   }
 });
 
@@ -147,7 +149,7 @@ router.get('/activities/recent', authenticateToken, async (req, res) => {
 
   } catch (error) {
     console.error('❌ Activities error:', error);
-    res.status(500).json({ success: false, error: 'Activities failed' });
+    res.status(500).json({ success: false, error: 'Activities failed', message: error instanceof Error ? error.message : 'Unknown error' });
   }
 });
 
@@ -249,6 +251,7 @@ router.get('/setup/application', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to get application setup',
+      message: error instanceof Error ? error.message : 'Unknown error',
       code: 'ROUTE_ERROR'
     });
   }
@@ -267,6 +270,7 @@ router.get('/setup/application/headers', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to get application setup headers',
+      message: error instanceof Error ? error.message : 'Unknown error',
       code: 'ROUTE_ERROR'
     });
   }
@@ -285,6 +289,7 @@ router.post('/setup/application', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to create application setup',
+      message: error instanceof Error ? error.message : 'Unknown error',
       code: 'ROUTE_ERROR'
     });
   }
@@ -303,6 +308,7 @@ router.put('/setup/application/:param_code', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to update application setup',
+      message: error instanceof Error ? error.message : 'Unknown error',
       code: 'ROUTE_ERROR'
     });
   }
@@ -321,6 +327,7 @@ router.delete('/setup/application/:param_code', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to delete application setup',
+      message: error instanceof Error ? error.message : 'Unknown error',
       code: 'ROUTE_ERROR'
     });
   }
@@ -339,6 +346,7 @@ router.get('/setup/application/:paramCode/details', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to get application setup details',
+      message: error instanceof Error ? error.message : 'Unknown error',
       code: 'ROUTE_ERROR'
     });
   }
@@ -357,6 +365,7 @@ router.post('/setup/application/:param_code/details', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to create application setup detail',
+      message: error instanceof Error ? error.message : 'Unknown error',
       code: 'ROUTE_ERROR'
     });
   }
@@ -375,6 +384,7 @@ router.put('/setup/application/details/:detail_id', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to update application setup detail',
+      message: error instanceof Error ? error.message : 'Unknown error',
       code: 'ROUTE_ERROR'
     });
   }
@@ -393,6 +403,7 @@ router.delete('/setup/application/details/:detail_id', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to delete application setup detail',
+      message: error instanceof Error ? error.message : 'Unknown error',
       code: 'ROUTE_ERROR'
     });
   }
@@ -411,6 +422,7 @@ router.get('/setup/business', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to get business setup',
+      message: error instanceof Error ? error.message : 'Unknown error',
       code: 'ROUTE_ERROR'
     });
   }
@@ -429,6 +441,7 @@ router.post('/setup/business', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to create business setup',
+      message: error instanceof Error ? error.message : 'Unknown error',
       code: 'ROUTE_ERROR'
     });
   }
@@ -447,6 +460,7 @@ router.put('/setup/business/:param_code', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to update business setup',
+      message: error instanceof Error ? error.message : 'Unknown error',
       code: 'ROUTE_ERROR'
     });
   }
@@ -465,6 +479,7 @@ router.delete('/setup/business/:param_code', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to delete business setup',
+      message: error instanceof Error ? error.message : 'Unknown error',
       code: 'ROUTE_ERROR'
     });
   }
@@ -483,6 +498,7 @@ router.get('/setup/business/:param_code/details', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to get business setup details',
+      message: error instanceof Error ? error.message : 'Unknown error',
       code: 'ROUTE_ERROR'
     });
   }
@@ -501,6 +517,7 @@ router.post('/setup/business/:param_code/details', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to create business setup detail',
+      message: error instanceof Error ? error.message : 'Unknown error',
       code: 'ROUTE_ERROR'
     });
   }
@@ -519,6 +536,7 @@ router.put('/setup/business/details/:detail_id', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to update business setup detail',
+      message: error instanceof Error ? error.message : 'Unknown error',
       code: 'ROUTE_ERROR'
     });
   }
@@ -537,6 +555,7 @@ router.delete('/setup/business/details/:detail_id', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to delete business setup detail',
+      message: error instanceof Error ? error.message : 'Unknown error',
       code: 'ROUTE_ERROR'
     });
   }
@@ -559,6 +578,7 @@ router.get('/parameters/product', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to get product parameters',
+      message: error instanceof Error ? error.message : 'Unknown error',
       code: 'ROUTE_ERROR'
     });
   }
@@ -577,6 +597,7 @@ router.post('/parameters/product', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to create product parameter',
+      message: error instanceof Error ? error.message : 'Unknown error',
       code: 'ROUTE_ERROR'
     });
   }
@@ -595,6 +616,7 @@ router.put('/parameters/product/:prd_code', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to update product parameter',
+      message: error instanceof Error ? error.message : 'Unknown error',
       code: 'ROUTE_ERROR'
     });
   }
@@ -613,6 +635,7 @@ router.delete('/parameters/product/:prd_code', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to delete product parameter',
+      message: error instanceof Error ? error.message : 'Unknown error',
       code: 'ROUTE_ERROR'
     });
   }
@@ -631,6 +654,7 @@ router.get('/parameters/journal', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to get journal parameters',
+      message: error instanceof Error ? error.message : 'Unknown error',
       code: 'ROUTE_ERROR'
     });
   }
@@ -649,6 +673,7 @@ router.post('/parameters/journal', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to create journal parameter',
+      message: error instanceof Error ? error.message : 'Unknown error',
       code: 'ROUTE_ERROR'
     });
   }
@@ -667,6 +692,7 @@ router.put('/parameters/journal/:gl_code', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to update journal parameter',
+      message: error instanceof Error ? error.message : 'Unknown error',
       code: 'ROUTE_ERROR'
     });
   }
@@ -685,6 +711,7 @@ router.delete('/parameters/journal/:gl_code', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to delete journal parameter',
+      message: error instanceof Error ? error.message : 'Unknown error',
       code: 'ROUTE_ERROR'
     });
   }
@@ -710,6 +737,7 @@ router.get('/pd-setup/health', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to check PD Setup health',
+      message: error instanceof Error ? error.message : 'Unknown error',
       code: 'ROUTE_ERROR'
     });
   }
@@ -728,6 +756,7 @@ router.get('/pd-setup/configs', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to get PD configurations',
+      message: error instanceof Error ? error.message : 'Unknown error',
       code: 'ROUTE_ERROR'
     });
   }
@@ -746,6 +775,7 @@ router.get('/pd-setup/segments', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to get population segments',
+      message: error instanceof Error ? error.message : 'Unknown error',
       code: 'ROUTE_ERROR'
     });
   }
@@ -764,6 +794,7 @@ router.get('/pd-setup/business-parameters', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to get business parameters',
+      message: error instanceof Error ? error.message : 'Unknown error',
       code: 'ROUTE_ERROR'
     });
   }
@@ -782,6 +813,7 @@ router.get('/pd-setup/fl-scalars', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to get FL scalars',
+      message: error instanceof Error ? error.message : 'Unknown error',
       code: 'ROUTE_ERROR'
     });
   }
@@ -800,6 +832,7 @@ router.get('/pd-setup/bucket-groups', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to get bucket groups',
+      message: error instanceof Error ? error.message : 'Unknown error',
       code: 'ROUTE_ERROR'
     });
   }

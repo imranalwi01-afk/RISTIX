@@ -183,6 +183,7 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
                   variant="h4" 
                   sx={{ 
                     fontWeight: 800,
+                    color: item.mainColor, // Fallback
                     background: item.gradient,
                     backgroundClip: 'text',
                     WebkitBackgroundClip: 'text',
@@ -319,7 +320,7 @@ const ModelParametersCard: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
               </Typography>
             </Paper>
           </Grid>
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <Paper sx={{ 
               p: 4, 
               textAlign: 'center', 
@@ -426,7 +427,7 @@ const EADCharts: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
     </Grid>
 
     {/* Product Distribution */}
-    <Grid item xs={12} md={4}>
+    <Grid size={{ xs: 12, md: 4 }}>
       <Card sx={{ 
         height: '100%',
         borderRadius: 4,
@@ -498,7 +499,7 @@ const EADModelReport: React.FC = () => {
     setPivotColumns(pCols);
 
     if (data && data.length > 0) {
-      const stats = data.reduce((acc, row) => {
+      const stats = data.reduce<{ totalAccounts: number; avgEAD: number; avgCCF: number; avgUtilization: number }>((acc, row) => {
         const rowEad = parseFloat(row.ead_amount as string) || 0;
         const rowCcf = parseFloat(row.ccf_rate as string) || 0;
         const rowUtil = parseFloat(row.utilization_rate as string) || 0;
@@ -540,7 +541,7 @@ const EADModelReport: React.FC = () => {
       }));
       
       setSummaryStats({
-        ...stats,
+        totalAccounts: stats.totalAccounts,
         avgEAD,
         avgCCF,
         avgUtilization,

@@ -75,6 +75,7 @@ export class ProductParameterController {
       res.status(500).json({
         success: false,
         error: 'Failed to get product parameters',
+        message: error instanceof Error ? error.message : 'Unknown error',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
     }
@@ -102,6 +103,7 @@ export class ProductParameterController {
       res.status(500).json({
         success: false,
         error: 'Failed to get instrument class options',
+        message: error instanceof Error ? error.message : 'Unknown error',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
     }
@@ -139,6 +141,7 @@ export class ProductParameterController {
         res.status(400).json({
           success: false,
           error: 'Product code already exists',
+          message: 'Product code already exists',
           code: 'DUPLICATE_PRODUCT_CODE',
           details: error.message
         });
@@ -148,6 +151,7 @@ export class ProductParameterController {
       res.status(500).json({
         success: false,
         error: 'Failed to create product parameter',
+        message: error instanceof Error ? error.message : 'Unknown error',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
     }
@@ -187,6 +191,7 @@ export class ProductParameterController {
         res.status(404).json({
           success: false,
           error: 'Product parameter not found',
+          message: 'Product parameter not found',
           code: 'PRODUCT_NOT_FOUND'
         });
         return;
@@ -195,6 +200,7 @@ export class ProductParameterController {
       res.status(500).json({
         success: false,
         error: 'Failed to update product parameter',
+        message: error instanceof Error ? error.message : 'Unknown error',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
     }
@@ -231,6 +237,7 @@ export class ProductParameterController {
         res.status(404).json({
           success: false,
           error: 'Product parameter not found',
+          message: 'Product parameter not found',
           code: 'PRODUCT_NOT_FOUND'
         });
         return;
@@ -239,6 +246,7 @@ export class ProductParameterController {
       res.status(500).json({
         success: false,
         error: 'Failed to delete product parameter',
+        message: error instanceof Error ? error.message : 'Unknown error',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
     }
@@ -262,6 +270,7 @@ export class ProductParameterController {
         res.status(404).json({
           success: false,
           error: 'Product parameter not found',
+          message: 'Product parameter not found',
           code: 'PRODUCT_NOT_FOUND'
         });
         return;
@@ -280,6 +289,7 @@ export class ProductParameterController {
       res.status(500).json({
         success: false,
         error: 'Failed to get product parameter',
+        message: error instanceof Error ? error.message : 'Unknown error',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
     }

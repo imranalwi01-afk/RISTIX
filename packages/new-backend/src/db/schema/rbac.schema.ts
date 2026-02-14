@@ -56,9 +56,9 @@ export const roles = coreSchema.table(
         updatedBy: uuid('updated_by'),
 
         // Legacy tenant-specific fields (keeping for compatibility)
-        level: integer('level'),
-        supportsConventional: varchar('supports_conventional', { length: 100 }),
-        supportsSyariah: varchar('supports_syariah', { length: 100 }),
+        // level: integer('level'),
+        // supportsConventional: varchar('supports_conventional', { length: 100 }),
+        // supportsSyariah: varchar('supports_syariah', { length: 100 }),
     },
     (table) => [
         uniqueIndex('roles_role_name_idx').on(table.roleName),
@@ -107,7 +107,7 @@ export const userRoles = coreSchema.table(
         updatedAt: timestamp('updated_at', { withTimezone: false }).defaultNow(),
 
         // Legacy field
-        level: integer('level'),
+        // level: integer('level'),
     },
     (table) => [
         uniqueIndex('user_role_unique_idx').on(table.userId, table.roleId),

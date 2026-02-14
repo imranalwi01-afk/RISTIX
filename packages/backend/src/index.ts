@@ -100,7 +100,6 @@ const app = express();
 app.set('trust proxy', 1); // Trust first proxy (nginx/reverse proxy)
 
 // ✅ Use centralized configuration system
-import { backendEnvironmentLoader } from './config/environment-loader-backend';
 
 const config = backendEnvironmentLoader.getConfiguration();
 const PORT = process.env.PORT || config.servers.backend.port;

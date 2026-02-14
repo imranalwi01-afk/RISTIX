@@ -26,18 +26,30 @@ const ErrorResponse = z.object({
 // --- Watchlist ---
 const WatchlistItemSchema = z.object({
     pkid: z.number().int(),
-    accountId: z.number().int(),
-    customerName: z.string().optional(),
-    accountNumber: z.string().optional(),
-    segment: z.string().optional(),
-    status: z.string().optional(),
-    addedBy: z.string().optional(),
-    createdAt: z.string().optional()
+    ia_id: z.number().int().optional(),
+    prc_date: z.string().optional(),
+    cif_number: z.string().optional(),
+    cif_name: z.string().optional(),
+    account_id: z.number().int().optional(),
+    account_number: z.string().optional(),
+    outstanding_balance: z.number().optional(),
+    stage: z.number().int().optional(),
+    assessment_status: z.string().optional(),
+    provision_amount: z.number().optional(),
+    impaired_flag: z.string().optional(),
+    method: z.string().optional(),
+    is_override: z.boolean().optional()
 }).openapi('WatchlistItem')
 
 const WatchlistListResponse = z.object({
     success: z.boolean(),
-    data: z.array(WatchlistItemSchema)
+    data: z.array(WatchlistItemSchema),
+    pagination: z.object({
+        page: z.number(),
+        limit: z.number(),
+        total: z.number(),
+        totalPages: z.number()
+    }).optional()
 }).openapi('WatchlistListResponse')
 
 const AddWatchlistSchema = z.object({
@@ -227,9 +239,17 @@ individualImpairmentRoutes.openapi(
         summary: 'Get Watchlist',
         request: {
             query: z.object({
+                search: z.string().optional(),
+                page: z.string().optional(),
+                limit: z.string().optional(),
+                // Filter object patterns for documentation
+                'filter[stage]': z.string().optional(),
+                'filter[assessment_status]': z.string().optional(),
+                'filter[impaired_flag]': z.string().optional(),
+                'filter[rating_code]': z.string().optional(),
+                // Legacy support
                 segment: z.string().optional(),
                 status: z.string().optional(),
-                limit: z.string().optional(),
                 offset: z.string().optional()
             })
         },

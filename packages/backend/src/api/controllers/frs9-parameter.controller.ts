@@ -477,11 +477,12 @@ export class FRS9ParameterController {
       // ✅ NEW: Validate required fields using unified validator
       const validationErrors = validateRequired(req.body, 'application');
       if (validationErrors.length > 0) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           error: 'Validation failed',
           details: validationErrors
         });
+        return;
       }
 
       const auditContext = getAuditContext(req);
@@ -627,17 +628,18 @@ export class FRS9ParameterController {
   async getApplicationSetupDetails(req: Request, res: Response): Promise<void> {
     let client: any = null;
     try {
-      const { paramCode } = req.params;
+      const paramCode = req.params.param_code || req.params.paramCode;
       console.log(`📋 [FRS9] Getting application setup details for param_code: ${paramCode}`);
 
       // Validate parameter code
       if (!paramCode || paramCode.trim() === '') {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           error: 'VALIDATION_ERROR',
           message: 'Parameter code is required',
           code: 'MISSING_PARAM_CODE'
         });
+        return;
       }
 
       // ✅ FIXED: Use centralized database configuration singleton
@@ -723,6 +725,7 @@ export class FRS9ParameterController {
       console.error('❌ [FRS9] Get application setup details error:', error);
       res.status(500).json({
         success: false,
+        message: `Failed to get application setup details: ${error instanceof Error ? error.message : 'Unknown error'}`,
         error: 'Failed to get application setup details',
         code: 'GET_APPLICATION_SETUP_DETAILS_ERROR',
         details: error instanceof Error ? error.message : 'Unknown error'
@@ -738,11 +741,37 @@ export class FRS9ParameterController {
 
   async createApplicationSetupDetail(req: Request, res: Response): Promise<void> {
     try {
-      const { paramCode } = req.params;
+      const paramCode = req.params.param_code || req.params.paramCode;
       console.log(`➕ [FRS9] Creating application setup detail for param_code: ${paramCode}`);
       console.log('📋 [FRS9] Request body:', JSON.stringify(req.body, null, 2));
 
       const auditContext = getAuditContext(req);
+
+      // ✅ UPDATED: Comprehensive duplicate check for param_code + param_seq OR Value1, Value2, Value3
+      const duplicate = await ParamCommond.findOne({
+        where: {
+          param_code: paramCode,
+          [Op.or]: [
+            { param_seq: req.body.param_seq || req.body.SeqNo },
+            {
+              value1: req.body.value1 || req.body.Value1,
+              value2: req.body.value2 || req.body.Value2 || '',
+              value3: req.body.value3 || req.body.Value3 || ''
+            }
+          ]
+        }
+      });
+
+      if (duplicate) {
+        const isSeqDuplicate = duplicate.param_seq === (req.body.param_seq || req.body.SeqNo);
+        res.status(400).json({
+          success: false,
+          error: 'DUPLICATE_ERROR',
+          message: isSeqDuplicate ? 'Sequence already exists' : 'data already exist',
+          code: 'DATA_ALREADY_EXIST'
+        });
+        return;
+      }
 
       const detailData = {
         param_code: paramCode,
@@ -778,6 +807,7 @@ export class FRS9ParameterController {
       console.error('❌ [FRS9] Create application setup detail error:', error);
       res.status(500).json({
         success: false,
+        message: `Failed to create application setup detail: ${error instanceof Error ? error.message : 'Unknown error'}`,
         error: 'Failed to create application setup detail',
         code: 'CREATE_APPLICATION_SETUP_DETAIL_ERROR',
         details: error instanceof Error ? error.message : 'Unknown error'
@@ -787,8 +817,38 @@ export class FRS9ParameterController {
 
   async updateApplicationSetupDetail(req: Request, res: Response): Promise<void> {
     try {
-      const { id } = req.params;
+      const id = req.params.detail_id || req.params.id;
       console.log(`📝 [FRS9] Updating application setup detail ID: ${id}`);
+
+      // ✅ UPDATED: Duplicate check for param_seq OR Value1, Value2, Value3 (excluding current record)
+      const currentDetail = await ParamCommond.findByPk(id);
+      if (currentDetail) {
+          const duplicate = await ParamCommond.findOne({
+            where: {
+              param_code: currentDetail.param_code,
+              pkid: { [Op.ne]: id },
+              [Op.or]: [
+                { param_seq: req.body.param_seq || req.body.SeqNo },
+                {
+                  value1: req.body.value1 || req.body.Value1,
+                  value2: req.body.value2 || req.body.Value2 || '',
+                  value3: req.body.value3 || req.body.Value3 || ''
+                }
+              ]
+            }
+          });
+
+          if (duplicate) {
+            const isSeqDuplicate = duplicate.param_seq === (req.body.param_seq || req.body.SeqNo);
+            res.status(400).json({
+              success: false,
+              error: 'DUPLICATE_ERROR',
+              message: isSeqDuplicate ? 'Sequence already exists' : 'data already exist',
+              code: 'DATA_ALREADY_EXIST'
+            });
+            return;
+          }
+      }
 
       const auditContext = getAuditContext(req);
 
@@ -839,6 +899,7 @@ export class FRS9ParameterController {
       console.error('❌ [FRS9] Update application setup detail error:', error);
       res.status(500).json({
         success: false,
+        message: `Failed to update application setup detail: ${error instanceof Error ? error.message : 'Unknown error'}`,
         error: 'Failed to update application setup detail',
         code: 'UPDATE_APPLICATION_SETUP_DETAIL_ERROR',
         details: error instanceof Error ? error.message : 'Unknown error'
@@ -848,7 +909,7 @@ export class FRS9ParameterController {
 
   async deleteApplicationSetupDetail(req: Request, res: Response): Promise<void> {
     try {
-      const { id } = req.params;
+      const id = req.params.detail_id || req.params.id;
       console.log(`🗑️ [FRS9] Deleting application setup detail ID: ${id}`);
 
       const deletedCount = await ParamCommond.destroy({
@@ -876,6 +937,7 @@ export class FRS9ParameterController {
       console.error('❌ [FRS9] Delete application setup detail error:', error);
       res.status(500).json({
         success: false,
+        message: `Failed to delete application setup detail: ${error instanceof Error ? error.message : 'Unknown error'}`,
         error: 'Failed to delete application setup detail',
         code: 'DELETE_APPLICATION_SETUP_DETAIL_ERROR',
         details: error instanceof Error ? error.message : 'Unknown error'
@@ -1501,6 +1563,258 @@ export class FRS9ParameterController {
       });
     }
   }
+
+  async getBusinessSetupDetails(req: Request, res: Response): Promise<void> {
+    let client;
+    try {
+      const paramCode = req.params.param_code || req.params.paramCode;
+      console.log(`📋 [FRS9] Fetching business setup details for param_code: ${paramCode}`);
+
+      // ✅ FIXED: Use pool.connect() to get a client for direct SQL execution
+      const { pool } = require('../../core/database/connection');
+      client = await pool.connect();
+      console.log('🔌 [FRS9] Connected to DS2 database pool for master-detail query');
+
+      const query = `
+        SELECT 
+          pkid::text as "ID",
+          param_seq as "SeqNo",
+          value1 as "Value1",
+          value2 as "Value2",
+          value3 as "Value3",
+          paramdesc as "Description"
+        FROM frs9_param_commond
+        WHERE param_code = $1
+        ORDER BY param_seq ASC
+      `;
+
+      const result = await client.query(query, [paramCode]);
+      console.log(`✅ [FRS9] Found ${result.rows.length} details for ${paramCode}`);
+
+      res.status(200).json({
+        success: true,
+        data: result.rows,
+        meta: {
+          total: result.rows.length,
+          param_code: paramCode,
+          columns: ['ID', 'SeqNo', 'Value1', 'Value2', 'Value3', 'Description']
+        }
+      });
+
+    } catch (error) {
+      console.error('❌ [FRS9] Get business setup details error:', error);
+      res.status(500).json({
+        success: false,
+        message: `Failed to get business setup details: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        error: 'Failed to get business setup details',
+        code: 'GET_BUSINESS_SETUP_DETAILS_ERROR',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    } finally {
+      if (client) {
+        client.release();
+        console.log('🔄 [FRS9] Database client released back to connection pool');
+      }
+    }
+  }
+
+  async createBusinessSetupDetail(req: Request, res: Response): Promise<void> {
+    try {
+      const paramCode = req.params.param_code || req.params.paramCode;
+      console.log(`➕ [FRS9] Creating business setup detail for param_code: ${paramCode}`);
+
+      const auditContext = getAuditContext(req);
+
+      // ✅ UPDATED: Comprehensive duplicate check for param_code + param_seq OR Value1, Value2, Value3
+      const duplicate = await ParamCommond.findOne({
+        where: {
+          param_code: paramCode,
+          [Op.or]: [
+            { param_seq: req.body.param_seq || req.body.SeqNo },
+            {
+              value1: req.body.value1 || req.body.Value1,
+              value2: req.body.value2 || req.body.Value2 || '',
+              value3: req.body.value3 || req.body.Value3 || ''
+            }
+          ]
+        }
+      });
+
+      if (duplicate) {
+        const isSeqDuplicate = duplicate.param_seq === (req.body.param_seq || req.body.SeqNo);
+        res.status(400).json({
+          success: false,
+          error: 'DUPLICATE_ERROR',
+          message: isSeqDuplicate ? 'Sequence already exists' : 'data already exist',
+          code: 'DATA_ALREADY_EXIST'
+        });
+        return;
+      }
+
+      const detailData = {
+        param_code: paramCode,
+        param_seq: req.body.param_seq || req.body.SeqNo,
+        value1: req.body.value1 || req.body.Value1,
+        value2: req.body.value2 || req.body.Value2 || '',
+        value3: req.body.value3 || req.body.Value3 || '',
+        paramdesc: req.body.paramdesc || req.body.Description || '',
+        createdby: auditContext.createdby,
+        createddate: new Date(),
+        createdhost: auditContext.createdhost
+      };
+
+      const newDetail = await ParamCommond.create(detailData);
+
+      console.log('✅ [FRS9] Business setup detail created successfully');
+
+      res.status(201).json({
+        success: true,
+        data: {
+          ID: newDetail.pkid.toString(),
+          SeqNo: newDetail.param_seq,
+          Value1: newDetail.value1,
+          Value2: newDetail.value2,
+          Value3: newDetail.value3,
+          Description: newDetail.paramdesc,
+          ParamCode: newDetail.param_code
+        },
+        message: 'Business setup detail created successfully'
+      });
+
+    } catch (error) {
+      console.error('❌ [FRS9] Create business setup detail error:', error);
+      res.status(500).json({
+        success: false,
+        message: `Failed to create business setup detail: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        error: 'Failed to create business setup detail',
+        code: 'CREATE_BUSINESS_SETUP_DETAIL_ERROR',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+
+  async updateBusinessSetupDetail(req: Request, res: Response): Promise<void> {
+    try {
+      const { detail_id } = req.params;
+      const id = detail_id || req.body.ID || req.body.id;
+      
+      console.log(`📝 [FRS9] Updating business setup detail: ${id}`);
+
+      // ✅ ADDED: Duplicate check for param_seq OR Value1, Value2, Value3 (excluding current record)
+      const currentDetail = await ParamCommond.findByPk(id);
+      if (currentDetail) {
+        const duplicate = await ParamCommond.findOne({
+          where: {
+            param_code: currentDetail.param_code,
+            pkid: { [Op.ne]: id },
+            [Op.or]: [
+              { param_seq: req.body.param_seq || req.body.SeqNo },
+              {
+                value1: req.body.value1 || req.body.Value1,
+                value2: req.body.value2 || req.body.Value2 || '',
+                value3: req.body.value3 || req.body.Value3 || ''
+              }
+            ]
+          }
+        });
+
+        if (duplicate) {
+          const isSeqDuplicate = duplicate.param_seq === (req.body.param_seq || req.body.SeqNo);
+          res.status(400).json({
+            success: false,
+            error: 'DUPLICATE_ERROR',
+            message: isSeqDuplicate ? 'Sequence already exists' : 'data already exist',
+            code: 'DATA_ALREADY_EXIST'
+          });
+          return;
+        }
+      }
+
+      const auditContext = getAuditContext(req);
+
+      const updateData = {
+        param_seq: req.body.param_seq || req.body.SeqNo,
+        value1: req.body.value1 || req.body.Value1,
+        value2: req.body.value2 || req.body.Value2 || '',
+        value3: req.body.value3 || req.body.Value3 || '',
+        paramdesc: req.body.paramdesc || req.body.Description || '',
+        updatedby: auditContext.createdby,
+        updateddate: new Date(),
+        updatedhost: auditContext.createdhost
+      };
+
+      const [updatedCount] = await ParamCommond.update(updateData, {
+        where: { pkid: id }
+      });
+
+      if (updatedCount === 0) {
+        res.status(404).json({
+          success: false,
+          error: 'Detail not found',
+          code: 'DETAIL_NOT_FOUND',
+          details: `No detail found with id: ${id}`
+        });
+        return;
+      }
+
+      console.log('✅ [FRS9] Business setup detail updated successfully');
+
+      res.status(200).json({
+        success: true,
+        message: 'Business setup detail updated successfully'
+      });
+
+    } catch (error) {
+      console.error('❌ [FRS9] Update business setup detail error:', error);
+      res.status(500).json({
+        success: false,
+        message: `Failed to update business setup detail: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        error: 'Failed to update business setup detail',
+        code: 'UPDATE_BUSINESS_SETUP_DETAIL_ERROR',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+
+  async deleteBusinessSetupDetail(req: Request, res: Response): Promise<void> {
+    try {
+      const { detail_id } = req.params;
+      const id = detail_id || req.body.ID || req.body.id;
+      
+      console.log(`🗑️ [FRS9] Deleting business setup detail: ${id}`);
+
+      const deletedCount = await ParamCommond.destroy({
+        where: { pkid: id }
+      });
+
+      if (deletedCount === 0) {
+        res.status(404).json({
+          success: false,
+          error: 'Detail not found',
+          code: 'DETAIL_NOT_FOUND',
+          details: `No detail found with id: ${id}`
+        });
+        return;
+      }
+
+      console.log('✅ [FRS9] Business setup detail deleted successfully');
+
+      res.status(200).json({
+        success: true,
+        message: 'Business setup detail deleted successfully'
+      });
+
+    } catch (error) {
+      console.error('❌ [FRS9] Delete business setup detail error:', error);
+      res.status(500).json({
+        success: false,
+        message: `Failed to delete business setup detail: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        error: 'Failed to delete business setup detail',
+        code: 'DELETE_BUSINESS_SETUP_DETAIL_ERROR',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
 }
 
 // ============================================================================
@@ -1526,7 +1840,10 @@ export const getBusinessSetup = frs9Controller.getBusinessSetup.bind(frs9Control
 export const createBusinessSetup = frs9Controller.createBusinessSetup.bind(frs9Controller);
 export const updateBusinessSetup = frs9Controller.updateBusinessSetup.bind(frs9Controller);
 export const deleteBusinessSetup = frs9Controller.deleteBusinessSetup.bind(frs9Controller);
-// Note: Business setup detail methods will be implemented in future phases
+export const getBusinessSetupDetails = frs9Controller.getBusinessSetupDetails.bind(frs9Controller);
+export const createBusinessSetupDetail = frs9Controller.createBusinessSetupDetail.bind(frs9Controller);
+export const updateBusinessSetupDetail = frs9Controller.updateBusinessSetupDetail.bind(frs9Controller);
+export const deleteBusinessSetupDetail = frs9Controller.deleteBusinessSetupDetail.bind(frs9Controller);
 
 // Product Parameter exports
 export const getProductParameters = frs9Controller.getProductParameters.bind(frs9Controller);

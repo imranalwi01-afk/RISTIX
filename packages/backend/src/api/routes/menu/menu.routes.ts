@@ -7,10 +7,10 @@
 // ============================================================================
 
 import { Router } from 'express';
-import { MenuController } from '../controllers/menu.controller';
-import { authenticateToken, requireRoles } from '../middleware/auth.middleware';
-import { resolveTenant } from '../middleware/tenant.middleware';
-import { rateLimiter } from '../middleware/rate-limit.middleware';
+import { MenuController } from '../../controllers/menu/menu.controller';
+import { authenticateToken, requireRoles } from '../../middleware/auth.middleware';
+import { resolveTenant } from '../../middleware/tenant.middleware';
+import { rateLimiter } from '../../middleware/rate-limit.middleware';
 
 const router = Router();
 const menuController = new MenuController();

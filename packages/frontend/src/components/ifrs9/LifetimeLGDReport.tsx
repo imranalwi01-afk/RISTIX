@@ -141,7 +141,7 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
                 <Typography 
                   variant="h4" 
                   sx={{ 
-                    fontWeight: 800,
+                    color: item.mainColor, // Fallback
                     background: item.gradient,
                     backgroundClip: 'text',
                     WebkitBackgroundClip: 'text',

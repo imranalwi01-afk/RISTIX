@@ -12,22 +12,26 @@ export const ProductParametersService = {
      * @returns An Effect resolving to an array of transformed product parameters
      */
     /**
-     * List product parameters filtered by mode.
+     * List product parameters filtered by mode with pagination.
      * 
      * @param mode - The product mode (conventional | sharia)
-     * @returns An Effect resolving to an array of transformed product parameters
+     * @param options - Pagination and search options
+     * @returns An Effect resolving to products and pagination metadata
      */
-    list: (mode: string) => {
-        console.log(`📝 [PROD-SERVICE] Fetching product parameters for mode: ${mode}`);
-        // In this implementation, we might filter by a specific field if it exists,
-        // or just return all products if the data source is the same.
-        // Assuming there's a way to filter in the repository.
+    list: (mode: string, options: { page: number, limit: number, search?: string }) => {
+        console.log(`📝 [PROD-SERVICE] Fetching product parameters for mode: ${mode}, page: ${options.page}, limit: ${options.limit}`);
+        
         return pipe(
-            ProductParametersRepository.findAll(),
-            // For now, let's filter in memory if the DB schema doesn't have a mode field yet,
-            // or if we want to simulate the behavior.
-            // If the schema has a field that corresponds to mode (e.g. prdGroup), we use that.
-            Effect.map(products => products.map(transformProduct))
+            ProductParametersRepository.findMany(options),
+            Effect.map(({ products, total }) => ({
+                products: products.map(transformProduct),
+                pagination: {
+                    total,
+                    page: options.page,
+                    limit: options.limit,
+                    pages: Math.ceil(total / options.limit)
+                }
+            }))
         )
     },
 

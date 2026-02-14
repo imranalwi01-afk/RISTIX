@@ -290,6 +290,7 @@ app.use((error: any, req: Request, res: Response, next: NextFunction) => {
 
   res.status(error.status || 500).json({
     success: false,
+    message: error.message || 'Internal server error',
     error: error.message || 'Internal server error',
     code: error.code || 'INTERNAL_SERVER_ERROR',
     requestId,

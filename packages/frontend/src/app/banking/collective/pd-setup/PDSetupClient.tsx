@@ -27,6 +27,9 @@ import {
   Select,
   FormControlLabel,
   Switch,
+  Grid,
+  alpha,
+  useTheme
 } from '@mui/material';
 import {
   Calculate as CalculateIcon,
@@ -47,6 +50,8 @@ import { useRouter } from 'next/navigation';
 import { api } from '@/services/api';
 import { PDConfiguration } from '@/services/api/pd-configurations.api';
 import { PopulationSegment } from '@/services/api/population-segments.api';
+import { PDStructureVisualization, FLScalarVisualization } from '@/components/banking/pd-setup/PDStructureVisualization';
+import { Assessment as ResultsIcon, Close as CloseIcon } from '@mui/icons-material';
 
 // Safe DataGrid wrapper to prevent bundling issues
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
@@ -58,6 +63,7 @@ interface PDConfigUI extends PDConfiguration {
 }
 
 const PdSetupPage = () => {
+  const theme = useTheme();
   const router = useRouter();
 
   const [loading, setLoading] = useState(false);
@@ -75,6 +81,12 @@ const PdSetupPage = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [selectedConfig, setSelectedConfig] = useState<PDConfigUI | null>(null);
+
+  // Results Dialog
+  const [isResultsDialogOpen, setIsResultsDialogOpen] = useState(false);
+  const [resultsLoading, setResultsLoading] = useState(false);
+  const [pdStructure, setPdStructure] = useState<any[]>([]);
+  const [scalarDetails, setScalarDetails] = useState<any[]>([]);
 
   // Form Data
   const [formData, setFormData] = useState<Partial<PDConfiguration>>({
@@ -216,6 +228,34 @@ const PdSetupPage = () => {
     }
   };
 
+  const handleViewResults = async (config: PDConfigUI) => {
+    setSelectedConfig(config);
+    setIsResultsDialogOpen(true);
+    setResultsLoading(true);
+    setPdStructure([]);
+    setScalarDetails([]);
+
+    try {
+      // Fetch PD Structure
+      const structureRes = await api.banking.pdSetup.getPDStructure(config.id!);
+      if (structureRes.success) {
+        setPdStructure(structureRes.data);
+      }
+
+      // Fetch FL Scalar Details if applicable
+      if (config.fl_flag && (config.fl_scalar_id || (config as any).fl_scalar)) {
+        const scalarId = config.fl_scalar_id || (config as any).fl_scalar;
+        const scalarRes = await api.banking.flScalar.getDetails(scalarId);
+        setScalarDetails(scalarRes || []);
+      }
+    } catch (err) {
+      console.error('Failed to load results:', err);
+      setError('Failed to load configuration results.');
+    } finally {
+      setResultsLoading(false);
+    }
+  };
+
   // Logic to disable fields based on method (Proxy PD = 3)
   const isFieldDisabled = (field: string) => {
     if (!isEditing && !isDialogOpen) return true;
@@ -265,6 +305,13 @@ const PdSetupPage = () => {
           icon={<DeleteIcon color="error" />}
           label="Delete"
           onClick={() => handleDelete(params.row.id)}
+        />,
+        <SafeGridActionsCellItem
+          key="results"
+          icon={<ResultsIcon color="secondary" />}
+          label="View Results"
+          onClick={() => handleViewResults(params.row)}
+          showInMenu={false}
         />
       ]
     }
@@ -470,6 +517,69 @@ const PdSetupPage = () => {
         <DialogActions>
           <Button onClick={() => setIsDialogOpen(false)} data-testid="cancel-btn">Cancel</Button>
           <Button variant="contained" onClick={handleSave} disabled={loading} data-testid="save-config-btn">{selectedConfig ? 'Update' : 'Create'}</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Results Visualization Dialog */}
+      <Dialog 
+        open={isResultsDialogOpen} 
+        onClose={() => setIsResultsDialogOpen(false)} 
+        maxWidth="lg" 
+        fullWidth
+        PaperProps={{
+          sx: { borderRadius: 3 }
+        }}
+      >
+        <DialogTitle sx={{ m: 0, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box>
+            <Typography variant="h6" component="div" fontWeight={700}>
+              PD Configuration Results
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Viewing results for: {selectedConfig?.model_name}
+            </Typography>
+          </Box>
+          <IconButton onClick={() => setIsResultsDialogOpen(false)}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers sx={{ backgroundColor: alpha(theme.palette.background.default, 0.5) }}>
+          {resultsLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <Grid container spacing={3}>
+              <Grid size={{ xs: 12 }}>
+                <Paper sx={{ p: 3, borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+                  <PDStructureVisualization data={pdStructure} />
+                </Paper>
+              </Grid>
+              
+              {selectedConfig?.fl_flag && (
+                <Grid size={{ xs: 12 }}>
+                  <Paper sx={{ p: 3, borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+                    <FLScalarVisualization details={scalarDetails} />
+                  </Paper>
+                </Grid>
+              )}
+            </Grid>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button variant="outlined" onClick={() => setIsResultsDialogOpen(false)}>
+            Close
+          </Button>
+          <Button 
+            variant="contained" 
+            startIcon={<CalculateIcon />}
+            onClick={() => {
+              // Future: Trigger calculation logic
+              alert('Re-calculation triggered (Demonstration)');
+            }}
+          >
+            Re-calculate
+          </Button>
         </DialogActions>
       </Dialog>
     </Container>

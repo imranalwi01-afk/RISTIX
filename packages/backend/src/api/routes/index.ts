@@ -455,7 +455,7 @@ async function loadRouteModules() {
   }
 
   try {
-    const menuRoutes = await import('./menu.routes');
+    const menuRoutes = await import('./menu/menu.routes');
     router.use('/menu', menuRoutes.default);
     console.log('✅ Menu routes loaded - Database-driven menu system');
     loadedModules.push('Menu');
@@ -971,15 +971,12 @@ router.get('/docs', (req: Request, res: Response) => {
         ...(loadedModules.includes('Individual Impairment') && {
           '/ifrs9/individual-impairment/watchlist': 'GET - Individual impairment watchlist with pagination and filtering',
           '/ifrs9/individual-impairment/watchlist/:accountId': 'GET - Get specific account details for impairment assessment',
-          '/ifrs9/individual-impairment/assessment': 'GET - Get impairment assessment data for an account',
-          '/ifrs9/individual-impairment/assessment': 'POST - Create or update impairment assessment',
+          '/ifrs9/individual-impairment/assessment': 'GET - Get assessment data | POST - Create or update assessment',
           '/ifrs9/individual-impairment/assessment/:id': 'PUT - Update impairment assessment',
           '/ifrs9/individual-impairment/dcf/:accountId': 'GET - Get DCF analysis data for an account',
           '/ifrs9/individual-impairment/dcf/calculate': 'POST - Calculate DCF present value and ECL',
-          '/ifrs9/individual-impairment/provision': 'GET - Get provision calculation results',
-          '/ifrs9/individual-impairment/provision': 'POST - Calculate provision amounts',
-          '/ifrs9/individual-impairment/trigger': 'GET - Get impairment trigger conditions',
-          '/ifrs9/individual-impairment/trigger': 'POST - Update impairment trigger status',
+          '/ifrs9/individual-impairment/provision': 'GET - Get results | POST - Calculate provision amounts',
+          '/ifrs9/individual-impairment/trigger': 'GET - Get trigger conditions | POST - Update trigger status',
           '/ifrs9/individual-impairment/scenario': 'GET - Get DCF scenario analysis data',
           '/ifrs9/individual-impairment/scenario': 'POST - Create scenario analysis',
           '/ifrs9/individual-impairment/scenario/:id': 'PUT - Update scenario analysis',

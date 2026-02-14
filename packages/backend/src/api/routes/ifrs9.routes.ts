@@ -1,14 +1,15 @@
 // packages/backend/src/api/routes/ifrs9.routes.ts
 // ============================================================================
-// 🩹 SURGICAL ENHANCEMENT: Add missing dashboard endpoints to existing IFRS9 routes
+// 🩹 ENHANCED: Dashboard endpoints with REAL database integration
 // ============================================================================
 // ✅ PRESERVED: All your existing IFRS9 routes structure
-// ✅ ADDED: Missing /calculations/summary endpoint (was causing 404)
-// ✅ FIXED: Authentication middleware for dashboard calls - using same as banking routes
+// ✅ REPLACED: Mock data with real database queries from frs9_master_account
+// ✅ FIXED: Authentication middleware for dashboard calls
 // ============================================================================
 
-import { Router } from 'express';
+import { Router, RequestHandler } from 'express';
 import { authenticateToken } from '../middleware/auth.middleware';
+import DashboardController from '../controllers/dashboard.controller';
 
 const router = Router();
 
@@ -16,118 +17,20 @@ const router = Router();
 // Note: Removed global authentication to match auth routes pattern
 
 // ==========================================
-// 🩹 SURGICAL FIX: ADD MISSING DASHBOARD ENDPOINTS
+// 🚀 REAL DATABASE ENDPOINTS - Dashboard Data
 // ==========================================
 
-// ✅ NEW: GET /api/v1/ifrs9/calculations/summary (was causing 404)
-router.get('/calculations/summary', authenticateToken, async (req, res) => {
-  try {
-    const user = (req as any).user;
-    const tenantId = user?.tenantId || 'dana';
-    
-    // Mock ECL data based on tenant (replace with real calculation engine later)
-    const eclData: any = {
-      dana: {
-        totalECL: 2500000000,
-        stage1ECL: 1200000000,
-        stage2ECL: 800000000,
-        stage3ECL: 500000000,
-        eclRate: 2.5,
-        currency: 'IDR'
-      },
-      syariah: {
-        totalECL: 1800000000,
-        stage1ECL: 900000000,
-        stage2ECL: 600000000,
-        stage3ECL: 300000000,
-        eclRate: 2.1,
-        currency: 'IDR'
-      },
-      default: {
-        totalECL: 3000000000,
-        stage1ECL: 1500000000,
-        stage2ECL: 1000000000,
-        stage3ECL: 500000000,
-        eclRate: 2.8,
-        currency: 'IDR'
-      }
-    };
+// ✅ REAL: GET /api/v1/ifrs9/calculations/summary (from frs9_master_account)
+router.get('/calculations/summary', authenticateToken, DashboardController.getCalculationsSummary as RequestHandler);
 
-    const calculationSummary = eclData[tenantId] || eclData.default;
-    
-    console.log(`✅ IFRS9 ECL summary: ${user.email} (${tenantId})`);
-    res.json({ success: true, data: calculationSummary });
+// ✅ REAL: GET /api/v1/ifrs9/calculations/portfolio-trend (historical trend)
+router.get('/calculations/portfolio-trend', authenticateToken, DashboardController.getPortfolioTrend as RequestHandler);
 
-  } catch (error) {
-    console.error('❌ IFRS9 calculations summary error:', error);
-    res.status(500).json({ success: false, error: 'ECL calculations summary failed' });
-  }
-});
+// ✅ REAL: GET /api/v1/ifrs9/portfolio/summary (portfolio metrics)
+router.get('/portfolio/summary', authenticateToken, DashboardController.getPortfolioMetrics as RequestHandler);
 
-// ✅ NEW: GET /api/v1/ifrs9/portfolio/summary
-router.get('/portfolio/summary', authenticateToken, async (req, res) => {
-  try {
-    const user = (req as any).user;
-    const tenantId = user?.tenantId || 'dana';
-
-    const portfolioData: any = {
-      dana: {
-        totalPortfolio: 50000000000,
-        stage1Count: 8520,
-        stage2Count: 980,
-        stage3Count: 120,
-        averagePD: 0.025,
-        averageLGD: 0.45
-      },
-      syariah: {
-        totalPortfolio: 35000000000,
-        stage1Count: 6200,
-        stage2Count: 650,
-        stage3Count: 80,
-        averagePD: 0.021,
-        averageLGD: 0.42
-      },
-      default: {
-        totalPortfolio: 42000000000,
-        stage1Count: 7500,
-        stage2Count: 800,
-        stage3Count: 100,
-        averagePD: 0.023,
-        averageLGD: 0.44
-      }
-    };
-
-    const summary = portfolioData[tenantId] || portfolioData.default;
-    
-    console.log(`✅ IFRS9 portfolio summary: ${user.email} (${tenantId})`);
-    res.json({ success: true, data: summary });
-
-  } catch (error) {
-    console.error('❌ IFRS9 portfolio summary error:', error);
-    res.status(500).json({ success: false, error: 'Portfolio summary failed' });
-  }
-});
-
-// ✅ NEW: GET /api/v1/ifrs9/activities/recent
-router.get('/activities/recent', authenticateToken, async (req, res) => {
-  try {
-    const user = (req as any).user;
-
-    const activities = [
-      { id: '1', icon: '📊', text: 'ECL calculation completed', time: '5 min ago', type: 'success' },
-      { id: '2', icon: '🔄', text: 'Portfolio staging updated', time: '30 min ago', type: 'info' },
-      { id: '3', icon: '📈', text: 'PD model recalibrated', time: '2 hours ago', type: 'success' },
-      { id: '4', icon: '⚠️', text: 'LGD validation alert', time: '4 hours ago', type: 'warning' }
-    ];
-
-    console.log(`✅ IFRS9 activities: ${user.email}`);
-    res.json({ success: true, data: activities });
-
-  } catch (error) {
-    console.error('❌ IFRS9 activities error:', error);
-    res.status(500).json({ success: false, error: 'Activities failed' });
-  }
-});
+// ✅ REAL: GET /api/v1/ifrs9/activities/recent (recent calculation activities)
+router.get('/activities/recent', authenticateToken, DashboardController.getRecentActivities as RequestHandler);
 
 // ==========================================
 // SERVICE INFO - Root endpoint (EXISTING PRESERVED)

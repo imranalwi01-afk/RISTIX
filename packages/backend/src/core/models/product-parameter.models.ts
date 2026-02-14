@@ -14,7 +14,7 @@ export interface ProductParameterAttributes {
   amortization_type?: string;
   al_flag?: string;
   impaired_flag?: boolean;
-  bm_flag?: boolean;
+  bmi_flag?: boolean;
   expected_life?: number;
   borrowing_rate?: number;
   market_rate?: number;
@@ -39,7 +39,7 @@ export class ProductParameter extends Model<ProductParameterAttributes> implemen
   public amortization_type?: string;
   public al_flag?: string;
   public impaired_flag?: boolean;
-  public bm_flag?: boolean;
+  public bmi_flag?: boolean;
   public expected_life?: number;
   public borrowing_rate?: number;
   public market_rate?: number;
@@ -111,11 +111,11 @@ ProductParameter.init(
       defaultValue: false,
       comment: 'Impairment flag indicator'
     },
-    bm_flag: {
+    bmi_flag: {
       type: DataTypes.BOOLEAN,
       allowNull: true,
       defaultValue: true,
-      comment: 'BM flag indicator'
+      comment: 'Below Market Interest (BMI) flag indicator'
     },
     expected_life: {
       type: DataTypes.INTEGER,

@@ -38,7 +38,7 @@ export interface ProductParameterCreateData {
   amortization_type?: string;
   al_flag?: string;
   impaired_flag?: boolean;
-  bm_flag?: boolean;
+  bmi_flag?: boolean;
   expected_life?: number;
   borrowing_rate?: number;
   market_rate?: number;
@@ -54,7 +54,7 @@ export interface ProductParameterUpdateData {
   amortization_type?: string;
   al_flag?: string;
   impaired_flag?: boolean;
-  bm_flag?: boolean;
+  bmi_flag?: boolean;
   expected_life?: number;
   borrowing_rate?: number;
   market_rate?: number;
@@ -269,7 +269,7 @@ export class ProductParameterService {
         ...data,
         active_flag: data.active_flag ?? true,
         impaired_flag: data.impaired_flag ?? false,
-        bm_flag: data.bm_flag ?? true,
+        bmi_flag: data.bmi_flag ?? true,
         ...auditContext
       };
 
