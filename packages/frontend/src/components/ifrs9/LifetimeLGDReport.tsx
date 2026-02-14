@@ -77,9 +77,9 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
       value: stats.averageLGD < 0.3 ? 'Low' : stats.averageLGD < 0.6 ? 'Medium' : 'High',
       format: 'raw',
       icon: <PieIcon sx={{ fontSize: 32 }} />,
-      gradient: stats.averageLGD < 0.3 
-        ? 'linear-gradient(135deg, #42E695 0%, #3BB2B8 100%)' 
-        : stats.averageLGD < 0.6 
+      gradient: stats.averageLGD < 0.3
+        ? 'linear-gradient(135deg, #42E695 0%, #3BB2B8 100%)'
+        : stats.averageLGD < 0.6
           ? 'linear-gradient(135deg, #FAD961 0%, #F76B1C 100%)'
           : 'linear-gradient(135deg, #F44336 0%, #E57373 100%)',
       mainColor: stats.averageLGD < 0.3 ? '#42E695' : stats.averageLGD < 0.6 ? '#F76B1C' : '#F44336'
@@ -90,7 +90,7 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
     <Grid container spacing={3} sx={{ mb: 5 }}>
       {items.map((item, index) => (
         <Grid size={{ xs: 12, sm: 6, md: 3 }} key={index}>
-          <Card sx={{ 
+          <Card sx={{
             height: '100%',
             borderRadius: 4,
             position: 'relative',
@@ -109,23 +109,23 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
           }}>
             <CardContent sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
               <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography 
-                  variant="caption" 
-                  sx={{ 
-                    fontWeight: 800, 
-                    textTransform: 'uppercase', 
-                    letterSpacing: 1.5, 
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontWeight: 800,
+                    textTransform: 'uppercase',
+                    letterSpacing: 1.5,
                     color: 'text.secondary',
                     opacity: 0.8
                   }}
                 >
                   {item.title}
                 </Typography>
-                <Box 
+                <Box
                   className="card-icon-container"
-                  sx={{ 
-                    p: 1.5, 
-                    borderRadius: 2, 
+                  sx={{
+                    p: 1.5,
+                    borderRadius: 2,
                     background: item.gradient,
                     color: 'white',
                     display: 'flex',
@@ -136,7 +136,7 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
                   {item.icon}
                 </Box>
               </Box>
-              
+
               <Box sx={{ mt: 'auto' }}>
                 <Typography 
                   variant="h4" 
@@ -149,13 +149,13 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
                     mb: 0.5
                   }}
                 >
-                  {item.format === 'currency' 
+                  {item.format === 'currency'
                     ? new Intl.NumberFormat('id-ID', {
-                        style: 'currency',
-                        currency: 'IDR',
-                        notation: 'compact',
-                        maximumFractionDigits: 1
-                      }).format(item.value as number)
+                      style: 'currency',
+                      currency: 'IDR',
+                      notation: 'compact',
+                      maximumFractionDigits: 1
+                    }).format(item.value as number)
                     : item.format === 'percentage'
                       ? `${((item.value as number) * 100).toFixed(2)}%`
                       : item.value
@@ -167,17 +167,17 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
                   </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', opacity: 0.7 }}>
-                  <Chip 
-                    size="small" 
-                    label="LGD METRIC" 
+                  <Chip
+                    size="small"
+                    label="LGD METRIC"
                     variant="outlined"
-                    sx={{ 
-                      height: 20, 
-                      fontSize: '0.65rem', 
+                    sx={{
+                      height: 20,
+                      fontSize: '0.65rem',
                       fontWeight: 700,
                       borderColor: alpha(item.mainColor, 0.3),
                       color: item.mainColor
-                    }} 
+                    }}
                   />
                 </Box>
               </Box>
@@ -202,7 +202,7 @@ const LGDCharts: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={alpha('#000', 0.05)} />
               <XAxis dataKey="range" axisLine={false} tickLine={false} />
               <YAxis axisLine={false} tickLine={false} />
-              <Tooltip 
+              <Tooltip
                 contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}
                 formatter={(value: number) => [value, 'Accounts']}
               />
@@ -289,7 +289,7 @@ const LGDPivotTable: React.FC<{ data: any[]; columns: string[] }> = ({ data, col
                   {finalBase.map(col => (
                     <td key={col} style={{ padding: '12px 16px' }}>
                       {col === 'product_type' ? (
-                         <Chip size="small" label={row[col]} sx={{ fontWeight: 600, bgcolor: alpha('#764ba2', 0.08), color: '#764ba2', border: 'none' }} />
+                        <Chip size="small" label={row[col]} sx={{ fontWeight: 600, bgcolor: alpha('#764ba2', 0.08), color: '#764ba2', border: 'none' }} />
                       ) : (
                         row[col] || '-'
                       )}
@@ -297,9 +297,9 @@ const LGDPivotTable: React.FC<{ data: any[]; columns: string[] }> = ({ data, col
                   ))}
                   {finalDynamic.map(col => (
                     <td key={col} style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 600 }}>
-                         {row[col] !== null && row[col] !== undefined ? (
-                            new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(row[col])
-                         ) : '-'}
+                      {row[col] !== null && row[col] !== undefined ? (
+                        new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(row[col])
+                      ) : '-'}
                     </td>
                   ))}
                 </tr>
@@ -308,11 +308,11 @@ const LGDPivotTable: React.FC<{ data: any[]; columns: string[] }> = ({ data, col
           </table>
         </Box>
         {data.length > 100 && (
-           <Box sx={{ p: 2, textAlign: 'center' }}>
-             <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
-               Showing first 100 records. Export to view full dataset.
-             </Typography>
-           </Box>
+          <Box sx={{ p: 2, textAlign: 'center' }}>
+            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+              Showing first 100 records. Export to view full dataset.
+            </Typography>
+          </Box>
         )}
       </Box>
     </Card>
@@ -327,7 +327,7 @@ const LifetimeLGDReport: React.FC = () => {
     avgRecoveryRate: 0,
     lgdDistribution: []
   });
-  
+
   const [pivotData, setPivotData] = useState<any[]>([]);
   const [pivotColumns, setPivotColumns] = useState<string[]>([]);
 
@@ -341,7 +341,13 @@ const LifetimeLGDReport: React.FC = () => {
       let weightedLgsSum = 0;
       let totalRecoveryPv = 0;
 
-      const stats = data.reduce((acc, row) => {
+      const stats = data.reduce<{
+        totalAccounts: number;
+        averageLGD: number;
+        totalRecoveryAmount: number;
+        avgRecoveryRate: number;
+        lgdDistribution: LGDDistributionItem[];
+      }>((acc, row) => {
         const ead = parseFloat(row.ead_amount as string) || parseFloat(row.ead as string) || 0;
         const lgd = parseFloat(row.lgd_rate as string) || 0;
         const recoveryPv = parseFloat(row.recovery_amount_pv as string) || parseFloat(row.recovery_amount as string) || 0;
@@ -359,9 +365,9 @@ const LifetimeLGDReport: React.FC = () => {
         avgRecoveryRate: 0,
         lgdDistribution: [] as LGDDistributionItem[]
       });
-      
+
       const averageLGD = totalEad > 0 ? weightedLgsSum / totalEad : 0;
-      
+
       const lgdRanges = [
         { range: '0-20%', min: 0, max: 0.2, count: 0, color: '#42E695' },
         { range: '21-40%', min: 0.2, max: 0.4, count: 0, color: '#A0E642' },
@@ -369,7 +375,7 @@ const LifetimeLGDReport: React.FC = () => {
         { range: '61-80%', min: 0.6, max: 0.8, count: 0, color: '#F76B1C' },
         { range: '81-100%', min: 0.8, max: 1.1, count: 0, color: '#F44336' }
       ];
-      
+
       data.forEach(row => {
         const lgd = parseFloat(row.lgd_rate as string) || 0;
         lgdRanges.forEach(range => {
@@ -378,7 +384,7 @@ const LifetimeLGDReport: React.FC = () => {
           }
         });
       });
-      
+
       setSummaryStats({
         ...stats,
         averageLGD,
@@ -389,26 +395,26 @@ const LifetimeLGDReport: React.FC = () => {
   }, []);
 
   const processPivotData = (data: any[]) => {
-      if (!data || data.length === 0) return { pivotData: [], columns: [] };
+    if (!data || data.length === 0) return { pivotData: [], columns: [] };
 
-      const firstRow = data[0];
-      const baseColumns = ['account_id', 'customer_name', 'segment_name', 'product_type'];
-      
-      const dynamicColumns = Object.keys(firstRow).filter(key => 
-          key.match(/^(seq|recovery|period)_\d+$/)
-      ).sort((a, b) => {
-          const numA = parseInt(a.split('_')[1]);
-          const numB = parseInt(b.split('_')[1]);
-          return numA - numB;
-      });
+    const firstRow = data[0];
+    const baseColumns = ['account_id', 'customer_name', 'segment_name', 'product_type'];
 
-      const pivotCols = dynamicColumns.length > 0 ? dynamicColumns : Object.keys(firstRow).filter(k => !baseColumns.includes(k) && typeof firstRow[k] === 'number');
-      const allColumns = [...baseColumns.filter(k => k in firstRow), ...pivotCols];
-      
-      return {
-        pivotData: data,
-        columns: allColumns
-      };
+    const dynamicColumns = Object.keys(firstRow).filter(key =>
+      key.match(/^(seq|recovery|period)_\d+$/)
+    ).sort((a, b) => {
+      const numA = parseInt(a.split('_')[1]);
+      const numB = parseInt(b.split('_')[1]);
+      return numA - numB;
+    });
+
+    const pivotCols = dynamicColumns.length > 0 ? dynamicColumns : Object.keys(firstRow).filter(k => !baseColumns.includes(k) && typeof firstRow[k] === 'number');
+    const allColumns = [...baseColumns.filter(k => k in firstRow), ...pivotCols];
+
+    return {
+      pivotData: data,
+      columns: allColumns
+    };
   };
 
   const requiredParams = useMemo(() => ['prc_date'], []);

@@ -9,7 +9,7 @@ SELECT
     true,
     (SELECT id FROM core.users LIMIT 1),
     NOW()
-FROM core.tenants
+FROM platform_admin.tenants
 LIMIT 1
 ON CONFLICT DO NOTHING;
 
@@ -24,6 +24,6 @@ SELECT
     true,
     (SELECT id FROM core.users LIMIT 1),
     NOW()
-FROM core.tenants
+FROM platform_admin.tenants
 LIMIT 1
 ON CONFLICT DO NOTHING;

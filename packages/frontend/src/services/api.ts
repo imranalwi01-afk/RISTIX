@@ -824,6 +824,13 @@ export const bankingAPI = {
       return response.data;
     },
 
+    // Alias for component compatibility (Parameter order flipped: Table, Column)
+    getBusinessSettingsDataType: async (tableName: string, columnName: string) => {
+      console.log(`🔢 Fetching data type (alias) for table: ${tableName}, column: ${columnName}`);
+      const response = await apiClient.get(`/banking/business-settings/data-type?column=${encodeURIComponent(columnName)}&table=${encodeURIComponent(tableName)}`);
+      return response.data;
+    },
+
     // B0014: Get operators by selected data type
     getOperators: async (dataType: string) => {
       console.log(`⚙️ Fetching operators from Business Setting B0014 for data type: ${dataType}`);
@@ -1330,7 +1337,7 @@ export const bankingAPI = {
         } else {
           throw new Error(`Export failed: ${response.statusText}`);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Export error:', error);
         return {
           success: false,

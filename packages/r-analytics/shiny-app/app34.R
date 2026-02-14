@@ -1,4 +1,15 @@
-# setwd("D:/shiny dan database/ifrs dan stres testing")
+# Ensure we are in the correct directory for relative imports
+if (!is.null(tryCatch(setwd(dirname(rstudioapi::getSourceEditorContext()$path)), error = function(e) NULL))) {
+  setwd(dirname(rstudioapi::getSourceEditorContext()$path))
+} else {
+  # Fallback for Docker/Production environments
+  if (dir.exists("/opt/r-analytics/shiny-app")) {
+    setwd("/opt/r-analytics/shiny-app")
+  }
+}
+message(paste0("[", Sys.time(), "] 🚀 STARTING APP INITIALIZATION..."))
+message(paste0("[", Sys.time(), "] 📦 Loading libraries..."))
+
 library(shiny)
 library(shinydashboard)
 library(DT)
@@ -22,22 +33,47 @@ library(lubridate)
 library(shinycssloaders)
 library(future)
 library(future.apply)
+
+message(paste0("[", Sys.time(), "] 📦 Libraries loaded. Sourcing global.R..."))
 source("global.R")
+message(paste0("[", Sys.time(), "] ✅ global.R sourced successfully."))
 
 
 
 # Koneksi database PostgreSQL
-con <- dbConnect(
-  RPostgres::Postgres(),
-  dbname = "IFRS9_pro",
-  # host ="pgm-d9j5id443p7876n9.pgsql.ap-southeast-5.rds.aliyuncs.com",
-  host = "10.8.0.2",
-  port = 5433,
-  # user ="admin_iaf",
-  user = "postgres",
-  # password = "P@ssw0rd2025!"
-  password = "postgres"
-)
+# Database Configuration Logging
+db_host <- Sys.getenv("DB_HOST", "10.8.0.2")
+db_port <- as.integer(Sys.getenv("DB_PORT", "5433"))
+db_name <- Sys.getenv("DB_NAME", "IFRS9_pro")
+db_user <- Sys.getenv("DB_USER", "postgres")
+db_password <- Sys.getenv("DB_PASSWORD", "postgres")
+
+cat(paste0("\n=============================================\n"))
+cat(paste0("🚀 Starting Database Connection...\n"))
+cat(paste0("📌 Host: ", db_host, "\n"))
+cat(paste0("📌 Port: ", db_port, "\n"))
+cat(paste0("📌 Name: ", db_name, "\n"))
+cat(paste0("📌 User: ", db_user, "\n"))
+cat(paste0("=============================================\n"))
+
+# Koneksi database PostgreSQL with Error Handling
+con <- tryCatch({
+  conn <- dbConnect(
+    RPostgres::Postgres(),
+    dbname = db_name,
+    host = db_host,
+    port = db_port,
+    user = db_user,
+    password = db_password
+  )
+  cat("✅ Database connection successful!\n")
+  conn
+}, error = function(e) {
+  cat(paste0("❌ Database connection failed: ", e$message, "\n"))
+  # cat("⚠️ Falling back to offline mode (if supported)...\n")
+  NULL
+})
+
 
 dbExecute(con, "SET search_path TO dbo;")
 

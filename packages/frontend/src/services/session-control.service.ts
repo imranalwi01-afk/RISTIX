@@ -196,7 +196,7 @@ export class SessionControlService {
           }
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       this.log('Error loading authentication data from storage', { error: error.message });
       this.clearStorageData();
     }
@@ -218,7 +218,7 @@ export class SessionControlService {
         document.cookie = buildCookieRemovalString('refresh_token');
         document.cookie = buildCookieRemovalString('auth_user');
       }
-    } catch (error) {
+    } catch (error: any) {
       this.log('Error clearing storage data', { error: error.message });
     }
   }
@@ -247,7 +247,7 @@ export class SessionControlService {
           this.log('✅ Tokens synced to cookies for API requests (multi-domain support)');
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       this.log('Error persisting authentication data to storage', { error: error.message });
     }
   }
@@ -372,7 +372,7 @@ export class SessionControlService {
         } else {
           throw new Error(response.error || 'Token refresh failed');
         }
-      } catch (error) {
+      } catch (error: any) {
         retries++;
         this.log(`Token refresh attempt ${retries} failed`, { error: error.message });
 
@@ -550,7 +550,7 @@ export class SessionControlService {
               'Content-Type': 'application/json',
             },
           });
-        } catch (error) {
+        } catch (error: any) {
           this.log('Backend logout API call failed', { error: error.message });
         }
       }
@@ -868,7 +868,7 @@ export class SessionControlService {
     this.listeners.forEach(listener => {
       try {
         listener(event);
-      } catch (error) {
+      } catch (error: any) {
         this.log('Error in session event listener', { error: error.message });
       }
     });
@@ -877,7 +877,7 @@ export class SessionControlService {
     if (this.broadcastChannel) {
       try {
         this.broadcastChannel.postMessage(event);
-      } catch (error) {
+      } catch (error: any) {
         this.log('Error broadcasting to other tabs', { error: error.message });
       }
     }

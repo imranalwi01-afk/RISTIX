@@ -65,7 +65,7 @@ interface SummaryStats {
 
 const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
   const { bankingMode } = useBankingTheme();
-  
+
   const getThemeColors = () => {
     switch (bankingMode) {
       case 'syariah':
@@ -171,23 +171,23 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
           }}>
             <CardContent sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
               <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography 
-                  variant="caption" 
-                  sx={{ 
-                    fontWeight: 800, 
-                    textTransform: 'uppercase', 
-                    letterSpacing: 1.5, 
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontWeight: 800,
+                    textTransform: 'uppercase',
+                    letterSpacing: 1.5,
                     color: 'text.secondary',
                     opacity: 0.8
                   }}
                 >
                   {item.title}
                 </Typography>
-                <Box 
+                <Box
                   className="card-icon-container"
-                  sx={{ 
-                    p: 1.5, 
-                    borderRadius: 2, 
+                  sx={{
+                    p: 1.5,
+                    borderRadius: 2,
                     background: item.gradient,
                     color: 'white',
                     display: 'flex',
@@ -198,11 +198,11 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
                   {item.icon}
                 </Box>
               </Box>
-              
+
               <Box sx={{ mt: 'auto' }}>
-                <Typography 
-                  variant="h4" 
-                  sx={{ 
+                <Typography
+                  variant="h4"
+                  sx={{
                     fontWeight: 800,
                     color: item.mainColor, // Fallback
                     background: item.gradient,
@@ -212,28 +212,28 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
                     mb: 0.5
                   }}
                 >
-                  {item.format === 'currency' 
+                  {item.format === 'currency'
                     ? new Intl.NumberFormat('id-ID', {
-                        style: 'currency',
-                        currency: 'IDR',
-                        notation: 'compact',
-                        maximumFractionDigits: 1
-                      }).format(item.value as number)
+                      style: 'currency',
+                      currency: 'IDR',
+                      notation: 'compact',
+                      maximumFractionDigits: 1
+                    }).format(item.value as number)
                     : item.value
                   }
                 </Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', opacity: 0.7 }}>
-                  <Chip 
-                    size="small" 
-                    label="LIVE DATA" 
+                  <Chip
+                    size="small"
+                    label="LIVE DATA"
                     variant="outlined"
-                    sx={{ 
-                      height: 20, 
-                      fontSize: '0.65rem', 
+                    sx={{
+                      height: 20,
+                      fontSize: '0.65rem',
                       fontWeight: 700,
                       borderColor: alpha(item.mainColor, 0.3),
                       color: item.mainColor
-                    }} 
+                    }}
                   />
                 </Box>
               </Box>
@@ -248,7 +248,7 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
 const StageBreakdownCard: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
   const { bankingMode } = useBankingTheme();
   const theme = useTheme();
-  
+
   const getStageColor = (stage: number) => {
     if (bankingMode === 'syariah') {
       return stage === 1 ? '#00897b' : stage === 2 ? '#00796b' : '#00695c';
@@ -257,8 +257,8 @@ const StageBreakdownCard: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
   };
 
   return (
-    <Card sx={{ 
-      mb: 5, 
+    <Card sx={{
+      mb: 5,
       borderRadius: 4,
       boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
       background: 'linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(249, 250, 251, 1) 100%)'
@@ -269,10 +269,10 @@ const StageBreakdownCard: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
         </Typography>
         <Grid container spacing={3}>
           <Grid size={{ xs: 12, md: 4 }}>
-            <Paper sx={{ 
-              p: 4, 
-              textAlign: 'center', 
-              background: `linear-gradient(135deg, ${getStageColor(1)} 0%, ${alpha(getStageColor(1), 0.7)} 100%)`, 
+            <Paper sx={{
+              p: 4,
+              textAlign: 'center',
+              background: `linear-gradient(135deg, ${getStageColor(1)} 0%, ${alpha(getStageColor(1), 0.7)} 100%)`,
               color: 'white',
               borderRadius: 3,
               boxShadow: `0 8px 24px ${alpha(getStageColor(1), 0.3)}`,
@@ -297,10 +297,10 @@ const StageBreakdownCard: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
             </Paper>
           </Grid>
           <Grid size={{ xs: 12, md: 4 }}>
-            <Paper sx={{ 
-              p: 4, 
-              textAlign: 'center', 
-              background: `linear-gradient(135deg, ${getStageColor(2)} 0%, ${alpha(getStageColor(2), 0.7)} 100%)`, 
+            <Paper sx={{
+              p: 4,
+              textAlign: 'center',
+              background: `linear-gradient(135deg, ${getStageColor(2)} 0%, ${alpha(getStageColor(2), 0.7)} 100%)`,
               color: 'white',
               borderRadius: 3,
               boxShadow: `0 8px 24px ${alpha(getStageColor(2), 0.3)}`,
@@ -606,16 +606,16 @@ const ECLResultReport: React.FC = () => {
         };
       }, {} as Partial<SummaryStats>) as unknown as SummaryStats;
 
-      aggregatedStats.eclRatio = aggregatedStats.totalOutstanding > 0 
-        ? (aggregatedStats.totalECL / aggregatedStats.totalOutstanding) * 100 
+      aggregatedStats.eclRatio = aggregatedStats.totalOutstanding > 0
+        ? (aggregatedStats.totalECL / aggregatedStats.totalOutstanding) * 100
         : 0;
-      
+
       const stageData = [
         { name: 'Stage 1', value: aggregatedStats.stage1ECL, color: '#4CAF50' },
         { name: 'Stage 2', value: aggregatedStats.stage2ECL, color: '#FF9800' },
         { name: 'Stage 3', value: aggregatedStats.stage3ECL, color: '#F44336' }
       ].filter(item => item.value > 0);
-      
+
       const segmentMap = new Map<string, Omit<SegmentBreakdownItem, 'eclRatio'>>();
       data.forEach(row => {
         const segment = (row.segment || row.group_segment || row.sub_segment || 'Uncategorized') as string;
@@ -632,12 +632,12 @@ const ECLResultReport: React.FC = () => {
         segmentData.outstanding += parseFloat(row.outstanding as string) || 0;
         segmentData.accounts += 1;
       });
-      
+
       const segmentBreakdown: SegmentBreakdownItem[] = Array.from(segmentMap.values()).map(item => ({
         ...item,
         eclRatio: item.outstanding > 0 ? (item.ecl / item.outstanding) * 100 : 0
       }));
-      
+
       setSummaryStats({
         ...aggregatedStats,
         segmentBreakdown,

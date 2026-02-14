@@ -104,7 +104,7 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
     },
     {
       title: 'Growth Rate',
-      value: stats.openingGCA > 0 
+      value: stats.openingGCA > 0
         ? `${((stats.netGCAMovement / stats.openingGCA) * 100).toFixed(1)}%`
         : '0.0%',
       format: 'raw',
@@ -119,7 +119,7 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
     <Grid container spacing={3} sx={{ mb: 6 }}>
       {items.map((item, index) => (
         <Grid size={{ xs: 12, sm: 6, md: 3 }} key={index}>
-          <Card sx={{ 
+          <Card sx={{
             height: '100%',
             borderRadius: '20px',
             position: 'relative',
@@ -183,7 +183,7 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
                 >
                   {item.title}
                 </Typography>
-                <Box 
+                <Box
                   className="card-icon-container"
                   sx={{ 
                     p: 2, 
@@ -201,7 +201,7 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
                   {item.icon}
                 </Box>
               </Box>
-              
+
               <Box sx={{ mt: 'auto' }}>
                 <Typography 
                   className="value-text"
@@ -219,13 +219,13 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
                     transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)'
                   }}
                 >
-                  {item.format === 'currency' 
+                  {item.format === 'currency'
                     ? new Intl.NumberFormat('id-ID', {
-                        style: 'currency',
-                        currency: 'IDR',
-                        notation: 'compact',
-                        maximumFractionDigits: 1
-                      }).format(item.value as number)
+                      style: 'currency',
+                      currency: 'IDR',
+                      notation: 'compact',
+                      maximumFractionDigits: 1
+                    }).format(item.value as number)
                     : item.value
                   }
                 </Typography>
@@ -346,7 +346,7 @@ const StageTransferMatrix: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
                 }}
               />
             </Box>
-            
+
             <Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
                 <Typography variant="body2" fontWeight={700} color="text.primary">Stage 2 → Stage 3</Typography>
@@ -378,7 +378,7 @@ const StageTransferMatrix: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
             </Box>
           </Paper>
         </Grid>
-        
+
         <Grid size={{ xs: 12, md: 6 }}>
           <Paper sx={{ 
             p: 4, 
@@ -436,7 +436,7 @@ const StageTransferMatrix: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
                 }}
               />
             </Box>
-            
+
             <Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
                 <Typography variant="body2" fontWeight={700} color="text.primary">Stage 3 → Stage 2</Typography>
@@ -795,28 +795,28 @@ const GCAMovementReport: React.FC = () => {
         movementTrend: []
       };
 
-      const stats = data.reduce((acc, row) => {
+      const stats = data.reduce<SummaryStats>((acc, row) => {
         acc.openingGCA += parseFloat(row.opening_gca as string) || 0;
         acc.closingGCA += parseFloat(row.closing_gca as string) || 0;
         acc.newBusinessGCA += parseFloat(row.new_business as string) || 0;
         acc.repayments += parseFloat(row.repayments as string) || 0;
         acc.writeOffs += parseFloat(row.write_offs as string) || 0;
-        
+
         acc.stageTransfers.stage1To2 += parseFloat(row.stage1_to_stage2 as string) || 0;
         acc.stageTransfers.stage2To1 += parseFloat(row.stage2_to_stage1 as string) || 0;
         acc.stageTransfers.stage2To3 += parseFloat(row.stage2_to_stage3 as string) || 0;
         acc.stageTransfers.stage3To2 += parseFloat(row.stage3_to_stage2 as string) || 0;
-        
+
         return acc;
       }, initialStats);
-      
+
       const netGCAMovement = stats.closingGCA - stats.openingGCA;
-      
+
       const stageMap = new Map<string, GCAByStageItem>();
       data.forEach(row => {
         const stage = (row.current_stage || 1) as number;
         const stageKey = `Stage ${stage}`;
-        
+
         if (!stageMap.has(stageKey)) {
           stageMap.set(stageKey, {
             stage: stageKey,
@@ -826,13 +826,13 @@ const GCAMovementReport: React.FC = () => {
             color: stage === 1 ? '#4CAF50' : stage === 2 ? '#FF9800' : '#F44336'
           });
         }
-        
+
         const stageData = stageMap.get(stageKey)!;
         stageData.opening += parseFloat(row.opening_gca as string) || 0;
         stageData.closing += parseFloat(row.closing_gca as string) || 0;
         stageData.accounts += 1;
       });
-      
+
       const trendData: MovementTrendItem[] = [
         { period: 'Opening', gca: stats.openingGCA, cumulative: stats.openingGCA },
         { period: 'New Business', gca: stats.newBusinessGCA, cumulative: stats.openingGCA + stats.newBusinessGCA },
@@ -840,7 +840,7 @@ const GCAMovementReport: React.FC = () => {
         { period: 'Write-offs', gca: -stats.writeOffs, cumulative: stats.openingGCA + stats.newBusinessGCA - stats.repayments - stats.writeOffs },
         { period: 'Closing', gca: stats.closingGCA, cumulative: stats.closingGCA }
       ];
-      
+
       setSummaryStats({
         ...stats,
         netGCAMovement,

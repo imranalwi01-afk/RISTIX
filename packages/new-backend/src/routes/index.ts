@@ -9,7 +9,7 @@ import { usersRoutes } from './users.routes'
 import { tenantsRoutes } from './tenants.routes'
 import { platformAdminRoutes } from './platform-admin.routes'
 import { approvalRoutes } from './approval.routes'
-import { menuRoutes } from './menu.routes'
+
 import { productSegmentsRoutes } from './product-segments.routes'
 import { ruleBaseSettingsRoutes } from './rule-base-settings.routes'
 import { bucketParametersRoutes } from './bucket-parameters.routes'
@@ -67,7 +67,7 @@ routes.route('/platform-admin', platformAdminRoutes)
 routes.route('/approvals', approvalRoutes)
 routes.route('/rbac', rbacRoutes)
 routes.route('/audit', auditRoutes)
-routes.route('/menu', menuRoutes)
+
 routes.route('/consultants', consultantsRoutes)
 routes.route('/platform-users', platformUsersRoutes)
 

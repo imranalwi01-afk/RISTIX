@@ -101,7 +101,7 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
     <Grid container spacing={3} sx={{ mb: 6 }}>
       {items.map((item, index) => (
         <Grid size={{ xs: 12, sm: 6, md: 3 }} key={index}>
-          <Card sx={{ 
+          <Card sx={{
             height: '100%',
             borderRadius: 6,
             position: 'relative',
@@ -168,7 +168,7 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
                   {item.icon}
                 </Box>
               </Box>
-              
+
               <Box sx={{ mt: 'auto' }}>
                 <Typography 
                   variant="h3" 
@@ -182,13 +182,13 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
                     mb: 1
                   }}
                 >
-                  {item.format === 'currency' 
+                  {item.format === 'currency'
                     ? new Intl.NumberFormat('id-ID', {
-                        style: 'currency',
-                        currency: 'IDR',
-                        notation: 'compact',
-                        maximumFractionDigits: 1
-                      }).format(item.value as number)
+                      style: 'currency',
+                      currency: 'IDR',
+                      notation: 'compact',
+                      maximumFractionDigits: 1
+                    }).format(item.value as number)
                     : item.value
                   }
                 </Typography>
@@ -262,7 +262,7 @@ const MovementWaterfallChart: React.FC<{ stats: SummaryStats }> = ({ stats }) =>
             tickLine={false}
             tick={{ fontSize: 12, fontWeight: 700, fill: '#64748b' }}
           />
-          <YAxis 
+          <YAxis
             axisLine={false}
             tickLine={false}
             tick={{ fontWeight: 700, fontSize: 12, fill: '#64748b' }}
@@ -354,9 +354,9 @@ const ECLMovementReport: React.FC = () => {
         stageTransfers: 0,
         movementBreakdown: [] as MovementBreakdownItem[]
       });
-      
+
       const netMovement = stats.closingBalance - stats.openingBalance;
-      
+
       const movementData: MovementBreakdownItem[] = [
         { category: 'Opening Balance', amount: stats.openingBalance, color: '#6366f1', type: 'balance' },
         { category: 'New Provisions', amount: stats.newProvisions, color: '#ef4444', type: 'increase' },
@@ -365,7 +365,7 @@ const ECLMovementReport: React.FC = () => {
         { category: 'Write-offs', amount: -Math.abs(stats.writeOffs), color: '#10b981', type: 'decrease' },
         { category: 'Closing Balance', amount: stats.closingBalance, color: '#8b5cf6', type: 'balance' }
       ];
-      
+
       setSummaryStats({
         ...stats,
         netMovement,

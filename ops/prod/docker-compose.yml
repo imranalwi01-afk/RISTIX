@@ -78,6 +78,9 @@ services:
   # 📈 R ANALYTICS (PRODUCTION IMAGE)
   # ============================================================================
   r-analytics:
+    build:
+      context: ../../packages/r-analytics
+      dockerfile: Dockerfile
     image: ghcr.io/ifrspro/ifrs9-iaf/r-analytics:production
     container_name: ifrs9-r-analytics-prod
     restart: always
