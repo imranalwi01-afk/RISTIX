@@ -505,9 +505,24 @@ export const bankingAPI = {
 
   // Product parameters (FRS9_PARAM_PRODUCT)
   productParameters: {
-    getAll: async (mode: string, params?: { page?: number; limit?: number; search?: string }) => {
+    getAll: async (mode: string, params?: { 
+      page?: number; 
+      limit?: number; 
+      search?: string;
+      sortBy?: string;
+      sortOrder?: 'ASC' | 'DESC';
+      prdGroup?: string;
+      prdType?: string;
+      currency?: string;
+      activeOnly?: boolean | string;
+    }) => {
       console.log(`🏦 Fetching product parameters for ${mode} from DS2 database`, params);
       const response = await apiClient.get('/banking/parameters/product', { params: { ...params, mode } });
+      return response.data;
+    },
+
+    getInstrumentClassOptions: async () => {
+      const response = await apiClient.get('/banking/parameters/product/instrument-class-options');
       return response.data;
     },
 
@@ -596,14 +611,7 @@ export const bankingAPI = {
       return response.data;
     },
 
-    // Metadata
-    getSegmentTypes: async () => {
-      console.log('📋 Fetching segment types');
-      const response = await apiClient.get('/banking/parameters/segmentation/business-settings/segment-types');
-      return response.data;
-    },
-
-    // Business Settings for Segmentation
+    // Business Settings Metadata for Rules
     getBusinessSettingsTables: async () => {
       console.log('📋 Fetching segmentation business settings tables');
       const response = await apiClient.get('/banking/setup/business/tables');
@@ -612,19 +620,19 @@ export const bankingAPI = {
 
     getBusinessSettingsColumns: async (tableName: string) => {
       console.log(`📋 Fetching segmentation business settings columns for ${tableName}`);
-      const response = await apiClient.get(`/banking/setup/business/columns?table=${encodeURIComponent(tableName)}`);
+      const response = await apiClient.get('/banking/setup/business/columns', { params: { table: tableName } });
       return response.data;
     },
 
     getBusinessSettingsDataType: async (tableName: string, columnName: string) => {
       console.log(`📋 Fetching segmentation data type for ${tableName}.${columnName}`);
-      const response = await apiClient.get(`/banking/setup/business/data-type?column=${encodeURIComponent(columnName)}&table=${encodeURIComponent(tableName)}`);
+      const response = await apiClient.get('/banking/setup/business/data-type', { params: { table: tableName, column: columnName } });
       return response.data;
     },
 
     getBusinessSettingsOperators: async (dataType: string) => {
       console.log(`📋 Fetching segmentation operators for data type: ${dataType}`);
-      const response = await apiClient.get(`/banking/setup/business/operators?dataType=${encodeURIComponent(dataType)}`);
+      const response = await apiClient.get('/banking/setup/business/operators', { params: { dataType } });
       return response.data;
     },
 
@@ -636,7 +644,13 @@ export const bankingAPI = {
 
     getBusinessSettingsValues: async (tableName: string, columnName: string) => {
       console.log(`📋 Fetching segmentation column values for ${tableName}.${columnName}`);
-      const response = await apiClient.get(`/banking/setup/business/column-values?column=${encodeURIComponent(columnName)}&table=${encodeURIComponent(tableName)}`);
+      const response = await apiClient.get('/banking/setup/business/column-values', { params: { column: columnName, table: tableName } });
+      return response.data;
+    },
+
+    getSegmentTypes: async () => {
+      console.log('📋 Fetching segment types from DS2 database');
+      const response = await apiClient.get('/banking/parameters/segmentation/business-settings/segment-types');
       return response.data;
     }
   },
@@ -774,6 +788,13 @@ export const bankingAPI = {
     health: async () => {
       console.log('🏥 Checking PD Setup service and DS2 database health');
       const response = await apiClient.get('/banking/pd-setup/health');
+      return response.data;
+    },
+
+    // Get PD structure (marginal PD rates) for a specific configuration
+    getPDStructure: async (id: string, params?: { prc_date?: string; pd_method?: string }) => {
+      console.log(`📊 Fetching PD structure for config ${id} from DS2 database`);
+      const response = await apiClient.get(`/banking/pd-setup/configs/${id}/structure`, { params });
       return response.data;
     }
   },

@@ -75,6 +75,8 @@ import {
 import { formatTerbilang } from '../../../utils/banking'
 import WidgetManager from '../../../components/dashboard/WidgetManager'
 import PersonalizedWidget from '../../../components/dashboard/widgets/PersonalizedWidget'
+import EmptyState from '../../../components/common/EmptyState'
+import ErrorState from '../../../components/common/ErrorState'
 import {
     PieChart as RechartsPieChart,
     Pie,
@@ -291,20 +293,12 @@ const ECLDistributionChart = ({ data }: any) => {
     )
 }
 
-// Mock trend for visual effect (since historical data might be scarce)
-const MOCK_TREND = [
-    { name: 'Jan', value: 4000 },
-    { name: 'Feb', value: 3000 },
-    { name: 'Mar', value: 2000 },
-    { name: 'Apr', value: 2780 },
-    { name: 'May', value: 1890 },
-    { name: 'Jun', value: 2390 },
-    { name: 'Jul', value: 3490 },
-]
+// ✅ NO MOCK DATA: Removed MOCK_TREND constant
+// Empty data will be handled by EmptyState component
 
 const PortfolioTrendChart = ({ data }: { data: any[] }) => (
     <ResponsiveContainer width="100%" height={300}>
-        <AreaChart data={data && data.length > 0 ? data : MOCK_TREND}>
+        <AreaChart data={data}>
             <defs>
                 <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#1976d2" stopOpacity={0.8} />

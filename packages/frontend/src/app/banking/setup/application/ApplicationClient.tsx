@@ -40,7 +40,8 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions
+  DialogActions,
+  TablePagination
 } from '@mui/material';
 
 import {
@@ -194,6 +195,11 @@ export default function ApplicationSettingPage() {
     ExportAction: true
   });
 
+  // Pagination State (Segmentation Pattern)
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
+
   // State
   const [searchTerm, setSearchTerm] = useState('');
   const [columnFilters, setColumnFilters] = useState({
@@ -341,6 +347,9 @@ export default function ApplicationSettingPage() {
     if (columnFilters.value) filtered = filtered.filter(i => i.Value.toLowerCase().includes(columnFilters.value.toLowerCase()));
     if (columnFilters.createdBy) filtered = filtered.filter(i => i.CreatedBy.toLowerCase().includes(columnFilters.createdBy.toLowerCase()));
 
+    // Update total count
+    setTotalCount(filtered.length);
+
     return filtered;
   }, [data, searchTerm, columnFilters]);
 
@@ -451,6 +460,19 @@ export default function ApplicationSettingPage() {
     if (!selectedRecord) return;
     try {
       setDetailLoading(true);
+
+      // Client-side duplicate check
+      const isDuplicateSeq = detailDataForModal.some(d => 
+        d.SeqNo === formData.SeqNo && 
+        (!selectedDetail || d.ID !== selectedDetail.ID)
+      );
+
+      if (isDuplicateSeq) {
+        setError('Sequence already exists');
+        setDetailLoading(false);
+        return;
+      }
+
       const payload = {
         param_seq: formData.SeqNo,
         value1: formData.Value1.trim(),
@@ -565,14 +587,16 @@ export default function ApplicationSettingPage() {
             </Box>
           )}
 
-          <div style={{ height: 600, width: '100%' }}>
+          <Box sx={{ height: 600, width: '100%' }}>
             <SafeDataGrid
-              rows={filteredData}
+              rows={filteredData.slice(page * rowsPerPage, (page + 1) * rowsPerPage)}
               columns={columns}
               getRowId={(row) => row.pkid || row.ID || `${row.CommonCode}-${Math.random()}`}
               loading={loading}
-              initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
-              pageSizeOptions={[10, 25, 50, 100]}
+              rowCount={totalCount}
+              hideFooterPagination
+              hideFooter
+              disableRowSelectionOnClick
               getDetailPanelContent={(params) => (
                 <ApplicationDetailPanel
                   row={params.row}
@@ -583,8 +607,25 @@ export default function ApplicationSettingPage() {
                 />
               )}
               getDetailPanelHeight={() => 'auto'}
+              sx={{
+                '& .MuiDataGrid-main': { minHeight: 400 },
+              }}
             />
-          </div>
+          </Box>
+          <TablePagination
+            rowsPerPageOptions={[10, 25, 50, 100]}
+            component="div"
+            count={totalCount}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={(e, p) => setPage(p)}
+            onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+            labelDisplayedRows={({ from, to, count }) => `Showing ${from}–${to} of ${count} • Page ${page + 1}`}
+            sx={{
+              borderTop: '2px solid #e0e0e0',
+              bgcolor: '#fafafa',
+            }}
+          />
 
         </CardContent>
       </Card>

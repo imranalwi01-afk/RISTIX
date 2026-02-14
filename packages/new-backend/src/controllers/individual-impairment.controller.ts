@@ -12,13 +12,42 @@ export class IndividualImpairmentController {
             const user = c.get('user');
             if (!user?.tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
 
-            const segment = c.req.query('segment');
-            const status = c.req.query('status');
-            const limit = Number(c.req.query('limit')) || 50;
-            const offset = Number(c.req.query('offset')) || 0;
+            // 1. Extract Pagination Parameters
+            const page = Number(c.req.query('page')) || 1;
+            const limit = Number(c.req.query('limit')) || 25;
+            const offset = (page - 1) * limit;
 
-            const data = await individualImpairmentService.getWatchlist(user.tenantId, { segment, status, limit, offset });
-            return c.json({ success: true, data });
+            // 2. Extract Filters
+            // The frontend sends filters either as top-level params or in a 'filter' object
+            // Hono query(key) handles simple keys. 
+            const search = c.req.query('search');
+            const stage = Number(c.req.query('filter[stage]') || c.req.query('stage'));
+            const status = c.req.query('filter[assessment_status]') || c.req.query('status');
+            const impaired_flag = c.req.query('filter[impaired_flag]') || c.req.query('impairedFlag');
+            const rating_code = c.req.query('filter[rating_code]') || c.req.query('ratingCode');
+
+            // 3. Call Service
+            const result = await individualImpairmentService.getWatchlist(user.tenantId, { 
+                search,
+                stage,
+                status,
+                impaired_flag,
+                rating_code,
+                limit, 
+                offset 
+            });
+
+            // 4. Return Standard Pagination Response
+            return c.json({ 
+                success: true, 
+                data: result.data,
+                pagination: {
+                    page,
+                    limit,
+                    total: result.total,
+                    totalPages: Math.ceil(result.total / limit)
+                }
+            });
         } catch (error: any) {
             return this.handleError(c, error);
         }

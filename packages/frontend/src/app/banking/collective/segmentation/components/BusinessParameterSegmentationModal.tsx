@@ -171,7 +171,13 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
       const response = await api.banking.businessSettings.getTables();
 
       if (response.success && response.data) {
-        setTables(response.data);
+        // Backend returns string array, convert to BusinessSettingOption format
+        const tableOptions = response.data.map((tableName: string, index: number) => ({
+          id: index,
+          value: tableName,
+          label: tableName
+        }));
+        setTables(tableOptions);
         console.log(`✅ Loaded ${response.data.length} tables from B0012`);
       } else {
         throw new Error('Invalid response format');
@@ -203,7 +209,13 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
       const response = await api.banking.businessSettings.getColumns(selectedTable);
 
       if (response.success && response.data) {
-        setColumns(response.data);
+        // Backend returns string array, convert to BusinessSettingOption format
+        const columnOptions = response.data.map((colName: string, index: number) => ({
+          id: index,
+          value: colName,
+          label: colName
+        }));
+        setColumns(columnOptions);
         console.log(`✅ Loaded ${response.data.length} columns from B0013 for table ${selectedTable}`);
       } else {
         throw new Error('Invalid response format');
@@ -267,7 +279,13 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
       const response = await api.banking.businessSettings.getOperators(selectedDataType);
 
       if (response.success && response.data) {
-        setOperators(response.data);
+        // Backend returns string array, convert to BusinessSettingOption format
+        const operatorOptions = response.data.map((opName: string, index: number) => ({
+          id: index,
+          value: opName,
+          label: opName
+        }));
+        setOperators(operatorOptions);
         console.log(`✅ Loaded ${response.data.length} operators from B0014 for data type ${selectedDataType}`);
       } else {
         throw new Error('Invalid response format');
@@ -840,7 +858,7 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
                 select
                 label="Table Name *"
                 fullWidth
-                value={formData.table_name}
+                value={formData.table_name || ''}
                 onChange={(e) => handleTableChange(e.target.value)}
                 disabled={mode === 'view' || loading.tables}
                 variant="outlined"

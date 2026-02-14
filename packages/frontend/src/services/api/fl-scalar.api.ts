@@ -66,5 +66,10 @@ export const flScalarAPI = {
     delete: async (id: string) => {
         const response = await apiClient.delete(`${BASE_URL}/${id}`);
         return response.data;
+    },
+    
+    getDetails: async (id: string) => {
+        const response = await apiClient.get<any>(`/banking/pd-setup/fl-scalars/${id}/details`);
+        return response.data?.data || [];
     }
 };

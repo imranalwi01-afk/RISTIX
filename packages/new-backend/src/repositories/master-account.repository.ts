@@ -13,6 +13,8 @@ export interface WatchlistQueryOptions {
     assessmentStatus?: string
     sortField?: string
     sortOrder?: 'asc' | 'desc'
+    dateFrom?: string // New: Filter by date from (YYYY-MM-DD)
+    dateTo?: string   // New: Filter by date to (YYYY-MM-DD)
 }
 
 export const MasterAccountRepository = {
@@ -26,6 +28,8 @@ export const MasterAccountRepository = {
      * @param options.stage - Filter by stage (1, 2, 3)
      * @param options.impairedFlag - Filter by impaired flag ('I' or 'N')
      * @param options.assessmentStatus - Filter by assessment status (currently ignored as not in DB)
+     * @param options.dateFrom - Filter by date from (YYYY-MM-DD)
+     * @param options.dateTo - Filter by date to (YYYY-MM-DD)
      * @param options.sortField - Field to sort by
      * @param options.sortOrder - Sort order ('asc' or 'desc')
      * @returns An Effect resolving to an object with data array and total count
@@ -49,6 +53,19 @@ export const MasterAccountRepository = {
             if (options.impairedFlag) {
                 // ImpairedFlag is boolean in DB
                 conditions.push(eq(frs9MasterAccount.impairedFlag, options.impairedFlag === 'I'))
+            }
+
+            // Date range filtering
+            if (options.dateFrom) {
+                conditions.push(
+                    sql`${frs9MasterAccount.prcDate} >= ${options.dateFrom}`
+                )
+            }
+
+            if (options.dateTo) {
+                conditions.push(
+                    sql`${frs9MasterAccount.prcDate} <= ${options.dateTo}`
+                )
             }
 
             // AssessmentStatus doesn't exist in MasterAccount directly (default PENDING or join)

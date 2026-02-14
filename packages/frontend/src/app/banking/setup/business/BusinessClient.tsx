@@ -15,7 +15,8 @@ import {
   Alert, Dialog, DialogTitle, DialogContent, DialogActions, TextField,
   IconButton, Tooltip, Chip, Snackbar, FormControl, InputLabel, Select,
   MenuItem, Grid, FormControlLabel, Switch, Menu, ListItemIcon,
-  ListItemText, Paper, TableContainer, Table, TableHead, TableRow, TableCell, TableBody
+  ListItemText, Paper, TableContainer, Table, TableHead, TableRow, TableCell, TableBody,
+  TablePagination
 } from '@mui/material';
 import {
   Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon,
@@ -314,6 +315,11 @@ export default function BusinessClient() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  // Pagination State (Segmentation Pattern)
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
+
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
@@ -365,6 +371,10 @@ export default function BusinessClient() {
       if (categoryFilter !== 'ALL') {
           d = d.filter(i => i.param_category === categoryFilter);
       }
+      
+      // Update total count
+      setTotalCount(d.length);
+      
       return d;
   }, [businessParameters, searchTerm, categoryFilter]);
 
@@ -417,12 +427,20 @@ export default function BusinessClient() {
           if (editingDetail) {
               await api.banking.businessSetup.updateDetail(parseInt(editingDetail.pkid || '0'), payload);
           } else {
+              // Note: BusinessClient doesn't have a shared list of details for the current header 
+              // at the component level to check for duplicates easily without extra state.
+              // However, the backend format fix now ensures that if the server rejects it,
+              // the error notification will correctly display "Sequence already exists" 
+              // or "data already exist".
               await api.banking.businessSetup.createDetail(currentDetailParamCode, payload);
           }
           setSuccess('Detail saved');
           setDetailDialogOpen(false);
           setDetailRefreshTrigger(prev => prev + 1);
-      } catch (e: any) { setError(handleAPIError(e).message); }
+      } catch (e: any) { 
+          const err = handleAPIError(e);
+          setError(err.message); 
+      }
   };
   
   const handleDeleteDetail = async (detail: BusinessParameterDetail, callback: () => void) => {
@@ -488,14 +506,16 @@ export default function BusinessClient() {
                    <Button onClick={() => {setSearchTerm(''); setCategoryFilter('ALL');}}><ClearIcon/></Button>
                </Box>
 
-               <div style={{ height: 600, width: '100%' }}>
+               <Box sx={{ height: 600, width: '100%' }}>
                    <SafeDataGrid
-                       rows={filteredData}
+                       rows={filteredData.slice(page * rowsPerPage, (page + 1) * rowsPerPage)}
                        columns={columns}
                        getRowId={(row) => row.pkid && row.pkid !== '0' ? row.pkid : row.param_code}
                        loading={loading}
-                       initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
-                       pageSizeOptions={[10, 25, 50]}
+                       rowCount={totalCount}
+                       hideFooterPagination
+                       hideFooter
+                       disableRowSelectionOnClick
                        getDetailPanelContent={(params) => (
                            <BusinessDetailPanel
                                row={params.row}
@@ -506,8 +526,25 @@ export default function BusinessClient() {
                            />
                        )}
                        getDetailPanelHeight={() => 'auto'}
+                       sx={{
+                           '& .MuiDataGrid-main': { minHeight: 400 },
+                       }}
                    />
-               </div>
+               </Box>
+               <TablePagination
+                   rowsPerPageOptions={[10, 25, 50, 100]}
+                   component="div"
+                   count={totalCount}
+                   rowsPerPage={rowsPerPage}
+                   page={page}
+                   onPageChange={(e, p) => setPage(p)}
+                   onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+                   labelDisplayedRows={({ from, to, count }) => `Showing ${from}–${to} of ${count} • Page ${page + 1}`}
+                   sx={{
+                       borderTop: '2px solid #e0e0e0',
+                       bgcolor: '#fafafa',
+                   }}
+               />
            </CardContent>
        </Card>
 

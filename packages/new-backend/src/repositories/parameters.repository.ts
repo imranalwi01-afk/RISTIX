@@ -128,6 +128,56 @@ export const ParametersRepository = {
     },
 
     /**
+     * Find a specific detail by paramCode and paramSeq.
+     * Used for duplicate sequence validation.
+     * 
+     * @param code - The parameter code
+     * @param seq - The sequence number
+     * @returns An Effect resolving to the detail or null
+     */
+    findDetailBySeq: (code: string, seq: number) => {
+        return queryEffect(async () => {
+            const results = await legacyDb
+                .select()
+                .from(frs9ParamCommond)
+                .where(
+                    and(
+                        eq(frs9ParamCommond.paramCode, code),
+                        eq(frs9ParamCommond.paramSeq, seq)
+                    )
+                )
+            return results[0] || null
+        })
+    },
+
+    /**
+     * Find a specific detail by paramCode and values.
+     * Used for duplicate record validation in Business Setup.
+     * 
+     * @param code - The parameter code
+     * @param value1 - Value 1
+     * @param value2 - Value 2
+     * @param value3 - Value 3
+     * @returns An Effect resolving to the detail or null
+     */
+    findDetailByValues: (code: string, value1: string, value2: string, value3: string) => {
+        return queryEffect(async () => {
+            const results = await legacyDb
+                .select()
+                .from(frs9ParamCommond)
+                .where(
+                    and(
+                        eq(frs9ParamCommond.paramCode, code),
+                        eq(frs9ParamCommond.value1, value1),
+                        eq(frs9ParamCommond.value2, value2),
+                        eq(frs9ParamCommond.value3, value3)
+                    )
+                )
+            return results[0] || null
+        })
+    },
+
+    /**
      * Create a new parameter detail.
      * 
      * @param data - The data for the new detail

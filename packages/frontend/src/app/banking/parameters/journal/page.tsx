@@ -26,7 +26,8 @@ import {
   InputLabel,
   TextField,
   MenuItem,
-  Menu
+  Menu,
+  TablePagination
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -69,7 +70,12 @@ export default function JournalParametersPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [exportMenuAnchor, setExportMenuAnchor] = useState<null | HTMLElement>(null);
 
-
+  // Pagination State
+  const [paginationModel, setPaginationModel] = useState({
+    page: 0,
+    pageSize: 25,
+  });
+  const [rowCount, setRowCount] = useState(0);
 
   // State for dropdown options
   const [glGroupOptions, setGlGroupOptions] = useState<Array<{ id: string, name: string }>>([]);
@@ -301,6 +307,9 @@ export default function JournalParametersPage() {
     } else if (filterActive === 'inactive') {
       filtered = filtered.filter(item => item.activeFlag === false);
     }
+
+    // Update row count for pagination
+    setRowCount(filtered.length);
 
     return filtered;
   }, [data, searchTerm, filterGlGroup, filterCurrency, filterActive]);
@@ -572,35 +581,58 @@ export default function JournalParametersPage() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent>
-              <Box sx={{ height: 600, width: '100%' }}>
-                <SafeDataGrid
-                  rows={filteredData}
-                  columns={columns}
-                  getRowId={(row) => row?.pkid || row?.glCode || `row_${Math.random()}`}
-                  pageSizeOptions={[5, 10, 25, 50]}
-                  initialState={{
-                    pagination: { paginationModel: { pageSize: 10 } }
+          <Card sx={{ display: 'flex', flexDirection: 'column' }}>
+            <CardContent sx={{ flex: 1, p: 0, '&:last-child': { pb: 0 }, display: 'flex', flexDirection: 'column' }}>
+              <Box sx={{ flex: 1, width: '100%', minHeight: 500, display: 'flex', flexDirection: 'column' }}>
+                <Box sx={{ flex: 1, overflow: 'hidden' }}>
+                  <SafeDataGrid
+                    rows={filteredData.slice(paginationModel.page * paginationModel.pageSize, (paginationModel.page + 1) * paginationModel.pageSize)}
+                    columns={columns}
+                    getRowId={(row) => row?.pkid || row?.glCode || `row_${Math.random()}`}
+                    hideFooterPagination
+                    hideFooter
+                    disableRowSelectionOnClick
+                    loading={loading}
+                    slotProps={{
+                      loadingOverlay: {
+                        variant: 'linear-progress' as const,
+                        noRowsVariant: 'skeleton' as const,
+                      },
+                      noRowsOverlay: {
+                        children: (
+                          <EmptyState
+                            title="No Journal Parameters Found"
+                            description={error ? 'Failed to load data from database.' : 'No parameters configured yet.'}
+                            onRetry={error ? loadData : handleCreate}
+                            retryText={error ? 'Retry' : 'Add Journal Entry'}
+                            icon={<ErrorIcon />}
+                          />
+                        )
+                      }
+                    }}
+                  />
+                </Box>
+                <TablePagination
+                  rowsPerPageOptions={[10, 25, 50, 100]}
+                  component="div"
+                  count={rowCount}
+                  rowsPerPage={paginationModel.pageSize}
+                  page={paginationModel.page}
+                  onPageChange={(event, newPage) => {
+                    setPaginationModel({ ...paginationModel, page: newPage });
                   }}
-                  disableRowSelectionOnClick
-                  loading={loading}
-                  slotProps={{
-                    loadingOverlay: {
-                      variant: 'linear-progress' as const,
-                      noRowsVariant: 'skeleton' as const,
-                    },
-                    noRowsOverlay: {
-                      children: (
-                        <EmptyState
-                          title="No Journal Parameters Found"
-                          description={error ? 'Failed to load data from database.' : 'No parameters configured yet.'}
-                          onRetry={error ? loadData : handleCreate}
-                          retryText={error ? 'Retry' : 'Add Journal Entry'}
-                          icon={<ErrorIcon />}
-                        />
-                      )
-                    }
+                  onRowsPerPageChange={(event) => {
+                    setPaginationModel({ 
+                      page: 0, 
+                      pageSize: parseInt(event.target.value, 10) 
+                    });
+                  }}
+                  labelDisplayedRows={({ from, to, count }) => 
+                    `Showing ${from}–${to} of ${count} • Page ${paginationModel.page + 1}`
+                  }
+                  sx={{
+                    borderTop: '2px solid #e0e0e0',
+                    bgcolor: '#fafafa',
                   }}
                 />
               </Box>

@@ -97,7 +97,7 @@ export interface ReportFilters {
   segment_id?: number;
   segment_ids?: number[]; // Added for multi-select
   scenario_id?: number;   // Added for FL
-  stage?: '1' | '2' | '3';
+  stage?: string | string[];
   fl_flag?: boolean;
   branch_code?: string;
   page?: number;
@@ -107,6 +107,12 @@ export interface ReportFilters {
 export interface ReportResponse {
   success: boolean;
   data: Record<string, unknown>[];
+  columns?: Array<{
+    field: string;
+    headerName?: string;
+    width?: number;
+    type?: 'string' | 'number' | 'date' | 'boolean';
+  }>;
   pagination?: {
     page: number;
     limit: number;
@@ -267,9 +273,12 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
         column.width = 180;
       }
 
-      column.renderCell = (params) => (
-        <Box sx={{ fontWeight: 500 }}>{params.formattedValue}</Box>
-      );
+      // Apply default cell styling if renderCell wasn't already set differently
+      if (!column.renderCell) {
+        column.renderCell = (params: any) => (
+          <Box sx={{ fontWeight: 500 }}>{params.formattedValue ?? params.value ?? ''}</Box>
+        );
+      }
 
       baseColumns.push(column);
     });
@@ -349,9 +358,36 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
       if (response.success) {
         setData(response.data || []);
 
-        // Generate dynamic columns
-        const dynamicColumns = generateDynamicColumns(response.data || []);
-        setColumns(dynamicColumns);
+        // Use columns from backend if available (for empty data scenarios), otherwise generate from data
+        let finalColumns: GridColDef[] = [];
+        
+        if (response.columns && Array.isArray(response.columns) && response.columns.length > 0) {
+          // Backend provided column metadata (useful when data is empty)
+          finalColumns = response.columns.map((col: any) => ({
+            field: col.field || col.column_name,
+            headerName: col.headerName || col.field?.replace(/_/g, ' ').toUpperCase() || '',
+            width: col.width || 150,
+            type: col.type || 'string',
+            sortable: true,
+            filterable: true,
+            ...(col.type === 'number' && {
+              valueFormatter: (value: number | null | undefined) => {
+                if (value === null || value === undefined) return '';
+                return new Intl.NumberFormat('id-ID', {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2
+                }).format(value);
+              },
+              align: 'right' as const,
+              headerAlign: 'right' as const
+            })
+          }));
+        } else if (response.data && response.data.length > 0) {
+          // Generate columns from actual data (fallback)
+          finalColumns = generateDynamicColumns(response.data);
+        }
+        
+        setColumns(finalColumns);
 
         // Handle pagination
         if (response.pagination) {
@@ -385,6 +421,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
       page: 1,
       limit: 20,
       segment_ids: [],
+      stage: [],
       fl_flag: false
     });
   }, []);
@@ -835,17 +872,20 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                       onChange={(_, newValue) => {
                         handleFilterChange('segment_ids', newValue.map(v => Number(v.id)));
                       }}
-                      renderOption={(props, option, { selected }) => (
-                        <li {...props}>
-                          <Checkbox
-                            icon={<CheckBoxOutlineBlankIcon fontSize="small" />}
-                            checkedIcon={<CheckBoxIcon fontSize="small" />}
-                            style={{ marginRight: 8 }}
-                            checked={selected}
-                          />
-                          {option.segment_name}
-                        </li>
-                      )}
+                      renderOption={(props, option, { selected }) => {
+                        const { key, ...optionProps } = props;
+                        return (
+                          <li key={key} {...optionProps}>
+                            <Checkbox
+                              icon={<CheckBoxOutlineBlankIcon fontSize="small" />}
+                              checkedIcon={<CheckBoxIcon fontSize="small" />}
+                              style={{ marginRight: 8 }}
+                              checked={selected}
+                            />
+                            {option.segment_name}
+                          </li>
+                        );
+                      }}
                       renderInput={(params) => (
                         <TextField
                           {...params}
@@ -856,14 +896,18 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                         />
                       )}
                       renderTags={(value, getTagProps) =>
-                        value.map((option, index) => (
-                          <Chip
-                            label={option.segment_name}
-                            size="small"
-                            {...getTagProps({ index })}
-                            sx={{ borderRadius: 1, fontWeight: 600 }}
-                          />
-                        ))
+                        value.map((option, index) => {
+                          const { key, ...tagProps } = getTagProps({ index });
+                          return (
+                            <Chip
+                              key={key}
+                              label={option.segment_name}
+                              size="small"
+                              {...tagProps}
+                              sx={{ borderRadius: 1, fontWeight: 600 }}
+                            />
+                          );
+                        })
                       }
                     />
                   </Grid>
@@ -981,20 +1025,65 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
 
                 {optionalParams.includes('stage') && (
                   <Grid size={{ xs: 12, sm: 4, md: 2 }}>
-                    <FormControl fullWidth size="small">
-                      <InputLabel>Stage</InputLabel>
-                      <Select
-                        value={filters.stage || ''}
-                        onChange={(e) => handleFilterChange('stage', e.target.value)}
-                        label="Stage"
-                        sx={{ borderRadius: 2 }}
-                      >
-                        <MenuItem value="">All Stages</MenuItem>
-                        <MenuItem value="1">Stage 1</MenuItem>
-                        <MenuItem value="2">Stage 2</MenuItem>
-                        <MenuItem value="3">Stage 3</MenuItem>
-                      </Select>
-                    </FormControl>
+                    <Autocomplete
+                      multiple
+                      size="small"
+                      options={['1', '2', '3']}
+                      getOptionLabel={(option) => `Stage ${option}`}
+                      value={Array.isArray(filters.stage) ? filters.stage as string[] : (filters.stage ? [filters.stage as string] : [])}
+                      onChange={(_, newValue) => handleFilterChange('stage', newValue)}
+                      disableCloseOnSelect
+                      renderInput={(params) => (
+                        <TextField 
+                          {...params} 
+                          label="Stage" 
+                          placeholder="Stages"
+                          sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                        />
+                      )}
+                      renderOption={(props, option, { selected }) => {
+                        const { key, ...optionProps } = props;
+                        return (
+                          <li key={key} {...optionProps}>
+                            <Checkbox
+                              icon={<CheckBoxOutlineBlankIcon fontSize="small" />}
+                              checkedIcon={<CheckBoxIcon fontSize="small" />}
+                              style={{ marginRight: 8 }}
+                              checked={selected}
+                            />
+                            Stage {option}
+                          </li>
+                        );
+                      }}
+                      renderTags={(value, getTagProps) =>
+                        value.map((option, index) => {
+                          const { key, ...tagProps } = getTagProps({ index });
+                          return (
+                            <Chip
+                              key={key}
+                              label={`S${option}`}
+                              size="small"
+                              {...tagProps}
+                              sx={{ 
+                                height: 20, 
+                                fontSize: '0.7rem',
+                                bgcolor: option === '1' ? alpha('#10b981', 0.1) : 
+                                         option === '2' ? alpha('#f59e0b', 0.1) : 
+                                         alpha('#ef4444', 0.1),
+                                color: option === '1' ? '#059669' : 
+                                       option === '2' ? '#d97706' : 
+                                       '#dc2626',
+                                fontWeight: 800,
+                                margin: '1px !important'
+                              }}
+                            />
+                          );
+                        })
+                      }
+                      sx={{ 
+                        '& .MuiOutlinedInput-root': { padding: '2px 8px' }
+                      }}
+                    />
                   </Grid>
                 )}
 
@@ -1165,7 +1254,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
         {children}
 
         {/* Data Grid */}
-        {columns.length > 0 && (
+        {columns.length > 0 ? (
           <Paper sx={{ height: 600, width: '100%' }}>
             <SafeDataGrid
               rows={data}
@@ -1195,8 +1284,32 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                   fontWeight: 'bold'
                 }
               }}
+              slots={{
+                noRowsOverlay: () => (
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', flexDirection: 'column', gap: 1 }}>
+                    <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 600 }}>
+                      No Lifetime PD Data Available
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Please check your filter parameters (Processing Date, PD Config ID, PD Method)
+                    </Typography>
+                  </Box>
+                )
+              }}
             />
           </Paper>
+        ) : (
+          // Show message when no columns available (shouldn't happen with new backend, but fallback)
+          !loading && (
+            <Paper sx={{ p: 4, textAlign: 'center' }}>
+              <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 600, mb: 1 }}>
+                No Data Available
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Unable to determine table structure. Please check your database connection and filter parameters.
+              </Typography>
+            </Paper>
+          )
         )}
 
         {/* Summary */}

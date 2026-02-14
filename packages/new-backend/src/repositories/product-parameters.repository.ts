@@ -1,4 +1,4 @@
-import { eq, desc } from 'drizzle-orm'
+import { eq, desc, sql } from 'drizzle-orm'
 import { legacyDb as db } from '../config'
 import { frs9ParamProduct } from '../db/schema'
 import { Effect } from 'effect'
@@ -6,10 +6,44 @@ import { DatabaseError } from '../lib/errors'
 
 export const ProductParametersRepository = {
     /**
-     * Find all product parameters.
+     * Find product parameters with pagination and search.
      * 
-     * @returns An Effect resolving to an array of product parameters
+     * @param options - Pagination and search options
+     * @returns An Effect resolving to an array of product parameters and the total count
      */
+    findMany: (options: { page: number, limit: number, search?: string }) => {
+        const { page, limit, search } = options
+        const offset = (page - 1) * limit
+
+        return Effect.tryPromise({
+            try: async () => {
+                const query = db
+                    .select()
+                    .from(frs9ParamProduct)
+                
+                if (search) {
+                    query.where(sql`LOWER(${frs9ParamProduct.prdCode}) LIKE LOWER(${`%${search}%`}) OR LOWER(${frs9ParamProduct.prdDesc}) LIKE LOWER(${`%${search}%`})`)
+                }
+
+                const products = await query
+                    .orderBy(desc(frs9ParamProduct.createddate))
+                    .limit(limit)
+                    .offset(offset)
+                
+                // Also get total count
+                const totalResult = await db
+                    .select({ count: sql`count(*)` })
+                    .from(frs9ParamProduct)
+                    .where(search ? sql`LOWER(${frs9ParamProduct.prdCode}) LIKE LOWER(${`%${search}%`}) OR LOWER(${frs9ParamProduct.prdDesc}) LIKE LOWER(${`%${search}%`})` : undefined)
+
+                const total = Number(totalResult[0]?.count || 0)
+
+                return { products, total }
+            },
+            catch: (error) => new DatabaseError({ message: 'Failed to find product parameters', operation: 'query', cause: error })
+        })
+    },
+
     findAll: () => {
         return Effect.tryPromise({
             try: async () => {

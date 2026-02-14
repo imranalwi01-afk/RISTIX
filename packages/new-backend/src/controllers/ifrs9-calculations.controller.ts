@@ -11,8 +11,16 @@ export class Ifrs9CalculationsController {
             const data = await ifrs9CalculationsService.getSummary(user?.tenantId || 'default');
             return c.json({ success: true, data });
         } catch (error: any) {
-            console.error('Error fetching calculation summary:', error);
-            return c.json({ success: false, message: error.message }, 500);
+            console.error('❌ Controller error fetching calculation summary:', error);
+            
+            // ✅ Return appropriate HTTP status based on error type
+            const statusCode = error.message?.includes('No calculation results') ? 404 : 500;
+            
+            return c.json({ 
+                success: false, 
+                message: error.message || 'Failed to fetch calculation summary',
+                error: process.env.NODE_ENV === 'development' ? error.stack : undefined
+            }, statusCode);
         }
     }
 
