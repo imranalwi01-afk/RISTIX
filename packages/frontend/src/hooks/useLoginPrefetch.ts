@@ -33,16 +33,25 @@ const WARMUP_ENDPOINTS = [
 ];
 
 const trimTrailingSlash = (value: string): string => value.replace(/\/+$/, '');
+const stripApiSuffix = (value: string): string => {
+  let normalized = trimTrailingSlash(value || '');
+  while (/\/api(?:\/v1)?$/i.test(normalized)) {
+    normalized = normalized.replace(/\/api(?:\/v1)?$/i, '');
+  }
+  return normalized;
+};
 
 const resolveApiBaseUrl = (): string => {
   const fromApiBase = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (fromApiBase && fromApiBase.trim().length > 0) {
-    return trimTrailingSlash(fromApiBase);
+    const normalized = stripApiSuffix(fromApiBase);
+    return normalized.length > 0 ? `${normalized}/api/v1` : '/api/v1';
   }
 
   const fromBackend = process.env.NEXT_PUBLIC_BACKEND_URL;
   if (fromBackend && fromBackend.trim().length > 0) {
-    return `${trimTrailingSlash(fromBackend)}/api/v1`;
+    const normalized = stripApiSuffix(fromBackend);
+    return normalized.length > 0 ? `${normalized}/api/v1` : '/api/v1';
   }
 
   if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {

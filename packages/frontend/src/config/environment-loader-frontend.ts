@@ -274,8 +274,17 @@ export class FrontendEnvironmentLoader {
     // API URLs based on environment - 🏭 IAF LOCAL PRODUCTION MODE
     // Priority: 1) ENV var, 2) True localhost -> localhost:4232, 3) LocalDev -> ifrspro.id, 4) ECS -> danafin.com
     const getApiUrl = () => {
+      const normalizeBackendEnvUrl = (rawValue: string) => {
+        let normalized = (rawValue || '').trim().replace(/\/+$/, '');
+        while (/\/api(?:\/v1)?$/i.test(normalized)) {
+          normalized = normalized.replace(/\/api(?:\/v1)?$/i, '');
+        }
+        return normalized;
+      };
+
       if (this.getEnvVar('NEXT_PUBLIC_BACKEND_URL')) {
-        return this.getEnvVar('NEXT_PUBLIC_BACKEND_URL');
+        const normalized = normalizeBackendEnvUrl(this.getEnvVar('NEXT_PUBLIC_BACKEND_URL'));
+        return normalized.length > 0 ? `${normalized}/api/v1` : '/api/v1';
       }
       if (isTrueLocalhost) {
         console.log('🏠 True localhost detected - using http://localhost:4232/api/v1');
@@ -285,10 +294,22 @@ export class FrontendEnvironmentLoader {
     };
 
     const apiUrl = getApiUrl();
+    const normalizeApiV1Base = (rawValue: string): string => {
+      let normalized = (rawValue || '').trim().replace(/\/+$/, '');
+      while (/\/api(?:\/v1)?$/i.test(normalized)) {
+        normalized = normalized.replace(/\/api(?:\/v1)?$/i, '');
+      }
+      if (!normalized) return '/api/v1';
+      if (normalized.startsWith('http://') || normalized.startsWith('https://') || normalized.startsWith('/')) {
+        return `${normalized}/api/v1`;
+      }
+      return '/api/v1';
+    };
+    const apiBaseEnv = this.getEnvVar('NEXT_PUBLIC_API_BASE_URL');
 
     const api = {
       backend: apiUrl,
-      base: this.getEnvVar('NEXT_PUBLIC_API_BASE_URL') || apiUrl,
+      base: apiBaseEnv ? normalizeApiV1Base(apiBaseEnv) : apiUrl,
       auth: '/auth',
       banking: '/banking',
       user: '/v1/user',

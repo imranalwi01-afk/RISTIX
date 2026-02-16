@@ -51,6 +51,13 @@ export const approvalAPI = {
     return response.data;
   },
 
+  // Cancel a request
+  cancelRequest: async (id: string, data?: { reason?: string }) => {
+    console.log(`🛑 Cancelling request ${id}`);
+    const response = await apiClient.post(`/approvals/requests/${id}/cancel`, data || {});
+    return response.data;
+  },
+
   // Delegate a request
   delegateRequest: async (id: string, data: { delegatedTo: string; reason?: string }) => {
     console.log(`⏩ Delegating request ${id} to ${data.delegatedTo}`);
