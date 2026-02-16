@@ -118,9 +118,10 @@ services:
       - .env
     environment:
       NODE_ENV: development
-      NEXT_PUBLIC_BACKEND_URL: ${BACKEND_URL:-http://localhost:4232/api}
-      NEXT_PUBLIC_API_BASE_URL: ${API_BASE_URL:-http://localhost:4232/api}
-      NEXT_PUBLIC_BACKEND_API_URL: ${BACKEND_API_URL:-http://localhost:4232/api}
+      BACKEND_INTERNAL_URL: ${BACKEND_INTERNAL_URL:-http://new-backend:4232}
+      NEXT_PUBLIC_BACKEND_URL: ${BACKEND_URL:-http://localhost:4232}
+      NEXT_PUBLIC_API_BASE_URL: ${API_BASE_URL:-${BACKEND_URL:-http://localhost:4232/api}}
+      NEXT_PUBLIC_BACKEND_API_URL: ${BACKEND_API_URL:-${API_BASE_URL:-${BACKEND_URL:-http://localhost:4232/api}}}
       NEXT_PUBLIC_R_ANALYTICS_URL: ${NEXT_PUBLIC_R_ANALYTICS_URL:-https://iaf-ifrs-analytics.ifrspro.id}
       NEXT_PUBLIC_RAPI_BASE_URL: ${NEXT_PUBLIC_RAPI_BASE_URL:-https://iaf-ifrs-analytics-calc.ifrspro.id/api}
     ports:
@@ -143,7 +144,10 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=4231
-      - NEXT_PUBLIC_BACKEND_API_URL=${BACKEND_API_URL:-http://localhost:4232/api}
+      - BACKEND_INTERNAL_URL=${BACKEND_INTERNAL_URL:-http://new-backend:4232}
+      - NEXT_PUBLIC_BACKEND_URL=${BACKEND_URL:-http://localhost:4232}
+      - NEXT_PUBLIC_API_BASE_URL=${API_BASE_URL:-${BACKEND_URL:-http://localhost:4232/api}}
+      - NEXT_PUBLIC_BACKEND_API_URL=${BACKEND_API_URL:-${API_BASE_URL:-${BACKEND_URL:-http://localhost:4232/api}}}
       - NEXT_PUBLIC_R_ANALYTICS_URL=${NEXT_PUBLIC_R_ANALYTICS_URL:-https://iaf-ifrs-analytics.ifrspro.id}
       - NEXT_PUBLIC_RAPI_BASE_URL=${NEXT_PUBLIC_RAPI_BASE_URL:-https://iaf-ifrs-analytics-calc.ifrspro.id/api}
       # Server-side env vars (for Next.js server)
