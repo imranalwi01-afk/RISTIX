@@ -20,7 +20,8 @@ db_host <- Sys.getenv("DB_HOST", "192.168.0.106")
 db_port <- Sys.getenv("DB_PORT", "5433")
 db_user <- Sys.getenv("DB_USER", "postgres")
 db_password <- Sys.getenv("DB_PASSWORD", "postgres")
-db_name <- Sys.getenv("DB_NAME", "IFRS9_pro")
+db_name <- Sys.getenv("DB_NAME", "FRS9PRO")
+db_schema <- Sys.getenv("DB_SCHEMA", "public")
 banking_type <- Sys.getenv("BANKING_TYPE", "conventional")
 tenant_slug <- Sys.getenv("TENANT_SLUG", "iaf")
 company_name <- Sys.getenv("COMPANY_NAME", "Indonesia Airawata Finance")
@@ -40,6 +41,7 @@ Sys.setenv(DB_PORT = db_port)
 Sys.setenv(DB_USER = db_user)
 Sys.setenv(DB_PASSWORD = db_password)
 Sys.setenv(DB_NAME = db_name)
+Sys.setenv(DB_SCHEMA = db_schema)
 Sys.setenv(BANKING_TYPE = banking_type)
 Sys.setenv(TENANT_SLUG = tenant_slug)
 Sys.setenv(COMPANY_NAME = company_name)
@@ -57,6 +59,7 @@ db_config <- list(
   user = db_user,
   password = db_password,
   dbname = db_name,
+  schema = db_schema,
   sslmode = if (deployment_target == "iafecs") "require" else "disable"
 )
 

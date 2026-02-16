@@ -49,7 +49,7 @@ RAFSEnvironmentLoader <- R6Class("RAFSEnvironmentLoader",
               port = 5432,
               user = "admin_iaf",
               password = "P@ssw0rd2025!",
-              dbname = "IFRS9_pro",
+              dbname = "FRS9PRO",
               ssl_mode = "prefer"  # Changed from "require" to "prefer" for compatibility
             ),
             tenant_iaf = list(
@@ -133,7 +133,7 @@ RAFSEnvironmentLoader <- R6Class("RAFSEnvironmentLoader",
               port = 5433,
               user = "postgres",
               password = "postgres",
-              dbname = "IFRS9_pro",
+              dbname = "FRS9PRO",
               ssl_mode = "disable"
             ),
             tenant_iaf = list(
