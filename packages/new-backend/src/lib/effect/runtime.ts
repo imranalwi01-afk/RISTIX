@@ -82,7 +82,8 @@ function handleEffectError(c: Context, cause: unknown): Response {
 
         case 'BusinessError':
             {
-                const status = error.code === 'REQUEST_NOT_PENDING' ? 409 : 422
+                const conflictCodes = new Set(['REQUEST_NOT_PENDING', 'REQUEST_NOT_CANCELLABLE'])
+                const status = conflictCodes.has(error.code) ? 409 : 422
             return c.json(
                 {
                     success: false,

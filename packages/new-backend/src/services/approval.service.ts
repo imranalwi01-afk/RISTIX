@@ -7,7 +7,7 @@ import {
     type ApprovalAction,
     type ApprovalLevel,
 } from '@/db/schema'
-import { DatabaseError, NotFoundError, BusinessError } from '@/lib/errors'
+import { ConflictError, DatabaseError, NotFoundError, BusinessError } from '@/lib/errors'
 import { dbOperation } from '@/lib/effect'
 import { userRolesRepository } from '@/repositories/rbac.repository'
 import { getDatabase } from '@/config/database'
@@ -37,6 +37,13 @@ export interface ProcessApprovalInput {
     conditions?: string
     delegatedTo?: string
     riskScore?: number
+}
+
+export interface CancelApprovalRequestInput {
+    requestId: string
+    cancelledBy: string
+    isSystemUser?: boolean
+    reason?: string
 }
 
 // =============================================================================
@@ -104,33 +111,66 @@ export const createApprovalMatrix = (
  */
 export const createApprovalRequest = (
     input: CreateApprovalRequestInput
-): Effect.Effect<ApprovalRequest, DatabaseError> =>
-    dbOperation('transaction', async () => {
-        // Get matrix if available
-        const matrix = await ApprovalRepository.findMatrixByEntityType(
-            input.tenantId,
-            input.entityType,
-            input.bankingMode
-        )
+): Effect.Effect<ApprovalRequest, DatabaseError | ConflictError> =>
+    Effect.tryPromise({
+        try: async () => {
+            const operation =
+                input.requestData && typeof input.requestData === 'object' && typeof (input.requestData as any).operation === 'string'
+                    ? String((input.requestData as any).operation)
+                    : undefined
 
-        const approvalsRequired = calculateRequiredApprovals(input.impactLevel, matrix)
-        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000)
+            const existingPending = await ApprovalRepository.findDuplicatePendingRequest({
+                tenantId: input.tenantId,
+                entityType: input.entityType,
+                entityId: input.entityId,
+                requestedBy: input.requestedBy,
+                title: input.title,
+                operation,
+            })
 
-        const request = await ApprovalRepository.createRequest({
-            matrixId: matrix?.id,
-            tenantId: input.tenantId,
-            entityType: input.entityType,
-            entityId: input.entityId,
-            title: input.title,
-            description: input.description,
-            requestData: input.requestData,
-            requestedBy: input.requestedBy,
-            impactLevel: input.impactLevel ?? 'medium',
-            approvalsRequired,
-            expiresAt,
-        })
+            if (existingPending) {
+                throw new ConflictError({
+                    message: 'A similar approval request is already pending',
+                    resource: 'approval_request',
+                    field: input.entityId ? 'entity_id' : 'title',
+                    value: input.entityId ?? input.title,
+                })
+            }
 
-        return request
+            // Get matrix if available
+            const matrix = await ApprovalRepository.findMatrixByEntityType(
+                input.tenantId,
+                input.entityType,
+                input.bankingMode
+            )
+
+            const approvalsRequired = calculateRequiredApprovals(input.impactLevel, matrix)
+            const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000)
+
+            return ApprovalRepository.createRequest({
+                matrixId: matrix?.id,
+                tenantId: input.tenantId,
+                entityType: input.entityType,
+                entityId: input.entityId,
+                title: input.title,
+                description: input.description,
+                requestData: input.requestData,
+                requestedBy: input.requestedBy,
+                impactLevel: input.impactLevel ?? 'medium',
+                approvalsRequired,
+                expiresAt,
+            })
+        },
+        catch: (error) => {
+            if (error instanceof ConflictError) {
+                return error
+            }
+            return new DatabaseError({
+                message: error instanceof Error ? error.message : 'Database operation failed',
+                operation: 'transaction',
+                cause: error,
+            })
+        },
     })
 
 /**
@@ -235,6 +275,64 @@ export const processApprovalAction = (
             }
 
             return { completed: false, status: 'pending' }
+        },
+        catch: (error) => {
+            if (error instanceof NotFoundError || error instanceof BusinessError) {
+                return error
+            }
+            return new DatabaseError({
+                message: error instanceof Error ? error.message : 'Database operation failed',
+                operation: 'transaction',
+                cause: error,
+            })
+        },
+    })
+
+/**
+ * Cancel an existing approval request.
+ * Requesters can cancel their own pending request; system users can cancel any.
+ */
+export const cancelApprovalRequest = (
+    input: CancelApprovalRequestInput
+): Effect.Effect<{ completed: boolean; status: string }, DatabaseError | NotFoundError | BusinessError> =>
+    Effect.tryPromise({
+        try: async () => {
+            const request = await ApprovalRepository.findRequestById(input.requestId)
+
+            if (!request) {
+                throw new NotFoundError({ resource: 'ApprovalRequest', id: input.requestId })
+            }
+
+            if (request.status !== 'pending' && request.status !== 'info_requested' && request.status !== 'delegated') {
+                throw new BusinessError({
+                    message: `Request cannot be cancelled because it is already ${request.status}`,
+                    code: 'REQUEST_NOT_CANCELLABLE',
+                })
+            }
+
+            if (!input.isSystemUser && request.requestedBy !== input.cancelledBy) {
+                throw new BusinessError({
+                    message: 'Only the original requester can cancel this request',
+                    code: 'CANCEL_NOT_ALLOWED',
+                })
+            }
+
+            await ApprovalRepository.createAction({
+                requestId: input.requestId,
+                approverId: input.cancelledBy,
+                approverRole: input.isSystemUser ? 'SYSTEM' : 'REQUESTER',
+                level: request.currentLevel,
+                action: 'cancel',
+                comment: input.reason || 'Cancelled by requester',
+            })
+
+            await ApprovalRepository.updateRequest(input.requestId, {
+                status: 'cancelled',
+                completedAt: new Date(),
+                completedBy: input.cancelledBy,
+            })
+
+            return { completed: true, status: 'cancelled' }
         },
         catch: (error) => {
             if (error instanceof NotFoundError || error instanceof BusinessError) {

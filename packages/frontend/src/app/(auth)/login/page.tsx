@@ -103,8 +103,8 @@ export default function LoginPage({ initialRole }: LoginPageProps) {
       try {
         const toApiV1BaseUrl = (rawValue: string): string => {
           let normalized = (rawValue || '').trim().replace(/\/+$/, '');
-          while (/\/api\/v1$/i.test(normalized)) {
-            normalized = normalized.replace(/\/api\/v1$/i, '');
+          while (/\/api(?:\/v1)?$/i.test(normalized)) {
+            normalized = normalized.replace(/\/api(?:\/v1)?$/i, '');
           }
           return normalized.length > 0 ? `${normalized}/api/v1` : '/api/v1';
         };

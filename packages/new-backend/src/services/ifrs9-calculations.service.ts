@@ -19,16 +19,16 @@ export class Ifrs9CalculationsService {
                 .from(frs9ImpCaResultH);
 
             const row = result[0];
-            
+            const count = Number(row?.count || 0);
+
             // ✅ DATA VALIDATION: Check if we have any results
-            if (!result || result.length === 0 || !row || row.count === 0) {
+            if (!result || result.length === 0 || !row || count <= 0) {
                 console.warn('⚠️ No calculation results found in database');
                 throw new Error('No calculation results available. Please run ECL calculation first.');
             }
 
             const totalECL = Number(row.totalECL || 0);
             const totalPortfolio = Number(row.totalPortfolio || 0);
-            const count = Number(row.count || 0);
 
             // Fetch stage distribution for breakdown
             const stages = await legacyDb

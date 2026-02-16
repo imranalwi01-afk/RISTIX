@@ -207,6 +207,52 @@ export const ApprovalRepository = {
     },
 
     /**
+     * Find an existing pending request that matches the same business operation.
+     * This prevents accidental duplicate submissions from retries/double-clicks.
+     */
+    findDuplicatePendingRequest: async (input: {
+        tenantId: string
+        entityType: string
+        entityId?: string
+        requestedBy: string
+        title: string
+        operation?: string
+    }) => {
+        const dbx = getDatabase(input.tenantId)
+        const pendingRows = await dbx.query.approvalRequests.findMany({
+            where: and(
+                eq(approvalRequests.tenantId, input.tenantId),
+                eq(approvalRequests.entityType, input.entityType),
+                eq(approvalRequests.status, 'pending'),
+                input.entityId
+                    ? eq(approvalRequests.entityId, input.entityId)
+                    : and(
+                        eq(approvalRequests.requestedBy, input.requestedBy),
+                        eq(approvalRequests.title, input.title)
+                    )
+            ),
+            orderBy: [desc(approvalRequests.createdAt)],
+            limit: 20,
+        })
+
+        if (!pendingRows.length) return null
+
+        if (!input.operation) {
+            return pendingRows[0]
+        }
+
+        const expectedOperation = input.operation.toLowerCase()
+        const sameOperation = pendingRows.find((row: any) => {
+            const op = row?.requestData && typeof row.requestData === 'object'
+                ? String((row.requestData as any).operation || '').toLowerCase()
+                : ''
+            return op === expectedOperation
+        })
+
+        return sameOperation || null
+    },
+
+    /**
      * Update an existing approval request.
      * 
      * @param id - The request ID
