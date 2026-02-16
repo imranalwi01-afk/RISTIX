@@ -30,7 +30,9 @@ import {
     Autocomplete,
     FormControlLabel,
     Switch,
-    MenuItem
+    MenuItem,
+    Checkbox,
+    Divider
 } from '@mui/material';
 import {
     Edit as EditIcon,
@@ -43,10 +45,12 @@ import {
     CheckCircle as CheckCircleIcon,
     Cancel as CancelIcon,
     Business as TenantIcon,
-    LockReset as LockResetIcon
+    LockReset as LockResetIcon,
+    ManageAccounts as ManageAccountsIcon,
+    VpnKey as VpnKeyIcon
 } from '@mui/icons-material';
 import { format } from 'date-fns';
-import { usersAPI, tenantsAPI } from '@/services/api';
+import { usersAPI, tenantsAPI, rolesAPI } from '@/services/api';
 import { exportToCsv } from '@/utils/export-csv';
 
 // Types
@@ -75,6 +79,81 @@ interface TenantUserFormData {
     phone?: string;
     isActive?: boolean;
 }
+
+interface TenantRole {
+    id: string;
+    roleName: string;
+    roleCode?: string;
+    description?: string | null;
+    isActive?: boolean;
+    hierarchyLevel?: number;
+    permissionCount?: number;
+}
+
+interface PermissionOption {
+    id: string;
+    code: string;
+    name: string;
+    module?: string;
+    resource?: string;
+    action?: string;
+    category?: string;
+    isActive?: boolean;
+}
+
+const extractCollection = <T,>(payload: unknown, keys: string[] = []): T[] => {
+    if (Array.isArray(payload)) return payload as T[];
+    if (!payload || typeof payload !== 'object') return [];
+
+    const root = payload as Record<string, unknown>;
+    for (const key of keys) {
+        if (Array.isArray(root[key])) return root[key] as T[];
+    }
+
+    if (Array.isArray(root.data)) return root.data as T[];
+    if (root.data && typeof root.data === 'object') {
+        const nested = root.data as Record<string, unknown>;
+        for (const key of keys) {
+            if (Array.isArray(nested[key])) return nested[key] as T[];
+        }
+        if (Array.isArray(nested.data)) return nested.data as T[];
+    }
+
+    return [];
+};
+
+const countRolePermissions = (role: any): number => {
+    if (Array.isArray(role?.rolePermissions)) return role.rolePermissions.length;
+    if (role?.permissions && typeof role.permissions === 'object') {
+        const groupedPermissions = Object.values(role.permissions as Record<string, unknown>);
+        return groupedPermissions.reduce<number>((acc, value) => {
+            if (Array.isArray(value)) return acc + value.length;
+            return acc;
+        }, 0);
+    }
+    return 0;
+};
+
+const normalizeRole = (role: any): TenantRole => ({
+    id: String(role?.id || role?.roleId || ''),
+    roleName: String(role?.roleName || role?.roleCode || role?.name || 'Unnamed Role'),
+    roleCode: role?.roleCode ? String(role.roleCode) : undefined,
+    description: role?.description ? String(role.description) : null,
+    isActive: typeof role?.isActive === 'boolean' ? role.isActive : true,
+    hierarchyLevel: typeof role?.hierarchyLevel === 'number' ? role.hierarchyLevel : undefined,
+    permissionCount: countRolePermissions(role),
+});
+
+const normalizePermission = (permission: any): PermissionOption => ({
+    id: String(permission?.id || ''),
+    code: String(permission?.code || permission?.id || ''),
+    name: String(permission?.name || permission?.displayName || permission?.code || 'Unnamed Permission'),
+    module: permission?.module ? String(permission.module) : undefined,
+    resource: permission?.resource ? String(permission.resource) : undefined,
+    action: permission?.action ? String(permission.action) : undefined,
+    category: permission?.category ? String(permission.category) : undefined,
+    isActive: typeof permission?.isActive === 'boolean' ? permission.isActive : true,
+});
 
 const TenantUserManagement = () => {
     // State for tenant selection
@@ -112,6 +191,26 @@ const TenantUserManagement = () => {
     const [resetForceChange, setResetForceChange] = useState(true);
     const [resetLoading, setResetLoading] = useState(false);
 
+    // Role assignment and permission management
+    const [userRolesMap, setUserRolesMap] = useState<Record<string, TenantRole[]>>({});
+    const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
+    const [roleDialogUser, setRoleDialogUser] = useState<TenantUser | null>(null);
+    const [availableRoles, setAvailableRoles] = useState<TenantRole[]>([]);
+    const [selectedRoleIds, setSelectedRoleIds] = useState<string[]>([]);
+    const [initialRoleIds, setInitialRoleIds] = useState<string[]>([]);
+    const [roleDialogLoading, setRoleDialogLoading] = useState(false);
+    const [roleDialogSaving, setRoleDialogSaving] = useState(false);
+    const [roleSearchTerm, setRoleSearchTerm] = useState('');
+
+    const [isPermissionDialogOpen, setIsPermissionDialogOpen] = useState(false);
+    const [permissionDialogRole, setPermissionDialogRole] = useState<TenantRole | null>(null);
+    const [permissionsCatalog, setPermissionsCatalog] = useState<PermissionOption[]>([]);
+    const [permissionsTenantId, setPermissionsTenantId] = useState<string | null>(null);
+    const [selectedPermissionCodes, setSelectedPermissionCodes] = useState<string[]>([]);
+    const [permissionSearchTerm, setPermissionSearchTerm] = useState('');
+    const [permissionDialogLoading, setPermissionDialogLoading] = useState(false);
+    const [permissionDialogSaving, setPermissionDialogSaving] = useState(false);
+
     // Fetch tenants on mount
     useEffect(() => {
         const loadTenants = async () => {
@@ -142,11 +241,39 @@ const TenantUserManagement = () => {
         loadTenants();
     }, []);
 
+    const hydrateUserRoles = useCallback(async (tenantId: string, targetUsers: TenantUser[]) => {
+        if (!tenantId || targetUsers.length === 0) {
+            setUserRolesMap({});
+            return;
+        }
+
+        const roleResults = await Promise.allSettled(
+            targetUsers.map(async (user) => {
+                const response = await rolesAPI.getUserRoles(user.id, tenantId);
+                const assigned = extractCollection<any>(response, ['roles']).map((entry) => normalizeRole(entry?.role || entry));
+                return { userId: user.id, roles: assigned };
+            })
+        );
+
+        const nextMap: Record<string, TenantRole[]> = {};
+        roleResults.forEach((result, index) => {
+            const fallbackUserId = targetUsers[index]?.id;
+            if (result.status === 'fulfilled') {
+                nextMap[result.value.userId] = result.value.roles;
+            } else if (fallbackUserId) {
+                nextMap[fallbackUserId] = [];
+            }
+        });
+
+        setUserRolesMap(nextMap);
+    }, []);
+
     // Fetch users whenever selectedTenant changes or pagination/search updates
     const fetchUsers = useCallback(async () => {
         if (!selectedTenant) {
             setUsers([]);
             setTotal(0);
+            setUserRolesMap({});
             return;
         }
 
@@ -171,6 +298,7 @@ const TenantUserManagement = () => {
 
             setUsers(data);
             setTotal(Number.isFinite(totalCount) ? totalCount : data.length);
+            void hydrateUserRoles(selectedTenant.id, data);
         } catch (err) {
             console.error('Failed to fetch tenant users:', err);
             const status = (err as any)?.response?.status;
@@ -184,7 +312,7 @@ const TenantUserManagement = () => {
         } finally {
             setLoading(false);
         }
-    }, [selectedTenant, page, rowsPerPage, searchQuery]);
+    }, [selectedTenant, page, rowsPerPage, searchQuery, hydrateUserRoles]);
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -355,6 +483,219 @@ const TenantUserManagement = () => {
         setPage(0);
     };
 
+    const openRoleDialog = async (user: TenantUser) => {
+        if (!selectedTenant) return;
+        setRoleDialogUser(user);
+        setRoleSearchTerm('');
+        setIsRoleDialogOpen(true);
+        setRoleDialogLoading(true);
+        setError(null);
+
+        try {
+            const [allRolesResponse, userRolesResponse] = await Promise.all([
+                rolesAPI.getAll({ limit: 200 }, selectedTenant.id),
+                rolesAPI.getUserRoles(user.id, selectedTenant.id),
+            ]);
+
+            const allRoles = extractCollection<any>(allRolesResponse, ['roles', 'data'])
+                .map(normalizeRole)
+                .filter((role) => role.id);
+
+            const userRoles = extractCollection<any>(userRolesResponse, ['roles'])
+                .map((entry) => normalizeRole(entry?.role || entry))
+                .filter((role) => role.id);
+
+            const assignedIds = userRoles.map((role) => role.id);
+            setAvailableRoles(allRoles);
+            setSelectedRoleIds(assignedIds);
+            setInitialRoleIds(assignedIds);
+        } catch (err: any) {
+            console.error('Failed to open role assignment dialog:', err);
+            const msg = err?.response?.data?.error || err?.response?.data?.message || err?.message || 'Failed to load role assignments';
+            setError(msg);
+        } finally {
+            setRoleDialogLoading(false);
+        }
+    };
+
+    const handleToggleRole = (roleId: string) => {
+        setSelectedRoleIds((prev) =>
+            prev.includes(roleId)
+                ? prev.filter((id) => id !== roleId)
+                : [...prev, roleId]
+        );
+    };
+
+    const closeRoleDialog = () => {
+        setIsRoleDialogOpen(false);
+        setRoleDialogUser(null);
+        setAvailableRoles([]);
+        setSelectedRoleIds([]);
+        setInitialRoleIds([]);
+    };
+
+    const saveRoleAssignments = async () => {
+        if (!selectedTenant || !roleDialogUser) return;
+        setRoleDialogSaving(true);
+        setError(null);
+
+        const toAssign = selectedRoleIds.filter((roleId) => !initialRoleIds.includes(roleId));
+        const toRemove = initialRoleIds.filter((roleId) => !selectedRoleIds.includes(roleId));
+
+        try {
+            const assignResults = await Promise.allSettled(
+                toAssign.map((roleId) => rolesAPI.assignUser(roleId, roleDialogUser.id, selectedTenant.id))
+            );
+            const removeResults = await Promise.allSettled(
+                toRemove.map((roleId) => rolesAPI.removeUser(roleId, roleDialogUser.id, selectedTenant.id))
+            );
+
+            const failedAssignments = assignResults.filter((result) => result.status === 'rejected').length;
+            const failedRemovals = removeResults.filter((result) => result.status === 'rejected').length;
+
+            if (failedAssignments || failedRemovals) {
+                setError(`Some role updates failed (${failedAssignments} assign, ${failedRemovals} remove).`);
+            }
+
+            const assignedRoles = availableRoles.filter((role) => selectedRoleIds.includes(role.id));
+            setUserRolesMap((prev) => ({ ...prev, [roleDialogUser.id]: assignedRoles }));
+
+            if (!failedAssignments && !failedRemovals) {
+                closeRoleDialog();
+            }
+        } catch (err: any) {
+            console.error('Failed to save role assignments:', err);
+            const msg = err?.response?.data?.error || err?.response?.data?.message || err?.message || 'Failed to save role assignments';
+            setError(msg);
+        } finally {
+            setRoleDialogSaving(false);
+        }
+    };
+
+    const openPermissionDialog = async (role: TenantRole) => {
+        if (!selectedTenant) return;
+        setPermissionDialogRole(role);
+        setPermissionSearchTerm('');
+        setIsPermissionDialogOpen(true);
+        setPermissionDialogLoading(true);
+        setError(null);
+
+        try {
+            let catalog = permissionsCatalog;
+            if (!catalog.length || permissionsTenantId !== selectedTenant.id) {
+                const permissionResponse = await rolesAPI.getPermissions(selectedTenant.id);
+                catalog = extractCollection<any>(permissionResponse, ['permissions', 'data'])
+                    .map(normalizePermission)
+                    .filter((permission) => permission.id && permission.code);
+                setPermissionsCatalog(catalog);
+                setPermissionsTenantId(selectedTenant.id);
+            }
+
+            const roleResponse = await rolesAPI.getById(role.id, selectedTenant.id);
+            const rolePayload = (roleResponse as any)?.data ?? roleResponse;
+            const groupedPermissions = rolePayload?.permissions;
+
+            const selected = new Set<string>();
+
+            if (groupedPermissions && typeof groupedPermissions === 'object') {
+                Object.values(groupedPermissions as Record<string, unknown>).forEach((value) => {
+                    if (Array.isArray(value)) {
+                        value.forEach((item: any) => {
+                            const key = item?.code || item?.id;
+                            if (typeof key === 'string' && key.length > 0) selected.add(key);
+                        });
+                    }
+                });
+            }
+
+            setSelectedPermissionCodes(Array.from(selected));
+        } catch (err: any) {
+            console.error('Failed to open permission dialog:', err);
+            const msg = err?.response?.data?.error || err?.response?.data?.message || err?.message || 'Failed to load role permissions';
+            setError(msg);
+        } finally {
+            setPermissionDialogLoading(false);
+        }
+    };
+
+    const handleTogglePermission = (code: string) => {
+        setSelectedPermissionCodes((prev) =>
+            prev.includes(code)
+                ? prev.filter((item) => item !== code)
+                : [...prev, code]
+        );
+    };
+
+    const closePermissionDialog = () => {
+        setIsPermissionDialogOpen(false);
+        setPermissionDialogRole(null);
+        setSelectedPermissionCodes([]);
+        setPermissionSearchTerm('');
+    };
+
+    const saveRolePermissions = async () => {
+        if (!selectedTenant || !permissionDialogRole) return;
+        setPermissionDialogSaving(true);
+        setError(null);
+
+        try {
+            await rolesAPI.updatePermissions(
+                permissionDialogRole.id,
+                selectedPermissionCodes,
+                selectedTenant.id
+            );
+
+            setAvailableRoles((prev) =>
+                prev.map((role) =>
+                    role.id === permissionDialogRole.id
+                        ? { ...role, permissionCount: selectedPermissionCodes.length }
+                        : role
+                )
+            );
+
+            setUserRolesMap((prev) => {
+                const updatedEntries = Object.entries(prev).map(([userId, roles]) => [
+                    userId,
+                    roles.map((role) =>
+                        role.id === permissionDialogRole.id
+                            ? { ...role, permissionCount: selectedPermissionCodes.length }
+                            : role
+                    ),
+                ]);
+                return Object.fromEntries(updatedEntries);
+            });
+
+            closePermissionDialog();
+        } catch (err: any) {
+            console.error('Failed to save role permissions:', err);
+            const msg = err?.response?.data?.error || err?.response?.data?.message || err?.message || 'Failed to update role permissions';
+            setError(msg);
+        } finally {
+            setPermissionDialogSaving(false);
+        }
+    };
+
+    const filteredRoleOptions = useMemo(() => {
+        const term = roleSearchTerm.trim().toLowerCase();
+        if (!term) return availableRoles;
+        return availableRoles.filter((role) =>
+            role.roleName.toLowerCase().includes(term) ||
+            (role.description || '').toLowerCase().includes(term) ||
+            (role.roleCode || '').toLowerCase().includes(term)
+        );
+    }, [availableRoles, roleSearchTerm]);
+
+    const filteredPermissionOptions = useMemo(() => {
+        const term = permissionSearchTerm.trim().toLowerCase();
+        if (!term) return permissionsCatalog;
+        return permissionsCatalog.filter((permission) =>
+            permission.code.toLowerCase().includes(term) ||
+            permission.name.toLowerCase().includes(term) ||
+            (permission.module || '').toLowerCase().includes(term) ||
+            (permission.category || '').toLowerCase().includes(term)
+        );
+    }, [permissionsCatalog, permissionSearchTerm]);
+
     return (
         <Box sx={{ p: 3 }}>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
@@ -501,6 +842,7 @@ const TenantUserManagement = () => {
                         <TableHead sx={{ bgcolor: 'background.default' }}>
                             <TableRow>
                                 <TableCell>User</TableCell>
+                                <TableCell>Roles</TableCell>
                                 <TableCell>Status</TableCell>
                                 <TableCell>Created At</TableCell>
                                 <TableCell align="right">Actions</TableCell>
@@ -509,7 +851,7 @@ const TenantUserManagement = () => {
                         <TableBody>
                             {!selectedTenant ? (
                                 <TableRow>
-                                    <TableCell colSpan={4} align="center" sx={{ py: 8 }}>
+                                    <TableCell colSpan={5} align="center" sx={{ py: 8 }}>
                                         <Typography variant="body1" color="textSecondary">
                                             Please select a tenant to view users.
                                         </Typography>
@@ -517,13 +859,13 @@ const TenantUserManagement = () => {
                                 </TableRow>
                             ) : loading ? (
                                 <TableRow>
-                                    <TableCell colSpan={4} align="center" sx={{ py: 8 }}>
+                                    <TableCell colSpan={5} align="center" sx={{ py: 8 }}>
                                         <CircularProgress />
                                     </TableCell>
                                 </TableRow>
                             ) : filteredUsers.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={4} align="center" sx={{ py: 8 }}>
+                                    <TableCell colSpan={5} align="center" sx={{ py: 8 }}>
                                         <Typography variant="body1" color="textSecondary">
                                             No users found for this tenant.
                                         </Typography>
@@ -546,6 +888,33 @@ const TenantUserManagement = () => {
                                             </Box>
                                         </TableCell>
                                         <TableCell>
+                                            <Box display="flex" gap={0.5} flexWrap="wrap" alignItems="center">
+                                                {(userRolesMap[user.id] || []).length === 0 ? (
+                                                    <Typography variant="caption" color="text.secondary">
+                                                        No roles
+                                                    </Typography>
+                                                ) : (
+                                                    <>
+                                                        {(userRolesMap[user.id] || []).slice(0, 2).map((role) => (
+                                                            <Chip
+                                                                key={role.id}
+                                                                label={role.roleName}
+                                                                size="small"
+                                                                variant="outlined"
+                                                            />
+                                                        ))}
+                                                        {(userRolesMap[user.id] || []).length > 2 && (
+                                                            <Chip
+                                                                label={`+${(userRolesMap[user.id] || []).length - 2}`}
+                                                                size="small"
+                                                                color="default"
+                                                            />
+                                                        )}
+                                                    </>
+                                                )}
+                                            </Box>
+                                        </TableCell>
+                                        <TableCell>
                                             <Chip
                                                 label={user.isActive ? 'Active' : 'Inactive'}
                                                 size="small"
@@ -563,6 +932,11 @@ const TenantUserManagement = () => {
                                             </Typography>
                                         </TableCell>
                                         <TableCell align="right">
+                                            <Tooltip title="Manage Roles">
+                                                <IconButton size="small" color="primary" onClick={() => openRoleDialog(user)}>
+                                                    <ManageAccountsIcon fontSize="small" />
+                                                </IconButton>
+                                            </Tooltip>
                                             <Tooltip title="Reset Password">
                                                 <IconButton size="small" color="warning" onClick={() => openResetPasswordDialog(user)}>
                                                     <LockResetIcon fontSize="small" />
@@ -662,6 +1036,202 @@ const TenantUserManagement = () => {
                         </Button>
                     </DialogActions>
                 </form>
+            </Dialog>
+
+            <Dialog
+                open={isRoleDialogOpen}
+                onClose={closeRoleDialog}
+                maxWidth="md"
+                fullWidth
+            >
+                <DialogTitle>
+                    Manage Roles {roleDialogUser ? `for ${roleDialogUser.fullName}` : ''}
+                </DialogTitle>
+                <DialogContent dividers>
+                    <Box display="flex" justifyContent="space-between" alignItems="center" mb={2} gap={2}>
+                        <TextField
+                            size="small"
+                            fullWidth
+                            placeholder="Search roles..."
+                            value={roleSearchTerm}
+                            onChange={(e) => setRoleSearchTerm(e.target.value)}
+                            InputProps={{
+                                startAdornment: (
+                                    <InputAdornment position="start">
+                                        <SearchIcon fontSize="small" />
+                                    </InputAdornment>
+                                ),
+                            }}
+                        />
+                        <Chip
+                            label={`${selectedRoleIds.length} selected`}
+                            color="primary"
+                            variant="outlined"
+                        />
+                    </Box>
+
+                    {roleDialogLoading ? (
+                        <Box display="flex" justifyContent="center" py={6}>
+                            <CircularProgress />
+                        </Box>
+                    ) : (
+                        <Paper variant="outlined" sx={{ maxHeight: 420, overflowY: 'auto' }}>
+                            {filteredRoleOptions.length === 0 ? (
+                                <Box p={3}>
+                                    <Typography variant="body2" color="text.secondary">
+                                        No roles available for this tenant.
+                                    </Typography>
+                                </Box>
+                            ) : (
+                                filteredRoleOptions.map((role, index) => {
+                                    const checked = selectedRoleIds.includes(role.id);
+                                    return (
+                                        <Box key={role.id}>
+                                            <Box display="flex" alignItems="center" p={1.5}>
+                                                <Checkbox
+                                                    checked={checked}
+                                                    onChange={() => handleToggleRole(role.id)}
+                                                />
+                                                <Box flex={1}>
+                                                    <Typography variant="subtitle2">{role.roleName}</Typography>
+                                                    <Typography variant="caption" color="text.secondary">
+                                                        {role.description || 'No description'}
+                                                    </Typography>
+                                                </Box>
+                                                {typeof role.permissionCount === 'number' && (
+                                                    <Chip
+                                                        size="small"
+                                                        label={`${role.permissionCount} perms`}
+                                                        variant="outlined"
+                                                        sx={{ mr: 1 }}
+                                                    />
+                                                )}
+                                                <Tooltip title="Edit Role Permissions">
+                                                    <IconButton size="small" onClick={() => openPermissionDialog(role)}>
+                                                        <VpnKeyIcon fontSize="small" />
+                                                    </IconButton>
+                                                </Tooltip>
+                                            </Box>
+                                            {index < filteredRoleOptions.length - 1 && <Divider />}
+                                        </Box>
+                                    );
+                                })
+                            )}
+                        </Paper>
+                    )}
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={closeRoleDialog} disabled={roleDialogSaving}>
+                        Cancel
+                    </Button>
+                    <Button
+                        variant="contained"
+                        onClick={saveRoleAssignments}
+                        disabled={roleDialogSaving || roleDialogLoading}
+                    >
+                        {roleDialogSaving ? 'Saving...' : 'Save Role Assignments'}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            <Dialog
+                open={isPermissionDialogOpen}
+                onClose={closePermissionDialog}
+                maxWidth="md"
+                fullWidth
+            >
+                <DialogTitle>
+                    Role Permissions {permissionDialogRole ? `- ${permissionDialogRole.roleName}` : ''}
+                </DialogTitle>
+                <DialogContent dividers>
+                    <Box display="flex" justifyContent="space-between" alignItems="center" mb={2} gap={2}>
+                        <TextField
+                            size="small"
+                            fullWidth
+                            placeholder="Search permissions..."
+                            value={permissionSearchTerm}
+                            onChange={(e) => setPermissionSearchTerm(e.target.value)}
+                            InputProps={{
+                                startAdornment: (
+                                    <InputAdornment position="start">
+                                        <SearchIcon fontSize="small" />
+                                    </InputAdornment>
+                                ),
+                            }}
+                        />
+                        <Chip
+                            label={`${selectedPermissionCodes.length} selected`}
+                            color="primary"
+                            variant="outlined"
+                        />
+                    </Box>
+
+                    {permissionDialogLoading ? (
+                        <Box display="flex" justifyContent="center" py={6}>
+                            <CircularProgress />
+                        </Box>
+                    ) : (
+                        <Paper variant="outlined" sx={{ maxHeight: 420, overflowY: 'auto' }}>
+                            {filteredPermissionOptions.length === 0 ? (
+                                <Box p={3}>
+                                    <Typography variant="body2" color="text.secondary">
+                                        No permissions available.
+                                    </Typography>
+                                </Box>
+                            ) : (
+                                filteredPermissionOptions.map((permission, index) => {
+                                    const key = permission.code || permission.id;
+                                    const checked = selectedPermissionCodes.includes(key);
+                                    return (
+                                        <Box key={permission.id}>
+                                            <Box display="flex" alignItems="center" p={1.5}>
+                                                <Checkbox
+                                                    checked={checked}
+                                                    onChange={() => handleTogglePermission(key)}
+                                                />
+                                                <Box flex={1}>
+                                                    <Typography variant="subtitle2">{permission.name}</Typography>
+                                                    <Typography variant="caption" color="text.secondary">
+                                                        {permission.code}
+                                                    </Typography>
+                                                </Box>
+                                                {permission.category && (
+                                                    <Chip
+                                                        size="small"
+                                                        label={permission.category}
+                                                        variant="outlined"
+                                                        sx={{ mr: 1 }}
+                                                    />
+                                                )}
+                                                {permission.module && (
+                                                    <Chip
+                                                        size="small"
+                                                        label={permission.module}
+                                                        color="default"
+                                                        variant="outlined"
+                                                    />
+                                                )}
+                                            </Box>
+                                            {index < filteredPermissionOptions.length - 1 && <Divider />}
+                                        </Box>
+                                    );
+                                })
+                            )}
+                        </Paper>
+                    )}
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={closePermissionDialog} disabled={permissionDialogSaving}>
+                        Cancel
+                    </Button>
+                    <Button
+                        variant="contained"
+                        onClick={saveRolePermissions}
+                        disabled={permissionDialogSaving || permissionDialogLoading}
+                    >
+                        {permissionDialogSaving ? 'Saving...' : 'Save Permissions'}
+                    </Button>
+                </DialogActions>
             </Dialog>
 
             <Dialog

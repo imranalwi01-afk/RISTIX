@@ -287,6 +287,11 @@ async function executeApprovedAction(request: any): Promise<void> {
                 await executeConfigurationAction(operation, data, tenantId, entityType)
                 break
 
+            case 'role_permission':
+            case 'role_permissions':
+                await executeRolePermissionAction(operation, data, tenantId)
+                break
+
             default:
                 console.warn(`[ApprovalService] No executor defined for entity type: ${entityType}`)
             // For unknown entity types, just log - they may be handled by custom logic
@@ -357,6 +362,52 @@ async function executeConfigurationAction(
     // Configuration services would be imported and executed here
     // This is a placeholder for now
     console.log(`[ApprovalService] Executing ${operation} for ${entityType}`, data)
+}
+
+/**
+ * Execute role-permission updates after approval.
+ */
+async function executeRolePermissionAction(
+    operation: 'create' | 'update' | 'delete',
+    data: any,
+    tenantId: string
+): Promise<void> {
+    if (operation !== 'update') {
+        console.warn(`[ApprovalService] Unsupported role permission operation: ${operation}`)
+        return
+    }
+
+    const roleId = data?.roleId || data?.id || data?.entityId
+    if (!roleId || typeof roleId !== 'string') {
+        throw new Error('Missing roleId in role permission approval payload')
+    }
+
+    const { getAvailablePermissions, updateRolePermissions } = await import('./rbac.service')
+
+    const availablePermissions = await Effect.runPromise(getAvailablePermissions(tenantId))
+    const permissionLookup = new Map<string, string>()
+    for (const permission of availablePermissions as any[]) {
+        permissionLookup.set(permission.id, permission.id)
+        permissionLookup.set(permission.code, permission.id)
+    }
+
+    const requestedPermissionsRaw = Array.isArray(data?.permissionIds)
+        ? data.permissionIds
+        : Array.isArray(data?.permissions)
+            ? data.permissions
+            : []
+
+    const requestedPermissions: string[] = requestedPermissionsRaw.filter((entry: unknown): entry is string => typeof entry === 'string')
+    const unknownPermissions = requestedPermissions.filter((entry: string) => !permissionLookup.has(entry))
+    if (unknownPermissions.length > 0) {
+        throw new Error(`Unknown role permissions in approval payload: ${unknownPermissions.join(', ')}`)
+    }
+
+    const resolvedPermissionIds = requestedPermissions
+        .map((entry: string) => permissionLookup.get(entry))
+        .filter((entry: string | undefined): entry is string => typeof entry === 'string')
+
+    await Effect.runPromise(updateRolePermissions(roleId, resolvedPermissionIds, tenantId))
 }
 
 /**

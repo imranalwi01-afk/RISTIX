@@ -4,11 +4,8 @@ import type { AppContext } from '../app'
 import { authMiddleware, tenantMiddleware } from '../middleware'
 import { runEffect } from '../lib/effect'
 import * as rbacService from '../services/rbac.service'
-import { PERMISSION_GROUPS, isValidPermission } from '../config/permissions'
-import { db } from '../config/database'
-import { roles } from '../db/schema'
-import { eq } from 'drizzle-orm'
 import * as auditService from '../services/audit.service'
+import { createApprovalRequest } from '../services/approval.service'
 
 export const rbacRoutes = new OpenAPIHono<AppContext>()
 
@@ -98,8 +95,50 @@ const PermissionCheckSchema = z.object({
 }).openapi('PermissionCheckInput')
 
 const UpdatePermissionsSchema = z.object({
-    permissions: z.array(z.string())
+    permissions: z.array(z.string()),
+    submitForApproval: z.boolean().optional().default(false),
+    approvalReason: z.string().max(500).optional(),
 }).openapi('UpdatePermissionsInput')
+
+const roleToApiResponse = (r: any) => ({
+    id: r.id,
+    roleName: r.roleName,
+    roleCode: r.roleCode,
+    description: r.description ?? null,
+    permissions: ((r as any).rolePermissions || []).reduce((acc: Record<string, any[]>, rp: any) => {
+        const category = (rp.permission.category as 'CORE' | 'BANKING' | 'IFRS9' | 'REPORTING' | 'ADMIN') || 'CORE'
+        if (!acc[category]) acc[category] = []
+        acc[category].push({
+            id: rp.permission.id,
+            code: rp.permission.code,
+            name: rp.permission.name,
+            displayName: rp.permission.name,
+            description: rp.permission.description || '',
+            resource: rp.permission.resource,
+            action: rp.permission.action,
+            module: rp.permission.module,
+            category: category,
+            riskLevel: 'LOW' as const,
+            requiresApproval: false,
+            bankingSpecific: rp.permission.module === 'banking',
+            syariahRequired: false,
+        })
+        return acc
+    }, {} as Record<string, any[]>),
+    bankingTypeSpecific: r.bankingTypeSpecific,
+    complianceLevel: r.complianceLevel,
+    hierarchyLevel: r.hierarchyLevel,
+    isSystemRole: r.isSystemRole,
+    isActive: r.isActive,
+    tenantId: (r as any).tenantId ?? null,
+})
+
+const extractRolePermissionCodes = (role: any): string[] => {
+    const codes = ((role as any)?.rolePermissions || [])
+        .map((rp: any) => rp?.permission?.code)
+        .filter((code: unknown): code is string => typeof code === 'string' && code.length > 0)
+    return Array.from(new Set(codes))
+}
 
 // =============================================================================
 // ROLE ROUTES
@@ -570,23 +609,6 @@ rbacRoutes.openapi(
     }
 )
 
-/**
- * PUT /roles/:roleId/permissions - Update role permissions
- * Note: Two routes seemed to exist for permission update in original file, one at /roles/:roleId/permissions and one at /roles/:id/permissions later.
- * The first one used simple updateRole service. The second one used DB direct update + audit log manually. 
- * I will consolidate to the first one but with audit log if possible, OR keep both if they serve different purposes?
- * Actually looking at the file, lines 155 and 324. They seem to be duplicate functionality but one is more complex.
- * The second one (324) handles 'permissions: Record<string, boolean>' which seems wrong compared to 'Record<string, array<string>>' used elsewhere?
- * Line 327: permissions: z.record(z.boolean()).
- * Line 157: permissions: z.record(z.array(z.string())).
- * The DB schema `permissions` column is usually JSONB.
- * rbacService.updateRole uses Partial<NewRole>.
- * I will implement the first one (lines 155-170) as it matches the `updateRole` service and probable schema (record<string, string[]>).
- * The second one seemed like a specific UI endpoint maybe for toggles? But validPermission check implies keys are permissions?
- * But typical RBAC here seems to be Resource -> Actions[] map.
- * I will stick to the first implementation style which is cleaner service usage.
- */
-
 rbacRoutes.openapi(
     createRoute({
         method: 'put',
@@ -615,25 +637,149 @@ rbacRoutes.openapi(
                 },
                 description: 'Permissions updated',
             },
+            202: {
+                content: {
+                    'application/json': {
+                        schema: z.object({
+                            success: z.boolean(),
+                            approvalRequired: z.boolean(),
+                            requestId: z.string(),
+                            message: z.string(),
+                            diff: z.object({
+                                added: z.array(z.string()),
+                                removed: z.array(z.string()),
+                            }),
+                        }),
+                    },
+                },
+                description: 'Permission update submitted for approval',
+            },
         },
     }),
     async (c) => {
         const { roleId } = c.req.valid('param')
-        const userId = c.get('userId')
-        const { permissions } = c.req.valid('json')
+        const tenantId = c.get('tenantId')!
+        const userId = c.get('userId') || 'system'
+        const body = c.req.valid('json')
+        const requestedPermissions = body.permissions
+        const submitForApproval = Boolean(body.submitForApproval)
+        const approvalReason = body.approvalReason
+
+        const [availablePermissions, currentRole] = await Promise.all([
+            Effect.runPromise(rbacService.getAvailablePermissions(tenantId)),
+            Effect.runPromise(rbacService.getRoleById(roleId, tenantId)),
+        ])
+
+        const currentPermissionCodes = extractRolePermissionCodes(currentRole)
+
+        const permissionLookup = new Map<string, string>()
+        const permissionCodeById = new Map<string, string>()
+        for (const permission of availablePermissions) {
+            permissionLookup.set(permission.id, permission.id)
+            permissionLookup.set(permission.code, permission.id)
+            permissionCodeById.set(permission.id, permission.code)
+        }
+
+        const unknownPermissions = requestedPermissions.filter((permission) => !permissionLookup.has(permission))
+        if (unknownPermissions.length > 0) {
+            return c.json(
+                {
+                    success: false,
+                    error: `Unknown permission(s): ${unknownPermissions.join(', ')}`,
+                    code: 'INVALID_PERMISSION',
+                },
+                400
+            )
+        }
+
+        const resolvedPermissionIds = requestedPermissions
+            .map((permission) => permissionLookup.get(permission))
+            .filter((permissionId): permissionId is string => typeof permissionId === 'string')
+
+        const resolvedPermissionCodes = resolvedPermissionIds
+            .map((id) => permissionCodeById.get(id))
+            .filter((code): code is string => typeof code === 'string')
+
+        const currentSet = new Set(currentPermissionCodes)
+        const nextSet = new Set(resolvedPermissionCodes)
+        const added = resolvedPermissionCodes.filter((code) => !currentSet.has(code))
+        const removed = currentPermissionCodes.filter((code) => !nextSet.has(code))
+
+        if (submitForApproval) {
+            const request = await Effect.runPromise(
+                createApprovalRequest({
+                    tenantId,
+                    entityType: 'role_permission',
+                    entityId: roleId,
+                    title: `Update role permissions: ${currentRole.roleName}`,
+                    description:
+                        approvalReason ||
+                        `Role permission update requested for ${currentRole.roleName}. Added ${added.length}, removed ${removed.length}.`,
+                    requestData: {
+                        operation: 'update',
+                        entityType: 'role_permission',
+                        data: {
+                            roleId,
+                            roleName: currentRole.roleName,
+                            permissions: requestedPermissions,
+                            permissionIds: resolvedPermissionIds,
+                            permissionCodes: resolvedPermissionCodes,
+                            diff: { added, removed },
+                        },
+                    },
+                    requestedBy: userId,
+                    impactLevel: added.length + removed.length > 10 ? 'high' : 'medium',
+                })
+            )
+
+            await auditService.logApproval.requested(
+                request.id,
+                request.title,
+                userId,
+                tenantId
+            )
+
+            return c.json(
+                {
+                    success: true,
+                    approvalRequired: true,
+                    requestId: request.id,
+                    message: 'Role permission update submitted for approval.',
+                    diff: { added, removed },
+                },
+                202
+            )
+        }
 
         const effect = pipe(
-            rbacService.updateRole(roleId, {
-                permissions,
-                // updatedBy: userId,
-            }),
-            Effect.map(r => ({
-                ...r,
-                description: r.description ?? null,
-                permissions: r.permissions ?? null,
-                // bankingTypeSpecific: r.bankingTypeSpecific ?? null,
-                // complianceLevel: r.complianceLevel ?? null,
-                tenantId: r.tenantId ?? null,
+            rbacService.updateRolePermissions(roleId, resolvedPermissionIds, tenantId),
+            Effect.tap((updatedRole: any) =>
+                Effect.tryPromise({
+                    try: () =>
+                        auditService.logPermission.permissionsUpdated(
+                            roleId,
+                            currentRole.roleName,
+                            {
+                                codes: currentPermissionCodes,
+                            },
+                            {
+                                codes: extractRolePermissionCodes(updatedRole),
+                                added,
+                                removed,
+                            },
+                            userId,
+                            tenantId
+                        ),
+                    catch: () => null,
+                })
+                    .pipe(Effect.catchAll(() => Effect.succeed(null)))
+            ),
+            Effect.map((r: any) => ({
+                ...roleToApiResponse(r),
+                diff: {
+                    added,
+                    removed,
+                },
             }))
         )
 
@@ -926,4 +1072,3 @@ rbacRoutes.openapi(
 // =============================================================================
 // PERMISSION MANAGEMENT ENDPOINTS
 // =============================================================================
-
