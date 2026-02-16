@@ -356,23 +356,25 @@ export default function IFRS9CalculationDashboard() {
   };
 
   const fetchBatchResults = async (date: string) => {
-    const response = await api.ifrs9.getCalculationResults(date);
-    if (response && response.data) {
-      return response.data.map((r: any) => ({
+    const response = await api.ifrs9Reports.eclResult.get({ prc_date: date });
+    const resultRows = Array.isArray(response?.data) ? response.data : [];
+
+    if (resultRows.length > 0) {
+      return resultRows.map((r: any) => ({
         prc_date: date,
-        account_id: r.accountId,
-        facility_number: r.accountNumber || r.accountId?.toString(),
-        cif_number: r.cifNumber || "-",
-        segment_id: 1,
-        stage: r.stage,
-        currency: "IDR",
-        outstanding: r.outstanding,
-        ecl_amount: r.eclAmount,
-        ecl_final: r.eclAmount,
-        bucket_group: "-",
-        bucket_id: 0,
-        internal_rating_code: "-",
-        ext_rating_code: "-",
+        account_id: r.account_id ?? r.accountId ?? 0,
+        facility_number: r.facility_number ?? r.accountNumber ?? r.accountId?.toString() ?? '-',
+        cif_number: r.cif_number ?? r.cifNumber ?? '-',
+        segment_id: r.segment_id ?? 1,
+        stage: r.stage ?? 1,
+        currency: r.currency ?? "IDR",
+        outstanding: r.outstanding ?? 0,
+        ecl_amount: r.ecl_amount ?? r.eclAmount ?? 0,
+        ecl_final: r.ecl_final ?? r.eclAmount ?? 0,
+        bucket_group: r.bucket_group ?? "-",
+        bucket_id: r.bucket_id ?? 0,
+        internal_rating_code: r.internal_rating_code ?? "-",
+        ext_rating_code: r.ext_rating_code ?? "-",
       }));
     }
     return [];

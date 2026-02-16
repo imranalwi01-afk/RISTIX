@@ -202,6 +202,10 @@ export const PERMISSION_GROUPS: Record<string, PermissionGroup> = {
             'jobs.approve': {
                 label: 'Approve Jobs',
                 description: 'Approve job execution requests'
+            },
+            'jobs.runtime.view': {
+                label: 'View Job Runtime',
+                description: 'View live runtime diagnostics for active jobs'
             }
         }
     },

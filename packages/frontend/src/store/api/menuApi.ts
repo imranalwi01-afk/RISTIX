@@ -1,12 +1,33 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { getAuthToken } from '../../utils/auth-token';
 import type { MenuItem } from '../../services/api/menu.api';
+import { frontendEnvironmentLoader } from '../../config/environment-loader-frontend';
+
+const trimTrailingSlash = (value: string): string => value.replace(/\/+$/, '');
+
+const toApiV1BaseUrl = (rawValue: string): string => {
+    let normalized = trimTrailingSlash((rawValue || '').trim());
+    while (/\/api\/v1$/i.test(normalized)) {
+        normalized = normalized.replace(/\/api\/v1$/i, '');
+    }
+    return normalized.length > 0 ? `${normalized}/api/v1` : '/api/v1';
+};
+
+const resolveMenuApiBaseUrl = (): string => {
+    try {
+        const config = frontendEnvironmentLoader.getConfiguration();
+        return toApiV1BaseUrl(config?.api?.base || config?.api?.backend || '');
+    } catch {
+        const envBase = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4232/api/v1';
+        return toApiV1BaseUrl(envBase);
+    }
+};
 
 // Define the API slice
 export const menuQueryApi = createApi({
     reducerPath: 'menuQueryApi',
     baseQuery: fetchBaseQuery({
-        baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4232/api/v1',
+        baseUrl: resolveMenuApiBaseUrl(),
         prepareHeaders: (headers) => {
             // Get the token from cookie or local storage using the centralized utility
             const token = getAuthToken();
@@ -14,10 +35,24 @@ export const menuQueryApi = createApi({
                 headers.set('authorization', `Bearer ${token}`);
 
                 if (typeof window !== 'undefined') {
-                    const tenantId = window.localStorage.getItem('tenant_id') || 'default';
-                    // Only set header if it's a specific tenant ID, otherwise let backend infer from token
-                    if (tenantId && tenantId !== 'default') {
-                        headers.set('x-tenant-id', tenantId);
+                    const impersonatedTenantSlug = window.localStorage.getItem('impersonated_tenant_slug');
+                    if (impersonatedTenantSlug && impersonatedTenantSlug !== 'system') {
+                        headers.set('x-tenant-slug', impersonatedTenantSlug);
+                        headers.set('x-impersonation-mode', 'true');
+                    } else {
+                        const userDataRaw = window.localStorage.getItem('user_data');
+                        if (userDataRaw) {
+                            try {
+                                const parsed = JSON.parse(userDataRaw);
+                                if (typeof parsed?.tenantSlug === 'string' && parsed.tenantSlug.length > 0) {
+                                    headers.set('x-tenant-slug', parsed.tenantSlug);
+                                } else if (typeof parsed?.tenantId === 'string' && parsed.tenantId.length > 0) {
+                                    headers.set('x-tenant-id', parsed.tenantId);
+                                }
+                            } catch {
+                                // Ignore malformed localStorage payload
+                            }
+                        }
                     }
                 }
             }

@@ -60,6 +60,7 @@ import { bucketParameterAPI, BucketParameterHeader, BucketParameterDetail } from
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 import { ApprovalNotification, ApprovalStatusBadge } from '@/components/approval';
 import { bankingAPI } from '@/services/api';
+import { usePermission } from '@/hooks/usePermission';
 
 
 // ============================================================================
@@ -69,6 +70,7 @@ import { bankingAPI } from '@/services/api';
 interface BucketHeaderRowProps {
   header: BucketParameterHeader;
   basisOptions: { value1: string, paramdesc: string }[];
+  canManage: boolean;
   onEdit: (header: BucketParameterHeader) => void;
   onDelete: (header: BucketParameterHeader) => void;
   onAddDetail: (header: BucketParameterHeader) => void;
@@ -80,6 +82,7 @@ interface BucketHeaderRowProps {
 const BucketHeaderRow: React.FC<BucketHeaderRowProps> = ({
   header,
   basisOptions,
+  canManage,
   onEdit,
   onDelete,
   onAddDetail,
@@ -192,18 +195,20 @@ const BucketHeaderRow: React.FC<BucketHeaderRowProps> = ({
           )}
         </TableCell>
         <TableCell>
-          <Box sx={{ display: 'flex', gap: 0.5 }}>
-            <Tooltip title="Edit Bucket Group">
-              <IconButton size="small" onClick={() => onEdit(header)} color="primary" data-testid="edit-header-btn">
-                <EditIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Delete Bucket Group">
-              <IconButton size="small" onClick={() => onDelete(header)} color="error" data-testid="delete-header-btn">
-                <DeleteIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          </Box>
+          {canManage && (
+            <Box sx={{ display: 'flex', gap: 0.5 }}>
+              <Tooltip title="Edit Bucket Group">
+                <IconButton size="small" onClick={() => onEdit(header)} color="primary" data-testid="edit-header-btn">
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Delete Bucket Group">
+                <IconButton size="small" onClick={() => onDelete(header)} color="error" data-testid="delete-header-btn">
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          )}
         </TableCell>
       </TableRow>
 
@@ -216,16 +221,18 @@ const BucketHeaderRow: React.FC<BucketHeaderRowProps> = ({
                 <Typography variant="h6" gutterBottom component="div" color="primary">
                   Bucket Details
                 </Typography>
-                <Button
-                  size="small"
-                  startIcon={<AddIcon />}
-                  onClick={() => onAddDetail(header)}
-                  variant="contained"
-                  color="primary"
-                  data-testid="add-detail-btn"
-                >
-                  Add Detail
-                </Button>
+                {canManage && (
+                  <Button
+                    size="small"
+                    startIcon={<AddIcon />}
+                    onClick={() => onAddDetail(header)}
+                    variant="contained"
+                    color="primary"
+                    data-testid="add-detail-btn"
+                  >
+                    Add Detail
+                  </Button>
+                )}
               </Box>
 
               {detailsLoading ? (
@@ -278,18 +285,20 @@ const BucketHeaderRow: React.FC<BucketHeaderRowProps> = ({
                             />
                           </TableCell>
                           <TableCell align="center">
-                            <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
-                              <Tooltip title="Edit Detail">
-                                <IconButton size="small" onClick={() => onEditDetail(detail)} color="primary" data-testid="edit-detail-btn">
-                                  <EditIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                              <Tooltip title="Delete Detail">
-                                <IconButton size="small" onClick={() => onDeleteDetail(detail)} color="error" data-testid="delete-detail-btn">
-                                  <DeleteIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                            </Box>
+                            {canManage && (
+                              <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+                                <Tooltip title="Edit Detail">
+                                  <IconButton size="small" onClick={() => onEditDetail(detail)} color="primary" data-testid="edit-detail-btn">
+                                    <EditIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Delete Detail">
+                                  <IconButton size="small" onClick={() => onDeleteDetail(detail)} color="error" data-testid="delete-detail-btn">
+                                    <DeleteIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                              </Box>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -298,7 +307,7 @@ const BucketHeaderRow: React.FC<BucketHeaderRowProps> = ({
                 </TableContainer>
               ) : (
                 <Alert severity="info" sx={{ mt: 1 }}>
-                  No bucket details found. Click "Add Detail" to create one.
+                  No bucket details found. Click Add Detail to create one.
                 </Alert>
               )}
             </Box>
@@ -314,6 +323,10 @@ const BucketHeaderRow: React.FC<BucketHeaderRowProps> = ({
 // ============================================================================
 
 export default function BucketParameterPage() {
+  const { hasAnyPermission } = usePermission();
+  const canViewBucket = hasAnyPermission(['banking.collective.bucket.view', 'banking.collective.bucket.manage', 'banking.collective.manage', 'banking.collective', 'admin.super_admin']);
+  const canManageBucket = hasAnyPermission(['banking.collective.bucket.manage', 'banking.collective.bucket.create', 'banking.collective.bucket.update', 'banking.collective.bucket.delete', 'banking.collective.manage', 'admin.super_admin']);
+
   const router = useRouter();
 
   // Data State
@@ -405,6 +418,7 @@ export default function BucketParameterPage() {
   };
 
   const handleAddHeader = () => {
+    if (!canManageBucket) return;
     setHeaderFormData({
       bucket_group: '',
       bucket_group_desc: '',
@@ -419,6 +433,7 @@ export default function BucketParameterPage() {
   };
 
   const handleEditHeader = (header: BucketParameterHeader) => {
+    if (!canManageBucket) return;
     setHeaderFormData({ ...header });
     setSelectedHeader(header);
     setEditMode(true);
@@ -426,6 +441,7 @@ export default function BucketParameterPage() {
   };
 
   const handleDeleteHeader = async (header: BucketParameterHeader) => {
+    if (!canManageBucket) return;
     if (!confirm(`Delete bucket group "${header.bucket_group}"? This will delete all details.`)) {
       return;
     }
@@ -451,6 +467,7 @@ export default function BucketParameterPage() {
   };
 
   const handleAddDetail = (header: BucketParameterHeader) => {
+    if (!canManageBucket) return;
     setDetailFormData({
       bucket_id: header.id,
       bucket_name: '',
@@ -464,12 +481,14 @@ export default function BucketParameterPage() {
   };
 
   const handleEditDetail = (detail: BucketParameterDetail) => {
+    if (!canManageBucket) return;
     setDetailFormData({ ...detail });
     setEditMode(true);
     setDetailDialogOpen(true);
   };
 
   const handleDeleteDetail = async (detail: BucketParameterDetail) => {
+    if (!canManageBucket) return;
     if (!confirm(`Delete bucket detail "${detail.bucket_name}"?`)) {
       return;
     }
@@ -495,6 +514,7 @@ export default function BucketParameterPage() {
   };
 
   const handleSaveHeader = async () => {
+    if (!canManageBucket) return;
     try {
       if (editMode && !selectedHeader?.id) return;
 
@@ -526,6 +546,7 @@ export default function BucketParameterPage() {
   };
 
   const handleSaveDetail = async () => {
+    if (!canManageBucket) return;
     try {
       if (!editMode && !selectedHeader?.id) return;
       if (editMode && !detailFormData.id) return;
@@ -574,6 +595,11 @@ export default function BucketParameterPage() {
   return (
     <Container maxWidth="xl" sx={{ position: 'relative' }}>
       <FullstackIndicator />
+      {!canViewBucket && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          You do not have permission to view bucket parameters.
+        </Alert>
+      )}
       <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
         <Link
           underline="hover"
@@ -609,15 +635,17 @@ export default function BucketParameterPage() {
               </Box>
             </Box>
             <Box sx={{ display: 'flex', gap: 2 }}>
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={handleAddHeader}
-                size="large"
-                data-testid="add-bucket-btn"
-              >
-                Add Bucket Group
-              </Button>
+              {canManageBucket && (
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={handleAddHeader}
+                  size="large"
+                  data-testid="add-bucket-btn"
+                >
+                  Add Bucket Group
+                </Button>
+              )}
               <Button
                 variant="outlined"
                 startIcon={<RefreshIcon />}
@@ -709,6 +737,7 @@ export default function BucketParameterPage() {
                       key={header.id}
                       header={header}
                       basisOptions={basisOptions}
+                      canManage={canManageBucket}
                       onEdit={handleEditHeader}
                       onDelete={handleDeleteHeader}
                       onAddDetail={handleAddDetail}
@@ -722,7 +751,7 @@ export default function BucketParameterPage() {
             </TableContainer>
           ) : (
             <Alert severity="info">
-              No bucket parameters found. Click "Add Bucket Group" to create one.
+              No bucket parameters found. Click Add Bucket Group to create one.
             </Alert>
           )}
         </CardContent>
@@ -815,7 +844,9 @@ export default function BucketParameterPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setHeaderDialogOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleSaveHeader} data-testid="save-header-btn">Save</Button>
+          {canManageBucket && (
+            <Button variant="contained" onClick={handleSaveHeader} data-testid="save-header-btn">Save</Button>
+          )}
         </DialogActions>
       </Dialog>
 
@@ -875,7 +906,9 @@ export default function BucketParameterPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDetailDialogOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleSaveDetail} data-testid="save-detail-btn">Save</Button>
+          {canManageBucket && (
+            <Button variant="contained" onClick={handleSaveDetail} data-testid="save-detail-btn">Save</Button>
+          )}
         </DialogActions>
       </Dialog>
       <ApprovalNotification

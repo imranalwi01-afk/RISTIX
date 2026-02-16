@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
     Box,
     Typography,
@@ -26,7 +26,8 @@ import {
     DialogTitle,
     DialogContent,
     DialogActions,
-    Grid
+    Grid,
+    MenuItem
 } from '@mui/material';
 import {
     Edit as EditIcon,
@@ -34,6 +35,7 @@ import {
     Add as AddIcon,
     Search as SearchIcon,
     Refresh as RefreshIcon,
+    Download as DownloadIcon,
     Person as PersonIcon,
     CheckCircle as CheckCircleIcon,
     Cancel as CancelIcon,
@@ -41,6 +43,7 @@ import {
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { platformUsersAPI } from '@/services/api';
+import { exportToCsv } from '@/utils/export-csv';
 
 // Types
 interface PlatformUser {
@@ -74,6 +77,7 @@ const PlatformUserManagement = () => {
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [searchQuery, setSearchQuery] = useState('');
+    const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
 
     // State for dialogs
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -99,15 +103,27 @@ const PlatformUserManagement = () => {
                 search: searchQuery || undefined
             });
 
-            // Handle response structure depending on API
-            const data = response.data || [];
-            const totalCount = response.total || data.length;
+            const responseData = (response as any)?.data;
+            const data = Array.isArray(responseData)
+                ? responseData
+                : Array.isArray(responseData?.users)
+                    ? responseData.users
+                    : [];
+            const totalCountRaw = (response as any)?.total ?? responseData?.total ?? data.length;
+            const totalCount = Number(totalCountRaw);
 
             setUsers(data);
-            setTotal(Number(totalCount));
+            setTotal(Number.isFinite(totalCount) ? totalCount : data.length);
         } catch (err) {
             console.error('Failed to fetch platform users:', err);
-            setError('Failed to load platform users.');
+            const status = (err as any)?.response?.status;
+            if (status === 403) {
+                setError('Access denied. This account does not have platform admin permissions.');
+            } else if (status === 401) {
+                setError('Session expired. Please log in again.');
+            } else {
+                setError('Failed to load platform users.');
+            }
         } finally {
             setLoading(false);
         }
@@ -128,6 +144,37 @@ const PlatformUserManagement = () => {
 
     const handleRowsPerPageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setRowsPerPage(parseInt(event.target.value, 10));
+        setPage(0);
+    };
+
+    const filteredUsers = useMemo(() => {
+        if (statusFilter === 'all') return users;
+        return users.filter((user) => (statusFilter === 'active' ? user.isActive : !user.isActive));
+    }, [users, statusFilter]);
+
+    const stats = useMemo(() => {
+        const active = users.filter((user) => user.isActive).length;
+        const inactive = users.length - active;
+        return { loaded: users.length, active, inactive };
+    }, [users]);
+
+    const handleExport = () => {
+        exportToCsv(
+            'platform-users.csv',
+            ['Full Name', 'Email', 'Username', 'Status', 'Created At'],
+            filteredUsers.map((user) => [
+                user.fullName,
+                user.email,
+                user.username,
+                user.isActive ? 'Active' : 'Inactive',
+                user.createdAt ? format(new Date(user.createdAt), 'yyyy-MM-dd HH:mm:ss') : '',
+            ])
+        );
+    };
+
+    const handleClearFilters = () => {
+        setSearchQuery('');
+        setStatusFilter('all');
         setPage(0);
     };
 
@@ -218,13 +265,37 @@ const PlatformUserManagement = () => {
                 </Alert>
             )}
 
+            <Grid container spacing={2} sx={{ mb: 3 }}>
+                <Grid size={{ xs: 12, md: 4 }}>
+                    <Paper variant="outlined" sx={{ p: 2 }}>
+                        <Typography variant="caption" color="text.secondary">Loaded Rows</Typography>
+                        <Typography variant="h5" sx={{ fontWeight: 700 }}>{stats.loaded}</Typography>
+                    </Paper>
+                </Grid>
+                <Grid size={{ xs: 12, md: 4 }}>
+                    <Paper variant="outlined" sx={{ p: 2 }}>
+                        <Typography variant="caption" color="text.secondary">Active</Typography>
+                        <Typography variant="h5" sx={{ fontWeight: 700, color: 'success.main' }}>{stats.active}</Typography>
+                    </Paper>
+                </Grid>
+                <Grid size={{ xs: 12, md: 4 }}>
+                    <Paper variant="outlined" sx={{ p: 2 }}>
+                        <Typography variant="caption" color="text.secondary">Inactive</Typography>
+                        <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.secondary' }}>{stats.inactive}</Typography>
+                    </Paper>
+                </Grid>
+            </Grid>
+
             <Paper elevation={0} sx={{ p: 2, mb: 3, border: '1px solid', borderColor: 'divider' }}>
-                <Box display="flex" gap={2}>
+                <Box display="flex" gap={2} flexWrap="wrap">
                     <TextField
                         size="small"
                         placeholder="Search admins..."
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onChange={(e) => {
+                            setSearchQuery(e.target.value);
+                            setPage(0);
+                        }}
                         InputProps={{
                             startAdornment: (
                                 <InputAdornment position="start">
@@ -234,12 +305,33 @@ const PlatformUserManagement = () => {
                         }}
                         sx={{ flexGrow: 1, maxWidth: 400 }}
                     />
+                    <TextField
+                        select
+                        size="small"
+                        label="Status"
+                        value={statusFilter}
+                        onChange={(e) => {
+                            setStatusFilter(e.target.value as 'all' | 'active' | 'inactive');
+                            setPage(0);
+                        }}
+                        sx={{ minWidth: 140 }}
+                    >
+                        <MenuItem value="all">All</MenuItem>
+                        <MenuItem value="active">Active</MenuItem>
+                        <MenuItem value="inactive">Inactive</MenuItem>
+                    </TextField>
                     <Button
                         variant="outlined"
                         startIcon={<RefreshIcon />}
                         onClick={fetchUsers}
                     >
                         Refresh
+                    </Button>
+                    <Button variant="outlined" startIcon={<DownloadIcon />} onClick={handleExport}>
+                        Export
+                    </Button>
+                    <Button variant="text" onClick={handleClearFilters}>
+                        Clear
                     </Button>
                 </Box>
             </Paper>
@@ -262,7 +354,7 @@ const PlatformUserManagement = () => {
                                         <CircularProgress />
                                     </TableCell>
                                 </TableRow>
-                            ) : users.length === 0 ? (
+                            ) : filteredUsers.length === 0 ? (
                                 <TableRow>
                                     <TableCell colSpan={4} align="center" sx={{ py: 8 }}>
                                         <Typography variant="body1" color="textSecondary">
@@ -271,7 +363,7 @@ const PlatformUserManagement = () => {
                                     </TableCell>
                                 </TableRow>
                             ) : (
-                                users.map((user) => (
+                                filteredUsers.map((user) => (
                                     <TableRow key={user.id} hover>
                                         <TableCell>
                                             <Box>
@@ -323,7 +415,7 @@ const PlatformUserManagement = () => {
                 <TablePagination
                     rowsPerPageOptions={[5, 10, 25]}
                     component="div"
-                    count={total}
+                    count={statusFilter === 'all' ? total : filteredUsers.length}
                     rowsPerPage={rowsPerPage}
                     page={page}
                     onPageChange={handlePageChange}

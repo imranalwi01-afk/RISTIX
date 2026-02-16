@@ -32,6 +32,7 @@ import EmptyState from '@/components/banking/shared/EmptyState';
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 import { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import { ApprovalStatusBadge, PendingChangesDialog } from '@/components/approval';
+import { usePermission } from '@/hooks/usePermission';
 
 // =====================================================
 // INTERFACES
@@ -81,7 +82,7 @@ interface BusinessParameterDetailFormData {
 // =====================================================
 // DETAIL PANEL
 // =====================================================
-const BusinessDetailPanel = ({ row, onEditDetail, onDeleteDetail, onAddDetail, refreshTrigger }: any) => {
+const BusinessDetailPanel = ({ row, onEditDetail, onDeleteDetail, onAddDetail, refreshTrigger, canManage = false }: any) => {
     const [details, setDetails] = useState<BusinessParameterDetail[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -123,15 +124,17 @@ const BusinessDetailPanel = ({ row, onEditDetail, onDeleteDetail, onAddDetail, r
                     <DescriptionIcon fontSize="small" />
                     Details for {row.param_code}
                 </Typography>
-                <Button
-                    size="small"
-                    startIcon={<AddIcon />}
-                    variant="outlined"
-                    onClick={() => onAddDetail(row.param_code, nextSeq)}
-                    sx={{ borderRadius: 2, textTransform: 'none' }}
-                >
-                    Add Detail
-                </Button>
+                {canManage && (
+                    <Button
+                        size="small"
+                        startIcon={<AddIcon />}
+                        variant="outlined"
+                        onClick={() => onAddDetail(row.param_code, nextSeq)}
+                        sx={{ borderRadius: 2, textTransform: 'none' }}
+                    >
+                        Add Detail
+                    </Button>
+                )}
             </Box>
 
             {details.length === 0 ? (
@@ -161,14 +164,16 @@ const BusinessDetailPanel = ({ row, onEditDetail, onDeleteDetail, onAddDetail, r
                                     <TableCell sx={{ fontSize: '0.875rem' }}>{detail.value3 || '-'}</TableCell>
                                     <TableCell sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>{detail.paramdesc}</TableCell>
                                     <TableCell align="right">
-                                        <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                                            <IconButton size="small" color="primary" onClick={() => onEditDetail(detail)} sx={{ p: 0.5 }}>
-                                                <EditIcon sx={{ fontSize: 18 }} />
-                                            </IconButton>
-                                            <IconButton size="small" color="error" onClick={() => onDeleteDetail(detail, loadDetails)} sx={{ p: 0.5 }}>
-                                                <DeleteIcon sx={{ fontSize: 18 }} />
-                                            </IconButton>
-                                        </Box>
+                                        {canManage && (
+                                            <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                                <IconButton size="small" color="primary" onClick={() => onEditDetail(detail)} sx={{ p: 0.5 }}>
+                                                    <EditIcon sx={{ fontSize: 18 }} />
+                                                </IconButton>
+                                                <IconButton size="small" color="error" onClick={() => onDeleteDetail(detail, loadDetails)} sx={{ p: 0.5 }}>
+                                                    <DeleteIcon sx={{ fontSize: 18 }} />
+                                                </IconButton>
+                                            </Box>
+                                        )}
                                     </TableCell>
                                 </TableRow>
                             ))}
@@ -311,6 +316,10 @@ const BusinessParameterDialog: React.FC<{
 // =====================================================
 
 export default function BusinessClient() {
+    const { hasAnyPermission } = usePermission();
+    const canViewBusiness = hasAnyPermission(['banking.setup.business.view', 'banking.setup.business.manage', 'banking.setup.business', 'admin.super_admin']);
+    const canManageBusiness = hasAnyPermission(['banking.setup.business.manage', 'banking.setup.business.create', 'banking.setup.business.update', 'banking.setup.business.delete', 'admin.super_admin']);
+
     const [businessParameters, setBusinessParameters] = useState<BusinessParameter[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -407,6 +416,7 @@ export default function BusinessClient() {
 
     // Handlers
     const handleSaveParameter = async (form: BusinessParameterFormData) => {
+        if (!canManageBusiness) return;
         try {
             const payload = {
                 paramCode: form.param_code.trim(),
@@ -441,6 +451,7 @@ export default function BusinessClient() {
     };
 
     const handleDeleteParameter = async (row: BusinessParameter) => {
+        if (!canManageBusiness) return;
         if (!confirm(`Delete parameter ${row.param_code}?`)) return;
         try {
             const result = await api.banking.businessSetup.delete(row.param_code);
@@ -454,6 +465,7 @@ export default function BusinessClient() {
     };
 
     const handleSaveDetail = async (form: BusinessParameterDetailFormData) => {
+        if (!canManageBusiness) return;
         try {
             const payload = {
                 paramSeq: form.param_seq,
@@ -483,6 +495,7 @@ export default function BusinessClient() {
     };
 
     const handleDeleteDetail = async (detail: BusinessParameterDetail, callback: () => void) => {
+        if (!canManageBusiness) return;
         if (!confirm('Delete detail?')) return;
         try {
             await api.banking.businessSetup.deleteDetail(parseInt(detail.pkid || '0'));
@@ -519,21 +532,26 @@ export default function BusinessClient() {
             )
         },
         {
-            field: 'actions', headerName: 'Actions', type: 'actions', width: 100, align: 'right', headerAlign: 'right', getActions: (p) => [
+            field: 'actions', headerName: 'Actions', type: 'actions', width: 100, align: 'right', headerAlign: 'right', getActions: (p) => canManageBusiness ? [
                 <SafeGridActionsCellItem key="e" label="Edit" icon={<EditIcon fontSize="small" />} onClick={() => { setEditingParameter(p.row); setParamDialogOpen(true); }} />,
                 <SafeGridActionsCellItem key="d" label="Delete" icon={<DeleteIcon fontSize="small" color="error" />} onClick={() => handleDeleteParameter(p.row)} />
-            ]
+            ] : []
         }
     ];
 
     return (
         <Container maxWidth="xl">
+            {!canViewBusiness && (
+                <Alert severity="warning" sx={{ mb: 2 }}>
+                    You do not have permission to view business settings.
+                </Alert>
+            )}
             <PageHeader
                 title="Business Configuration"
                 subtitle="Business parameters configuration with Master-Detail"
                 onRefresh={loadBusinessParameters}
                 loading={loading}
-                extraActions={<Button variant="contained" startIcon={<AddIcon />} onClick={() => { setEditingParameter(null); setParamDialogOpen(true); }}>Create</Button>}
+                extraActions={canManageBusiness ? <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setEditingParameter(null); setParamDialogOpen(true); }}>Create</Button> : undefined}
             />
 
             <Card sx={{ mt: 2, borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
@@ -583,6 +601,7 @@ export default function BusinessClient() {
                                     onEditDetail={(d: any) => { setCurrentDetailParamCode(params.row.param_code); setEditingDetail(d); setDetailDialogOpen(true); }}
                                     onAddDetail={(code: string, nextSeq: number) => { setCurrentDetailParamCode(code); setDefaultDetailSeq(nextSeq); setEditingDetail(null); setDetailDialogOpen(true); }}
                                     onDeleteDetail={handleDeleteDetail}
+                                    canManage={canManageBusiness}
                                     refreshTrigger={detailRefreshTrigger}
                                 />
                             )}

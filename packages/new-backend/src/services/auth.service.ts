@@ -106,7 +106,10 @@ function parseTimeToMs(timeStr: string): number {
     }
 }
 
-const JWT_SECRET = new TextEncoder().encode(env.JWT_SECRET)
+const ACCESS_JWT_SECRET = new TextEncoder().encode(env.JWT_SECRET)
+const REFRESH_SECRET_VALUE = env.JWT_REFRESH_SECRET || env.JWT_SECRET
+const REFRESH_JWT_SECRET = new TextEncoder().encode(REFRESH_SECRET_VALUE)
+const HAS_DISTINCT_REFRESH_SECRET = REFRESH_SECRET_VALUE !== env.JWT_SECRET
 const ACCESS_TOKEN_EXPIRY = env.JWT_EXPIRES_IN || '8h' // ✅ Use env variable
 const REFRESH_TOKEN_EXPIRY = '7d'
 const ACCESS_TOKEN_EXPIRY_MS = parseTimeToMs(ACCESS_TOKEN_EXPIRY) // ✅ Parse from env
@@ -149,7 +152,7 @@ const generateAccessToken = async (
         .setProtectedHeader({ alg: 'HS256' })
         .setIssuedAt()
         .setExpirationTime(ACCESS_TOKEN_EXPIRY)
-        .sign(JWT_SECRET)
+        .sign(ACCESS_JWT_SECRET)
 }
 
 /**
@@ -185,7 +188,7 @@ const generateRefreshToken = async (
         .setProtectedHeader({ alg: 'HS256' })
         .setIssuedAt()
         .setExpirationTime(REFRESH_TOKEN_EXPIRY)
-        .sign(JWT_SECRET)
+        .sign(REFRESH_JWT_SECRET)
 }
 
 /**
@@ -195,9 +198,45 @@ const generateRefreshToken = async (
  * @returns The decoded payload as a JwtPayload object
  * @throws {jose.errors.JWTInvalid} If the token is invalid or expired
  */
-export const verifyToken = async (token: string): Promise<JwtPayload> => {
-    const { payload } = await jose.jwtVerify(token, JWT_SECRET)
-    return payload as unknown as JwtPayload
+export const verifyToken = async (
+    token: string,
+    expectedType?: JwtPayload['type']
+): Promise<JwtPayload> => {
+    const verifyWithSecret = async (secret: Uint8Array): Promise<JwtPayload> => {
+        const { payload } = await jose.jwtVerify(token, secret)
+        const decoded = payload as unknown as JwtPayload
+
+        if (expectedType && decoded.type !== expectedType) {
+            throw new Error(`Invalid token type: expected ${expectedType}, got ${decoded.type}`)
+        }
+
+        return decoded
+    }
+
+    if (expectedType === 'access') {
+        return verifyWithSecret(ACCESS_JWT_SECRET)
+    }
+
+    if (expectedType === 'refresh') {
+        try {
+            return await verifyWithSecret(REFRESH_JWT_SECRET)
+        } catch (error) {
+            // Backward-compatibility: allow legacy refresh tokens signed by JWT_SECRET
+            if (HAS_DISTINCT_REFRESH_SECRET) {
+                return verifyWithSecret(ACCESS_JWT_SECRET)
+            }
+            throw error
+        }
+    }
+
+    try {
+        return await verifyWithSecret(ACCESS_JWT_SECRET)
+    } catch (error) {
+        if (HAS_DISTINCT_REFRESH_SECRET) {
+            return verifyWithSecret(REFRESH_JWT_SECRET)
+        }
+        throw error
+    }
 }
 
 // =============================================================================
@@ -288,14 +327,19 @@ export const login = (
             pipe(
                 Effect.tryPromise({
                     try: async () => {
-                        // ✅ Try tenant database first (for tenant-specific users)
-                        const tenantDb = getDatabase(resolvedTenantId)
-                        let user = await AuthRepository.findUserByEmail(tenantDb, input.email)
-                        let db = tenantDb
+                        let user: any = null
+                        let db = getDatabase(null)
 
-                        // ✅ Fallback to platform database (for platform admins)
+                        // ✅ Tenant login: lookup tenant user first
+                        if (resolvedTenantId) {
+                            const tenantDb = getDatabase(resolvedTenantId)
+                            user = await AuthRepository.findUserByEmail(tenantDb, input.email)
+                            db = tenantDb
+                        }
+
+                        // ✅ Platform fallback / platform-only login
                         if (!user) {
-                            console.log(`[AuthDebug] User not found in tenant DB, checking platform DB...`)
+                            console.log(`[AuthDebug] User not found in tenant DB (or platform login), checking platform DB...`)
                             const platformDb = getDatabase(null)
                             // Use specific platform user lookup
                             user = (await AuthRepository.findPlatformUserByEmail(platformDb, input.email)) as any
@@ -303,7 +347,7 @@ export const login = (
                                 console.log(`[AuthDebug] Platform user found: ${user.email}`)
                                 db = platformDb
                             }
-                        } else {
+                        } else if (resolvedTenantId) {
                             console.log(`[AuthDebug] User found in tenant DB: ${user.email}`)
                         }
 
@@ -396,9 +440,73 @@ export const login = (
                     console.log('🔍 DEBUG: extracted permissions:', Array.from(permissionSet))
 
                     return { user, resolvedTenantId, roles, permissions: Array.from(permissionSet), db }
+                }),
+                Effect.catchAll((error) => {
+                    const causeCode = (error as any)?.cause?.code
+                    const causeMessage = String((error as any)?.cause?.message || '')
+                    const isRbacMissing = causeCode === '42P01' || causeMessage.includes('relation') || causeMessage.includes('does not exist')
+
+                    if (!isRbacMissing) {
+                        return Effect.fail(error)
+                    }
+
+                    const rawRole = String((user as any).role || 'PLATFORM_ADMIN')
+                    const normalizedRole = rawRole.toUpperCase()
+                    const roles = [normalizedRole]
+
+                    const permissionSet = new Set<string>(['jobs.view'])
+                    if (
+                        normalizedRole.includes('PLATFORM') ||
+                        normalizedRole.includes('SUPER_ADMIN') ||
+                        normalizedRole === 'ADMIN'
+                    ) {
+                        permissionSet.add('PLATFORM_ADMIN')
+                        permissionSet.add('admin.super_admin')
+                        permissionSet.add('jobs.create')
+                        permissionSet.add('jobs.run')
+                        permissionSet.add('jobs.control')
+                        permissionSet.add('jobs.approve')
+                        permissionSet.add('jobs.runtime.view')
+                    }
+
+                    console.warn('[AuthDebug] RBAC tables unavailable for platform DB, using role-based fallback permissions:', {
+                        email: user.email,
+                        role: normalizedRole,
+                        permissions: Array.from(permissionSet),
+                    })
+
+                    return Effect.succeed({
+                        user,
+                        resolvedTenantId,
+                        roles,
+                        permissions: Array.from(permissionSet),
+                        db
+                    })
                 })
             )
         ),
+        // 5.5 Prevent tenant-only users from entering platform login flow.
+        Effect.flatMap(({ user, resolvedTenantId, roles, permissions, db }) => {
+            if (!resolvedTenantId) {
+                const hasPlatformAccess =
+                    permissions.includes('admin.super_admin') ||
+                    permissions.includes('SUPER_ADMIN') ||
+                    permissions.includes('PLATFORM_ADMIN') ||
+                    permissions.includes('admin.system.manage')
+
+                if (!hasPlatformAccess) {
+                    return Effect.fail(
+                        new AuthenticationError({
+                            message: 'This account does not have platform access. Use tenant login instead.',
+                            reason: 'insufficient_platform_access',
+                            code: 'PLATFORM_ACCESS_DENIED',
+                        })
+                    )
+                }
+            }
+
+            return Effect.succeed({ user, resolvedTenantId, roles, permissions, db })
+        }),
         // 6. Generate tokens and store session in Redis
         Effect.flatMap(({ user, resolvedTenantId, roles, permissions, db }) =>
             Effect.tryPromise({
@@ -407,14 +515,24 @@ export const login = (
                     const refreshTokenId = crypto.randomUUID()
                     const now = new Date()
 
-                    // Determine stakeholder type based on permissions
+                    // Determine stakeholder type.
+                    // Important: tenant-scoped login must stay "banking" even if tenant role contains admin.* permissions.
                     let stakeholderType = 'banking'
-                    if (permissions.includes('MANAGE_SYSTEM') || permissions.includes('PLATFORM_ADMIN')) {
-                        stakeholderType = 'platform'
-                    } else if (permissions.includes('CONSULTANT_ACCESS')) {
+                    if (permissions.includes('CONSULTANT_ACCESS')) {
                         stakeholderType = 'consultant'
                     } else if (permissions.includes('REGULATOR_ACCESS')) {
                         stakeholderType = 'regulator'
+                    } else if (
+                        !resolvedTenantId &&
+                        (
+                            permissions.includes('admin.super_admin') ||
+                            permissions.includes('SUPER_ADMIN') ||
+                            permissions.includes('admin.system.manage') ||
+                            permissions.includes('MANAGE_SYSTEM') || // backward-compat
+                            permissions.includes('PLATFORM_ADMIN')
+                        )
+                    ) {
+                        stakeholderType = 'platform'
                     }
 
                     const [accessToken, refreshToken] = await Promise.all([
@@ -455,8 +573,12 @@ export const login = (
                         redis.sadd(`user:sessions:${user.id}`, accessTokenId, refreshTokenId),
                     ])
 
-                    // Update last login
-                    await AuthRepository.updateLastLogin(db, user.id)
+                    // Update last login in the correct schema table.
+                    if (resolvedTenantId) {
+                        await AuthRepository.updateLastLogin(db, user.id)
+                    } else {
+                        await AuthRepository.updatePlatformUserLastLogin(db, user.id)
+                    }
 
                     return {
                         user: {
@@ -521,10 +643,7 @@ export const refreshTokens = (
     Effect.tryPromise({
         try: async () => {
             // Verify refresh token to get payload (including tenantId)
-            const payload = await verifyToken(refreshToken)
-            if (payload.type !== 'refresh') {
-                throw new Error('Invalid token type')
-            }
+            const payload = await verifyToken(refreshToken, 'refresh')
 
             // Check if refresh session exists in Redis
             const sessionData = await redis.get(`session:refresh:${payload.jti}`)
@@ -532,10 +651,12 @@ export const refreshTokens = (
                 throw new Error('Session not found or expired')
             }
 
-            // ✅ Resolve DB from token payload
-            const db = getDatabase(payload.tenantId)
+            const isPlatformSession = !payload.tenantId || payload.stakeholderType === 'platform'
+            const db = getDatabase(isPlatformSession ? null : payload.tenantId)
 
-            const user = await AuthRepository.findUserById(db, payload.sub)
+            const user = isPlatformSession
+                ? await AuthRepository.findPlatformUserById(db, payload.sub)
+                : await AuthRepository.findUserById(db, payload.sub)
             if (!user || !user.isActive) {
                 throw new Error('User not found or inactive')
             }
@@ -544,18 +665,74 @@ export const refreshTokens = (
             const accessTokenId = crypto.randomUUID()
             const refreshTokenId = crypto.randomUUID()
 
+            const sessionInfo = JSON.parse(sessionData)
+            const tokenRoles = Array.isArray(payload.roles) ? payload.roles : []
+            const tokenPermissions = Array.isArray(payload.permissions) ? payload.permissions : []
+            const sessionRoles = Array.isArray(sessionInfo.roles) ? sessionInfo.roles : []
+            const sessionPermissions = Array.isArray(sessionInfo.permissions) ? sessionInfo.permissions : []
+
+            const roles = tokenRoles.length > 0 ? tokenRoles : sessionRoles
+            const permissions = tokenPermissions.length > 0 ? tokenPermissions : sessionPermissions
+            const stakeholderType =
+                payload.stakeholderType ||
+                sessionInfo.stakeholderType ||
+                'banking'
+            const tokenUser = user as unknown as User
+
             const [newAccessToken, newRefreshToken] = await Promise.all([
-                generateAccessToken(user, accessTokenId, payload.tenantId, payload.roles, payload.permissions),
-                generateRefreshToken(user, refreshTokenId, payload.tenantId, payload.roles, payload.permissions),
+                generateAccessToken(
+                    tokenUser,
+                    accessTokenId,
+                    payload.tenantId,
+                    roles,
+                    permissions,
+                    stakeholderType
+                ),
+                generateRefreshToken(
+                    tokenUser,
+                    refreshTokenId,
+                    payload.tenantId,
+                    roles,
+                    permissions,
+                    stakeholderType
+                ),
             ])
 
             // Store new sessions in Redis
-            const sessionInfo = JSON.parse(sessionData)
             await Promise.all([
-                redis.setex(`session:access:${accessTokenId}`, Math.floor(ACCESS_TOKEN_EXPIRY_MS / 1000), JSON.stringify({ ...sessionInfo, accessTokenId })),
-                redis.setex(`session:refresh:${refreshTokenId}`, Math.floor(REFRESH_TOKEN_EXPIRY_MS / 1000), JSON.stringify({ ...sessionInfo, refreshTokenId })),
+                redis.setex(
+                    `session:access:${accessTokenId}`,
+                    Math.floor(ACCESS_TOKEN_EXPIRY_MS / 1000),
+                    JSON.stringify({
+                        ...sessionInfo,
+                        accessTokenId,
+                        refreshTokenId,
+                        roles,
+                        permissions,
+                        stakeholderType,
+                        expiresAt: new Date(Date.now() + ACCESS_TOKEN_EXPIRY_MS).toISOString(),
+                        refreshExpiresAt: new Date(Date.now() + REFRESH_TOKEN_EXPIRY_MS).toISOString(),
+                    })
+                ),
+                redis.setex(
+                    `session:refresh:${refreshTokenId}`,
+                    Math.floor(REFRESH_TOKEN_EXPIRY_MS / 1000),
+                    JSON.stringify({
+                        ...sessionInfo,
+                        accessTokenId,
+                        refreshTokenId,
+                        roles,
+                        permissions,
+                        stakeholderType,
+                        expiresAt: new Date(Date.now() + ACCESS_TOKEN_EXPIRY_MS).toISOString(),
+                        refreshExpiresAt: new Date(Date.now() + REFRESH_TOKEN_EXPIRY_MS).toISOString(),
+                    })
+                ),
                 // Remove old refresh session
                 redis.del(`session:refresh:${payload.jti}`),
+                // Keep user->session index in sync
+                redis.srem(`user:sessions:${user.id}`, payload.jti),
+                redis.sadd(`user:sessions:${user.id}`, accessTokenId, refreshTokenId),
             ])
 
             return {
@@ -631,4 +808,3 @@ export const revokeAllSessions = (
                 cause: error
             })
     })
-

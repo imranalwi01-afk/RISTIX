@@ -10,34 +10,42 @@
 // ============================================================================
 
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  buildPermissionContext,
+  evaluatePermission,
+} from './utils/permission-evaluator';
 
 // ✅ Route to Permission Mapping (Strictly Permission-Based)
 const ROUTE_PERMISSION_MAP: Record<string, string> = {
   // Module Access
-  '/platform': 'ACCESS_PLATFORM',
-  '/consultant': 'ACCESS_CONSULTANT',
-  '/regulator': 'ACCESS_REGULATOR',
+  '/platform': 'admin.system.manage',
+  '/consultant': 'consultant.access',
+  '/regulator': 'regulator.access',
 
   // Dashboard
-  '/banking/dashboard': 'VIEW_DASHBOARD',
+  // Dashboard should be accessible to any banking user with at least one banking.* permission.
+  '/banking/dashboard': 'banking',
 
   // Impairment Modules
-  '/banking/collective': 'VIEW_COLLECTIVE_IMPAIRMENT',
-  '/banking/individual': 'VIEW_INDIVIDUAL_IMPAIRMENT',
+  '/banking/collective': 'banking.collective.view',
+  '/banking/individual': 'banking.individual.view',
 
   // Processing & Reports
-  '/banking/processing': 'VIEW_IFRS9_PROCESSING',
-  '/banking/reports': 'VIEW_IFRS9_REPORTS',
-  '/banking/analytics': 'VIEW_R_ANALYTICS',
+  '/banking/processing': 'banking.processing.view',
+  '/banking/reports': 'banking.reports.ifrs9.view',
+  '/banking/analytics': 'banking.analytics.r.view',
 
   // System Setup (Strictly Protected)
-  '/banking/setup': 'MANAGE_IFRS9_CONFIG',
-  '/banking/parameters': 'MANAGE_IFRS9_CONFIG',
-  '/banking/administration': 'MANAGE_USERS',
-  '/banking/maintenance': 'MANAGE_USERS', // Often includes role management
+  '/banking/setup/application': 'banking.setup.application',
+  '/banking/setup/business': 'banking.setup.business',
+  '/banking/setup': 'banking.setup',
+  '/banking/parameters': 'banking.parameter',
+  '/banking/administration': 'admin.users.manage',
+  '/banking/maintenance/job-monitoring': 'jobs',
+  '/banking/maintenance': 'admin.users.manage', // Often includes role management
 
   // Tools
-  '/banking/tools': 'MANAGE_IFRS9_CONFIG'
+  '/banking/tools': 'banking.configuration.ifrs9.manage'
 };
 
 // ✅ SURGICAL ENHANCEMENT: Banking mode URL patterns
@@ -72,7 +80,7 @@ const PUBLIC_ROUTES = [
 // ✅ Default redirects
 const STAKEHOLDER_REDIRECTS: Record<string, string> = {
   banking: '/banking/dashboard',
-  platform: '/platform/admin',
+  platform: '/platform/users',
   consultant: '/consultant/dashboard',
   regulator: '/regulator/dashboard'
 };
@@ -174,18 +182,31 @@ function detectBankingModeFromURL(pathname: string): 'conventional' | 'syariah' 
 }
 
 // ✅ SURGICAL FIX: Permission-Based Route Access Check (Role-Free)
-function hasRouteAccess(user: any, pathname: string): boolean {
+function hasRouteAccess(user: any, pathname: string): {
+  allowed: boolean;
+  matchedRoute?: string;
+  requiredPermission?: string;
+  reason: string;
+  debug?: any;
+} {
   // 1. Platform Admin Bypass (Absolute Superuser)
   if (user?.isPlatformAdmin === true) {
     console.log(`[ProxyDebug] Platform admin ${user.email} - access granted`);
-    return true;
+    return { allowed: true, reason: 'platform_admin_bypass' };
+  }
+
+  const userPermissions = user.permissions || [];
+  const permissionContext = buildPermissionContext(userPermissions);
+  if (permissionContext.isSuperAdmin || userPermissions.includes('SUPER_ADMIN')) {
+    console.log(`[ProxyDebug] Super admin permission for ${user.email} - access granted`);
+    return { allowed: true, reason: 'super_admin_bypass' };
   }
 
   // 2. Super Admin role bypass (for tenant admins)
   const userRoles = user.roles || [];
   if (userRoles.some((r: string) => r.toUpperCase().includes('ADMIN') || r.toUpperCase().includes('SUPERUSER'))) {
     console.log(`[ProxyDebug] Admin user ${user.email} (${userRoles.join(',')}) - access granted`);
-    return true;
+    return { allowed: true, reason: 'admin_role_bypass' };
   }
 
   // 3. Map-Based Permission Check
@@ -195,25 +216,21 @@ function hasRouteAccess(user: any, pathname: string): boolean {
   for (const routePath of protectedPaths) {
     if (pathname === routePath || pathname.startsWith(routePath + '/')) {
       const requiredPermission = ROUTE_PERMISSION_MAP[routePath];
-      const userPermissions = user.permissions || [];
-
-      // Check if user has the required permission
-      if (userPermissions.includes(requiredPermission)) {
-        return true;
-      }
-
-      // ✅ LENIENT: If user has ANY banking permissions, allow banking routes
-      if (pathname.startsWith('/banking') && userPermissions.some((p: string) =>
-        p.includes('VIEW') || p.includes('MANAGE') || p.includes('ACCESS')
-      )) {
-        console.log(`[ProxyDebug] User ${user.email} has banking permissions - allowing ${pathname}`);
-        return true;
+      const evaluation = evaluatePermission(requiredPermission, permissionContext);
+      if (evaluation.allowed) {
+        return { allowed: true, reason: evaluation.reason, matchedRoute: routePath, requiredPermission };
       }
 
       // If we matched a pattern but didn't have the permission, deny access
       console.warn(`[ProxyDebug] User ${user.email} missing required permission ${requiredPermission} for ${pathname}`);
       console.warn(`[ProxyDebug] User roles: ${JSON.stringify(userRoles)}, User permissions: ${JSON.stringify(userPermissions)}`);
-      return false;
+      return {
+        allowed: false,
+        matchedRoute: routePath,
+        requiredPermission,
+        reason: 'missing_required_permission',
+        debug: evaluation,
+      };
     }
   }
 
@@ -222,12 +239,12 @@ function hasRouteAccess(user: any, pathname: string): boolean {
     const hasAnyPermission = (user.permissions || []).length > 0;
     if (hasAnyPermission) {
       console.log(`[ProxyDebug] User ${user.email} has permissions - allowing banking route ${pathname}`);
-      return true;
+      return { allowed: true, reason: 'banking_fallback_any_permission' };
     }
   }
 
   // Allow public or un-mapped routes by default (middleware logic should catch sensitive ones)
-  return true;
+  return { allowed: true, reason: 'unmapped_route_default_allow' };
 }
 
 // ✅ SURGICAL FIX: Get token from multiple sources
@@ -434,7 +451,8 @@ export function proxy(request: NextRequest) {
 
 
   // ✅ SURGICAL FIX: Check route access with better default handling
-  if (!hasRouteAccess(user, pathname)) {
+  const accessResult = hasRouteAccess(user, pathname);
+  if (!accessResult.allowed) {
 
     // ✅ SURGICAL FIX: Get appropriate redirect
     const stakeholderType = getStakeholderType(user);
@@ -445,14 +463,54 @@ export function proxy(request: NextRequest) {
 
     // ✅ SURGICAL FIX: Loop protection & 403 Handling
     if (new URL(redirectPath, request.url).pathname === pathname || pathname.startsWith('/banking')) {
+      const denyDebug = {
+        email: user.email,
+        role: user.role,
+        pathname,
+        matchedRoute: accessResult.matchedRoute,
+        requiredPermission: accessResult.requiredPermission,
+        reason: accessResult.reason,
+        evaluation: accessResult.debug,
+      };
       console.warn(`🛑 Access Denied: Returning 403 for ${user.email} (Role: ${user.role}) trying to access ${pathname}.`);
+      console.warn('[ProxyDebug] Access deny details:', JSON.stringify(denyDebug));
 
-      // Redirect to /403 page if it exists, or return a 403 response
-      // For Next.js middleware, a redirect to a dedicated error page is often better UX
-      const forbiddenUrl = new URL('/403', request.url);
-      if (user.role) forbiddenUrl.searchParams.set('role', user.role);
-      forbiddenUrl.searchParams.set('reason', `Role ${user.role} denied access to ${pathname}`);
-      return NextResponse.redirect(forbiddenUrl);
+      const acceptsHtml = request.headers.get('accept')?.includes('text/html');
+      if (acceptsHtml) {
+        const loginUrl = new URL('/login', request.url);
+        loginUrl.searchParams.set('error', 'forbidden');
+        loginUrl.searchParams.set('from', pathname);
+        if (accessResult.requiredPermission) {
+          loginUrl.searchParams.set('requiredPermission', accessResult.requiredPermission);
+        }
+        return NextResponse.redirect(loginUrl);
+      }
+
+      const includeDebug = process.env.NODE_ENV === 'development' || request.headers.get('x-rbac-debug') === 'true';
+      const responsePayload: Record<string, any> = {
+        error: 'forbidden',
+        message: `Role ${user.role || 'unknown'} denied access to ${pathname}`,
+        requiredPermission: accessResult.requiredPermission,
+      };
+      if (includeDebug) {
+        responsePayload.debug = denyDebug;
+      }
+
+      const response = new NextResponse(
+        JSON.stringify(responsePayload),
+        {
+          status: 403,
+          headers: { 'content-type': 'application/json' },
+        }
+      );
+      if (accessResult.matchedRoute) {
+        response.headers.set('x-rbac-matched-route', accessResult.matchedRoute);
+      }
+      if (accessResult.requiredPermission) {
+        response.headers.set('x-rbac-required-permission', accessResult.requiredPermission);
+      }
+
+      return response;
     }
 
     return NextResponse.redirect(new URL(redirectPath, request.url));

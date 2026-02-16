@@ -165,28 +165,40 @@ export const buildApprovalDescription = (
 
 /**
  * Build approval permission code from entity and operation
- * Example: 'user' + 'create' => 'APPROVE_USER_CREATE'
+ * Example: 'user' + 'create' => 'approval.user.create'
  */
 export const buildApprovalPermission = (
     entityType: string,
     operation: 'create' | 'update' | 'delete'
 ): string => {
-    const entity = entityType.toUpperCase().replace(/[^A-Z0-9]/g, '_')
-    const op = operation.toUpperCase()
-    return `APPROVE_${entity}_${op}`
+    const entity = entityType.toLowerCase().replace(/[^a-z0-9_]/g, '_')
+    return `approval.${entity}.${operation}`
 }
 
 /**
- * Build operation permission code
- * Example: 'user' + 'create' => 'CREATE_USER'
+ * Build canonical banking CRUD permission code.
+ * Example: 'product_parameter' + 'create' => 'banking.parameter.product.create'
  */
 export const buildOperationPermission = (
     entityType: string,
     operation: 'create' | 'update' | 'delete'
 ): string => {
-    const entity = entityType.toUpperCase().replace(/[^A-Z0-9]/g, '_')
-    const op = operation.toUpperCase()
-    return `${op}_${entity}`
+    const entity = entityType.toLowerCase().replace(/[^a-z0-9_]/g, '_')
+    const entityPathMap: Record<string, string> = {
+        parameter: 'parameter',
+        product_parameter: 'parameter.product',
+        journal_parameter: 'parameter.journal',
+        segmentation: 'parameter.segmentation',
+        rule_base_setting: 'collective.rule_base',
+        bucket_parameter: 'collective.bucket',
+        pd_configuration: 'collective.pd',
+        lgd_configuration: 'collective.lgd',
+        ead_configuration: 'collective.ead',
+        ecl_configuration: 'collective.ecl',
+        fl_scalar: 'collective.fl_scalar',
+    }
+    const permissionPath = entityPathMap[entity] || entity.replace(/_/g, '.')
+    return `banking.${permissionPath}.${operation}`
 }
 
 /**
@@ -198,7 +210,7 @@ export const hasApprovalPermission = (
     operation: 'create' | 'update' | 'delete'
 ): boolean => {
     const approvalPerm = buildApprovalPermission(entityType, operation)
-    return userPermissions.includes(approvalPerm) || userPermissions.includes('APPROVE_ALL')
+    return userPermissions.includes(approvalPerm) || userPermissions.includes('approval.all')
 }
 
 /**
@@ -209,8 +221,10 @@ export const hasOperationPermission = (
     entityType: string,
     operation: 'create' | 'update' | 'delete'
 ): boolean => {
+    const entity = entityType.toLowerCase().replace(/[^a-z0-9_]/g, '_')
     const operationPerm = buildOperationPermission(entityType, operation)
-    return userPermissions.includes(operationPerm)
+    const legacyOperationPerm = `operation.${entity}.${operation}`
+    return userPermissions.includes(operationPerm) || userPermissions.includes(legacyOperationPerm)
 }
 
 // =============================================================================

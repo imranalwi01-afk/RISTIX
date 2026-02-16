@@ -1,5 +1,4 @@
 import { eq, and, asc, desc, count, gte, lte } from 'drizzle-orm'
-import { db } from '@/config'
 import { getDatabase } from '@/config/database'
 import {
     approvalMatrices,
@@ -34,7 +33,7 @@ export const ApprovalRepository = {
      * @returns The approval matrix with levels
      */
     findMatrixById: (id: string) =>
-        db.query.approvalMatrices.findFirst({
+        getDatabase('tenant').query.approvalMatrices.findFirst({
             where: eq(approvalMatrices.id, id),
             with: { levels: { orderBy: [asc(approvalLevels.level)] } },
         }),
@@ -82,10 +81,11 @@ export const ApprovalRepository = {
      * @returns The created matrix
      */
     createMatrix: async (data: NewApprovalMatrix, levels: Omit<NewApprovalLevel, 'matrixId'>[]) => {
-        const [matrix] = await db.insert(approvalMatrices).values(data).returning()
+        const dbx = getDatabase((data as any).tenantId || 'tenant')
+        const [matrix] = await dbx.insert(approvalMatrices).values(data).returning()
 
         if (levels.length > 0) {
-            await db.insert(approvalLevels).values(
+            await dbx.insert(approvalLevels).values(
                 levels.map(l => ({ ...l, matrixId: matrix.id }))
             )
         }
@@ -101,7 +101,8 @@ export const ApprovalRepository = {
      * @returns The updated matrix
      */
     updateMatrix: async (id: string, data: Partial<NewApprovalMatrix>) => {
-        const [matrix] = await db.update(approvalMatrices)
+        const dbx = getDatabase((data as any).tenantId || 'tenant')
+        const [matrix] = await dbx.update(approvalMatrices)
             .set({ ...data, updatedAt: new Date() })
             .where(eq(approvalMatrices.id, id))
             .returning()
@@ -119,23 +120,7 @@ export const ApprovalRepository = {
      * @returns The approval request with details
      */
     findRequestById: async (id: string) => {
-        // Best-effort: try tenant DB first, then platform DB as fallback
-        const tenantDb = getDatabase(null)
-        try {
-            const res = await tenantDb.query.approvalRequests.findFirst({
-                where: eq(approvalRequests.id, id),
-                with: {
-                    actions: { orderBy: [asc(approvalActions.createdAt)] },
-                    requester: true,
-                    matrix: { with: { levels: true } },
-                },
-            })
-            if (res) return res
-        } catch (err) {
-            // ignore and fall back
-        }
-
-        return db.query.approvalRequests.findFirst({
+        return getDatabase('tenant').query.approvalRequests.findFirst({
             where: eq(approvalRequests.id, id),
             with: {
                 actions: { orderBy: [asc(approvalActions.createdAt)] },
@@ -164,6 +149,26 @@ export const ApprovalRepository = {
                 actions: true,
             },
             orderBy: [desc(approvalRequests.createdAt)],
+        })
+    },
+
+    /**
+     * Find all approval requests for a tenant (history + pending).
+     *
+     * @param tenantId - The tenant ID
+     * @returns An array of approval requests
+     */
+    findRequestsByTenant: (tenantId: string) => {
+        const dbx = getDatabase(tenantId)
+        return dbx.query.approvalRequests.findMany({
+            where: eq(approvalRequests.tenantId, tenantId),
+            with: {
+                matrix: { with: { levels: true } },
+                requester: true,
+                actions: true,
+            },
+            orderBy: [desc(approvalRequests.createdAt)],
+            limit: 500,
         })
     },
 
@@ -215,20 +220,9 @@ export const ApprovalRepository = {
         completedAt: Date | null
         completedBy: string | null
     }>) => {
-        // Try tenant DB first (best-effort). If no row affected, fall back to platform DB.
-        try {
-            const dbx = getDatabase((data as any).tenantId || null)
-            const [request] = await dbx.update(approvalRequests)
-                .set({ ...data })
-                .where(eq(approvalRequests.id, id))
-                .returning()
-            if (request) return request
-        } catch (err) {
-            // continue to fallback
-        }
-
-        // Fallback: try default DB (platform) — keep behavior compatible
-        const [request] = await db.update(approvalRequests)
+        const requestContext = await ApprovalRepository.findRequestById(id)
+        const dbx = getDatabase(requestContext?.tenantId || 'tenant')
+        const [request] = await dbx.update(approvalRequests)
             .set({ ...data })
             .where(eq(approvalRequests.id, id))
             .returning()
@@ -246,19 +240,7 @@ export const ApprovalRepository = {
      * @returns An array of approval actions
      */
     findActionsByRequest: async (requestId: string) => {
-        try {
-            const dbx = getDatabase(null)
-            const res = await dbx.query.approvalActions.findMany({
-                where: eq(approvalActions.requestId, requestId),
-                with: { approver: true },
-                orderBy: [asc(approvalActions.createdAt)],
-            })
-            if (res && res.length) return res
-        } catch (err) {
-            // ignore and fall back
-        }
-
-        return db.query.approvalActions.findMany({
+        return getDatabase('tenant').query.approvalActions.findMany({
             where: eq(approvalActions.requestId, requestId),
             with: { approver: true },
             orderBy: [asc(approvalActions.createdAt)],
@@ -272,7 +254,10 @@ export const ApprovalRepository = {
      * @returns The created action
      */
     createAction: async (data: NewApprovalAction) => {
-        const [action] = await db.insert(approvalActions).values(data).returning()
+        // Route action writes to the same DB where request lives.
+        const request = await ApprovalRepository.findRequestById(String(data.requestId))
+        const dbx = request?.tenantId ? getDatabase(request.tenantId) : getDatabase('tenant')
+        const [action] = await dbx.insert(approvalActions).values(data).returning()
         return action
     },
 
@@ -292,7 +277,7 @@ export const ApprovalRepository = {
     },
 
     getExpiredRequests: () =>
-        db.query.approvalRequests.findMany({
+        getDatabase('tenant').query.approvalRequests.findMany({
             where: and(
                 eq(approvalRequests.status, 'pending'),
                 lte(approvalRequests.expiresAt, new Date())

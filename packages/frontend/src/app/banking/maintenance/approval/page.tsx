@@ -10,6 +10,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import type { AxiosError } from 'axios';
 import {
   Box,
   Typography,
@@ -289,6 +290,34 @@ export default function ApprovalManagementPage() {
     setSnackbar({ open: true, message, severity });
   };
 
+  const resolveApprovalActionError = (error: unknown): { message: string; severity: 'error' | 'warning' } => {
+    const axiosError = error as AxiosError<any>;
+    const status = axiosError?.response?.status;
+    const payload = axiosError?.response?.data as any;
+    const code = String(payload?.code || '').toUpperCase();
+    const message = String(payload?.error || payload?.message || axiosError?.message || 'Failed to process approval action');
+
+    if (status === 409 && code === 'REQUEST_NOT_PENDING') {
+      if (message.toLowerCase().includes('already approved')) {
+        return { message: 'Request is already approved by another approver.', severity: 'warning' };
+      }
+      if (message.toLowerCase().includes('already rejected')) {
+        return { message: 'Request is already rejected.', severity: 'warning' };
+      }
+      return { message: 'Request is no longer pending.', severity: 'warning' };
+    }
+
+    if (status === 404) {
+      return { message: 'Request no longer exists.', severity: 'warning' };
+    }
+
+    if (status === 422) {
+      return { message, severity: 'warning' };
+    }
+
+    return { message, severity: 'error' };
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return 'warning';
@@ -385,7 +414,9 @@ export default function ApprovalManagementPage() {
 
     } catch (error) {
       console.error('Error submitting approval action:', error);
-      showSnackbar('Failed to process approval action', 'error');
+      const resolved = resolveApprovalActionError(error);
+      showSnackbar(resolved.message, resolved.severity);
+      loadApprovalRequests();
     }
   };
 

@@ -1,7 +1,7 @@
 // packages/frontend/src/app/banking/maintenance/roles/page.tsx
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   Box,
   Card,
@@ -73,11 +73,16 @@ import {
 import { useTheme } from '@mui/material/styles';
 import { GridColDef, GridRenderCellParams, GridRowParams } from '@mui/x-data-grid';
 import { format, parseISO } from 'date-fns';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 // Local components and services
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 import { api } from '@/services/api';
 import { RolePermissionsEditor } from '@/components/rbac/RolePermissionsEditor';
+import { Can } from '@/components/rbac/Can';
+import { usePermission } from '@/hooks/usePermission';
+import UserManagementPanel from '@/components/maintenance/UserManagementPanel';
+import UserRoleAssignment from '@/components/roles/UserRoleAssignment';
 import {
   canUserApprove,
   getUserMaxHierarchyLevel,
@@ -108,6 +113,7 @@ interface Role {
 
 interface Permission {
   id: string;
+  code?: string;
   module: string;
   resource: string;
   action: string;
@@ -128,6 +134,45 @@ interface PermissionCategory {
   permissions: Permission[];
 }
 
+interface PermissionMatrixItem {
+  permission: Permission;
+  fullKey: string;
+  categoryKey: string;
+  groupKey: string;
+  actionKey: string;
+}
+
+interface PermissionMatrixGroup {
+  key: string;
+  label: string;
+  permissions: PermissionMatrixItem[];
+}
+
+interface PermissionMatrixCategory {
+  key: string;
+  label: string;
+  groups: PermissionMatrixGroup[];
+}
+
+type PermissionGroupingMode = 'resource' | 'module' | 'category';
+
+interface PermissionSelectionGroup {
+  key: string;
+  label: string;
+  hint: string;
+  permissions: Permission[];
+}
+
+const TAB_KEY_TO_INDEX: Record<string, number> = {
+  roles: 0,
+  users: 1,
+  permissions: 2,
+  matrix: 3,
+  assignments: 4,
+};
+
+const TAB_INDEX_TO_KEY = ['roles', 'users', 'permissions', 'matrix', 'assignments'] as const;
+
 interface RoleFilters {
   type?: string;
   level?: string;
@@ -141,6 +186,120 @@ interface TabPanelProps {
   index: number;
   value: number;
 }
+
+const ACTION_KEYWORDS = new Set([
+  'view',
+  'create',
+  'update',
+  'edit',
+  'delete',
+  'manage',
+  'approve',
+  'reject',
+  'assign',
+  'export',
+  'import',
+  'run',
+  'execute',
+  'submit',
+  'read',
+  'write'
+]);
+
+const RESOURCE_GROUP_ALIASES: Record<string, string> = {
+  'banking.application_config': 'banking.setup.application',
+  'banking.business_config': 'banking.setup.business',
+  'banking.product_params': 'banking.parameter.product',
+  'banking.accounting_params': 'banking.parameter.journal',
+};
+
+const toKeySegments = (value?: string): string[] =>
+  (value || '')
+    .toLowerCase()
+    .replace(/[:]/g, '.')
+    .split(/[.\s/_-]+/)
+    .filter(Boolean);
+
+const toDisplayLabel = (key: string): string =>
+  key
+    .split('.')
+    .map(part => {
+      if (part === 'ifrs9') return 'IFRS9';
+      if (part.length <= 3) return part.toUpperCase();
+      return part.charAt(0).toUpperCase() + part.slice(1);
+    })
+    .join(' / ');
+
+const firstNonEmptyString = (...values: unknown[]): string | undefined => {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return value.trim();
+    }
+  }
+  return undefined;
+};
+
+const extractCollection = <T,>(payload: unknown, keys: string[] = []): T[] => {
+  if (Array.isArray(payload)) return payload as T[];
+  if (!payload || typeof payload !== 'object') return [];
+
+  const record = payload as Record<string, unknown>;
+
+  for (const key of keys) {
+    if (Array.isArray(record[key])) return record[key] as T[];
+  }
+
+  if (Array.isArray(record.data)) return record.data as T[];
+
+  const nestedData = record.data;
+  if (nestedData && typeof nestedData === 'object') {
+    const nestedRecord = nestedData as Record<string, unknown>;
+    for (const key of keys) {
+      if (Array.isArray(nestedRecord[key])) return nestedRecord[key] as T[];
+    }
+    if (Array.isArray(nestedRecord.data)) return nestedRecord.data as T[];
+  }
+
+  return [];
+};
+
+const buildPermissionMatrixItem = (permission: Permission): PermissionMatrixItem => {
+  const code = permission.code?.trim().toLowerCase();
+  const codeSegments = code ? code.replace(/[:]/g, '.').split('.').filter(Boolean) : [];
+  const moduleSegment = toKeySegments(permission.module)[0] || 'banking';
+  const aliasKey = `${moduleSegment}.${permission.resource.toLowerCase()}`;
+  const actionSegment = permission.action.toLowerCase();
+
+  // Prefer explicit dotted codes from backend: banking.setup.application.create
+  if (codeSegments.length >= 3) {
+    const hasAction = ACTION_KEYWORDS.has(codeSegments[codeSegments.length - 1]);
+    const groupSegments = hasAction ? codeSegments.slice(0, -1) : codeSegments;
+    const categorySegments = groupSegments.length >= 2 ? groupSegments.slice(0, 2) : groupSegments;
+    const finalAction = hasAction ? codeSegments[codeSegments.length - 1] : 'access';
+    return {
+      permission,
+      fullKey: codeSegments.join('.'),
+      categoryKey: categorySegments.join('.'),
+      groupKey: groupSegments.join('.'),
+      actionKey: finalAction,
+    };
+  }
+
+  // Fallback for legacy permissions, with targeted aliases for setup/parameter menus.
+  const groupKey = RESOURCE_GROUP_ALIASES[aliasKey]
+    || [moduleSegment, ...toKeySegments(permission.resource)].join('.');
+  const categorySegments = groupKey.split('.').filter(Boolean).slice(0, 2);
+
+  return {
+    permission,
+    fullKey: `${groupKey}.${actionSegment}`,
+    categoryKey: categorySegments.join('.'),
+    groupKey,
+    actionKey: actionSegment,
+  };
+};
+
+const getPermissionCanonicalKey = (permission: Permission): string => buildPermissionMatrixItem(permission).fullKey;
 
 const TabPanel = ({ children, value, index, ...other }: TabPanelProps) => (
   <div
@@ -157,6 +316,12 @@ const TabPanel = ({ children, value, index, ...other }: TabPanelProps) => (
 export default function RoleManagementPage({ params }: { params: Promise<{}> }) {
   void params; // required by typed routes signature, unused in this page
   const theme = useTheme();
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { hasAnyPermission } = usePermission();
+  const canManageRoles = hasAnyPermission(['admin.roles.manage', 'admin.roles.create', 'admin.super_admin']);
+  const canViewRoles = hasAnyPermission(['admin.roles.view', 'admin.roles.manage', 'admin.super_admin']);
 
   // Helper function to flatten grouped permissions from API
   const flattenPermissionsFromAPI = (groupedPermissions: Record<string, Permission[]>): Permission[] => {
@@ -173,6 +338,7 @@ export default function RoleManagementPage({ params }: { params: Promise<{}> }) 
   const [roles, setRoles] = useState<Role[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [permissionCategories, setPermissionCategories] = useState<PermissionCategory[]>([]);
+  const [permissionGroupingMode, setPermissionGroupingMode] = useState<PermissionGroupingMode>('resource');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<RoleFilters>({});
@@ -247,6 +413,107 @@ export default function RoleManagementPage({ params }: { params: Promise<{}> }) 
     return Object.values(categories);
   };
 
+  const permissionMatrixCategories = useMemo<PermissionMatrixCategory[]>(() => {
+    const categoryMap = new Map<string, PermissionMatrixCategory>();
+    const categoryGroupMap = new Map<string, Map<string, PermissionMatrixGroup>>();
+
+    permissions.forEach((permission) => {
+      const item = buildPermissionMatrixItem(permission);
+      const categoryKey = item.categoryKey || 'banking.general';
+      const groupKey = item.groupKey;
+
+      if (!categoryMap.has(categoryKey)) {
+        categoryMap.set(categoryKey, {
+          key: categoryKey,
+          label: toDisplayLabel(categoryKey),
+          groups: [],
+        });
+        categoryGroupMap.set(categoryKey, new Map());
+      }
+
+      const groupsInCategory = categoryGroupMap.get(categoryKey)!;
+      if (!groupsInCategory.has(groupKey)) {
+        groupsInCategory.set(groupKey, {
+          key: groupKey,
+          label: toDisplayLabel(groupKey),
+          permissions: [],
+        });
+      }
+
+      groupsInCategory.get(groupKey)!.permissions.push(item);
+    });
+
+    categoryMap.forEach((category, categoryKey) => {
+      const groupsMap = categoryGroupMap.get(categoryKey) || new Map();
+      const groups = Array.from(groupsMap.values()).map((group) => ({
+        ...group,
+        permissions: group.permissions.sort((a, b) => a.actionKey.localeCompare(b.actionKey)),
+      }));
+      category.groups = groups.sort((a, b) => a.label.localeCompare(b.label));
+    });
+
+    return Array.from(categoryMap.values()).sort((a, b) => a.label.localeCompare(b.label));
+  }, [permissions]);
+
+  const rolePermissionSetMap = useMemo(
+    () => new Map(roles.map((role) => [role.id, new Set(role.permissions.map((permission) => permission.id))])),
+    [roles]
+  );
+
+  const permissionSelectionGroups = useMemo<PermissionSelectionGroup[]>(() => {
+    const groups = new Map<string, PermissionSelectionGroup>();
+    const moduleCounts = new Map<string, number>();
+
+    permissions.forEach((permission) => {
+      const matrixItem = buildPermissionMatrixItem(permission);
+      const moduleKey = toKeySegments(permission.module)[0]
+        || matrixItem.categoryKey.split('.').filter(Boolean)[0]
+        || 'general';
+      moduleCounts.set(moduleKey, (moduleCounts.get(moduleKey) || 0) + 1);
+    });
+
+    permissions.forEach((permission) => {
+      const matrixItem = buildPermissionMatrixItem(permission);
+      const moduleKey = toKeySegments(permission.module)[0]
+        || matrixItem.categoryKey.split('.').filter(Boolean)[0]
+        || 'general';
+
+      let key: string = permission.category;
+      let label: string = permission.category.replace(/_/g, ' ');
+      let hint: string = 'Legacy category';
+
+      if (permissionGroupingMode === 'resource') {
+        key = matrixItem.groupKey;
+        label = toDisplayLabel(matrixItem.groupKey);
+        hint = toDisplayLabel(matrixItem.categoryKey || moduleKey);
+      } else if (permissionGroupingMode === 'module') {
+        key = moduleKey;
+        label = toDisplayLabel(moduleKey);
+        hint = `${moduleCounts.get(moduleKey) || 0} permissions`;
+      }
+
+      if (!groups.has(key)) {
+        groups.set(key, {
+          key,
+          label,
+          hint,
+          permissions: [],
+        });
+      }
+
+      groups.get(key)!.permissions.push(permission);
+    });
+
+    return Array.from(groups.values())
+      .map((group) => ({
+        ...group,
+        permissions: [...group.permissions].sort((a, b) =>
+          getPermissionCanonicalKey(a).localeCompare(getPermissionCanonicalKey(b))
+        ),
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [permissions, permissionGroupingMode]);
+
   // Fetch data using REAL API - NO MOCK DATA
   const fetchRoles = useCallback(async () => {
     setLoading(true);
@@ -274,17 +541,9 @@ export default function RoleManagementPage({ params }: { params: Promise<{}> }) 
         permissionsInfo: permissionsResponse
       });
 
-      // Handle standardized response with axios wrapper: response.data = { success: true, data: [...], pagination: { ... } }
-      const rolesData = Array.isArray(rolesResponse.data?.data) ? rolesResponse.data.data : [];
-
-      // Permissions endpoint returns { success: true, data: [...] }
-      let permissionsDataRaw: any[] = [];
-      if (Array.isArray(permissionsResponse.data?.data)) {
-        permissionsDataRaw = permissionsResponse.data.data;
-      } else if (Array.isArray(permissionsResponse.data)) {
-        // Fallback if response is the array directly
-        permissionsDataRaw = permissionsResponse.data;
-      }
+      // API service already returns response.data; support both direct arrays and wrapped payloads.
+      const rolesData = extractCollection<Record<string, unknown>>(rolesResponse, ['roles']);
+      const permissionsDataRaw = extractCollection<Record<string, unknown>>(permissionsResponse, ['permissions']);
 
       // Normalize permissions to match frontend interface
       const permissionsData = permissionsDataRaw.map(normalizePermissionFromApi);
@@ -322,6 +581,16 @@ export default function RoleManagementPage({ params }: { params: Promise<{}> }) 
     fetchCurrentUserRoles();
   }, [fetchRoles]);
 
+  useEffect(() => {
+    const requestedTab = searchParams.get('tab');
+    if (!requestedTab) return;
+
+    const resolvedTab = TAB_KEY_TO_INDEX[requestedTab.toLowerCase()];
+    if (typeof resolvedTab === 'number' && resolvedTab !== currentTab) {
+      setCurrentTab(resolvedTab);
+    }
+  }, [searchParams, currentTab]);
+
   // Fetch current user's roles for approval eligibility
   const fetchCurrentUserRoles = useCallback(async () => {
     try {
@@ -341,7 +610,12 @@ export default function RoleManagementPage({ params }: { params: Promise<{}> }) 
 
   // Handlers
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    void event;
     setCurrentTab(newValue);
+    const nextTabKey = TAB_INDEX_TO_KEY[newValue] ?? 'roles';
+    const nextQuery = new URLSearchParams(searchParams.toString());
+    nextQuery.set('tab', nextTabKey);
+    router.replace(`${pathname}?${nextQuery.toString()}`, { scroll: false });
   };
 
   const handleFilterChange = (field: keyof RoleFilters, value: any) => {
@@ -360,6 +634,7 @@ export default function RoleManagementPage({ params }: { params: Promise<{}> }) 
   };
 
   const handleCreateRole = () => {
+    if (!canManageRoles) return;
     setRoleForm({
       name: '',
       displayName: '',
@@ -377,6 +652,7 @@ export default function RoleManagementPage({ params }: { params: Promise<{}> }) 
   };
 
   const handleEditRole = (role: Role) => {
+    if (!canManageRoles) return;
     setRoleForm({
       name: role.name,
       displayName: role.displayName,
@@ -402,6 +678,7 @@ export default function RoleManagementPage({ params }: { params: Promise<{}> }) 
   };
 
   const handleManagePermissions = (role: Role) => {
+    if (!canManageRoles) return;
     setPermissionDialog({
       open: true,
       role,
@@ -410,6 +687,7 @@ export default function RoleManagementPage({ params }: { params: Promise<{}> }) 
   };
 
   const handleSaveRole = async () => {
+    if (!canManageRoles) return;
     try {
       console.log('🔒 Saving role to tenant database...');
 
@@ -445,6 +723,7 @@ export default function RoleManagementPage({ params }: { params: Promise<{}> }) 
   };
 
   const handleToggleRole = async (roleId: string, isActive: boolean) => {
+    if (!canManageRoles) return;
     try {
       console.log(`🔄 ${isActive ? 'Disabling' : 'Enabling'} role in tenant database:`, roleId);
 
@@ -460,6 +739,7 @@ export default function RoleManagementPage({ params }: { params: Promise<{}> }) 
   };
 
   const handleDeleteRole = async (roleId: string) => {
+    if (!canManageRoles) return;
     try {
       console.log('🗑️ Deleting role from tenant database:', roleId);
 
@@ -478,6 +758,7 @@ export default function RoleManagementPage({ params }: { params: Promise<{}> }) 
 
   // Role Matrix handlers
   const handleMassPermissionUpdate = async (roleId: string, permissionIds: string[]) => {
+    if (!canManageRoles) return;
     try {
       console.log('🔑 Updating all permissions for role:', roleId);
 
@@ -495,6 +776,7 @@ export default function RoleManagementPage({ params }: { params: Promise<{}> }) 
   };
 
   const handleRolePermissionUpdate = async (roleId: string, permissionIds: string[]) => {
+    if (!canManageRoles) return;
     try {
       console.log('🔑 Updating permissions for role:', roleId, permissionIds);
 
@@ -513,6 +795,7 @@ export default function RoleManagementPage({ params }: { params: Promise<{}> }) 
 
   // Permission Matrix handlers
   const handlePermissionToggle = async (roleId: string, permissionId: string, isChecked: boolean) => {
+    if (!canManageRoles) return;
     try {
       const role = roles.find(r => r.id === roleId);
       if (!role) return;
@@ -545,7 +828,39 @@ export default function RoleManagementPage({ params }: { params: Promise<{}> }) 
     }
   };
 
+  const handlePermissionGroupToggle = async (roleId: string, permissionIds: string[], isChecked: boolean) => {
+    if (!canManageRoles) return;
+    try {
+      const role = roles.find(r => r.id === roleId);
+      if (!role) return;
+
+      const nextPermissions = new Set(role.permissions.map(p => p.id));
+      if (isChecked) {
+        permissionIds.forEach((permissionId) => nextPermissions.add(permissionId));
+      } else {
+        permissionIds.forEach((permissionId) => nextPermissions.delete(permissionId));
+      }
+
+      const updatedPermissionIds = Array.from(nextPermissions);
+
+      setRoles(prevRoles =>
+        prevRoles.map(r =>
+          r.id === roleId
+            ? { ...r, permissions: permissions.filter(p => updatedPermissionIds.includes(p.id)) }
+            : r
+        )
+      );
+
+      await api.roles.updatePermissions(roleId, updatedPermissionIds);
+    } catch (error) {
+      console.error('❌ Error toggling permission group:', error);
+      setError('Failed to update permission group. Please refresh and try again.');
+      await fetchRoles();
+    }
+  };
+
   const handleBulkPermissionUpdate = async () => {
+    if (!canManageRoles) return;
     try {
       setLoading(true);
       console.log('🔑 Bulk updating permissions for all roles...');
@@ -562,6 +877,7 @@ export default function RoleManagementPage({ params }: { params: Promise<{}> }) 
   };
 
   const handleBulkPermissionAssignment = async () => {
+    if (!canManageRoles) return;
     if (!bulkAssignmentRole || selectedBulkPermissions.length === 0) return;
 
     try {
@@ -586,6 +902,7 @@ export default function RoleManagementPage({ params }: { params: Promise<{}> }) 
   };
 
   const handleQuickAssign = async (category: string) => {
+    if (!canManageRoles) return;
     if (!bulkAssignmentRole) return;
 
     try {
@@ -608,6 +925,7 @@ export default function RoleManagementPage({ params }: { params: Promise<{}> }) 
   };
 
   const handleClearAllPermissions = async () => {
+    if (!canManageRoles) return;
     if (!bulkAssignmentRole) return;
 
     try {
@@ -657,11 +975,12 @@ export default function RoleManagementPage({ params }: { params: Promise<{}> }) 
   // Normalize backend permission payload into the shape expected by the UI
   const normalizePermissionFromApi = (perm: any): Permission => ({
     id: perm.id,
-    module: perm.module || 'core',
+    code: perm.code,
+    module: firstNonEmptyString(perm.module) ?? 'core',
     resource: perm.resource,
     action: perm.action,
-    displayName: perm.displayName || perm.name || `${perm.resource} ${perm.action}`,
-    description: perm.description || '',
+    displayName: firstNonEmptyString(perm.displayName, perm.display_name, perm.name) ?? `${perm.resource} ${perm.action}`,
+    description: firstNonEmptyString(perm.description) ?? '',
     category: (perm.category || 'CORE') as Permission['category'],
     riskLevel: (perm.riskLevel || 'LOW') as Permission['riskLevel'],
     requiresApproval: perm.requiresApproval ?? false,
@@ -673,20 +992,24 @@ export default function RoleManagementPage({ params }: { params: Promise<{}> }) 
 
   // Normalize backend role payload into the shape expected by the grid/UI
   const normalizeRoleFromApi = (role: any): Role => {
-    const displayName = role.displayName
-      ?? role.roleName
-      ?? role.role_name
-      ?? role.name
-      ?? role.roleCode
-      ?? role.role_code
-      ?? 'Untitled Role';
+    const displayName = firstNonEmptyString(
+      role.displayName,
+      role.display_name,
+      role.roleName,
+      role.role_name,
+      role.name,
+      role.roleCode,
+      role.role_code
+    ) ?? `Role ${String(role.id ?? 'unknown').slice(0, 8)}`;
 
-    const name = role.name
-      ?? role.roleCode
-      ?? role.role_code
-      ?? role.roleName
-      ?? role.role_name
-      ?? displayName;
+    const name = firstNonEmptyString(
+      role.name,
+      role.roleCode,
+      role.role_code,
+      role.roleName,
+      role.role_name,
+      displayName
+    ) ?? 'UNNAMED_ROLE';
 
     const type = (role.type ?? (role.isSystemRole ? 'SYSTEM' : 'CUSTOM')) as Role['type'];
     const level = (role.level ?? (role.hierarchyLevel ? 'TENANT' : 'TENANT')) as Role['level'];
@@ -706,8 +1029,8 @@ export default function RoleManagementPage({ params }: { params: Promise<{}> }) 
       bankingAccess,
       isActive: role.isActive ?? true,
       isBuiltIn: role.isBuiltIn ?? role.isSystemRole ?? false,
-      assignedUsers: Number(role.assignedUsers ?? 0),
-      createdAt: (role.createdAt ?? role.created_at ?? '') as string,
+      assignedUsers: Number(role.assignedUsers ?? role.assigned_users ?? role.userCount ?? role.user_count ?? 0),
+      createdAt: (role.createdAt ?? role.created_at ?? new Date().toISOString()) as string,
       updatedAt: role.updatedAt ?? role.updated_at,
       permissions: flattenPermissionsFromAPI(role.permissions || {}),
     };
@@ -813,32 +1136,42 @@ export default function RoleManagementPage({ params }: { params: Promise<{}> }) 
       width: 150,
       type: 'actions',
       getActions: (params: GridRowParams) => [
-        <SafeGridActionsCellItem
-          key="view"
-          icon={<VisibilityIcon fontSize="small" />}
-          label="View Role"
-          onClick={() => handleViewRole(params.row)}
-        />,
-        <SafeGridActionsCellItem
-          key="edit"
-          icon={<EditIcon fontSize="small" />}
-          label="Edit Role"
-          onClick={() => handleEditRole(params.row)}
-          disabled={params.row.isBuiltIn}
-        />,
-        <SafeGridActionsCellItem
-          key="permissions"
-          icon={<SecurityIcon fontSize="small" />}
-          label="Manage Permissions"
-          onClick={() => handleManagePermissions(params.row)}
-        />,
-        <SafeGridActionsCellItem
-          key="toggle"
-          icon={params.row.isActive ? <CancelIcon fontSize="small" /> : <CheckCircleIcon fontSize="small" />}
-          label={params.row.isActive ? 'Disable Role' : 'Enable Role'}
-          onClick={() => handleToggleRole(params.row.id, params.row.isActive)}
-          disabled={params.row.isBuiltIn}
-        />,
+        ...(canViewRoles ? [(
+          <SafeGridActionsCellItem
+            key="view"
+            icon={<VisibilityIcon fontSize="small" />}
+            label="View Role"
+            onClick={() => handleViewRole(params.row)}
+          />
+        )] : []),
+        ...(canManageRoles ? [
+          (
+            <SafeGridActionsCellItem
+              key="edit"
+              icon={<EditIcon fontSize="small" />}
+              label="Edit Role"
+              onClick={() => handleEditRole(params.row)}
+              disabled={params.row.isBuiltIn}
+            />
+          ),
+          (
+            <SafeGridActionsCellItem
+              key="permissions"
+              icon={<SecurityIcon fontSize="small" />}
+              label="Manage Permissions"
+              onClick={() => handleManagePermissions(params.row)}
+            />
+          ),
+          (
+            <SafeGridActionsCellItem
+              key="toggle"
+              icon={params.row.isActive ? <CancelIcon fontSize="small" /> : <CheckCircleIcon fontSize="small" />}
+              label={params.row.isActive ? 'Disable Role' : 'Enable Role'}
+              onClick={() => handleToggleRole(params.row.id, params.row.isActive)}
+              disabled={params.row.isBuiltIn}
+            />
+          )
+        ] : []),
       ],
     },
   ];
@@ -873,6 +1206,16 @@ export default function RoleManagementPage({ params }: { params: Promise<{}> }) 
       </CardContent>
     </Card>
   );
+
+  if (!canViewRoles) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="error">
+          You do not have permission to view role management.
+        </Alert>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ flexGrow: 1, p: 3 }}>
@@ -948,6 +1291,11 @@ export default function RoleManagementPage({ params }: { params: Promise<{}> }) 
             iconPosition="start"
           />
           <Tab
+            label="Users"
+            icon={<PeopleIcon />}
+            iconPosition="start"
+          />
+          <Tab
             label="Permissions"
             icon={<KeyIcon />}
             iconPosition="start"
@@ -955,6 +1303,11 @@ export default function RoleManagementPage({ params }: { params: Promise<{}> }) 
           <Tab
             label="Role Matrix"
             icon={<AssignmentIcon />}
+            iconPosition="start"
+          />
+          <Tab
+            label="Assignments"
+            icon={<PeopleIcon />}
             iconPosition="start"
           />
         </Tabs>
@@ -985,14 +1338,16 @@ export default function RoleManagementPage({ params }: { params: Promise<{}> }) 
                 >
                   Refresh
                 </Button>
-                <Button
-                  variant="contained"
-                  startIcon={<AddIcon />}
-                  onClick={handleCreateRole}
-                  size="small"
-                >
-                  Add Role
-                </Button>
+                <Can permission={['admin.roles.create', 'admin.roles.manage', 'admin.super_admin']}>
+                  <Button
+                    variant="contained"
+                    startIcon={<AddIcon />}
+                    onClick={handleCreateRole}
+                    size="small"
+                  >
+                    Add Role
+                  </Button>
+                </Can>
               </Box>
             }
           />
@@ -1077,7 +1432,7 @@ export default function RoleManagementPage({ params }: { params: Promise<{}> }) 
                   paginationModel: { pageSize: 25 },
                 },
               }}
-              checkboxSelection
+              checkboxSelection={canManageRoles}
               disableRowSelectionOnClick
               sx={{ height: 600 }}
             />
@@ -1085,8 +1440,13 @@ export default function RoleManagementPage({ params }: { params: Promise<{}> }) 
         </Card>
       </TabPanel>
 
-      {/* Permissions Tab */}
+      {/* Users Tab */}
       <TabPanel value={currentTab} index={1}>
+        <UserManagementPanel embedded />
+      </TabPanel>
+
+      {/* Permissions Tab */}
+      <TabPanel value={currentTab} index={2}>
         {/* User Approval Level Summary */}
         <Card sx={{ mb: 3, bgcolor: theme.palette.mode === 'dark' ? 'grey.900' : 'primary.50' }}>
           <CardContent>
@@ -1191,6 +1551,7 @@ export default function RoleManagementPage({ params }: { params: Promise<{}> }) 
                               {permission.category === 'CORE' && <SettingsIcon />}
                             </ListItemIcon>
                             <ListItemText
+                              disableTypography
                               primary={
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                   <Typography variant="body2">
@@ -1281,25 +1642,30 @@ export default function RoleManagementPage({ params }: { params: Promise<{}> }) 
                   >
                     Refresh
                   </Button>
-                  <Button
-                    variant="contained"
-                    startIcon={<SaveIcon />}
-                    onClick={handleBulkPermissionUpdate}
-                    size="small"
-                    color="primary"
-                  >
-                    Save Changes
-                  </Button>
+                  <Can permission={['admin.roles.manage', 'admin.super_admin']}>
+                    <Button
+                      variant="contained"
+                      startIcon={<SaveIcon />}
+                      onClick={handleBulkPermissionUpdate}
+                      size="small"
+                      color="primary"
+                    >
+                      Save Changes
+                    </Button>
+                  </Can>
                 </Box>
               }
             />
             <CardContent>
-              <TableContainer component={Paper} sx={{ maxHeight: 600 }}>
+              <TableContainer component={Paper} sx={{ maxHeight: 680, borderRadius: 2 }}>
                 <Table stickyHeader size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 'bold', minWidth: 200 }}>
-                        Permission
+                      <TableCell sx={{ fontWeight: 'bold', minWidth: 280 }}>
+                        Menu / Permission Group
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 'bold', minWidth: 260 }}>
+                        Permission Key
                       </TableCell>
                       {roles.map((role) => (
                         <TableCell
@@ -1307,64 +1673,132 @@ export default function RoleManagementPage({ params }: { params: Promise<{}> }) 
                           align="center"
                           sx={{
                             fontWeight: 'bold',
-                            minWidth: 120,
-                            writingMode: 'vertical-rl',
-                            textOrientation: 'mixed',
-                            transform: 'rotate(180deg)',
+                            minWidth: 150,
                           }}
                         >
-                          {role.displayName}
+                          <Box>
+                            <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                              {role.displayName}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {role.permissions.length} assigned
+                            </Typography>
+                          </Box>
                         </TableCell>
                       ))}
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {permissions.map((permission) => (
-                      <TableRow key={permission.id} hover>
-                        <TableCell sx={{ fontWeight: 'medium' }}>
-                          <Box>
-                            <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                              {permission.displayName}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {permission.module}.{permission.resource}:{permission.action}
-                            </Typography>
-                            <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5 }}>
-                              <Chip
-                                label={permission.riskLevel}
-                                size="small"
-                                color={getRiskLevelColor(permission.riskLevel) as any}
-                                variant="outlined"
-                              />
-                              {permission.requiresApproval && (
-                                <Chip
-                                  label="Approval"
-                                  size="small"
-                                  color="warning"
-                                  variant="filled"
-                                />
-                              )}
+                    {permissionMatrixCategories.map((category) => (
+                      <React.Fragment key={category.key}>
+                        <TableRow>
+                          <TableCell
+                            colSpan={roles.length + 2}
+                            sx={{
+                              fontWeight: 'bold',
+                              backgroundColor: theme.palette.grey[100],
+                              borderTop: `1px solid ${theme.palette.divider}`,
+                            }}
+                          >
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <Typography variant="subtitle2">{category.label}</Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {category.groups.length} groups
+                              </Typography>
                             </Box>
-                          </Box>
-                        </TableCell>
-                        {roles.map((role) => {
-                          const hasPermission = role.permissions.some(p => p.id === permission.id);
+                          </TableCell>
+                        </TableRow>
+
+                        {category.groups.map((group) => {
+                          const groupPermissionIds = group.permissions.map((item) => item.permission.id);
                           return (
-                            <TableCell key={`${role.id}-${permission.id}`} align="center">
-                              <Checkbox
-                                size="small"
-                                checked={hasPermission}
-                                onChange={(e) => {
-                                  const isChecked = e.target.checked;
-                                  handlePermissionToggle(role.id, permission.id, isChecked);
-                                }}
-                                disabled={role.isBuiltIn}
-                                color="primary"
-                              />
-                            </TableCell>
+                            <React.Fragment key={group.key}>
+                              <TableRow hover sx={{ backgroundColor: theme.palette.action.selected }}>
+                                <TableCell sx={{ fontWeight: 'bold' }}>
+                                  {group.label}
+                                </TableCell>
+                                <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
+                                  {group.key}
+                                </TableCell>
+                                {roles.map((role) => {
+                                  const rolePermissionSet = rolePermissionSetMap.get(role.id) || new Set<string>();
+                                  const selectedCount = groupPermissionIds.filter((id) => rolePermissionSet.has(id)).length;
+                                  const allSelected = groupPermissionIds.length > 0 && selectedCount === groupPermissionIds.length;
+                                  const partiallySelected = selectedCount > 0 && !allSelected;
+
+                                  return (
+                                    <TableCell key={`${role.id}-${group.key}`} align="center">
+                                      <Tooltip title={`Toggle all ${group.permissions.length} permissions for ${role.displayName}`}>
+                                        <Checkbox
+                                          size="small"
+                                          checked={allSelected}
+                                          indeterminate={partiallySelected}
+                                          onChange={(e) => handlePermissionGroupToggle(role.id, groupPermissionIds, e.target.checked)}
+                                          disabled={role.isBuiltIn || !canManageRoles}
+                                          color="primary"
+                                        />
+                                      </Tooltip>
+                                    </TableCell>
+                                  );
+                                })}
+                              </TableRow>
+
+                              {group.permissions.map((item) => (
+                                <TableRow key={item.permission.id} hover>
+                                  <TableCell sx={{ pl: 4 }}>
+                                    <Box>
+                                      <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                                        {item.permission.displayName}
+                                      </Typography>
+                                      <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
+                                        <Chip
+                                          label={item.actionKey.replace(/[_.]/g, ' ').toUpperCase()}
+                                          size="small"
+                                          variant="filled"
+                                          color="primary"
+                                        />
+                                        <Chip
+                                          label={item.permission.riskLevel}
+                                          size="small"
+                                          color={getRiskLevelColor(item.permission.riskLevel) as any}
+                                          variant="outlined"
+                                        />
+                                        {item.permission.requiresApproval && (
+                                          <Chip
+                                            label="Approval"
+                                            size="small"
+                                            color="warning"
+                                            variant="filled"
+                                          />
+                                        )}
+                                      </Box>
+                                    </Box>
+                                  </TableCell>
+                                  <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
+                                    {item.fullKey}
+                                  </TableCell>
+                                  {roles.map((role) => {
+                                    const rolePermissionSet = rolePermissionSetMap.get(role.id) || new Set<string>();
+                                    const hasPermission = rolePermissionSet.has(item.permission.id);
+
+                                    return (
+                                      <TableCell key={`${role.id}-${item.permission.id}`} align="center">
+                                        <Checkbox
+                                          size="small"
+                                          checked={hasPermission}
+                                          onChange={(e) => handlePermissionToggle(role.id, item.permission.id, e.target.checked)}
+                                          disabled={role.isBuiltIn || !canManageRoles}
+                                          color="primary"
+                                        />
+                                      </TableCell>
+                                    );
+                                  })}
+                                </TableRow>
+                              ))}
+                            </React.Fragment>
                           );
                         })}
-                      </TableRow>
+                      </React.Fragment>
                     ))}
                   </TableBody>
                 </Table>
@@ -1398,6 +1832,19 @@ export default function RoleManagementPage({ params }: { params: Promise<{}> }) 
                     </Select>
                   </FormControl>
 
+                  <FormControl fullWidth sx={{ mb: 2 }} size="small">
+                    <InputLabel>Group Permissions By</InputLabel>
+                    <Select
+                      value={permissionGroupingMode}
+                      onChange={(e) => setPermissionGroupingMode(e.target.value as PermissionGroupingMode)}
+                      label="Group Permissions By"
+                    >
+                      <MenuItem value="resource">Resource (Recommended)</MenuItem>
+                      <MenuItem value="module">Module</MenuItem>
+                      <MenuItem value="category">Legacy Category</MenuItem>
+                    </Select>
+                  </FormControl>
+
                   {bulkAssignmentRole && (
                     <Box>
                       <Typography variant="h6" gutterBottom>
@@ -1421,16 +1868,21 @@ export default function RoleManagementPage({ params }: { params: Promise<{}> }) 
                       />
 
                       <Box sx={{ maxHeight: 300, overflow: 'auto', mt: 2 }}>
-                        {permissionCategories.map((category) => (
-                          <Accordion key={category.name} defaultExpanded={false}>
+                        {permissionSelectionGroups.map((group) => (
+                          <Accordion key={group.key} defaultExpanded={false}>
                             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                              <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                                {category.displayName} ({category.permissions.length})
-                              </Typography>
+                              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                                <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                                  {group.label} ({group.permissions.length})
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary" sx={{ pr: 2 }}>
+                                  {group.hint}
+                                </Typography>
+                              </Box>
                             </AccordionSummary>
                             <AccordionDetails>
                               <List dense>
-                                {category.permissions.map((permission) => {
+                                {group.permissions.map((permission) => {
                                   const isSelected = selectedBulkPermissions.includes(permission.id);
                                   return (
                                     <ListItem key={permission.id} dense>
@@ -1449,7 +1901,7 @@ export default function RoleManagementPage({ params }: { params: Promise<{}> }) 
                                       </ListItemIcon>
                                       <ListItemText
                                         primary={permission.displayName}
-                                        secondary={`${permission.module}.${permission.resource}:${permission.action}`}
+                                        secondary={getPermissionCanonicalKey(permission)}
                                       />
                                     </ListItem>
                                   );
@@ -1544,7 +1996,7 @@ export default function RoleManagementPage({ params }: { params: Promise<{}> }) 
       </TabPanel>
 
       {/* Role Matrix Tab */}
-      <TabPanel value={currentTab} index={2}>
+      <TabPanel value={currentTab} index={3}>
         <Card>
           <CardHeader
             title="Role-Permission Matrix"
@@ -1613,20 +2065,20 @@ export default function RoleManagementPage({ params }: { params: Promise<{}> }) 
               </FormControl>
 
               <FormControl size="small" sx={{ minWidth: 150 }}>
-                <InputLabel>Filter Category</InputLabel>
+                <InputLabel>Filter Group</InputLabel>
                 <Select
                   value=""
                   onChange={(e) => {
-                    const category = e.target.value;
-                    // Implement category filtering
-                    console.log('🔍 Filtering by category:', category);
+                    const group = e.target.value;
+                    // TODO: Implement group filtering behavior for this matrix view.
+                    console.log('🔍 Filtering by group:', group);
                   }}
-                  label="Filter Category"
+                  label="Filter Group"
                 >
-                  <MenuItem value="">All Categories</MenuItem>
-                  {permissionCategories.map((category) => (
-                    <MenuItem key={category.name} value={category.name}>
-                      {category.displayName}
+                  <MenuItem value="">All Groups</MenuItem>
+                  {permissionSelectionGroups.map((group) => (
+                    <MenuItem key={group.key} value={group.key}>
+                      {group.label}
                     </MenuItem>
                   ))}
                 </Select>
@@ -1867,6 +2319,11 @@ export default function RoleManagementPage({ params }: { params: Promise<{}> }) 
         </Card>
       </TabPanel>
 
+      {/* Assignments Tab */}
+      <TabPanel value={currentTab} index={4}>
+        <UserRoleAssignment onAssignmentChange={fetchRoles} />
+      </TabPanel>
+
       {/* Role Dialog */}
       <Dialog
         open={roleDialog.open}
@@ -2017,17 +2474,17 @@ export default function RoleManagementPage({ params }: { params: Promise<{}> }) 
               <FormControlLabel
                 control={
                   <Checkbox
-                    checked={permissionCategories.every(cat =>
-                      cat.permissions.every(p => permissionDialog.selectedPermissions.includes(p.id))
+                    checked={permissionSelectionGroups.every(group =>
+                      group.permissions.every(p => permissionDialog.selectedPermissions.includes(p.id))
                     )}
-                    indeterminate={permissionCategories.some(cat =>
-                      cat.permissions.some(p => permissionDialog.selectedPermissions.includes(p.id)) &&
-                      !cat.permissions.every(p => permissionDialog.selectedPermissions.includes(p.id))
+                    indeterminate={permissionSelectionGroups.some(group =>
+                      group.permissions.some(p => permissionDialog.selectedPermissions.includes(p.id)) &&
+                      !group.permissions.every(p => permissionDialog.selectedPermissions.includes(p.id))
                     )}
                     onChange={(e) => {
                       if (e.target.checked) {
-                        // Select all permissions from all categories
-                        const allPermissionIds = permissionCategories.flatMap(cat => cat.permissions.map(p => p.id));
+                        // Select all permissions from all groups
+                        const allPermissionIds = permissionSelectionGroups.flatMap(group => group.permissions.map(p => p.id));
                         setPermissionDialog({
                           ...permissionDialog,
                           selectedPermissions: [...new Set([...permissionDialog.selectedPermissions, ...allPermissionIds])]
@@ -2044,41 +2501,53 @@ export default function RoleManagementPage({ params }: { params: Promise<{}> }) 
                 }
                 label={<Typography variant="subtitle1" fontWeight="bold">Select All Permissions</Typography>}
               />
+              <FormControl size="small" sx={{ minWidth: 250 }}>
+                <InputLabel>Group Permissions By</InputLabel>
+                <Select
+                  value={permissionGroupingMode}
+                  onChange={(e) => setPermissionGroupingMode(e.target.value as PermissionGroupingMode)}
+                  label="Group Permissions By"
+                >
+                  <MenuItem value="resource">Resource (Recommended)</MenuItem>
+                  <MenuItem value="module">Module</MenuItem>
+                  <MenuItem value="category">Legacy Category</MenuItem>
+                </Select>
+              </FormControl>
               <Typography variant="body2" color="text.secondary">
                 {permissionDialog.selectedPermissions.length} of {permissions.length} permissions selected
               </Typography>
             </Box>
 
-            {/* Permission Categories */}
-            {permissionCategories.map((category) => {
-              const categoryPermissions = category.permissions;
-              const selectedInCategory = categoryPermissions.filter(p => permissionDialog.selectedPermissions.includes(p.id)).length;
-              const isCategoryFullySelected = selectedInCategory === categoryPermissions.length;
-              const isCategoryPartiallySelected = selectedInCategory > 0 && selectedInCategory < categoryPermissions.length;
+            {/* Permission Groups */}
+            {permissionSelectionGroups.map((group) => {
+              const groupPermissions = group.permissions;
+              const selectedInGroup = groupPermissions.filter(p => permissionDialog.selectedPermissions.includes(p.id)).length;
+              const isGroupFullySelected = selectedInGroup === groupPermissions.length;
+              const isGroupPartiallySelected = selectedInGroup > 0 && selectedInGroup < groupPermissions.length;
 
               return (
-                <Accordion key={category.name} defaultExpanded>
+                <Accordion key={group.key} defaultExpanded>
                   <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
                       <FormControlLabel
                         control={
                           <Checkbox
-                            checked={isCategoryFullySelected}
-                            indeterminate={isCategoryPartiallySelected}
+                            checked={isGroupFullySelected}
+                            indeterminate={isGroupPartiallySelected}
                             onChange={(e) => {
                               e.stopPropagation(); // Prevent accordion toggle
-                              const categoryPermissionIds = categoryPermissions.map(p => p.id);
+                              const groupPermissionIds = groupPermissions.map(p => p.id);
                               if (e.target.checked) {
-                                // Select all in category
+                                // Select all in this group
                                 setPermissionDialog({
                                   ...permissionDialog,
-                                  selectedPermissions: [...new Set([...permissionDialog.selectedPermissions, ...categoryPermissionIds])]
+                                  selectedPermissions: [...new Set([...permissionDialog.selectedPermissions, ...groupPermissionIds])]
                                 });
                               } else {
-                                // Deselect all in category
+                                // Deselect all in this group
                                 setPermissionDialog({
                                   ...permissionDialog,
-                                  selectedPermissions: permissionDialog.selectedPermissions.filter(id => !categoryPermissionIds.includes(id))
+                                  selectedPermissions: permissionDialog.selectedPermissions.filter(id => !groupPermissionIds.includes(id))
                                 });
                               }
                             }}
@@ -2087,27 +2556,27 @@ export default function RoleManagementPage({ params }: { params: Promise<{}> }) 
                         }
                         label={
                           <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                            {category.displayName}
+                            {group.label}
                           </Typography>
                         }
                         sx={{ flex: 1 }}
                       />
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <Chip
-                          label={`${selectedInCategory}/${categoryPermissions.length}`}
+                          label={`${selectedInGroup}/${groupPermissions.length}`}
                           size="small"
-                          color={isCategoryFullySelected ? 'success' : selectedInCategory > 0 ? 'warning' : 'default'}
+                          color={isGroupFullySelected ? 'success' : selectedInGroup > 0 ? 'warning' : 'default'}
                           variant="outlined"
                         />
                         <Typography variant="body2" color="text.secondary">
-                          {category.name}
+                          {group.hint}
                         </Typography>
                       </Box>
                     </Box>
                   </AccordionSummary>
                   <AccordionDetails>
                     <Grid container spacing={1}>
-                      {category.permissions.map((permission) => (
+                      {group.permissions.map((permission) => (
                         <Grid size={{ xs: 12, sm: 6, md: 4 }} key={permission.id}>
                           <FormControlLabel
                             control={
@@ -2136,7 +2605,7 @@ export default function RoleManagementPage({ params }: { params: Promise<{}> }) 
                                   {permission.displayName}
                                 </Typography>
                                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                                  {permission.module}.{permission.resource}:{permission.action}
+                                  {getPermissionCanonicalKey(permission)}
                                 </Typography>
                                 <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5 }}>
                                   <Chip

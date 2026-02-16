@@ -89,7 +89,7 @@ const STAKEHOLDER_ROUTES = {
 
 // ✅ CORRECTED: Default redirects matching YOUR tree structure
 const STAKEHOLDER_DEFAULTS = {
-  'platform': '/platform/dashboard',
+  'platform': '/platform/users',
   'banking': '/banking/dashboard',  // ✅ YOUR ACTUAL DIRECT FOLDER structure
   'consultant': '/consultant/dashboard',
   'regulator': '/regulator/dashboard'

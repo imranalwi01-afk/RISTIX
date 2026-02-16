@@ -162,6 +162,95 @@ interface UserRoleAssignmentProps {
   refreshTrigger?: number;
 }
 
+const asOptionalString = (value: unknown): string | undefined =>
+  typeof value === 'string' && value.length > 0 ? value : undefined;
+
+const extractCollection = <T,>(payload: unknown, keys: string[] = []): T[] => {
+  if (Array.isArray(payload)) return payload as T[];
+  if (!payload || typeof payload !== 'object') return [];
+
+  const record = payload as Record<string, unknown>;
+  if (Array.isArray(record.data)) return record.data as T[];
+
+  for (const key of keys) {
+    if (Array.isArray(record[key])) return record[key] as T[];
+  }
+
+  const nestedData = record.data;
+  if (nestedData && typeof nestedData === 'object') {
+    const nestedRecord = nestedData as Record<string, unknown>;
+    if (Array.isArray(nestedRecord.data)) return nestedRecord.data as T[];
+    for (const key of keys) {
+      if (Array.isArray(nestedRecord[key])) return nestedRecord[key] as T[];
+    }
+
+    const deepNestedData = nestedRecord.data;
+    if (deepNestedData && typeof deepNestedData === 'object') {
+      const deepNestedRecord = deepNestedData as Record<string, unknown>;
+      for (const key of keys) {
+        if (Array.isArray(deepNestedRecord[key])) return deepNestedRecord[key] as T[];
+      }
+    }
+  }
+
+  return [];
+};
+
+const normalizeAssignments = (input: unknown): UserRoleAssignment[] =>
+  extractCollection<Record<string, unknown>>(input, ['roleAssignments', 'assignments', 'roles']).map((assignment) => ({
+    id: String(assignment.id ?? ''),
+    userId: String(assignment.userId ?? assignment.user_id ?? ''),
+    roleId: String(assignment.roleId ?? assignment.role_id ?? (assignment.role as Record<string, unknown> | undefined)?.id ?? ''),
+    assignedAt: String(assignment.assignedAt ?? assignment.assigned_at ?? new Date().toISOString()),
+    assignedBy: String(assignment.assignedBy ?? assignment.assigned_by ?? ''),
+    isActive: Boolean(assignment.isActive ?? assignment.is_active ?? true),
+    validFrom: asOptionalString(assignment.validFrom ?? assignment.valid_from),
+    validUntil: asOptionalString(assignment.validUntil ?? assignment.valid_until),
+    isTemporary: Boolean(assignment.isTemporary ?? assignment.is_temporary ?? false)
+  }));
+
+const normalizeUsers = (input: unknown): User[] =>
+  extractCollection<Record<string, unknown>>(input, ['users']).map((user) => ({
+    id: String(user.id ?? ''),
+    email: String(user.email ?? ''),
+    fullName: String(user.fullName ?? user.full_name ?? user.username ?? user.email ?? 'Unknown User'),
+    isActive: Boolean(user.isActive ?? user.is_active ?? true),
+    createdAt: String(user.createdAt ?? user.created_at ?? new Date().toISOString()),
+    lastLoginAt: (user.lastLoginAt as string | undefined) ?? (user.last_login_at as string | undefined),
+    roleAssignments: normalizeAssignments(user.roleAssignments ?? user.role_assignments ?? user.assignments)
+  }));
+
+const normalizePermissions = (input: unknown): Record<string, Permission[]> => {
+  if (Array.isArray(input)) {
+    return { GENERAL: input as Permission[] };
+  }
+
+  if (input && typeof input === 'object') {
+    return input as Record<string, Permission[]>;
+  }
+
+  return {};
+};
+
+const normalizeRoles = (input: unknown): Role[] =>
+  extractCollection<Record<string, unknown>>(input, ['roles']).map((role) => ({
+    id: String(role.id ?? ''),
+    name: String(role.name ?? role.roleName ?? role.role_name ?? role.roleCode ?? role.role_code ?? ''),
+    displayName: String(role.displayName ?? role.display_name ?? role.roleName ?? role.role_name ?? role.name ?? role.roleCode ?? role.role_code ?? ''),
+    description: String(role.description ?? ''),
+    type: (role.type as Role['type']) ?? (role.isSystemRole ? 'SYSTEM' : 'CUSTOM'),
+    level: (role.level as Role['level']) ?? 'TENANT',
+    bankingAccess: (role.bankingAccess as Role['bankingAccess']) ?? (role.banking_access as Role['bankingAccess']),
+    isActive: Boolean(role.isActive ?? role.is_active ?? true),
+    isBuiltIn: Boolean(role.isBuiltIn ?? role.is_built_in ?? false),
+    permissions: normalizePermissions(role.permissions),
+    assignedUsers: Number(role.assignedUsers ?? role.assigned_users ?? role.userCount ?? role.user_count ?? 0),
+    createdAt: String(role.createdAt ?? role.created_at ?? new Date().toISOString())
+  }));
+
+const getRoleLabel = (role: Role | null | undefined): string =>
+  role?.displayName || role?.name || 'Unnamed Role';
+
 const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
   onAssignmentChange,
   refreshTrigger = 0
@@ -186,7 +275,9 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
     role: null
   });
   // Helper function to flatten grouped permissions
-  const flattenPermissions = (groupedPermissions: Record<string, Permission[]>): Permission[] => {
+  const flattenPermissions = (groupedPermissions: Record<string, Permission[]> | Permission[] | undefined | null): Permission[] => {
+    if (Array.isArray(groupedPermissions)) return groupedPermissions;
+    if (!groupedPermissions || typeof groupedPermissions !== 'object') return [];
     return Object.values(groupedPermissions).flat();
   };
   // Bulk assignment state
@@ -212,6 +303,8 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
   const [userRowsPerPage, setUserRowsPerPage] = useState(10);
   const [rolePage, setRolePage] = useState(0);
   const [roleRowsPerPage, setRoleRowsPerPage] = useState(10);
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [selectedRoleIds, setSelectedRoleIds] = useState<string[]>([]);
 
   // Fetch data
   const fetchData = async () => {
@@ -225,10 +318,91 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
         api.roles.getAll({})
       ]);
 
-      setUsers(usersResponse.data || []);
-      setRoles(rolesResponse.data || []);
+      let normalizedUsers = normalizeUsers(usersResponse);
+      let normalizedRoles = normalizeRoles(rolesResponse);
 
-      console.log(`✅ Fetched ${usersResponse.data?.length || 0} users and ${rolesResponse.data?.length || 0} roles`);
+      if (normalizedUsers.length > 0) {
+        const userRoleResponses = await Promise.allSettled(
+          normalizedUsers.map((user) => api.roles.getUserRoles(user.id))
+        );
+
+        const assignmentMap = new Map<string, UserRoleAssignment[]>();
+        const discoveredRoles: Record<string, unknown>[] = [];
+
+        userRoleResponses.forEach((result, index) => {
+          if (result.status !== 'fulfilled') return;
+
+          const userId = normalizedUsers[index].id;
+          const roleRows = extractCollection<Record<string, unknown>>(result.value, ['roles']);
+          const assignments = roleRows
+            .map((row) => {
+              const embeddedRole = row.role as Record<string, unknown> | undefined;
+              if (embeddedRole) discoveredRoles.push(embeddedRole);
+              const roleId = String(row.roleId ?? row.role_id ?? embeddedRole?.id ?? '');
+              if (!roleId) return null;
+
+              return {
+                id: String(row.id ?? `${userId}-${roleId}`),
+                userId,
+                roleId,
+                assignedAt: String(row.assignedAt ?? row.assigned_at ?? new Date().toISOString()),
+                assignedBy: String(row.assignedBy ?? row.assigned_by ?? ''),
+                isActive: Boolean(row.isActive ?? row.is_active ?? true),
+                validFrom: asOptionalString(row.validFrom ?? row.valid_from),
+                validUntil: asOptionalString(row.validUntil ?? row.valid_until),
+                isTemporary: Boolean(row.isTemporary ?? row.is_temporary ?? false),
+              } as UserRoleAssignment;
+            })
+            .filter((item): item is UserRoleAssignment => item !== null);
+
+          assignmentMap.set(userId, assignments);
+        });
+
+        if (discoveredRoles.length > 0) {
+          const mergedRoles = [...normalizedRoles, ...normalizeRoles(discoveredRoles)];
+          const dedupedRoles = new Map<string, Role>();
+          mergedRoles.forEach((role) => {
+            dedupedRoles.set(role.id, role);
+          });
+          normalizedRoles = Array.from(dedupedRoles.values());
+        }
+
+        normalizedUsers = normalizedUsers.map((user) => {
+          const fetchedAssignments = assignmentMap.get(user.id) || [];
+          const mergedByRole = new Map<string, UserRoleAssignment>();
+          [...user.roleAssignments, ...fetchedAssignments].forEach((assignment) => {
+            if (!assignment.roleId) return;
+            mergedByRole.set(assignment.roleId, { ...assignment, userId: user.id });
+          });
+
+          return {
+            ...user,
+            roleAssignments: Array.from(mergedByRole.values()),
+          };
+        });
+      }
+
+      const assignedUsersByRole = new Map<string, number>();
+      normalizedUsers.forEach((user) => {
+        const uniqueRoleIds = new Set(user.roleAssignments.filter((assignment) => assignment.isActive).map((assignment) => assignment.roleId));
+        uniqueRoleIds.forEach((roleId) => {
+          assignedUsersByRole.set(roleId, (assignedUsersByRole.get(roleId) || 0) + 1);
+        });
+      });
+
+      normalizedRoles = normalizedRoles.map((role) => ({
+        ...role,
+        name: role.name || role.displayName || 'UNNAMED_ROLE',
+        displayName: getRoleLabel(role),
+        assignedUsers: assignedUsersByRole.get(role.id) ?? role.assignedUsers ?? 0,
+      }));
+
+      setUsers(normalizedUsers);
+      setRoles(normalizedRoles);
+      setSelectedUserIds((prev) => prev.filter((id) => normalizedUsers.some((user) => user.id === id)));
+      setSelectedRoleIds((prev) => prev.filter((id) => normalizedRoles.some((role) => role.id === id)));
+
+      console.log(`✅ Fetched ${normalizedUsers.length} users and ${normalizedRoles.length} roles`);
 
     } catch (error) {
       console.error('❌ Error fetching user-role assignment data:', error);
@@ -265,7 +439,7 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
   const filteredRoles = useMemo(() => {
     return roles.filter(role => {
       if (!showInactiveRoles && !role.isActive) return false;
-      if (searchTerm && !role.displayName.toLowerCase().includes(searchTerm.toLowerCase()) &&
+      if (searchTerm && !getRoleLabel(role).toLowerCase().includes(searchTerm.toLowerCase()) &&
         !role.name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
       return true;
     });
@@ -281,6 +455,53 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
     const startIndex = rolePage * roleRowsPerPage;
     return filteredRoles.slice(startIndex, startIndex + roleRowsPerPage);
   }, [filteredRoles, rolePage, roleRowsPerPage]);
+
+  const selectedUsers = useMemo(
+    () => users.filter((user) => selectedUserIds.includes(user.id)),
+    [users, selectedUserIds]
+  );
+
+  const selectedRoles = useMemo(
+    () => roles.filter((role) => selectedRoleIds.includes(role.id)),
+    [roles, selectedRoleIds]
+  );
+
+  const filteredUserIds = useMemo(() => filteredUsers.map((user) => user.id), [filteredUsers]);
+  const filteredRoleIds = useMemo(() => filteredRoles.map((role) => role.id), [filteredRoles]);
+  const allFilteredUsersSelected = filteredUserIds.length > 0 && filteredUserIds.every((id) => selectedUserIds.includes(id));
+  const allFilteredRolesSelected = filteredRoleIds.length > 0 && filteredRoleIds.every((id) => selectedRoleIds.includes(id));
+  const someFilteredUsersSelected = filteredUserIds.some((id) => selectedUserIds.includes(id));
+  const someFilteredRolesSelected = filteredRoleIds.some((id) => selectedRoleIds.includes(id));
+
+  const toggleUserSelection = (userId: string, checked: boolean) => {
+    setSelectedUserIds((prev) => {
+      if (checked) return [...new Set([...prev, userId])];
+      return prev.filter((id) => id !== userId);
+    });
+  };
+
+  const toggleRoleSelection = (roleId: string, checked: boolean) => {
+    setSelectedRoleIds((prev) => {
+      if (checked) return [...new Set([...prev, roleId])];
+      return prev.filter((id) => id !== roleId);
+    });
+  };
+
+  const handleSelectAllFilteredUsers = (checked: boolean) => {
+    if (checked) {
+      setSelectedUserIds((prev) => [...new Set([...prev, ...filteredUserIds])]);
+      return;
+    }
+    setSelectedUserIds((prev) => prev.filter((id) => !filteredUserIds.includes(id)));
+  };
+
+  const handleSelectAllFilteredRoles = (checked: boolean) => {
+    if (checked) {
+      setSelectedRoleIds((prev) => [...new Set([...prev, ...filteredRoleIds])]);
+      return;
+    }
+    setSelectedRoleIds((prev) => prev.filter((id) => !filteredRoleIds.includes(id)));
+  };
 
   // Get role type color
   const getRoleTypeColor = (type: string) => {
@@ -442,18 +663,55 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
           User-Role Assignment Management
         </Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
+          <Chip
+            size="small"
+            color="primary"
+            label={`Selected ${selectedUserIds.length} users • ${selectedRoleIds.length} roles`}
+          />
           <Button
             variant="contained"
             startIcon={<GroupIcon />}
-            onClick={() => setBulkDialog({ ...bulkDialog, open: true, mode: 'assign' })}
+            onClick={() => setBulkDialog({
+              open: true,
+              mode: 'assign',
+              selectedUsers: selectedUserIds,
+              selectedRoles: selectedRoleIds
+            })}
+            disabled={selectedUserIds.length === 0 || selectedRoleIds.length === 0}
           >
             Bulk Assign
+          </Button>
+          <Button
+            variant="outlined"
+            color="error"
+            onClick={() => setBulkDialog({
+              open: true,
+              mode: 'remove',
+              selectedUsers: selectedUserIds,
+              selectedRoles: selectedRoleIds
+            })}
+            disabled={selectedUserIds.length === 0 || selectedRoleIds.length === 0}
+          >
+            Bulk Remove
+          </Button>
+          <Button
+            variant="text"
+            onClick={() => {
+              setSelectedUserIds([]);
+              setSelectedRoleIds([]);
+            }}
+            disabled={selectedUserIds.length === 0 && selectedRoleIds.length === 0}
+          >
+            Clear Selection
           </Button>
           <IconButton onClick={fetchData}>
             <RefreshIcon />
           </IconButton>
         </Box>
       </Box>
+      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+        Use `Assignment Workspace` to select users and roles in one screen, then run bulk assign/remove.
+      </Typography>
 
       {/* Statistics */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
@@ -594,6 +852,10 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
           textColor="primary"
         >
           <Tab
+            label="Assignment Workspace"
+            icon={<GroupIcon />}
+          />
+          <Tab
             label="Users View"
             icon={<PeopleIcon />}
           />
@@ -603,12 +865,178 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
           />
         </Tabs>
 
-        {/* Users View Tab */}
         <TabPanel value={currentTab} index={0}>
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 12, lg: 6 }}>
+              <Paper variant="outlined" sx={{ p: 2 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                    Select Users ({selectedUsers.length})
+                  </Typography>
+                  <Button
+                    size="small"
+                    variant="text"
+                    onClick={() => handleSelectAllFilteredUsers(!allFilteredUsersSelected)}
+                  >
+                    {allFilteredUsersSelected ? 'Unselect All' : 'Select All Filtered'}
+                  </Button>
+                </Box>
+                <TableContainer sx={{ maxHeight: 360 }}>
+                  <Table stickyHeader size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell padding="checkbox">
+                          <Checkbox
+                            size="small"
+                            checked={allFilteredUsersSelected}
+                            indeterminate={someFilteredUsersSelected && !allFilteredUsersSelected}
+                            onChange={(e) => handleSelectAllFilteredUsers(e.target.checked)}
+                          />
+                        </TableCell>
+                        <TableCell>User</TableCell>
+                        <TableCell>Status</TableCell>
+                        <TableCell>Roles</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {paginatedUsers.map((user) => (
+                        <TableRow key={`workspace-user-${user.id}`} hover>
+                          <TableCell padding="checkbox">
+                            <Checkbox
+                              size="small"
+                              checked={selectedUserIds.includes(user.id)}
+                              onChange={(e) => toggleUserSelection(user.id, e.target.checked)}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{user.fullName}</Typography>
+                            <Typography variant="caption" color="text.secondary">{user.email}</Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Chip
+                              label={user.isActive ? 'Active' : 'Inactive'}
+                              size="small"
+                              color={getUserStatusColor(user.isActive)}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Chip size="small" variant="outlined" label={user.roleAssignments.length} />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Paper>
+            </Grid>
+
+            <Grid size={{ xs: 12, lg: 6 }}>
+              <Paper variant="outlined" sx={{ p: 2 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                    Select Roles ({selectedRoles.length})
+                  </Typography>
+                  <Button
+                    size="small"
+                    variant="text"
+                    onClick={() => handleSelectAllFilteredRoles(!allFilteredRolesSelected)}
+                  >
+                    {allFilteredRolesSelected ? 'Unselect All' : 'Select All Filtered'}
+                  </Button>
+                </Box>
+                <TableContainer sx={{ maxHeight: 360 }}>
+                  <Table stickyHeader size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell padding="checkbox">
+                          <Checkbox
+                            size="small"
+                            checked={allFilteredRolesSelected}
+                            indeterminate={someFilteredRolesSelected && !allFilteredRolesSelected}
+                            onChange={(e) => handleSelectAllFilteredRoles(e.target.checked)}
+                          />
+                        </TableCell>
+                        <TableCell>Role</TableCell>
+                        <TableCell>Type</TableCell>
+                        <TableCell>Assigned</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {paginatedRoles.map((role) => (
+                        <TableRow key={`workspace-role-${role.id}`} hover>
+                          <TableCell padding="checkbox">
+                            <Checkbox
+                              size="small"
+                              checked={selectedRoleIds.includes(role.id)}
+                              onChange={(e) => toggleRoleSelection(role.id, e.target.checked)}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{getRoleLabel(role)}</Typography>
+                            <Typography variant="caption" color="text.secondary">{role.name || 'UNNAMED_ROLE'}</Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Chip
+                              label={role.type}
+                              size="small"
+                              color={getRoleTypeColor(role.type) as any}
+                              variant="outlined"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Chip size="small" variant="outlined" label={role.assignedUsers} />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Paper>
+            </Grid>
+
+            <Grid size={{ xs: 12 }}>
+              <Paper variant="outlined" sx={{ p: 2 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
+                  Assignment Preview
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  This operation will affect <strong>{selectedUsers.length * selectedRoles.length}</strong> user-role assignments.
+                </Typography>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
+                  {selectedUsers.slice(0, 6).map((user) => (
+                    <Chip key={`preview-user-${user.id}`} size="small" label={user.fullName} />
+                  ))}
+                  {selectedUsers.length > 6 && (
+                    <Chip size="small" variant="outlined" label={`+${selectedUsers.length - 6} users`} />
+                  )}
+                </Box>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                  {selectedRoles.slice(0, 6).map((role) => (
+                    <Chip key={`preview-role-${role.id}`} size="small" color="primary" variant="outlined" label={getRoleLabel(role)} />
+                  ))}
+                  {selectedRoles.length > 6 && (
+                    <Chip size="small" variant="outlined" label={`+${selectedRoles.length - 6} roles`} />
+                  )}
+                </Box>
+              </Paper>
+            </Grid>
+          </Grid>
+        </TabPanel>
+
+        {/* Users View Tab */}
+        <TabPanel value={currentTab} index={1}>
           <TableContainer>
             <Table stickyHeader>
               <TableHead>
                 <TableRow>
+                  <TableCell padding="checkbox">
+                    <Checkbox
+                      size="small"
+                      checked={allFilteredUsersSelected}
+                      indeterminate={someFilteredUsersSelected && !allFilteredUsersSelected}
+                      onChange={(e) => handleSelectAllFilteredUsers(e.target.checked)}
+                    />
+                  </TableCell>
                   <TableCell>User</TableCell>
                   <TableCell>Email</TableCell>
                   <TableCell>Status</TableCell>
@@ -622,6 +1050,13 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
               <TableBody>
                 {paginatedUsers.map((user) => (
                   <TableRow key={user.id}>
+                    <TableCell padding="checkbox">
+                      <Checkbox
+                        size="small"
+                        checked={selectedUserIds.includes(user.id)}
+                        onChange={(e) => toggleUserSelection(user.id, e.target.checked)}
+                      />
+                    </TableCell>
                     <TableCell>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <Avatar sx={{ width: 32, height: 32 }}>
@@ -652,13 +1087,18 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
                             return role ? (
                               <Chip
                                 key={assignment.id}
-                                label={role.displayName}
+                                label={getRoleLabel(role)}
                                 size="small"
                                 color={getRoleTypeColor(role.type) as any}
                                 variant="outlined"
                               />
                             ) : null;
                           })}
+                        {user.roleAssignments.length === 0 && (
+                          <Typography variant="caption" color="text.secondary">
+                            No roles assigned
+                          </Typography>
+                        )}
                       </Box>
                     </TableCell>
                     <TableCell>
@@ -708,11 +1148,19 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
         </TabPanel>
 
         {/* Roles View Tab */}
-        <TabPanel value={currentTab} index={1}>
+        <TabPanel value={currentTab} index={2}>
           <TableContainer>
             <Table stickyHeader>
               <TableHead>
                 <TableRow>
+                  <TableCell padding="checkbox">
+                    <Checkbox
+                      size="small"
+                      checked={allFilteredRolesSelected}
+                      indeterminate={someFilteredRolesSelected && !allFilteredRolesSelected}
+                      onChange={(e) => handleSelectAllFilteredRoles(e.target.checked)}
+                    />
+                  </TableCell>
                   <TableCell>Role</TableCell>
                   <TableCell>Type</TableCell>
                   <TableCell>Level</TableCell>
@@ -726,13 +1174,20 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
               <TableBody>
                 {paginatedRoles.map((role) => (
                   <TableRow key={role.id}>
+                    <TableCell padding="checkbox">
+                      <Checkbox
+                        size="small"
+                        checked={selectedRoleIds.includes(role.id)}
+                        onChange={(e) => toggleRoleSelection(role.id, e.target.checked)}
+                      />
+                    </TableCell>
                     <TableCell>
                       <Box>
                         <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                          {role.displayName}
+                          {getRoleLabel(role)}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                          {role.name}
+                          {role.name || 'UNNAMED_ROLE'}
                         </Typography>
                       </Box>
                     </TableCell>
@@ -818,7 +1273,7 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
                 <strong>User:</strong> {assignmentDialog.user.fullName}
               </Typography>
               <Typography variant="body1" gutterBottom>
-                <strong>Role:</strong> {assignmentDialog.role.displayName}
+                <strong>Role:</strong> {getRoleLabel(assignmentDialog.role)}
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 {assignmentDialog.role.description}
@@ -905,7 +1360,7 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
                   return role ? (
                     <ListItem key={roleId}>
                       <ListItemText
-                        primary={role.displayName}
+                        primary={getRoleLabel(role)}
                         secondary={`${role.type} - ${role.level}`}
                       />
                     </ListItem>

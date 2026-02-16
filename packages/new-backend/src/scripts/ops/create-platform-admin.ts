@@ -47,7 +47,6 @@ async function createPlatformAdmin() {
                 fullName: 'Platform Superadmin',
                 role: 'SUPER_ADMIN', // Required field
                 isActive: true,
-                isVerified: true,
             })
             console.log('✅ User created successfully')
         }

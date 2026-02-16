@@ -46,6 +46,7 @@ import SegmentationFilterDrawer from './components/SegmentationFilterDrawer';
 import { useApprovalStatus } from '@/hooks/useApprovalStatus';
 import { bankingAPI } from '@/services/api';
 import { ApprovalNotification, ApprovalStatusBadge } from '@/components/approval';
+import { usePermission } from '@/hooks/usePermission';
 
 // ============================================================================
 // TYPES
@@ -70,6 +71,11 @@ const MOCK_HISTORY: any[] = [
 ];
 
 export default function SegmentationClient() {
+  const { hasAnyPermission } = usePermission();
+  const canViewSegmentation = hasAnyPermission(['banking.collective.segmentation.view', 'banking.collective.segmentation.manage', 'banking.collective.manage', 'banking.collective', 'admin.super_admin']);
+  const canManageSegmentation = hasAnyPermission(['banking.collective.segmentation.manage', 'banking.collective.segmentation.create', 'banking.collective.segmentation.update', 'banking.collective.segmentation.delete', 'banking.collective.manage', 'admin.super_admin']);
+  const canExportSegmentation = hasAnyPermission(['banking.collective.segmentation.export', 'banking.collective.segmentation.manage', 'banking.collective.manage', 'admin.super_admin']);
+
   const router = useRouter();
 
   // Refs for Keyboard Shortcuts
@@ -184,7 +190,7 @@ export default function SegmentationClient() {
       }
       if (e.key.toLowerCase() === 'a') {
         e.preventDefault();
-        handleOpenDrawer('add');
+        if (canManageSegmentation) handleOpenDrawer('add');
       }
       if (e.key.toLowerCase() === 'r') {
         e.preventDefault();
@@ -194,7 +200,7 @@ export default function SegmentationClient() {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [drawerOpen, filterDrawerOpen, loadHeaders]);
+  }, [drawerOpen, filterDrawerOpen, loadHeaders, canManageSegmentation]);
 
 
   // ============================================================================
@@ -216,6 +222,7 @@ export default function SegmentationClient() {
   };
 
   const handleOpenDrawer = async (mode: 'add' | 'edit' | 'view', header?: SegmentationHeader) => {
+    if (mode !== 'view' && !canManageSegmentation) return;
     setDrawerMode(mode);
     setDrawerOpen(true);
 
@@ -243,6 +250,7 @@ export default function SegmentationClient() {
 
 
   const handleSaveHeader = async (isDraft: boolean) => {
+    if (!canManageSegmentation) return;
     try {
       const payload = { ...formData, rules: details };
 
@@ -279,6 +287,7 @@ export default function SegmentationClient() {
   };
 
   const handleDelete = async (header: SegmentationHeader) => {
+    if (!canManageSegmentation) return;
     if (!confirm(`Are you sure you want to delete "${header.group_segment}"?`)) return;
     try {
       const response = await api.banking.segmentation.deleteHeader(header.id);
@@ -304,6 +313,11 @@ export default function SegmentationClient() {
   return (
     <Container maxWidth="xl" sx={{ position: 'relative', pb: 5 }}>
       <FullstackIndicator />
+      {!canViewSegmentation && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          You do not have permission to view segmentation configuration.
+        </Alert>
+      )}
 
       {/* Breadcrumbs */}
       <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
@@ -330,12 +344,16 @@ export default function SegmentationClient() {
             </Box>
             <Box sx={{ display: 'flex', gap: 1 }}>
               <Tooltip title="Shortcut: R"><Button startIcon={<RefreshIcon />} onClick={() => loadHeaders()}>Refresh</Button></Tooltip>
-              <Button startIcon={<ExportIcon />} onClick={(e) => setExportAnchorEl(e.currentTarget)}>Export</Button>
-              <Menu anchorEl={exportAnchorEl} open={Boolean(exportAnchorEl)} onClose={() => setExportAnchorEl(null)}>
-                <MenuItem onClick={() => setExportAnchorEl(null)}>Export to Excel</MenuItem>
-                <MenuItem onClick={() => setExportAnchorEl(null)}>Export to CSV</MenuItem>
-                <MenuItem onClick={() => setExportAnchorEl(null)}>Export to PDF</MenuItem>
-              </Menu>
+              {canExportSegmentation && (
+                <>
+                  <Button startIcon={<ExportIcon />} onClick={(e) => setExportAnchorEl(e.currentTarget)}>Export</Button>
+                  <Menu anchorEl={exportAnchorEl} open={Boolean(exportAnchorEl)} onClose={() => setExportAnchorEl(null)}>
+                    <MenuItem onClick={() => setExportAnchorEl(null)}>Export to Excel</MenuItem>
+                    <MenuItem onClick={() => setExportAnchorEl(null)}>Export to CSV</MenuItem>
+                    <MenuItem onClick={() => setExportAnchorEl(null)}>Export to PDF</MenuItem>
+                  </Menu>
+                </>
+              )}
               <Button variant="outlined" startIcon={<HelpIcon />}>Help</Button>
             </Box>
           </Box>
@@ -372,9 +390,13 @@ export default function SegmentationClient() {
             </Tooltip>
 
             <Tooltip title="Shortcut: A">
-              <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenDrawer('add')} sx={{ px: 4 }}>
-                Add Segmentation
-              </Button>
+              {canManageSegmentation ? (
+                <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenDrawer('add')} sx={{ px: 4 }}>
+                  Add Segmentation
+                </Button>
+              ) : (
+                <span />
+              )}
             </Tooltip>
           </Stack>
 
@@ -395,6 +417,7 @@ export default function SegmentationClient() {
       {/* Main Table */}
       <SegmentationTable
         data={headers}
+        canManage={canManageSegmentation}
         loading={loading}
         page={page}
         rowsPerPage={rowsPerPage}
@@ -419,6 +442,7 @@ export default function SegmentationClient() {
         open={drawerOpen}
         onClose={handleCloseDrawer}
         mode={drawerMode}
+        canManage={canManageSegmentation}
         initialData={selectedHeader}
         formData={formData}
         setFormData={setFormData}

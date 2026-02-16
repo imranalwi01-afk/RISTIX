@@ -144,96 +144,108 @@ export const createApprovalRequest = (
 export const processApprovalAction = (
     input: ProcessApprovalInput
 ): Effect.Effect<{ completed: boolean; status: string }, DatabaseError | NotFoundError | BusinessError> =>
-    dbOperation('transaction', async () => {
-        // Get the request
-        const request = await ApprovalRepository.findRequestById(input.requestId)
+    Effect.tryPromise({
+        try: async () => {
+            // Get the request
+            const request = await ApprovalRepository.findRequestById(input.requestId)
 
-        if (!request) {
-            throw new NotFoundError({ resource: 'ApprovalRequest', id: input.requestId })
-        }
-        if (request.status !== 'pending') {
-            throw new BusinessError({
-                message: `Request is already ${request.status}`,
-                code: 'REQUEST_NOT_PENDING',
-            })
-        }
-
-        // Prevent users from approving their own requests
-        if (input.action === 'approve' && input.approverId === request.requestedBy) {
-            throw new BusinessError({
-                message: 'You cannot approve your own request',
-                code: 'SELF_APPROVAL_NOT_ALLOWED',
-            })
-        }
-
-        // Insert the action
-        await ApprovalRepository.createAction({
-            requestId: input.requestId,
-            approverId: input.approverId,
-            approverRole: input.approverRole,
-            level: request.currentLevel,
-            action: input.action,
-            comment: input.comment,
-            conditions: input.conditions,
-            delegatedTo: input.delegatedTo,
-            riskScore: input.riskScore,
-        })
-
-        // Handle based on action type
-        if (input.action === 'approve') {
-            const newReceived = (request.approvalsReceived || 0) + 1
-            const isComplete = newReceived >= request.approvalsRequired
-
-            await ApprovalRepository.updateRequest(input.requestId, {
-                approvalsReceived: newReceived,
-                status: isComplete ? 'approved' : 'pending',
-                currentLevel: isComplete ? request.currentLevel : request.currentLevel + 1,
-                completedAt: isComplete ? new Date() : null,
-                completedBy: isComplete ? input.approverId : null,
-            })
-
-            if (isComplete) {
-                // Execute the approved action (e.g., create user, update config)
-                await executeApprovedAction(request)
-                await notifyApprovalCompletion(request, 'approved')
-            } else {
-                // Progress to next level notification
-                await notifyNextLevelApprovers(request)
+            if (!request) {
+                throw new NotFoundError({ resource: 'ApprovalRequest', id: input.requestId })
             }
-
-            return { completed: isComplete, status: isComplete ? 'approved' : 'pending' }
-        }
-
-        if (input.action === 'reject') {
-            await ApprovalRepository.updateRequest(input.requestId, {
-                status: 'rejected',
-                completedAt: new Date(),
-                completedBy: input.approverId,
-            })
-
-            await notifyApprovalCompletion(request, 'rejected')
-            return { completed: true, status: 'rejected' }
-        }
-
-        if (input.action === 'request_info') {
-            // Logic to notify requester for more info
-            await notifyRequester(request, 'info_requested', input.comment)
-            return { completed: false, status: 'pending' }
-        }
-
-        if (input.action === 'delegate') {
-            if (!input.delegatedTo) {
+            if (request.status !== 'pending') {
                 throw new BusinessError({
-                    message: 'Delegation target user ID is required',
-                    code: 'DELEGATION_REQUIRED'
+                    message: `Request is already ${request.status}`,
+                    code: 'REQUEST_NOT_PENDING',
                 })
             }
-            // Notify the delegated user
-            await notifyApprover(input.delegatedTo, request, 'delegated')
-            return { completed: false, status: 'pending' }
-        }
 
-        return { completed: false, status: 'pending' }
+            // Prevent users from approving their own requests
+            if (input.action === 'approve' && input.approverId === request.requestedBy) {
+                throw new BusinessError({
+                    message: 'You cannot approve your own request',
+                    code: 'SELF_APPROVAL_NOT_ALLOWED',
+                })
+            }
+
+            // Insert the action
+            await ApprovalRepository.createAction({
+                requestId: input.requestId,
+                approverId: input.approverId,
+                approverRole: input.approverRole,
+                level: request.currentLevel,
+                action: input.action,
+                comment: input.comment,
+                conditions: input.conditions,
+                delegatedTo: input.delegatedTo,
+                riskScore: input.riskScore,
+            })
+
+            // Handle based on action type
+            if (input.action === 'approve') {
+                const newReceived = (request.approvalsReceived || 0) + 1
+                const isComplete = newReceived >= request.approvalsRequired
+
+                await ApprovalRepository.updateRequest(input.requestId, {
+                    approvalsReceived: newReceived,
+                    status: isComplete ? 'approved' : 'pending',
+                    currentLevel: isComplete ? request.currentLevel : request.currentLevel + 1,
+                    completedAt: isComplete ? new Date() : null,
+                    completedBy: isComplete ? input.approverId : null,
+                })
+
+                if (isComplete) {
+                    // Execute the approved action (e.g., create user, update config)
+                    await executeApprovedAction(request)
+                    await notifyApprovalCompletion(request, 'approved')
+                } else {
+                    // Progress to next level notification
+                    await notifyNextLevelApprovers(request)
+                }
+
+                return { completed: isComplete, status: isComplete ? 'approved' : 'pending' }
+            }
+
+            if (input.action === 'reject') {
+                await ApprovalRepository.updateRequest(input.requestId, {
+                    status: 'rejected',
+                    completedAt: new Date(),
+                    completedBy: input.approverId,
+                })
+
+                await notifyApprovalCompletion(request, 'rejected')
+                return { completed: true, status: 'rejected' }
+            }
+
+            if (input.action === 'request_info') {
+                // Logic to notify requester for more info
+                await notifyRequester(request, 'info_requested', input.comment)
+                return { completed: false, status: 'pending' }
+            }
+
+            if (input.action === 'delegate') {
+                if (!input.delegatedTo) {
+                    throw new BusinessError({
+                        message: 'Delegation target user ID is required',
+                        code: 'DELEGATION_REQUIRED'
+                    })
+                }
+                // Notify the delegated user
+                await notifyApprover(input.delegatedTo, request, 'delegated')
+                return { completed: false, status: 'pending' }
+            }
+
+            return { completed: false, status: 'pending' }
+        },
+        catch: (error) => {
+            if (error instanceof NotFoundError || error instanceof BusinessError) {
+                return error
+            }
+            return new DatabaseError({
+                message: error instanceof Error ? error.message : 'Database operation failed',
+                operation: 'transaction',
+                cause: error,
+            })
+        },
     })
 
 // =============================================================================
@@ -295,17 +307,16 @@ async function executeUserAction(
 ): Promise<void> {
     // Import dynamically to avoid circular dependencies
     const { createUser, updateUser, deleteUser } = await import('./users.service')
-    const { runEffect } = await import('../lib/effect/runtime')
 
     switch (operation) {
         case 'create':
-            await runEffect(null as any, createUser(data))
+            await Effect.runPromise(createUser({ ...data, tenantId }) as any)
             break
         case 'update':
-            await runEffect(null as any, updateUser(data.id, data))
+            await Effect.runPromise(updateUser(data.id, { ...data, tenantId }) as any)
             break
         case 'delete':
-            await runEffect(null as any, deleteUser(data.id))
+            await Effect.runPromise(deleteUser(data.id, tenantId) as any)
             break
     }
 }
@@ -316,21 +327,20 @@ async function executeUserAction(
 async function executeParameterAction(
     operation: 'create' | 'update' | 'delete',
     data: any,
-    tenantId: string,
-    entityType: string
+    _tenantId: string,
+    _entityType: string
 ): Promise<void> {
     const { ParametersService } = await import('./parameters.service')
-    const { runEffect } = await import('../lib/effect/runtime')
 
     switch (operation) {
         case 'create':
-            await runEffect(null as any, ParametersService.createAppSetting(data, 'system') as any)
+            await Effect.runPromise(ParametersService.createAppSetting(data, 'system') as any)
             break
         case 'update':
-            await runEffect(null as any, ParametersService.updateAppSetting(data.paramCode, data, 'system') as any)
+            await Effect.runPromise(ParametersService.updateAppSetting(data.paramCode, data, 'system') as any)
             break
         case 'delete':
-            await runEffect(null as any, ParametersService.deleteAppSetting(data.paramCode) as any)
+            await Effect.runPromise(ParametersService.deleteAppSetting(data.paramCode) as any)
             break
     }
 }
@@ -461,12 +471,11 @@ export const getApprovalHistory = (
     entityId?: string
 ): Effect.Effect<ApprovalRequest[], DatabaseError> =>
     dbOperation('query', () => {
-        // If entityType is provided, filter by it; otherwise get all requests for tenant
+        // If entityType is provided, filter by it; otherwise get full tenant history.
         if (entityType) {
             return ApprovalRepository.findRequestsByEntity(tenantId, entityType, entityId)
         } else {
-            // Get all requests for this tenant (both pending and completed)
-            return ApprovalRepository.findPendingRequests(tenantId)
+            return ApprovalRepository.findRequestsByTenant(tenantId)
         }
     })
 

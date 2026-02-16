@@ -12,18 +12,17 @@ async function fixPermissions() {
         // 1. Define missing/correct permissions for Frontend
         // Based on BankingSidebarUtils.tsx and derivePermissionCodes
         const frontendPermissions = [
-            { code: 'VIEW_DASHBOARD', name: 'View Dashboard', description: 'Access to system dashboard', category: 'Dashboard', resource: 'dashboard', action: 'view' },
-            { code: 'MANAGE_SYSTEM_SETUP', name: 'Manage System Setup', description: 'Access to system setup menu', category: 'Configuration', resource: 'system_setup', action: 'manage' },
-            { code: 'MANAGE_APP_CONFIG', name: 'Manage App Config', description: 'Access to application configuration', category: 'Configuration', resource: 'app_config', action: 'manage' },
-            { code: 'MANAGE_BUSINESS_CONFIG', name: 'Manage Business Config', description: 'Access to business configuration', category: 'Configuration', resource: 'business_config', action: 'manage' },
-            { code: 'MANAGE_PARAMETERS', name: 'Manage Parameters', description: 'Access to parameter management menu', category: 'Banking', resource: 'parameters', action: 'manage' },
-            { code: 'MANAGE_PRODUCT_PARAMS', name: 'Manage Product Params', description: 'Access to product parameters', category: 'Banking', resource: 'product_parameters', action: 'manage' },
-            { code: 'MANAGE_ACCOUNTING_PARAMS', name: 'Manage Accounting Params', description: 'Access to accounting parameters', category: 'Banking', resource: 'accounting_parameters', action: 'manage' },
-            { code: 'ADMIN_MAINTENANCE', name: 'Admin Maintenance', description: 'Access to maintenance menu', category: 'Administration', resource: 'maintenance', action: 'admin' },
-            { code: 'ADMIN_USERS', name: 'Admin Users', description: 'Manage users', category: 'Administration', resource: 'users', action: 'admin' },
-            { code: 'ADMIN_ROLES', name: 'Admin Roles', description: 'Manage roles', category: 'Administration', resource: 'roles', action: 'admin' },
-            { code: 'VIEW_APPROVAL', name: 'View Approval (Maintenance)', description: 'View approval menu in maintenance', category: 'Workflow', resource: 'approval', action: 'view' },
-            { code: 'VIEW_APPROVALS', name: 'View Approvals (Workflow)', description: 'View approval system in workflow', category: 'Workflow', resource: 'approvals', action: 'view' },
+            { code: 'banking.dashboard.view', name: 'View Dashboard', description: 'Access to system dashboard', category: 'BANKING_DASHBOARD', resource: 'dashboard', action: 'view' },
+            { code: 'banking.setup.application', name: 'System Setup Access', description: 'Access to system setup menu', category: 'BANKING_SETUP', resource: 'setup.application', action: 'access' },
+            { code: 'banking.setup.application.manage', name: 'Manage Application Setup', description: 'Manage application configuration', category: 'BANKING_SETUP', resource: 'setup.application', action: 'manage' },
+            { code: 'banking.setup.business.manage', name: 'Manage Business Setup', description: 'Manage business configuration', category: 'BANKING_SETUP', resource: 'setup.business', action: 'manage' },
+            { code: 'banking.parameter', name: 'Parameter Access', description: 'Access to parameter management menu', category: 'BANKING_PARAMETER', resource: 'parameter', action: 'access' },
+            { code: 'banking.parameter.product.manage', name: 'Manage Product Parameters', description: 'Manage product parameters', category: 'BANKING_PARAMETER', resource: 'parameter.product', action: 'manage' },
+            { code: 'banking.parameter.journal.manage', name: 'Manage Journal Parameters', description: 'Manage journal/accounting parameters', category: 'BANKING_PARAMETER', resource: 'parameter.journal', action: 'manage' },
+            { code: 'admin.maintenance.access', name: 'Admin Maintenance', description: 'Access to maintenance menu', category: 'ADMINISTRATION', resource: 'maintenance', action: 'access' },
+            { code: 'admin.users.manage', name: 'Admin Users', description: 'Manage users', category: 'ADMINISTRATION', resource: 'users', action: 'manage' },
+            { code: 'admin.roles.manage', name: 'Admin Roles', description: 'Manage roles', category: 'ADMINISTRATION', resource: 'roles', action: 'manage' },
+            { code: 'approval.requests.approve', name: 'View Approvals', description: 'Access approval system in workflow', category: 'approval', resource: 'approvals', action: 'approve' },
         ]
 
         console.log('🔑 Syncing permissions to core.permissions...')

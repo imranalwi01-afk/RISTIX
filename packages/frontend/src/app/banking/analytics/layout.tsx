@@ -107,7 +107,7 @@ export default function AnalyticsLayout({ children }: AnalyticsLayoutProps) {
   // ✅ Get current tab from pathname
   const getCurrentTab = () => {
     if (pathname === '/banking/analytics') return 0;
-    if (pathname === '/r-analytics') return 0;
+    if (pathname.includes('/banking/analytics/r-analytics')) return 0;
     // if (pathname.includes('/r-analytics')) return 1;
     // if (pathname.includes('/reports')) return 2;
     // if (pathname.includes('/dashboard')) return 3;

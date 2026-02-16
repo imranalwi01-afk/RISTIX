@@ -102,8 +102,8 @@ export const authAPI = {
   // Real token refresh
   refresh: async (refreshToken: string) => {
     console.log('🔄 Real token refresh');
-    // ✅ FIXED: Use explicit v1 path for refresh to avoid ambiguity
-    const response = await apiClient.post('/api/v1/auth/refresh', { refreshToken });
+    // Use relative auth path so we don't duplicate /api/v1 on configured base URLs
+    const response = await apiClient.post('/auth/refresh', { refreshToken });
     return response.data;
   }
 };
@@ -171,6 +171,18 @@ export const usersAPI = {
     const config: any = {};
     if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
     const response = await apiClient.post(`/users/${id}/disable`, {}, config);
+    return response.data;
+  },
+
+  resetPassword: async (
+    id: string,
+    payload: { newPassword: string; forcePasswordChange?: boolean },
+    tenantId?: string
+  ) => {
+    console.log(`🔐 Resetting password for user ${id}${tenantId ? ` (tenant: ${tenantId})` : ''}`);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.post(`/users/${id}/reset-password`, payload, config);
     return response.data;
   }
 };
@@ -264,11 +276,18 @@ export const rolesAPI = {
     return response.data;
   },
 
+  // Get roles assigned to user
+  getUserRoles: async (userId: string) => {
+    console.log(`👤 Fetching role assignments for user ${userId}`);
+    const response = await apiClient.get(`/roles/users/${userId}/roles`);
+    return response.data;
+  },
+
   // Assign role to user
   assignUser: async (roleId: string, userId: string) => {
     console.log(`👤 Assigning role ${roleId} to user ${userId}`);
-    // Fixed path matching backend: POST /users/:userId/roles/:roleId
-    const response = await apiClient.post(`/users/${userId}/roles/${roleId}`);
+    // Backend expects assignment payload object
+    const response = await apiClient.post(`/users/${userId}/roles/${roleId}`, { isTemporary: false });
     return response.data;
   },
 
@@ -377,12 +396,30 @@ export const bankingAPI = {
       const response = await apiClient.get('/jobs/executions', { params })
       return response.data
     },
+    getExecution: async (executionId: string) => {
+      const response = await apiClient.get(`/jobs/executions/${executionId}`)
+      return response.data
+    },
     getMetrics: async () => {
       const response = await apiClient.get('/jobs/metrics')
       return response.data
     },
+    getExecutionRuntime: async (executionId: string) => {
+      const response = await apiClient.get(`/jobs/executions/${executionId}/runtime`)
+      return response.data
+    },
     runJob: async (definitionId: string) => {
       const response = await apiClient.post(`/jobs/${definitionId}/run`)
+      return response.data
+    },
+    approveExecution: async (executionId: string, comment?: string) => {
+      const payload = comment ? { comment } : {}
+      const response = await apiClient.post(`/jobs/executions/${executionId}/approve`, payload)
+      return response.data
+    },
+    rejectExecution: async (executionId: string, comment?: string) => {
+      const payload = comment ? { comment } : {}
+      const response = await apiClient.post(`/jobs/executions/${executionId}/reject`, payload)
       return response.data
     },
     controlJob: async (executionId: string, action: 'pause' | 'resume' | 'stop') => {

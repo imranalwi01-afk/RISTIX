@@ -373,6 +373,31 @@ authRoutes.openapi(
         const userId = c.get('userId')
         const tenantId = c.get('tenantId')
         const user = c.get('user')
+        const tokenPermissions = c.get('permissions') || []
+
+        if (!userId) {
+            return c.json({ success: false, error: 'Unauthorized', code: 'UNAUTHORIZED' } as any, 401)
+        }
+
+        // Platform sessions (no tenant context) must not query tenant RBAC tables.
+        if (!tenantId) {
+            const platformRole = (user as any)?.role
+            const tokenRoles = Array.isArray((user as any)?.roles) ? (user as any).roles : []
+            const roles = tokenRoles.length > 0
+                ? tokenRoles
+                : (platformRole ? [platformRole] : [])
+
+            return c.json({
+                success: true,
+                data: {
+                    id: userId,
+                    email: user?.email,
+                    tenantId: undefined,
+                    roles,
+                    permissions: tokenPermissions,
+                },
+            } as any)
+        }
 
         const effect = pipe(
             rbacService.getUserRoles(userId!, tenantId!),
@@ -411,11 +436,28 @@ authRoutes.openapi(
     }),
     async (c) => {
         const userId = c.get('userId')!
-        const tenantId = c.get('tenantId')!
+        const tenantId = c.get('tenantId')
+        const tokenPermissions = c.get('permissions') || []
+
+        if (!userId) {
+            return c.json({ success: false, error: 'Unauthorized', code: 'UNAUTHORIZED' } as any, 401)
+        }
+
+        // Platform sessions (no tenant context) use permissions embedded in token/session.
+        if (!tenantId) {
+            return c.json({
+                success: true,
+                data: {
+                    permissions: tokenPermissions,
+                },
+            } as any)
+        }
 
         const effect = pipe(
-            rbacService.getUserPermissions(userId, tenantId),
-            Effect.map((permissions) => ({ permissions }))
+            rbacService.getUserPermissionCodes(userId, tenantId),
+            Effect.map((permissions) => ({
+                permissions: permissions.length > 0 ? permissions : tokenPermissions,
+            }))
         )
 
         return runEffect(c, effect)
