@@ -1,4 +1,5 @@
 import { Effect, pipe } from 'effect'
+import { eq } from 'drizzle-orm'
 import { ParametersRepository } from '../repositories/parameters.repository'
 import { NotFoundError, DatabaseError, ValidationError } from '../lib/errors'
 import { frs9ParamCommond } from '../db/schema'
@@ -134,59 +135,91 @@ export const ParametersService = {
             Effect.flatMap(header => {
                 if (!header) return Effect.fail(new NotFoundError({ resource: 'Parent Setting', id: data.paramCode })) as any
 
-                // Check for duplicate sequence
+                const resolveParamSeq = data.paramSeq !== undefined && data.paramSeq !== null
+                    ? Effect.succeed(Number(data.paramSeq))
+                    : pipe(
+                        ParametersRepository.findDetailByCode(data.paramCode),
+                        Effect.map((details) => {
+                            const maxSeq = details.reduce((max, d) => Math.max(max, Number(d.paramSeq || 0)), 0)
+                            return maxSeq + 1
+                        })
+                    )
+
                 return pipe(
-                    ParametersRepository.findDetailBySeq(data.paramCode, data.paramSeq),
-                    Effect.flatMap(existingSeq => {
-                        if (existingSeq) {
-                            return Effect.fail(new ValidationError({ 
-                                message: 'Sequence already exists', 
-                                errors: ['paramSeq already exists for this parameter code'] 
-                            })) as any
-                        }
+                    resolveParamSeq,
+                    Effect.flatMap((resolvedParamSeq) =>
+                        pipe(
+                            ParametersRepository.findDetailBySeq(data.paramCode, resolvedParamSeq),
+                            Effect.flatMap(existingSeq => {
+                                if (existingSeq) {
+                                    return Effect.fail(new ValidationError({
+                                        message: 'Sequence already exists',
+                                        errors: ['paramSeq already exists for this parameter code']
+                                    })) as any
+                                }
 
-                        // For Business Setup (paramType='B'), also check for duplicate value combinations
-                        if (header.paramType === 'B') {
-                            return pipe(
-                                ParametersRepository.findDetailByValues(
-                                    data.paramCode, 
-                                    data.value1 || '', 
-                                    data.value2 || '', 
-                                    data.value3 || ''
-                                ),
-                                Effect.flatMap(existingValues => {
-                                    if (existingValues) {
-                                        return Effect.fail(new ValidationError({ 
-                                            message: 'data already exist', 
-                                            errors: ['Duplicate combination of Value1, Value2, and Value3'] 
-                                        })) as any
-                                    }
-                                    return Effect.succeed(header)
-                                })
-                            )
-                        }
+                                // For Business Setup (paramType='B'), also check for duplicate value combinations
+                                if (header.paramType === 'B') {
+                                    return pipe(
+                                        ParametersRepository.findDetailByValues(
+                                            data.paramCode,
+                                            data.value1 || '',
+                                            data.value2 || '',
+                                            data.value3 || ''
+                                        ),
+                                        Effect.flatMap(existingValues => {
+                                            if (existingValues) {
+                                                return Effect.fail(new ValidationError({
+                                                    message: 'data already exist',
+                                                    errors: ['Duplicate combination of Value1, Value2, and Value3']
+                                                })) as any
+                                            }
+                                            return Effect.succeed(resolvedParamSeq)
+                                        })
+                                    )
+                                }
 
-                        return Effect.succeed(header)
-                    }),
-                    Effect.flatMap(() => {
-                        const now = new Date().toISOString()
-                        const payload = {
-                            paramCode: data.paramCode,
-                            paramSeq: data.paramSeq,
-                            value1: data.value1,
-                            value2: data.value2,
-                            value3: data.value3,
-                            paramdesc: data.paramdesc, 
-                            createdby: userId,
-                            createdhost: 'localhost',
-                            createddate: now,
-                            updatedby: userId,
-                            updatedhost: 'localhost',
-                            updateddate: now,
-                        }
+                                return Effect.succeed(resolvedParamSeq)
+                            }),
+                            Effect.flatMap((finalParamSeq) => {
+                                const now = new Date().toISOString()
+                                const payload = {
+                                    paramCode: data.paramCode,
+                                    paramSeq: finalParamSeq,
+                                    value1: data.value1,
+                                    value2: data.value2,
+                                    value3: data.value3,
+                                    paramdesc: data.paramdesc,
+                                    createdby: userId,
+                                    createdhost: 'localhost',
+                                    createddate: now,
+                                    updatedby: userId,
+                                    updatedhost: 'localhost',
+                                    updateddate: now,
+                                }
 
-                        return ParametersRepository.createDetail(payload as any) as any
-                    })
+                                return pipe(
+                                    ParametersRepository.createDetail(payload as any),
+                                    Effect.catchAll((error: any) => {
+                                        const message = String(error?.message ?? '')
+                                        const duplicateSeq =
+                                            message.includes('frs9_param_commond_param_code_seq_unique') ||
+                                            (message.includes('duplicate key value') &&
+                                                message.includes('param_code_seq'))
+
+                                        if (duplicateSeq) {
+                                            return Effect.fail(new ValidationError({
+                                                message: 'Sequence already exists',
+                                                errors: ['paramSeq already exists for this parameter code']
+                                            })) as any
+                                        }
+
+                                        return Effect.fail(error) as any
+                                    })
+                                ) as any
+                            })
+                        )
+                    )
                 )
             }),
             Effect.map(d => transformDetail(d as any))
@@ -441,4 +474,3 @@ const transformHeader = (h: any) => ({
     created_date: h.createddate,
     details: h.details ? h.details.map(transformDetail) : [],
 })
-
