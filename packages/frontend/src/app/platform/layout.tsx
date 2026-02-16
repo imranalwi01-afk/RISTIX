@@ -3,7 +3,7 @@
 
 import React, { useEffect } from 'react';
 import { Box, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, AppBar, Toolbar, Typography, IconButton, Chip } from '@mui/material';
-import { SupervisorAccount as AdminIcon, Business as TenantIcon, People as UsersIcon, Logout as LogoutIcon } from '@mui/icons-material';
+import { SupervisorAccount as AdminIcon, Business as TenantIcon, People as UsersIcon, Logout as LogoutIcon, Security as SecurityIcon } from '@mui/icons-material';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/providers/AuthProvider';
 import { TenantSwitcher } from '@/components/admin/TenantSwitcher';
@@ -34,6 +34,7 @@ export default function PlatformLayout({
         { text: 'Users', icon: <AdminIcon />, path: '/platform/users' },
         { text: 'Tenants', icon: <TenantIcon />, path: '/platform/tenants' },
         { text: 'Tenant Users', icon: <UsersIcon />, path: '/platform/tenant-users' },
+        { text: 'RBAC', icon: <SecurityIcon />, path: '/platform/rbac' },
     ];
 
     const handleLogout = async () => {

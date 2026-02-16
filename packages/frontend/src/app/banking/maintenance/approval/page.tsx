@@ -61,6 +61,7 @@ import {
   Notifications as NotificationIcon,
   CloudDownload as ExportIcon,
   Visibility as ViewIcon,
+  Security as SecurityIcon,
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { GridColDef } from '@mui/x-data-grid';
@@ -424,6 +425,36 @@ export default function ApprovalManagementPage() {
     setDetailDialog({ open: true, request });
   };
 
+  const isRolePermissionRequest = (request: ApprovalRequest): boolean => {
+    const requestType = String(request.requestType || request.entityType || '').toLowerCase();
+    return requestType === 'role_permission' || requestType === 'role_permissions';
+  };
+
+  const resolveRoleTarget = (request: ApprovalRequest): { tenantId?: string; roleId?: string } => {
+    const payload = request.requestData || {};
+    const nestedData = payload?.data || {};
+    return {
+      tenantId: request.tenantId || nestedData?.tenantId || payload?.tenantId,
+      roleId: request.entityId || nestedData?.roleId || payload?.roleId,
+    };
+  };
+
+  const openRolePermissionInRBAC = (request: ApprovalRequest) => {
+    const { tenantId, roleId } = resolveRoleTarget(request);
+    if (!tenantId || !roleId) {
+      showSnackbar('Role/tenant target is missing from this approval request.', 'warning');
+      return;
+    }
+
+    const query = new URLSearchParams({
+      tenantId,
+      roleId,
+      requestId: request.id,
+    });
+
+    router.push(`/platform/rbac?${query.toString()}`);
+  };
+
   const handleRefresh = () => {
     loadApprovalRequests();
     loadStatistics();
@@ -531,28 +562,40 @@ export default function ApprovalManagementPage() {
       headerName: 'Actions',
       width: 120,
       getActions: (params) => {
+        const request = params.row as ApprovalRequest;
         const actions = [
           <SafeGridActionsCellItem
             key="view"
             icon={<ViewIcon />}
             label="View Details"
-            onClick={() => handleViewDetails(params.row)}
+            onClick={() => handleViewDetails(request)}
           />,
         ];
 
-        if (params.row.status === 'pending' || params.row.status === 'info_requested') {
+        if (isRolePermissionRequest(request)) {
+          actions.push(
+            <SafeGridActionsCellItem
+              key="open-rbac"
+              icon={<SecurityIcon color="primary" />}
+              label="Open RBAC"
+              onClick={() => openRolePermissionInRBAC(request)}
+            />
+          );
+        }
+
+        if (request.status === 'pending' || request.status === 'info_requested') {
           actions.push(
             <SafeGridActionsCellItem
               key="approve"
               icon={<ApproveIcon color="success" />}
               label="Approve"
-              onClick={() => handleApprovalAction(params.row, 'approve')}
+              onClick={() => handleApprovalAction(request, 'approve')}
             />,
             <SafeGridActionsCellItem
               key="reject"
               icon={<RejectIcon color="error" />}
               label="Reject"
-              onClick={() => handleApprovalAction(params.row, 'reject')}
+              onClick={() => handleApprovalAction(request, 'reject')}
             />
           );
         }
@@ -843,16 +886,27 @@ export default function ApprovalManagementPage() {
       {
         field: 'actions',
         headerName: 'Actions',
-        width: 100,
+        width: 140,
         sortable: false,
         renderCell: (params) => (
-          <IconButton
-            size="small"
-            onClick={() => handleViewDetails(params.row)}
-            color="primary"
-          >
-            <ViewIcon />
-          </IconButton>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <IconButton
+              size="small"
+              onClick={() => handleViewDetails(params.row)}
+              color="primary"
+            >
+              <ViewIcon />
+            </IconButton>
+            {isRolePermissionRequest(params.row) && (
+              <IconButton
+                size="small"
+                color="secondary"
+                onClick={() => openRolePermissionInRBAC(params.row)}
+              >
+                <SecurityIcon fontSize="small" />
+              </IconButton>
+            )}
+          </Box>
         ),
       },
     ];
@@ -1170,9 +1224,18 @@ export default function ApprovalManagementPage() {
             </Box>
           )}
         </DialogContent>
-        <DialogActions>
+      <DialogActions>
+          {detailDialog.request && isRolePermissionRequest(detailDialog.request) && (
+            <Button
+              color="secondary"
+              startIcon={<SecurityIcon />}
+              onClick={() => openRolePermissionInRBAC(detailDialog.request!)}
+            >
+              Open in RBAC
+            </Button>
+          )}
           <Button onClick={() => setDetailDialog({ open: false })}>Close</Button>
-        </DialogActions>
+      </DialogActions>
       </Dialog>
 
       {/* Snackbar */}
