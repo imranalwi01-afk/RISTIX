@@ -1,4 +1,4 @@
-import { eq, and, desc, sql } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import * as schema from '../schema'
 import {
@@ -12,14 +12,49 @@ export class PermissionApprovalPolicyRepository {
 
     constructor(private db: PostgresJsDatabase<typeof schema>) { }
 
+    private extractErrorMessage(error: unknown): string {
+        const maybe = error as { message?: string; cause?: unknown }
+        const cause = maybe?.cause as { message?: string } | undefined
+        const parts = [
+            maybe?.message,
+            cause?.message,
+            error instanceof Error ? error.message : undefined,
+            String(error),
+        ].filter(Boolean)
+        return parts.join(' | ')
+    }
+
     private isMissingTableError(error: unknown): boolean {
-        const maybe = error as { code?: string; message?: string }
+        const maybe = error as { code?: string }
+        const message = this.extractErrorMessage(error)
         return (
             maybe?.code === '42P01' ||
-            (maybe?.message?.includes('permission_approval_policies') &&
-                maybe?.message?.includes('does not exist')) ||
+            (message.includes('permission_approval_policies') &&
+                message.includes('does not exist')) ||
             false
         )
+    }
+
+    private mapPolicyRow(row: any): PermissionApprovalPolicy {
+        return {
+            id: row.id,
+            tenantId: row.tenant_id,
+            permissionId: row.permission_id,
+            requiresApproval: row.requires_approval ?? false,
+            minHierarchyLevel:
+                row.min_hierarchy_level === null || row.min_hierarchy_level === undefined
+                    ? null
+                    : Number(row.min_hierarchy_level),
+            requiredApprovers:
+                row.required_approvers === null || row.required_approvers === undefined
+                    ? 1
+                    : Number(row.required_approvers),
+            matrixId: row.matrix_id ?? null,
+            description: row.description ?? null,
+            isActive: row.is_active ?? true,
+            createdAt: row.created_at ? new Date(row.created_at) : new Date(),
+            updatedAt: row.updated_at ? new Date(row.updated_at) : new Date(),
+        }
     }
 
     private async hasPolicyTable(): Promise<boolean> {
@@ -27,14 +62,16 @@ export class PermissionApprovalPolicyRepository {
 
         try {
             const result = await this.db.execute(
-                sql`SELECT to_regclass('approval.permission_approval_policies') AS policy_table`
+                sql`
+                    SELECT to_regclass('approval.permission_approval_policies') AS approval_table
+                `
             ) as any
 
             const firstRow = Array.isArray(result)
                 ? result[0]
                 : result?.rows?.[0]
 
-            this.tableAvailable = Boolean(firstRow?.policy_table)
+            this.tableAvailable = Boolean(firstRow?.approval_table)
         } catch {
             this.tableAvailable = false
         }
@@ -49,16 +86,27 @@ export class PermissionApprovalPolicyRepository {
         if (!(await this.hasPolicyTable())) return []
 
         try {
-            return await this.db
-                .select()
-                .from(permissionApprovalPolicies)
-                .where(
-                    and(
-                        eq(permissionApprovalPolicies.tenantId, tenantId),
-                        eq(permissionApprovalPolicies.isActive, true)
-                    )
-                )
-                .orderBy(desc(permissionApprovalPolicies.createdAt))
+            const result = await this.db.execute(sql`
+                SELECT
+                    id,
+                    tenant_id,
+                    permission_id,
+                    requires_approval,
+                    min_hierarchy_level,
+                    required_approvers,
+                    matrix_id,
+                    description,
+                    is_active,
+                    created_at,
+                    updated_at
+                FROM approval.permission_approval_policies
+                WHERE tenant_id = ${tenantId}
+                  AND is_active = true
+                ORDER BY created_at DESC
+            `) as any
+
+            const rows = Array.isArray(result) ? result : (result?.rows ?? [])
+            return rows.map((row: any) => this.mapPolicyRow(row))
         } catch (error) {
             if (this.isMissingTableError(error)) {
                 this.tableAvailable = false
@@ -78,19 +126,29 @@ export class PermissionApprovalPolicyRepository {
         if (!(await this.hasPolicyTable())) return undefined
 
         try {
-            const [policy] = await this.db
-                .select()
-                .from(permissionApprovalPolicies)
-                .where(
-                    and(
-                        eq(permissionApprovalPolicies.tenantId, tenantId),
-                        eq(permissionApprovalPolicies.permissionId, permissionId),
-                        eq(permissionApprovalPolicies.isActive, true)
-                    )
-                )
-                .limit(1)
+            const result = await this.db.execute(sql`
+                SELECT
+                    id,
+                    tenant_id,
+                    permission_id,
+                    requires_approval,
+                    min_hierarchy_level,
+                    required_approvers,
+                    matrix_id,
+                    description,
+                    is_active,
+                    created_at,
+                    updated_at
+                FROM approval.permission_approval_policies
+                WHERE tenant_id = ${tenantId}
+                  AND permission_id = ${permissionId}
+                  AND is_active = true
+                LIMIT 1
+            `) as any
 
-            return policy
+            const rows = Array.isArray(result) ? result : (result?.rows ?? [])
+            const row = rows[0]
+            return row ? this.mapPolicyRow(row) : undefined
         } catch (error) {
             if (this.isMissingTableError(error)) {
                 this.tableAvailable = false
@@ -107,17 +165,28 @@ export class PermissionApprovalPolicyRepository {
         if (!(await this.hasPolicyTable())) return []
 
         try {
-            return await this.db
-                .select()
-                .from(permissionApprovalPolicies)
-                .where(
-                    and(
-                        eq(permissionApprovalPolicies.tenantId, tenantId),
-                        eq(permissionApprovalPolicies.requiresApproval, true),
-                        eq(permissionApprovalPolicies.isActive, true)
-                    )
-                )
-                .orderBy(desc(permissionApprovalPolicies.minHierarchyLevel))
+            const result = await this.db.execute(sql`
+                SELECT
+                    id,
+                    tenant_id,
+                    permission_id,
+                    requires_approval,
+                    min_hierarchy_level,
+                    required_approvers,
+                    matrix_id,
+                    description,
+                    is_active,
+                    created_at,
+                    updated_at
+                FROM approval.permission_approval_policies
+                WHERE tenant_id = ${tenantId}
+                  AND requires_approval = true
+                  AND is_active = true
+                ORDER BY min_hierarchy_level DESC NULLS LAST
+            `) as any
+
+            const rows = Array.isArray(result) ? result : (result?.rows ?? [])
+            return rows.map((row: any) => this.mapPolicyRow(row))
         } catch (error) {
             if (this.isMissingTableError(error)) {
                 this.tableAvailable = false

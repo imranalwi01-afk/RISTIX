@@ -7,7 +7,7 @@ import {
     type ApprovalAction,
     type ApprovalLevel,
 } from '@/db/schema'
-import { ConflictError, DatabaseError, NotFoundError, BusinessError } from '@/lib/errors'
+import { ConflictError, DatabaseError, NotFoundError, BusinessError, AuthorizationError } from '@/lib/errors'
 import { dbOperation } from '@/lib/effect'
 import { userRolesRepository } from '@/repositories/rbac.repository'
 import { getDatabase } from '@/config/database'
@@ -183,7 +183,7 @@ export const createApprovalRequest = (
  */
 export const processApprovalAction = (
     input: ProcessApprovalInput
-): Effect.Effect<{ completed: boolean; status: string }, DatabaseError | NotFoundError | BusinessError> =>
+): Effect.Effect<{ completed: boolean; status: string }, DatabaseError | NotFoundError | BusinessError | AuthorizationError> =>
     Effect.tryPromise({
         try: async () => {
             // Get the request
@@ -207,6 +207,52 @@ export const processApprovalAction = (
                 })
             }
 
+            const existingActions = Array.isArray((request as any).actions) ? (request as any).actions : []
+
+            // Strict separation of duties:
+            // One approver can only approve once in a request (cannot approve multiple levels).
+            if (input.action === 'approve' && hasApproverApproved(existingActions, input.approverId)) {
+                throw new BusinessError({
+                    message: 'You have already approved this request and cannot approve another stage',
+                    code: 'APPROVER_ALREADY_ACTED',
+                })
+            }
+
+            const matrixLevels = getSortedLevels((request as any).matrix)
+            let currentLevelRequiredCount = 1
+            let currentLevelApprovedBefore = countApprovedActions(existingActions, request.currentLevel)
+
+            if (matrixLevels.length > 0 && input.action !== 'request_info') {
+                const currentLevelConfig = matrixLevels.find((level) => level.level === request.currentLevel)
+                if (!currentLevelConfig) {
+                    throw new BusinessError({
+                        message: `Approval level ${request.currentLevel} is not configured`,
+                        code: 'APPROVAL_LEVEL_NOT_CONFIGURED',
+                    })
+                }
+
+                const approverContext = await loadApproverContext(input.approverId, request.tenantId)
+                if (!matchesRequiredRoles(currentLevelConfig.requiredRoles, approverContext)) {
+                    throw new AuthorizationError({
+                        message: `You are not eligible to approve level ${request.currentLevel}`,
+                        requiredPermission: `approval.level.${request.currentLevel}`,
+                        userId: input.approverId,
+                    })
+                }
+
+                if (input.action === 'approve') {
+                    if (hasApproverApprovedAtLevel(existingActions, input.approverId, request.currentLevel)) {
+                        throw new BusinessError({
+                            message: `You already approved level ${request.currentLevel}`,
+                            code: 'APPROVER_ALREADY_APPROVED_LEVEL',
+                        })
+                    }
+
+                    currentLevelRequiredCount = Math.max(1, currentLevelConfig.requiredCount || 1)
+                    currentLevelApprovedBefore = countApprovedActions(existingActions, request.currentLevel)
+                }
+            }
+
             // Insert the action
             await ApprovalRepository.createAction({
                 requestId: input.requestId,
@@ -223,6 +269,43 @@ export const processApprovalAction = (
             // Handle based on action type
             if (input.action === 'approve') {
                 const newReceived = (request.approvalsReceived || 0) + 1
+                const currentLevelApprovedAfter = currentLevelApprovedBefore + 1
+
+                if (matrixLevels.length > 0) {
+                    const effectiveLevels = getEffectiveLevels(matrixLevels, request.approvalsRequired)
+                    const currentLevelIdx = effectiveLevels.findIndex((level) => level.level === request.currentLevel)
+                    if (currentLevelIdx < 0) {
+                        throw new BusinessError({
+                            message: `Current level ${request.currentLevel} is outside effective workflow`,
+                            code: 'APPROVAL_LEVEL_OUTSIDE_WORKFLOW',
+                        })
+                    }
+                    const currentLevelComplete = currentLevelApprovedAfter >= currentLevelRequiredCount
+                    const nextLevel = currentLevelComplete && currentLevelIdx >= 0
+                        ? effectiveLevels[currentLevelIdx + 1]
+                        : undefined
+                    const isComplete = currentLevelComplete && !nextLevel
+
+                    await ApprovalRepository.updateRequest(input.requestId, {
+                        approvalsReceived: newReceived,
+                        status: isComplete ? 'approved' : 'pending',
+                        currentLevel: isComplete ? request.currentLevel : (nextLevel?.level ?? request.currentLevel),
+                        completedAt: isComplete ? new Date() : null,
+                        completedBy: isComplete ? input.approverId : null,
+                    })
+
+                    if (isComplete) {
+                        // Execute the approved action (e.g., create user, update config)
+                        await executeApprovedAction(request)
+                        await notifyApprovalCompletion(request, 'approved')
+                    } else if (currentLevelComplete) {
+                        // Only notify next level when current level has collected enough approvers.
+                        await notifyNextLevelApprovers({ ...request, currentLevel: nextLevel?.level ?? request.currentLevel })
+                    }
+
+                    return { completed: isComplete, status: isComplete ? 'approved' : 'pending' }
+                }
+
                 const isComplete = newReceived >= request.approvalsRequired
 
                 await ApprovalRepository.updateRequest(input.requestId, {
@@ -234,11 +317,9 @@ export const processApprovalAction = (
                 })
 
                 if (isComplete) {
-                    // Execute the approved action (e.g., create user, update config)
                     await executeApprovedAction(request)
                     await notifyApprovalCompletion(request, 'approved')
                 } else {
-                    // Progress to next level notification
                     await notifyNextLevelApprovers(request)
                 }
 
@@ -277,7 +358,7 @@ export const processApprovalAction = (
             return { completed: false, status: 'pending' }
         },
         catch: (error) => {
-            if (error instanceof NotFoundError || error instanceof BusinessError) {
+            if (error instanceof NotFoundError || error instanceof BusinessError || error instanceof AuthorizationError) {
                 return error
             }
             return new DatabaseError({
@@ -519,7 +600,7 @@ async function notifyApprovalCompletion(request: any, outcome: 'approved' | 'rej
  * Notify approvers at the next level
  */
 async function notifyNextLevelApprovers(request: any): Promise<void> {
-    console.log(`[ApprovalService] Notifying level ${request.currentLevel + 1} approvers for request ${request.id}`)
+    console.log(`[ApprovalService] Notifying level ${request.currentLevel} approvers for request ${request.id}`)
 }
 
 /**
@@ -562,15 +643,16 @@ export const getPendingApprovalsForUser = (
             userRolesRepository.findByUser(db, userId, tenantId)
         )
 
-        const userRoleNames = userRolesData
-            .map((ur) => ur.role?.roleName)
-            .filter(Boolean) as string[]
+        const approverContext = buildApproverContext(userRolesData as any[])
 
         // Get pending requests for this tenant
         const pending = await ApprovalRepository.findPendingRequests(tenantId)
 
         // Filter to requests where user can approve at current level
         return pending.filter((req: any) => {
+            // Don't show requests the user already approved (strict SoD UX)
+            if (hasApproverApproved(req.actions, userId)) return false
+
             const matrix = req.matrix
             if (!matrix) return true // No matrix, allow all
 
@@ -579,10 +661,8 @@ export const getPendingApprovalsForUser = (
             )
             if (!currentLevel) return true
 
-            // Check if user has any of the required roles
-            return currentLevel.requiredRoles?.some((role: string) =>
-                userRoleNames.includes(role)
-            )
+            // requiredRoles can contain role codes, role names, or permission codes.
+            return matchesRequiredRoles(currentLevel.requiredRoles, approverContext)
         })
     })
 
@@ -636,6 +716,11 @@ function calculateRequiredApprovals(
     impactLevel?: string,
     matrix?: any
 ): number {
+    const sortedLevels = getSortedLevels(matrix)
+    if (sortedLevels.length > 0) {
+        return sortedLevels.reduce((sum, level) => sum + Math.max(1, level.requiredCount || 1), 0)
+    }
+
     const levels = matrix?.levels?.length ?? 2
 
     switch (impactLevel) {
@@ -650,4 +735,95 @@ function calculateRequiredApprovals(
         default:
             return 2
     }
+}
+
+type ApproverContext = {
+    roleCodes: Set<string>
+    roleNames: Set<string>
+    permissions: Set<string>
+}
+
+function normalizeActor(value: string): string {
+    return value.trim().toLowerCase()
+}
+
+function getSortedLevels(matrix: any): ApprovalLevel[] {
+    const levels = Array.isArray(matrix?.levels) ? matrix.levels : []
+    return [...levels].sort((a: ApprovalLevel, b: ApprovalLevel) => a.level - b.level)
+}
+
+function getEffectiveLevels(levels: ApprovalLevel[], approvalsRequired: number | null | undefined): ApprovalLevel[] {
+    if (!levels.length) return []
+    if (!approvalsRequired || approvalsRequired <= 0) return levels
+
+    const effective: ApprovalLevel[] = []
+    let collectedRequiredApprovals = 0
+
+    for (const level of levels) {
+        effective.push(level)
+        collectedRequiredApprovals += Math.max(1, level.requiredCount || 1)
+        if (collectedRequiredApprovals >= approvalsRequired) break
+    }
+
+    return effective.length > 0 ? effective : [levels[0]]
+}
+
+function countApprovedActions(actions: unknown, level?: number): number {
+    const list = Array.isArray(actions) ? actions : []
+    return list.filter((action) =>
+        action?.action === 'approve' && (typeof level === 'number' ? action?.level === level : true)
+    ).length
+}
+
+function hasApproverApproved(actions: unknown, approverId: string): boolean {
+    const list = Array.isArray(actions) ? actions : []
+    return list.some((action) => action?.action === 'approve' && action?.approverId === approverId)
+}
+
+function hasApproverApprovedAtLevel(actions: unknown, approverId: string, level: number): boolean {
+    const list = Array.isArray(actions) ? actions : []
+    return list.some(
+        (action) => action?.action === 'approve' && action?.approverId === approverId && action?.level === level
+    )
+}
+
+function buildApproverContext(userRolesData: any[]): ApproverContext {
+    const roleCodes = new Set<string>()
+    const roleNames = new Set<string>()
+    const permissions = new Set<string>()
+
+    for (const userRole of userRolesData) {
+        const roleCode = typeof userRole?.role?.roleCode === 'string' ? normalizeActor(userRole.role.roleCode) : null
+        const roleName = typeof userRole?.role?.roleName === 'string' ? normalizeActor(userRole.role.roleName) : null
+        if (roleCode) roleCodes.add(roleCode)
+        if (roleName) roleNames.add(roleName)
+
+        const rolePermissions = Array.isArray(userRole?.role?.rolePermissions) ? userRole.role.rolePermissions : []
+        for (const rolePermission of rolePermissions) {
+            if (typeof rolePermission?.permission?.code === 'string') {
+                permissions.add(normalizeActor(rolePermission.permission.code))
+            }
+        }
+    }
+
+    return { roleCodes, roleNames, permissions }
+}
+
+function matchesRequiredRoles(requiredRoles: unknown, context: ApproverContext): boolean {
+    if (!Array.isArray(requiredRoles) || requiredRoles.length === 0) return true
+    const normalized = requiredRoles
+        .filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0)
+        .map(normalizeActor)
+
+    return normalized.some((required) =>
+        context.roleCodes.has(required) || context.roleNames.has(required) || context.permissions.has(required)
+    )
+}
+
+async function loadApproverContext(approverId: string, tenantId: string): Promise<ApproverContext> {
+    const db = getDatabase(tenantId)
+    const userRolesData = await Effect.runPromise(
+        userRolesRepository.findByUser(db, approverId, tenantId)
+    )
+    return buildApproverContext(userRolesData as any[])
 }
