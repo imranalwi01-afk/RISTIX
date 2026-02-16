@@ -5,6 +5,14 @@ const withBundleAnalyzer = bundleAnalyzer({
   enabled: process.env.ANALYZE === 'true',
 });
 
+const normalizeBackendProxyBase = (rawValue) => {
+  let value = (rawValue || '').trim().replace(/\/+$/, '');
+  while (/\/api(?:\/v1)?$/i.test(value)) {
+    value = value.replace(/\/api(?:\/v1)?$/i, '');
+  }
+  return value;
+};
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // ============================================================================
@@ -97,12 +105,21 @@ const nextConfig = {
   // API REWRITES
   // ============================================================================
   async rewrites() {
+    const explicitProxyTarget =
+      process.env.BACKEND_INTERNAL_URL ||
+      process.env.NEXT_PUBLIC_BACKEND_API_URL ||
+      process.env.NEXT_PUBLIC_BACKEND_URL ||
+      process.env.BACKEND_URL;
+
+    const normalizedProxyBase = normalizeBackendProxyBase(explicitProxyTarget);
+    const proxyBase = normalizedProxyBase.startsWith('http://') || normalizedProxyBase.startsWith('https://')
+      ? normalizedProxyBase
+      : 'http://new-backend:4232';
+
     return [
       {
         source: '/api/:path*',
-        destination: process.env.NEXT_PUBLIC_BACKEND_API_URL
-          ? `${process.env.NEXT_PUBLIC_BACKEND_API_URL.replace('/api/v1', '')}/api/:path*`
-          : 'http://localhost:4232/api/:path*',
+        destination: `${proxyBase}/api/:path*`,
       },
     ];
   },

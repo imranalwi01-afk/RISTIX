@@ -193,9 +193,9 @@ const detectBankingModeFromUser = (user: any): 'conventional' | 'syariah' | null
 
 const normalizeBackendBaseUrl = (rawUrl: string): string => {
   let normalized = (rawUrl || '').trim().replace(/\/+$/, '');
-  // Guard against accidental repeated API prefixes like /api/v1/api/v1
-  while (/\/api\/v1$/i.test(normalized)) {
-    normalized = normalized.replace(/\/api\/v1$/i, '');
+  // Guard against accidental repeated API prefixes like /api/api/v1
+  while (/\/api(?:\/v1)?$/i.test(normalized)) {
+    normalized = normalized.replace(/\/api(?:\/v1)?$/i, '');
   }
   return normalized;
 };
