@@ -382,6 +382,40 @@ const defaultMatrices = [
     },
 ]
 
+const toStrictFourEyesLevels = (levels: Array<{
+    level: number
+    name: string
+    requiredRoles: string[]
+    requiredCount: number
+    timeoutHours?: number
+}>): Array<{
+    level: number
+    name: string
+    requiredRoles: string[]
+    requiredCount: number
+    timeoutHours?: number
+}> => {
+    const checkerLevel = levels.find((level) => level.level === 1)
+    const approverLevel = levels.find((level) => level.level === 2)
+
+    return [
+        {
+            level: 1,
+            name: checkerLevel?.name || 'Checker Review',
+            requiredRoles: ['CHECKER'],
+            requiredCount: Math.max(1, checkerLevel?.requiredCount || 1),
+            timeoutHours: checkerLevel?.timeoutHours || 24,
+        },
+        {
+            level: 2,
+            name: approverLevel?.name || 'Final Approval',
+            requiredRoles: ['APPROVER'],
+            requiredCount: Math.max(1, approverLevel?.requiredCount || 1),
+            timeoutHours: approverLevel?.timeoutHours || 24,
+        },
+    ]
+}
+
 // =============================================================================
 // SEED FUNCTION
 // =============================================================================
@@ -424,7 +458,8 @@ export async function seedApprovalMatrices(tenantId: string) {
 
     // Upsert approval matrices + levels
     for (const matrix of defaultMatrices) {
-        const { levels, ...matrixData } = matrix
+        const { levels: originalLevels, ...matrixData } = matrix
+        const levels = toStrictFourEyesLevels(originalLevels)
 
         const existingMatrix = await db.query.approvalMatrices.findFirst({
             where: and(
@@ -592,6 +627,7 @@ export async function assignApprovalPermissionsToRoles() {
         'approval.configuration.delete',
     ])
     await assignAllApprovalsByRoleCode('CHECKER')
+    await assignByRoleCode('APPROVER', ['approval.all'])
 
     console.log('✅ Permission assignment complete!')
 }
