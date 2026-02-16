@@ -567,7 +567,7 @@ export default function DashboardClient() {
         )
     }
 
-    if (!hasAnyPermission(['banking.dashboard.view', 'admin.super_admin'])) {
+    if (!hasAnyPermission(['banking', 'banking.dashboard.view', 'banking.dashboard.manage', 'admin.super_admin'])) {
         return (
             <Box sx={{ p: 3 }}>
                 <Alert severity="error" sx={{ mb: 3 }}>

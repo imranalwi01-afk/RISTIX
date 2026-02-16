@@ -106,13 +106,24 @@ export default function ProductParametersPage() {
         activeOnly: filters.activeOnly === 'all' ? undefined : (filters.activeOnly === 'active')
       });
 
-      if (result.success) {
+      // Support both payload styles:
+      // 1) { success: true, products, pagination }
+      // 2) { success: true, data: { products, pagination } }
+      const listPayload = result?.data && typeof result.data === 'object' ? result.data : result;
+      const products = Array.isArray(listPayload?.products)
+        ? listPayload.products
+        : Array.isArray(listPayload?.data)
+          ? listPayload.data
+          : [];
+      const pagination = listPayload?.pagination ?? {};
+
+      if (result?.success) {
         // Fetch pending approvals for product parameters
         try {
           const pendingRes = await bankingAPI.approval.getPendingApprovals();
           const pendingRequests = Array.isArray(pendingRes) ? pendingRes : (pendingRes as any).data || [];
 
-          const mappedProducts = result.products.map((item: any) => {
+          const mappedProducts = products.map((item: any) => {
             const pending = pendingRequests.find((r: any) => r.entityType === 'product_parameter' && r.entityId === item.prdCode);
             return {
               ...item,
@@ -122,14 +133,14 @@ export default function ProductParametersPage() {
           });
 
           setData(mappedProducts);
-          setRowCount(result.pagination?.total || result.products.length);
+          setRowCount(Number(pagination.total ?? products.length ?? 0));
         } catch (e) {
           console.warn('Failed to load pending approvals:', e);
-          setData(result.products);
-          setRowCount(result.pagination?.total || result.products.length);
+          setData(products);
+          setRowCount(Number(pagination.total ?? products.length ?? 0));
         }
       } else {
-        setError(result.message || 'Failed to load products');
+        setError(result?.message || 'Failed to load products');
       }
     } catch (err) {
       setError(handleAPIError(err).message);
@@ -145,15 +156,28 @@ export default function ProductParametersPage() {
         api.banking.productParameters.getInstrumentClassOptions()
       ]);
 
-      if (businessRes.success) {
+      const businessPayload = businessRes?.data && typeof businessRes.data === 'object' ? businessRes.data : businessRes;
+      const businessRows = Array.isArray(businessPayload?.data)
+        ? businessPayload.data
+        : Array.isArray(businessPayload)
+          ? businessPayload
+          : [];
+      const instrumentPayload = instrumentRes?.data && typeof instrumentRes.data === 'object' ? instrumentRes.data : instrumentRes;
+      const instrumentRows = Array.isArray(instrumentPayload?.data)
+        ? instrumentPayload.data
+        : Array.isArray(instrumentPayload)
+          ? instrumentPayload
+          : [];
+
+      if (businessRes?.success) {
         setOptions(prev => {
           // Extract B0001 (Currency) and B0002 (Amortization)
-          const currencies = businessRes.data.find((p: any) => p.param_code === 'B0001')?.details.map((d: any) => ({
+          const currencies = businessRows.find((p: any) => p.param_code === 'B0001')?.details?.map((d: any) => ({
             id: d.value1 || d.param_value,
             name: d.paramdesc || d.value1
           })) || prev.currencies;
 
-          const amortMethods = businessRes.data.find((p: any) => p.param_code === 'B0002')?.details.map((d: any) => ({
+          const amortMethods = businessRows.find((p: any) => p.param_code === 'B0002')?.details?.map((d: any) => ({
             id: d.value1,
             name: d.paramdesc || d.value1
           })) || prev.amortizationTypes;
@@ -162,7 +186,7 @@ export default function ProductParametersPage() {
             ...prev,
             currencies,
             amortizationTypes: amortMethods,
-            instrumentClasses: instrumentRes.success ? instrumentRes.data : prev.instrumentClasses
+            instrumentClasses: instrumentRes?.success && instrumentRows.length > 0 ? instrumentRows : prev.instrumentClasses
           };
         });
       }

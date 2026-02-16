@@ -81,7 +81,8 @@ const ROUTE_PERMISSION_RULES: RoutePermissionRule[] = [
     { prefix: '/api/v1/user-registration', base: 'admin.users' },
 
     { prefix: '/api/v1/audit', base: 'admin.system' },
-    { prefix: '/api/v1/jobs', base: 'admin.system' },
+    // Jobs route does action-level authorization inside handlers (jobs.view/jobs.run/jobs.approve/etc.).
+    { prefix: '/api/v1/jobs' },
     { prefix: '/api/v1/platform-admin', base: 'admin.system' },
     { prefix: '/api/v1/platform-users', base: 'admin.system' },
     { prefix: '/api/v1/tenants', base: 'admin.system' },
@@ -160,6 +161,8 @@ const hasAnyPermission = (permissions: string[], candidates: string[]): boolean 
 export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
     const baseLogger = c.get('logger') || withRequestIds({ requestId: c.get('requestId'), tenantId: c.get('tenantId') })
     const authHeader = c.req.header('Authorization')
+    let authStage: 'header' | 'token' | 'session' | 'user' | 'tenant' = 'header'
+    let payloadTenantId: string | undefined
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
         baseLogger.warn({
@@ -210,42 +213,63 @@ export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
     }
 
     try {
+        authStage = 'token'
         // Verify JWT signature
-        const payload = await verifyToken(token)
+        const payload = await verifyToken(token, 'access')
         baseLogger.info({ sub: payload.sub, jti: payload.jti }, '[AUTH] Token verified')
 
+        payloadTenantId = (payload as any).tenantId as string | undefined
+
         // Check session in Redis
+        authStage = 'session'
         const sessionKey = `session:access:${payload.jti}`
         const sessionData = await redis.get(sessionKey)
         if (!sessionData) {
             console.warn(`[AUTH DEBUG] Session not found in Redis: ${sessionKey}`)
             baseLogger.warn({ jti: payload.jti, sessionKey }, '[AUTH] Session not found in Redis')
-            throw new Error('Session not found or expired')
+            return c.json(
+                {
+                    success: false,
+                    error: 'Session not found or expired',
+                    code: 'SESSION_EXPIRED',
+                },
+                401
+            )
         }
 
         // Contextual validation
-        const tenantId = (payload as any).tenantId as string | undefined
-        const tenantDb = getDatabase(tenantId)
-        
-        console.log(`[AUTH DEBUG] Resolving user: sub=${payload.sub}, tenantId=${tenantId}`)
+        const tenantId = payloadTenantId
+        const stakeholderType = (payload as any).stakeholderType as string | undefined
+        const isPlatformSession = !tenantId || stakeholderType === 'platform'
+        authStage = 'user'
 
-        // Load complete user context - try tenant DB first, then platform DB as fallback
-        let user = await AuthRepository.findUserById(tenantDb, payload.sub)
-        let db = tenantDb
+        console.log(`[AUTH DEBUG] Resolving user: sub=${payload.sub}, tenantId=${tenantId}, stakeholderType=${stakeholderType}`)
 
-        if (!user) {
-            baseLogger.debug({ sub: payload.sub, tenantId }, '[AUTH] User not found in tenant DB, checking platform DB...')
-            const platformDb = getDatabase(null)
-            user = await AuthRepository.findUserById(platformDb, payload.sub)
-            if (user) {
-                db = platformDb
-                baseLogger.debug({ sub: payload.sub }, '[AUTH] User found in platform DB')
+        let user: any = null
+        let db = getDatabase(isPlatformSession ? null : tenantId)
+        let dbContext: 'Tenant DB' | 'Platform DB' = isPlatformSession ? 'Platform DB' : 'Tenant DB'
+
+        if (isPlatformSession) {
+            // Platform session must resolve against platform_admin.users.
+            user = await AuthRepository.findPlatformUserById(db, payload.sub)
+        } else {
+            // Tenant/banking session resolves against tenant core.users first.
+            user = await AuthRepository.findUserById(db, payload.sub)
+            if (!user) {
+                // Compatibility fallback for tokens that might reference platform users.
+                baseLogger.debug({ sub: payload.sub, tenantId }, '[AUTH] User not found in tenant DB, checking platform DB...')
+                const platformDb = getDatabase(null)
+                user = await AuthRepository.findPlatformUserById(platformDb, payload.sub)
+                if (user) {
+                    db = platformDb
+                    dbContext = 'Platform DB'
+                    baseLogger.debug({ sub: payload.sub }, '[AUTH] User found in platform DB')
+                }
             }
         }
 
         if (!user || !user.isActive) {
-            const dbUrl = maskDatabaseUrl(getDatabaseUrl(user ? (db === tenantDb ? tenantId : null) : tenantId))
-            const dbContext = db === tenantDb ? 'Tenant DB' : 'Platform DB'
+            const dbUrl = maskDatabaseUrl(getDatabaseUrl(dbContext === 'Tenant DB' ? tenantId : null))
             
             baseLogger.warn({ sub: payload.sub, dbContext, dbUrl }, '[AUTH] User not found or inactive')
             
@@ -256,34 +280,39 @@ export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
         }
 
 
-        // Resolve tenant - try ID first, then fallback to Slug
-        let tenant = null
-        if (user.tenantId) {
-            try {
-                // First try looking up by ID (UUID)
-                tenant = await TenantRepository.findById(user.tenantId)
-            } catch (e) {
-                // If ID lookup fails (e.g. invalid UUID format), ignore and try slug
-                baseLogger.debug({ tenantId: user.tenantId }, '[AUTH] ID lookup failed or invalid format, trying slug')
+        // Resolve tenant only for tenant-scoped sessions
+        authStage = 'tenant'
+        let tenant: any = null
+        if (!isPlatformSession) {
+            if (user.tenantId) {
+                try {
+                    // First try looking up by ID (UUID)
+                    tenant = await TenantRepository.findById(user.tenantId)
+                } catch (e) {
+                    // If ID lookup fails (e.g. invalid UUID format), ignore and try slug
+                    baseLogger.debug({ tenantId: user.tenantId }, '[AUTH] ID lookup failed or invalid format, trying slug')
+                }
+
+                // Fallback to slug if not found by ID
+                if (!tenant) {
+                    tenant = await TenantRepository.findBySlug(user.tenantId)
+                }
             }
 
-            // Fallback to slug if not found by ID
             if (!tenant) {
-                tenant = await TenantRepository.findBySlug(user.tenantId)
+                const dbUrl = maskDatabaseUrl(getPlatformDatabaseUrl())
+                const errorMsg = isDevelopment
+                    ? `Tenant not found (Target: ${user.tenantId}, Database: ${dbUrl})`
+                    : 'Tenant not found'
+
+                baseLogger.warn({ email: user.email, tenantId: user.tenantId, dbUrl }, '[AUTH] Tenant not found for user')
+                throw new Error(errorMsg)
             }
-        }
 
-        if (!tenant) {
-            const dbUrl = maskDatabaseUrl(getPlatformDatabaseUrl())
-            const errorMsg = isDevelopment
-                ? `Tenant not found (Target: ${user.tenantId}, Database: ${dbUrl})`
-                : 'Tenant not found'
-            
-            baseLogger.warn({ email: user.email, tenantId: user.tenantId, dbUrl }, '[AUTH] Tenant not found for user')
-            throw new Error(errorMsg)
+            baseLogger.info({ email: user.email, tenantName: tenant.name }, '[AUTH] User context loaded')
+        } else {
+            baseLogger.info({ email: user.email }, '[AUTH] Platform user context loaded')
         }
-
-        baseLogger.info({ email: user.email, tenantName: tenant.name }, '[AUTH] User context loaded')
 
         // Set user context - ALWAYS use the resolved UUID from tenant object
         const payloadPermissions = Array.isArray((payload as any).permissions)
@@ -291,11 +320,19 @@ export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
             : []
         const resolvedPermissions = normalizePermissions(payloadPermissions)
 
+        const isSystemUser =
+            isPlatformSession ||
+            !!(user as any).isPlatformAdmin ||
+            resolvedPermissions.includes('admin.super_admin') ||
+            resolvedPermissions.includes('SUPER_ADMIN') ||
+            resolvedPermissions.includes('PLATFORM_ADMIN') ||
+            resolvedPermissions.includes('admin.system.manage')
+
         c.set('userId', user.id)
         c.set('user', user)
         c.set('tokenId', payload.jti)
-        c.set('tenantId', tenant.id) // Use resolved UUID, not user.tenantId which might be a slug
-        c.set('isSystemUser', !!(user as any).isPlatformAdmin) // Use the flag
+        c.set('tenantId', tenant?.id) // Platform sessions intentionally have no tenant context.
+        c.set('isSystemUser', isSystemUser)
         c.set('permissions', resolvedPermissions)
         c.set('userPermissions', resolvedPermissions)
 
@@ -328,12 +365,17 @@ export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
 
         await next()
     } catch (error: any) {
-        const dbUrl = maskDatabaseUrl(getPlatformDatabaseUrl())
+        const includeDbContext = authStage === 'user' || authStage === 'tenant'
+        const dbUrl = includeDbContext
+            ? maskDatabaseUrl(getDatabaseUrl(payloadTenantId ?? null))
+            : undefined
         const message = isDevelopment
-            ? `Invalid or expired token (${error.message}, Database: ${dbUrl})`
+            ? includeDbContext
+                ? `Invalid or expired token (${error.message}, Database: ${dbUrl})`
+                : `Invalid or expired token (${error.message})`
             : 'Invalid or expired token'
             
-        baseLogger.error({ err: error, dbUrl }, '[AUTH] authentication error')
+        baseLogger.error({ err: error, dbUrl, authStage, payloadTenantId }, '[AUTH] authentication error')
         return c.json(
             {
                 success: false,

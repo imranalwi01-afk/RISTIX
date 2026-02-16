@@ -81,6 +81,8 @@ function handleEffectError(c: Context, cause: unknown): Response {
             )
 
         case 'BusinessError':
+            {
+                const status = error.code === 'REQUEST_NOT_PENDING' ? 409 : 422
             return c.json(
                 {
                     success: false,
@@ -88,8 +90,9 @@ function handleEffectError(c: Context, cause: unknown): Response {
                     code: error.code,
                     details: error.details,
                 } as any,
-                422
+                status as any
             )
+            }
 
         case 'RateLimitError':
             return c.json(

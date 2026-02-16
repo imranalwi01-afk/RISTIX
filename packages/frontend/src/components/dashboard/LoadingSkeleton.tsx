@@ -77,7 +77,7 @@ export const DashboardSkeleton: React.FC = () => (
             {/* Stats Cards Skeleton */}
             <Grid container spacing={3} sx={{ mb: 4 }}>
                 {[1, 2, 3, 4].map((item) => (
-                    <Grid item xs={12} md={6} key={item}>
+                    <Grid size={{ xs: 12, md: 6 }} key={item}>
                         <StatCardSkeleton />
                     </Grid>
                 ))}
@@ -85,17 +85,17 @@ export const DashboardSkeleton: React.FC = () => (
 
             {/* Charts Skeleton */}
             <Grid container spacing={3} sx={{ mb: 4 }}>
-                <Grid item xs={12} md={8}>
+                <Grid size={{ xs: 12, md: 8 }}>
                     <ChartSkeleton />
                 </Grid>
-                <Grid item xs={12} md={4}>
+                <Grid size={{ xs: 12, md: 4 }}>
                     <ChartSkeleton />
                 </Grid>
             </Grid>
 
             {/* Bottom Section Skeleton */}
             <Grid container spacing={3}>
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                     <Card sx={{ height: '100%' }}>
                         <CardContent>
                             <Skeleton variant="text" width="40%" height={28} sx={{ mb: 3 }} />
@@ -105,7 +105,7 @@ export const DashboardSkeleton: React.FC = () => (
                         </CardContent>
                     </Card>
                 </Grid>
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                     <ActivityListSkeleton />
                 </Grid>
             </Grid>

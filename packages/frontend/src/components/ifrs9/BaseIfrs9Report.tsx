@@ -317,8 +317,10 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
       }
 
       let response: ReportResponse;
+      const normalizedStage = Array.isArray(filters.stage) ? filters.stage.join(',') : filters.stage;
       const params = {
         ...filters,
+        stage: normalizedStage,
         prc_date: filters.prc_date.toISOString().split('T')[0]
       };
 

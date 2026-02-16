@@ -48,7 +48,16 @@ const processor = async (job: Job) => {
             targetDb = getDatabase(tenantId || 'public'); // Fallback to public/default if needed, strict ideally
         }
 
-        const tenantExecutor = new JobExecutorService(targetDb)
+        const tenantExecutor = new JobExecutorService(targetDb, {
+            onSqlRuntime: async (metadata) => {
+                if (!job.id) return
+                await updateExecutionStatus(String(job.id), 'active', tenantId || null, {
+                    progress: 0,
+                    clearError: true,
+                    tagsMerge: metadata,
+                })
+            }
+        })
 
         const result = await tenantExecutor.execute(job.name, parameters)
 
@@ -67,23 +76,60 @@ const processor = async (job: Job) => {
 // SYNC LOGIC: Redis -> Postgres
 // =============================================================================
 
+const normalizeExecutionStatus = (status: string): string => {
+    switch ((status || '').toLowerCase()) {
+        case 'waiting':
+        case 'queued':
+        case 'delayed':
+        case 'prioritized':
+            return 'pending'
+        case 'running':
+            return 'active'
+        default:
+            return status.toLowerCase()
+    }
+}
+
 // Helper to update execution status in DB
 const updateExecutionStatus = async (jobId: string, status: string, tenantId: string | null, data?: any) => {
     try {
         const targetDb = getDatabase(tenantId || 'public') // Ensure we have a DB connection
-        const isTerminal = ['completed', 'failed'].includes(status)
+        const normalizedStatus = normalizeExecutionStatus(status)
+        const isTerminal = ['completed', 'failed', 'cancelled'].includes(normalizedStatus)
         const durationMs = data?.durationMs
             ?? (data?.finishedOn && data?.processedOn ? Math.max(0, data.finishedOn - data.processedOn) : undefined)
+        let mergedTags: any = undefined
+
+        if (data?.tagsMerge && typeof data.tagsMerge === 'object') {
+            const [existingExecution] = await targetDb
+                .select({ tags: jobExecutions.tags })
+                .from(jobExecutions)
+                .where(eq(jobExecutions.id, jobId))
+                .limit(1)
+
+            const existingTags = existingExecution?.tags && typeof existingExecution.tags === 'object' && !Array.isArray(existingExecution.tags)
+                ? existingExecution.tags
+                : {}
+
+            mergedTags = {
+                ...existingTags,
+                ...data.tagsMerge,
+            }
+        }
+
+        const patch: Record<string, unknown> = {
+            status: normalizedStatus,
+        }
+        if (typeof data?.progress === 'number') patch.progress = data.progress
+        if (Object.prototype.hasOwnProperty.call(data || {}, 'result')) patch.result = data.result
+        if (Object.prototype.hasOwnProperty.call(data || {}, 'error')) patch.error = data.error
+        if (data?.clearError) patch.error = null
+        if (typeof durationMs === 'number') patch.duration = Math.round(durationMs)
+        if (mergedTags !== undefined) patch.tags = mergedTags
+        if (isTerminal) patch.endTime = new Date()
 
         await targetDb.update(jobExecutions)
-            .set({
-                status,
-                progress: data?.progress,
-                result: data?.result,
-                error: data?.error,
-                duration: typeof durationMs === 'number' ? Math.round(durationMs) : undefined,
-                endTime: isTerminal ? new Date() : undefined
-            })
+            .set(patch)
             .where(eq(jobExecutions.id, jobId))
     } catch (err) {
         console.error(`[QueueService] Failed to sync status ${status} for job ${jobId} (Tenant: ${tenantId})`, err)
@@ -99,6 +145,8 @@ const mapDefinitionStatus = (status: string): string => {
         case 'failed':
             return 'FAILED'
         case 'waiting':
+        case 'queued':
+        case 'pending':
             return 'PENDING'
         default:
             return status.toUpperCase()
@@ -133,7 +181,7 @@ export const jobsWorker = new Worker(QUEUE_NAME, processor, {
 jobsWorker.on('active', (job) => {
     if (!job) return
     console.log(`[Worker] Job ${job.id} active`)
-    updateExecutionStatus(job.id!, 'active', job.data.tenantId)
+    updateExecutionStatus(job.id!, 'active', job.data.tenantId, { clearError: true, progress: 0 })
     updateDefinitionStatus(job.data.definitionId, job.data.tenantId, 'active')
 })
 
@@ -141,6 +189,8 @@ jobsWorker.on('completed', (job, result) => {
     if (!job) return
     console.log(`[Worker] Job ${job.id} completed`)
     if (job.id) updateExecutionStatus(job.id, 'completed', job.data.tenantId, {
+        clearError: true,
+        progress: 100,
         result,
         processedOn: job.processedOn,
         finishedOn: job.finishedOn,
@@ -152,6 +202,19 @@ jobsWorker.on('failed', (job, err) => {
     if (!job || !err) return
     console.error(`[Worker] Job ${job.id} failed`, err)
     const verboseError = [err.message, err.stack].filter(Boolean).join('\n\n')
+    const attemptsMade = Number(job.attemptsMade || 0)
+    const maxAttempts = Number(job.opts?.attempts || 1)
+    const hasRemainingRetries = attemptsMade < maxAttempts
+
+    if (hasRemainingRetries) {
+        if (job.id) updateExecutionStatus(job.id, 'pending', job.data.tenantId, {
+            progress: 0,
+            error: `Attempt ${attemptsMade}/${maxAttempts} failed. Retrying.\n\n${verboseError}`,
+        })
+        updateDefinitionStatus(job.data.definitionId, job.data.tenantId, 'waiting')
+        return
+    }
+
     if (job.id) updateExecutionStatus(job.id, 'failed', job.data.tenantId, {
         error: verboseError,
         processedOn: job.processedOn,

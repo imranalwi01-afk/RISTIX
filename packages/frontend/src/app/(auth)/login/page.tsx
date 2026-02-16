@@ -92,11 +92,27 @@ export default function LoginPage({ initialRole }: LoginPageProps) {
   // ============================================================================
   useEffect(() => {
     const fetchTenants = async () => {
+      if (isPlatformAdmin) {
+        // Platform login does not require tenant selection.
+        setTenants([]);
+        setSelectedTenantId('');
+        setTenantsLoading(false);
+        return;
+      }
+
       try {
+        const toApiV1BaseUrl = (rawValue: string): string => {
+          let normalized = (rawValue || '').trim().replace(/\/+$/, '');
+          while (/\/api\/v1$/i.test(normalized)) {
+            normalized = normalized.replace(/\/api\/v1$/i, '');
+          }
+          return normalized.length > 0 ? `${normalized}/api/v1` : '/api/v1';
+        };
+
         const config = frontendEnvironmentLoader.getConfiguration();
-        const baseUrl = config.api.base || `${config.api.backend}/api/v1`;
+        const baseUrl = toApiV1BaseUrl(config?.api?.base || config?.api?.backend || '');
         const authPath = config.api.auth || '/auth';
-        const queryParams = isPlatformAdmin ? '?mode=admin' : '';
+        const queryParams = '';
 
         const response = await fetch(`${baseUrl}${authPath}/login-data${queryParams}`, {
           method: 'GET',
@@ -108,11 +124,8 @@ export default function LoginPage({ initialRole }: LoginPageProps) {
         const result = await response.json();
 
         if (result.success && result.data) {
-          // 🛡️ SECURITY: Hide 'system' tenant unless specifically requested via magic param
-          const showSystem = isPlatformAdmin;
-
           const filteredTenants = result.data.tenants.filter((t: TenantOption) =>
-            t.isActive && (showSystem || t.slug !== 'system')
+            t.isActive && t.slug !== 'system'
           );
 
           // 🔄 SORTING: IAF First, then DANA, then others
@@ -139,21 +152,9 @@ export default function LoginPage({ initialRole }: LoginPageProps) {
           setTenants(filteredTenants);
 
           // Auto-select logic
-          if (isPlatformAdmin) {
-            // For Platform Admin, ALWAYS select system if available
-            const systemTenant = filteredTenants.find((t: TenantOption) => t.slug === 'system');
-            if (systemTenant) {
-              setSelectedTenantId(systemTenant.slug);
-            } else {
-              // Fallback if system not found
-              console.warn('System tenant not found in response despite mode=admin');
-              if (filteredTenants.length > 0) setSelectedTenantId(filteredTenants[0].slug);
-            }
-          } else {
-            // Regular User: Auto-select first available
-            if (filteredTenants.length > 0) {
-              setSelectedTenantId(filteredTenants[0].slug);
-            }
+          // Regular User: Auto-select first available
+          if (filteredTenants.length > 0) {
+            setSelectedTenantId(filteredTenants[0].slug);
           }
         }
       } catch (error) {
@@ -190,17 +191,20 @@ export default function LoginPage({ initialRole }: LoginPageProps) {
     setLocalError('');
 
     try {
-      if (!email || !password || !selectedTenantId) {
+      if (!email || !password || (!isPlatformAdmin && !selectedTenantId)) {
         setLocalError('Please enter email, password, and select tenant');
         setLoginLoading(false); // ✅ Stop loading on validation error
         return;
       }
 
-      // Backend expects tenantId (which might be slug or ID depending on provider, Reference used slug)
-      const success = await login({ email, password, tenantId: selectedTenantId });
+      const success = await login(
+        isPlatformAdmin
+          ? { email, password }
+          : { email, password, tenantId: selectedTenantId }
+      );
 
       if (!success) {
-        setLocalError('Invalid credentials or tenant selection');
+        setLocalError(isPlatformAdmin ? 'Invalid credentials' : 'Invalid credentials or tenant selection');
         setLoginLoading(false); // ✅ Stop loading on failure
       } else {
         // ✅ ON SUCCESS: Do NOT stop loading.
@@ -384,31 +388,32 @@ export default function LoginPage({ initialRole }: LoginPageProps) {
                 )}
 
                 <Box component="form" onSubmit={handleLogin} noValidate>
-                  {/* Tenant Selector - Matched with Reference Visuals (FormControl + Select) */}
-                  <Box sx={{ mb: 3 }}>
-                    <FormControl fullWidth variant="outlined" size="medium">
-                      <InputLabel id="tenant-select-label">Workspace / Tenant</InputLabel>
-                      <Select
-                        labelId="tenant-select-label"
-                        value={selectedTenantId}
-                        onChange={(e) => setSelectedTenantId(e.target.value)}
-                        label="Workspace / Tenant"
-                        disabled={tenantsLoading || loginLoading || isPlatformAdmin}
-                        startAdornment={
-                          <InputAdornment position="start">
-                            <BusinessIcon color="action" fontSize="small" />
-                          </InputAdornment>
-                        }
-                        sx={{ bgcolor: '#ffffff' }}
-                      >
-                        {tenants.map((tenant) => (
-                          <MenuItem key={tenant.id} value={tenant.slug}>
-                            {tenant.displayName}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Box>
+                  {!isPlatformAdmin && (
+                    <Box sx={{ mb: 3 }}>
+                      <FormControl fullWidth variant="outlined" size="medium">
+                        <InputLabel id="tenant-select-label">Workspace / Tenant</InputLabel>
+                        <Select
+                          labelId="tenant-select-label"
+                          value={selectedTenantId}
+                          onChange={(e) => setSelectedTenantId(e.target.value)}
+                          label="Workspace / Tenant"
+                          disabled={tenantsLoading || loginLoading}
+                          startAdornment={
+                            <InputAdornment position="start">
+                              <BusinessIcon color="action" fontSize="small" />
+                            </InputAdornment>
+                          }
+                          sx={{ bgcolor: '#ffffff' }}
+                        >
+                          {tenants.map((tenant) => (
+                            <MenuItem key={tenant.id} value={tenant.slug}>
+                              {tenant.displayName}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Box>
+                  )}
 
                   <TextField
                     fullWidth
@@ -450,7 +455,7 @@ export default function LoginPage({ initialRole }: LoginPageProps) {
                     fullWidth
                     variant="contained"
                     size="large"
-                    disabled={loginLoading || isLoading || !selectedTenantId}
+                    disabled={loginLoading || isLoading || (!isPlatformAdmin && !selectedTenantId)}
                     endIcon={!loginLoading && <ArrowForwardIcon />}
                     sx={{
                       py: 1.8,

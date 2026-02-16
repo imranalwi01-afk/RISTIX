@@ -5,6 +5,7 @@ import { sql } from 'drizzle-orm';
 import { logger } from '../lib/logger';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { legacyConnection } from '../config/database';
 
 const execAsync = promisify(exec);
 
@@ -15,8 +16,18 @@ export type JobResult = {
     executionTimeMs: number;
 };
 
+type SqlRuntimeMetadata = {
+    dbBackendPid: number;
+    dbName: string;
+    dbSessionStart?: string;
+};
+
+type ExecutorOptions = {
+    onSqlRuntime?: (metadata: SqlRuntimeMetadata) => Promise<void> | void;
+};
+
 export class JobExecutorService<TSchema extends Record<string, unknown> = typeof schema> {
-    constructor(private db: PostgresJsDatabase<TSchema>) { }
+    constructor(private db: PostgresJsDatabase<TSchema>, private options: ExecutorOptions = {}) { }
 
     private formatExecutionError(error: any, context: { jobType: string; parameters: any }): string {
         const parts: string[] = []
@@ -106,12 +117,94 @@ export class JobExecutorService<TSchema extends Record<string, unknown> = typeof
      * Expected parameters: { procedureName: string, params: any[] }
      */
     private async executeSqlSp(parameters: any): Promise<any> {
-        const { procedureName, schemaName, parameters: args = [], params = [] } = parameters;
+        const { procedureName, schemaName, targetDatabase = 'TENANT', parameters: args = [], params = [] } = parameters;
         const finalArgs = args.length > 0 ? args : params;
 
         if (!procedureName) throw new Error('procedureName is required for SQL_SP');
 
-        logger.info({ schemaName, procedureName, finalArgs }, 'Executing Stored Procedure');
+        logger.info({ schemaName, procedureName, finalArgs, targetDatabase }, 'Executing Stored Procedure');
+
+        const quoteIdentifier = (value: string) => `"${value.replace(/"/g, '""')}"`;
+        const qualifiedProcName = (() => {
+            const explicitSchema = typeof schemaName === 'string' && schemaName.trim().length > 0
+                ? schemaName.trim()
+                : undefined;
+            const procedureSegments = String(procedureName)
+                .split('.')
+                .map((segment) => segment.trim())
+                .filter(Boolean);
+
+            if (explicitSchema) {
+                const procedureOnly = procedureSegments.length > 0
+                    ? procedureSegments[procedureSegments.length - 1]
+                    : procedureName;
+                return `${quoteIdentifier(explicitSchema)}.${quoteIdentifier(procedureOnly)}`;
+            }
+
+            if (procedureSegments.length > 1) {
+                return procedureSegments.map(quoteIdentifier).join('.');
+            }
+
+            return quoteIdentifier(procedureName);
+        })();
+
+        const placeholders = finalArgs.map((_: unknown, index: number) => `$${index + 1}`).join(', ');
+
+        if (String(targetDatabase).toUpperCase() === 'LEGACY') {
+            const reserved = await legacyConnection.reserve();
+
+            try {
+                const sessionRows = await reserved.unsafe<Array<{
+                    pid: number;
+                    dbName: string;
+                    backendStart: Date | string | null;
+                }>>(
+                    `
+                    select
+                        pg_backend_pid() as pid,
+                        current_database() as "dbName",
+                        backend_start as "backendStart"
+                    from pg_stat_activity
+                    where pid = pg_backend_pid()
+                    limit 1
+                    `
+                );
+                const session = sessionRows[0];
+                if (session && this.options.onSqlRuntime) {
+                    await this.options.onSqlRuntime({
+                        dbBackendPid: Number(session.pid),
+                        dbName: session.dbName,
+                        dbSessionStart: session.backendStart ? new Date(session.backendStart).toISOString() : undefined,
+                    });
+                }
+
+                try {
+                    const selectSql = `SELECT * FROM ${qualifiedProcName}(${placeholders})`;
+                    const result = await reserved.unsafe(selectSql, finalArgs);
+                    return result;
+                } catch (error: any) {
+                    const message = String(error?.message || '').toLowerCase();
+                    const isProcedureOnly =
+                        message.includes('is a procedure')
+                        || message.includes('cannot be used in from clause');
+
+                    if (!isProcedureOnly) {
+                        throw error;
+                    }
+
+                    logger.info(
+                        { schemaName, procedureName },
+                        'Stored procedure detected, retrying with CALL syntax'
+                    );
+
+                    const callSql = `CALL ${qualifiedProcName}(${placeholders})`;
+                    await reserved.unsafe(callSql, finalArgs);
+                    return { called: true };
+                }
+            } finally {
+                reserved.release();
+            }
+        }
 
         // Build query efficiently
         // If schemaName is provided, use identifier(schema).identifier(proc)

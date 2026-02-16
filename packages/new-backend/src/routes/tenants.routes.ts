@@ -574,6 +574,8 @@ tenantsRoutes.openapi(
         }
     }),
     async (c) => {
+        try { requirePlatformAdmin(c) } catch (e: any) { return c.json({ success: false, error: e.message }, 403) }
+
         const { id } = c.req.valid('param' as any)
 
         const effect = pipe(
@@ -616,6 +618,8 @@ tenantsRoutes.openapi(
         }
     }),
     async (c) => {
+        try { requirePlatformAdmin(c) } catch (e: any) { return c.json({ success: false, error: e.message }, 403) }
+
         const { id } = c.req.valid('param' as any)
 
         const effect = pipe(

@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
     Box,
     Typography,
@@ -35,12 +35,14 @@ import {
     Add as AddIcon,
     Search as SearchIcon,
     Refresh as RefreshIcon,
+    Download as DownloadIcon,
     Business as TenantIcon,
     CheckCircle as CheckCircleIcon,
     Cancel as CancelIcon
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { tenantsAPI } from '@/services/api';
+import { exportToCsv } from '@/utils/export-csv';
 
 // Types
 interface Tenant {
@@ -65,6 +67,31 @@ interface TenantFormData {
     isActive?: boolean;
 }
 
+const normalizeTenantType = (tenant: Tenant): 'banking' | 'fintech' | 'insurance' => {
+    const raw = String(
+        tenant.type ??
+        (tenant as any).tenantType ??
+        'banking'
+    ).trim().toLowerCase();
+
+    if (raw === 'fintech' || raw === 'insurance') return raw;
+    return 'banking';
+};
+
+const normalizeBankingMode = (tenant: Tenant): 'conventional' | 'syariah' | 'dual' => {
+    const raw = String(
+        tenant.bankingMode ??
+        (tenant as any).banking_mode ??
+        'conventional'
+    ).trim().toLowerCase();
+
+    if (raw === 'syariah' || raw === 'dual') return raw;
+    return 'conventional';
+};
+
+const toTitleCase = (value: string) =>
+    value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+
 const TenantManagement = () => {
     // State for data
     const [tenants, setTenants] = useState<Tenant[]>([]);
@@ -76,6 +103,7 @@ const TenantManagement = () => {
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [searchQuery, setSearchQuery] = useState('');
+    const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
 
     // State for dialogs
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -103,15 +131,27 @@ const TenantManagement = () => {
                 mode: 'admin' // Include system tenants
             });
 
-            // Handle response structure depending on API
-            const data = response.data || [];
-            const totalCount = response.total || data.length;
+            const responseData = (response as any)?.data;
+            const data = Array.isArray(responseData)
+                ? responseData
+                : Array.isArray(responseData?.tenants)
+                    ? responseData.tenants
+                    : [];
+            const totalCountRaw = (response as any)?.total ?? responseData?.total ?? data.length;
+            const totalCount = Number(totalCountRaw);
 
             setTenants(data);
-            setTotal(Number(totalCount));
+            setTotal(Number.isFinite(totalCount) ? totalCount : data.length);
         } catch (err) {
             console.error('Failed to fetch tenants:', err);
-            setError('Failed to load tenants.');
+            const status = (err as any)?.response?.status;
+            if (status === 403) {
+                setError('Access denied. This account does not have platform admin permissions.');
+            } else if (status === 401) {
+                setError('Session expired. Please log in again.');
+            } else {
+                setError('Failed to load tenants.');
+            }
         } finally {
             setLoading(false);
         }
@@ -132,6 +172,39 @@ const TenantManagement = () => {
 
     const handleRowsPerPageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setRowsPerPage(parseInt(event.target.value, 10));
+        setPage(0);
+    };
+
+    const filteredTenants = useMemo(() => {
+        if (statusFilter === 'all') return tenants;
+        return tenants.filter((tenant) => (statusFilter === 'active' ? tenant.isActive : !tenant.isActive));
+    }, [tenants, statusFilter]);
+
+    const stats = useMemo(() => {
+        const active = tenants.filter((tenant) => tenant.isActive).length;
+        const inactive = tenants.length - active;
+        return { loaded: tenants.length, active, inactive };
+    }, [tenants]);
+
+    const handleExport = () => {
+        exportToCsv(
+            'tenants.csv',
+            ['Name', 'Code', 'Slug', 'Type', 'Banking Mode', 'Status', 'Created At'],
+            filteredTenants.map((tenant) => [
+                tenant.name,
+                tenant.code,
+                tenant.slug || '',
+                toTitleCase(normalizeTenantType(tenant)),
+                toTitleCase(normalizeBankingMode(tenant)),
+                tenant.isActive ? 'Active' : 'Inactive',
+                tenant.createdAt ? format(new Date(tenant.createdAt), 'yyyy-MM-dd HH:mm:ss') : '',
+            ])
+        );
+    };
+
+    const handleClearFilters = () => {
+        setSearchQuery('');
+        setStatusFilter('all');
         setPage(0);
     };
 
@@ -156,8 +229,8 @@ const TenantManagement = () => {
             code: tenant.code,
             name: tenant.name,
             slug: tenant.slug || '',
-            type: tenant.type || 'banking',
-            bankingMode: tenant.bankingMode || 'conventional',
+            type: normalizeTenantType(tenant),
+            bankingMode: normalizeBankingMode(tenant),
             isActive: tenant.isActive
         });
         setIsFormOpen(true);
@@ -238,13 +311,37 @@ const TenantManagement = () => {
                 </Alert>
             )}
 
+            <Grid container spacing={2} sx={{ mb: 3 }}>
+                <Grid size={{ xs: 12, md: 4 }}>
+                    <Paper variant="outlined" sx={{ p: 2 }}>
+                        <Typography variant="caption" color="text.secondary">Loaded Rows</Typography>
+                        <Typography variant="h5" sx={{ fontWeight: 700 }}>{stats.loaded}</Typography>
+                    </Paper>
+                </Grid>
+                <Grid size={{ xs: 12, md: 4 }}>
+                    <Paper variant="outlined" sx={{ p: 2 }}>
+                        <Typography variant="caption" color="text.secondary">Active</Typography>
+                        <Typography variant="h5" sx={{ fontWeight: 700, color: 'success.main' }}>{stats.active}</Typography>
+                    </Paper>
+                </Grid>
+                <Grid size={{ xs: 12, md: 4 }}>
+                    <Paper variant="outlined" sx={{ p: 2 }}>
+                        <Typography variant="caption" color="text.secondary">Inactive</Typography>
+                        <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.secondary' }}>{stats.inactive}</Typography>
+                    </Paper>
+                </Grid>
+            </Grid>
+
             <Paper elevation={0} sx={{ p: 2, mb: 3, border: '1px solid', borderColor: 'divider' }}>
-                <Box display="flex" gap={2}>
+                <Box display="flex" gap={2} flexWrap="wrap">
                     <TextField
                         size="small"
                         placeholder="Search tenants..."
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onChange={(e) => {
+                            setSearchQuery(e.target.value);
+                            setPage(0);
+                        }}
                         InputProps={{
                             startAdornment: (
                                 <InputAdornment position="start">
@@ -254,12 +351,33 @@ const TenantManagement = () => {
                         }}
                         sx={{ flexGrow: 1, maxWidth: 400 }}
                     />
+                    <TextField
+                        select
+                        size="small"
+                        label="Status"
+                        value={statusFilter}
+                        onChange={(e) => {
+                            setStatusFilter(e.target.value as 'all' | 'active' | 'inactive');
+                            setPage(0);
+                        }}
+                        sx={{ minWidth: 140 }}
+                    >
+                        <MenuItem value="all">All</MenuItem>
+                        <MenuItem value="active">Active</MenuItem>
+                        <MenuItem value="inactive">Inactive</MenuItem>
+                    </TextField>
                     <Button
                         variant="outlined"
                         startIcon={<RefreshIcon />}
                         onClick={fetchTenants}
                     >
                         Refresh
+                    </Button>
+                    <Button variant="outlined" startIcon={<DownloadIcon />} onClick={handleExport}>
+                        Export
+                    </Button>
+                    <Button variant="text" onClick={handleClearFilters}>
+                        Clear
                     </Button>
                 </Box>
             </Paper>
@@ -284,7 +402,7 @@ const TenantManagement = () => {
                                         <CircularProgress />
                                     </TableCell>
                                 </TableRow>
-                            ) : tenants.length === 0 ? (
+                            ) : filteredTenants.length === 0 ? (
                                 <TableRow>
                                     <TableCell colSpan={6} align="center" sx={{ py: 8 }}>
                                         <Typography variant="body1" color="textSecondary">
@@ -293,7 +411,7 @@ const TenantManagement = () => {
                                     </TableCell>
                                 </TableRow>
                             ) : (
-                                tenants.map((tenant) => (
+                                filteredTenants.map((tenant) => (
                                     <TableRow key={tenant.id} hover>
                                         <TableCell>
                                             <Box>
@@ -311,10 +429,18 @@ const TenantManagement = () => {
                                             </Box>
                                         </TableCell>
                                         <TableCell>
-                                            <Chip label={tenant.type} size="small" variant="outlined" />
+                                            <Chip
+                                                label={toTitleCase(normalizeTenantType(tenant))}
+                                                size="small"
+                                                variant="outlined"
+                                            />
                                         </TableCell>
                                         <TableCell>
-                                            <Chip label={tenant.bankingMode} size="small" variant="outlined" />
+                                            <Chip
+                                                label={toTitleCase(normalizeBankingMode(tenant))}
+                                                size="small"
+                                                variant="outlined"
+                                            />
                                         </TableCell>
                                         <TableCell>
                                             <Chip
@@ -354,7 +480,7 @@ const TenantManagement = () => {
                 <TablePagination
                     rowsPerPageOptions={[5, 10, 25]}
                     component="div"
-                    count={total}
+                    count={statusFilter === 'all' ? total : filteredTenants.length}
                     rowsPerPage={rowsPerPage}
                     page={page}
                     onPageChange={handlePageChange}

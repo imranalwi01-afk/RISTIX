@@ -26,11 +26,31 @@ const PREFETCH_ROUTES = [
   '/banking/ifrs9/calculations',
 ];
 
-// API endpoints to warm up (optional)
+// API endpoints to warm up (public-only to avoid noisy 401/403 during login screen)
 const WARMUP_ENDPOINTS = [
-  '/auth/me',
-  '/menu/hierarchy',
+  '/auth/status',
+  '/auth/login-data',
 ];
+
+const trimTrailingSlash = (value: string): string => value.replace(/\/+$/, '');
+
+const resolveApiBaseUrl = (): string => {
+  const fromApiBase = process.env.NEXT_PUBLIC_API_BASE_URL;
+  if (fromApiBase && fromApiBase.trim().length > 0) {
+    return trimTrailingSlash(fromApiBase);
+  }
+
+  const fromBackend = process.env.NEXT_PUBLIC_BACKEND_URL;
+  if (fromBackend && fromBackend.trim().length > 0) {
+    return `${trimTrailingSlash(fromBackend)}/api/v1`;
+  }
+
+  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+    return 'http://localhost:4232/api/v1';
+  }
+
+  return '/api/v1';
+};
 
 /**
  * Hook to prefetch resources during login page load
@@ -54,20 +74,22 @@ export const useLoginPrefetch = () => {
 
   const warmupAPIs = useCallback(async () => {
     console.log('🔥 [LOGIN PREFETCH] Warming up APIs...');
+    const apiBaseUrl = resolveApiBaseUrl();
     
     // Fire-and-forget API calls to warm up backend connections
     WARMUP_ENDPOINTS.forEach(async (endpoint) => {
       try {
-        // Use HEAD request to minimize data transfer
-        fetch(endpoint, { 
-          method: 'HEAD',
+        const warmupUrl = `${apiBaseUrl}${endpoint}`;
+        fetch(warmupUrl, { 
+          method: 'GET',
           credentials: 'include',
+          cache: 'no-store',
           // Abort after 2 seconds - we just want connection warmup
           signal: AbortSignal.timeout(2000)
         }).catch(() => {
           // Ignore errors - this is just warmup
         });
-        console.log(`🔥 Warming up: ${endpoint}`);
+        console.log(`🔥 Warming up: ${warmupUrl}`);
       } catch (error) {
         // Ignore - this is optional optimization
       }

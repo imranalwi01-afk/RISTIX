@@ -22,7 +22,7 @@ const getBaseUrl = (): string => {
 
     if (isLocalhost) {
       console.log('🔧 Localhost detected: Forcing local API URL');
-      fallbackUrl = 'http://localhost:3000/api/v1';
+      fallbackUrl = 'http://localhost:4232/api/v1';
     } else if (!fallbackUrl) {
       if (isProductionDomain) {
         fallbackUrl = 'https://iaf-ifrs-be.ifrspro.id/api/v1';
