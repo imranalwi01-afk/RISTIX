@@ -137,7 +137,7 @@ services:
   frontend-dev:
     image: node:20-alpine
     container_name: ifrs9-frontend-dev-hot
-    working_dir: /app/packages/frontend
+    working_dir: /app
     env_file:
       - .env
     environment:
@@ -154,9 +154,9 @@ services:
       # Watchpack polling for better file change detection on some systems
       - WATCHPACK_POLLING=true
     volumes:
-      - ../../packages/frontend:/app/packages/frontend
-      - /app/packages/frontend/node_modules
-      - /app/packages/frontend/.next
+      - ../../packages/frontend:/app
+      - /app/node_modules
+      - /app/.next
     ports:
       - "4231:4231"
     command: sh -c "npm install -g pnpm && pnpm install --no-frozen-lockfile && pnpm dev"

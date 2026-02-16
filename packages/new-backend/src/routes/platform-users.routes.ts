@@ -1,19 +1,41 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
-import { Effect, pipe } from 'effect'
+import { Effect } from 'effect'
 import { eq, and, desc, sql } from 'drizzle-orm'
 import { db } from '../config/database'
-import { users } from '../db/schema'
+import { platformUsers } from '../db/schema' // ✅ Use platformUsers schema
 import type { AppContext } from '../app'
-import { authMiddleware, tenantMiddleware } from '../middleware'
+import { authMiddleware } from '../middleware' // ❌ Removed tenantMiddleware as this is platform level
 import { runEffect } from '../lib/effect'
 import { parsePaginationParams, parseFilterParams } from '../lib/react-admin'
 import { DatabaseError } from '../lib/errors'
-import * as usersService from '../services/users.service'
+import * as tenantsService from '../services/tenants.service'
 
 export const platformUsersRoutes = new OpenAPIHono<AppContext>()
 
 platformUsersRoutes.use('*', authMiddleware)
-platformUsersRoutes.use('*', tenantMiddleware)
+platformUsersRoutes.use('*', async (c, next) => {
+    const permissions = ((c.get('permissions') as string[]) || []).filter((item): item is string => typeof item === 'string')
+    const canManagePlatformUsers =
+        Boolean(c.get('isSystemUser')) ||
+        permissions.includes('admin.super_admin') ||
+        permissions.includes('SUPER_ADMIN') ||
+        permissions.includes('PLATFORM_ADMIN') ||
+        permissions.includes('admin.system.manage')
+
+    if (!canManagePlatformUsers) {
+        return c.json(
+            {
+                success: false,
+                error: 'Forbidden: platform admin access required',
+                code: 'FORBIDDEN',
+            },
+            403
+        )
+    }
+
+    await next()
+})
+// platformUsersRoutes.use('*', tenantMiddleware) // Platform admins don't have a specific tenant context except implicit context
 
 // =============================================================================
 // SCHEMA DEFINITIONS
@@ -110,12 +132,12 @@ platformUsersRoutes.openapi(
                 // Maybe I should assume it exists since previously compiling code used it.
                 // But I need to be careful. I will assume it exists to avoid breaking logic logic.
 
-                const conditions = [sql`${users}.is_platform_admin = true`] // Safety with sql if column missing in type definition
+                const conditions = [sql`1=1`] // Base condition
 
                 if (filters.q) {
                     const searchLower = `%${(filters.q as string).toLowerCase()}%`
                     conditions.push(
-                        sql`lower(${users.email}) LIKE ${searchLower} OR lower(${users.fullName}) LIKE ${searchLower}`
+                        sql`lower(${platformUsers.email}) LIKE ${searchLower} OR lower(${platformUsers.fullName}) LIKE ${searchLower}`
                     )
                 }
 
@@ -124,14 +146,14 @@ platformUsersRoutes.openapi(
                 const [data, totalResult] = await Promise.all([
                     db
                         .select()
-                        .from(users)
+                        .from(platformUsers)
                         .where(whereClause)
                         .limit(pagination.limit)
                         .offset((pagination.page - 1) * pagination.limit)
-                        .orderBy(desc(users.createdAt)),
+                        .orderBy(desc(platformUsers.createdAt)),
                     db
                         .select({ count: sql<number>`count(*)` })
-                        .from(users)
+                        .from(platformUsers)
                         .where(whereClause),
                 ])
 
@@ -197,37 +219,71 @@ platformUsersRoutes.openapi(
         },
     }),
     async (c) => {
-        const tenantId = c.get('tenantId')!
         const body = c.req.valid('json')
 
-        // Force isPlatformAdmin = true
-        // Assuming usersService handles this prop, even if not in type definition I see
-        const effect = pipe(
-            usersService.createUser({
-                ...body,
-                tenantId,
-                role: 'PLATFORM_ADMIN', // Maybe pass role or prop
-                // @ts-ignore
-                isPlatformAdmin: true,
-            } as any),
-            Effect.map(u => ({
-                id: u.id,
-                email: u.email,
-                fullName: u.fullName,
-                username: u.username,
-                phone: u.phone ?? null,
-                department: u.department ?? null,
-                position: u.position ?? null,
-                isPlatformAdmin: true,
-                isActive: u.isActive ?? false,
-                isVerified: u.isVerified ?? false,
-                createdAt: u.createdAt ? u.createdAt.toISOString() : undefined,
-            }))
-        )
+        const effect = Effect.tryPromise({
+            try: async () => {
+                const passwordHash = await Bun.password.hash(body.password, {
+                    algorithm: 'bcrypt',
+                    cost: 10
+                })
+
+                const [checkUser] = await db.select().from(platformUsers).where(eq(platformUsers.email, body.email)).limit(1)
+                if (checkUser) {
+                    throw new Error('User with this email already exists')
+                }
+
+                const [newUser] = await db.insert(platformUsers).values({
+                    ...body,
+                    passwordHash,
+                    isActive: true,
+                    isVerified: true,
+                    // tenantId: undefined // Correct!
+                }).returning()
+
+                return {
+                    id: newUser.id,
+                    email: newUser.email,
+                    fullName: newUser.fullName,
+                    username: newUser.username,
+                    phone: newUser.phone ?? null,
+                    department: newUser.department ?? null,
+                    position: newUser.position ?? null,
+                    isPlatformAdmin: true,
+                    isActive: newUser.isActive ?? false,
+                    isVerified: newUser.isVerified ?? false,
+                    createdAt: newUser.createdAt ? newUser.createdAt.toISOString() : undefined,
+                }
+            },
+            catch: (e) => new DatabaseError({ operation: 'insert', message: 'Failed to create platform user', cause: e })
+        })
 
         return runEffect(c, effect)
     }
 )
+
+/**
+ * GET /platform-users/tenants - Compatibility endpoint for platform UI
+ */
+platformUsersRoutes.get('/tenants', async (c) => {
+    const effect = tenantsService.getTenants({
+        pagination: { page: 1, limit: 200 },
+        includeInactive: false,
+        includeSystem: true,
+    })
+
+    const result = await Effect.runPromise(effect)
+    return c.json({
+        data: result.data.map((t) => ({
+            id: t.id,
+            code: t.code,
+            name: t.name,
+            slug: t.slug,
+            isActive: t.isActive,
+        })),
+        total: result.total,
+    })
+})
 
 /**
  * GET /platform-users/:id - Get one
@@ -257,25 +313,36 @@ platformUsersRoutes.openapi(
     }),
     async (c) => {
         const { id } = c.req.valid('param')
-        const tenantId = c.get('tenantId')
+        const effect = Effect.tryPromise({
+            try: async () => {
+                const [u] = await db.select().from(platformUsers).where(eq(platformUsers.id, id)).limit(1)
+                if (!u) {
+                    return null
+                }
 
-        const effect = pipe(
-            usersService.getUserById(id), // Removed tenantId arg as it might restrict if context differs?
-            Effect.map(u => ({
-                id: u.id,
-                email: u.email,
-                fullName: u.fullName,
-                username: u.username,
-                phone: u.phone ?? null,
-                department: u.department ?? null,
-                position: u.position ?? null,
-                isPlatformAdmin: (u as any).isPlatformAdmin ?? true,
-                isActive: u.isActive ?? false,
-                isVerified: u.isVerified ?? false,
-                createdAt: u.createdAt ? u.createdAt.toISOString() : undefined,
-            }))
-        )
-        return runEffect(c, effect)
+                return {
+                    id: u.id,
+                    email: u.email,
+                    fullName: u.fullName,
+                    username: u.username,
+                    phone: u.phone ?? null,
+                    department: u.department ?? null,
+                    position: u.position ?? null,
+                    isPlatformAdmin: (u as any).isPlatformAdmin ?? true,
+                    isActive: u.isActive ?? false,
+                    isVerified: u.isVerified ?? false,
+                    createdAt: u.createdAt ? u.createdAt.toISOString() : undefined,
+                }
+            },
+            catch: (e) => new DatabaseError({ operation: 'query', message: 'Failed to fetch platform user', cause: e }),
+        })
+
+        const result = await Effect.runPromise(effect)
+        if (!result) {
+            return c.json({ success: false, error: 'Platform user not found', code: 'NOT_FOUND' }, 404)
+        }
+
+        return c.json(result)
     }
 )
 
@@ -315,24 +382,37 @@ platformUsersRoutes.openapi(
     async (c) => {
         const { id } = c.req.valid('param')
         const body = c.req.valid('json')
-        const tenantId = c.get('tenantId')
 
-        const effect = pipe(
-            usersService.updateUser(id, { ...body, tenantId }),
-            Effect.map(u => ({
-                id: u.id,
-                email: u.email,
-                fullName: u.fullName,
-                username: u.username,
-                phone: u.phone ?? null,
-                department: u.department ?? null,
-                position: u.position ?? null,
-                isPlatformAdmin: (u as any).isPlatformAdmin ?? true,
-                isActive: u.isActive ?? false,
-                isVerified: u.isVerified ?? false,
-                createdAt: u.createdAt ? u.createdAt.toISOString() : undefined,
-            }))
-        )
+        const effect = Effect.tryPromise({
+            try: async () => {
+                const [updatedUser] = await db.update(platformUsers)
+                    .set({
+                        ...body,
+                        updatedAt: new Date()
+                    })
+                    .where(eq(platformUsers.id, id))
+                    .returning()
+
+                if (!updatedUser) {
+                    throw new Error('User not found')
+                }
+
+                return {
+                    id: updatedUser.id,
+                    email: updatedUser.email,
+                    fullName: updatedUser.fullName,
+                    username: updatedUser.username,
+                    phone: updatedUser.phone ?? null,
+                    department: updatedUser.department ?? null,
+                    position: updatedUser.position ?? null,
+                    isPlatformAdmin: true,
+                    isActive: updatedUser.isActive ?? false,
+                    isVerified: updatedUser.isVerified ?? false,
+                    createdAt: updatedUser.createdAt ? updatedUser.createdAt.toISOString() : undefined,
+                }
+            },
+            catch: (e) => new DatabaseError({ operation: 'update', message: 'Failed to update user', cause: e })
+        })
 
         return runEffect(c, effect)
     }
@@ -368,9 +448,17 @@ platformUsersRoutes.openapi(
     }),
     async (c) => {
         const { id } = c.req.valid('param')
-        const tenantId = c.get('tenantId')
-        const effect = usersService.deleteUser(id) // Removed tenantId arg as it might restrict
+
+        const effect = Effect.tryPromise({
+            try: async () => {
+                const [deleted] = await db.delete(platformUsers).where(eq(platformUsers.id, id)).returning({ id: platformUsers.id })
+                if (!deleted) throw new Error('User not found')
+                return { id: deleted.id }
+            },
+            catch: (e) => new DatabaseError({ operation: 'delete', message: 'Failed to delete user', cause: e })
+        })
+
         const result = await runEffect(c, effect)
-        return c.json({ id: result.id } as any)
+        return c.json(result)
     }
 )

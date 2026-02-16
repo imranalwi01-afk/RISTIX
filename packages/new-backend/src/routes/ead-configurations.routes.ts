@@ -2,8 +2,11 @@ import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
 import { legacyDb as db } from '../config'
 import { frs9ImpCaEadConfig } from '../db/schema'
 import { eq, and, like, desc } from 'drizzle-orm'
+import { Effect } from 'effect'
 import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
+import { interceptCreate, interceptUpdate, interceptDelete } from '../middleware/approval-interceptor.middleware'
+import { runEffect } from '../lib/effect/runtime'
 
 export const eadConfigurationsRoutes = new OpenAPIHono<AppContext>()
 
@@ -52,6 +55,14 @@ const ErrorResponse = z.object({
     message: z.string(),
     error: z.string().optional()
 }).openapi('ErrorResponse')
+
+const ApprovalWorkflowResponse = z.object({
+    success: z.boolean(),
+    approvalRequired: z.boolean(),
+    requestId: z.string().optional(),
+    data: z.any().optional(),
+    message: z.string().optional()
+}).openapi('ApprovalWorkflowResponse')
 
 const MetadataOptionSchema = z.object({
     value: z.string(),
@@ -189,41 +200,49 @@ eadConfigurationsRoutes.openapi(
         },
         responses: {
             201: { content: { 'application/json': { schema: EadConfigResponse } }, description: 'Created' },
+            202: { content: { 'application/json': { schema: ApprovalWorkflowResponse } }, description: 'Pending Approval' },
             400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
     async (c) => {
-        try {
-            const userId = c.get('userId') as string
-            const data = c.req.valid('json')
+        const userId = c.get('userId') as string
+        const tenantId = c.get('tenantId') as string
+        const userPermissions = c.get('permissions') || []
+        const data = c.req.valid('json')
 
-            const [config] = await db
-                .insert(frs9ImpCaEadConfig)
-                .values({
-                    eadModelName: data.model_name,
-                    segmentId: data.segment_id,
-                    eadMethod: data.ead_method,
-                    calcMethod: data.calc_method,
-                    activeFlag: data.is_active,
-                    createdby: userId,
-                    createdhost: 'localhost',
-                    createddate: new Date().toISOString(),
-                    updatedby: userId,
-                    updatedhost: 'localhost',
-                    updateddate: new Date().toISOString()
-                } as any)
-                .returning()
+        const effect = interceptCreate(
+            tenantId,
+            userId,
+            userPermissions,
+            'ead_configuration',
+            data,
+            () => Effect.tryPromise({
+                try: async () => {
+                    const [config] = await db
+                        .insert(frs9ImpCaEadConfig)
+                        .values({
+                            eadModelName: data.model_name,
+                            segmentId: data.segment_id,
+                            eadMethod: data.ead_method,
+                            calcMethod: data.calc_method,
+                            activeFlag: data.is_active,
+                            createdby: userId,
+                            createdhost: 'localhost',
+                            createddate: new Date().toISOString(),
+                            updatedby: userId,
+                            updatedhost: 'localhost',
+                            updateddate: new Date().toISOString()
+                        } as any)
+                        .returning()
+                    return { success: true, data: transformEadConfig(config) };
+                },
+                catch: (error) => error
+            })
+        )
 
-            return c.json({
-                success: true,
-                data: transformEadConfig(config),
-                message: 'EAD configuration created successfully',
-            } as any, 201)
-        } catch (error) {
-            console.error('Error creating EAD configuration:', error)
-            return c.json({ success: false, message: 'Failed to create EAD configuration', error: String(error) }, 500)
-        }
+        const result = await runEffect(c, effect)
+        return c.json(result, result.approvalRequired ? 202 : 201)
     }
 )
 
@@ -240,46 +259,55 @@ eadConfigurationsRoutes.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: EadConfigResponse } }, description: 'Updated' },
+            202: { content: { 'application/json': { schema: ApprovalWorkflowResponse } }, description: 'Update Pending Approval' },
             400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
             404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
     async (c) => {
-        try {
-            const { id } = c.req.valid('param')
-            if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400) as any;
-            const userId = c.get('userId') as string
-            const data = c.req.valid('json')
+        const { id } = c.req.valid('param')
+        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400) as any;
+        const userId = c.get('userId') as string
+        const tenantId = c.get('tenantId') as string
+        const userPermissions = c.get('permissions') || []
+        const data = c.req.valid('json')
 
-            const [updated] = await db
-                .update(frs9ImpCaEadConfig)
-                .set({
-                    eadModelName: data.model_name,
-                    segmentId: data.segment_id,
-                    eadMethod: data.ead_method,
-                    calcMethod: data.calc_method,
-                    activeFlag: data.is_active,
-                    updatedby: userId,
-                    updateddate: new Date().toISOString(),
-                    updatedhost: 'localhost',
-                } as any)
-                .where(eq(frs9ImpCaEadConfig.pkid, id))
-                .returning()
+        const effect = interceptUpdate(
+            tenantId,
+            userId,
+            userPermissions,
+            'ead_configuration',
+            id.toString(),
+            data,
+            () => Effect.tryPromise({
+                try: async () => {
+                    const [updated] = await db
+                        .update(frs9ImpCaEadConfig)
+                        .set({
+                            eadModelName: data.model_name,
+                            segmentId: data.segment_id,
+                            eadMethod: data.ead_method,
+                            calcMethod: data.calc_method,
+                            activeFlag: data.is_active,
+                            updatedby: userId,
+                            updateddate: new Date().toISOString(),
+                            updatedhost: 'localhost',
+                        } as any)
+                        .where(eq(frs9ImpCaEadConfig.pkid, id))
+                        .returning()
 
-            if (!updated) {
-                return c.json({ success: false, message: 'EAD configuration not found' }, 404)
-            }
+                    if (!updated) {
+                        throw new Error('EAD configuration not found')
+                    }
+                    return { success: true, data: transformEadConfig(updated) };
+                },
+                catch: (error: any) => error
+            })
+        )
 
-            return c.json({
-                success: true,
-                data: transformEadConfig(updated),
-                message: 'EAD configuration updated successfully',
-            } as any)
-        } catch (error) {
-            console.error('Error updating EAD configuration:', error)
-            return c.json({ success: false, message: 'Failed to update EAD configuration', error: String(error) }, 500)
-        }
+        const result = await runEffect(c, effect)
+        return c.json(result, result.approvalRequired ? 202 : 200)
     }
 )
 
@@ -295,29 +323,44 @@ eadConfigurationsRoutes.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), message: z.string() }) } }, description: 'Deleted' },
+            202: { content: { 'application/json': { schema: ApprovalWorkflowResponse } }, description: 'Deletion Pending Approval' },
             400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
             404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
     async (c) => {
-        try {
-            const { id } = c.req.valid('param')
-            if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400);
+        const { id } = c.req.valid('param')
+        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400);
 
-            const [deleted] = await db
-                .delete(frs9ImpCaEadConfig)
-                .where(eq(frs9ImpCaEadConfig.pkid, id))
-                .returning()
+        const userId = c.get('userId') as string
+        const tenantId = c.get('tenantId') as string
+        const userPermissions = c.get('permissions') || []
 
-            if (!deleted) {
-                return c.json({ success: false, message: 'EAD configuration not found' }, 404) as any
-            }
+        const effect = interceptDelete(
+            tenantId,
+            userId,
+            userPermissions,
+            'ead_configuration',
+            id.toString(),
+            () => Effect.tryPromise({
+                try: async () => {
+                    const [deleted] = await db
+                        .delete(frs9ImpCaEadConfig)
+                        .where(eq(frs9ImpCaEadConfig.pkid, id))
+                        .returning()
 
-            return c.json({ success: true, message: 'EAD configuration deleted successfully' } as any)
-        } catch (error) {
-            return c.json({ success: false, message: 'Failed to delete EAD configuration', error: String(error) }, 500) as any
-        }
+                    if (!deleted) {
+                        throw new Error('EAD configuration not found')
+                    }
+                    return { success: true, message: 'EAD configuration deleted successfully' };
+                },
+                catch: (error: any) => error
+            })
+        )
+
+        const result = await runEffect(c, effect)
+        return c.json(result, result.approvalRequired ? 202 : 200)
     }
 )
 

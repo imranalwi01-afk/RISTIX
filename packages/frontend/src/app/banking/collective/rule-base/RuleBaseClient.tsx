@@ -63,6 +63,9 @@ import {
 import { useRouter } from 'next/navigation';
 import { bankingAPI } from '../../../../services/api';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
+import { ApprovalNotification, ApprovalStatusBadge } from '@/components/approval';
+import { useCallback } from 'react';
+import { usePermission } from '@/hooks/usePermission';
 
 
 // =====================================================
@@ -112,6 +115,7 @@ interface RuleBaseDetail {
 
 interface ExpandableRowProps {
   header: RuleBaseHeader;
+  canManage: boolean;
   onEditHeader: (header: RuleBaseHeader) => void;
   onDeleteHeader: (header: RuleBaseHeader) => void;
   onCreateDetail: (headerId: number) => void;
@@ -119,17 +123,20 @@ interface ExpandableRowProps {
   onDeleteDetail: (detail: RuleBaseDetail) => void;
   loading: boolean;
   refreshTrigger?: number;
+  pendingRequests?: any[];
 }
 
 function ExpandableRow({
   header,
+  canManage,
   onEditHeader,
   onDeleteHeader,
   onCreateDetail,
   onEditDetail,
   onDeleteDetail,
   loading,
-  refreshTrigger
+  refreshTrigger,
+  pendingRequests = []
 }: ExpandableRowProps) {
   const [open, setOpen] = useState(false);
   const [details, setDetails] = useState<RuleBaseDetail[]>([]);
@@ -221,11 +228,15 @@ function ExpandableRow({
           />
         </TableCell>
         <TableCell>
-          <Chip
-            label={header.active_flag ? 'Active' : 'Inactive'}
-            size="small"
-            color={header.active_flag ? 'success' : 'default'}
-          />
+          {pendingRequests.some(r => r.entityId === header.id.toString()) ? (
+            <ApprovalStatusBadge status="pending" />
+          ) : (
+            <Chip
+              label={header.active_flag ? 'Active' : 'Inactive'}
+              size="small"
+              color={header.active_flag ? 'success' : 'default'}
+            />
+          )}
         </TableCell>
         <TableCell>
           <Chip
@@ -235,28 +246,32 @@ function ExpandableRow({
           />
         </TableCell>
         <TableCell>
-          <Tooltip title="Edit Rule Header">
-            <IconButton
-              size="small"
-              color="primary"
-              onClick={() => onEditHeader(header)}
-              disabled={loading}
-              data-testid="edit-header-btn"
-            >
-              <EditIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Delete Rule Header">
-            <IconButton
-              size="small"
-              color="error"
-              onClick={() => onDeleteHeader(header)}
-              disabled={loading}
-              data-testid="delete-header-btn"
-            >
-              <DeleteIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+          {canManage && (
+            <>
+              <Tooltip title="Edit Rule Header">
+                <IconButton
+                  size="small"
+                  color="primary"
+                  onClick={() => onEditHeader(header)}
+                  disabled={loading}
+                  data-testid="edit-header-btn"
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Delete Rule Header">
+                <IconButton
+                  size="small"
+                  color="error"
+                  onClick={() => onDeleteHeader(header)}
+                  disabled={loading}
+                  data-testid="delete-header-btn"
+                >
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </>
+          )}
         </TableCell>
       </TableRow>
 
@@ -269,16 +284,18 @@ function ExpandableRow({
                 <Typography variant="h6" gutterBottom component="div" sx={{ fontWeight: 'bold' }}>
                   Rule Details for: {header.rule_name}
                 </Typography>
-                <Button
-                  size="small"
-                  startIcon={<AddIcon />}
-                  onClick={() => onCreateDetail(header.id)}
-                  disabled={loading}
-                  variant="outlined"
-                  data-testid="add-detail-btn"
-                >
-                  Add Detail
-                </Button>
+                {canManage && (
+                  <Button
+                    size="small"
+                    startIcon={<AddIcon />}
+                    onClick={() => onCreateDetail(header.id)}
+                    disabled={loading}
+                    variant="outlined"
+                    data-testid="add-detail-btn"
+                  >
+                    Add Detail
+                  </Button>
+                )}
               </Box>
 
               {loadingDetails ? (
@@ -359,28 +376,32 @@ function ExpandableRow({
                             </Typography>
                           </TableCell>
                           <TableCell>
-                            <Tooltip title="Edit Detail">
-                              <IconButton
-                                size="small"
-                                color="primary"
-                                onClick={() => onEditDetail(detail)}
-                                disabled={loading}
-                                data-testid="edit-detail-btn"
-                              >
-                                <EditIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Delete Detail">
-                              <IconButton
-                                size="small"
-                                color="error"
-                                onClick={() => onDeleteDetail(detail)}
-                                disabled={loading}
-                                data-testid="delete-detail-btn"
-                              >
-                                <DeleteIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
+                            {canManage && (
+                              <>
+                                <Tooltip title="Edit Detail">
+                                  <IconButton
+                                    size="small"
+                                    color="primary"
+                                    onClick={() => onEditDetail(detail)}
+                                    disabled={loading}
+                                    data-testid="edit-detail-btn"
+                                  >
+                                    <EditIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Delete Detail">
+                                  <IconButton
+                                    size="small"
+                                    color="error"
+                                    onClick={() => onDeleteDetail(detail)}
+                                    disabled={loading}
+                                    data-testid="delete-detail-btn"
+                                  >
+                                    <DeleteIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                              </>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -401,6 +422,10 @@ function ExpandableRow({
 // =====================================================
 
 export default function RuleBaseSettingPage() {
+  const { hasAnyPermission } = usePermission();
+  const canViewRuleBase = hasAnyPermission(['banking.collective.rule_base.view', 'banking.collective.rule_base.manage', 'banking.collective.manage', 'banking.collective', 'admin.super_admin']);
+  const canManageRuleBase = hasAnyPermission(['banking.collective.rule_base.manage', 'banking.collective.rule_base.create', 'banking.collective.rule_base.update', 'banking.collective.rule_base.delete', 'banking.collective.manage', 'admin.super_admin']);
+
   const router = useRouter();
 
   // State Management - Live Database Integration
@@ -427,6 +452,10 @@ export default function RuleBaseSettingPage() {
   const [headerFormData, setHeaderFormData] = useState<Partial<RuleBaseHeader>>({});
   const [detailFormData, setDetailFormData] = useState<Partial<RuleBaseDetail>>({});
   const [refreshTriggers, setRefreshTriggers] = useState<Record<number, number>>({});
+
+  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+  const [approvalNotification, setApprovalNotification] = useState<{ open: boolean, message: string }>({ open: false, message: '' });
+  const [snackbar, setSnackbar] = useState<{ open: boolean, message: string, type: 'success' | 'error' }>({ open: false, message: '', type: 'success' });
 
   const triggerRefresh = (headerId: number) => {
     setRefreshTriggers(prev => ({ ...prev, [headerId]: Date.now() }));
@@ -512,6 +541,16 @@ export default function RuleBaseSettingPage() {
     }
   };
 
+  const loadPendingApprovals = useCallback(async () => {
+    try {
+      const response = await bankingAPI.approval.getPendingApprovals();
+      const requests = Array.isArray(response) ? response : response.data || [];
+      setPendingRequests(requests.filter((r: any) => r.entityType === 'rule_base_setting'));
+    } catch (err) {
+      console.error('Error loading pending approvals:', err);
+    }
+  }, []);
+
   // Load dropdown metadata from DS2 database
   const loadMetadata = async () => {
     try {
@@ -547,6 +586,7 @@ export default function RuleBaseSettingPage() {
   useEffect(() => {
     loadHeaders();
     loadMetadata();
+    loadPendingApprovals();
   }, []);
 
   // Apply filters when dependencies change
@@ -556,6 +596,7 @@ export default function RuleBaseSettingPage() {
 
   // Header CRUD operations
   const handleCreateHeader = () => {
+    if (!canManageRuleBase) return;
     setSelectedHeader(null);
     setHeaderFormData({
       rule_name: '',
@@ -570,6 +611,7 @@ export default function RuleBaseSettingPage() {
   };
 
   const handleEditHeader = (header: RuleBaseHeader) => {
+    if (!canManageRuleBase) return;
     setSelectedHeader(header);
     setHeaderFormData({
       rule_name: header.rule_name,
@@ -584,6 +626,7 @@ export default function RuleBaseSettingPage() {
   };
 
   const handleDeleteHeader = async (header: RuleBaseHeader) => {
+    if (!canManageRuleBase) return;
     if (!confirm(`Are you sure you want to delete rule "${header.rule_name}"? This will also delete all associated details.`)) {
       return;
     }
@@ -592,9 +635,20 @@ export default function RuleBaseSettingPage() {
       setLoading(true);
       setError(null);
 
-      await bankingAPI.ruleBaseSetting.deleteHeader(header.id);
-      setSuccess('Rule header deleted successfully');
+      const response = await bankingAPI.ruleBaseSetting.deleteHeader(header.id);
+      const isApprovalResponse = response.approvalRequired || response.status === 202;
+
+      if (isApprovalResponse) {
+        setApprovalNotification({
+          open: true,
+          message: response.message || 'Deletion request submitted for approval'
+        });
+      } else {
+        setSuccess('Rule header deleted successfully');
+      }
+
       await loadHeaders();
+      await loadPendingApprovals();
 
     } catch (error: any) {
       console.error('❌ Failed to delete rule header:', error);
@@ -606,6 +660,7 @@ export default function RuleBaseSettingPage() {
   };
 
   const handleSaveHeader = async () => {
+    if (!canManageRuleBase) return;
     if (!headerFormData.rule_name?.trim() || !headerFormData.rule_type?.trim()) {
       setError('Rule name and type are required');
       return;
@@ -625,18 +680,27 @@ export default function RuleBaseSettingPage() {
         active_flag: headerFormData.active_flag !== false
       };
 
+      let response: any;
       if (selectedHeader) {
-        // Update existing header
-        await bankingAPI.ruleBaseSetting.updateHeader(selectedHeader.id, payload);
-        setSuccess('Rule header updated successfully');
+        response = await bankingAPI.ruleBaseSetting.updateHeader(selectedHeader.id, payload);
       } else {
-        // Create new header
-        await bankingAPI.ruleBaseSetting.createHeader(payload);
-        setSuccess('Rule header created successfully');
+        response = await bankingAPI.ruleBaseSetting.createHeader(payload);
+      }
+
+      const isApprovalResponse = response.approvalRequired || response.status === 202;
+
+      if (isApprovalResponse) {
+        setApprovalNotification({
+          open: true,
+          message: response.message || 'Request submitted for approval'
+        });
+      } else {
+        setSuccess(selectedHeader ? 'Rule header updated successfully' : 'Rule header created successfully');
       }
 
       setHeaderDialogOpen(false);
       await loadHeaders();
+      await loadPendingApprovals();
 
     } catch (error: any) {
       console.error('❌ Failed to save rule header:', error);
@@ -649,6 +713,7 @@ export default function RuleBaseSettingPage() {
 
   // Detail CRUD operations
   const handleCreateDetail = (headerId: number) => {
+    if (!canManageRuleBase) return;
     setSelectedDetail(null);
     setSelectedHeaderId(headerId);
     setDetailFormData({
@@ -666,6 +731,7 @@ export default function RuleBaseSettingPage() {
   };
 
   const handleEditDetail = (detail: RuleBaseDetail) => {
+    if (!canManageRuleBase) return;
     setSelectedDetail(detail);
     setSelectedHeaderId(detail.rule_id);
     setDetailFormData(detail);
@@ -673,6 +739,7 @@ export default function RuleBaseSettingPage() {
   };
 
   const handleDeleteDetail = async (detail: RuleBaseDetail) => {
+    if (!canManageRuleBase) return;
     if (!confirm(`Are you sure you want to delete this rule detail?`)) {
       return;
     }
@@ -681,11 +748,21 @@ export default function RuleBaseSettingPage() {
       setLoading(true);
       setError(null);
 
-      await bankingAPI.ruleBaseSetting.deleteDetail(detail.id);
-      setSuccess('Rule detail deleted successfully');
+      const response = await bankingAPI.ruleBaseSetting.deleteDetail(detail.id);
+      const isApprovalResponse = response.approvalRequired || response.status === 202;
+
+      if (isApprovalResponse) {
+        setApprovalNotification({
+          open: true,
+          message: response.message || 'Deletion request submitted for approval'
+        });
+      } else {
+        setSuccess('Rule detail deleted successfully');
+      }
 
       triggerRefresh(detail.rule_id);
       await loadHeaders();
+      await loadPendingApprovals();
 
     } catch (error: any) {
       console.error('❌ Failed to delete rule detail:', error);
@@ -697,6 +774,7 @@ export default function RuleBaseSettingPage() {
   };
 
   const handleSaveDetail = async () => {
+    if (!canManageRuleBase) return;
     if (!detailFormData.table_name?.trim() || !detailFormData.column_name?.trim()) {
       setError('Table name and column name are required');
       return;
@@ -721,14 +799,22 @@ export default function RuleBaseSettingPage() {
         stage_to: detailFormData.stage_to?.toString() || undefined
       };
 
+      let response: any;
       if (selectedDetail) {
-        // Update existing detail
-        await bankingAPI.ruleBaseSetting.updateDetail(selectedDetail.id, payload);
-        setSuccess('Rule detail updated successfully');
+        response = await bankingAPI.ruleBaseSetting.updateDetail(selectedDetail.id, payload);
       } else {
-        // Create new detail
-        await bankingAPI.ruleBaseSetting.createDetail(selectedHeaderId!, payload);
-        setSuccess('Rule detail created successfully');
+        response = await bankingAPI.ruleBaseSetting.createDetail(selectedHeaderId!, payload);
+      }
+
+      const isApprovalResponse = response.approvalRequired || response.status === 202;
+
+      if (isApprovalResponse) {
+        setApprovalNotification({
+          open: true,
+          message: response.message || 'Request submitted for approval'
+        });
+      } else {
+        setSuccess(selectedDetail ? 'Rule detail updated successfully' : 'Rule detail created successfully');
       }
 
       setDetailDialogOpen(false);
@@ -738,6 +824,7 @@ export default function RuleBaseSettingPage() {
       }
 
       await loadHeaders();
+      await loadPendingApprovals();
 
     } catch (error: any) {
       console.error('❌ Failed to save rule detail:', error);
@@ -775,6 +862,11 @@ export default function RuleBaseSettingPage() {
   return (
     <Container maxWidth="xl" sx={{ position: 'relative' }}>
       <FullstackIndicator />
+      {!canViewRuleBase && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          You do not have permission to view rule base settings.
+        </Alert>
+      )}
       {/* Breadcrumb Navigation */}
       <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
         <Link
@@ -857,15 +949,17 @@ export default function RuleBaseSettingPage() {
               <RefreshIcon />
             </IconButton>
           </Tooltip>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleCreateHeader}
-            disabled={loading}
-            data-testid="add-rule-btn"
-          >
-            Add Rule
-          </Button>
+          {canManageRuleBase && (
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleCreateHeader}
+              disabled={loading}
+              data-testid="add-rule-btn"
+            >
+              Add Rule
+            </Button>
+          )}
         </Box>
       </Box>
 
@@ -1013,6 +1107,7 @@ export default function RuleBaseSettingPage() {
                     <ExpandableRow
                       key={header.id ? `row-${header.id}` : `row-idx-${index}`}
                       header={header}
+                      canManage={canManageRuleBase}
                       onEditHeader={handleEditHeader}
                       onDeleteHeader={handleDeleteHeader}
                       onCreateDetail={handleCreateDetail}
@@ -1020,6 +1115,7 @@ export default function RuleBaseSettingPage() {
                       onDeleteDetail={handleDeleteDetail}
                       loading={loading}
                       refreshTrigger={refreshTriggers[header.id]}
+                      pendingRequests={pendingRequests}
                     />
                   ))}
                 </TableBody>
@@ -1129,9 +1225,11 @@ export default function RuleBaseSettingPage() {
           <Button onClick={() => setHeaderDialogOpen(false)} disabled={loading}>
             Cancel
           </Button>
-          <Button onClick={handleSaveHeader} variant="contained" disabled={loading} data-testid="save-rule-header-btn">
-            {loading ? <CircularProgress size={20} /> : (selectedHeader ? 'Update' : 'Create')}
-          </Button>
+          {canManageRuleBase && (
+            <Button onClick={handleSaveHeader} variant="contained" disabled={loading} data-testid="save-rule-header-btn">
+              {loading ? <CircularProgress size={20} /> : (selectedHeader ? 'Update' : 'Create')}
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
 
@@ -1283,11 +1381,18 @@ export default function RuleBaseSettingPage() {
           <Button onClick={() => setDetailDialogOpen(false)} disabled={loading}>
             Cancel
           </Button>
-          <Button onClick={handleSaveDetail} variant="contained" disabled={loading} data-testid="save-rule-detail-btn">
-            {loading ? <CircularProgress size={20} /> : (selectedDetail ? 'Update' : 'Create')}
-          </Button>
+          {canManageRuleBase && (
+            <Button onClick={handleSaveDetail} variant="contained" disabled={loading} data-testid="save-rule-detail-btn">
+              {loading ? <CircularProgress size={20} /> : (selectedDetail ? 'Update' : 'Create')}
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
+      <ApprovalNotification
+        open={approvalNotification.open}
+        message={approvalNotification.message}
+        onClose={() => setApprovalNotification({ ...approvalNotification, open: false })}
+      />
     </Container>
   );
 }

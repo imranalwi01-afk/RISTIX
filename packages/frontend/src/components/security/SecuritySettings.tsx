@@ -40,7 +40,7 @@ const SecuritySettings: React.FC = () => {
     const [success, setSuccess] = useState<string | null>(null);
 
     const { control, handleSubmit, setValue, formState: { errors } } = useForm<SecurityFormData>({
-        resolver: zodResolver(validationSchema),
+        resolver: zodResolver(validationSchema as any),
         defaultValues: {
             passwordMinLength: 8,
             passwordRequireUppercase: true,

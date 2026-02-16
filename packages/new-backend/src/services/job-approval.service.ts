@@ -1,9 +1,18 @@
-import { db } from '../config/database'
-import { jobDefinitions, jobExecutions } from '../db/schema'
+import { getDatabase } from '../config/database'
+import { approvalRequests, jobDefinitions, jobExecutions } from '../db/schema'
 import { eq } from 'drizzle-orm'
 import { Effect } from 'effect'
 import { addJob } from './queue.service'
 import * as approvalService from './approval.service'
+import { ApprovalRepository } from '@/repositories/approval.repository'
+
+export type JobApprovalPolicy = {
+    impactLevel: 'low' | 'medium' | 'high' | 'critical'
+    approvalsRequired: number
+    slaHours: number
+    escalationAfterHours: number
+    requireDecisionComment: boolean
+}
 
 /**
  * Check if a job requires approval before execution.
@@ -11,8 +20,8 @@ import * as approvalService from './approval.service'
  * @param jobDefinitionId - The ID of the job definition
  * @returns A Promise resolving to true if approval is required
  */
-export const requiresApproval = async (jobDefinitionId: string): Promise<boolean> => {
-    const [definition] = await db
+export const requiresApproval = async (jobDefinitionId: string, tenantId: string): Promise<boolean> => {
+    const [definition] = await getDatabase(tenantId)
         .select({ requiresApproval: jobDefinitions.requiresApproval })
         .from(jobDefinitions)
         .where(eq(jobDefinitions.id, jobDefinitionId))
@@ -39,11 +48,13 @@ export const createJobApprovalRequest = async (params: {
     triggeredBy: string
     tenantId: string
     parameters?: any
+    approvalPolicy?: JobApprovalPolicy
 }) => {
-    const { jobDefinitionId, executionId, triggeredBy, tenantId, parameters } = params
+    const { jobDefinitionId, executionId, triggeredBy, tenantId, parameters, approvalPolicy } = params
+    const tenantDb = getDatabase(tenantId)
 
     // Get job definition
-    const [definition] = await db
+    const [definition] = await tenantDb
         .select()
         .from(jobDefinitions)
         .where(eq(jobDefinitions.id, jobDefinitionId))
@@ -63,6 +74,15 @@ export const createJobApprovalRequest = async (params: {
 
     // Create approval request
     // Unwrap the effect since this service method is async and returns the result directly
+    const impactLevel = approvalPolicy?.impactLevel
+        || (definition.priority === 'CRITICAL' ? 'critical' :
+            definition.priority === 'HIGH' ? 'high' : 'medium')
+
+    const now = Date.now()
+    const expiresAt = new Date(now + (approvalPolicy?.slaHours || 24) * 60 * 60 * 1000)
+    const escalationAfterHours = approvalPolicy?.escalationAfterHours
+        || Math.max(1, Math.floor((approvalPolicy?.slaHours || 24) / 2))
+
     const approvalRequest = await Effect.runPromise(approvalService.createApprovalRequest({
         tenantId,
         entityType: 'job_execution',
@@ -70,17 +90,49 @@ export const createJobApprovalRequest = async (params: {
         title: `Execute Job: ${definition.name}`,
         description: `Requesting approval to execute ${definition.jobType}${parameters ? ` with parameters: ${JSON.stringify(parameters)}` : ''}`,
         requestedBy: triggeredBy,
-        impactLevel: definition.priority === 'CRITICAL' ? 'critical' :
-            definition.priority === 'HIGH' ? 'high' : 'medium',
+        impactLevel,
         requestData: {
             jobDefinitionId,
             jobType: definition.jobType,
             approvalMatrixId: definition.approvalMatrixId, // Store in requestData
-            parameters
+            parameters,
+            jobApprovalPolicy: {
+                impactLevel,
+                approvalsRequired: approvalPolicy?.approvalsRequired || 1,
+                slaHours: approvalPolicy?.slaHours || 24,
+                escalationAfterHours,
+                requireDecisionComment: approvalPolicy?.requireDecisionComment || false,
+                escalationTriggeredAt: null,
+                escalationCount: 0,
+            },
         }
     }))
 
-    return approvalRequest
+    const mergedRequestData = {
+        ...(approvalRequest.requestData || {}),
+        jobApprovalPolicy: {
+            impactLevel,
+            approvalsRequired: approvalPolicy?.approvalsRequired || 1,
+            slaHours: approvalPolicy?.slaHours || 24,
+            escalationAfterHours,
+            requireDecisionComment: approvalPolicy?.requireDecisionComment || false,
+            escalationTriggeredAt: null,
+            escalationCount: 0,
+        },
+    }
+
+    const [updated] = await tenantDb
+        .update(approvalRequests)
+        .set({
+            impactLevel,
+            approvalsRequired: approvalPolicy?.approvalsRequired || approvalRequest.approvalsRequired || 1,
+            expiresAt,
+            requestData: mergedRequestData,
+        })
+        .where(eq(approvalRequests.id, approvalRequest.id))
+        .returning()
+
+    return updated || approvalRequest
 }
 
 /**
@@ -94,12 +146,69 @@ export const createJobApprovalRequest = async (params: {
 export const handleJobApprovalComplete = async (
     approvalRequestId: string,
     status: 'approved' | 'rejected',
-    approvedBy?: string
+    approvedBy?: string,
+    input?: { comment?: string }
 ) => {
+    if (!approvedBy) {
+        throw new Error('Approver user ID is required')
+    }
+
     console.log(`[JobApproval] Handling approval ${approvalRequestId} - status: ${status}`)
 
+    const request = await ApprovalRepository.findRequestById(approvalRequestId)
+    if (!request) {
+        throw new Error(`Approval request ${approvalRequestId} not found`)
+    }
+
+    const tenantDb = getDatabase(request.tenantId || null)
+    const policy = request.requestData && typeof request.requestData === 'object'
+        ? (request.requestData as any).jobApprovalPolicy
+        : undefined
+
+    if (policy?.requireDecisionComment && !(input?.comment || '').trim()) {
+        throw new Error('Comment is required to approve or reject this job')
+    }
+
+    const now = new Date()
+    if (request.status === 'pending' && request.expiresAt && new Date(request.expiresAt).getTime() <= now.getTime()) {
+        await tenantDb.update(approvalRequests)
+            .set({
+                status: 'expired',
+                completedAt: now,
+            })
+            .where(eq(approvalRequests.id, approvalRequestId))
+
+        await tenantDb.update(jobExecutions)
+            .set({
+                status: 'failed',
+                approvalStatus: 'rejected',
+                endTime: now,
+                error: 'Approval SLA expired before required approvals were collected',
+            })
+            .where(eq(jobExecutions.approvalRequestId, approvalRequestId))
+
+        return {
+            completed: true,
+            status: 'expired',
+            queued: false,
+            approvalsRequired: Number(request.approvalsRequired || 1),
+            approvalsReceived: Number(request.approvalsReceived || 0),
+            remainingApprovals: 0,
+        }
+    }
+
+    const action = status === 'approved' ? 'approve' : 'reject'
+    const actionResult = await Effect.runPromise(approvalService.processApprovalAction({
+        requestId: approvalRequestId,
+        approverId: approvedBy,
+        action,
+        comment: input?.comment,
+    }))
+
+    const latestRequest = await ApprovalRepository.findRequestById(approvalRequestId)
+
     // Find job execution linked to this approval
-    const [execution] = await db
+    const [execution] = await tenantDb
         .select()
         .from(jobExecutions)
         .where(eq(jobExecutions.approvalRequestId, approvalRequestId))
@@ -107,40 +216,86 @@ export const handleJobApprovalComplete = async (
 
     if (!execution) {
         console.warn(`[JobApproval] No job execution found for approval ${approvalRequestId}`)
-        return
+        return {
+            completed: actionResult.completed,
+            status: actionResult.status,
+            queued: false,
+            approvalsRequired: Number(latestRequest?.approvalsRequired || request.approvalsRequired || 1),
+            approvalsReceived: Number(latestRequest?.approvalsReceived || request.approvalsReceived || 0),
+            remainingApprovals: Math.max(0, Number(latestRequest?.approvalsRequired || 1) - Number(latestRequest?.approvalsReceived || 0)),
+        }
     }
 
-    if (status === 'approved') {
+    if (status === 'approved' && actionResult.completed) {
         console.log(`[JobApproval] Queueing job ${execution.id}`)
 
         // Queue the job to BullMQ
-        const job = await addJob(execution.jobType, execution.parameters || {}, {
+        const job = await addJob(execution.jobType, {
+            definitionId: execution.jobDefinitionId,
+            tenantId: execution.tenantId,
+            parameters: execution.parameters || {},
+        }, {
             jobId: execution.id, // Use execution ID as job ID for tracking
             priority: 1, // High priority for approved jobs
         })
 
         // Update execution status
-        await db.update(jobExecutions)
+        await tenantDb.update(jobExecutions)
             .set({
-                status: 'queued',
+                status: 'pending',
                 approvalStatus: 'approved',
                 approvedAt: new Date(),
-                approvedBy: approvedBy || null
+                approvedBy: approvedBy || null,
+                error: null,
             })
             .where(eq(jobExecutions.id, execution.id))
 
         console.log(`[JobApproval] Job ${execution.id} queued successfully`)
+        return {
+            completed: true,
+            status: 'approved',
+            queued: true,
+            approvalsRequired: Number(latestRequest?.approvalsRequired || request.approvalsRequired || 1),
+            approvalsReceived: Number(latestRequest?.approvalsReceived || request.approvalsReceived || 1),
+            remainingApprovals: 0,
+        }
+    } else if (status === 'approved' && !actionResult.completed) {
+        await tenantDb.update(jobExecutions)
+            .set({
+                status: 'pending_approval',
+                approvalStatus: 'pending',
+            })
+            .where(eq(jobExecutions.id, execution.id))
+
+        return {
+            completed: false,
+            status: 'pending',
+            queued: false,
+            approvalsRequired: Number(latestRequest?.approvalsRequired || request.approvalsRequired || 1),
+            approvalsReceived: Number(latestRequest?.approvalsReceived || request.approvalsReceived || 0),
+            remainingApprovals: Math.max(0, Number(latestRequest?.approvalsRequired || 1) - Number(latestRequest?.approvalsReceived || 0)),
+        }
     } else {
         console.log(`[JobApproval] Job ${execution.id} rejected`)
 
         // Mark as rejected
-        await db.update(jobExecutions)
+        await tenantDb.update(jobExecutions)
             .set({
                 status: 'rejected',
                 approvalStatus: 'rejected',
-                endTime: new Date()
+                endTime: new Date(),
+                error: input?.comment ? `Rejected: ${input.comment}` : 'Rejected by approver',
             })
             .where(eq(jobExecutions.id, execution.id))
+
+        return {
+            completed: true,
+            status: 'rejected',
+            queued: false,
+            approvalsRequired: Number(latestRequest?.approvalsRequired || request.approvalsRequired || 1),
+            approvalsReceived: Number(latestRequest?.approvalsReceived || request.approvalsReceived || 0),
+            remainingApprovals: 0,
+        }
     }
 }
 
@@ -151,7 +306,7 @@ export const handleJobApprovalComplete = async (
  * @returns A Promise resolving to an array of pending job executions
  */
 export const getPendingJobApprovals = async (tenantId: string) => {
-    return await db
+    return await getDatabase(tenantId)
         .select()
         .from(jobExecutions)
         .where(eq(jobExecutions.approvalStatus, 'pending'))
@@ -169,10 +324,11 @@ export const getPendingJobApprovals = async (tenantId: string) => {
  */
 export const checkAutoApprovalConditions = async (
     jobDefinitionId: string,
+    tenantId: string,
     triggeredBy: string,
     parameters?: any
 ): Promise<boolean> => {
-    const [definition] = await db
+    const [definition] = await getDatabase(tenantId)
         .select()
         .from(jobDefinitions)
         .where(eq(jobDefinitions.id, jobDefinitionId))

@@ -4,10 +4,14 @@ import { usePermission } from '../../hooks/usePermission';
 type MatchMode = 'any' | 'all';
 
 interface CanProps {
+    /** Canonical permission code(s), e.g. "banking.parameter.product.create" */
+    permission?: string | string[];
+    /** Alias for permission list */
+    permissions?: string[];
     /** The action(s) to perform (e.g., 'view', 'create', ['view', 'edit']) */
-    I: string | string[];
+    I?: string | string[];
     /** The resource(s) (e.g., 'users', 'roles', ['users', 'roles']) */
-    a: string | string[];
+    a?: string | string[];
     /** Rendered when permission is granted */
     children: React.ReactNode;
     /** Optional fallback when denied */
@@ -21,11 +25,15 @@ interface CanProps {
 /**
  * RBAC/ACL component to conditionally render content based on permissions.
  * Usage:
+ *   <Can permission="banking.parameter.product.create"> <CreateButton /> </Can>
+ *   <Can permission={['admin.roles.manage','admin.super_admin']}> ... </Can>
  *   <Can I="view" a="users"> <UserList /> </Can>
  *   <Can I={['create','edit']} a="users" match="all"> ... </Can>
  *   <Can I="delete" a="users" not fallback={<></>} />
  */
 export const Can: React.FC<CanProps> = ({
+    permission,
+    permissions,
     I,
     a,
     children,
@@ -33,8 +41,19 @@ export const Can: React.FC<CanProps> = ({
     match = 'any',
     not = false,
 }) => {
-    const { can } = usePermission();
-    const allowed = can(I, a, match);
+    const { can, hasAnyPermission, hasAllPermissions } = usePermission();
+
+    const directPermissions = [
+        ...(Array.isArray(permission) ? permission : permission ? [permission] : []),
+        ...(permissions || []),
+    ].filter(Boolean);
+
+    const allowed = directPermissions.length > 0
+        ? (match === 'all' ? hasAllPermissions(directPermissions) : hasAnyPermission(directPermissions))
+        : I && a
+            ? can(I, a, match)
+            : false;
+
     const shouldRender = not ? !allowed : allowed;
 
     return <>{shouldRender ? children : fallback}</>;

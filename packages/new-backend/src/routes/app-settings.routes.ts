@@ -1,8 +1,11 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
+import { Effect, pipe } from 'effect'
 import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
 import { ParametersService } from '../services/parameters.service'
 import { runEffect } from '../lib/effect/runtime'
+import { interceptCreate, interceptUpdate, interceptDelete } from '../middleware/approval-interceptor.middleware'
+import type { ApprovalResponse } from '../lib/approval-helpers'
 
 const app = new OpenAPIHono<AppContext>()
 
@@ -29,7 +32,6 @@ const AppSettingSchema = z.object({
     param_name: z.string().nullable(),
     param_usage: z.string().nullable(),
     param_type: z.string().nullable(),
-    banking_type: z.string().nullable(),
     is_active: z.boolean().nullable(),
     requires_approval: z.boolean().nullable(),
     details: z.array(AppSettingDetailSchema).optional(),
@@ -45,8 +47,6 @@ const CreateAppSettingSchema = z.object({
     param_usage: z.string().max(255).optional(),
     paramType: z.string().max(10).optional(),
     param_type: z.string().max(10).optional(),
-    bankingType: z.enum(['conventional', 'syariah', 'dual']).optional(),
-    banking_type: z.enum(['conventional', 'syariah', 'dual']).optional(),
     isActive: z.boolean().optional(),
     is_active: z.boolean().optional(),
     requiresApproval: z.boolean().optional(),
@@ -57,7 +57,6 @@ const CreateAppSettingSchema = z.object({
     paramName: data.param_name || data.paramName || '',
     paramUsage: data.param_usage || data.paramUsage || '',
     paramType: data.param_type || data.paramType || 'S',
-    bankingType: data.banking_type || data.bankingType || 'conventional',
     isActive: data.is_active ?? data.isActive ?? true,
     requiresApproval: data.requires_approval ?? data.requiresApproval ?? false,
 })).openapi('CreateAppSettingInput')
@@ -72,8 +71,6 @@ const UpdateAppSettingSchema = z.object({
     param_usage: z.string().max(255).optional(),
     paramType: z.string().max(10).optional(),
     param_type: z.string().max(10).optional(),
-    bankingType: z.enum(['conventional', 'syariah', 'dual']).optional(),
-    banking_type: z.enum(['conventional', 'syariah', 'dual']).optional(),
     isActive: z.boolean().optional(),
     is_active: z.boolean().optional(),
     requiresApproval: z.boolean().optional(),
@@ -84,19 +81,44 @@ const UpdateAppSettingSchema = z.object({
     ...(data.param_name || data.paramName ? { paramName: data.param_name || data.paramName } : {}),
     ...(data.param_usage || data.paramUsage ? { paramUsage: data.param_usage || data.paramUsage } : {}),
     ...(data.param_type || data.paramType ? { paramType: data.param_type || data.paramType } : {}),
-    ...(data.banking_type || data.bankingType ? { bankingType: data.banking_type || data.bankingType } : {}),
     ...(data.is_active !== undefined || data.isActive !== undefined ? { isActive: data.is_active ?? data.isActive } : {}),
     ...(data.requires_approval !== undefined || data.requiresApproval !== undefined ? { requiresApproval: data.requires_approval ?? data.requiresApproval } : {}),
 })).openapi('UpdateAppSettingInput')
 
 const CreateAppSettingDetailSchema = z.object({
-    paramCode: z.string().max(50),
-    paramSeq: z.number().int(),
+    // Accept both snake_case and camelCase
+    param_code: z.string().max(50).optional(),
+    paramCode: z.string().max(50).optional(),
+    param_seq: z.number().int().optional(),
+    paramSeq: z.number().int().optional(),
     value1: z.string().max(100),
-    value2: z.string().max(100),
-    value3: z.string().max(50),
-    paramdesc: z.string().max(1000),
-}).openapi('CreateAppSettingDetailInput')
+    value2: z.string().max(100).optional(),
+    value3: z.string().max(50).optional(),
+    paramdesc: z.string().max(1000).optional(),
+}).transform(data => ({
+    paramCode: data.param_code || data.paramCode || '',
+    paramSeq: data.param_seq ?? data.paramSeq ?? 1,
+    value1: data.value1,
+    value2: data.value2 || '',
+    value3: data.value3 || '',
+    paramdesc: data.paramdesc || '',
+})).openapi('CreateAppSettingDetailInput')
+
+const UpdateAppSettingDetailSchema = z.object({
+    // Accept both snake_case and camelCase
+    param_seq: z.number().int().optional(),
+    paramSeq: z.number().int().optional(),
+    value1: z.string().max(100).optional(),
+    value2: z.string().max(100).optional(),
+    value3: z.string().max(50).optional(),
+    paramdesc: z.string().max(1000).optional(),
+}).transform(data => ({
+    ...(data.param_seq !== undefined || data.paramSeq !== undefined ? { paramSeq: data.param_seq ?? data.paramSeq } : {}),
+    ...(data.value1 !== undefined ? { value1: data.value1 } : {}),
+    ...(data.value2 !== undefined ? { value2: data.value2 } : {}),
+    ...(data.value3 !== undefined ? { value3: data.value3 } : {}),
+    ...(data.paramdesc !== undefined ? { paramdesc: data.paramdesc } : {}),
+})).openapi('UpdateAppSettingDetailInput')
 
 const AppSettingListResponse = z.object({
     success: z.boolean(),
@@ -119,6 +141,14 @@ const ErrorResponse = z.object({
     message: z.string(),
     error: z.string().optional()
 }).openapi('ErrorResponse')
+
+const ApprovalWorkflowResponse = z.object({
+    success: z.boolean(),
+    approvalRequired: z.boolean(),
+    requestId: z.string().optional(),
+    data: z.any().optional(),
+    message: z.string().optional()
+}).openapi('ApprovalWorkflowResponse')
 
 // ============================================================================
 // ENDPOINTS
@@ -264,15 +294,40 @@ app.openapi(
         },
         responses: {
             201: { content: { 'application/json': { schema: AppSettingResponse } }, description: 'Created' },
+            202: { content: { 'application/json': { schema: ApprovalWorkflowResponse } }, description: 'Pending Approval' },
             409: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Conflict' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
     async (c) => {
-        const data = c.req.valid('json');
-        const userId = c.get('userId') as string || 'system';
+        const tenantId = c.get('tenantId')!
+        const userId = c.get('userId') as string || 'system'
+        const userPermissions = (c.get('permissions') as string[]) || []
+        const data = c.req.valid('json')
 
-        return runEffect(c, ParametersService.createAppSetting(data, userId)) as any
+        const executeCreate = () => ParametersService.createAppSetting(data, userId) as Effect.Effect<any, any, never>
+
+        const effect = pipe(
+            interceptCreate(
+                tenantId,
+                userId,
+                userPermissions,
+                'parameter',
+                data,
+                executeCreate,
+                'medium'
+            ),
+            Effect.map((response: ApprovalResponse) => {
+                if (response.approvalRequired) {
+                    return response
+                } else {
+                    return { success: true, approvalRequired: false, data: response.data }
+                }
+            })
+        )
+
+        const result = await runEffect(c, effect)
+        return c.json(result, result.approvalRequired ? 202 : 201)
     }
 )
 
@@ -289,16 +344,42 @@ app.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: AppSettingResponse } }, description: 'Updated' },
+            202: { content: { 'application/json': { schema: ApprovalWorkflowResponse } }, description: 'Pending Approval' },
             404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
     async (c) => {
-        const { code } = c.req.valid('param');
-        const data = c.req.valid('json');
-        const userId = c.get('userId') as string || 'system';
+        const { code } = c.req.valid('param')
+        const tenantId = c.get('tenantId')!
+        const userId = c.get('userId') as string || 'system'
+        const userPermissions = (c.get('permissions') as string[]) || []
+        const data = c.req.valid('json')
 
-        return runEffect(c, ParametersService.updateAppSetting(code, data, userId) as any) as any
+        const executeUpdate = () => ParametersService.updateAppSetting(code, data, userId) as Effect.Effect<any, any, never>
+
+        const effect = pipe(
+            interceptUpdate(
+                tenantId,
+                userId,
+                userPermissions,
+                'parameter',
+                code,
+                data,
+                executeUpdate,
+                'medium'
+            ),
+            Effect.map((response: ApprovalResponse) => {
+                if (response.approvalRequired) {
+                    return response
+                } else {
+                    return { success: true, approvalRequired: false, data: response.data }
+                }
+            })
+        )
+
+        const result = await runEffect(c, effect)
+        return c.json(result, result.approvalRequired ? 202 : 200)
     }
 )
 
@@ -315,14 +396,40 @@ app.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), message: z.string() }) } }, description: 'Deleted' },
+            202: { content: { 'application/json': { schema: ApprovalWorkflowResponse } }, description: 'Deletion Pending Approval' },
             404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
     async (c) => {
-        const { code } = c.req.valid('param');
+        const { code } = c.req.valid('param')
+        const tenantId = c.get('tenantId')!
+        const userId = c.get('userId')!
+        const userPermissions = (c.get('permissions') as string[]) || []
 
-        return runEffect(c, ParametersService.deleteAppSetting(code) as any) as any
+        const executeDelete = () => ParametersService.deleteAppSetting(code) as Effect.Effect<any, any, never>
+
+        const effect = pipe(
+            interceptDelete(
+                tenantId,
+                userId,
+                userPermissions,
+                'parameter',
+                code,
+                executeDelete,
+                'high'
+            ),
+            Effect.map((response: ApprovalResponse) => {
+                if (response.approvalRequired) {
+                    return response
+                } else {
+                    return { success: true, approvalRequired: false, message: 'Parameter deleted successfully' }
+                }
+            })
+        )
+
+        const result = await runEffect(c, effect)
+        return c.json(result, result.approvalRequired ? 202 : 200)
     }
 )
 
@@ -347,6 +454,32 @@ app.openapi(
         const userId = c.get('userId') as string || 'system';
 
         return runEffect(c, ParametersService.createAppSettingDetail(data, userId) as any) as any
+    }
+)
+
+// PUT /api/v1/app-settings/details/:id
+app.openapi(
+    createRoute({
+        method: 'put',
+        path: '/details/{id}',
+        tags: ['Application Settings'],
+        summary: 'Update Application Setting Detail',
+        request: {
+            params: z.object({ id: z.string().transform(Number) }),
+            body: { content: { 'application/json': { schema: UpdateAppSettingDetailSchema } } }
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: AppSettingDetailResponse } }, description: 'Updated' },
+            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    async (c) => {
+        const id = c.req.valid('param').id;
+        const data = c.req.valid('json');
+        const userId = c.get('userId') as string || 'system';
+
+        return runEffect(c, ParametersService.updateAppSettingDetail(id, data, userId) as any) as any
     }
 )
 

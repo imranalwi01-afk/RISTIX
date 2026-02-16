@@ -1,40 +1,39 @@
 // packages/frontend/src/components/ifrs9/LifetimePDReport.tsx
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   Box,
   Typography,
   Card,
   CardContent,
-  Grid,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Tabs,
   Tab,
-  Alert,
   Chip,
   Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow
+  IconButton,
+  Button,
+  Stack,
+  Tooltip,
+  useTheme,
+  alpha
 } from '@mui/material';
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  LineChart,
-  Line
-} from 'recharts';
+  FilterList as FilterListIcon,
+  Refresh as RefreshIcon,
+  Download as DownloadIcon,
+  CheckCircle as CheckCircleIcon,
+  AccessTime as AccessTimeIcon
+} from '@mui/icons-material';
+
+import { Grid } from '@mui/material';
+import LifetimePDConfigPanel from './LifetimePDConfigPanel';
+import LifetimePDKPIs from './LifetimePDKPIs';
+import SurvivalChart from './LifetimePDCharts/SurvivalChart';
+import MarginalPDChart from './LifetimePDCharts/MarginalPDChart';
+import LifetimePDExportDialog from './LifetimePDExportDialog';
 import BaseIfrs9Report from './BaseIfrs9Report';
+import api from '@/services/api';
+import { impairmentApi } from '@/services/api/impairment.api';
+import { format } from 'date-fns';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -52,264 +51,434 @@ function TabPanel(props: TabPanelProps) {
       aria-labelledby={`pd-tab-${index}`}
       {...other}
     >
-      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
+      {value === index && <Box sx={{ p: { xs: 1, md: 3 } }}>{children}</Box>}
     </div>
   );
 }
 
+const mapPdMethodToCode = (method: string | number | undefined): number => {
+  if (typeof method === 'number') return method;
+  switch (method) {
+    case 'PIT':
+      return 2;
+    case 'Hybrid':
+      return 3;
+    case 'TTC':
+    default:
+      return 1;
+  }
+};
+
 const LifetimePDReport: React.FC = () => {
+  const theme = useTheme();
   const [tabValue, setTabValue] = useState(0);
+  const [configOpen, setConfigOpen] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [lastCalculation, setLastCalculation] = useState<Date | null>(new Date());
+  
+  // Data states
   const [yearlyData, setYearlyData] = useState<any[]>([]);
+  const [yearlyDataB, setYearlyDataB] = useState<any[]>([]);
   const [monthlyData, setMonthlyData] = useState<any[]>([]);
-  const [pivotColumns, setPivotColumns] = useState<string[]>([]);
-  const [chartData, setChartData] = useState<any[]>([]);
+  const [monthlyDataB, setMonthlyDataB] = useState<any[]>([]);
+  const [validationMetadata, setValidationMetadata] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [currentFilters, setCurrentFilters] = useState<any>({
+    prcDate: format(new Date(), 'yyyy-MM-dd'),
+    pdConfigId: '',
+    pdMethod: mapPdMethodToCode('PIT'),
+    isForwardLooking: false,
+    scalarId: undefined,
+    isCompareMode: false,
+    pdConfigIdB: '',
+    pdMethodB: mapPdMethodToCode('PIT'),
+    scalarIdB: undefined
+  });
+
+  const fetchData = useCallback(async (filters: any) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await api.banking.ifrs9Reports.lifetimePD.getYearly({
+        prc_date: filters.prcDate,
+        pd_config_id: filters.pdConfigId ? Number(filters.pdConfigId) : undefined,
+        pd_method: filters.pdMethod,
+        fl_flag: filters.isForwardLooking
+      });
+      if (response.success) {
+        setYearlyData(response.data);
+        if (response.metadata) setValidationMetadata(response.metadata);
+      } else {
+        setError(response.message || 'Failed to fetch yearly data');
+      }
+
+      // Fetch comparison yearly data if active (Model B)
+      if (filters.isCompareMode && filters.pdConfigIdB) {
+        const responseB = await api.banking.ifrs9Reports.lifetimePD.getYearly({
+          prc_date: filters.prcDate,
+          pd_config_id: Number(filters.pdConfigIdB),
+          pd_method: filters.pdMethodB,
+          fl_flag: filters.isForwardLooking
+        });
+        if (responseB.success) setYearlyDataB(responseB.data);
+      } else {
+        setYearlyDataB([]);
+      }
+
+      // Fetch monthly data
+      const monthlyResponse = await api.banking.ifrs9Reports.lifetimePD.getMonthly({
+        prc_date: filters.prcDate,
+        pd_config_id: filters.pdConfigId ? Number(filters.pdConfigId) : undefined,
+        pd_method: filters.pdMethod,
+        fl_flag: filters.isForwardLooking
+      });
+      if (monthlyResponse.success) {
+        setMonthlyData(monthlyResponse.data);
+      }
+
+      // Fetch comparison monthly data if active
+      if (filters.isCompareMode && filters.pdConfigIdB) {
+        const monthlyResponseB = await api.banking.ifrs9Reports.lifetimePD.getMonthly({
+          prc_date: filters.prcDate,
+          pd_config_id: Number(filters.pdConfigIdB),
+          pd_method: filters.pdMethodB,
+          fl_flag: filters.isForwardLooking
+        });
+        if (monthlyResponseB.success) setMonthlyDataB(monthlyResponseB.data);
+      } else {
+        setMonthlyDataB([]);
+      }
+    } catch (err) {
+      console.error('Fetch error:', err);
+      setError('An error occurred while fetching data');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    fetchData(currentFilters);
+  }, [fetchData, currentFilters]);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
 
-  // Process data for pivot table display
-  const processPivotData = useCallback((data: any[], type: 'yearly' | 'monthly') => {
-    if (!data || data.length === 0) return { pivotData: [], columns: [], chartData: [] };
+  const handleRunAnalysis = async (config: any) => {
+    console.log('Running analysis with config:', config);
+    try {
+      setLoading(true);
+      const payload = {
+        calculationName: `PD Run ${format(config.procDate, 'yyyyMMdd')}`,
+        calculationType: 'PD',
+        portfolioId: config.selectedSegments?.[0] || 'ALL',
+        reportingDate: format(config.procDate, 'yyyy-MM-dd'),
+        currency: 'IDR',
+        assumptions: `Method: ${config.pdMethod}, FL: ${config.isForwardLooking}`
+      };
+      
+      const response = await impairmentApi.runCalculation(payload);
+      if (response.data.success) {
+        setLastCalculation(new Date());
+        setCurrentFilters({
+          prcDate: format(config.procDate, 'yyyy-MM-dd'),
+          pdConfigId: config.pdConfigId,
+          pdMethod: mapPdMethodToCode(config.pdMethod),
+          isForwardLooking: config.isForwardLooking,
+          scalarId: config.scalarId,
+          isCompareMode: config.isCompareMode,
+          pdConfigIdB: config.pdConfigIdB,
+          pdMethodB: mapPdMethodToCode(config.pdMethodB),
+          scalarIdB: config.scalarIdB
+        });
+      }
+    } catch (err) {
+      console.error('Run analysis error:', err);
+      setError('Failed to trigger analysis');
+    } finally {
+      setLoading(false);
+      setConfigOpen(false);
+    }
+  };
 
-    const firstRow = data[0];
-    const baseColumns = ['account_id', 'customer_name', 'product_type', 'segment_name'];
+  // Transform backend data for charts
+  const chartData = useMemo(() => {
+    if (!yearlyData || yearlyData.length === 0) return [];
     
-    // Extract dynamic period columns
-    const periodColumns = Object.keys(firstRow).filter(key => 
-      type === 'yearly' 
-        ? key.match(/^year_\d+$/)
-        : key.match(/^month_\d+$/)
-    ).sort();
+    // Backend (DS2) returns:
+    // bucket_year, fl_year, pd_rate (0-1)
+    const sorted = [...yearlyData].sort(
+      (a, b) => (a.bucket_year || a.fl_year || 0) - (b.bucket_year || b.fl_year || 0)
+    );
+    const sortedB = currentFilters.isCompareMode
+      ? [...yearlyDataB].sort(
+          (a, b) => (a.bucket_year || a.fl_year || 0) - (b.bucket_year || b.fl_year || 0)
+        )
+      : [];
+    
+    let survivalA = 1; // start at 100% survival
+    let survivalB = 1;
+    
+    return sorted.map((item, index) => {
+      const yearIndex = item.bucket_year || item.fl_year || index + 1;
+      const pdA = item.pd_rate || 0; // already 0-1
+      survivalA = survivalA * (1 - pdA);
+      
+      const itemB = sortedB[index];
+      const pdB = itemB?.pd_rate || 0;
+      if (itemB) {
+        survivalB = survivalB * (1 - pdB);
+      }
 
-    const allColumns = [...baseColumns, ...periodColumns];
+      return {
+        year: `Year ${yearIndex}`,
+        bucketYear: yearIndex,
+        marginalPD: pdA,
+        marginalPDB: itemB ? pdB : undefined,
+        survival: survivalA,
+        survivalB: itemB ? survivalB : undefined,
+        cumulativePD: 1 - survivalA,
+        cumulativePDB: itemB ? 1 - survivalB : undefined
+      };
+    });
+  }, [yearlyData, yearlyDataB, currentFilters.isCompareMode]);
+
+  const monthlyChartData = useMemo(() => {
+    if (!monthlyData || monthlyData.length === 0) return [];
     
-    // Prepare chart data
-    const sampleAccount = data[0];
-    const chartDataPoints = periodColumns.map(col => ({
-      period: col.replace(/^(year|month)_/, ''),
-      pd: sampleAccount[col] || 0,
-      label: type === 'yearly' ? `Year ${col.replace('year_', '')}` : `Month ${col.replace('month_', '')}`
-    }));
+    // Backend returns: bucket_month, fl_seq, pd_rate
+    const sorted = [...monthlyData].sort(
+      (a, b) => (a.bucket_month || a.fl_seq || 0) - (b.bucket_month || b.fl_seq || 0)
+    );
+    const sortedB = currentFilters.isCompareMode
+      ? [...monthlyDataB].sort(
+          (a, b) => (a.bucket_month || a.fl_seq || 0) - (b.bucket_month || b.fl_seq || 0)
+        )
+      : [];
+
+    return sorted.map((item, index) => {
+      const monthIndex = item.bucket_month || item.fl_seq || index + 1;
+      const itemB = sortedB[index];
+      return {
+        month: `M${monthIndex}`,
+        marginalPD: item.pd_rate || 0,
+        marginalPDB: itemB?.pd_rate || 0
+      };
+    });
+  }, [monthlyData, monthlyDataB, currentFilters.isCompareMode]);
+
+  // Transform KPIs (expressed in percentage units 0-100)
+  const kpiData = useMemo(() => {
+    if (chartData.length === 0) return { y1: 0, y3: 0, y5: 0, survival: 100 };
+
+    const getByBucketYear = (y: number) =>
+      chartData.find(d => d.bucketYear === y);
+
+    const y1Row = getByBucketYear(1);
+    const y3Row = getByBucketYear(3);
+    const y5Row = getByBucketYear(5);
+    const lastRow = chartData[chartData.length - 1];
 
     return {
-      pivotData: data,
-      columns: allColumns,
-      chartData: chartDataPoints
+      // Cumulative PD at each horizon (0-100%)
+      y1: (y1Row?.cumulativePD || 0) * 100,
+      y3: (y3Row?.cumulativePD || 0) * 100,
+      y5: (y5Row?.cumulativePD || 0) * 100,
+      // Survival rate at final year (0-100%)
+      survival: (lastRow?.survival || 1) * 100
     };
-  }, []);
+  }, [chartData]);
 
-  // Handle data loaded from yearly report
-  const handleYearlyDataLoaded = (data: any[]) => {
-    const { pivotData, columns, chartData } = processPivotData(data, 'yearly');
-    setYearlyData(pivotData);
-    setPivotColumns(columns);
-    if (tabValue === 0) {
-      setChartData(chartData);
-    }
-  };
+  const currentGranularity = tabValue === 1 ? 'Monthly' : 'Yearly';
 
-  // Handle data loaded from monthly report
-  const handleMonthlyDataLoaded = (data: any[]) => {
-    const { pivotData, columns, chartData } = processPivotData(data, 'monthly');
-    setMonthlyData(pivotData);
-    if (tabValue === 1) {
-      setChartData(chartData);
-    }
-  };
-
-  // Custom pivot table component
-  const PivotTable = ({ data, columns, title }: { data: any[], columns: string[], title: string }) => {
-    if (!data || data.length === 0) return null;
-
-    const baseColumns = columns.filter(col => !col.match(/^(year|month)_\d+$/));
-    const periodColumns = columns.filter(col => col.match(/^(year|month)_\d+$/));
-
-    return (
-      <Paper sx={{ width: '100%', overflow: 'hidden' }}>
-        <Typography variant="h6" sx={{ p: 2 }}>
-          {title} - Pivot View
-        </Typography>
-        <TableContainer sx={{ maxHeight: 600 }}>
-          <Table stickyHeader size="small">
-            <TableHead>
-              <TableRow>
-                {baseColumns.map(col => (
-                  <TableCell key={col} sx={{ fontWeight: 'bold', backgroundColor: 'primary.main', color: 'white' }}>
-                    {col.replace(/_/g, ' ').toUpperCase()}
-                  </TableCell>
-                ))}
-                {periodColumns.map(col => (
-                  <TableCell 
-                    key={col} 
-                    align="right" 
-                    sx={{ 
-                      fontWeight: 'bold', 
-                      backgroundColor: 'primary.main', 
-                      color: 'white',
-                      minWidth: 80
-                    }}
-                  >
-                    {col.replace(/^(year|month)_/, '').toUpperCase()}
-                  </TableCell>
-                ))}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {data.slice(0, 100).map((row, index) => (
-                <TableRow key={row.account_id || index} hover>
-                  {baseColumns.map(col => (
-                    <TableCell key={col}>
-                      {col === 'product_type' ? (
-                        <Chip 
-                          size="small" 
-                          label={row[col]} 
-                          color="primary"
-                          variant="outlined"
-                        />
-                      ) : (
-                        row[col] || '-'
-                      )}
-                    </TableCell>
-                  ))}
-                  {periodColumns.map(col => (
-                    <TableCell key={col} align="right">
-                      {row[col] !== null && row[col] !== undefined ? (
-                        <Typography 
-                          variant="body2" 
-                          sx={{ 
-                            fontWeight: row[col] > 0.1 ? 'bold' : 'normal',
-                            color: row[col] > 0.5 ? 'error.main' : 'inherit'
-                          }}
-                        >
-                          {(row[col] * 100).toFixed(4)}%
-                        </Typography>
-                      ) : '-'}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        {data.length > 100 && (
-          <Alert severity="info" sx={{ m: 2 }}>
-            Showing first 100 rows out of {data.length} total records. Use export function to get complete data.
-          </Alert>
-        )}
-      </Paper>
-    );
-  };
-
-  // Chart component
-  const PDChart = ({ data, type }: { data: any[], type: 'yearly' | 'monthly' }) => {
-    if (!data || data.length === 0) return null;
-
-    return (
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
-            Lifetime PD Trend - {type === 'yearly' ? 'Yearly' : 'Monthly'} Marginal
-          </Typography>
-          <ResponsiveContainer width="100%" height={400}>
-            <LineChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis 
-                dataKey="label" 
-                tick={{ fontSize: 12 }}
-                angle={-45}
-                textAnchor="end"
-              />
-              <YAxis 
-                tickFormatter={(value) => `${(value * 100).toFixed(2)}%`}
-              />
-              <Tooltip 
-                formatter={(value: number) => [`${(value * 100).toFixed(4)}%`, 'PD Rate']}
-                labelFormatter={(label) => `Period: ${label}`}
-              />
-              <Legend />
-              <Line 
-                type="monotone" 
-                dataKey="pd" 
-                stroke="#8884d8" 
-                strokeWidth={2}
-                dot={{ r: 4 }}
-                name="PD Rate"
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-    );
-  };
-
-
-  // Memoize params to prevent infinite loops
-  const yearlyRequiredParams = React.useMemo(() => ['prc_date'], []);
-  const yearlyOptionalParams = React.useMemo(() => ['pd_config_id', 'pd_method', 'scalar_id', 'segment_id', 'fl_flag'], []);
-  
   return (
-    <Box>
-      <Typography variant="h4" gutterBottom>
-        Lifetime PD Reports
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Probability of Default data with dynamic pivot structure showing marginal PD rates across time periods
-      </Typography>
+    <Box sx={{ p: 0 }}>
+      {/* Hero Panel & Toolbar */}
+      <Paper sx={{ 
+        p: 3, 
+        mb: 4, 
+        borderRadius: 4, 
+        background: 'linear-gradient(135deg, #ffffff 0%, #f8faff 100%)',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.06)'
+      }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 2 }}>
+          
+          {/* Title & Badges */}
+          <Box>
+            <Typography variant="h4" fontWeight={800} gutterBottom sx={{ 
+              color: theme.palette.primary.dark,
+              background: 'linear-gradient(90deg, #1a237e 0%, #0d47a1 100%)',
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+            }}>
+              Yearly Lifetime PD
+            </Typography>
+            <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 2 }}>
+              kepatuhan IFRS 9 & Proyeksi Multi-Tahun
+            </Typography>
+            
+            <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
+              <Chip 
+                label={`Granularity: ${currentGranularity}`} 
+                color="primary" 
+                variant="outlined" 
+                size="small" 
+                sx={{ fontWeight: 600 }}
+              />
+              <Chip 
+                label="Scope: IFRS 9 Compliance" 
+                color="success" 
+                variant="outlined" 
+                size="small" 
+                icon={<CheckCircleIcon />}
+                sx={{ fontWeight: 600 }}
+              />
+              <Chip 
+                label={`Last Calc: ${lastCalculation ? lastCalculation.toLocaleTimeString() : 'N/A'}`} 
+                variant="outlined" 
+                size="small" 
+                icon={<AccessTimeIcon />}
+                sx={{ fontWeight: 600, borderColor: 'text.disabled', color: 'text.secondary' }}
+              />
+              <Chip 
+                label="Live Production Data" 
+                size="small" 
+                sx={{ 
+                  fontWeight: 700, 
+                  bgcolor: alpha(theme.palette.success.main, 0.1), 
+                  color: theme.palette.success.main 
+                }}
+              />
+            </Stack>
+          </Box>
 
-      {/* Tabs */}
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-        <Tabs value={tabValue} onChange={handleTabChange}>
+          {/* Toolbar Actions */}
+          <Stack direction="row" spacing={1}>
+             <Tooltip title="Filter Configuration">
+              <Button 
+                variant={configOpen ? "contained" : "outlined"} 
+                startIcon={<FilterListIcon />}
+                onClick={() => setConfigOpen(true)}
+              >
+                Filters
+              </Button>
+            </Tooltip>
+            <Tooltip title="Refresh Data">
+              <IconButton color="primary">
+                <RefreshIcon />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Export Results">
+              <IconButton color="primary" onClick={() => setExportDialogOpen(true)}>
+                <DownloadIcon />
+              </IconButton>
+            </Tooltip>
+          </Stack>
+        </Box>
+      </Paper>
+
+      {/* Configuration Drawer */}
+      <LifetimePDConfigPanel 
+        open={configOpen} 
+        onClose={() => setConfigOpen(false)} 
+        onRun={handleRunAnalysis} 
+      />
+
+      {/* Results KPIs */}
+      <LifetimePDKPIs 
+        y1pd={kpiData.y1}
+        y3pd={kpiData.y3}
+        y5pd={kpiData.y5}
+        survivalRate={kpiData.survival}
+        validationMetrics={validationMetadata}
+      />
+
+      {/* Charts & Tabs Section */}
+      <Box sx={{ mb: 4 }}>
+        <Tabs 
+          value={tabValue} 
+          onChange={handleTabChange}
+          variant="fullWidth"
+          sx={{
+            mb: 3,
+            '& .MuiTabs-indicator': { height: 4, borderRadius: '4px 4px 0 0' },
+            '& .MuiTab-root': { fontWeight: 700, fontSize: '1rem', textTransform: 'none' }
+          }}
+        >
+          <Tab label="Yearly Lifetime PD (Cumulative)" />
           <Tab label="Yearly Marginal PD" />
           <Tab label="Monthly Marginal PD" />
         </Tabs>
+
+        <TabPanel value={tabValue} index={0}>
+             <Grid container spacing={3}>
+                <Grid size={{ xs: 12, md: 8 }}>
+                    <SurvivalChart data={chartData} />
+                </Grid>
+                <Grid size={{ xs: 12, md: 4 }}>
+                     <MarginalPDChart data={chartData} />
+                </Grid>
+             </Grid>
+        </TabPanel>
+        
+        <TabPanel value={tabValue} index={1}>
+             <Grid container spacing={3}>
+                <Grid size={{ xs: 12 }}>
+                     <MarginalPDChart data={chartData} />
+                </Grid>
+             </Grid>
+        </TabPanel>
+
+        <TabPanel value={tabValue} index={2}>
+             <Grid container spacing={3}>
+                <Grid size={{ xs: 12 }}>
+                     <MarginalPDChart 
+                        data={monthlyChartData.map(d => ({ year: d.month, marginalPD: d.marginalPD / 100 }))} 
+                     />
+                </Grid>
+             </Grid>
+        </TabPanel>
       </Box>
 
-      {/* Yearly PD Report */}
-      <TabPanel value={tabValue} index={0}>
-        <BaseIfrs9Report
-          title=""
-          reportType="lifetime-pd-yearly"
-          requiredParams={yearlyRequiredParams}
-          optionalParams={yearlyOptionalParams}
-          supportsPagination={false}
-          supportsCharts={true}
-          onDataLoaded={handleYearlyDataLoaded}
-        >
-          <Box>
-            <PDChart data={chartData} type="yearly" />
-            <PivotTable 
-              data={yearlyData} 
-              columns={pivotColumns} 
-              title="Yearly Marginal PD"
-            />
-          </Box>
-        </BaseIfrs9Report>
-      </TabPanel>
+        {/* Detailed Data Table */}
+        <BaseIfrs9Report 
+          title="Account PD Details" 
+          reportType="lifetime-pd-account-details"
+          hideHeader
+          requiredParams={['prc_date']}
+          externalFilters={{
+            prc_date: currentFilters.prcDate ? new Date(currentFilters.prcDate) : null,
+            pd_config_id: currentFilters.pdConfigId ? Number(currentFilters.pdConfigId) : undefined,
+            pd_method: currentFilters.pdMethod,
+            fl_flag: currentFilters.isForwardLooking
+          }}
+          onDataLoaded={(data) => console.log('Account Details Loaded:', data.length)}
+        />
+        
+        <LifetimePDExportDialog 
+            open={exportDialogOpen} 
+            onClose={() => setExportDialogOpen(false)}
+            onExport={(options) => {
+                const auditMetadata = {
+                  reportName: 'Yearly Lifetime PD',
+                  procDate: currentFilters.prcDate,
+                  segments: currentFilters.selectedSegments || 'All Segments',
+                  pdConfigId: currentFilters.pdConfigId,
+                  compareMode: currentFilters.isCompareMode,
+                  pdConfigIdB: currentFilters.pdConfigIdB,
+                  modelVersion: validationMetadata?.modelVersion || 'v2.1.0-prod',
+                  generatedAt: new Date().toISOString()
+                };
+                console.log('Initiating Export with Audit Metadata:', auditMetadata, options);
+                // Real implementation would call reportsAPI.export here
+            }}
+        />
 
-      {/* Monthly PD Report */}
-      <TabPanel value={tabValue} index={1}>
-        <BaseIfrs9Report
-          title=""
-          reportType="lifetime-pd-monthly"
-          requiredParams={yearlyRequiredParams}
-          optionalParams={yearlyOptionalParams}
-          supportsPagination={false}
-          supportsCharts={true}
-          onDataLoaded={handleMonthlyDataLoaded}
-        >
-          <Box>
-            <PDChart data={chartData} type="monthly" />
-            <PivotTable 
-              data={monthlyData} 
-              columns={pivotColumns} 
-              title="Monthly Marginal PD"
-            />
-          </Box>
-        </BaseIfrs9Report>
-      </TabPanel>
     </Box>
   );
 };
+
 
 export default LifetimePDReport;

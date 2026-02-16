@@ -96,7 +96,7 @@ const TabPanel: React.FC<TabPanelProps> = ({ children, value, index }) => (
 const ECLCalculationPanel: React.FC = () => {
   const { bankingType } = useDualBankingTheme();
   const { user } = useSelector((state: any) => state.auth);
-  
+
   // State management
   const [activeTab, setActiveTab] = useState(0);
   const [currentJob, setCurrentJob] = useState<ECLCalculationJob | null>(null);
@@ -104,7 +104,7 @@ const ECLCalculationPanel: React.FC = () => {
     calculationDate: new Date().toISOString().split('T')[0],
     scenarioType: 'base',
     pdModelVersion: '1.0',
-    lgdModelVersion: '1.0', 
+    lgdModelVersion: '1.0',
     eadModelVersion: '1.0',
     forwardLookingPeriods: 12,
     significantIncreaseThreshold: 30,
@@ -155,7 +155,7 @@ const ECLCalculationPanel: React.FC = () => {
   // ✅ Start ECL calculation
   const startCalculation = async () => {
     setIsLoading(true);
-    
+
     try {
       // Create new job
       const newJob: ECLCalculationJob = {
@@ -172,9 +172,9 @@ const ECLCalculationPanel: React.FC = () => {
         totalECL: 0,
         currency: 'IDR',
       };
-      
+
       setCurrentJob(newJob);
-      
+
       // Simulate calculation progress
       const progressInterval = setInterval(() => {
         setCurrentJob(prev => {
@@ -182,10 +182,10 @@ const ECLCalculationPanel: React.FC = () => {
             clearInterval(progressInterval);
             return prev;
           }
-          
+
           const newProgress = Math.min(prev.progress + 10, 100);
           const processedAccounts = Math.floor((newProgress / 100) * prev.totalAccounts);
-          
+
           return {
             ...prev,
             progress: newProgress,
@@ -201,7 +201,7 @@ const ECLCalculationPanel: React.FC = () => {
           };
         });
       }, 2000);
-      
+
     } catch (error) {
       console.error('Failed to start calculation:', error);
     } finally {
@@ -288,46 +288,46 @@ const ECLCalculationPanel: React.FC = () => {
           <CardContent>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
               <Typography variant="h6">{currentJob.name}</Typography>
-              <Chip 
+              <Chip
                 label={currentJob.status.toUpperCase()}
                 color={getStatusColor(currentJob.status) as any}
-                icon={currentJob.status === 'completed' ? <CheckCircle /> : 
-                      currentJob.status === 'running' ? <Timeline /> :
-                      currentJob.status === 'failed' ? <Error /> : <Warning />}
+                icon={currentJob.status === 'completed' ? <CheckCircle /> :
+                  currentJob.status === 'running' ? <Timeline /> :
+                    currentJob.status === 'failed' ? <Error /> : <Warning />}
               />
             </Box>
-            
+
             {currentJob.status === 'running' && (
-              <LinearProgress 
-                variant="determinate" 
-                value={currentJob.progress} 
+              <LinearProgress
+                variant="determinate"
+                value={currentJob.progress}
                 sx={{ mb: 2, height: 8, borderRadius: 4 }}
               />
             )}
-            
+
             <Grid container spacing={3}>
-              <Grid item xs={12} md={3}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <Typography variant="body2" color="textSecondary">Progress</Typography>
                 <Typography variant="h6">{currentJob.progress}%</Typography>
               </Grid>
-              <Grid item xs={12} md={3}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <Typography variant="body2" color="textSecondary">Processed Accounts</Typography>
                 <Typography variant="h6">
                   {currentJob.processedAccounts.toLocaleString()} / {currentJob.totalAccounts.toLocaleString()}
                 </Typography>
               </Grid>
-              <Grid item xs={12} md={3}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <Typography variant="body2" color="textSecondary">Total ECL</Typography>
                 <Typography variant="h6">{formatCurrency(currentJob.totalECL)}</Typography>
               </Grid>
-              <Grid item xs={12} md={3}>
+              <Grid size={{ xs: 12, md: 3 }}>
                 <Typography variant="body2" color="textSecondary">Duration</Typography>
                 <Typography variant="h6">
-                  {currentJob.startTime && currentJob.endTime 
+                  {currentJob.startTime && currentJob.endTime
                     ? `${Math.round((new Date(currentJob.endTime).getTime() - new Date(currentJob.startTime).getTime()) / 60000)} min`
-                    : currentJob.startTime 
-                    ? `${Math.round((Date.now() - new Date(currentJob.startTime).getTime()) / 60000)} min`
-                    : 'N/A'
+                    : currentJob.startTime
+                      ? `${Math.round((Date.now() - new Date(currentJob.startTime).getTime()) / 60000)} min`
+                      : 'N/A'
                   }
                 </Typography>
               </Grid>
@@ -337,19 +337,19 @@ const ECLCalculationPanel: React.FC = () => {
             <Box mt={3}>
               <Typography variant="subtitle1" gutterBottom>Staging Breakdown</Typography>
               <Grid container spacing={2}>
-                <Grid item xs={4}>
+                <Grid size={4}>
                   <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'success.light' }}>
                     <Typography variant="h6">{currentJob.stage1Count.toLocaleString()}</Typography>
                     <Typography variant="body2">Stage 1</Typography>
                   </Paper>
                 </Grid>
-                <Grid item xs={4}>
+                <Grid size={4}>
                   <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'warning.light' }}>
                     <Typography variant="h6">{currentJob.stage2Count.toLocaleString()}</Typography>
                     <Typography variant="body2">Stage 2</Typography>
                   </Paper>
                 </Grid>
-                <Grid item xs={4}>
+                <Grid size={4}>
                   <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'error.light' }}>
                     <Typography variant="h6">{currentJob.stage3Count.toLocaleString()}</Typography>
                     <Typography variant="body2">Stage 3</Typography>
@@ -374,22 +374,22 @@ const ECLCalculationPanel: React.FC = () => {
         {/* ✅ Parameters Tab */}
         <TabPanel value={activeTab} index={0}>
           <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 label="Calculation Date"
                 type="date"
                 value={parameters.calculationDate}
-                onChange={(e) => setParameters({...parameters, calculationDate: e.target.value})}
+                onChange={(e) => setParameters({ ...parameters, calculationDate: e.target.value })}
                 InputLabelProps={{ shrink: true }}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <FormControl fullWidth>
                 <InputLabel>Scenario Type</InputLabel>
                 <Select
                   value={parameters.scenarioType}
-                  onChange={(e) => setParameters({...parameters, scenarioType: e.target.value as any})}
+                  onChange={(e) => setParameters({ ...parameters, scenarioType: e.target.value as any })}
                 >
                   <MenuItem value="base">Base Scenario</MenuItem>
                   <MenuItem value="optimistic">Optimistic</MenuItem>
@@ -398,46 +398,46 @@ const ECLCalculationPanel: React.FC = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <TextField
                 fullWidth
                 label="PD Model Version"
                 value={parameters.pdModelVersion}
-                onChange={(e) => setParameters({...parameters, pdModelVersion: e.target.value})}
+                onChange={(e) => setParameters({ ...parameters, pdModelVersion: e.target.value })}
               />
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <TextField
                 fullWidth
                 label="LGD Model Version"
                 value={parameters.lgdModelVersion}
-                onChange={(e) => setParameters({...parameters, lgdModelVersion: e.target.value})}
+                onChange={(e) => setParameters({ ...parameters, lgdModelVersion: e.target.value })}
               />
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <TextField
                 fullWidth
                 label="EAD Model Version"
                 value={parameters.eadModelVersion}
-                onChange={(e) => setParameters({...parameters, eadModelVersion: e.target.value})}
+                onChange={(e) => setParameters({ ...parameters, eadModelVersion: e.target.value })}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 label="Forward Looking Periods (months)"
                 type="number"
                 value={parameters.forwardLookingPeriods}
-                onChange={(e) => setParameters({...parameters, forwardLookingPeriods: parseInt(e.target.value)})}
+                onChange={(e) => setParameters({ ...parameters, forwardLookingPeriods: parseInt(e.target.value) })}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 label="Significant Increase Threshold (%)"
                 type="number"
                 value={parameters.significantIncreaseThreshold}
-                onChange={(e) => setParameters({...parameters, significantIncreaseThreshold: parseFloat(e.target.value)})}
+                onChange={(e) => setParameters({ ...parameters, significantIncreaseThreshold: parseFloat(e.target.value) })}
               />
             </Grid>
           </Grid>
@@ -462,7 +462,7 @@ const ECLCalculationPanel: React.FC = () => {
                   <TableRow key={job.id}>
                     <TableCell>{job.name}</TableCell>
                     <TableCell>
-                      <Chip 
+                      <Chip
                         label={job.status.toUpperCase()}
                         color={getStatusColor(job.status) as any}
                         size="small"
@@ -472,7 +472,7 @@ const ECLCalculationPanel: React.FC = () => {
                       {job.startTime ? new Date(job.startTime).toLocaleString() : 'N/A'}
                     </TableCell>
                     <TableCell>
-                      {job.startTime && job.endTime 
+                      {job.startTime && job.endTime
                         ? `${Math.round((new Date(job.endTime).getTime() - new Date(job.startTime).getTime()) / 60000)} min`
                         : 'N/A'
                       }
@@ -485,8 +485,8 @@ const ECLCalculationPanel: React.FC = () => {
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="View Details">
-                        <IconButton 
-                          size="small" 
+                        <IconButton
+                          size="small"
                           onClick={() => setShowJobDetails(true)}
                         >
                           <Info />
@@ -509,8 +509,8 @@ const ECLCalculationPanel: React.FC = () => {
       </Card>
 
       {/* ✅ Job Details Dialog */}
-      <Dialog 
-        open={showJobDetails} 
+      <Dialog
+        open={showJobDetails}
         onClose={() => setShowJobDetails(false)}
         maxWidth="md"
         fullWidth

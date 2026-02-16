@@ -102,8 +102,8 @@ export const authAPI = {
   // Real token refresh
   refresh: async (refreshToken: string) => {
     console.log('🔄 Real token refresh');
-    // ✅ FIXED: Use explicit v1 path for refresh to avoid ambiguity
-    const response = await apiClient.post('/api/v1/auth/refresh', { refreshToken });
+    // Use relative auth path so we don't duplicate /api/v1 on configured base URLs
+    const response = await apiClient.post('/auth/refresh', { refreshToken });
     return response.data;
   }
 };
@@ -113,50 +113,76 @@ export const authAPI = {
 // ============================================================================
 export const usersAPI = {
   // Get all users from real database
-  getAll: async (params?: { page?: number; limit?: number; search?: string }) => {
-    console.log('👥 Fetching users from real database', params);
-    const response = await apiClient.get('/users', { params });
+  getAll: async (params?: { page?: number; limit?: number; search?: string }, tenantId?: string) => {
+    console.log(`👥 Fetching users from real database${tenantId ? ` (tenant: ${tenantId})` : ''}`, params);
+    const config: any = { params };
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.get('/users', config);
     return response.data;
   },
 
   // Get user by ID from real database
-  getById: async (id: string) => {
-    console.log(`👤 Fetching user ${id} from real database`);
-    const response = await apiClient.get(`/users/${id}`);
+  getById: async (id: string, tenantId?: string) => {
+    console.log(`👤 Fetching user ${id} from real database${tenantId ? ` (tenant: ${tenantId})` : ''}`);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.get(`/users/${id}`, config);
     return response.data;
   },
 
   // Create user in real database
-  create: async (userData: any) => {
-    console.log('➕ Creating user in real database', userData.email);
-    const response = await apiClient.post('/users', userData);
+  create: async (userData: any, tenantId?: string) => {
+    console.log(`➕ Creating user in real database${tenantId ? ` (tenant: ${tenantId})` : ''}`, userData.email);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.post('/users', userData, config);
     return response.data;
   },
 
   // Update user in real database
-  update: async (id: string, userData: any) => {
-    console.log(`✏️ Updating user ${id} in real database`);
-    const response = await apiClient.put(`/users/${id}`, userData);
+  update: async (id: string, userData: any, tenantId?: string) => {
+    console.log(`✏️ Updating user ${id} in real database${tenantId ? ` (tenant: ${tenantId})` : ''}`);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.put(`/users/${id}`, userData, config);
     return response.data;
   },
 
   // Delete user from real database
-  delete: async (id: string) => {
-    console.log(`🗑️ Deleting user ${id} from real database`);
-    const response = await apiClient.delete(`/users/${id}`);
+  delete: async (id: string, tenantId?: string) => {
+    console.log(`🗑️ Deleting user ${id} from real database${tenantId ? ` (tenant: ${tenantId})` : ''}`);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.delete(`/users/${id}`, config);
     return response.data;
   },
 
   // ✅ NEW: Enable/disable user actions
-  enable: async (id: string) => {
-    console.log(`✅ Enabling user ${id}`);
-    const response = await apiClient.post(`/users/${id}/enable`);
+  enable: async (id: string, tenantId?: string) => {
+    console.log(`✅ Enabling user ${id}${tenantId ? ` (tenant: ${tenantId})` : ''}`);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.post(`/users/${id}/enable`, {}, config);
     return response.data;
   },
 
-  disable: async (id: string) => {
-    console.log(`❌ Disabling user ${id}`);
-    const response = await apiClient.post(`/users/${id}/disable`);
+  disable: async (id: string, tenantId?: string) => {
+    console.log(`❌ Disabling user ${id}${tenantId ? ` (tenant: ${tenantId})` : ''}`);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.post(`/users/${id}/disable`, {}, config);
+    return response.data;
+  },
+
+  resetPassword: async (
+    id: string,
+    payload: { newPassword: string; forcePasswordChange?: boolean },
+    tenantId?: string
+  ) => {
+    console.log(`🔐 Resetting password for user ${id}${tenantId ? ` (tenant: ${tenantId})` : ''}`);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.post(`/users/${id}/reset-password`, payload, config);
     return response.data;
   }
 };
@@ -174,16 +200,20 @@ export const rolesAPI = {
     level?: 'PLATFORM' | 'TENANT' | 'DEPARTMENT';
     bankingAccess?: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
     isActive?: boolean;
-  }) => {
-    console.log('🔒 Fetching roles from tenant database with real API', params);
-    const response = await apiClient.get('/roles', { params });
+  }, tenantId?: string) => {
+    console.log(`🔒 Fetching roles from tenant database with real API${tenantId ? ` (tenant: ${tenantId})` : ''}`, params);
+    const config: any = { params };
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.get('/roles', config);
     return response.data;
   },
 
   // Get role by ID from tenant database
-  getById: async (id: string) => {
-    console.log(`🔒 Fetching role ${id} from tenant database`);
-    const response = await apiClient.get(`/roles/${id}`);
+  getById: async (id: string, tenantId?: string) => {
+    console.log(`🔒 Fetching role ${id} from tenant database${tenantId ? ` (tenant: ${tenantId})` : ''}`);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.get(`/roles/${id}`, config);
     return response.data;
   },
 
@@ -196,9 +226,11 @@ export const rolesAPI = {
     level?: 'PLATFORM' | 'TENANT' | 'DEPARTMENT';
     bankingAccess?: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
     isActive?: boolean;
-  }) => {
-    console.log('➕ Creating role in tenant database', roleData.name);
-    const response = await apiClient.post('/roles', roleData);
+  }, tenantId?: string) => {
+    console.log(`➕ Creating role in tenant database${tenantId ? ` (tenant: ${tenantId})` : ''}`, roleData.name);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.post('/roles', roleData, config);
     return response.data;
   },
 
@@ -209,60 +241,106 @@ export const rolesAPI = {
     description?: string;
     bankingAccess?: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
     isActive?: boolean;
-  }) => {
-    console.log(`✏️ Updating role ${id} in tenant database`);
-    const response = await apiClient.put(`/roles/${id}`, roleData);
+  }, tenantId?: string) => {
+    console.log(`✏️ Updating role ${id} in tenant database${tenantId ? ` (tenant: ${tenantId})` : ''}`);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.put(`/roles/${id}`, roleData, config);
     return response.data;
   },
 
   // Delete role from tenant database
-  delete: async (id: string) => {
-    console.log(`🗑️ Deleting role ${id} from tenant database`);
-    const response = await apiClient.delete(`/roles/${id}`);
+  delete: async (id: string, tenantId?: string) => {
+    console.log(`🗑️ Deleting role ${id} from tenant database${tenantId ? ` (tenant: ${tenantId})` : ''}`);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.delete(`/roles/${id}`, config);
     return response.data;
   },
 
   // Toggle role active status
-  toggle: async (id: string) => {
-    console.log(`🔄 Toggling role ${id} active status`);
-    const response = await apiClient.post(`/roles/${id}/toggle`);
+  toggle: async (id: string, tenantId?: string) => {
+    console.log(`🔄 Toggling role ${id} active status${tenantId ? ` (tenant: ${tenantId})` : ''}`);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.post(`/roles/${id}/toggle`, {}, config);
     return response.data;
   },
 
   // Get all available permissions
-  getPermissions: async () => {
-    console.log('🔑 Fetching permissions from tenant database');
-    const response = await apiClient.get('/roles/permissions');
+  getPermissions: async (tenantId?: string) => {
+    console.log(`🔑 Fetching permissions from tenant database${tenantId ? ` (tenant: ${tenantId})` : ''}`);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.get('/roles/permissions', config);
     return response.data;
   },
 
   // Update role permissions
-  updatePermissions: async (id: string, permissions: string[]) => {
-    console.log(`🔑 Updating permissions for role ${id}`);
-    const response = await apiClient.put(`/roles/${id}/permissions`, { permissions });
+  updatePermissions: async (
+    id: string,
+    permissions: string[],
+    tenantId?: string,
+    options?: { submitForApproval?: boolean; approvalReason?: string }
+  ) => {
+    console.log(`🔑 Updating permissions for role ${id}${tenantId ? ` (tenant: ${tenantId})` : ''}`);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.put(`/roles/${id}/permissions`, {
+      permissions,
+      submitForApproval: options?.submitForApproval ?? false,
+      approvalReason: options?.approvalReason
+    }, config);
     return response.data;
   },
 
   // Get users assigned to role
-  getUsers: async (roleId: string) => {
-    console.log(`👥 Fetching users for role ${roleId}`);
-    const response = await apiClient.get(`/roles/${roleId}/users`);
+  getUsers: async (roleId: string, tenantId?: string) => {
+    console.log(`👥 Fetching users for role ${roleId}${tenantId ? ` (tenant: ${tenantId})` : ''}`);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.get(`/roles/${roleId}/users`, config);
+    return response.data;
+  },
+
+  // Get roles assigned to user
+  getUserRoles: async (userId: string, tenantId?: string) => {
+    console.log(`👤 Fetching role assignments for user ${userId}${tenantId ? ` (tenant: ${tenantId})` : ''}`);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.get(`/roles/users/${userId}/roles`, config);
     return response.data;
   },
 
   // Assign role to user
-  assignUser: async (roleId: string, userId: string) => {
-    console.log(`👤 Assigning role ${roleId} to user ${userId}`);
-    // Fixed path matching backend: POST /users/:userId/roles/:roleId
-    const response = await apiClient.post(`/users/${userId}/roles/${roleId}`);
+  assignUser: async (roleId: string, userId: string, tenantId?: string) => {
+    console.log(`👤 Assigning role ${roleId} to user ${userId}${tenantId ? ` (tenant: ${tenantId})` : ''}`);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    // Backend expects assignment payload object
+    const response = await apiClient.post(`/users/${userId}/roles/${roleId}`, { isTemporary: false }, config);
     return response.data;
   },
 
   // Remove role from user
-  removeUser: async (roleId: string, userId: string) => {
-    console.log(`👤 Removing role ${roleId} from user ${userId}`);
+  removeUser: async (roleId: string, userId: string, tenantId?: string) => {
+    console.log(`👤 Removing role ${roleId} from user ${userId}${tenantId ? ` (tenant: ${tenantId})` : ''}`);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
     // Fixed path matching backend: DELETE /users/:userId/roles/:roleId
-    const response = await apiClient.delete(`/users/${userId}/roles/${roleId}`);
+    const response = await apiClient.delete(`/users/${userId}/roles/${roleId}`, config);
+    return response.data;
+  },
+
+  checkUserPermission: async (
+    userId: string,
+    input: { resource: string; action: string },
+    tenantId?: string
+  ) => {
+    console.log(`🔍 Checking permission for user ${userId}${tenantId ? ` (tenant: ${tenantId})` : ''}`, input);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.post(`/roles/users/${userId}/permissions/check`, input, config);
     return response.data;
   }
 };
@@ -363,12 +441,30 @@ export const bankingAPI = {
       const response = await apiClient.get('/jobs/executions', { params })
       return response.data
     },
+    getExecution: async (executionId: string) => {
+      const response = await apiClient.get(`/jobs/executions/${executionId}`)
+      return response.data
+    },
     getMetrics: async () => {
       const response = await apiClient.get('/jobs/metrics')
       return response.data
     },
+    getExecutionRuntime: async (executionId: string) => {
+      const response = await apiClient.get(`/jobs/executions/${executionId}/runtime`)
+      return response.data
+    },
     runJob: async (definitionId: string) => {
       const response = await apiClient.post(`/jobs/${definitionId}/run`)
+      return response.data
+    },
+    approveExecution: async (executionId: string, comment?: string) => {
+      const payload = comment ? { comment } : {}
+      const response = await apiClient.post(`/jobs/executions/${executionId}/approve`, payload)
+      return response.data
+    },
+    rejectExecution: async (executionId: string, comment?: string) => {
+      const payload = comment ? { comment } : {}
+      const response = await apiClient.post(`/jobs/executions/${executionId}/reject`, payload)
       return response.data
     },
     controlJob: async (executionId: string, action: 'pause' | 'resume' | 'stop') => {
@@ -491,9 +587,24 @@ export const bankingAPI = {
 
   // Product parameters (FRS9_PARAM_PRODUCT)
   productParameters: {
-    getAll: async (params?: { page?: number; limit?: number; search?: string }) => {
-      console.log('🏦 Fetching product parameters from DS2 database', params);
-      const response = await apiClient.get('/banking/parameters/product', { params });
+    getAll: async (mode: string, params?: { 
+      page?: number; 
+      limit?: number; 
+      search?: string;
+      sortBy?: string;
+      sortOrder?: 'ASC' | 'DESC';
+      prdGroup?: string;
+      prdType?: string;
+      currency?: string;
+      activeOnly?: boolean | string;
+    }) => {
+      console.log(`🏦 Fetching product parameters for ${mode} from DS2 database`, params);
+      const response = await apiClient.get('/banking/parameters/product', { params: { ...params, mode } });
+      return response.data;
+    },
+
+    getInstrumentClassOptions: async () => {
+      const response = await apiClient.get('/banking/parameters/product/instrument-class-options');
       return response.data;
     },
 
@@ -582,47 +693,46 @@ export const bankingAPI = {
       return response.data;
     },
 
-    // Metadata
-    getSegmentTypes: async () => {
-      console.log('📋 Fetching segment types');
-      const response = await apiClient.get('/banking/parameters/segmentation/business-settings/segment-types');
-      return response.data;
-    },
-
-    // Business Settings for Segmentation
+    // Business Settings Metadata for Rules
     getBusinessSettingsTables: async () => {
       console.log('📋 Fetching segmentation business settings tables');
-      const response = await apiClient.get('/banking/business-settings/tables');
+      const response = await apiClient.get('/banking/setup/business/tables');
       return response.data;
     },
 
     getBusinessSettingsColumns: async (tableName: string) => {
       console.log(`📋 Fetching segmentation business settings columns for ${tableName}`);
-      const response = await apiClient.get(`/banking/business-settings/columns?table=${encodeURIComponent(tableName)}`);
+      const response = await apiClient.get('/banking/setup/business/columns', { params: { table: tableName } });
       return response.data;
     },
 
     getBusinessSettingsDataType: async (tableName: string, columnName: string) => {
       console.log(`📋 Fetching segmentation data type for ${tableName}.${columnName}`);
-      const response = await apiClient.get(`/banking/business-settings/data-type?column=${encodeURIComponent(columnName)}&table=${encodeURIComponent(tableName)}`);
+      const response = await apiClient.get('/banking/setup/business/data-type', { params: { table: tableName, column: columnName } });
       return response.data;
     },
 
     getBusinessSettingsOperators: async (dataType: string) => {
       console.log(`📋 Fetching segmentation operators for data type: ${dataType}`);
-      const response = await apiClient.get(`/banking/business-settings/operators?dataType=${encodeURIComponent(dataType)}`);
+      const response = await apiClient.get('/banking/setup/business/operators', { params: { dataType } });
       return response.data;
     },
 
     getBusinessSettingsConditions: async () => {
       console.log('📋 Fetching segmentation business settings conditions');
-      const response = await apiClient.get('/banking/business-settings/conditions');
+      const response = await apiClient.get('/banking/setup/business/conditions');
       return response.data;
     },
 
     getBusinessSettingsValues: async (tableName: string, columnName: string) => {
       console.log(`📋 Fetching segmentation column values for ${tableName}.${columnName}`);
-      const response = await apiClient.get(`/banking/business-settings/column-values?column=${encodeURIComponent(columnName)}&table=${encodeURIComponent(tableName)}`);
+      const response = await apiClient.get('/banking/setup/business/column-values', { params: { column: columnName, table: tableName } });
+      return response.data;
+    },
+
+    getSegmentTypes: async () => {
+      console.log('📋 Fetching segment types from DS2 database');
+      const response = await apiClient.get('/banking/parameters/segmentation/business-settings/segment-types');
       return response.data;
     }
   },
@@ -745,7 +855,7 @@ export const bankingAPI = {
     // Get FL scalar data for dropdown
     getFLScalars: async () => {
       console.log('📈 Fetching FL scalars from DS2 database');
-      const response = await apiClient.get('/banking/pd-setup/fl-scalars');
+      const response = await apiClient.get('/banking/collective/fl-scalar');
       return response.data;
     },
 
@@ -760,6 +870,13 @@ export const bankingAPI = {
     health: async () => {
       console.log('🏥 Checking PD Setup service and DS2 database health');
       const response = await apiClient.get('/banking/pd-setup/health');
+      return response.data;
+    },
+
+    // Get PD structure (marginal PD rates) for a specific configuration
+    getPDStructure: async (id: string, params?: { prc_date?: string; pd_method?: string }) => {
+      console.log(`📊 Fetching PD structure for config ${id} from DS2 database`);
+      const response = await apiClient.get(`/banking/pd-setup/configs/${id}/structure`, { params });
       return response.data;
     }
   },
@@ -785,6 +902,13 @@ export const bankingAPI = {
     // B0013: Get data type for selected column and table
     getDataType: async (columnName: string, tableName: string) => {
       console.log(`🔢 Fetching data type from Business Setting B0013 for column: ${columnName}, table: ${tableName}`);
+      const response = await apiClient.get(`/banking/business-settings/data-type?column=${encodeURIComponent(columnName)}&table=${encodeURIComponent(tableName)}`);
+      return response.data;
+    },
+
+    // Alias for component compatibility (Parameter order flipped: Table, Column)
+    getBusinessSettingsDataType: async (tableName: string, columnName: string) => {
+      console.log(`🔢 Fetching data type (alias) for table: ${tableName}, column: ${columnName}`);
       const response = await apiClient.get(`/banking/business-settings/data-type?column=${encodeURIComponent(columnName)}&table=${encodeURIComponent(tableName)}`);
       return response.data;
     },
@@ -1175,6 +1299,19 @@ export const bankingAPI = {
         console.log('📊 Getting Lifetime PD Monthly data from DS2 database');
         const response = await apiClient.get('/ifrs9/reports/lifetime-pd/monthly', { params });
         return response.data;
+      },
+      getAccountDetails: async (params: {
+        prc_date: string;
+        pd_config_id?: number;
+        pd_method?: number;
+        scalar_id?: number;
+        fl_flag?: boolean;
+        page?: number;
+        limit?: number;
+      }) => {
+        console.log('📊 Getting Lifetime PD Account Details from DS2 database');
+        const response = await apiClient.get('/ifrs9/reports/lifetime-pd/account-details', { params });
+        return response.data;
       }
     },
 
@@ -1282,7 +1419,7 @@ export const bankingAPI = {
         } else {
           throw new Error(`Export failed: ${response.statusText}`);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Export error:', error);
         return {
           success: false,
@@ -1539,5 +1676,100 @@ if (typeof window !== 'undefined') {
   console.log('🏗️ Run window.__IFRS9_IAF_API__.diagnose() for diagnostics');
   console.log('🏗️ IAF Single Tenant Deployment: ECS Server URLs CONFIGURED');
 }
+
+
+// ============================================================================
+// REAL PLATFORM USERS API - PLATFORM DB INTEGRATION
+// ============================================================================
+export const platformUsersAPI = {
+  // Get all platform users
+  getAll: async (params?: { page?: number; limit?: number; search?: string }) => {
+    console.log('👥 Fetching platform users from real database', params);
+    const response = await apiClient.get('/platform-users', { params });
+    return response.data;
+  },
+
+  // Get platform user by ID
+  getById: async (id: string) => {
+    console.log(`👤 Fetching platform user ${id} from real database`);
+    const response = await apiClient.get(`/platform-users/${id}`);
+    return response.data;
+  },
+
+  // Create platform user
+  create: async (userData: any) => {
+    console.log('➕ Creating platform user', userData.email);
+    const response = await apiClient.post('/platform-users', userData);
+    return response.data;
+  },
+
+  // Update platform user
+  update: async (id: string, userData: any) => {
+    console.log(`✏️ Updating platform user ${id}`);
+    const response = await apiClient.put(`/platform-users/${id}`, userData);
+    return response.data;
+  },
+
+  // Delete platform user
+  delete: async (id: string) => {
+    console.log(`🗑️ Deleting platform user ${id}`);
+    const response = await apiClient.delete(`/platform-users/${id}`);
+    return response.data;
+  }
+};
+
+// ============================================================================
+// REAL TENANTS API - PLATFORM DB INTEGRATION
+// ============================================================================
+export const tenantsAPI = {
+  // Get all tenants
+  getAll: async (params?: { page?: number; limit?: number; search?: string; mode?: 'admin' }) => {
+    console.log('🏢 Fetching tenants from real database', params);
+    const response = await apiClient.get('/tenants', { params });
+    return response.data;
+  },
+
+  // Get tenant by ID
+  getById: async (id: string) => {
+    console.log(`🏢 Fetching tenant ${id} from real database`);
+    const response = await apiClient.get(`/tenants/${id}`);
+    return response.data;
+  },
+
+  // Create tenant
+  create: async (tenantData: any) => {
+    console.log('➕ Creating tenant', tenantData.name);
+    const response = await apiClient.post('/tenants', tenantData);
+    return response.data;
+  },
+
+  // Update tenant
+  update: async (id: string, tenantData: any) => {
+    console.log(`✏️ Updating tenant ${id}`);
+    const response = await apiClient.put(`/tenants/${id}`, tenantData);
+    return response.data;
+  },
+
+  // Delete tenant
+  delete: async (id: string) => {
+    console.log(`🗑️ Deleting tenant ${id}`);
+    const response = await apiClient.delete(`/tenants/${id}`);
+    return response.data;
+  },
+
+  // Enable tenant
+  enable: async (id: string) => {
+    console.log(`✅ Enabling tenant ${id}`);
+    const response = await apiClient.post(`/tenants/${id}/enable`);
+    return response.data;
+  },
+
+  // Disable tenant
+  disable: async (id: string) => {
+    console.log(`❌ Disabling tenant ${id}`);
+    const response = await apiClient.post(`/tenants/${id}/disable`);
+    return response.data;
+  }
+};
 
 export default api;

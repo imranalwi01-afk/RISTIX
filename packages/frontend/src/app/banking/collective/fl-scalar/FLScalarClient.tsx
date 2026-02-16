@@ -38,7 +38,10 @@ import {
   TableRow,
   Divider,
   CircularProgress,
+  Snackbar,
 } from '@mui/material';
+import { ApprovalNotification, ApprovalStatusBadge } from '@/components/approval';
+import { bankingAPI } from '@/services/api';
 // Safe DataGrid wrapper to prevent bundling issues
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 import { GridColDef, GridRowId, GridToolbar } from '@mui/x-data-grid';
@@ -125,12 +128,17 @@ function TabPanel(props: TabPanelProps) {
 // ============================================================================
 
 import { api } from '@/services/api';
+import { usePermission } from '@/hooks/usePermission';
 
 // ============================================================================
 // MAIN COMPONENT
 // ============================================================================
 
 export default function FLScalarManagementPage() {
+  const { hasAnyPermission } = usePermission();
+  const canViewFlScalar = hasAnyPermission(['banking.collective.fl_scalar.view', 'banking.collective.fl_scalar.manage', 'banking.collective.manage', 'banking.collective', 'admin.super_admin']);
+  const canManageFlScalar = hasAnyPermission(['banking.collective.fl_scalar.manage', 'banking.collective.fl_scalar.create', 'banking.collective.fl_scalar.update', 'banking.collective.fl_scalar.delete', 'banking.collective.manage', 'admin.super_admin']);
+
   // State Management - INITIALIZED EMPTY (NO MOCK DATA!)
   const [scalars, setScalars] = useState<FLScalarWithDetails[]>([]);
   const [loading, setLoading] = useState(false);
@@ -140,6 +148,10 @@ export default function FLScalarManagementPage() {
     mode: 'create',
     data: {},
   });
+
+  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+  const [approvalNotification, setApprovalNotification] = useState<{ open: boolean, message: string }>({ open: false, message: '' });
+  const [snackbar, setSnackbar] = useState<{ open: boolean, message: string, type: 'success' | 'error' }>({ open: false, message: '', type: 'success' });
 
   // Dialog form state
   const [formData, setFormData] = useState<Partial<FLScalarWithDetails>>({});
@@ -152,7 +164,7 @@ export default function FLScalarManagementPage() {
   // ============================================================================
 
   useEffect(() => {
-    loadScalars();
+    // Moved to combined useEffect
   }, []);
 
   // Reset form when dialog opens
@@ -211,6 +223,21 @@ export default function FLScalarManagementPage() {
     }
   }, []);
 
+  const loadPendingApprovals = useCallback(async () => {
+    try {
+      const response = await bankingAPI.approval.getPendingApprovals();
+      const requests = Array.isArray(response) ? response : response.data || [];
+      setPendingRequests(requests.filter((r: any) => r.entityType === 'fl_scalar'));
+    } catch (err) {
+      console.error('Error loading pending approvals:', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadScalars();
+    loadPendingApprovals();
+  }, [loadScalars, loadPendingApprovals]);
+
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
 
@@ -244,63 +271,80 @@ export default function FLScalarManagementPage() {
   };
 
   const handleSave = async () => {
+    if (!canManageFlScalar) return;
     if (!validateForm()) return;
 
     const isEdit = dialogState.mode === 'edit';
     setLoading(true);
     try {
-      // ✅ REAL API CALLS - DS2 FRS9PRO Database (frs9_imp_ca_fl_scalarh/d)
       const saveData: any = {
         ...formData,
         details: scalarDetails,
         scalar_name: formData.scalar_name || ''
       };
 
-      console.log(`${isEdit ? '✏️ Updating' : '➕ Creating'} FL Scalar in DS2 database:`, saveData);
-
-      let result;
-      if (isEdit) {
-        result = await api.banking.flScalar.update(formData.pkid!.toString(), saveData);
-      } else {
-        result = await api.banking.flScalar.create(saveData);
-      }
-
-      console.log(`✅ FL Scalar ${isEdit ? 'updated' : 'created'} successfully in DS2 database:`, result);
-
-      // Reload data from database to get fresh data
-      await loadScalars();
-
-      closeDialog();
+      await handleSaveResult(isEdit, saveData);
     } catch (err: any) {
-      const errorMessage = `Failed to ${isEdit ? 'update' : 'create'} FL Scalar in DS2 database: ${err.message || err}`;
+      const errorMessage = `Failed to ${isEdit ? 'update' : 'create'} FL Scalar: ${err.message || err}`;
       setError(errorMessage);
-      console.error('Error saving FL scalar:', err);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleSaveResult = async (isEdit: boolean, saveData: any) => {
+    let result: any;
+    if (isEdit) {
+      result = await api.banking.flScalar.update(formData.pkid!.toString(), saveData);
+    } else {
+      result = await api.banking.flScalar.create(saveData);
+    }
+
+    const isApprovalResponse = result.approvalRequired || result.status === 202;
+
+    if (isApprovalResponse) {
+      setApprovalNotification({
+        open: true,
+        message: result.message || 'Request submitted for approval'
+      });
+    } else {
+      setSnackbar({
+        open: true,
+        message: isEdit ? 'FL Scalar updated' : 'FL Scalar created',
+        type: 'success'
+      });
+    }
+
+    await loadScalars();
+    await loadPendingApprovals();
+    closeDialog();
+  };
+
   const handleDelete = async (id: GridRowId) => {
+    if (!canManageFlScalar) return;
     if (!confirm('Are you sure you want to delete this FL Scalar configuration?')) return;
 
     setLoading(true);
     setError(null);
 
     try {
-      console.log(`🗑️ Deleting FL Scalar ${id} from DS2 database...`);
+      const result = await api.banking.flScalar.delete(id.toString()) as any;
+      const isApprovalResponse = result.approvalRequired || result.status === 202;
 
-      // ✅ REAL API CALL - DS2 FRS9PRO Database (frs9_imp_ca_fl_scalarh/d)
-      await api.banking.flScalar.delete(id.toString());
+      if (isApprovalResponse) {
+        setApprovalNotification({
+          open: true,
+          message: result.message || 'Deletion request submitted for approval'
+        });
+      } else {
+        setSnackbar({ open: true, message: 'FL Scalar deleted successfully', type: 'success' });
+      }
 
-      console.log(`✅ FL Scalar ${id} deleted successfully from DS2 database`);
-
-      // Reload data from database to get fresh data
       await loadScalars();
-
+      await loadPendingApprovals();
     } catch (err: any) {
-      const errorMessage = `Failed to delete FL Scalar from DS2 database: ${err.message || err}`;
+      const errorMessage = `Failed to delete FL Scalar: ${err.message || err}`;
       setError(errorMessage);
-      console.error('❌ Error deleting FL scalar from DS2 database:', err);
     } finally {
       setLoading(false);
     }
@@ -311,6 +355,7 @@ export default function FLScalarManagementPage() {
   // ============================================================================
 
   const openDialog = (mode: DialogState['mode'], data: Partial<FLScalarWithDetails> = {}) => {
+    if (mode !== 'view' && !canManageFlScalar) return;
     setDialogState({ open: true, mode, data });
   };
 
@@ -336,6 +381,7 @@ export default function FLScalarManagementPage() {
   // ============================================================================
 
   const addScalarPeriod = () => {
+    if (!canManageFlScalar) return;
     const newPeriod = Math.max(0, ...(scalarDetails?.map(d => d.period) || [0])) + 1;
     const newDetail: FLScalarDetail = {
       pkid: 0, // Will be set on save
@@ -350,6 +396,7 @@ export default function FLScalarManagementPage() {
   };
 
   const updateScalarDetail = (index: number, field: keyof FLScalarDetail, value: any) => {
+    if (!canManageFlScalar) return;
     setScalarDetails(prev => prev.map((detail, i) =>
       i === index ? { ...detail, [field]: value } : detail
     ));
@@ -361,6 +408,7 @@ export default function FLScalarManagementPage() {
   };
 
   const removeScalarPeriod = (index: number) => {
+    if (!canManageFlScalar) return;
     setScalarDetails(prev => prev.filter((_, i) => i !== index));
   };
 
@@ -381,18 +429,20 @@ export default function FLScalarManagementPage() {
           label="View"
           onClick={() => openDialog('view', params.row)}
         />,
-        <SafeGridActionsCellItem
-          key="edit"
-          icon={<EditIcon color="primary" />}
-          label="Edit"
-          onClick={() => openDialog('edit', params.row)}
-        />,
-        <SafeGridActionsCellItem
-          key="delete"
-          icon={<DeleteIcon color="error" />}
-          label="Delete"
-          onClick={() => handleDelete(params.id)}
-        />,
+        ...(canManageFlScalar ? [
+          <SafeGridActionsCellItem
+            key="edit"
+            icon={<EditIcon color="primary" />}
+            label="Edit"
+            onClick={() => openDialog('edit', params.row)}
+          />,
+          <SafeGridActionsCellItem
+            key="delete"
+            icon={<DeleteIcon color="error" />}
+            label="Delete"
+            onClick={() => handleDelete(params.id)}
+          />,
+        ] : []),
       ],
     },
     {
@@ -434,14 +484,19 @@ export default function FLScalarManagementPage() {
       field: 'active_flag',
       headerName: 'Status',
       width: 100,
-      renderCell: (params) => (
-        <Chip
-          label={params.value ? 'Active' : 'Inactive'}
-          size="small"
-          color={params.value ? 'success' : 'error'}
-          variant="filled"
-        />
-      ),
+      renderCell: (params) => {
+        const isPending = pendingRequests.some(r => r.entityId === params.id?.toString());
+        if (isPending) return <ApprovalStatusBadge status="pending" />;
+        return (
+          <Chip
+            label={params.value ? 'Active' : 'Inactive'}
+            size="small"
+            color={params.value ? 'success' : 'error'}
+            variant="filled"
+          />
+        );
+      }
+      ,
     },
     {
       field: 'created_by',
@@ -467,7 +522,7 @@ export default function FLScalarManagementPage() {
   // ============================================================================
 
   const renderDialogContent = () => {
-    const isReadOnly = dialogState.mode === 'view';
+    const isReadOnly = dialogState.mode === 'view' || !canManageFlScalar;
 
     return (
       <Box>
@@ -644,6 +699,11 @@ export default function FLScalarManagementPage() {
 
   return (
     <Box sx={{ p: 3 }}>
+      {!canViewFlScalar && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          You do not have permission to view FL scalar setup.
+        </Alert>
+      )}
       {/* Header */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, color: 'primary.main' }}>
@@ -654,6 +714,14 @@ export default function FLScalarManagementPage() {
           Configure period-based scalar adjustments for economic scenarios.
         </Typography>
       </Box>
+
+      {snackbar.open && (
+        <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={() => setSnackbar({ ...snackbar, open: false })}>
+          <Alert severity={snackbar.type || 'info'} onClose={() => setSnackbar({ ...snackbar, open: false })}>
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
+      )}
 
       {/* Error Alert */}
       {error && (
@@ -688,14 +756,16 @@ export default function FLScalarManagementPage() {
             >
               Download Template
             </Button>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => openDialog('create')}
-              disabled={loading}
-            >
-              Create FL Scalar
-            </Button>
+            {canManageFlScalar && (
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => openDialog('create')}
+                disabled={loading}
+              >
+                Create FL Scalar
+              </Button>
+            )}
           </Box>
         </Box>
 
@@ -765,6 +835,11 @@ export default function FLScalarManagementPage() {
           )}
         </DialogActions>
       </Dialog>
+      <ApprovalNotification
+        open={approvalNotification.open}
+        message={approvalNotification.message}
+        onClose={() => setApprovalNotification({ ...approvalNotification, open: false })}
+      />
       <FullstackIndicator />
     </Box>
   );

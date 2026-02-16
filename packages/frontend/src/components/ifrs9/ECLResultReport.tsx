@@ -1,15 +1,19 @@
 // packages/frontend/src/components/ifrs9/ECLResultReport.tsx
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Box,
   Typography,
+  Grid,
+  TextField,
+  Button,
   Card,
   CardContent,
-  Grid,
-  Avatar,
-  Divider,
+  CircularProgress,
+  IconButton,
+  Tooltip,
+  Chip,
   Paper,
-  Stack
+  alpha
 } from '@mui/material';
 import {
   Assessment as AssessmentIcon,
@@ -18,237 +22,332 @@ import {
   PieChart as PieIcon
 } from '@mui/icons-material';
 import {
-  BarChart,
   Bar,
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   Legend,
   ResponsiveContainer,
   PieChart,
   Pie,
   Cell,
   ComposedChart,
-  Line
+  Line,
+  Area,
+  AreaChart,
+  LabelList
 } from 'recharts';
+import { useTheme } from '@mui/material/styles';
+import { useBankingTheme } from '../../providers/BankingThemeProvider';
 import BaseIfrs9Report from './BaseIfrs9Report';
 
-const ECLResultReport: React.FC = () => {
-  const [summaryStats, setSummaryStats] = useState({
-    totalECL: 0,
-    stage1ECL: 0,
-    stage2ECL: 0,
-    stage3ECL: 0,
-    totalOutstanding: 0,
-    eclRatio: 0,
-    segmentBreakdown: [] as any[],
-    stageDistribution: [] as any[]
-  });
+interface SegmentBreakdownItem {
+  segment: string;
+  ecl: number;
+  outstanding: number;
+  accounts: number;
+  eclRatio: number;
+}
 
-  const handleDataLoaded = (data: any[]) => {
-    if (data && data.length > 0) {
-      const stats = data.reduce((acc, row) => {
-        // Map from SQL OUTPUT: ecl_final, outstanding, stage
-        const eclAmount = parseFloat(row.ecl_final) || 0;
-        const outstanding = parseFloat(row.outstanding) || 0;
-        const stage = row.stage?.toString() || '1';
-        
-        acc.totalECL += eclAmount;
-        acc.totalOutstanding += outstanding;
-        
-        if (stage === '1') acc.stage1ECL += eclAmount;
-        else if (stage === '2') acc.stage2ECL += eclAmount;
-        else if (stage === '3') acc.stage3ECL += eclAmount;
-        
-        return acc;
-      }, {
-        totalECL: 0,
-        stage1ECL: 0,
-        stage2ECL: 0,
-        stage3ECL: 0,
-        totalOutstanding: 0,
-        eclRatio: 0,
-        segmentBreakdown: [],
-        stageDistribution: []
-      });
-      
-      stats.eclRatio = stats.totalOutstanding > 0 ? (stats.totalECL / stats.totalOutstanding) * 100 : 0;
-      
-      // Stage distribution for pie chart
-      const stageData = [
-        { name: 'Stage 1', value: stats.stage1ECL, color: '#4CAF50' },
-        { name: 'Stage 2', value: stats.stage2ECL, color: '#FF9800' },
-        { name: 'Stage 3', value: stats.stage3ECL, color: '#F44336' }
-      ].filter(item => item.value > 0);
-      
-      // Segment breakdown (sample aggregation) - using segment or group_segment from SQL output
-      const segmentMap = new Map();
-      data.forEach(row => {
-        const segment = row.segment || row.group_segment || 'Default Segment';
-        if (!segmentMap.has(segment)) {
-          segmentMap.set(segment, {
-            segment,
-            ecl: 0,
-            outstanding: 0,
-            accounts: 0
-          });
-        }
-        const segmentData = segmentMap.get(segment);
-        segmentData.ecl += parseFloat(row.ecl_final) || 0;
-        segmentData.outstanding += parseFloat(row.outstanding) || 0;
-        segmentData.accounts += 1;
-      });
-      
-      const segmentBreakdown = Array.from(segmentMap.values()).map(item => ({
-        ...item,
-        eclRatio: item.outstanding > 0 ? (item.ecl / item.outstanding) * 100 : 0
-      }));
-      
-      stats.segmentBreakdown = segmentBreakdown;
-      stats.stageDistribution = stageData;
-      setSummaryStats(stats);
+interface SummaryStats {
+  totalECL: number;
+  stage1ECL: number;
+  stage2ECL: number;
+  stage3ECL: number;
+  totalOutstanding: number;
+  eclRatio: number;
+  totalOverlay: number;
+  totalImpaired: number;
+  segmentBreakdown: SegmentBreakdownItem[];
+  stageDistribution: { name: string; value: number; color: string }[];
+}
+
+const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
+  const { bankingMode } = useBankingTheme();
+
+  const getThemeColors = () => {
+    switch (bankingMode) {
+      case 'syariah':
+        return {
+          primaryGradient: 'linear-gradient(135deg, #00695c 0%, #004d40 100%)',
+          secondaryGradient: 'linear-gradient(135deg, #00897b 0%, #00796b 100%)',
+          tertiaryGradient: 'linear-gradient(135deg, #4db6ac 0%, #26a69a 100%)',
+          quaternaryGradient: 'linear-gradient(135deg, #80cbc4 0%, #4db6ac 100%)',
+          mainColor: '#00695c'
+        };
+      case 'dual':
+        return {
+          primaryGradient: 'linear-gradient(135deg, #37474f 0%, #263238 100%)',
+          secondaryGradient: 'linear-gradient(135deg, #546e7a 0%, #455a64 100%)',
+          tertiaryGradient: 'linear-gradient(135deg, #78909c 0%, #607d8b 100%)',
+          quaternaryGradient: 'linear-gradient(135deg, #90a4ae 0%, #78909c 100%)',
+          mainColor: '#37474f'
+        };
+      default:
+        return {
+          primaryGradient: 'linear-gradient(135deg, #FF6B6B 0%, #FF8E8E 100%)',
+          secondaryGradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+          tertiaryGradient: 'linear-gradient(135deg, #f9d423 0%, #ff4e50 100%)',
+          quaternaryGradient: 'linear-gradient(135deg, #42E695 0%, #3BB2B8 100%)',
+          mainColor: '#1976D2'
+        };
     }
   };
 
-  const SummaryCards = () => (
-    <Grid container spacing={3} sx={{ mb: 3 }}>
-      {/* Total ECL */}
-      <Grid item xs={12} md={3}>
-        <Card sx={{ height: '100%' }}>
-          <CardContent sx={{ textAlign: 'center' }}>
-            <Avatar sx={{ bgcolor: 'error.main', mx: 'auto', mb: 2, width: 56, height: 56 }}>
-              <LossIcon sx={{ fontSize: 30 }} />
-            </Avatar>
-            <Typography variant="h5" component="div" fontWeight="bold">
-              {new Intl.NumberFormat('id-ID', {
-                style: 'currency',
-                currency: 'IDR',
-                notation: 'compact',
-                maximumFractionDigits: 1
-              }).format(summaryStats.totalECL)}
-            </Typography>
-            <Typography color="text.secondary" sx={{ mt: 1 }}>
-              Total ECL Amount
-            </Typography>
-          </CardContent>
-        </Card>
-      </Grid>
+  const themeColors = getThemeColors();
 
-      {/* Total Outstanding */}
-      <Grid item xs={12} md={3}>
-        <Card sx={{ height: '100%' }}>
-          <CardContent sx={{ textAlign: 'center' }}>
-            <Avatar sx={{ bgcolor: 'primary.main', mx: 'auto', mb: 2, width: 56, height: 56 }}>
-              <BalanceIcon sx={{ fontSize: 30 }} />
-            </Avatar>
-            <Typography variant="h5" component="div" fontWeight="bold">
-              {new Intl.NumberFormat('id-ID', {
-                style: 'currency',
-                currency: 'IDR',
-                notation: 'compact',
-                maximumFractionDigits: 1
-              }).format(summaryStats.totalOutstanding)}
-            </Typography>
-            <Typography color="text.secondary" sx={{ mt: 1 }}>
-              Total Outstanding
-            </Typography>
-          </CardContent>
-        </Card>
-      </Grid>
+  const items = [
+    {
+      title: 'Total ECL Amount',
+      value: stats.totalECL,
+      format: 'currency',
+      icon: <LossIcon sx={{ fontSize: 32 }} />,
+      gradient: themeColors.primaryGradient,
+      mainColor: themeColors.mainColor
+    },
+    {
+      title: 'Total Outstanding',
+      value: stats.totalOutstanding,
+      format: 'currency',
+      icon: <BalanceIcon sx={{ fontSize: 32 }} />,
+      gradient: themeColors.secondaryGradient,
+      mainColor: themeColors.mainColor
+    },
+    {
+      title: 'ECL Coverage Ratio',
+      value: `${stats.eclRatio.toFixed(2)}%`,
+      format: 'raw',
+      icon: <AssessmentIcon sx={{ fontSize: 32 }} />,
+      gradient: themeColors.tertiaryGradient,
+      mainColor: themeColors.mainColor
+    },
+    {
+      title: 'Overall Risk Level',
+      value: stats.eclRatio < 2 ? 'Low' : stats.eclRatio < 5 ? 'Medium' : 'High',
+      format: 'raw',
+      icon: <PieIcon sx={{ fontSize: 32 }} />,
+      gradient: themeColors.quaternaryGradient,
+      mainColor: themeColors.mainColor
+    },
+    {
+      title: 'ECL Overlay',
+      value: stats.totalOverlay,
+      format: 'currency',
+      icon: <AssessmentIcon sx={{ fontSize: 32 }} />,
+      gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      mainColor: '#667eea'
+    },
+    {
+      title: 'Impaired ECL (IA)',
+      value: stats.totalImpaired,
+      format: 'currency',
+      icon: <LossIcon sx={{ fontSize: 32 }} />,
+      gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+      mainColor: '#f5576c'
+    }
+  ];
 
-      {/* ECL Ratio */}
-      <Grid item xs={12} md={3}>
-        <Card sx={{ height: '100%' }}>
-          <CardContent sx={{ textAlign: 'center' }}>
-            <Avatar sx={{ bgcolor: 'warning.main', mx: 'auto', mb: 2, width: 56, height: 56 }}>
-              <AssessmentIcon sx={{ fontSize: 30 }} />
-            </Avatar>
-            <Typography variant="h5" component="div" fontWeight="bold">
-              {summaryStats.eclRatio.toFixed(2)}%
-            </Typography>
-            <Typography color="text.secondary" sx={{ mt: 1 }}>
-              ECL Coverage Ratio
-            </Typography>
-          </CardContent>
-        </Card>
-      </Grid>
+  return (
+    <Grid container spacing={3} sx={{ mb: 5 }}>
+      {items.map((item, index) => (
+        <Grid size={{ xs: 12, sm: 6, md: index < 4 ? 3 : 6 }} key={index}>
+          <Card sx={{ 
+            height: '100%',
+            borderRadius: 4,
+            position: 'relative',
+            overflow: 'hidden',
+            background: 'white',
+            boxShadow: `0 4px 12px ${alpha(item.mainColor, 0.12)}`,
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            border: `1px solid ${alpha(item.mainColor, 0.1)}`,
+            '&:hover': {
+              transform: 'translateY(-8px)',
+              boxShadow: `0 12px 32px ${alpha(item.mainColor, 0.25)}`,
+              '& .card-icon-container': {
+                transform: 'rotate(10deg) scale(1.1)'
+              }
+            }
+          }}>
+            <CardContent sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
+              <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontWeight: 800,
+                    textTransform: 'uppercase',
+                    letterSpacing: 1.5,
+                    color: 'text.secondary',
+                    opacity: 0.8
+                  }}
+                >
+                  {item.title}
+                </Typography>
+                <Box
+                  className="card-icon-container"
+                  sx={{
+                    p: 1.5,
+                    borderRadius: 2,
+                    background: item.gradient,
+                    color: 'white',
+                    display: 'flex',
+                    transition: 'transform 0.3s ease',
+                    boxShadow: `0 4px 12px ${alpha(item.mainColor, 0.4)}`
+                  }}
+                >
+                  {item.icon}
+                </Box>
+              </Box>
 
-      {/* Risk Level */}
-      <Grid item xs={12} md={3}>
-        <Card sx={{ height: '100%' }}>
-          <CardContent sx={{ textAlign: 'center' }}>
-            <Avatar sx={{ 
-              bgcolor: summaryStats.eclRatio < 2 ? 'success.main' : 
-                       summaryStats.eclRatio < 5 ? 'warning.main' : 'error.main',
-              mx: 'auto', mb: 2, width: 56, height: 56 
-            }}>
-              <PieIcon sx={{ fontSize: 30 }} />
-            </Avatar>
-            <Typography variant="h5" component="div" fontWeight="bold">
-              {summaryStats.eclRatio < 2 ? 'Low' : 
-               summaryStats.eclRatio < 5 ? 'Medium' : 'High'}
-            </Typography>
-            <Typography color="text.secondary" sx={{ mt: 1 }}>
-              Overall Risk Level
-            </Typography>
-          </CardContent>
-        </Card>
-      </Grid>
+              <Box sx={{ mt: 'auto' }}>
+                <Typography
+                  variant="h4"
+                  sx={{
+                    fontWeight: 800,
+                    color: item.mainColor, // Fallback
+                    background: item.gradient,
+                    backgroundClip: 'text',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    mb: 0.5
+                  }}
+                >
+                  {item.format === 'currency'
+                    ? new Intl.NumberFormat('id-ID', {
+                      style: 'currency',
+                      currency: 'IDR',
+                      notation: 'compact',
+                      maximumFractionDigits: 1
+                    }).format(item.value as number)
+                    : item.value
+                  }
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', opacity: 0.7 }}>
+                  <Chip
+                    size="small"
+                    label="LIVE DATA"
+                    variant="outlined"
+                    sx={{
+                      height: 20,
+                      fontSize: '0.65rem',
+                      fontWeight: 700,
+                      borderColor: alpha(item.mainColor, 0.3),
+                      color: item.mainColor
+                    }}
+                  />
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+      ))}
     </Grid>
   );
+};
 
-  const StageBreakdownCard = () => (
-    <Card sx={{ mb: 3 }}>
-      <CardContent>
-        <Typography variant="h6" gutterBottom>
+const StageBreakdownCard: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
+  const { bankingMode } = useBankingTheme();
+  const theme = useTheme();
+
+  const getStageColor = (stage: number) => {
+    if (bankingMode === 'syariah') {
+      return stage === 1 ? '#00897b' : stage === 2 ? '#00796b' : '#00695c';
+    }
+    return stage === 1 ? '#4CAF50' : stage === 2 ? '#FF9800' : '#F44336';
+  };
+
+  return (
+    <Card sx={{
+      mb: 5,
+      borderRadius: 4,
+      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
+      background: 'linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(249, 250, 251, 1) 100%)'
+    }}>
+      <CardContent sx={{ p: 4 }}>
+        <Typography variant="h5" fontWeight={700} gutterBottom sx={{ mb: 3 }}>
           ECL by IFRS 9 Stage
         </Typography>
         <Grid container spacing={3}>
-          <Grid item xs={12} md={4}>
-            <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'success.light', color: 'white' }}>
-              <Typography variant="h6" gutterBottom>Stage 1 (12-month ECL)</Typography>
-              <Typography variant="h4" component="div" fontWeight="bold">
+          <Grid size={{ xs: 12, md: 4 }}>
+            <Paper sx={{
+              p: 4,
+              textAlign: 'center',
+              background: `linear-gradient(135deg, ${getStageColor(1)} 0%, ${alpha(getStageColor(1), 0.7)} 100%)`,
+              color: 'white',
+              borderRadius: 3,
+              boxShadow: `0 8px 24px ${alpha(getStageColor(1), 0.3)}`,
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: `0 12px 32px ${alpha(getStageColor(1), 0.4)}`
+              }
+            }}>
+              <Typography variant="h6" gutterBottom fontWeight={700}>Stage 1 (12-month ECL)</Typography>
+              <Typography variant="h3" component="div" fontWeight="800" sx={{ my: 2 }}>
                 {new Intl.NumberFormat('id-ID', {
                   style: 'currency',
                   currency: 'IDR',
                   notation: 'compact',
                   maximumFractionDigits: 1
-                }).format(summaryStats.stage1ECL)}
+                }).format(stats.stage1ECL)}
               </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.8 }}>
+              <Typography variant="body2" sx={{ opacity: 0.9, fontWeight: 500 }}>
                 Performing Assets
               </Typography>
             </Paper>
           </Grid>
-          <Grid item xs={12} md={4}>
-            <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'warning.light', color: 'white' }}>
-              <Typography variant="h6" gutterBottom>Stage 2 (Lifetime ECL)</Typography>
-              <Typography variant="h4" component="div" fontWeight="bold">
+          <Grid size={{ xs: 12, md: 4 }}>
+            <Paper sx={{
+              p: 4,
+              textAlign: 'center',
+              background: `linear-gradient(135deg, ${getStageColor(2)} 0%, ${alpha(getStageColor(2), 0.7)} 100%)`,
+              color: 'white',
+              borderRadius: 3,
+              boxShadow: `0 8px 24px ${alpha(getStageColor(2), 0.3)}`,
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: `0 12px 32px ${alpha(getStageColor(2), 0.4)}`
+              }
+            }}>
+              <Typography variant="h6" gutterBottom fontWeight={700}>Stage 2 (Lifetime ECL)</Typography>
+              <Typography variant="h3" component="div" fontWeight="800" sx={{ my: 2 }}>
                 {new Intl.NumberFormat('id-ID', {
                   style: 'currency',
                   currency: 'IDR',
                   notation: 'compact',
                   maximumFractionDigits: 1
-                }).format(summaryStats.stage2ECL)}
+                }).format(stats.stage2ECL)}
               </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.8 }}>
+              <Typography variant="body2" sx={{ opacity: 0.9, fontWeight: 500 }}>
                 Underperforming Assets
               </Typography>
             </Paper>
           </Grid>
-          <Grid item xs={12} md={4}>
-            <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'error.light', color: 'white' }}>
-              <Typography variant="h6" gutterBottom>Stage 3 (Lifetime ECL)</Typography>
-              <Typography variant="h4" component="div" fontWeight="bold">
+          <Grid size={{ xs: 12, md: 4 }}>
+            <Paper sx={{ 
+              p: 4, 
+              textAlign: 'center', 
+              background: `linear-gradient(135deg, ${getStageColor(3)} 0%, ${alpha(getStageColor(3), 0.7)} 100%)`, 
+              color: 'white',
+              borderRadius: 3,
+              boxShadow: `0 8px 24px ${alpha(getStageColor(3), 0.3)}`,
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: `0 12px 32px ${alpha(getStageColor(3), 0.4)}`
+              }
+            }}>
+              <Typography variant="h6" gutterBottom fontWeight={700}>Stage 3 (Lifetime ECL)</Typography>
+              <Typography variant="h3" component="div" fontWeight="800" sx={{ my: 2 }}>
                 {new Intl.NumberFormat('id-ID', {
                   style: 'currency',
                   currency: 'IDR',
                   notation: 'compact',
                   maximumFractionDigits: 1
-                }).format(summaryStats.stage3ECL)}
+                }).format(stats.stage3ECL)}
               </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.8 }}>
+              <Typography variant="body2" sx={{ opacity: 0.9, fontWeight: 500 }}>
                 Non-Performing Assets
               </Typography>
             </Paper>
@@ -257,93 +356,298 @@ const ECLResultReport: React.FC = () => {
       </CardContent>
     </Card>
   );
+};
 
-  const ECLCharts = () => (
-    <Grid container spacing={3} sx={{ mb: 3 }}>
+const ECLCharts: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
+  const { bankingMode } = useBankingTheme();
+  
+  const getColors = () => {
+    if (bankingMode === 'syariah') {
+      return ['#00695c', '#00796b', '#00897b', '#26a69a', '#4db6ac'];
+    }
+    return ['#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6'];
+  };
+
+  const colors = getColors();
+
+  return (
+    <Grid container spacing={4} sx={{ mb: 5 }}>
       {/* Stage Distribution Pie Chart */}
-      <Grid item xs={12} md={6}>
-        <Card>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
+      <Grid size={{ xs: 12, md: 5 }}>
+        <Card sx={{ 
+          height: '100%',
+          borderRadius: 4,
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
+          background: 'white',
+          overflow: 'visible'
+        }}>
+          <CardContent sx={{ p: 4 }}>
+            <Typography variant="h6" fontWeight={800} gutterBottom sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+              <PieIcon color="primary" />
               ECL Distribution by Stage
             </Typography>
-            <ResponsiveContainer width="100%" height={350}>
-              <PieChart>
-                <Pie
-                  data={summaryStats.stageDistribution}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, value, percent }) => 
-                    `${name}: ${new Intl.NumberFormat('id-ID', {
-                      style: 'currency',
-                      currency: 'IDR',
-                      notation: 'compact'
-                    }).format(value)} (${(percent * 100).toFixed(1)}%)`
-                  }
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {summaryStats.stageDistribution.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  formatter={(value: number) => [
-                    new Intl.NumberFormat('id-ID', {
-                      style: 'currency',
-                      currency: 'IDR'
-                    }).format(value),
-                    'ECL Amount'
-                  ]}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+            <Box sx={{ height: 350, width: '100%', position: 'relative' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <defs>
+                    {stats.stageDistribution.map((entry, index) => (
+                      <linearGradient key={`pie-grad-${index}`} id={`pie-gradient-${index}`} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={entry.color} stopOpacity={1}/>
+                        <stop offset="100%" stopColor={alpha(entry.color, 0.6)} stopOpacity={1}/>
+                      </linearGradient>
+                    ))}
+                  </defs>
+                  <Pie
+                    data={stats.stageDistribution}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={80}
+                    outerRadius={110}
+                    paddingAngle={5}
+                    dataKey="value"
+                    animationBegin={0}
+                    animationDuration={1500}
+                  >
+                    {stats.stageDistribution.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={`url(#pie-gradient-${index})`} stroke="none" />
+                    ))}
+                  </Pie>
+                  <RechartsTooltip 
+                    contentStyle={{ 
+                      borderRadius: 12, 
+                      border: 'none', 
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                      padding: '12px 16px'
+                    }}
+                    formatter={(value: number) => [
+                      new Intl.NumberFormat('id-ID', {
+                        style: 'currency',
+                        currency: 'IDR'
+                      }).format(value),
+                      'ECL Amount'
+                    ]}
+                  />
+                  <Legend 
+                    verticalAlign="bottom" 
+                    height={36}
+                    content={({ payload }) => (
+                      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 3, mt: 2 }}>
+                        {payload?.map((entry: any, index: number) => (
+                          <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: entry.color }} />
+                            <Typography variant="caption" fontWeight={700} color="text.secondary">
+                              {entry.value}
+                            </Typography>
+                          </Box>
+                        ))}
+                      </Box>
+                    )}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+              <Box sx={{ 
+                position: 'absolute', 
+                top: '50%', 
+                left: '50%', 
+                transform: 'translate(-50%, -70%)', // Centered relative to the donut
+                textAlign: 'center',
+                pointerEvents: 'none'
+              }}>
+                <Typography variant="h5" fontWeight={800} color="primary" sx={{ lineHeight: 1 }}>
+                  {((stats.totalECL / stats.totalOutstanding) * 100 || 0).toFixed(2)}%
+                </Typography>
+                <Typography variant="caption" sx={{ opacity: 0.6, fontWeight: 800, fontSize: '0.6rem', letterSpacing: 0.5 }}>
+                  AVG RATIO
+                </Typography>
+              </Box>
+            </Box>
           </CardContent>
         </Card>
       </Grid>
-
+  
       {/* Segment Analysis */}
-      <Grid item xs={12} md={6}>
-        <Card>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
+      <Grid size={{ xs: 12, md: 7 }}>
+        <Card sx={{ 
+          height: '100%',
+          borderRadius: 4,
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
+          background: 'white'
+        }}>
+          <CardContent sx={{ p: 4 }}>
+            <Typography variant="h6" fontWeight={800} gutterBottom sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+              <AssessmentIcon color="primary" />
               ECL Analysis by Segment
             </Typography>
-            <ResponsiveContainer width="100%" height={350}>
-              <ComposedChart data={summaryStats.segmentBreakdown}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="segment" angle={-45} textAnchor="end" height={100} />
-                <YAxis yAxisId="left" />
-                <YAxis yAxisId="right" orientation="right" />
-                <Tooltip 
-                  formatter={(value: any, name: string) => {
-                    if (name === 'ecl' || name === 'outstanding') {
-                      return [new Intl.NumberFormat('id-ID', {
-                        style: 'currency',
-                        currency: 'IDR',
-                        notation: 'compact'
-                      }).format(value), name === 'ecl' ? 'ECL Amount' : 'Outstanding'];
-                    }
-                    return [`${value.toFixed(2)}%`, 'ECL Ratio'];
-                  }}
-                />
-                <Legend />
-                <Bar yAxisId="left" dataKey="ecl" fill="#FF6B6B" name="ECL Amount" />
-                <Bar yAxisId="left" dataKey="outstanding" fill="#4ECDC4" name="Outstanding" opacity={0.7} />
-                <Line yAxisId="right" dataKey="eclRatio" stroke="#45B7D1" strokeWidth={3} name="ECL Ratio %" />
-              </ComposedChart>
-            </ResponsiveContainer>
+            <Box sx={{ height: 350, width: '100%' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={stats.segmentBreakdown} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                  <defs>
+                    <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#3b82f6" stopOpacity={1}/>
+                      <stop offset="100%" stopColor="#60a5fa" stopOpacity={0.8}/>
+                    </linearGradient>
+                    <linearGradient id="osGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#10b981" stopOpacity={1}/>
+                      <stop offset="100%" stopColor="#34d399" stopOpacity={0.8}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={alpha('#000', 0.05)} />
+                  <XAxis 
+                    dataKey="segment" 
+                    angle={-45} 
+                    textAnchor="end" 
+                    interval={0}
+                    height={80}
+                    tick={{ fontSize: 10, fontWeight: 600, fill: alpha('#000', 0.6) }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis 
+                    yAxisId="left" 
+                    axisLine={false} 
+                    tickLine={false}
+                    tick={{ fontSize: 11, fontWeight: 600 }}
+                    tickFormatter={(v) => new Intl.NumberFormat('id-ID', { notation: 'compact' }).format(v)}
+                  />
+                  <YAxis 
+                    yAxisId="right" 
+                    orientation="right" 
+                    axisLine={false} 
+                    tickLine={false}
+                    tick={{ fontSize: 11, fontWeight: 600 }}
+                    tickFormatter={(v) => `${v}%`}
+                  />
+                  <RechartsTooltip 
+                    contentStyle={{ 
+                      borderRadius: 12, 
+                      border: 'none', 
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                      padding: '12px 16px'
+                    }}
+                    formatter={(value: number, name: string) => {
+                      if (name === 'ECL Amount' || name === 'Outstanding') {
+                        return [new Intl.NumberFormat('id-ID', {
+                          style: 'currency',
+                          currency: 'IDR',
+                          notation: 'compact'
+                        }).format(value), name];
+                      }
+                      return [`${value.toFixed(2)}%`, name];
+                    }}
+                  />
+                  <Legend verticalAlign="top" align="right" />
+                  <Bar yAxisId="left" dataKey="ecl" fill="url(#barGradient)" name="ECL Amount" radius={[6, 6, 0, 0]} barSize={24}>
+                    <LabelList 
+                      dataKey="ecl" 
+                      position="top" 
+                      content={(props: any) => {
+                        const { x, y, width, value } = props;
+                        return (
+                          <text x={x + width / 2} y={y - 10} fill={alpha('#000', 0.6)} textAnchor="middle" fontSize={9} fontWeight={800}>
+                            {new Intl.NumberFormat('id-ID', { notation: 'compact' }).format(value)}
+                          </text>
+                        );
+                      }}
+                    />
+                  </Bar>
+                  <Bar yAxisId="left" dataKey="outstanding" fill="url(#osGradient)" name="Outstanding" opacity={0.3} radius={[6, 6, 0, 0]} barSize={24} />
+                  <Line 
+                    yAxisId="right" 
+                    type="monotone" 
+                    dataKey="eclRatio" 
+                    stroke="#ef4444" 
+                    strokeWidth={3} 
+                    name="ECL Ratio %" 
+                    dot={{ r: 4, strokeWidth: 2, fill: 'white' }}
+                    activeDot={{ r: 6, strokeWidth: 0 }}
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </Box>
           </CardContent>
         </Card>
       </Grid>
     </Grid>
   );
+};
 
-  // Memoize params to prevent infinite loops (loading flicker)
-  const requiredParams = React.useMemo(() => ['prc_date'], []);
-  const optionalParams = React.useMemo(() => ['segment_id', 'stage'], []);
+const ECLResultReport: React.FC = () => {
+  const [summaryStats, setSummaryStats] = useState<SummaryStats>({
+    totalECL: 0,
+    stage1ECL: 0,
+    stage2ECL: 0,
+    stage3ECL: 0,
+    totalOutstanding: 0,
+    eclRatio: 0,
+    totalOverlay: 0,
+    totalImpaired: 0,
+    segmentBreakdown: [],
+    stageDistribution: []
+  });
+
+  const handleDataLoaded = React.useCallback((data: Record<string, unknown>[]) => {
+    if (data && data.length > 0) {
+      const aggregatedStats = data.reduce((acc: Partial<SummaryStats>, row: Record<string, unknown>) => {
+        const eclAmount = Number(row.ecl_final) || Number(row.ecl_amount) || Number(row.total_ecl) || 0;
+        const outstanding = Number(row.outstanding) || Number(row.total_outstanding) || 0;
+        const stage = row.stage?.toString() || '1';
+
+        return {
+          totalECL: (acc.totalECL || 0) + eclAmount,
+          totalOutstanding: (acc.totalOutstanding || 0) + outstanding,
+          stage1ECL: (acc.stage1ECL || 0) + (stage === '1' ? eclAmount : 0),
+          stage2ECL: (acc.stage2ECL || 0) + (stage === '2' ? eclAmount : 0),
+          stage3ECL: (acc.stage3ECL || 0) + (stage === '3' ? eclAmount : 0),
+          totalOverlay: (acc.totalOverlay || 0) + (Number(row.ecl_overlay) || 0),
+          totalImpaired: (acc.totalImpaired || 0) + (Number(row.ecl_ia) || 0),
+          eclRatio: 0,
+          segmentBreakdown: [],
+          stageDistribution: []
+        };
+      }, {} as Partial<SummaryStats>) as unknown as SummaryStats;
+
+      aggregatedStats.eclRatio = aggregatedStats.totalOutstanding > 0
+        ? (aggregatedStats.totalECL / aggregatedStats.totalOutstanding) * 100
+        : 0;
+
+      const stageData = [
+        { name: 'Stage 1', value: aggregatedStats.stage1ECL, color: '#4CAF50' },
+        { name: 'Stage 2', value: aggregatedStats.stage2ECL, color: '#FF9800' },
+        { name: 'Stage 3', value: aggregatedStats.stage3ECL, color: '#F44336' }
+      ].filter(item => item.value > 0);
+
+      const segmentMap = new Map<string, Omit<SegmentBreakdownItem, 'eclRatio'>>();
+      data.forEach(row => {
+        const segment = (row.segment || row.group_segment || row.sub_segment || 'Uncategorized') as string;
+        if (!segmentMap.has(segment)) {
+          segmentMap.set(segment, {
+            segment,
+            ecl: 0,
+            outstanding: 0,
+            accounts: 0
+          });
+        }
+        const segmentData = segmentMap.get(segment)!;
+        segmentData.ecl += parseFloat(row.ecl_final as string) || parseFloat(row.ecl_amount as string) || 0;
+        segmentData.outstanding += parseFloat(row.outstanding as string) || 0;
+        segmentData.accounts += 1;
+      });
+
+      const segmentBreakdown: SegmentBreakdownItem[] = Array.from(segmentMap.values()).map(item => ({
+        ...item,
+        eclRatio: item.outstanding > 0 ? (item.ecl / item.outstanding) * 100 : 0
+      }));
+
+      setSummaryStats({
+        ...aggregatedStats,
+        segmentBreakdown,
+        stageDistribution: stageData
+      });
+    }
+  }, []);
+
+  const requiredParams = useMemo(() => ['prc_date'], []);
+  const optionalParams = useMemo(() => ['segment_id', 'stage'], []);
 
   return (
     <BaseIfrs9Report
@@ -354,10 +658,11 @@ const ECLResultReport: React.FC = () => {
       optionalParams={optionalParams}
       supportsPagination={false}
       supportsCharts={true}
+      onDataLoaded={handleDataLoaded}
     >
-      <SummaryCards />
-      <StageBreakdownCard />
-      <ECLCharts />
+      <SummaryCards stats={summaryStats} />
+      <StageBreakdownCard stats={summaryStats} />
+      <ECLCharts stats={summaryStats} />
     </BaseIfrs9Report>
   );
 };

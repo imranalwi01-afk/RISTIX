@@ -1,6 +1,6 @@
-import { legacyDb as db } from '../config'
+import { legacyDb } from '../config'
 import { frs9ParamCommonh, frs9ParamCommond } from '../db/schema'
-import { eq, and, asc, inArray } from 'drizzle-orm'
+import { eq, and, asc, inArray, ilike } from 'drizzle-orm'
 import { queryEffect } from './base.repository'
 import type { InferInsertModel } from 'drizzle-orm'
 
@@ -23,7 +23,7 @@ export const ParametersRepository = {
                 ? inArray(frs9ParamCommonh.paramType, paramType)
                 : eq(frs9ParamCommonh.paramType, paramType)
 
-            return await db.query.frs9ParamCommonh.findMany({
+            return await legacyDb.query.frs9ParamCommonh.findMany({
                 where: and(
                     typeCondition,
                     code ? eq(frs9ParamCommonh.paramCode, code) : undefined
@@ -44,7 +44,7 @@ export const ParametersRepository = {
      */
     findHeaderByCode: (code: string) => {
         return queryEffect(async () => {
-            return await db.query.frs9ParamCommonh.findFirst({
+            return await legacyDb.query.frs9ParamCommonh.findFirst({
                 where: eq(frs9ParamCommonh.paramCode, code),
                 with: {
                     details: true
@@ -61,7 +61,7 @@ export const ParametersRepository = {
      */
     createHeader: (data: InferInsertModel<typeof frs9ParamCommonh>) => {
         return queryEffect(async () => {
-            const result = await db
+            const result = await legacyDb
                 .insert(frs9ParamCommonh)
                 .values(data)
                 .returning()
@@ -78,7 +78,7 @@ export const ParametersRepository = {
      */
     updateHeader: (code: string, data: Partial<InferInsertModel<typeof frs9ParamCommonh>>) => {
         return queryEffect(async () => {
-            const result = await db
+            const result = await legacyDb
                 .update(frs9ParamCommonh)
                 .set(data)
                 .where(eq(frs9ParamCommonh.paramCode, code))
@@ -96,12 +96,12 @@ export const ParametersRepository = {
     deleteHeader: (code: string) => {
         return queryEffect(async () => {
             // First delete any associated details
-            await db
+            await legacyDb
                 .delete(frs9ParamCommond)
                 .where(eq(frs9ParamCommond.paramCode, code))
 
             // Then delete the header
-            const result = await db
+            const result = await legacyDb
                 .delete(frs9ParamCommonh)
                 .where(eq(frs9ParamCommonh.paramCode, code))
                 .returning()
@@ -119,11 +119,61 @@ export const ParametersRepository = {
      */
     findDetailByCode: (code: string) => {
         return queryEffect(async () => {
-            return await db
+            return await legacyDb
                 .select()
                 .from(frs9ParamCommond)
                 .where(eq(frs9ParamCommond.paramCode, code))
                 .orderBy(frs9ParamCommond.paramSeq)
+        })
+    },
+
+    /**
+     * Find a specific detail by paramCode and paramSeq.
+     * Used for duplicate sequence validation.
+     * 
+     * @param code - The parameter code
+     * @param seq - The sequence number
+     * @returns An Effect resolving to the detail or null
+     */
+    findDetailBySeq: (code: string, seq: number) => {
+        return queryEffect(async () => {
+            const results = await legacyDb
+                .select()
+                .from(frs9ParamCommond)
+                .where(
+                    and(
+                        eq(frs9ParamCommond.paramCode, code),
+                        eq(frs9ParamCommond.paramSeq, seq)
+                    )
+                )
+            return results[0] || null
+        })
+    },
+
+    /**
+     * Find a specific detail by paramCode and values.
+     * Used for duplicate record validation in Business Setup.
+     * 
+     * @param code - The parameter code
+     * @param value1 - Value 1
+     * @param value2 - Value 2
+     * @param value3 - Value 3
+     * @returns An Effect resolving to the detail or null
+     */
+    findDetailByValues: (code: string, value1: string, value2: string, value3: string) => {
+        return queryEffect(async () => {
+            const results = await legacyDb
+                .select()
+                .from(frs9ParamCommond)
+                .where(
+                    and(
+                        eq(frs9ParamCommond.paramCode, code),
+                        eq(frs9ParamCommond.value1, value1),
+                        eq(frs9ParamCommond.value2, value2),
+                        eq(frs9ParamCommond.value3, value3)
+                    )
+                )
+            return results[0] || null
         })
     },
 
@@ -135,7 +185,7 @@ export const ParametersRepository = {
      */
     createDetail: (data: InferInsertModel<typeof frs9ParamCommond>) => {
         return queryEffect(async () => {
-            const result = await db
+            const result = await legacyDb
                 .insert(frs9ParamCommond)
                 .values(data)
                 .returning()
@@ -152,7 +202,7 @@ export const ParametersRepository = {
      */
     updateDetail: (id: number | bigint, data: Partial<InferInsertModel<typeof frs9ParamCommond>>) => {
         return queryEffect(async () => {
-            const result = await db
+            const result = await legacyDb
                 .update(frs9ParamCommond)
                 .set(data)
                 .where(eq(frs9ParamCommond.pkid, BigInt(id)))
@@ -169,7 +219,7 @@ export const ParametersRepository = {
      */
     deleteDetail: (id: bigint) => {
         return queryEffect(async () => {
-            const result = await db
+            const result = await legacyDb
                 .delete(frs9ParamCommond)
                 .where(eq(frs9ParamCommond.pkid, id))
                 .returning()
@@ -196,14 +246,14 @@ export const ParametersRepository = {
             const conditions = [eq(frs9ParamCommond.paramCode, code)]
 
             if (filters) {
-                if (filters.value1) conditions.push(eq(frs9ParamCommond.value1, filters.value1))
-                if (filters.value2) conditions.push(eq(frs9ParamCommond.value2, filters.value2))
-                if (filters.value3) conditions.push(eq(frs9ParamCommond.value3, filters.value3))
+                if (filters.value1) conditions.push(ilike(frs9ParamCommond.value1, filters.value1))
+                if (filters.value2) conditions.push(ilike(frs9ParamCommond.value2, filters.value2))
+                if (filters.value3) conditions.push(ilike(frs9ParamCommond.value3, filters.value3))
             }
 
             const column = frs9ParamCommond[field]
 
-            return await db
+            return await legacyDb
                 .selectDistinct({ value: column })
                 .from(frs9ParamCommond)
                 .where(and(...conditions))
@@ -225,11 +275,11 @@ export const ParametersRepository = {
         return queryEffect(async () => {
             const conditions = [eq(frs9ParamCommond.paramCode, code)]
 
-            if (filters.value1) conditions.push(eq(frs9ParamCommond.value1, filters.value1))
-            if (filters.value2) conditions.push(eq(frs9ParamCommond.value2, filters.value2))
-            if (filters.value3) conditions.push(eq(frs9ParamCommond.value3, filters.value3))
+            if (filters.value1) conditions.push(ilike(frs9ParamCommond.value1, filters.value1))
+            if (filters.value2) conditions.push(ilike(frs9ParamCommond.value2, filters.value2))
+            if (filters.value3) conditions.push(ilike(frs9ParamCommond.value3, filters.value3))
 
-            return await db
+            return await legacyDb
                 .select()
                 .from(frs9ParamCommond)
                 .where(and(...conditions))

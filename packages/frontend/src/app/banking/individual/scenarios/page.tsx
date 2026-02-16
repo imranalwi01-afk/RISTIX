@@ -38,13 +38,19 @@ import {
 } from '@mui/icons-material';
 import { individualImpairmentAPI } from '../../../../services/api/individual-impairment.api';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
+import { Can } from '@/components/rbac/Can';
+import { usePermission } from '@/hooks/usePermission';
 
 export default function ScenariosPage() {
+  const { hasAnyPermission } = usePermission();
+  const canCreateScenario = hasAnyPermission(['banking.individual.create', 'banking.individual.manage', 'admin.super_admin']);
+  const canApproveScenario = hasAnyPermission(['approval.requests.approve', 'approval.all', 'banking.individual.approve', 'admin.super_admin']);
+
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  
+
   // Create Dialog State
   const [openDialog, setOpenDialog] = useState(false);
   const [formData, setFormData] = useState({
@@ -77,11 +83,12 @@ export default function ScenariosPage() {
   }, []);
 
   const handleCreate = async () => {
+    if (!canCreateScenario) return;
     if (!formData.scenarioName || !formData.scenarioCode) return;
-    
+
     try {
       setLoading(true);
-      
+
       let config = {};
       try {
         config = JSON.parse(formData.configuration);
@@ -96,9 +103,9 @@ export default function ScenariosPage() {
 
       setSuccess('Scenario created successfully');
       setOpenDialog(false);
-      setFormData({ 
-        scenarioName: '', 
-        scenarioCode: '', 
+      setFormData({
+        scenarioName: '',
+        scenarioCode: '',
         description: '',
         configuration: '{}'
       });
@@ -111,14 +118,15 @@ export default function ScenariosPage() {
   };
 
   const handleStatusUpdate = async (status: string) => {
+    if (!canApproveScenario) return;
     if (!selectedRow) return;
     try {
-        await individualImpairmentAPI.updateScenarioStatus(selectedRow.id, status);
-        setSuccess(`Scenario ${status.toLowerCase()} successfully`);
-        handleCloseMenu();
-        loadData();
+      await individualImpairmentAPI.updateScenarioStatus(selectedRow.id, status);
+      setSuccess(`Scenario ${status.toLowerCase()} successfully`);
+      handleCloseMenu();
+      loadData();
     } catch (err: any) {
-        setError(err.message || 'Failed to update status');
+      setError(err.message || 'Failed to update status');
     }
   };
 
@@ -136,44 +144,46 @@ export default function ScenariosPage() {
     { field: 'scenarioName', headerName: 'Scenario Name', flex: 1 },
     { field: 'scenarioCode', headerName: 'Code', width: 150 },
     { field: 'description', headerName: 'Description', flex: 1.5 },
-    { 
-      field: 'status', 
-      headerName: 'Status', 
+    {
+      field: 'status',
+      headerName: 'Status',
       width: 120,
       renderCell: (params) => (
-         <Chip 
-          label={params.value} 
-          color={params.value === 'APPROVED' ? 'success' : params.value === 'REJECTED' ? 'error' : 'default'} 
-          size="small" 
+        <Chip
+          label={params.value}
+          color={params.value === 'APPROVED' ? 'success' : params.value === 'REJECTED' ? 'error' : 'default'}
+          size="small"
         />
       )
     },
-    { 
-        field: 'createdAt', 
-        headerName: 'Created At', 
-        width: 180,
-        valueFormatter: (params) => {
-            if (!params.value) return '-';
-            return new Date(params.value).toLocaleString();
-        }
+    {
+      field: 'createdAt',
+      headerName: 'Created At',
+      width: 180,
+      valueFormatter: (value: any) => {
+        if (!value) return '-';
+        return new Date(value).toLocaleString();
+      }
     },
     {
-        field: 'actions',
-        headerName: 'Actions',
-        width: 100,
-        sortable: false,
-        renderCell: (params: GridRenderCellParams) => (
-            <IconButton onClick={(e) => handleOpenMenu(e, params.row)}>
-                <MoreVertIcon />
-            </IconButton>
-        )
+      field: 'actions',
+      headerName: 'Actions',
+      width: 100,
+      sortable: false,
+      renderCell: (params: GridRenderCellParams) => (
+        canApproveScenario ? (
+          <IconButton onClick={(e) => handleOpenMenu(e, params.row)}>
+            <MoreVertIcon />
+          </IconButton>
+        ) : null
+      )
     }
   ];
 
   return (
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
       <FullstackIndicator />
-      
+
       {/* Breadcrumbs */}
       <Breadcrumbs sx={{ mb: 2 }}>
         <Link href="/banking/dashboard" underline="hover" color="inherit" sx={{ display: 'flex', alignItems: 'center' }}>
@@ -188,13 +198,15 @@ export default function ScenariosPage() {
         <Typography variant="h4" component="h1" gutterBottom>
           Scenario Details
         </Typography>
-        <Button 
-          variant="contained" 
-          startIcon={<AddIcon />}
-          onClick={() => setOpenDialog(true)}
-        >
-          New Scenario
-        </Button>
+        <Can permission={['banking.individual.create', 'banking.individual.manage', 'admin.super_admin']}>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setOpenDialog(true)}
+          >
+            New Scenario
+          </Button>
+        </Can>
       </Box>
 
       <Paper sx={{ height: 600, width: '100%' }}>
@@ -208,18 +220,20 @@ export default function ScenariosPage() {
       </Paper>
 
       {/* Action Menu */}
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleCloseMenu}
-      >
-        <MenuItem onClick={() => handleStatusUpdate('APPROVED')}>
+      {canApproveScenario && (
+        <Menu
+          anchorEl={anchorEl}
+          open={Boolean(anchorEl)}
+          onClose={handleCloseMenu}
+        >
+          <MenuItem onClick={() => handleStatusUpdate('APPROVED')}>
             <ApproveIcon fontSize="small" sx={{ mr: 1, color: 'success.main' }} /> Approve
-        </MenuItem>
-        <MenuItem onClick={() => handleStatusUpdate('REJECTED')}>
+          </MenuItem>
+          <MenuItem onClick={() => handleStatusUpdate('REJECTED')}>
             <RejectIcon fontSize="small" sx={{ mr: 1, color: 'error.main' }} /> Reject
-        </MenuItem>
-      </Menu>
+          </MenuItem>
+        </Menu>
+      )}
 
       {/* Create Dialog */}
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
@@ -251,7 +265,7 @@ export default function ScenariosPage() {
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             />
-             <TextField
+            <TextField
               fullWidth
               label="Configuration (JSON)"
               margin="normal"
@@ -265,7 +279,7 @@ export default function ScenariosPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
-          <Button onClick={handleCreate} variant="contained" disabled={loading}>
+          <Button onClick={handleCreate} variant="contained" disabled={loading || !canCreateScenario}>
             Create Scenario
           </Button>
         </DialogActions>

@@ -1,0 +1,11 @@
+73a74,79
+> stg_master_loan
+> stg_paym_schd
+> tblu_master_collateral
+> tblu_master_pd_proxy
+> tblu_paym_schd
+> tmp_fma_preview
+84a91,93
+> tmp_imp_ca_ead_curr
+> tmp_imp_ca_ead_prev
+> upload_history

@@ -10,6 +10,18 @@ import * as rbacService from '../services/rbac.service'
 
 export const authRoutes = new OpenAPIHono<AppContext>()
 
+const splitName = (fullName?: string | null) => {
+    const normalized = (fullName ?? '').trim()
+    if (!normalized) {
+        return { firstName: null, lastName: null }
+    }
+    const parts = normalized.split(/\s+/)
+    return {
+        firstName: parts[0] ?? null,
+        lastName: parts.length > 1 ? parts.slice(1).join(' ') : null,
+    }
+}
+
 // =============================================================================
 // SCHEMAS
 // =============================================================================
@@ -133,21 +145,24 @@ authRoutes.openapi(
                 auditService.logAuth.login(user.id, resolvedTenantId, ip, userAgent)
                 return Effect.succeed(void 0)
             }),
-            Effect.map(({ user, tokens }) => ({
-                user: {
-                    id: user.id,
-                    email: user.email,
-                    firstName: (user as any).firstName || '',
-                    lastName: (user as any).lastName || '',
-                    tenantId: user.tenantId,
-                    // authService.login returns roles/permissions mapped as strings
-                    permissions: (user as any).permissions ?? [],
-                    roles: (user as any).roles ?? [],
-                },
-                ...tokens,
-                tokens,
-                token: tokens.accessToken,
-            })),
+            Effect.map(({ user, tokens }) => {
+                const { firstName, lastName } = splitName((user as any).fullName)
+                return {
+                    user: {
+                        id: user.id,
+                        email: user.email,
+                        firstName,
+                        lastName,
+                        tenantId: user.tenantId,
+                        // authService.login returns roles/permissions mapped as strings
+                        permissions: user.permissions,
+                        roles: user.roles,
+                    },
+                    ...tokens,
+                    tokens,
+                    token: tokens.accessToken,
+                }
+            }),
             Effect.tapError((error) => {
                 // Log failed login
                 const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -276,7 +291,7 @@ authRoutes.openapi(
                     id: t.id,
                     slug: t.slug,
                     name: t.name,
-                    displayName: t.name,
+                    displayName: t.displayName ?? t.name,
                     bankingType: t.bankingMode,
                     isActive: t.isActive,
                 })),
@@ -358,6 +373,31 @@ authRoutes.openapi(
         const userId = c.get('userId')
         const tenantId = c.get('tenantId')
         const user = c.get('user')
+        const tokenPermissions = c.get('permissions') || []
+
+        if (!userId) {
+            return c.json({ success: false, error: 'Unauthorized', code: 'UNAUTHORIZED' } as any, 401)
+        }
+
+        // Platform sessions (no tenant context) must not query tenant RBAC tables.
+        if (!tenantId) {
+            const platformRole = (user as any)?.role
+            const tokenRoles = Array.isArray((user as any)?.roles) ? (user as any).roles : []
+            const roles = tokenRoles.length > 0
+                ? tokenRoles
+                : (platformRole ? [platformRole] : [])
+
+            return c.json({
+                success: true,
+                data: {
+                    id: userId,
+                    email: user?.email,
+                    tenantId: undefined,
+                    roles,
+                    permissions: tokenPermissions,
+                },
+            } as any)
+        }
 
         const effect = pipe(
             rbacService.getUserRoles(userId!, tenantId!),
@@ -396,11 +436,28 @@ authRoutes.openapi(
     }),
     async (c) => {
         const userId = c.get('userId')!
-        const tenantId = c.get('tenantId')!
+        const tenantId = c.get('tenantId')
+        const tokenPermissions = c.get('permissions') || []
+
+        if (!userId) {
+            return c.json({ success: false, error: 'Unauthorized', code: 'UNAUTHORIZED' } as any, 401)
+        }
+
+        // Platform sessions (no tenant context) use permissions embedded in token/session.
+        if (!tenantId) {
+            return c.json({
+                success: true,
+                data: {
+                    permissions: tokenPermissions,
+                },
+            } as any)
+        }
 
         const effect = pipe(
-            rbacService.getUserPermissions(userId, tenantId),
-            Effect.map((permissions) => ({ permissions }))
+            rbacService.getUserPermissionCodes(userId, tenantId),
+            Effect.map((permissions) => ({
+                permissions: permissions.length > 0 ? permissions : tokenPermissions,
+            }))
         )
 
         return runEffect(c, effect)
@@ -464,13 +521,13 @@ authRoutes.openapi(
 authRoutes.post('/hash-password', async (c) => {
     const body = await c.req.json();
     const { password } = body;
-    
+
     if (!password) {
         return c.json({ error: 'Password required' }, 400);
     }
-    
+
     const hash = await authService.hashPassword(password);
-    
+
     return c.json({
         password,
         hash,

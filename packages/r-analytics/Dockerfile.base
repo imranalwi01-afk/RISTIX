@@ -1,0 +1,123 @@
+# packages/r-analytics/Dockerfile.base
+# ============================================================================
+# 🐳 R ANALYTICS BASE IMAGE
+# ============================================================================
+# Contains: OS libs, R Runtime, R Packages, User Setup
+# Does NOT contain: Application code (shiny-app/, config/, scripts/)
+# ============================================================================
+
+# Use official R base image with Shiny pre-installed
+FROM rocker/shiny:4.3.2
+
+# Metadata
+LABEL maintainer="IFRS9 Platform Team"
+LABEL description="Base image for Multi-tenant R Analytics with all dependencies"
+LABEL version="1.0.0"
+
+# ============================================================================
+# 📦 SYSTEM DEPENDENCIES
+# ============================================================================
+
+# Install system dependencies for R packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    # Database connectivity
+    libpq-dev \
+    # SSL/TLS support
+    libssl-dev \
+    libcurl4-openssl-dev \
+    curl \
+    libssh2-1-dev \
+    # XML processing
+    libxml2-dev \
+    # Graphics & Plotting
+    libcairo2-dev \
+    libxt-dev \
+    # Image & Font processing (for tidyverse/ggplot2)
+    libpng-dev \
+
+    libtiff5-dev \
+    libfontconfig1-dev \
+    libfreetype6-dev \
+    libfribidi-dev \
+    libharfbuzz-dev \
+    libwebp-dev \
+    libjpeg-dev \
+    # Mathematical libraries & Optimization
+    libgsl-dev \
+    libfftw3-dev \
+    libgmp-dev \
+    libmpfr-dev \
+    libglpk-dev \
+    # Development tools & Libraries
+    build-essential \
+    git \
+    cmake \
+    libicu-dev \
+    zlib1g-dev \
+    # Cleanup
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# ============================================================================
+# 📊 R PACKAGE INSTALLATION
+# ============================================================================
+
+# Use all available cores for compilation
+# Step 1: Core & DB Connectivity
+RUN R -e "options(Ncpus = parallel::detectCores()); \
+    install.packages(c('DBI', 'RPostgres', 'jsonlite', 'httr', 'curl', 'xml2', 'plumber'), repos='https://packagemanager.posit.co/cran/__linux__/jammy/latest'); \
+    if (!all(c('DBI', 'RPostgres', 'jsonlite', 'httr', 'curl', 'xml2', 'plumber') %in% installed.packages()[,1])) stop('Step 1 failed')"
+
+
+# Step 2: Data Manipulation (Splitting tidyverse for reliability)
+RUN R -e "options(Ncpus = parallel::detectCores()); \
+    install.packages(c('dplyr', 'data.table', 'tibble', 'magrittr', 'purrr', 'stringr', 'forcats'), repos='https://packagemanager.posit.co/cran/__linux__/jammy/latest'); \
+    if (!all(c('dplyr', 'data.table', 'tibble', 'magrittr') %in% installed.packages()[,1])) stop('Step 2 failed')"
+
+# Step 3: Tidyverse and Time Series
+RUN R -e "options(Ncpus = parallel::detectCores()); \
+    install.packages(c('tidyverse', 'lubridate', 'date', 'zoo', 'xts'), repos='https://packagemanager.posit.co/cran/__linux__/jammy/latest'); \
+    if (!all(c('tidyverse', 'lubridate', 'zoo', 'xts') %in% installed.packages()[,1])) stop('Step 3 failed')"
+
+# Step 4: Statistical Analysis & Tests
+RUN R -e "options(Ncpus = parallel::detectCores()); \
+    install.packages(c('MASS', 'nortest', 'lmtest', 'car', 'combinat', 'tseries', 'smooth'), repos='https://packagemanager.posit.co/cran/__linux__/jammy/latest'); \
+    if (!all(c('MASS', 'nortest', 'lmtest', 'car', 'combinat', 'tseries', 'smooth') %in% installed.packages()[,1])) stop('Step 4 failed')"
+
+# Step 5: Forecasting & Advanced Analytics
+RUN R -e "options(Ncpus = parallel::detectCores()); \
+    install.packages(c('forecast', 'fpp2', 'aTSA', 'vars', 'urca', 'tsDyn'), repos='https://packagemanager.posit.co/cran/__linux__/jammy/latest'); \
+    if (!all(c('forecast', 'fpp2', 'aTSA', 'vars', 'urca', 'tsDyn') %in% installed.packages()[,1])) stop('Step 5 failed')"
+
+# Step 6: Shiny & Visualization
+RUN R -e "options(Ncpus = parallel::detectCores()); \
+    install.packages(c('shiny', 'shinydashboard', 'shinyWidgets', 'shinycssloaders', 'shinyjs', 'DT', 'ggplot2', 'plotly'), repos='https://packagemanager.posit.co/cran/__linux__/jammy/latest'); \
+    if (!all(c('shiny', 'shinydashboard', 'shinyWidgets', 'shinycssloaders', 'shinyjs', 'DT', 'ggplot2', 'plotly') %in% installed.packages()[,1])) stop('Step 6 failed')"
+
+# Step 7: File I/O & Machine Learning
+RUN R -e "options(Ncpus = parallel::detectCores()); \
+    install.packages(c('openxlsx', 'readxl', 'future', 'future.apply', 'randomForest', 'caret', 'parallel', 'foreach', 'doParallel'), repos='https://packagemanager.posit.co/cran/__linux__/jammy/latest'); \
+    if (!all(c('openxlsx', 'readxl', 'future', 'parallel') %in% installed.packages()[,1])) stop('Step 7 failed')"
+
+# ============================================================================
+# 👤 USER SETUP (Security best practice)
+# ============================================================================
+
+# Create non-root user for running R applications
+RUN groupadd -r r-analytics && useradd -r -g r-analytics -d /home/r-analytics -s /bin/bash r-analytics
+RUN mkdir -p /home/r-analytics && chown r-analytics:r-analytics /home/r-analytics
+
+# ============================================================================
+# 📁 APPLICATION SETUP
+# ============================================================================
+
+# Create application directories
+RUN mkdir -p /opt/r-analytics/shiny-app \
+    /opt/r-analytics/config \
+    /opt/r-analytics/functions \
+    /opt/r-analytics/logs \
+    /opt/r-analytics/temp \
+    && chown -R r-analytics:r-analytics /opt/r-analytics
+
+# Set working directory
+WORKDIR /opt/r-analytics

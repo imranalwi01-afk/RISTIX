@@ -27,7 +27,11 @@ import {
   Select,
   FormControlLabel,
   Switch,
+  Grid,
+  alpha,
+  useTheme
 } from '@mui/material';
+import { Snackbar } from '@mui/material';
 import {
   Calculate as CalculateIcon,
   Home as HomeIcon,
@@ -47,6 +51,11 @@ import { useRouter } from 'next/navigation';
 import { api } from '@/services/api';
 import { PDConfiguration } from '@/services/api/pd-configurations.api';
 import { PopulationSegment } from '@/services/api/population-segments.api';
+import { ApprovalNotification, ApprovalStatusBadge } from '@/components/approval';
+import { bankingAPI } from '@/services/api';
+import { PDStructureVisualization, FLScalarVisualization } from '@/components/banking/pd-setup/PDStructureVisualization';
+import { Assessment as ResultsIcon, Close as CloseIcon } from '@mui/icons-material';
+import { usePermission } from '@/hooks/usePermission';
 
 // Safe DataGrid wrapper to prevent bundling issues
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
@@ -58,6 +67,11 @@ interface PDConfigUI extends PDConfiguration {
 }
 
 const PdSetupPage = () => {
+  const { hasAnyPermission } = usePermission();
+  const canViewPdSetup = hasAnyPermission(['banking.collective.pd_setup.view', 'banking.collective.pd_setup.manage', 'banking.collective.manage', 'banking.collective', 'admin.super_admin']);
+  const canManagePdSetup = hasAnyPermission(['banking.collective.pd_setup.manage', 'banking.collective.pd_setup.create', 'banking.collective.pd_setup.update', 'banking.collective.pd_setup.delete', 'banking.collective.manage', 'admin.super_admin']);
+
+  const theme = useTheme();
   const router = useRouter();
 
   const [loading, setLoading] = useState(false);
@@ -75,6 +89,12 @@ const PdSetupPage = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [selectedConfig, setSelectedConfig] = useState<PDConfigUI | null>(null);
+
+  // Results Dialog
+  const [isResultsDialogOpen, setIsResultsDialogOpen] = useState(false);
+  const [resultsLoading, setResultsLoading] = useState(false);
+  const [pdStructure, setPdStructure] = useState<any[]>([]);
+  const [scalarDetails, setScalarDetails] = useState<any[]>([]);
 
   // Form Data
   const [formData, setFormData] = useState<Partial<PDConfiguration>>({
@@ -94,6 +114,10 @@ const PdSetupPage = () => {
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [searchTerm, setSearchTerm] = useState('');
+
+  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+  const [approvalNotification, setApprovalNotification] = useState<{ open: boolean, message: string }>({ open: false, message: '' });
+  const [snackbar, setSnackbar] = useState<{ open: boolean, message: string, type: 'success' | 'error' }>({ open: false, message: '', type: 'success' });
 
   // Load Data
   const loadData = useCallback(async () => {
@@ -132,9 +156,20 @@ const PdSetupPage = () => {
     }
   }, []);
 
+  const loadPendingApprovals = useCallback(async () => {
+    try {
+      const response = await bankingAPI.approval.getPendingApprovals();
+      const requests = Array.isArray(response) ? response : response.data || [];
+      setPendingRequests(requests.filter((r: any) => r.entityType === 'pd_configuration'));
+    } catch (err) {
+      console.error('Error loading pending approvals:', err);
+    }
+  }, []);
+
   useEffect(() => {
     loadData();
-  }, [loadData]);
+    loadPendingApprovals();
+  }, [loadData, loadPendingApprovals]);
 
   // Filtering
   useEffect(() => {
@@ -174,23 +209,38 @@ const PdSetupPage = () => {
   };
 
   const handleSave = async () => {
+    if (!canManagePdSetup) return;
     if (!validateForm()) return;
-    setLoading(true);
     try {
       const payload = {
         ...formData,
-        // Ensure legacy fields are handled if needed, or just send what we have
-        population_segment: undefined, // Clear legacy int if we are updating
-        // Wait, backend expects int optional.
+        population_segment: undefined,
       };
 
+      let response: any;
       if (isEditing && selectedConfig?.id) {
-        await api.banking.pdConfigurations.update(selectedConfig.id, payload);
+        response = await api.banking.pdConfigurations.update(selectedConfig.id, payload);
       } else {
-        await api.banking.pdConfigurations.create(payload as any);
+        response = await api.banking.pdConfigurations.create(payload as any);
+      }
+
+      const isApprovalResponse = response.approvalRequired || response.status === 202;
+
+      if (isApprovalResponse) {
+        setApprovalNotification({
+          open: true,
+          message: response.message || 'Request submitted for approval'
+        });
+      } else {
+        setSnackbar({
+          open: true,
+          message: isEditing ? 'Configuration updated' : 'Configuration created',
+          type: 'success'
+        });
       }
 
       await loadData();
+      await loadPendingApprovals();
       setIsDialogOpen(false);
       setFormData({});
       setSelectedConfig(null);
@@ -203,16 +253,56 @@ const PdSetupPage = () => {
   };
 
   const handleDelete = async (id: string) => {
+    if (!canManagePdSetup) return;
     if (!confirm('Are you sure you want to delete this configuration?')) return;
-    setLoading(true);
     try {
-      await api.banking.pdConfigurations.delete(id);
+      const response = await api.banking.pdConfigurations.delete(id) as any;
+      const isApprovalResponse = response.approvalRequired || response.status === 202;
+
+      if (isApprovalResponse) {
+        setApprovalNotification({
+          open: true,
+          message: response.message || 'Deletion request submitted for approval'
+        });
+      } else {
+        setSnackbar({ open: true, message: 'Configuration deleted', type: 'success' });
+      }
+
       await loadData();
+      await loadPendingApprovals();
     } catch (err: any) {
       console.error('Delete failed:', err);
       setError('Failed to delete configuration.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleViewResults = async (config: PDConfigUI) => {
+    setSelectedConfig(config);
+    setIsResultsDialogOpen(true);
+    setResultsLoading(true);
+    setPdStructure([]);
+    setScalarDetails([]);
+
+    try {
+      // Fetch PD Structure
+      const structureRes = await api.banking.pdSetup.getPDStructure(config.id!);
+      if (structureRes.success) {
+        setPdStructure(structureRes.data);
+      }
+
+      // Fetch FL Scalar Details if applicable
+      if (config.fl_flag && (config.fl_scalar_id || (config as any).fl_scalar)) {
+        const scalarId = config.fl_scalar_id || (config as any).fl_scalar;
+        const scalarRes = await api.banking.flScalar.getDetails(scalarId);
+        setScalarDetails(scalarRes || []);
+      }
+    } catch (err) {
+      console.error('Failed to load results:', err);
+      setError('Failed to load configuration results.');
+    } finally {
+      setResultsLoading(false);
     }
   };
 
@@ -235,13 +325,17 @@ const PdSetupPage = () => {
       field: 'is_active',
       headerName: 'Status',
       width: 100,
-      renderCell: (params) => (
-        <Chip
-          label={params.value ? 'Active' : 'Inactive'}
-          color={params.value ? 'success' : 'default'}
-          size="small"
-        />
-      )
+      renderCell: (params) => {
+        const isPending = pendingRequests.some(r => r.entityId === params.row.id);
+        if (isPending) return <ApprovalStatusBadge status="pending" />;
+        return (
+          <Chip
+            label={params.value ? 'Active' : 'Inactive'}
+            color={params.value ? 'success' : 'default'}
+            size="small"
+          />
+        );
+      }
     },
     {
       field: 'actions',
@@ -249,22 +343,31 @@ const PdSetupPage = () => {
       headerName: 'Actions',
       width: 100,
       getActions: (params) => [
+        ...(canManagePdSetup ? [
+          <SafeGridActionsCellItem
+            key="edit"
+            icon={<EditIcon color="primary" />}
+            label="Edit"
+            onClick={() => {
+              setSelectedConfig(params.row);
+              setFormData(params.row);
+              setIsEditing(true);
+              setIsDialogOpen(true);
+            }}
+          />,
+          <SafeGridActionsCellItem
+            key="delete"
+            icon={<DeleteIcon color="error" />}
+            label="Delete"
+            onClick={() => handleDelete(params.row.id)}
+          />
+        ] : []),
         <SafeGridActionsCellItem
-          key="edit"
-          icon={<EditIcon color="primary" />}
-          label="Edit"
-          onClick={() => {
-            setSelectedConfig(params.row);
-            setFormData(params.row);
-            setIsEditing(true);
-            setIsDialogOpen(true);
-          }}
-        />,
-        <SafeGridActionsCellItem
-          key="delete"
-          icon={<DeleteIcon color="error" />}
-          label="Delete"
-          onClick={() => handleDelete(params.row.id)}
+          key="results"
+          icon={<ResultsIcon color="secondary" />}
+          label="View Results"
+          onClick={() => handleViewResults(params.row)}
+          showInMenu={false}
         />
       ]
     }
@@ -272,6 +375,11 @@ const PdSetupPage = () => {
 
   return (
     <Container maxWidth="xl">
+      {!canViewPdSetup && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          You do not have permission to view PD setup.
+        </Alert>
+      )}
       <Breadcrumbs sx={{ mb: 2 }}>
         <Link href="/banking/dashboard" underline="hover" color="inherit">Dashboard</Link>
         <Typography color="text.primary" data-testid="pd-setup-title">PD Setup</Typography>
@@ -281,21 +389,31 @@ const PdSetupPage = () => {
         <Typography variant="h4" component="h1">PD Setup Management</Typography>
         <Box>
           <Button startIcon={<RefreshIcon />} onClick={loadData} disabled={loading} sx={{ mr: 1 }} data-testid="refresh-btn">Refresh</Button>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => {
-            setSelectedConfig(null);
-            setFormData({
-              is_active: true,
-              selected_method: 1,
-              migration_interval: 12,
-              population_type: 1,
-              historical_month: 24,
-              multiplication: 1
-            });
-            setIsEditing(false);
-            setIsDialogOpen(true);
-          }} data-testid="add-config-btn">Add Configuration</Button>
+          {canManagePdSetup && (
+            <Button variant="contained" startIcon={<AddIcon />} onClick={() => {
+              setSelectedConfig(null);
+              setFormData({
+                is_active: true,
+                selected_method: 1,
+                migration_interval: 12,
+                population_type: 1,
+                historical_month: 24,
+                multiplication: 1
+              });
+              setIsEditing(false);
+              setIsDialogOpen(true);
+            }} data-testid="add-config-btn">Add Configuration</Button>
+          )}
         </Box>
       </Box>
+
+      {snackbar.open && (
+        <Snackbar sx={{ mb: 2 }} open={snackbar.open} autoHideDuration={6000} onClose={() => setSnackbar({ ...snackbar, open: false })}>
+          <Alert severity={snackbar.type || 'info'} onClose={() => setSnackbar({ ...snackbar, open: false })}>
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
+      )}
 
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
 
@@ -469,9 +587,80 @@ const PdSetupPage = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setIsDialogOpen(false)} data-testid="cancel-btn">Cancel</Button>
-          <Button variant="contained" onClick={handleSave} disabled={loading} data-testid="save-config-btn">{selectedConfig ? 'Update' : 'Create'}</Button>
+          {canManagePdSetup && (
+            <Button variant="contained" onClick={handleSave} disabled={loading} data-testid="save-config-btn">{selectedConfig ? 'Update' : 'Create'}</Button>
+          )}
         </DialogActions>
       </Dialog>
+
+      {/* Results Visualization Dialog */}
+      <Dialog
+        open={isResultsDialogOpen}
+        onClose={() => setIsResultsDialogOpen(false)}
+        maxWidth="lg"
+        fullWidth
+        PaperProps={{
+          sx: { borderRadius: 3 }
+        }}
+      >
+        <DialogTitle sx={{ m: 0, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box>
+            <Typography variant="h6" component="div" fontWeight={700}>
+              PD Configuration Results
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Viewing results for: {selectedConfig?.model_name}
+            </Typography>
+          </Box>
+          <IconButton onClick={() => setIsResultsDialogOpen(false)}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers sx={{ backgroundColor: alpha(theme.palette.background.default, 0.5) }}>
+          {resultsLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <Grid container spacing={3}>
+              <Grid size={{ xs: 12 }}>
+                <Paper sx={{ p: 3, borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+                  <PDStructureVisualization data={pdStructure} />
+                </Paper>
+              </Grid>
+
+              {selectedConfig?.fl_flag && (
+                <Grid size={{ xs: 12 }}>
+                  <Paper sx={{ p: 3, borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+                    <FLScalarVisualization details={scalarDetails} />
+                  </Paper>
+                </Grid>
+              )}
+            </Grid>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button variant="outlined" onClick={() => setIsResultsDialogOpen(false)}>
+            Close
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<CalculateIcon />}
+            onClick={() => {
+              // Future: Trigger calculation logic
+              alert('Re-calculation triggered (Demonstration)');
+            }}
+          >
+            Re-calculate
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <ApprovalNotification
+        open={approvalNotification.open}
+        message={approvalNotification.message}
+        onClose={() => setApprovalNotification({ ...approvalNotification, open: false })}
+      />
     </Container>
   );
 }

@@ -10,10 +10,12 @@ import {
     index,
 } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
-import { tenants, users } from './core'
+import { users } from './core'
+import { tenants } from './platform.schema'
 
 /**
  * Approval schema for multi-level approval workflow
+ * Uses dedicated 'approval' schema for approval-related tables
  */
 export const approvalSchema = pgSchema('approval')
 

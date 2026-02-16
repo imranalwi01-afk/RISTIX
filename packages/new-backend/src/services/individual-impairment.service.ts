@@ -7,9 +7,8 @@ import {
     frs9ImpIaResultH,
     frs9ImpIaResultD
 } from '../db/schema/legacy';
-import { frs9MasterAccount } from '../db/schema/introspected/schema';
-import { users } from '../db/schema';
-import { and, eq, desc, sql, inArray } from 'drizzle-orm';
+import { frs9MasterAccount, users } from '../db/schema';
+import { and, eq, desc, sql, inArray, ilike, or } from 'drizzle-orm';
 
 
 // Helper to map Legacy Status (Int) <-> Frontend Status (String)
@@ -266,77 +265,83 @@ export class IndividualImpairmentService {
     // WATCHLIST (1.4.1) -> frs9_imp_ia_header
     // =========================================================================
 
-    async getWatchlist(tenantId: string, filters: { segment?: string; status?: string; limit?: number; offset?: number }) {
+    async getWatchlist(tenantId: string, filters: { 
+        search?: string; 
+        stage?: number; 
+        impaired_flag?: string; 
+        status?: string; 
+        rating_code?: string;
+        limit?: number; 
+        offset?: number 
+    }) {
         try {
-            const { limit = 50, offset = 0 } = filters;
+            const { limit = 50, offset = 0, search, stage, impaired_flag, status, rating_code } = filters;
 
-            // 1. Fetch System Results (Base Data)
+            // 1. Build Query Conditions for Base Table (System Results)
+            const conditions = [];
+            
+            if (search) {
+                conditions.push(or(
+                    ilike(frs9ImpIaResultH.accountNumber, `%${search}%`),
+                    ilike(frs9ImpIaResultH.cifName, `%${search}%`),
+                    ilike(frs9ImpIaResultH.cifNumber, `%${search}%`)
+                ));
+            }
+
+            if (rating_code) {
+                conditions.push(eq(frs9ImpIaResultH.ratingCode, rating_code));
+            }
+
+            // Note: Stage and Status filtering on Base Table is limited because they are derived
+            // but we can try basic matching on the columns that determine them (collectability/dpd)
+            if (stage === 3) {
+                conditions.push(or(sql`${frs9ImpIaResultH.collectability} > 2`, eq(frs9ImpIaResultH.dpd, 3))); // Simplified
+            }
+
+            // 2. Fetch Total Count for Pagination
+            const countResult = await legacyDb.select({ count: sql<number>`count(*)` })
+                .from(frs9ImpIaResultH)
+                .where(and(...conditions));
+            
+            const total = Number(countResult[0]?.count || 0);
+
+            if (total === 0) return { data: [], total: 0 };
+
+            // 3. Fetch Paginated Results
             const results = await legacyDb.select()
                 .from(frs9ImpIaResultH)
+                .where(and(...conditions))
                 .orderBy(desc(frs9ImpIaResultH.createddate))
                 .limit(limit)
                 .offset(offset);
 
-            if (results.length === 0) return [];
-
-            // 2. Fetch Overrides (Manual Interventions) for these accounts
+            // 4. Fetch Overrides (Manual Interventions)
             const accountNumbers = results.map(r => r.accountNumber).filter((n): n is string => !!n);
+            const overrides = accountNumbers.length > 0 
+                ? await legacyDb.select()
+                    .from(frs9ImpIaHeader)
+                    .where(inArray(frs9ImpIaHeader.accountNumber, accountNumbers))
+                : [];
 
-            if (accountNumbers.length === 0) return results.map(row => ({
-                pkid: row.pkid,
-                ia_id: Number(row.iaId),
-                prc_date: row.prcDate,
-                eff_date: row.prcDate,
-                cif_number: row.cifNumber,
-                cif_name: row.cifName,
-                account_id: Number(row.accountId),
-                account_number: row.accountNumber,
-                currency: row.currency,
-                eff_interest_rate: row.effInterestRate,
-                interest_rate: row.interestRate,
-                dpd: row.dpd,
-                collectability: row.collectability,
-                rating_code: row.ratingCode,
-                impaired_flag: (row.collectability && row.collectability > 2) ? 'I' : 'N',
-                method: 'DCF',
-                outstanding_balance: Number(row.outstanding),
-                provision_amount: Number(row.eclIaAmt),
-                ecl_amount: Number(row.eclIaAmt),
-                stage: (row.collectability && row.collectability > 2) ? 3 : (row.dpd && row.dpd > 30) ? 2 : 1,
-                priority_level: (row.eclIaAmt && Number(row.eclIaAmt) > 1000000000) ? 'HIGH' : 'MEDIUM',
-                assessment_status: 'PENDING',
-                notes: 'System Calculated',
-                createdby: row.createdby,
-                createddate: row.createddate,
-                is_override: false
-            }));
-
-            const overrides = await legacyDb.select()
-                .from(frs9ImpIaHeader)
-                .where(inArray(frs9ImpIaHeader.accountNumber, accountNumbers));
-
-            // 3. Merge Logic: Override > System Result
-            return results.map(row => {
-                // Find matching override
+            // 5. Merge Logic: Override > System Result
+            const mergedData = results.map(row => {
                 const override = overrides.find(o => o.accountNumber === row.accountNumber);
 
                 // Base values from Result (System)
-                let stage = (row.collectability && row.collectability > 2) ? 3 : (row.dpd && row.dpd > 30) ? 2 : 1;
-                let status = 'PENDING';
-                let notes = 'System Calculated';
-                let impaired = (row.collectability && row.collectability > 2) ? 'I' : 'N';
+                let currentStage = (row.collectability && row.collectability > 2) ? 3 : (row.dpd && row.dpd > 30) ? 2 : 1;
+                let currentStatus = 'PENDING';
+                let currentNotes = 'System Calculated';
+                let currentImpaired = (row.collectability && row.collectability > 2) ? 'I' : 'N';
 
-                // Overwrite with Override values if exist
                 if (override) {
-                    stage = override.impairedFlag === 'T' ? 3 : 1;
-                    const statusMap: Record<number, string> = { 0: 'PENDING', 1: 'APPROVED', 2: 'REJECTED' };
-                    status = statusMap[override.status as number] || 'IN_PROGRESS';
-                    notes = override.triggerRemarks || 'Manual Override';
-                    impaired = override.impairedFlag === 'T' ? 'I' : 'N';
+                    currentStage = override.impairedFlag === 'I' ? 3 : (override.dpd && override.dpd > 30) ? 2 : 1;
+                    currentStatus = STATUS_MAP_TO_STRING[override.status as number] || 'IN_PROGRESS';
+                    currentNotes = override.triggerRemarks || 'Manual Override';
+                    currentImpaired = override.impairedFlag === 'I' ? 'I' : 'N';
                 }
 
                 return {
-                    pkid: row.pkid,
+                    pkid: Number(row.pkid),
                     ia_id: Number(row.iaId),
                     prc_date: row.prcDate,
                     eff_date: row.prcDate,
@@ -345,28 +350,43 @@ export class IndividualImpairmentService {
                     account_id: Number(row.accountId),
                     account_number: row.accountNumber,
                     currency: row.currency,
-                    eff_interest_rate: row.effInterestRate,
-                    interest_rate: row.interestRate,
+                    eff_interest_rate: Number(row.effInterestRate || 0),
+                    interest_rate: Number(row.interestRate || 0),
                     dpd: row.dpd,
                     collectability: row.collectability,
                     rating_code: row.ratingCode,
-                    impaired_flag: impaired,
+                    impaired_flag: currentImpaired,
                     method: 'DCF',
-                    outstanding_balance: Number(row.outstanding),
-                    provision_amount: Number(row.eclIaAmt),
-                    ecl_amount: Number(row.eclIaAmt),
-                    stage: stage,
+                    outstanding_balance: Number(row.outstanding || 0),
+                    provision_amount: Number(row.eclIaAmt || 0),
+                    ecl_amount: Number(row.eclIaAmt || 0),
+                    stage: currentStage,
                     priority_level: (row.eclIaAmt && Number(row.eclIaAmt) > 1000000000) ? 'HIGH' : 'MEDIUM',
-                    assessment_status: status,
-                    notes: notes,
+                    assessment_status: currentStatus,
+                    notes: currentNotes,
                     createdby: row.createdby,
                     createddate: row.createddate,
                     is_override: !!override
                 };
             });
+
+            // 6. Final Filter check for derived status/stage if requested
+            let filteredResponse = mergedData;
+            if (stage || status) {
+                filteredResponse = mergedData.filter(item => {
+                    const stageMatch = !stage || item.stage === Number(stage);
+                    const statusMatch = !status || item.assessment_status === status;
+                    return stageMatch && statusMatch;
+                });
+            }
+
+            return {
+                data: filteredResponse,
+                total: total
+            };
         } catch (error) {
             console.error('❌ Database Query Failed in getWatchlist:', error);
-            return [];
+            return { data: [], total: 0 };
         }
     }
 

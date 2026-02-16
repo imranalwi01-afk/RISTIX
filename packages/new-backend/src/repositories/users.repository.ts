@@ -83,8 +83,7 @@ export class UsersRepository implements ITenantRepository<User, NewUser> {
                 conditions.push(
                     or(
                         ilike(users.email, `%${options.search}%`),
-                        ilike(users.firstName, `%${options.search}%`),
-                        ilike(users.lastName, `%${options.search}%`)
+                        ilike(users.fullName, `%${options.search}%`)
                     )!
                 )
             }
@@ -142,8 +141,7 @@ export class UsersRepository implements ITenantRepository<User, NewUser> {
                 conditions.push(
                     or(
                         ilike(users.email, `%${options.search}%`),
-                        ilike(users.firstName, `%${options.search}%`),
-                        ilike(users.lastName, `%${options.search}%`)
+                        ilike(users.fullName, `%${options.search}%`)
                     )!
                 )
             }
@@ -255,7 +253,7 @@ export class UsersRepository implements ITenantRepository<User, NewUser> {
                     total: count(),
                     active: sql<number>`SUM(CASE WHEN is_active = true THEN 1 ELSE 0 END)`,
                     inactive: sql<number>`SUM(CASE WHEN is_active = false THEN 1 ELSE 0 END)`,
-                    verifiedEmail: sql<number>`SUM(CASE WHEN is_email_verified = true THEN 1 ELSE 0 END)`,
+                    verifiedEmail: sql<number>`SUM(CASE WHEN email_verified_at IS NOT NULL THEN 1 ELSE 0 END)`,
                 })
                 .from(users)
                 .where(eq(users.tenantId, tenantId))

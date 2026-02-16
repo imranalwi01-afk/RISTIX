@@ -11,12 +11,13 @@ import {
     index,
 } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
-import { tenants, users } from './core'
+import { users, tenants } from './core'
 
 /**
  * Core schema for RBAC tables
  */
 export const coreSchema = pgSchema('core')
+export const approvalPolicySchema = pgSchema('approval')
 
 // =============================================================================
 // ROLES TABLE
@@ -55,9 +56,9 @@ export const roles = coreSchema.table(
         updatedBy: uuid('updated_by'),
 
         // Legacy tenant-specific fields (keeping for compatibility)
-        level: integer('level'),
-        supportsConventional: varchar('supports_conventional', { length: 100 }),
-        supportsSyariah: varchar('supports_syariah', { length: 100 }),
+        // level: integer('level'),
+        // supportsConventional: varchar('supports_conventional', { length: 100 }),
+        // supportsSyariah: varchar('supports_syariah', { length: 100 }),
     },
     (table) => [
         uniqueIndex('roles_role_name_idx').on(table.roleName),
@@ -106,7 +107,7 @@ export const userRoles = coreSchema.table(
         updatedAt: timestamp('updated_at', { withTimezone: false }).defaultNow(),
 
         // Legacy field
-        level: integer('level'),
+        // level: integer('level'),
     },
     (table) => [
         uniqueIndex('user_role_unique_idx').on(table.userId, table.roleId),
@@ -184,7 +185,7 @@ export const rolePermissions = coreSchema.table(
  * Permission approval policies table definition.
  * Links permissions to approval requirements based on role hierarchy levels.
  */
-export const permissionApprovalPolicies = coreSchema.table(
+export const permissionApprovalPolicies = approvalPolicySchema.table(
     'permission_approval_policies',
     {
         id: uuid('id').primaryKey().defaultRandom(),

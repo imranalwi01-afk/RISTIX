@@ -69,6 +69,7 @@ import { GridColDef, GridRowId, GridToolbar } from '@mui/x-data-grid';
 
 // Safe DataGrid wrapper to prevent bundling issues
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
+import { ApprovalNotification, ApprovalStatusBadge } from '@/components/approval';
 
 // Types based on live database structure: frs9_imp_ca_ecl_configh + frs9_imp_ca_ecl_configd
 interface ECLConfigHeader {
@@ -161,6 +162,7 @@ const mockPeriodTypes = [
 
 // API service for ECL Configuration - Use centralized api service
 import { api } from '../../../../services/api';
+import { bankingAPI } from '@/services/api';
 
 // Alias to match existing usage patterns in this file
 const eclConfigurationAPI = {
@@ -223,15 +225,19 @@ const eclConfigurationAPI = {
           periodDate: d.period_date
         }))
       });
+      if ((result as any)?.approvalRequired) {
+        return result as any;
+      }
+      const payload: any = (result as any)?.data || result;
       return {
-        pkid: result.id,
-        ecl_model_name: result.model_name,
-        module: result.module || '',
-        effective_date: result.effective_date,
-        active_flag: result.active_flag,
-        details: result.details?.map((d: any) => ({
+        pkid: payload.id,
+        ecl_model_name: payload.model_name,
+        module: payload.module || '',
+        effective_date: payload.effective_date,
+        active_flag: payload.active_flag,
+        details: payload.details?.map((d: any) => ({
           pkid: d.id,
-          ecl_model_id: result.id,
+          ecl_model_id: payload.id,
           pf_segment_id: d.pf_segment_id,
           stage_rule_id: d.stage_rule_id,
           pd_model_id: d.pd_model_id,
@@ -266,15 +272,19 @@ const eclConfigurationAPI = {
           periodDate: d.period_date
         }))
       });
+      if ((result as any)?.approvalRequired) {
+        return result as any;
+      }
+      const payload: any = (result as any)?.data || result;
       return {
-        pkid: result.id,
-        ecl_model_name: result.model_name,
-        module: result.module || '',
-        effective_date: result.effective_date,
-        active_flag: result.active_flag,
-        details: result.details?.map((d: any) => ({
+        pkid: payload.id,
+        ecl_model_name: payload.model_name,
+        module: payload.module || '',
+        effective_date: payload.effective_date,
+        active_flag: payload.active_flag,
+        details: payload.details?.map((d: any) => ({
           pkid: d.id,
-          ecl_model_id: result.id,
+          ecl_model_id: payload.id,
           pf_segment_id: d.pf_segment_id,
           stage_rule_id: d.stage_rule_id,
           pd_model_id: d.pd_model_id,
@@ -291,9 +301,9 @@ const eclConfigurationAPI = {
     }
   },
 
-  deleteHeader: async (pkid: number): Promise<void> => {
+  deleteHeader: async (pkid: number): Promise<any> => {
     try {
-      await api.banking.eclConfigurations.delete(pkid);
+      return await api.banking.eclConfigurations.delete(pkid);
     } catch (error) {
       console.error('Error deleting ECL configuration:', error);
       throw error;
@@ -318,6 +328,12 @@ export default function ECLConfigurationPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterModule, setFilterModule] = useState<string>('');
   const [currentTab, setCurrentTab] = useState(0);
+  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+  const [approvalNotification, setApprovalNotification] = useState<{
+    open: boolean;
+    message: string;
+    requestId?: string;
+  }>({ open: false, message: '' });
 
   // Form data state
   const [headerFormData, setHeaderFormData] = useState<Partial<ECLConfigHeader>>({
@@ -342,9 +358,20 @@ export default function ECLConfigurationPage() {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   // Load ECL configurations on component mount
+  const loadPendingApprovals = useCallback(async () => {
+    try {
+      const response = await bankingAPI.approval.getPendingApprovals();
+      const requests = Array.isArray(response) ? response : response.data || [];
+      setPendingRequests(requests.filter((r: any) => r.entityType === 'ecl_configuration'));
+    } catch (err) {
+      console.error('Error loading pending approvals:', err);
+    }
+  }, []);
+
   useEffect(() => {
     loadEclConfigurations();
-  }, []);
+    loadPendingApprovals();
+  }, [loadPendingApprovals]);
 
   const loadEclConfigurations = async () => {
     setLoading(true);
@@ -554,18 +581,28 @@ export default function ECLConfigurationPage() {
         details: headerFormData.details || []
       };
 
-      let savedConfig: ECLConfigHeader;
+      let savedConfig: any;
 
       if (isEditing && selectedEclConfig) {
         savedConfig = await eclConfigurationAPI.updateHeader(selectedEclConfig.pkid, saveData);
-        console.log('✅ [ECL-CONFIG] Updated ECL configuration:', savedConfig.pkid);
       } else {
         savedConfig = await eclConfigurationAPI.createHeader(saveData);
-        console.log('✅ [ECL-CONFIG] Created ECL configuration:', savedConfig.pkid);
+      }
+
+      const isApprovalResponse = savedConfig?.approvalRequired || savedConfig?.status === 202;
+      if (isApprovalResponse) {
+        setApprovalNotification({
+          open: true,
+          message: savedConfig?.message || 'Request submitted for approval',
+          requestId: savedConfig?.requestId
+        });
+      } else {
+        console.log('✅ [ECL-CONFIG] Saved ECL configuration:', savedConfig?.pkid);
       }
 
       // Reload all configurations to get the latest data
       await loadEclConfigurations();
+      await loadPendingApprovals();
 
       setIsDialogOpen(false);
       setHeaderFormData({});
@@ -588,11 +625,21 @@ export default function ECLConfigurationPage() {
     setLoading(true);
     setError(null);
     try {
-      await eclConfigurationAPI.deleteHeader(eclConfig.pkid);
-      console.log('✅ [ECL-CONFIG] Deleted ECL configuration:', eclConfig.pkid);
+      const response: any = await eclConfigurationAPI.deleteHeader(eclConfig.pkid);
+      const isApprovalResponse = response?.approvalRequired || response?.status === 202;
+      if (isApprovalResponse) {
+        setApprovalNotification({
+          open: true,
+          message: response?.message || 'Deletion request submitted for approval',
+          requestId: response?.requestId
+        });
+      } else {
+        console.log('✅ [ECL-CONFIG] Deleted ECL configuration:', eclConfig.pkid);
+      }
 
       // Reload all configurations to get the latest data
       await loadEclConfigurations();
+      await loadPendingApprovals();
     } catch (error) {
       console.error('❌ [ECL-CONFIG] Error deleting configuration:', error);
       setError('Failed to delete ECL configuration.');
@@ -675,14 +722,18 @@ export default function ECLConfigurationPage() {
       field: 'active_flag',
       headerName: 'Status',
       width: 100,
-      renderCell: (params) => (
-        <Chip
-          label={params.value ? 'Active' : 'Inactive'}
-          size="small"
-          color={params.value ? 'success' : 'error'}
-          variant="outlined"
-        />
-      )
+      renderCell: (params) => {
+        const isPending = pendingRequests.some(r => r.entityId === params.row.pkid?.toString());
+        if (isPending) return <ApprovalStatusBadge status="pending" />;
+        return (
+          <Chip
+            label={params.value ? 'Active' : 'Inactive'}
+            size="small"
+            color={params.value ? 'success' : 'error'}
+            variant="outlined"
+          />
+        );
+      }
     },
     {
       field: 'actions',
@@ -1189,6 +1240,12 @@ export default function ECLConfigurationPage() {
           </Button>
         </DialogActions>
       </Dialog>
+      <ApprovalNotification
+        open={approvalNotification.open}
+        message={approvalNotification.message}
+        requestId={approvalNotification.requestId}
+        onClose={() => setApprovalNotification({ ...approvalNotification, open: false })}
+      />
     </Container>
   );
 }

@@ -3,6 +3,8 @@ import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
 import { LgdConfigurationsService } from '../services/lgd-configurations.service'
 import { runEffect } from '../lib/effect/runtime'
+import { interceptCreate, interceptUpdate, interceptDelete } from '../middleware/approval-interceptor.middleware'
+import type { ApprovalResponse } from '../lib/approval-helpers'
 
 const app = new OpenAPIHono<AppContext>()
 
@@ -63,6 +65,14 @@ const ErrorResponse = z.object({
     message: z.string().optional(),
     error: z.string().optional()
 }).openapi('ErrorResponse')
+
+const ApprovalWorkflowResponse = z.object({
+    success: z.boolean(),
+    approvalRequired: z.boolean(),
+    requestId: z.string().optional(),
+    data: z.any().optional(),
+    message: z.string().optional()
+}).openapi('ApprovalWorkflowResponse')
 
 // ============================================================================
 // ENDPOINTS
@@ -130,6 +140,7 @@ app.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: LgdResponse } }, description: 'Created' },
+            202: { content: { 'application/json': { schema: ApprovalWorkflowResponse } }, description: 'Pending Approval' },
             400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
@@ -137,6 +148,8 @@ app.openapi(
     async (c) => {
         const data = c.req.valid('json')
         const userId = c.get('userId') as string || 'system'
+        const tenantId = c.get('tenantId') as string
+        const userPermissions = c.get('permissions') || []
 
         const payload = {
             modelName: data.model_name,
@@ -152,7 +165,17 @@ app.openapi(
             observationStartDate: data.observation_start_date
         }
 
-        return runEffect(c, LgdConfigurationsService.create(payload, userId)) as any
+        const effect = interceptCreate(
+            tenantId,
+            userId,
+            userPermissions,
+            'lgd_configuration',
+            payload,
+            () => LgdConfigurationsService.create(payload, userId) as any
+        )
+
+        const result = await runEffect(c, effect)
+        return c.json(result, result.approvalRequired ? 202 : 200)
     }
 )
 
@@ -169,6 +192,7 @@ app.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: LgdResponse } }, description: 'Updated' },
+            202: { content: { 'application/json': { schema: ApprovalWorkflowResponse } }, description: 'Update Pending Approval' },
             400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Invalid ID' },
             404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not found' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
@@ -180,6 +204,8 @@ app.openapi(
 
         const data = c.req.valid('json')
         const userId = c.get('userId') as string || 'system'
+        const tenantId = c.get('tenantId') as string
+        const userPermissions = c.get('permissions') || []
 
         const payload = {
             modelName: data.model_name,
@@ -195,7 +221,18 @@ app.openapi(
             observationStartDate: data.observation_start_date
         }
 
-        return runEffect(c, LgdConfigurationsService.update(id, payload, userId)) as any
+        const effect = interceptUpdate(
+            tenantId,
+            userId,
+            userPermissions,
+            'lgd_configuration',
+            id.toString(),
+            payload,
+            () => LgdConfigurationsService.update(id, payload, userId) as any
+        )
+
+        const result = await runEffect(c, effect)
+        return c.json(result, result.approvalRequired ? 202 : 200)
     }
 )
 
@@ -211,6 +248,7 @@ app.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Deleted' },
+            202: { content: { 'application/json': { schema: ApprovalWorkflowResponse } }, description: 'Deletion Pending Approval' },
             400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Invalid ID' },
             404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
@@ -220,7 +258,21 @@ app.openapi(
         const id = c.req.valid('param').id
         if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
 
-        return runEffect(c, LgdConfigurationsService.delete(id)) as any
+        const userId = c.get('userId') as string || 'system'
+        const tenantId = c.get('tenantId') as string
+        const userPermissions = c.get('permissions') || []
+
+        const effect = interceptDelete(
+            tenantId,
+            userId,
+            userPermissions,
+            'lgd_configuration',
+            id.toString(),
+            () => LgdConfigurationsService.delete(id) as any
+        )
+
+        const result = await runEffect(c, effect)
+        return c.json(result, result.approvalRequired ? 202 : 200)
     }
 )
 

@@ -15,6 +15,37 @@ log_error <- function(message) {
 
 log_info("🚀 Starting IAF R Analytics API Service...")
 
+#* @filter cors
+function(res) {
+  # Remove explicit Origin header to avoid conflict with upstream proxy (Nginx/Ingress)
+  # res$setHeader("Access-Control-Allow-Origin", "*") 
+  res$setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+  res$setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Tenant-ID, Origin, Accept")
+  plumber::forward()
+}
+
+#* @options /api/session
+#* @options /session
+#* @options /api/ecl/calculate
+#* @options /ecl/calculate
+#* @options /api/models/pd
+#* @options /models/pd
+#* @options /health
+#* @options /api/status
+#* @options /status
+#* @options /api/system/info
+#* @options /system/info
+#* @options /api/test/generate-data
+#* @options /test/generate-data
+function(res) {
+  # Remove explicit Origin header to prevent conflict
+  # res$setHeader("Access-Control-Allow-Origin", "*")
+  res$setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+  res$setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Tenant-ID, Origin, Accept")
+  res$status <- 200
+  return(list())
+}
+
 #* @apiTitle IAF IFRS9 R Analytics API
 #* @apiDescription Statistical Computing and Analytics for Indonesia Airawata Finance
 #* @apiVersion 1.0.0
@@ -42,6 +73,7 @@ function() {
 
 #* API status endpoint
 #* @get /api/status
+#* @get /status
 #* @serializer unboxedJSON
 function() {
   list(
@@ -63,6 +95,7 @@ function() {
 
 #* Initialize session for frontend iframe
 #* @post /api/session
+#* @post /session
 #* @serializer unboxedJSON
 function(req) {
   tryCatch({
@@ -87,9 +120,13 @@ function(req) {
       success = TRUE,
       message = "Session initialized successfully",
       data = list(
-        session_id = session_id,
-        tenant_id = tenant_id,
-        banking_mode = banking_mode,
+        sessionId = session_id,
+        tenantSlug = tenant_id,
+        bankingType = banking_mode,
+        status = "running",
+        port = 4236,
+        startTime = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ"),
+        uptime = 0,
         service = "IAF IFRS9 R Analytics",
         version = "1.0.0",
         api_endpoints = list(
@@ -106,12 +143,12 @@ function(req) {
           real_time_processing = TRUE,
           statistical_modeling = TRUE
         ),
-        session_config = list(
+        sessionConfig = list(
           tenant = "iaf",
           company = "Indonesia Airawata Finance",
-          banking_type = banking_mode,
+          bankingType = banking_mode,
           currency = "IDR",
-          time_zone = "Asia/Jakarta"
+          timeZone = "Asia/Jakarta"
         )
       ),
       timestamp = Sys.time()
@@ -133,6 +170,7 @@ function(req) {
 
 #* Basic ECL calculation endpoint
 #* @post /api/ecl/calculate
+#* @post /ecl/calculate
 #* @serializer unboxedJSON
 function(req) {
   tryCatch({
@@ -182,6 +220,7 @@ function(req) {
 
 #* PD model execution endpoint
 #* @post /api/models/pd
+#* @post /models/pd
 #* @serializer unboxedJSON  
 function(req) {
   tryCatch({
@@ -218,6 +257,7 @@ function(req) {
 
 #* System information endpoint
 #* @get /api/system/info
+#* @get /system/info
 #* @serializer unboxedJSON
 function() {
   list(
@@ -238,6 +278,7 @@ function() {
 
 #* Test data generation endpoint
 #* @get /api/test/generate-data
+#* @get /test/generate-data
 #* @serializer unboxedJSON
 function() {
   tryCatch({

@@ -6,6 +6,12 @@
 // ✅ SUPPORT: Parent-child relationships, role-based filtering, expansion state
 // =============================================================================
 
+import {
+  buildPermissionContext,
+  checkPermission,
+  evaluatePermission,
+} from './permission-evaluator';
+
 // Database menu item interface (matches backend response)
 interface DatabaseMenuItem {
   id: string;
@@ -247,12 +253,9 @@ export const filterHierarchicalMenu = (
   bankingMode: 'conventional' | 'syariah' | 'dual',
   userPermissions?: string[] // ✅ Add permissions parameter for granular filtering
 ): HierarchicalMenuItem[] => {
-  // Normalize inputs once for re-use
-  const normalizedPermissions = (userPermissions || []).map(p => p?.toLowerCase()).filter(Boolean);
-
-  const isSuperAdmin =
-    normalizedPermissions.includes('*') ||
-    normalizedPermissions.includes('super_admin');
+  const permissionContext = buildPermissionContext(userPermissions || []);
+  const isSuperAdmin = permissionContext.isSuperAdmin;
+  const debugPermissionFiltering = process.env.NODE_ENV === 'development';
 
   const filterItems = (items: HierarchicalMenuItem[]): HierarchicalMenuItem[] => {
     return items
@@ -276,21 +279,44 @@ export const filterHierarchicalMenu = (
         // Permission-based filter (explicit permission codes)
         const requiredPerms = item.requiredPermissions || [];
         if (requiredPerms.length > 0) {
-          if (normalizedPermissions.length > 0) {
-            const hasPermission = requiredPerms.some(requiredPerm =>
-              normalizedPermissions.some(userPerm => userPerm === (requiredPerm || '').toLowerCase())
-            );
-            if (hasPermission) {
-              // Allow even if role checks below would fail
-              return true;
-            }
+          const hasPermissionMatch = requiredPerms.some((requiredPerm) =>
+            checkPermission(requiredPerm, permissionContext)
+          );
+
+          if (hasPermissionMatch) {
+            return true;
           }
+
+          if (debugPermissionFiltering) {
+            const evaluations = requiredPerms.map((requiredPerm) =>
+              evaluatePermission(requiredPerm, permissionContext)
+            );
+            console.debug('[MenuPermissionDebug] Hidden menu item', {
+              itemId: item.id,
+              itemKey: item.key,
+              requiredPermissions: requiredPerms,
+              evaluations,
+            });
+          }
+          return false;
         } else if (item.permissions && item.permissions.length > 0) {
           // Treat legacy item.permissions as permission codes (not roles)
-          const hasPermission = item.permissions.some(perm =>
-            normalizedPermissions.includes((perm || '').toLowerCase())
+          const hasPermissionMatch = item.permissions.some((perm) =>
+            checkPermission(perm, permissionContext)
           );
-          if (hasPermission) return true;
+          if (hasPermissionMatch) return true;
+
+          if (debugPermissionFiltering) {
+            const evaluations = item.permissions.map((perm) =>
+              evaluatePermission(perm, permissionContext)
+            );
+            console.debug('[MenuPermissionDebug] Hidden menu item (legacy permissions)', {
+              itemId: item.id,
+              itemKey: item.key,
+              permissions: item.permissions,
+              evaluations,
+            });
+          }
           return false;
         }
 

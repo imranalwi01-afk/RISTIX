@@ -5,7 +5,6 @@ import {
     Menu,
     MenuItem,
     Typography,
-    Chip,
     CircularProgress,
     Divider,
     ListItemIcon,
@@ -19,6 +18,7 @@ import {
 } from '@mui/icons-material';
 import { frontendEnvironmentLoader } from '../../config/environment-loader-frontend';
 import { useAuth } from '../../providers/AuthProvider';
+import { getAuthToken } from '../../utils/auth-token';
 
 interface TenantOption {
     id: string;
@@ -37,12 +37,19 @@ export const TenantSwitcher: React.FC = () => {
     const open = Boolean(anchorEl);
 
     // Only show for platform admins
-    const isPlatformAdmin = user?.role?.includes('PLATFORM_') ||
-        user?.email === 'admin@iaf-system.local' ||
-        // Fallback to checking the token stored role if available (via direct prop or other means, but user object is best)
-        false;
+    const userPermissions = Array.isArray(user?.permissions) ? user.permissions : [];
+    const isPlatformAdmin =
+        user?.stakeholderType === 'platform' ||
+        userPermissions.includes('admin.super_admin') ||
+        userPermissions.includes('admin.system.manage') ||
+        userPermissions.includes('SUPER_ADMIN') ||
+        userPermissions.includes('PLATFORM_ADMIN') ||
+        !!user?.isPlatformAdmin;
 
-    const currentTenantName = user?.tenantSlug || 'system';
+    const currentTenantName =
+        (typeof window !== 'undefined' ? localStorage.getItem('impersonated_tenant_slug') : null) ||
+        user?.tenantSlug ||
+        'system';
 
     useEffect(() => {
         if (isPlatformAdmin && open && tenants.length === 0) {
@@ -50,20 +57,27 @@ export const TenantSwitcher: React.FC = () => {
         }
     }, [isPlatformAdmin, open]);
 
+    const toApiV1BaseUrl = (rawValue: string): string => {
+        let normalized = (rawValue || '').trim().replace(/\/+$/, '');
+        while (/\/api\/v1$/i.test(normalized)) {
+            normalized = normalized.replace(/\/api\/v1$/i, '');
+        }
+        return normalized.length > 0 ? `${normalized}/api/v1` : '/api/v1';
+    };
+
     const fetchTenants = async () => {
         setLoading(true);
         try {
             const config = frontendEnvironmentLoader.getConfiguration();
-            const baseUrl = config.api.base || `${config.api.backend}/api/v1`;
+            const baseUrl = toApiV1BaseUrl(config?.api?.base || config?.api?.backend || '');
+            const token = getAuthToken();
 
             // Use admin mode to see system tenant too if needed, though mostly we want to switch to others
             const response = await fetch(`${baseUrl}/auth/login-data?mode=admin`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
-                    // Pass the auth token if we needed it for a protected route, 
-                    // but login-data is public. However, for admin mode validation the backend *might* 
-                    // eventually require auth. Currently it's public.
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
                 }
             });
 
@@ -100,8 +114,11 @@ export const TenantSwitcher: React.FC = () => {
         // For now, let's assume we reload the window and the AuthProvider/Interceptor 
         // will pick up the specific tenant preference if we store it.
 
-        // Storing the preferred impersonation tenant in localStorage
-        localStorage.setItem('impersonated_tenant_slug', tenantSlug);
+        if (tenantSlug === 'system') {
+            localStorage.removeItem('impersonated_tenant_slug');
+        } else {
+            localStorage.setItem('impersonated_tenant_slug', tenantSlug);
+        }
 
         // Force reload to apply new context
         window.location.reload();
@@ -147,28 +164,44 @@ export const TenantSwitcher: React.FC = () => {
                 </Box>
 
                 {loading ? (
-                    <Box sx={{ p: 3, display: 'flex', justifyContent: 'center' }}>
-                        <CircularProgress size={24} />
-                    </Box>
+                    <MenuItem disabled sx={{ justifyContent: 'center', py: 2 }}>
+                        <CircularProgress size={20} />
+                    </MenuItem>
                 ) : (
-                    tenants.map((tenant) => (
+                    [
                         <MenuItem
-                            key={tenant.id}
-                            onClick={() => handleSwitch(tenant.slug)}
-                            selected={tenant.slug === currentTenantName}
+                            key="system-context"
+                            onClick={() => handleSwitch('system')}
+                            selected={currentTenantName === 'system'}
                         >
                             <ListItemIcon>
-                                {tenant.slug === 'system' ? <AdminPanelSettings fontSize="small" /> : <Business fontSize="small" />}
+                                <AdminPanelSettings fontSize="small" />
                             </ListItemIcon>
-                            <ListItemText
-                                primary={tenant.displayName || tenant.name}
-                                secondary={tenant.slug}
-                            />
-                            {tenant.slug === currentTenantName && (
+                            <ListItemText primary="System Context" secondary="No tenant impersonation" />
+                            {currentTenantName === 'system' && (
                                 <Check fontSize="small" color="primary" />
                             )}
-                        </MenuItem>
-                    ))
+                        </MenuItem>,
+                        <Divider key="divider" />,
+                        ...tenants.map((tenant) => (
+                            <MenuItem
+                                key={tenant.id}
+                                onClick={() => handleSwitch(tenant.slug)}
+                                selected={tenant.slug === currentTenantName}
+                            >
+                                <ListItemIcon>
+                                    <Business fontSize="small" />
+                                </ListItemIcon>
+                                <ListItemText
+                                    primary={tenant.displayName || tenant.name}
+                                    secondary={tenant.slug}
+                                />
+                                {tenant.slug === currentTenantName && (
+                                    <Check fontSize="small" color="primary" />
+                                )}
+                            </MenuItem>
+                        ))
+                    ]
                 )}
             </Menu>
         </Box>

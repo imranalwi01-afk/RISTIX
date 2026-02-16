@@ -23,6 +23,8 @@ import { run as inspectDbSchema } from './scripts/ops/inspect-db-schema';
 import { run as inspectPlatformUsers } from './scripts/ops/inspect-platform-users';
 import { run as listTenantCoreTables } from './scripts/ops/list-tenant-core-tables';
 import { run as listTenantRoles } from './scripts/ops/list-tenant-roles';
+import { run as createIafAdmin } from './scripts/ops/create-iaf-admin';
+import { run as createPlatformAdmin } from './scripts/ops/create-platform-admin';
 
 const program = new Command();
 
@@ -78,7 +80,7 @@ program.command('fix-db-schema')
     .action(fixDbSchema);
 
 program.command('fix-platform-users')
-    .description('Sync platform_admin.platform_users columns and rebuild core.users view')
+    .description('Consolidate legacy platform_admin.platform_users into canonical platform_admin.users')
     .action(fixPlatformUsers);
 
 program.command('fix-remote-schema')
@@ -98,7 +100,7 @@ program.command('inspect-db-schema')
     .action(inspectDbSchema);
 
 program.command('inspect-platform-users')
-    .description('Inspect columns of platform_admin.platform_users')
+    .description('Inspect canonical platform_admin.users and legacy compatibility view platform_admin.platform_users')
     .action(inspectPlatformUsers);
 
 program.command('list-tenant-tables')
@@ -114,4 +116,27 @@ program.command('verify-job')
     .description('Run e2e test: create and execute a dummy job via API')
     .action(createDummyJob);
 
+
+program.command('create-iaf-admin')
+    .description('Create or reset IAF Tenant Superadmin (iaf tenant)')
+    .action(createIafAdmin);
+
+
+program.command('create-platform-admin')
+    .description('Create or reset Platform Superadmin (Cross-tenant)')
+    .action(createPlatformAdmin);
+
+// ... existing imports
+import { run as resetPassword } from './scripts/ops/reset-password';
+
+// ... existing commands
+
+program.command('reset-password')
+    .description('Reset password for Platform Admin or Tenant User')
+    .requiredOption('-e, --email <email>', 'User email')
+    .requiredOption('-p, --password <password>', 'New plain-text password')
+    .option('-t, --tenant-id <tenantId>', 'Tenant ID (if resetting a tenant user)')
+    .action(resetPassword);
+
 program.parse();
+

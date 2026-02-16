@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { logger } from '../lib/logger'
+import { fileURLToPath } from 'node:url'
 
 /**
  * Environment schema with Zod validation
@@ -27,13 +28,13 @@ const envSchema = z.object({
     PLATFORM_DB_NAME: z.string().default('ifrspro_platform_admin'),
     PLATFORM_DB_SSL: z.string().transform(val => val === 'true').default('false'),
 
-    // Shared Services Database
-    SHARED_DB_HOST: z.string().optional(),
-    SHARED_DB_PORT: z.coerce.number().optional(),
-    SHARED_DB_USER: z.string().optional(),
-    SHARED_DB_PASSWORD: z.string().optional(),
-    SHARED_DB_NAME: z.string().default('ifrspro_shared_services'),
-    SHARED_DB_SSL: z.string().transform(val => val === 'true').default('false'),
+    // // Shared Services Database
+    // SHARED_DB_HOST: z.string().optional(),
+    // SHARED_DB_PORT: z.coerce.number().optional(),
+    // SHARED_DB_USER: z.string().optional(),
+    // SHARED_DB_PASSWORD: z.string().optional(),
+    // SHARED_DB_NAME: z.string().default('ifrspro_shared_services'),
+    // SHARED_DB_SSL: z.string().transform(val => val === 'true').default('false'),
 
     // Tenant Database
     TENANT_DB_HOST: z.string().optional(),
@@ -65,6 +66,7 @@ const envSchema = z.object({
 
     // JWT
     JWT_SECRET: z.string().min(32),
+    JWT_REFRESH_SECRET: z.string().min(32).optional(),
     JWT_EXPIRES_IN: z.string().default('1h'),
 
     // Redis (optional)
@@ -73,6 +75,7 @@ const envSchema = z.object({
     REDIS_PORT: z.string().optional(), // Using string to match redis.ts parsing logic or coerce? redis.ts parses int.
     REDIS_PASSWORD: z.string().optional(),
     REDIS_SESSION_DB: z.string().optional(),
+    REDIS_QUEUE_DB: z.string().default('0'),
 
     // Logging
     LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
@@ -84,27 +87,50 @@ export type Env = z.infer<typeof envSchema>
  * Parse and validate environment variables
  */
 function parseEnv(): Env {
-    // Manual fallback: Read .env if LEGACY_DATABASE_URL is missing
-    // This handles cases where bun might not load .env from the expected location or cache issues
-    if (!process.env.LEGACY_DATABASE_URL) {
+    const shouldAttemptManualLoad =
+        !process.env.LEGACY_DATABASE_URL ||
+        !process.env.JWT_SECRET ||
+        !process.env.DB_HOST
+
+    // Manual fallback: Read environment files from common project locations.
+    // This helps when scripts are run from nested folders (e.g. src/db/seeds).
+    if (shouldAttemptManualLoad) {
         try {
             // Use dynamic import or require to avoid top-level node types issues if strict
             const fs = require('fs')
             const path = require('path')
-            const envPath = path.resolve(process.cwd(), '.env')
+            const envFileDir = path.dirname(fileURLToPath(import.meta.url))
 
-            if (fs.existsSync(envPath)) {
+            const candidateEnvPaths = [
+                process.env.ENV_FILE,
+                path.resolve(process.cwd(), '.env'),
+                path.resolve(process.cwd(), 'ops/local/.env'),
+                path.resolve(process.cwd(), '../ops/local/.env'),
+                path.resolve(process.cwd(), '../../ops/local/.env'),
+                path.resolve(process.cwd(), '../../../ops/local/.env'),
+                path.resolve(process.cwd(), '../../../../ops/local/.env'),
+                path.resolve(envFileDir, '../../.env'),
+                path.resolve(envFileDir, '../../../../ops/local/.env'),
+            ].filter(Boolean)
+
+            const loadedPaths = new Set<string>()
+            for (const envPath of candidateEnvPaths) {
+                if (loadedPaths.has(envPath as string)) continue
+                loadedPaths.add(envPath as string)
+
+                if (!fs.existsSync(envPath)) continue
                 logger.info({ envPath }, 'Manually loading .env from file')
                 const content = fs.readFileSync(envPath, 'utf-8')
+
                 content.split('\n').forEach((line: string) => {
                     const match = line.match(/^\s*([\w_]+)\s*=\s*(.*)?\s*$/)
-                    if (match) {
-                        const key = match[1]
-                        const value = match[2] ? match[2].trim() : ''
-                        // Only set if not already defined
-                        if (!process.env[key]) {
-                            process.env[key] = value
-                        }
+                    if (!match) return
+                    const key = match[1]
+                    let value = match[2] ? match[2].trim() : ''
+                    value = value.replace(/^["'](.*)["']$/, '$1')
+                    // Only set if not already defined
+                    if (!process.env[key]) {
+                        process.env[key] = value
                     }
                 })
             }
@@ -161,19 +187,19 @@ export function getPlatformDatabaseUrl(): string {
     return constructDatabaseUrl(host, port, user, password, database, ssl)
 }
 
-/**
- * Get Shared Services Database URL
- */
-export function getSharedDatabaseUrl(): string {
-    const host = env.SHARED_DB_HOST || env.DB_HOST
-    const port = env.SHARED_DB_PORT || env.DB_PORT
-    const user = env.SHARED_DB_USER || env.DB_USER
-    const password = env.SHARED_DB_PASSWORD || env.DB_PASSWORD
-    const database = env.SHARED_DB_NAME
-    const ssl = env.SHARED_DB_SSL
+// /**a
+//  * Get Shared Services Database URL
+//  */
+// export function getSharedDatabaseUrl(): string {
+//     const host = env.SHARED_DB_HOST || env.DB_HOST
+//     const port = env.SHARED_DB_PORT || env.DB_PORT
+//     const user = env.SHARED_DB_USER || env.DB_USER
+//     const password = env.SHARED_DB_PASSWORD || env.DB_PASSWORD
+//     const database = env.SHARED_DB_NAME
+//     const ssl = env.SHARED_DB_SSL
 
-    return constructDatabaseUrl(host, port, user, password, database, ssl)
-}
+//     return constructDatabaseUrl(host, port, user, password, database, ssl)
+// }
 
 /**
  * Get Tenant Database URL

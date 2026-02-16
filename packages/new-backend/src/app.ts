@@ -22,6 +22,7 @@ import { env, isProduction } from './config'
     return this.toString()
 }
 import { routes } from './routes'
+import { businessSettingsRoutes } from './routes/business-settings.routes'
 import { errorHandler } from './middleware/error-handler'
 
 import type { User } from './db/schema'
@@ -36,6 +37,7 @@ export type AppContext = {
         userId?: string
         tokenId?: string
         permissions?: string[]
+        userPermissions?: string[]
         isSystemUser?: boolean
         user?: User
         logger?: Logger
@@ -110,10 +112,12 @@ export function createApp() {
                 'Authorization',
                 'X-Tenant-ID',
                 'X-Tenant-Slug',
+                'X-Impersonation-Mode',
                 'X-Request-Time',
                 'X-Client',
                 'x-tenant-id',
                 'x-tenant-slug',
+                'x-impersonation-mode',
                 'x-request-time',
                 'x-client',
             ],
@@ -146,6 +150,7 @@ export function createApp() {
     )
 
     // API routes
+    app.route('/api/v1/banking/business-settings', businessSettingsRoutes) // Explicit mount for business settings
     app.route('/api/v1', routes)
 
     // OpenAPI Specification

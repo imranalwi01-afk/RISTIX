@@ -10,6 +10,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import type { AxiosError } from 'axios';
 import {
   Box,
   Typography,
@@ -60,6 +61,7 @@ import {
   Notifications as NotificationIcon,
   CloudDownload as ExportIcon,
   Visibility as ViewIcon,
+  Security as SecurityIcon,
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { GridColDef } from '@mui/x-data-grid';
@@ -84,7 +86,7 @@ interface ApprovalRequest {
   requestedBy: string;
   requestedByName: string;
   requestedAt: string;
-  status: 'pending' | 'approved' | 'rejected' | 'info_requested' | 'delegated' | 'cancelled';
+  status: 'pending' | 'approved' | 'rejected' | 'info_requested' | 'delegated' | 'cancelled' | 'completed';
   impactLevel?: 'low' | 'medium' | 'high' | 'critical'; // Mapped to priority
   approvalsRequired: number;
   approvalsReceived: number;
@@ -289,6 +291,34 @@ export default function ApprovalManagementPage() {
     setSnackbar({ open: true, message, severity });
   };
 
+  const resolveApprovalActionError = (error: unknown): { message: string; severity: 'error' | 'warning' } => {
+    const axiosError = error as AxiosError<any>;
+    const status = axiosError?.response?.status;
+    const payload = axiosError?.response?.data as any;
+    const code = String(payload?.code || '').toUpperCase();
+    const message = String(payload?.error || payload?.message || axiosError?.message || 'Failed to process approval action');
+
+    if (status === 409 && code === 'REQUEST_NOT_PENDING') {
+      if (message.toLowerCase().includes('already approved')) {
+        return { message: 'Request is already approved by another approver.', severity: 'warning' };
+      }
+      if (message.toLowerCase().includes('already rejected')) {
+        return { message: 'Request is already rejected.', severity: 'warning' };
+      }
+      return { message: 'Request is no longer pending.', severity: 'warning' };
+    }
+
+    if (status === 404) {
+      return { message: 'Request no longer exists.', severity: 'warning' };
+    }
+
+    if (status === 422) {
+      return { message, severity: 'warning' };
+    }
+
+    return { message, severity: 'error' };
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return 'warning';
@@ -385,12 +415,44 @@ export default function ApprovalManagementPage() {
 
     } catch (error) {
       console.error('Error submitting approval action:', error);
-      showSnackbar('Failed to process approval action', 'error');
+      const resolved = resolveApprovalActionError(error);
+      showSnackbar(resolved.message, resolved.severity);
+      loadApprovalRequests();
     }
   };
 
   const handleViewDetails = (request: ApprovalRequest) => {
     setDetailDialog({ open: true, request });
+  };
+
+  const isRolePermissionRequest = (request: ApprovalRequest): boolean => {
+    const requestType = String(request.requestType || request.entityType || '').toLowerCase();
+    return requestType === 'role_permission' || requestType === 'role_permissions';
+  };
+
+  const resolveRoleTarget = (request: ApprovalRequest): { tenantId?: string; roleId?: string } => {
+    const payload = request.requestData || {};
+    const nestedData = payload?.data || {};
+    return {
+      tenantId: request.tenantId || nestedData?.tenantId || payload?.tenantId,
+      roleId: request.entityId || nestedData?.roleId || payload?.roleId,
+    };
+  };
+
+  const openRolePermissionInRBAC = (request: ApprovalRequest) => {
+    const { tenantId, roleId } = resolveRoleTarget(request);
+    if (!tenantId || !roleId) {
+      showSnackbar('Role/tenant target is missing from this approval request.', 'warning');
+      return;
+    }
+
+    const query = new URLSearchParams({
+      tenantId,
+      roleId,
+      requestId: request.id,
+    });
+
+    router.push(`/platform/rbac?${query.toString()}`);
   };
 
   const handleRefresh = () => {
@@ -500,28 +562,40 @@ export default function ApprovalManagementPage() {
       headerName: 'Actions',
       width: 120,
       getActions: (params) => {
+        const request = params.row as ApprovalRequest;
         const actions = [
           <SafeGridActionsCellItem
             key="view"
             icon={<ViewIcon />}
             label="View Details"
-            onClick={() => handleViewDetails(params.row)}
+            onClick={() => handleViewDetails(request)}
           />,
         ];
 
-        if (params.row.status === 'pending' || params.row.status === 'info_requested') {
+        if (isRolePermissionRequest(request)) {
+          actions.push(
+            <SafeGridActionsCellItem
+              key="open-rbac"
+              icon={<SecurityIcon color="primary" />}
+              label="Open RBAC"
+              onClick={() => openRolePermissionInRBAC(request)}
+            />
+          );
+        }
+
+        if (request.status === 'pending' || request.status === 'info_requested') {
           actions.push(
             <SafeGridActionsCellItem
               key="approve"
               icon={<ApproveIcon color="success" />}
               label="Approve"
-              onClick={() => handleApprovalAction(params.row, 'approve')}
+              onClick={() => handleApprovalAction(request, 'approve')}
             />,
             <SafeGridActionsCellItem
               key="reject"
               icon={<RejectIcon color="error" />}
               label="Reject"
-              onClick={() => handleApprovalAction(params.row, 'reject')}
+              onClick={() => handleApprovalAction(request, 'reject')}
             />
           );
         }
@@ -742,6 +816,176 @@ export default function ApprovalManagementPage() {
     )
   );
 
+  const renderApprovalHistory = () => {
+    // Filter for completed requests (approved or rejected)
+    const historyRequests = approvalRequests.filter(
+      req => req.status === 'approved' || req.status === 'rejected' || req.status === 'completed'
+    );
+
+    const historyColumns: GridColDef[] = [
+      {
+        field: 'requestTitle',
+        headerName: 'Request',
+        flex: 1,
+        minWidth: 200,
+      },
+      {
+        field: 'requestType',
+        headerName: 'Type',
+        width: 150,
+        renderCell: (params) => (
+          <Chip
+            label={params.value.replace('_', ' ').toUpperCase()}
+            size="small"
+            variant="outlined"
+          />
+        ),
+      },
+      {
+        field: 'requestedByName',
+        headerName: 'Requested By',
+        width: 180,
+      },
+      {
+        field: 'requestedAt',
+        headerName: 'Requested',
+        width: 150,
+        renderCell: (params) => formatDate(params.value),
+      },
+      {
+        field: 'completedAt',
+        headerName: 'Completed',
+        width: 150,
+        renderCell: (params) => params.value ? formatDate(params.value) : '-',
+      },
+      {
+        field: 'status',
+        headerName: 'Status',
+        width: 130,
+        renderCell: (params) => (
+          <Chip
+            label={params.value.toUpperCase()}
+            color={getStatusColor(params.value) as any}
+            size="small"
+          />
+        ),
+      },
+      {
+        field: 'approvalsReceived',
+        headerName: 'Approvals',
+        width: 120,
+        renderCell: (params) => (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <ApproveIcon fontSize="small" color="success" />
+            <Typography variant="body2">
+              {params.row.approvalsReceived} / {params.row.approvalsRequired}
+            </Typography>
+          </Box>
+        ),
+      },
+      {
+        field: 'actions',
+        headerName: 'Actions',
+        width: 140,
+        sortable: false,
+        renderCell: (params) => (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <IconButton
+              size="small"
+              onClick={() => handleViewDetails(params.row)}
+              color="primary"
+            >
+              <ViewIcon />
+            </IconButton>
+            {isRolePermissionRequest(params.row) && (
+              <IconButton
+                size="small"
+                color="secondary"
+                onClick={() => openRolePermissionInRBAC(params.row)}
+              >
+                <SecurityIcon fontSize="small" />
+              </IconButton>
+            )}
+          </Box>
+        ),
+      },
+    ];
+
+    return (
+      <Box>
+        <Paper sx={{ mb: 2, p: 2 }}>
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+            <Typography variant="h6" sx={{ flexGrow: 1 }}>
+              Approval History ({historyRequests.length} records)
+            </Typography>
+            <FormControl size="small" sx={{ minWidth: 150 }}>
+              <InputLabel>Status</InputLabel>
+              <Select
+                value={statusFilter}
+                label="Status"
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <MenuItem value="all">All</MenuItem>
+                <MenuItem value="approved">Approved</MenuItem>
+                <MenuItem value="rejected">Rejected</MenuItem>
+                <MenuItem value="completed">Completed</MenuItem>
+              </Select>
+            </FormControl>
+            <TextField
+              size="small"
+              placeholder="Search..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              InputProps={{
+                startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />,
+              }}
+              sx={{ minWidth: 250 }}
+            />
+          </Box>
+        </Paper>
+
+        {historyRequests.length === 0 ? (
+          <Paper sx={{ p: 4, textAlign: 'center' }}>
+            <HistoryIcon sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
+            <Typography variant="h6" color="text.secondary" gutterBottom>
+              No Approval History
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Completed approval requests will appear here
+            </Typography>
+          </Paper>
+        ) : (
+          <Paper>
+            <SafeDataGrid
+              rows={historyRequests}
+              columns={historyColumns}
+              initialState={{
+                pagination: {
+                  paginationModel: { pageSize: 10 },
+                },
+                sorting: {
+                  sortModel: [{ field: 'completedAt', sort: 'desc' }],
+                },
+              }}
+              pageSizeOptions={[10, 25, 50]}
+              disableRowSelectionOnClick
+              autoHeight
+              sx={{
+                border: 'none',
+                '& .MuiDataGrid-cell:focus': {
+                  outline: 'none',
+                },
+                '& .MuiDataGrid-row:hover': {
+                  backgroundColor: 'action.hover',
+                },
+              }}
+            />
+          </Paper>
+        )}
+      </Box>
+    );
+  };
+
   if (loading && !approvalRequests.length) {
     return (
       <Container maxWidth="xl">
@@ -843,11 +1087,7 @@ export default function ApprovalManagementPage() {
       <Box>
         {activeTab === 0 && renderPendingApprovals()}
         {activeTab === 1 && renderStatistics()}
-        {activeTab === 2 && (
-          <Alert severity="info">
-            Approval history functionality will be implemented soon.
-          </Alert>
-        )}
+        {activeTab === 2 && renderApprovalHistory()}
         {activeTab === 3 && (
           <Alert severity="info">
             Approval matrix configuration will be implemented soon.
@@ -984,9 +1224,18 @@ export default function ApprovalManagementPage() {
             </Box>
           )}
         </DialogContent>
-        <DialogActions>
+      <DialogActions>
+          {detailDialog.request && isRolePermissionRequest(detailDialog.request) && (
+            <Button
+              color="secondary"
+              startIcon={<SecurityIcon />}
+              onClick={() => openRolePermissionInRBAC(detailDialog.request!)}
+            >
+              Open in RBAC
+            </Button>
+          )}
           <Button onClick={() => setDetailDialog({ open: false })}>Close</Button>
-        </DialogActions>
+      </DialogActions>
       </Dialog>
 
       {/* Snackbar */}

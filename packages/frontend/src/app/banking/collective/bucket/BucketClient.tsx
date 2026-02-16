@@ -41,7 +41,8 @@ import {
   CircularProgress,
   Container,
   Switch,
-  FormControlLabel
+  FormControlLabel,
+  Snackbar
 } from '@mui/material';
 import {
   KeyboardArrowDown,
@@ -57,6 +58,9 @@ import {
 import { useRouter } from 'next/navigation';
 import { bucketParameterAPI, BucketParameterHeader, BucketParameterDetail } from '../../../../services/api.bucketparameter';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
+import { ApprovalNotification, ApprovalStatusBadge } from '@/components/approval';
+import { bankingAPI } from '@/services/api';
+import { usePermission } from '@/hooks/usePermission';
 
 
 // ============================================================================
@@ -66,21 +70,25 @@ import { FullstackIndicator } from '@/components/common/feedback/FullstackIndica
 interface BucketHeaderRowProps {
   header: BucketParameterHeader;
   basisOptions: { value1: string, paramdesc: string }[];
+  canManage: boolean;
   onEdit: (header: BucketParameterHeader) => void;
   onDelete: (header: BucketParameterHeader) => void;
   onAddDetail: (header: BucketParameterHeader) => void;
   onEditDetail: (detail: BucketParameterDetail) => void;
   onDeleteDetail: (detail: BucketParameterDetail) => void;
+  pendingRequests?: any[];
 }
 
 const BucketHeaderRow: React.FC<BucketHeaderRowProps> = ({
   header,
   basisOptions,
+  canManage,
   onEdit,
   onDelete,
   onAddDetail,
   onEditDetail,
-  onDeleteDetail
+  onDeleteDetail,
+  pendingRequests = []
 }) => {
   const [open, setOpen] = useState(false);
   const [details, setDetails] = useState<BucketParameterDetail[]>([]);
@@ -174,27 +182,33 @@ const BucketHeaderRow: React.FC<BucketHeaderRowProps> = ({
           />
         </TableCell>
         <TableCell align="center">
-          <Chip
-            label={header.active_flag ? 'Active' : 'Inactive'}
-            size="small"
-            color={header.active_flag ? 'success' : 'default'}
-            variant="outlined"
-            data-testid="header-status-chip"
-          />
+          {pendingRequests.some(r => r.entityId === header.id?.toString()) ? (
+            <ApprovalStatusBadge status="pending" />
+          ) : (
+            <Chip
+              label={header.active_flag ? 'Active' : 'Inactive'}
+              size="small"
+              color={header.active_flag ? 'success' : 'default'}
+              variant="outlined"
+              data-testid="header-status-chip"
+            />
+          )}
         </TableCell>
         <TableCell>
-          <Box sx={{ display: 'flex', gap: 0.5 }}>
-            <Tooltip title="Edit Bucket Group">
-              <IconButton size="small" onClick={() => onEdit(header)} color="primary" data-testid="edit-header-btn">
-                <EditIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Delete Bucket Group">
-              <IconButton size="small" onClick={() => onDelete(header)} color="error" data-testid="delete-header-btn">
-                <DeleteIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          </Box>
+          {canManage && (
+            <Box sx={{ display: 'flex', gap: 0.5 }}>
+              <Tooltip title="Edit Bucket Group">
+                <IconButton size="small" onClick={() => onEdit(header)} color="primary" data-testid="edit-header-btn">
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Delete Bucket Group">
+                <IconButton size="small" onClick={() => onDelete(header)} color="error" data-testid="delete-header-btn">
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          )}
         </TableCell>
       </TableRow>
 
@@ -207,16 +221,18 @@ const BucketHeaderRow: React.FC<BucketHeaderRowProps> = ({
                 <Typography variant="h6" gutterBottom component="div" color="primary">
                   Bucket Details
                 </Typography>
-                <Button
-                  size="small"
-                  startIcon={<AddIcon />}
-                  onClick={() => onAddDetail(header)}
-                  variant="contained"
-                  color="primary"
-                  data-testid="add-detail-btn"
-                >
-                  Add Detail
-                </Button>
+                {canManage && (
+                  <Button
+                    size="small"
+                    startIcon={<AddIcon />}
+                    onClick={() => onAddDetail(header)}
+                    variant="contained"
+                    color="primary"
+                    data-testid="add-detail-btn"
+                  >
+                    Add Detail
+                  </Button>
+                )}
               </Box>
 
               {detailsLoading ? (
@@ -269,18 +285,20 @@ const BucketHeaderRow: React.FC<BucketHeaderRowProps> = ({
                             />
                           </TableCell>
                           <TableCell align="center">
-                            <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
-                              <Tooltip title="Edit Detail">
-                                <IconButton size="small" onClick={() => onEditDetail(detail)} color="primary" data-testid="edit-detail-btn">
-                                  <EditIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                              <Tooltip title="Delete Detail">
-                                <IconButton size="small" onClick={() => onDeleteDetail(detail)} color="error" data-testid="delete-detail-btn">
-                                  <DeleteIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                            </Box>
+                            {canManage && (
+                              <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+                                <Tooltip title="Edit Detail">
+                                  <IconButton size="small" onClick={() => onEditDetail(detail)} color="primary" data-testid="edit-detail-btn">
+                                    <EditIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Delete Detail">
+                                  <IconButton size="small" onClick={() => onDeleteDetail(detail)} color="error" data-testid="delete-detail-btn">
+                                    <DeleteIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                              </Box>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -289,7 +307,7 @@ const BucketHeaderRow: React.FC<BucketHeaderRowProps> = ({
                 </TableContainer>
               ) : (
                 <Alert severity="info" sx={{ mt: 1 }}>
-                  No bucket details found. Click "Add Detail" to create one.
+                  No bucket details found. Click Add Detail to create one.
                 </Alert>
               )}
             </Box>
@@ -305,6 +323,10 @@ const BucketHeaderRow: React.FC<BucketHeaderRowProps> = ({
 // ============================================================================
 
 export default function BucketParameterPage() {
+  const { hasAnyPermission } = usePermission();
+  const canViewBucket = hasAnyPermission(['banking.collective.bucket.view', 'banking.collective.bucket.manage', 'banking.collective.manage', 'banking.collective', 'admin.super_admin']);
+  const canManageBucket = hasAnyPermission(['banking.collective.bucket.manage', 'banking.collective.bucket.create', 'banking.collective.bucket.update', 'banking.collective.bucket.delete', 'banking.collective.manage', 'admin.super_admin']);
+
   const router = useRouter();
 
   // Data State
@@ -325,6 +347,10 @@ export default function BucketParameterPage() {
   const [selectedHeader, setSelectedHeader] = useState<BucketParameterHeader | null>(null);
   const [headerFormData, setHeaderFormData] = useState<Partial<BucketParameterHeader>>({});
   const [detailFormData, setDetailFormData] = useState<Partial<BucketParameterDetail>>({});
+
+  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+  const [approvalNotification, setApprovalNotification] = useState<{ open: boolean, message: string }>({ open: false, message: '' });
+  const [snackbar, setSnackbar] = useState<{ open: boolean, message: string, type: 'success' | 'error' }>({ open: false, message: '', type: 'success' });
 
   // Error State
   const [error, setError] = useState<string | null>(null);
@@ -367,6 +393,16 @@ export default function BucketParameterPage() {
     }
   }, [searchTerm, filterBasis]);
 
+  const loadPendingApprovals = useCallback(async () => {
+    try {
+      const response = await bankingAPI.approval.getPendingApprovals();
+      const requests = Array.isArray(response) ? response : response.data || [];
+      setPendingRequests(requests.filter((r: any) => r.entityType === 'bucket_parameter'));
+    } catch (err) {
+      console.error('Error loading pending approvals:', err);
+    }
+  }, []);
+
   // ============================================================================
   // EVENT HANDLERS
   // ============================================================================
@@ -382,6 +418,7 @@ export default function BucketParameterPage() {
   };
 
   const handleAddHeader = () => {
+    if (!canManageBucket) return;
     setHeaderFormData({
       bucket_group: '',
       bucket_group_desc: '',
@@ -396,6 +433,7 @@ export default function BucketParameterPage() {
   };
 
   const handleEditHeader = (header: BucketParameterHeader) => {
+    if (!canManageBucket) return;
     setHeaderFormData({ ...header });
     setSelectedHeader(header);
     setEditMode(true);
@@ -403,24 +441,33 @@ export default function BucketParameterPage() {
   };
 
   const handleDeleteHeader = async (header: BucketParameterHeader) => {
+    if (!canManageBucket) return;
     if (!confirm(`Delete bucket group "${header.bucket_group}"? This will delete all details.`)) {
       return;
     }
 
     try {
       if (!header.id) return;
-      const response = await bucketParameterAPI.deleteHeader(header.id);
-      if (response.success) {
-        await loadBucketHeaders();
+      const response = await bucketParameterAPI.deleteHeader(header.id) as any;
+      const isApprovalResponse = response.approvalRequired || response.status === 202;
+
+      if (isApprovalResponse) {
+        setApprovalNotification({
+          open: true,
+          message: response.message || 'Deletion request submitted for approval'
+        });
       } else {
-        alert('Failed to delete bucket parameter');
+        setSnackbar({ open: true, message: 'Bucket group deleted', type: 'success' });
       }
+      loadBucketHeaders();
+      loadPendingApprovals();
     } catch (error: any) {
-      alert(error.message || 'Error deleting bucket parameter');
+      setSnackbar({ open: true, message: error.message || 'Error deleting bucket parameter', type: 'error' });
     }
   };
 
   const handleAddDetail = (header: BucketParameterHeader) => {
+    if (!canManageBucket) return;
     setDetailFormData({
       bucket_id: header.id,
       bucket_name: '',
@@ -434,66 +481,100 @@ export default function BucketParameterPage() {
   };
 
   const handleEditDetail = (detail: BucketParameterDetail) => {
+    if (!canManageBucket) return;
     setDetailFormData({ ...detail });
     setEditMode(true);
     setDetailDialogOpen(true);
   };
 
   const handleDeleteDetail = async (detail: BucketParameterDetail) => {
+    if (!canManageBucket) return;
     if (!confirm(`Delete bucket detail "${detail.bucket_name}"?`)) {
       return;
     }
 
     try {
       if (!detail.id) return;
-      const response = await bucketParameterAPI.deleteDetail(detail.id);
-      if (response.success && selectedHeader) {
-        alert('Deleted successfully');
-        loadBucketHeaders();
+      const response = await bucketParameterAPI.deleteDetail(detail.id) as any;
+      const isApprovalResponse = response.approvalRequired || response.status === 202;
+
+      if (isApprovalResponse) {
+        setApprovalNotification({
+          open: true,
+          message: response.message || 'Deletion request submitted for approval'
+        });
       } else {
-        alert('Failed to delete detail');
+        setSnackbar({ open: true, message: 'Detail deleted successfully', type: 'success' });
       }
+      loadBucketHeaders();
+      loadPendingApprovals();
     } catch (error: any) {
-      alert(error.message || 'Error deleting detail');
+      setSnackbar({ open: true, message: error.message || 'Error deleting detail', type: 'error' });
     }
   };
 
   const handleSaveHeader = async () => {
+    if (!canManageBucket) return;
     try {
       if (editMode && !selectedHeader?.id) return;
 
-      const response = editMode
+      const response = (editMode
         ? await bucketParameterAPI.updateHeader(selectedHeader!.id!, headerFormData)
-        : await bucketParameterAPI.createHeader(headerFormData as any);
+        : await bucketParameterAPI.createHeader(headerFormData as any)) as any;
 
-      if (response.success) {
-        setHeaderDialogOpen(false);
-        await loadBucketHeaders();
+      const isApprovalResponse = response.approvalRequired || response.status === 202;
+
+      if (isApprovalResponse) {
+        setApprovalNotification({
+          open: true,
+          message: response.message || 'Request submitted for approval'
+        });
       } else {
-        alert('Failed to save bucket parameter');
+        setSnackbar({
+          open: true,
+          message: editMode ? 'Bucket group updated' : 'Bucket group created',
+          type: 'success'
+        });
       }
+
+      setHeaderDialogOpen(false);
+      loadBucketHeaders();
+      loadPendingApprovals();
     } catch (error: any) {
-      alert(error.message || 'Error saving bucket parameter');
+      setSnackbar({ open: true, message: error.message || 'Error saving bucket parameter', type: 'error' });
     }
   };
 
   const handleSaveDetail = async () => {
+    if (!canManageBucket) return;
     try {
       if (!editMode && !selectedHeader?.id) return;
       if (editMode && !detailFormData.id) return;
 
-      const response = editMode
+      const response = (editMode
         ? await bucketParameterAPI.updateDetail(detailFormData.id!, detailFormData)
-        : await bucketParameterAPI.createDetail(selectedHeader!.id!, detailFormData as any);
+        : await bucketParameterAPI.createDetail(selectedHeader!.id!, detailFormData as any)) as any;
 
-      if (response.success) {
-        setDetailDialogOpen(false);
-        window.location.reload();
+      const isApprovalResponse = response.approvalRequired || response.status === 202;
+
+      if (isApprovalResponse) {
+        setApprovalNotification({
+          open: true,
+          message: response.message || 'Request submitted for approval'
+        });
       } else {
-        alert('Failed to save bucket detail');
+        setSnackbar({
+          open: true,
+          message: editMode ? 'Detail updated' : 'Detail created',
+          type: 'success'
+        });
       }
+
+      setDetailDialogOpen(false);
+      loadBucketHeaders();
+      loadPendingApprovals();
     } catch (error: any) {
-      alert(error.message || 'Error saving bucket detail');
+      setSnackbar({ open: true, message: error.message || 'Error saving bucket detail', type: 'error' });
     }
   };
 
@@ -504,7 +585,8 @@ export default function BucketParameterPage() {
   useEffect(() => {
     loadBasisOptions();
     loadBucketHeaders();
-  }, [loadBasisOptions, loadBucketHeaders]);
+    loadPendingApprovals();
+  }, [loadBasisOptions, loadBucketHeaders, loadPendingApprovals]);
 
   // ============================================================================
   // RENDER
@@ -513,6 +595,11 @@ export default function BucketParameterPage() {
   return (
     <Container maxWidth="xl" sx={{ position: 'relative' }}>
       <FullstackIndicator />
+      {!canViewBucket && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          You do not have permission to view bucket parameters.
+        </Alert>
+      )}
       <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
         <Link
           underline="hover"
@@ -548,15 +635,17 @@ export default function BucketParameterPage() {
               </Box>
             </Box>
             <Box sx={{ display: 'flex', gap: 2 }}>
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={handleAddHeader}
-                size="large"
-                data-testid="add-bucket-btn"
-              >
-                Add Bucket Group
-              </Button>
+              {canManageBucket && (
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={handleAddHeader}
+                  size="large"
+                  data-testid="add-bucket-btn"
+                >
+                  Add Bucket Group
+                </Button>
+              )}
               <Button
                 variant="outlined"
                 startIcon={<RefreshIcon />}
@@ -613,10 +702,12 @@ export default function BucketParameterPage() {
         </CardContent>
       </Card>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
-          <strong>Error:</strong> {error}
-        </Alert>
+      {snackbar.open && (
+        <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={() => setSnackbar({ ...snackbar, open: false })}>
+          <Alert severity={snackbar.type || 'info'} onClose={() => setSnackbar({ ...snackbar, open: false })}>
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
       )}
 
       <Card>
@@ -646,11 +737,13 @@ export default function BucketParameterPage() {
                       key={header.id}
                       header={header}
                       basisOptions={basisOptions}
+                      canManage={canManageBucket}
                       onEdit={handleEditHeader}
                       onDelete={handleDeleteHeader}
                       onAddDetail={handleAddDetail}
                       onEditDetail={handleEditDetail}
                       onDeleteDetail={handleDeleteDetail}
+                      pendingRequests={pendingRequests}
                     />
                   ))}
                 </TableBody>
@@ -658,7 +751,7 @@ export default function BucketParameterPage() {
             </TableContainer>
           ) : (
             <Alert severity="info">
-              No bucket parameters found. Click "Add Bucket Group" to create one.
+              No bucket parameters found. Click Add Bucket Group to create one.
             </Alert>
           )}
         </CardContent>
@@ -751,7 +844,9 @@ export default function BucketParameterPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setHeaderDialogOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleSaveHeader} data-testid="save-header-btn">Save</Button>
+          {canManageBucket && (
+            <Button variant="contained" onClick={handleSaveHeader} data-testid="save-header-btn">Save</Button>
+          )}
         </DialogActions>
       </Dialog>
 
@@ -811,9 +906,16 @@ export default function BucketParameterPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDetailDialogOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleSaveDetail} data-testid="save-detail-btn">Save</Button>
+          {canManageBucket && (
+            <Button variant="contained" onClick={handleSaveDetail} data-testid="save-detail-btn">Save</Button>
+          )}
         </DialogActions>
       </Dialog>
+      <ApprovalNotification
+        open={approvalNotification.open}
+        message={approvalNotification.message}
+        onClose={() => setApprovalNotification({ ...approvalNotification, open: false })}
+      />
     </Container>
   );
 }

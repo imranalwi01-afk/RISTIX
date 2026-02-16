@@ -144,88 +144,108 @@ export const createApprovalRequest = (
 export const processApprovalAction = (
     input: ProcessApprovalInput
 ): Effect.Effect<{ completed: boolean; status: string }, DatabaseError | NotFoundError | BusinessError> =>
-    dbOperation('transaction', async () => {
-        // Get the request
-        const request = await ApprovalRepository.findRequestById(input.requestId)
+    Effect.tryPromise({
+        try: async () => {
+            // Get the request
+            const request = await ApprovalRepository.findRequestById(input.requestId)
 
-        if (!request) {
-            throw new NotFoundError({ resource: 'ApprovalRequest', id: input.requestId })
-        }
-        if (request.status !== 'pending') {
-            throw new BusinessError({
-                message: `Request is already ${request.status}`,
-                code: 'REQUEST_NOT_PENDING',
-            })
-        }
-
-        // Insert the action
-        await ApprovalRepository.createAction({
-            requestId: input.requestId,
-            approverId: input.approverId,
-            approverRole: input.approverRole,
-            level: request.currentLevel,
-            action: input.action,
-            comment: input.comment,
-            conditions: input.conditions,
-            delegatedTo: input.delegatedTo,
-            riskScore: input.riskScore,
-        })
-
-        // Handle based on action type
-        if (input.action === 'approve') {
-            const newReceived = (request.approvalsReceived || 0) + 1
-            const isComplete = newReceived >= request.approvalsRequired
-
-            await ApprovalRepository.updateRequest(input.requestId, {
-                approvalsReceived: newReceived,
-                status: isComplete ? 'approved' : 'pending',
-                currentLevel: isComplete ? request.currentLevel : request.currentLevel + 1,
-                completedAt: isComplete ? new Date() : null,
-                completedBy: isComplete ? input.approverId : null,
-            })
-
-            if (isComplete) {
-                // Execute the approved action (e.g., create user, update config)
-                await executeApprovedAction(request)
-                await notifyApprovalCompletion(request, 'approved')
-            } else {
-                // Progress to next level notification
-                await notifyNextLevelApprovers(request)
+            if (!request) {
+                throw new NotFoundError({ resource: 'ApprovalRequest', id: input.requestId })
             }
-
-            return { completed: isComplete, status: isComplete ? 'approved' : 'pending' }
-        }
-
-        if (input.action === 'reject') {
-            await ApprovalRepository.updateRequest(input.requestId, {
-                status: 'rejected',
-                completedAt: new Date(),
-                completedBy: input.approverId,
-            })
-
-            await notifyApprovalCompletion(request, 'rejected')
-            return { completed: true, status: 'rejected' }
-        }
-
-        if (input.action === 'request_info') {
-            // Logic to notify requester for more info
-            await notifyRequester(request, 'info_requested', input.comment)
-            return { completed: false, status: 'pending' }
-        }
-
-        if (input.action === 'delegate') {
-            if (!input.delegatedTo) {
+            if (request.status !== 'pending') {
                 throw new BusinessError({
-                    message: 'Delegation target user ID is required',
-                    code: 'DELEGATION_REQUIRED'
+                    message: `Request is already ${request.status}`,
+                    code: 'REQUEST_NOT_PENDING',
                 })
             }
-            // Notify the delegated user
-            await notifyApprover(input.delegatedTo, request, 'delegated')
-            return { completed: false, status: 'pending' }
-        }
 
-        return { completed: false, status: 'pending' }
+            // Prevent users from approving their own requests
+            if (input.action === 'approve' && input.approverId === request.requestedBy) {
+                throw new BusinessError({
+                    message: 'You cannot approve your own request',
+                    code: 'SELF_APPROVAL_NOT_ALLOWED',
+                })
+            }
+
+            // Insert the action
+            await ApprovalRepository.createAction({
+                requestId: input.requestId,
+                approverId: input.approverId,
+                approverRole: input.approverRole,
+                level: request.currentLevel,
+                action: input.action,
+                comment: input.comment,
+                conditions: input.conditions,
+                delegatedTo: input.delegatedTo,
+                riskScore: input.riskScore,
+            })
+
+            // Handle based on action type
+            if (input.action === 'approve') {
+                const newReceived = (request.approvalsReceived || 0) + 1
+                const isComplete = newReceived >= request.approvalsRequired
+
+                await ApprovalRepository.updateRequest(input.requestId, {
+                    approvalsReceived: newReceived,
+                    status: isComplete ? 'approved' : 'pending',
+                    currentLevel: isComplete ? request.currentLevel : request.currentLevel + 1,
+                    completedAt: isComplete ? new Date() : null,
+                    completedBy: isComplete ? input.approverId : null,
+                })
+
+                if (isComplete) {
+                    // Execute the approved action (e.g., create user, update config)
+                    await executeApprovedAction(request)
+                    await notifyApprovalCompletion(request, 'approved')
+                } else {
+                    // Progress to next level notification
+                    await notifyNextLevelApprovers(request)
+                }
+
+                return { completed: isComplete, status: isComplete ? 'approved' : 'pending' }
+            }
+
+            if (input.action === 'reject') {
+                await ApprovalRepository.updateRequest(input.requestId, {
+                    status: 'rejected',
+                    completedAt: new Date(),
+                    completedBy: input.approverId,
+                })
+
+                await notifyApprovalCompletion(request, 'rejected')
+                return { completed: true, status: 'rejected' }
+            }
+
+            if (input.action === 'request_info') {
+                // Logic to notify requester for more info
+                await notifyRequester(request, 'info_requested', input.comment)
+                return { completed: false, status: 'pending' }
+            }
+
+            if (input.action === 'delegate') {
+                if (!input.delegatedTo) {
+                    throw new BusinessError({
+                        message: 'Delegation target user ID is required',
+                        code: 'DELEGATION_REQUIRED'
+                    })
+                }
+                // Notify the delegated user
+                await notifyApprover(input.delegatedTo, request, 'delegated')
+                return { completed: false, status: 'pending' }
+            }
+
+            return { completed: false, status: 'pending' }
+        },
+        catch: (error) => {
+            if (error instanceof NotFoundError || error instanceof BusinessError) {
+                return error
+            }
+            return new DatabaseError({
+                message: error instanceof Error ? error.message : 'Database operation failed',
+                operation: 'transaction',
+                cause: error,
+            })
+        },
     })
 
 // =============================================================================
@@ -237,7 +257,157 @@ export const processApprovalAction = (
  */
 async function executeApprovedAction(request: any): Promise<void> {
     console.log(`[ApprovalService] Executing approved action for ${request.entityType}:${request.entityId}`)
-    // TODO: Map entityType to actual service calls (e.g., UserService.createPendingUser)
+
+    const requestData = request.requestData as any
+    if (!requestData || !requestData.operation) {
+        console.error('[ApprovalService] Invalid request data structure')
+        return
+    }
+
+    const { operation, entityType, data } = requestData
+    const tenantId = request.tenantId
+
+    try {
+        // Map entity types to their service executors
+        switch (entityType) {
+            case 'user':
+                await executeUserAction(operation, data, tenantId)
+                break
+
+            case 'parameter':
+            case 'app_setting':
+            case 'business_setting':
+                await executeParameterAction(operation, data, tenantId, entityType)
+                break
+
+            case 'pd_configuration':
+            case 'lgd_configuration':
+            case 'ead_configuration':
+            case 'ecl_configuration':
+                await executeConfigurationAction(operation, data, tenantId, entityType)
+                break
+
+            case 'role_permission':
+            case 'role_permissions':
+                await executeRolePermissionAction(operation, data, tenantId)
+                break
+
+            default:
+                console.warn(`[ApprovalService] No executor defined for entity type: ${entityType}`)
+            // For unknown entity types, just log - they may be handled by custom logic
+        }
+    } catch (error) {
+        console.error(`[ApprovalService] Failed to execute approved action:`, error)
+        throw error
+    }
+}
+
+/**
+ * Execute user-related actions
+ */
+async function executeUserAction(
+    operation: 'create' | 'update' | 'delete',
+    data: any,
+    tenantId: string
+): Promise<void> {
+    // Import dynamically to avoid circular dependencies
+    const { createUser, updateUser, deleteUser } = await import('./users.service')
+
+    switch (operation) {
+        case 'create':
+            await Effect.runPromise(createUser({ ...data, tenantId }) as any)
+            break
+        case 'update':
+            await Effect.runPromise(updateUser(data.id, { ...data, tenantId }) as any)
+            break
+        case 'delete':
+            await Effect.runPromise(deleteUser(data.id, tenantId) as any)
+            break
+    }
+}
+
+/**
+ * Execute parameter-related actions
+ */
+async function executeParameterAction(
+    operation: 'create' | 'update' | 'delete',
+    data: any,
+    _tenantId: string,
+    _entityType: string
+): Promise<void> {
+    const { ParametersService } = await import('./parameters.service')
+
+    switch (operation) {
+        case 'create':
+            await Effect.runPromise(ParametersService.createAppSetting(data, 'system') as any)
+            break
+        case 'update':
+            await Effect.runPromise(ParametersService.updateAppSetting(data.paramCode, data, 'system') as any)
+            break
+        case 'delete':
+            await Effect.runPromise(ParametersService.deleteAppSetting(data.paramCode) as any)
+            break
+    }
+}
+
+/**
+ * Execute configuration-related actions
+ */
+async function executeConfigurationAction(
+    operation: 'create' | 'update' | 'delete',
+    data: any,
+    tenantId: string,
+    entityType: string
+): Promise<void> {
+    // Configuration services would be imported and executed here
+    // This is a placeholder for now
+    console.log(`[ApprovalService] Executing ${operation} for ${entityType}`, data)
+}
+
+/**
+ * Execute role-permission updates after approval.
+ */
+async function executeRolePermissionAction(
+    operation: 'create' | 'update' | 'delete',
+    data: any,
+    tenantId: string
+): Promise<void> {
+    if (operation !== 'update') {
+        console.warn(`[ApprovalService] Unsupported role permission operation: ${operation}`)
+        return
+    }
+
+    const roleId = data?.roleId || data?.id || data?.entityId
+    if (!roleId || typeof roleId !== 'string') {
+        throw new Error('Missing roleId in role permission approval payload')
+    }
+
+    const { getAvailablePermissions, updateRolePermissions } = await import('./rbac.service')
+
+    const availablePermissions = await Effect.runPromise(getAvailablePermissions(tenantId))
+    const permissionLookup = new Map<string, string>()
+    for (const permission of availablePermissions as any[]) {
+        permissionLookup.set(permission.id, permission.id)
+        permissionLookup.set(permission.code, permission.id)
+    }
+
+    const requestedPermissionsRaw = Array.isArray(data?.permissionIds)
+        ? data.permissionIds
+        : Array.isArray(data?.permissions)
+            ? data.permissions
+            : []
+
+    const requestedPermissions: string[] = requestedPermissionsRaw.filter((entry: unknown): entry is string => typeof entry === 'string')
+    const unknownPermissions = requestedPermissions.filter((entry: string) => !permissionLookup.has(entry))
+    if (unknownPermissions.length > 0) {
+        throw new Error(`Unknown role permissions in approval payload: ${unknownPermissions.join(', ')}`)
+    }
+
+    const resolvedPermissionIds = requestedPermissions
+        .map((entry: string) => permissionLookup.get(entry))
+        .filter((entry: string | undefined): entry is string => typeof entry === 'string')
+
+    await Effect.runPromise(updateRolePermissions(roleId, resolvedPermissionIds, tenantId))
 }
 
 /**
@@ -352,12 +522,11 @@ export const getApprovalHistory = (
     entityId?: string
 ): Effect.Effect<ApprovalRequest[], DatabaseError> =>
     dbOperation('query', () => {
-        // If entityType is provided, filter by it; otherwise get all requests for tenant
+        // If entityType is provided, filter by it; otherwise get full tenant history.
         if (entityType) {
             return ApprovalRepository.findRequestsByEntity(tenantId, entityType, entityId)
         } else {
-            // Get all requests for this tenant (both pending and completed)
-            return ApprovalRepository.findPendingRequests(tenantId)
+            return ApprovalRepository.findRequestsByTenant(tenantId)
         }
     })
 

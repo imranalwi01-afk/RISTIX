@@ -12,8 +12,6 @@ import { hashPassword } from './auth.service'
 export interface CreateUserInput {
     email: string
     password: string
-    firstName?: string
-    lastName?: string
     phone?: string
     department?: string
     position?: string
@@ -22,8 +20,6 @@ export interface CreateUserInput {
 }
 
 export interface UpdateUserInput {
-    firstName?: string
-    lastName?: string
     phone?: string
     department?: string
     position?: string
@@ -160,7 +156,7 @@ export const createUser = (
                         email: input.email,
                         username: input.email.split('@')[0],
                         passwordHash,
-                        fullName: `${input.firstName || ''} ${input.lastName || ''}`.trim() || input.email.split('@')[0],
+                        fullName: input.email.split('@')[0],
                         phone: input.phone,
                         department: input.department,
                         position: input.position,
@@ -250,6 +246,42 @@ export const updatePassword = (
             })
         ),
         Effect.flatMap(() => getUserById(userId, tenantId)) // Return updated user
+    )
+
+/**
+ * Administrative password reset with optional force-change-on-login.
+ */
+export const resetPassword = (
+    userId: string,
+    newPassword: string,
+    tenantId: string,
+    options?: { forcePasswordChange?: boolean }
+): Effect.Effect<User, DatabaseError | NotFoundError> =>
+    pipe(
+        Effect.tryPromise({
+            try: () => hashPassword(newPassword),
+            catch: (error) =>
+                new DatabaseError({
+                    operation: 'query',
+                    message: `Failed to hash password: ${error}`,
+                }),
+        }),
+        Effect.flatMap((passwordHash) =>
+            Effect.tryPromise({
+                try: async () => {
+                    const db = getDatabase(tenantId)
+                    await AuthRepository.updateUser(db, userId, {
+                        passwordHash,
+                        forcePasswordChange: options?.forcePasswordChange ?? true,
+                        passwordChangedAt: new Date(),
+                        failedLoginAttempts: 0,
+                    } as any)
+                    return true
+                },
+                catch: (error) => new DatabaseError({ operation: 'update', message: String(error) })
+            })
+        ),
+        Effect.flatMap(() => getUserById(userId, tenantId))
     )
 
 /**

@@ -25,8 +25,11 @@ import {
   Select,
   FormControlLabel,
   Switch,
-  CircularProgress
+  CircularProgress,
+  Snackbar
 } from '@mui/material';
+import { ApprovalNotification, ApprovalStatusBadge } from '@/components/approval';
+import { bankingAPI } from '@/services/api';
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -45,6 +48,7 @@ import { LGDConfiguration } from '../../../../services/api/lgd-configurations.ap
 import { PopulationSegment } from '../../../../services/api/population-segments.api';
 import { FLScalarWithDetails } from '../../../../services/api/fl-scalar.api';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
+import { usePermission } from '@/hooks/usePermission';
 
 // Safe DataGrid wrapper to prevent bundling issues
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
@@ -57,6 +61,10 @@ interface LGDConfigUI extends LGDConfiguration {
 }
 
 export default function LGDSetupPage() {
+  const { hasAnyPermission } = usePermission();
+  const canViewLgdSetup = hasAnyPermission(['banking.collective.lgd_setup.view', 'banking.collective.lgd_setup.manage', 'banking.collective.manage', 'banking.collective', 'admin.super_admin']);
+  const canManageLgdSetup = hasAnyPermission(['banking.collective.lgd_setup.manage', 'banking.collective.lgd_setup.create', 'banking.collective.lgd_setup.update', 'banking.collective.lgd_setup.delete', 'banking.collective.manage', 'admin.super_admin']);
+
   const router = useRouter();
 
   const [loading, setLoading] = useState(false);
@@ -92,6 +100,10 @@ export default function LGDSetupPage() {
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [searchTerm, setSearchTerm] = useState('');
+
+  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+  const [approvalNotification, setApprovalNotification] = useState<{ open: boolean, message: string }>({ open: false, message: '' });
+  const [snackbar, setSnackbar] = useState<{ open: boolean, message: string, type: 'success' | 'error' }>({ open: false, message: '', type: 'success' });
 
   // Load Data
   const loadData = useCallback(async () => {
@@ -134,9 +146,20 @@ export default function LGDSetupPage() {
     }
   }, []);
 
+  const loadPendingApprovals = useCallback(async () => {
+    try {
+      const response = await bankingAPI.approval.getPendingApprovals();
+      const requests = Array.isArray(response) ? response : response.data || [];
+      setPendingRequests(requests.filter((r: any) => r.entityType === 'lgd_configuration'));
+    } catch (err) {
+      console.error('Error loading pending approvals:', err);
+    }
+  }, []);
+
   useEffect(() => {
     loadData();
-  }, [loadData]);
+    loadPendingApprovals();
+  }, [loadData, loadPendingApprovals]);
 
   // Filtering
   useEffect(() => {
@@ -167,8 +190,8 @@ export default function LGDSetupPage() {
   };
 
   const handleSave = async () => {
+    if (!canManageLgdSetup) return;
     if (!validateForm()) return;
-    setLoading(true);
     try {
       const payload: any = {
         model_name: formData.model_name,
@@ -184,13 +207,30 @@ export default function LGDSetupPage() {
         observation_start_date: formData.observation_start_date
       };
 
+      let response: any;
       if (isEditing && selectedConfig?.id) {
-        await api.banking.lgdConfigurations.update(String(selectedConfig.id), payload);
+        response = await api.banking.lgdConfigurations.update(String(selectedConfig.id), payload);
       } else {
-        await api.banking.lgdConfigurations.create(payload);
+        response = await api.banking.lgdConfigurations.create(payload);
+      }
+
+      const isApprovalResponse = response.approvalRequired || response.status === 202;
+
+      if (isApprovalResponse) {
+        setApprovalNotification({
+          open: true,
+          message: response.message || 'Request submitted for approval'
+        });
+      } else {
+        setSnackbar({
+          open: true,
+          message: isEditing ? 'Configuration updated' : 'Configuration created',
+          type: 'success'
+        });
       }
 
       await loadData();
+      await loadPendingApprovals();
       setIsDialogOpen(false);
       setFormData({});
       setSelectedConfig(null);
@@ -203,11 +243,23 @@ export default function LGDSetupPage() {
   };
 
   const handleDelete = async (id: number) => {
+    if (!canManageLgdSetup) return;
     if (!confirm('Are you sure you want to delete this configuration?')) return;
-    setLoading(true);
     try {
-      await api.banking.lgdConfigurations.delete(String(id));
+      const response = await api.banking.lgdConfigurations.delete(String(id)) as any;
+      const isApprovalResponse = response.approvalRequired || response.status === 202;
+
+      if (isApprovalResponse) {
+        setApprovalNotification({
+          open: true,
+          message: response.message || 'Deletion request submitted for approval'
+        });
+      } else {
+        setSnackbar({ open: true, message: 'Configuration deleted', type: 'success' });
+      }
+
       await loadData();
+      await loadPendingApprovals();
     } catch (err: any) {
       console.error('Delete failed:', err);
       setError('Failed to delete configuration.');
@@ -239,20 +291,24 @@ export default function LGDSetupPage() {
       field: 'is_active',
       headerName: 'Status',
       width: 100,
-      renderCell: (params) => (
-        <Chip
-          label={params.value ? 'Active' : 'Inactive'}
-          color={params.value ? 'success' : 'default'}
-          size="small"
-        />
-      )
+      renderCell: (params) => {
+        const isPending = pendingRequests.some(r => r.entityId === params.row.id?.toString());
+        if (isPending) return <ApprovalStatusBadge status="pending" />;
+        return (
+          <Chip
+            label={params.value ? 'Active' : 'Inactive'}
+            color={params.value ? 'success' : 'default'}
+            size="small"
+          />
+        );
+      }
     },
     {
       field: 'actions',
       type: 'actions',
       headerName: 'Actions',
       width: 100,
-      getActions: (params) => [
+      getActions: (params) => canManageLgdSetup ? [
         <SafeGridActionsCellItem
           key="edit"
           icon={<EditIcon color="primary" />}
@@ -270,12 +326,17 @@ export default function LGDSetupPage() {
           label="Delete"
           onClick={() => handleDelete(params.row.id!)}
         />
-      ]
+      ] : []
     }
   ];
 
   return (
     <Container maxWidth="xl">
+      {!canViewLgdSetup && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          You do not have permission to view LGD setup.
+        </Alert>
+      )}
       <Breadcrumbs sx={{ mb: 2 }}>
         <Link href="/banking/dashboard" underline="hover" color="inherit">Dashboard</Link>
         <Typography color="text.primary">LGD Setup</Typography>
@@ -285,20 +346,30 @@ export default function LGDSetupPage() {
         <Typography variant="h4" component="h1">LGD Setup Management</Typography>
         <Box>
           <Button startIcon={<RefreshIcon />} onClick={loadData} disabled={loading} sx={{ mr: 1 }}>Refresh</Button>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => {
-            setSelectedConfig(null);
-            setFormData({
-              is_active: true,
-              lgd_method: 1,
-              population_type: 'Monthly',
-              workout_period: 12,
-              fl_flag: false
-            });
-            setIsEditing(false);
-            setIsDialogOpen(true);
-          }}>Add Configuration</Button>
+          {canManageLgdSetup && (
+            <Button variant="contained" startIcon={<AddIcon />} onClick={() => {
+              setSelectedConfig(null);
+              setFormData({
+                is_active: true,
+                lgd_method: 1,
+                population_type: 'Monthly',
+                workout_period: 12,
+                fl_flag: false
+              });
+              setIsEditing(false);
+              setIsDialogOpen(true);
+            }}>Add Configuration</Button>
+          )}
         </Box>
       </Box>
+
+      {snackbar.open && (
+        <Snackbar sx={{ mb: 2 }} open={snackbar.open} autoHideDuration={6000} onClose={() => setSnackbar({ ...snackbar, open: false })}>
+          <Alert severity={snackbar.type || 'info'} onClose={() => setSnackbar({ ...snackbar, open: false })}>
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
+      )}
 
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
 
@@ -439,9 +510,16 @@ export default function LGDSetupPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleSave} disabled={loading}>{selectedConfig ? 'Update' : 'Create'}</Button>
+          {canManageLgdSetup && (
+            <Button variant="contained" onClick={handleSave} disabled={loading}>{selectedConfig ? 'Update' : 'Create'}</Button>
+          )}
         </DialogActions>
       </Dialog>
+      <ApprovalNotification
+        open={approvalNotification.open}
+        message={approvalNotification.message}
+        onClose={() => setApprovalNotification({ ...approvalNotification, open: false })}
+      />
       <FullstackIndicator />
     </Container>
   );

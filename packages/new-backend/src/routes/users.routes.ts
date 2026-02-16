@@ -5,6 +5,8 @@ import { authMiddleware, tenantMiddleware } from '../middleware'
 import { runEffect } from '../lib/effect'
 import { parsePaginationParams, parseFilterParams } from '../lib/react-admin'
 import * as usersService from '../services/users.service'
+import { interceptCreate, interceptUpdate, interceptDelete } from '../middleware/approval-interceptor.middleware'
+import type { ApprovalResponse } from '../lib/approval-helpers'
 
 export const usersRoutes = new OpenAPIHono<AppContext>()
 
@@ -51,6 +53,11 @@ const UpdateUserSchema = z.object({
     position: z.string().optional(),
     isActive: z.boolean().optional(),
 }).openapi('UpdateUserInput')
+
+const ResetPasswordSchema = z.object({
+    newPassword: z.string().min(8),
+    forcePasswordChange: z.boolean().optional().default(true),
+}).openapi('ResetUserPasswordInput')
 
 const UserListResponse = z.object({
     success: z.boolean(),
@@ -164,6 +171,110 @@ usersRoutes.openapi(
 )
 
 /**
+ * Reset User Password (admin/platform-admin only).
+ *
+ * @route POST /users/:id/reset-password
+ */
+usersRoutes.openapi(
+    createRoute({
+        method: 'post',
+        path: '/{id}/reset-password',
+        tags: ['Users'],
+        summary: 'Reset User Password',
+        security: [{ BearerAuth: [] }],
+        request: {
+            params: z.object({
+                id: z.string().openapi({ param: { name: 'id', in: 'path' } }),
+            }),
+            body: {
+                content: {
+                    'application/json': {
+                        schema: ResetPasswordSchema,
+                    },
+                },
+            },
+        },
+        responses: {
+            200: {
+                description: 'Password reset successful',
+                content: {
+                    'application/json': {
+                        schema: z.object({
+                            success: z.boolean(),
+                            message: z.string(),
+                            data: UserSchema,
+                        }),
+                    },
+                },
+            },
+            403: {
+                description: 'Forbidden',
+                content: {
+                    'application/json': {
+                        schema: z.object({
+                            success: z.boolean(),
+                            error: z.string(),
+                            code: z.string(),
+                        }),
+                    },
+                },
+            },
+        },
+    }),
+    async (c) => {
+        const { id } = c.req.valid('param')
+        const tenantId = c.get('tenantId')!
+        const body = c.req.valid('json')
+        const userPermissions = (c.get('userPermissions') as string[]) || []
+        const isSystemUser = c.get('isSystemUser')
+
+        const canResetPassword =
+            isSystemUser ||
+            userPermissions.includes('admin.super_admin') ||
+            userPermissions.includes('admin.users.manage') ||
+            userPermissions.includes('SUPER_ADMIN') ||
+            userPermissions.includes('MANAGE_USERS')
+
+        if (!canResetPassword) {
+            return c.json(
+                {
+                    success: false,
+                    error: 'Insufficient permission to reset user password',
+                    code: 'FORBIDDEN',
+                },
+                403
+            )
+        }
+
+        const effect = pipe(
+            usersService.resetPassword(id, body.newPassword, tenantId, {
+                forcePasswordChange: body.forcePasswordChange,
+            }),
+            Effect.map((user) => ({
+                success: true,
+                message: 'Password reset successfully',
+                data: {
+                    id: user.id,
+                    email: user.email,
+                    fullName: user.fullName,
+                    username: user.username,
+                    phone: user.phone ?? null,
+                    department: user.department ?? null,
+                    position: user.position ?? null,
+                    tenantId: user.tenantId ?? null,
+                    isVerified: user.isVerified ?? false,
+                    emailVerifiedAt: user.emailVerifiedAt ? user.emailVerifiedAt.toISOString() : null,
+                    lastLoginAt: user.lastLoginAt ? user.lastLoginAt.toISOString() : null,
+                    isActive: user.isActive ?? false,
+                },
+            }))
+        )
+
+        return runEffect(c, effect)
+    }
+)
+
+/**
  * Create User.
  * Register a new user in the tenant.
  * 
@@ -198,31 +309,58 @@ usersRoutes.openapi(
     }),
     async (c) => {
         const tenantId = c.get('tenantId')!
+        const userId = c.get('userId')!
+        const userPermissions = (c.get('userPermissions') as string[]) || []
         const body = c.req.valid('json')
 
+        // Define the actual user creation operation
+        const executeCreate = () => usersService.createUser({
+            ...body,
+            tenantId,
+        })
+
+        // Use approval interceptor
         const effect = pipe(
-            usersService.createUser({
-                ...body,
+            interceptCreate(
                 tenantId,
-            }),
-            Effect.map((user) => ({
-                id: user.id,
-                email: user.email,
-                fullName: user.fullName,
-                username: user.username,
-                phone: user.phone ?? null,
-                department: user.department ?? null,
-                position: user.position ?? null,
-                tenantId: user.tenantId ?? null,
-                isVerified: user.isVerified ?? false,
-                emailVerifiedAt: user.emailVerifiedAt ? user.emailVerifiedAt.toISOString() : null,
-                lastLoginAt: user.lastLoginAt ? user.lastLoginAt.toISOString() : null,
-                isActive: user.isActive ?? false,
-            }))
+                userId,
+                userPermissions,
+                'user',
+                { ...body, tenantId },
+                executeCreate,
+                'medium' // impact level
+            ),
+            Effect.map((response: ApprovalResponse) => {
+                if (response.approvalRequired) {
+                    // Return approval pending response
+                    return response
+                } else {
+                    // Return created user
+                    const user = response.data as any
+                    return {
+                        success: true,
+                        approvalRequired: false,
+                        data: {
+                            id: user.id,
+                            email: user.email,
+                            fullName: user.fullName,
+                            username: user.username,
+                            phone: user.phone ?? null,
+                            department: user.department ?? null,
+                            position: user.position ?? null,
+                            tenantId: user.tenantId ?? null,
+                            isVerified: user.isVerified ?? false,
+                            emailVerifiedAt: user.emailVerifiedAt ? user.emailVerifiedAt.toISOString() : null,
+                            lastLoginAt: user.lastLoginAt ? user.lastLoginAt.toISOString() : null,
+                            isActive: user.isActive ?? false,
+                        }
+                    }
+                }
+            })
         )
 
         const result = await runEffect(c, effect)
-        return c.json(result, 201)
+        return c.json(result, result.approvalRequired ? 202 : 201)
     }
 )
 
@@ -498,27 +636,51 @@ usersRoutes.openapi(
     }),
     async (c) => {
         const { id } = c.req.valid('param')
+        const tenantId = c.get('tenantId')!
+        const userId = c.get('userId')!
+        const userPermissions = (c.get('userPermissions') as string[]) || []
         const body = c.req.valid('json')
 
+        // Define the actual user update operation
+        const executeUpdate = () => usersService.updateUser(id, body)
+
+        // Use approval interceptor
         const effect = pipe(
-            usersService.updateUser(id, body),
-            Effect.map((user) => ({
-                success: true,
-                data: {
-                    id: user.id,
-                    email: user.email,
-                    fullName: user.fullName,
-                    username: user.username,
-                    phone: user.phone ?? null,
-                    department: user.department ?? null,
-                    position: user.position ?? null,
-                    tenantId: user.tenantId ?? null,
-                    isVerified: user.isVerified ?? false,
-                    emailVerifiedAt: user.emailVerifiedAt ? user.emailVerifiedAt.toISOString() : null,
-                    lastLoginAt: user.lastLoginAt ? user.lastLoginAt.toISOString() : null,
-                    isActive: user.isActive ?? false,
-                },
-            }))
+            interceptUpdate(
+                tenantId,
+                userId,
+                userPermissions,
+                'user',
+                id,
+                body,
+                executeUpdate,
+                'medium'
+            ),
+            Effect.map((response: ApprovalResponse) => {
+                if (response.approvalRequired) {
+                    return response
+                } else {
+                    const user = response.data as any
+                    return {
+                        success: true,
+                        approvalRequired: false,
+                        data: {
+                            id: user.id,
+                            email: user.email,
+                            fullName: user.fullName,
+                            username: user.username,
+                            phone: user.phone ?? null,
+                            department: user.department ?? null,
+                            position: user.position ?? null,
+                            tenantId: user.tenantId ?? null,
+                            isVerified: user.isVerified ?? false,
+                            emailVerifiedAt: user.emailVerifiedAt ? user.emailVerifiedAt.toISOString() : null,
+                            lastLoginAt: user.lastLoginAt ? user.lastLoginAt.toISOString() : null,
+                            isActive: user.isActive ?? false,
+                        },
+                    }
+                }
+            })
         )
         return runEffect(c, effect)
     }
@@ -557,9 +719,39 @@ usersRoutes.openapi(
     }),
     async (c) => {
         const { id } = c.req.valid('param')
-        const effect = usersService.deleteUser(id)
+        const tenantId = c.get('tenantId')!
+        const userId = c.get('userId')!
+        const userPermissions = (c.get('userPermissions') as string[]) || []
+
+        // Define the actual user deletion operation
+        const executeDelete = () => usersService.deleteUser(id)
+
+        // Use approval interceptor
+        const effect = pipe(
+            interceptDelete(
+                tenantId,
+                userId,
+                userPermissions,
+                'user',
+                id,
+                executeDelete,
+                'high' // Deleting users is high impact
+            ),
+            Effect.map((response: ApprovalResponse) => {
+                if (response.approvalRequired) {
+                    return response
+                } else {
+                    return {
+                        success: true,
+                        approvalRequired: false,
+                        id,
+                    }
+                }
+            })
+        )
+
         const result = await runEffect(c, effect)
-        return c.json({ id })
+        return c.json(result)
     }
 )
 

@@ -67,7 +67,15 @@ const getRequestKey = (config: any) => {
 };
 
 const shouldThrottle = (url: string): boolean => {
-    const skipThrottle = ['/health', '/api/v1/auth/me', '/api/v1/auth/refresh'];
+    const skipThrottle = [
+        '/health',
+        '/auth/me',
+        '/auth/me/permissions',
+        '/auth/refresh',
+        '/api/v1/auth/me',
+        '/api/v1/auth/me/permissions',
+        '/api/v1/auth/refresh'
+    ];
     return !skipThrottle.some(endpoint => url.includes(endpoint));
 };
 
@@ -133,19 +141,25 @@ apiClient.interceptors.request.use(
             }
 
             // Tenant Context
-            const userData = localStorage.getItem('user_data');
-            if (userData) {
-                try {
-                    const user = JSON.parse(userData);
-                    if (user.tenantSlug) {
-                        config.headers['X-Tenant-Slug'] = user.tenantSlug;
-                    } else if (user.tenantId) {
-                        config.headers['X-Tenant-ID'] = user.tenantId;
-                    } else if ((user.userType === 'platform' || user.role?.includes('PLATFORM_')) && config.url?.includes('/ifrs9/')) {
-                        config.headers['X-Tenant-Slug'] = 'iaf';
+            const impersonatedTenantSlug = localStorage.getItem('impersonated_tenant_slug');
+            if (impersonatedTenantSlug && impersonatedTenantSlug !== 'system') {
+                config.headers['X-Tenant-Slug'] = impersonatedTenantSlug;
+                config.headers['X-Impersonation-Mode'] = 'true';
+            } else {
+                const userData = localStorage.getItem('user_data');
+                if (userData) {
+                    try {
+                        const user = JSON.parse(userData);
+                        if (user.tenantSlug) {
+                            config.headers['X-Tenant-Slug'] = user.tenantSlug;
+                        } else if (user.tenantId) {
+                            config.headers['X-Tenant-ID'] = user.tenantId;
+                        } else if ((user.userType === 'platform' || user.role?.includes('PLATFORM_')) && config.url?.includes('/ifrs9/')) {
+                            config.headers['X-Tenant-Slug'] = 'iaf';
+                        }
+                    } catch (e) {
+                        // Ignore parse errors
                     }
-                } catch (e) {
-                    // Ignore parse errors
                 }
             }
         }

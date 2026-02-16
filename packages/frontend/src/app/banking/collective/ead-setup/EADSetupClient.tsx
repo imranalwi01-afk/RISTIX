@@ -28,6 +28,7 @@ import {
   Checkbox,
   CircularProgress
 } from '@mui/material';
+import { ApprovalNotification, ApprovalStatusBadge } from '@/components/approval';
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -38,10 +39,12 @@ import {
 import { GridColDef } from '@mui/x-data-grid';
 import { useRouter } from 'next/navigation';
 import { api } from '../../../../services/api';
+import { bankingAPI } from '@/services/api';
 import { EADConfiguration } from '../../../../services/api/ead-configurations.api';
 import { FLScalarWithDetails } from '../../../../services/api/fl-scalar.api';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 import { PopulationSegment } from '../../../../services/api/population-segments.api';
+import { usePermission } from '@/hooks/usePermission';
 
 // Safe DataGrid wrapper to prevent bundling issues
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
@@ -52,6 +55,9 @@ interface EADConfigUI extends EADConfiguration {
 }
 
 export default function EADSetupPage() {
+  const { hasAnyPermission } = usePermission();
+  const canViewEadSetup = hasAnyPermission(['banking.collective.ead_setup.view', 'banking.collective.ead_setup.manage', 'banking.collective.manage', 'banking.collective', 'admin.super_admin']);
+  const canManageEadSetup = hasAnyPermission(['banking.collective.ead_setup.manage', 'banking.collective.ead_setup.create', 'banking.collective.ead_setup.update', 'banking.collective.ead_setup.delete', 'banking.collective.manage', 'admin.super_admin']);
   const router = useRouter();
 
   const [loading, setLoading] = useState(false);
@@ -80,6 +86,12 @@ export default function EADSetupPage() {
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [searchTerm, setSearchTerm] = useState('');
+  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+  const [approvalNotification, setApprovalNotification] = useState<{
+    open: boolean;
+    message: string;
+    requestId?: string;
+  }>({ open: false, message: '' });
 
   // Load Data
   const loadData = useCallback(async () => {
@@ -114,9 +126,20 @@ export default function EADSetupPage() {
     }
   }, []);
 
+  const loadPendingApprovals = useCallback(async () => {
+    try {
+      const response = await bankingAPI.approval.getPendingApprovals();
+      const requests = Array.isArray(response) ? response : response.data || [];
+      setPendingRequests(requests.filter((r: any) => r.entityType === 'ead_configuration'));
+    } catch (err) {
+      console.error('Error loading pending approvals:', err);
+    }
+  }, []);
+
   useEffect(() => {
     loadData();
-  }, [loadData]);
+    loadPendingApprovals();
+  }, [loadData, loadPendingApprovals]);
 
   // Filtering
   useEffect(() => {
@@ -144,6 +167,7 @@ export default function EADSetupPage() {
   };
 
   const handleSave = async () => {
+    if (!canManageEadSetup) return;
     if (!validateForm()) return;
     setLoading(true);
     try {
@@ -155,13 +179,22 @@ export default function EADSetupPage() {
         is_active: formData.is_active
       };
 
-      if (isEditing && selectedConfig?.id) {
-        await api.banking.eadConfigurations.update(String(selectedConfig.id), payload);
-      } else {
-        await api.banking.eadConfigurations.create(payload);
+      const response = isEditing && selectedConfig?.id
+        ? await api.banking.eadConfigurations.update(String(selectedConfig.id), payload)
+        : await api.banking.eadConfigurations.create(payload);
+
+      const isApprovalResponse = response?.approvalRequired || response?.status === 202;
+
+      if (isApprovalResponse) {
+        setApprovalNotification({
+          open: true,
+          message: response?.message || 'Request submitted for approval',
+          requestId: response?.requestId
+        });
       }
 
       await loadData();
+      await loadPendingApprovals();
       setIsDialogOpen(false);
       setFormData({});
       setSelectedConfig(null);
@@ -174,11 +207,21 @@ export default function EADSetupPage() {
   };
 
   const handleDelete = async (id: number) => {
+    if (!canManageEadSetup) return;
     if (!confirm('Are you sure you want to delete this configuration?')) return;
     setLoading(true);
     try {
-      await api.banking.eadConfigurations.delete(String(id));
+      const response = await api.banking.eadConfigurations.delete(String(id));
+      const isApprovalResponse = response?.approvalRequired || response?.status === 202;
+      if (isApprovalResponse) {
+        setApprovalNotification({
+          open: true,
+          message: response?.message || 'Deletion request submitted for approval',
+          requestId: response?.requestId
+        });
+      }
       await loadData();
+      await loadPendingApprovals();
     } catch (err: any) {
       console.error('Delete failed:', err);
       setError('Failed to delete configuration.');
@@ -196,20 +239,24 @@ export default function EADSetupPage() {
       field: 'is_active',
       headerName: 'Status',
       width: 100,
-      renderCell: (params) => (
-        <Chip
-          label={params.value ? 'Active' : 'Inactive'}
-          color={params.value ? 'success' : 'default'}
-          size="small"
-        />
-      )
+      renderCell: (params) => {
+        const isPending = pendingRequests.some(r => r.entityId === params.row.id?.toString());
+        if (isPending) return <ApprovalStatusBadge status="pending" />;
+        return (
+          <Chip
+            label={params.value ? 'Active' : 'Inactive'}
+            color={params.value ? 'success' : 'default'}
+            size="small"
+          />
+        );
+      }
     },
     {
       field: 'actions',
       type: 'actions',
       headerName: 'Actions',
       width: 100,
-      getActions: (params) => [
+      getActions: (params) => canManageEadSetup ? [
         <SafeGridActionsCellItem
           key="edit"
           icon={<EditIcon color="primary" />}
@@ -227,12 +274,17 @@ export default function EADSetupPage() {
           label="Delete"
           onClick={() => handleDelete(params.row.id!)}
         />
-      ]
+      ] : []
     }
   ];
 
   return (
     <Container maxWidth="xl">
+      {!canViewEadSetup && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          You do not have permission to view EAD setup.
+        </Alert>
+      )}
       <Breadcrumbs sx={{ mb: 2 }}>
         <Link href="/banking/dashboard" underline="hover" color="inherit">Dashboard</Link>
         <Typography color="text.primary">EAD Setup</Typography>
@@ -242,16 +294,18 @@ export default function EADSetupPage() {
         <Typography variant="h4" component="h1">EAD Setup Management</Typography>
         <Box>
           <Button startIcon={<RefreshIcon />} onClick={loadData} disabled={loading} sx={{ mr: 1 }}>Refresh</Button>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => {
-            setSelectedConfig(null);
-            setFormData({
-              is_active: true,
-              ead_method: 'CCF',
-              calc_method: 'Revolving'
-            });
-            setIsEditing(false);
-            setIsDialogOpen(true);
-          }}>Add Configuration</Button>
+          {canManageEadSetup && (
+            <Button variant="contained" startIcon={<AddIcon />} onClick={() => {
+              setSelectedConfig(null);
+              setFormData({
+                is_active: true,
+                ead_method: 'CCF',
+                calc_method: 'Revolving'
+              });
+              setIsEditing(false);
+              setIsDialogOpen(true);
+            }}>Add Configuration</Button>
+          )}
         </Box>
       </Box>
 
@@ -339,9 +393,17 @@ export default function EADSetupPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleSave} disabled={loading}>{selectedConfig ? 'Update' : 'Create'}</Button>
+          {canManageEadSetup && (
+            <Button variant="contained" onClick={handleSave} disabled={loading}>{selectedConfig ? 'Update' : 'Create'}</Button>
+          )}
         </DialogActions>
       </Dialog>
+      <ApprovalNotification
+        open={approvalNotification.open}
+        message={approvalNotification.message}
+        requestId={approvalNotification.requestId}
+        onClose={() => setApprovalNotification({ ...approvalNotification, open: false })}
+      />
       <FullstackIndicator />
     </Container>
   );

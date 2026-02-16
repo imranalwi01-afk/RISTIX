@@ -3,6 +3,7 @@ import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import * as schema from '@/db/schema'
 import {
     users,
+    platformUsers, // ✅ Import platformUsers
     sessions,
     passwordResetTokens,
     emailVerificationTokens,
@@ -47,6 +48,16 @@ export const AuthRepository = {
         }),
 
     /**
+     * Find a platform user by their unique record ID.
+     *
+     * Uses platform_admin.users (via platformUsers schema), not core.users.
+     */
+    findPlatformUserById: (db: DrizzleDB, id: string) =>
+        db.query.platformUsers.findFirst({
+            where: eq(platformUsers.id, id),
+        }),
+
+    /**
      * Find a user by their email address, optionally scoped to a tenant.
      * 
      * @param db - Drizzle database instance
@@ -59,6 +70,14 @@ export const AuthRepository = {
             where: tenantId
                 ? and(eq(users.email, email), eq(users.tenantId, tenantId))
                 : eq(users.email, email),
+        }),
+
+    /**
+     * Find a platform user by email (using platformUsers schema)
+     */
+    findPlatformUserByEmail: (db: DrizzleDB, email: string) =>
+        db.query.platformUsers.findFirst({
+            where: eq(platformUsers.email, email),
         }),
 
     /**
@@ -158,13 +177,19 @@ export const AuthRepository = {
             updatedAt: new Date(),
         }).where(eq(users.id, id)),
 
+    updatePlatformUserLastLogin: (db: DrizzleDB, id: string) =>
+        db.update(platformUsers).set({
+            lastLoginAt: new Date(),
+            updatedAt: new Date(),
+        }).where(eq(platformUsers.id, id)),
+
     getUserStats: async (db: DrizzleDB, tenantId: string) => {
         const result = await db
             .select({
                 total: count(),
                 active: sql<number>`SUM(CASE WHEN is_active = true THEN 1 ELSE 0 END)`,
                 inactive: sql<number>`SUM(CASE WHEN is_active = false THEN 1 ELSE 0 END)`,
-                verifiedEmail: sql<number>`SUM(CASE WHEN is_email_verified = true THEN 1 ELSE 0 END)`,
+                verifiedEmail: sql<number>`SUM(CASE WHEN email_verified_at IS NOT NULL THEN 1 ELSE 0 END)`,
             })
             .from(users)
             .where(eq(users.tenantId, tenantId))

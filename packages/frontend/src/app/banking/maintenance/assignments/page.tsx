@@ -1,21 +1,36 @@
 "use client";
 
-import React from 'react';
-import UserRoleAssignment from '@/components/roles/UserRoleAssignment';
-import { Box, Typography } from '@mui/material';
+import { useEffect } from 'react';
+import { Box, CircularProgress, Typography } from '@mui/material';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function AssignmentsPage() {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+
+    useEffect(() => {
+        const nextQuery = new URLSearchParams(searchParams.toString());
+        nextQuery.set('tab', 'assignments');
+        router.replace(`/banking/maintenance/roles?${nextQuery.toString()}`);
+    }, [router, searchParams]);
+
     return (
         <Box sx={{ width: '100%', p: 3 }}>
-            <Box mb={3}>
-                <Typography variant="h4" component="h1">
-                    User Role Assignments
-                </Typography>
+            <Box
+                sx={{
+                    minHeight: 220,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 2,
+                }}
+            >
+                <CircularProgress size={28} />
                 <Typography variant="body2" color="text.secondary">
-                    Manage role assignments for system users.
+                    Redirecting to consolidated assignment workspace...
                 </Typography>
             </Box>
-            <UserRoleAssignment />
         </Box>
     );
 }

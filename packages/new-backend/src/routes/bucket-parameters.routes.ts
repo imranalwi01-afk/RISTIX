@@ -3,6 +3,8 @@ import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
 import { BucketParametersService } from '../services/bucket-parameters.service'
 import { runEffect } from '../lib/effect/runtime'
+import { interceptCreate, interceptUpdate, interceptDelete } from '../middleware/approval-interceptor.middleware'
+import type { ApprovalResponse } from '../lib/approval-helpers'
 
 const app = new OpenAPIHono<AppContext>()
 
@@ -87,6 +89,14 @@ const ErrorResponse = z.object({
     error: z.string().optional()
 }).openapi('ErrorResponse')
 
+const ApprovalWorkflowResponse = z.object({
+    success: z.boolean(),
+    approvalRequired: z.boolean(),
+    requestId: z.string().optional(),
+    data: z.any().optional(),
+    message: z.string().optional()
+}).openapi('ApprovalWorkflowResponse')
+
 // ============================================================================
 // ROUTES (HEADERS)
 // ============================================================================
@@ -152,6 +162,7 @@ app.openapi(
         },
         responses: {
             201: { content: { 'application/json': { schema: BucketResponse } }, description: 'Created' },
+            202: { content: { 'application/json': { schema: ApprovalWorkflowResponse } }, description: 'Pending Approval' },
             400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
@@ -159,7 +170,20 @@ app.openapi(
     async (c) => {
         const data = c.req.valid('json')
         const userId = c.get('userId') as string || 'system'
-        return runEffect(c, BucketParametersService.createHeader(data, userId) as any) as any
+        const tenantId = c.get('tenantId') as string
+        const userPermissions = c.get('permissions') || []
+
+        const effect = interceptCreate(
+            tenantId,
+            userId,
+            userPermissions,
+            'bucket_parameter',
+            data,
+            () => BucketParametersService.createHeader(data, userId) as any
+        )
+
+        const result = await runEffect(c, effect)
+        return c.json(result, result.approvalRequired ? 202 : 201)
     }
 )
 
@@ -176,6 +200,7 @@ app.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: BucketResponse } }, description: 'Updated' },
+            202: { content: { 'application/json': { schema: ApprovalWorkflowResponse } }, description: 'Update Pending Approval' },
             400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
             404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
@@ -185,10 +210,23 @@ app.openapi(
         const { id } = c.req.valid('param')
         const data = c.req.valid('json')
         const userId = c.get('userId') as string || 'system'
+        const tenantId = c.get('tenantId') as string
+        const userPermissions = c.get('permissions') || []
 
         if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
 
-        return runEffect(c, BucketParametersService.updateHeader(id, data, userId) as any) as any
+        const effect = interceptUpdate(
+            tenantId,
+            userId,
+            userPermissions,
+            'bucket_parameter',
+            id.toString(),
+            data,
+            () => BucketParametersService.updateHeader(id, data, userId) as any
+        )
+
+        const result = await runEffect(c, effect)
+        return c.json(result, result.approvalRequired ? 202 : 200)
     }
 )
 
@@ -204,15 +242,29 @@ app.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Deleted' },
+            202: { content: { 'application/json': { schema: ApprovalWorkflowResponse } }, description: 'Deletion Pending Approval' },
             400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Invalid ID' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
     async (c) => {
         const { id } = c.req.valid('param')
+        const userId = c.get('userId') as string || 'system'
+        const tenantId = c.get('tenantId') as string
+        const userPermissions = c.get('permissions') || []
         if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
 
-        return runEffect(c, BucketParametersService.deleteHeader(id) as any) as any
+        const effect = interceptDelete(
+            tenantId,
+            userId,
+            userPermissions,
+            'bucket_parameter',
+            id.toString(),
+            () => BucketParametersService.deleteHeader(id) as any
+        )
+
+        const result = await runEffect(c, effect)
+        return c.json(result, result.approvalRequired ? 202 : 200)
     }
 )
 

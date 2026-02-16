@@ -8,6 +8,7 @@ import {
     AuthorizationError,
     BusinessError,
     RateLimitError,
+    ConflictError,
     type CommonError,
 } from '@lib/errors'
 
@@ -50,6 +51,7 @@ function handleEffectError(c: Context, cause: unknown): Response {
                 {
                     success: false,
                     error: error.message,
+                    message: error.message, // Standardize with frontend expectations
                     code: 'VALIDATION_ERROR',
                     details: { field: error.field, errors: error.errors },
                 } as any,
@@ -79,6 +81,8 @@ function handleEffectError(c: Context, cause: unknown): Response {
             )
 
         case 'BusinessError':
+            {
+                const status = error.code === 'REQUEST_NOT_PENDING' ? 409 : 422
             return c.json(
                 {
                     success: false,
@@ -86,13 +90,26 @@ function handleEffectError(c: Context, cause: unknown): Response {
                     code: error.code,
                     details: error.details,
                 } as any,
-                422
+                status as any
             )
+            }
 
         case 'RateLimitError':
             return c.json(
                 { success: false, error: error.message, code: 'RATE_LIMITED' } as any,
                 429
+            )
+
+        case 'ConflictError':
+            return c.json(
+                {
+                    success: false,
+                    error: error.message,
+                    message: error.message, // Standardize with frontend expectations
+                    code: 'CONFLICT',
+                    details: { resource: error.resource, field: error.field, value: error.value },
+                } as any,
+                409
             )
 
         default:

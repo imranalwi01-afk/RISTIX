@@ -1455,7 +1455,7 @@ export const frs9ParamCommond = pgTable("frs9_param_commond", {
 	value1: varchar({ length: 100 }).notNull(),
 	value2: varchar({ length: 100 }).notNull(),
 	value3: varchar({ length: 50 }).notNull(),
-	paramdesc: varchar({ length: 1000 }).notNull(),
+	paramdesc: varchar("paramdesc", { length: 1000 }), // Re-enabled for Business Setup
 	createdby: varchar({ length: 50 }).notNull(),
 	createddate: timestamp({ mode: 'string' }).notNull(),
 	createdhost: varchar({ length: 50 }).notNull(),
@@ -1476,11 +1476,11 @@ export const frs9ParamCommonh = pgTable("frs9_param_commonh", {
 	updatedby: varchar({ length: 50 }),
 	updateddate: timestamp({ mode: 'string' }),
 	updatedhost: varchar({ length: 50 }),
-	bankingType: varchar("banking_type", { length: 20 }).default('conventional'),
-	isActive: boolean("is_active").default(true),
-	requiresApproval: boolean("requires_approval").default(false),
+	// bankingType: varchar("banking_type", { length: 20 }).default('conventional'), // Missing in physical DB
+	// isActive: boolean("is_active").default(true), // Missing in physical DB
+	// requiresApproval: boolean("requires_approval").default(false), // Missing in physical DB
 }, (table) => [
-	check("chk_banking_type", sql`(banking_type)::text = ANY (ARRAY[('conventional'::character varying)::text, ('syariah'::character varying)::text, ('dual'::character varying)::text])`),
+	// check("chk_banking_type", sql`(banking_type)::text = ANY (ARRAY[('conventional'::character varying)::text, ('syariah'::character varying)::text, ('dual'::character varying)::text])`),
 ]);
 
 // Relation definitions
@@ -1515,14 +1515,14 @@ export const frs9ParamJournal = pgTable("frs9_param_journal", {
 
 export const frs9ParamProduct = pgTable("frs9_param_product", {
 	pkid: smallserial().notNull(),
-	dataSource: varchar("data_source", { length: 20 }).notNull(),
-	prdGroup: varchar("prd_group", { length: 20 }).notNull(),
-	prdType: varchar("prd_type", { length: 20 }).notNull(),
-	prdCode: varchar("prd_code", { length: 20 }).notNull(),
+	dataSource: varchar("data_source", { length: 50 }).notNull(),
+	prdGroup: varchar("prd_group", { length: 50 }).notNull(),
+	prdType: varchar("prd_type", { length: 50 }).notNull(),
+	prdCode: varchar("prd_code", { length: 50 }).notNull(),
 	prdDesc: varchar("prd_desc", { length: 255 }).notNull(),
-	currency: varchar({ length: 5 }).notNull(),
-	amortizationType: varchar("amortization_type", { length: 10 }),
-	alFlag: varchar("al_flag", { length: 10 }),
+	currency: varchar({ length: 10 }).notNull(),
+	amortizationType: varchar("amortization_type", { length: 50 }),
+	alFlag: varchar("al_flag", { length: 50 }),
 	impairedFlag: boolean("impaired_flag"),
 	bmFlag: boolean("bm_flag"),
 	expectedLife: integer("expected_life"),
