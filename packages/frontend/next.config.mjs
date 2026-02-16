@@ -13,6 +13,8 @@ const normalizeBackendProxyBase = (rawValue) => {
   return value;
 };
 
+const isLocalhostUrl = (value) => /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(value || '');
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // ============================================================================
@@ -20,6 +22,11 @@ const nextConfig = {
   // ============================================================================
   // Enable standalone output for Docker
   output: 'standalone',
+  allowedDevOrigins: [
+    'https://iaf-ifrs.ifrspro.id',
+    'https://iaf-ifrs.danafin.id',
+    'https://iaf-ifrs.danafin.com',
+  ],
 
   // Force transpilation of MUI packages to fix Turbopack bundling issues
   // Force transpilation of MUI packages to fix Turbopack bundling issues
@@ -107,11 +114,22 @@ const nextConfig = {
   async rewrites() {
     const explicitProxyTarget =
       process.env.BACKEND_INTERNAL_URL ||
-      process.env.NEXT_PUBLIC_BACKEND_API_URL ||
+      process.env.BACKEND_URL ||
       process.env.NEXT_PUBLIC_BACKEND_URL ||
-      process.env.BACKEND_URL;
+      process.env.NEXT_PUBLIC_BACKEND_API_URL;
 
-    const normalizedProxyBase = normalizeBackendProxyBase(explicitProxyTarget);
+    let normalizedProxyBase = normalizeBackendProxyBase(explicitProxyTarget);
+    const frontendUrl = (process.env.NEXT_PUBLIC_FRONTEND_URL || process.env.FRONTEND_URL || '').toLowerCase();
+    const isPublicDomainFrontend = frontendUrl.includes('ifrspro.id') || frontendUrl.includes('danafin.com');
+
+    if (isPublicDomainFrontend && isLocalhostUrl(normalizedProxyBase)) {
+      const fallbackPublicTarget =
+        process.env.BACKEND_URL ||
+        process.env.NEXT_PUBLIC_BACKEND_URL ||
+        process.env.NEXT_PUBLIC_BACKEND_API_URL;
+      normalizedProxyBase = normalizeBackendProxyBase(fallbackPublicTarget);
+    }
+
     const proxyBase = normalizedProxyBase.startsWith('http://') || normalizedProxyBase.startsWith('https://')
       ? normalizedProxyBase
       : 'http://new-backend:4232';
