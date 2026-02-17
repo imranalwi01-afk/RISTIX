@@ -31,12 +31,12 @@ const nextConfig = {
   allowedDevOrigins: [
     'localhost',
     '127.0.0.1',
-    'iaf-ifrs.ifrspro.id',
     '*.ifrspro.id',
-    'iaf-ifrs.danafin.id',
-    '*.danafin.id',
-    'iaf-ifrs.danafin.com',
+    'iaf-ifrs.ifrspro.id',
+    'iaf-ifrs-be.ifrspro.id',
     '*.danafin.com',
+    'iaf-ifrs.danafin.com',
+    '*.danafin.id',
   ],
 
   // Force transpilation of MUI packages to fix Turbopack bundling issues
