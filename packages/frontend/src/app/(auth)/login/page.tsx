@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import type { ModernLoaderProps } from '@/components/common/ModernLoader';
 import { useSearchParams } from 'next/navigation';
@@ -61,7 +61,7 @@ interface LoginPageProps {
 export default function LoginPage({ initialRole }: LoginPageProps) {
   // const router = useRouter(); // Unused
   const searchParams = useSearchParams();
-  const { login, isLoading, error, clearError } = useAuth();
+  const { login, error, clearError } = useAuth();
   // const theme = useTheme(); // Unused
 
   // ✅ PERFORMANCE: Prefetch dashboard routes while user is on login page
@@ -75,10 +75,12 @@ export default function LoginPage({ initialRole }: LoginPageProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
   const [localError, setLocalError] = useState('');
+  const redirectGuardTimeoutRef = useRef<number | null>(null);
 
   // Tenant data state
   const [tenants, setTenants] = useState<TenantOption[]>([]);
   const [tenantsLoading, setTenantsLoading] = useState(true);
+  const showAuthenticatingOverlay = loginLoading;
 
   const errorParam = searchParams?.get('error');
   const roleParam = searchParams?.get('role');
@@ -185,6 +187,19 @@ export default function LoginPage({ initialRole }: LoginPageProps) {
     if (error) clearError();
   }, [email, password, selectedTenantId]);
 
+  useEffect(() => {
+    if (!errorParam) return;
+    setLoginLoading(false);
+  }, [errorParam]);
+
+  useEffect(() => {
+    return () => {
+      if (redirectGuardTimeoutRef.current) {
+        window.clearTimeout(redirectGuardTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginLoading(true);
@@ -195,6 +210,10 @@ export default function LoginPage({ initialRole }: LoginPageProps) {
         setLocalError('Please enter email, password, and select tenant');
         setLoginLoading(false); // ✅ Stop loading on validation error
         return;
+      }
+
+      if (redirectGuardTimeoutRef.current) {
+        window.clearTimeout(redirectGuardTimeoutRef.current);
       }
 
       const success = await login(
@@ -209,6 +228,24 @@ export default function LoginPage({ initialRole }: LoginPageProps) {
       } else {
         // ✅ ON SUCCESS: Do NOT stop loading.
         // Let the loader persist until the page redirects to the dashboard.
+        redirectGuardTimeoutRef.current = window.setTimeout(() => {
+          if (window.location.pathname !== '/login') return;
+
+          try {
+            const userRaw = localStorage.getItem('user_data');
+            const user = userRaw ? JSON.parse(userRaw) : {};
+            const isPlatformUser =
+              user?.stakeholderType === 'platform' || user?.isPlatformAdmin === true;
+            const fallbackPath = isPlatformUser ? '/platform/users' : '/banking/dashboard';
+
+            console.warn('⚠️ Login redirect timeout reached, applying fallback navigation', { fallbackPath });
+            window.location.assign(fallbackPath);
+          } catch (fallbackError) {
+            console.error('❌ Failed to perform fallback login redirect:', fallbackError);
+            setLoginLoading(false);
+            setLocalError('Login succeeded, but redirect failed. Please refresh and try again.');
+          }
+        }, 8_000);
       }
     } catch (err: any) {
       setLocalError(err.message || 'Login failed. Please try again.');
@@ -354,12 +391,12 @@ export default function LoginPage({ initialRole }: LoginPageProps) {
         }}>
           {/* ✅ MODERN LOADER OVERLAY */}
           <ModernLoader
-            open={loginLoading || isLoading}
+            open={showAuthenticatingOverlay}
             message="Authenticating Workspace"
             subMessage="establishing secure handshake..."
           />
 
-          <Box sx={{ width: '100%', maxWidth: 420, opacity: (loginLoading || isLoading) ? 0.4 : 1, transition: 'opacity 0.4s', filter: (loginLoading || isLoading) ? 'blur(2px)' : 'none' }}>
+          <Box sx={{ width: '100%', maxWidth: 420, opacity: showAuthenticatingOverlay ? 0.4 : 1, transition: 'opacity 0.4s', filter: showAuthenticatingOverlay ? 'blur(2px)' : 'none' }}>
             {/* Mobile Logo (Visible only on xs) */}
             <Box sx={{ display: { xs: 'flex', md: 'none' }, mb: 4, justifyContent: 'center' }}>
               <img src="/images/logo-iaf.png" alt="IAF Logo" style={{ height: 40 }} />
@@ -455,7 +492,7 @@ export default function LoginPage({ initialRole }: LoginPageProps) {
                     fullWidth
                     variant="contained"
                     size="large"
-                    disabled={loginLoading || isLoading || (!isPlatformAdmin && !selectedTenantId)}
+                    disabled={loginLoading || (!isPlatformAdmin && !selectedTenantId)}
                     endIcon={!loginLoading && <ArrowForwardIcon />}
                     sx={{
                       py: 1.8,
@@ -469,7 +506,7 @@ export default function LoginPage({ initialRole }: LoginPageProps) {
                       }
                     }}
                   >
-                    {loginLoading || isLoading ? <CircularProgress size={24} color="inherit" /> : (isPlatformAdmin ? 'Access Control Center' : 'Sign In to Workspace')}
+                    {loginLoading ? <CircularProgress size={24} color="inherit" /> : (isPlatformAdmin ? 'Access Control Center' : 'Sign In to Workspace')}
                   </Button>
                 </Box>
               </Box>

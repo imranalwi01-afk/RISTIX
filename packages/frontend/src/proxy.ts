@@ -85,6 +85,20 @@ const STAKEHOLDER_REDIRECTS: Record<string, string> = {
   regulator: '/regulator/dashboard'
 };
 
+function decodeJwtPayload(payloadPart: string): any | null {
+  try {
+    if (typeof atob !== 'function') {
+      return null;
+    }
+    const normalized = payloadPart.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
+    const decoded = atob(padded);
+    return JSON.parse(decoded);
+  } catch {
+    return null;
+  }
+}
+
 // ✅ SURGICAL FIX: Enhanced token validation that doesn't break navigation
 function validateTokenBasic(token: string): { isValid: boolean; user?: any } {
   try {
@@ -100,7 +114,10 @@ function validateTokenBasic(token: string): { isValid: boolean; user?: any } {
 
     try {
       // Decode payload
-      const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+      const payload = decodeJwtPayload(parts[1]);
+      if (!payload) {
+        return { isValid: false };
+      }
 
       // ✅ SURGICAL FIX: More lenient expiration check
       if (payload.exp) {
@@ -320,6 +337,7 @@ export function proxy(request: NextRequest) {
   const hasLogoutHeader = request.headers.get('x-logout-action') === 'true';
   const refererHasLogout = request.headers.get('referer')?.includes('logout=true');
   const hasTimestamp = url.searchParams.has('ts'); // Timestamp to prevent caching
+  const isLoginRoute = pathname === '/login' || pathname === '/platform/login';
 
   // ✅ ENHANCED FIX: Comprehensive logout detection
   if (isLogoutAction || hasLogoutHeader || refererHasLogout) {
@@ -338,6 +356,19 @@ export function proxy(request: NextRequest) {
     }
 
     return response;
+  }
+
+  // Redirect authenticated users away from login routes (except explicit logout flow).
+  if (isLoginRoute) {
+    const token = getTokenFromRequest(request);
+    if (token) {
+      const { isValid, user } = validateTokenBasic(token);
+      if (isValid && user) {
+        const stakeholderType = getStakeholderType(user) || 'banking';
+        const redirectPath = STAKEHOLDER_REDIRECTS[stakeholderType] || '/banking/dashboard';
+        return NextResponse.redirect(new URL(redirectPath, request.url));
+      }
+    }
   }
 
   // ✅ Allow public routes

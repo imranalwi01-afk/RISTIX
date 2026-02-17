@@ -190,7 +190,8 @@ services:
       MODELLING_DIR: /opt/r-analytics/modelling
       DB_HOST: ${R_DB_HOST:-10.8.0.2}
       DB_PORT: ${R_DB_PORT:-5433}
-      DB_NAME: ${R_DB_NAME:-IFRS9_pro}
+      DB_NAME: ${R_DB_NAME:-FRS9PRO}
+      DB_SCHEMA: ${R_DB_SCHEMA:-public}
       DB_USER: ${R_DB_USER:-postgres}
       DB_PASSWORD: ${R_DB_PASSWORD:-postgres}
     ports:

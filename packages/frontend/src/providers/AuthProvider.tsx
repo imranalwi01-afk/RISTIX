@@ -22,6 +22,7 @@ import {
   loginSuccess,
   loginFailure,
   logout as logoutAction,
+  resetAuth,
   initializeAuth,
   updateUser,
   updateLastActivity,
@@ -198,6 +199,21 @@ const normalizeBackendBaseUrl = (rawUrl: string): string => {
     normalized = normalized.replace(/\/api(?:\/v1)?$/i, '');
   }
   return normalized;
+};
+
+const fetchWithTimeout = async (
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+  timeoutMs = 10_000
+): Promise<Response> => {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
 };
 
 const toApiV1BaseUrl = (rawUrl: string): string => {
@@ -438,12 +454,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://iaf-ifrs-be.ifrspro.id';
               }
             }
-            const response = await fetch(`${toApiV1BaseUrl(backendUrl)}/auth/verify`, {
+            const response = await fetchWithTimeout(`${toApiV1BaseUrl(backendUrl)}/auth/verify`, {
               headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json',
               },
-            })
+            }, 8_000)
 
             if (response.ok) {
               console.log('✅ Token validation successful')
@@ -463,18 +479,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 return; // Stay on login page for users who logged out
               }
 
-              // ✅ LOOP PREVENTION: Only redirect from home page, not from login page
-              // This prevents auto-redirect when users visit login URL directly
-              if (currentPath === '/' || currentPath === '') {
+              // Redirect authenticated users away from auth entrypoints.
+              if (currentPath === '/' || currentPath === '' || currentPath === '/login') {
                 const landingUrl = getLandingPageUrl(hydratedUser)
-                console.log(`✅ Redirecting authenticated user from home to: ${landingUrl}`)
+                console.log(`✅ Redirecting authenticated user to: ${landingUrl}`)
 
                 setTimeout(() => {
                   safeNavigate(router, landingUrl);
                 }, 100);
-              } else if (currentPath === '/login') {
-                // ✅ LOOP PREVENTION: Stay on login page if user navigates there manually
-                console.log('🔄 User manually navigated to login page - staying put')
               }
             } else {
               console.log('❌ Token validation failed, clearing auth data')
@@ -488,8 +500,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           console.log('❌ No stored authentication data found')
           syncTokenToCookie(null); // Clear any stale cookies
 
-          // ✅ SURGICAL FIX: Still mark as initialized even without auth data
-          dispatch(initializeAuth({}));
+          // ✅ Reset persisted auth state and mark initialized.
+          dispatch(resetAuth());
         } else {
           // ✅ SURGICAL FIX: Already authenticated, just mark as initialized
           dispatch(initializeAuth({}));
@@ -735,13 +747,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Ensure no trailing slash and no duplicated /api/v1 suffixes
       const apiBaseUrl = normalizeBackendBaseUrl(rawApiBaseUrl);
 
-      const response = await fetch(`${apiBaseUrl}/api/v1/auth/login`, {
+      const response = await fetchWithTimeout(`${apiBaseUrl}/api/v1/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(loginPayload),
-      })
+      }, 15_000)
 
       if (!response.ok) {
         const errorData = await response.json()
@@ -910,7 +922,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     } catch (error: any) {
       console.error('❌ Login error:', error)
-      const errorMessage = error.message || 'Login failed'
+      const isTimeout = error?.name === 'AbortError';
+      const errorMessage = isTimeout
+        ? 'Login request timed out. Please check your connection and try again.'
+        : (error.message || 'Login failed');
       dispatch(loginFailure(errorMessage))
       return false
     }

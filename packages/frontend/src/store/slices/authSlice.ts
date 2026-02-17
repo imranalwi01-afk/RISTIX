@@ -351,6 +351,8 @@ const authSlice = createSlice({
         }
       }
 
+      // Ensure startup/login loaders don't get stuck from persisted state.
+      state.isLoading = false;
       state.isInitialized = true;
     },
 
