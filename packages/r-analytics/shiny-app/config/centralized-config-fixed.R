@@ -67,7 +67,7 @@ CentralizedConfiguration <- R6Class("CentralizedConfiguration",
             platform_admin = Sys.getenv("DB_PLATFORM_ADMIN", "ifrspro_platform_admin"),
             shared_services = Sys.getenv("DB_SHARED_SERVICES", "ifrspro_shared_services"),
             frs9_legacy = Sys.getenv("DB_FRS9_LEGACY", "FRS9PRO"),
-            ifrs9_analytics = Sys.getenv("DB_IFRS9_ANALYTICS", "IFRS9_pro"),
+            ifrs9_analytics = Sys.getenv("DB_IFRS9_ANALYTICS", "FRS9PRO"),
             tenant_iaf = Sys.getenv("DB_TENANT_IAF", "ifrspro_tenant_iaf")
           )
         ),
@@ -127,7 +127,7 @@ CentralizedConfiguration <- R6Class("CentralizedConfiguration",
             platform_admin = Sys.getenv("DB_PLATFORM_ADMIN", "ifrspro_platform_admin"),
             shared_services = Sys.getenv("DB_SHARED_SERVICES", "ifrspro_shared_services"),
             frs9_legacy = Sys.getenv("DB_FRS9_LEGACY", "FRS9PRO"),
-            ifrs9_analytics = Sys.getenv("DB_IFRS9_ANALYTICS", "IFRS9_pro"),
+            ifrs9_analytics = Sys.getenv("DB_IFRS9_ANALYTICS", "FRS9PRO"),
             tenant_iaf = Sys.getenv("DB_TENANT_IAF", "ifrspro_tenant_iaf")
           )
         ),

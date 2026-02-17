@@ -14,7 +14,8 @@ get_database_config <- function() {
   return(list(
     host = "192.168.0.106",
     port = 5433,
-    dbname = "IFRS9_pro",
+    dbname = "FRS9PRO",
+    schema = "public",
     user = "postgres",
     password = "postgres",
     sslmode = "disable"
@@ -26,13 +27,17 @@ get_database_config <- function() {
 #' @return List containing database connection and reference data
 setup_database <- function() {
   cat("🔗 Setting up database connection (matching original app)...\n")
+  db_schema <- Sys.getenv("DB_SCHEMA", "public")
+  if (!grepl("^[A-Za-z_][A-Za-z0-9_]*$", db_schema)) {
+    db_schema <- "public"
+  }
 
   # Use the exact same database configuration as the original working app
   # Based on /home/doppelgaenger/ifrspro/_analytics/_v30/app30.R
 
-  cat("🏢 Database: 192.168.0.106 : 5433 / IFRS9_pro\n")
+  cat("🏢 Database: 192.168.0.106 : 5433 / FRS9PRO\n")
   cat("🔐 SSL Mode: disable\n")
-  cat("📋 Schema: dbo (matching original app)\n")
+  cat("📋 Schema: ", db_schema, "\n", sep = "")
 
   # Initialize variables with safe defaults
   con <- NULL
@@ -52,7 +57,7 @@ setup_database <- function() {
     con <- DBI::dbConnect(RPostgres::Postgres(),
                          host = "192.168.0.106",
                          port = 5433,
-                         dbname = "IFRS9_pro",
+                         dbname = "FRS9PRO",
                          user = "postgres",
                          password = "postgres",
                          sslmode = "disable")
@@ -73,12 +78,13 @@ setup_database <- function() {
       cat("⚠️ Connection test failed - continuing anyway\n")
     }
 
-    # Set schema path exactly like the original app - use dbo schema
+    # Set schema path from environment (FRS9PRO uses public by default)
     tryCatch({
-      DBI::dbExecute(con, "SET search_path TO dbo;")
-      cat("🎯 Schema path set to dbo (matching original app)\n")
+      search_path_sql <- paste0('SET search_path TO "', db_schema, '", public;')
+      DBI::dbExecute(con, search_path_sql)
+      cat("🎯 Schema path set to ", db_schema, " (with public fallback)\n", sep = "")
     }, error = function(e) {
-      # Fallback to public if dbo doesn't exist
+      # Fallback to public if configured schema doesn't exist
       DBI::dbExecute(con, "SET search_path TO public;")
       cat("🎯 Schema path set to public (fallback)\n")
     })
@@ -162,7 +168,8 @@ setup_database <- function() {
     config = list(
       host = "192.168.0.106",
       port = 5433,
-      dbname = "IFRS9_pro",
+      dbname = "FRS9PRO",
+      schema = db_schema,
       user = "postgres",
       sslmode = "disable"
     ),
