@@ -85,6 +85,20 @@ const STAKEHOLDER_REDIRECTS: Record<string, string> = {
   regulator: '/regulator/dashboard'
 };
 
+function decodeJwtPayload(payloadPart: string): any | null {
+  try {
+    if (typeof atob !== 'function') {
+      return null;
+    }
+    const normalized = payloadPart.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
+    const decoded = atob(padded);
+    return JSON.parse(decoded);
+  } catch {
+    return null;
+  }
+}
+
 // ✅ SURGICAL FIX: Enhanced token validation that doesn't break navigation
 function validateTokenBasic(token: string): { isValid: boolean; user?: any } {
   try {
@@ -100,7 +114,10 @@ function validateTokenBasic(token: string): { isValid: boolean; user?: any } {
 
     try {
       // Decode payload
-      const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+      const payload = decodeJwtPayload(parts[1]);
+      if (!payload) {
+        return { isValid: false };
+      }
 
       // ✅ SURGICAL FIX: More lenient expiration check
       if (payload.exp) {

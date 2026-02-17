@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import type { ModernLoaderProps } from '@/components/common/ModernLoader';
 import { useSearchParams } from 'next/navigation';
@@ -75,6 +75,7 @@ export default function LoginPage({ initialRole }: LoginPageProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
   const [localError, setLocalError] = useState('');
+  const redirectGuardTimeoutRef = useRef<number | null>(null);
 
   // Tenant data state
   const [tenants, setTenants] = useState<TenantOption[]>([]);
@@ -185,6 +186,19 @@ export default function LoginPage({ initialRole }: LoginPageProps) {
     if (error) clearError();
   }, [email, password, selectedTenantId]);
 
+  useEffect(() => {
+    if (!errorParam) return;
+    setLoginLoading(false);
+  }, [errorParam]);
+
+  useEffect(() => {
+    return () => {
+      if (redirectGuardTimeoutRef.current) {
+        window.clearTimeout(redirectGuardTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginLoading(true);
@@ -195,6 +209,10 @@ export default function LoginPage({ initialRole }: LoginPageProps) {
         setLocalError('Please enter email, password, and select tenant');
         setLoginLoading(false); // ✅ Stop loading on validation error
         return;
+      }
+
+      if (redirectGuardTimeoutRef.current) {
+        window.clearTimeout(redirectGuardTimeoutRef.current);
       }
 
       const success = await login(
@@ -209,6 +227,24 @@ export default function LoginPage({ initialRole }: LoginPageProps) {
       } else {
         // ✅ ON SUCCESS: Do NOT stop loading.
         // Let the loader persist until the page redirects to the dashboard.
+        redirectGuardTimeoutRef.current = window.setTimeout(() => {
+          if (window.location.pathname !== '/login') return;
+
+          try {
+            const userRaw = localStorage.getItem('user_data');
+            const user = userRaw ? JSON.parse(userRaw) : {};
+            const isPlatformUser =
+              user?.stakeholderType === 'platform' || user?.isPlatformAdmin === true;
+            const fallbackPath = isPlatformUser ? '/platform/users' : '/banking/dashboard';
+
+            console.warn('⚠️ Login redirect timeout reached, applying fallback navigation', { fallbackPath });
+            window.location.assign(fallbackPath);
+          } catch (fallbackError) {
+            console.error('❌ Failed to perform fallback login redirect:', fallbackError);
+            setLoginLoading(false);
+            setLocalError('Login succeeded, but redirect failed. Please refresh and try again.');
+          }
+        }, 8_000);
       }
     } catch (err: any) {
       setLocalError(err.message || 'Login failed. Please try again.');
