@@ -14,6 +14,7 @@ const normalizeBackendProxyBase = (rawValue) => {
 };
 
 const isLocalhostUrl = (value) => /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(value || '');
+const containsPublicDomain = (value) => /(ifrspro\.id|danafin\.(?:id|com))/i.test((value || '').toLowerCase());
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -23,9 +24,14 @@ const nextConfig = {
   // Enable standalone output for Docker
   output: 'standalone',
   allowedDevOrigins: [
-    'https://iaf-ifrs.ifrspro.id',
-    'https://iaf-ifrs.danafin.id',
-    'https://iaf-ifrs.danafin.com',
+    'localhost',
+    '127.0.0.1',
+    'iaf-ifrs.ifrspro.id',
+    '*.ifrspro.id',
+    'iaf-ifrs.danafin.id',
+    '*.danafin.id',
+    'iaf-ifrs.danafin.com',
+    '*.danafin.com',
   ],
 
   // Force transpilation of MUI packages to fix Turbopack bundling issues
@@ -120,7 +126,29 @@ const nextConfig = {
 
     let normalizedProxyBase = normalizeBackendProxyBase(explicitProxyTarget);
     const frontendUrl = (process.env.NEXT_PUBLIC_FRONTEND_URL || process.env.FRONTEND_URL || '').toLowerCase();
-    const isPublicDomainFrontend = frontendUrl.includes('ifrspro.id') || frontendUrl.includes('danafin.com');
+    const deploymentTarget = (process.env.DEPLOYMENT_TARGET || process.env.NEXT_PUBLIC_DEPLOYMENT_TARGET || '').toLowerCase();
+    const apiBaseUrlHint = (
+      process.env.API_BASE_URL ||
+      process.env.NEXT_PUBLIC_API_BASE_URL ||
+      process.env.BACKEND_URL ||
+      process.env.NEXT_PUBLIC_BACKEND_URL ||
+      ''
+    ).toLowerCase();
+
+    const isPublicDomainFrontend =
+      containsPublicDomain(frontendUrl) ||
+      containsPublicDomain(apiBaseUrlHint) ||
+      deploymentTarget.includes('staging') ||
+      deploymentTarget.includes('production') ||
+      deploymentTarget.includes('prod');
+
+    const shouldUseLocalhostProxy =
+      deploymentTarget === 'localdev' &&
+      (frontendUrl.includes('localhost') || frontendUrl.includes('127.0.0.1') || frontendUrl.length === 0);
+
+    if (isLocalhostUrl(normalizedProxyBase) && !shouldUseLocalhostProxy) {
+      normalizedProxyBase = '';
+    }
 
     if (isPublicDomainFrontend && isLocalhostUrl(normalizedProxyBase)) {
       const fallbackPublicTarget =
