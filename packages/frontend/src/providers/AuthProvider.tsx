@@ -193,7 +193,13 @@ const detectBankingModeFromUser = (user: any): 'conventional' | 'syariah' | null
 };
 
 const normalizeBackendBaseUrl = (rawUrl: string): string => {
-  let normalized = (rawUrl || '').trim().replace(/\/+$/, '');
+  let normalized = (rawUrl || '')
+    .replace('https://bifrs9-iaf.ifrspro.id', 'https://iaf-ifrs-be.ifrspro.id')
+    .replace('http://bifrs9-iaf.ifrspro.id', 'https://iaf-ifrs-be.ifrspro.id')
+    .replace('https://ifrs9-iaf.ifrspro.id', 'https://iaf-ifrs-be.ifrspro.id')
+    .replace('http://ifrs9-iaf.ifrspro.id', 'https://iaf-ifrs-be.ifrspro.id')
+    .trim()
+    .replace(/\/+$/, '');
   // Guard against accidental repeated API prefixes like /api/api/v1
   while (/\/api(?:\/v1)?$/i.test(normalized)) {
     normalized = normalized.replace(/\/api(?:\/v1)?$/i, '');
@@ -214,6 +220,26 @@ const fetchWithTimeout = async (
   } finally {
     window.clearTimeout(timeoutId);
   }
+};
+
+const parseResponseBody = async (response: Response): Promise<{ json: any | null; text: string }> => {
+  const text = await response.text();
+  if (!text) {
+    return { json: null, text: '' };
+  }
+
+  const contentType = (response.headers.get('content-type') || '').toLowerCase();
+  const looksLikeJson = text.trim().startsWith('{') || text.trim().startsWith('[');
+
+  if (contentType.includes('application/json') || looksLikeJson) {
+    try {
+      return { json: JSON.parse(text), text };
+    } catch {
+      return { json: null, text };
+    }
+  }
+
+  return { json: null, text };
 };
 
 const toApiV1BaseUrl = (rawUrl: string): string => {
@@ -674,10 +700,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         },
         body: JSON.stringify(loginPayload),
       }, 15_000)
+      const parsedResponse = await parseResponseBody(response);
 
       if (!response.ok) {
-        const errorData = await response.json()
-        let errorMessage = errorData.message || errorData.error || 'Login failed'
+        const errorData = parsedResponse.json || {}
+        let errorMessage =
+          errorData.message ||
+          errorData.error ||
+          (parsedResponse.text && parsedResponse.text.trim().length > 0
+            ? parsedResponse.text.trim()
+            : `Login failed (HTTP ${response.status})`)
 
         // 🔧 FIXED: Enhanced error detection for rate limiting
         if (errorData.error === 'RATE_LIMIT_EXCEEDED' || errorData.code === 'RATE_LIMIT_EXCEEDED') {
@@ -692,13 +724,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         } else if (response.status === 429) {
           // Fallback for HTTP 429 status
           errorMessage = 'Too many login attempts. Please wait a few minutes before trying again.'
+        } else if (response.status >= 500 && /internal server error/i.test(errorMessage)) {
+          errorMessage = 'Server error during login. Please try again or contact admin.'
         }
 
         dispatch(loginFailure(errorMessage))
         return false
       }
 
-      const authData = await response.json()
+      const authData = parsedResponse.json
+      if (!authData || typeof authData !== 'object') {
+        dispatch(loginFailure('Invalid server response during login. Please try again.'))
+        return false
+      }
 
       if (authData.success && authData.data) {
         // 🔍 DEBUG: Log full response structure

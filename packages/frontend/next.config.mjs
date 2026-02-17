@@ -10,6 +10,11 @@ const normalizeBackendProxyBase = (rawValue) => {
   while (/\/api(?:\/v1)?$/i.test(value)) {
     value = value.replace(/\/api(?:\/v1)?$/i, '');
   }
+  value = value
+    .replace('https://bifrs9-iaf.ifrspro.id', 'https://iaf-ifrs-be.ifrspro.id')
+    .replace('http://bifrs9-iaf.ifrspro.id', 'https://iaf-ifrs-be.ifrspro.id')
+    .replace('https://ifrs9-iaf.ifrspro.id', 'https://iaf-ifrs-be.ifrspro.id')
+    .replace('http://ifrs9-iaf.ifrspro.id', 'https://iaf-ifrs-be.ifrspro.id');
   return value;
 };
 
@@ -107,7 +112,6 @@ const nextConfig = {
     remotePatterns: [
       { protocol: 'http', hostname: 'localhost' },
       { protocol: 'https', hostname: 'iaf-ifrs.ifrspro.id' },
-      { protocol: 'https', hostname: 'bifrs9-iaf.ifrspro.id' },
       { protocol: 'https', hostname: 'danafin.com' },
       { protocol: 'https', hostname: 'iaf-ifrs.danafin.com' },
     ],

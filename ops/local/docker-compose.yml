@@ -71,6 +71,7 @@ services:
     container_name: ifrs9-new-backend-dev
     env_file:
       - .env
+      - backend.env
     environment:
       # Only set what needs to be different from .env
       NODE_ENV: development
@@ -92,7 +93,7 @@ services:
       - new-backend-node-modules:/app/node_modules
 
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:4232/health" ]
+      test: [ "CMD", "bun", "-e", "fetch('http://localhost:4232/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -116,14 +117,10 @@ services:
     container_name: ifrs9-frontend-dev
     env_file:
       - .env
+      - frontend.env
     environment:
       NODE_ENV: development
       BACKEND_INTERNAL_URL: ${BACKEND_INTERNAL_URL:-http://new-backend:4232}
-      NEXT_PUBLIC_BACKEND_URL: ${BACKEND_URL:-http://localhost:4232}
-      NEXT_PUBLIC_API_BASE_URL: ${API_BASE_URL:-${BACKEND_URL:-http://localhost:4232/api}}
-      NEXT_PUBLIC_BACKEND_API_URL: ${BACKEND_API_URL:-${API_BASE_URL:-${BACKEND_URL:-http://localhost:4232/api}}}
-      NEXT_PUBLIC_R_ANALYTICS_URL: ${NEXT_PUBLIC_R_ANALYTICS_URL:-https://iaf-ifrs-analytics.ifrspro.id}
-      NEXT_PUBLIC_RAPI_BASE_URL: ${NEXT_PUBLIC_RAPI_BASE_URL:-https://iaf-ifrs-analytics-calc.ifrspro.id/api}
     ports:
       - "4231:4231"
     networks:
@@ -141,15 +138,11 @@ services:
     working_dir: /app
     env_file:
       - .env
+      - frontend.env
     environment:
       - NODE_ENV=development
       - PORT=4231
       - BACKEND_INTERNAL_URL=${BACKEND_INTERNAL_URL:-http://new-backend:4232}
-      - NEXT_PUBLIC_BACKEND_URL=${BACKEND_URL:-http://localhost:4232}
-      - NEXT_PUBLIC_API_BASE_URL=${API_BASE_URL:-${BACKEND_URL:-http://localhost:4232/api}}
-      - NEXT_PUBLIC_BACKEND_API_URL=${BACKEND_API_URL:-${API_BASE_URL:-${BACKEND_URL:-http://localhost:4232/api}}}
-      - NEXT_PUBLIC_R_ANALYTICS_URL=${NEXT_PUBLIC_R_ANALYTICS_URL:-https://iaf-ifrs-analytics.ifrspro.id}
-      - NEXT_PUBLIC_RAPI_BASE_URL=${NEXT_PUBLIC_RAPI_BASE_URL:-https://iaf-ifrs-analytics-calc.ifrspro.id/api}
       # Server-side env vars (for Next.js server)
       # Client-side uses .env file which has localhost URLs
       - NEXT_TELEMETRY_DISABLED=1
