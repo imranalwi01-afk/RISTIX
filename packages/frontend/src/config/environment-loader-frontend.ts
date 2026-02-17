@@ -1,123 +1,88 @@
 // packages/frontend/src/config/environment-loader-frontend.ts
-// =============================================================================
-// 🚀 FRONTEND SMART ENVIRONMENT LOADER - SEAMLESS LOCALDEV/IAFECS SWITCHING
-// =============================================================================
-// Purpose: Automatically detect and load correct environment configuration for frontend
-// Supports: LOCALDEV (localhost) and IAFECS (Alibaba Cloud ECS)
-// Usage: DEPLOYMENT_TARGET=localdev|iafecs or automatic detection
-// =============================================================================
+// Minimal frontend environment loader. Source of truth is env.
 
-import * as os from 'os';
+const getEnv = (key: string): string => (process.env[key] || '').trim();
 
-// Explicitly map environment variables to ensure Next.js/Webpack can perform static replacement
-const ENV_VARS: Record<string, string | undefined> = {
-  NODE_ENV: process.env.NODE_ENV,
-  DEPLOYMENT_TARGET: process.env.DEPLOYMENT_TARGET,
-  NEXT_PUBLIC_DEPLOYMENT_TARGET: process.env.NEXT_PUBLIC_DEPLOYMENT_TARGET,
-  NEXT_PUBLIC_LOCAL_DEVELOPMENT: process.env.NEXT_PUBLIC_LOCAL_DEVELOPMENT,
-  NEXT_PUBLIC_BACKEND_URL: process.env.NEXT_PUBLIC_BACKEND_URL,
-  NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL,
-  NEXT_PUBLIC_RAPI_BASE_URL: process.env.NEXT_PUBLIC_RAPI_BASE_URL,
-  NEXT_PUBLIC_R_ANALYTICS_URL: process.env.NEXT_PUBLIC_R_ANALYTICS_URL,
-  NEXT_PUBLIC_R_ANALYTICS_CALC_URL: process.env.NEXT_PUBLIC_R_ANALYTICS_CALC_URL,
-  NEXT_PUBLIC_FRONTEND_URL: process.env.NEXT_PUBLIC_FRONTEND_URL,
-  NEXT_PUBLIC_BANKING_DASHBOARD_URL: process.env.NEXT_PUBLIC_BANKING_DASHBOARD_URL,
-  NEXT_PUBLIC_WS_URL: process.env.NEXT_PUBLIC_WS_URL,
-  NEXT_PUBLIC_TENANT_ID: process.env.NEXT_PUBLIC_TENANT_ID,
-  NEXT_PUBLIC_TENANT_NAME: process.env.NEXT_PUBLIC_TENANT_NAME,
-  NEXT_PUBLIC_COMPANY_NAME: process.env.NEXT_PUBLIC_COMPANY_NAME,
-  NEXT_PUBLIC_BANKING_TYPE: process.env.NEXT_PUBLIC_BANKING_TYPE,
-  NEXT_PUBLIC_LOGO_PATH: process.env.NEXT_PUBLIC_LOGO_PATH,
-  NEXT_PUBLIC_PRIMARY_COLOR: process.env.NEXT_PUBLIC_PRIMARY_COLOR,
-  NEXT_PUBLIC_SECONDARY_COLOR: process.env.NEXT_PUBLIC_SECONDARY_COLOR,
-  NEXT_PUBLIC_FEATURE_ADVANCED_ANALYTICS: process.env.NEXT_PUBLIC_FEATURE_ADVANCED_ANALYTICS,
-  NEXT_PUBLIC_FEATURE_ISLAMIC_BANKING: process.env.NEXT_PUBLIC_FEATURE_ISLAMIC_BANKING,
-  NEXT_PUBLIC_FEATURE_AUDIT_TRAIL: process.env.NEXT_PUBLIC_FEATURE_AUDIT_TRAIL,
-  NEXT_PUBLIC_FEATURE_DEVELOPMENT_TOOLS: process.env.NEXT_PUBLIC_FEATURE_DEVELOPMENT_TOOLS,
-  NEXT_PUBLIC_FEATURE_MOCK_DATA: process.env.NEXT_PUBLIC_FEATURE_MOCK_DATA,
-  NEXT_PUBLIC_DEBUG_MODE: process.env.NEXT_PUBLIC_DEBUG_MODE,
-  NEXT_PUBLIC_ENABLE_HTTPS: process.env.NEXT_PUBLIC_ENABLE_HTTPS,
-  NEXT_PUBLIC_SECURE_COOKIES: process.env.NEXT_PUBLIC_SECURE_COOKIES,
-  NEXT_PUBLIC_MOCK_API_RESPONSE: process.env.NEXT_PUBLIC_MOCK_API_RESPONSE
+const trimTrailingSlash = (value: string): string => value.replace(/\/+$/, '');
+
+const canonicalizeLegacyHosts = (value: string): string => {
+  return (value || '')
+    .replace('https://bifrs9-iaf.ifrspro.id', 'https://iaf-ifrs-be.ifrspro.id')
+    .replace('http://bifrs9-iaf.ifrspro.id', 'https://iaf-ifrs-be.ifrspro.id')
+    .replace('https://ifrs9-iaf.ifrspro.id', 'https://iaf-ifrs-be.ifrspro.id')
+    .replace('http://ifrs9-iaf.ifrspro.id', 'https://iaf-ifrs-be.ifrspro.id');
+};
+
+const stripApiSuffix = (value: string): string => {
+  let normalized = trimTrailingSlash(canonicalizeLegacyHosts(value || ''));
+  while (/\/api(?:\/v1)?$/i.test(normalized)) {
+    normalized = normalized.replace(/\/api(?:\/v1)?$/i, '');
+  }
+  return normalized;
+};
+
+const toApiV1 = (value: string): string => {
+  const stripped = stripApiSuffix(value);
+  if (!stripped) return '/api/v1';
+  if (stripped.startsWith('http://') || stripped.startsWith('https://') || stripped.startsWith('/')) {
+    return `${stripped}/api/v1`;
+  }
+  return '/api/v1';
+};
+
+const resolveBackendOrigin = (): string => {
+  const candidates = [
+    getEnv('NEXT_PUBLIC_BACKEND_URL'),
+    getEnv('BACKEND_URL'),
+    getEnv('NEXT_PUBLIC_API_BASE_URL'),
+    getEnv('NEXT_PUBLIC_BACKEND_API_URL'),
+    getEnv('API_BASE_URL'),
+  ];
+
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    return stripApiSuffix(candidate);
+  }
+
+  return '';
+};
+
+const resolveApiBase = (backendOrigin: string): string => {
+  const explicitApiBase =
+    getEnv('NEXT_PUBLIC_API_BASE_URL') ||
+    getEnv('NEXT_PUBLIC_BACKEND_API_URL') ||
+    getEnv('API_BASE_URL');
+
+  if (explicitApiBase) return toApiV1(explicitApiBase);
+  if (backendOrigin) return `${backendOrigin}/api/v1`;
+  return '/api/v1';
 };
 
 export interface FrontendEnvironmentConfig {
-  // Environment Detection
   nodeEnv: string;
-  deploymentTarget: 'localdev' | 'iafecs';
-  environmentName: string;
   isProduction: boolean;
-  isLocalDev: boolean;
-  isEcs: boolean;
-
-  // API URLs
   api: {
     backend: string;
     base: string;
-    auth: string;
-    banking: string;
-    user: string;
-    portfolio: string;
-    reports: string;
   };
-
-  // R Analytics URLs
   rAnalytics: {
     api: string;
     dashboard: string;
-    calc: string;
   };
-
-  // Application URLs
   urls: {
     frontend: string;
     backend: string;
-    bankingDashboard: string;
     websocket: string;
   };
-
-  // IAF Configuration
   iaf: {
     tenantId: string;
-    tenantName: string;
-    companyName: string;
     bankingType: string;
-    logoPath: string;
-    primaryColor: string;
-    secondaryColor: string;
-    theme: 'conventional' | 'syariah';
-  };
-
-  // Feature Flags
-  features: {
-    advancedAnalytics: boolean;
-    islamicBanking: boolean;
-    auditTrail: boolean;
-    developmentTools: boolean;
-    mockData: boolean;
-    debugMode: boolean;
-  };
-
-  // Security
-  security: {
-    enableHttps: boolean;
-    secureCookies: boolean;
-  };
-
-  // Development
-  development: {
-    showEnvironmentBanner: boolean;
-    enableConsoleLogging: boolean;
-    mockApiResponse: boolean;
   };
 }
 
-export class FrontendEnvironmentLoader {
+class FrontendEnvironmentLoader {
   private static instance: FrontendEnvironmentLoader;
   private config: FrontendEnvironmentConfig | null = null;
-  private isLoaded: boolean = false;
-
-  private constructor() { }
 
   public static getInstance(): FrontendEnvironmentLoader {
     if (!FrontendEnvironmentLoader.instance) {
@@ -126,398 +91,51 @@ export class FrontendEnvironmentLoader {
     return FrontendEnvironmentLoader.instance;
   }
 
-  /**
-   * Auto-detect environment and load configuration
-   */
   public loadConfiguration(): FrontendEnvironmentConfig {
-    if (this.isLoaded) {
-      return this.config!;
-    }
+    const isProduction = process.env.NODE_ENV === 'production';
 
-    console.log('🔧 Frontend Smart Environment Loader - Auto-detecting...');
-    console.log(`📁 Working directory: ${typeof window !== 'undefined' ? 'Browser' : process.cwd()}`);
+    const backendOrigin = resolveBackendOrigin();
+    const apiBase = resolveApiBase(backendOrigin);
+    const backendApi = backendOrigin ? `${backendOrigin}/api/v1` : apiBase;
 
-    // Step 1: Detect deployment target
-    const deploymentTarget = this.detectDeploymentTarget();
-    console.log(`🎯 Detected frontend deployment target: ${deploymentTarget}`);
+    const defaultFrontend =
+      typeof window !== 'undefined'
+        ? window.location.origin
+        : '';
+    const frontendUrl = getEnv('NEXT_PUBLIC_FRONTEND_URL') || getEnv('FRONTEND_URL') || defaultFrontend;
 
-    // Step 2: Build configuration object
-    this.config = this.buildConfiguration(deploymentTarget);
-
-    this.isLoaded = true;
-    console.log('✅ Frontend environment configuration loaded successfully');
-    this.logConfigurationSummary();
+    this.config = {
+      nodeEnv: process.env.NODE_ENV || (isProduction ? 'production' : 'development'),
+      isProduction,
+      api: {
+        backend: backendApi,
+        base: apiBase,
+      },
+      rAnalytics: {
+        api: getEnv('NEXT_PUBLIC_RAPI_BASE_URL') || '/api',
+        dashboard: getEnv('NEXT_PUBLIC_R_ANALYTICS_URL') || '',
+      },
+      urls: {
+        frontend: frontendUrl,
+        backend: backendOrigin || backendApi,
+        websocket: getEnv('NEXT_PUBLIC_WS_URL') || '',
+      },
+      iaf: {
+        tenantId: getEnv('NEXT_PUBLIC_TENANT_ID') || 'iaf',
+        bankingType: getEnv('NEXT_PUBLIC_BANKING_TYPE') || 'conventional',
+      },
+    };
 
     return this.config;
   }
 
-  /**
-   * Enhanced detection for local development context via Cloudflare Zero Trust
-   */
-  private static detectLocalDevelopmentContext(): boolean {
-    if (typeof window === 'undefined') {
-      // Server-side: check if running on development machine
-      return process.env.NODE_ENV !== 'production' ||
-        process.env.DEPLOYMENT_TARGET === 'localdev' ||
-        !!process.env.NEXT_PUBLIC_LOCAL_DEVELOPMENT;
-    }
-
-    // Client-side: multiple detection methods
-    const hostname = window.location.hostname;
-
-    // Method 1: Check for explicit development indicator
-    if (ENV_VARS.NEXT_PUBLIC_LOCAL_DEVELOPMENT === 'true') {
-      console.log('🏠 EXPLICIT LOCAL DEVELOPMENT INDICATOR DETECTED');
-      return true;
-    }
-
-    // Method 2: Check for Cloudflare Zero Trust development domains
-    if (hostname === 'iaf-ifrs.ifrspro.id' ||
-      hostname === 'iaf-ifrs-be.ifrspro.id' ||
-      hostname === 'iaf-ifrs-analytics.ifrspro.id' ||
-      hostname === 'iaf-ifrs-analytics-calc.ifrspro.id' ||
-      hostname.includes('ifrspro.id')) {
-      console.log('🔧 CLOUDFLARE ZERO TRUST DEVELOPMENT DOMAIN DETECTED');
-      return true;
-    }
-
-    // Method 3: Check browser developer tools indicators
-    if (window.location.protocol === 'http:' &&
-      (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.'))) {
-      console.log('💻 LOCALHOST/PRIVATE IP DETECTED');
-      return true;
-    }
-
-    // Method 4: Check for development environment patterns
-    const userAgent = navigator.userAgent;
-    if (userAgent.includes('Chrome') &&
-      (window.outerWidth && window.outerWidth < 1920 && window.outerHeight < 1080)) {
-      // This is a weak indicator, so only use as fallback
-      console.log('🖥️  POSSIBLE DEVELOPMENT ENVIRONMENT (WEAK INDICATOR)');
-    }
-
-    return false;
-  }
-
-  /**
-   * Auto-detect deployment target - ENHANCED LOGIC FOR HYBRID DEVELOPMENT
-   */
-  private detectDeploymentTarget(): 'localdev' | 'iafecs' {
-    // Priority 1: HOSTNAME DETECTION with local development context awareness
-    if (typeof window !== 'undefined') {
-      const hostname = window.location.hostname;
-      const isLocalDevelopment = FrontendEnvironmentLoader.detectLocalDevelopmentContext();
-
-      // Enhanced production domain detection with local development exception
-      if (hostname === 'iaf-ifrs.danafin.com' ||
-        hostname === 'iaf-ifrs-be.danafin.com' ||
-        hostname === 'iaf-ifrs-analytics.danafin.com' ||
-        hostname.includes('danafin.com')) {
-
-        if (isLocalDevelopment) {
-          console.log('🏠 PRODUCTION DOMAIN via LOCAL DEVELOPMENT (Cloudflare Zero Trust)');
-          console.log(`📍 Current hostname: ${hostname}`);
-          console.log('🔧 Using localdev configuration with production domain access');
-          return 'localdev';
-        } else {
-          console.log('🌐 PRODUCTION DOMAIN on ECS SERVER');
-          console.log(`📍 Current hostname: ${hostname}`);
-          console.log('🚀 Using iafecs configuration');
-          return 'iafecs';
-        }
-      }
-
-      // Development domains (Cloudflare Zero Trust)
-      if (hostname === 'iaf-ifrs.ifrspro.id' ||
-        hostname === 'iaf-ifrs-be.ifrspro.id' ||
-        hostname === 'iaf-ifrs-analytics.ifrspro.id' ||
-        hostname === 'iaf-ifrs-analytics-calc.ifrspro.id' ||
-        hostname.includes('ifrspro.id')) {
-        console.log('🔧 DEVELOPMENT DOMAIN DETECTED - Forcing local development');
-        console.log(`📍 Current hostname: ${hostname}`);
-        return 'localdev';
-      }
-    }
-
-    // Priority 2: Check explicit environment variable (only if hostname detection failed)
-    const explicitTarget = ENV_VARS.NEXT_PUBLIC_DEPLOYMENT_TARGET || ENV_VARS.DEPLOYMENT_TARGET;
-    if (explicitTarget === 'localdev' || explicitTarget === 'iafecs') {
-      console.log(`📋 Using explicit DEPLOYMENT_TARGET (hostname detection failed): ${explicitTarget}`);
-      return explicitTarget;
-    }
-
-    // Priority 3: Check NODE_ENV with domain awareness
-    const nodeEnv = ENV_VARS.NODE_ENV;
-    if (nodeEnv === 'production' && !FrontendEnvironmentLoader.detectLocalDevelopmentContext()) {
-      console.log('🚀 NODE_ENV=production - assuming ECS deployment');
-      return 'iafecs';
-    }
-
-    // Priority 4: Default to local development
-    console.log('💻 Defaulting to local development environment');
-    return 'localdev';
-  }
-
-  /**
-   * Build comprehensive frontend configuration
-   */
-  private buildConfiguration(deploymentTarget: 'localdev' | 'iafecs'): FrontendEnvironmentConfig {
-    const isEcs = deploymentTarget === 'iafecs';
-    const isLocalDev = deploymentTarget === 'localdev';
-    const isProduction = process.env.NODE_ENV === 'production' || isEcs;
-
-    // Detect if running on true localhost (not via Cloudflare Zero Trust)
-    const isTrueLocalhost = typeof window !== 'undefined' &&
-      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') &&
-      window.location.protocol === 'http:';
-
-    // API URLs based on environment - 🏭 IAF LOCAL PRODUCTION MODE
-    // Priority: 1) ENV var, 2) True localhost -> localhost:4232, 3) LocalDev -> ifrspro.id, 4) ECS -> danafin.com
-    const getApiUrl = () => {
-      const normalizeBackendEnvUrl = (rawValue: string) => {
-        let normalized = (rawValue || '').trim().replace(/\/+$/, '');
-        while (/\/api(?:\/v1)?$/i.test(normalized)) {
-          normalized = normalized.replace(/\/api(?:\/v1)?$/i, '');
-        }
-        return normalized;
-      };
-
-      if (this.getEnvVar('NEXT_PUBLIC_BACKEND_URL')) {
-        const normalized = normalizeBackendEnvUrl(this.getEnvVar('NEXT_PUBLIC_BACKEND_URL'));
-        return normalized.length > 0 ? `${normalized}/api/v1` : '/api/v1';
-      }
-      if (isTrueLocalhost) {
-        console.log('🏠 True localhost detected - using http://localhost:4232/api/v1');
-        return 'http://localhost:4232/api/v1';
-      }
-      return isEcs ? 'https://iaf-ifrs-be.danafin.com/api/v1' : 'https://iaf-ifrs-be.ifrspro.id/api/v1';
-    };
-
-    const apiUrl = getApiUrl();
-    const normalizeApiV1Base = (rawValue: string): string => {
-      let normalized = (rawValue || '').trim().replace(/\/+$/, '');
-      while (/\/api(?:\/v1)?$/i.test(normalized)) {
-        normalized = normalized.replace(/\/api(?:\/v1)?$/i, '');
-      }
-      if (!normalized) return '/api/v1';
-      if (normalized.startsWith('http://') || normalized.startsWith('https://') || normalized.startsWith('/')) {
-        return `${normalized}/api/v1`;
-      }
-      return '/api/v1';
-    };
-    const apiBaseEnv = this.getEnvVar('NEXT_PUBLIC_API_BASE_URL');
-
-    const api = {
-      backend: apiUrl,
-      base: apiBaseEnv ? normalizeApiV1Base(apiBaseEnv) : apiUrl,
-      auth: '/auth',
-      banking: '/banking',
-      user: '/v1/user',
-      portfolio: '/portfolio',
-      reports: '/reports'
-    };
-
-    // R Analytics Configuration
-    const rAnalytics = {
-      api: this.getEnvVar('NEXT_PUBLIC_RAPI_BASE_URL') || (isEcs ? 'https://iaf-ifrs-analytics-calc.danafin.com/api' : 'https://iaf-ifrs-analytics-calc.ifrspro.id/api'),
-      dashboard: (() => {
-        const envUrl = this.getEnvVar('NEXT_PUBLIC_R_ANALYTICS_URL');
-        // If envUrl is set and is NOT localhost, use it.
-        // If it IS localhost but we are in production, or if it's empty, use the fallback.
-        if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
-          return envUrl;
-        }
-        return isEcs ? 'https://iaf-ifrs-analytics.danafin.com' : 'https://iaf-ifrs-analytics.ifrspro.id';
-      })(),
-      calc: this.getEnvVar('NEXT_PUBLIC_R_ANALYTICS_CALC_URL') || (isEcs ? 'https://iaf-ifrs-analytics-calc.danafin.com' : 'https://iaf-ifrs-analytics-calc.ifrspro.id')
-    };
-
-    // Application URLs
-    const urls = {
-      frontend: this.getEnvVar('NEXT_PUBLIC_FRONTEND_URL', isEcs ? 'https://iaf-ifrs.danafin.com' : 'https://iaf-ifrs.ifrspro.id'),
-      backend: api.backend,
-      bankingDashboard: this.getEnvVar('NEXT_PUBLIC_BANKING_DASHBOARD_URL', isEcs ? 'https://iaf-ifrs.danafin.com/banking/dashboard' : 'https://iaf-ifrs.ifrspro.id/banking/dashboard'),
-      websocket: this.getEnvVar('NEXT_PUBLIC_WS_URL', isEcs ? 'wss://iaf-ifrs.danafin.com' : 'wss://iaf-ifrs.ifrspro.id')
-    };
-
-    // IAF Configuration
-    const iaf = {
-      tenantId: this.getEnvVar('NEXT_PUBLIC_TENANT_ID', 'iaf'),
-      tenantName: this.getEnvVar('NEXT_PUBLIC_TENANT_NAME', isEcs ? 'Indonesia Airawata Finance' : 'Indonesia Airawata Finance (Local)'),
-      companyName: this.getEnvVar('NEXT_PUBLIC_COMPANY_NAME', 'Indonesia Airawata Finance'),
-      bankingType: this.getEnvVar('NEXT_PUBLIC_BANKING_TYPE', 'conventional'),
-      logoPath: this.getEnvVar('NEXT_PUBLIC_LOGO_PATH', '/images/iaf-logo.png'),
-      primaryColor: this.getEnvVar('NEXT_PUBLIC_PRIMARY_COLOR', isEcs ? '#1976D2' : '#007bff'),
-      secondaryColor: this.getEnvVar('NEXT_PUBLIC_SECONDARY_COLOR', isEcs ? '#DC004E' : '#6c757d'),
-      theme: this.getEnvVar('NEXT_PUBLIC_BANKING_TYPE', 'conventional') as 'conventional' | 'syariah'
-    };
-
-    // Feature flags
-    const features = {
-      advancedAnalytics: this.getEnvVar('NEXT_PUBLIC_FEATURE_ADVANCED_ANALYTICS', 'true') === 'true',
-      islamicBanking: this.getEnvVar('NEXT_PUBLIC_FEATURE_ISLAMIC_BANKING', 'true') === 'true',
-      auditTrail: this.getEnvVar('NEXT_PUBLIC_FEATURE_AUDIT_TRAIL', 'true') === 'true',
-      developmentTools: this.getEnvVar('NEXT_PUBLIC_FEATURE_DEVELOPMENT_TOOLS', isLocalDev ? 'true' : 'false') === 'true',
-      mockData: this.getEnvVar('NEXT_PUBLIC_FEATURE_MOCK_DATA', 'false') === 'true',
-      debugMode: this.getEnvVar('NEXT_PUBLIC_DEBUG_MODE', isLocalDev ? 'true' : 'false') === 'true'
-    };
-
-    // Security configuration
-    const security = {
-      enableHttps: this.getEnvVar('NEXT_PUBLIC_ENABLE_HTTPS', isEcs ? 'true' : 'false') === 'true',
-      secureCookies: this.getEnvVar('NEXT_PUBLIC_SECURE_COOKIES', isEcs ? 'true' : 'false') === 'true'
-    };
-
-    // Development configuration
-    const development = {
-      showEnvironmentBanner: isLocalDev,
-      enableConsoleLogging: isLocalDev,
-      mockApiResponse: this.getEnvVar('NEXT_PUBLIC_MOCK_API_RESPONSE', 'false') === 'true'
-    };
-
-    return {
-      nodeEnv: process.env.NODE_ENV || (isEcs ? 'production' : 'development'),
-      deploymentTarget,
-      environmentName: isEcs ? 'IAF ECS Production' : 'Local Development',
-      isProduction,
-      isLocalDev,
-      isEcs,
-      api,
-      rAnalytics,
-      urls,
-      iaf,
-      features,
-      security,
-      development
-    };
-  }
-
-  /**
-   * Get environment variable with fallback
-   */
-  private getEnvVar(key: string, defaultValue: string = ''): string {
-    return ENV_VARS[key] || defaultValue;
-  }
-
-  /**
-   * Log configuration summary
-   */
-  private logConfigurationSummary(): void {
-    const config = this.config!;
-
-    console.log('\n📋 Frontend Environment Configuration Summary:');
-    console.log('============================================');
-    console.log(`🎯 Environment: ${config.environmentName}`);
-    console.log(`🖥️  Node.js: ${config.nodeEnv}`);
-    console.log(`🚀 Target: ${config.deploymentTarget}`);
-    console.log(`🌐 Is Production: ${config.isProduction}`);
-
-    console.log('\n🌐 Application URLs:');
-    console.log(`  Frontend:        ${config.urls.frontend}`);
-    console.log(`  Backend:         ${config.urls.backend}`);
-    console.log(`  Banking Dashboard:${config.urls.bankingDashboard}`);
-    console.log(`  WebSocket:       ${config.urls.websocket}`);
-    console.log(`  API:             ${config.api.base}`);
-
-    console.log('\n🔧 API Endpoints:');
-    console.log(`  Auth:    ${config.api.auth}`);
-    console.log(`  Banking: ${config.api.banking}`);
-    console.log(`  User:    ${config.api.user}`);
-
-    console.log('\n📊 R Analytics:');
-    console.log(`  Dashboard: ${config.rAnalytics.dashboard}`);
-    console.log(`  API:      ${config.rAnalytics.api}`);
-    console.log(`  Calc:     ${config.rAnalytics.calc}`);
-
-    console.log('\n🏢 IAF Configuration:');
-    console.log(`  Tenant: ${config.iaf.tenantName} (${config.iaf.tenantId})`);
-    console.log(`  Banking: ${config.iaf.bankingType}`);
-    console.log(`  Theme:   ${config.iaf.theme}`);
-
-    console.log('\n✨ Features:');
-    console.log(`  Analytics: ${config.features.advancedAnalytics ? 'Enabled' : 'Disabled'}`);
-    console.log(`  Islamic Banking: ${config.features.islamicBanking ? 'Enabled' : 'Disabled'}`);
-    console.log(`  Audit Trail: ${config.features.auditTrail ? 'Enabled' : 'Disabled'}`);
-    console.log(`  Development Tools: ${config.features.developmentTools ? 'Enabled' : 'Disabled'}`);
-
-    console.log('\n🔒 Security:');
-    console.log(`  HTTPS:      ${config.security.enableHttps ? 'Enabled' : 'Disabled'}`);
-    console.log(`  Secure Cookies: ${config.security.secureCookies ? 'Enabled' : 'Disabled'}`);
-
-    console.log('============================================\n');
-  }
-
-  /**
-   * Get loaded configuration
-   */
   public getConfiguration(): FrontendEnvironmentConfig {
-    if (!this.isLoaded) {
-      throw new Error('Configuration not loaded. Call loadConfiguration() first.');
+    if (!this.config) {
+      this.config = this.loadConfiguration();
     }
-    return this.config!;
-  }
-
-  /**
-   * Check if running in production mode
-   */
-  public isProduction(): boolean {
-    return this.getConfiguration().isProduction;
-  }
-
-  /**
-   * Check if running in local development
-   */
-  public isLocalDevelopment(): boolean {
-    return this.getConfiguration().isLocalDev;
-  }
-
-  /**
-   * Check if running on ECS
-   */
-  public isEcsDeployment(): boolean {
-    return this.getConfiguration().isEcs;
-  }
-
-  /**
-   * Get deployment target
-   */
-  public getDeploymentTarget(): 'localdev' | 'iafecs' {
-    return this.getConfiguration().deploymentTarget;
-  }
-
-  /**
-   * Get API base URL
-   */
-  public getApiBaseUrl(): string {
-    return this.getConfiguration().api.base;
-  }
-
-  /**
-   * Get backend URL
-   */
-  public getBackendUrl(): string {
-    return this.getConfiguration().api.backend;
-  }
-
-  /**
-   * Get frontend URL
-   */
-  public getFrontendUrl(): string {
-    return this.getConfiguration().urls.frontend;
+    return this.config;
   }
 }
 
-// Export singleton instance
 export const frontendEnvironmentLoader = FrontendEnvironmentLoader.getInstance();
-
-// Auto-load on import
-if (typeof window === 'undefined') {
-  // Server-side loading
-  frontendEnvironmentLoader.loadConfiguration();
-} else {
-  // Client-side loading (deferred to avoid hydration issues)
-  if (typeof window !== 'undefined' && !(window as any).__ENV_LOADED__) {
-    (window as any).__ENV_LOADED__ = true;
-    frontendEnvironmentLoader.loadConfiguration();
-  }
-}
+frontendEnvironmentLoader.loadConfiguration();

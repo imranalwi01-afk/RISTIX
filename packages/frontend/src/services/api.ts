@@ -1660,10 +1660,10 @@ if (typeof window !== 'undefined') {
     client: apiClient,
     diagnostics: apiDiagnostics,
     config: {
-      baseUrl: API_BASE_URL || 'https://iaf-ifrs-be.ifrspro.id/api/v1',
-      backendUrl: BACKEND_URL || 'https://iaf-ifrs-be.ifrspro.id',
-      deploymentMode: 'IAF_ECS',
-      ecsServer: '10.18.11.35',
+      baseUrl: API_BASE_URL || '/api/v1',
+      backendUrl: BACKEND_URL || '',
+      deploymentMode: process.env.NEXT_PUBLIC_ENVIRONMENT || process.env.NODE_ENV || 'development',
+      ecsServer: process.env.BACKEND_HOST || '',
       realDatabaseMode: true,
       mockupData: false,
       singleTenantMode: true
@@ -1672,9 +1672,9 @@ if (typeof window !== 'undefined') {
     diagnose: apiDiagnostics.diagnose,
   };
 
-  console.log('🏗️ IAF ECS API debugging available: window.__IFRS9_IAF_API__');
+  console.log('🏗️ API debugging available: window.__IFRS9_IAF_API__');
   console.log('🏗️ Run window.__IFRS9_IAF_API__.diagnose() for diagnostics');
-  console.log('🏗️ IAF Single Tenant Deployment: ECS Server URLs CONFIGURED');
+  console.log('🏗️ Single tenant mode active');
 }
 
 

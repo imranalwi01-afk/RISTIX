@@ -193,7 +193,13 @@ const detectBankingModeFromUser = (user: any): 'conventional' | 'syariah' | null
 };
 
 const normalizeBackendBaseUrl = (rawUrl: string): string => {
-  let normalized = (rawUrl || '').trim().replace(/\/+$/, '');
+  let normalized = (rawUrl || '')
+    .replace('https://bifrs9-iaf.ifrspro.id', 'https://iaf-ifrs-be.ifrspro.id')
+    .replace('http://bifrs9-iaf.ifrspro.id', 'https://iaf-ifrs-be.ifrspro.id')
+    .replace('https://ifrs9-iaf.ifrspro.id', 'https://iaf-ifrs-be.ifrspro.id')
+    .replace('http://ifrs9-iaf.ifrspro.id', 'https://iaf-ifrs-be.ifrspro.id')
+    .trim()
+    .replace(/\/+$/, '');
   // Guard against accidental repeated API prefixes like /api/api/v1
   while (/\/api(?:\/v1)?$/i.test(normalized)) {
     normalized = normalized.replace(/\/api(?:\/v1)?$/i, '');
@@ -216,9 +222,37 @@ const fetchWithTimeout = async (
   }
 };
 
+const parseResponseBody = async (response: Response): Promise<{ json: any | null; text: string }> => {
+  const text = await response.text();
+  if (!text) {
+    return { json: null, text: '' };
+  }
+
+  const contentType = (response.headers.get('content-type') || '').toLowerCase();
+  const looksLikeJson = text.trim().startsWith('{') || text.trim().startsWith('[');
+
+  if (contentType.includes('application/json') || looksLikeJson) {
+    try {
+      return { json: JSON.parse(text), text };
+    } catch {
+      return { json: null, text };
+    }
+  }
+
+  return { json: null, text };
+};
+
 const toApiV1BaseUrl = (rawUrl: string): string => {
   const normalized = normalizeBackendBaseUrl(rawUrl);
   return normalized.length > 0 ? `${normalized}/api/v1` : '/api/v1';
+};
+
+const resolveBackendBaseUrl = (): string => {
+  return (
+    process.env.NEXT_PUBLIC_BACKEND_URL ||
+    process.env.BACKEND_URL ||
+    ''
+  );
 };
 
 const toUniqueStringArray = (values: unknown[]): string[] => {
@@ -259,12 +293,6 @@ const normalizePermissionsPayload = (payload: unknown): string[] => {
   }
 
   return [];
-};
-
-const isCanonicalPermissionCode = (value: string): boolean => {
-  if (!value || typeof value !== 'string') return false;
-  if (value === '*' || value === 'SUPER_ADMIN' || value === 'PLATFORM_ADMIN') return true;
-  return /^(banking|admin|jobs|approval)\./.test(value);
 };
 
 // ============================================================================
@@ -433,27 +461,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
           // ✅ SURGICAL FIX: Validate token with better error handling
           try {
-            // ✅ FIXED: Use centralized configuration for dual-mode support
-            let backendUrl: string;
-            try {
-              const { frontendEnvironmentLoader } = require('../config/environment-loader-frontend');
-              const config = frontendEnvironmentLoader.getConfiguration();
-              backendUrl = config.api.backend;
-              console.log('✅ Using centralized backend URL for token validation:', backendUrl);
-            } catch (error) {
-              console.warn('⚠️ Failed to load centralized backend URL, using fallback:', error);
-              // Fallback to environment variable or hostname-based detection
-              if (typeof window !== 'undefined') {
-                // Try process.env first (for server-side rendering), then hostname detection
-                backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL ||
-                  (window.location.hostname.includes('danafin.com')
-                    ? 'https://iaf-ifrs-be.danafin.com'
-                    : 'https://iaf-ifrs-be.ifrspro.id');
-              } else {
-                // Server-side fallback
-                backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://iaf-ifrs-be.ifrspro.id';
-              }
-            }
+            const backendUrl = resolveBackendBaseUrl();
             const response = await fetchWithTimeout(`${toApiV1BaseUrl(backendUrl)}/auth/verify`, {
               headers: {
                 'Authorization': `Bearer ${token}`,
@@ -543,21 +551,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     permissionRefreshInFlight.current = true;
 
     try {
-      let backendUrl: string;
-      try {
-        const { frontendEnvironmentLoader } = require('../config/environment-loader-frontend');
-        const config = frontendEnvironmentLoader.getConfiguration();
-        backendUrl = config.api.backend;
-      } catch (error) {
-        if (typeof window !== 'undefined') {
-          backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL ||
-            (window.location.hostname.includes('danafin.com')
-              ? 'https://iaf-ifrs-be.danafin.com'
-              : 'https://iaf-ifrs-be.ifrspro.id');
-        } else {
-          backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://iaf-ifrs-be.ifrspro.id';
-        }
-      }
+      const backendUrl = resolveBackendBaseUrl();
 
       const headers = {
         'Authorization': `Bearer ${token}`,
@@ -596,9 +590,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       const mergedRoles = Array.isArray(meData.roles) ? toUniqueStringArray(meData.roles) : toUniqueStringArray(currentUser.roles || []);
       const currentPermissions = toUniqueStringArray(currentUser.permissions || []);
-      const hasCanonicalResolvedPermissions = resolvedPermissions.some(isCanonicalPermissionCode);
       const mergedPermissions =
-        resolvedPermissions.length > 0 && hasCanonicalResolvedPermissions
+        resolvedPermissions.length > 0
           ? resolvedPermissions
           : currentPermissions;
 
@@ -696,54 +689,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       // ✅ FIXED: Use domain-based API URL mapping with environment fallback
-      const getApiBaseUrl = () => {
-        // ✅ FIXED: Use centralized configuration for dual-mode auto-detection
-        console.log('🏭 Using centralized configuration for dual-mode auto-detection');
-
-        // ✅ FIXED: Use centralized configuration instead of hardcoded URLs
-        if (process.env.NEXT_PUBLIC_BACKEND_URL) {
-          console.log('✅ Using centralized NEXT_PUBLIC_BACKEND_URL:', process.env.NEXT_PUBLIC_BACKEND_URL);
-          return process.env.NEXT_PUBLIC_BACKEND_URL;
-        }
-
-        // Fallback to environment-based detection
-        // Use centralized environment loader for dual environment support
-        try {
-          const { frontendEnvironmentLoader } = require('../config/environment-loader-frontend');
-          const config = frontendEnvironmentLoader.getConfiguration();
-          console.log('🎯 Using centralized environment loader:', config.urls.backend);
-          return config.urls.backend;
-        } catch (error) {
-          console.warn('⚠️ Failed to load environment configuration, using fallback:', error);
-
-          // Fallback to environment variable
-          if (process.env.NEXT_PUBLIC_BACKEND_URL) {
-            console.log('🔧 Using NEXT_PUBLIC_BACKEND_URL:', process.env.NEXT_PUBLIC_BACKEND_URL);
-            return process.env.NEXT_PUBLIC_BACKEND_URL;
-          }
-        }
-
-        // Priority 2: Environment variable (only if domain detection fails)
-        if (process.env.NEXT_PUBLIC_BACKEND_URL) {
-          console.log('⚠️ Domain detection failed, using NEXT_PUBLIC_BACKEND_URL:', process.env.NEXT_PUBLIC_BACKEND_URL);
-          console.log('🔧 Available BACKEND_HOST:', process.env.NEXT_PUBLIC_BACKEND_HOST);
-          console.log('🔧 Available BACKEND_PORT:', process.env.NEXT_PUBLIC_BACKEND_PORT);
-          return process.env.NEXT_PUBLIC_BACKEND_URL;
-        }
-
-        if (process.env.NEXT_PUBLIC_BACKEND_API_URL) {
-          console.log('⚠️ Using NEXT_PUBLIC_BACKEND_API_URL:', process.env.NEXT_PUBLIC_BACKEND_API_URL);
-          // Strip /api/v1 if present to avoid duplication
-          return process.env.NEXT_PUBLIC_BACKEND_API_URL.replace(/\/api\/v1\/?$/, '');
-        }
-
-        // Priority 3: Final fallback - MUST USE PRODUCTION DOMAIN
-        // NOTE: We return the BASE URL (without /api/v1/auth/login) because the caller adds the path
-        const fallbackUrl = `https://iaf-ifrs-be.ifrspro.id`;
-        console.log('🚨 Using final fallback URL:', fallbackUrl);
-        return fallbackUrl;
-      };
-      const rawApiBaseUrl = getApiBaseUrl();
+      const rawApiBaseUrl = resolveBackendBaseUrl();
       // Ensure no trailing slash and no duplicated /api/v1 suffixes
       const apiBaseUrl = normalizeBackendBaseUrl(rawApiBaseUrl);
 
@@ -754,10 +700,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         },
         body: JSON.stringify(loginPayload),
       }, 15_000)
+      const parsedResponse = await parseResponseBody(response);
 
       if (!response.ok) {
-        const errorData = await response.json()
-        let errorMessage = errorData.message || errorData.error || 'Login failed'
+        const errorData = parsedResponse.json || {}
+        let errorMessage =
+          errorData.message ||
+          errorData.error ||
+          (parsedResponse.text && parsedResponse.text.trim().length > 0
+            ? parsedResponse.text.trim()
+            : `Login failed (HTTP ${response.status})`)
 
         // 🔧 FIXED: Enhanced error detection for rate limiting
         if (errorData.error === 'RATE_LIMIT_EXCEEDED' || errorData.code === 'RATE_LIMIT_EXCEEDED') {
@@ -772,13 +724,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         } else if (response.status === 429) {
           // Fallback for HTTP 429 status
           errorMessage = 'Too many login attempts. Please wait a few minutes before trying again.'
+        } else if (response.status >= 500 && /internal server error/i.test(errorMessage)) {
+          errorMessage = 'Server error during login. Please try again or contact admin.'
         }
 
         dispatch(loginFailure(errorMessage))
         return false
       }
 
-      const authData = await response.json()
+      const authData = parsedResponse.json
+      if (!authData || typeof authData !== 'object') {
+        dispatch(loginFailure('Invalid server response during login. Please try again.'))
+        return false
+      }
 
       if (authData.success && authData.data) {
         // 🔍 DEBUG: Log full response structure
@@ -1100,27 +1058,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         : null;
       syncTokenToCookie(token, hydratedUser, refreshToken);
 
-      // ✅ FIXED: Use centralized configuration for dual-mode support
-      let backendUrl: string;
-      try {
-        const { frontendEnvironmentLoader } = require('../config/environment-loader-frontend');
-        const config = frontendEnvironmentLoader.getConfiguration();
-        backendUrl = config.api.backend;
-        console.log('✅ Using centralized backend URL for auth check:', backendUrl);
-      } catch (error) {
-        console.warn('⚠️ Failed to load centralized backend URL, using fallback:', error);
-        // Fallback to environment variable or hostname-based detection
-        if (typeof window !== 'undefined') {
-          // Try process.env first (for server-side rendering), then hostname detection
-          backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL ||
-            (window.location.hostname.includes('danafin.com')
-              ? 'https://iaf-ifrs-be.danafin.com'
-              : 'https://iaf-ifrs-be.ifrspro.id');
-        } else {
-          // Server-side fallback
-          backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://iaf-ifrs-be.ifrspro.id';
-        }
-      }
+      const backendUrl = resolveBackendBaseUrl();
       const response = await fetch(`${toApiV1BaseUrl(backendUrl)}/auth/verify`, {
         headers: {
           'Authorization': `Bearer ${token}`,

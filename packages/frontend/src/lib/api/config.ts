@@ -21,44 +21,26 @@ const loadConfig = () => {
       R_ANALYTICS_URL: config.rAnalytics.api,
       FRONTEND_URL: config.urls.frontend,
       WS_URL: config.urls.websocket,
-
-      // Environment info
-      ENVIRONMENT: config.environmentName,
-      DEPLOYMENT_TARGET: config.deploymentTarget,
       IS_PRODUCTION: config.isProduction,
-      IS_DEVELOPMENT: config.isLocalDev,
 
       // IAF Configuration
       IAF_TENANT: config.iaf.tenantId,
       IAF_BANKING_TYPE: config.iaf.bankingType,
-
-      // Feature flags
-      FEATURES: config.features
     };
   } catch (error) {
     console.warn('⚠️ Failed to load centralized config, using fallback:', error);
 
     // Fallback to environment variables
     return {
-      BASE_URL: process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_API_URL || 'https://iaf-ifrs-be.danafin.com/api/v1',
-      BACKEND_URL: process.env.NEXT_PUBLIC_BACKEND_URL || 'https://iaf-ifrs-be.danafin.com',
-      R_ANALYTICS_URL: process.env.NEXT_PUBLIC_R_API_URL || 'https://iaf-ifrs-analytics-calc.danafin.com/api',
-      FRONTEND_URL: process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://iaf-ifrs.danafin.com',
-      WS_URL: process.env.NEXT_PUBLIC_WS_URL || 'wss://iaf-ifrs.danafin.com',
-
-      ENVIRONMENT: process.env.NEXT_PUBLIC_ENVIRONMENT || 'production',
-      DEPLOYMENT_TARGET: 'iaf-production',
-      IS_PRODUCTION: true,
-      IS_DEVELOPMENT: false,
+      BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || '/api/v1',
+      BACKEND_URL: process.env.NEXT_PUBLIC_BACKEND_URL || process.env.BACKEND_URL || '',
+      R_ANALYTICS_URL: process.env.NEXT_PUBLIC_RAPI_BASE_URL || process.env.NEXT_PUBLIC_R_API_URL || '/api',
+      FRONTEND_URL: process.env.NEXT_PUBLIC_FRONTEND_URL || process.env.FRONTEND_URL || '',
+      WS_URL: process.env.NEXT_PUBLIC_WS_URL || '',
+      IS_PRODUCTION: process.env.NODE_ENV === 'production',
 
       IAF_TENANT: 'iaf',
       IAF_BANKING_TYPE: 'conventional',
-
-      FEATURES: {
-        analytics: true,
-        syariahMode: true,
-        auditTrail: true
-      }
     };
   }
 };
@@ -134,28 +116,17 @@ export const AUTH_CONFIG = {
 // ============================================================================
 
 export const SECURITY_CONFIG = {
-  // CORS origins - Use centralized config with dual environment support
-  ALLOWED_ORIGINS: [
-    // IAF ECS Production domains
-    'https://iaf-ifrs.danafin.com',
-    'https://iaf-ifrs-be.danafin.com',
-    'https://iaf-ifrs-analytics.danafin.com',
-    'https://iaf-ifrs-analytics-calc.danafin.com',
-    // IAF Development domains
-    'https://iaf-ifrs.ifrspro.id',
-    'https://iaf-ifrs-be.ifrspro.id',
-    'https://iaf-ifrs-analytics.ifrspro.id',
-    'https://iaf-ifrs-analytics-calc.ifrspro.id'
-  ],
+  ALLOWED_ORIGINS: (process.env.NEXT_PUBLIC_ALLOWED_ORIGINS || process.env.CORS_ORIGINS || '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean),
 
-  // CSP Configuration
   CSP_ENABLED: API_CONFIG.IS_PRODUCTION,
-  FRAME_ANCESTORS: "'self' https://iaf-ifrs.danafin.com https://iaf-ifrs-be.danafin.com https://iaf-ifrs-analytics.danafin.com https://iaf-ifrs-analytics-calc.danafin.com https://iaf-ifrs.ifrspro.id https://iaf-ifrs-be.ifrspro.id https://iaf-ifrs-analytics.ifrspro.id https://iaf-ifrs-analytics-calc.ifrspro.id",
+  FRAME_ANCESTORS: process.env.NEXT_PUBLIC_FRAME_ANCESTORS || "'self'",
 
-  // SSL Configuration
   SSL_ENABLED: true,
   HSTS_ENABLED: API_CONFIG.IS_PRODUCTION,
-  FORCE_HTTPS: false // IAF uses HTTPS domains
+  FORCE_HTTPS: API_CONFIG.IS_PRODUCTION
 };
 
 // ============================================================================
@@ -225,47 +196,6 @@ export const UI_CONFIG = {
   DEFAULT_TIMEZONE: 'Asia/Jakarta'
 };
 
-// ============================================================================
-// 🔧 HELPER FUNCTIONS
-// ============================================================================
-
-// Get R Analytics URL for specific tenant
-export const getRAnalyticsUrl = (tenantType?: string): string => {
-  return API_CONFIG.R_ANALYTICS_URL;
-};
-
-// Get API URL for specific endpoint
-export const getApiUrl = (endpoint?: string): string => {
-  const baseUrl = API_CONFIG.BASE_URL;
-  return endpoint ? `${baseUrl}/${endpoint}` : baseUrl;
-};
-
-// Get R Analytics API URL for specific endpoint
-export const getRAnalyticsApiUrl = (endpoint?: string): string => {
-  const baseUrl = API_CONFIG.R_ANALYTICS_URL;
-  return endpoint ? `${baseUrl}/${endpoint}` : baseUrl;
-};
-
-// Check if current environment is production
-export const isProduction = (): boolean => {
-  return API_CONFIG.IS_PRODUCTION;
-};
-
-// Check if current environment is development
-export const isDevelopment = (): boolean => {
-  return API_CONFIG.IS_DEVELOPMENT;
-};
-
-// Get environment name
-export const getEnvironmentName = (): string => {
-  return API_CONFIG.ENVIRONMENT;
-};
-
-// Get deployment target
-export const getDeploymentTarget = (): string => {
-  return API_CONFIG.DEPLOYMENT_TARGET;
-};
-
 // Export default configuration
 export default {
   API_CONFIG,
@@ -275,12 +205,4 @@ export default {
   BANKING_CONFIG,
   HTTP_CONFIG,
   UI_CONFIG,
-  // Helper functions
-  getRAnalyticsUrl,
-  getApiUrl,
-  getRAnalyticsApiUrl,
-  isProduction,
-  isDevelopment,
-  getEnvironmentName,
-  getDeploymentTarget
 };

@@ -7,6 +7,7 @@
 // ============================================================================
 
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { frontendEnvironmentLoader } from '../../config/environment-loader-frontend';
 
 // ============================================================================
 // CONFIGURATION STATE INTERFACE
@@ -58,18 +59,11 @@ interface ConfigurationState {
 // INITIAL STATE
 // ============================================================================
 const getInitialApiUrl = (): string => {
-  // Simple environment-based URL detection without require()
-  if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname;
-    if (hostname.includes('danafin.com')) {
-      return 'https://iaf-ifrs-be.danafin.com/api/v1';
-    } else if (hostname.includes('ifrspro.id')) {
-      return 'https://iaf-ifrs-be.ifrspro.id/api/v1';
-    }
+  try {
+    return frontendEnvironmentLoader.getConfiguration().api.base;
+  } catch {
+    return process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || '/api/v1';
   }
-
-  // Fallback to environment variable
-  return process.env.NEXT_PUBLIC_API_URL || 'https://iaf-ifrs-be.ifrspro.id/api/v1';
 };
 
 const initialState: ConfigurationState = {

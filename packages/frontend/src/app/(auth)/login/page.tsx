@@ -28,7 +28,6 @@ import {
   Business as BusinessIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../../providers/AuthProvider';
-import { frontendEnvironmentLoader } from '@/config/environment-loader-frontend';
 import { useLoginPrefetch } from '@/hooks/useLoginPrefetch';
 
 // Dynamic import for ModernLoader to improve initial page load
@@ -57,6 +56,22 @@ interface TenantOption {
 interface LoginPageProps {
   initialRole?: 'platform_admin' | 'user';
 }
+
+const toApiV1BaseUrl = (raw: string): string => {
+  let normalized = (raw || '').trim().replace(/\/+$/, '');
+  while (/\/api(?:\/v1)?$/i.test(normalized)) {
+    normalized = normalized.replace(/\/api(?:\/v1)?$/i, '');
+  }
+  return normalized ? `${normalized}/api/v1` : '/api/v1';
+};
+
+const resolveBackendBaseUrl = (): string => {
+  return (
+    process.env.NEXT_PUBLIC_BACKEND_URL ||
+    process.env.NEXT_PUBLIC_API_BASE_URL ||
+    ''
+  );
+};
 
 export default function LoginPage({ initialRole }: LoginPageProps) {
   // const router = useRouter(); // Unused
@@ -103,17 +118,8 @@ export default function LoginPage({ initialRole }: LoginPageProps) {
       }
 
       try {
-        const toApiV1BaseUrl = (rawValue: string): string => {
-          let normalized = (rawValue || '').trim().replace(/\/+$/, '');
-          while (/\/api(?:\/v1)?$/i.test(normalized)) {
-            normalized = normalized.replace(/\/api(?:\/v1)?$/i, '');
-          }
-          return normalized.length > 0 ? `${normalized}/api/v1` : '/api/v1';
-        };
-
-        const config = frontendEnvironmentLoader.getConfiguration();
-        const baseUrl = toApiV1BaseUrl(config?.api?.base || config?.api?.backend || '');
-        const authPath = config.api.auth || '/auth';
+        const baseUrl = toApiV1BaseUrl(resolveBackendBaseUrl());
+        const authPath = '/auth';
         const queryParams = '';
 
         const response = await fetch(`${baseUrl}${authPath}/login-data${queryParams}`, {
