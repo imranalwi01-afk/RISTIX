@@ -7,6 +7,7 @@ import * as tenantService from '../services/tenants.service'
 import { authMiddleware } from '../middleware'
 import * as auditService from '../services/audit.service'
 import * as rbacService from '../services/rbac.service'
+import { env } from '../config/env'
 
 export const authRoutes = new OpenAPIHono<AppContext>()
 
@@ -283,6 +284,16 @@ authRoutes.openapi(
     async (c) => {
         const mode = c.req.query('mode')
         const includeSystem = mode === 'admin'
+        const fallbackTenants = [
+            {
+                id: env.TENANT_SLUG || env.TENANT_ID || 'iaf',
+                slug: env.TENANT_SLUG || 'iaf',
+                name: env.TENANT_NAME || env.COMPANY_NAME || 'Indonesia Airawata Finance',
+                displayName: env.TENANT_NAME || env.COMPANY_NAME || 'Indonesia Airawata Finance',
+                bankingType: env.BANKING_TYPE || 'conventional',
+                isActive: true,
+            },
+        ]
 
         const effect = pipe(
             tenantService.getTenants({ includeSystem }),
@@ -296,7 +307,14 @@ authRoutes.openapi(
                     isActive: t.isActive,
                 })),
                 total: result.total,
-            }))
+            })),
+            Effect.catchAll((error) => {
+                console.error('[AuthRoutes] /auth/login-data fallback due to tenant lookup error:', error)
+                return Effect.succeed({
+                    tenants: fallbackTenants,
+                    total: fallbackTenants.length,
+                })
+            })
         )
 
         return runEffect(c, effect)

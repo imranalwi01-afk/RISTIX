@@ -1,13 +1,7 @@
 // packages/frontend/src/config/frontend-config.ts
-// 🚨 DEPRECATED: FRONTEND CONFIGURATION SERVICE - COMPLETELY DISABLED
-// ⚠️ This entire file is disabled - use environment-loader-frontend.ts instead
-// ⚠️ DO NOT IMPORT OR USE ANYTHING FROM THIS FILE
+// Compatibility shim for legacy imports.
 
-console.warn('⚠️ frontend-config.ts is deprecated. Use environment-loader-frontend.ts instead');
+import { frontendEnvironmentLoader } from './environment-loader-frontend';
 
-// 🚨 DEPRECATED: All exports disabled
-export const FrontendConfigService = null;
-export const appConfig = null;
-
-// 🚨 DEPRECATED: All functionality moved to environment-loader-frontend.ts
-// This file exists only for backward compatibility and should not be used.
+export const FrontendConfigService = frontendEnvironmentLoader;
+export const appConfig = frontendEnvironmentLoader.getConfiguration();
