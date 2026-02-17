@@ -61,7 +61,7 @@ interface LoginPageProps {
 export default function LoginPage({ initialRole }: LoginPageProps) {
   // const router = useRouter(); // Unused
   const searchParams = useSearchParams();
-  const { login, isLoading, error, clearError } = useAuth();
+  const { login, error, clearError } = useAuth();
   // const theme = useTheme(); // Unused
 
   // ✅ PERFORMANCE: Prefetch dashboard routes while user is on login page
@@ -80,6 +80,7 @@ export default function LoginPage({ initialRole }: LoginPageProps) {
   // Tenant data state
   const [tenants, setTenants] = useState<TenantOption[]>([]);
   const [tenantsLoading, setTenantsLoading] = useState(true);
+  const showAuthenticatingOverlay = loginLoading;
 
   const errorParam = searchParams?.get('error');
   const roleParam = searchParams?.get('role');
@@ -390,12 +391,12 @@ export default function LoginPage({ initialRole }: LoginPageProps) {
         }}>
           {/* ✅ MODERN LOADER OVERLAY */}
           <ModernLoader
-            open={loginLoading || isLoading}
+            open={showAuthenticatingOverlay}
             message="Authenticating Workspace"
             subMessage="establishing secure handshake..."
           />
 
-          <Box sx={{ width: '100%', maxWidth: 420, opacity: (loginLoading || isLoading) ? 0.4 : 1, transition: 'opacity 0.4s', filter: (loginLoading || isLoading) ? 'blur(2px)' : 'none' }}>
+          <Box sx={{ width: '100%', maxWidth: 420, opacity: showAuthenticatingOverlay ? 0.4 : 1, transition: 'opacity 0.4s', filter: showAuthenticatingOverlay ? 'blur(2px)' : 'none' }}>
             {/* Mobile Logo (Visible only on xs) */}
             <Box sx={{ display: { xs: 'flex', md: 'none' }, mb: 4, justifyContent: 'center' }}>
               <img src="/images/logo-iaf.png" alt="IAF Logo" style={{ height: 40 }} />
@@ -491,7 +492,7 @@ export default function LoginPage({ initialRole }: LoginPageProps) {
                     fullWidth
                     variant="contained"
                     size="large"
-                    disabled={loginLoading || isLoading || (!isPlatformAdmin && !selectedTenantId)}
+                    disabled={loginLoading || (!isPlatformAdmin && !selectedTenantId)}
                     endIcon={!loginLoading && <ArrowForwardIcon />}
                     sx={{
                       py: 1.8,
@@ -505,7 +506,7 @@ export default function LoginPage({ initialRole }: LoginPageProps) {
                       }
                     }}
                   >
-                    {loginLoading || isLoading ? <CircularProgress size={24} color="inherit" /> : (isPlatformAdmin ? 'Access Control Center' : 'Sign In to Workspace')}
+                    {loginLoading ? <CircularProgress size={24} color="inherit" /> : (isPlatformAdmin ? 'Access Control Center' : 'Sign In to Workspace')}
                   </Button>
                 </Box>
               </Box>

@@ -22,6 +22,7 @@ import {
   loginSuccess,
   loginFailure,
   logout as logoutAction,
+  resetAuth,
   initializeAuth,
   updateUser,
   updateLastActivity,
@@ -499,8 +500,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           console.log('❌ No stored authentication data found')
           syncTokenToCookie(null); // Clear any stale cookies
 
-          // ✅ SURGICAL FIX: Still mark as initialized even without auth data
-          dispatch(initializeAuth({}));
+          // ✅ Reset persisted auth state and mark initialized.
+          dispatch(resetAuth());
         } else {
           // ✅ SURGICAL FIX: Already authenticated, just mark as initialized
           dispatch(initializeAuth({}));

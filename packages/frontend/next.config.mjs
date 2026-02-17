@@ -130,6 +130,12 @@ const nextConfig = {
       normalizedProxyBase = normalizeBackendProxyBase(fallbackPublicTarget);
     }
 
+    if (isPublicDomainFrontend && (!normalizedProxyBase || isLocalhostUrl(normalizedProxyBase))) {
+      normalizedProxyBase = frontendUrl.includes('danafin.com')
+        ? 'https://iaf-ifrs-be.danafin.com'
+        : 'https://iaf-ifrs-be.ifrspro.id';
+    }
+
     const proxyBase = normalizedProxyBase.startsWith('http://') || normalizedProxyBase.startsWith('https://')
       ? normalizedProxyBase
       : 'http://new-backend:4232';

@@ -337,6 +337,7 @@ export function proxy(request: NextRequest) {
   const hasLogoutHeader = request.headers.get('x-logout-action') === 'true';
   const refererHasLogout = request.headers.get('referer')?.includes('logout=true');
   const hasTimestamp = url.searchParams.has('ts'); // Timestamp to prevent caching
+  const isLoginRoute = pathname === '/login' || pathname === '/platform/login';
 
   // ✅ ENHANCED FIX: Comprehensive logout detection
   if (isLogoutAction || hasLogoutHeader || refererHasLogout) {
@@ -355,6 +356,19 @@ export function proxy(request: NextRequest) {
     }
 
     return response;
+  }
+
+  // Redirect authenticated users away from login routes (except explicit logout flow).
+  if (isLoginRoute) {
+    const token = getTokenFromRequest(request);
+    if (token) {
+      const { isValid, user } = validateTokenBasic(token);
+      if (isValid && user) {
+        const stakeholderType = getStakeholderType(user) || 'banking';
+        const redirectPath = STAKEHOLDER_REDIRECTS[stakeholderType] || '/banking/dashboard';
+        return NextResponse.redirect(new URL(redirectPath, request.url));
+      }
+    }
   }
 
   // ✅ Allow public routes

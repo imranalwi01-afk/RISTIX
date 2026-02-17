@@ -182,6 +182,9 @@ const persistConfig = {
   },
   migrate: (state: any) => {
     console.log('🔄 Migrating persisted state...');
+    if (state?.auth) {
+      state.auth.isLoading = false;
+    }
     return Promise.resolve(state);
   },
   debug: process.env.NODE_ENV === 'development',
