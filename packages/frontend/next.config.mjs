@@ -170,7 +170,7 @@ const nextConfig = {
 
     const proxyBase = normalizedProxyBase.startsWith('http://') || normalizedProxyBase.startsWith('https://')
       ? normalizedProxyBase
-      : 'http://new-backend:4232';
+      : 'http://backend:4232';
 
     return [
       {

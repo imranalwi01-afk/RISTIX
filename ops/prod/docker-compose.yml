@@ -54,7 +54,9 @@ services:
     ports:
       - "4232:4232"
     networks:
-      - ifrs9-prod
+      ifrs9-prod:
+        aliases:
+          - new-backend
     profiles: [ "app", "full" ]
 
   # ============================================================================
