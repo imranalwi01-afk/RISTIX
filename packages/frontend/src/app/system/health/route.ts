@@ -5,19 +5,36 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const backendPort = 4232;
-  const candidates = [
-    `http://127.0.0.1:${backendPort}/api/v1/health`, // Local development (primary)
-    `http://localhost:${backendPort}/api/v1/health`,
-    `http://new-backend:${backendPort}/api/v1/health`, // Docker internal network
-    `http://ifrs9-new-backend-dev:${backendPort}/api/v1/health`, // Container name
-    `http://127.0.0.1:3000/api/v1/health`, // Docker default (legacy)
-    `http://localhost:3000/api/v1/health`,
-    `http://127.0.0.1:3001/api/v1/health`, // Local default (legacy)
-    `http://localhost:3001/api/v1/health`,
-    `http://new-backend:3000/api/v1/health`, // Docker internal network (legacy)
-    `http://ifrs9-new-backend-dev:3000/api/v1/health` // Container name (legacy)
-  ];
+  const backendPort = process.env.BACKEND_PORT || '4232';
+
+  // Primary source of truth: environment-provided backend origins.
+  const baseCandidates = [
+    process.env.BACKEND_INTERNAL_URL,
+    process.env.NEXT_PUBLIC_BACKEND_URL,
+    process.env.BACKEND_URL,
+    `http://127.0.0.1:${backendPort}`,
+    `http://localhost:${backendPort}`,
+    `http://backend:${backendPort}`,
+    `http://new-backend:${backendPort}`,
+    `http://ifrs9-new-backend-dev:${backendPort}`,
+    // Legacy fallback ports
+    'http://127.0.0.1:3000',
+    'http://localhost:3000',
+    'http://127.0.0.1:3001',
+    'http://localhost:3001',
+    'http://new-backend:3000',
+    'http://ifrs9-new-backend-dev:3000',
+  ].filter((value): value is string => Boolean(value));
+
+  // Backend health endpoint is /health (not /api/v1/health).
+  const candidates = Array.from(
+    new Set(
+      baseCandidates.flatMap((base) => {
+        const normalized = base.replace(/\/+$/, '');
+        return [`${normalized}/health`, `${normalized}/api/v1/health`];
+      })
+    )
+  );
 
   for (const url of candidates) {
     try {
