@@ -100,13 +100,15 @@ export default function ProductParametersPage() {
         activeOnly: filters.activeOnly === 'all' ? undefined : (filters.activeOnly === 'active')
       });
 
-      if (result.success) {
+      if (result.success && result.data) {
+        const { products = [], pagination } = result.data;
+        
         // Fetch pending approvals for product parameters
         try {
           const pendingRes = await bankingAPI.approval.getPendingApprovals();
           const pendingRequests = Array.isArray(pendingRes) ? pendingRes : (pendingRes as any).data || [];
 
-          const mappedProducts = result.products.map((item: any) => {
+          const mappedProducts = products.map((item: any) => {
             const pending = pendingRequests.find((r: any) => r.entityType === 'product_parameter' && r.entityId === item.prdCode);
             return {
               ...item,
@@ -116,11 +118,11 @@ export default function ProductParametersPage() {
           });
 
           setData(mappedProducts);
-          setRowCount(result.pagination?.total || result.products.length);
+          setRowCount(pagination?.total || products.length);
         } catch (e) {
           console.warn('Failed to load pending approvals:', e);
-          setData(result.products);
-          setRowCount(result.pagination?.total || result.products.length);
+          setData(products);
+          setRowCount(pagination?.total || products.length);
         }
       } else {
         setError(result.message || 'Failed to load products');

@@ -37,6 +37,7 @@ import {
   Tab,
   Divider,
 } from '@mui/material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import {
   PlayArrow,
   Stop,
@@ -375,13 +376,23 @@ const ECLCalculationPanel: React.FC = () => {
         <TabPanel value={activeTab} index={0}>
           <Grid container spacing={3}>
             <Grid size={{ xs: 12, md: 6 }}>
-              <TextField
-                fullWidth
+              <DatePicker
                 label="Calculation Date"
-                type="date"
-                value={parameters.calculationDate}
-                onChange={(e) => setParameters({ ...parameters, calculationDate: e.target.value })}
-                InputLabelProps={{ shrink: true }}
+                value={parameters.calculationDate ? new Date(parameters.calculationDate) : null}
+                onChange={(newValue) => {
+                  if (newValue) {
+                    const dateStr = newValue instanceof Date 
+                      ? newValue.toISOString().split('T')[0] 
+                      : (newValue as any).toISOString().split('T')[0];
+                    setParameters({ ...parameters, calculationDate: dateStr });
+                  }
+                }}
+                slotProps={{
+                  textField: {
+                    fullWidth: true,
+                    InputLabelProps: { shrink: true }
+                  }
+                }}
               />
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>

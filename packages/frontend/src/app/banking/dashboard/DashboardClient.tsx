@@ -10,7 +10,7 @@
 
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
     Box,
     Typography,
@@ -35,7 +35,12 @@ import {
     useTheme,
     Tooltip,
     useMediaQuery,
-    Container // ✅ Added Container
+    Container,
+    FormControl,
+    Select,
+    MenuItem,
+    InputLabel,
+    ListSubheader
 } from '@mui/material'
 import {
     AccountBalance,
@@ -263,37 +268,48 @@ const StatCard = (props: any) => {
 
 const ECLDistributionChart = ({ data }: any) => {
     const chartData = [
-        { name: 'Stage 1', value: data.stage1ECL, color: COLORS.stage1 },
-        { name: 'Stage 2', value: data.stage2ECL, color: COLORS.stage2 },
-        { name: 'Stage 3', value: data.stage3ECL, color: COLORS.stage3 },
-    ]
+        { name: 'Stage 1', value: data?.stage1ECL || 0, color: COLORS.stage1 },
+        { name: 'Stage 2', value: data?.stage2ECL || 0, color: COLORS.stage2 },
+        { name: 'Stage 3', value: data?.stage3ECL || 0, color: COLORS.stage3 },
+    ].filter(item => item.value > 0);
+
+    // If no data, show a placeholder arc
+    const actualData = chartData.length > 0 
+        ? chartData 
+        : [{ name: 'No Data', value: 1, color: '#f0f0f0' }];
 
     return (
         <ResponsiveContainer width="100%" height={300}>
             <RechartsPieChart>
                 <Pie
-                    data={chartData}
+                    data={actualData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={5}
+                    innerRadius={65}
+                    outerRadius={85}
+                    paddingAngle={chartData.length > 1 ? 5 : 0}
                     dataKey="value"
+                    animationBegin={0}
+                    animationDuration={1500}
+                    stroke="none"
                 >
-                    {chartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
+                    {actualData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                 </Pie>
                 <RechartsTooltip
                     contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}
-                    formatter={(value: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(value)}
+                    formatter={(value: number) => {
+                        if (chartData.length === 0) return 'No Calculation Result';
+                        return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(value);
+                    }}
                 />
             </RechartsPieChart>
         </ResponsiveContainer>
     )
 }
 
-// ✅ NO MOCK DATA: Removed MOCK_TREND constant
+// NO MOCK DATA: Removed MOCK_TREND constant
 // Empty data will be handled by EmptyState component
 
 const PortfolioTrendChart = ({ data }: { data: any[] }) => (
@@ -302,23 +318,35 @@ const PortfolioTrendChart = ({ data }: { data: any[] }) => (
             <defs>
                 <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#1976d2" stopOpacity={0.8} />
-                    <stop offset="95%" stopColor="#1976d2" stopOpacity={0} />
+                    <stop offset="95%" stopColor="#1976d2" stopOpacity={0.1} />
                 </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#9e9e9e' }} />
-            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9e9e9e' }} hide />
+            <XAxis 
+                dataKey="month" 
+                axisLine={false} 
+                tickLine={false} 
+                tick={{ fill: '#9e9e9e', fontSize: 12 }} 
+                dy={10}
+            />
+            <YAxis 
+                axisLine={false} 
+                tickLine={false} 
+                tick={{ fill: '#9e9e9e', fontSize: 10 }} 
+                tickFormatter={(value) => `Rp${(value / 1e9).toFixed(1)}B`}
+            />
             <RechartsTooltip
-                contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}
+                contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', background: 'rgba(255,255,255,0.9)' }}
                 formatter={(value: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(value)}
             />
             <Area
                 type="monotone"
-                dataKey="value"
+                dataKey="totalPortfolio"
                 stroke="#1976d2"
-                strokeWidth={3}
+                strokeWidth={4}
                 fillOpacity={1}
                 fill="url(#colorValue)"
+                animationDuration={2000}
             />
         </AreaChart>
     </ResponsiveContainer>
@@ -333,6 +361,7 @@ interface ECLSummary {
     lastUpdated: string;
     totalPortfolio: number;
     currency: string;
+    isFallback?: boolean;
 }
 
 interface PortfolioMetrics {
@@ -384,8 +413,10 @@ export default function DashboardClient() {
     const [portfolioMetrics, setPortfolioMetrics] = useState<PortfolioMetrics | null>(null)
     const [portfolioTrend, setPortfolioTrend] = useState<any[]>([])
     const [activities, setActivities] = useState<DashboardActivity[]>([])
-    const [error, setError] = useState<string | null>(null)
-    const [isDataLoaded, setIsDataLoaded] = useState(false)
+    const [error, setError] = useState<any>(null)
+    const [availableDates, setAvailableDates] = useState<string[]>([])
+    const [selectedDate, setSelectedDate] = useState<string>('')
+    const [isLoadingDates, setIsLoadingDates] = useState<boolean>(true)
 
 
     // ✅ SURGICAL FIX: Determine banking context from real user data
@@ -436,68 +467,21 @@ export default function DashboardClient() {
 
     const bankingContext = getBankingContext()
 
-    // ✅ SURGICAL FIX: Load real dashboard data from APIs
-    const loadDashboardData = async () => {
-        // 🚫 PREVENT MULTIPLE CALLS
-        if (isDataLoaded) {
-            console.log('📊 Data already loaded, skipping API calls')
-            return
-        }
-
-        setIsLoading(true)
-        setError(null)
-
-        // 🚫 ONLY MAKE API CALLS WHEN PROPERLY AUTHENTICATED
-        if (!isAuthenticated || !user) {
-            console.log('🔒 User not authenticated, showing demo data only')
-        } else {
-            console.log('🔄 Loading dashboard data for user:', user.email, 'tenant:', user.tenantSlug)
-
-            try {
-                // Load ECL summary from real API
-                const eclResponse = await api.ifrs9.getCalculationsSummary()
-
-                if (eclResponse?.success) {
-                    setEclSummary(eclResponse.data)
-                    // Sync portfolio metrics from the same response
-                    setPortfolioMetrics(eclResponse.data)
-                    console.log('✅ ECL summary & Portfolio metrics loaded:', eclResponse.data)
-                } else {
-                    console.warn('⚠️ API response unsuccessful, using demo data')
-                }
-
-                // Load Portfolio Trend
-                const trendResponse = await api.ifrs9.getPortfolioTrend()
-                if (trendResponse?.success) {
-                    setPortfolioTrend(trendResponse.data)
-                    console.log('✅ Portfolio trend loaded:', trendResponse.data)
-                }
-            } catch (eclError) {
-                console.warn('⚠️ API error, using demo data:', eclError)
-            }
-        }
-
-        // LOADING COMPLETED
-        setIsLoading(false)
-        setIsDataLoaded(true)
-        console.log('✅ Dashboard data loaded successfully')
-    }
-
-    // ✅ PERSONALIZATION: Load dashboard personalization on component mount
+    // ✅ INITIALIZATION: Load data on component mount
     useEffect(() => {
-        if (isAuthenticated && user && !isDataLoaded) {
+        if (isAuthenticated && user) {
             // Load dashboard personalization
             (dispatch as any)(fetchDashboardPersonalization({
                 userId: user.id,
                 tenantId: user.tenantSlug || 'default'
             }))
-
-            // Load dashboard data
-            loadDashboardData()
+            
+            // Initial load of available dates
+            loadAvailableDates();
         } else if (!isAuthenticated) {
             router.push('/login')
         }
-    }, [isAuthenticated, user?.id, user?.tenantSlug]) // Remove dispatch to prevent re-renders
+    }, [isAuthenticated, user, loadAvailableDates, dispatch, router])
 
     // ✅ PERSONALIZATION: Save widget changes
     const handleWidgetLayoutChange = (widgets: any[]) => {
@@ -524,10 +508,71 @@ export default function DashboardClient() {
         }
     }
 
+    const loadDashboardData = useCallback(async (date?: string) => {
+        setIsLoading(true)
+        setError(null)
+        try {
+            console.log('🔄 Loading dashboard data for:', date || 'latest');
+            const [summaryData, trendData] = await Promise.all([
+                api.ifrs9.getCalculationsSummary(date),
+                api.ifrs9.getPortfolioTrend(date)
+            ])
+            
+            // Extract data from response if it follows success/data pattern
+            const summary = summaryData?.success ? summaryData.data : summaryData;
+            const trend = trendData?.success ? trendData.data : trendData;
+
+            setEclSummary(summary)
+            setPortfolioMetrics(summary) // Sync portfolio metrics
+            setPortfolioTrend(trend || [])
+        } catch (err: any) {
+            console.error('Failed to load dashboard data:', err)
+            setError(handleAPIError(err))
+        } finally {
+            setIsLoading(false)
+        }
+    }, []) // Stable identity
+
+    const loadAvailableDates = useCallback(async () => {
+        setIsLoadingDates(true);
+        try {
+            const datesResponse = await api.ifrs9.getAvailableDates();
+            const dates = datesResponse?.success ? datesResponse.data : datesResponse;
+            setAvailableDates(dates || []);
+            if (dates && dates.length > 0 && !selectedDate) {
+                setSelectedDate(dates[0]); // Default to latest
+            }
+        } catch (err) {
+            console.error('Failed to load available dates:', err);
+        } finally {
+            setIsLoadingDates(false);
+        }
+    }, [selectedDate]);
+
+    useEffect(() => {
+        if (isAuthenticated) {
+            loadAvailableDates();
+        }
+    }, [isAuthenticated]);
+
+    useEffect(() => {
+        if (isAuthenticated && selectedDate) {
+            loadDashboardData(selectedDate);
+        } else if (isAuthenticated && !selectedDate && !isLoadingDates) {
+            // If no dates specifically selected yet, load latest
+            loadDashboardData();
+        }
+    }, [isAuthenticated, selectedDate, isLoadingDates]);
+
     const handleRefresh = () => {
         setLastRefresh(new Date())
-        loadDashboardData()
+        loadAvailableDates()
+        loadDashboardData(selectedDate)
     }
+
+    const handleDateChange = (event: any) => {
+        setSelectedDate(event.target.value);
+    };
 
     const formatCurrency = (amount: number, currency: string = 'IDR') => {
         return new Intl.NumberFormat('id-ID', {
@@ -579,8 +624,27 @@ export default function DashboardClient() {
                             IFRS 9 {bankingContext.name} Interface
                         </Typography>
                         <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)', mt: 1 }}>
-                            {bankingContext.greeting}, {user.fullName || user.email} • Role: {user.role} • Tenant: {user.tenantSlug || 'Platform'} • Last updated: {lastRefresh.toLocaleTimeString()}
+                            {bankingContext.greeting}, {user.fullName || user.email} • Last updated: {lastRefresh.toLocaleTimeString()}
                         </Typography>
+                        {eclSummary && (
+                            <Box sx={{ mt: 1, display: 'flex', gap: 1 }}>
+                                <Chip 
+                                    size="small"
+                                    icon={<CheckCircle sx={{ fontSize: '1rem !important' }} />}
+                                    label={eclSummary.isFallback ? "Master Account Source (Fallback)" : "Calc Result Source (Real)"}
+                                    color={eclSummary.isFallback ? "warning" : "success"}
+                                    variant="filled"
+                                    sx={{ fontWeight: 'bold' }}
+                                />
+                                {eclSummary.isFallback && (
+                                    <Tooltip title="Calculation results for this process date were not found. Data shown is from the raw master account table.">
+                                        <IconButton size="small" sx={{ p: 0, color: 'white' }}>
+                                            <Info sx={{ fontSize: '1rem' }} />
+                                        </IconButton>
+                                    </Tooltip>
+                                )}
+                            </Box>
+                        )}
                     </Box>
 
                     <Stack direction="row" spacing={2} alignItems="center">
@@ -600,7 +664,70 @@ export default function DashboardClient() {
                                 sx={{ borderColor: 'white', color: 'white' }}
                             />
                         )}
-                        <IconButton sx={{ color: 'white' }} onClick={handleRefresh}>
+
+                        <FormControl variant="filled" size="small" sx={{ 
+                            minWidth: 150, 
+                            backgroundColor: 'rgba(255,255,255,0.1)',
+                            borderRadius: 1,
+                            '& .MuiFilledInput-root': { color: 'white' },
+                            '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.7)' },
+                            '& .MuiSelect-icon': { color: 'white' }
+                        }}>
+                            <InputLabel id="select-date-label">Process Date</InputLabel>
+                                <Select
+                                    labelId="select-date-label"
+                                    value={selectedDate}
+                                    onChange={handleDateChange}
+                                    label="Process Date"
+                                    MenuProps={{
+                                        PaperProps: {
+                                            sx: {
+                                                maxHeight: 400,
+                                                borderRadius: 2,
+                                                boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+                                                '& .MuiListSubheader-root': {
+                                                    fontWeight: 'bold',
+                                                    color: theme.palette.primary.main,
+                                                    lineHeight: '36px',
+                                                    backgroundColor: alpha(theme.palette.primary.main, 0.05)
+                                                }
+                                            }
+                                        }
+                                    }}
+                                >
+                                    {availableDates.length > 0 ? (
+                                        (() => {
+                                            // Group dates by year for a premium UX
+                                            const groups: Record<number, string[]> = {};
+                                            availableDates.forEach(date => {
+                                                const year = new Date(date).getFullYear();
+                                                if (!groups[year]) groups[year] = [];
+                                                groups[year].push(date);
+                                            });
+
+                                            // Sort years descending
+                                            const years = Object.keys(groups).map(Number).sort((a, b) => b - a);
+
+                                            return years.flatMap(year => [
+                                                <ListSubheader key={`year-${year}`}>{year}</ListSubheader>,
+                                                ...groups[year].map(date => (
+                                                    <MenuItem key={date} value={date} sx={{ pl: 4 }}>
+                                                        {new Intl.DateTimeFormat('id-ID', { 
+                                                            day: '2-digit', 
+                                                            month: 'short', 
+                                                            year: 'numeric' 
+                                                        }).format(new Date(date))}
+                                                    </MenuItem>
+                                                ))
+                                            ]);
+                                        })()
+                                    ) : (
+                                        <MenuItem value="" disabled>No dates available</MenuItem>
+                                    )}
+                                </Select>
+                        </FormControl>
+
+                        <IconButton onClick={handleRefresh} sx={{ color: 'white' }} title="Refresh Data">
                             <Refresh />
                         </IconButton>
                         <IconButton sx={{ color: 'white' }} onClick={() => setShowWidgetManager(true)}>
@@ -763,12 +890,18 @@ export default function DashboardClient() {
                                         top: '50%',
                                         left: '50%',
                                         transform: 'translate(-50%, -50%)',
-                                        textAlign: 'center'
+                                        textAlign: 'center',
+                                        width: '100%'
                                     }}>
-                                        <Typography variant="h4" fontWeight="bold" color="text.secondary">
-                                            3
+                                        <Typography variant="h4" fontWeight="bold" sx={{ 
+                                            color: theme.palette.mode === 'dark' ? 'white' : '#1a237e',
+                                            lineHeight: 1
+                                        }}>
+                                            {eclSummary.totalECL > 0 ? '3' : '0'}
                                         </Typography>
-                                        <Typography variant="caption" color="text.secondary">Stages</Typography>
+                                        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>
+                                            {eclSummary.totalECL > 0 ? 'Stages Found' : 'No Data'}
+                                        </Typography>
                                     </Box>
                                 </Box>
 
@@ -779,21 +912,21 @@ export default function DashboardClient() {
                                             <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: COLORS.stage1 }} />
                                             <Typography variant="body2">Stage 1 (12-month)</Typography>
                                         </Box>
-                                        <Typography variant="body2" fontWeight="bold">{formatCurrency(eclSummary.stage1ECL)}</Typography>
+                                        <Typography variant="body2" fontWeight="bold">{eclSummary.stage1ECL > 0 ? formatCurrency(eclSummary.stage1ECL) : 'N/A'}</Typography>
                                     </Box>
                                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                             <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: COLORS.stage2 }} />
                                             <Typography variant="body2">Stage 2 (Lifetime)</Typography>
                                         </Box>
-                                        <Typography variant="body2" fontWeight="bold">{formatCurrency(eclSummary.stage2ECL)}</Typography>
+                                        <Typography variant="body2" fontWeight="bold">{eclSummary.stage2ECL > 0 ? formatCurrency(eclSummary.stage2ECL) : 'N/A'}</Typography>
                                     </Box>
                                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                             <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: COLORS.stage3 }} />
                                             <Typography variant="body2">Stage 3 (Impaired)</Typography>
                                         </Box>
-                                        <Typography variant="body2" fontWeight="bold">{formatCurrency(eclSummary.stage3ECL)}</Typography>
+                                        <Typography variant="body2" fontWeight="bold">{eclSummary.stage3ECL > 0 ? formatCurrency(eclSummary.stage3ECL) : 'N/A'}</Typography>
                                     </Box>
                                 </Stack>
                             </CardContent>

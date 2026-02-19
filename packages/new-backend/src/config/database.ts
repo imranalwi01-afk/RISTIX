@@ -9,6 +9,7 @@ import * as schema from '../db/schema'
 import * as platformSchema from '../db/schema/platform.schema'
 import * as tenantSchema from '../db/schema/tenant.schema'
 import * as legacySchema from '../db/schema/legacy.schema'
+import { debugLog } from '../lib/debug-logger'
 
 /**
  * PostgreSQL connection configuration
@@ -79,10 +80,11 @@ export {
  *                   If undefined/null, returns the Platform DB connection.
  */
 export function getDatabase(tenantId?: string | null) {
+    debugLog(`[Database] getDatabase called with tenantId: ${tenantId}`);
     if (tenantId) {
-        // In the future, this could look up a specific connection from a pool map based on tenantId
-        // For now, in single-tenant mode (IAF), we return the default tenantDb
+        debugLog(`[Database] Routing to Tenant DB`);
         return tenantDb
     }
+    debugLog('[Database] Routing to Platform DB');
     return platformDb
 }
