@@ -188,9 +188,7 @@ app.openapi(
             data,
             () => PdConfigurationsService.create(data, userId) as any
         )
-
-        const result = await runEffect(c, effect)
-        return c.json(result, result.approvalRequired ? 202 : 201)
+        return runEffect(c, effect, (result: any) => result.approvalRequired ? 202 : 201)
     }
 )
 
@@ -236,9 +234,7 @@ app.openapi(
             data,
             () => PdConfigurationsService.update(id, data, userId) as any
         )
-
-        const result = await runEffect(c, effect)
-        return c.json(result, result.approvalRequired ? 202 : 200)
+        return runEffect(c, effect, (result: any) => result.approvalRequired ? 202 : 200)
     }
 )
 
@@ -281,9 +277,7 @@ app.openapi(
             id.toString(),
             () => PdConfigurationsService.delete(id) as any
         )
-
-        const result = await runEffect(c, effect)
-        return c.json(result, result.approvalRequired ? 202 : 200)
+        return runEffect(c, effect, (result: any) => result.approvalRequired ? 202 : 200)
     }
 )
 

@@ -17,13 +17,27 @@ import {
  */
 export async function runEffect<A>(
     c: Context,
-    effect: Effect.Effect<A, CommonError>
+    effect: Effect.Effect<A, CommonError>,
+    successStatus?: number | ((value: A) => number)
 ): Promise<any> {
     const result = await Effect.runPromiseExit(effect)
 
-    return (result._tag === 'Success'
-        ? c.json({ success: true, data: result.value } as any)
-        : handleEffectError(c, result.cause)) as any
+    if (result._tag === 'Success') {
+        const status = typeof successStatus === 'function' ? successStatus(result.value) : successStatus
+        const value = result.value as any
+        const payload =
+            value && typeof value === 'object' && typeof value.success === 'boolean'
+                ? value
+                : ({ success: true, data: value } as any)
+
+        if (typeof status === 'number') {
+            return c.json(payload, status as any)
+        }
+
+        return c.json(payload)
+    }
+
+    return handleEffectError(c, result.cause) as any
 }
 
 /**

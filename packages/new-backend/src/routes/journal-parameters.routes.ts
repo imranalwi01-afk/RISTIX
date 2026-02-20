@@ -182,9 +182,7 @@ app.openapi(
             data,
             () => JournalParametersService.create(data, userId)
         )
-
-        const result = await runEffect(c, effect)
-        return c.json(result, result.approvalRequired ? 202 : 201)
+        return runEffect(c, effect, (result: any) => result.approvalRequired ? 202 : 201)
     }
 )
 
@@ -224,9 +222,7 @@ app.openapi(
             data,
             () => JournalParametersService.update(id, data, userId)
         )
-
-        const result = await runEffect(c, effect)
-        return c.json(result, result.approvalRequired ? 202 : 200)
+        return runEffect(c, effect, (result: any) => result.approvalRequired ? 202 : 200)
     }
 )
 
@@ -263,9 +259,7 @@ app.openapi(
             id.toString(),
             () => JournalParametersService.delete(id)
         )
-
-        const result = await runEffect(c, effect)
-        return c.json(result, result.approvalRequired ? 202 : 200)
+        return runEffect(c, effect, (result: any) => result.approvalRequired ? 202 : 200)
     }
 )
 
