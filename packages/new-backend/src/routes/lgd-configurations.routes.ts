@@ -173,9 +173,7 @@ app.openapi(
             payload,
             () => LgdConfigurationsService.create(payload, userId) as any
         )
-
-        const result = await runEffect(c, effect)
-        return c.json(result, result.approvalRequired ? 202 : 200)
+        return runEffect(c, effect, (result: any) => result.approvalRequired ? 202 : 200)
     }
 )
 
@@ -230,9 +228,7 @@ app.openapi(
             payload,
             () => LgdConfigurationsService.update(id, payload, userId) as any
         )
-
-        const result = await runEffect(c, effect)
-        return c.json(result, result.approvalRequired ? 202 : 200)
+        return runEffect(c, effect, (result: any) => result.approvalRequired ? 202 : 200)
     }
 )
 
@@ -270,9 +266,7 @@ app.openapi(
             id.toString(),
             () => LgdConfigurationsService.delete(id) as any
         )
-
-        const result = await runEffect(c, effect)
-        return c.json(result, result.approvalRequired ? 202 : 200)
+        return runEffect(c, effect, (result: any) => result.approvalRequired ? 202 : 200)
     }
 )
 

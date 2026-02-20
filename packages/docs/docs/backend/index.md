@@ -20,6 +20,14 @@ We use BullMQ for reliable background job execution.
 *   **Consumer**: A dedicated worker process picks up jobs.
 *   **Router**: The worker determines the target DB (Tenant vs Legacy) and dispatches to the correct executor.
 
+## 4. Security & Access Control
+- [RBAC Technical Design](./rbac-technical-design)
+- Related FSD: [RBAC Access Control](../fsd/rbac-access-control)
+
+## 5. Schema Artifacts
+- [DBML Schema Reference](./dbml-schema-reference)
+- [DBDocs Publishing Runbook](./dbdocs-publishing-runbook)
+
 ```mermaid
 graph LR
     API[Hono API] -->|job.add| Redis[(Redis)]

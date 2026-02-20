@@ -49,28 +49,73 @@ const RoleSchema = z.object({
     tenantId: z.string().nullable().optional(),
 }).openapi('Role')
 
+const normalizeRoleName = (value: string): string =>
+    value
+        .trim()
+        .toUpperCase()
+        .replace(/[^A-Z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '')
+        .replace(/_+/g, '_')
+
+const ROLE_NAME_REGEX = /^[A-Z_][A-Z0-9_]*$/
+
 const CreateRoleSchema = z.object({
-    roleName: z
-        .string()
-        .min(2)
-        .max(100)
-        .regex(/^[A-Z_][A-Z0-9_]*$/, 'Role name must be uppercase with underscores')
-        .openapi({ example: 'NEW_ROLE' }),
+    roleName: z.string().min(2).max(100).optional().openapi({ example: 'NEW_ROLE' }),
+    name: z.string().min(2).max(100).optional().openapi({ example: 'NEW_ROLE' }),
     description: z.string().optional().openapi({ example: 'New role description' }),
     permissions: z.array(z.string()).default([]), // Array of permission codes
     bankingTypeSpecific: z.enum(['CONVENTIONAL', 'SYARIAH', 'BOTH']).optional(),
+    bankingAccess: z.enum(['CONVENTIONAL', 'SYARIAH', 'BOTH']).optional(),
     complianceLevel: z.string().optional(),
     hierarchyLevel: z.number().int().min(1).max(10).default(1),
-}).openapi('CreateRoleInput')
+})
+    .superRefine((value, ctx) => {
+        const source = value.roleName ?? value.name
+        const normalized = source ? normalizeRoleName(source) : ''
+
+        if (!source) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: ['roleName'],
+                message: 'Required',
+            })
+            return
+        }
+
+        if (normalized.length < 2 || normalized.length > 100 || !ROLE_NAME_REGEX.test(normalized)) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: ['roleName'],
+                message: 'Role name must be uppercase with underscores',
+            })
+        }
+    })
+    .openapi('CreateRoleInput')
 
 const UpdateRoleSchema = z.object({
     roleName: z.string().min(2).max(100).optional(),
+    name: z.string().min(2).max(100).optional(),
     description: z.string().optional(),
     permissions: z.array(z.string()).optional(), // Array of permission codes
     bankingTypeSpecific: z.enum(['CONVENTIONAL', 'SYARIAH', 'BOTH']).nullish(),
+    bankingAccess: z.enum(['CONVENTIONAL', 'SYARIAH', 'BOTH']).nullish(),
     hierarchyLevel: z.number().int().min(1).max(10).optional(),
     isActive: z.boolean().optional(),
-}).openapi('UpdateRoleInput')
+})
+    .superRefine((value, ctx) => {
+        const source = value.roleName ?? value.name
+        if (!source) return
+
+        const normalized = normalizeRoleName(source)
+        if (normalized.length < 2 || normalized.length > 100 || !ROLE_NAME_REGEX.test(normalized)) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: ['roleName'],
+                message: 'Role name must be uppercase with underscores',
+            })
+        }
+    })
+    .openapi('UpdateRoleInput')
 
 const AssignRoleSchema = z.object({
     validFrom: z.string().datetime().optional().openapi({ example: '2023-01-01T00:00:00Z' }),
@@ -280,11 +325,17 @@ rbacRoutes.openapi(
         const tenantId = c.get('tenantId')!
         const userId = c.get('userId')
         const body = c.req.valid('json')
+        const roleNameSource = body.roleName ?? body.name
+        const normalizedRoleName = roleNameSource ? normalizeRoleName(roleNameSource) : ''
 
         const effect = pipe(
             rbacService.createRole({
-                ...body,
-                roleCode: body.roleName, // Use roleName as roleCode
+                roleName: normalizedRoleName,
+                roleCode: normalizedRoleName,
+                description: body.description,
+                bankingTypeSpecific: body.bankingTypeSpecific ?? body.bankingAccess,
+                complianceLevel: body.complianceLevel,
+                hierarchyLevel: body.hierarchyLevel,
                 tenantId,
                 // createdBy: userId,
             }),
@@ -480,10 +531,16 @@ rbacRoutes.openapi(
         const { roleId } = c.req.valid('param')
         const userId = c.get('userId')
         const body = c.req.valid('json')
+        const roleNameSource = body.roleName ?? body.name
+        const normalizedRoleName = roleNameSource ? normalizeRoleName(roleNameSource) : undefined
 
         const effect = pipe(
             rbacService.updateRole(roleId, {
-                ...body,
+                roleName: normalizedRoleName,
+                description: body.description,
+                bankingTypeSpecific: body.bankingTypeSpecific ?? body.bankingAccess,
+                hierarchyLevel: body.hierarchyLevel,
+                isActive: body.isActive,
                 // updatedBy: userId,
             }),
             Effect.map((r: any) => ({
@@ -952,8 +1009,7 @@ rbacRoutes.openapi(
         const { userId, roleId } = c.req.valid('param')
         const tenantId = c.get('tenantId')!
         const effect = rbacService.removeRole(userId, roleId, tenantId)
-        const result = await runEffect(c, effect)
-        return c.json({ success: true, data: result } as any)
+        return runEffect(c, effect)
     }
 )
 

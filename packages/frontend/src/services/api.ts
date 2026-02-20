@@ -219,33 +219,61 @@ export const rolesAPI = {
 
   // Create role in tenant database
   create: async (roleData: {
+    roleName?: string;
     name: string;
     displayName?: string;
     description?: string;
+    permissions?: string[];
     type?: 'SYSTEM' | 'BANKING' | 'CUSTOM';
     level?: 'PLATFORM' | 'TENANT' | 'DEPARTMENT';
+    bankingTypeSpecific?: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
     bankingAccess?: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
+    complianceLevel?: string;
+    hierarchyLevel?: number;
     isActive?: boolean;
   }, tenantId?: string) => {
     console.log(`➕ Creating role in tenant database${tenantId ? ` (tenant: ${tenantId})` : ''}`, roleData.name);
     const config: any = {};
     if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
-    const response = await apiClient.post('/roles', roleData, config);
+    const payload = {
+      roleName: roleData.roleName || roleData.name || roleData.displayName,
+      description: roleData.description,
+      permissions: roleData.permissions || [],
+      bankingTypeSpecific: roleData.bankingTypeSpecific || roleData.bankingAccess,
+      complianceLevel: roleData.complianceLevel,
+      hierarchyLevel: roleData.hierarchyLevel,
+      isActive: roleData.isActive,
+    };
+    const response = await apiClient.post('/roles', payload, config);
     return response.data;
   },
 
   // Update role in tenant database
   update: async (id: string, roleData: {
+    roleName?: string;
     name?: string;
     displayName?: string;
     description?: string;
+    permissions?: string[];
+    bankingTypeSpecific?: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
     bankingAccess?: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
+    complianceLevel?: string;
+    hierarchyLevel?: number;
     isActive?: boolean;
   }, tenantId?: string) => {
     console.log(`✏️ Updating role ${id} in tenant database${tenantId ? ` (tenant: ${tenantId})` : ''}`);
     const config: any = {};
     if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
-    const response = await apiClient.put(`/roles/${id}`, roleData, config);
+    const payload = {
+      roleName: roleData.roleName || roleData.name || roleData.displayName,
+      description: roleData.description,
+      permissions: roleData.permissions,
+      bankingTypeSpecific: roleData.bankingTypeSpecific || roleData.bankingAccess,
+      complianceLevel: roleData.complianceLevel,
+      hierarchyLevel: roleData.hierarchyLevel,
+      isActive: roleData.isActive,
+    };
+    const response = await apiClient.put(`/roles/${id}`, payload, config);
     return response.data;
   },
 

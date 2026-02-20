@@ -358,9 +358,7 @@ usersRoutes.openapi(
                 }
             })
         )
-
-        const result = await runEffect(c, effect)
-        return c.json(result, result.approvalRequired ? 202 : 201)
+        return runEffect(c, effect, (result: any) => result.approvalRequired ? 202 : 201)
     }
 )
 
@@ -749,9 +747,7 @@ usersRoutes.openapi(
                 }
             })
         )
-
-        const result = await runEffect(c, effect)
-        return c.json(result)
+        return runEffect(c, effect)
     }
 )
 
