@@ -224,9 +224,7 @@ tenantsRoutes.openapi(
                 },
             }))
         )
-
-        const result = await runEffect(c, effect)
-        return c.json(result, 200)
+        return runEffect(c, effect)
     }
 )
 
@@ -290,8 +288,7 @@ tenantsRoutes.openapi(
         )
 
         try {
-            const result = await runEffect(c, effect)
-            return c.json(result, 200)
+        return runEffect(c, effect)
         } catch (e: any) {
             return c.json({ success: false, error: e.message }, 404)
         }
@@ -408,8 +405,7 @@ tenantsRoutes.openapi(
         )
 
         try {
-            const result = await runEffect(c, effect)
-            return c.json(result, 200)
+        return runEffect(c, effect)
         } catch (e: any) {
             return c.json({ success: false, error: e.message } as any, 404)
         }
@@ -489,8 +485,7 @@ tenantsRoutes.openapi(
         )
 
         try {
-            const result = await runEffect(c, effect)
-            return c.json(result, 200)
+        return runEffect(c, effect)
         } catch (e: any) {
             return c.json({ success: false, error: e.message } as any, 404)
         }
@@ -538,9 +533,12 @@ tenantsRoutes.openapi(
         try { requirePlatformAdmin(c) } catch (e: any) { return c.json({ success: false, error: e.message }, 403) }
 
         const { id } = c.req.valid('param')
-        const effect = tenantsService.deleteTenant(id)
-        const result = await runEffect(c, effect)
-        return c.json({ id }, 200)
+        const effect = pipe(
+            tenantsService.deleteTenant(id),
+            Effect.map(() => ({ id }))
+        )
+
+        return runEffect(c, effect)
     }
 )
 
@@ -582,9 +580,7 @@ tenantsRoutes.openapi(
             tenantsService.enableTenant(id),
             Effect.map(() => ({ success: true, message: 'Tenant enabled' }))
         )
-
-        const result = await runEffect(c, effect)
-        return c.json(result, 200)
+        return runEffect(c, effect)
     }
 )
 
@@ -626,8 +622,6 @@ tenantsRoutes.openapi(
             tenantsService.disableTenant(id),
             Effect.map(() => ({ success: true, message: 'Tenant disabled' }))
         )
-
-        const result = await runEffect(c, effect)
-        return c.json(result, 200)
+        return runEffect(c, effect)
     }
 )

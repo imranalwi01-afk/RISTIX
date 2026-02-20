@@ -251,8 +251,7 @@ app.openapi(
             })
         )
 
-        const result = await runEffect(c, effect as any)
-        return c.json(result, result.approvalRequired ? 202 : 201)
+        return runEffect(c, effect as any, (result: any) => result.approvalRequired ? 202 : 201)
     }
 )
 
@@ -487,8 +486,7 @@ app.openapi(
             })
         )
 
-        const result = await runEffect(c, effect as any)
-        return c.json(result, result.approvalRequired ? 202 : 200)
+        return runEffect(c, effect as any, (result: any) => result.approvalRequired ? 202 : 200)
     }
 )
 
@@ -540,8 +538,7 @@ app.openapi(
             })
         )
 
-        const result = await runEffect(c, effect as any)
-        return c.json(result, result.approvalRequired ? 202 : 200)
+        return runEffect(c, effect as any, (result: any) => result.approvalRequired ? 202 : 200)
     }
 )
 

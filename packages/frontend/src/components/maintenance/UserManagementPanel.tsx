@@ -183,18 +183,33 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
 
       const response = await api.client.post('/user', formData);
 
-      if (response.data.success) {
-        console.log('✅ User created successfully:', response.data.data);
-        setSnackbar({ open: true, message: 'User created successfully', severity: 'success' });
-        setOpenCreateDialog(false);
-        resetForm();
-        loadUsers();
-      } else {
-        throw new Error(response.data.message || 'Failed to create user');
+      const responseData = response?.data;
+      const hasSuccessFlag = responseData?.success === true;
+      const hasCreatedEntity = Boolean(responseData?.data?.id || responseData?.id);
+      const isCreatedStatus = response.status === 201;
+      const isApprovalPendingStatus = response.status === 202 || responseData?.approvalRequired === true;
+      const isCreateSuccess = hasSuccessFlag || hasCreatedEntity || isCreatedStatus || isApprovalPendingStatus;
+
+      if (!isCreateSuccess) {
+        throw new Error(responseData?.message || 'Failed to create user');
       }
-    } catch (error) {
+
+      const successMessage = isApprovalPendingStatus
+        ? (responseData?.message || 'User create request submitted for approval')
+        : (responseData?.message || 'User created successfully');
+
+      console.log('✅ User create request handled successfully:', responseData);
+      setSnackbar({ open: true, message: successMessage, severity: 'success' });
+      setOpenCreateDialog(false);
+      resetForm();
+      loadUsers();
+    } catch (error: any) {
       console.error('Error creating user:', error);
-      setSnackbar({ open: true, message: error.message || 'Failed to create user', severity: 'error' });
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Failed to create user';
+      setSnackbar({ open: true, message, severity: 'error' });
     }
   };
 

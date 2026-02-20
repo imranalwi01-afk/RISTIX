@@ -158,9 +158,7 @@ app.openapi(
             data,
             () => EclConfigurationsService.create(data, userId) as any
         )
-
-        const result = await runEffect(c, effect)
-        return c.json(result, result.approvalRequired ? 202 : 201)
+        return runEffect(c, effect, (result: any) => result.approvalRequired ? 202 : 201)
     }
 )
 
@@ -198,9 +196,7 @@ app.openapi(
             data,
             () => EclConfigurationsService.update(id, data, userId) as any
         )
-
-        const result = await runEffect(c, effect)
-        return c.json(result, result.approvalRequired ? 202 : 200)
+        return runEffect(c, effect, (result: any) => result.approvalRequired ? 202 : 200)
     }
 )
 
@@ -235,9 +231,7 @@ app.openapi(
             id.toString(),
             () => EclConfigurationsService.delete(id) as any
         )
-
-        const result = await runEffect(c, effect)
-        return c.json(result, result.approvalRequired ? 202 : 200)
+        return runEffect(c, effect, (result: any) => result.approvalRequired ? 202 : 200)
     }
 )
 

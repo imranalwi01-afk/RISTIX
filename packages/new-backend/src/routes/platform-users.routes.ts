@@ -457,8 +457,6 @@ platformUsersRoutes.openapi(
             },
             catch: (e) => new DatabaseError({ operation: 'delete', message: 'Failed to delete user', cause: e })
         })
-
-        const result = await runEffect(c, effect)
-        return c.json(result)
+        return runEffect(c, effect)
     }
 )
