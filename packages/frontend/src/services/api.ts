@@ -102,8 +102,8 @@ export const authAPI = {
   // Real token refresh
   refresh: async (refreshToken: string) => {
     console.log('🔄 Real token refresh');
-    // ✅ FIXED: Use explicit v1 path for refresh to avoid ambiguity
-    const response = await apiClient.post('/api/v1/auth/refresh', { refreshToken });
+    // Use relative auth path so we don't duplicate /api/v1 on configured base URLs
+    const response = await apiClient.post('/auth/refresh', { refreshToken });
     return response.data;
   }
 };
@@ -172,6 +172,18 @@ export const usersAPI = {
     if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
     const response = await apiClient.post(`/users/${id}/disable`, {}, config);
     return response.data;
+  },
+
+  resetPassword: async (
+    id: string,
+    payload: { newPassword: string; forcePasswordChange?: boolean },
+    tenantId?: string
+  ) => {
+    console.log(`🔐 Resetting password for user ${id}${tenantId ? ` (tenant: ${tenantId})` : ''}`);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.post(`/users/${id}/reset-password`, payload, config);
+    return response.data;
   }
 };
 
@@ -188,95 +200,175 @@ export const rolesAPI = {
     level?: 'PLATFORM' | 'TENANT' | 'DEPARTMENT';
     bankingAccess?: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
     isActive?: boolean;
-  }) => {
-    console.log('🔒 Fetching roles from tenant database with real API', params);
-    const response = await apiClient.get('/roles', { params });
+  }, tenantId?: string) => {
+    console.log(`🔒 Fetching roles from tenant database with real API${tenantId ? ` (tenant: ${tenantId})` : ''}`, params);
+    const config: any = { params };
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.get('/roles', config);
     return response.data;
   },
 
   // Get role by ID from tenant database
-  getById: async (id: string) => {
-    console.log(`🔒 Fetching role ${id} from tenant database`);
-    const response = await apiClient.get(`/roles/${id}`);
+  getById: async (id: string, tenantId?: string) => {
+    console.log(`🔒 Fetching role ${id} from tenant database${tenantId ? ` (tenant: ${tenantId})` : ''}`);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.get(`/roles/${id}`, config);
     return response.data;
   },
 
   // Create role in tenant database
   create: async (roleData: {
+    roleName?: string;
     name: string;
     displayName?: string;
     description?: string;
+    permissions?: string[];
     type?: 'SYSTEM' | 'BANKING' | 'CUSTOM';
     level?: 'PLATFORM' | 'TENANT' | 'DEPARTMENT';
+    bankingTypeSpecific?: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
     bankingAccess?: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
+    complianceLevel?: string;
+    hierarchyLevel?: number;
     isActive?: boolean;
-  }) => {
-    console.log('➕ Creating role in tenant database', roleData.name);
-    const response = await apiClient.post('/roles', roleData);
+  }, tenantId?: string) => {
+    console.log(`➕ Creating role in tenant database${tenantId ? ` (tenant: ${tenantId})` : ''}`, roleData.name);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const payload = {
+      roleName: roleData.roleName || roleData.name || roleData.displayName,
+      description: roleData.description,
+      permissions: roleData.permissions || [],
+      bankingTypeSpecific: roleData.bankingTypeSpecific || roleData.bankingAccess,
+      complianceLevel: roleData.complianceLevel,
+      hierarchyLevel: roleData.hierarchyLevel,
+      isActive: roleData.isActive,
+    };
+    const response = await apiClient.post('/roles', payload, config);
     return response.data;
   },
 
   // Update role in tenant database
   update: async (id: string, roleData: {
+    roleName?: string;
     name?: string;
     displayName?: string;
     description?: string;
+    permissions?: string[];
+    bankingTypeSpecific?: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
     bankingAccess?: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
+    complianceLevel?: string;
+    hierarchyLevel?: number;
     isActive?: boolean;
-  }) => {
-    console.log(`✏️ Updating role ${id} in tenant database`);
-    const response = await apiClient.put(`/roles/${id}`, roleData);
+  }, tenantId?: string) => {
+    console.log(`✏️ Updating role ${id} in tenant database${tenantId ? ` (tenant: ${tenantId})` : ''}`);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const payload = {
+      roleName: roleData.roleName || roleData.name || roleData.displayName,
+      description: roleData.description,
+      permissions: roleData.permissions,
+      bankingTypeSpecific: roleData.bankingTypeSpecific || roleData.bankingAccess,
+      complianceLevel: roleData.complianceLevel,
+      hierarchyLevel: roleData.hierarchyLevel,
+      isActive: roleData.isActive,
+    };
+    const response = await apiClient.put(`/roles/${id}`, payload, config);
     return response.data;
   },
 
   // Delete role from tenant database
-  delete: async (id: string) => {
-    console.log(`🗑️ Deleting role ${id} from tenant database`);
-    const response = await apiClient.delete(`/roles/${id}`);
+  delete: async (id: string, tenantId?: string) => {
+    console.log(`🗑️ Deleting role ${id} from tenant database${tenantId ? ` (tenant: ${tenantId})` : ''}`);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.delete(`/roles/${id}`, config);
     return response.data;
   },
 
   // Toggle role active status
-  toggle: async (id: string) => {
-    console.log(`🔄 Toggling role ${id} active status`);
-    const response = await apiClient.post(`/roles/${id}/toggle`);
+  toggle: async (id: string, tenantId?: string) => {
+    console.log(`🔄 Toggling role ${id} active status${tenantId ? ` (tenant: ${tenantId})` : ''}`);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.post(`/roles/${id}/toggle`, {}, config);
     return response.data;
   },
 
   // Get all available permissions
-  getPermissions: async () => {
-    console.log('🔑 Fetching permissions from tenant database');
-    const response = await apiClient.get('/roles/permissions');
+  getPermissions: async (tenantId?: string) => {
+    console.log(`🔑 Fetching permissions from tenant database${tenantId ? ` (tenant: ${tenantId})` : ''}`);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.get('/roles/permissions', config);
     return response.data;
   },
 
   // Update role permissions
-  updatePermissions: async (id: string, permissions: string[]) => {
-    console.log(`🔑 Updating permissions for role ${id}`);
-    const response = await apiClient.put(`/roles/${id}/permissions`, { permissions });
+  updatePermissions: async (
+    id: string,
+    permissions: string[],
+    tenantId?: string,
+    options?: { submitForApproval?: boolean; approvalReason?: string }
+  ) => {
+    console.log(`🔑 Updating permissions for role ${id}${tenantId ? ` (tenant: ${tenantId})` : ''}`);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.put(`/roles/${id}/permissions`, {
+      permissions,
+      submitForApproval: options?.submitForApproval ?? false,
+      approvalReason: options?.approvalReason
+    }, config);
     return response.data;
   },
 
   // Get users assigned to role
-  getUsers: async (roleId: string) => {
-    console.log(`👥 Fetching users for role ${roleId}`);
-    const response = await apiClient.get(`/roles/${roleId}/users`);
+  getUsers: async (roleId: string, tenantId?: string) => {
+    console.log(`👥 Fetching users for role ${roleId}${tenantId ? ` (tenant: ${tenantId})` : ''}`);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.get(`/roles/${roleId}/users`, config);
+    return response.data;
+  },
+
+  // Get roles assigned to user
+  getUserRoles: async (userId: string, tenantId?: string) => {
+    console.log(`👤 Fetching role assignments for user ${userId}${tenantId ? ` (tenant: ${tenantId})` : ''}`);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.get(`/roles/users/${userId}/roles`, config);
     return response.data;
   },
 
   // Assign role to user
-  assignUser: async (roleId: string, userId: string) => {
-    console.log(`👤 Assigning role ${roleId} to user ${userId}`);
-    // Fixed path matching backend: POST /users/:userId/roles/:roleId
-    const response = await apiClient.post(`/users/${userId}/roles/${roleId}`);
+  assignUser: async (roleId: string, userId: string, tenantId?: string) => {
+    console.log(`👤 Assigning role ${roleId} to user ${userId}${tenantId ? ` (tenant: ${tenantId})` : ''}`);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    // Backend expects assignment payload object
+    const response = await apiClient.post(`/users/${userId}/roles/${roleId}`, { isTemporary: false }, config);
     return response.data;
   },
 
   // Remove role from user
-  removeUser: async (roleId: string, userId: string) => {
-    console.log(`👤 Removing role ${roleId} from user ${userId}`);
+  removeUser: async (roleId: string, userId: string, tenantId?: string) => {
+    console.log(`👤 Removing role ${roleId} from user ${userId}${tenantId ? ` (tenant: ${tenantId})` : ''}`);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
     // Fixed path matching backend: DELETE /users/:userId/roles/:roleId
-    const response = await apiClient.delete(`/users/${userId}/roles/${roleId}`);
+    const response = await apiClient.delete(`/users/${userId}/roles/${roleId}`, config);
+    return response.data;
+  },
+
+  checkUserPermission: async (
+    userId: string,
+    input: { resource: string; action: string },
+    tenantId?: string
+  ) => {
+    console.log(`🔍 Checking permission for user ${userId}${tenantId ? ` (tenant: ${tenantId})` : ''}`, input);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.post(`/roles/users/${userId}/permissions/check`, input, config);
     return response.data;
   }
 };
@@ -377,12 +469,30 @@ export const bankingAPI = {
       const response = await apiClient.get('/jobs/executions', { params })
       return response.data
     },
+    getExecution: async (executionId: string) => {
+      const response = await apiClient.get(`/jobs/executions/${executionId}`)
+      return response.data
+    },
     getMetrics: async () => {
       const response = await apiClient.get('/jobs/metrics')
       return response.data
     },
+    getExecutionRuntime: async (executionId: string) => {
+      const response = await apiClient.get(`/jobs/executions/${executionId}/runtime`)
+      return response.data
+    },
     runJob: async (definitionId: string) => {
       const response = await apiClient.post(`/jobs/${definitionId}/run`)
+      return response.data
+    },
+    approveExecution: async (executionId: string, comment?: string) => {
+      const payload = comment ? { comment } : {}
+      const response = await apiClient.post(`/jobs/executions/${executionId}/approve`, payload)
+      return response.data
+    },
+    rejectExecution: async (executionId: string, comment?: string) => {
+      const payload = comment ? { comment } : {}
+      const response = await apiClient.post(`/jobs/executions/${executionId}/reject`, payload)
       return response.data
     },
     controlJob: async (executionId: string, action: 'pause' | 'resume' | 'stop') => {
@@ -1578,10 +1688,10 @@ if (typeof window !== 'undefined') {
     client: apiClient,
     diagnostics: apiDiagnostics,
     config: {
-      baseUrl: API_BASE_URL || 'https://iaf-ifrs-be.ifrspro.id/api/v1',
-      backendUrl: BACKEND_URL || 'https://iaf-ifrs-be.ifrspro.id',
-      deploymentMode: 'IAF_ECS',
-      ecsServer: '10.18.11.35',
+      baseUrl: API_BASE_URL || '/api/v1',
+      backendUrl: BACKEND_URL || '',
+      deploymentMode: process.env.NEXT_PUBLIC_ENVIRONMENT || process.env.NODE_ENV || 'development',
+      ecsServer: process.env.BACKEND_HOST || '',
       realDatabaseMode: true,
       mockupData: false,
       singleTenantMode: true
@@ -1590,9 +1700,9 @@ if (typeof window !== 'undefined') {
     diagnose: apiDiagnostics.diagnose,
   };
 
-  console.log('🏗️ IAF ECS API debugging available: window.__IFRS9_IAF_API__');
+  console.log('🏗️ API debugging available: window.__IFRS9_IAF_API__');
   console.log('🏗️ Run window.__IFRS9_IAF_API__.diagnose() for diagnostics');
-  console.log('🏗️ IAF Single Tenant Deployment: ECS Server URLs CONFIGURED');
+  console.log('🏗️ Single tenant mode active');
 }
 
 

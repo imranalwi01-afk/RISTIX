@@ -1,38 +1,16 @@
 import { getAuthToken } from '../utils/auth-token';
 import { ApiResponse } from '../types/api';
+import { frontendEnvironmentLoader } from '../config/environment-loader-frontend';
 
 /**
  * Base API client configuration - Use centralized environment loader
  */
 const getBaseUrl = (): string => {
   try {
-    // Try to use centralized environment loader first
-    const { frontendEnvironmentLoader } = require('../config/environment-loader-frontend');
     const config = frontendEnvironmentLoader.getConfiguration();
-    console.log('✅ Using centralized API base URL:', config.api.base);
     return config.api.base;
-  } catch (error) {
-    console.warn('⚠️ Failed to load centralized API base URL, using fallback:', error);
-
-    // Fallback to environment variables with hostname detection
-    const isProductionDomain = typeof window !== 'undefined' && (window.location.hostname.includes('danafin.com') || window.location.hostname.includes('ifrspro.id'));
-    const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-
-    let fallbackUrl = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL;
-
-    if (isLocalhost) {
-      console.log('🔧 Localhost detected: Forcing local API URL');
-      fallbackUrl = 'http://localhost:3000/api/v1';
-    } else if (!fallbackUrl) {
-      if (isProductionDomain) {
-        fallbackUrl = 'https://iaf-ifrs-be.ifrspro.id/api/v1';
-      } else {
-        fallbackUrl = 'https://iaf-ifrs-be.ifrspro.id/api/v1';
-      }
-    }
-
-    console.log('🔧 Resolved API Base URL:', fallbackUrl);
-    return fallbackUrl;
+  } catch {
+    return process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || '/api/v1';
   }
 };
 

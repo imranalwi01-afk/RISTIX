@@ -36,7 +36,7 @@ INSERT INTO frs9_param_commonh (param_code, param_name, param_usage, param_type,
 -- 2. Insert Details
 INSERT INTO frs9_param_commond (param_code, param_seq, value1, value2, value3, paramdesc, createdby, createddate, createdhost) VALUES
 -- System Configuration Details
-('APP001', 1, 'ACTIVE', 'TRUE', 'SYS', 'System active status', 'SYSTEM', NOW(), 'localhost'),
+('APP001', 1, 'ACTIVE', '1', 'SYS', 'System active status', 'SYSTEM', NOW(), 'localhost'),
 ('APP001', 2, 'VERSION', '1.0.0', 'SYS', 'Application version', 'SYSTEM', NOW(), 'localhost'),
 ('APP001', 3, 'ENVIRONMENT', 'PRODUCTION', 'SYS', 'Deployment environment', 'SYSTEM', NOW(), 'localhost'),
 
@@ -49,7 +49,7 @@ INSERT INTO frs9_param_commond (param_code, param_seq, value1, value2, value3, p
 ('APP003', 3, 'PASSWORD_POLICY', 'STRONG', 'SEC', 'Password security policy', 'SYSTEM', NOW(), 'localhost'),
 
 ('APP004', 1, 'LOG_LEVEL', 'INFO', 'LOG', 'Default logging level', 'SYSTEM', NOW(), 'localhost'),
-('APP004', 2, 'AUDIT_ENABLED', 'TRUE', 'LOG', 'Audit logging enabled', 'SYSTEM', NOW(), 'localhost'),
+('APP004', 2, 'AUDIT_ENABLED', '1', 'LOG', 'Audit logging enabled', 'SYSTEM', NOW(), 'localhost'),
 ('APP004', 3, 'LOG_RETENTION', '90', 'LOG', 'Log retention period in days', 'SYSTEM', NOW(), 'localhost'),
 
 ('APP005', 1, 'ECL_METHOD', 'STANDARD', 'IFRS9', 'Default ECL calculation method', 'SYSTEM', NOW(), 'localhost'),
@@ -59,7 +59,7 @@ INSERT INTO frs9_param_commond (param_code, param_seq, value1, value2, value3, p
 -- User Interface Details
 ('APP006', 1, 'DEFAULT_THEME', 'LIGHT', 'UI', 'Default UI theme', 'SYSTEM', NOW(), 'localhost'),
 ('APP006', 2, 'PAGE_SIZE', '50', 'UI', 'Default page size for data tables', 'SYSTEM', NOW(), 'localhost'),
-('APP006', 3, 'AUTO_REFRESH', 'FALSE', 'UI', 'Auto-refresh data tables', 'SYSTEM', NOW(), 'localhost'),
+('APP006', 3, 'AUTO_REFRESH', '0', 'UI', 'Auto-refresh data tables', 'SYSTEM', NOW(), 'localhost'),
 
 ('APP007', 1, 'PRIMARY_COLOR', '#1976D2', 'THEME', 'Primary theme color', 'SYSTEM', NOW(), 'localhost'),
 ('APP007', 2, 'SECONDARY_COLOR', '#DC004E', 'THEME', 'Secondary theme color', 'SYSTEM', NOW(), 'localhost'),
@@ -85,7 +85,7 @@ INSERT INTO frs9_param_commond (param_code, param_seq, value1, value2, value3, p
 -- Integration Details
 ('APP012', 1, 'API_RATE_LIMIT', '1000', 'API', 'API rate limit per hour', 'SYSTEM', NOW(), 'localhost'),
 ('APP012', 2, 'API_TIMEOUT', '30', 'API', 'API timeout in seconds', 'SYSTEM', NOW(), 'localhost'),
-('APP012', 3, 'WEBHOOK_ENABLED', 'TRUE', 'API', 'Webhook integration enabled', 'SYSTEM', NOW(), 'localhost'),
+('APP012', 3, 'WEBHOOK_ENABLED', '1', 'API', 'Webhook integration enabled', 'SYSTEM', NOW(), 'localhost'),
 
 ('APP013', 1, 'MAX_FILE_SIZE', '50MB', 'FILE', 'Maximum file upload size', 'SYSTEM', NOW(), 'localhost'),
 ('APP013', 2, 'ALLOWED_TYPES', 'XLSX,CSV', 'FILE', 'Allowed file types', 'SYSTEM', NOW(), 'localhost'),
@@ -93,7 +93,7 @@ INSERT INTO frs9_param_commond (param_code, param_seq, value1, value2, value3, p
 
 ('APP014', 1, 'EXPORT_FORMAT', 'PDF', 'EXPORT', 'Default export format', 'SYSTEM', NOW(), 'localhost'),
 ('APP014', 2, 'REPORT_TEMPLATE', 'STANDARD', 'EXPORT', 'Report template type', 'SYSTEM', NOW(), 'localhost'),
-('APP014', 3, 'SCHEDULE_EXPORT', 'FALSE', 'EXPORT', 'Scheduled export enabled', 'SYSTEM', NOW(), 'localhost'),
+('APP014', 3, 'SCHEDULE_EXPORT', '0', 'EXPORT', 'Scheduled export enabled', 'SYSTEM', NOW(), 'localhost'),
 
 -- Banking Details
 ('APP015', 1, 'DEFAULT_MODE', 'CONVENTIONAL', 'BANK', 'Default banking mode', 'SYSTEM', NOW(), 'localhost'),

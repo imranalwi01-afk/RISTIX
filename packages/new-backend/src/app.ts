@@ -37,6 +37,7 @@ export type AppContext = {
         userId?: string
         tokenId?: string
         permissions?: string[]
+        userPermissions?: string[]
         isSystemUser?: boolean
         user?: User
         logger?: Logger
@@ -111,10 +112,12 @@ export function createApp() {
                 'Authorization',
                 'X-Tenant-ID',
                 'X-Tenant-Slug',
+                'X-Impersonation-Mode',
                 'X-Request-Time',
                 'X-Client',
                 'x-tenant-id',
                 'x-tenant-slug',
+                'x-impersonation-mode',
                 'x-request-time',
                 'x-client',
             ],

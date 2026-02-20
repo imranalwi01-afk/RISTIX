@@ -18,6 +18,8 @@ const connectionConfig = {
     max: 10,
     idle_timeout: 20,
     connect_timeout: 10,
+    // Keep TCP traffic flowing for long-running SP calls behind VPN/NAT.
+    keep_alive: 10,
 }
 
 /**

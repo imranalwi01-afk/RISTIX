@@ -31,6 +31,7 @@ import {
   alpha,
   useTheme
 } from '@mui/material';
+import { Snackbar } from '@mui/material';
 import {
   Calculate as CalculateIcon,
   Home as HomeIcon,
@@ -54,6 +55,7 @@ import { ApprovalNotification, ApprovalStatusBadge } from '@/components/approval
 import { bankingAPI } from '@/services/api';
 import { PDStructureVisualization, FLScalarVisualization } from '@/components/banking/pd-setup/PDStructureVisualization';
 import { Assessment as ResultsIcon, Close as CloseIcon } from '@mui/icons-material';
+import { usePermission } from '@/hooks/usePermission';
 
 // Safe DataGrid wrapper to prevent bundling issues
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
@@ -65,6 +67,10 @@ interface PDConfigUI extends PDConfiguration {
 }
 
 const PdSetupPage = () => {
+  const { hasAnyPermission } = usePermission();
+  const canViewPdSetup = hasAnyPermission(['banking.collective.pd_setup.view', 'banking.collective.pd_setup.manage', 'banking.collective.manage', 'banking.collective', 'admin.super_admin']);
+  const canManagePdSetup = hasAnyPermission(['banking.collective.pd_setup.manage', 'banking.collective.pd_setup.create', 'banking.collective.pd_setup.update', 'banking.collective.pd_setup.delete', 'banking.collective.manage', 'admin.super_admin']);
+
   const theme = useTheme();
   const router = useRouter();
 
@@ -203,6 +209,7 @@ const PdSetupPage = () => {
   };
 
   const handleSave = async () => {
+    if (!canManagePdSetup) return;
     if (!validateForm()) return;
     try {
       const payload = {
@@ -246,6 +253,7 @@ const PdSetupPage = () => {
   };
 
   const handleDelete = async (id: string) => {
+    if (!canManagePdSetup) return;
     if (!confirm('Are you sure you want to delete this configuration?')) return;
     try {
       const response = await api.banking.pdConfigurations.delete(id) as any;
@@ -335,23 +343,25 @@ const PdSetupPage = () => {
       headerName: 'Actions',
       width: 100,
       getActions: (params) => [
-        <SafeGridActionsCellItem
-          key="edit"
-          icon={<EditIcon color="primary" />}
-          label="Edit"
-          onClick={() => {
-            setSelectedConfig(params.row);
-            setFormData(params.row);
-            setIsEditing(true);
-            setIsDialogOpen(true);
-          }}
-        />,
-        <SafeGridActionsCellItem
-          key="delete"
-          icon={<DeleteIcon color="error" />}
-          label="Delete"
-          onClick={() => handleDelete(params.row.id)}
-        />,
+        ...(canManagePdSetup ? [
+          <SafeGridActionsCellItem
+            key="edit"
+            icon={<EditIcon color="primary" />}
+            label="Edit"
+            onClick={() => {
+              setSelectedConfig(params.row);
+              setFormData(params.row);
+              setIsEditing(true);
+              setIsDialogOpen(true);
+            }}
+          />,
+          <SafeGridActionsCellItem
+            key="delete"
+            icon={<DeleteIcon color="error" />}
+            label="Delete"
+            onClick={() => handleDelete(params.row.id)}
+          />
+        ] : []),
         <SafeGridActionsCellItem
           key="results"
           icon={<ResultsIcon color="secondary" />}
@@ -365,6 +375,11 @@ const PdSetupPage = () => {
 
   return (
     <Container maxWidth="xl">
+      {!canViewPdSetup && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          You do not have permission to view PD setup.
+        </Alert>
+      )}
       <Breadcrumbs sx={{ mb: 2 }}>
         <Link href="/banking/dashboard" underline="hover" color="inherit">Dashboard</Link>
         <Typography color="text.primary" data-testid="pd-setup-title">PD Setup</Typography>
@@ -374,19 +389,21 @@ const PdSetupPage = () => {
         <Typography variant="h4" component="h1">PD Setup Management</Typography>
         <Box>
           <Button startIcon={<RefreshIcon />} onClick={loadData} disabled={loading} sx={{ mr: 1 }} data-testid="refresh-btn">Refresh</Button>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => {
-            setSelectedConfig(null);
-            setFormData({
-              is_active: true,
-              selected_method: 1,
-              migration_interval: 12,
-              population_type: 1,
-              historical_month: 24,
-              multiplication: 1
-            });
-            setIsEditing(false);
-            setIsDialogOpen(true);
-          }} data-testid="add-config-btn">Add Configuration</Button>
+          {canManagePdSetup && (
+            <Button variant="contained" startIcon={<AddIcon />} onClick={() => {
+              setSelectedConfig(null);
+              setFormData({
+                is_active: true,
+                selected_method: 1,
+                migration_interval: 12,
+                population_type: 1,
+                historical_month: 24,
+                multiplication: 1
+              });
+              setIsEditing(false);
+              setIsDialogOpen(true);
+            }} data-testid="add-config-btn">Add Configuration</Button>
+          )}
         </Box>
       </Box>
 
@@ -570,7 +587,9 @@ const PdSetupPage = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setIsDialogOpen(false)} data-testid="cancel-btn">Cancel</Button>
-          <Button variant="contained" onClick={handleSave} disabled={loading} data-testid="save-config-btn">{selectedConfig ? 'Update' : 'Create'}</Button>
+          {canManagePdSetup && (
+            <Button variant="contained" onClick={handleSave} disabled={loading} data-testid="save-config-btn">{selectedConfig ? 'Update' : 'Create'}</Button>
+          )}
         </DialogActions>
       </Dialog>
 

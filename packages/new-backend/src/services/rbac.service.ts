@@ -342,6 +342,33 @@ export const getUserPermissions = (
     )
 
 /**
+ * Returns canonical permission codes (e.g. banking.setup.business.view) for the user.
+ * This is used by frontend auth snapshot refresh to avoid lossy resource/action mapping.
+ */
+export const getUserPermissionCodes = (
+    userId: string,
+    tenantId: string
+): Effect.Effect<string[], DatabaseError> =>
+    pipe(
+        getUserRoles(userId, tenantId),
+        Effect.map((userRolesData) => {
+            const codeSet = new Set<string>()
+
+            for (const ur of userRolesData) {
+                const rolePermissions = (ur as any).role?.rolePermissions ?? []
+                for (const rp of rolePermissions) {
+                    const code = rp?.permission?.code
+                    if (typeof code === 'string' && code.trim().length > 0) {
+                        codeSet.add(code.trim())
+                    }
+                }
+            }
+
+            return Array.from(codeSet)
+        })
+    )
+
+/**
  * Update permissions for a specific role by replacing all existing role-permission associations.
  * 
  * @param roleId - The unique identifier of the role

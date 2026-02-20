@@ -48,6 +48,7 @@ import { LGDConfiguration } from '../../../../services/api/lgd-configurations.ap
 import { PopulationSegment } from '../../../../services/api/population-segments.api';
 import { FLScalarWithDetails } from '../../../../services/api/fl-scalar.api';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
+import { usePermission } from '@/hooks/usePermission';
 
 // Safe DataGrid wrapper to prevent bundling issues
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
@@ -60,6 +61,10 @@ interface LGDConfigUI extends LGDConfiguration {
 }
 
 export default function LGDSetupPage() {
+  const { hasAnyPermission } = usePermission();
+  const canViewLgdSetup = hasAnyPermission(['banking.collective.lgd_setup.view', 'banking.collective.lgd_setup.manage', 'banking.collective.manage', 'banking.collective', 'admin.super_admin']);
+  const canManageLgdSetup = hasAnyPermission(['banking.collective.lgd_setup.manage', 'banking.collective.lgd_setup.create', 'banking.collective.lgd_setup.update', 'banking.collective.lgd_setup.delete', 'banking.collective.manage', 'admin.super_admin']);
+
   const router = useRouter();
 
   const [loading, setLoading] = useState(false);
@@ -185,6 +190,7 @@ export default function LGDSetupPage() {
   };
 
   const handleSave = async () => {
+    if (!canManageLgdSetup) return;
     if (!validateForm()) return;
     try {
       const payload: any = {
@@ -237,6 +243,7 @@ export default function LGDSetupPage() {
   };
 
   const handleDelete = async (id: number) => {
+    if (!canManageLgdSetup) return;
     if (!confirm('Are you sure you want to delete this configuration?')) return;
     try {
       const response = await api.banking.lgdConfigurations.delete(String(id)) as any;
@@ -301,7 +308,7 @@ export default function LGDSetupPage() {
       type: 'actions',
       headerName: 'Actions',
       width: 100,
-      getActions: (params) => [
+      getActions: (params) => canManageLgdSetup ? [
         <SafeGridActionsCellItem
           key="edit"
           icon={<EditIcon color="primary" />}
@@ -319,12 +326,17 @@ export default function LGDSetupPage() {
           label="Delete"
           onClick={() => handleDelete(params.row.id!)}
         />
-      ]
+      ] : []
     }
   ];
 
   return (
     <Container maxWidth="xl">
+      {!canViewLgdSetup && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          You do not have permission to view LGD setup.
+        </Alert>
+      )}
       <Breadcrumbs sx={{ mb: 2 }}>
         <Link href="/banking/dashboard" underline="hover" color="inherit">Dashboard</Link>
         <Typography color="text.primary">LGD Setup</Typography>
@@ -334,18 +346,20 @@ export default function LGDSetupPage() {
         <Typography variant="h4" component="h1">LGD Setup Management</Typography>
         <Box>
           <Button startIcon={<RefreshIcon />} onClick={loadData} disabled={loading} sx={{ mr: 1 }}>Refresh</Button>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => {
-            setSelectedConfig(null);
-            setFormData({
-              is_active: true,
-              lgd_method: 1,
-              population_type: 'Monthly',
-              workout_period: 12,
-              fl_flag: false
-            });
-            setIsEditing(false);
-            setIsDialogOpen(true);
-          }}>Add Configuration</Button>
+          {canManageLgdSetup && (
+            <Button variant="contained" startIcon={<AddIcon />} onClick={() => {
+              setSelectedConfig(null);
+              setFormData({
+                is_active: true,
+                lgd_method: 1,
+                population_type: 'Monthly',
+                workout_period: 12,
+                fl_flag: false
+              });
+              setIsEditing(false);
+              setIsDialogOpen(true);
+            }}>Add Configuration</Button>
+          )}
         </Box>
       </Box>
 
@@ -496,7 +510,9 @@ export default function LGDSetupPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleSave} disabled={loading}>{selectedConfig ? 'Update' : 'Create'}</Button>
+          {canManageLgdSetup && (
+            <Button variant="contained" onClick={handleSave} disabled={loading}>{selectedConfig ? 'Update' : 'Create'}</Button>
+          )}
         </DialogActions>
       </Dialog>
       <ApprovalNotification

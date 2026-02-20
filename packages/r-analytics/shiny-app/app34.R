@@ -44,7 +44,8 @@ message(paste0("[", Sys.time(), "] ✅ global.R sourced successfully."))
 # Database Configuration Logging
 db_host <- Sys.getenv("DB_HOST", "10.8.0.2")
 db_port <- as.integer(Sys.getenv("DB_PORT", "5433"))
-db_name <- Sys.getenv("DB_NAME", "IFRS9_pro")
+db_name <- Sys.getenv("DB_NAME", "FRS9PRO")
+db_schema <- Sys.getenv("DB_SCHEMA", "public")
 db_user <- Sys.getenv("DB_USER", "postgres")
 db_password <- Sys.getenv("DB_PASSWORD", "postgres")
 
@@ -53,6 +54,7 @@ cat(paste0("🚀 Starting Database Connection...\n"))
 cat(paste0("📌 Host: ", db_host, "\n"))
 cat(paste0("📌 Port: ", db_port, "\n"))
 cat(paste0("📌 Name: ", db_name, "\n"))
+cat(paste0("📌 Schema: ", db_schema, "\n"))
 cat(paste0("📌 User: ", db_user, "\n"))
 cat(paste0("=============================================\n"))
 
@@ -75,7 +77,12 @@ con <- tryCatch({
 })
 
 
-dbExecute(con, "SET search_path TO dbo;")
+if (!is.null(con)) {
+  if (!grepl("^[A-Za-z_][A-Za-z0-9_]*$", db_schema)) {
+    db_schema <- "public"
+  }
+  dbExecute(con, paste0('SET search_path TO "', db_schema, '", public;'))
+}
 
 # Load konfigurasi
 LGD <- dbGetQuery(con, 'SELECT * FROM "FRS9_IMP_CA_LGD_CONFIG"')

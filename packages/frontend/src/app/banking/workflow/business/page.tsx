@@ -31,6 +31,7 @@ import {
   ArrowBack as BackIcon
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
+import { Can } from '@/components/rbac/Can';
 
 export default function BusinessProcessPage() {
   const router = useRouter();
@@ -123,13 +124,15 @@ export default function BusinessProcessPage() {
               </Alert>
 
               <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
-                <Button
-                  variant="contained"
-                  startIcon={<PageIcon />}
-                  disabled
-                >
-                  Configure Business Process
-                </Button>
+                <Can permission={['banking.processing.manage', 'banking.processing', 'admin.super_admin']}>
+                  <Button
+                    variant="contained"
+                    startIcon={<PageIcon />}
+                    disabled
+                  >
+                    Configure Business Process
+                  </Button>
+                </Can>
                 <Button
                   variant="outlined"
                   startIcon={<BackIcon />}

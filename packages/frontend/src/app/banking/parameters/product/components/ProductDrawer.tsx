@@ -24,6 +24,7 @@ interface ProductDrawerProps {
   onSave: (data: any) => void;
   initialData: any | null;
   loading: boolean;
+  canManage: boolean;
   options: {
     dataSources: any[];
     productGroups: any[];
@@ -40,6 +41,7 @@ export default function ProductDrawer({
   onSave,
   initialData,
   loading,
+  canManage,
   options
 }: ProductDrawerProps) {
   const [formData, setFormData] = useState<any>({
@@ -328,7 +330,7 @@ export default function ProductDrawer({
             variant="contained"
             startIcon={<SaveIcon />}
             onClick={handleSave}
-            loading={loading}
+            disabled={loading || !canManage}
             fullWidth
           >
             Save Product

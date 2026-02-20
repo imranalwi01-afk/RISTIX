@@ -48,6 +48,16 @@ export const AuthRepository = {
         }),
 
     /**
+     * Find a platform user by their unique record ID.
+     *
+     * Uses platform_admin.users (via platformUsers schema), not core.users.
+     */
+    findPlatformUserById: (db: DrizzleDB, id: string) =>
+        db.query.platformUsers.findFirst({
+            where: eq(platformUsers.id, id),
+        }),
+
+    /**
      * Find a user by their email address, optionally scoped to a tenant.
      * 
      * @param db - Drizzle database instance
@@ -166,6 +176,12 @@ export const AuthRepository = {
             lastLoginAt: new Date(),
             updatedAt: new Date(),
         }).where(eq(users.id, id)),
+
+    updatePlatformUserLastLogin: (db: DrizzleDB, id: string) =>
+        db.update(platformUsers).set({
+            lastLoginAt: new Date(),
+            updatedAt: new Date(),
+        }).where(eq(platformUsers.id, id)),
 
     getUserStats: async (db: DrizzleDB, tenantId: string) => {
         const result = await db

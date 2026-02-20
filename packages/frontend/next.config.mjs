@@ -5,6 +5,22 @@ const withBundleAnalyzer = bundleAnalyzer({
   enabled: process.env.ANALYZE === 'true',
 });
 
+const normalizeBackendProxyBase = (rawValue) => {
+  let value = (rawValue || '').trim().replace(/\/+$/, '');
+  while (/\/api(?:\/v1)?$/i.test(value)) {
+    value = value.replace(/\/api(?:\/v1)?$/i, '');
+  }
+  value = value
+    .replace('https://bifrs9-iaf.ifrspro.id', 'https://iaf-ifrs-be.ifrspro.id')
+    .replace('http://bifrs9-iaf.ifrspro.id', 'https://iaf-ifrs-be.ifrspro.id')
+    .replace('https://ifrs9-iaf.ifrspro.id', 'https://iaf-ifrs-be.ifrspro.id')
+    .replace('http://ifrs9-iaf.ifrspro.id', 'https://iaf-ifrs-be.ifrspro.id');
+  return value;
+};
+
+const isLocalhostUrl = (value) => /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(value || '');
+const containsPublicDomain = (value) => /(ifrspro\.id|danafin\.(?:id|com))/i.test((value || '').toLowerCase());
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // ============================================================================
@@ -12,6 +28,16 @@ const nextConfig = {
   // ============================================================================
   // Enable standalone output for Docker
   output: 'standalone',
+  allowedDevOrigins: [
+    'localhost',
+    '127.0.0.1',
+    '*.ifrspro.id',
+    'iaf-ifrs.ifrspro.id',
+    'iaf-ifrs-be.ifrspro.id',
+    '*.danafin.com',
+    'iaf-ifrs.danafin.com',
+    '*.danafin.id',
+  ],
 
   // Force transpilation of MUI packages to fix Turbopack bundling issues
   // Force transpilation of MUI packages to fix Turbopack bundling issues
@@ -86,7 +112,6 @@ const nextConfig = {
     remotePatterns: [
       { protocol: 'http', hostname: 'localhost' },
       { protocol: 'https', hostname: 'iaf-ifrs.ifrspro.id' },
-      { protocol: 'https', hostname: 'bifrs9-iaf.ifrspro.id' },
       { protocol: 'https', hostname: 'danafin.com' },
       { protocol: 'https', hostname: 'iaf-ifrs.danafin.com' },
     ],
@@ -97,12 +122,60 @@ const nextConfig = {
   // API REWRITES
   // ============================================================================
   async rewrites() {
+    const explicitProxyTarget =
+      process.env.BACKEND_INTERNAL_URL ||
+      process.env.BACKEND_URL ||
+      process.env.NEXT_PUBLIC_BACKEND_URL ||
+      process.env.NEXT_PUBLIC_BACKEND_API_URL;
+
+    let normalizedProxyBase = normalizeBackendProxyBase(explicitProxyTarget);
+    const frontendUrl = (process.env.NEXT_PUBLIC_FRONTEND_URL || process.env.FRONTEND_URL || '').toLowerCase();
+    const deploymentTarget = (process.env.DEPLOYMENT_TARGET || process.env.NEXT_PUBLIC_DEPLOYMENT_TARGET || '').toLowerCase();
+    const apiBaseUrlHint = (
+      process.env.API_BASE_URL ||
+      process.env.NEXT_PUBLIC_API_BASE_URL ||
+      process.env.BACKEND_URL ||
+      process.env.NEXT_PUBLIC_BACKEND_URL ||
+      ''
+    ).toLowerCase();
+
+    const isPublicDomainFrontend =
+      containsPublicDomain(frontendUrl) ||
+      containsPublicDomain(apiBaseUrlHint) ||
+      deploymentTarget.includes('staging') ||
+      deploymentTarget.includes('production') ||
+      deploymentTarget.includes('prod');
+
+    const shouldUseLocalhostProxy =
+      deploymentTarget === 'localdev' &&
+      (frontendUrl.includes('localhost') || frontendUrl.includes('127.0.0.1') || frontendUrl.length === 0);
+
+    if (isLocalhostUrl(normalizedProxyBase) && !shouldUseLocalhostProxy) {
+      normalizedProxyBase = '';
+    }
+
+    if (isPublicDomainFrontend && isLocalhostUrl(normalizedProxyBase)) {
+      const fallbackPublicTarget =
+        process.env.BACKEND_URL ||
+        process.env.NEXT_PUBLIC_BACKEND_URL ||
+        process.env.NEXT_PUBLIC_BACKEND_API_URL;
+      normalizedProxyBase = normalizeBackendProxyBase(fallbackPublicTarget);
+    }
+
+    if (isPublicDomainFrontend && (!normalizedProxyBase || isLocalhostUrl(normalizedProxyBase))) {
+      normalizedProxyBase = frontendUrl.includes('danafin.com')
+        ? 'https://iaf-ifrs-be.danafin.com'
+        : 'https://iaf-ifrs-be.ifrspro.id';
+    }
+
+    const proxyBase = normalizedProxyBase.startsWith('http://') || normalizedProxyBase.startsWith('https://')
+      ? normalizedProxyBase
+      : 'http://backend:4232';
+
     return [
       {
         source: '/api/:path*',
-        destination: process.env.NEXT_PUBLIC_BACKEND_API_URL
-          ? `${process.env.NEXT_PUBLIC_BACKEND_API_URL.replace('/api/v1', '')}/api/:path*`
-          : 'http://localhost:4232/api/:path*',
+        destination: `${proxyBase}/api/:path*`,
       },
     ];
   },

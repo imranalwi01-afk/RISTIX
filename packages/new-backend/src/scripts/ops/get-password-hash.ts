@@ -12,7 +12,7 @@ export async function run(args: string[] = []) {
 
     try {
         const users = await sql`
-            SELECT password_hash FROM platform_admin.platform_users WHERE email = 'admin@iaf.co.id'
+            SELECT password_hash FROM platform_admin.users WHERE email = 'admin@ifrspro.id'
         `;
         if (users.length > 0) {
             console.log('--- FOUND HASH ---');

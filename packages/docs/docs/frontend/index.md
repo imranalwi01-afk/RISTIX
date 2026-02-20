@@ -21,3 +21,10 @@ We use **Material UI (MUI)** v5/v6 with a custom theme.
 
 ## 4. Key Components
 *   **CreateJobDialog**: A dynamic form that renders different inputs based on the selected Job Type.
+
+## 5. Documentation Standards
+- [Frontend JSDoc Guidelines](./jsdoc-guidelines)
+
+## 6. Access Governance
+- [Sitemap and Permission Map](./sitemap-permission-map)
+- [Role Permission Matrix](./role-permission-matrix)

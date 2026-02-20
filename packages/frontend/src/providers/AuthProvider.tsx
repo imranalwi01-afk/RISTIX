@@ -11,7 +11,7 @@
 
 'use client'
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react'
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react'
 import Cookies from 'js-cookie'
 import { useRouter, usePathname } from 'next/navigation'
 import { useDispatch, useSelector } from 'react-redux'
@@ -22,7 +22,9 @@ import {
   loginSuccess,
   loginFailure,
   logout as logoutAction,
+  resetAuth,
   initializeAuth,
+  updateUser,
   updateLastActivity,
   setError,
   clearError
@@ -46,14 +48,12 @@ const getLandingPageUrl = (user: any): string => {
     console.log(`🔍 Determining landing page for user: ${email} with stakeholderType: ${stakeholderType}`);
 
     switch (stakeholderType) {
-      // case 'platform':
-      //   return '/platform/admin'; 
-      // DISABLED: User requested to redirect to banking dashboard even for admins
+      case 'platform':
+        return '/platform/users';
       case 'consultant':
         return '/consultant/dashboard';
       case 'regulator':
         return '/regulator/dashboard';
-      case 'platform':
       case 'banking':
       default:
         return '/banking/dashboard';
@@ -192,6 +192,109 @@ const detectBankingModeFromUser = (user: any): 'conventional' | 'syariah' | null
   }
 };
 
+const normalizeBackendBaseUrl = (rawUrl: string): string => {
+  let normalized = (rawUrl || '')
+    .replace('https://bifrs9-iaf.ifrspro.id', 'https://iaf-ifrs-be.ifrspro.id')
+    .replace('http://bifrs9-iaf.ifrspro.id', 'https://iaf-ifrs-be.ifrspro.id')
+    .replace('https://ifrs9-iaf.ifrspro.id', 'https://iaf-ifrs-be.ifrspro.id')
+    .replace('http://ifrs9-iaf.ifrspro.id', 'https://iaf-ifrs-be.ifrspro.id')
+    .trim()
+    .replace(/\/+$/, '');
+  // Guard against accidental repeated API prefixes like /api/api/v1
+  while (/\/api(?:\/v1)?$/i.test(normalized)) {
+    normalized = normalized.replace(/\/api(?:\/v1)?$/i, '');
+  }
+  return normalized;
+};
+
+const fetchWithTimeout = async (
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+  timeoutMs = 10_000
+): Promise<Response> => {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+};
+
+const parseResponseBody = async (response: Response): Promise<{ json: any | null; text: string }> => {
+  const text = await response.text();
+  if (!text) {
+    return { json: null, text: '' };
+  }
+
+  const contentType = (response.headers.get('content-type') || '').toLowerCase();
+  const looksLikeJson = text.trim().startsWith('{') || text.trim().startsWith('[');
+
+  if (contentType.includes('application/json') || looksLikeJson) {
+    try {
+      return { json: JSON.parse(text), text };
+    } catch {
+      return { json: null, text };
+    }
+  }
+
+  return { json: null, text };
+};
+
+const toApiV1BaseUrl = (rawUrl: string): string => {
+  const normalized = normalizeBackendBaseUrl(rawUrl);
+  return normalized.length > 0 ? `${normalized}/api/v1` : '/api/v1';
+};
+
+const resolveBackendBaseUrl = (): string => {
+  return (
+    process.env.NEXT_PUBLIC_BACKEND_URL ||
+    process.env.BACKEND_URL ||
+    ''
+  );
+};
+
+const toUniqueStringArray = (values: unknown[]): string[] => {
+  return Array.from(
+    new Set(values.filter((value): value is string => typeof value === 'string' && value.trim().length > 0))
+  );
+};
+
+const decodeJwtClaims = (token?: string | null): Record<string, unknown> => {
+  if (!token) return {};
+  try {
+    const payloadPart = token.split('.')[1];
+    if (!payloadPart) return {};
+    const base64 = payloadPart.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = `${base64}${'='.repeat((4 - (base64.length % 4)) % 4)}`;
+    return JSON.parse(atob(padded));
+  } catch {
+    return {};
+  }
+};
+
+const normalizePermissionsPayload = (payload: unknown): string[] => {
+  if (Array.isArray(payload)) {
+    return toUniqueStringArray(payload);
+  }
+
+  if (payload && typeof payload === 'object') {
+    const flattened: string[] = [];
+    for (const [resource, actions] of Object.entries(payload as Record<string, unknown>)) {
+      if (!Array.isArray(actions)) continue;
+      for (const action of actions) {
+        if (typeof action === 'string' && action.trim().length > 0) {
+          flattened.push(`${resource}.${action}`);
+        }
+      }
+    }
+    return toUniqueStringArray(flattened);
+  }
+
+  return [];
+};
+
 // ============================================================================
 // TYPES AND INTERFACES
 // ============================================================================
@@ -210,6 +313,8 @@ interface User {
   tenantSlug?: string
   bankingType?: string
   permissions?: string[]
+  stakeholderType?: 'platform' | 'banking' | 'consultant' | 'regulator'
+  isPlatformAdmin?: boolean
   company?: string
   department?: string
   position?: string
@@ -287,6 +392,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [localLoading, setLocalLoading] = useState(true)
   const router = useRouter()
   const pathname = usePathname()
+  const permissionRefreshInFlight = useRef(false)
+  const lastPermissionRefreshAt = useRef(0)
 
   // ✅ SURGICAL FIX: Sync tokens to cookie whenever auth state changes
   useEffect(() => {
@@ -326,53 +433,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         if (token && userData && !authState?.isAuthenticated) {
           const parsedUser = JSON.parse(userData)
-          console.log('✅ Found stored auth data for:', parsedUser.email)
+          const tokenClaims = decodeJwtClaims(token);
+          const hydratedUser = {
+            ...parsedUser,
+            stakeholderType: parsedUser?.stakeholderType || (tokenClaims as any)?.stakeholderType || 'banking',
+            isPlatformAdmin:
+              parsedUser?.isPlatformAdmin ??
+              ((tokenClaims as any)?.stakeholderType === 'platform'),
+          };
+          console.log('✅ Found stored auth data for:', hydratedUser.email)
 
           // ✅ SURGICAL FIX: Sync token to cookie immediately
-          syncTokenToCookie(token, parsedUser, refreshToken);
+          syncTokenToCookie(token, hydratedUser, refreshToken);
 
           // ✅ SURGICAL ENHANCEMENT: Detect and set banking mode
-          const detectedBankingMode = detectBankingModeFromUser(parsedUser);
+          const detectedBankingMode = detectBankingModeFromUser(hydratedUser);
           if (detectedBankingMode) {
             console.log(`🎨 AuthProvider: Setting banking mode to "${detectedBankingMode}" during initialization`);
             dispatch(setBankingMode(detectedBankingMode));
           }
 
-          dispatch(initializeAuth({
-            user: parsedUser,
+            dispatch(initializeAuth({
+            user: hydratedUser,
             token,
             refreshToken: refreshToken || undefined,
           }))
 
           // ✅ SURGICAL FIX: Validate token with better error handling
           try {
-            // ✅ FIXED: Use centralized configuration for dual-mode support
-            let backendUrl: string;
-            try {
-              const { frontendEnvironmentLoader } = require('../config/environment-loader-frontend');
-              const config = frontendEnvironmentLoader.getConfiguration();
-              backendUrl = config.api.backend;
-              console.log('✅ Using centralized backend URL for token validation:', backendUrl);
-            } catch (error) {
-              console.warn('⚠️ Failed to load centralized backend URL, using fallback:', error);
-              // Fallback to environment variable or hostname-based detection
-              if (typeof window !== 'undefined') {
-                // Try process.env first (for server-side rendering), then hostname detection
-                backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL ||
-                  (window.location.hostname.includes('danafin.com')
-                    ? 'https://iaf-ifrs-be.danafin.com'
-                    : 'https://iaf-ifrs-be.ifrspro.id');
-              } else {
-                // Server-side fallback
-                backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://iaf-ifrs-be.ifrspro.id';
-              }
-            }
-            const response = await fetch(`${backendUrl}/api/v1/auth/verify`, {
+            const backendUrl = resolveBackendBaseUrl();
+            const response = await fetchWithTimeout(`${toApiV1BaseUrl(backendUrl)}/auth/verify`, {
               headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json',
               },
-            })
+            }, 8_000)
 
             if (response.ok) {
               console.log('✅ Token validation successful')
@@ -392,18 +487,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 return; // Stay on login page for users who logged out
               }
 
-              // ✅ LOOP PREVENTION: Only redirect from home page, not from login page
-              // This prevents auto-redirect when users visit login URL directly
-              if (currentPath === '/' || currentPath === '') {
-                const landingUrl = getLandingPageUrl(parsedUser)
-                console.log(`✅ Redirecting authenticated user from home to: ${landingUrl}`)
+              // Redirect authenticated users away from auth entrypoints.
+              if (currentPath === '/' || currentPath === '' || currentPath === '/login') {
+                const landingUrl = getLandingPageUrl(hydratedUser)
+                console.log(`✅ Redirecting authenticated user to: ${landingUrl}`)
 
                 setTimeout(() => {
                   safeNavigate(router, landingUrl);
                 }, 100);
-              } else if (currentPath === '/login') {
-                // ✅ LOOP PREVENTION: Stay on login page if user navigates there manually
-                console.log('🔄 User manually navigated to login page - staying put')
               }
             } else {
               console.log('❌ Token validation failed, clearing auth data')
@@ -417,8 +508,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           console.log('❌ No stored authentication data found')
           syncTokenToCookie(null); // Clear any stale cookies
 
-          // ✅ SURGICAL FIX: Still mark as initialized even without auth data
-          dispatch(initializeAuth({}));
+          // ✅ Reset persisted auth state and mark initialized.
+          dispatch(resetAuth());
         } else {
           // ✅ SURGICAL FIX: Already authenticated, just mark as initialized
           dispatch(initializeAuth({}));
@@ -436,6 +527,146 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     initializeAuthOnce()
     // ✅ SURGICAL FIX: Remove authState.isAuthenticated from dependencies to prevent infinite loop
   }, [dispatch, router, pathname])
+
+  // ============================================================================
+  // AUTH SNAPSHOT REFRESH (PERMISSIONS/ROLES)
+  // ============================================================================
+  const refreshAuthSnapshot = useCallback(async (
+    reason: 'startup' | 'interval' | 'focus' | 'visibility' | 'manual' = 'interval',
+    force = false
+  ): Promise<boolean> => {
+    if (typeof window === 'undefined' || !authState?.isAuthenticated) return false;
+    if (pathname === '/login') return false;
+    if (permissionRefreshInFlight.current) return false;
+
+    const now = Date.now();
+    const minRefreshIntervalMs = 60_000;
+    if (!force && now - lastPermissionRefreshAt.current < minRefreshIntervalMs) {
+      return false;
+    }
+
+    const token = localStorage.getItem('auth_token');
+    if (!token) return false;
+
+    permissionRefreshInFlight.current = true;
+
+    try {
+      const backendUrl = resolveBackendBaseUrl();
+
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      };
+
+      const apiV1BaseUrl = toApiV1BaseUrl(backendUrl);
+      const [meResponse, permissionResponse] = await Promise.all([
+        fetch(`${apiV1BaseUrl}/auth/me`, { headers }),
+        fetch(`${apiV1BaseUrl}/auth/me/permissions`, { headers }),
+      ]);
+
+      if (!meResponse.ok && !permissionResponse.ok) {
+        return false;
+      }
+
+      const [meJson, permissionJson] = await Promise.all([
+        meResponse.ok ? meResponse.json().catch(() => null) : Promise.resolve(null),
+        permissionResponse.ok ? permissionResponse.json().catch(() => null) : Promise.resolve(null),
+      ]);
+
+      const unwrapData = (payload: any) => {
+        if (!payload || typeof payload !== 'object') return null;
+        if (payload.data && typeof payload.data === 'object') return payload.data;
+        return payload;
+      };
+
+      const meData = unwrapData(meJson) || {};
+      const permissionData = unwrapData(permissionJson) || {};
+      const resolvedPermissions = normalizePermissionsPayload(permissionData.permissions ?? permissionData);
+
+      const storedUserRaw = localStorage.getItem('user_data');
+      const storedUser = storedUserRaw ? JSON.parse(storedUserRaw) : null;
+      const currentUser = authState?.user || storedUser || null;
+      if (!currentUser) return false;
+
+      const mergedRoles = Array.isArray(meData.roles) ? toUniqueStringArray(meData.roles) : toUniqueStringArray(currentUser.roles || []);
+      const currentPermissions = toUniqueStringArray(currentUser.permissions || []);
+      const mergedPermissions =
+        resolvedPermissions.length > 0
+          ? resolvedPermissions
+          : currentPermissions;
+
+      const nextUser = {
+        ...currentUser,
+        ...(meData || {}),
+        roles: mergedRoles,
+        permissions: mergedPermissions,
+        role: meData?.role || currentUser.role || mergedRoles[0] || currentUser.role,
+      };
+
+      const currentRoleKey = toUniqueStringArray(currentUser.roles || []).sort().join('|');
+      const nextRoleKey = toUniqueStringArray(nextUser.roles || []).sort().join('|');
+      const currentPermissionKey = toUniqueStringArray(currentUser.permissions || []).sort().join('|');
+      const nextPermissionKey = toUniqueStringArray(nextUser.permissions || []).sort().join('|');
+
+      const hasAuthChanges =
+        currentRoleKey !== nextRoleKey ||
+        currentPermissionKey !== nextPermissionKey ||
+        currentUser.role !== nextUser.role;
+
+      if (hasAuthChanges) {
+        localStorage.setItem('user_data', JSON.stringify(nextUser));
+        dispatch(updateUser(nextUser));
+
+        const refreshToken = localStorage.getItem('refresh_token');
+        syncTokenToCookie(token, nextUser, refreshToken);
+
+        const detectedBankingMode = detectBankingModeFromUser(nextUser);
+        if (detectedBankingMode) {
+          dispatch(setBankingMode(detectedBankingMode));
+        }
+
+        console.log('🔄 Auth snapshot refreshed with new roles/permissions', {
+          reason,
+          roleCount: nextUser.roles?.length || 0,
+          permissionCount: nextUser.permissions?.length || 0,
+        });
+      }
+
+      lastPermissionRefreshAt.current = Date.now();
+      return true;
+    } catch (error) {
+      console.warn('⚠️ Failed to refresh auth snapshot:', error);
+      return false;
+    } finally {
+      permissionRefreshInFlight.current = false;
+    }
+  }, [authState?.isAuthenticated, authState?.user, dispatch, pathname]);
+
+  useEffect(() => {
+    if (!authState?.isAuthenticated) return;
+
+    const onFocus = () => { void refreshAuthSnapshot('focus'); };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void refreshAuthSnapshot('visibility');
+      }
+    };
+
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    const intervalId = window.setInterval(() => {
+      void refreshAuthSnapshot('interval');
+    }, 120_000);
+
+    void refreshAuthSnapshot('startup', true);
+
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.clearInterval(intervalId);
+    };
+  }, [authState?.isAuthenticated, refreshAuthSnapshot]);
 
   // ============================================================================
   // 🩹 SURGICAL FIX: LOGIN WITH ENHANCED ERROR HANDLING
@@ -458,68 +689,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       // ✅ FIXED: Use domain-based API URL mapping with environment fallback
-      const getApiBaseUrl = () => {
-        // ✅ FIXED: Use centralized configuration for dual-mode auto-detection
-        console.log('🏭 Using centralized configuration for dual-mode auto-detection');
+      const rawApiBaseUrl = resolveBackendBaseUrl();
+      // Ensure no trailing slash and no duplicated /api/v1 suffixes
+      const apiBaseUrl = normalizeBackendBaseUrl(rawApiBaseUrl);
 
-        // ✅ FIXED: Use centralized configuration instead of hardcoded URLs
-        if (process.env.NEXT_PUBLIC_BACKEND_URL) {
-          console.log('✅ Using centralized NEXT_PUBLIC_BACKEND_URL:', process.env.NEXT_PUBLIC_BACKEND_URL);
-          return process.env.NEXT_PUBLIC_BACKEND_URL;
-        }
-
-        // Fallback to environment-based detection
-        // Use centralized environment loader for dual environment support
-        try {
-          const { frontendEnvironmentLoader } = require('../config/environment-loader-frontend');
-          const config = frontendEnvironmentLoader.getConfiguration();
-          console.log('🎯 Using centralized environment loader:', config.urls.backend);
-          return config.urls.backend;
-        } catch (error) {
-          console.warn('⚠️ Failed to load environment configuration, using fallback:', error);
-
-          // Fallback to environment variable
-          if (process.env.NEXT_PUBLIC_BACKEND_URL) {
-            console.log('🔧 Using NEXT_PUBLIC_BACKEND_URL:', process.env.NEXT_PUBLIC_BACKEND_URL);
-            return process.env.NEXT_PUBLIC_BACKEND_URL;
-          }
-        }
-
-        // Priority 2: Environment variable (only if domain detection fails)
-        if (process.env.NEXT_PUBLIC_BACKEND_URL) {
-          console.log('⚠️ Domain detection failed, using NEXT_PUBLIC_BACKEND_URL:', process.env.NEXT_PUBLIC_BACKEND_URL);
-          console.log('🔧 Available BACKEND_HOST:', process.env.NEXT_PUBLIC_BACKEND_HOST);
-          console.log('🔧 Available BACKEND_PORT:', process.env.NEXT_PUBLIC_BACKEND_PORT);
-          return process.env.NEXT_PUBLIC_BACKEND_URL;
-        }
-
-        if (process.env.NEXT_PUBLIC_BACKEND_API_URL) {
-          console.log('⚠️ Using NEXT_PUBLIC_BACKEND_API_URL:', process.env.NEXT_PUBLIC_BACKEND_API_URL);
-          // Strip /api/v1 if present to avoid duplication
-          return process.env.NEXT_PUBLIC_BACKEND_API_URL.replace(/\/api\/v1\/?$/, '');
-        }
-
-        // Priority 3: Final fallback - MUST USE PRODUCTION DOMAIN
-        // NOTE: We return the BASE URL (without /api/v1/auth/login) because the caller adds the path
-        const fallbackUrl = `https://iaf-ifrs-be.ifrspro.id`;
-        console.log('🚨 Using final fallback URL:', fallbackUrl);
-        return fallbackUrl;
-      };
-      const rawApiBaseUrl = getApiBaseUrl();
-      // Ensure no trailing slash and no /api/v1 suffix
-      const apiBaseUrl = rawApiBaseUrl.replace(/\/?$/, '').replace(/\/api\/v1\/?$/, '');
-
-      const response = await fetch(`${apiBaseUrl}/api/v1/auth/login`, {
+      const response = await fetchWithTimeout(`${apiBaseUrl}/api/v1/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(loginPayload),
-      })
+      }, 15_000)
+      const parsedResponse = await parseResponseBody(response);
 
       if (!response.ok) {
-        const errorData = await response.json()
-        let errorMessage = errorData.message || 'Login failed'
+        const errorData = parsedResponse.json || {}
+        let errorMessage =
+          errorData.message ||
+          errorData.error ||
+          (parsedResponse.text && parsedResponse.text.trim().length > 0
+            ? parsedResponse.text.trim()
+            : `Login failed (HTTP ${response.status})`)
 
         // 🔧 FIXED: Enhanced error detection for rate limiting
         if (errorData.error === 'RATE_LIMIT_EXCEEDED' || errorData.code === 'RATE_LIMIT_EXCEEDED') {
@@ -527,16 +717,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           console.warn('🚫 Rate limit exceeded for login:', errorData)
         } else if (errorData.error === 'INVALID_CREDENTIALS' || errorData.code === 'INVALID_CREDENTIALS') {
           errorMessage = 'Invalid email or password. Please check your credentials and try again.'
+        } else if (errorData.code === 'PLATFORM_ACCESS_DENIED') {
+          errorMessage = 'This account cannot access Platform Control Center. Use tenant login.'
+        } else if ((errorData.error || '').toString().toLowerCase().includes('does not have platform access')) {
+          errorMessage = 'This account cannot access Platform Control Center. Use tenant login.'
         } else if (response.status === 429) {
           // Fallback for HTTP 429 status
           errorMessage = 'Too many login attempts. Please wait a few minutes before trying again.'
+        } else if (response.status >= 500 && /internal server error/i.test(errorMessage)) {
+          errorMessage = 'Server error during login. Please try again or contact admin.'
         }
 
         dispatch(loginFailure(errorMessage))
         return false
       }
 
-      const authData = await response.json()
+      const authData = parsedResponse.json
+      if (!authData || typeof authData !== 'object') {
+        dispatch(loginFailure('Invalid server response during login. Please try again.'))
+        return false
+      }
 
       if (authData.success && authData.data) {
         // 🔍 DEBUG: Log full response structure
@@ -568,9 +768,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           console.warn('⚠️ No refresh token in login response! User will be logged out on token expiry.');
         }
 
+        const tokenClaims = decodeJwtClaims(actualToken);
+        const normalizedUserData = {
+          ...userData,
+          permissions: Array.isArray(userData?.permissions) && userData.permissions.length > 0
+            ? toUniqueStringArray(userData.permissions)
+            : toUniqueStringArray(Array.isArray((tokenClaims as any)?.permissions) ? (tokenClaims as any).permissions : []),
+          roles: Array.isArray(userData?.roles) && userData.roles.length > 0
+            ? toUniqueStringArray(userData.roles)
+            : toUniqueStringArray(Array.isArray((tokenClaims as any)?.roles) ? (tokenClaims as any).roles : []),
+          stakeholderType: userData?.stakeholderType || (tokenClaims as any)?.stakeholderType || 'banking',
+          isPlatformAdmin:
+            userData?.isPlatformAdmin ??
+            ((tokenClaims as any)?.stakeholderType === 'platform'),
+        };
+
         // Store in localStorage
         localStorage.setItem('auth_token', actualToken)
-        localStorage.setItem('user_data', JSON.stringify(userData))
+        localStorage.setItem('user_data', JSON.stringify(normalizedUserData))
         if (actualRefreshToken) {
           localStorage.setItem('refresh_token', actualRefreshToken)
         }
@@ -581,7 +796,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         // ✅ CENTRALIZED SESSION CONTROL: Initialize session control service
         await sessionControlService.initializeSession({
-          user: userData,
+          user: normalizedUserData,
           token: actualToken,
           refreshToken: actualRefreshToken,
           tokenExpiry: expiresIn ? Date.now() + (expiresIn * 1000) : null
@@ -592,10 +807,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         await new Promise(resolve => setTimeout(resolve, 100));
 
         // ✅ SURGICAL FIX: Sync token and user to cookie for middleware/SSR
-        syncTokenToCookie(actualToken, userData, actualRefreshToken);
+        syncTokenToCookie(actualToken, normalizedUserData, actualRefreshToken);
 
         // ✅ SURGICAL ENHANCEMENT: Detect and set banking mode from login data
-        const detectedBankingMode = detectBankingModeFromUser(userData);
+        const detectedBankingMode = detectBankingModeFromUser(normalizedUserData);
         if (detectedBankingMode) {
           console.log(`🎨 AuthProvider: Setting banking mode to "${detectedBankingMode}" after login`);
           dispatch(setBankingMode(detectedBankingMode));
@@ -603,7 +818,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         // Dispatch Redux success action
         dispatch(loginSuccess({
-          user: userData,
+          user: normalizedUserData,
           token: actualToken,
           refreshToken: actualRefreshToken,
           expiresIn,
@@ -611,7 +826,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         // ✅ SURGICAL FIX: Enhanced role-based redirect
         try {
-          const landingUrl = getLandingPageUrl(userData)
+          const landingUrl = getLandingPageUrl(normalizedUserData)
           console.log(`🚀 Login successful - preparing redirect to: ${landingUrl}`)
 
           // ✅ PERFORMANCE OPTIMIZATION: Pre-fetch menu data while user sees the "Login Success" state
@@ -665,7 +880,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     } catch (error: any) {
       console.error('❌ Login error:', error)
-      const errorMessage = error.message || 'Login failed'
+      const isTimeout = error?.name === 'AbortError';
+      const errorMessage = isTimeout
+        ? 'Login request timed out. Please check your connection and try again.'
+        : (error.message || 'Login failed');
       dispatch(loginFailure(errorMessage))
       return false
     }
@@ -828,30 +1046,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       // ✅ SURGICAL FIX: Ensure cookie is synced
       const parsedUser = userData ? JSON.parse(userData) : null;
-      syncTokenToCookie(token, parsedUser, refreshToken);
+      const tokenClaims = decodeJwtClaims(token);
+      const hydratedUser = parsedUser
+        ? {
+            ...parsedUser,
+            stakeholderType: parsedUser?.stakeholderType || (tokenClaims as any)?.stakeholderType || 'banking',
+            isPlatformAdmin:
+              parsedUser?.isPlatformAdmin ??
+              ((tokenClaims as any)?.stakeholderType === 'platform'),
+          }
+        : null;
+      syncTokenToCookie(token, hydratedUser, refreshToken);
 
-      // ✅ FIXED: Use centralized configuration for dual-mode support
-      let backendUrl: string;
-      try {
-        const { frontendEnvironmentLoader } = require('../config/environment-loader-frontend');
-        const config = frontendEnvironmentLoader.getConfiguration();
-        backendUrl = config.api.backend;
-        console.log('✅ Using centralized backend URL for auth check:', backendUrl);
-      } catch (error) {
-        console.warn('⚠️ Failed to load centralized backend URL, using fallback:', error);
-        // Fallback to environment variable or hostname-based detection
-        if (typeof window !== 'undefined') {
-          // Try process.env first (for server-side rendering), then hostname detection
-          backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL ||
-            (window.location.hostname.includes('danafin.com')
-              ? 'https://iaf-ifrs-be.danafin.com'
-              : 'https://iaf-ifrs-be.ifrspro.id');
-        } else {
-          // Server-side fallback
-          backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://iaf-ifrs-be.ifrspro.id';
-        }
-      }
-      const response = await fetch(`${backendUrl}/api/v1/auth/verify`, {
+      const backendUrl = resolveBackendBaseUrl();
+      const response = await fetch(`${toApiV1BaseUrl(backendUrl)}/auth/verify`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -859,10 +1067,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (response.ok) {
         const parsedUser = JSON.parse(userData)
+        const tokenClaims = decodeJwtClaims(token);
+        const hydratedUser = {
+          ...parsedUser,
+          stakeholderType: parsedUser?.stakeholderType || (tokenClaims as any)?.stakeholderType || 'banking',
+          isPlatformAdmin:
+            parsedUser?.isPlatformAdmin ??
+            ((tokenClaims as any)?.stakeholderType === 'platform'),
+        };
 
         if (!authState?.isAuthenticated) {
           dispatch(initializeAuth({
-            user: parsedUser,
+            user: hydratedUser,
             token,
             refreshToken: localStorage.getItem('refresh_token') || undefined,
           }))

@@ -1,5 +1,5 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
-import { Effect, pipe } from 'effect'
+import { Effect } from 'effect'
 import { eq, and, desc, sql } from 'drizzle-orm'
 import { db } from '../config/database'
 import { platformUsers } from '../db/schema' // ✅ Use platformUsers schema
@@ -8,11 +8,33 @@ import { authMiddleware } from '../middleware' // ❌ Removed tenantMiddleware a
 import { runEffect } from '../lib/effect'
 import { parsePaginationParams, parseFilterParams } from '../lib/react-admin'
 import { DatabaseError } from '../lib/errors'
-import * as usersService from '../services/users.service' // We might need a platform version of this service
+import * as tenantsService from '../services/tenants.service'
 
 export const platformUsersRoutes = new OpenAPIHono<AppContext>()
 
 platformUsersRoutes.use('*', authMiddleware)
+platformUsersRoutes.use('*', async (c, next) => {
+    const permissions = ((c.get('permissions') as string[]) || []).filter((item): item is string => typeof item === 'string')
+    const canManagePlatformUsers =
+        Boolean(c.get('isSystemUser')) ||
+        permissions.includes('admin.super_admin') ||
+        permissions.includes('SUPER_ADMIN') ||
+        permissions.includes('PLATFORM_ADMIN') ||
+        permissions.includes('admin.system.manage')
+
+    if (!canManagePlatformUsers) {
+        return c.json(
+            {
+                success: false,
+                error: 'Forbidden: platform admin access required',
+                code: 'FORBIDDEN',
+            },
+            403
+        )
+    }
+
+    await next()
+})
 // platformUsersRoutes.use('*', tenantMiddleware) // Platform admins don't have a specific tenant context except implicit context
 
 // =============================================================================
@@ -241,6 +263,29 @@ platformUsersRoutes.openapi(
 )
 
 /**
+ * GET /platform-users/tenants - Compatibility endpoint for platform UI
+ */
+platformUsersRoutes.get('/tenants', async (c) => {
+    const effect = tenantsService.getTenants({
+        pagination: { page: 1, limit: 200 },
+        includeInactive: false,
+        includeSystem: true,
+    })
+
+    const result = await Effect.runPromise(effect)
+    return c.json({
+        data: result.data.map((t) => ({
+            id: t.id,
+            code: t.code,
+            name: t.name,
+            slug: t.slug,
+            isActive: t.isActive,
+        })),
+        total: result.total,
+    })
+})
+
+/**
  * GET /platform-users/:id - Get one
  */
 platformUsersRoutes.openapi(
@@ -268,89 +313,36 @@ platformUsersRoutes.openapi(
     }),
     async (c) => {
         const { id } = c.req.valid('param')
-        const tenantId = c.get('tenantId')
-
-        const effect = pipe(
-            usersService.getUserById(id), // Removed tenantId arg as it might restrict if context differs?
-            Effect.map(u => ({
-                id: u.id,
-                email: u.email,
-                fullName: u.fullName,
-                username: u.username,
-                phone: u.phone ?? null,
-                department: u.department ?? null,
-                position: u.position ?? null,
-                isPlatformAdmin: (u as any).isPlatformAdmin ?? true,
-                isActive: u.isActive ?? false,
-                isVerified: u.isVerified ?? false,
-                createdAt: u.createdAt ? u.createdAt.toISOString() : undefined,
-            }))
-        )
-        return runEffect(c, effect)
-    }
-)
-
-/**
- * PUT /platform-users/:id - Update
- */
-platformUsersRoutes.openapi(
-    createRoute({
-        method: 'put',
-        path: '/{id}',
-        tags: ['Platform Users'],
-        summary: 'Update Platform Admin',
-        security: [{ BearerAuth: [] }],
-        request: {
-            params: z.object({
-                id: z.string().openapi({ param: { name: 'id', in: 'path' } }),
-            }),
-            body: {
-                content: {
-                    'application/json': {
-                        schema: UpdatePlatformUserSchema,
-                    },
-                },
-            },
-        },
-        responses: {
-            200: {
-                content: {
-                    'application/json': {
-                        schema: PlatformUserSchema,
-                    },
-                },
-                description: 'User updated',
-            },
-        },
-    }),
-    async (c) => {
-        const { id } = c.req.valid('param')
-
         const effect = Effect.tryPromise({
             try: async () => {
-                const [user] = await db.select().from(platformUsers).where(eq(platformUsers.id, id)).limit(1)
-
-                if (!user) {
-                    throw new Error('User not found')
+                const [u] = await db.select().from(platformUsers).where(eq(platformUsers.id, id)).limit(1)
+                if (!u) {
+                    return null
                 }
 
                 return {
-                    id: user.id,
-                    email: user.email,
-                    fullName: user.fullName,
-                    username: user.username,
-                    phone: user.phone ?? null,
-                    department: user.department ?? null,
-                    position: user.position ?? null,
-                    isPlatformAdmin: true,
-                    isActive: user.isActive ?? false,
-                    isVerified: user.isVerified ?? false,
-                    createdAt: user.createdAt ? user.createdAt.toISOString() : undefined,
+                    id: u.id,
+                    email: u.email,
+                    fullName: u.fullName,
+                    username: u.username,
+                    phone: u.phone ?? null,
+                    department: u.department ?? null,
+                    position: u.position ?? null,
+                    isPlatformAdmin: (u as any).isPlatformAdmin ?? true,
+                    isActive: u.isActive ?? false,
+                    isVerified: u.isVerified ?? false,
+                    createdAt: u.createdAt ? u.createdAt.toISOString() : undefined,
                 }
             },
-            catch: (e) => new DatabaseError({ operation: 'query', message: 'Failed to fetch user', cause: e })
+            catch: (e) => new DatabaseError({ operation: 'query', message: 'Failed to fetch platform user', cause: e }),
         })
-        return runEffect(c, effect)
+
+        const result = await Effect.runPromise(effect)
+        if (!result) {
+            return c.json({ success: false, error: 'Platform user not found', code: 'NOT_FOUND' }, 404)
+        }
+
+        return c.json(result)
     }
 )
 
@@ -465,8 +457,6 @@ platformUsersRoutes.openapi(
             },
             catch: (e) => new DatabaseError({ operation: 'delete', message: 'Failed to delete user', cause: e })
         })
-
-        const result = await runEffect(c, effect)
-        return c.json(result)
+        return runEffect(c, effect)
     }
 )

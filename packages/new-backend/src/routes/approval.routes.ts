@@ -32,6 +32,10 @@ const ProcessActionSchema = z.object({
     riskScore: z.number().int().min(0).max(10).optional(),
 }).openapi('ProcessApprovalActionInput')
 
+const CancelRequestSchema = z.object({
+    reason: z.string().max(1000).optional(),
+}).openapi('CancelApprovalRequestInput')
+
 const MatrixLevelSchema = z.object({
     level: z.number().int().min(1),
     name: z.string().min(1),
@@ -115,6 +119,59 @@ approvalRoutes.openapi(
         )
 
         return runEffect(c, effect) as any
+    }
+)
+
+/**
+ * POST /approvals/requests/:id/cancel - Cancel request
+ */
+approvalRoutes.openapi(
+    createRoute({
+        method: 'post',
+        path: '/requests/{id}/cancel',
+        tags: ['Approvals'],
+        summary: 'Cancel Approval Request',
+        security: [{ BearerAuth: [] }],
+        request: {
+            params: z.object({
+                id: z.string().openapi({ param: { name: 'id', in: 'path' } }),
+            }),
+            body: {
+                content: {
+                    'application/json': {
+                        schema: CancelRequestSchema,
+                    },
+                },
+            },
+        },
+        responses: {
+            200: {
+                content: {
+                    'application/json': {
+                        schema: z.object({ success: z.boolean(), result: z.any() }),
+                    },
+                },
+                description: 'Cancelled',
+            },
+        },
+    }),
+    async (c) => {
+        const { id } = c.req.valid('param')
+        const userId = c.get('userId')!
+        const body = c.req.valid('json')
+        const isSystemUser = c.get('isSystemUser') === true
+
+        const effect = pipe(
+            approvalService.cancelApprovalRequest({
+                requestId: id,
+                cancelledBy: userId,
+                isSystemUser,
+                reason: body.reason,
+            }),
+            Effect.map((result) => ({ success: true, result }))
+        )
+
+        return runEffect(c, effect)
     }
 )
 

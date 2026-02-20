@@ -1,7 +1,7 @@
 import { tenantDb as db } from '../../config/database'
 import { approvalMatrices, approvalLevels } from '../schema/approval.schema'
-import { permissions, rolePermissions } from '../schema/rbac.schema'
-import { tenants } from '../schema/platform.schema'
+import { permissions, rolePermissions, roles } from '../schema/rbac.schema'
+import { and, eq, inArray, like } from 'drizzle-orm'
 
 /**
  * Seed Default Approval Matrices and Permissions
@@ -15,24 +15,70 @@ import { tenants } from '../schema/platform.schema'
 // APPROVAL PERMISSIONS
 // =============================================================================
 
+const approvalEntities = [
+    'user',
+    'parameter',
+    'configuration',
+    'product_parameter',
+    'journal_parameter',
+    'segmentation',
+    'rule_base_setting',
+    'bucket_parameter',
+    'pd_configuration',
+    'lgd_configuration',
+    'ead_configuration',
+    'ecl_configuration',
+    'fl_scalar',
+] as const
+
+const RESOURCE_BY_ENTITY: Record<string, string> = {
+    user: 'users',
+    parameter: 'parameters',
+    configuration: 'configurations',
+}
+
+const humanizeEntity = (entity: string): string =>
+    entity
+        .split('_')
+        .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+        .join(' ')
+
 const approvalPermissions = [
-    // User Management Approvals
-    { code: 'APPROVE_USER_CREATE', name: 'Approve User Creation', description: 'Can approve user creation requests', resource: 'users', action: 'approve_create' },
-    { code: 'APPROVE_USER_UPDATE', name: 'Approve User Updates', description: 'Can approve user update requests', resource: 'users', action: 'approve_update' },
-    { code: 'APPROVE_USER_DELETE', name: 'Approve User Deletion', description: 'Can approve user deletion requests', resource: 'users', action: 'approve_delete' },
-
-    // Parameter Management Approvals
-    { code: 'APPROVE_PARAMETER_CREATE', name: 'Approve Parameter Creation', description: 'Can approve parameter creation', resource: 'parameters', action: 'approve_create' },
-    { code: 'APPROVE_PARAMETER_UPDATE', name: 'Approve Parameter Updates', description: 'Can approve parameter updates', resource: 'parameters', action: 'approve_update' },
-    { code: 'APPROVE_PARAMETER_DELETE', name: 'Approve Parameter Deletion', description: 'Can approve parameter deletion', resource: 'parameters', action: 'approve_delete' },
-
-    // Configuration Approvals
-    { code: 'APPROVE_CONFIGURATION_CREATE', name: 'Approve Configuration Creation', description: 'Can approve configuration creation', resource: 'configurations', action: 'approve_create' },
-    { code: 'APPROVE_CONFIGURATION_UPDATE', name: 'Approve Configuration Updates', description: 'Can approve configuration updates', resource: 'configurations', action: 'approve_update' },
-    { code: 'APPROVE_CONFIGURATION_DELETE', name: 'Approve Configuration Deletion', description: 'Can approve configuration deletion', resource: 'configurations', action: 'approve_delete' },
-
-    // Master Approval Permission
-    { code: 'APPROVE_ALL', name: 'Approve All', description: 'Can approve any type of request', resource: 'approvals', action: 'approve_all' },
+    ...approvalEntities.flatMap((entity) => {
+        const resource = RESOURCE_BY_ENTITY[entity] || entity
+        const label = humanizeEntity(entity)
+        return [
+            {
+                code: `approval.${entity}.create`,
+                name: `Approve ${label} Creation`,
+                description: `Can approve ${label.toLowerCase()} creation`,
+                resource,
+                action: 'approve_create',
+            },
+            {
+                code: `approval.${entity}.update`,
+                name: `Approve ${label} Updates`,
+                description: `Can approve ${label.toLowerCase()} updates`,
+                resource,
+                action: 'approve_update',
+            },
+            {
+                code: `approval.${entity}.delete`,
+                name: `Approve ${label} Deletion`,
+                description: `Can approve ${label.toLowerCase()} deletion`,
+                resource,
+                action: 'approve_delete',
+            },
+        ]
+    }),
+    // Master approval permission
+    {
+        code: 'approval.all',
+        name: 'Approve All',
+        description: 'Can approve any type of request',
+        resource: 'approvals',
+        action: 'approve_all',
+    },
 ]
 
 // =============================================================================
@@ -47,14 +93,14 @@ const defaultMatrices = [
         operationType: 'create,update,delete',
         isActive: true,
         autoApprovalRules: {
-            bypassPermissions: ['APPROVE_ALL', 'PLATFORM_ADMIN'],
+            bypassPermissions: ['approval.all', 'admin.super_admin', 'SUPER_ADMIN', 'PLATFORM_ADMIN'],
             autoApproveImpactLevels: [], // No auto-approval by impact level
         },
         levels: [
             {
                 level: 1,
                 name: 'Manager Approval',
-                requiredRoles: ['APPROVE_USER_CREATE', 'APPROVE_USER_UPDATE', 'APPROVE_USER_DELETE'],
+                requiredRoles: ['approval.user.create', 'approval.user.update', 'approval.user.delete'],
                 requiredCount: 1,
                 timeoutHours: 48,
             },
@@ -67,14 +113,14 @@ const defaultMatrices = [
         operationType: 'create,update,delete',
         isActive: true,
         autoApprovalRules: {
-            bypassPermissions: ['APPROVE_ALL', 'PLATFORM_ADMIN'],
+            bypassPermissions: ['approval.all', 'admin.super_admin', 'SUPER_ADMIN', 'PLATFORM_ADMIN'],
             autoApproveImpactLevels: ['low'], // Low impact parameters can be auto-approved
         },
         levels: [
             {
                 level: 1,
                 name: 'Parameter Approver',
-                requiredRoles: ['APPROVE_PARAMETER_CREATE', 'APPROVE_PARAMETER_UPDATE', 'APPROVE_PARAMETER_DELETE'],
+                requiredRoles: ['approval.parameter.create', 'approval.parameter.update', 'approval.parameter.delete'],
                 requiredCount: 1,
                 timeoutHours: 24,
             },
@@ -87,21 +133,21 @@ const defaultMatrices = [
         operationType: 'create,update,delete',
         isActive: true,
         autoApprovalRules: {
-            bypassPermissions: ['APPROVE_ALL', 'PLATFORM_ADMIN'],
+            bypassPermissions: ['approval.all', 'admin.super_admin', 'SUPER_ADMIN', 'PLATFORM_ADMIN'],
             autoApproveImpactLevels: [],
         },
         levels: [
             {
                 level: 1,
                 name: 'Configuration Reviewer',
-                requiredRoles: ['APPROVE_CONFIGURATION_CREATE', 'APPROVE_CONFIGURATION_UPDATE', 'APPROVE_CONFIGURATION_DELETE'],
+                requiredRoles: ['approval.configuration.create', 'approval.configuration.update', 'approval.configuration.delete'],
                 requiredCount: 1,
                 timeoutHours: 72,
             },
             {
                 level: 2,
                 name: 'Senior Management',
-                requiredRoles: ['APPROVE_ALL'],
+                requiredRoles: ['approval.all'],
                 requiredCount: 1,
                 timeoutHours: 48,
             },
@@ -114,21 +160,21 @@ const defaultMatrices = [
         operationType: 'delete',
         isActive: true,
         autoApprovalRules: {
-            bypassPermissions: ['PLATFORM_ADMIN'],
+            bypassPermissions: ['admin.super_admin', 'SUPER_ADMIN', 'PLATFORM_ADMIN'],
             autoApproveImpactLevels: [],
         },
         levels: [
             {
                 level: 1,
                 name: 'Manager Approval',
-                requiredRoles: ['APPROVE_USER_DELETE'],
+                requiredRoles: ['approval.user.delete'],
                 requiredCount: 1,
                 timeoutHours: 48,
             },
             {
                 level: 2,
                 name: 'Senior Management',
-                requiredRoles: ['APPROVE_ALL'],
+                requiredRoles: ['approval.all'],
                 requiredCount: 1,
                 timeoutHours: 24,
             },
@@ -141,14 +187,14 @@ const defaultMatrices = [
         operationType: 'create,update,delete',
         isActive: true,
         autoApprovalRules: {
-            bypassPermissions: ['APPROVE_ALL', 'PLATFORM_ADMIN'],
+            bypassPermissions: ['approval.all', 'admin.super_admin', 'SUPER_ADMIN', 'PLATFORM_ADMIN'],
             autoApproveImpactLevels: ['low'],
         },
         levels: [
             {
                 level: 1,
                 name: 'Finance Reviewer',
-                requiredRoles: ['APPROVE_PARAMETER_CREATE', 'APPROVE_PARAMETER_UPDATE', 'APPROVE_PARAMETER_DELETE'],
+                requiredRoles: ['approval.parameter.create', 'approval.parameter.update', 'approval.parameter.delete'],
                 requiredCount: 1,
                 timeoutHours: 24,
             },
@@ -161,14 +207,14 @@ const defaultMatrices = [
         operationType: 'create,update,delete',
         isActive: true,
         autoApprovalRules: {
-            bypassPermissions: ['APPROVE_ALL', 'PLATFORM_ADMIN'],
+            bypassPermissions: ['approval.all', 'admin.super_admin', 'SUPER_ADMIN', 'PLATFORM_ADMIN'],
             autoApproveImpactLevels: ['low'],
         },
         levels: [
             {
                 level: 1,
                 name: 'Product Manager',
-                requiredRoles: ['APPROVE_PARAMETER_CREATE', 'APPROVE_PARAMETER_UPDATE', 'APPROVE_PARAMETER_DELETE'],
+                requiredRoles: ['approval.parameter.create', 'approval.parameter.update', 'approval.parameter.delete'],
                 requiredCount: 1,
                 timeoutHours: 24,
             },
@@ -181,14 +227,14 @@ const defaultMatrices = [
         operationType: 'create,update,delete',
         isActive: true,
         autoApprovalRules: {
-            bypassPermissions: ['APPROVE_ALL', 'PLATFORM_ADMIN'],
+            bypassPermissions: ['approval.all', 'admin.super_admin', 'SUPER_ADMIN', 'PLATFORM_ADMIN'],
             autoApproveImpactLevels: ['low'],
         },
         levels: [
             {
                 level: 1,
                 name: 'Configuration Manager',
-                requiredRoles: ['APPROVE_PARAMETER_CREATE', 'APPROVE_PARAMETER_UPDATE', 'APPROVE_PARAMETER_DELETE'],
+                requiredRoles: ['approval.parameter.create', 'approval.parameter.update', 'approval.parameter.delete'],
                 requiredCount: 1,
                 timeoutHours: 24,
             },
@@ -201,14 +247,14 @@ const defaultMatrices = [
         operationType: 'create,update,delete',
         isActive: true,
         autoApprovalRules: {
-            bypassPermissions: ['APPROVE_ALL', 'PLATFORM_ADMIN'],
+            bypassPermissions: ['approval.all', 'admin.super_admin', 'SUPER_ADMIN', 'PLATFORM_ADMIN'],
             autoApproveImpactLevels: ['low'],
         },
         levels: [
             {
                 level: 1,
                 name: 'Configuration Manager',
-                requiredRoles: ['APPROVE_PARAMETER_CREATE', 'APPROVE_PARAMETER_UPDATE', 'APPROVE_PARAMETER_DELETE'],
+                requiredRoles: ['approval.parameter.create', 'approval.parameter.update', 'approval.parameter.delete'],
                 requiredCount: 1,
                 timeoutHours: 24,
             },
@@ -221,14 +267,14 @@ const defaultMatrices = [
         operationType: 'create,update,delete',
         isActive: true,
         autoApprovalRules: {
-            bypassPermissions: ['APPROVE_ALL', 'PLATFORM_ADMIN'],
+            bypassPermissions: ['approval.all', 'admin.super_admin', 'SUPER_ADMIN', 'PLATFORM_ADMIN'],
             autoApproveImpactLevels: ['low'],
         },
         levels: [
             {
                 level: 1,
                 name: 'Configuration Manager',
-                requiredRoles: ['APPROVE_PARAMETER_CREATE', 'APPROVE_PARAMETER_UPDATE', 'APPROVE_PARAMETER_DELETE'],
+                requiredRoles: ['approval.parameter.create', 'approval.parameter.update', 'approval.parameter.delete'],
                 requiredCount: 1,
                 timeoutHours: 24,
             },
@@ -241,14 +287,14 @@ const defaultMatrices = [
         operationType: 'create,update,delete',
         isActive: true,
         autoApprovalRules: {
-            bypassPermissions: ['APPROVE_ALL', 'PLATFORM_ADMIN'],
+            bypassPermissions: ['approval.all', 'admin.super_admin', 'SUPER_ADMIN', 'PLATFORM_ADMIN'],
             autoApproveImpactLevels: ['low'],
         },
         levels: [
             {
                 level: 1,
                 name: 'Configuration Manager',
-                requiredRoles: ['APPROVE_PARAMETER_CREATE', 'APPROVE_PARAMETER_UPDATE', 'APPROVE_PARAMETER_DELETE'],
+                requiredRoles: ['approval.parameter.create', 'approval.parameter.update', 'approval.parameter.delete'],
                 requiredCount: 1,
                 timeoutHours: 24,
             },
@@ -261,14 +307,14 @@ const defaultMatrices = [
         operationType: 'create,update,delete',
         isActive: true,
         autoApprovalRules: {
-            bypassPermissions: ['APPROVE_ALL', 'PLATFORM_ADMIN'],
+            bypassPermissions: ['approval.all', 'admin.super_admin', 'SUPER_ADMIN', 'PLATFORM_ADMIN'],
             autoApproveImpactLevels: ['low'],
         },
         levels: [
             {
                 level: 1,
                 name: 'Configuration Manager',
-                requiredRoles: ['APPROVE_PARAMETER_CREATE', 'APPROVE_PARAMETER_UPDATE', 'APPROVE_PARAMETER_DELETE'],
+                requiredRoles: ['approval.parameter.create', 'approval.parameter.update', 'approval.parameter.delete'],
                 requiredCount: 1,
                 timeoutHours: 24,
             },
@@ -281,14 +327,14 @@ const defaultMatrices = [
         operationType: 'create,update,delete',
         isActive: true,
         autoApprovalRules: {
-            bypassPermissions: ['APPROVE_ALL', 'PLATFORM_ADMIN'],
+            bypassPermissions: ['approval.all', 'admin.super_admin', 'SUPER_ADMIN', 'PLATFORM_ADMIN'],
             autoApproveImpactLevels: ['low'],
         },
         levels: [
             {
                 level: 1,
                 name: 'Configuration Manager',
-                requiredRoles: ['APPROVE_PARAMETER_CREATE', 'APPROVE_PARAMETER_UPDATE', 'APPROVE_PARAMETER_DELETE'],
+                requiredRoles: ['approval.parameter.create', 'approval.parameter.update', 'approval.parameter.delete'],
                 requiredCount: 1,
                 timeoutHours: 24,
             },
@@ -301,14 +347,14 @@ const defaultMatrices = [
         operationType: 'create,update,delete',
         isActive: true,
         autoApprovalRules: {
-            bypassPermissions: ['APPROVE_ALL', 'PLATFORM_ADMIN'],
+            bypassPermissions: ['approval.all', 'admin.super_admin', 'SUPER_ADMIN', 'PLATFORM_ADMIN'],
             autoApproveImpactLevels: ['low'],
         },
         levels: [
             {
                 level: 1,
                 name: 'Configuration Manager',
-                requiredRoles: ['APPROVE_PARAMETER_CREATE', 'APPROVE_PARAMETER_UPDATE', 'APPROVE_PARAMETER_DELETE'],
+                requiredRoles: ['approval.parameter.create', 'approval.parameter.update', 'approval.parameter.delete'],
                 requiredCount: 1,
                 timeoutHours: 24,
             },
@@ -321,20 +367,54 @@ const defaultMatrices = [
         operationType: 'create,update,delete',
         isActive: true,
         autoApprovalRules: {
-            bypassPermissions: ['APPROVE_ALL', 'PLATFORM_ADMIN'],
+            bypassPermissions: ['approval.all', 'admin.super_admin', 'SUPER_ADMIN', 'PLATFORM_ADMIN'],
             autoApproveImpactLevels: ['low'],
         },
         levels: [
             {
                 level: 1,
                 name: 'Configuration Manager',
-                requiredRoles: ['APPROVE_PARAMETER_CREATE', 'APPROVE_PARAMETER_UPDATE', 'APPROVE_PARAMETER_DELETE'],
+                requiredRoles: ['approval.parameter.create', 'approval.parameter.update', 'approval.parameter.delete'],
                 requiredCount: 1,
                 timeoutHours: 24,
             },
         ],
     },
 ]
+
+const toStrictFourEyesLevels = (levels: Array<{
+    level: number
+    name: string
+    requiredRoles: string[]
+    requiredCount: number
+    timeoutHours?: number
+}>): Array<{
+    level: number
+    name: string
+    requiredRoles: string[]
+    requiredCount: number
+    timeoutHours?: number
+}> => {
+    const checkerLevel = levels.find((level) => level.level === 1)
+    const approverLevel = levels.find((level) => level.level === 2)
+
+    return [
+        {
+            level: 1,
+            name: checkerLevel?.name || 'Checker Review',
+            requiredRoles: ['CHECKER'],
+            requiredCount: Math.max(1, checkerLevel?.requiredCount || 1),
+            timeoutHours: checkerLevel?.timeoutHours || 24,
+        },
+        {
+            level: 2,
+            name: approverLevel?.name || 'Final Approval',
+            requiredRoles: ['APPROVER'],
+            requiredCount: Math.max(1, approverLevel?.requiredCount || 1),
+            timeoutHours: approverLevel?.timeoutHours || 24,
+        },
+    ]
+}
 
 // =============================================================================
 // SEED FUNCTION
@@ -344,58 +424,116 @@ export async function seedApprovalMatrices(tenantId: string) {
     console.log('🌱 Seeding approval permissions...')
     console.log('   📊 Database: Using TENANT database (ifrspro_tenant_iaf)\n')
 
-    // Insert approval permissions
+    // Upsert approval permissions
     for (const perm of approvalPermissions) {
-        try {
-            await db.insert(permissions).values({
+        await db
+            .insert(permissions)
+            .values({
                 code: perm.code,
                 name: perm.name,
                 description: perm.description,
                 resource: perm.resource,
                 action: perm.action,
+                module: 'core',
                 category: 'approval',
-            }).onConflictDoNothing()
+                isActive: true,
+            })
+            .onConflictDoUpdate({
+                target: permissions.code,
+                set: {
+                    name: perm.name,
+                    description: perm.description,
+                    resource: perm.resource,
+                    action: perm.action,
+                    module: 'core',
+                    category: 'approval',
+                    isActive: true,
+                },
+            })
 
-            console.log(`  ✓ Created permission: ${perm.code}`)
-        } catch (error) {
-            console.log(`  ⚠ Permission ${perm.code} already exists or error:`, error)
-        }
+        console.log(`  ✓ Upserted permission: ${perm.code}`)
     }
 
     console.log('🌱 Seeding approval matrices...')
 
-    // Insert approval matrices
+    // Upsert approval matrices + levels
     for (const matrix of defaultMatrices) {
-        try {
-            const { levels, ...matrixData } = matrix
+        const { levels: originalLevels, ...matrixData } = matrix
+        const levels = toStrictFourEyesLevels(originalLevels)
 
-            // Insert matrix
-            const [createdMatrix] = await db
-                .insert(approvalMatrices)
-                .values({
-                    ...matrixData,
-                    tenantId,
-                    autoApprovalRules: matrixData.autoApprovalRules as any,
-                })
-                .returning()
+        const existingMatrix = await db.query.approvalMatrices.findFirst({
+            where: and(
+                eq(approvalMatrices.tenantId, tenantId),
+                eq(approvalMatrices.name, matrixData.name)
+            ),
+        })
 
-            console.log(`  ✓ Created matrix: ${matrix.name}`)
+        const matrixId = existingMatrix
+            ? (
+                await db
+                    .update(approvalMatrices)
+                    .set({
+                        description: matrixData.description,
+                        entityType: matrixData.entityType,
+                        operationType: matrixData.operationType,
+                        isActive: matrixData.isActive,
+                        autoApprovalRules: matrixData.autoApprovalRules as any,
+                        updatedAt: new Date(),
+                    })
+                    .where(eq(approvalMatrices.id, existingMatrix.id))
+                    .returning({ id: approvalMatrices.id })
+            )[0].id
+            : (
+                await db
+                    .insert(approvalMatrices)
+                    .values({
+                        ...matrixData,
+                        tenantId,
+                        autoApprovalRules: matrixData.autoApprovalRules as any,
+                    })
+                    .returning({ id: approvalMatrices.id })
+            )[0].id
 
-            // Insert levels
-            for (const level of levels) {
+        console.log(`  ✓ Upserted matrix: ${matrix.name}`)
+
+        const existingLevels = await db.query.approvalLevels.findMany({
+            where: eq(approvalLevels.matrixId, matrixId),
+        })
+
+        for (const level of levels) {
+            const existingLevel = existingLevels.find((current) => current.level === level.level)
+
+            if (existingLevel) {
+                await db
+                    .update(approvalLevels)
+                    .set({
+                        name: level.name,
+                        requiredRoles: level.requiredRoles as any,
+                        requiredCount: level.requiredCount,
+                        timeoutHours: level.timeoutHours,
+                    })
+                    .where(eq(approvalLevels.id, existingLevel.id))
+                console.log(`    ✓ Updated level ${level.level}: ${level.name}`)
+            } else {
                 await db.insert(approvalLevels).values({
-                    matrixId: createdMatrix.id,
+                    matrixId,
                     level: level.level,
                     name: level.name,
                     requiredRoles: level.requiredRoles as any,
                     requiredCount: level.requiredCount,
                     timeoutHours: level.timeoutHours,
                 })
-
                 console.log(`    ✓ Created level ${level.level}: ${level.name}`)
             }
-        } catch (error) {
-            console.log(`  ⚠ Matrix ${matrix.name} already exists or error:`, error)
+        }
+
+        const staleLevelIds = existingLevels
+            .filter((existingLevel) => !levels.some((newLevel) => newLevel.level === existingLevel.level))
+            .map((staleLevel) => staleLevel.id)
+
+        if (staleLevelIds.length > 0) {
+            await db.delete(approvalLevels).where(inArray(approvalLevels.id, staleLevelIds))
+            console.log(`    ✓ Removed ${staleLevelIds.length} stale level(s)`)
         }
     }
 
@@ -409,31 +547,87 @@ export async function seedApprovalMatrices(tenantId: string) {
 export async function assignApprovalPermissionsToRoles() {
     console.log('🌱 Assigning approval permissions to roles...')
 
-    // Example: Assign approval permissions to admin roles
-    const rolePermissionMappings = [
-        // Platform Admin gets all approval permissions
-        { roleCode: 'PLATFORM_ADMIN', permissionCode: 'APPROVE_ALL' },
+    const [roleRows, approvalPermissionRows] = await Promise.all([
+        db.select({ id: roles.id, roleCode: roles.roleCode }).from(roles),
+        db
+            .select({ id: permissions.id, code: permissions.code })
+            .from(permissions)
+            .where(like(permissions.code, 'approval.%')),
+    ])
 
-        // Managers get user approval permissions
-        { roleCode: 'MANAGER', permissionCode: 'APPROVE_USER_CREATE' },
-        { roleCode: 'MANAGER', permissionCode: 'APPROVE_USER_UPDATE' },
-        { roleCode: 'MANAGER', permissionCode: 'APPROVE_USER_DELETE' },
+    const roleByCode = new Map(roleRows.map((role) => [role.roleCode, role.id]))
+    const permissionByCode = new Map(approvalPermissionRows.map((permission) => [permission.code, permission.id]))
+    const allApprovalPermissionIds = approvalPermissionRows.map((permission) => permission.id)
 
-        // Parameter managers get parameter approval permissions
-        { roleCode: 'PARAMETER_ADMIN', permissionCode: 'APPROVE_PARAMETER_CREATE' },
-        { roleCode: 'PARAMETER_ADMIN', permissionCode: 'APPROVE_PARAMETER_UPDATE' },
-        { roleCode: 'PARAMETER_ADMIN', permissionCode: 'APPROVE_PARAMETER_DELETE' },
-    ]
-
-    for (const mapping of rolePermissionMappings) {
-        try {
-            // This would need to be implemented based on your RBAC schema
-            // await assignPermissionToRole(mapping.roleCode, mapping.permissionCode)
-            console.log(`  ✓ Assigned ${mapping.permissionCode} to ${mapping.roleCode}`)
-        } catch (error) {
-            console.log(`  ⚠ Failed to assign ${mapping.permissionCode} to ${mapping.roleCode}:`, error)
+    const assignByRoleCode = async (roleCode: string, permissionCodes: string[]) => {
+        const roleId = roleByCode.get(roleCode)
+        if (!roleId) {
+            console.log(`  ⚠ Role ${roleCode} not found, skipping`)
+            return
         }
+
+        const permissionIds = permissionCodes
+            .map((permissionCode) => permissionByCode.get(permissionCode))
+            .filter((permissionId): permissionId is string => Boolean(permissionId))
+
+        if (permissionIds.length === 0) return
+
+        await db
+            .insert(rolePermissions)
+            .values(permissionIds.map((permissionId) => ({ roleId, permissionId })))
+            .onConflictDoNothing()
+
+        console.log(`  ✓ Upserted ${permissionIds.length} approval permission(s) for ${roleCode}`)
     }
+
+    const assignAllApprovalsByRoleCode = async (roleCode: string) => {
+        const roleId = roleByCode.get(roleCode)
+        if (!roleId) {
+            console.log(`  ⚠ Role ${roleCode} not found, skipping`)
+            return
+        }
+
+        if (allApprovalPermissionIds.length === 0) return
+
+        await db
+            .insert(rolePermissions)
+            .values(allApprovalPermissionIds.map((permissionId) => ({ roleId, permissionId })))
+            .onConflictDoNothing()
+
+        console.log(`  ✓ Upserted ${allApprovalPermissionIds.length} approval permission(s) for ${roleCode}`)
+    }
+
+    // Existing generic role codes
+    await assignByRoleCode('PLATFORM_ADMIN', ['approval.all'])
+    await assignByRoleCode('MANAGER', [
+        'approval.user.create',
+        'approval.user.update',
+        'approval.user.delete',
+        'approval.parameter.create',
+        'approval.parameter.update',
+        'approval.parameter.delete',
+        'approval.configuration.create',
+        'approval.configuration.update',
+        'approval.configuration.delete',
+    ])
+    await assignByRoleCode('PARAMETER_ADMIN', [
+        'approval.parameter.create',
+        'approval.parameter.update',
+        'approval.parameter.delete',
+    ])
+
+    // IAF role codes
+    await assignByRoleCode('IAF_TENANT_SUPERADMIN', ['approval.all'])
+    await assignByRoleCode('IAF_TENANT_ADMIN', [
+        'approval.parameter.create',
+        'approval.parameter.update',
+        'approval.parameter.delete',
+        'approval.configuration.create',
+        'approval.configuration.update',
+        'approval.configuration.delete',
+    ])
+    await assignAllApprovalsByRoleCode('CHECKER')
+    await assignByRoleCode('APPROVER', ['approval.all'])
 
     console.log('✅ Permission assignment complete!')
 }
@@ -456,7 +650,7 @@ export async function assignApprovalPermissionsToRoles() {
 
 const IAF_TENANT_ID = 'a24af6d2-3032-4d53-ae82-9cfa84f97a20'
 
-if (require.main === module) {
+if (import.meta.main) {
     console.log(`Using IAF tenant ID: ${IAF_TENANT_ID}\n`)
     seedApprovalMatrices(IAF_TENANT_ID)
         .then(() => assignApprovalPermissionsToRoles())

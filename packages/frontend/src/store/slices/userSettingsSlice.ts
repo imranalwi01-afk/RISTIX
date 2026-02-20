@@ -10,6 +10,7 @@
 
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { getAuthToken } from '../../utils/auth-token';
+import { frontendEnvironmentLoader } from '../../config/environment-loader-frontend';
 
 // ✅ User Profile Interface
 export interface UserProfile {
@@ -168,11 +169,11 @@ const initialState: UserSettingsState = {
 
 // ✅ API Base URL - Use centralized dual-mode configuration
 const getApiBase = (): string => {
-  // Use centralized dual-mode configuration
-  if (typeof window !== 'undefined' && window.location.hostname.includes('danafin.com')) {
-    return 'https://iaf-ifrs-be.danafin.com/api/v1';
+  try {
+    return frontendEnvironmentLoader.getConfiguration().api.base;
+  } catch {
+    return process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || '/api/v1';
   }
-  return process.env.NEXT_PUBLIC_API_URL || 'https://iaf-ifrs-be.ifrspro.id/api/v1';
 };
 
 const API_BASE = getApiBase();

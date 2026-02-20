@@ -68,6 +68,7 @@ import {
 import { useRouter } from 'next/navigation'
 import { useSelector, useDispatch } from 'react-redux'
 import type { RootState } from '../../../store'
+import { usePermission } from '../../../hooks/usePermission'
 import { api, handleAPIError } from '../../../services/api'
 import {
     fetchDashboardPersonalization,
@@ -387,6 +388,7 @@ interface DashboardActivity {
 
 export default function DashboardClient() {
     const router = useRouter()
+    const { hasAnyPermission } = usePermission()
     const dispatch = useDispatch()
 
     // ✅ PERFORMANCE: Pre-warm ALL API endpoints and routes on dashboard mount
@@ -606,6 +608,19 @@ export default function DashboardClient() {
                 <Button variant="contained" onClick={() => router.push('/login')}>
                     Go to Login
                 </Button>
+            </Box>
+        )
+    }
+
+    if (!hasAnyPermission(['banking', 'banking.dashboard.view', 'banking.dashboard.manage', 'admin.super_admin'])) {
+        return (
+            <Box sx={{ p: 3 }}>
+                <Alert severity="error" sx={{ mb: 3 }}>
+                    <Typography variant="h6">Access Denied</Typography>
+                    <Typography variant="body2">
+                        You do not have permission to access the banking dashboard.
+                    </Typography>
+                </Alert>
             </Box>
         )
     }

@@ -1,0 +1,284 @@
+// IFRS9 IAF - RBAC/Auth/Core schema (documented)
+// Generated manually from Drizzle schemas and migration comments.
+
+Table core.users [note: 'Tenant user master table. Stores identity, profile, and security attributes.'] {
+  id uuid [pk, note: 'Primary key (UUID).']
+  tenant_id varchar(100) [default: 'dana', note: 'Tenant identifier used by application context.']
+  username varchar(100) [not null, note: 'Unique login username within system policy scope.']
+  email varchar(255) [not null, note: 'User email for login and notifications.']
+  password_hash varchar(255) [not null, note: 'Hashed password (never store plaintext).']
+  full_name varchar(200) [not null, note: 'Display name for user profile.']
+  phone varchar(50) [note: 'Optional phone number.']
+  department varchar(100) [note: 'Optional department/business unit.']
+  position varchar(100) [note: 'Optional job title/position.']
+  employee_id varchar(50) [note: 'Optional internal employee reference.']
+  bank_id varchar(50) [note: 'Optional banking institution reference.']
+  is_active boolean [default: true, note: 'Account status flag; inactive users cannot authenticate.']
+  is_verified boolean [default: false, note: 'Email/account verification status.']
+  mfa_enabled boolean [default: false, note: 'Whether MFA is enabled for this user.']
+  mfa_secret varchar(255) [note: 'Secret for OTP/MFA provider, protected data.']
+  backup_codes text[] [note: 'One-time recovery codes for MFA fallback.']
+  force_password_change boolean [default: false, note: 'Force user to change password on next login.']
+  login_count integer [default: 0, note: 'Total successful login count.']
+  failed_login_attempts integer [default: 0, note: 'Consecutive failed login attempts.']
+  last_login_at timestamptz [note: 'Timestamp of most recent successful login.']
+  password_changed_at timestamp [note: 'Timestamp of last password update.']
+  email_verified_at timestamp [note: 'Timestamp when email was verified.']
+  created_at timestamptz [default: `now()`, note: 'Row creation timestamp.']
+  updated_at timestamptz [default: `now()`, note: 'Row last update timestamp.']
+
+  Indexes {
+    (is_active) [name: 'idx_dana_users_active']
+    (tenant_id) [name: 'idx_dana_users_tenant_id']
+    (username) [name: 'idx_dana_users_username']
+    (email) [name: 'idx_dana_users_email']
+    (employee_id) [name: 'idx_dana_users_employee_id']
+    (login_count) [name: 'idx_dana_users_login_count']
+    (failed_login_attempts) [name: 'idx_dana_users_failed_attempts']
+  }
+}
+
+Table core.tenants [note: 'Tenant master in core schema for tenant-scoped operational data.'] {
+  id uuid [pk, note: 'Primary key (UUID).']
+  code varchar(50) [not null, unique, note: 'Unique tenant code.']
+  name varchar(255) [not null, note: 'Tenant display/business name.']
+  slug varchar(100) [note: 'URL-friendly tenant key.']
+  description text [note: 'Tenant description.']
+  type varchar(50) [default: 'banking', note: 'Tenant type/category.']
+  banking_mode varchar(20) [default: 'conventional', note: 'Banking mode: conventional/syariah/dual (implementation-dependent).']
+  settings jsonb [default: '{}', note: 'Tenant-level configuration blob.']
+  is_active boolean [not null, default: true, note: 'Tenant activation status.']
+  created_at timestamp [not null, default: `now()`, note: 'Row creation timestamp.']
+  updated_at timestamp [not null, default: `now()`, note: 'Row last update timestamp.']
+
+  Indexes {
+    (code) [name: 'tenants_code_idx', unique]
+    (slug) [name: 'tenants_slug_idx']
+    (is_active) [name: 'tenants_active_idx']
+  }
+}
+
+Table platform_admin.tenants [note: 'Platform tenant registry used by platform sessions and global governance.'] {
+  id uuid [pk, note: 'Primary key (UUID).']
+  code varchar(50) [not null, unique, note: 'Unique tenant code in platform registry.']
+  name varchar(255) [not null, note: 'Tenant display/business name.']
+  slug varchar(100) [note: 'Slug used for platform-level tenant routing.']
+  description text [note: 'Tenant description.']
+  type varchar(50) [default: 'banking', note: 'Tenant type/category.']
+  banking_mode varchar(20) [default: 'conventional', note: 'Banking mode profile.']
+  settings text [default: '{}', note: 'Serialized settings payload in platform schema.']
+  is_active boolean [not null, default: true, note: 'Tenant activation status at platform level.']
+  created_at timestamptz [not null, default: `now()`, note: 'Row creation timestamp.']
+  updated_at timestamptz [not null, default: `now()`, note: 'Row last update timestamp.']
+
+  Indexes {
+    (code) [name: 'platform_tenants_code_idx', unique]
+    (slug) [name: 'platform_tenants_slug_idx']
+    (is_active) [name: 'platform_tenants_active_idx']
+  }
+}
+
+Table platform_admin.users [note: 'Platform-level users for platform admins/operators.'] {
+  id uuid [pk, default: `gen_random_uuid()`, note: 'Primary key (UUID).']
+  username varchar(100) [not null, note: 'Platform login username.']
+  email varchar(255) [not null, note: 'Platform login email.']
+  password_hash varchar(255) [not null, note: 'Hashed password for authentication.']
+  full_name varchar(200) [not null, note: 'Full name shown in platform UI.']
+  employee_id varchar(50) [note: 'Optional employee identifier.']
+  role varchar(100) [not null, note: 'Platform role code/name.']
+  is_active boolean [default: true, note: 'Whether account is active.']
+  last_login_at timestamptz [note: 'Last successful login timestamp.']
+  failed_login_attempts integer [default: 0, note: 'Consecutive failed login attempts.']
+  created_at timestamptz [default: `now()`, note: 'Row creation timestamp.']
+  updated_at timestamptz [default: `now()`, note: 'Row last update timestamp.']
+  user_role varchar(100) [note: 'Optional normalized user role field (legacy compatibility).']
+  tenant_id uuid [note: 'Optional tenant linkage for scoped platform operators.']
+  tenant_name varchar(255) [note: 'Optional tenant name snapshot.']
+
+  Indexes {
+    (role) [name: 'idx_users_role']
+    (last_login_at) [name: 'idx_users_last_login']
+    (is_active) [name: 'idx_users_is_active']
+  }
+}
+
+Table core.roles [note: 'Role definitions for RBAC. Includes tenant and compliance metadata.'] {
+  id uuid [pk, note: 'Primary key (UUID).']
+  legacy_id integer [note: 'Legacy system role ID for migration tracking.']
+  role_code varchar(50) [not null, unique, note: 'Stable machine-readable role code.']
+  role_name varchar(100) [not null, note: 'Human-readable role name.']
+  description text [note: 'Role description.']
+  permissions jsonb [default: '{}', note: 'Legacy/denormalized permission snapshot (if used).']
+  is_active boolean [default: true, note: 'Role activation status.']
+  banking_type_specific varchar(20) [note: 'Banking type restriction: conventional, syariah, or null for both.']
+  compliance_level varchar(50) [note: 'Required compliance level for this role.']
+  hierarchy_level integer [not null, default: 1, note: 'Role hierarchy level (1=lowest, higher=more privileged).']
+  is_system_role boolean [default: false, note: 'System-protected role; restricted modifications.']
+  tenant_id uuid [note: 'Tenant scope; null may imply global/system role depending on policy.']
+  created_at timestamp [default: `now()`, note: 'Row creation timestamp.']
+  updated_at timestamp [default: `now()`, note: 'Row last update timestamp.']
+  created_by uuid [note: 'UUID of user who created this role.']
+  updated_by uuid [note: 'UUID of user who last updated this role.']
+
+  Indexes {
+    (role_name) [name: 'roles_role_name_idx', unique]
+    (tenant_id) [name: 'roles_tenant_idx']
+    (is_active) [name: 'roles_active_idx']
+    (is_system_role) [name: 'roles_system_role_idx']
+  }
+}
+
+Table core.user_roles [note: 'Junction table assigning roles to users (supports temporary and scoped assignments).'] {
+  id uuid [pk, note: 'Primary key (UUID).']
+  user_id uuid [not null, note: 'Assigned user ID.']
+  role_id uuid [not null, note: 'Assigned role ID.']
+  assigned_by uuid [note: 'Actor who assigned the role.']
+  assigned_at timestamp [default: `now()`, note: 'Timestamp of role assignment.']
+  is_active boolean [default: true, note: 'Assignment active status.']
+  valid_from timestamp [note: 'Assignment valid from timestamp.']
+  valid_until timestamp [note: 'Assignment expiration timestamp.']
+  banking_type_restriction varchar(20) [note: 'Banking type restriction for this role assignment.']
+  is_temporary boolean [default: false, note: 'Temporary assignment flag.']
+  temporary_reason text [note: 'Reason for temporary role assignment.']
+  tenant_id uuid [not null, note: 'Tenant scope of assignment.']
+  created_at timestamp [default: `now()`, note: 'Assignment creation timestamp.']
+  updated_at timestamp [default: `now()`, note: 'Assignment last update timestamp.']
+  level integer [note: 'Legacy role level field for compatibility.']
+
+  Indexes {
+    (user_id, role_id) [name: 'user_role_unique_idx', unique]
+    (user_id) [name: 'user_roles_user_idx']
+    (role_id) [name: 'user_roles_role_idx']
+    (tenant_id) [name: 'user_roles_tenant_idx']
+    (is_active) [name: 'user_roles_active_idx']
+    (valid_from) [name: 'user_roles_valid_from_idx']
+    (valid_until) [name: 'user_roles_valid_until_idx']
+  }
+}
+
+Table core.permissions [note: 'Atomic permission catalog for action/resource authorization.'] {
+  id uuid [pk, note: 'Primary key (UUID).']
+  code varchar(100) [not null, unique, note: 'Canonical permission code (recommended dot notation).']
+  name varchar(255) [not null, note: 'Permission display name.']
+  description text [note: 'Permission description.']
+  resource varchar(100) [not null, note: 'Target resource/domain identifier.']
+  action varchar(50) [not null, note: 'Action identifier (view/create/update/delete/manage/etc.).']
+  module varchar(50) [not null, default: 'core', note: 'Logical module grouping.']
+  category varchar(100) [note: 'Permission category/group label.']
+  is_active boolean [not null, default: true, note: 'Permission activation status.']
+  created_at timestamp [not null, default: `now()`, note: 'Row creation timestamp.']
+
+  Indexes {
+    (code) [name: 'permissions_code_idx', unique]
+    (resource, action) [name: 'permissions_resource_action_idx']
+    (category) [name: 'permissions_category_idx']
+  }
+}
+
+Table core.role_permissions [note: 'Junction table mapping roles to granted permissions.'] {
+  id uuid [pk, note: 'Primary key (UUID).']
+  role_id uuid [not null, note: 'Referenced role ID.']
+  permission_id uuid [not null, note: 'Referenced permission ID.']
+  granted_by uuid [note: 'Actor who granted permission to role.']
+  granted_at timestamp [not null, default: `now()`, note: 'Grant timestamp.']
+
+  Indexes {
+    (role_id, permission_id) [name: 'role_perm_unique_idx', unique]
+    (role_id) [name: 'role_permissions_role_idx']
+    (permission_id) [name: 'role_permissions_perm_idx']
+  }
+}
+
+Table approval.permission_approval_policies [note: 'Policy mapping defining when permission usage/changes require approvals.'] {
+  id uuid [pk, note: 'Primary key (UUID).']
+  tenant_id uuid [not null, note: 'Tenant scope for approval policy.']
+  permission_id uuid [not null, note: 'Permission controlled by this policy.']
+  requires_approval boolean [not null, default: false, note: 'Whether approval is required.']
+  min_hierarchy_level integer [note: 'Minimum approver hierarchy level required.']
+  required_approvers integer [not null, default: 1, note: 'Number of approvers required.']
+  matrix_id uuid [note: 'Optional reference to approval matrix/workflow record.']
+  description text [note: 'Policy description/rationale.']
+  is_active boolean [not null, default: true, note: 'Policy activation flag.']
+  created_at timestamptz [not null, default: `now()`, note: 'Row creation timestamp.']
+  updated_at timestamptz [not null, default: `now()`, note: 'Row last update timestamp.']
+
+  Indexes {
+    (tenant_id, permission_id) [name: 'unique_tenant_permission', unique]
+    (tenant_id) [name: 'permission_policy_tenant_idx']
+    (permission_id) [name: 'permission_policy_permission_idx']
+    (matrix_id) [name: 'permission_policy_matrix_idx']
+    (min_hierarchy_level) [name: 'permission_policy_hierarchy_idx']
+  }
+}
+
+Table auth.sessions [note: 'Active JWT session registry with device/client and expiration metadata.'] {
+  id uuid [pk, note: 'Primary key (UUID).']
+  user_id uuid [not null, note: 'Session owner user ID.']
+  tenant_id uuid [note: 'Tenant context for session (platform registry reference).']
+  access_token_id uuid [not null, unique, note: 'JWT access token JTI.']
+  refresh_token_id uuid [not null, unique, note: 'JWT refresh token JTI.']
+  user_agent text [note: 'Client user-agent string.']
+  ip_address varchar(45) [note: 'Client IP address (IPv4/IPv6).']
+  device_type varchar(50) [note: 'Device class (web/mobile/etc.).']
+  device_name varchar(100) [note: 'Friendly device/browser name.']
+  is_active boolean [not null, default: true, note: 'Session active status.']
+  last_activity_at timestamp [not null, default: `now()`, note: 'Timestamp of latest authenticated activity.']
+  expires_at timestamp [not null, note: 'Access session expiry timestamp.']
+  refresh_expires_at timestamp [not null, note: 'Refresh token expiry timestamp.']
+  created_at timestamp [not null, default: `now()`, note: 'Session creation timestamp.']
+  revoked_at timestamp [note: 'Session revocation timestamp.']
+  revoke_reason varchar(100) [note: 'Revocation reason code/message.']
+
+  Indexes {
+    (user_id) [name: 'sessions_user_idx']
+    (tenant_id) [name: 'sessions_tenant_idx']
+    (access_token_id) [name: 'sessions_access_token_idx', unique]
+    (refresh_token_id) [name: 'sessions_refresh_token_idx', unique]
+    (is_active) [name: 'sessions_active_idx']
+    (expires_at) [name: 'sessions_expires_idx']
+  }
+}
+
+Table auth.password_reset_tokens [note: 'Password reset token storage with single-use lifecycle controls.'] {
+  id uuid [pk, note: 'Primary key (UUID).']
+  user_id uuid [not null, note: 'User requesting password reset.']
+  token varchar(255) [not null, unique, note: 'Password reset token value.']
+  expires_at timestamp [not null, note: 'Token expiration timestamp.']
+  used_at timestamp [note: 'Timestamp when token was consumed.']
+  created_at timestamp [not null, default: `now()`, note: 'Token issuance timestamp.']
+
+  Indexes {
+    (user_id) [name: 'password_reset_user_idx']
+    (token) [name: 'password_reset_token_idx', unique]
+    (expires_at) [name: 'password_reset_expires_idx']
+  }
+}
+
+Table auth.email_verification_tokens [note: 'Email verification token storage for new account verification flow.'] {
+  id uuid [pk, note: 'Primary key (UUID).']
+  user_id uuid [not null, note: 'User awaiting email verification.']
+  token varchar(255) [not null, unique, note: 'Email verification token value.']
+  expires_at timestamp [not null, note: 'Token expiration timestamp.']
+  verified_at timestamp [note: 'Timestamp when email was verified.']
+  created_at timestamp [not null, default: `now()`, note: 'Token issuance timestamp.']
+
+  Indexes {
+    (user_id) [name: 'email_verification_user_idx']
+    (token) [name: 'email_verification_token_idx', unique]
+  }
+}
+
+// Relationships
+Ref: core.roles.tenant_id > core.tenants.id
+Ref: core.user_roles.user_id > core.users.id
+Ref: core.user_roles.role_id > core.roles.id
+Ref: core.user_roles.tenant_id > core.tenants.id
+Ref: core.role_permissions.role_id > core.roles.id
+Ref: core.role_permissions.permission_id > core.permissions.id
+Ref: approval.permission_approval_policies.tenant_id > core.tenants.id
+Ref: approval.permission_approval_policies.permission_id > core.permissions.id
+Ref: auth.sessions.user_id > core.users.id
+Ref: auth.sessions.tenant_id > platform_admin.tenants.id
+Ref: platform_admin.users.tenant_id > platform_admin.tenants.id
+Ref: auth.password_reset_tokens.user_id > core.users.id
+Ref: auth.email_verification_tokens.user_id > core.users.id

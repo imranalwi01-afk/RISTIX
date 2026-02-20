@@ -107,7 +107,7 @@ const CreateBusinessDetailSchema = z.object({
     paramdesc: z.string().max(1000).optional(),
 }).transform(data => ({
     paramCode: data.param_code || data.paramCode || '',
-    paramSeq: data.param_seq ?? data.paramSeq ?? 1,
+    paramSeq: data.param_seq ?? data.paramSeq,
     value1: data.value1,
     value2: data.value2 || '',
     value3: data.value3 || '',
@@ -251,8 +251,7 @@ app.openapi(
             })
         )
 
-        const result = await runEffect(c, effect as any)
-        return c.json(result, result.approvalRequired ? 202 : 201)
+        return runEffect(c, effect as any, (result: any) => result.approvalRequired ? 202 : 201)
     }
 )
 
@@ -487,8 +486,7 @@ app.openapi(
             })
         )
 
-        const result = await runEffect(c, effect as any)
-        return c.json(result, result.approvalRequired ? 202 : 200)
+        return runEffect(c, effect as any, (result: any) => result.approvalRequired ? 202 : 200)
     }
 )
 
@@ -540,8 +538,7 @@ app.openapi(
             })
         )
 
-        const result = await runEffect(c, effect as any)
-        return c.json(result, result.approvalRequired ? 202 : 200)
+        return runEffect(c, effect as any, (result: any) => result.approvalRequired ? 202 : 200)
     }
 )
 

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import type { ModernLoaderProps } from '@/components/common/ModernLoader';
 import { useSearchParams } from 'next/navigation';
@@ -28,7 +28,6 @@ import {
   Business as BusinessIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../../providers/AuthProvider';
-import { frontendEnvironmentLoader } from '@/config/environment-loader-frontend';
 import { useLoginPrefetch } from '@/hooks/useLoginPrefetch';
 
 // Dynamic import for ModernLoader to improve initial page load
@@ -58,10 +57,26 @@ interface LoginPageProps {
   initialRole?: 'platform_admin' | 'user';
 }
 
+const toApiV1BaseUrl = (raw: string): string => {
+  let normalized = (raw || '').trim().replace(/\/+$/, '');
+  while (/\/api(?:\/v1)?$/i.test(normalized)) {
+    normalized = normalized.replace(/\/api(?:\/v1)?$/i, '');
+  }
+  return normalized ? `${normalized}/api/v1` : '/api/v1';
+};
+
+const resolveBackendBaseUrl = (): string => {
+  return (
+    process.env.NEXT_PUBLIC_BACKEND_URL ||
+    process.env.NEXT_PUBLIC_API_BASE_URL ||
+    ''
+  );
+};
+
 export default function LoginPage({ initialRole }: LoginPageProps) {
   // const router = useRouter(); // Unused
   const searchParams = useSearchParams();
-  const { login, isLoading, error, clearError } = useAuth();
+  const { login, error, clearError } = useAuth();
   // const theme = useTheme(); // Unused
 
   // ✅ PERFORMANCE: Prefetch dashboard routes while user is on login page
@@ -75,10 +90,12 @@ export default function LoginPage({ initialRole }: LoginPageProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
   const [localError, setLocalError] = useState('');
+  const redirectGuardTimeoutRef = useRef<number | null>(null);
 
   // Tenant data state
   const [tenants, setTenants] = useState<TenantOption[]>([]);
   const [tenantsLoading, setTenantsLoading] = useState(true);
+  const showAuthenticatingOverlay = loginLoading;
 
   const errorParam = searchParams?.get('error');
   const roleParam = searchParams?.get('role');
@@ -92,11 +109,18 @@ export default function LoginPage({ initialRole }: LoginPageProps) {
   // ============================================================================
   useEffect(() => {
     const fetchTenants = async () => {
+      if (isPlatformAdmin) {
+        // Platform login does not require tenant selection.
+        setTenants([]);
+        setSelectedTenantId('');
+        setTenantsLoading(false);
+        return;
+      }
+
       try {
-        const config = frontendEnvironmentLoader.getConfiguration();
-        const baseUrl = config.api.base || `${config.api.backend}/api/v1`;
-        const authPath = config.api.auth || '/auth';
-        const queryParams = isPlatformAdmin ? '?mode=admin' : '';
+        const baseUrl = toApiV1BaseUrl(resolveBackendBaseUrl());
+        const authPath = '/auth';
+        const queryParams = '';
 
         const response = await fetch(`${baseUrl}${authPath}/login-data${queryParams}`, {
           method: 'GET',
@@ -108,11 +132,8 @@ export default function LoginPage({ initialRole }: LoginPageProps) {
         const result = await response.json();
 
         if (result.success && result.data) {
-          // 🛡️ SECURITY: Hide 'system' tenant unless specifically requested via magic param
-          const showSystem = isPlatformAdmin;
-
           const filteredTenants = result.data.tenants.filter((t: TenantOption) =>
-            t.isActive && (showSystem || t.slug !== 'system')
+            t.isActive && t.slug !== 'system'
           );
 
           // 🔄 SORTING: IAF First, then DANA, then others
@@ -139,21 +160,9 @@ export default function LoginPage({ initialRole }: LoginPageProps) {
           setTenants(filteredTenants);
 
           // Auto-select logic
-          if (isPlatformAdmin) {
-            // For Platform Admin, ALWAYS select system if available
-            const systemTenant = filteredTenants.find((t: TenantOption) => t.slug === 'system');
-            if (systemTenant) {
-              setSelectedTenantId(systemTenant.slug);
-            } else {
-              // Fallback if system not found
-              console.warn('System tenant not found in response despite mode=admin');
-              if (filteredTenants.length > 0) setSelectedTenantId(filteredTenants[0].slug);
-            }
-          } else {
-            // Regular User: Auto-select first available
-            if (filteredTenants.length > 0) {
-              setSelectedTenantId(filteredTenants[0].slug);
-            }
+          // Regular User: Auto-select first available
+          if (filteredTenants.length > 0) {
+            setSelectedTenantId(filteredTenants[0].slug);
           }
         }
       } catch (error) {
@@ -184,27 +193,65 @@ export default function LoginPage({ initialRole }: LoginPageProps) {
     if (error) clearError();
   }, [email, password, selectedTenantId]);
 
+  useEffect(() => {
+    if (!errorParam) return;
+    setLoginLoading(false);
+  }, [errorParam]);
+
+  useEffect(() => {
+    return () => {
+      if (redirectGuardTimeoutRef.current) {
+        window.clearTimeout(redirectGuardTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginLoading(true);
     setLocalError('');
 
     try {
-      if (!email || !password || !selectedTenantId) {
+      if (!email || !password || (!isPlatformAdmin && !selectedTenantId)) {
         setLocalError('Please enter email, password, and select tenant');
         setLoginLoading(false); // ✅ Stop loading on validation error
         return;
       }
 
-      // Backend expects tenantId (which might be slug or ID depending on provider, Reference used slug)
-      const success = await login({ email, password, tenantId: selectedTenantId });
+      if (redirectGuardTimeoutRef.current) {
+        window.clearTimeout(redirectGuardTimeoutRef.current);
+      }
+
+      const success = await login(
+        isPlatformAdmin
+          ? { email, password }
+          : { email, password, tenantId: selectedTenantId }
+      );
 
       if (!success) {
-        setLocalError('Invalid credentials or tenant selection');
+        setLocalError(isPlatformAdmin ? 'Invalid credentials' : 'Invalid credentials or tenant selection');
         setLoginLoading(false); // ✅ Stop loading on failure
       } else {
         // ✅ ON SUCCESS: Do NOT stop loading.
         // Let the loader persist until the page redirects to the dashboard.
+        redirectGuardTimeoutRef.current = window.setTimeout(() => {
+          if (window.location.pathname !== '/login') return;
+
+          try {
+            const userRaw = localStorage.getItem('user_data');
+            const user = userRaw ? JSON.parse(userRaw) : {};
+            const isPlatformUser =
+              user?.stakeholderType === 'platform' || user?.isPlatformAdmin === true;
+            const fallbackPath = isPlatformUser ? '/platform/users' : '/banking/dashboard';
+
+            console.warn('⚠️ Login redirect timeout reached, applying fallback navigation', { fallbackPath });
+            window.location.assign(fallbackPath);
+          } catch (fallbackError) {
+            console.error('❌ Failed to perform fallback login redirect:', fallbackError);
+            setLoginLoading(false);
+            setLocalError('Login succeeded, but redirect failed. Please refresh and try again.');
+          }
+        }, 8_000);
       }
     } catch (err: any) {
       setLocalError(err.message || 'Login failed. Please try again.');
@@ -350,12 +397,12 @@ export default function LoginPage({ initialRole }: LoginPageProps) {
         }}>
           {/* ✅ MODERN LOADER OVERLAY */}
           <ModernLoader
-            open={loginLoading || isLoading}
+            open={showAuthenticatingOverlay}
             message="Authenticating Workspace"
             subMessage="establishing secure handshake..."
           />
 
-          <Box sx={{ width: '100%', maxWidth: 420, opacity: (loginLoading || isLoading) ? 0.4 : 1, transition: 'opacity 0.4s', filter: (loginLoading || isLoading) ? 'blur(2px)' : 'none' }}>
+          <Box sx={{ width: '100%', maxWidth: 420, opacity: showAuthenticatingOverlay ? 0.4 : 1, transition: 'opacity 0.4s', filter: showAuthenticatingOverlay ? 'blur(2px)' : 'none' }}>
             {/* Mobile Logo (Visible only on xs) */}
             <Box sx={{ display: { xs: 'flex', md: 'none' }, mb: 4, justifyContent: 'center' }}>
               <img src="/images/logo-iaf.png" alt="IAF Logo" style={{ height: 40 }} />
@@ -384,31 +431,32 @@ export default function LoginPage({ initialRole }: LoginPageProps) {
                 )}
 
                 <Box component="form" onSubmit={handleLogin} noValidate>
-                  {/* Tenant Selector - Matched with Reference Visuals (FormControl + Select) */}
-                  <Box sx={{ mb: 3 }}>
-                    <FormControl fullWidth variant="outlined" size="medium">
-                      <InputLabel id="tenant-select-label">Workspace / Tenant</InputLabel>
-                      <Select
-                        labelId="tenant-select-label"
-                        value={selectedTenantId}
-                        onChange={(e) => setSelectedTenantId(e.target.value)}
-                        label="Workspace / Tenant"
-                        disabled={tenantsLoading || loginLoading || isPlatformAdmin}
-                        startAdornment={
-                          <InputAdornment position="start">
-                            <BusinessIcon color="action" fontSize="small" />
-                          </InputAdornment>
-                        }
-                        sx={{ bgcolor: '#ffffff' }}
-                      >
-                        {tenants.map((tenant) => (
-                          <MenuItem key={tenant.id} value={tenant.slug}>
-                            {tenant.displayName}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Box>
+                  {!isPlatformAdmin && (
+                    <Box sx={{ mb: 3 }}>
+                      <FormControl fullWidth variant="outlined" size="medium">
+                        <InputLabel id="tenant-select-label">Workspace / Tenant</InputLabel>
+                        <Select
+                          labelId="tenant-select-label"
+                          value={selectedTenantId}
+                          onChange={(e) => setSelectedTenantId(e.target.value)}
+                          label="Workspace / Tenant"
+                          disabled={tenantsLoading || loginLoading}
+                          startAdornment={
+                            <InputAdornment position="start">
+                              <BusinessIcon color="action" fontSize="small" />
+                            </InputAdornment>
+                          }
+                          sx={{ bgcolor: '#ffffff' }}
+                        >
+                          {tenants.map((tenant) => (
+                            <MenuItem key={tenant.id} value={tenant.slug}>
+                              {tenant.displayName}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Box>
+                  )}
 
                   <TextField
                     fullWidth
@@ -450,7 +498,7 @@ export default function LoginPage({ initialRole }: LoginPageProps) {
                     fullWidth
                     variant="contained"
                     size="large"
-                    disabled={loginLoading || isLoading || !selectedTenantId}
+                    disabled={loginLoading || (!isPlatformAdmin && !selectedTenantId)}
                     endIcon={!loginLoading && <ArrowForwardIcon />}
                     sx={{
                       py: 1.8,
@@ -464,7 +512,7 @@ export default function LoginPage({ initialRole }: LoginPageProps) {
                       }
                     }}
                   >
-                    {loginLoading || isLoading ? <CircularProgress size={24} color="inherit" /> : (isPlatformAdmin ? 'Access Control Center' : 'Sign In to Workspace')}
+                    {loginLoading ? <CircularProgress size={24} color="inherit" /> : (isPlatformAdmin ? 'Access Control Center' : 'Sign In to Workspace')}
                   </Button>
                 </Box>
               </Box>

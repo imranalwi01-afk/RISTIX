@@ -7,6 +7,7 @@ import * as tenantService from '../services/tenants.service'
 import { authMiddleware } from '../middleware'
 import * as auditService from '../services/audit.service'
 import * as rbacService from '../services/rbac.service'
+import { env } from '../config/env'
 
 export const authRoutes = new OpenAPIHono<AppContext>()
 
@@ -283,6 +284,16 @@ authRoutes.openapi(
     async (c) => {
         const mode = c.req.query('mode')
         const includeSystem = mode === 'admin'
+        const fallbackTenants = [
+            {
+                id: env.TENANT_SLUG || env.TENANT_ID || 'iaf',
+                slug: env.TENANT_SLUG || 'iaf',
+                name: env.TENANT_NAME || env.COMPANY_NAME || 'Indonesia Airawata Finance',
+                displayName: env.TENANT_NAME || env.COMPANY_NAME || 'Indonesia Airawata Finance',
+                bankingType: env.BANKING_TYPE || 'conventional',
+                isActive: true,
+            },
+        ]
 
         const effect = pipe(
             tenantService.getTenants({ includeSystem }),
@@ -296,7 +307,14 @@ authRoutes.openapi(
                     isActive: t.isActive,
                 })),
                 total: result.total,
-            }))
+            })),
+            Effect.catchAll((error) => {
+                console.error('[AuthRoutes] /auth/login-data fallback due to tenant lookup error:', error)
+                return Effect.succeed({
+                    tenants: fallbackTenants,
+                    total: fallbackTenants.length,
+                })
+            })
         )
 
         return runEffect(c, effect)
@@ -373,6 +391,31 @@ authRoutes.openapi(
         const userId = c.get('userId')
         const tenantId = c.get('tenantId')
         const user = c.get('user')
+        const tokenPermissions = c.get('permissions') || []
+
+        if (!userId) {
+            return c.json({ success: false, error: 'Unauthorized', code: 'UNAUTHORIZED' } as any, 401)
+        }
+
+        // Platform sessions (no tenant context) must not query tenant RBAC tables.
+        if (!tenantId) {
+            const platformRole = (user as any)?.role
+            const tokenRoles = Array.isArray((user as any)?.roles) ? (user as any).roles : []
+            const roles = tokenRoles.length > 0
+                ? tokenRoles
+                : (platformRole ? [platformRole] : [])
+
+            return c.json({
+                success: true,
+                data: {
+                    id: userId,
+                    email: user?.email,
+                    tenantId: undefined,
+                    roles,
+                    permissions: tokenPermissions,
+                },
+            } as any)
+        }
 
         const effect = pipe(
             rbacService.getUserRoles(userId!, tenantId!),
@@ -411,11 +454,28 @@ authRoutes.openapi(
     }),
     async (c) => {
         const userId = c.get('userId')!
-        const tenantId = c.get('tenantId')!
+        const tenantId = c.get('tenantId')
+        const tokenPermissions = c.get('permissions') || []
+
+        if (!userId) {
+            return c.json({ success: false, error: 'Unauthorized', code: 'UNAUTHORIZED' } as any, 401)
+        }
+
+        // Platform sessions (no tenant context) use permissions embedded in token/session.
+        if (!tenantId) {
+            return c.json({
+                success: true,
+                data: {
+                    permissions: tokenPermissions,
+                },
+            } as any)
+        }
 
         const effect = pipe(
-            rbacService.getUserPermissions(userId, tenantId),
-            Effect.map((permissions) => ({ permissions }))
+            rbacService.getUserPermissionCodes(userId, tenantId),
+            Effect.map((permissions) => ({
+                permissions: permissions.length > 0 ? permissions : tokenPermissions,
+            }))
         )
 
         return runEffect(c, effect)

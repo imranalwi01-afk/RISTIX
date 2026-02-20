@@ -54,6 +54,11 @@ const UpdateUserSchema = z.object({
     isActive: z.boolean().optional(),
 }).openapi('UpdateUserInput')
 
+const ResetPasswordSchema = z.object({
+    newPassword: z.string().min(8),
+    forcePasswordChange: z.boolean().optional().default(true),
+}).openapi('ResetUserPasswordInput')
+
 const UserListResponse = z.object({
     success: z.boolean(),
     data: z.object({
@@ -166,6 +171,110 @@ usersRoutes.openapi(
 )
 
 /**
+ * Reset User Password (admin/platform-admin only).
+ *
+ * @route POST /users/:id/reset-password
+ */
+usersRoutes.openapi(
+    createRoute({
+        method: 'post',
+        path: '/{id}/reset-password',
+        tags: ['Users'],
+        summary: 'Reset User Password',
+        security: [{ BearerAuth: [] }],
+        request: {
+            params: z.object({
+                id: z.string().openapi({ param: { name: 'id', in: 'path' } }),
+            }),
+            body: {
+                content: {
+                    'application/json': {
+                        schema: ResetPasswordSchema,
+                    },
+                },
+            },
+        },
+        responses: {
+            200: {
+                description: 'Password reset successful',
+                content: {
+                    'application/json': {
+                        schema: z.object({
+                            success: z.boolean(),
+                            message: z.string(),
+                            data: UserSchema,
+                        }),
+                    },
+                },
+            },
+            403: {
+                description: 'Forbidden',
+                content: {
+                    'application/json': {
+                        schema: z.object({
+                            success: z.boolean(),
+                            error: z.string(),
+                            code: z.string(),
+                        }),
+                    },
+                },
+            },
+        },
+    }),
+    async (c) => {
+        const { id } = c.req.valid('param')
+        const tenantId = c.get('tenantId')!
+        const body = c.req.valid('json')
+        const userPermissions = (c.get('userPermissions') as string[]) || []
+        const isSystemUser = c.get('isSystemUser')
+
+        const canResetPassword =
+            isSystemUser ||
+            userPermissions.includes('admin.super_admin') ||
+            userPermissions.includes('admin.users.manage') ||
+            userPermissions.includes('SUPER_ADMIN') ||
+            userPermissions.includes('MANAGE_USERS')
+
+        if (!canResetPassword) {
+            return c.json(
+                {
+                    success: false,
+                    error: 'Insufficient permission to reset user password',
+                    code: 'FORBIDDEN',
+                },
+                403
+            )
+        }
+
+        const effect = pipe(
+            usersService.resetPassword(id, body.newPassword, tenantId, {
+                forcePasswordChange: body.forcePasswordChange,
+            }),
+            Effect.map((user) => ({
+                success: true,
+                message: 'Password reset successfully',
+                data: {
+                    id: user.id,
+                    email: user.email,
+                    fullName: user.fullName,
+                    username: user.username,
+                    phone: user.phone ?? null,
+                    department: user.department ?? null,
+                    position: user.position ?? null,
+                    tenantId: user.tenantId ?? null,
+                    isVerified: user.isVerified ?? false,
+                    emailVerifiedAt: user.emailVerifiedAt ? user.emailVerifiedAt.toISOString() : null,
+                    lastLoginAt: user.lastLoginAt ? user.lastLoginAt.toISOString() : null,
+                    isActive: user.isActive ?? false,
+                },
+            }))
+        )
+
+        return runEffect(c, effect)
+    }
+)
+
+/**
  * Create User.
  * Register a new user in the tenant.
  * 
@@ -249,9 +358,7 @@ usersRoutes.openapi(
                 }
             })
         )
-
-        const result = await runEffect(c, effect)
-        return c.json(result, result.approvalRequired ? 202 : 201)
+        return runEffect(c, effect, (result: any) => result.approvalRequired ? 202 : 201)
     }
 )
 
@@ -640,9 +747,7 @@ usersRoutes.openapi(
                 }
             })
         )
-
-        const result = await runEffect(c, effect)
-        return c.json(result)
+        return runEffect(c, effect)
     }
 )
 

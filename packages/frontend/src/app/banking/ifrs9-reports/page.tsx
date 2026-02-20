@@ -3,6 +3,7 @@
 
 import React, { useState } from 'react';
 import {
+  Alert,
   Box,
   Typography,
   Grid,
@@ -16,10 +17,6 @@ import {
   Tabs,
   Tab,
   Paper,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
   Divider
 } from '@mui/material';
 import {
@@ -32,7 +29,7 @@ import {
   Launch as LaunchIcon,
   Info as InfoIcon
 } from '@mui/icons-material';
-import { useRouter } from 'next/navigation';
+import { Can } from '@/components/rbac/Can';
 
 // Import all IFRS 9 report components
 import NominativeReport from '../../../components/ifrs9/NominativeReport';
@@ -66,7 +63,6 @@ function TabPanel(props: TabPanelProps) {
 
 const IFRS9ReportsPage: React.FC = () => {
   const [selectedTab, setSelectedTab] = useState(0);
-  const router = useRouter();
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setSelectedTab(newValue);
@@ -235,17 +231,23 @@ const IFRS9ReportsPage: React.FC = () => {
         >
           View Report
         </Button>
-        <Button size="small" color="inherit">
-          Export
-        </Button>
+        <Can permission={['banking.reports.ifrs9.export', 'banking.reports.ifrs9.manage', 'banking.reports.ifrs9', 'admin.super_admin']}>
+          <Button size="small" color="inherit">
+            Export
+          </Button>
+        </Can>
       </CardActions>
     </Card>
   );
 
   return (
-    <Box sx={{ p: 3 }}>
-      {/* Header */}
-      <Box sx={{ mb: 4 }}>
+    <Can
+      permission={['banking.reports.ifrs9.view', 'admin.super_admin']}
+      fallback={<Alert severity="error">You do not have permission to access IFRS 9 Reports.</Alert>}
+    >
+      <Box sx={{ p: 3 }}>
+        {/* Header */}
+        <Box sx={{ mb: 4 }}>
         <Typography variant="h3" component="h1" gutterBottom>
           IFRS 9 Reports Dashboard
         </Typography>
@@ -364,40 +366,41 @@ const IFRS9ReportsPage: React.FC = () => {
         <GCAMovementReport />
       </TabPanel>
 
-      {/* Information Panel */}
-      <Paper sx={{ mt: 4, p: 3, bgcolor: 'info.light', color: 'white' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <InfoIcon sx={{ mr: 1 }} />
-          <Typography variant="h6">Database Integration Information</Typography>
-        </Box>
-        <Grid container spacing={2}>
-          <Grid size={{ xs: 12, md: 4 }}>
-            <Typography variant="body2" sx={{ mb: 1, fontWeight: 'bold' }}>
-              Database Server:
-            </Typography>
-            <Typography variant="body2">
-              DS2 FRS9PRO (192.168.0.106:5433)
-            </Typography>
+        {/* Information Panel */}
+        <Paper sx={{ mt: 4, p: 3, bgcolor: 'info.light', color: 'white' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+            <InfoIcon sx={{ mr: 1 }} />
+            <Typography variant="h6">Database Integration Information</Typography>
+          </Box>
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 12, md: 4 }}>
+              <Typography variant="body2" sx={{ mb: 1, fontWeight: 'bold' }}>
+                Database Server:
+              </Typography>
+              <Typography variant="body2">
+                DS2 FRS9PRO (192.168.0.106:5433)
+              </Typography>
+            </Grid>
+            <Grid size={{ xs: 12, md: 4 }}>
+              <Typography variant="body2" sx={{ mb: 1, fontWeight: 'bold' }}>
+                Data Sources:
+              </Typography>
+              <Typography variant="body2">
+                Live PostgreSQL tables with actual banking data
+              </Typography>
+            </Grid>
+            <Grid size={{ xs: 12, md: 4 }}>
+              <Typography variant="body2" sx={{ mb: 1, fontWeight: 'bold' }}>
+                Update Frequency:
+              </Typography>
+              <Typography variant="body2">
+                Real-time (no cache, direct database queries)
+              </Typography>
+            </Grid>
           </Grid>
-          <Grid size={{ xs: 12, md: 4 }}>
-            <Typography variant="body2" sx={{ mb: 1, fontWeight: 'bold' }}>
-              Data Sources:
-            </Typography>
-            <Typography variant="body2">
-              Live PostgreSQL tables with actual banking data
-            </Typography>
-          </Grid>
-          <Grid size={{ xs: 12, md: 4 }}>
-            <Typography variant="body2" sx={{ mb: 1, fontWeight: 'bold' }}>
-              Update Frequency:
-            </Typography>
-            <Typography variant="body2">
-              Real-time (no cache, direct database queries)
-            </Typography>
-          </Grid>
-        </Grid>
-      </Paper>
-    </Box>
+        </Paper>
+      </Box>
+    </Can>
   );
 };
 

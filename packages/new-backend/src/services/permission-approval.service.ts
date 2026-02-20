@@ -160,20 +160,43 @@ export class PermissionApprovalService {
         Effect.tryPromise({
             try: async (): Promise<Map<string, ApprovalRequirement>> => {
                 const requirements = new Map<string, ApprovalRequirement>()
+                if (!Array.isArray(permissionIds) || permissionIds.length === 0) {
+                    return requirements
+                }
 
                 await Promise.all(
                     permissionIds.map(async (permissionId) => {
-                        const policy = await this.repository.findByPermission(
-                            tenantId,
-                            permissionId
-                        )
+                        try {
+                            const policy = await this.repository.findByPermission(
+                                tenantId,
+                                permissionId
+                            )
 
-                        requirements.set(permissionId, {
-                            requiresApproval: policy?.requiresApproval ?? false,
-                            minHierarchyLevel: policy?.minHierarchyLevel ?? null,
-                            requiredApprovers: policy?.requiredApprovers ?? 1,
-                            description: policy?.description ?? undefined,
-                        })
+                            requirements.set(permissionId, {
+                                requiresApproval: policy?.requiresApproval ?? false,
+                                minHierarchyLevel: policy?.minHierarchyLevel ?? null,
+                                requiredApprovers: policy?.requiredApprovers ?? 1,
+                                description: policy?.description ?? undefined,
+                            })
+                        } catch (error) {
+                            const msg = error instanceof Error ? error.message : String(error)
+                            const isMissingPolicyTable =
+                                msg.includes('permission_approval_policies') &&
+                                msg.includes('does not exist')
+
+                            if (!isMissingPolicyTable) {
+                                console.warn(
+                                    `[PermissionApprovalService] fallback to no-approval policy for permission ${permissionId}: ${msg}`
+                                )
+                            }
+
+                            requirements.set(permissionId, {
+                                requiresApproval: false,
+                                minHierarchyLevel: null,
+                                requiredApprovers: 1,
+                                description: undefined,
+                            })
+                        }
                     })
                 )
 

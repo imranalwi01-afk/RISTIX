@@ -40,6 +40,7 @@ import {
   Refresh
 } from '@mui/icons-material';
 import { RootState, selectUser } from '../../../../store';
+import { Can } from '@/components/rbac/Can';
 
 // Simple Error Boundary component for error handling
 class ErrorBoundary extends React.Component<
@@ -111,14 +112,23 @@ export default function RAnalyticsPage() {
   }
 
   return (
-    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <EmbeddedShinyApp
-        tenantSlug={tenantSlug}
-        bankingType={bankingType as any}
-        height="100%"
-        showControls={true}
-        fullscreenSupport={true}
-      />
-    </Box>
+    <Can
+      permission={['banking.analytics.r.view', 'banking.analytics.view', 'admin.super_admin']}
+      fallback={
+        <Box sx={{ p: 3 }}>
+          <Alert severity="error">You do not have permission to access R Analytics.</Alert>
+        </Box>
+      }
+    >
+      <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+        <EmbeddedShinyApp
+          tenantSlug={tenantSlug}
+          bankingType={bankingType as any}
+          height="100%"
+          showControls={true}
+          fullscreenSupport={true}
+        />
+      </Box>
+    </Can>
   );
 }
