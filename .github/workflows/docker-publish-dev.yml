@@ -112,7 +112,7 @@ jobs:
 
     steps:
       - name: Login to GHCR
-        run: echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+        run: '"${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin'
 
       - name: Deploy with Docker Compose
         run: |
