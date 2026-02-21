@@ -71,7 +71,6 @@ services:
     container_name: ifrs9-new-backend-dev
     env_file:
       - .env
-      - backend.env
     environment:
       # Only set what needs to be different from .env
       NODE_ENV: development
@@ -117,7 +116,6 @@ services:
     container_name: ifrs9-frontend-dev
     env_file:
       - .env
-      - frontend.env
     environment:
       NODE_ENV: development
       BACKEND_INTERNAL_URL: ${BACKEND_INTERNAL_URL:-http://new-backend:4232}
@@ -138,7 +136,6 @@ services:
     working_dir: /app
     env_file:
       - .env
-      - frontend.env
     environment:
       - NODE_ENV=development
       - PORT=4231

@@ -94,7 +94,7 @@ ifrs9Routes.openapi(
         tags: ['IFRS9'],
         summary: 'Get Available Process Dates',
         responses: {
-            200: { content: { 'application/json': { schema: z.array(z.string()) } }, description: 'Available Dates' }
+            200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), data: z.array(z.string()) }) } }, description: 'Available Dates' }
         }
     }),
     (c: Context) => ifrs9CalculationsController.getAvailableDates(c)
