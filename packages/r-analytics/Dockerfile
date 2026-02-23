@@ -62,6 +62,7 @@ ENV USER_ID=demo_user
 ENV USER_EMAIL=demo@ifrspro.id
 ENV BANKING_ACCESS=BOTH
 ENV SYARIAH_CERTIFIED=false
+ENV R_ENABLE_CORS=true
 
 # Database connection defaults
 ENV DB_HOST=host.docker.internal

@@ -17,10 +17,15 @@ log_info("🚀 Starting IAF R Analytics API Service...")
 
 #* @filter cors
 function(res) {
-  # Remove explicit Origin header to avoid conflict with upstream proxy (Nginx/Ingress)
-  # res$setHeader("Access-Control-Allow-Origin", "*") 
-  res$setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-  res$setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Tenant-ID, Origin, Accept")
+  # Environment-based CORS toggle
+  # Default to TRUE if not specified
+  enable_cors <- tolower(Sys.getenv("R_ENABLE_CORS", "true")) == "true"
+  
+  if (enable_cors) {
+    res$setHeader("Access-Control-Allow-Origin", "*") 
+    res$setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+    res$setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Tenant-ID, Origin, Accept")
+  }
   plumber::forward()
 }
 
@@ -38,10 +43,14 @@ function(res) {
 #* @options /api/test/generate-data
 #* @options /test/generate-data
 function(res) {
-  # Remove explicit Origin header to prevent conflict
-  # res$setHeader("Access-Control-Allow-Origin", "*")
-  res$setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-  res$setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Tenant-ID, Origin, Accept")
+  # Environment-based Preflight responses
+  enable_cors <- tolower(Sys.getenv("R_ENABLE_CORS", "true")) == "true"
+  
+  if (enable_cors) {
+    res$setHeader("Access-Control-Allow-Origin", "*")
+    res$setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+    res$setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Tenant-ID, Origin, Accept")
+  }
   res$status <- 200
   return(list())
 }
