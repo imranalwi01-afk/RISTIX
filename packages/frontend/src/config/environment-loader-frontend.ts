@@ -112,8 +112,8 @@ class FrontendEnvironmentLoader {
         base: apiBase,
       },
       rAnalytics: {
-        api: process.env.NEXT_PUBLIC_RAPI_BASE_URL || process.env.NEXT_PUBLIC_R_API_URL || process.env.NEXT_PUBLIC_R_ANALYTICS_API || '/api',
-        dashboard: process.env.NEXT_PUBLIC_R_ANALYTICS_URL || process.env.NEXT_PUBLIC_R_DASHBOARD_URL || '',
+        api: process.env.NEXT_PUBLIC_RAPI_BASE_URL || process.env.NEXT_PUBLIC_R_API_URL || process.env.NEXT_PUBLIC_R_ANALYTICS_API || process.env.NEXT_PUBLIC_R_API_BASE_URL || '/api',
+        dashboard: process.env.NEXT_PUBLIC_R_ANALYTICS_URL || process.env.NEXT_PUBLIC_R_DASHBOARD_URL || process.env.NEXT_PUBLIC_R_ANALYTICS_BASE_URL || '',
       },
       urls: {
         frontend: frontendUrl,
