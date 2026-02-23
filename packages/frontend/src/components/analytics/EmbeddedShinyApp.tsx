@@ -186,11 +186,17 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
     }
     return config.rAnalytics.dashboard;
   });
+  const [customApiUrl, setCustomApiUrl] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('r_analytics_api_url') || config.rAnalytics.api;
+    }
+    return config.rAnalytics.api;
+  });
   const [showUrlConfig, setShowUrlConfig] = useState<boolean>(false);
 
   const API_CONFIG = {
-    IS_PRODUCTION: config.isProduction,
-    R_ANALYTICS_API: config.rAnalytics.api,
+    IS_PRODUCTION: config.isProduction || config.nodeEnv === 'production' || process.env.NEXT_PUBLIC_ENVIRONMENT === 'production' || process.env.NEXT_PUBLIC_ENVIRONMENT === 'development',
+    R_ANALYTICS_API: customApiUrl || config.rAnalytics.api,
     R_DASHBOARD_URL: customUrl || config.rAnalytics.dashboard,
     FRONTEND_URL: config.urls.frontend
   };
@@ -568,7 +574,10 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
     // Mark as initialized to prevent loops
     isInitialized.current = true;
 
-    if (useDirectEmbed) {
+    // Determine if we should use managed session handshake
+    const isSharedEnvironment = config.isProduction || process.env.NEXT_PUBLIC_ENVIRONMENT === 'production' || process.env.NEXT_PUBLIC_ENVIRONMENT === 'development';
+
+    if (useDirectEmbed && !isSharedEnvironment) {
       const directSession: RSessionData = {
         sessionId: `direct-${Date.now()}`,
         tenantSlug: tenantSlug || 'iaf',
@@ -595,7 +604,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
         isInitialized.current = false;
       });
     }
-  }, [autoStart, session, loading, error, tenantSlug, bankingType, onSessionCreate, createRSession, customUrl]);
+  }, [autoStart, session, loading, error, tenantSlug, bankingType, onSessionCreate, createRSession, customUrl, customApiUrl]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -812,23 +821,34 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
             </Typography>
 
             <Box sx={{ mt: 2, p: 1.5, bgcolor: 'rgba(0,0,0,0.05)', borderRadius: 1 }}>
-              <Typography variant="caption" sx={{ fontWeight: 'bold', display: 'block', mb: 0.5 }}>
-                Required Build Arguments in .github/workflows/docker-publish-dev.yml:
+              <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
+                Configuration Diagnostics:
               </Typography>
-              <Typography variant="caption" component="pre" sx={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
-                NEXT_PUBLIC_R_ANALYTICS_URL=https://iaf-ifrs-analytics.ifrspro.id{'\n'}
-                NEXT_PUBLIC_R_API_URL=https://iaf-ifrs-analytics-calc.ifrspro.id/api
+              <Typography variant="caption" component="div" sx={{ mb: 0.5 }}>
+                • Dashboard: {API_CONFIG.R_DASHBOARD_URL ? '✅ Found' : '❌ MISSING'}
+              </Typography>
+              <Typography variant="caption" component="div" sx={{ mb: 0.5 }}>
+                • API: {API_CONFIG.R_ANALYTICS_API !== '/api' ? '✅ Found' : '⚠️ Default'}
               </Typography>
             </Box>
 
-            <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
               <TextField
-                label="Override Embed URL"
+                label="Override Dashboard URL"
                 variant="outlined"
                 size="small"
                 fullWidth
                 value={customUrl}
                 onChange={(e) => setCustomUrl(e.target.value)}
+                sx={{ bgcolor: 'white' }}
+              />
+              <TextField
+                label="Override API URL"
+                variant="outlined"
+                size="small"
+                fullWidth
+                value={customApiUrl}
+                onChange={(e) => setCustomApiUrl(e.target.value)}
                 sx={{ bgcolor: 'white' }}
               />
               <Stack direction="row" spacing={1}>
@@ -837,15 +857,11 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
                   variant="contained"
                   onClick={() => {
                     localStorage.setItem('r_analytics_custom_url', customUrl);
+                    localStorage.setItem('r_analytics_api_url', customApiUrl);
                     isInitialized.current = false;
                     setError(null);
                     setLoading(true);
-                    if (API_CONFIG.IS_PRODUCTION && !customUrl.includes('localhost')) {
-                      createRSession();
-                    } else {
-                      // Trigger direct embed logic
-                      setLoading(false);
-                    }
+                    createRSession();
                   }}
                 >
                   Apply & Retry
@@ -855,14 +871,17 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
                   variant="outlined"
                   onClick={() => {
                     const defaultUrl = config.rAnalytics.dashboard;
+                    const defaultApi = config.rAnalytics.api;
                     setCustomUrl(defaultUrl);
+                    setCustomApiUrl(defaultApi);
                     localStorage.removeItem('r_analytics_custom_url');
+                    localStorage.removeItem('r_analytics_api_url');
                     isInitialized.current = false;
                     setError(null);
                     setLoading(true);
                   }}
                 >
-                  Reset to Default
+                  Reset All
                 </Button>
               </Stack>
             </Box>
@@ -1093,27 +1112,34 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1, minWidth: 400 }}>
             <Typography variant="body2" color="textSecondary">
-              Manually override the R Analytics embed URL if there are connection issues.
+              Manually override URLs if there are connection issues.
             </Typography>
             <TextField
               label="R Dashboard URL"
               fullWidth
               value={customUrl}
               onChange={(e) => setCustomUrl(e.target.value)}
-              helperText="Example: https://iaf-ifrs-analytics.ifrspro.id"
+              helperText={`Default: ${config.rAnalytics.dashboard}`}
             />
-            <Typography variant="caption" color="textSecondary">
-              Default: {config.rAnalytics.dashboard}
-            </Typography>
+            <TextField
+              label="R Analytics API URL"
+              fullWidth
+              value={customApiUrl}
+              onChange={(e) => setCustomApiUrl(e.target.value)}
+              helperText={`Default: ${config.rAnalytics.api}`}
+            />
           </Stack>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => {
             const defaultUrl = config.rAnalytics.dashboard;
+            const defaultApi = config.rAnalytics.api;
             setCustomUrl(defaultUrl);
+            setCustomApiUrl(defaultApi);
             localStorage.removeItem('r_analytics_custom_url');
+            localStorage.removeItem('r_analytics_api_url');
           }}>
-            Reset to Default
+            Reset All
           </Button>
           <Box sx={{ flexGrow: 1 }} />
           <Button onClick={() => setShowUrlConfig(false)}>Cancel</Button>
@@ -1121,6 +1147,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
             variant="contained"
             onClick={() => {
               localStorage.setItem('r_analytics_custom_url', customUrl);
+              localStorage.setItem('r_analytics_api_url', customApiUrl);
               setShowUrlConfig(false);
               isInitialized.current = false;
               setError(null);
