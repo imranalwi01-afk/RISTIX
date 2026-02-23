@@ -108,7 +108,7 @@ setup_database <- function() {
 
     # Try to load LGD configuration
     LGD <- tryCatch({
-      lgd_data <- DBI::dbGetQuery(con, 'SELECT * FROM "FRS9_IMP_CA_LGD_CONFIG"')
+      lgd_data <- DBI::dbGetQuery(con, "SELECT * FROM frs9_imp_ca_lgd_config")
       cat("✅ LGD configuration loaded:", nrow(lgd_data), "records\n")
       lgd_data
     }, error = function(e) {
@@ -119,7 +119,7 @@ setup_database <- function() {
 
     # Try to load PD configuration
     PD <- tryCatch({
-      pd_data <- DBI::dbGetQuery(con, 'SELECT * FROM "FRS9_IMP_CA_PD_CONFIG"')
+      pd_data <- DBI::dbGetQuery(con, "SELECT * FROM frs9_imp_ca_pd_config")
       cat("✅ PD configuration loaded:", nrow(pd_data), "records\n")
       pd_data
     }, error = function(e) {

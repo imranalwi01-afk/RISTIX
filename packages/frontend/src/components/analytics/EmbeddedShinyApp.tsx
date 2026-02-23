@@ -194,12 +194,12 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
   });
   const [showUrlConfig, setShowUrlConfig] = useState<boolean>(false);
 
-  const API_CONFIG = {
+  const API_CONFIG = React.useMemo(() => ({
     IS_PRODUCTION: config.isProduction || config.nodeEnv === 'production' || process.env.NEXT_PUBLIC_ENVIRONMENT === 'production' || process.env.NEXT_PUBLIC_ENVIRONMENT === 'development',
     R_ANALYTICS_API: customApiUrl || config.rAnalytics.api,
     R_DASHBOARD_URL: customUrl || config.rAnalytics.dashboard,
     FRONTEND_URL: config.urls.frontend
-  };
+  }), [customUrl, customApiUrl, config]);
 
   const styles = useShinyAppStyles(bankingType, theme);
 
@@ -402,7 +402,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
       setLoading(false);
       onSessionError?.(errorMessage);
     }
-  }, [token, user, tenantSlug, bankingType, modelType, onSessionCreate, error’s sionError, customApiUrl, API_CONFIG.IS_PRODUCTION, API_CONFIG.R_DASHBOARD_URL]);
+  }, [token, user, tenantSlug, bankingType, modelType, onSessionCreate, onSessionError, API_CONFIG]);
 
   const terminateSession = useCallback(async () => {
     if (!session || !token) return;
@@ -426,7 +426,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
     } catch (err) {
       console.error('❌ Failed to terminate R session:', err);
     }
-  }, [session, token, customApiUrl]);
+  }, [session, token, API_CONFIG]);
 
   const refreshSession = useCallback(async () => {
     if (!session || !token) return;
@@ -446,7 +446,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
     } catch (err) {
       console.error('❌ Failed to refresh session status:', err);
     }
-  }, [session, token, customApiUrl]);
+  }, [session, token, API_CONFIG]);
 
   // ============================================================================
   // 🌐 ENHANCED CROSS-FRAME COMMUNICATION
@@ -604,7 +604,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
         isInitialized.current = false;
       });
     }
-  }, [autoStart, session, loading, error, tenantSlug, bankingType, onSessionCreate, createRSession, customUrl, customApiUrl]);
+  }, [autoStart, session, loading, error, tenantSlug, bankingType, onSessionCreate, createRSession, API_CONFIG]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -850,10 +850,10 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
                   onClick={() => {
                     localStorage.setItem('r_analytics_custom_url', customUrl);
                     localStorage.setItem('r_analytics_api_url', customApiUrl);
+                    // Resetting these will trigger the auto-start useEffect with fresh URLs
                     isInitialized.current = false;
                     setError(null);
                     setLoading(true);
-                    createRSession();
                   }}
                 >
                   Apply & Retry

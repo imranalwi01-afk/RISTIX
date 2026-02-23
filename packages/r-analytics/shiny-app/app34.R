@@ -85,8 +85,8 @@ if (!is.null(con)) {
 }
 
 # Load konfigurasi
-LGD <- dbGetQuery(con, 'SELECT * FROM "FRS9_IMP_CA_LGD_CONFIG"')
-PD <- dbGetQuery(con, 'SELECT * FROM "FRS9_IMP_CA_PD_CONFIG"')
+LGD <- dbGetQuery(con, "SELECT * FROM frs9_imp_ca_lgd_config")
+PD <- dbGetQuery(con, "SELECT * FROM frs9_imp_ca_pd_config")
 
 
 pd_tables_map <- list(
@@ -990,9 +990,9 @@ server <- function(input, output, session) {
       }
     } else {
       query <- if (input$dependent == "PD") {
-        sprintf('SELECT * FROM "FRS9_IMP_CA_PD_ODR" WHERE "PD_CONFIG_ID" = %s', input$segment)
+        sprintf("SELECT * FROM frs9_imp_ca_pd_odr WHERE pd_config_id = %s", input$segment)
       } else {
-        sprintf('SELECT * FROM "FRS9_IMP_CA_LGD_H" WHERE "LGD_CONFIG_ID" = %s', input$segment)
+        sprintf("SELECT * FROM frs9_imp_ca_lgd_h WHERE lgd_config_id = %s", input$segment)
       }
       df <- dbGetQuery(con, query)
     }
@@ -3327,18 +3327,18 @@ server <- function(input, output, session) {
   })
 
   dataissuerrr0 <- eventReactive(input$runpdafl, {
-    datais <- dbGetQuery(con, 'SELECT  "PRC_DATE","BUCKET_FROM", "CALC_AMOUNT"
-    FROM "FRS9_IMP_CA_PD_ENR"
-    WHERE "PD_CONFIG_ID" = $1',
+    datais <- dbGetQuery(con, "SELECT prc_date, bucket_from, calc_amount
+    FROM frs9_imp_ca_pd_enr
+    WHERE pd_config_id = $1",
       params = list(input$segmentpd)
     )
     datais
   })
 
   konfig_id <- eventReactive(input$runpdafl, {
-    datacon <- dbGetQuery(con, 'SELECT  "POPULATION_TYPE","OBSERVATION_PERIOD", "OBSERVATION_START_DATE"
-    FROM "FRS9_IMP_CA_PD_CONFIG"
-    WHERE "PKID" = $1',
+    datacon <- dbGetQuery(con, "SELECT population_type, observation_period, observation_start_date
+    FROM frs9_imp_ca_pd_config
+    WHERE pkid = $1",
       params = list(input$segmentpd)
     )
     datacon
@@ -3374,8 +3374,8 @@ server <- function(input, output, session) {
 
 
   datammulttt0 <- eventReactive(input$runpdafl, {
-    dataemut <- dbGetQuery(con, 'SELECT * FROM "FRS9_IMP_CA_PD_MMULT"
-    WHERE "PD_CONFIG_ID" = $1',
+    dataemut <- dbGetQuery(con, "SELECT * FROM frs9_imp_ca_pd_mmult
+    WHERE pd_config_id = $1",
       params = list(input$segmentpd)
     )
     dataemut
