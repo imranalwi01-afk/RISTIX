@@ -402,7 +402,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
       setLoading(false);
       onSessionError?.(errorMessage);
     }
-  }, [token, user, tenantSlug, bankingType, modelType, onSessionCreate, onSessionError]);
+  }, [token, user, tenantSlug, bankingType, modelType, onSessionCreate, error’s sionError, customApiUrl, API_CONFIG.IS_PRODUCTION, API_CONFIG.R_DASHBOARD_URL]);
 
   const terminateSession = useCallback(async () => {
     if (!session || !token) return;
@@ -426,7 +426,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
     } catch (err) {
       console.error('❌ Failed to terminate R session:', err);
     }
-  }, [session, token]);
+  }, [session, token, customApiUrl]);
 
   const refreshSession = useCallback(async () => {
     if (!session || !token) return;
@@ -446,7 +446,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
     } catch (err) {
       console.error('❌ Failed to refresh session status:', err);
     }
-  }, [session, token]);
+  }, [session, token, customApiUrl]);
 
   // ============================================================================
   // 🌐 ENHANCED CROSS-FRAME COMMUNICATION
@@ -540,7 +540,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
     }
 
     const config = frontendEnvironmentLoader.getConfiguration();
-    const currentDashboardUrl = config.rAnalytics.dashboard;
+    const currentDashboardUrl = API_CONFIG.R_DASHBOARD_URL;
     const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 
     console.log('🔍 EmbeddedShinyApp - URL Resolution:', {
@@ -810,14 +810,6 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
             <AlertTitle>⚠️ Failed to Connect to R Analytics</AlertTitle>
             <Typography variant="body2" sx={{ mb: 1 }}>
               <strong>Error:</strong> {error}
-            </Typography>
-            <Typography variant="body2" sx={{ mb: 1, fontWeight: 'bold' }}>
-              URL Configuration Checklist:
-            </Typography>
-            <Typography variant="body2" component="ul" sx={{ pl: 2, mb: 2 }}>
-              <li>�️ Dashboard URL: {API_CONFIG.R_DASHBOARD_URL ? '✅ Found' : '❌ MISSING (NEXT_PUBLIC_R_ANALYTICS_URL)'}</li>
-              <li>🔗 API URL: {API_CONFIG.R_ANALYTICS_API !== '/api' ? '✅ Found' : '⚠️ Using Default (/api)'}</li>
-              <li>� Effective URL: {API_CONFIG.R_DASHBOARD_URL || 'None'}</li>
             </Typography>
 
             <Box sx={{ mt: 2, p: 1.5, bgcolor: 'rgba(0,0,0,0.05)', borderRadius: 1 }}>
