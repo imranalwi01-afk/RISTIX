@@ -42,7 +42,8 @@ import {
   Container,
   Switch,
   FormControlLabel,
-  Snackbar
+  Snackbar,
+  Pagination
 } from '@mui/material';
 import {
   KeyboardArrowDown,
@@ -334,6 +335,14 @@ export default function BucketParameterPage() {
   const [basisOptions, setBasisOptions] = useState<{ value1: string, paramdesc: string }[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // Pagination State
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    totalCount: 0,
+    totalPages: 0
+  });
+
   // Filter State
   const [searchTerm, setSearchTerm] = useState('');
   const [filterBasis, setFilterBasis] = useState('');
@@ -375,6 +384,8 @@ export default function BucketParameterPage() {
     setError(null);
     try {
       const params = {
+        page: pagination.page,
+        limit: pagination.limit,
         search: searchTerm || undefined,
         basis: filterBasis || undefined
       };
@@ -382,16 +393,33 @@ export default function BucketParameterPage() {
       const response = await bucketParameterAPI.getHeaders(params);
       if (response.success && response.data) {
         setBucketHeaders(response.data);
+        // Update pagination info from response if available
+        if (response.pagination) {
+          setPagination(prev => ({
+            ...prev,
+            totalCount: response.pagination?.total || 0,
+            totalPages: response.pagination?.totalPages || 0
+          }));
+        } else {
+          // Fallback: calculate total pages from data length
+          setPagination(prev => ({
+            ...prev,
+            totalCount: response.data?.length || 0,
+            totalPages: Math.ceil((response.data?.length || 0) / prev.limit)
+          }));
+        }
       } else {
         setError('Failed to load buckets from database');
+        setBucketHeaders([]);
       }
     } catch (error: any) {
       console.error('Error loading bucket headers:', error);
       setError(error.message || 'Failed to connect to database');
+      setBucketHeaders([]);
     } finally {
       setLoading(false);
     }
-  }, [searchTerm, filterBasis]);
+  }, [searchTerm, filterBasis, pagination.page, pagination.limit]);
 
   const loadPendingApprovals = useCallback(async () => {
     try {
@@ -408,12 +436,14 @@ export default function BucketParameterPage() {
   // ============================================================================
 
   const handleSearch = () => {
+    setPagination(prev => ({ ...prev, page: 1 })); // Reset to first page when searching
     loadBucketHeaders();
   };
 
   const handleRefresh = () => {
     setSearchTerm('');
     setFilterBasis('');
+    setPagination(prev => ({ ...prev, page: 1 })); // Reset to first page when refreshing
     loadBucketHeaders();
   };
 
@@ -576,6 +606,11 @@ export default function BucketParameterPage() {
     } catch (error: any) {
       setSnackbar({ open: true, message: error.message || 'Error saving bucket detail', type: 'error' });
     }
+  };
+
+  const handlePageChange = (event: React.ChangeEvent<unknown>, value: number) => {
+    setPagination(prev => ({ ...prev, page: value }));
+    loadBucketHeaders();
   };
 
   // ============================================================================
@@ -753,6 +788,20 @@ export default function BucketParameterPage() {
             <Alert severity="info">
               No bucket parameters found. Click Add Bucket Group to create one.
             </Alert>
+          )}
+          {pagination.totalPages > 1 && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3, mb: 2 }}>
+              <Pagination
+                count={pagination.totalPages}
+                page={pagination.page}
+                onChange={handlePageChange}
+                color="primary"
+                showFirstButton
+                showLastButton
+                disabled={loading}
+                data-testid="bucket-pagination"
+              />
+            </Box>
           )}
         </CardContent>
       </Card>

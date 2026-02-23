@@ -32,8 +32,9 @@ import {
     Visibility as VisibilityIcon,
     Download as DownloadIcon,
     FilterList as FilterListIcon
-} from '@mui/icons-material'
-import { api } from '@/services/api'
+} from '@mui/icons-material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { api } from '@/services/api';
 import { format } from 'date-fns'
 
 interface AuditLog {
@@ -202,26 +203,50 @@ export const AuditLogViewer: React.FC = () => {
                         </Grid>
 
                         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                            <TextField
-                                fullWidth
-                                size="small"
-                                type="date"
+                            <DatePicker
                                 label="Start Date"
-                                value={startDate}
-                                onChange={(e) => setStartDate(e.target.value)}
-                                InputLabelProps={{ shrink: true }}
+                                value={startDate ? new Date(startDate) : null}
+                                onChange={(newValue) => {
+                                    if (newValue) {
+                                        const dateStr = newValue instanceof Date 
+                                            ? newValue.toISOString().split('T')[0] 
+                                            : (newValue as any).toISOString().split('T')[0];
+                                        setStartDate(dateStr);
+                                    } else {
+                                        setStartDate('');
+                                    }
+                                }}
+                                slotProps={{
+                                    textField: {
+                                        fullWidth: true,
+                                        size: 'small',
+                                        InputLabelProps: { shrink: true }
+                                    }
+                                }}
                             />
                         </Grid>
 
                         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                            <TextField
-                                fullWidth
-                                size="small"
-                                type="date"
+                            <DatePicker
                                 label="End Date"
-                                value={endDate}
-                                onChange={(e) => setEndDate(e.target.value)}
-                                InputLabelProps={{ shrink: true }}
+                                value={endDate ? new Date(endDate) : null}
+                                onChange={(newValue) => {
+                                    if (newValue) {
+                                        const dateStr = newValue instanceof Date 
+                                            ? newValue.toISOString().split('T')[0] 
+                                            : (newValue as any).toISOString().split('T')[0];
+                                        setEndDate(dateStr);
+                                    } else {
+                                        setEndDate('');
+                                    }
+                                }}
+                                slotProps={{
+                                    textField: {
+                                        fullWidth: true,
+                                        size: 'small',
+                                        InputLabelProps: { shrink: true }
+                                    }
+                                }}
                             />
                         </Grid>
 

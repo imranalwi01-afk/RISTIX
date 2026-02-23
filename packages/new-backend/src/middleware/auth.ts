@@ -191,7 +191,7 @@ export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
             username: 'admin',
             email: 'admin@ifrspro.id',
             fullName: 'Platform Administrator',
-            tenantId: 'iaf',
+            tenantId: 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be',
             isActive: true,
             isPlatformAdmin: userRole === 'PLATFORM_SUPER_ADMIN' || userRole === 'ADMIN',
             role: userRole,
@@ -203,7 +203,7 @@ export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
         c.set('userId', mockUser.id)
         c.set('user', mockUser as any)
         c.set('tokenId', 'demo-token-jti')
-        c.set('tenantId', 'iaf') 
+        c.set('tenantId', 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be') 
         c.set('isSystemUser', mockUser.isPlatformAdmin)
         c.set('permissions', ['*'])
         c.set('userPermissions', ['*'])

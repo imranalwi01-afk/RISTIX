@@ -14,10 +14,10 @@ async function main() {
     try {
         console.log(`🔌 Connecting to ${DB_NAME}...`);
         const tables = await sql`
-            SELECT table_schema, table_name 
+            SELECT table_name 
             FROM information_schema.tables 
-            WHERE table_schema NOT IN ('information_schema', 'pg_catalog')
-            ORDER BY table_schema, table_name
+            WHERE table_schema = 'core'
+            ORDER BY table_name
         `;
         console.table(tables);
     } catch (err) {

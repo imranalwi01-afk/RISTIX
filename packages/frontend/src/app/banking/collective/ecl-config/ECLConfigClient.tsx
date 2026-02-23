@@ -60,8 +60,10 @@ import {
   Download as ExportIcon,
   ExpandMore as ExpandMoreIcon,
   PlayArrow as RunIcon,
-  Schedule as ScheduleIcon
+  Schedule as ScheduleIcon,
+  Event as EventIcon
 } from '@mui/icons-material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 
 import { useRouter } from 'next/navigation';
 
@@ -1034,16 +1036,28 @@ export default function ECLConfigurationPage() {
                 </Box>
 
                 <Box>
-                  <TextField
-                    fullWidth
+                  <DatePicker
                     label="Effective Date"
-                    type="date"
-                    value={headerFormData.effective_date || ''}
-                    onChange={(e) => handleHeaderFieldChange('effective_date', e.target.value)}
-                    error={!!formErrors.effective_date}
-                    helperText={formErrors.effective_date}
-                    required
-                    InputLabelProps={{ shrink: true }}
+                    value={headerFormData.effective_date ? new Date(headerFormData.effective_date) : null}
+                    onChange={(newValue) => {
+                      if (newValue) {
+                        const dateStr = newValue instanceof Date 
+                          ? newValue.toISOString().split('T')[0] 
+                          : (newValue as any).toISOString().split('T')[0];
+                        handleHeaderFieldChange('effective_date', dateStr);
+                      } else {
+                        handleHeaderFieldChange('effective_date', '');
+                      }
+                    }}
+                    slotProps={{
+                      textField: {
+                        fullWidth: true,
+                        error: !!formErrors.effective_date,
+                        helperText: formErrors.effective_date,
+                        required: true,
+                        InputLabelProps: { shrink: true }
+                      }
+                    }}
                   />
                 </Box>
 

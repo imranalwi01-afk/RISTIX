@@ -48,6 +48,7 @@ import {
   Radio,
   Grid
 } from '@mui/material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -515,14 +516,26 @@ export default function RuleBaseSettingModal({
 
     if (inputType === 'date') {
       return (
-        <TextField
+        <DatePicker
           label={valueLabel}
-          type="date"
-          value={detailForm[valueField] || ''}
-          onChange={(e) => handleDetailFormChange(valueField, e.target.value)}
-          fullWidth
-          required={required}
-          InputLabelProps={{ shrink: true }}
+          value={detailForm[valueField] ? new Date(detailForm[valueField] as string) : null}
+          onChange={(newValue) => {
+            if (newValue) {
+              const dateStr = newValue instanceof Date 
+                ? newValue.toISOString().split('T')[0] 
+                : (newValue as any).toISOString().split('T')[0];
+              handleDetailFormChange(valueField, dateStr);
+            } else {
+              handleDetailFormChange(valueField, '');
+            }
+          }}
+          slotProps={{
+            textField: {
+              fullWidth: true,
+              required: required,
+              InputLabelProps: { shrink: true }
+            }
+          }}
         />
       );
     }

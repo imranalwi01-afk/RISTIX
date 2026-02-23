@@ -61,6 +61,9 @@ ifrs9Routes.openapi(
         path: '/calculations/summary',
         tags: ['IFRS9'],
         summary: 'Get Calculation Summary',
+        request: {
+            query: z.object({ date: z.string().optional() })
+        },
         responses: {
             200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), data: z.any() }) } }, description: 'Summary' }
         }
@@ -74,11 +77,27 @@ ifrs9Routes.openapi(
         path: '/calculations/portfolio-trend',
         tags: ['IFRS9'],
         summary: 'Get Portfolio Trend',
+        request: {
+            query: z.object({ date: z.string().optional() })
+        },
         responses: {
             200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), data: z.any() }) } }, description: 'Trend' }
         }
     }),
     (c: Context) => ifrs9CalculationsController.getPortfolioTrend(c)
+)
+
+ifrs9Routes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/available-dates',
+        tags: ['IFRS9'],
+        summary: 'Get Available Process Dates',
+        responses: {
+            200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), data: z.array(z.string()) }) } }, description: 'Available Dates' }
+        }
+    }),
+    (c: Context) => ifrs9CalculationsController.getAvailableDates(c)
 )
 
 ifrs9Routes.openapi(
@@ -131,6 +150,23 @@ ifrs9Routes.openapi(
     }
 )
 
+// Move specific routes before parameterized routes
+ifrs9Routes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/calculations/batch-results',
+        tags: ['IFRS9'],
+        summary: 'Get Calculation Batch Results',
+        request: {
+            query: z.object({ date: z.string().optional() })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: CalculationListResponse } }, description: 'Batch Results' }
+        }
+    }),
+    async (c: Context) => ifrs9CalculationsController.getBatchResults(c)
+)
+
 ifrs9Routes.openapi(
     createRoute({
         method: 'get',
@@ -156,27 +192,6 @@ ifrs9Routes.openapi(
             message: 'IFRS9 calculation result - stub implementation',
         })
     }
-)
-
-// ifrs9Routes.get(
-//   "/calculations/batch-results",
-//   ifrs9CalculationsController.getBatchResults,
-// );
-
-ifrs9Routes.openapi(
-    createRoute({
-        method: 'get',
-        path: '/calculations/batch-results',
-        tags: ['IFRS9'],
-        summary: 'Get Calculation Batch Results',
-        request: {
-            query: z.object({ date: z.string().optional() })
-        },
-        responses: {
-            200: { content: { 'application/json': { schema: CalculationListResponse } }, description: 'Batch Results' }
-        }
-    }),
-    async (c: Context) => ifrs9CalculationsController.getBatchResults(c)
 )
 
 ifrs9Routes.openapi(

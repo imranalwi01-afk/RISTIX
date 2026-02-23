@@ -143,15 +143,85 @@ export class IndividualImpairmentService {
     // =========================================================================
 
     async getScenarios(tenantId: string, filters: { status?: string; limit?: number; offset?: number }) {
-        return [];
+        // Return mock scenarios data for development
+        const mockScenarios = [
+            {
+                pkid: 1,
+                scenarioCode: 'BASELINE_2024',
+                scenarioName: 'Baseline Scenario 2024',
+                description: 'Base economic scenario for 2024 with current market conditions',
+                status: 'APPROVED',
+                activeFlag: true,
+                createdDate: '2024-01-15T00:00:00.000Z',
+                createdBy: 'System Admin'
+            },
+            {
+                pkid: 2,
+                scenarioCode: 'STRESS_SEVERE',
+                scenarioName: 'Severe Stress Scenario',
+                description: 'Severe economic stress scenario with 30% GDP contraction and high unemployment',
+                status: 'PENDING',
+                activeFlag: false,
+                createdDate: '2024-02-01T00:00:00.000Z',
+                createdBy: 'Risk Manager'
+            },
+            {
+                pkid: 3,
+                scenarioCode: 'OPTIMISTIC_GROWTH',
+                scenarioName: 'Optimistic Growth Scenario',
+                description: 'Optimistic scenario with 5% annual GDP growth and low unemployment',
+                status: 'DRAFT',
+                activeFlag: false,
+                createdDate: '2024-01-20T00:00:00.000Z',
+                createdBy: 'Economic Analyst'
+            },
+            {
+                pkid: 4,
+                scenarioCode: 'INFLATION_SPIKE',
+                scenarioName: 'Inflation Spike Scenario',
+                description: 'High inflation scenario with 10% annual inflation rate and interest rate hikes',
+                status: 'APPROVED',
+                activeFlag: true,
+                createdDate: '2024-01-25T00:00:00.000Z',
+                createdBy: 'Chief Economist'
+            }
+        ];
+
+        // Apply filters
+        let filteredScenarios = mockScenarios;
+        if (filters.status) {
+            filteredScenarios = filteredScenarios.filter(s => s.status === filters.status);
+        }
+
+        return filteredScenarios;
     }
 
     async createScenario(data: any) {
-        return [];
+        // Create new scenario with mock data
+        const newScenario = {
+            pkid: Date.now(), // Use timestamp as ID for demo
+            scenarioCode: data.scenarioCode,
+            scenarioName: data.scenarioName,
+            description: data.description || '',
+            status: 'DRAFT',
+            activeFlag: false,
+            createdDate: new Date().toISOString(),
+            createdBy: data.createdBy || 'Current User'
+        };
+
+        return [newScenario];
     }
 
     async updateScenarioStatus(id: string, tenantId: string, status: string, approverId?: string) {
-        return [];
+        // Update scenario status with mock data
+        const updatedScenario = {
+            pkid: parseInt(id),
+            status: status,
+            updatedDate: new Date().toISOString(),
+            updatedBy: approverId || 'Current User'
+        };
+
+        return [updatedScenario];
     }
 
     // =========================================================================
@@ -577,6 +647,100 @@ export class IndividualImpairmentService {
         const result = await legacyDb.execute(sql`SELECT MAX(ia_id) as max_id FROM frs9_imp_ia_header`);
         const maxId = Number(result[0]?.max_id) || 0;
         return maxId + 1;
+    }
+
+    // Get Staging Analysis - real implementation with filters
+    async getStagingAnalysis(tenantId: string, filters: { 
+        stage?: string; 
+        segmentId?: string; 
+        startDate?: string; 
+        endDate?: string 
+    } = {}) {
+        try {
+            // Build WHERE conditions dynamically
+            const whereConditions = [];
+            
+            if (filters.stage) {
+                whereConditions.push(sql`stage = ${filters.stage}`);
+            }
+            
+            if (filters.segmentId) {
+                whereConditions.push(sql`segment_id = ${filters.segmentId}`);
+            }
+            
+            if (filters.startDate) {
+                whereConditions.push(sql`prc_date >= ${filters.startDate}`);
+            }
+            
+            if (filters.endDate) {
+                whereConditions.push(sql`prc_date <= ${filters.endDate}`);
+            }
+
+            const whereClause = whereConditions.length > 0 
+                ? sql`WHERE ${whereConditions.reduce((acc, condition, index) => 
+                    index === 0 ? condition : sql`${acc} AND ${condition}`
+                )}`
+                : sql``;
+
+            // Query frs9_imp_ca_result_h for staging analysis with filters
+            const query = sql`
+                SELECT 
+                    prc_date as "prcDate",
+                    stage,
+                    segment_id as "segmentId",
+                    SUM(CAST(outstanding AS DECIMAL)) as "totalOutstanding",
+                    SUM(CAST(ecl_amount AS DECIMAL)) as "totalECL",
+                    AVG(CAST(outstanding AS DECIMAL)) as "avgOutstanding"
+                FROM frs9_imp_ca_result_h 
+                ${whereClause}
+                GROUP BY prc_date, stage, segment_id
+                ORDER BY prc_date DESC, stage
+            `;
+            
+            const result = await legacyDb.execute(query);
+            return result;
+        } catch (error) {
+            console.error('Error in getStagingAnalysis:', error);
+            throw error;
+        }
+    }
+
+    // Get Staging Summary - real implementation  
+    async getStagingSummary(tenantId: string) {
+        try {
+            // Get latest staging summary
+            const query = sql`
+                SELECT 
+                    SUM(CAST(outstanding AS DECIMAL)) as "totalOutstanding",
+                    SUM(CAST(ecl_amount AS DECIMAL)) as "totalECL",
+                    COUNT(CASE WHEN stage = 1 THEN 1 END) as "stage1Count",
+                    COUNT(CASE WHEN stage = 2 THEN 1 END) as "stage2Count", 
+                    COUNT(CASE WHEN stage = 3 THEN 1 END) as "stage3Count",
+                    SUM(CASE WHEN stage = 1 THEN CAST(ecl_amount AS DECIMAL) ELSE 0 END) as "stage1ECL",
+                    SUM(CASE WHEN stage = 2 THEN CAST(ecl_amount AS DECIMAL) ELSE 0 END) as "stage2ECL",
+                    SUM(CASE WHEN stage = 3 THEN CAST(ecl_amount AS DECIMAL) ELSE 0 END) as "stage3ECL"
+                FROM frs9_imp_ca_result_h 
+                WHERE prc_date = (
+                    SELECT MAX(prc_date) 
+                    FROM frs9_imp_ca_result_h 
+                )
+            `;
+            
+            const result = await legacyDb.execute(query);
+            return result[0] || {
+                totalOutstanding: 0,
+                totalECL: 0,
+                stage1Count: 0,
+                stage2Count: 0,
+                stage3Count: 0,
+                stage1ECL: 0,
+                stage2ECL: 0,
+                stage3ECL: 0
+            };
+        } catch (error) {
+            console.error('Error in getStagingSummary:', error);
+            throw error;
+        }
     }
 }
 

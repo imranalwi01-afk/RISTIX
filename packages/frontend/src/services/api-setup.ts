@@ -134,10 +134,17 @@ apiClient.interceptors.request.use(
             if (token) {
                 config.headers.Authorization = `Bearer ${token}`;
             } else {
-                console.warn('⚠️ [API Setup] No token available for request:', config.url);
-                console.warn('   → Cookie token:', cookieToken ? 'exists' : 'missing');
-                console.warn('   → LocalStorage token:', localToken ? 'exists' : 'missing');
-                console.warn('   → All cookies:', allCookies);
+                // Development demo token fallback
+                if (process.env.NODE_ENV === 'development') {
+                    const demoToken = 'demo_token_PLATFORM_SUPER_ADMIN';
+                    config.headers.Authorization = `Bearer ${demoToken}`;
+                    console.log('🎭 [API Setup] Using demo token for development:', config.url);
+                } else {
+                    console.warn('⚠️ [API Setup] No token available for request:', config.url);
+                    console.warn('   → Cookie token:', cookieToken ? 'exists' : 'missing');
+                    console.warn('   → LocalStorage token:', localToken ? 'exists' : 'missing');
+                    console.warn('   → All cookies:', allCookies);
+                }
             }
 
             // Tenant Context

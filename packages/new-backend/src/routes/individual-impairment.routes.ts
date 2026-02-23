@@ -603,3 +603,42 @@ individualImpairmentRoutes.openapi(
     }),
     (c) => individualImpairmentController.getDcfCashflows(c)
 )
+
+// STAGING ANALYSIS ROUTES
+individualImpairmentRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/staging-analysis',
+        tags: ['Individual Impairment'],
+        summary: 'Get Staging Analysis',
+        request: {
+            query: z.object({
+                stage: z.string().optional(),
+                segmentId: z.string().optional(),
+                startDate: z.string().optional(),
+                endDate: z.string().optional()
+            })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), data: z.array(z.any()) }) } }, description: 'Staging Analysis' },
+            401: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Unauthorized' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    (c) => individualImpairmentController.getStagingAnalysis(c)
+)
+
+individualImpairmentRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/staging-summary',
+        tags: ['Individual Impairment'],
+        summary: 'Get Staging Summary',
+        responses: {
+            200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), data: z.any() }) } }, description: 'Staging Summary' },
+            401: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Unauthorized' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    (c) => individualImpairmentController.getStagingSummary(c)
+)
