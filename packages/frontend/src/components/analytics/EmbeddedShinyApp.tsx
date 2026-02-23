@@ -179,6 +179,34 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
   // ✅ Load configuration inside component for fresh environment access
   const config = frontendEnvironmentLoader.getConfiguration();
 
+  const normalizeAnalyticsApiBaseUrl = useCallback((rawUrl?: string | null): string => {
+    if (!rawUrl) return '';
+
+    let normalized = String(rawUrl).trim();
+    if (!normalized) return '';
+
+    // Remove trailing slash for stable concatenation with endpoint paths
+    normalized = normalized.replace(/\/+$/, '');
+
+    // Map dashboard host to API host (calc) for known production domains
+    normalized = normalized
+      .replace('iaf-ifrs-analytics.ifrspro.id', 'iaf-ifrs-analytics-calc.ifrspro.id')
+      .replace('iaf-ifrs-analytics.danafin.com', 'iaf-ifrs-analytics-calc.danafin.com')
+      .replace('ifrs9-iaf-analytics.ifrspro.id', 'iaf-ifrs-analytics-calc.ifrspro.id')
+      .replace('ifrs9-iaf-analytics.danafin.com', 'iaf-ifrs-analytics-calc.danafin.com');
+
+    // Ensure API base path is present.
+    if (/^https?:\/\/[^/]+$/i.test(normalized)) {
+      normalized = `${normalized}/api`;
+    }
+
+    // If an override accidentally points directly to /session, roll back to base /api.
+    normalized = normalized.replace(/\/api\/session$/i, '/api');
+    normalized = normalized.replace(/\/session$/i, '/api');
+
+    return normalized;
+  }, []);
+
   // URL Override logic
   const [customUrl, setCustomUrl] = useState<string>(() => {
     if (typeof window !== 'undefined') {
@@ -187,19 +215,35 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
     return config.rAnalytics.dashboard;
   });
   const [customApiUrl, setCustomApiUrl] = useState<string>(() => {
+    const defaultApi = config.rAnalytics.api;
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('r_analytics_api_url') || config.rAnalytics.api;
+      const raw = localStorage.getItem('r_analytics_api_url') || defaultApi;
+      return String(raw || '').trim();
     }
-    return config.rAnalytics.api;
+    return String(defaultApi || '').trim();
   });
   const [showUrlConfig, setShowUrlConfig] = useState<boolean>(false);
 
+  useEffect(() => {
+    const normalizedApi = normalizeAnalyticsApiBaseUrl(customApiUrl || config.rAnalytics.api);
+    if (normalizedApi && normalizedApi !== customApiUrl) {
+      setCustomApiUrl(normalizedApi);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('r_analytics_api_url', normalizedApi);
+      }
+      console.warn('🔁 Normalized R analytics API URL', {
+        before: customApiUrl,
+        after: normalizedApi,
+      });
+    }
+  }, [customApiUrl, config.rAnalytics.api, normalizeAnalyticsApiBaseUrl]);
+
   const API_CONFIG = React.useMemo(() => ({
     IS_PRODUCTION: config.isProduction || config.nodeEnv === 'production' || process.env.NEXT_PUBLIC_ENVIRONMENT === 'production' || process.env.NEXT_PUBLIC_ENVIRONMENT === 'development',
-    R_ANALYTICS_API: customApiUrl || config.rAnalytics.api,
+    R_ANALYTICS_API: normalizeAnalyticsApiBaseUrl(customApiUrl || config.rAnalytics.api),
     R_DASHBOARD_URL: customUrl || config.rAnalytics.dashboard,
     FRONTEND_URL: config.urls.frontend
-  }), [customUrl, customApiUrl, config]);
+  }), [customUrl, customApiUrl, config, normalizeAnalyticsApiBaseUrl]);
 
   const styles = useShinyAppStyles(bankingType, theme);
 
@@ -258,8 +302,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
-          'X-Tenant-ID': user.tenantId || '',
-          'Origin': API_CONFIG.FRONTEND_URL
+          'X-Tenant-ID': user.tenantId || ''
         },
         body: JSON.stringify(sessionRequest)
       });
@@ -281,8 +324,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
                 await fetch(`${API_CONFIG.R_ANALYTICS_API}/session/${errorData.data.existingSession.sessionId}`, {
                   method: 'DELETE',
                   headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Origin': API_CONFIG.FRONTEND_URL
+                    'Authorization': `Bearer ${token}`
                   }
                 });
 
@@ -411,8 +453,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
       const response = await fetch(`${API_CONFIG.R_ANALYTICS_API}/session/${session.sessionId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Origin': API_CONFIG.FRONTEND_URL
+          'Authorization': `Bearer ${token}`
         }
       });
 

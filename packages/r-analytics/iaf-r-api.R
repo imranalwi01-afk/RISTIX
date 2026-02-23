@@ -16,7 +16,7 @@ log_error <- function(message) {
 log_info("🚀 Starting IAF R Analytics API Service...")
 
 #* @filter cors
-function(res) {
+function(req, res) {
   # Environment-based CORS toggle
   # Default to TRUE if not specified
   enable_cors <- tolower(Sys.getenv("R_ENABLE_CORS", "true")) == "true"
@@ -24,35 +24,15 @@ function(res) {
   if (enable_cors) {
     res$setHeader("Access-Control-Allow-Origin", "*") 
     res$setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-    res$setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Tenant-ID, Origin, Accept")
+    res$setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Tenant-ID, X-Requested-With, Cache-Control, Origin, Accept")
+    
+    # Handle preflight OPTIONS request directly in the filter
+    if (req$REQUEST_METHOD == "OPTIONS") {
+      res$status <- 200
+      return(list())
+    }
   }
   plumber::forward()
-}
-
-#* @options /api/session
-#* @options /session
-#* @options /api/ecl/calculate
-#* @options /ecl/calculate
-#* @options /api/models/pd
-#* @options /models/pd
-#* @options /health
-#* @options /api/status
-#* @options /status
-#* @options /api/system/info
-#* @options /system/info
-#* @options /api/test/generate-data
-#* @options /test/generate-data
-function(res) {
-  # Environment-based Preflight responses
-  enable_cors <- tolower(Sys.getenv("R_ENABLE_CORS", "true")) == "true"
-  
-  if (enable_cors) {
-    res$setHeader("Access-Control-Allow-Origin", "*")
-    res$setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-    res$setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Tenant-ID, Origin, Accept")
-  }
-  res$status <- 200
-  return(list())
 }
 
 #* @apiTitle IAF IFRS9 R Analytics API
