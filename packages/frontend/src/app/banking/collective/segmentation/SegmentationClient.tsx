@@ -11,8 +11,25 @@ import {
   Container,
   Alert,
   Snackbar,
-  Drawer
+  Drawer,
+  Stack,
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Tooltip,
+  Button,
+  Chip,
+  Menu,
+  MenuItem
 } from '@mui/material';
+import {
+  Refresh as RefreshIcon,
+  Download as ExportIcon,
+  HelpOutline as HelpIcon,
+  FilterList as FilterIcon,
+  Add as AddIcon
+} from '@mui/icons-material';
 import { api } from '../../../../services/api';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 
@@ -61,6 +78,7 @@ export default function SegmentationClient() {
 
   // Search & Filter
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [filters, setFilters] = useState({
     segmentType: '',
     status: '',
@@ -70,17 +88,28 @@ export default function SegmentationClient() {
   });
 
   // Detail View
+  const [exportAnchorEl, setExportAnchorEl] = useState<null | HTMLElement>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerMode, setDrawerMode] = useState<'add' | 'edit' | 'view'>('view');
+  const [details, setDetails] = useState<any[]>([]);
+  const [formData, setFormData] = useState<any>({});
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailMode, setDetailMode] = useState<'add' | 'edit' | 'view'>('view');
   const [selectedHeader, setSelectedHeader] = useState<SegmentationHeaderData | null>(null);
 
+  // Permissions
+  const { hasPermission } = usePermission();
+  const canManageSegmentation = hasPermission('segmentation.manage');
+  const canViewSegmentation = hasPermission('segmentation.view');
+  const canExportSegmentation = hasPermission('segmentation.export');
+
   // UI Feedback
   const [error, setError] = useState<string | null>(null);
-  const [snackbar, setSnackbar] = useState<{ open: boolean, message: string, type: 'success' | 'info' | 'warning' | 'error' }>({ 
-    open: false, message: '', type: 'success' 
+  const [snackbar, setSnackbar] = useState<{ open: boolean, message: string, type: 'success' | 'info' | 'warning' | 'error' }>({
+    open: false, message: '', type: 'success'
   });
-  const [approvalNotification, setApprovalNotification] = useState<{ open: boolean, message: string }>({ 
-    open: false, message: '' 
+  const [approvalNotification, setApprovalNotification] = useState<{ open: boolean, message: string }>({
+    open: false, message: ''
   });
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
 
@@ -99,7 +128,7 @@ export default function SegmentationClient() {
         ...filters
       };
       const response = await api.banking.segmentation.getHeaders(params);
-      
+
       if (response && response.success) {
         setHeaders(response.data || []);
         setTotalCount(response.total || response.pagination?.total || (response.data?.length || 0));
@@ -185,7 +214,7 @@ export default function SegmentationClient() {
     loadHeaders();
   };
 
-  const handleOpenDrawer = async (mode: 'add' | 'edit' | 'view', header?: SegmentationHeader) => {
+  const handleOpenDrawer = async (mode: 'add' | 'edit' | 'view', header?: SegmentationHeaderData) => {
     if (mode !== 'view' && !canManageSegmentation) return;
     setDrawerMode(mode);
     setDrawerOpen(true);
@@ -210,12 +239,10 @@ export default function SegmentationClient() {
   const handleCloseDrawer = () => {
     setDrawerOpen(false);
     setSelectedHeader(null);
-    setDetailOpen(true);
   };
 
-
-  const handleSaveHeader = async (isDraft: boolean) => {
-    if (!canManageSegmentation) return;
+  const handleView = async (header: SegmentationHeaderData) => {
+    setLoading(true);
     try {
       const details = await api.banking.segmentation.getDetails(header.id);
       setDetailMode('view');
@@ -226,6 +253,11 @@ export default function SegmentationClient() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSaveHeader = async (isDraft: boolean) => {
+    if (!canManageSegmentation) return;
+    handleSave(formData, isDraft);
   };
 
   const handleEdit = async (header: SegmentationHeaderData) => {
@@ -244,11 +276,11 @@ export default function SegmentationClient() {
 
   const handleDelete = async (header: SegmentationHeaderData) => {
     if (!window.confirm(`Are you sure you want to delete segment "${header.group_segment}"?`)) return;
-    
+
     setLoading(true);
     try {
       const response = await api.banking.segmentation.deleteHeader(header.id);
-      
+
       if (response.approvalRequired) {
         // Auto-approve for development/demo user
         if (process.env.NODE_ENV === 'development') {
@@ -257,10 +289,10 @@ export default function SegmentationClient() {
             await api.banking.approval.approveRequest(response.requestId, {
               comment: 'Auto-approved for development testing'
             });
-            setSnackbar({ 
-              open: true, 
-              message: 'Segmentation deleted successfully (auto-approved)', 
-              type: 'success' 
+            setSnackbar({
+              open: true,
+              message: 'Segmentation deleted successfully (auto-approved)',
+              type: 'success'
             });
           } catch (approveError) {
             console.error('Auto-approve failed:', approveError);
@@ -278,14 +310,14 @@ export default function SegmentationClient() {
       } else {
         setSnackbar({ open: true, message: 'Segmentation deleted successfully', type: 'success' });
       }
-      
+
       loadHeaders();
       loadPendingApprovals();
     } catch (err: any) {
-      setSnackbar({ 
-        open: true, 
-        message: err.response?.data?.message || 'Delete failed', 
-        type: 'error' 
+      setSnackbar({
+        open: true,
+        message: err.response?.data?.message || 'Delete failed',
+        type: 'error'
       });
     } finally {
       setLoading(false);
@@ -297,11 +329,11 @@ export default function SegmentationClient() {
     try {
       const details = await api.banking.segmentation.getDetails(header.id);
       setDetailMode('add');
-      setSelectedHeader({ 
-        ...header, 
-        id: 0, 
-        status: 'Draft', 
-        rules: (details.data || details || []).map((r: any) => ({ ...r, id: undefined })) 
+      setSelectedHeader({
+        ...header,
+        id: 0,
+        status: 'Draft',
+        rules: (details.data || details || []).map((r: any) => ({ ...r, id: undefined }))
       });
       setDetailOpen(true);
     } catch (err) {
@@ -337,10 +369,10 @@ export default function SegmentationClient() {
           message: response.message || 'Request submitted for approval'
         });
       } else {
-        setSnackbar({ 
-          open: true, 
-          message: `Segmentation ${detailMode === 'add' ? 'created' : 'updated'} successfully`, 
-          type: 'success' 
+        setSnackbar({
+          open: true,
+          message: `Segmentation ${detailMode === 'add' ? 'created' : 'updated'} successfully`,
+          type: 'success'
         });
       }
 
@@ -348,34 +380,14 @@ export default function SegmentationClient() {
       loadHeaders();
       loadPendingApprovals();
     } catch (err: any) {
-      setSnackbar({ 
-        open: true, 
-        message: err.response?.data?.message || 'Save failed', 
-        type: 'error' 
+      setSnackbar({
+        open: true,
+        message: err.response?.data?.message || 'Save failed',
+        type: 'error'
       });
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleDelete = async (header: SegmentationHeader) => {
-    if (!canManageSegmentation) return;
-    if (!confirm(`Are you sure you want to delete "${header.group_segment}"?`)) return;
-    try {
-      const response = await api.banking.segmentation.deleteHeader(header.id);
-      const isApprovalResponse = response.approvalRequired || response.status === 202;
-
-      if (isApprovalResponse) {
-        setApprovalNotification({
-          open: true,
-          message: response.message || 'Deletion request submitted for approval'
-        });
-      } else {
-        setSnackbar({ open: true, message: 'Segmentation deleted', type: 'success' });
-      }
-      loadHeaders();
-      loadPendingApprovals();
-    } catch (err) { setSnackbar({ open: true, message: 'Delete failed', type: 'error' }); }
   };
 
   // ============================================================================
@@ -392,7 +404,7 @@ export default function SegmentationClient() {
       )}
 
       {/* Header Section */}
-      <SegmentationHeader 
+      <SegmentationHeader
         onRefresh={loadHeaders}
         onExport={handleExport}
         onHelp={() => window.open('#', '_blank')}
@@ -443,37 +455,6 @@ export default function SegmentationClient() {
         </Alert>
       )}
 
-            <Tooltip title="Shortcut: F">
-              <Button variant="outlined" startIcon={<FilterIcon />} onClick={() => setFilterDrawerOpen(true)}>
-                Filters
-              </Button>
-            </Tooltip>
-
-            <Tooltip title="Shortcut: A">
-              {canManageSegmentation ? (
-                <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenDrawer('add')} sx={{ px: 4 }}>
-                  Add Segmentation
-                </Button>
-              ) : (
-                <span />
-              )}
-            </Tooltip>
-          </Stack>
-
-          {(filters.segmentType || filters.status || filters.tableName) && (
-            <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
-              {filters.segmentType && <Chip label={`Type: ${filters.segmentType}`} onDelete={() => setFilters(prev => ({ ...prev, segmentType: '' }))} />}
-              <Typography variant="caption" sx={{ alignSelf: 'center', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => setFilters({ segmentType: '', status: '', tableName: '', columnName: '', operator: '' })}>
-                Clear All
-              </Typography>
-            </Stack>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Error Alert */}
-      {error && <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>{error}</Alert>}
-
       {/* Main Table */}
       <SegmentationTable
         data={headers}
@@ -496,20 +477,21 @@ export default function SegmentationClient() {
         pendingRequests={pendingRequests}
       />
 
-      {/* Drawers */}
-      <SegmentationDrawer
-        open={drawerOpen}
-        onClose={handleCloseDrawer}
-        mode={drawerMode}
-        canManage={canManageSegmentation}
-        initialData={selectedHeader}
-        formData={formData}
-        setFormData={setFormData}
-        rules={details}
-        onRulesChange={setDetails}
-        onSaveHeader={handleSaveHeader}
-        history={MOCK_HISTORY}
-      />
+      {detailOpen && selectedHeader && (
+        <Drawer
+          anchor="right"
+          open={detailOpen}
+          onClose={() => setDetailOpen(false)}
+          PaperProps={{ sx: { width: { xs: '100%', md: '80%', lg: '70%' } } }}
+        >
+          <SegmentationDetail
+            mode={detailMode}
+            initialData={selectedHeader}
+            onSubmit={(data, isDraft) => handleSave(data, isDraft)}
+            onClose={() => setDetailOpen(false)}
+          />
+        </Drawer>
+      )}
 
       {/* Notifications */}
       <Snackbar

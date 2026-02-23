@@ -39,15 +39,15 @@ export const SegmentationDetailsTab: React.FC<SegmentationDetailsTabProps> = ({
     <Box>
       <Grid container spacing={4}>
         {/* Basic Information Section */}
-        <Grid item xs={12} md={8}>
+        <Grid size={{ xs: 12, md: 8 }}>
           <Paper variant="outlined" sx={{ p: 4, borderRadius: 2, bgcolor: '#fff' }}>
             <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 3 }}>
               <InfoIcon color="primary" fontSize="small" />
               <Typography variant="h6" fontWeight="bold">Basic Information</Typography>
             </Stack>
-            
+
             <Grid container spacing={3}>
-              <Grid item xs={12}>
+              <Grid size={12}>
                 <TextField
                   fullWidth
                   label="Group Segment"
@@ -61,8 +61,8 @@ export const SegmentationDetailsTab: React.FC<SegmentationDetailsTabProps> = ({
                   helperText="Unique identifier for the segmentation group"
                 />
               </Grid>
-              
-              <Grid item xs={12} md={6}>
+
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   fullWidth
                   label="Segment Name"
@@ -75,8 +75,8 @@ export const SegmentationDetailsTab: React.FC<SegmentationDetailsTabProps> = ({
                   sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
                 />
               </Grid>
-              
-              <Grid item xs={12} md={6}>
+
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   fullWidth
                   label="Sub-Segment"
@@ -89,7 +89,7 @@ export const SegmentationDetailsTab: React.FC<SegmentationDetailsTabProps> = ({
                 />
               </Grid>
 
-              <Grid item xs={12}>
+              <Grid size={12}>
                 <TextField
                   fullWidth
                   multiline
@@ -108,13 +108,13 @@ export const SegmentationDetailsTab: React.FC<SegmentationDetailsTabProps> = ({
         </Grid>
 
         {/* Configuration Section */}
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <Paper variant="outlined" sx={{ p: 4, borderRadius: 2, bgcolor: '#fff', height: '100%' }}>
             <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 3 }}>
               <SettingsIcon color="primary" fontSize="small" />
               <Typography variant="h6" fontWeight="bold">Configuration</Typography>
             </Stack>
-            
+
             <Stack spacing={4}>
               <FormControl fullWidth disabled={readOnly}>
                 <InputLabel id="segment-type-label">Segment Type</InputLabel>

@@ -42,6 +42,7 @@ interface SegmentationTableProps {
   onPageChange: (newPage: number) => void;
   onRowsPerPageChange: (newRowsPerPage: number) => void;
   pendingRequests?: any[];
+  canManage?: boolean;
 }
 
 export const SegmentationTable: React.FC<SegmentationTableProps> = ({
@@ -59,7 +60,8 @@ export const SegmentationTable: React.FC<SegmentationTableProps> = ({
   totalCount,
   onPageChange,
   onRowsPerPageChange,
-  pendingRequests = []
+  pendingRequests = [],
+  canManage = false
 }) => {
 
   const isSelected = (id: number) => selectedIds.includes(id);
@@ -99,17 +101,17 @@ export const SegmentationTable: React.FC<SegmentationTableProps> = ({
   );
 
   return (
-    <Paper 
-        sx={{ 
-            width: '100%', 
-            mb: 2, 
-            overflow: 'hidden', 
-            borderRadius: 2, 
-            boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
-            border: '1px solid',
-            borderColor: 'divider'
-        }} 
-        variant="elevation"
+    <Paper
+      sx={{
+        width: '100%',
+        mb: 2,
+        overflow: 'hidden',
+        borderRadius: 2,
+        boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
+        border: '1px solid',
+        borderColor: 'divider'
+      }}
+      variant="elevation"
     >
       <TableContainer sx={{ maxHeight: 'calc(100vh - 400px)' }}>
         <Table stickyHeader size="small" aria-label="segmentation table">
@@ -155,9 +157,9 @@ export const SegmentationTable: React.FC<SegmentationTableProps> = ({
             ) : data.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={9} align="center" sx={{ py: 10 }}>
-                  <EmptyState 
-                    title="No Segmentations Found" 
-                    description="Try adjusting your search or filters to find what you're looking for." 
+                  <EmptyState
+                    title="No Segmentations Found"
+                    description="Try adjusting your search or filters to find what you're looking for."
                   />
                 </TableCell>
               </TableRow>
@@ -175,10 +177,10 @@ export const SegmentationTable: React.FC<SegmentationTableProps> = ({
                     tabIndex={-1}
                     key={row.id}
                     selected={isItemSelected}
-                    sx={{ 
-                        '&:nth-of-type(even)': { backgroundColor: '#fcfcfc' },
-                        '&:hover': { backgroundColor: '#f1f5f9 !important' },
-                        transition: 'background-color 0.2s ease'
+                    sx={{
+                      '&:nth-of-type(even)': { backgroundColor: '#fcfcfc' },
+                      '&:hover': { backgroundColor: '#f1f5f9 !important' },
+                      transition: 'background-color 0.2s ease'
                     }}
                   >
                     <TableCell padding="checkbox">
@@ -195,21 +197,25 @@ export const SegmentationTable: React.FC<SegmentationTableProps> = ({
                             <ViewIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
-                        <Tooltip title="Edit">
-                          <IconButton size="small" onClick={() => onEdit(row)} color="warning" sx={{ p: 0.5 }}>
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Duplicate">
-                          <IconButton size="small" onClick={() => onDuplicate(row)} color="primary" sx={{ p: 0.5 }}>
-                            <DuplicateIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Delete">
-                          <IconButton size="small" onClick={() => onDelete(row)} color="error" sx={{ p: 0.5 }}>
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
+                        {canManage && (
+                          <>
+                            <Tooltip title="Edit">
+                              <IconButton size="small" onClick={() => onEdit(row)} color="warning" sx={{ p: 0.5 }}>
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Duplicate">
+                              <IconButton size="small" onClick={() => onDuplicate(row)} color="primary" sx={{ p: 0.5 }}>
+                                <DuplicateIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Delete">
+                              <IconButton size="small" onClick={() => onDelete(row)} color="error" sx={{ p: 0.5 }}>
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          </>
+                        )}
                       </Box>
                     </TableCell>
                     <TableCell sx={{ fontWeight: 600, color: 'primary.main' }}>
@@ -218,16 +224,16 @@ export const SegmentationTable: React.FC<SegmentationTableProps> = ({
                     <TableCell sx={{ fontWeight: 500 }}>{row.segment}</TableCell>
                     <TableCell color="text.secondary">{row.sub_segment || '-'}</TableCell>
                     <TableCell align="center">
-                      <Chip 
-                        label={row.segment_type} 
-                        size="small" 
-                        variant="outlined" 
-                        sx={{ 
-                            fontWeight: 'bold', 
-                            fontSize: '0.65rem',
-                            height: 20,
-                            borderRadius: 1
-                        }} 
+                      <Chip
+                        label={row.segment_type}
+                        size="small"
+                        variant="outlined"
+                        sx={{
+                          fontWeight: 'bold',
+                          fontSize: '0.65rem',
+                          height: 20,
+                          borderRadius: 1
+                        }}
                       />
                     </TableCell>
                     <TableCell align="center" sx={{ fontWeight: 'medium' }}>{row.seq}</TableCell>
@@ -240,12 +246,12 @@ export const SegmentationTable: React.FC<SegmentationTableProps> = ({
                           size="small"
                           color={getStatusColor(status) as any}
                           variant="filled"
-                          sx={{ 
-                              fontWeight: 'bold', 
-                              fontSize: '0.65rem',
-                              height: 20,
-                              minWidth: 70,
-                              borderRadius: 1
+                          sx={{
+                            fontWeight: 'bold',
+                            fontSize: '0.65rem',
+                            height: 20,
+                            minWidth: 70,
+                            borderRadius: 1
                           }}
                         />
                       )}
@@ -253,9 +259,9 @@ export const SegmentationTable: React.FC<SegmentationTableProps> = ({
                     <TableCell>
                       <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
                         {row.updated_date ? new Date(row.updated_date).toLocaleDateString(undefined, {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric'
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric'
                         }) : '-'}
                       </Typography>
                     </TableCell>
@@ -275,9 +281,9 @@ export const SegmentationTable: React.FC<SegmentationTableProps> = ({
         onPageChange={(_, p) => onPageChange(p)}
         onRowsPerPageChange={(e) => onRowsPerPageChange(parseInt(e.target.value, 10))}
         labelDisplayedRows={({ from, to, count }) => (
-            <Box component="span" sx={{ fontSize: '0.875rem' }}>
-                Showing <strong>{from}–{to}</strong> of <strong>{count}</strong>
-            </Box>
+          <Box component="span" sx={{ fontSize: '0.875rem' }}>
+            Showing <strong>{from}–{to}</strong> of <strong>{count}</strong>
+          </Box>
         )}
         sx={{ borderTop: '1px solid', borderColor: 'divider', bgcolor: '#f8fafc' }}
       />
