@@ -30,7 +30,8 @@ import {
   DialogActions,
   Stack,
   useTheme,
-  alpha
+  alpha,
+  TextField
 } from '@mui/material';
 import {
   Refresh,
@@ -42,7 +43,8 @@ import {
   Analytics,
   Error as ErrorIcon,
   CheckCircle,
-  Warning
+  Warning,
+  Settings
 } from '@mui/icons-material';
 import type { RootState } from '../../store';
 
@@ -176,10 +178,20 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
 
   // ✅ Load configuration inside component for fresh environment access
   const config = frontendEnvironmentLoader.getConfiguration();
+
+  // URL Override logic
+  const [customUrl, setCustomUrl] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('r_analytics_custom_url') || config.rAnalytics.dashboard;
+    }
+    return config.rAnalytics.dashboard;
+  });
+  const [showUrlConfig, setShowUrlConfig] = useState<boolean>(false);
+
   const API_CONFIG = {
     IS_PRODUCTION: config.isProduction,
     R_ANALYTICS_API: config.rAnalytics.api,
-    R_DASHBOARD_URL: config.rAnalytics.dashboard,
+    R_DASHBOARD_URL: customUrl || config.rAnalytics.dashboard,
     FRONTEND_URL: config.urls.frontend
   };
 
@@ -402,6 +414,8 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
         console.log('🛑 R session terminated:', session.sessionId);
         setSession(null);
         setError(null);
+        // Reset initialization on error or termination if needed
+        isInitialized.current = false;
       }
     } catch (err) {
       console.error('❌ Failed to terminate R session:', err);
@@ -578,10 +592,10 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
     if (autoStart && API_CONFIG.IS_PRODUCTION) {
       createRSession().catch(() => {
         // Optional: Reset initialization on failure if retry is desired
-        // isInitialized.current = false; 
+        isInitialized.current = false;
       });
     }
-  }, [autoStart, session, loading, error, tenantSlug, bankingType, onSessionCreate, createRSession]);
+  }, [autoStart, session, loading, error, tenantSlug, bankingType, onSessionCreate, createRSession, customUrl]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -707,6 +721,29 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
               />
             )}
           </Stack>
+          <Stack direction="row" spacing={1}>
+            <Tooltip title="URL Configuration">
+              <IconButton
+                size="small"
+                onClick={() => setShowUrlConfig(true)}
+                sx={{ color: 'white' }}
+              >
+                <Settings fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <IconButton
+              size="small"
+              onClick={() => {
+                isInitialized.current = false;
+                setError(null);
+                setLoading(true);
+                setTimeout(() => createRSession(), 500);
+              }}
+              sx={{ color: 'white' }}
+            >
+              <Refresh fontSize="small" />
+            </IconButton>
+          </Stack>
         </Box>
 
         <Box sx={styles.loadingOverlay}>
@@ -765,18 +802,70 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
             <Typography variant="body2" sx={{ mb: 1 }}>
               <strong>Error:</strong> {error}
             </Typography>
-            <Typography variant="body2" sx={{ mb: 1 }}>
-              <strong>Possible Solutions:</strong>
+            <Typography variant="body2" sx={{ mb: 1, fontWeight: 'bold' }}>
+              URL Configuration Checklist:
             </Typography>
-            <Typography variant="body2" component="ul" sx={{ pl: 2 }}>
-              <li>🔥 Check production domain accessibility</li>
-              <li>🌐 Verify Cloudflare tunnels are active</li>
-              <li>🚀 Ensure R servers are running</li>
-              <li>🔥 Check: {API_CONFIG.R_DASHBOARD_URL}</li>
+            <Typography variant="body2" component="ul" sx={{ pl: 2, mb: 2 }}>
+              <li>�️ Dashboard URL: {API_CONFIG.R_DASHBOARD_URL ? '✅ Found' : '❌ MISSING (NEXT_PUBLIC_R_ANALYTICS_URL)'}</li>
+              <li>🔗 API URL: {API_CONFIG.R_ANALYTICS_API !== '/api' ? '✅ Found' : '⚠️ Using Default (/api)'}</li>
+              <li>� Effective URL: {API_CONFIG.R_DASHBOARD_URL || 'None'}</li>
             </Typography>
-            <Typography variant="caption" color="textSecondary" sx={{ mt: 1, display: 'block' }}>
-              🔥🔥🔥 API: {API_CONFIG.R_ANALYTICS_API} 🔥🔥🔥   seems you need to embed this : {API_CONFIG.R_DASHBOARD_URL}
-            </Typography>
+
+            <Box sx={{ mt: 2, p: 1.5, bgcolor: 'rgba(0,0,0,0.05)', borderRadius: 1 }}>
+              <Typography variant="caption" sx={{ fontWeight: 'bold', display: 'block', mb: 0.5 }}>
+                Required Build Arguments in .github/workflows/docker-publish-dev.yml:
+              </Typography>
+              <Typography variant="caption" component="pre" sx={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
+                NEXT_PUBLIC_R_ANALYTICS_URL=https://iaf-ifrs-analytics.ifrspro.id{'\n'}
+                NEXT_PUBLIC_R_API_URL=https://iaf-ifrs-analytics-calc.ifrspro.id/api
+              </Typography>
+            </Box>
+
+            <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <TextField
+                label="Override Embed URL"
+                variant="outlined"
+                size="small"
+                fullWidth
+                value={customUrl}
+                onChange={(e) => setCustomUrl(e.target.value)}
+                sx={{ bgcolor: 'white' }}
+              />
+              <Stack direction="row" spacing={1}>
+                <Button
+                  size="small"
+                  variant="contained"
+                  onClick={() => {
+                    localStorage.setItem('r_analytics_custom_url', customUrl);
+                    isInitialized.current = false;
+                    setError(null);
+                    setLoading(true);
+                    if (API_CONFIG.IS_PRODUCTION && !customUrl.includes('localhost')) {
+                      createRSession();
+                    } else {
+                      // Trigger direct embed logic
+                      setLoading(false);
+                    }
+                  }}
+                >
+                  Apply & Retry
+                </Button>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => {
+                    const defaultUrl = config.rAnalytics.dashboard;
+                    setCustomUrl(defaultUrl);
+                    localStorage.removeItem('r_analytics_custom_url');
+                    isInitialized.current = false;
+                    setError(null);
+                    setLoading(true);
+                  }}
+                >
+                  Reset to Default
+                </Button>
+              </Stack>
+            </Box>
           </Alert>
 
           <Box sx={{ mt: 2 }}>
@@ -995,6 +1084,52 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
 
         <DialogActions>
           <Button onClick={() => setSessionDialogOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* URL Configuration Dialog */}
+      <Dialog open={showUrlConfig} onClose={() => setShowUrlConfig(false)}>
+        <DialogTitle>R Analytics URL Configuration</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1, minWidth: 400 }}>
+            <Typography variant="body2" color="textSecondary">
+              Manually override the R Analytics embed URL if there are connection issues.
+            </Typography>
+            <TextField
+              label="R Dashboard URL"
+              fullWidth
+              value={customUrl}
+              onChange={(e) => setCustomUrl(e.target.value)}
+              helperText="Example: https://iaf-ifrs-analytics.ifrspro.id"
+            />
+            <Typography variant="caption" color="textSecondary">
+              Default: {config.rAnalytics.dashboard}
+            </Typography>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => {
+            const defaultUrl = config.rAnalytics.dashboard;
+            setCustomUrl(defaultUrl);
+            localStorage.removeItem('r_analytics_custom_url');
+          }}>
+            Reset to Default
+          </Button>
+          <Box sx={{ flexGrow: 1 }} />
+          <Button onClick={() => setShowUrlConfig(false)}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={() => {
+              localStorage.setItem('r_analytics_custom_url', customUrl);
+              setShowUrlConfig(false);
+              isInitialized.current = false;
+              setError(null);
+              setLoading(true);
+              createRSession();
+            }}
+          >
+            Save & Reload
+          </Button>
         </DialogActions>
       </Dialog>
     </>
