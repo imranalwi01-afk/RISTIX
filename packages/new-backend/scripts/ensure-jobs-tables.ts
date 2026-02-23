@@ -20,6 +20,7 @@ async function main() {
         console.log(`🔌 Connecting to Tenant DB: ${TENANT_DB_NAME}...`);
         console.log('--- Ensuring Job Tables Exist in core Schema of Tenant DB ---');
 
+        await tenantSql.unsafe(`CREATE SCHEMA IF NOT EXISTS "core";`);
         await tenantSql.unsafe(`
             CREATE TABLE IF NOT EXISTS "core"."job_definitions" (
                 "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,

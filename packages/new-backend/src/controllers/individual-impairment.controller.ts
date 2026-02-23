@@ -1,10 +1,12 @@
-
 import { individualImpairmentService } from '@/services/individual-impairment.service';
 import { Context } from 'hono';
 
-
 export class IndividualImpairmentController {
+    private individualImpairmentService: any;
 
+    constructor() {
+        this.individualImpairmentService = individualImpairmentService;
+    }
 
     // ================= WATCHLIST =================
     async getWatchlist(c: Context) {
@@ -378,6 +380,50 @@ export class IndividualImpairmentController {
 
         // 4. Default System Error
         return c.json({ success: false, message: 'System Error: ' + msg }, 500);
+    }
+
+    // Get Staging Summary - for dashboard cards
+    async getStagingSummary(c: Context) {
+        try {
+            const tenantId = c.get('tenantId');
+            
+            if (!tenantId) {
+                return c.json({ success: false, message: 'Tenant ID required' }, 400);
+            }
+
+            // Get staging summary from calculation results
+            const summary = await this.individualImpairmentService.getStagingSummary(tenantId);
+            
+            return c.json({ success: true, data: summary });
+        } catch (error: any) {
+            return this.handleError(c, error);
+        }
+    }
+
+    // Get Staging Analysis - for detailed staging data
+    async getStagingAnalysis(c: Context) {
+        try {
+            const user = c.get('user');
+            if (!user?.tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
+
+            // Extract filter parameters
+            const stage = c.req.query('stage');
+            const segmentId = c.req.query('segmentId');
+            const startDate = c.req.query('startDate');
+            const endDate = c.req.query('endDate');
+
+            // Get staging analysis from calculation results with filters
+            const analysis = await this.individualImpairmentService.getStagingAnalysis(user.tenantId, {
+                stage,
+                segmentId,
+                startDate,
+                endDate
+            });
+            
+            return c.json({ success: true, data: analysis });
+        } catch (error: any) {
+            return this.handleError(c, error);
+        }
     }
 }
 

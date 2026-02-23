@@ -24,6 +24,9 @@ import { env, isProduction } from './config'
 import { routes } from './routes'
 import { businessSettingsRoutes } from './routes/business-settings.routes'
 import { errorHandler } from './middleware/error-handler'
+import { platformDb } from './config/database'
+import { platformTenants } from './db/schema/platform.schema'
+import { eq } from 'drizzle-orm'
 
 import type { User } from './db/schema'
 
@@ -148,6 +151,28 @@ export function createApp() {
             timestamp: new Date().toISOString(),
         })
     )
+
+    // === INTERNAL ONE-TIME FIX ROUTE ===
+    // Fix tenant name: Remove "(Local Development)" suffix from tenant names in DB
+    // Safe to call multiple times (idempotent). Remove this route after fix is confirmed.
+    app.get('/internal/fix-tenant-name', async (c) => {
+        const tenants = await platformDb.select().from(platformTenants)
+        const results: any[] = []
+        for (const tenant of tenants) {
+            if (tenant.name.includes('(Local Development)') || tenant.name.includes('Local Development')) {
+                const newName = tenant.name
+                    .replace(' (Local Development)', '')
+                    .replace('(Local Development)', '')
+                    .trim()
+                await platformDb.update(platformTenants)
+                    .set({ name: newName })
+                    .where(eq(platformTenants.id, tenant.id))
+                results.push({ code: tenant.code, before: tenant.name, after: newName })
+            }
+        }
+        return c.json({ success: true, fixed: results.length, details: results })
+    })
+    // === END INTERNAL FIX ROUTE ===
 
     // API routes
     app.route('/api/v1/banking/business-settings', businessSettingsRoutes) // Explicit mount for business settings

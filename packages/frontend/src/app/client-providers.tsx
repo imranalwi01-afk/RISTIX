@@ -13,6 +13,9 @@ import { BankingThemeProvider } from '../providers/BankingThemeProvider';
 
 import { store, persistor } from '../store';
 
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+
 export default function ClientProviders({ children }: { children: React.ReactNode }) {
   // WORKAROUND: Prevent MUI v7 SvgIcon from trying to access _theme_vars
   useEffect(() => {
@@ -28,8 +31,10 @@ export default function ClientProviders({ children }: { children: React.ReactNod
           <ConfigurationProvider>
             <AuthProvider>
               <BankingThemeProvider>
-                <CssBaseline />
-                {children as any}
+                <LocalizationProvider dateAdapter={AdapterDateFns}>
+                  <CssBaseline />
+                  {children as any}
+                </LocalizationProvider>
               </BankingThemeProvider>
             </AuthProvider>
           </ConfigurationProvider>

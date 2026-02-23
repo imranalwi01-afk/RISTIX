@@ -34,6 +34,7 @@ import {
   Clear as ClearIcon,
   FileDownload as ExportIcon
 } from '@mui/icons-material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { SafeDataGrid } from '@/components/shared/SafeDataGrid';
 import { GridColDef, GridPaginationModel, GridRenderCellParams } from '@mui/x-data-grid';
 import * as XLSX from 'xlsx';
@@ -434,14 +435,20 @@ const NominativeReport: React.FC = () => {
           <Grid container spacing={3}>
             {/* Primary Filters (Always Visible) */}
             <Grid size={{ xs: 12, md: 3 }}>
-              <TextField
-                fullWidth
+              <DatePicker
                 label="As-of Date"
-                type="date"
-                size="small"
-                value={filters.asOfDate}
-                onChange={(e) => setFilters(prev => ({ ...prev, asOfDate: e.target.value }))}
-                InputLabelProps={{ shrink: true }}
+                value={new Date(filters.asOfDate)}
+                onChange={(newValue) => {
+                  if (newValue) {
+                    setFilters(prev => ({ ...prev, asOfDate: newValue.toISOString().split('T')[0] }));
+                  }
+                }}
+                slotProps={{
+                  textField: {
+                    fullWidth: true,
+                    size: 'small',
+                  }
+                }}
               />
             </Grid>
 
@@ -540,26 +547,38 @@ const NominativeReport: React.FC = () => {
 
             {/* Advanced Filters */}
                  <Grid size={{ xs: 12, md: 3 }}>
-                  <TextField
-                    fullWidth
+                  <DatePicker
                     label="Download Start Date"
-                    type="date"
-                    size="small"
-                    value={filters.downloadDateStart}
-                    onChange={(e) => setFilters(prev => ({ ...prev, downloadDateStart: e.target.value }))}
-                    InputLabelProps={{ shrink: true }}
+                    value={new Date(filters.downloadDateStart)}
+                    onChange={(newValue) => {
+                      if (newValue) {
+                        setFilters(prev => ({ ...prev, downloadDateStart: newValue.toISOString().split('T')[0] }));
+                      }
+                    }}
+                    slotProps={{
+                      textField: {
+                        fullWidth: true,
+                        size: 'small',
+                      }
+                    }}
                   />
                 </Grid>
 
                 <Grid size={{ xs: 12, md: 3 }}>
-                  <TextField
-                    fullWidth
+                  <DatePicker
                     label="Download End Date"
-                    type="date"
-                    size="small"
-                    value={filters.downloadDateEnd}
-                    onChange={(e) => setFilters(prev => ({ ...prev, downloadDateEnd: e.target.value }))}
-                    InputLabelProps={{ shrink: true }}
+                    value={new Date(filters.downloadDateEnd)}
+                    onChange={(newValue) => {
+                      if (newValue) {
+                        setFilters(prev => ({ ...prev, downloadDateEnd: newValue.toISOString().split('T')[0] }));
+                      }
+                    }}
+                    slotProps={{
+                      textField: {
+                        fullWidth: true,
+                        size: 'small',
+                      }
+                    }}
                   />
                 </Grid>
 

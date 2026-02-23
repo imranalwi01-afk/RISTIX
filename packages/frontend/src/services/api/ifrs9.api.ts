@@ -1,15 +1,13 @@
 import { apiClient, API_BASE_URL } from '../api-setup';
-import axios from 'axios';
 
 // ============================================================================
 // IFRS9 CALCULATION API - REAL DATABASE INTEGRATION
 // ============================================================================
 export const ifrs9API = {
     // Get IFRS9 calculation summary from real backend
-    getCalculationsSummary: async () => {
-        console.log('📊 Fetching IFRS9 calculation summary from real database');
-        // ✅ NO FALLBACK: Let errors propagate naturally for proper error handling
-        const response = await apiClient.get('/ifrs9/calculations/summary');
+    getCalculationsSummary: async (date?: string) => {
+        console.log(`📊 Fetching IFRS9 calculation summary from real database${date ? ' for ' + date : ''}`);
+        const response = await apiClient.get('/ifrs9/calculations/summary', { params: { date } });
         return response.data;
     },
 
@@ -21,10 +19,22 @@ export const ifrs9API = {
         return response.data;
     },
 
-    getPortfolioTrend: async () => {
-        console.log('📉 Fetching portfolio trend from real database');
-        // ✅ NO FALLBACK: Let errors propagate for proper error handling
-        const response = await apiClient.get('/ifrs9/calculations/portfolio-trend');
+    // Get individual calculation results for a specific batch
+    getCalculationResults: async (date: string) => {
+        console.log(`📊 Fetching individual calculation results for ${date}`);
+        const response = await apiClient.get('/ifrs9/calculations/batch-results', { params: { date } });
+        return response.data;
+    },
+
+    getPortfolioTrend: async (date?: string) => {
+        console.log(`📉 Fetching portfolio trend from real database${date ? ' up to ' + date : ''}`);
+        const response = await apiClient.get('/ifrs9/calculations/portfolio-trend', { params: { date } });
+        return response.data;
+    },
+
+    getAvailableDates: async () => {
+        console.log('📅 Fetching available process dates from real database');
+        const response = await apiClient.get('/ifrs9/available-dates');
         return response.data;
     },
 
