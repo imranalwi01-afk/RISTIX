@@ -11,16 +11,24 @@ library(dplyr)
 # Source calculation functions
 source("scripts/ifrs9/ifrs9_calculations.R")
 
+get_preferred_env <- function(primary, fallback, default = "") {
+  primary_val <- Sys.getenv(primary, "")
+  if (nzchar(primary_val)) return(primary_val)
+  fallback_val <- Sys.getenv(fallback, "")
+  if (nzchar(fallback_val)) return(fallback_val)
+  default
+}
+
 # Database connection function
 get_db_connection <- function() {
   tryCatch({
     con <- dbConnect(
       PostgreSQL(),
-      host = Sys.getenv("DB_HOST", "localhost"),
-      port = as.integer(Sys.getenv("DB_PORT", "5432")),
-      dbname = Sys.getenv("DB_NAME", "postgres"),
-      user = Sys.getenv("DB_USER", "postgres"),
-      password = Sys.getenv("DB_PASSWORD", "postgres")
+      host = get_preferred_env("FRS9_DB_HOST", "DB_HOST", "localhost"),
+      port = as.integer(get_preferred_env("FRS9_DB_PORT", "DB_PORT", "5432")),
+      dbname = get_preferred_env("FRS9_DB_NAME", "DB_NAME", "FRS9PRO"),
+      user = get_preferred_env("FRS9_DB_USER", "DB_USER", "postgres"),
+      password = get_preferred_env("FRS9_DB_PASSWORD", "DB_PASSWORD", "postgres")
     )
     return(con)
   }, error = function(e) {

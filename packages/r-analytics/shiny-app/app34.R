@@ -39,15 +39,34 @@ source("global.R")
 message(paste0("[", Sys.time(), "] ✅ global.R sourced successfully."))
 
 
+# Prefer FRS9_DB_* values when available, then fall back to DB_*.
+get_preferred_env <- function(primary, fallback, default = "") {
+  primary_val <- Sys.getenv(primary, "")
+  if (nzchar(primary_val)) return(primary_val)
+  fallback_val <- Sys.getenv(fallback, "")
+  if (nzchar(fallback_val)) return(fallback_val)
+  default
+}
+
 
 # Koneksi database PostgreSQL
 # Database Configuration Logging
-db_host <- Sys.getenv("DB_HOST", "10.8.0.2")
-db_port <- as.integer(Sys.getenv("DB_PORT", "5433"))
-db_name <- Sys.getenv("DB_NAME", "FRS9PRO")
-db_schema <- Sys.getenv("DB_SCHEMA", "public")
-db_user <- Sys.getenv("DB_USER", "postgres")
-db_password <- Sys.getenv("DB_PASSWORD", "postgres")
+db_host <- get_preferred_env("FRS9_DB_HOST", "DB_HOST", "10.8.0.2")
+db_port <- as.integer(get_preferred_env("FRS9_DB_PORT", "DB_PORT", "5433"))
+db_name <- get_preferred_env("FRS9_DB_NAME", "DB_NAME", "FRS9PRO")
+db_schema <- get_preferred_env("FRS9_DB_SCHEMA", "DB_SCHEMA", "public")
+db_user <- get_preferred_env("FRS9_DB_USER", "DB_USER", "postgres")
+db_password <- get_preferred_env("FRS9_DB_PASSWORD", "DB_PASSWORD", "postgres")
+
+# Keep DB_* in sync so legacy modules reading DB_* use the resolved values.
+Sys.setenv(
+  DB_HOST = db_host,
+  DB_PORT = as.character(db_port),
+  DB_NAME = db_name,
+  DB_SCHEMA = db_schema,
+  DB_USER = db_user,
+  DB_PASSWORD = db_password
+)
 
 cat(paste0("\n=============================================\n"))
 cat(paste0("🚀 Starting Database Connection...\n"))
@@ -85,8 +104,26 @@ if (!is.null(con)) {
 }
 
 # Load konfigurasi
-LGD <- dbGetQuery(con, "SELECT * FROM frs9_imp_ca_lgd_config")
-PD <- dbGetQuery(con, "SELECT * FROM frs9_imp_ca_pd_config")
+if (!is.null(con)) {
+  LGD <- tryCatch(
+    dbGetQuery(con, "SELECT * FROM frs9_imp_ca_lgd_config"),
+    error = function(e) {
+      cat(paste0("⚠️ Failed to load LGD config: ", e$message, "\n"))
+      data.frame()
+    }
+  )
+  PD <- tryCatch(
+    dbGetQuery(con, "SELECT * FROM frs9_imp_ca_pd_config"),
+    error = function(e) {
+      cat(paste0("⚠️ Failed to load PD config: ", e$message, "\n"))
+      data.frame()
+    }
+  )
+} else {
+  cat("⚠️ Running in offline mode: DB unavailable at startup, using empty PD/LGD config\n")
+  LGD <- data.frame()
+  PD <- data.frame()
+}
 
 
 pd_tables_map <- list(

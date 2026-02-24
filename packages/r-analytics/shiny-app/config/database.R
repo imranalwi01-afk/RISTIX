@@ -6,19 +6,27 @@
 # Environment: Local development with direct connection
 # =============================================================================
 
+get_preferred_env <- function(primary, fallback, default = "") {
+  primary_val <- Sys.getenv(primary, "")
+  if (nzchar(primary_val)) return(primary_val)
+  fallback_val <- Sys.getenv(fallback, "")
+  if (nzchar(fallback_val)) return(fallback_val)
+  default
+}
+
 #' Get Database Configuration for IFRS9 Analytics
 #' @description Returns database configuration matching original working app
 #' @return Database configuration list for IFRS9 analytics
 get_database_config <- function() {
-  # Configuration matching the original working app exactly
+  # Configuration driven by environment (FRS9_DB_* preferred, then DB_*)
   return(list(
-    host = "192.168.0.106",
-    port = 5433,
-    dbname = "FRS9PRO",
-    schema = "public",
-    user = "postgres",
-    password = "postgres",
-    sslmode = "disable"
+    host = get_preferred_env("FRS9_DB_HOST", "DB_HOST", "192.168.0.106"),
+    port = as.integer(get_preferred_env("FRS9_DB_PORT", "DB_PORT", "5433")),
+    dbname = get_preferred_env("FRS9_DB_NAME", "DB_NAME", "FRS9PRO"),
+    schema = get_preferred_env("FRS9_DB_SCHEMA", "DB_SCHEMA", "public"),
+    user = get_preferred_env("FRS9_DB_USER", "DB_USER", "postgres"),
+    password = get_preferred_env("FRS9_DB_PASSWORD", "DB_PASSWORD", "postgres"),
+    sslmode = Sys.getenv("DB_SSLMODE", "disable")
   ))
 }
 
@@ -27,7 +35,8 @@ get_database_config <- function() {
 #' @return List containing database connection and reference data
 setup_database <- function() {
   cat("🔗 Setting up database connection (matching original app)...\n")
-  db_schema <- Sys.getenv("DB_SCHEMA", "public")
+  db_cfg <- get_database_config()
+  db_schema <- db_cfg$schema
   if (!grepl("^[A-Za-z_][A-Za-z0-9_]*$", db_schema)) {
     db_schema <- "public"
   }
@@ -35,8 +44,8 @@ setup_database <- function() {
   # Use the exact same database configuration as the original working app
   # Based on /home/doppelgaenger/ifrspro/_analytics/_v30/app30.R
 
-  cat("🏢 Database: 192.168.0.106 : 5433 / FRS9PRO\n")
-  cat("🔐 SSL Mode: disable\n")
+  cat("🏢 Database: ", db_cfg$host, " : ", db_cfg$port, " / ", db_cfg$dbname, "\n", sep = "")
+  cat("🔐 SSL Mode: ", db_cfg$sslmode, "\n", sep = "")
   cat("📋 Schema: ", db_schema, "\n", sep = "")
 
   # Initialize variables with safe defaults
@@ -53,14 +62,14 @@ setup_database <- function() {
       stop("Required database packages (DBI, RPostgres) are not installed")
     }
 
-    # Use the EXACT same connection as the working app in _v30/app30.R
+    # Use centralized env-driven configuration.
     con <- DBI::dbConnect(RPostgres::Postgres(),
-                         host = "192.168.0.106",
-                         port = 5433,
-                         dbname = "FRS9PRO",
-                         user = "postgres",
-                         password = "postgres",
-                         sslmode = "disable")
+                         host = db_cfg$host,
+                         port = db_cfg$port,
+                         dbname = db_cfg$dbname,
+                         user = db_cfg$user,
+                         password = db_cfg$password,
+                         sslmode = db_cfg$sslmode)
 
     cat("✅ Database connection established!\n")
 
@@ -166,12 +175,12 @@ setup_database <- function() {
   return(list(
     connection = con,
     config = list(
-      host = "192.168.0.106",
-      port = 5433,
-      dbname = "FRS9PRO",
+      host = db_cfg$host,
+      port = db_cfg$port,
+      dbname = db_cfg$dbname,
       schema = db_schema,
-      user = "postgres",
-      sslmode = "disable"
+      user = db_cfg$user,
+      sslmode = db_cfg$sslmode
     ),
     environment = "local",
     PD = PD,
