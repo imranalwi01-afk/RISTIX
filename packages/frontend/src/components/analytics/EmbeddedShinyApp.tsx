@@ -242,7 +242,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
   });
   const [showUrlConfig, setShowUrlConfig] = useState<boolean>(false);
   const [connectionMode, setConnectionMode] = useState<ConnectionMode>(() => {
-    if (typeof window === 'undefined') return 'auto';
+    if (typeof window === 'undefined') return 'direct';
 
     const params = new URLSearchParams(window.location.search);
     const directEmbedParam = params.get('directEmbed');
@@ -260,7 +260,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
       return saved;
     }
 
-    return 'auto';
+    return 'direct';
   });
 
   const persistConnectionMode = useCallback((mode: ConnectionMode) => {
@@ -973,7 +973,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
                     localStorage.removeItem('r_analytics_custom_url');
                     localStorage.removeItem('r_analytics_api_url');
                     localStorage.removeItem('r_analytics_connection_mode');
-                    setConnectionMode('auto');
+                    setConnectionMode('direct');
                     isInitialized.current = false;
                     setError(null);
                     setLoading(true);
@@ -1247,7 +1247,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
             localStorage.removeItem('r_analytics_custom_url');
             localStorage.removeItem('r_analytics_api_url');
             localStorage.removeItem('r_analytics_connection_mode');
-            setConnectionMode('auto');
+            setConnectionMode('direct');
           }}>
             Reset All
           </Button>
