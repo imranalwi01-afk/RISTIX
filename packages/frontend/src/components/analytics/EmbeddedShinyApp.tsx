@@ -320,6 +320,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
     setError(null);
 
     try {
+      const requestId = `ra-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const sessionRequest = {
         tenantSlug: tenantSlug || user.tenantSlug || 'demo-conventional',
         bankingType,
@@ -327,7 +328,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
         theme: bankingType === 'syariah' ? 'islamic' : 'conventional'
       };
 
-      console.log('🔬 Creating R session with request:', sessionRequest);
+      console.log('🔬 Creating R session with request:', sessionRequest, { requestId });
       console.log('🌐 Using API URL:', API_CONFIG.R_ANALYTICS_API);
 
       // Validate URL construction
@@ -344,7 +345,8 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
-          'X-Tenant-ID': user.tenantId || ''
+          'X-Tenant-ID': user.tenantId || '',
+          'X-Request-Id': requestId
         },
         body: JSON.stringify(sessionRequest)
       });
@@ -390,6 +392,10 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
       }
 
       const data = await response.json();
+      const responseRequestId = data?.requestId || response.headers.get('X-Request-Id');
+      if (responseRequestId) {
+        console.log('🧩 R session trace IDs', { requestId, responseRequestId });
+      }
 
       // 🛡️ DEFENSIVE: Handle both data.data and direct data response structures
       const rawData = data.data || data;
@@ -492,10 +498,12 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
     if (!session || !token) return;
 
     try {
+      const requestId = `ra-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const response = await fetch(`${API_CONFIG.R_ANALYTICS_API}/session/${session.sessionId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'X-Request-Id': requestId
         }
       });
 
@@ -515,10 +523,11 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
     if (!session || !token) return;
 
     try {
+      const requestId = `ra-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const response = await fetch(`${API_CONFIG.R_ANALYTICS_API}/session/${session.sessionId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Origin': API_CONFIG.FRONTEND_URL
+          'X-Request-Id': requestId
         }
       });
 

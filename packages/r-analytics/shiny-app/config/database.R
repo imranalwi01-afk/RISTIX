@@ -14,6 +14,25 @@ get_preferred_env <- function(primary, fallback, default = "") {
   default
 }
 
+# Load runtime logger if not already loaded.
+if (!exists("ra_log_info")) {
+  for (logger_path in c("../logger.R", "/opt/r-analytics/logger.R", "logger.R")) {
+    if (file.exists(logger_path)) {
+      source(logger_path)
+      break
+    }
+  }
+}
+
+# Fallback logger if shared logger is unavailable.
+if (!exists("ra_log_info")) {
+  ra_log_info <- function(message, context = NULL, service = NULL) cat("[INFO] ", message, "\n", sep = "")
+  ra_log_warn <- function(message, context = NULL, service = NULL) cat("[WARN] ", message, "\n", sep = "", file = stderr())
+  ra_log_error <- function(message, context = NULL, service = NULL) cat("[ERROR] ", message, "\n", sep = "", file = stderr())
+} else if (exists("ra_init_logger") && !nzchar(getOption("ra_logger_service", ""))) {
+  ra_init_logger(service = "r-analytics-db")
+}
+
 #' Get Database Configuration for IFRS9 Analytics
 #' @description Returns database configuration matching original working app
 #' @return Database configuration list for IFRS9 analytics
@@ -34,7 +53,7 @@ get_database_config <- function() {
 #' @description Configures database connection matching original working app
 #' @return List containing database connection and reference data
 setup_database <- function() {
-  cat("🔗 Setting up database connection (matching original app)...\n")
+  ra_log_info("Setting up database connection")
   db_cfg <- get_database_config()
   db_schema <- db_cfg$schema
   if (!grepl("^[A-Za-z_][A-Za-z0-9_]*$", db_schema)) {
@@ -44,9 +63,13 @@ setup_database <- function() {
   # Use the exact same database configuration as the original working app
   # Based on /home/doppelgaenger/ifrspro/_analytics/_v30/app30.R
 
-  cat("🏢 Database: ", db_cfg$host, " : ", db_cfg$port, " / ", db_cfg$dbname, "\n", sep = "")
-  cat("🔐 SSL Mode: ", db_cfg$sslmode, "\n", sep = "")
-  cat("📋 Schema: ", db_schema, "\n", sep = "")
+  ra_log_info("Database target resolved", context = list(
+    host = db_cfg$host,
+    port = db_cfg$port,
+    dbname = db_cfg$dbname,
+    schema = db_schema,
+    sslmode = db_cfg$sslmode
+  ))
 
   # Initialize variables with safe defaults
   con <- NULL
@@ -55,7 +78,7 @@ setup_database <- function() {
 
   # Try to establish database connection with enhanced error handling
   tryCatch({
-    cat("📡 Connecting to database...\n")
+    ra_log_info("Connecting to database")
 
     # Check if required database packages are available
     if (!requireNamespace("DBI", quietly = TRUE) || !requireNamespace("RPostgres", quietly = TRUE)) {
@@ -71,87 +94,81 @@ setup_database <- function() {
                          password = db_cfg$password,
                          sslmode = db_cfg$sslmode)
 
-    cat("✅ Database connection established!\n")
+    ra_log_info("Database connection established")
 
     # Test connection with a simple query
     test_query <- tryCatch({
       DBI::dbGetQuery(con, "SELECT 1 as test_connection")
     }, error = function(e) {
-      cat("⚠️ Connection test failed:", e$message, "\n")
+      ra_log_warn("Connection test query failed", context = list(error = e$message))
       return(NULL)
     })
 
     if (!is.null(test_query) && nrow(test_query) > 0) {
-      cat("✅ Connection test successful!\n")
+      ra_log_info("Connection test successful")
     } else {
-      cat("⚠️ Connection test failed - continuing anyway\n")
+      ra_log_warn("Connection test failed - continuing anyway")
     }
 
     # Set schema path from environment (FRS9PRO uses public by default)
     tryCatch({
       search_path_sql <- paste0('SET search_path TO "', db_schema, '", public;')
       DBI::dbExecute(con, search_path_sql)
-      cat("🎯 Schema path set to ", db_schema, " (with public fallback)\n", sep = "")
+      ra_log_info("Schema search_path configured", context = list(schema = db_schema, fallback = "public"))
     }, error = function(e) {
       # Fallback to public if configured schema doesn't exist
       DBI::dbExecute(con, "SET search_path TO public;")
-      cat("🎯 Schema path set to public (fallback)\n")
+      ra_log_warn("Schema configuration failed, fallback to public", context = list(error = e$message))
     })
 
     # Ensure analytics_joined_data table exists for modular app
     tryCatch({
-      cat("🔧 Creating analytics_joined_data table if it doesn't exist...\n")
+      ra_log_info("Ensuring analytics_joined_data table exists")
       DBI::dbExecute(con, 'CREATE TABLE IF NOT EXISTS analytics_joined_data (
         id SERIAL PRIMARY KEY,
         data_content TEXT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         session_id VARCHAR(255)
       )')
-      cat("✅ analytics_joined_data table is ready\n")
+      ra_log_info("analytics_joined_data table ready")
     }, error = function(e) {
-      cat("⚠️ Failed to create analytics_joined_data table:", e$message, "\n")
+      ra_log_warn("Failed to create analytics_joined_data table", context = list(error = e$message))
     })
 
     # Load configuration data with comprehensive error handling
-    cat("📊 Loading configuration data from database...\n")
+    ra_log_info("Loading configuration data from database")
 
     # Try to load LGD configuration
     LGD <- tryCatch({
       lgd_data <- DBI::dbGetQuery(con, "SELECT * FROM frs9_imp_ca_lgd_config")
-      cat("✅ LGD configuration loaded:", nrow(lgd_data), "records\n")
+      ra_log_info("LGD configuration loaded", context = list(rows = nrow(lgd_data)))
       lgd_data
     }, error = function(e) {
-      cat("⚠️ LGD configuration load failed:", e$message, "\n")
-      cat("🔧 Using empty LGD configuration\n")
+      ra_log_warn("LGD configuration load failed, using empty dataset", context = list(error = e$message))
       data.frame()
     })
 
     # Try to load PD configuration
     PD <- tryCatch({
       pd_data <- DBI::dbGetQuery(con, "SELECT * FROM frs9_imp_ca_pd_config")
-      cat("✅ PD configuration loaded:", nrow(pd_data), "records\n")
+      ra_log_info("PD configuration loaded", context = list(rows = nrow(pd_data)))
       pd_data
     }, error = function(e) {
-      cat("⚠️ PD configuration load failed:", e$message, "\n")
-      cat("🔧 Using empty PD configuration\n")
+      ra_log_warn("PD configuration load failed, using empty dataset", context = list(error = e$message))
       data.frame()
     })
 
-    cat("✅ Database setup completed successfully!\n")
+    ra_log_info("Database setup completed successfully")
 
   }, error = function(e) {
-    cat("❌ Database connection failed:", e$message, "\n")
-    cat("🔧 Application will run in offline mode with sample data\n")
-    cat("📋 Offline mode features:\n")
-    cat("   - Sample PD/LGD configurations will be generated\n")
-    cat("   - File upload and processing will work\n")
-    cat("   - Calculations will use sample parameters\n")
+    ra_log_error("Database connection failed, switching to offline mode", context = list(error = e$message))
+    ra_log_info("Offline mode enabled with sample data")
 
     # Ensure connection is NULL for offline mode
     con <- NULL
 
     # Create sample configuration data for offline mode
-    cat("📊 Creating sample configuration data...\n")
+    ra_log_info("Creating sample configuration data")
     LGD <- data.frame(
       config_id = 1:5,
       lgd_rate = c(0.45, 0.50, 0.40, 0.55, 0.48),
@@ -166,9 +183,10 @@ setup_database <- function() {
       description = paste("Sample PD Configuration", 1:5)
     )
 
-    cat("✅ Sample configuration data created!\n")
-    cat("   - Sample LGD configurations:", nrow(LGD), "records\n")
-    cat("   - Sample PD configurations:", nrow(PD), "records\n")
+    ra_log_info("Sample configuration data created", context = list(
+      lgd_rows = nrow(LGD),
+      pd_rows = nrow(PD)
+    ))
   })
 
   # Return comprehensive database setup

@@ -32,8 +32,8 @@ COPY --chown=r-analytics:r-analytics config/ ./config/
 COPY --chown=r-analytics:r-analytics docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh
 
-# Copy API files
-COPY --chown=r-analytics:r-analytics iaf-r-api.R start_api.R ./
+# Copy API/runtime files
+COPY --chown=r-analytics:r-analytics iaf-r-api.R start_api.R logger.R ./
 COPY --chown=r-analytics:r-analytics api/ ./api/
 
 # ============================================================================
