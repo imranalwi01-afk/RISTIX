@@ -7,8 +7,29 @@ if (!is.null(tryCatch(setwd(dirname(rstudioapi::getSourceEditorContext()$path)),
     setwd("/opt/r-analytics/shiny-app")
   }
 }
-message(paste0("[", Sys.time(), "] 🚀 STARTING APP INITIALIZATION..."))
-message(paste0("[", Sys.time(), "] 📦 Loading libraries..."))
+
+# Load runtime logger
+for (logger_path in c("../logger.R", "/opt/r-analytics/logger.R", "logger.R")) {
+  if (file.exists(logger_path)) {
+    source(logger_path)
+    break
+  }
+}
+
+if (!exists("ra_log_info")) {
+  stop("logger.R could not be loaded")
+}
+
+ra_init_logger(service = "r-analytics-shiny")
+ra_log_info("Starting app initialization")
+ra_log_info("Loading libraries")
+
+log_sheet_error <- function(sheet_name, error_obj) {
+  ra_log_warn("Worksheet write failed", context = list(
+    sheet = sheet_name,
+    error = error_obj$message
+  ))
+}
 
 library(shiny)
 library(shinydashboard)
@@ -34,29 +55,47 @@ library(shinycssloaders)
 library(future)
 library(future.apply)
 
-message(paste0("[", Sys.time(), "] 📦 Libraries loaded. Sourcing global.R..."))
+ra_log_info("Libraries loaded, sourcing global.R")
 source("global.R")
-message(paste0("[", Sys.time(), "] ✅ global.R sourced successfully."))
+ra_log_info("global.R sourced successfully")
 
+
+# Prefer FRS9_DB_* values when available, then fall back to DB_*.
+get_preferred_env <- function(primary, fallback, default = "") {
+  primary_val <- Sys.getenv(primary, "")
+  if (nzchar(primary_val)) return(primary_val)
+  fallback_val <- Sys.getenv(fallback, "")
+  if (nzchar(fallback_val)) return(fallback_val)
+  default
+}
 
 
 # Koneksi database PostgreSQL
 # Database Configuration Logging
-db_host <- Sys.getenv("DB_HOST", "10.8.0.2")
-db_port <- as.integer(Sys.getenv("DB_PORT", "5433"))
-db_name <- Sys.getenv("DB_NAME", "FRS9PRO")
-db_schema <- Sys.getenv("DB_SCHEMA", "public")
-db_user <- Sys.getenv("DB_USER", "postgres")
-db_password <- Sys.getenv("DB_PASSWORD", "postgres")
+db_host <- get_preferred_env("FRS9_DB_HOST", "DB_HOST", "10.8.0.2")
+db_port <- as.integer(get_preferred_env("FRS9_DB_PORT", "DB_PORT", "5433"))
+db_name <- get_preferred_env("FRS9_DB_NAME", "DB_NAME", "FRS9PRO")
+db_schema <- get_preferred_env("FRS9_DB_SCHEMA", "DB_SCHEMA", "public")
+db_user <- get_preferred_env("FRS9_DB_USER", "DB_USER", "postgres")
+db_password <- get_preferred_env("FRS9_DB_PASSWORD", "DB_PASSWORD", "postgres")
 
-cat(paste0("\n=============================================\n"))
-cat(paste0("🚀 Starting Database Connection...\n"))
-cat(paste0("📌 Host: ", db_host, "\n"))
-cat(paste0("📌 Port: ", db_port, "\n"))
-cat(paste0("📌 Name: ", db_name, "\n"))
-cat(paste0("📌 Schema: ", db_schema, "\n"))
-cat(paste0("📌 User: ", db_user, "\n"))
-cat(paste0("=============================================\n"))
+# Keep DB_* in sync so legacy modules reading DB_* use the resolved values.
+Sys.setenv(
+  DB_HOST = db_host,
+  DB_PORT = as.character(db_port),
+  DB_NAME = db_name,
+  DB_SCHEMA = db_schema,
+  DB_USER = db_user,
+  DB_PASSWORD = db_password
+)
+
+ra_log_info("Starting database connection", context = list(
+  host = db_host,
+  port = db_port,
+  dbname = db_name,
+  schema = db_schema,
+  user = db_user
+))
 
 # Koneksi database PostgreSQL with Error Handling
 con <- tryCatch({
@@ -68,11 +107,10 @@ con <- tryCatch({
     user = db_user,
     password = db_password
   )
-  cat("✅ Database connection successful!\n")
+  ra_log_info("Database connection successful")
   conn
 }, error = function(e) {
-  cat(paste0("❌ Database connection failed: ", e$message, "\n"))
-  # cat("⚠️ Falling back to offline mode (if supported)...\n")
+  ra_log_error("Database connection failed", context = list(error = e$message))
   NULL
 })
 
@@ -85,8 +123,26 @@ if (!is.null(con)) {
 }
 
 # Load konfigurasi
-LGD <- dbGetQuery(con, 'SELECT * FROM "FRS9_IMP_CA_LGD_CONFIG"')
-PD <- dbGetQuery(con, 'SELECT * FROM "FRS9_IMP_CA_PD_CONFIG"')
+if (!is.null(con)) {
+  LGD <- tryCatch(
+    dbGetQuery(con, "SELECT * FROM frs9_imp_ca_lgd_config"),
+    error = function(e) {
+      ra_log_warn("Failed to load LGD config", context = list(error = e$message))
+      data.frame()
+    }
+  )
+  PD <- tryCatch(
+    dbGetQuery(con, "SELECT * FROM frs9_imp_ca_pd_config"),
+    error = function(e) {
+      ra_log_warn("Failed to load PD config", context = list(error = e$message))
+      data.frame()
+    }
+  )
+} else {
+  ra_log_warn("Running in offline mode: DB unavailable at startup, using empty PD/LGD config")
+  LGD <- data.frame()
+  PD <- data.frame()
+}
 
 
 pd_tables_map <- list(
@@ -954,7 +1010,7 @@ server <- function(input, output, session) {
 
   # Tambahkan cleanup saat app dimatikan
   onStop(function() {
-    message("Shiny stopped, resetting future plan to sequential")
+    ra_log_info("Shiny stopped, resetting future plan to sequential")
     plan(sequential) # agar tidak ganggu Shiny lain
   })
 
@@ -990,9 +1046,9 @@ server <- function(input, output, session) {
       }
     } else {
       query <- if (input$dependent == "PD") {
-        sprintf('SELECT * FROM "FRS9_IMP_CA_PD_ODR" WHERE "PD_CONFIG_ID" = %s', input$segment)
+        sprintf("SELECT * FROM frs9_imp_ca_pd_odr WHERE pd_config_id = %s", input$segment)
       } else {
-        sprintf('SELECT * FROM "FRS9_IMP_CA_LGD_H" WHERE "LGD_CONFIG_ID" = %s', input$segment)
+        sprintf("SELECT * FROM frs9_imp_ca_lgd_h WHERE lgd_config_id = %s", input$segment)
       }
       df <- dbGetQuery(con, query)
     }
@@ -1574,7 +1630,7 @@ server <- function(input, output, session) {
 
     tabel_korelasix <- tryCatch(
       {
-        cat("DEBUG --- tabel_korelasi data:\n")
+        ra_log_debug("Running tabel_korelasi() for 3-variable correlation")
         tabel_korelasi(newdatax())
       },
       warning = function(w) {
@@ -1587,7 +1643,7 @@ server <- function(input, output, session) {
       }
     )
 
-    cat("DEBUG --- tabel_korelasi baris:", nrow(tabel_korelasix), "\n")
+    ra_log_debug("tabel_korelasi() completed", context = list(rows = nrow(tabel_korelasix)))
     if (nrow(tabel_korelasix) == 0) {
       return(data.frame())
     }
@@ -1701,15 +1757,17 @@ server <- function(input, output, session) {
 
 
   observeEvent(input$runmodel, {
-    cat("DEBUG --- Model Gabungan:\n")
+    ra_log_debug("Computing combined model table")
     tryCatch(
       {
-        cat("Jumlah baris model_reg2var:", nrow(model_reg2var()), "\n")
-        cat("Jumlah baris model_reg3var:", nrow(model_reg3var()), "\n")
-        cat("Jumlah baris model_reg23var:", nrow(model_reg23var()), "\n")
+        ra_log_debug("Combined model row counts", context = list(
+          reg2 = nrow(model_reg2var()),
+          reg3 = nrow(model_reg3var()),
+          reg23 = nrow(model_reg23var())
+        ))
       },
       error = function(e) {
-        cat("Error saat debug model_reg23var:", e$message, "\n")
+        ra_log_warn("Combined model debug failed", context = list(error = e$message))
       }
     )
   })
@@ -2288,7 +2346,7 @@ server <- function(input, output, session) {
           writeData(wb, "Data Forecast Pilih", transformed5_result_forecast())
         },
         error = function(e) {
-          cat("Error pada sheet 'Data Forecast Pilih':", e$message, "\n")
+          log_sheet_error("Data Forecast Pilih", e)
           writeData(wb, "Data Forecast Pilih", data.frame()) # Kosongkan jika error
         }
       )
@@ -2548,7 +2606,7 @@ server <- function(input, output, session) {
           writeData(wb, "Data Y awal", data_dependent_tr())
         },
         error = function(e) {
-          cat("Error pada sheet 'Data Y awal':", e$message, "\n")
+          log_sheet_error("Data Y awal", e)
           writeData(wb, "Data Y awal", data.frame()) # Kosongkan jika error
         }
       )
@@ -2559,7 +2617,7 @@ server <- function(input, output, session) {
           writeData(wb, "Data full", yx())
         },
         error = function(e) {
-          cat("Error pada sheet 'Data full':", e$message, "\n")
+          log_sheet_error("Data full", e)
           writeData(wb, "Data full", data.frame()) # Kosongkan jika error
         }
       )
@@ -2570,7 +2628,7 @@ server <- function(input, output, session) {
           writeData(wb, "Data Trained", data1())
         },
         error = function(e) {
-          cat("Error pada sheet 'Data Trained':", e$message, "\n")
+          log_sheet_error("Data Trained", e)
           writeData(wb, "Data Trained", data.frame()) # Kosongkan jika error
         }
       )
@@ -2581,7 +2639,7 @@ server <- function(input, output, session) {
           writeData(wb, "Intuisi", refInt())
         },
         error = function(e) {
-          cat("Error pada sheet 'Intuisi':", e$message, "\n")
+          log_sheet_error("Intuisi", e)
           writeData(wb, "Intuisi", data.frame()) # Kosongkan jika error
         }
       )
@@ -2593,7 +2651,7 @@ server <- function(input, output, session) {
           writeData(wb, "Sign Intuisi", signintuisikor())
         },
         error = function(e) {
-          cat("Error pada sheet 'Sign Intuisi':", e$message, "\n")
+          log_sheet_error("Sign Intuisi", e)
           writeData(wb, "Sign Intuisi", data.frame()) # Kosongkan jika error
         }
       )
@@ -2604,7 +2662,7 @@ server <- function(input, output, session) {
           writeData(wb, "Single Factor", model_reg1var())
         },
         error = function(e) {
-          cat("Error pada sheet 'Single Factor':", e$message, "\n")
+          log_sheet_error("Single Factor", e)
           writeData(wb, "Single Factor", data.frame()) # Kosongkan jika error
         }
       )
@@ -2615,7 +2673,7 @@ server <- function(input, output, session) {
           writeData(wb, "Korelasi 2 Var", korel_reg2var())
         },
         error = function(e) {
-          cat("Error pada sheet 'Korelasi 2 Var':", e$message, "\n")
+          log_sheet_error("Korelasi 2 Var", e)
           writeData(wb, "Korelasi 2 Var", data.frame()) # Kosongkan jika error
         }
       )
@@ -2626,7 +2684,7 @@ server <- function(input, output, session) {
           writeData(wb, "Korelasi 3 Var", korel_reg3var())
         },
         error = function(e) {
-          cat("Error pada sheet 'Korelasi 3 Var':", e$message, "\n")
+          log_sheet_error("Korelasi 3 Var", e)
           writeData(wb, "Korelasi 3 Var", data.frame()) # Kosongkan jika error
         }
       )
@@ -2637,7 +2695,7 @@ server <- function(input, output, session) {
           writeData(wb, "Regresi 2 Var", model_reg2var())
         },
         error = function(e) {
-          cat("Error pada sheet 'Regresi 2 Var':", e$message, "\n")
+          log_sheet_error("Regresi 2 Var", e)
           writeData(wb, "Regresi 2 Var", data.frame()) # Kosongkan jika error
         }
       )
@@ -2648,7 +2706,7 @@ server <- function(input, output, session) {
           writeData(wb, "Regresi 3 Var", model_reg3var())
         },
         error = function(e) {
-          cat("Error pada sheet 'Regresi 3 Var':", e$message, "\n")
+          log_sheet_error("Regresi 3 Var", e)
           writeData(wb, "Regresi 3 Var", data.frame()) # Kosongkan jika error
         }
       )
@@ -2659,7 +2717,7 @@ server <- function(input, output, session) {
           writeData(wb, "Gabungan Model", model_reg23var())
         },
         error = function(e) {
-          cat("Error pada sheet 'Gabungan Model':", e$message, "\n")
+          log_sheet_error("Gabungan Model", e)
           writeData(wb, "Gabungan Model", data.frame()) # Kosongkan jika error
         }
       )
@@ -2670,7 +2728,7 @@ server <- function(input, output, session) {
           writeData(wb, "Uji Asumsi", ujiasumsif())
         },
         error = function(e) {
-          cat("Error pada sheet 'Uji Asumsi':", e$message, "\n")
+          log_sheet_error("Uji Asumsi", e)
           writeData(wb, "Uji Asumsi", data.frame()) # Kosongkan jika error
         }
       )
@@ -2681,7 +2739,7 @@ server <- function(input, output, session) {
           writeData(wb, "Backtest", backtestf())
         },
         error = function(e) {
-          cat("Error pada sheet 'Backtest':", e$message, "\n")
+          log_sheet_error("Backtest", e)
           writeData(wb, "Backtest", data.frame()) # Kosongkan jika error
         }
       )
@@ -2692,7 +2750,7 @@ server <- function(input, output, session) {
           writeData(wb, "Final Model", finalmodel())
         },
         error = function(e) {
-          cat("Error pada sheet 'Final Model':", e$message, "\n")
+          log_sheet_error("Final Model", e)
           writeData(wb, "Final Model", data.frame()) # Kosongkan jika error
         }
       )
@@ -2718,7 +2776,7 @@ server <- function(input, output, session) {
           writeData(wb, "Data Y awal", data_dependent_tr())
         },
         error = function(e) {
-          cat("Error pada sheet 'Data Y awal':", e$message, "\n")
+          log_sheet_error("Data Y awal", e)
           writeData(wb, "Data Y awal", data.frame()) # Kosongkan jika error
         }
       )
@@ -2729,7 +2787,7 @@ server <- function(input, output, session) {
           writeData(wb, "Data full", yx())
         },
         error = function(e) {
-          cat("Error pada sheet 'Data full':", e$message, "\n")
+          log_sheet_error("Data full", e)
           writeData(wb, "Data full", data.frame()) # Kosongkan jika error
         }
       )
@@ -2740,7 +2798,7 @@ server <- function(input, output, session) {
           writeData(wb, "Data Trained", data1())
         },
         error = function(e) {
-          cat("Error pada sheet 'Data Trained':", e$message, "\n")
+          log_sheet_error("Data Trained", e)
           writeData(wb, "Data Trained", data.frame()) # Kosongkan jika error
         }
       )
@@ -2751,7 +2809,7 @@ server <- function(input, output, session) {
           writeData(wb, "Intuisi", refInt())
         },
         error = function(e) {
-          cat("Error pada sheet 'Intuisi':", e$message, "\n")
+          log_sheet_error("Intuisi", e)
           writeData(wb, "Intuisi", data.frame()) # Kosongkan jika error
         }
       )
@@ -2763,7 +2821,7 @@ server <- function(input, output, session) {
           writeData(wb, "Sign Intuisi", signintuisikor())
         },
         error = function(e) {
-          cat("Error pada sheet 'Sign Intuisi':", e$message, "\n")
+          log_sheet_error("Sign Intuisi", e)
           writeData(wb, "Sign Intuisi", data.frame()) # Kosongkan jika error
         }
       )
@@ -2774,7 +2832,7 @@ server <- function(input, output, session) {
           writeData(wb, "Single Factor", model_reg1var())
         },
         error = function(e) {
-          cat("Error pada sheet 'Single Factor':", e$message, "\n")
+          log_sheet_error("Single Factor", e)
           writeData(wb, "Single Factor", data.frame()) # Kosongkan jika error
         }
       )
@@ -2785,7 +2843,7 @@ server <- function(input, output, session) {
           writeData(wb, "Korelasi 2 Var", korel_reg2var())
         },
         error = function(e) {
-          cat("Error pada sheet 'Korelasi 2 Var':", e$message, "\n")
+          log_sheet_error("Korelasi 2 Var", e)
           writeData(wb, "Korelasi 2 Var", data.frame()) # Kosongkan jika error
         }
       )
@@ -2796,7 +2854,7 @@ server <- function(input, output, session) {
           writeData(wb, "Korelasi 3 Var", korel_reg3var())
         },
         error = function(e) {
-          cat("Error pada sheet 'Korelasi 3 Var':", e$message, "\n")
+          log_sheet_error("Korelasi 3 Var", e)
           writeData(wb, "Korelasi 3 Var", data.frame()) # Kosongkan jika error
         }
       )
@@ -2807,7 +2865,7 @@ server <- function(input, output, session) {
           writeData(wb, "Regresi 2 Var", model_reg2var())
         },
         error = function(e) {
-          cat("Error pada sheet 'Regresi 2 Var':", e$message, "\n")
+          log_sheet_error("Regresi 2 Var", e)
           writeData(wb, "Regresi 2 Var", data.frame()) # Kosongkan jika error
         }
       )
@@ -2818,7 +2876,7 @@ server <- function(input, output, session) {
           writeData(wb, "Regresi 3 Var", model_reg3var())
         },
         error = function(e) {
-          cat("Error pada sheet 'Regresi 3 Var':", e$message, "\n")
+          log_sheet_error("Regresi 3 Var", e)
           writeData(wb, "Regresi 3 Var", data.frame()) # Kosongkan jika error
         }
       )
@@ -2829,7 +2887,7 @@ server <- function(input, output, session) {
           writeData(wb, "Gabungan Model", model_reg23var())
         },
         error = function(e) {
-          cat("Error pada sheet 'Gabungan Model':", e$message, "\n")
+          log_sheet_error("Gabungan Model", e)
           writeData(wb, "Gabungan Model", data.frame()) # Kosongkan jika error
         }
       )
@@ -2840,7 +2898,7 @@ server <- function(input, output, session) {
           writeData(wb, "Uji Asumsi", ujiasumsif())
         },
         error = function(e) {
-          cat("Error pada sheet 'Uji Asumsi':", e$message, "\n")
+          log_sheet_error("Uji Asumsi", e)
           writeData(wb, "Uji Asumsi", data.frame()) # Kosongkan jika error
         }
       )
@@ -2851,7 +2909,7 @@ server <- function(input, output, session) {
           writeData(wb, "Backtest", backtestf())
         },
         error = function(e) {
-          cat("Error pada sheet 'Backtest':", e$message, "\n")
+          log_sheet_error("Backtest", e)
           writeData(wb, "Backtest", data.frame()) # Kosongkan jika error
         }
       )
@@ -2862,7 +2920,7 @@ server <- function(input, output, session) {
           writeData(wb, "Final Model", finalmodel())
         },
         error = function(e) {
-          cat("Error pada sheet 'Final Model':", e$message, "\n")
+          log_sheet_error("Final Model", e)
           writeData(wb, "Final Model", data.frame()) # Kosongkan jika error
         }
       )
@@ -2873,7 +2931,7 @@ server <- function(input, output, session) {
           writeData(wb, "Model Akhir", tabel_pemilihan_model_akhir())
         },
         error = function(e) {
-          cat("Error pada sheet 'Model Akhir':", e$message, "\n")
+          log_sheet_error("Model Akhir", e)
           writeData(wb, "Model Akhir", data.frame()) # Kosongkan jika error
         }
       )
@@ -2884,7 +2942,7 @@ server <- function(input, output, session) {
           writeData(wb, "Forecast X", forecastxxx())
         },
         error = function(e) {
-          cat("Error pada sheet 'Forecast X':", e$message, "\n")
+          log_sheet_error("Forecast X", e)
           writeData(wb, "Forecast X", data.frame()) # Kosongkan jika error
         }
       )
@@ -2896,7 +2954,7 @@ server <- function(input, output, session) {
           writeData(wb, "Forecast ALL Y", forecastaveragey())
         },
         error = function(e) {
-          cat("Error pada sheet 'Forecast ALL Y':", e$message, "\n")
+          log_sheet_error("Forecast ALL Y", e)
           writeData(wb, "Forecast ALL Y", data.frame()) # Kosongkan jika error
         }
       )
@@ -2908,7 +2966,7 @@ server <- function(input, output, session) {
           writeData(wb, "Forecast ALL averageY", averageygabmodel())
         },
         error = function(e) {
-          cat("Error pada sheet 'Forecast ALL averageY':", e$message, "\n")
+          log_sheet_error("Forecast ALL averageY", e)
           writeData(wb, "Forecast ALL averageY", data.frame()) # Kosongkan jika error
         }
       )
@@ -2920,7 +2978,7 @@ server <- function(input, output, session) {
           writeData(wb, "Forecast Y", hasilforecast())
         },
         error = function(e) {
-          cat("Error pada sheet 'Forecast Y':", e$message, "\n")
+          log_sheet_error("Forecast Y", e)
           writeData(wb, "Forecast Y", data.frame()) # Kosongkan jika error
         }
       )
@@ -3027,7 +3085,7 @@ server <- function(input, output, session) {
         writeData(wb, "Data Y awal", data_dependent_tr())
       },
       error = function(e) {
-        cat("Error pada sheet 'Data Y awal':", e$message, "\n")
+        log_sheet_error("Data Y awal", e)
         writeData(wb, "Data Y awal", data.frame()) # Kosongkan jika error
       }
     )
@@ -3038,7 +3096,7 @@ server <- function(input, output, session) {
         writeData(wb, "Data full", yx())
       },
       error = function(e) {
-        cat("Error pada sheet 'Data full':", e$message, "\n")
+        log_sheet_error("Data full", e)
         writeData(wb, "Data full", data.frame()) # Kosongkan jika error
       }
     )
@@ -3049,7 +3107,7 @@ server <- function(input, output, session) {
         writeData(wb, "Data Trained", data1())
       },
       error = function(e) {
-        cat("Error pada sheet 'Data Trained':", e$message, "\n")
+        log_sheet_error("Data Trained", e)
         writeData(wb, "Data Trained", data.frame()) # Kosongkan jika error
       }
     )
@@ -3060,7 +3118,7 @@ server <- function(input, output, session) {
         writeData(wb, "Intuisi", refInt())
       },
       error = function(e) {
-        cat("Error pada sheet 'Intuisi':", e$message, "\n")
+        log_sheet_error("Intuisi", e)
         writeData(wb, "Intuisi", data.frame()) # Kosongkan jika error
       }
     )
@@ -3072,7 +3130,7 @@ server <- function(input, output, session) {
         writeData(wb, "Sign Intuisi", signintuisikor())
       },
       error = function(e) {
-        cat("Error pada sheet 'Sign Intuisi':", e$message, "\n")
+        log_sheet_error("Sign Intuisi", e)
         writeData(wb, "Sign Intuisi", data.frame()) # Kosongkan jika error
       }
     )
@@ -3083,7 +3141,7 @@ server <- function(input, output, session) {
         writeData(wb, "Single Factor", model_reg1var())
       },
       error = function(e) {
-        cat("Error pada sheet 'Single Factor':", e$message, "\n")
+        log_sheet_error("Single Factor", e)
         writeData(wb, "Single Factor", data.frame()) # Kosongkan jika error
       }
     )
@@ -3094,7 +3152,7 @@ server <- function(input, output, session) {
         writeData(wb, "Korelasi 2 Var", korel_reg2var())
       },
       error = function(e) {
-        cat("Error pada sheet 'Korelasi 2 Var':", e$message, "\n")
+        log_sheet_error("Korelasi 2 Var", e)
         writeData(wb, "Korelasi 2 Var", data.frame()) # Kosongkan jika error
       }
     )
@@ -3105,7 +3163,7 @@ server <- function(input, output, session) {
         writeData(wb, "Korelasi 3 Var", korel_reg3var())
       },
       error = function(e) {
-        cat("Error pada sheet 'Korelasi 3 Var':", e$message, "\n")
+        log_sheet_error("Korelasi 3 Var", e)
         writeData(wb, "Korelasi 3 Var", data.frame()) # Kosongkan jika error
       }
     )
@@ -3116,7 +3174,7 @@ server <- function(input, output, session) {
         writeData(wb, "Regresi 2 Var", model_reg2var())
       },
       error = function(e) {
-        cat("Error pada sheet 'Regresi 2 Var':", e$message, "\n")
+        log_sheet_error("Regresi 2 Var", e)
         writeData(wb, "Regresi 2 Var", data.frame()) # Kosongkan jika error
       }
     )
@@ -3127,7 +3185,7 @@ server <- function(input, output, session) {
         writeData(wb, "Regresi 3 Var", model_reg3var())
       },
       error = function(e) {
-        cat("Error pada sheet 'Regresi 3 Var':", e$message, "\n")
+        log_sheet_error("Regresi 3 Var", e)
         writeData(wb, "Regresi 3 Var", data.frame()) # Kosongkan jika error
       }
     )
@@ -3138,7 +3196,7 @@ server <- function(input, output, session) {
         writeData(wb, "Gabungan Model", model_reg23var())
       },
       error = function(e) {
-        cat("Error pada sheet 'Gabungan Model':", e$message, "\n")
+        log_sheet_error("Gabungan Model", e)
         writeData(wb, "Gabungan Model", data.frame()) # Kosongkan jika error
       }
     )
@@ -3149,7 +3207,7 @@ server <- function(input, output, session) {
         writeData(wb, "Uji Asumsi", ujiasumsif())
       },
       error = function(e) {
-        cat("Error pada sheet 'Uji Asumsi':", e$message, "\n")
+        log_sheet_error("Uji Asumsi", e)
         writeData(wb, "Uji Asumsi", data.frame()) # Kosongkan jika error
       }
     )
@@ -3160,7 +3218,7 @@ server <- function(input, output, session) {
         writeData(wb, "Backtest", backtestf())
       },
       error = function(e) {
-        cat("Error pada sheet 'Backtest':", e$message, "\n")
+        log_sheet_error("Backtest", e)
         writeData(wb, "Backtest", data.frame()) # Kosongkan jika error
       }
     )
@@ -3171,7 +3229,7 @@ server <- function(input, output, session) {
         writeData(wb, "Final Model", finalmodel())
       },
       error = function(e) {
-        cat("Error pada sheet 'Final Model':", e$message, "\n")
+        log_sheet_error("Final Model", e)
         writeData(wb, "Final Model", data.frame()) # Kosongkan jika error
       }
     )
@@ -3182,7 +3240,7 @@ server <- function(input, output, session) {
         writeData(wb, "Model Akhir", tabel_pemilihan_model_akhir())
       },
       error = function(e) {
-        cat("Error pada sheet 'Model Akhir':", e$message, "\n")
+        log_sheet_error("Model Akhir", e)
         writeData(wb, "Model Akhir", data.frame()) # Kosongkan jika error
       }
     )
@@ -3193,7 +3251,7 @@ server <- function(input, output, session) {
         writeData(wb, "Forecast X", forecastxxx())
       },
       error = function(e) {
-        cat("Error pada sheet 'Forecast X':", e$message, "\n")
+        log_sheet_error("Forecast X", e)
         writeData(wb, "Forecast X", data.frame()) # Kosongkan jika error
       }
     )
@@ -3204,7 +3262,7 @@ server <- function(input, output, session) {
         writeData(wb, "Forecast Y", hasilforecast())
       },
       error = function(e) {
-        cat("Error pada sheet 'Forecast Y':", e$message, "\n")
+        log_sheet_error("Forecast Y", e)
         writeData(wb, "Forecast Y", data.frame()) # Kosongkan jika error
       }
     )
@@ -3245,8 +3303,10 @@ server <- function(input, output, session) {
       return()
     }
 
-    cat("✅ raw_data type:", typeof(raw_data), "\n")
-    cat("✅ raw_data length:", length(raw_data), "\n")
+    ra_log_debug("Workbook raw payload prepared", context = list(
+      type = typeof(raw_data),
+      length = length(raw_data)
+    ))
 
 
     # Ambil nilai dari satu baris model final
@@ -3327,18 +3387,18 @@ server <- function(input, output, session) {
   })
 
   dataissuerrr0 <- eventReactive(input$runpdafl, {
-    datais <- dbGetQuery(con, 'SELECT  "PRC_DATE","BUCKET_FROM", "CALC_AMOUNT"
-    FROM "FRS9_IMP_CA_PD_ENR"
-    WHERE "PD_CONFIG_ID" = $1',
+    datais <- dbGetQuery(con, "SELECT prc_date, bucket_from, calc_amount
+    FROM frs9_imp_ca_pd_enr
+    WHERE pd_config_id = $1",
       params = list(input$segmentpd)
     )
     datais
   })
 
   konfig_id <- eventReactive(input$runpdafl, {
-    datacon <- dbGetQuery(con, 'SELECT  "POPULATION_TYPE","OBSERVATION_PERIOD", "OBSERVATION_START_DATE"
-    FROM "FRS9_IMP_CA_PD_CONFIG"
-    WHERE "PKID" = $1',
+    datacon <- dbGetQuery(con, "SELECT population_type, observation_period, observation_start_date
+    FROM frs9_imp_ca_pd_config
+    WHERE pkid = $1",
       params = list(input$segmentpd)
     )
     datacon
@@ -3374,8 +3434,8 @@ server <- function(input, output, session) {
 
 
   datammulttt0 <- eventReactive(input$runpdafl, {
-    dataemut <- dbGetQuery(con, 'SELECT * FROM "FRS9_IMP_CA_PD_MMULT"
-    WHERE "PD_CONFIG_ID" = $1',
+    dataemut <- dbGetQuery(con, "SELECT * FROM frs9_imp_ca_pd_mmult
+    WHERE pd_config_id = $1",
       params = list(input$segmentpd)
     )
     dataemut

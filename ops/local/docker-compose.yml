@@ -4,8 +4,11 @@
 # ============================================================================
 # Profiles:
 #   - db: Run databases only (postgres + redis)
-#   - app: Run application service logic
-#   - full: Run databases + backend + frontend (hot reload)
+#   - app: Run application service logic (backend + optional frontend static)
+#   - backend: Run backend only
+#   - frontend / frontend-only / dev-frontend: Run frontend variants
+#   - analytics: Run R analytics service only
+#   - full: Run all major services
 # ============================================================================
 
 version: '3.8'
@@ -71,7 +74,6 @@ services:
     container_name: ifrs9-new-backend-dev
     env_file:
       - .env
-      - backend.env
     environment:
       # Only set what needs to be different from .env
       NODE_ENV: development
@@ -117,9 +119,9 @@ services:
     container_name: ifrs9-frontend-dev
     env_file:
       - .env
-      - frontend.env
     environment:
       NODE_ENV: development
+      HOSTNAME: "0.0.0.0"
       BACKEND_INTERNAL_URL: ${BACKEND_INTERNAL_URL:-http://new-backend:4232}
     ports:
       - "4231:4231"
@@ -128,6 +130,7 @@ services:
     profiles:
       - app
       - with-frontend
+      - frontend
 
   # ============================================================================
   # 💻 FRONTEND DEVELOPMENT (Hot Reload)
@@ -138,7 +141,6 @@ services:
     working_dir: /app
     env_file:
       - .env
-      - frontend.env
     environment:
       - NODE_ENV=development
       - PORT=4231
@@ -164,6 +166,7 @@ services:
       - hot-reload
       - full
       - frontend-only
+      - frontend
 
   # ============================================================================
   # 📈 R ANALYTICS (Shiny)

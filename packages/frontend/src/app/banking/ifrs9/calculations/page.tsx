@@ -10,7 +10,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -29,31 +29,19 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  TextField,
   Select,
   MenuItem,
   FormControl,
   InputLabel,
   Tab,
   Tabs,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   LinearProgress,
-  IconButton,
-  Tooltip,
-  Divider,
-  Stack
+  IconButton
 } from '@mui/material';
 import {
   Calculate as CalculateIcon,
   Home as HomeIcon,
-  ArrowBack as BackIcon,
   PlayArrow as RunIcon,
-  Stop as StopIcon,
   Refresh as RefreshIcon,
   Timeline as ResultsIcon,
   Settings as ConfigIcon,
@@ -71,7 +59,8 @@ import {
 } from '@mui/icons-material';
 import { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import { SafeDataGrid } from '@/components/shared/SafeDataGrid';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { useRouter } from 'next/navigation';
 import api, { handleAPIError } from '../../../../services/api';
 
@@ -116,6 +105,13 @@ interface CalculationSummary {
   stage1_ecl: number;
   stage2_ecl: number;
   stage3_ecl: number;
+  stage1Count?: number;
+  stage2Count?: number;
+  stage3Count?: number;
+  lastUpdated?: string;
+  totalAccounts?: number;
+  eclRate?: number;
+  coverageRatio?: number;
 }
 
 interface TabPanelProps {
@@ -157,6 +153,8 @@ export default function IFRS9CalculationDashboard() {
   const [processHistory, setProcessHistory] = useState<ProcessDate[]>([]);
   const [calculationResults, setCalculationResults] = useState<CalculationResult[]>([]);
   const [calculationSummary, setCalculationSummary] = useState<CalculationSummary | null>(null);
+  const [availableDates, setAvailableDates] = useState<string[]>([]);
+  const [selectedProcessDate, setSelectedProcessDate] = useState<string | null>(null);
 
   // Configuration state
   const [runConfig, setRunConfig] = useState({
@@ -180,16 +178,6 @@ export default function IFRS9CalculationDashboard() {
         { name: 'Stage 1', value: calculationSummary.stage1_count || 0, color: '#4CAF50' },
         { name: 'Stage 2', value: calculationSummary.stage2_count || 0, color: '#FF9800' },
         { name: 'Stage 3', value: calculationSummary.stage3_count || 0, color: '#F44336' }
-      ]);
-
-      // Mock trend data for now - can be enhanced with actual historical data API
-      setEclTrendData([
-        { month: 'Jul 2024', stage1: calculationSummary.stage1_ecl * 0.9, stage2: calculationSummary.stage2_ecl * 0.9, stage3: calculationSummary.stage3_ecl * 0.9 },
-        { month: 'Aug 2024', stage1: calculationSummary.stage1_ecl * 0.92, stage2: calculationSummary.stage2_ecl * 0.92, stage3: calculationSummary.stage3_ecl * 0.92 },
-        { month: 'Sep 2024', stage1: calculationSummary.stage1_ecl * 0.94, stage2: calculationSummary.stage2_ecl * 0.94, stage3: calculationSummary.stage3_ecl * 0.94 },
-        { month: 'Oct 2024', stage1: calculationSummary.stage1_ecl * 0.96, stage2: calculationSummary.stage2_ecl * 0.96, stage3: calculationSummary.stage3_ecl * 0.96 },
-        { month: 'Nov 2024', stage1: calculationSummary.stage1_ecl * 0.98, stage2: calculationSummary.stage2_ecl * 0.98, stage3: calculationSummary.stage3_ecl * 0.98 },
-        { month: 'Dec 2024', stage1: calculationSummary.stage1_ecl, stage2: calculationSummary.stage2_ecl, stage3: calculationSummary.stage3_ecl }
       ]);
     }
   }, [calculationSummary]);
@@ -314,8 +302,9 @@ export default function IFRS9CalculationDashboard() {
               clearInterval(interval);
               setProcessStatus('completed');
               setSuccess('ECL calculation completed successfully!');
-              // Refresh data to show new results
-              loadData();
+              // Refresh data to show new results for the date just calculated
+              loadData(runConfig.process_date);
+              setSelectedProcessDate(runConfig.process_date);
               return 100;
             }
             return prev + Math.random() * 10;
@@ -334,11 +323,13 @@ export default function IFRS9CalculationDashboard() {
 
   const handleViewResults = async (processData: ProcessDate) => {
     console.log("Viewing results for:", processData);
+    setSelectedProcessDate(processData.currdate);
     setLoading(true);
     try {
       setTabValue(1);
       const results = await fetchBatchResults(processData.currdate);
       setCalculationResults(results);
+      loadData(processData.currdate);
 
       if (results.length > 0) {
         setSuccess(
@@ -356,26 +347,34 @@ export default function IFRS9CalculationDashboard() {
   };
 
   const fetchBatchResults = async (date: string) => {
-    const response = await api.ifrs9Reports.eclResult.get({ prc_date: date });
-    const resultRows = Array.isArray(response?.data) ? response.data : [];
+    try {
+      const response = await api.ifrs9.getCalculationResults(date);
+      console.log(`📊 Batch results for ${date}:`, response);
 
-    if (resultRows.length > 0) {
-      return resultRows.map((r: any) => ({
-        prc_date: date,
-        account_id: r.account_id ?? r.accountId ?? 0,
-        facility_number: r.facility_number ?? r.accountNumber ?? r.accountId?.toString() ?? '-',
-        cif_number: r.cif_number ?? r.cifNumber ?? '-',
-        segment_id: r.segment_id ?? 1,
-        stage: r.stage ?? 1,
-        currency: r.currency ?? "IDR",
-        outstanding: r.outstanding ?? 0,
-        ecl_amount: r.ecl_amount ?? r.eclAmount ?? 0,
-        ecl_final: r.ecl_final ?? r.eclAmount ?? 0,
-        bucket_group: r.bucket_group ?? "-",
-        bucket_id: r.bucket_id ?? 0,
-        internal_rating_code: r.internal_rating_code ?? "-",
-        ext_rating_code: r.ext_rating_code ?? "-",
-      }));
+      // Standarized: response is body, response.data.items is the array
+      // Also being defensive to support direct array mapping if structure varies
+      const resultsArray = response?.data?.items || (Array.isArray(response?.data) ? response.data : []);
+
+      if (resultsArray.length > 0) {
+        return resultsArray.map((r: any) => ({
+          prc_date: date,
+          account_id: r.accountId,
+          facility_number: r.accountNumber || r.facilityNumber || r.accountId?.toString(),
+          cif_number: r.cifNumber || "-",
+          segment_id: r.segmentId || 1,
+          stage: r.stage,
+          currency: r.currency || "IDR",
+          outstanding: r.outstanding,
+          ecl_amount: r.eclAmount,
+          ecl_final: r.eclFinal || r.eclAmount,
+          bucket_group: r.bucketGroup || "-",
+          bucket_id: r.bucketId || 0,
+          internal_rating_code: r.internalRatingCode || "-",
+          ext_rating_code: r.extRatingCode || "-",
+        }));
+      }
+    } catch (err) {
+      console.error('❌ Error in fetchBatchResults:', err);
     }
     return [];
   };
@@ -442,36 +441,53 @@ export default function IFRS9CalculationDashboard() {
   };
 
   // Data loading
-  const loadData = async () => {
+  const loadData = useCallback(async (date?: string) => {
     setLoading(true);
     setError(null);
 
     try {
-      console.log('🔄 Loading IFRS9 calculation data...');
+      const prcDate = date || selectedProcessDate || undefined;
+      console.log(`🔄 Loading IFRS9 calculation data${prcDate ? ' for ' + prcDate : ' (latest)'}...`);
 
       // Load calculation summary from real API
-      const summaryResponse = await api.ifrs9.getCalculationsSummary();
+      const summaryResponse = await api.ifrs9.getCalculationsSummary(prcDate);
       if (summaryResponse.success && summaryResponse.data) {
         // Convert API response to CalculationSummary format
         const summaryData: CalculationSummary = {
-          total_accounts: 0, // Not provided by API yet, can be calculated
-          total_outstanding: 0, // Not provided by API yet
+          total_accounts: summaryResponse.data.totalAccounts || 0,
+          total_outstanding: summaryResponse.data.totalPortfolio || 0,
           total_ecl: summaryResponse.data.totalECL || 0,
-          stage1_count: 0, // Not provided by API yet
-          stage2_count: 0, // Not provided by API yet
-          stage3_count: 0, // Not provided by API yet
+          stage1_count: summaryResponse.data.stage1Count || 0,
+          stage2_count: summaryResponse.data.stage2Count || 0,
+          stage3_count: summaryResponse.data.stage3Count || 0,
           stage1_ecl: summaryResponse.data.stage1ECL || 0,
           stage2_ecl: summaryResponse.data.stage2ECL || 0,
           stage3_ecl: summaryResponse.data.stage3ECL || 0
         };
         setCalculationSummary(summaryData);
+        if (summaryResponse.data.lastUpdated && !selectedProcessDate) {
+          setSelectedProcessDate(summaryResponse.data.lastUpdated);
+        }
         console.log('✅ Loaded calculation summary:', summaryData);
+      }
+
+      // Load trend data
+      const trendResponse = await api.ifrs9.getPortfolioTrend(prcDate);
+      if (trendResponse.success && trendResponse.data) {
+        setEclTrendData(trendResponse.data);
+        console.log(`✅ Loaded trend data: ${trendResponse.data.length} points`);
+      }
+
+      // Load available dates for the selector
+      const datesResponse = await api.ifrs9.getAvailableDates();
+      if (datesResponse.success && datesResponse.data) {
+        setAvailableDates(datesResponse.data);
       }
 
       // Load calculation batches from real API
       const batchesResponse = await api.ifrs9.getCalculationBatches();
       if (batchesResponse.success && batchesResponse.data) {
-        // Convert API batches to ProcessDate format
+        // ... (preserving existing mapping logic)
         const historyData: ProcessDate[] = batchesResponse.data.batches.map((batch: any, index: number) => ({
           pkid: batch.id || index + 1,
           currdate: batch.processDate || new Date().toISOString().split('T')[0],
@@ -488,8 +504,12 @@ export default function IFRS9CalculationDashboard() {
       }
 
       // Note: Individual calculation results would need a separate API endpoint
-      // For now, we'll keep empty results until the API is available
-      setCalculationResults([]);
+      if (prcDate) {
+        const results = await fetchBatchResults(prcDate);
+        setCalculationResults(results);
+      } else {
+        setCalculationResults([]);
+      }
 
     } catch (error: any) {
       console.error('❌ Failed to load calculation data:', error);
@@ -497,11 +517,11 @@ export default function IFRS9CalculationDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedProcessDate]);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -559,7 +579,30 @@ export default function IFRS9CalculationDashboard() {
               </Typography>
             </Box>
           </Box>
-          <Box sx={{ display: 'flex', gap: 2 }}>
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+            <FormControl size="small" sx={{ minWidth: 150 }}>
+              <InputLabel id="process-date-select-label">View Date</InputLabel>
+              <Select
+                labelId="process-date-select-label"
+                id="process-date-select"
+                value={selectedProcessDate || ''}
+                label="View Date"
+                onChange={(e) => {
+                  const date = e.target.value;
+                  setSelectedProcessDate(date);
+                  loadData(date);
+                }}
+              >
+                <MenuItem value="">
+                  <em>Latest</em>
+                </MenuItem>
+                {availableDates.map((date) => (
+                  <MenuItem key={date} value={date}>
+                    {date}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
             <Button
               variant="contained"
               startIcon={<RunIcon />}
@@ -661,9 +704,9 @@ export default function IFRS9CalculationDashboard() {
                 <PerformanceIcon sx={{ mr: 1, color: 'info.main' }} />
                 <Typography variant="h6">Coverage Ratio</Typography>
               </Box>
-              <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-                {calculationSummary && ((calculationSummary.total_ecl / calculationSummary.total_outstanding) * 100).toFixed(2)}%
-              </Typography>
+              {calculationSummary && calculationSummary.total_outstanding > 0
+                ? ((calculationSummary.total_ecl / calculationSummary.total_outstanding) * 100).toFixed(2)
+                : '0.00'}%
             </CardContent>
           </Card>
         </Grid>
@@ -783,9 +826,21 @@ export default function IFRS9CalculationDashboard() {
                 <CardContent>
                   <Typography variant="h6" gutterBottom>Calculation Settings</Typography>
                   <Box sx={{ mt: 2 }}>
-                    <Alert severity="info">
-                      Calculation configuration settings will be loaded from the ECL Configuration module.
-                    </Alert>
+                    <Typography variant="body2" color="text.secondary">
+                      <strong>Process Date:</strong> {selectedProcessDate || 'Not selected'}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                      <strong>Calculation Type:</strong> ECL (Expected Credit Loss)
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                      <strong>Currency:</strong> IDR
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                      <strong>Last Updated:</strong> {calculationSummary?.lastUpdated || 'N/A'}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                      <strong>Total Accounts:</strong> {calculationSummary?.totalAccounts || 0}
+                    </Typography>
                   </Box>
                 </CardContent>
               </Card>
@@ -795,9 +850,24 @@ export default function IFRS9CalculationDashboard() {
                 <CardContent>
                   <Typography variant="h6" gutterBottom>Model Parameters</Typography>
                   <Box sx={{ mt: 2 }}>
-                    <Alert severity="info">
-                      PD, LGD, and EAD model parameters from respective setup modules.
-                    </Alert>
+                    <Typography variant="body2" color="text.secondary">
+                      <strong>Stage Distribution:</strong>
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ ml: 2 }}>
+                      • Stage 1: {calculationSummary?.stage1Count || 0} accounts
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ ml: 2 }}>
+                      • Stage 2: {calculationSummary?.stage2Count || 0} accounts
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ ml: 2 }}>
+                      • Stage 3: {calculationSummary?.stage3Count || 0} accounts
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                      <strong>ECL Rate:</strong> {calculationSummary?.eclRate?.toFixed(2) || 0}%
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                      <strong>Coverage Ratio:</strong> {calculationSummary?.coverageRatio?.toFixed(2) || 0}%
+                    </Typography>
                   </Box>
                 </CardContent>
               </Card>
@@ -812,13 +882,23 @@ export default function IFRS9CalculationDashboard() {
         <DialogContent>
           <Grid container spacing={3} sx={{ mt: 1 }}>
             <Grid size={{ xs: 12, md: 6 }}>
-              <TextField
+              <DatePicker
                 label="Process Date"
-                type="date"
-                fullWidth
-                value={runConfig.process_date}
-                onChange={(e) => setRunConfig(prev => ({ ...prev, process_date: e.target.value }))}
-                InputLabelProps={{ shrink: true }}
+                value={runConfig.process_date ? new Date(runConfig.process_date) : null}
+                onChange={(newValue) => {
+                  if (newValue) {
+                    const dateStr = newValue instanceof Date
+                      ? newValue.toISOString().split('T')[0]
+                      : (newValue as any).toISOString().split('T')[0];
+                    setRunConfig(prev => ({ ...prev, process_date: dateStr }));
+                  }
+                }}
+                slotProps={{
+                  textField: {
+                    fullWidth: true,
+                    InputLabelProps: { shrink: true }
+                  }
+                }}
               />
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>

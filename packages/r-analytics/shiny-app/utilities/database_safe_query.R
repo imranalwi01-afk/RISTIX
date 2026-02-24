@@ -156,24 +156,20 @@ safe_model_summary_query <- function(connection) {
   # Try different table name variations to find the real data
   queries_to_try <- list(
     list(
-      name = "Model Summary (quoted uppercase)",
-      sql = 'SELECT "model_id","model_name" FROM "FRS9_R_MODEL_SUMMARY" ORDER BY created_date DESC LIMIT 10'
+      name = "Model Summary (unquoted lowercase)",
+      sql = "SELECT model_id, model_name FROM frs9_r_model_summary ORDER BY created_date DESC LIMIT 10"
     ),
     list(
       name = "Model Summary (quoted lowercase)",
       sql = 'SELECT "model_id","model_name" FROM "frs9_r_model_summary" ORDER BY created_date DESC LIMIT 10'
     ),
     list(
-      name = "Model Summary (unquoted lowercase)",
-      sql = 'SELECT model_id, model_name FROM frs9_r_model_summary ORDER BY created_date DESC LIMIT 10'
-    ),
-    list(
-      name = "Model Summary (unquoted uppercase)",
-      sql = 'SELECT model_id, model_name FROM FRS9_R_MODEL_SUMMARY ORDER BY created_date DESC LIMIT 10'
-    ),
-    list(
       name = "Model Summary (basic select)",
-      sql = 'SELECT * FROM frs9_r_model_summary LIMIT 5'
+      sql = "SELECT * FROM frs9_r_model_summary LIMIT 5"
+    ),
+    list(
+      name = "Model Summary (quoted uppercase legacy)",
+      sql = 'SELECT "model_id","model_name" FROM "FRS9_R_MODEL_SUMMARY" ORDER BY created_date DESC LIMIT 10'
     )
   )
 
@@ -215,16 +211,16 @@ safe_pd_model_query <- function(connection) {
   # Try different table name variations to find the real data
   queries_to_try <- list(
     list(
-      name = "PD Model (quoted uppercase)",
-      sql = 'SELECT * FROM "FRS9_PARAM_PD_MODEL_H" LIMIT 10'
+      name = "PD Model (unquoted lowercase)",
+      sql = "SELECT * FROM frs9_param_pd_model_h LIMIT 10"
     ),
     list(
       name = "PD Model (quoted lowercase)",
       sql = 'SELECT * FROM "frs9_param_pd_model_h" LIMIT 10'
     ),
     list(
-      name = "PD Model (unquoted)",
-      sql = 'SELECT * FROM frs9_param_pd_model_h LIMIT 10'
+      name = "PD Model (quoted uppercase legacy)",
+      sql = 'SELECT * FROM "FRS9_PARAM_PD_MODEL_H" LIMIT 10'
     )
   )
 
@@ -265,16 +261,16 @@ safe_lgd_model_query <- function(connection) {
 
   queries_to_try <- list(
     list(
-      name = "LGD Model (quoted uppercase)",
-      sql = 'SELECT * FROM "FRS9_PARAM_LGD_MODEL_H" LIMIT 10'
+      name = "LGD Model (unquoted lowercase)",
+      sql = "SELECT * FROM frs9_param_lgd_model_h LIMIT 10"
     ),
     list(
       name = "LGD Model (quoted lowercase)",
       sql = 'SELECT * FROM "frs9_param_lgd_model_h" LIMIT 10'
     ),
     list(
-      name = "LGD Model (unquoted)",
-      sql = 'SELECT * FROM frs9_param_lgd_model_h LIMIT 10'
+      name = "LGD Model (quoted uppercase legacy)",
+      sql = 'SELECT * FROM "FRS9_PARAM_LGD_MODEL_H" LIMIT 10'
     )
   )
 

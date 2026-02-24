@@ -287,6 +287,10 @@ export const shouldAutoApprove = (
     operation: 'create' | 'update' | 'delete',
     impactLevel?: string
 ): boolean => {
+    if (requiresStrictFourEyes(entityType)) {
+        return false
+    }
+
     // No matrix means no approval required
     if (!matrix) return true
 
@@ -311,6 +315,55 @@ export const shouldAutoApprove = (
     // Check if user has approval permission (can self-approve)
     return hasApprovalPermission(userPermissions, entityType, operation)
 }
+
+const STRICT_FOUR_EYES_ENTITIES = new Set([
+    'user',
+    'role',
+    'role_permission',
+    'role_permissions',
+    'role_assignment',
+    'user_status',
+])
+
+export interface ApprovalRoutingLevel {
+    level: number
+    name: string
+    requiredRoles: string[]
+    requiredCount: number
+    timeoutHours?: number
+}
+
+/**
+ * Strict 4-eyes mode can be disabled explicitly for lower environments.
+ * By default it is enabled to prevent self-approval bypass for privileged entities.
+ */
+export const requiresStrictFourEyes = (entityType: string): boolean => {
+    const strictModeEnabled = (process.env.APPROVAL_STRICT_FOUR_EYES ?? 'true').toLowerCase() !== 'false'
+    if (!strictModeEnabled) return false
+    const normalized = String(entityType || '').trim().toLowerCase()
+    return STRICT_FOUR_EYES_ENTITIES.has(normalized)
+}
+
+/**
+ * Default fallback routing for strict entities when matrix data is missing.
+ * This keeps approval eligibility deterministic and visible.
+ */
+export const buildDefaultFourEyesRouting = (_entityType: string): ApprovalRoutingLevel[] => ([
+    {
+        level: 1,
+        name: 'Checker Review',
+        requiredRoles: ['CHECKER'],
+        requiredCount: 1,
+        timeoutHours: 24,
+    },
+    {
+        level: 2,
+        name: 'Final Approval',
+        requiredRoles: ['APPROVER', 'SUPER_ADMIN', 'IAF_TENANT_SUPER_ADMIN', 'approval.all', 'admin.super_admin'],
+        requiredCount: 1,
+        timeoutHours: 24,
+    },
+])
 
 /**
  * Get required approval level for operation

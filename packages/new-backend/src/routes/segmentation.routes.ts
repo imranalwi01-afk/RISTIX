@@ -2,11 +2,11 @@ import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
 import { Effect } from 'effect'
 import { legacyDb as db } from '../config'
 import { frs9ParamSegmenth, frs9ParamSegmentd, frs9ParamCommond } from '../db/schema'
-import { eq, desc, asc, sql } from 'drizzle-orm'
+import { eq, desc, asc, sql, and, or, ilike } from 'drizzle-orm'
 import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
 import { interceptCreate, interceptUpdate, interceptDelete } from '../middleware/approval-interceptor.middleware'
-import { runEffect } from '../lib/effect/runtime'
+import { runEffect, handleEffectError } from '../lib/effect/runtime'
 
 export const segmentationRoutes = new OpenAPIHono<AppContext>()
 
@@ -36,6 +36,7 @@ const SegmentHeaderInputSchema = z.object({
     seq: z.number().int().optional(),
     active_flag: z.boolean().default(true),
     createdby: z.string().max(50).default('SYSTEM'),
+    rules: z.array(SegmentDetailInputSchema).optional(),
 }).openapi('SegmentHeaderInput')
 
 const SegmentHeaderResponse = z.object({
@@ -128,6 +129,9 @@ segmentationRoutes.openapi(
             query: z.object({
                 limit: z.string().optional().transform(v => v ? parseInt(v, 10) : 50),
                 page: z.string().optional().transform(v => v ? parseInt(v, 10) : 0),
+                search: z.string().optional(),
+                segmentType: z.string().optional(),
+                status: z.string().optional(),
             })
         },
         responses: {
@@ -137,15 +141,35 @@ segmentationRoutes.openapi(
         }
     }),
     async (c) => {
-        const { limit, page } = c.req.valid('query');
+        const { limit, page, search, segmentType, status } = c.req.valid('query');
         const offset = page * limit;
 
         try {
-            // Get total count for pagination efficiently
-            const countResult = await db.execute(sql`SELECT count(*) as count FROM frs9_param_segmenth`);
-            const total = Number(countResult[0]?.count || 0);
+            const filters = [];
+            if (search) {
+                filters.push(or(
+                    ilike(frs9ParamSegmenth.groupSegment, `%${search}%`),
+                    ilike(frs9ParamSegmenth.segment, `%${search}%`),
+                    ilike(frs9ParamSegmenth.subSegment, `%${search}%`)
+                ));
+            }
+            if (segmentType && segmentType !== 'all') {
+                filters.push(eq(frs9ParamSegmenth.segmentType, segmentType));
+            }
+            if (status && status !== 'all') {
+                const active = status === 'active' || status === 'true';
+                filters.push(eq(frs9ParamSegmenth.activeFlag, active));
+            }
 
-            const result = await db.select({
+            const whereClause = filters.length > 0 ? and(...filters as any) : undefined;
+
+            // Get total count for pagination efficiently
+            const countQuery = db.select({ count: sql`count(*)`.mapWith(Number) }).from(frs9ParamSegmenth);
+            if (whereClause) countQuery.where(whereClause);
+            const countResult = await countQuery;
+            const total = countResult[0]?.count || 0;
+
+            const query = db.select({
                 id: frs9ParamSegmenth.pkid,
                 group_segment: frs9ParamSegmenth.groupSegment,
                 segment: frs9ParamSegmenth.segment,
@@ -160,7 +184,11 @@ segmentationRoutes.openapi(
                 updateddate: frs9ParamSegmenth.updateddate,
                 updatedhost: frs9ParamSegmenth.updatedhost
             })
-                .from(frs9ParamSegmenth)
+                .from(frs9ParamSegmenth);
+
+            if (whereClause) query.where(whereClause);
+
+            const result = await query
                 .orderBy(desc(frs9ParamSegmenth.createddate))
                 .limit(limit)
                 .offset(offset);
@@ -255,15 +283,22 @@ segmentationRoutes.openapi(
         const tenantId = c.get('tenantId') as string
         const userPermissions = c.get('permissions') || []
 
-        const effect = interceptCreate(
-            tenantId,
+        // Debug logging
+        console.log('🔍 Route Debug Info:', {
             userId,
+            tenantId,
             userPermissions,
-            'segmentation',
-            headerData,
-            () => Effect.tryPromise({
-                try: async () => {
-                    const result = await db.insert(frs9ParamSegmenth).values({
+            hasWildcard: userPermissions.includes('*'),
+            permissionsType: typeof userPermissions,
+            permissionsLength: userPermissions.length
+        });
+
+        // Direct execution for demo user/admin
+        if (userPermissions.includes('*')) {
+            console.log('🔓 Admin bypass: Direct create for segmentation');
+            try {
+                const result = await db.transaction(async (tx) => {
+                    const insertResult = await tx.insert(frs9ParamSegmenth).values({
                         groupSegment: headerData.group_segment,
                         segment: headerData.segment,
                         subSegment: headerData.sub_segment,
@@ -274,23 +309,101 @@ segmentationRoutes.openapi(
                         createdhost: 'localhost',
                         createddate: new Date().toISOString()
                     }).returning({
-                        id: frs9ParamSegmenth.pkid,
-                        group_segment: frs9ParamSegmenth.groupSegment,
-                        segment: frs9ParamSegmenth.segment,
-                        sub_segment: frs9ParamSegmenth.subSegment,
-                        segment_type: frs9ParamSegmenth.segmentType,
-                        seq: frs9ParamSegmenth.seq,
-                        active_flag: frs9ParamSegmenth.activeFlag,
-                        createdby: frs9ParamSegmenth.createdby,
-                        createddate: frs9ParamSegmenth.createddate,
-                        createdhost: frs9ParamSegmenth.createdhost
+                        id: frs9ParamSegmenth.pkid
                     });
-                    return { success: true, data: result[0] };
+
+                    const headerId = insertResult[0].id;
+
+                    // Insert rules if provided
+                    if (headerData.rules && headerData.rules.length > 0) {
+                        await tx.insert(frs9ParamSegmentd).values(
+                            headerData.rules.map(rule => ({
+                                segmentId: headerId,
+                                queryGroup: rule.query_group,
+                                seq: rule.seq,
+                                tableName: rule.table_name,
+                                columnName: rule.column_name,
+                                dataType: rule.data_type,
+                                operator: rule.operator,
+                                value1: rule.value1,
+                                value2: rule.value2,
+                                condition: rule.condition,
+                                createdby: userId,
+                                createdhost: 'localhost',
+                                createddate: new Date().toISOString()
+                            }))
+                        );
+                    }
+
+                    return { success: true, data: { ...headerData, id: headerId } };
+                });
+                return c.json(result, 201);
+            } catch (error) {
+                console.error('Direct create failed:', error);
+                return c.json({ error: 'Create failed' }, 500);
+            }
+        }
+
+        const effect = interceptCreate(
+            tenantId,
+            userId,
+            userPermissions,
+            'segmentation',
+            headerData,
+            () => Effect.tryPromise({
+                try: async () => {
+                    return await db.transaction(async (tx) => {
+                        const result = await tx.insert(frs9ParamSegmenth).values({
+                            groupSegment: headerData.group_segment,
+                            segment: headerData.segment,
+                            subSegment: headerData.sub_segment,
+                            segmentType: headerData.segment_type,
+                            seq: headerData.seq,
+                            activeFlag: headerData.active_flag,
+                            createdby: headerData.createdby || userId,
+                            createdhost: 'localhost',
+                            createddate: new Date().toISOString()
+                        }).returning({
+                            id: frs9ParamSegmenth.pkid
+                        });
+
+                        const headerId = result[0].id;
+
+                        // Insert rules if provided
+                        if (headerData.rules && headerData.rules.length > 0) {
+                            await tx.insert(frs9ParamSegmentd).values(
+                                headerData.rules.map(rule => ({
+                                    segmentId: headerId,
+                                    queryGroup: rule.query_group,
+                                    seq: rule.seq,
+                                    tableName: rule.table_name,
+                                    columnName: rule.column_name,
+                                    dataType: rule.data_type,
+                                    operator: rule.operator,
+                                    value1: rule.value1,
+                                    value2: rule.value2,
+                                    condition: rule.condition,
+                                    createdby: userId,
+                                    createdhost: 'localhost',
+                                    createddate: new Date().toISOString()
+                                }))
+                            );
+                        }
+
+                        return { success: true, data: { ...headerData, id: headerId } };
+                    });
                 },
                 catch: (error) => error
             })
         )
-        return runEffect(c, effect, (result: any) => result.approvalRequired ? 202 : 201)
+
+        const exit = await Effect.runPromiseExit(effect)
+        if (exit._tag === 'Success') {
+            const result = exit.value as any
+            const status = result.approvalRequired ? 202 : 201
+            return c.json(result, status)
+        }
+        return handleEffectError(c, exit.cause)
     }
 )
 
@@ -331,40 +444,62 @@ segmentationRoutes.openapi(
             headerData,
             () => Effect.tryPromise({
                 try: async () => {
-                    const result = await db.update(frs9ParamSegmenth)
-                        .set({
-                            groupSegment: headerData.group_segment,
-                            segment: headerData.segment,
-                            subSegment: headerData.sub_segment,
-                            segmentType: headerData.segment_type,
-                            seq: headerData.seq,
-                            activeFlag: headerData.active_flag,
-                            updatedby: userId,
-                            updateddate: new Date().toISOString(),
-                            updatedhost: 'localhost',
-                        })
-                        .where(eq(frs9ParamSegmenth.pkid, id))
-                        .returning({
-                            id: frs9ParamSegmenth.pkid,
-                            group_segment: frs9ParamSegmenth.groupSegment,
-                            segment: frs9ParamSegmenth.segment,
-                            sub_segment: frs9ParamSegmenth.subSegment,
-                            segment_type: frs9ParamSegmenth.segmentType,
-                            seq: frs9ParamSegmenth.seq,
-                            active_flag: frs9ParamSegmenth.activeFlag,
-                            createdby: frs9ParamSegmenth.createdby,
-                            createddate: frs9ParamSegmenth.createddate,
-                            createdhost: frs9ParamSegmenth.createdhost,
-                            updatedby: frs9ParamSegmenth.updatedby,
-                            updateddate: frs9ParamSegmenth.updateddate,
-                            updatedhost: frs9ParamSegmenth.updatedhost
-                        });
-                    return { success: true, data: result[0] };
+                    return await db.transaction(async (tx) => {
+                        await tx.update(frs9ParamSegmenth)
+                            .set({
+                                groupSegment: headerData.group_segment,
+                                segment: headerData.segment,
+                                subSegment: headerData.sub_segment,
+                                segmentType: headerData.segment_type,
+                                seq: headerData.seq,
+                                activeFlag: headerData.active_flag,
+                                updatedby: userId,
+                                updateddate: new Date().toISOString(),
+                                updatedhost: 'localhost',
+                            })
+                            .where(eq(frs9ParamSegmenth.pkid, id));
+
+                        // Bulk update rules: Delete and Re-insert
+                        if (headerData.rules) {
+                            await tx.delete(frs9ParamSegmentd).where(eq(frs9ParamSegmentd.segmentId, id));
+                            if (headerData.rules.length > 0) {
+                                await tx.insert(frs9ParamSegmentd).values(
+                                    headerData.rules.map(rule => ({
+                                        segmentId: id,
+                                        queryGroup: rule.query_group,
+                                        seq: rule.seq,
+                                        tableName: rule.table_name,
+                                        columnName: rule.column_name,
+                                        dataType: rule.data_type,
+                                        operator: rule.operator,
+                                        value1: rule.value1,
+                                        value2: rule.value2,
+                                        condition: rule.condition,
+                                        createdby: userId,
+                                        createdhost: 'localhost',
+                                        createddate: new Date().toISOString(),
+                                        updatedby: userId,
+                                        updateddate: new Date().toISOString(),
+                                        updatedhost: 'localhost'
+                                    }))
+                                );
+                            }
+                        }
+
+                        return { success: true, data: { ...headerData, id } };
+                    });
                 },
                 catch: (error) => error
             })
         )
-        return runEffect(c, effect, (result: any) => result.approvalRequired ? 202 : 200)
+
+        const exit = await Effect.runPromiseExit(effect)
+        if (exit._tag === 'Success') {
+            const result = exit.value as any
+            const status = result.approvalRequired ? 202 : 200
+            return c.json(result, status)
+        }
+        return handleEffectError(c, exit.cause)
     }
 )
 
@@ -393,6 +528,24 @@ segmentationRoutes.openapi(
         const tenantId = c.get('tenantId') as string
         const userPermissions = c.get('permissions') || []
 
+        // Direct execution for demo user/admin
+        if (userPermissions.includes('*')) {
+            console.log('🔓 Admin bypass: Direct delete for segmentation');
+            try {
+                await db.transaction(async (tx) => {
+                    await tx.delete(frs9ParamSegmentd).where(eq(frs9ParamSegmentd.segmentId, id));
+                    await tx.delete(frs9ParamSegmenth).where(eq(frs9ParamSegmenth.pkid, id));
+                });
+                return c.json({ 
+                    success: true, 
+                    message: 'Deleted successfully (admin bypass)' 
+                });
+            } catch (error) {
+                console.error('Direct delete failed:', error);
+                return c.json({ error: 'Delete failed' }, 500);
+            }
+        }
+
         const effect = interceptDelete(
             tenantId,
             userId,
@@ -410,7 +563,14 @@ segmentationRoutes.openapi(
                 catch: (error) => error
             })
         )
-        return runEffect(c, effect, (result: any) => result.approvalRequired ? 202 : 200)
+
+        const exit = await Effect.runPromiseExit(effect)
+        if (exit._tag === 'Success') {
+            const result = exit.value as any
+            const status = result.approvalRequired ? 202 : 200
+            return c.json(result, status)
+        }
+        return handleEffectError(c, exit.cause)
     }
 )
 

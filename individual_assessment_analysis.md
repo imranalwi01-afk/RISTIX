@@ -1,277 +1,131 @@
 # Analisis Detail Link Individual Assessment
+
 ## URL: http://localhost:4231/banking/individual/assessment?mode=conventional
 
-Berdasarkan analisis kodebase dan struktur database, berikut adalah validasi koneksi link ke tabel-tabel yang disebutkan:
+Dokumen ini menganalisis aliran data dan komponen teknis untuk halaman pengelolaan _Individual Assessment (IA)_.
 
 ---
 
-## 📋 STRUKTUR MENU INDIVIDUAL IMPAIRMENT
+## 📋 STRUKTUR MENU
 
 ### **Menu Path:**
-- **Root:** Individual Impairment (`/banking/individual`)
-- **Child:** Assessment (`/banking/individual/assessment`)
+
+- **Root:** Banking (`/banking`)
+- **Parent:** Individual Impairment (`/banking/individual`)
+- **Child:** Assessment Report / List (`/banking/individual/assessment`)
 - **Mode Filter:** `?mode=conventional`
 
-### **Menu Configuration:**
-```sql
--- Dari menu seed data
-INSERT INTO core.menu_items (
-    menu_key, title, description, url, icon, menu_type, 
-    sort_order, is_active, banking_types
-) VALUES (
-    'individual.assessment_override', 
-    'Individual Assessment Override', 
-    'Individual Assessment Override', 
-    '/banking/individual/assessment-override', 
-    'Assignment', 'item', 1, true, 
-    ARRAY['conventional', 'syariah', 'dual']
-);
-```
+### **Fungsi Halaman:**
+
+Halaman ini berfungsi sebagai _Workspace_ bagi Credit Analyst untuk melakukan perhitungan ECL secara spesifik per debitur.
+
+Metode yang didukung biasanya:
+
+1.  **Discounted Cash Flow (DCF):** Memproyeksikan arus kas masa depan (dari operasional atau penjualan agunan) dan mendiskontokannya ke nilai kini (Present Value).
+2.  **Collateral Based:** Berbasis nilai likuidasi agunan.
 
 ---
 
-## 🔍 ANALISIS KONEKSI TABEL
+## 🔍 ANALISIS KOMPONEN & KONEKSI TABEL
 
-### ✅ **1. Individual Watchlist → FRS9_MASTER_ACCOUNT**
-**Status: SESUAI** ✅
+### ✅ **1. Widget: Assessment List (Inbox)**
 
-**Bukti dari Route:**
-```typescript
-// individual-impairment.routes.ts
-router.get('/watchlist', 
-  individualImpairmentController.getWatchlist.bind(individualImpairmentController)
-);
-```
+**Status: CORE TRANSACTION**
+
+- **Deskripsi:** Daftar penilaian yang sedang berjalan atau sudah selesai.
+- **Tabel Utama:** `public.frs9_imp_ia_header` (Database: FRS9PRO)
+- **Logika:** Menampilkan data header penilaian yang digabungkan dengan informasi nasabah.
 
 **Query Pattern:**
+
 ```sql
--- Watchlist mengambil data dari master account
-SELECT 
-    ma.account_id,
-    ma.account_number,
-    ma.cif_number,
-    ma.customer_name,
-    ma.account_status,
-    ma.impaired_flag,
-    ma.dpd_days,
-    ma.rating_code
-FROM frs9_master_account ma
-WHERE ma.prc_date = CURRENT_DATE
-  AND ma.banking_type = 'conventional'
-ORDER BY ma.account_number;
+SELECT
+    h.ia_id, h.assessment_date,
+    m.customer_name, m.account_number,
+    h.stage, h.method, h.status, -- DRAFT, SUBMITTED, APPROVED
+    h.final_ecl_amount
+FROM public.frs9_imp_ia_header h
+JOIN public.frs9_master_account m ON h.account_number = m.account_number
+WHERE m.banking_type = 'conventional'
+ORDER BY h.assessment_date DESC;
 ```
 
 ---
 
-### ✅ **2. List of Individual Report → FRS9_IMP_IA_HEADER**
-**Status: SESUAI** ✅
+### ✅ **2. Form: Create New Assessment (Search Account)**
 
-**Bukti dari Route:**
-```typescript
-// individual-impairment.routes.ts
-router.get('/assessment',
-  individualImpairmentController.getAssessmentReport.bind(individualImpairmentController)
-);
-```
+**Status: INITIATION**
+
+- **Deskripsi:** Pencarian akun yang _eligible_ untuk dinilai secara individual (biasanya akun Signifikan atau Watchlist).
+- **Tabel Utama:** `public.frs9_master_account`
+- **Logika:** Filter akun yang belum memiliki _Active Assessment_ pada periode yang sama.
 
 **Query Pattern:**
+
 ```sql
--- Assessment report dari header table
-SELECT 
-    h.ia_id,
-    h.prc_date,
-    h.account_id,
-    h.impaired_flag,
-    h.method,
-    h.status,
-    h.createdby,
-    h.createddate
-FROM frs9_imp_ia_header h
-WHERE h.prc_date <= CURRENT_DATE
-ORDER BY h.prc_date DESC, h.account_id;
+SELECT account_number, customer_name, outstanding_balance, rating_code
+FROM public.frs9_master_account
+WHERE banking_type = 'conventional'
+  AND outstanding_balance > :significance_threshold
+  AND account_number NOT IN (SELECT account_number FROM public.frs9_imp_ia_header WHERE status = 'OPEN');
 ```
 
 ---
 
-### ✅ **3. Review → Impairment Override Trigger → FRS9_MASTER_ACCOUNT**
-**Status: SESUAI** ✅
+### ✅ **3. Widget: Assessment Summary (Header Info)**
 
-**Bukti dari Route:**
-```typescript
-// individual-impairment.routes.ts
-router.put('/:id',
-  individualImpairmentController.updateImpairment.bind(individualImpairmentController)
-);
-```
+**Status: DETAIL VIEW**
+
+- **Deskripsi:** Informasi ringkas mengenai parameter penilaian yang dipilih (EIR, Tanggal Posisi).
+- **Tabel Utama:** `public.frs9_imp_ia_header`
+- **Logika:** Mengambil data kunci untuk perhitungan DCF.
 
 **Query Pattern:**
+
 ```sql
--- Override trigger update ke master account
-UPDATE frs9_master_account 
-SET 
-    impaired_flag = :impaired_flag,
-    method = :method,
-    trigger_remarks = :trigger_remarks,
-    status = :status,
-    updatedby = :user_id,
-    updateddate = CURRENT_DATE
-WHERE account_id = :account_id
-  AND prc_date = CURRENT_DATE;
+SELECT
+    effective_interest_rate,
+    currency_code,
+    exchange_rate,
+    scenario_probability_best,
+    scenario_probability_base,
+    scenario_probability_worst
+FROM public.frs9_imp_ia_header
+WHERE ia_id = :selected_ia_id;
 ```
 
 ---
 
-### ✅ **4. Review → Scenario Details → FRS9_IMP_IA_HEADER + FRS9_IMP_IA_RR**
-**Status: SESUAI** ✅
+### ✅ **4. Widget: Approval Workflow Status**
 
-**Bukti dari Route:**
-```typescript
-// individual-impairment.routes.ts
-router.get('/scenario',
-  individualImpairmentController.getScenarioAnalysis.bind(individualImpairmentController)
-);
-```
+**Status: GOVERNANCE**
+
+- **Deskripsi:** Melacak status persetujuan penilaian (Maker-Checker).
+- **Tabel Utama:** `approval.approval_history` (Database: Platform)
+- **Logika:** Menampilkan siapa yang membuat, mereview, dan menyetujui.
 
 **Query Pattern:**
+
 ```sql
--- Scenario details join header dan RR
-SELECT 
-    h.ia_id,
-    h.account_id,
-    h.prc_date,
-    rr.period_start,
-    rr.period_end,
-    rr.scenario_type,
-    rr.ecl_amount,
-    rr.pd_rate,
-    rr.lgd_rate,
-    rr.ead_amount
-FROM frs9_imp_ia_header h
-JOIN frs9_imp_ia_rr rr ON h.ia_id = rr.ia_id
-WHERE h.account_id = :account_id
-  AND h.prc_date <= :prc_date
-ORDER BY rr.period_start DESC;
+SELECT action_by, action_date, action_type, comments
+FROM approval.approval_history
+WHERE reference_id = :selected_ia_id
+ORDER BY action_date;
 ```
 
 ---
 
-### ✅ **5. Review → Upload DCF → FRS9_IMP_IA_DCF**
-**Status: SESUAI** ✅
+## 📊 RINGKASAN SKEMA DATABASE
 
-**Bukti dari Route:**
-```typescript
-// individual-impairment.routes.ts
-router.post('/dcf/calculate',
-  individualImpairmentController.calculateDCF.bind(individualImpairmentController)
-);
-```
+Modul ini menggunakan database **FRS9PRO** untuk data transaksi dan **Platform** untuk workflow:
 
-**Query Pattern:**
-```sql
--- DCF upload/insert
-INSERT INTO frs9_imp_ia_dcf (
-    ia_id, prc_date, account_id, periode, 
-    cash_flow_amount, discount_rate, present_value,
-    createdby, createddate
-) VALUES (
-    :ia_id, :prc_date, :account_id, :periode,
-    :cash_flow_amount, :discount_rate, :present_value,
-    :user_id, CURRENT_DATE
-);
-```
-
----
-
-### ✅ **6. Review → DCF Upload Report Detail → FRS9_IMP_IA_DCF**
-**Status: SESUAI** ✅
-
-**Query Pattern:**
-```sql
--- DCF report detail
-SELECT 
-    d.pkid,
-    d.ia_id,
-    d.account_id,
-    d.periode,
-    d.cash_flow_amount,
-    d.discount_rate,
-    d.present_value,
-    d.createdby,
-    d.createddate
-FROM frs9_imp_ia_dcf d
-WHERE d.account_id = :account_id
-  AND d.prc_date <= :prc_date
-ORDER BY d.periode;
-```
-
----
-
-### ✅ **7. Review → IA Discounted Cash Flow Detail → FRS9_IMP_IA_HEADER + FRS9_IMP_IA_DETAIL**
-**Status: SESUAI** ✅
-
-**Bukti dari Route:**
-```typescript
-// individual-impairment.routes.ts
-router.get('/dcf/:accountId',
-  individualImpairmentController.getDCFAnalysis.bind(individualImpairmentController)
-);
-```
-
-**Query Pattern:**
-```sql
--- DCF detail join header dan detail
-SELECT 
-    h.ia_id,
-    h.account_id,
-    h.prc_date,
-    h.pv_dcf_amt,
-    d.periode,
-    d.eir_amt,
-    d.unwinding_amt,
-    d.ecl_amt
-FROM frs9_imp_ia_header h
-JOIN frs9_imp_ia_detail d ON h.ia_id = d.ia_id
-WHERE h.account_id = :account_id
-  AND h.prc_date <= :prc_date
-ORDER BY d.periode;
-```
-
----
-
-## 📊 STRUKTUR TABEL YANG TERLIBAT
-
-### **Primary Tables:**
-1. **`frs9_master_account`** - Data master akun untuk watchlist
-2. **`frs9_imp_ia_header`** - Header individual impairment
-3. **`frs9_imp_ia_detail`** - Detail per periode impairment
-4. **`frs9_imp_ia_rr`** - Rate & Risk data untuk scenario
-5. **`frs9_imp_ia_dcf`** - Discounted Cash Flow data
-
-### **Relationship:**
-```
-frs9_master_account (account_id) 
-    ↓ 1:Many
-frs9_imp_ia_header (ia_id, account_id)
-    ↓ 1:Many
-frs9_imp_ia_detail (ia_id)
-    ↓ 1:Many  
-frs9_imp_ia_rr (ia_id)
-    ↓ 1:Many
-frs9_imp_ia_dcf (ia_id)
-```
-
----
+1.  **Schema `public` (FRS9PRO)**:
+    - `frs9_imp_ia_header`: Tabel transaksi utama IA.
+    - `frs9_master_account`: Data referensi akun.
+2.  **Schema `approval` (Platform)**:
+    - `approval_history`: Audit trail persetujuan.
 
 ## 🎯 KESIMPULAN
 
-**SEMUA KONEKSI TABEL SESUAI** dengan aturan yang diberikan:
-
-✅ **Individual Watchlist** → `FRS9_MASTER_ACCOUNT`  
-✅ **List of Individual Report** → `FRS9_IMP_IA_HEADER`  
-✅ **Review → Impairment Override Trigger** → `FRS9_MASTER_ACCOUNT`  
-✅ **Review → Scenario Details** → `FRS9_IMP_IA_HEADER` + `FRS9_IMP_IA_RR`  
-✅ **Review → Upload DCF** → `FRS9_IMP_IA_DCF`  
-✅ **Review → DCF Upload Report Detail** → `FRS9_IMP_IA_DCF`  
-✅ **Review → IA Discounted Cash Flow Detail** → `FRS9_IMP_IA_HEADER` + `FRS9_IMP_IA_DETAIL`  
-
-**URL `http://localhost:4231/banking/individual/assessment?mode=conventional`** telah terkonfigurasi dengan benar untuk mengakses semua fungsi Individual Impairment Assessment dengan filter mode conventional.
+URL `http://localhost:4231/banking/individual/assessment?mode=conventional` adalah halaman kerja utama analis kredit.
+Berbeda dengan modul kolektif yang otomatis, modul ini sangat manual dan membutuhkan _Expert Judgment_. Integritas data antara `header` penilaian dan `master_account` sangat krusial.

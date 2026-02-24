@@ -284,12 +284,18 @@ authRoutes.openapi(
     async (c) => {
         const mode = c.req.query('mode')
         const includeSystem = mode === 'admin'
+
+        // Helper: strip dev suffixes from tenant display names
+        const cleanTenantName = (name: string) =>
+            name.replace(/\s*\(Local Development\)/gi, '').replace(/\s*\(Development\)/gi, '').trim()
+
+        const rawFallbackName = env.TENANT_NAME || env.COMPANY_NAME || 'Indonesia Airawata Finance'
         const fallbackTenants = [
             {
                 id: env.TENANT_SLUG || env.TENANT_ID || 'iaf',
                 slug: env.TENANT_SLUG || 'iaf',
-                name: env.TENANT_NAME || env.COMPANY_NAME || 'Indonesia Airawata Finance',
-                displayName: env.TENANT_NAME || env.COMPANY_NAME || 'Indonesia Airawata Finance',
+                name: cleanTenantName(rawFallbackName),
+                displayName: cleanTenantName(rawFallbackName),
                 bankingType: env.BANKING_TYPE || 'conventional',
                 isActive: true,
             },
@@ -301,8 +307,8 @@ authRoutes.openapi(
                 tenants: result.data.map((t: any) => ({
                     id: t.id,
                     slug: t.slug,
-                    name: t.name,
-                    displayName: t.displayName ?? t.name,
+                    name: cleanTenantName(t.name),
+                    displayName: cleanTenantName(t.displayName ?? t.name),
                     bankingType: t.bankingMode,
                     isActive: t.isActive,
                 })),

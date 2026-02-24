@@ -32,16 +32,16 @@ const toApiV1 = (value: string): string => {
 
 const resolveBackendOrigin = (): string => {
   const candidates = [
-    getEnv('NEXT_PUBLIC_BACKEND_URL'),
-    getEnv('BACKEND_URL'),
-    getEnv('NEXT_PUBLIC_API_BASE_URL'),
-    getEnv('NEXT_PUBLIC_BACKEND_API_URL'),
-    getEnv('API_BASE_URL'),
+    process.env.NEXT_PUBLIC_BACKEND_URL,
+    process.env.BACKEND_URL,
+    process.env.NEXT_PUBLIC_API_BASE_URL,
+    process.env.NEXT_PUBLIC_BACKEND_API_URL,
+    process.env.API_BASE_URL,
   ];
 
   for (const candidate of candidates) {
     if (!candidate) continue;
-    return stripApiSuffix(candidate);
+    return stripApiSuffix(candidate as string);
   }
 
   return '';
@@ -49,9 +49,9 @@ const resolveBackendOrigin = (): string => {
 
 const resolveApiBase = (backendOrigin: string): string => {
   const explicitApiBase =
-    getEnv('NEXT_PUBLIC_API_BASE_URL') ||
-    getEnv('NEXT_PUBLIC_BACKEND_API_URL') ||
-    getEnv('API_BASE_URL');
+    process.env.NEXT_PUBLIC_API_BASE_URL ||
+    process.env.NEXT_PUBLIC_BACKEND_API_URL ||
+    process.env.API_BASE_URL;
 
   if (explicitApiBase) return toApiV1(explicitApiBase);
   if (backendOrigin) return `${backendOrigin}/api/v1`;
@@ -102,7 +102,7 @@ class FrontendEnvironmentLoader {
       typeof window !== 'undefined'
         ? window.location.origin
         : '';
-    const frontendUrl = getEnv('NEXT_PUBLIC_FRONTEND_URL') || getEnv('FRONTEND_URL') || defaultFrontend;
+    const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL || process.env.FRONTEND_URL || defaultFrontend;
 
     this.config = {
       nodeEnv: process.env.NODE_ENV || (isProduction ? 'production' : 'development'),
@@ -112,17 +112,17 @@ class FrontendEnvironmentLoader {
         base: apiBase,
       },
       rAnalytics: {
-        api: getEnv('NEXT_PUBLIC_RAPI_BASE_URL') || '/api',
-        dashboard: getEnv('NEXT_PUBLIC_R_ANALYTICS_URL') || '',
+        api: process.env.NEXT_PUBLIC_RAPI_BASE_URL || process.env.NEXT_PUBLIC_R_API_URL || process.env.NEXT_PUBLIC_R_ANALYTICS_API || process.env.NEXT_PUBLIC_R_API_BASE_URL || '/api',
+        dashboard: process.env.NEXT_PUBLIC_R_ANALYTICS_URL || process.env.NEXT_PUBLIC_R_DASHBOARD_URL || process.env.NEXT_PUBLIC_R_ANALYTICS_BASE_URL || '',
       },
       urls: {
         frontend: frontendUrl,
         backend: backendOrigin || backendApi,
-        websocket: getEnv('NEXT_PUBLIC_WS_URL') || '',
+        websocket: process.env.NEXT_PUBLIC_WS_URL || '',
       },
       iaf: {
-        tenantId: getEnv('NEXT_PUBLIC_TENANT_ID') || 'iaf',
-        bankingType: getEnv('NEXT_PUBLIC_BANKING_TYPE') || 'conventional',
+        tenantId: process.env.NEXT_PUBLIC_TENANT_ID || 'iaf',
+        bankingType: process.env.NEXT_PUBLIC_BANKING_TYPE || 'conventional',
       },
     };
 

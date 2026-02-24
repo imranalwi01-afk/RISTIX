@@ -17,6 +17,10 @@ import { and, eq, inArray, like } from 'drizzle-orm'
 
 const approvalEntities = [
     'user',
+    'user_status',
+    'role',
+    'role_permission',
+    'role_assignment',
     'parameter',
     'configuration',
     'product_parameter',
@@ -33,6 +37,10 @@ const approvalEntities = [
 
 const RESOURCE_BY_ENTITY: Record<string, string> = {
     user: 'users',
+    user_status: 'users',
+    role: 'roles',
+    role_permission: 'roles',
+    role_assignment: 'user_roles',
     parameter: 'parameters',
     configuration: 'configurations',
 }
@@ -86,6 +94,114 @@ const approvalPermissions = [
 // =============================================================================
 
 const defaultMatrices = [
+    {
+        name: 'Role Management Approval',
+        description: 'Approval workflow for role CRUD operations',
+        entityType: 'role',
+        operationType: 'create,update,delete',
+        isActive: true,
+        autoApprovalRules: {
+            bypassPermissions: [],
+            autoApproveImpactLevels: [],
+        },
+        levels: [
+            {
+                level: 1,
+                name: 'Checker Review',
+                requiredRoles: ['CHECKER'],
+                requiredCount: 1,
+                timeoutHours: 24,
+            },
+            {
+                level: 2,
+                name: 'Final Approval',
+                requiredRoles: ['APPROVER'],
+                requiredCount: 1,
+                timeoutHours: 24,
+            },
+        ],
+    },
+    {
+        name: 'Role Permission Approval',
+        description: 'Approval workflow for role permission updates',
+        entityType: 'role_permission',
+        operationType: 'update',
+        isActive: true,
+        autoApprovalRules: {
+            bypassPermissions: [],
+            autoApproveImpactLevels: [],
+        },
+        levels: [
+            {
+                level: 1,
+                name: 'Checker Review',
+                requiredRoles: ['CHECKER'],
+                requiredCount: 1,
+                timeoutHours: 24,
+            },
+            {
+                level: 2,
+                name: 'Final Approval',
+                requiredRoles: ['APPROVER'],
+                requiredCount: 1,
+                timeoutHours: 24,
+            },
+        ],
+    },
+    {
+        name: 'Role Assignment Approval',
+        description: 'Approval workflow for assigning/removing roles from users',
+        entityType: 'role_assignment',
+        operationType: 'create,delete',
+        isActive: true,
+        autoApprovalRules: {
+            bypassPermissions: [],
+            autoApproveImpactLevels: [],
+        },
+        levels: [
+            {
+                level: 1,
+                name: 'Checker Review',
+                requiredRoles: ['CHECKER'],
+                requiredCount: 1,
+                timeoutHours: 24,
+            },
+            {
+                level: 2,
+                name: 'Final Approval',
+                requiredRoles: ['APPROVER'],
+                requiredCount: 1,
+                timeoutHours: 24,
+            },
+        ],
+    },
+    {
+        name: 'User Status Approval',
+        description: 'Approval workflow for enabling/disabling users',
+        entityType: 'user_status',
+        operationType: 'update',
+        isActive: true,
+        autoApprovalRules: {
+            bypassPermissions: [],
+            autoApproveImpactLevels: [],
+        },
+        levels: [
+            {
+                level: 1,
+                name: 'Checker Review',
+                requiredRoles: ['CHECKER'],
+                requiredCount: 1,
+                timeoutHours: 24,
+            },
+            {
+                level: 2,
+                name: 'Final Approval',
+                requiredRoles: ['APPROVER'],
+                requiredCount: 1,
+                timeoutHours: 24,
+            },
+        ],
+    },
     {
         name: 'User Management Approval',
         description: 'Approval workflow for user CRUD operations',

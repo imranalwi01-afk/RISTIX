@@ -243,16 +243,16 @@ pdafl_server <- function(input, output, session, con, PD) {
     tryCatch({
       # Query historical PD outputs from database
       query <- 'SELECT
-        "REPORTING_DATE",
-        "SEGMENT_ID",
-        "YEARLY_MPD_AFL" as yearly_marginal_pd,
-        "YEARLY_CPD_AFL" as yearly_cumulative_pd,
-        "MONTHLY_MPD_AFL" as monthly_marginal_pd,
-        "MONTHLY_CPD_AFL" as monthly_cumulative_pd,
-        "CREATED_DATE"
-      FROM "frs9_r_pd_output_yearly"
-      WHERE "SEGMENT_ID" = $1
-      ORDER BY "REPORTING_DATE" DESC
+        reporting_date,
+        segment_id,
+        yearly_mpd_afl as yearly_marginal_pd,
+        yearly_cpd_afl as yearly_cumulative_pd,
+        monthly_mpd_afl as monthly_marginal_pd,
+        monthly_cpd_afl as monthly_cumulative_pd,
+        created_date
+      FROM frs9_r_pd_output_yearly
+      WHERE segment_id = $1
+      ORDER BY reporting_date DESC
       LIMIT $2'
 
       historical_data <- dbGetQuery(con, query, params = list(segment_id, n_periods))
@@ -1016,10 +1016,10 @@ pdafl_server <- function(input, output, session, con, PD) {
 
     # Use exact same pattern as original working version - with params list
     datais <- tryCatch({
-      cat(" DEBUG [DATAISSUERRR0]: Executing FRS9_IMP_CA_PD_ENR query\n")
-      result <- dbGetQuery(con, 'SELECT "PRC_DATE","BUCKET_FROM", "CALC_AMOUNT"
-      FROM "FRS9_IMP_CA_PD_ENR"
-      WHERE "PD_CONFIG_ID" = $1',
+      cat(" DEBUG [DATAISSUERRR0]: Executing frs9_imp_ca_pd_enr query\n")
+      result <- dbGetQuery(con, "SELECT prc_date, bucket_from, calc_amount
+      FROM frs9_imp_ca_pd_enr
+      WHERE pd_config_id = $1",
                            params = list(input$segmentpd))
       cat(" DEBUG [DATAISSUERRR0]: Query successful\n")
       result
@@ -1051,10 +1051,10 @@ pdafl_server <- function(input, output, session, con, PD) {
 
     # Use exact same pattern as original working version - with params list
     datacon <- tryCatch({
-      cat(" DEBUG [KONFIG_ID]: Executing FRS9_IMP_CA_PD_CONFIG query\n")
-      result <- dbGetQuery(con, 'SELECT "POPULATION_TYPE","OBSERVATION_PERIOD", "OBSERVATION_START_DATE"
-      FROM "FRS9_IMP_CA_PD_CONFIG"
-      WHERE "PKID" = $1',
+      cat(" DEBUG [KONFIG_ID]: Executing frs9_imp_ca_pd_config query\n")
+      result <- dbGetQuery(con, "SELECT population_type, observation_period, observation_start_date
+      FROM frs9_imp_ca_pd_config
+      WHERE pkid = $1",
                             params = list(input$segmentpd))
       cat(" DEBUG [KONFIG_ID]: Query successful\n")
       result
@@ -1165,9 +1165,9 @@ pdafl_server <- function(input, output, session, con, PD) {
 
     # Use exact same pattern as original working version - with params list
     dataemut <- tryCatch({
-      cat(" DEBUG [DATAMMULTTT0]: Executing FRS9_IMP_CA_PD_MMULT query\n")
-      result <- dbGetQuery(con, 'SELECT * FROM "FRS9_IMP_CA_PD_MMULT"
-      WHERE "PD_CONFIG_ID" = $1',
+      cat(" DEBUG [DATAMMULTTT0]: Executing frs9_imp_ca_pd_mmult query\n")
+      result <- dbGetQuery(con, "SELECT * FROM frs9_imp_ca_pd_mmult
+      WHERE pd_config_id = $1",
                            params = list(input$segmentpd))
       cat(" DEBUG [DATAMMULTTT0]: Query successful\n")
       result

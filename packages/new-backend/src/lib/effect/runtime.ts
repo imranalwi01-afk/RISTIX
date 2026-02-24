@@ -43,7 +43,7 @@ export async function runEffect<A>(
 /**
  * Handle Effect errors and convert to HTTP responses
  */
-function handleEffectError(c: Context, cause: unknown): Response {
+export function handleEffectError(c: Context, cause: unknown): Response {
     // Extract the actual error from the cause
     const error = extractError(cause)
 

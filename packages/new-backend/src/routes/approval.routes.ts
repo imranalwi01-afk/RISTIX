@@ -75,6 +75,34 @@ const ApprovalMatrixSchema = z.object({
     createdAt: z.string(),
 }).openapi('ApprovalMatrix')
 
+const RoutingCandidateSchema = z.object({
+    userId: z.string(),
+    fullName: z.string(),
+    email: z.string(),
+    department: z.string().nullable().optional(),
+    position: z.string().nullable().optional(),
+    roleCodes: z.array(z.string()),
+}).openapi('ApprovalRoutingCandidate')
+
+const RoutingLevelSchema = z.object({
+    level: z.number().int().min(1),
+    name: z.string(),
+    requiredRoles: z.array(z.string()),
+    requiredCount: z.number().int().min(1),
+    timeoutHours: z.number().int().optional(),
+    candidateCount: z.number().int().min(0),
+    candidates: z.array(RoutingCandidateSchema),
+}).openapi('ApprovalRoutingLevel')
+
+const ApprovalRoutingSchema = z.object({
+    entityType: z.string(),
+    operationType: z.string(),
+    matrixId: z.string().nullable(),
+    matrixName: z.string(),
+    isActive: z.boolean(),
+    levels: z.array(RoutingLevelSchema),
+}).openapi('ApprovalRouting')
+
 // =============================================================================
 // ROUTES
 // =============================================================================
@@ -479,6 +507,54 @@ approvalRoutes.openapi(
             }),
             Effect.map((result) => ({ success: true, result }))
         )
+
+        return runEffect(c, effect)
+    }
+)
+
+/**
+ * GET /approvals/routing - Get approval routing overview and approver candidates
+ */
+approvalRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/routing',
+        tags: ['Approvals'],
+        summary: 'Get Approval Routing Overview',
+        security: [{ BearerAuth: [] }],
+        request: {
+            query: z.object({
+                entityType: z.string().optional(),
+                operation: z.enum(['create', 'update', 'delete']).optional(),
+                department: z.string().optional(),
+                bankingMode: z.enum(['conventional', 'syariah', 'dual']).optional(),
+            }),
+        },
+        responses: {
+            200: {
+                description: 'Approval routing overview with candidate approvers',
+                content: {
+                    'application/json': {
+                        schema: z.object({
+                            success: z.boolean(),
+                            data: z.array(ApprovalRoutingSchema),
+                        }),
+                    },
+                },
+            },
+        },
+    }),
+    async (c) => {
+        const tenantId = c.get('tenantId')!
+        const query = c.req.valid('query')
+
+        const effect = approvalService.getApprovalRoutingOverview({
+            tenantId,
+            entityType: query.entityType,
+            operation: query.operation,
+            department: query.department,
+            bankingMode: query.bankingMode,
+        })
 
         return runEffect(c, effect)
     }

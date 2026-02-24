@@ -1,0 +1,21 @@
+[**Backend API Reference v1.0.0**](../../../README.md)
+
+***
+
+# Function: createTenant()
+
+> **createTenant**(`input`): `Effect`\<\{ `bankingMode`: `string` \| `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` \| `null`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `settings`: `unknown`; `slug`: `string` \| `null`; `type`: `string` \| `null`; `updatedAt`: `Date`; \}, [`DatabaseError`](../../../lib/errors/classes/DatabaseError.md) \| [`ValidationError`](../../../lib/errors/classes/ValidationError.md)\>
+
+Defined in: [src/services/tenants.service.ts:103](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/tenants.service.ts#L103)
+
+Create a new tenant
+
+## Parameters
+
+### input
+
+[`CreateTenantInput`](../interfaces/CreateTenantInput.md)
+
+## Returns
+
+`Effect`\<\{ `bankingMode`: `string` \| `null`; `code`: `string`; `createdAt`: `Date`; `description`: `string` \| `null`; `id`: `string`; `isActive`: `boolean`; `name`: `string`; `settings`: `unknown`; `slug`: `string` \| `null`; `type`: `string` \| `null`; `updatedAt`: `Date`; \}, [`DatabaseError`](../../../lib/errors/classes/DatabaseError.md) \| [`ValidationError`](../../../lib/errors/classes/ValidationError.md)\>

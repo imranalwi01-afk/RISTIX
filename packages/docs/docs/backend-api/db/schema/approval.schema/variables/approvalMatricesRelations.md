@@ -1,0 +1,9 @@
+[**Backend API Reference v1.0.0**](../../../../README.md)
+
+***
+
+# Variable: approvalMatricesRelations
+
+> `const` **approvalMatricesRelations**: `Relations`\<`"approval_matrices"`, \{ `levels`: `Many`\<`"approval_levels"`\>; `requests`: `Many`\<`"approval_requests"`\>; `tenant`: `One`\<`"tenants"`, `false`\>; \}\>
+
+Defined in: [src/db/schema/approval.schema.ts:227](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/db/schema/approval.schema.ts#L227)

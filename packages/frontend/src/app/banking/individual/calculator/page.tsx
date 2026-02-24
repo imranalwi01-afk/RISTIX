@@ -30,6 +30,7 @@ import {
     Save as SaveIcon,
     PlayArrow as GenerateIcon
 } from '@mui/icons-material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { individualImpairmentAPI } from '../../../../services/api/individual-impairment.api';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 
@@ -233,13 +234,25 @@ export default function DcfCalculatorPage() {
                                     </Grid>
                                 </Grid>
 
-                                <TextField
-                                    fullWidth label="Start Date"
-                                    type="date"
-                                    value={params.startDate}
-                                    onChange={(e) => setParams({ ...params, startDate: e.target.value })}
-                                    margin="normal" size="small"
-                                    InputLabelProps={{ shrink: true }}
+                                <DatePicker
+                                    label="Start Date"
+                                    value={params.startDate ? new Date(params.startDate) : null}
+                                    onChange={(newValue) => {
+                                        if (newValue) {
+                                            const dateStr = newValue instanceof Date 
+                                                ? newValue.toISOString().split('T')[0] 
+                                                : (newValue as any).toISOString().split('T')[0];
+                                            setParams({ ...params, startDate: dateStr });
+                                        }
+                                    }}
+                                    slotProps={{
+                                        textField: {
+                                            fullWidth: true,
+                                            margin: 'normal',
+                                            size: 'small',
+                                            InputLabelProps: { shrink: true }
+                                        }
+                                    }}
                                 />
 
                                 <TextField

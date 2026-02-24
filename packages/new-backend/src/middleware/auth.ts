@@ -71,6 +71,8 @@ const ROUTE_PERMISSION_RULES: RoutePermissionRule[] = [
     { prefix: '/api/v1/roles', base: 'admin.roles' },
     { prefix: '/api/v1/approvals', fixed: ['approval.requests.approve', 'approval.all'] },
     { prefix: '/api/v1/approval', fixed: ['approval.requests.approve', 'approval.all'] },
+    // Authenticated users can access their own notification inbox endpoints.
+    { prefix: '/api/v1/notifications' },
     { prefix: '/api/v1/workflow', fixed: ['approval.requests.approve', 'approval.all'] },
     { prefix: '/api/v1/forms', base: 'admin.system' },
     { prefix: '/api/v1/security', base: 'admin.system' },
@@ -191,7 +193,7 @@ export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
             username: 'admin',
             email: 'admin@ifrspro.id',
             fullName: 'Platform Administrator',
-            tenantId: 'iaf',
+            tenantId: 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be',
             isActive: true,
             isPlatformAdmin: userRole === 'PLATFORM_SUPER_ADMIN' || userRole === 'ADMIN',
             role: userRole,
@@ -203,7 +205,7 @@ export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
         c.set('userId', mockUser.id)
         c.set('user', mockUser as any)
         c.set('tokenId', 'demo-token-jti')
-        c.set('tenantId', 'iaf') 
+        c.set('tenantId', 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be') 
         c.set('isSystemUser', mockUser.isPlatformAdmin)
         c.set('permissions', ['*'])
         c.set('userPermissions', ['*'])

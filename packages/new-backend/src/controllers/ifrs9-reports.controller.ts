@@ -15,7 +15,7 @@ export const ifrs9ReportsController = {
 
     getLifetimePDYearly: async (c: Context) => {
         try {
-            const user = c.get('user');
+            const tenantId = (c as any).get('tenantId');
             const page = Number(c.req.query('page') || 1);
             const limit = Number(c.req.query('limit') || 20);
 
@@ -27,7 +27,7 @@ export const ifrs9ReportsController = {
             const fl_flag = c.req.query('fl_flag') === 'true';
 
             const result = await ifrs9ReportsService.getLifetimePDYearly(
-                user?.tenantId || 'default',
+                tenantId,
                 page,
                 limit,
                 { prc_date, pd_config_id, pd_method, scalar_id, fl_flag }
@@ -52,7 +52,7 @@ export const ifrs9ReportsController = {
 
     getLifetimePDMonthly: async (c: Context) => {
         try {
-            const user = c.get('user');
+            const tenantId = (c as any).get('tenantId');
             const page = Number(c.req.query('page') || 1);
             const limit = Number(c.req.query('limit') || 20);
 
@@ -64,7 +64,7 @@ export const ifrs9ReportsController = {
             const fl_flag = c.req.query('fl_flag') === 'true';
 
             const result = await ifrs9ReportsService.getLifetimePDMonthly(
-                user?.tenantId || 'default',
+                tenantId,
                 page,
                 limit,
                 { prc_date, pd_config_id, pd_method, scalar_id, fl_flag }
@@ -89,7 +89,7 @@ export const ifrs9ReportsController = {
 
     getLifetimeLGD: async (c: Context) => {
         try {
-            const user = c.get('user');
+            const tenantId = (c as any).get('tenantId');
             const page = Number(c.req.query('page') || 1);
             const limit = Number(c.req.query('limit') || 20);
 
@@ -100,7 +100,7 @@ export const ifrs9ReportsController = {
             const model_id = c.req.query('model_id') ? Number(c.req.query('model_id')) : undefined;
 
             const result = await ifrs9ReportsService.getLifetimeLGDDetail(
-                user?.tenantId || 'default',
+                tenantId,
                 page,
                 limit,
                 { prc_date, lgd_config_id, lgd_method, model_id }
@@ -125,7 +125,7 @@ export const ifrs9ReportsController = {
 
     getEADModel: async (c: Context) => {
         try {
-            const user = c.get('user');
+            const tenantId = (c as any).get('tenantId');
             const page = Number(c.req.query('page') || 1);
             const limit = Number(c.req.query('limit') || 20);
 
@@ -135,7 +135,7 @@ export const ifrs9ReportsController = {
             const segment_id = c.req.query('segment_id') ? Number(c.req.query('segment_id')) : undefined;
 
             const result = await ifrs9ReportsService.getEADModel(
-                user?.tenantId || 'default',
+                tenantId,
                 page,
                 limit,
                 { prc_date, ead_config_id, segment_id }
@@ -160,7 +160,7 @@ export const ifrs9ReportsController = {
 
     getECLResult: async (c: Context) => {
         try {
-            const user = c.get('user');
+            const tenantId = (c as any).get('tenantId');
             const page = Number(c.req.query('page') || 1);
             const limit = Number(c.req.query('limit') || 20);
 
@@ -170,7 +170,7 @@ export const ifrs9ReportsController = {
             const stage = c.req.queries('stage') || (c.req.query('stage') ? [c.req.query('stage')!] : undefined);
 
             const result = await ifrs9ReportsService.getECLResult(
-                user?.tenantId || 'default',
+                tenantId,
                 page,
                 limit,
                 { prc_date, segment_id, stage }
@@ -195,12 +195,12 @@ export const ifrs9ReportsController = {
 
     getECLMovement: async (c: Context) => {
         try {
-            const user = c.get('user');
+            const tenantId = (c as any).get('tenantId');
             const prc_date = c.req.query('prc_date') || '2023-12-31';
             const segment_id = c.req.query('segment_id') ? Number(c.req.query('segment_id')) : undefined;
             const stage = c.req.queries('stage') || (c.req.query('stage') ? [c.req.query('stage')!] : undefined);
             const result = await ifrs9ReportsService.getECLMovement(
-                user?.tenantId || 'default',
+                tenantId,
                 { prc_date, segment_id, stage }
             );
             return c.json({
@@ -216,12 +216,12 @@ export const ifrs9ReportsController = {
 
     getGCAMovement: async (c: Context) => {
         try {
-            const user = c.get('user');
+            const tenantId = (c as any).get('tenantId');
             const prc_date = c.req.query('prc_date') || '2023-12-31';
             const segment_id = c.req.query('segment_id') ? Number(c.req.query('segment_id')) : undefined;
             const stage = c.req.queries('stage') || (c.req.query('stage') ? [c.req.query('stage')!] : undefined);
             const result = await ifrs9ReportsService.getGCAMovement(
-                user?.tenantId || 'default',
+                tenantId,
                 { prc_date, segment_id, stage }
             );
             return c.json({
@@ -237,7 +237,7 @@ export const ifrs9ReportsController = {
 
     getNominativeReport: async (c: Context) => {
         try {
-            const user = c.get('user');
+            const tenantId = (c as any).get('tenantId');
             const page = Number(c.req.query('page') || 1);
             const limit = Number(c.req.query('limit') || 20);
             // Extract filter parameters
@@ -246,7 +246,7 @@ export const ifrs9ReportsController = {
             const stage = c.req.queries('stage') || (c.req.query('stage') ? [c.req.query('stage')!] : undefined);
             const branch_code = c.req.queries('branch_code') || (c.req.query('branch_code') ? [c.req.query('branch_code')!] : undefined);
             const result = await ifrs9ReportsService.getNominativeReport(
-                user?.tenantId || 'default',
+                tenantId,
                 page,
                 limit,
                 { prc_date, segment, stage, branch_code }

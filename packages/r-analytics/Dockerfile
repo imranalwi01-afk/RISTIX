@@ -32,8 +32,8 @@ COPY --chown=r-analytics:r-analytics config/ ./config/
 COPY --chown=r-analytics:r-analytics docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh
 
-# Copy API files
-COPY --chown=r-analytics:r-analytics iaf-r-api.R start_api.R ./
+# Copy API/runtime files
+COPY --chown=r-analytics:r-analytics iaf-r-api.R start_api.R logger.R ./
 COPY --chown=r-analytics:r-analytics api/ ./api/
 
 # ============================================================================
@@ -62,6 +62,7 @@ ENV USER_ID=demo_user
 ENV USER_EMAIL=demo@ifrspro.id
 ENV BANKING_ACCESS=BOTH
 ENV SYARIAH_CERTIFIED=false
+ENV R_ENABLE_CORS=true
 
 # Database connection defaults
 ENV DB_HOST=host.docker.internal

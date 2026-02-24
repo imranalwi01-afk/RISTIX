@@ -362,42 +362,6 @@ impairmentRoutes.openapi(
     }
 )
 
-// GET /api/v1/banking/ifrs9/impairment-module/staging-analysis
-impairmentRoutes.openapi(
-    createRoute({
-        method: 'get',
-        path: '/staging-analysis',
-        tags: ['Impairment Module'],
-        summary: 'Get Staging Analysis',
-        responses: {
-            200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), data: z.array(StagingAnalysisSchema) }) } }, description: 'Staging Analysis' },
-            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
-        }
-    }),
-    async (c) => {
-        try {
-            const results = await db
-                .select({
-                    prcDate: frs9ImpCaEclSum.prcDate,
-                    stage: frs9ImpCaEclSum.stage,
-                    segmentId: frs9ImpCaEclSum.segmentId,
-                    totalOutstanding: sql<number>`SUM(COALESCE(${frs9ImpCaEclSum.outstanding}, 0))`,
-                    totalECL: sql<number>`SUM(COALESCE(${frs9ImpCaEclSum.eclAmtCaOnbs}, 0) + COALESCE(${frs9ImpCaEclSum.eclAmtCaOffbs}, 0))`,
-                    avgOutstanding: sql<number>`AVG(COALESCE(${frs9ImpCaEclSum.outstanding}, 0))`
-                } as any)
-                .from(frs9ImpCaEclSum)
-                .groupBy(frs9ImpCaEclSum.prcDate, frs9ImpCaEclSum.stage, frs9ImpCaEclSum.segmentId)
-                .orderBy(desc(frs9ImpCaEclSum.prcDate), frs9ImpCaEclSum.stage)
-                .limit(100)
-
-            return c.json({ success: true, data: results })
-        } catch (error) {
-            console.error('Error fetching staging analysis:', error)
-            return c.json({ success: false, message: 'Failed to fetch staging analysis', error: String(error) }, 500)
-        }
-    }
-)
-
 // GET /api/v1/banking/ifrs9/impairment-module/provision-summary
 impairmentRoutes.openapi(
     createRoute({

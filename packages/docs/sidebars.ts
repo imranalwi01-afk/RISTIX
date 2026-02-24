@@ -24,7 +24,6 @@ const sidebars: SidebarsConfig = {
         },
       ],
     },
-    /*
     {
       type: 'category',
       label: 'Backend API Reference',
@@ -35,7 +34,6 @@ const sidebars: SidebarsConfig = {
         },
       ],
     },
-    */
     {
       type: 'category',
       label: 'Project Management',

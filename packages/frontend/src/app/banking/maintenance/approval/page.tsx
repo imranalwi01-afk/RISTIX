@@ -58,6 +58,7 @@ import {
   Assessment as StatsIcon,
   PendingActions as PendingIcon,
   TableChart as MatrixIcon,
+  AccountTree as RoutingIcon,
   Notifications as NotificationIcon,
   CloudDownload as ExportIcon,
   Visibility as ViewIcon,
@@ -142,6 +143,34 @@ interface ApprovalMatrix {
   createdAt: string;
 }
 
+interface ApprovalRoutingCandidate {
+  userId: string;
+  fullName: string;
+  email: string;
+  department?: string | null;
+  position?: string | null;
+  roleCodes: string[];
+}
+
+interface ApprovalRoutingLevel {
+  level: number;
+  name: string;
+  requiredRoles: string[];
+  requiredCount: number;
+  timeoutHours?: number;
+  candidateCount: number;
+  candidates: ApprovalRoutingCandidate[];
+}
+
+interface ApprovalRoutingItem {
+  entityType: string;
+  operationType: string;
+  matrixId: string | null;
+  matrixName: string;
+  isActive: boolean;
+  levels: ApprovalRoutingLevel[];
+}
+
 export default function ApprovalManagementPage() {
   const router = useRouter();
   const { user } = useAuth();
@@ -151,7 +180,9 @@ export default function ApprovalManagementPage() {
   const [loading, setLoading] = useState(true);
   const [approvalRequests, setApprovalRequests] = useState<ApprovalRequest[]>([]);
   const [approvalMatrices, setApprovalMatrices] = useState<ApprovalMatrix[]>([]);
+  const [approvalRouting, setApprovalRouting] = useState<ApprovalRoutingItem[]>([]);
   const [matricesLoading, setMatricesLoading] = useState(false);
+  const [routingLoading, setRoutingLoading] = useState(false);
   const [statistics, setStatistics] = useState<ApprovalStatistics | null>(null);
   const [filteredRequests, setFilteredRequests] = useState<ApprovalRequest[]>([]);
 
@@ -161,6 +192,9 @@ export default function ApprovalManagementPage() {
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [bankingTypeFilter, setBankingTypeFilter] = useState('all');
   const [requestTypeFilter, setRequestTypeFilter] = useState('all');
+  const [routingEntityFilter, setRoutingEntityFilter] = useState('all');
+  const [routingOperationFilter, setRoutingOperationFilter] = useState<'all' | 'create' | 'update' | 'delete'>('all');
+  const [routingDepartmentFilter, setRoutingDepartmentFilter] = useState('');
 
   // Dialog states
   const [actionDialog, setActionDialog] = useState<{
@@ -195,6 +229,7 @@ export default function ApprovalManagementPage() {
   useEffect(() => {
     loadApprovalRequests();
     loadApprovalMatrices();
+    loadApprovalRouting();
     // Statistics loaded after requests since we calculate them client-side
   }, []);
 
@@ -328,6 +363,69 @@ export default function ApprovalManagementPage() {
       setApprovalMatrices([]);
     } finally {
       setMatricesLoading(false);
+    }
+  };
+
+  const loadApprovalRouting = async (overrides?: {
+    entityType?: string;
+    operation?: 'create' | 'update' | 'delete';
+    department?: string;
+  }) => {
+    try {
+      setRoutingLoading(true);
+
+      const entityType = overrides?.entityType ?? (routingEntityFilter !== 'all' ? routingEntityFilter : undefined);
+      const operation = overrides?.operation ?? (routingOperationFilter !== 'all' ? routingOperationFilter : undefined);
+      const departmentRaw = overrides?.department ?? routingDepartmentFilter;
+      const department = departmentRaw?.trim() ? departmentRaw.trim() : undefined;
+
+      const response = await bankingAPI.approval.getRoutingOverview({
+        entityType,
+        operation,
+        department,
+      });
+
+      const rawData = Array.isArray(response)
+        ? response
+        : Array.isArray(response?.data)
+          ? response.data
+          : [];
+
+      const mapped: ApprovalRoutingItem[] = rawData.map((item: any) => ({
+        entityType: String(item.entityType || 'unknown'),
+        operationType: String(item.operationType || 'create,update,delete'),
+        matrixId: item.matrixId ?? null,
+        matrixName: String(item.matrixName || 'Unnamed Routing'),
+        isActive: Boolean(item.isActive ?? true),
+        levels: Array.isArray(item.levels)
+          ? item.levels.map((level: any) => ({
+            level: Number(level.level || 0),
+            name: String(level.name || `Level ${level.level || '-'}`),
+            requiredRoles: Array.isArray(level.requiredRoles) ? level.requiredRoles : [],
+            requiredCount: Number(level.requiredCount || 1),
+            timeoutHours: level.timeoutHours ? Number(level.timeoutHours) : undefined,
+            candidateCount: Number(level.candidateCount || 0),
+            candidates: Array.isArray(level.candidates)
+              ? level.candidates.map((candidate: any) => ({
+                userId: String(candidate.userId || ''),
+                fullName: String(candidate.fullName || 'Unknown User'),
+                email: String(candidate.email || ''),
+                department: candidate.department ?? null,
+                position: candidate.position ?? null,
+                roleCodes: Array.isArray(candidate.roleCodes) ? candidate.roleCodes : [],
+              }))
+              : [],
+          }))
+          : [],
+      }));
+
+      setApprovalRouting(mapped);
+    } catch (error) {
+      console.error('Error loading approval routing:', error);
+      showSnackbar(`Failed to load approval routing: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+      setApprovalRouting([]);
+    } finally {
+      setRoutingLoading(false);
     }
   };
 
@@ -575,6 +673,7 @@ export default function ApprovalManagementPage() {
   const handleRefresh = () => {
     loadApprovalRequests();
     loadApprovalMatrices();
+    loadApprovalRouting();
     loadStatistics();
   };
 
@@ -1216,6 +1315,140 @@ export default function ApprovalManagementPage() {
     </Box>
   );
 
+  const routingEntityOptions = useMemo(() => {
+    const entities = new Set<string>();
+    approvalMatrices.forEach((matrix) => entities.add(matrix.entityType));
+    approvalRequests.forEach((request) => entities.add(String(request.requestType || request.entityType || '')));
+    return Array.from(entities).filter(Boolean).sort();
+  }, [approvalMatrices, approvalRequests]);
+
+  const renderApprovalRouting = () => (
+    <Box>
+      <Paper sx={{ mb: 2, p: 2 }}>
+        <Grid container spacing={2} alignItems="center">
+          <Grid size={{ xs: 12, md: 3 }}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Entity Type</InputLabel>
+              <Select
+                value={routingEntityFilter}
+                label="Entity Type"
+                onChange={(event) => setRoutingEntityFilter(String(event.target.value))}
+              >
+                <MenuItem value="all">All Entities</MenuItem>
+                {routingEntityOptions.map((entity) => (
+                  <MenuItem key={entity} value={entity}>{entity}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid size={{ xs: 12, md: 3 }}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Operation</InputLabel>
+              <Select
+                value={routingOperationFilter}
+                label="Operation"
+                onChange={(event) => setRoutingOperationFilter(event.target.value as 'all' | 'create' | 'update' | 'delete')}
+              >
+                <MenuItem value="all">All Operations</MenuItem>
+                <MenuItem value="create">Create</MenuItem>
+                <MenuItem value="update">Update</MenuItem>
+                <MenuItem value="delete">Delete</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid size={{ xs: 12, md: 4 }}>
+            <TextField
+              fullWidth
+              size="small"
+              label="Department (optional)"
+              value={routingDepartmentFilter}
+              onChange={(event) => setRoutingDepartmentFilter(event.target.value)}
+              placeholder="e.g. Risk Management"
+            />
+          </Grid>
+          <Grid size={{ xs: 12, md: 2 }}>
+            <Button
+              fullWidth
+              variant="outlined"
+              startIcon={<RefreshIcon />}
+              onClick={() => loadApprovalRouting()}
+              disabled={routingLoading}
+            >
+              Apply
+            </Button>
+          </Grid>
+        </Grid>
+      </Paper>
+
+      {routingLoading ? (
+        <Paper sx={{ p: 4, textAlign: 'center' }}>
+          <CircularProgress size={28} />
+        </Paper>
+      ) : approvalRouting.length === 0 ? (
+        <Alert severity="info">
+          No approval routing data found for this filter.
+        </Alert>
+      ) : (
+        <Grid container spacing={2}>
+          {approvalRouting.map((routing) => (
+            <Grid key={`${routing.entityType}-${routing.matrixId || 'fallback'}`} size={{ xs: 12, md: 6 }}>
+              <Paper sx={{ p: 2, height: '100%' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                  <Typography variant="h6">{routing.matrixName}</Typography>
+                  <Chip
+                    size="small"
+                    label={routing.isActive ? 'Active' : 'Inactive'}
+                    color={routing.isActive ? 'success' : 'default'}
+                    variant="outlined"
+                  />
+                </Box>
+
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  Entity: <strong>{routing.entityType}</strong> | Operations: <strong>{routing.operationType}</strong>
+                </Typography>
+
+                {routing.levels.length === 0 ? (
+                  <Typography variant="body2" color="text.secondary">
+                    No levels configured.
+                  </Typography>
+                ) : (
+                  routing.levels
+                    .sort((a, b) => a.level - b.level)
+                    .map((level) => (
+                      <Box key={`${routing.entityType}-${level.level}`} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1.5, mb: 1 }}>
+                        <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+                          L{level.level} {level.name} | Needed: {level.requiredCount}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Required Roles: {(level.requiredRoles || []).join(', ') || '-'}
+                        </Typography>
+                        <Typography variant="body2" sx={{ mt: 0.5, mb: 0.75 }}>
+                          Candidate Approvers: <strong>{level.candidateCount}</strong>
+                        </Typography>
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                          {level.candidates.slice(0, 6).map((candidate) => (
+                            <Tooltip
+                              key={candidate.userId}
+                              title={`${candidate.email}${candidate.department ? ` | ${candidate.department}` : ''}`}
+                            >
+                              <Chip size="small" label={candidate.fullName} />
+                            </Tooltip>
+                          ))}
+                          {level.candidates.length > 6 && (
+                            <Chip size="small" variant="outlined" label={`+${level.candidates.length - 6} more`} />
+                          )}
+                        </Box>
+                      </Box>
+                    ))
+                )}
+              </Paper>
+            </Grid>
+          ))}
+        </Grid>
+      )}
+    </Box>
+  );
+
   if (loading && !approvalRequests.length) {
     return (
       <Container maxWidth="xl">
@@ -1310,6 +1543,11 @@ export default function ApprovalManagementPage() {
             label="Approval Matrix"
             iconPosition="start"
           />
+          <Tab
+            icon={<RoutingIcon />}
+            label="Routing"
+            iconPosition="start"
+          />
         </Tabs>
       </Paper>
 
@@ -1319,6 +1557,7 @@ export default function ApprovalManagementPage() {
         {activeTab === 1 && renderStatistics()}
         {activeTab === 2 && renderApprovalHistory()}
         {activeTab === 3 && renderApprovalMatrix()}
+        {activeTab === 4 && renderApprovalRouting()}
       </Box>
 
       {/* Action Dialog */}

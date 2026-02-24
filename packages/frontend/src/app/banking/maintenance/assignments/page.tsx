@@ -10,8 +10,9 @@ export default function AssignmentsPage() {
 
     useEffect(() => {
         const nextQuery = new URLSearchParams(searchParams.toString());
-        nextQuery.set('tab', 'assignments');
-        router.replace(`/banking/maintenance/roles?${nextQuery.toString()}`);
+        nextQuery.delete('tab');
+        const query = nextQuery.toString();
+        router.replace(query ? `/banking/maintenance/access-management/assignments?${query}` : '/banking/maintenance/access-management/assignments');
     }, [router, searchParams]);
 
     return (
