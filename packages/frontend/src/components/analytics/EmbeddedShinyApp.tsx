@@ -182,29 +182,39 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
   const normalizeAnalyticsApiBaseUrl = useCallback((rawUrl?: string | null): string => {
     if (!rawUrl) return '';
 
-    let normalized = String(rawUrl).trim();
+    const normalized = String(rawUrl).trim().replace(/\/+$/, '');
     if (!normalized) return '';
 
-    // Remove trailing slash for stable concatenation with endpoint paths
-    normalized = normalized.replace(/\/+$/, '');
+    // Keep this tenant/domain agnostic: infer calc-host conventionally, never by hardcoded domains.
+    try {
+      const parsed = new URL(normalized);
+      parsed.hash = '';
+      parsed.search = '';
 
-    // Map dashboard host to API host (calc) for known production domains
-    normalized = normalized
-      .replace('iaf-ifrs-analytics.ifrspro.id', 'iaf-ifrs-analytics-calc.ifrspro.id')
-      .replace('iaf-ifrs-analytics.danafin.com', 'iaf-ifrs-analytics-calc.danafin.com')
-      .replace('ifrs9-iaf-analytics.ifrspro.id', 'iaf-ifrs-analytics-calc.ifrspro.id')
-      .replace('ifrs9-iaf-analytics.danafin.com', 'iaf-ifrs-analytics-calc.danafin.com');
+      // Common convention in this project: "<tenant>-analytics" dashboard vs "<tenant>-analytics-calc" API.
+      if (/-analytics(\.|$)/i.test(parsed.hostname) && !/-analytics-calc(\.|$)/i.test(parsed.hostname)) {
+        parsed.hostname = parsed.hostname.replace(/-analytics(\.|$)/i, '-analytics-calc$1');
+      }
 
-    // Ensure API base path is present.
-    if (/^https?:\/\/[^/]+$/i.test(normalized)) {
-      normalized = `${normalized}/api`;
+      let path = parsed.pathname.replace(/\/+$/, '');
+      if (!path || path === '/') {
+        path = '/api';
+      } else if (/\/api\/session$/i.test(path)) {
+        path = '/api';
+      } else if (/\/session$/i.test(path)) {
+        path = path.replace(/\/session$/i, '/api');
+      }
+
+      parsed.pathname = path;
+      return parsed.toString().replace(/\/+$/, '');
+    } catch {
+      // Fallback for malformed/manual input; keep behavior predictable.
+      let fallback = normalized.replace(/\/api\/session$/i, '/api').replace(/\/session$/i, '/api');
+      if (/^https?:\/\/[^/]+$/i.test(fallback)) {
+        fallback = `${fallback}/api`;
+      }
+      return fallback;
     }
-
-    // If an override accidentally points directly to /session, roll back to base /api.
-    normalized = normalized.replace(/\/api\/session$/i, '/api');
-    normalized = normalized.replace(/\/session$/i, '/api');
-
-    return normalized;
   }, []);
 
   // URL Override logic
@@ -218,32 +228,22 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
     const defaultApi = config.rAnalytics.api;
     if (typeof window !== 'undefined') {
       const raw = localStorage.getItem('r_analytics_api_url') || defaultApi;
-      return String(raw || '').trim();
+      return normalizeAnalyticsApiBaseUrl(raw);
     }
-    return String(defaultApi || '').trim();
+    return normalizeAnalyticsApiBaseUrl(defaultApi);
   });
   const [showUrlConfig, setShowUrlConfig] = useState<boolean>(false);
 
-  useEffect(() => {
-    const normalizedApi = normalizeAnalyticsApiBaseUrl(customApiUrl || config.rAnalytics.api);
-    if (normalizedApi && normalizedApi !== customApiUrl) {
-      setCustomApiUrl(normalizedApi);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('r_analytics_api_url', normalizedApi);
-      }
-      console.warn('🔁 Normalized R analytics API URL', {
-        before: customApiUrl,
-        after: normalizedApi,
-      });
-    }
+  const resolvedApiBaseUrl = React.useMemo(() => {
+    return normalizeAnalyticsApiBaseUrl(customApiUrl || config.rAnalytics.api);
   }, [customApiUrl, config.rAnalytics.api, normalizeAnalyticsApiBaseUrl]);
 
   const API_CONFIG = React.useMemo(() => ({
     IS_PRODUCTION: config.isProduction || config.nodeEnv === 'production' || process.env.NEXT_PUBLIC_ENVIRONMENT === 'production' || process.env.NEXT_PUBLIC_ENVIRONMENT === 'development',
-    R_ANALYTICS_API: normalizeAnalyticsApiBaseUrl(customApiUrl || config.rAnalytics.api),
+    R_ANALYTICS_API: resolvedApiBaseUrl,
     R_DASHBOARD_URL: customUrl || config.rAnalytics.dashboard,
     FRONTEND_URL: config.urls.frontend
-  }), [customUrl, customApiUrl, config, normalizeAnalyticsApiBaseUrl]);
+  }), [customUrl, resolvedApiBaseUrl, config]);
 
   const styles = useShinyAppStyles(bankingType, theme);
 
@@ -889,8 +889,10 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
                   size="small"
                   variant="contained"
                   onClick={() => {
+                    const normalizedApi = normalizeAnalyticsApiBaseUrl(customApiUrl || config.rAnalytics.api);
+                    setCustomApiUrl(normalizedApi);
                     localStorage.setItem('r_analytics_custom_url', customUrl);
-                    localStorage.setItem('r_analytics_api_url', customApiUrl);
+                    localStorage.setItem('r_analytics_api_url', normalizedApi);
                     // Resetting these will trigger the auto-start useEffect with fresh URLs
                     isInitialized.current = false;
                     setError(null);
@@ -904,7 +906,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
                   variant="outlined"
                   onClick={() => {
                     const defaultUrl = config.rAnalytics.dashboard;
-                    const defaultApi = config.rAnalytics.api;
+                    const defaultApi = normalizeAnalyticsApiBaseUrl(config.rAnalytics.api);
                     setCustomUrl(defaultUrl);
                     setCustomApiUrl(defaultApi);
                     localStorage.removeItem('r_analytics_custom_url');
@@ -1166,7 +1168,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
         <DialogActions>
           <Button onClick={() => {
             const defaultUrl = config.rAnalytics.dashboard;
-            const defaultApi = config.rAnalytics.api;
+            const defaultApi = normalizeAnalyticsApiBaseUrl(config.rAnalytics.api);
             setCustomUrl(defaultUrl);
             setCustomApiUrl(defaultApi);
             localStorage.removeItem('r_analytics_custom_url');
@@ -1179,8 +1181,10 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
           <Button
             variant="contained"
             onClick={() => {
+              const normalizedApi = normalizeAnalyticsApiBaseUrl(customApiUrl || config.rAnalytics.api);
+              setCustomApiUrl(normalizedApi);
               localStorage.setItem('r_analytics_custom_url', customUrl);
-              localStorage.setItem('r_analytics_api_url', customApiUrl);
+              localStorage.setItem('r_analytics_api_url', normalizedApi);
               setShowUrlConfig(false);
               isInitialized.current = false;
               setError(null);
