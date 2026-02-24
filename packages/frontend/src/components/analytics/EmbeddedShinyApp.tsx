@@ -31,7 +31,9 @@ import {
   Stack,
   useTheme,
   alpha,
-  TextField
+  TextField,
+  FormControlLabel,
+  Switch
 } from '@mui/material';
 import {
   Refresh,
@@ -96,6 +98,8 @@ interface CrossFrameMessage {
   banking_mode?: string;
   data?: any;
 }
+
+type ConnectionMode = 'auto' | 'api' | 'direct';
 
 // ============================================================================
 // 🎨 THEME-AWARE STYLES
@@ -178,6 +182,10 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
 
   // ✅ Load configuration inside component for fresh environment access
   const config = frontendEnvironmentLoader.getConfiguration();
+  const isProductionEnvironment =
+    config.isProduction ||
+    config.nodeEnv === 'production' ||
+    process.env.NEXT_PUBLIC_ENVIRONMENT === 'production';
 
   const normalizeAnalyticsApiBaseUrl = useCallback((rawUrl?: string | null): string => {
     if (!rawUrl) return '';
@@ -233,17 +241,51 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
     return normalizeAnalyticsApiBaseUrl(defaultApi);
   });
   const [showUrlConfig, setShowUrlConfig] = useState<boolean>(false);
+  const [connectionMode, setConnectionMode] = useState<ConnectionMode>(() => {
+    if (typeof window === 'undefined') return 'auto';
+
+    const params = new URLSearchParams(window.location.search);
+    const directEmbedParam = params.get('directEmbed');
+    if (directEmbedParam === '1' || directEmbedParam === 'true') {
+      return 'direct';
+    }
+
+    const modeParam = params.get('connectionMode');
+    if (modeParam === 'api' || modeParam === 'direct' || modeParam === 'auto') {
+      return modeParam;
+    }
+
+    const saved = localStorage.getItem('r_analytics_connection_mode');
+    if (saved === 'api' || saved === 'direct' || saved === 'auto') {
+      return saved;
+    }
+
+    return 'auto';
+  });
+
+  const persistConnectionMode = useCallback((mode: ConnectionMode) => {
+    setConnectionMode(mode);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('r_analytics_connection_mode', mode);
+    }
+  }, []);
 
   const resolvedApiBaseUrl = React.useMemo(() => {
     return normalizeAnalyticsApiBaseUrl(customApiUrl || config.rAnalytics.api);
   }, [customApiUrl, config.rAnalytics.api, normalizeAnalyticsApiBaseUrl]);
 
+  const shouldUseManagedSession = React.useMemo(() => {
+    if (connectionMode === 'api') return true;
+    if (connectionMode === 'direct') return false;
+    return isProductionEnvironment;
+  }, [connectionMode, isProductionEnvironment]);
+
   const API_CONFIG = React.useMemo(() => ({
-    IS_PRODUCTION: config.isProduction || config.nodeEnv === 'production' || process.env.NEXT_PUBLIC_ENVIRONMENT === 'production' || process.env.NEXT_PUBLIC_ENVIRONMENT === 'development',
+    IS_PRODUCTION: isProductionEnvironment,
     R_ANALYTICS_API: resolvedApiBaseUrl,
     R_DASHBOARD_URL: customUrl || config.rAnalytics.dashboard,
     FRONTEND_URL: config.urls.frontend
-  }), [customUrl, resolvedApiBaseUrl, config]);
+  }), [customUrl, resolvedApiBaseUrl, config, isProductionEnvironment]);
 
   const styles = useShinyAppStyles(bankingType, theme);
 
@@ -588,37 +630,37 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
       configDashboard: currentDashboardUrl,
       isLocalhost,
       isProduction: config.isProduction,
+      connectionMode,
+      managedSession: shouldUseManagedSession,
       envVar: process.env.NEXT_PUBLIC_R_ANALYTICS_URL
     });
 
     let domainBase = '';
-    let useDirectEmbed = false;
 
     // ✅ PRIORITY 1: If we have a configured remote domain, use it regardless of localhost
     if (currentDashboardUrl && !currentDashboardUrl.includes('localhost') && !currentDashboardUrl.includes('127.0.0.1')) {
       console.log('📡 REMOTE DOMAIN DETECTED - Using configured URL:', currentDashboardUrl);
       domainBase = currentDashboardUrl;
-      useDirectEmbed = true;
     }
     // ✅ PRIORITY 2: If we are not on localhost (and not forced production API), use whatever is configured
     else if (!isLocalhost && !config.isProduction) {
       domainBase = currentDashboardUrl;
-      useDirectEmbed = true;
     }
     // ✅ FALLBACK: Localhost development
     else if (!config.isProduction) {
       console.log('💻 LOCALHOST DETECTED - Falling back to local R Analytics');
       domainBase = `http://localhost:4236`;
-      useDirectEmbed = true;
+    }
+
+    // Last-resort fallback so direct embed always has a usable URL.
+    if (!domainBase) {
+      domainBase = currentDashboardUrl || 'http://localhost:4236';
     }
 
     // Mark as initialized to prevent loops
     isInitialized.current = true;
 
-    // Determine if we should use managed session handshake
-    const isSharedEnvironment = config.isProduction || process.env.NEXT_PUBLIC_ENVIRONMENT === 'production' || process.env.NEXT_PUBLIC_ENVIRONMENT === 'development';
-
-    if (useDirectEmbed && !isSharedEnvironment) {
+    if (!shouldUseManagedSession) {
       const directSession: RSessionData = {
         sessionId: `direct-${Date.now()}`,
         tenantSlug: tenantSlug || 'iaf',
@@ -632,20 +674,21 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
         domainUrl: domainBase
       };
 
-      console.log('📡 DIRECT EMBED - Final URL:', domainBase);
+      console.log('📡 DIRECT EMBED - Final URL:', domainBase, { connectionMode });
       setSession(directSession);
       onSessionCreate?.(directSession);
       return;
     }
 
-    // Only call createRSession if NOT local/direct embed
-    if (autoStart && API_CONFIG.IS_PRODUCTION) {
+    // Use managed session handshake (API mode)
+    if (autoStart && shouldUseManagedSession) {
+      console.log('🔐 Using managed session mode for R Analytics');
       createRSession().catch(() => {
         // Optional: Reset initialization on failure if retry is desired
         isInitialized.current = false;
       });
     }
-  }, [autoStart, session, loading, error, tenantSlug, bankingType, onSessionCreate, createRSession, API_CONFIG]);
+  }, [autoStart, session, loading, error, tenantSlug, bankingType, onSessionCreate, createRSession, API_CONFIG, shouldUseManagedSession, connectionMode]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -884,6 +927,15 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
                 onChange={(e) => setCustomApiUrl(e.target.value)}
                 sx={{ bgcolor: 'white' }}
               />
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={connectionMode === 'direct'}
+                    onChange={(e) => persistConnectionMode(e.target.checked ? 'direct' : 'auto')}
+                  />
+                }
+                label={`Force Direct Embed (${connectionMode === 'direct' ? 'ON' : 'AUTO'})`}
+              />
               <Stack direction="row" spacing={1}>
                 <Button
                   size="small"
@@ -911,6 +963,8 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
                     setCustomApiUrl(defaultApi);
                     localStorage.removeItem('r_analytics_custom_url');
                     localStorage.removeItem('r_analytics_api_url');
+                    localStorage.removeItem('r_analytics_connection_mode');
+                    setConnectionMode('auto');
                     isInitialized.current = false;
                     setError(null);
                     setLoading(true);
@@ -927,6 +981,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
               variant="contained"
               color={bankingType === 'syariah' ? 'success' : 'primary'}
               onClick={() => {
+                persistConnectionMode('direct');
                 setError(null);
                 // Direct embed approach - no API session needed
                 const productionDomain = API_CONFIG.R_DASHBOARD_URL;
@@ -1163,6 +1218,15 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
               onChange={(e) => setCustomApiUrl(e.target.value)}
               helperText={`Default: ${config.rAnalytics.api}`}
             />
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={connectionMode === 'direct'}
+                  onChange={(e) => persistConnectionMode(e.target.checked ? 'direct' : 'auto')}
+                />
+              }
+              label={`Force Direct Embed (${connectionMode === 'direct' ? 'ON' : 'AUTO'})`}
+            />
           </Stack>
         </DialogContent>
         <DialogActions>
@@ -1173,6 +1237,8 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
             setCustomApiUrl(defaultApi);
             localStorage.removeItem('r_analytics_custom_url');
             localStorage.removeItem('r_analytics_api_url');
+            localStorage.removeItem('r_analytics_connection_mode');
+            setConnectionMode('auto');
           }}>
             Reset All
           </Button>
@@ -1187,9 +1253,9 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
               localStorage.setItem('r_analytics_api_url', normalizedApi);
               setShowUrlConfig(false);
               isInitialized.current = false;
+              setSession(null);
               setError(null);
               setLoading(true);
-              createRSession();
             }}
           >
             Save & Reload
