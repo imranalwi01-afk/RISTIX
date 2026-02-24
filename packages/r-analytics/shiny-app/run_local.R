@@ -22,7 +22,7 @@ required_packages <- c(
     "nortest", "tibble", "ggplot2", "plotly", "shinyWidgets",
     "DBI", "RPostgres", "lubridate", "shinycssloaders",
     "future", "future.apply", "smooth", "fpp2", "aTSA", "date",
-    "tidyverse", "readxl"
+    "tidyverse", "readxl", "plumber"
 )
 
 # Identify missing packages
