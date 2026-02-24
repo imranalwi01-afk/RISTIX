@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 # This is a basic entrypoint for the R Analytics container
 echo "Starting R Analytics Entrypoint..."
@@ -22,19 +22,30 @@ echo "  DB_SCHEMA=${DB_SCHEMA:-public}"
 if [ $# -gt 0 ]; then
   exec "$@"
 else
-  echo "Starting R Analytics API (Port 4241)..."
-  Rscript start_api.R > /opt/r-analytics/logs/api.log 2>&1 &
-  
-  # Tail logs to stdout in background so they appear in 'docker logs'
-  echo "Starting Log Streamer..."
-  touch /opt/r-analytics/logs/api.log
-  tail -F /opt/r-analytics/logs/*.log &
-  
   echo "Preserving environment variables for Shiny Server..."
   # Explicitly preserve connection and tenant variables so Shiny Server sees them
   env | grep -E '^(DB_|FRS9_|TENANT_|BANKING_|USER_|SHINY_|R_)' > /opt/r-analytics/shiny-app/.Renviron
   chown r-analytics:r-analytics /opt/r-analytics/shiny-app/.Renviron
-  
+
+  prefix_logs() {
+    local prefix="$1"
+    awk -v p="$prefix" '{ print p $0; fflush(); }'
+  }
+
+  echo "Starting R Analytics API (Port 4241)..."
+  Rscript start_api.R 2>&1 | prefix_logs "[R-API] " &
+  API_PIPE_PID=$!
+
   echo "Starting Shiny Server (Port 3838)..."
-  exec shiny-server
+  shiny-server 2>&1 | prefix_logs "[SHINY] " &
+  SHINY_PIPE_PID=$!
+
+  # If either process exits, stop the container so orchestration can restart it.
+  wait -n "$API_PIPE_PID" "$SHINY_PIPE_PID"
+  EXIT_CODE=$?
+  echo "A critical service stopped. Shutting down container (exit code: ${EXIT_CODE})."
+
+  kill "$API_PIPE_PID" "$SHINY_PIPE_PID" 2>/dev/null || true
+  wait "$API_PIPE_PID" "$SHINY_PIPE_PID" 2>/dev/null || true
+  exit "$EXIT_CODE"
 fi
