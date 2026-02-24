@@ -6,6 +6,7 @@ import { runEffect } from '../lib/effect'
 import * as rbacService from '../services/rbac.service'
 import * as auditService from '../services/audit.service'
 import { createApprovalRequest } from '../services/approval.service'
+import { buildDefaultFourEyesRouting } from '../lib/approval-helpers'
 
 export const rbacRoutes = new OpenAPIHono<AppContext>()
 
@@ -185,6 +186,57 @@ const extractRolePermissionCodes = (role: any): string[] => {
     return Array.from(new Set(codes))
 }
 
+const buildApprovalAcceptedResponse = (
+    requestId: string,
+    message: string,
+    extras?: Record<string, unknown>
+) => ({
+    success: true,
+    approvalRequired: true,
+    requestId,
+    message,
+    ...(extras || {}),
+})
+
+const createStrictApprovalRequest = async (input: {
+    tenantId: string
+    userId: string
+    entityType: string
+    entityId?: string
+    operation: 'create' | 'update' | 'delete'
+    title: string
+    description: string
+    payload: Record<string, unknown>
+    impactLevel?: 'low' | 'medium' | 'high' | 'critical'
+}) => {
+    const request = await Effect.runPromise(
+        createApprovalRequest({
+            tenantId: input.tenantId,
+            entityType: input.entityType,
+            entityId: input.entityId,
+            title: input.title,
+            description: input.description,
+            requestData: {
+                operation: input.operation,
+                entityType: input.entityType,
+                data: input.payload,
+                approvalRouting: { levels: buildDefaultFourEyesRouting(input.entityType) },
+            },
+            requestedBy: input.userId,
+            impactLevel: input.impactLevel ?? 'high',
+        })
+    )
+
+    await auditService.logApproval.requested(
+        request.id,
+        request.title,
+        input.userId,
+        input.tenantId
+    )
+
+    return request
+}
+
 // =============================================================================
 // ROLE ROUTES
 // =============================================================================
@@ -322,58 +374,41 @@ rbacRoutes.openapi(
         },
     }),
     async (c) => {
-        const tenantId = c.get('tenantId')!
-        const userId = c.get('userId')
-        const body = c.req.valid('json')
-        const roleNameSource = body.roleName ?? body.name
-        const normalizedRoleName = roleNameSource ? normalizeRoleName(roleNameSource) : ''
-
-        const effect = pipe(
-            rbacService.createRole({
-                roleName: normalizedRoleName,
-                roleCode: normalizedRoleName,
-                description: body.description,
-                bankingTypeSpecific: body.bankingTypeSpecific ?? body.bankingAccess,
-                complianceLevel: body.complianceLevel,
-                hierarchyLevel: body.hierarchyLevel,
+        try {
+            const tenantId = c.get('tenantId')!
+            const userId = c.get('userId')
+            const body = c.req.valid('json')
+            const roleNameSource = body.roleName ?? body.name
+            const normalizedRoleName = roleNameSource ? normalizeRoleName(roleNameSource) : ''
+            const request = await createStrictApprovalRequest({
                 tenantId,
-                // createdBy: userId,
-            }),
-            Effect.map((r: any) => ({
-                id: r.id,
-                roleName: r.roleName,
-                roleCode: r.roleCode,
-                description: r.description ?? null,
-                permissions: ((r as any).rolePermissions || []).reduce((acc: Record<string, any[]>, rp: any) => {
-                    const category = (rp.permission.category as 'CORE' | 'BANKING' | 'IFRS9' | 'REPORTING' | 'ADMIN') || 'CORE';
-                    if (!acc[category]) acc[category] = [];
-                    acc[category].push({
-                        id: rp.permission.id,
-                        code: rp.permission.code,
-                        name: rp.permission.name,
-                        displayName: rp.permission.name,
-                        description: rp.permission.description || '',
-                        resource: rp.permission.resource,
-                        action: rp.permission.action,
-                        module: rp.permission.module,
-                        category: category,
-                        riskLevel: 'LOW' as const, // Default value since not in DB
-                        requiresApproval: false, // Default value since not in DB
-                        bankingSpecific: rp.permission.module === 'banking',
-                        syariahRequired: false, // Default value since not in DB
-                    });
-                    return acc;
-                }, {} as Record<string, any[]>),
-                bankingTypeSpecific: r.bankingTypeSpecific,
-                complianceLevel: r.complianceLevel,
-                hierarchyLevel: r.hierarchyLevel,
-                isSystemRole: r.isSystemRole,
-                isActive: r.isActive,
-                tenantId: r.tenantId ?? null,
-            }))
-        )
+                userId: userId || 'system',
+                entityType: 'role',
+                operation: 'create',
+                title: `Create role: ${normalizedRoleName}`,
+                description: `Role creation requested for ${normalizedRoleName}.`,
+                payload: {
+                    roleName: normalizedRoleName,
+                    roleCode: normalizedRoleName,
+                    description: body.description,
+                    bankingTypeSpecific: body.bankingTypeSpecific ?? body.bankingAccess,
+                    complianceLevel: body.complianceLevel,
+                    hierarchyLevel: body.hierarchyLevel,
+                    tenantId,
+                },
+                impactLevel: 'high',
+            })
 
-        return runEffect(c, effect)
+            return c.json(
+                buildApprovalAcceptedResponse(
+                    request.id,
+                    'Role creation submitted for approval.'
+                ),
+                202
+            )
+        } catch (error) {
+            return runEffect(c, Effect.fail(error as any))
+        }
     }
 )
 
@@ -528,56 +563,45 @@ rbacRoutes.openapi(
         },
     }),
     async (c) => {
-        const { roleId } = c.req.valid('param')
-        const userId = c.get('userId')
-        const body = c.req.valid('json')
-        const roleNameSource = body.roleName ?? body.name
-        const normalizedRoleName = roleNameSource ? normalizeRoleName(roleNameSource) : undefined
+        try {
+            const { roleId } = c.req.valid('param')
+            const userId = c.get('userId')
+            const tenantId = c.get('tenantId')!
+            const body = c.req.valid('json')
+            const roleNameSource = body.roleName ?? body.name
+            const normalizedRoleName = roleNameSource ? normalizeRoleName(roleNameSource) : undefined
+            const currentRole = await Effect.runPromise(rbacService.getRoleById(roleId, tenantId))
 
-        const effect = pipe(
-            rbacService.updateRole(roleId, {
-                roleName: normalizedRoleName,
-                description: body.description,
-                bankingTypeSpecific: body.bankingTypeSpecific ?? body.bankingAccess,
-                hierarchyLevel: body.hierarchyLevel,
-                isActive: body.isActive,
-                // updatedBy: userId,
-            }),
-            Effect.map((r: any) => ({
-                id: r.id,
-                roleName: r.roleName,
-                roleCode: r.roleCode,
-                description: r.description ?? null,
-                permissions: ((r as any).rolePermissions || []).reduce((acc: Record<string, any[]>, rp: any) => {
-                    const category = (rp.permission.category as 'CORE' | 'BANKING' | 'IFRS9' | 'REPORTING' | 'ADMIN') || 'CORE';
-                    if (!acc[category]) acc[category] = [];
-                    acc[category].push({
-                        id: rp.permission.id,
-                        code: rp.permission.code,
-                        name: rp.permission.name,
-                        displayName: rp.permission.name,
-                        description: rp.permission.description || '',
-                        resource: rp.permission.resource,
-                        action: rp.permission.action,
-                        module: rp.permission.module,
-                        category: category,
-                        riskLevel: 'LOW' as const, // Default value since not in DB
-                        requiresApproval: false, // Default value since not in DB
-                        bankingSpecific: rp.permission.module === 'banking',
-                        syariahRequired: false, // Default value since not in DB
-                    });
-                    return acc;
-                }, {} as Record<string, any[]>),
-                bankingTypeSpecific: r.bankingTypeSpecific,
-                complianceLevel: r.complianceLevel,
-                hierarchyLevel: r.hierarchyLevel,
-                isSystemRole: r.isSystemRole,
-                isActive: r.isActive,
-                tenantId: (r as any).tenantId ?? null,
-            }))
-        )
+            const request = await createStrictApprovalRequest({
+                tenantId,
+                userId: userId || 'system',
+                entityType: 'role',
+                entityId: roleId,
+                operation: 'update',
+                title: `Update role: ${currentRole.roleName}`,
+                description: `Role update requested for ${currentRole.roleName}.`,
+                payload: {
+                    id: roleId,
+                    roleName: normalizedRoleName ?? currentRole.roleName,
+                    description: body.description ?? currentRole.description,
+                    bankingTypeSpecific: body.bankingTypeSpecific ?? body.bankingAccess ?? currentRole.bankingTypeSpecific,
+                    hierarchyLevel: body.hierarchyLevel ?? currentRole.hierarchyLevel,
+                    isActive: typeof body.isActive === 'boolean' ? body.isActive : currentRole.isActive,
+                    tenantId,
+                },
+                impactLevel: 'high',
+            })
 
-        return runEffect(c, effect)
+            return c.json(
+                buildApprovalAcceptedResponse(
+                    request.id,
+                    'Role update submitted for approval.'
+                ),
+                202
+            )
+        } catch (error) {
+            return runEffect(c, Effect.fail(error as any))
+        }
     }
 )
 
@@ -611,12 +635,38 @@ rbacRoutes.openapi(
         },
     }),
     async (c) => {
-        const { roleId } = c.req.valid('param')
-        const effect = pipe(
-            rbacService.deleteRole(roleId),
-            Effect.map(result => ({ id: result.id }))
-        )
-        return runEffect(c, effect) as any
+        try {
+            const { roleId } = c.req.valid('param')
+            const tenantId = c.get('tenantId')!
+            const userId = c.get('userId') || 'system'
+            const role = await Effect.runPromise(rbacService.getRoleById(roleId, tenantId))
+
+            const request = await createStrictApprovalRequest({
+                tenantId,
+                userId,
+                entityType: 'role',
+                entityId: roleId,
+                operation: 'delete',
+                title: `Delete role: ${role.roleName}`,
+                description: `Role deletion requested for ${role.roleName}.`,
+                payload: {
+                    id: roleId,
+                    roleName: role.roleName,
+                    tenantId,
+                },
+                impactLevel: 'high',
+            })
+
+            return c.json(
+                buildApprovalAcceptedResponse(
+                    request.id,
+                    'Role deletion submitted for approval.'
+                ),
+                202
+            )
+        } catch (error) {
+            return runEffect(c, Effect.fail(error as any))
+        }
     }
 )
 
@@ -714,55 +764,54 @@ rbacRoutes.openapi(
         },
     }),
     async (c) => {
-        const { roleId } = c.req.valid('param')
-        const tenantId = c.get('tenantId')!
-        const userId = c.get('userId') || 'system'
-        const body = c.req.valid('json')
-        const requestedPermissions = body.permissions
-        const submitForApproval = Boolean(body.submitForApproval)
-        const approvalReason = body.approvalReason
+        try {
+            const { roleId } = c.req.valid('param')
+            const tenantId = c.get('tenantId')!
+            const userId = c.get('userId') || 'system'
+            const body = c.req.valid('json')
+            const requestedPermissions = body.permissions
+            const approvalReason = body.approvalReason
 
-        const [availablePermissions, currentRole] = await Promise.all([
-            Effect.runPromise(rbacService.getAvailablePermissions(tenantId)),
-            Effect.runPromise(rbacService.getRoleById(roleId, tenantId)),
-        ])
+            const [availablePermissions, currentRole] = await Promise.all([
+                Effect.runPromise(rbacService.getAvailablePermissions(tenantId)),
+                Effect.runPromise(rbacService.getRoleById(roleId, tenantId)),
+            ])
 
-        const currentPermissionCodes = extractRolePermissionCodes(currentRole)
+            const currentPermissionCodes = extractRolePermissionCodes(currentRole)
 
-        const permissionLookup = new Map<string, string>()
-        const permissionCodeById = new Map<string, string>()
-        for (const permission of availablePermissions) {
-            permissionLookup.set(permission.id, permission.id)
-            permissionLookup.set(permission.code, permission.id)
-            permissionCodeById.set(permission.id, permission.code)
-        }
+            const permissionLookup = new Map<string, string>()
+            const permissionCodeById = new Map<string, string>()
+            for (const permission of availablePermissions) {
+                permissionLookup.set(permission.id, permission.id)
+                permissionLookup.set(permission.code, permission.id)
+                permissionCodeById.set(permission.id, permission.code)
+            }
 
-        const unknownPermissions = requestedPermissions.filter((permission) => !permissionLookup.has(permission))
-        if (unknownPermissions.length > 0) {
-            return c.json(
-                {
-                    success: false,
-                    error: `Unknown permission(s): ${unknownPermissions.join(', ')}`,
-                    code: 'INVALID_PERMISSION',
-                },
-                400
-            )
-        }
+            const unknownPermissions = requestedPermissions.filter((permission) => !permissionLookup.has(permission))
+            if (unknownPermissions.length > 0) {
+                return c.json(
+                    {
+                        success: false,
+                        error: `Unknown permission(s): ${unknownPermissions.join(', ')}`,
+                        code: 'INVALID_PERMISSION',
+                    },
+                    400
+                )
+            }
 
-        const resolvedPermissionIds = requestedPermissions
-            .map((permission) => permissionLookup.get(permission))
-            .filter((permissionId): permissionId is string => typeof permissionId === 'string')
+            const resolvedPermissionIds = requestedPermissions
+                .map((permission) => permissionLookup.get(permission))
+                .filter((permissionId): permissionId is string => typeof permissionId === 'string')
 
-        const resolvedPermissionCodes = resolvedPermissionIds
-            .map((id) => permissionCodeById.get(id))
-            .filter((code): code is string => typeof code === 'string')
+            const resolvedPermissionCodes = resolvedPermissionIds
+                .map((id) => permissionCodeById.get(id))
+                .filter((code): code is string => typeof code === 'string')
 
-        const currentSet = new Set(currentPermissionCodes)
-        const nextSet = new Set(resolvedPermissionCodes)
-        const added = resolvedPermissionCodes.filter((code) => !currentSet.has(code))
-        const removed = currentPermissionCodes.filter((code) => !nextSet.has(code))
+            const currentSet = new Set(currentPermissionCodes)
+            const nextSet = new Set(resolvedPermissionCodes)
+            const added = resolvedPermissionCodes.filter((code) => !currentSet.has(code))
+            const removed = currentPermissionCodes.filter((code) => !nextSet.has(code))
 
-        if (submitForApproval) {
             const request = await Effect.runPromise(
                 createApprovalRequest({
                     tenantId,
@@ -783,6 +832,7 @@ rbacRoutes.openapi(
                             permissionCodes: resolvedPermissionCodes,
                             diff: { added, removed },
                         },
+                        approvalRouting: { levels: buildDefaultFourEyesRouting('role_permission') },
                     },
                     requestedBy: userId,
                     impactLevel: added.length + removed.length > 10 ? 'high' : 'medium',
@@ -806,41 +856,9 @@ rbacRoutes.openapi(
                 },
                 202
             )
+        } catch (error) {
+            return runEffect(c, Effect.fail(error as any))
         }
-
-        const effect = pipe(
-            rbacService.updateRolePermissions(roleId, resolvedPermissionIds, tenantId),
-            Effect.tap((updatedRole: any) =>
-                Effect.tryPromise({
-                    try: () =>
-                        auditService.logPermission.permissionsUpdated(
-                            roleId,
-                            currentRole.roleName,
-                            {
-                                codes: currentPermissionCodes,
-                            },
-                            {
-                                codes: extractRolePermissionCodes(updatedRole),
-                                added,
-                                removed,
-                            },
-                            userId,
-                            tenantId
-                        ),
-                    catch: () => null,
-                })
-                    .pipe(Effect.catchAll(() => Effect.succeed(null)))
-            ),
-            Effect.map((r: any) => ({
-                ...roleToApiResponse(r),
-                diff: {
-                    added,
-                    removed,
-                },
-            }))
-        )
-
-        return runEffect(c, effect)
     }
 )
 
@@ -950,28 +968,45 @@ rbacRoutes.openapi(
         },
     }),
     async (c) => {
-        const { userId, roleId } = c.req.valid('param')
-        const tenantId = c.get('tenantId')!
-        const assignedBy = c.get('userId')
-        const body = c.req.valid('json')
+        try {
+            const { userId, roleId } = c.req.valid('param')
+            const tenantId = c.get('tenantId')!
+            const assignedBy = c.get('userId')
+            const body = c.req.valid('json')
+            const role = await Effect.runPromise(rbacService.getRoleById(roleId, tenantId))
 
-        const effect = pipe(
-            rbacService.assignRole({
-                userId,
-                roleId,
+            const request = await createStrictApprovalRequest({
                 tenantId,
-                assignedBy,
-                validFrom: body.validFrom ? new Date(body.validFrom) : undefined,
-                validUntil: body.validUntil ? new Date(body.validUntil) : undefined,
-                isTemporary: body.isTemporary,
-            }),
-            Effect.map(result => ({
-                success: true,
-                data: result,
-            }))
-        )
+                userId: assignedBy || 'system',
+                entityType: 'role_assignment',
+                entityId: `${userId}:${roleId}`,
+                operation: 'create',
+                title: `Assign role ${role.roleName} to user ${userId}`,
+                description: `Role assignment requested for ${role.roleName}.`,
+                payload: {
+                    userId,
+                    roleId,
+                    roleName: role.roleName,
+                    assignedBy: assignedBy || 'system',
+                    validFrom: body.validFrom,
+                    validUntil: body.validUntil,
+                    isTemporary: body.isTemporary,
+                    temporaryReason: body.temporaryReason,
+                    tenantId,
+                },
+                impactLevel: 'high',
+            })
 
-        return runEffect(c, effect)
+            return c.json(
+                buildApprovalAcceptedResponse(
+                    request.id,
+                    'Role assignment submitted for approval.'
+                ),
+                202
+            )
+        } catch (error) {
+            return runEffect(c, Effect.fail(error as any))
+        }
     }
 )
 
@@ -1006,10 +1041,40 @@ rbacRoutes.openapi(
         },
     }),
     async (c) => {
-        const { userId, roleId } = c.req.valid('param')
-        const tenantId = c.get('tenantId')!
-        const effect = rbacService.removeRole(userId, roleId, tenantId)
-        return runEffect(c, effect)
+        try {
+            const { userId, roleId } = c.req.valid('param')
+            const tenantId = c.get('tenantId')!
+            const removedBy = c.get('userId') || 'system'
+            const role = await Effect.runPromise(rbacService.getRoleById(roleId, tenantId))
+
+            const request = await createStrictApprovalRequest({
+                tenantId,
+                userId: removedBy,
+                entityType: 'role_assignment',
+                entityId: `${userId}:${roleId}`,
+                operation: 'delete',
+                title: `Remove role ${role.roleName} from user ${userId}`,
+                description: `Role removal requested for ${role.roleName}.`,
+                payload: {
+                    userId,
+                    roleId,
+                    roleName: role.roleName,
+                    removedBy,
+                    tenantId,
+                },
+                impactLevel: 'high',
+            })
+
+            return c.json(
+                buildApprovalAcceptedResponse(
+                    request.id,
+                    'Role removal submitted for approval.'
+                ),
+                202
+            )
+        } catch (error) {
+            return runEffect(c, Effect.fail(error as any))
+        }
     }
 )
 

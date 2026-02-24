@@ -22,7 +22,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         <NotificationContext.Provider
             value={{
                 notifications: socket.notifications,
-                unreadCount: socket.notifications.length,
+                unreadCount: socket.unreadCount,
                 isConnected: socket.isConnected,
                 subscribeToApproval: socket.subscribeToApproval,
                 subscribeToECL: socket.subscribeToECL,

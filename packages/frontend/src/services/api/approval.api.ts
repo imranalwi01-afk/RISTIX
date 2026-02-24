@@ -77,5 +77,17 @@ export const approvalAPI = {
     console.log('➕ Creating approval matrix', data.name);
     const response = await apiClient.post('/approvals/matrices', data);
     return response.data;
-  }
+  },
+
+  // Get approval routing overview + candidate approvers
+  getRoutingOverview: async (params?: {
+    entityType?: string;
+    operation?: 'create' | 'update' | 'delete';
+    department?: string;
+    bankingMode?: 'conventional' | 'syariah' | 'dual';
+  }) => {
+    console.log('🧭 Fetching approval routing overview', params);
+    const response = await apiClient.get('/approvals/routing', { params });
+    return response.data;
+  },
 };

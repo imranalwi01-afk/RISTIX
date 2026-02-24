@@ -9,6 +9,7 @@ import { usersRoutes } from './users.routes'
 import { tenantsRoutes } from './tenants.routes'
 import { platformAdminRoutes } from './platform-admin.routes'
 import { approvalRoutes } from './approval.routes'
+import { notificationsRoutes } from './notifications.routes'
 
 import { productSegmentsRoutes } from './product-segments.routes'
 import { ruleBaseSettingsRoutes } from './rule-base-settings.routes'
@@ -65,6 +66,7 @@ routes.route('/users', usersRoutes)
 routes.route('/tenants', tenantsRoutes)
 routes.route('/platform-admin', platformAdminRoutes)
 routes.route('/approvals', approvalRoutes)
+routes.route('/notifications', notificationsRoutes)
 routes.route('/rbac', rbacRoutes)
 routes.route('/audit', auditRoutes)
 

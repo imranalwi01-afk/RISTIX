@@ -1,0 +1,15 @@
+[**Backend API Reference v1.0.0**](../../README.md)
+
+***
+
+# Function: createApp()
+
+> **createApp**(): `OpenAPIHono`\<[`AppContext`](../type-aliases/AppContext.md), \{ \}, `"/"`\>
+
+Defined in: [src/app.ts:53](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/app.ts#L53)
+
+Create the Hono application
+
+## Returns
+
+`OpenAPIHono`\<[`AppContext`](../type-aliases/AppContext.md), \{ \}, `"/"`\>

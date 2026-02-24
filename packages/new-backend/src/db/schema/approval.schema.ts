@@ -158,6 +158,69 @@ export const approvalActions = approvalSchema.table(
 )
 
 // =============================================================================
+// NOTIFICATIONS - Persisted in-app notifications
+// =============================================================================
+
+export const notifications = approvalSchema.table(
+    'notifications',
+    {
+        id: uuid('id').primaryKey().defaultRandom(),
+        tenantId: uuid('tenant_id')
+            .notNull()
+            .references(() => tenants.id),
+        approvalRequestId: uuid('approval_request_id').references(() => approvalRequests.id, { onDelete: 'set null' }),
+        workflowId: varchar('workflow_id', { length: 100 }),
+        type: varchar('type', { length: 50 }).notNull(), // APPROVAL_PENDING, APPROVAL_APPROVED, etc.
+        severity: varchar('severity', { length: 20 }).notNull().default('info'), // info, warning, success, error
+        title: varchar('title', { length: 255 }).notNull(),
+        message: text('message').notNull(),
+        actionUrl: varchar('action_url', { length: 500 }),
+        entityType: varchar('entity_type', { length: 100 }),
+        entityId: varchar('entity_id', { length: 100 }),
+        source: varchar('source', { length: 100 }).notNull().default('approval_service'),
+        triggeredBy: uuid('triggered_by').references(() => users.id, { onDelete: 'set null' }),
+        metadata: jsonb('metadata'),
+        createdAt: timestamp('created_at').notNull().defaultNow(),
+    },
+    (table) => [
+        index('notifications_tenant_idx').on(table.tenantId),
+        index('notifications_type_idx').on(table.type),
+        index('notifications_request_idx').on(table.approvalRequestId),
+        index('notifications_created_idx').on(table.createdAt),
+    ]
+)
+
+export const notificationDeliveries = approvalSchema.table(
+    'notification_deliveries',
+    {
+        id: uuid('id').primaryKey().defaultRandom(),
+        notificationId: uuid('notification_id')
+            .notNull()
+            .references(() => notifications.id, { onDelete: 'cascade' }),
+        tenantId: uuid('tenant_id')
+            .notNull()
+            .references(() => tenants.id),
+        recipientUserId: uuid('recipient_user_id').references(() => users.id, { onDelete: 'cascade' }),
+        recipientRole: varchar('recipient_role', { length: 100 }),
+        channel: varchar('channel', { length: 20 }).notNull().default('in_app'), // in_app, socket, email, webhook
+        deliveryStatus: varchar('delivery_status', { length: 20 }).notNull().default('sent'), // pending, sent, failed, read
+        deliveredAt: timestamp('delivered_at').defaultNow(),
+        readAt: timestamp('read_at'),
+        errorMessage: text('error_message'),
+        metadata: jsonb('metadata'),
+        createdAt: timestamp('created_at').notNull().defaultNow(),
+        updatedAt: timestamp('updated_at').notNull().defaultNow(),
+    },
+    (table) => [
+        index('notification_deliveries_notification_idx').on(table.notificationId),
+        index('notification_deliveries_tenant_idx').on(table.tenantId),
+        index('notification_deliveries_user_status_idx').on(table.recipientUserId, table.deliveryStatus),
+        index('notification_deliveries_role_idx').on(table.recipientRole),
+        index('notification_deliveries_created_idx').on(table.createdAt),
+    ]
+)
+
+// =============================================================================
 // RELATIONS
 // =============================================================================
 
@@ -191,6 +254,7 @@ export const approvalRequestsRelations = relations(approvalRequests, ({ one, man
         references: [users.id],
     }),
     actions: many(approvalActions),
+    notifications: many(notifications),
 }))
 
 export const approvalActionsRelations = relations(approvalActions, ({ one }) => ({
@@ -204,6 +268,37 @@ export const approvalActionsRelations = relations(approvalActions, ({ one }) => 
     }),
     delegatedUser: one(users, {
         fields: [approvalActions.delegatedTo],
+        references: [users.id],
+    }),
+}))
+
+export const notificationsRelations = relations(notifications, ({ one, many }) => ({
+    tenant: one(tenants, {
+        fields: [notifications.tenantId],
+        references: [tenants.id],
+    }),
+    approvalRequest: one(approvalRequests, {
+        fields: [notifications.approvalRequestId],
+        references: [approvalRequests.id],
+    }),
+    triggerUser: one(users, {
+        fields: [notifications.triggeredBy],
+        references: [users.id],
+    }),
+    deliveries: many(notificationDeliveries),
+}))
+
+export const notificationDeliveriesRelations = relations(notificationDeliveries, ({ one }) => ({
+    notification: one(notifications, {
+        fields: [notificationDeliveries.notificationId],
+        references: [notifications.id],
+    }),
+    tenant: one(tenants, {
+        fields: [notificationDeliveries.tenantId],
+        references: [tenants.id],
+    }),
+    recipientUser: one(users, {
+        fields: [notificationDeliveries.recipientUserId],
         references: [users.id],
     }),
 }))
@@ -223,3 +318,9 @@ export type NewApprovalRequest = typeof approvalRequests.$inferInsert
 
 export type ApprovalAction = typeof approvalActions.$inferSelect
 export type NewApprovalAction = typeof approvalActions.$inferInsert
+
+export type Notification = typeof notifications.$inferSelect
+export type NewNotification = typeof notifications.$inferInsert
+
+export type NotificationDelivery = typeof notificationDeliveries.$inferSelect
+export type NewNotificationDelivery = typeof notificationDeliveries.$inferInsert

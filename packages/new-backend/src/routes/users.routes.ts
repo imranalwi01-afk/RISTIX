@@ -6,7 +6,9 @@ import { runEffect } from '../lib/effect'
 import { parsePaginationParams, parseFilterParams } from '../lib/react-admin'
 import * as usersService from '../services/users.service'
 import { interceptCreate, interceptUpdate, interceptDelete } from '../middleware/approval-interceptor.middleware'
-import type { ApprovalResponse } from '../lib/approval-helpers'
+import { buildDefaultFourEyesRouting, type ApprovalResponse } from '../lib/approval-helpers'
+import { createApprovalRequest } from '../services/approval.service'
+import * as auditService from '../services/audit.service'
 
 export const usersRoutes = new OpenAPIHono<AppContext>()
 
@@ -784,14 +786,52 @@ usersRoutes.openapi(
         },
     }),
     async (c) => {
-        const { id } = c.req.valid('param')
+        try {
+            const { id } = c.req.valid('param')
+            const tenantId = c.get('tenantId')!
+            const requestedBy = c.get('userId')!
 
-        const effect = pipe(
-            usersService.enableUser(id),
-            Effect.map(() => ({ success: true, message: 'User enabled' }))
-        )
+            const request = await Effect.runPromise(
+                createApprovalRequest({
+                    tenantId,
+                    entityType: 'user_status',
+                    entityId: id,
+                    title: `Enable user: ${id}`,
+                    description: `User activation requested for user ${id}.`,
+                    requestData: {
+                        operation: 'update',
+                        entityType: 'user_status',
+                        data: {
+                            id,
+                            isActive: true,
+                            tenantId,
+                        },
+                        approvalRouting: { levels: buildDefaultFourEyesRouting('user_status') },
+                    },
+                    requestedBy,
+                    impactLevel: 'high',
+                })
+            )
 
-        return runEffect(c, effect)
+            await auditService.logApproval.requested(
+                request.id,
+                request.title,
+                requestedBy,
+                tenantId
+            )
+
+            return c.json(
+                {
+                    success: true,
+                    approvalRequired: true,
+                    requestId: request.id,
+                    message: 'User enable request submitted for approval.',
+                },
+                202
+            )
+        } catch (error) {
+            return runEffect(c, Effect.fail(error as any))
+        }
     }
 )
 
@@ -828,13 +868,51 @@ usersRoutes.openapi(
         },
     }),
     async (c) => {
-        const { id } = c.req.valid('param')
+        try {
+            const { id } = c.req.valid('param')
+            const tenantId = c.get('tenantId')!
+            const requestedBy = c.get('userId')!
 
-        const effect = pipe(
-            usersService.disableUser(id),
-            Effect.map(() => ({ success: true, message: 'User disabled' }))
-        )
+            const request = await Effect.runPromise(
+                createApprovalRequest({
+                    tenantId,
+                    entityType: 'user_status',
+                    entityId: id,
+                    title: `Disable user: ${id}`,
+                    description: `User deactivation requested for user ${id}.`,
+                    requestData: {
+                        operation: 'update',
+                        entityType: 'user_status',
+                        data: {
+                            id,
+                            isActive: false,
+                            tenantId,
+                        },
+                        approvalRouting: { levels: buildDefaultFourEyesRouting('user_status') },
+                    },
+                    requestedBy,
+                    impactLevel: 'high',
+                })
+            )
 
-        return runEffect(c, effect)
+            await auditService.logApproval.requested(
+                request.id,
+                request.title,
+                requestedBy,
+                tenantId
+            )
+
+            return c.json(
+                {
+                    success: true,
+                    approvalRequired: true,
+                    requestId: request.id,
+                    message: 'User disable request submitted for approval.',
+                },
+                202
+            )
+        } catch (error) {
+            return runEffect(c, Effect.fail(error as any))
+        }
     }
 )

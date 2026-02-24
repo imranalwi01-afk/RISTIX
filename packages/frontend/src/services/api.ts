@@ -37,6 +37,7 @@ import { flScalarAPI } from './api/fl-scalar.api';
 import { eclConfigurationsApi } from './api/ecl-configurations.api';
 import { impairmentApi } from './api/impairment.api';
 import { approvalAPI } from './api/approval.api';
+import { notificationAPI } from './api/notification.api';
 // Import IFRS9 API service
 import { ifrs9API as ifrs9Service, ifrs9API } from './api/ifrs9.api';
 export { ifrs9API };
@@ -316,7 +317,7 @@ export const rolesAPI = {
     if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
     const response = await apiClient.put(`/roles/${id}/permissions`, {
       permissions,
-      submitForApproval: options?.submitForApproval ?? false,
+      submitForApproval: options?.submitForApproval ?? true,
       approvalReason: options?.approvalReason
     }, config);
     return response.data;
@@ -458,6 +459,7 @@ export const bankingAPI = {
   eclConfigurations: eclConfigurationsApi,
   impairment: impairmentApi,
   approval: approvalAPI,
+  notifications: notificationAPI,
 
   // Jobs Monitoring API (backend /api/v1/jobs)
   jobs: {

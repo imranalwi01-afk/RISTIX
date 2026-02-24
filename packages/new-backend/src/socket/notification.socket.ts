@@ -3,6 +3,8 @@ import { Server as SocketIOServer, Socket } from 'socket.io'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import * as schema from '../db/schema'
 import { withRequestIds } from '../lib/logger'
+import { verifyToken } from '../services/auth.service'
+import { NotificationRepository } from '../repositories/notification.repository'
 
 /**
  * Socket.IO server for real-time notifications
@@ -40,25 +42,44 @@ export class NotificationSocket {
      * Setup authentication middleware
      */
     private setupMiddleware() {
-        this.io.use((socket, next) => {
-            const token = socket.handshake.auth.token || socket.handshake.headers.authorization
-
-            if (!token) {
+        this.io.use(async (socket, next) => {
+            const rawToken = socket.handshake.auth.token || socket.handshake.headers.authorization
+            if (!rawToken) {
                 return next(new Error('Missing authentication token'))
             }
 
-            // TODO: Validate JWT token, extract userId, tenantId
-            // const decoded = jwt.verify(token, process.env.JWT_SECRET)
-            // socket.data.userId = decoded.userId
-            // socket.data.tenantId = decoded.tenantId
-            // socket.data.roles = decoded.roles
+            const token = String(rawToken).startsWith('Bearer ')
+                ? String(rawToken).slice(7).trim()
+                : String(rawToken).trim()
 
-            // For now, mock data
-            socket.data.userId = 'admin-user-id'
-            socket.data.tenantId = 'tenant-id'
-            socket.data.roles = ['ADMIN', 'APPROVER']
+            try {
+                const decoded = await verifyToken(token, 'access')
+                const tokenRoles = Array.isArray(decoded.roles)
+                    ? decoded.roles.filter((role): role is string => typeof role === 'string' && role.trim().length > 0)
+                    : []
+                const permissions = Array.isArray(decoded.permissions)
+                    ? decoded.permissions.filter((permission): permission is string => typeof permission === 'string' && permission.trim().length > 0)
+                    : []
 
-            next()
+                const normalizedRoleRooms = new Set(tokenRoles.map((role) => role.trim().toUpperCase()))
+                if (permissions.includes('admin.super_admin') || permissions.includes('approval.all')) {
+                    normalizedRoleRooms.add('SUPER_ADMIN')
+                }
+
+                const userId = typeof decoded.sub === 'string' ? decoded.sub : null
+                if (!userId) {
+                    return next(new Error('Invalid authentication token'))
+                }
+
+                socket.data.userId = userId
+                socket.data.tenantId = typeof decoded.tenantId === 'string' ? decoded.tenantId : 'tenant'
+                socket.data.roles = Array.from(normalizedRoleRooms)
+                socket.data.permissions = permissions
+
+                return next()
+            } catch (error) {
+                return next(new Error('Invalid authentication token'))
+            }
         })
     }
 
@@ -85,11 +106,10 @@ export class NotificationSocket {
             socket.join(`user:${userId}`)
 
             // Join role-specific rooms if admin/approver
-            if (roles.includes('ADMIN')) {
-                socket.join(`role:ADMIN:${tenantId}`)
-            }
-            if (roles.includes('APPROVER')) {
-                socket.join(`role:APPROVER:${tenantId}`)
+            if (Array.isArray(roles)) {
+                roles.forEach((role: string) => {
+                    socket.join(`role:${String(role).toUpperCase()}:${tenantId}`)
+                })
             }
 
             // Handle disconnect
@@ -113,9 +133,21 @@ export class NotificationSocket {
             })
 
             // Handle ACK (read notification)
-            socket.on('notification:ack', (notificationId) => {
+            socket.on('notification:ack', async (notificationId) => {
                 withRequestIds({ tenantId, userId }).info({ notificationId }, 'Notification read')
-                // TODO: Mark notification as read in DB
+                if (typeof notificationId !== 'string' || !notificationId.trim()) {
+                    return
+                }
+
+                try {
+                    await NotificationRepository.markAsRead({
+                        tenantId,
+                        userId,
+                        notificationId: notificationId.trim(),
+                    })
+                } catch (error) {
+                    withRequestIds({ tenantId, userId }).warn({ notificationId, error }, 'Failed to mark notification as read')
+                }
             })
         })
 
@@ -130,19 +162,38 @@ export class NotificationSocket {
         notification: NotificationPayload,
         roles?: string[]
     ) {
-        const rooms = [`tenant:${tenantId}`]
+        const normalizedRoles = Array.isArray(roles)
+            ? Array.from(new Set(
+                roles
+                    .filter((role): role is string => typeof role === 'string' && role.trim().length > 0)
+                    .map((role) => role.trim().toUpperCase())
+            ))
+            : []
 
-        if (roles && roles.length > 0) {
-            roles.forEach((role) => {
-                rooms.push(`role:${role}:${tenantId}`)
-            })
-        }
+        const rooms = normalizedRoles.length > 0
+            ? normalizedRoles.map((role) => `role:${role}:${tenantId}`)
+            : [`tenant:${tenantId}`]
 
         rooms.forEach((room) => {
             this.io.of('/admin/notifications').to(room).emit('notification', notification)
         })
 
         withRequestIds({ tenantId }).info({ rooms }, 'Approval notification broadcast')
+    }
+
+    /**
+     * Broadcast approval notifications directly to specific users.
+     */
+    broadcastApprovalNotificationToUsers(
+        tenantId: string,
+        notification: NotificationPayload,
+        userIds: string[]
+    ) {
+        const targets = Array.from(new Set(userIds.filter((userId) => typeof userId === 'string' && userId.trim().length > 0)))
+        targets.forEach((userId) => {
+            this.io.of('/admin/notifications').to(`user:${userId}`).emit('notification', notification)
+        })
+        withRequestIds({ tenantId }).info({ userCount: targets.length }, 'Approval notification broadcast to users')
     }
 
     /**

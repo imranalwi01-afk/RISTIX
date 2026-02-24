@@ -1,7 +1,7 @@
 // packages/frontend/src/components/roles/UserRoleAssignment.tsx
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Box,
   Card,
@@ -83,6 +83,7 @@ import {
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import { format, parseISO } from 'date-fns';
+import { useSearchParams } from 'next/navigation';
 import { api } from '@/services/api';
 
 // Types
@@ -256,11 +257,14 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
   refreshTrigger = 0
 }) => {
   const theme = useTheme();
+  const searchParams = useSearchParams();
+  const processedDeepLinkRef = useRef<string | null>(null);
   const [currentTab, setCurrentTab] = useState(0);
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   // Assignment dialog state
   const [assignmentDialog, setAssignmentDialog] = useState<{
@@ -291,6 +295,42 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
     mode: 'assign',
     selectedUsers: [],
     selectedRoles: []
+  });
+  const [userDetailsDialog, setUserDetailsDialog] = useState<{
+    open: boolean;
+    user: User | null;
+  }>({
+    open: false,
+    user: null
+  });
+  const [roleDetailsDialog, setRoleDetailsDialog] = useState<{
+    open: boolean;
+    role: Role | null;
+  }>({
+    open: false,
+    role: null
+  });
+  const [manageUserRolesDialog, setManageUserRolesDialog] = useState<{
+    open: boolean;
+    user: User | null;
+    selectedRoleIds: string[];
+    saving: boolean;
+  }>({
+    open: false,
+    user: null,
+    selectedRoleIds: [],
+    saving: false
+  });
+  const [manageRoleUsersDialog, setManageRoleUsersDialog] = useState<{
+    open: boolean;
+    role: Role | null;
+    selectedUserIds: string[];
+    saving: boolean;
+  }>({
+    open: false,
+    role: null,
+    selectedUserIds: [],
+    saving: false
   });
 
   // Filters and pagination
@@ -503,6 +543,22 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
     setSelectedRoleIds((prev) => prev.filter((id) => !filteredRoleIds.includes(id)));
   };
 
+  const getAssignedRoleIdsForUser = (user: User | null): string[] => {
+    if (!user) return [];
+    return Array.from(
+      new Set(
+        user.roleAssignments
+          .filter((assignment) => assignment.isActive && assignment.roleId)
+          .map((assignment) => assignment.roleId)
+      )
+    );
+  };
+
+  const getAssignedUsersForRole = (roleId: string): User[] =>
+    users.filter((user) =>
+      user.roleAssignments.some((assignment) => assignment.isActive && assignment.roleId === roleId)
+    );
+
   // Get role type color
   const getRoleTypeColor = (type: string) => {
     switch (type) {
@@ -522,7 +578,12 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
   const handleAssignRole = async (userId: string, roleId: string) => {
     try {
       console.log(`🔗 Assigning role ${roleId} to user ${userId}`);
-      await api.roles.assignUser(roleId, userId);
+      const response = await api.roles.assignUser(roleId, userId);
+      const approvalRequired = Boolean(response?.approvalRequired || response?.data?.approvalRequired);
+      const requestId = response?.requestId || response?.data?.requestId;
+      if (approvalRequired) {
+        setNotice(`Role assignment submitted for approval${requestId ? ` (Request: ${requestId})` : ''}`);
+      }
       onAssignmentChange?.();
       await fetchData();
     } catch (error) {
@@ -534,7 +595,12 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
   const handleRemoveRole = async (userId: string, roleId: string) => {
     try {
       console.log(`❌ Removing role ${roleId} from user ${userId}`);
-      await api.roles.removeUser(roleId, userId);
+      const response = await api.roles.removeUser(roleId, userId);
+      const approvalRequired = Boolean(response?.approvalRequired || response?.data?.approvalRequired);
+      const requestId = response?.requestId || response?.data?.requestId;
+      if (approvalRequired) {
+        setNotice(`Role removal submitted for approval${requestId ? ` (Request: ${requestId})` : ''}`);
+      }
       onAssignmentChange?.();
       await fetchData();
     } catch (error) {
@@ -552,11 +618,19 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
 
     try {
       console.log(`🔗 Bulk assigning ${bulkDialog.selectedRoles.length} roles to ${bulkDialog.selectedUsers.length} users`);
+      let approvalCount = 0;
 
       for (const roleId of bulkDialog.selectedRoles) {
         for (const userId of bulkDialog.selectedUsers) {
-          await api.roles.assignUser(roleId, userId);
+          const response = await api.roles.assignUser(roleId, userId);
+          if (response?.approvalRequired || response?.data?.approvalRequired) {
+            approvalCount += 1;
+          }
         }
+      }
+
+      if (approvalCount > 0) {
+        setNotice(`Bulk assignment submitted ${approvalCount} request(s) for approval.`);
       }
 
       onAssignmentChange?.();
@@ -576,11 +650,19 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
 
     try {
       console.log(`❌ Bulk removing ${bulkDialog.selectedRoles.length} roles from ${bulkDialog.selectedUsers.length} users`);
+      let approvalCount = 0;
 
       for (const roleId of bulkDialog.selectedRoles) {
         for (const userId of bulkDialog.selectedUsers) {
-          await api.roles.removeUser(roleId, userId);
+          const response = await api.roles.removeUser(roleId, userId);
+          if (response?.approvalRequired || response?.data?.approvalRequired) {
+            approvalCount += 1;
+          }
         }
+      }
+
+      if (approvalCount > 0) {
+        setNotice(`Bulk removal submitted ${approvalCount} request(s) for approval.`);
       }
 
       onAssignmentChange?.();
@@ -601,6 +683,149 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
       role
     });
   };
+
+  const openUserDetailsDialog = (user: User) => {
+    setUserDetailsDialog({ open: true, user });
+  };
+
+  const openManageUserRolesDialog = (user: User) => {
+    setManageUserRolesDialog({
+      open: true,
+      user,
+      selectedRoleIds: getAssignedRoleIdsForUser(user),
+      saving: false
+    });
+  };
+
+  const openRoleDetailsDialog = (role: Role) => {
+    setRoleDetailsDialog({ open: true, role });
+  };
+
+  const openManageRoleUsersDialog = (role: Role) => {
+    setManageRoleUsersDialog({
+      open: true,
+      role,
+      selectedUserIds: getAssignedUsersForRole(role.id).map((user) => user.id),
+      saving: false
+    });
+  };
+
+  const saveManagedUserRoles = async () => {
+    const user = manageUserRolesDialog.user;
+    if (!user) return;
+
+    const currentAssigned = new Set(getAssignedRoleIdsForUser(user));
+    const nextAssigned = new Set(manageUserRolesDialog.selectedRoleIds);
+
+    const rolesToAssign = Array.from(nextAssigned).filter((roleId) => !currentAssigned.has(roleId));
+    const rolesToRemove = Array.from(currentAssigned).filter((roleId) => !nextAssigned.has(roleId));
+
+    try {
+      setManageUserRolesDialog((prev) => ({ ...prev, saving: true }));
+
+      for (const roleId of rolesToAssign) {
+        const response = await api.roles.assignUser(roleId, user.id);
+        if (response?.approvalRequired || response?.data?.approvalRequired) {
+          setNotice('User role assignment change submitted for approval.');
+        }
+      }
+
+      for (const roleId of rolesToRemove) {
+        const response = await api.roles.removeUser(roleId, user.id);
+        if (response?.approvalRequired || response?.data?.approvalRequired) {
+          setNotice('User role assignment change submitted for approval.');
+        }
+      }
+
+      onAssignmentChange?.();
+      await fetchData();
+      setManageUserRolesDialog({ open: false, user: null, selectedRoleIds: [], saving: false });
+      setUserDetailsDialog({ open: false, user: null });
+    } catch (err) {
+      console.error('❌ Failed saving user role assignment:', err);
+      setError('Failed to save role assignment for user');
+      setManageUserRolesDialog((prev) => ({ ...prev, saving: false }));
+    }
+  };
+
+  const saveManagedRoleUsers = async () => {
+    const role = manageRoleUsersDialog.role;
+    if (!role) return;
+
+    const currentAssigned = new Set(getAssignedUsersForRole(role.id).map((user) => user.id));
+    const nextAssigned = new Set(manageRoleUsersDialog.selectedUserIds);
+
+    const usersToAssign = Array.from(nextAssigned).filter((userId) => !currentAssigned.has(userId));
+    const usersToRemove = Array.from(currentAssigned).filter((userId) => !nextAssigned.has(userId));
+
+    try {
+      setManageRoleUsersDialog((prev) => ({ ...prev, saving: true }));
+
+      for (const userId of usersToAssign) {
+        const response = await api.roles.assignUser(role.id, userId);
+        if (response?.approvalRequired || response?.data?.approvalRequired) {
+          setNotice('Role user assignment change submitted for approval.');
+        }
+      }
+
+      for (const userId of usersToRemove) {
+        const response = await api.roles.removeUser(role.id, userId);
+        if (response?.approvalRequired || response?.data?.approvalRequired) {
+          setNotice('Role user assignment change submitted for approval.');
+        }
+      }
+
+      onAssignmentChange?.();
+      await fetchData();
+      setManageRoleUsersDialog({ open: false, role: null, selectedUserIds: [], saving: false });
+      setRoleDetailsDialog({ open: false, role: null });
+    } catch (err) {
+      console.error('❌ Failed saving role user assignment:', err);
+      setError('Failed to save user assignment for role');
+      setManageRoleUsersDialog((prev) => ({ ...prev, saving: false }));
+    }
+  };
+
+  const toggleRoleSelectionForManagedUser = (roleId: string, checked: boolean) => {
+    setManageUserRolesDialog((prev) => {
+      const next = checked
+        ? [...new Set([...prev.selectedRoleIds, roleId])]
+        : prev.selectedRoleIds.filter((id) => id !== roleId);
+      return { ...prev, selectedRoleIds: next };
+    });
+  };
+
+  const toggleUserSelectionForManagedRole = (userId: string, checked: boolean) => {
+    setManageRoleUsersDialog((prev) => {
+      const next = checked
+        ? [...new Set([...prev.selectedUserIds, userId])]
+        : prev.selectedUserIds.filter((id) => id !== userId);
+      return { ...prev, selectedUserIds: next };
+    });
+  };
+
+  useEffect(() => {
+    const deepLinkAction = searchParams.get('assignmentAction');
+    const deepLinkUserId = searchParams.get('assignmentUserId');
+
+    if (!deepLinkAction || !deepLinkUserId || users.length === 0) return;
+
+    const deepLinkKey = `${deepLinkAction}:${deepLinkUserId}`;
+    if (processedDeepLinkRef.current === deepLinkKey) return;
+    processedDeepLinkRef.current = deepLinkKey;
+
+    if (deepLinkAction === 'manageUserRoles') {
+      const targetUser = users.find((user) => user.id === deepLinkUserId);
+      if (!targetUser) {
+        setError(`User with id ${deepLinkUserId} was not found for role assignment`);
+        return;
+      }
+
+      setCurrentTab(1);
+      setSelectedUserIds([targetUser.id]);
+      openManageUserRolesDialog(targetUser);
+    }
+  }, [searchParams, users]);
 
   // Get statistics
   const getStatistics = () => {
@@ -656,6 +881,12 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
 
   return (
     <Box>
+      {notice && (
+        <Alert severity="info" sx={{ mb: 2 }} onClose={() => setNotice(null)}>
+          {notice}
+        </Alert>
+      )}
+
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h5" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -1117,12 +1348,12 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
                     <TableCell>
                       <Box sx={{ display: 'flex', gap: 0.5 }}>
                         <Tooltip title="View User Details">
-                          <IconButton size="small">
+                          <IconButton size="small" onClick={() => openUserDetailsDialog(user)}>
                             <ViewIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
                         <Tooltip title="Manage Roles">
-                          <IconButton size="small">
+                          <IconButton size="small" onClick={() => openManageUserRolesDialog(user)}>
                             <EditIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
@@ -1223,12 +1454,12 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
                     <TableCell>
                       <Box sx={{ display: 'flex', gap: 0.5 }}>
                         <Tooltip title="View Role Details">
-                          <IconButton size="small">
+                          <IconButton size="small" onClick={() => openRoleDetailsDialog(role)}>
                             <ViewIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
                         <Tooltip title="Manage User Assignments">
-                          <IconButton size="small">
+                          <IconButton size="small" onClick={() => openManageRoleUsersDialog(role)}>
                             <PeopleIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
@@ -1253,6 +1484,289 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
           </TableContainer>
         </TabPanel>
       </Paper>
+
+      {/* User Details Dialog */}
+      <Dialog
+        open={userDetailsDialog.open}
+        onClose={() => setUserDetailsDialog({ open: false, user: null })}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>User Details</DialogTitle>
+        <DialogContent dividers>
+          {userDetailsDialog.user && (
+            <Box>
+              <Grid container spacing={2} sx={{ mb: 2 }}>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Typography variant="subtitle2" color="text.secondary">Name</Typography>
+                  <Typography>{userDetailsDialog.user.fullName}</Typography>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Typography variant="subtitle2" color="text.secondary">Email</Typography>
+                  <Typography>{userDetailsDialog.user.email}</Typography>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Typography variant="subtitle2" color="text.secondary">Status</Typography>
+                  <Chip
+                    size="small"
+                    label={userDetailsDialog.user.isActive ? 'Active' : 'Inactive'}
+                    color={getUserStatusColor(userDetailsDialog.user.isActive)}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Typography variant="subtitle2" color="text.secondary">Total Roles</Typography>
+                  <Typography>{getAssignedRoleIdsForUser(userDetailsDialog.user).length}</Typography>
+                </Grid>
+              </Grid>
+
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>Assigned Roles</Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 2 }}>
+                {getAssignedRoleIdsForUser(userDetailsDialog.user).length === 0 ? (
+                  <Typography variant="body2" color="text.secondary">No roles assigned</Typography>
+                ) : (
+                  getAssignedRoleIdsForUser(userDetailsDialog.user).map((roleId) => {
+                    const role = roles.find((item) => item.id === roleId);
+                    return (
+                      <Chip
+                        key={`user-detail-role-${roleId}`}
+                        size="small"
+                        label={getRoleLabel(role)}
+                        color={role ? (getRoleTypeColor(role.type) as any) : 'default'}
+                        variant="outlined"
+                      />
+                    );
+                  })
+                )}
+              </Box>
+
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>Assignment Audit</Typography>
+              <List dense>
+                {userDetailsDialog.user.roleAssignments.filter((assignment) => assignment.isActive).length === 0 && (
+                  <ListItem>
+                    <ListItemText primary="No active role assignment history." />
+                  </ListItem>
+                )}
+                {userDetailsDialog.user.roleAssignments
+                  .filter((assignment) => assignment.isActive)
+                  .map((assignment) => {
+                    const role = roles.find((item) => item.id === assignment.roleId);
+                    return (
+                      <ListItem key={`user-audit-${assignment.id}`} divider>
+                        <ListItemText
+                          primary={getRoleLabel(role)}
+                          secondary={`Assigned at: ${new Date(assignment.assignedAt).toLocaleString()}${assignment.assignedBy ? ` • By: ${assignment.assignedBy}` : ''}`}
+                        />
+                      </ListItem>
+                    );
+                  })}
+              </List>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setUserDetailsDialog({ open: false, user: null })}>Close</Button>
+          {userDetailsDialog.user && (
+            <Button variant="contained" onClick={() => openManageUserRolesDialog(userDetailsDialog.user!)}>
+              Manage Roles
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
+
+      {/* Manage User Roles Dialog */}
+      <Dialog
+        open={manageUserRolesDialog.open}
+        onClose={() => setManageUserRolesDialog({ open: false, user: null, selectedRoleIds: [], saving: false })}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          {manageUserRolesDialog.user ? `Manage Roles: ${manageUserRolesDialog.user.fullName}` : 'Manage User Roles'}
+        </DialogTitle>
+        <DialogContent dividers>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Select the roles that should be assigned to this user, then save changes.
+          </Typography>
+          <TableContainer component={Paper} variant="outlined">
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell padding="checkbox" />
+                  <TableCell>Role</TableCell>
+                  <TableCell>Type</TableCell>
+                  <TableCell>Level</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {roles
+                  .filter((role) => role.isActive || manageUserRolesDialog.selectedRoleIds.includes(role.id))
+                  .map((role) => (
+                    <TableRow key={`manage-user-role-${role.id}`} hover>
+                      <TableCell padding="checkbox">
+                        <Checkbox
+                          checked={manageUserRolesDialog.selectedRoleIds.includes(role.id)}
+                          onChange={(e) => toggleRoleSelectionForManagedUser(role.id, e.target.checked)}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{getRoleLabel(role)}</Typography>
+                        <Typography variant="caption" color="text.secondary">{role.description || '-'}</Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip size="small" label={role.type} color={getRoleTypeColor(role.type) as any} variant="outlined" />
+                      </TableCell>
+                      <TableCell>{role.level}</TableCell>
+                    </TableRow>
+                  ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setManageUserRolesDialog({ open: false, user: null, selectedRoleIds: [], saving: false })}>
+            Cancel
+          </Button>
+          <Button variant="contained" onClick={saveManagedUserRoles} disabled={manageUserRolesDialog.saving}>
+            {manageUserRolesDialog.saving ? 'Saving...' : 'Save Role Assignment'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Role Details Dialog */}
+      <Dialog
+        open={roleDetailsDialog.open}
+        onClose={() => setRoleDetailsDialog({ open: false, role: null })}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Role Details</DialogTitle>
+        <DialogContent dividers>
+          {roleDetailsDialog.role && (
+            <Box>
+              <Grid container spacing={2} sx={{ mb: 2 }}>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Typography variant="subtitle2" color="text.secondary">Role</Typography>
+                  <Typography>{getRoleLabel(roleDetailsDialog.role)}</Typography>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Typography variant="subtitle2" color="text.secondary">Role Code</Typography>
+                  <Typography>{roleDetailsDialog.role.name || 'UNNAMED_ROLE'}</Typography>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Typography variant="subtitle2" color="text.secondary">Type</Typography>
+                  <Chip size="small" label={roleDetailsDialog.role.type} color={getRoleTypeColor(roleDetailsDialog.role.type) as any} variant="outlined" />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Typography variant="subtitle2" color="text.secondary">Level</Typography>
+                  <Typography>{roleDetailsDialog.role.level}</Typography>
+                </Grid>
+                <Grid size={{ xs: 12 }}>
+                  <Typography variant="subtitle2" color="text.secondary">Description</Typography>
+                  <Typography>{roleDetailsDialog.role.description || '-'}</Typography>
+                </Grid>
+              </Grid>
+
+              <Divider sx={{ my: 2 }} />
+
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                Assigned Users ({getAssignedUsersForRole(roleDetailsDialog.role.id).length})
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 2 }}>
+                {getAssignedUsersForRole(roleDetailsDialog.role.id).length === 0 ? (
+                  <Typography variant="body2" color="text.secondary">No users assigned</Typography>
+                ) : (
+                  getAssignedUsersForRole(roleDetailsDialog.role.id).map((user) => (
+                    <Chip key={`role-user-${user.id}`} size="small" label={user.fullName} />
+                  ))
+                )}
+              </Box>
+
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                Permissions ({flattenPermissions(roleDetailsDialog.role.permissions).length})
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+                {flattenPermissions(roleDetailsDialog.role.permissions).length === 0 ? (
+                  <Typography variant="body2" color="text.secondary">No permissions configured</Typography>
+                ) : (
+                  flattenPermissions(roleDetailsDialog.role.permissions).map((permission) => (
+                    <Chip
+                      key={`role-perm-${permission.id}`}
+                      size="small"
+                      variant="outlined"
+                      label={permission.displayName || `${permission.resource}.${permission.action}`}
+                    />
+                  ))
+                )}
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRoleDetailsDialog({ open: false, role: null })}>Close</Button>
+          {roleDetailsDialog.role && (
+            <Button variant="contained" onClick={() => openManageRoleUsersDialog(roleDetailsDialog.role!)}>
+              Manage Users
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
+
+      {/* Manage Role Users Dialog */}
+      <Dialog
+        open={manageRoleUsersDialog.open}
+        onClose={() => setManageRoleUsersDialog({ open: false, role: null, selectedUserIds: [], saving: false })}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          {manageRoleUsersDialog.role ? `Manage Users: ${getRoleLabel(manageRoleUsersDialog.role)}` : 'Manage Role Users'}
+        </DialogTitle>
+        <DialogContent dividers>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Select users that should have this role assigned, then save changes.
+          </Typography>
+          <TableContainer component={Paper} variant="outlined">
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell padding="checkbox" />
+                  <TableCell>User</TableCell>
+                  <TableCell>Status</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {users
+                  .filter((user) => showInactiveUsers || user.isActive || manageRoleUsersDialog.selectedUserIds.includes(user.id))
+                  .map((user) => (
+                    <TableRow key={`manage-role-user-${user.id}`} hover>
+                      <TableCell padding="checkbox">
+                        <Checkbox
+                          checked={manageRoleUsersDialog.selectedUserIds.includes(user.id)}
+                          onChange={(e) => toggleUserSelectionForManagedRole(user.id, e.target.checked)}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{user.fullName}</Typography>
+                        <Typography variant="caption" color="text.secondary">{user.email}</Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip size="small" label={user.isActive ? 'Active' : 'Inactive'} color={getUserStatusColor(user.isActive)} />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setManageRoleUsersDialog({ open: false, role: null, selectedUserIds: [], saving: false })}>
+            Cancel
+          </Button>
+          <Button variant="contained" onClick={saveManagedRoleUsers} disabled={manageRoleUsersDialog.saving}>
+            {manageRoleUsersDialog.saving ? 'Saving...' : 'Save User Assignment'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Assignment Dialog */}
       <Dialog

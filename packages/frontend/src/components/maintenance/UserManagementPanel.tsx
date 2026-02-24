@@ -78,6 +78,14 @@ interface User {
   updatedAt?: string;
 }
 
+interface UserRoleSummary {
+  id: string;
+  roleId: string;
+  roleName: string;
+  assignedAt?: string;
+  isActive: boolean;
+}
+
 // ✅ Form Data Interface
 interface UserFormData {
   email: string;
@@ -115,6 +123,8 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [openViewDialog, setOpenViewDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedUserRoles, setSelectedUserRoles] = useState<UserRoleSummary[]>([]);
+  const [loadingUserRoles, setLoadingUserRoles] = useState(false);
   const [formData, setFormData] = useState<UserFormData>({
     email: '',
     username: '',
@@ -282,7 +292,33 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
   };
 
   // ✅ Handle Edit
-  const handleEdit = (user: User) => {
+  const loadUserRoles = useCallback(async (userId: string) => {
+    setLoadingUserRoles(true);
+    try {
+      const response = await api.roles.getUserRoles(userId);
+      const rows = response?.data?.roles || response?.roles || response?.data || [];
+      const roleRows = Array.isArray(rows) ? rows : [];
+      const normalizedRoles = roleRows.map((row: any) => {
+        const embeddedRole = row?.role || {};
+        return {
+          id: String(row?.id || `${userId}-${row?.roleId || row?.role_id || embeddedRole?.id || ''}`),
+          roleId: String(row?.roleId || row?.role_id || embeddedRole?.id || ''),
+          roleName: String(embeddedRole?.displayName || embeddedRole?.roleName || embeddedRole?.name || row?.roleName || row?.role_name || 'Unknown Role'),
+          assignedAt: row?.assignedAt || row?.assigned_at,
+          isActive: Boolean(row?.isActive ?? row?.is_active ?? true)
+        } as UserRoleSummary;
+      }).filter((role: UserRoleSummary) => role.roleId);
+
+      setSelectedUserRoles(normalizedRoles);
+    } catch (error) {
+      console.error('Error loading user roles:', error);
+      setSelectedUserRoles([]);
+    } finally {
+      setLoadingUserRoles(false);
+    }
+  }, []);
+
+  const handleEdit = async (user: User) => {
     setSelectedUser(user);
     setFormData({
       email: user.email,
@@ -294,12 +330,14 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
       bankingAccess: user.bankingAccess,
       syariahCertified: user.syariahCertified
     });
+    await loadUserRoles(user.id);
     setOpenEditDialog(true);
   };
 
   // ✅ Handle View
-  const handleView = (user: User) => {
+  const handleView = async (user: User) => {
     setSelectedUser(user);
+    await loadUserRoles(user.id);
     setOpenViewDialog(true);
   };
 
@@ -895,6 +933,29 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
                     size="small"
                   />
                 </Grid>
+                <Grid size={{ xs: 12 }}>
+                  <Typography variant="subtitle2" color="text.secondary">Assigned Roles</Typography>
+                  {loadingUserRoles ? (
+                    <Box sx={{ py: 1 }}>
+                      <CircularProgress size={16} />
+                    </Box>
+                  ) : selectedUserRoles.length > 0 ? (
+                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', pt: 0.5 }}>
+                      {selectedUserRoles
+                        .filter((role) => role.isActive)
+                        .map((role) => (
+                          <Chip
+                            key={`selected-role-${role.id}`}
+                            label={role.roleName}
+                            variant="outlined"
+                            size="small"
+                          />
+                        ))}
+                    </Box>
+                  ) : (
+                    <Typography>N/A</Typography>
+                  )}
+                </Grid>
                 <Grid size={{ xs: 6 }}>
                   <Typography variant="subtitle2" color="text.secondary">Syariah Certified</Typography>
                   <Chip
@@ -926,7 +987,27 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenViewDialog(false)}>Close</Button>
+          <Button onClick={() => {
+            setOpenViewDialog(false);
+            setSelectedUserRoles([]);
+          }}>
+            Close
+          </Button>
+          {selectedUser && (
+            <Button
+              variant="contained"
+              onClick={() => {
+                setOpenViewDialog(false);
+                const query = new URLSearchParams({
+                  assignmentAction: 'manageUserRoles',
+                  assignmentUserId: selectedUser.id
+                });
+                router.push(`/banking/maintenance/access-management/assignments?${query.toString()}`);
+              }}
+            >
+              Assign Roles
+            </Button>
+          )}
           {selectedUser && (
             <Button variant="outlined" onClick={() => handleEdit(selectedUser)}>
               Edit User

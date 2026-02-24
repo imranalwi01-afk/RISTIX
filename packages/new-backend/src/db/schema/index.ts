@@ -70,10 +70,14 @@ export {
     approvalLevels,
     approvalRequests,
     approvalActions,
+    notifications,
+    notificationDeliveries,
     approvalMatricesRelations,
     approvalLevelsRelations,
     approvalRequestsRelations,
     approvalActionsRelations,
+    notificationsRelations,
+    notificationDeliveriesRelations,
     type ApprovalMatrix,
     type NewApprovalMatrix,
     type ApprovalLevel,
@@ -82,6 +86,10 @@ export {
     type NewApprovalRequest,
     type ApprovalAction,
     type NewApprovalAction,
+    type Notification,
+    type NewNotification,
+    type NotificationDelivery,
+    type NewNotificationDelivery,
 } from './approval.schema'
 
 // IFRS9 (Banking-specific tables) - Replaced by legacy schema

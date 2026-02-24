@@ -120,6 +120,7 @@ const PERMISSION_OVERRIDES: Record<string, string | string[]> = {
     'executive-dashboard': 'banking.analytics.view',
     'advanced-export': 'banking.analytics.view',
     'maintenance': 'admin.maintenance.access',
+    'access-management': ['admin.users.manage', 'admin.roles.manage', 'admin.maintenance.access'],
     'user-management': 'admin.users.manage',
     'role-management': 'admin.roles.manage',
     'menu-management': 'admin.system.manage',
@@ -653,25 +654,11 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
         description: 'System Administration',
         children: [
             {
-                id: 'user-management',
-                label: 'User Management',
-                href: '/banking/maintenance/users',
+                id: 'access-management',
+                label: 'Access Management',
+                href: '/banking/maintenance/access-management',
                 icon: <ManageAccounts />,
-                description: 'Manage system users'
-            },
-            {
-                id: 'role-management',
-                label: 'Role Management',
-                href: '/banking/maintenance/roles',
-                icon: <VpnKey />,
-                description: 'Manage roles and permissions'
-            },
-            {
-                id: 'user-assignments',
-                label: 'User Assignments',
-                href: '/banking/maintenance/assignments',
-                icon: <SupervisorAccount />,
-                description: 'Assign roles to users'
+                description: 'Users, roles, permissions, and assignments'
             },
             {
                 id: 'approval',
@@ -948,6 +935,7 @@ export const getIconForMenuItem = (code: string, level: number): React.ReactElem
         'etl-tools': <Transform />,
         'direct-db-connection': <Storage />,
         'data-scheduler': <Schedule />,
+        'access-management': <ManageAccounts />,
         'user-management': <ManageAccounts />,
         'role-management': <VpnKey />,
         'menu-management': <Menu />
@@ -1019,6 +1007,7 @@ const MENU_ICON_MAP: Record<string, string> = {
     'direct-db-connection': 'storage',
     'data-scheduler': 'schedule',
     'maintenance': 'build',
+    'access-management': 'manage_accounts',
     'user-management': 'manage_accounts',
     'role-management': 'vpn_key',
     'user-assignments': 'supervisor_account',

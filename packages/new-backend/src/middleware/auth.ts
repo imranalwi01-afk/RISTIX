@@ -71,6 +71,8 @@ const ROUTE_PERMISSION_RULES: RoutePermissionRule[] = [
     { prefix: '/api/v1/roles', base: 'admin.roles' },
     { prefix: '/api/v1/approvals', fixed: ['approval.requests.approve', 'approval.all'] },
     { prefix: '/api/v1/approval', fixed: ['approval.requests.approve', 'approval.all'] },
+    // Authenticated users can access their own notification inbox endpoints.
+    { prefix: '/api/v1/notifications' },
     { prefix: '/api/v1/workflow', fixed: ['approval.requests.approve', 'approval.all'] },
     { prefix: '/api/v1/forms', base: 'admin.system' },
     { prefix: '/api/v1/security', base: 'admin.system' },

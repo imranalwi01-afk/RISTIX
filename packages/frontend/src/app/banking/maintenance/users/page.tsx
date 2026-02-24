@@ -10,8 +10,9 @@ export default function UsersPage() {
 
   useEffect(() => {
     const nextQuery = new URLSearchParams(searchParams.toString());
-    nextQuery.set('tab', 'users');
-    router.replace(`/banking/maintenance/roles?${nextQuery.toString()}`);
+    nextQuery.delete('tab');
+    const query = nextQuery.toString();
+    router.replace(query ? `/banking/maintenance/access-management/users?${query}` : '/banking/maintenance/access-management/users');
   }, [router, searchParams]);
 
   return (
