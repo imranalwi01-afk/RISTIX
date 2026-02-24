@@ -118,6 +118,7 @@ services:
       - .env
     environment:
       NODE_ENV: development
+      HOSTNAME: "0.0.0.0"
       BACKEND_INTERNAL_URL: ${BACKEND_INTERNAL_URL:-http://new-backend:4232}
     ports:
       - "4231:4231"

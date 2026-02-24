@@ -77,5 +77,6 @@ USER nextjs
 EXPOSE 4231
 
 ENV PORT=4231
+ENV HOSTNAME=0.0.0.0
 # Startup logic
 CMD ["node", "server.js"]
