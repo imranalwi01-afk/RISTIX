@@ -34,6 +34,10 @@ db: ## [LOCAL] Start ONLY databases
 backend: ## [LOCAL] Start ONLY backend
 	$(COMPOSE) --profile backend up -d
 
+.PHONY: analytics
+analytics: ## [LOCAL] Start ONLY R Analytics
+	$(COMPOSE) --profile analytics up -d r-analytics
+
 .PHONY: frontend
 frontend: ## [LOCAL] Start ONLY frontend (Docker)
 	$(COMPOSE) --profile app up -d frontend
@@ -167,6 +171,18 @@ down: ## Stop and remove containers and networks
 restart: ## Restart all services
 	$(COMPOSE) restart
 
+.PHONY: restart-backend
+restart-backend: ## [LOCAL] Restart backend only
+	$(COMPOSE) --profile backend up -d --build --force-recreate new-backend
+
+.PHONY: restart-frontend
+restart-frontend: ## [LOCAL] Restart frontend (Docker static) only
+	$(COMPOSE) --profile app up -d --build --force-recreate frontend
+
+.PHONY: restart-analytics
+restart-analytics: ## [LOCAL] Restart analytics only (Profile: analytics)
+	$(COMPOSE) --profile analytics up -d --build --force-recreate r-analytics
+
 # ==============================================================================
 # 🛠️ Maintenance & Development
 # ==============================================================================
@@ -174,6 +190,18 @@ restart: ## Restart all services
 .PHONY: build
 build: ## Rebuild all images
 	$(COMPOSE) build
+
+.PHONY: build-backend
+build-backend: ## [LOCAL] Build backend image only
+	$(COMPOSE) build new-backend
+
+.PHONY: build-frontend
+build-frontend: ## [LOCAL] Build frontend image only
+	$(COMPOSE) build frontend
+
+.PHONY: build-analytics
+build-analytics: ## [LOCAL] Build analytics image only
+	$(COMPOSE) --profile analytics build r-analytics
 
 .PHONY: bund
 bund: ## Bundle the backend using bun (inside container)

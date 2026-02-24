@@ -15,6 +15,8 @@ jobs:
   # ==============================================================================
   frontend:
     runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.filter.outputs.frontend }}
     permissions:
       contents: read
       packages: write
@@ -23,7 +25,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Check for changes in Frontend
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            frontend:
+              - 'packages/frontend/**'
+
       - name: Login to Container Registry
+        if: steps.filter.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -31,6 +42,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract Metadata (tags, labels)
+        if: steps.filter.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch'
         id: meta-frontend
         uses: docker/metadata-action@v5
         with:
@@ -40,9 +52,11 @@ jobs:
             type=sha,format=long
 
       - name: Set up Docker Buildx
+        if: steps.filter.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch'
         uses: docker/setup-buildx-action@v3
 
       - name: Build and Push (Frontend)
+        if: steps.filter.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch'
         uses: docker/build-push-action@v5
         with:
           context: packages/frontend
@@ -65,6 +79,8 @@ jobs:
   # ==============================================================================
   backend:
     runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.filter.outputs.backend }}
     permissions:
       contents: read
       packages: write
@@ -73,7 +89,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Check for changes in Backend
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            backend:
+              - 'packages/new-backend/**'
+
       - name: Login to Container Registry
+        if: steps.filter.outputs.backend == 'true' || github.event_name == 'workflow_dispatch'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -81,6 +106,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract Metadata (tags, labels)
+        if: steps.filter.outputs.backend == 'true' || github.event_name == 'workflow_dispatch'
         id: meta-backend
         uses: docker/metadata-action@v5
         with:
@@ -90,9 +116,11 @@ jobs:
             type=sha,format=long
 
       - name: Set up Docker Buildx
+        if: steps.filter.outputs.backend == 'true' || github.event_name == 'workflow_dispatch'
         uses: docker/setup-buildx-action@v3
 
       - name: Build and Push (Backend)
+        if: steps.filter.outputs.backend == 'true' || github.event_name == 'workflow_dispatch'
         uses: docker/build-push-action@v5
         with:
           context: packages/new-backend
@@ -108,6 +136,8 @@ jobs:
   # ==============================================================================
   analytics:
     runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.filter.outputs.analytics }}
     permissions:
       contents: read
       packages: write
@@ -116,7 +146,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Check for changes in Analytics
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            analytics:
+              - 'packages/r-analytics/**'
+
       - name: Login to Container Registry
+        if: steps.filter.outputs.analytics == 'true' || github.event_name == 'workflow_dispatch'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -124,6 +163,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract Metadata (tags, labels)
+        if: steps.filter.outputs.analytics == 'true' || github.event_name == 'workflow_dispatch'
         id: meta-analytics
         uses: docker/metadata-action@v5
         with:
@@ -133,9 +173,11 @@ jobs:
             type=sha,format=long
 
       - name: Set up Docker Buildx
+        if: steps.filter.outputs.analytics == 'true' || github.event_name == 'workflow_dispatch'
         uses: docker/setup-buildx-action@v3
 
       - name: Build and Push (R Analytics)
+        if: steps.filter.outputs.analytics == 'true' || github.event_name == 'workflow_dispatch'
         uses: docker/build-push-action@v5
         with:
           context: packages/r-analytics
@@ -167,8 +209,16 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_PAT }}
 
-      - name: Deploy with Docker Compose
+      - name: Deploy app profile (frontend/backend)
+        if: needs.frontend.outputs.changed == 'true' || needs.backend.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
         run: |
           cd C:\opt\ifrspro
           docker compose --profile app pull
           docker compose --profile app up -d
+
+      - name: Deploy analytics profile
+        if: needs.analytics.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
+        run: |
+          cd C:\opt\ifrspro
+          docker compose --profile analytics pull
+          docker compose --profile analytics up -d --force-recreate r-analytics

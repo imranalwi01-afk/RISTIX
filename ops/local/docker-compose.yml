@@ -4,8 +4,11 @@
 # ============================================================================
 # Profiles:
 #   - db: Run databases only (postgres + redis)
-#   - app: Run application service logic
-#   - full: Run databases + backend + frontend (hot reload)
+#   - app: Run application service logic (backend + optional frontend static)
+#   - backend: Run backend only
+#   - frontend / frontend-only / dev-frontend: Run frontend variants
+#   - analytics: Run R analytics service only
+#   - full: Run all major services
 # ============================================================================
 
 version: '3.8'
@@ -127,6 +130,7 @@ services:
     profiles:
       - app
       - with-frontend
+      - frontend
 
   # ============================================================================
   # 💻 FRONTEND DEVELOPMENT (Hot Reload)
@@ -162,6 +166,7 @@ services:
       - hot-reload
       - full
       - frontend-only
+      - frontend
 
   # ============================================================================
   # 📈 R ANALYTICS (Shiny)
