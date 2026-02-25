@@ -4,7 +4,7 @@
 
 # Class: NotFoundError
 
-Defined in: [src/lib/errors.ts:33](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/lib/errors.ts#L33)
+Defined in: [src/lib/errors.ts:33](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/lib/errors.ts#L33)
 
 Resource not found error
 
@@ -120,7 +120,7 @@ The cause of the error.
 
 > `readonly` **id**: `string` \| `number`
 
-Defined in: [src/lib/errors.ts:35](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/lib/errors.ts#L35)
+Defined in: [src/lib/errors.ts:35](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/lib/errors.ts#L35)
 
 #### Inherited from
 
@@ -156,7 +156,7 @@ Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1076
 
 > `readonly` **resource**: `string`
 
-Defined in: [src/lib/errors.ts:34](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/lib/errors.ts#L34)
+Defined in: [src/lib/errors.ts:34](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/lib/errors.ts#L34)
 
 #### Inherited from
 

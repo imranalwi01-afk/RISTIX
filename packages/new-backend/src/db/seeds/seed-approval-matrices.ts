@@ -532,6 +532,15 @@ const toStrictFourEyesLevels = (levels: Array<{
     ]
 }
 
+const splitLevelRequirements = (requiredRoles: string[]) => {
+    const roleCodes = requiredRoles.filter((entry) => !entry.includes('.'))
+    const permissionCodes = requiredRoles.filter((entry) => entry.includes('.'))
+    return {
+        requiredRoleCodes: roleCodes,
+        requiredPermissionCodes: permissionCodes.length > 0 ? permissionCodes : ['approval.requests.approve'],
+    }
+}
+
 // =============================================================================
 // SEED FUNCTION
 // =============================================================================
@@ -618,13 +627,17 @@ export async function seedApprovalMatrices(tenantId: string) {
 
         for (const level of levels) {
             const existingLevel = existingLevels.find((current) => current.level === level.level)
+            const requirements = splitLevelRequirements(level.requiredRoles)
 
             if (existingLevel) {
                 await db
                     .update(approvalLevels)
                     .set({
                         name: level.name,
-                        requiredRoles: level.requiredRoles as any,
+                        requiredRoleCodes: requirements.requiredRoleCodes as any,
+                        requiredPermissionCodes: requirements.requiredPermissionCodes as any,
+                        roleMatchMode: 'ANY',
+                        permissionMatchMode: 'ANY',
                         requiredCount: level.requiredCount,
                         timeoutHours: level.timeoutHours,
                     })
@@ -635,7 +648,10 @@ export async function seedApprovalMatrices(tenantId: string) {
                     matrixId,
                     level: level.level,
                     name: level.name,
-                    requiredRoles: level.requiredRoles as any,
+                    requiredRoleCodes: requirements.requiredRoleCodes as any,
+                    requiredPermissionCodes: requirements.requiredPermissionCodes as any,
+                    roleMatchMode: 'ANY',
+                    permissionMatchMode: 'ANY',
                     requiredCount: level.requiredCount,
                     timeoutHours: level.timeoutHours,
                 })

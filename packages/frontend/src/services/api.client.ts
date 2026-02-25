@@ -70,6 +70,29 @@ export class ApiClient {
   }
 
   /**
+   * Parse API response safely.
+   * Handles 201/204 responses with empty bodies without throwing JSON parse errors.
+   */
+  private async parseResponse<T = any>(response: Response): Promise<ApiResponse<T>> {
+    const rawBody = await response.text();
+    if (!rawBody || rawBody.trim().length === 0) {
+      return {
+        success: true,
+        data: null as T,
+      };
+    }
+
+    try {
+      return JSON.parse(rawBody) as ApiResponse<T>;
+    } catch {
+      return {
+        success: true,
+        data: rawBody as T,
+      };
+    }
+  }
+
+  /**
    * Generic GET request
    */
   async get<T = any>(endpoint: string, options?: RequestInit): Promise<ApiResponse<T>> {
@@ -86,7 +109,7 @@ export class ApiClient {
       throw new Error(`HTTP ${response.status}: ${response.statusText} for URL ${url}`);
     }
 
-    return response.json();
+    return this.parseResponse<T>(response);
   }
 
   /**
@@ -106,7 +129,7 @@ export class ApiClient {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
-    return response.json();
+    return this.parseResponse<T>(response);
   }
 
   /**
@@ -126,7 +149,7 @@ export class ApiClient {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
-    return response.json();
+    return this.parseResponse<T>(response);
   }
 
   /**
@@ -145,7 +168,7 @@ export class ApiClient {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
-    return response.json();
+    return this.parseResponse<T>(response);
   }
 
   /**
@@ -187,7 +210,7 @@ export class ApiClient {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
-    return response.json();
+    return this.parseResponse<T>(response);
   }
 }
 

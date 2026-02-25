@@ -1,0 +1,541 @@
+'use client';
+
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Checkbox,
+  Chip,
+  CircularProgress,
+  Divider,
+  FormControlLabel,
+  Grid,
+  Stack,
+  TextField,
+  Typography,
+} from '@mui/material';
+import {
+  ArrowBack as ArrowBackIcon,
+  Refresh as RefreshIcon,
+  Save as SaveIcon,
+  Group as GroupIcon,
+} from '@mui/icons-material';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { api } from '@/services/api';
+
+type RoleType = 'SYSTEM' | 'BANKING' | 'CUSTOM';
+type RoleLevel = 'PLATFORM' | 'TENANT' | 'DEPARTMENT';
+
+interface Permission {
+  id: string;
+  code?: string;
+  displayName?: string;
+  description?: string;
+  category?: string;
+  module?: string;
+  resource?: string;
+  action?: string;
+  riskLevel?: string;
+  requiresApproval?: boolean;
+}
+
+interface Role {
+  id: string;
+  name: string;
+  displayName: string;
+  description?: string;
+  type: RoleType;
+  level: RoleLevel;
+  isActive: boolean;
+  isBuiltIn: boolean;
+  permissions: unknown;
+  assignedUsers?: number;
+}
+
+interface AssignedUser {
+  id: string;
+  fullName: string;
+  email: string;
+}
+
+const extractCollection = <T,>(payload: unknown, keys: string[] = []): T[] => {
+  if (Array.isArray(payload)) return payload as T[];
+  if (!payload || typeof payload !== 'object') return [];
+
+  const record = payload as Record<string, unknown>;
+
+  for (const key of keys) {
+    if (Array.isArray(record[key])) return record[key] as T[];
+  }
+
+  if (Array.isArray(record.data)) return record.data as T[];
+
+  const nestedData = record.data;
+  if (nestedData && typeof nestedData === 'object') {
+    const nestedRecord = nestedData as Record<string, unknown>;
+    for (const key of keys) {
+      if (Array.isArray(nestedRecord[key])) return nestedRecord[key] as T[];
+    }
+    if (Array.isArray(nestedRecord.data)) return nestedRecord.data as T[];
+  }
+
+  return [];
+};
+
+const extractObject = <T,>(payload: unknown, keys: string[] = []): T | null => {
+  if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
+    const record = payload as Record<string, unknown>;
+
+    for (const key of keys) {
+      const value = record[key];
+      if (value && typeof value === 'object' && !Array.isArray(value)) return value as T;
+    }
+
+    if (record.data && typeof record.data === 'object' && !Array.isArray(record.data)) {
+      return record.data as T;
+    }
+
+    if (record.id) return record as T;
+  }
+
+  return null;
+};
+
+const normalizeRole = (raw: Record<string, unknown>): Role => ({
+  id: String(raw.id ?? ''),
+  name: String(raw.name ?? raw.roleCode ?? raw.role_code ?? 'UNNAMED_ROLE'),
+  displayName: String(raw.displayName ?? raw.display_name ?? raw.roleName ?? raw.role_name ?? raw.name ?? 'Unnamed Role'),
+  description: typeof raw.description === 'string' ? raw.description : undefined,
+  type: (raw.type as RoleType) || (raw.isSystemRole ? 'SYSTEM' : 'CUSTOM'),
+  level: (raw.level as RoleLevel) || 'TENANT',
+  isActive: Boolean(raw.isActive ?? raw.is_active ?? true),
+  isBuiltIn: Boolean(raw.isBuiltIn ?? raw.isSystemRole ?? false),
+  permissions: raw.permissions,
+  assignedUsers: Number(raw.assignedUsers ?? raw.assigned_users ?? raw.userCount ?? raw.user_count ?? 0),
+});
+
+const normalizePermissions = (raw: unknown): Permission[] => {
+  const permissions = extractCollection<Record<string, unknown>>(raw, ['permissions']);
+  return permissions.map((item) => ({
+    id: String(item.id ?? ''),
+    code: typeof item.code === 'string' ? item.code : undefined,
+    displayName: typeof item.displayName === 'string' ? item.displayName : undefined,
+    description: typeof item.description === 'string' ? item.description : undefined,
+    category: typeof item.category === 'string' ? item.category : 'GENERAL',
+    module: typeof item.module === 'string' ? item.module : 'core',
+    resource: typeof item.resource === 'string' ? item.resource : '',
+    action: typeof item.action === 'string' ? item.action : '',
+    riskLevel: typeof item.riskLevel === 'string' ? item.riskLevel : undefined,
+    requiresApproval: Boolean(item.requiresApproval ?? item.requires_approval ?? false),
+  })).filter((permission) => permission.id.length > 0);
+};
+
+const extractRolePermissionIds = (permissions: unknown): string[] => {
+  if (Array.isArray(permissions)) {
+    return permissions
+      .map((permission) => {
+        if (typeof permission === 'string') return permission;
+        if (permission && typeof permission === 'object') {
+          const record = permission as Record<string, unknown>;
+          return typeof record.id === 'string' ? record.id : null;
+        }
+        return null;
+      })
+      .filter((id): id is string => Boolean(id));
+  }
+
+  if (permissions && typeof permissions === 'object') {
+    return Object.values(permissions as Record<string, unknown>)
+      .flatMap((group) => {
+        if (!Array.isArray(group)) return [];
+        return group
+          .map((permission) => {
+            if (permission && typeof permission === 'object') {
+              const record = permission as Record<string, unknown>;
+              return typeof record.id === 'string' ? record.id : null;
+            }
+            return null;
+          })
+          .filter((id): id is string => Boolean(id));
+      });
+  }
+
+  return [];
+};
+
+const toPermissionLabel = (permission: Permission): string => {
+  if (permission.displayName && permission.displayName.trim()) return permission.displayName.trim();
+  if (permission.code && permission.code.trim()) return permission.code.trim();
+  const resource = permission.resource || 'permission';
+  const action = permission.action || 'access';
+  return `${resource}.${action}`;
+};
+
+const groupByCategory = (permissions: Permission[]): Array<{
+  category: string;
+  permissions: Permission[];
+}> => {
+  const map = new Map<string, Permission[]>();
+  permissions.forEach((permission) => {
+    const key = (permission.category || 'GENERAL').toUpperCase();
+    if (!map.has(key)) map.set(key, []);
+    map.get(key)!.push(permission);
+  });
+
+  return Array.from(map.entries())
+    .map(([category, items]) => ({
+      category,
+      permissions: items.sort((a, b) => toPermissionLabel(a).localeCompare(toPermissionLabel(b))),
+    }))
+    .sort((a, b) => a.category.localeCompare(b.category));
+};
+
+export default function RoleDetailPage({ roleId }: { roleId: string }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  const [role, setRole] = useState<Role | null>(null);
+  const [permissions, setPermissions] = useState<Permission[]>([]);
+  const [assignedUsers, setAssignedUsers] = useState<AssignedUser[]>([]);
+  const [search, setSearch] = useState('');
+  const [selectedPermissionIds, setSelectedPermissionIds] = useState<string[]>([]);
+  const [initialPermissionIds, setInitialPermissionIds] = useState<string[]>([]);
+
+  const mode = searchParams.get('mode');
+
+  const loadData = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const [roleByIdRes, roleListRes, permissionsRes, roleUsersRes] = await Promise.all([
+        api.roles.getById(roleId),
+        api.roles.getAll({}),
+        api.roles.getPermissions(),
+        api.roles.getUsers(roleId),
+      ]);
+
+      const roleFromById = extractObject<Record<string, unknown>>(roleByIdRes, ['role']);
+      const roleFromList = extractCollection<Record<string, unknown>>(roleListRes, ['roles'])
+        .find((candidate) => String(candidate.id ?? '') === roleId) || null;
+
+      const rawRole = roleFromById || roleFromList;
+      if (!rawRole) {
+        throw new Error(`Role ${roleId} not found`);
+      }
+
+      const normalizedRole = normalizeRole(rawRole);
+      const normalizedPermissions = normalizePermissions(permissionsRes);
+
+      const currentPermissionIds = Array.from(new Set(extractRolePermissionIds(normalizedRole.permissions)));
+      const users = extractCollection<Record<string, unknown>>(roleUsersRes, ['users']).map((row) => ({
+        id: String(row.id ?? ''),
+        fullName: String(row.fullName ?? row.full_name ?? row.username ?? row.email ?? 'Unknown User'),
+        email: String(row.email ?? ''),
+      }));
+
+      setRole(normalizedRole);
+      setPermissions(normalizedPermissions);
+      setAssignedUsers(users);
+      setSelectedPermissionIds(currentPermissionIds);
+      setInitialPermissionIds(currentPermissionIds);
+    } catch (err) {
+      console.error('Failed loading role detail:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load role details');
+      setRole(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, [roleId]);
+
+  const filteredPermissions = useMemo(() => {
+    if (!search.trim()) return permissions;
+    const keyword = search.trim().toLowerCase();
+    return permissions.filter((permission) => {
+      return (
+        toPermissionLabel(permission).toLowerCase().includes(keyword)
+        || (permission.description || '').toLowerCase().includes(keyword)
+        || (permission.code || '').toLowerCase().includes(keyword)
+      );
+    });
+  }, [permissions, search]);
+
+  const permissionGroups = useMemo(() => groupByCategory(filteredPermissions), [filteredPermissions]);
+
+  const selectedPermissionSet = useMemo(() => new Set(selectedPermissionIds), [selectedPermissionIds]);
+
+  const hasChanges = useMemo(() => {
+    const current = new Set(selectedPermissionIds);
+    const initial = new Set(initialPermissionIds);
+    if (current.size !== initial.size) return true;
+    for (const id of current) {
+      if (!initial.has(id)) return true;
+    }
+    return false;
+  }, [initialPermissionIds, selectedPermissionIds]);
+
+  const highRiskCount = useMemo(() => {
+    const byId = new Map(permissions.map((permission) => [permission.id, permission]));
+    return selectedPermissionIds.filter((id) => {
+      const risk = (byId.get(id)?.riskLevel || '').toUpperCase();
+      return risk === 'HIGH' || risk === 'CRITICAL';
+    }).length;
+  }, [permissions, selectedPermissionIds]);
+
+  const approvalRequiredCount = useMemo(() => {
+    const byId = new Map(permissions.map((permission) => [permission.id, permission]));
+    return selectedPermissionIds.filter((id) => Boolean(byId.get(id)?.requiresApproval)).length;
+  }, [permissions, selectedPermissionIds]);
+
+  const togglePermission = (permissionId: string, checked: boolean) => {
+    setSelectedPermissionIds((prev) => {
+      if (checked) return Array.from(new Set([...prev, permissionId]));
+      return prev.filter((id) => id !== permissionId);
+    });
+  };
+
+  const toggleCategory = (categoryPermissions: Permission[], checked: boolean) => {
+    const categoryIds = categoryPermissions.map((permission) => permission.id);
+    setSelectedPermissionIds((prev) => {
+      if (checked) return Array.from(new Set([...prev, ...categoryIds]));
+      return prev.filter((id) => !categoryIds.includes(id));
+    });
+  };
+
+  const handleReset = () => {
+    setSelectedPermissionIds(initialPermissionIds);
+    setNotice(null);
+    setError(null);
+  };
+
+  const handleSave = async () => {
+    if (!role) return;
+
+    setSaving(true);
+    setError(null);
+    setNotice(null);
+
+    try {
+      const response = await api.roles.updatePermissions(
+        role.id,
+        [...selectedPermissionIds].sort(),
+        undefined,
+        { submitForApproval: true }
+      );
+
+      const approvalRequired = Boolean(response?.approvalRequired || response?.data?.approvalRequired);
+      const requestId = response?.requestId || response?.data?.requestId;
+
+      if (approvalRequired) {
+        setNotice(`Permission update submitted for approval${requestId ? ` (Request: ${requestId})` : ''}.`);
+      } else {
+        setNotice('Role permissions updated successfully.');
+      }
+
+      setInitialPermissionIds([...selectedPermissionIds]);
+      await loadData();
+    } catch (err) {
+      console.error('Failed saving role permissions:', err);
+      setError(err instanceof Error ? err.message : 'Failed to save role permissions');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleBack = () => {
+    const nextQuery = new URLSearchParams();
+    if (mode) nextQuery.set('mode', mode);
+    const query = nextQuery.toString();
+    router.push(`/banking/maintenance/access-management/roles${query ? `?${query}` : ''}`);
+  };
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300 }}>
+        <CircularProgress size={28} />
+      </Box>
+    );
+  }
+
+  if (!role) {
+    return (
+      <Alert severity="error">Role not found.</Alert>
+    );
+  }
+
+  return (
+    <Box sx={{ p: { xs: 1, md: 2 } }}>
+      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+        <Box>
+          <Typography variant="h5" sx={{ fontWeight: 700 }}>
+            {role.displayName}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {role.name}
+          </Typography>
+        </Box>
+        <Stack direction="row" spacing={1}>
+          <Button variant="outlined" startIcon={<ArrowBackIcon />} onClick={handleBack}>
+            Back
+          </Button>
+          <Button variant="outlined" startIcon={<RefreshIcon />} onClick={handleReset} disabled={!hasChanges || saving}>
+            Reset
+          </Button>
+          <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSave} disabled={!hasChanges || saving}>
+            {saving ? 'Saving...' : 'Save'}
+          </Button>
+        </Stack>
+      </Stack>
+
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {notice && <Alert severity="success" sx={{ mb: 2 }}>{notice}</Alert>}
+
+      <Grid container spacing={2}>
+        <Grid size={{ xs: 12, md: 4 }}>
+          <Card variant="outlined" sx={{ mb: 2 }}>
+            <CardContent>
+              <Typography variant="subtitle2" color="text.secondary">Role Profile</Typography>
+              <Typography variant="body1" sx={{ fontWeight: 600, mt: 1 }}>{role.displayName}</Typography>
+              <Typography variant="body2" color="text.secondary">{role.description || '-'}</Typography>
+              <Stack direction="row" spacing={1} sx={{ mt: 1.5, flexWrap: 'wrap' }}>
+                <Chip size="small" label={role.type} color={role.type === 'SYSTEM' ? 'error' : role.type === 'BANKING' ? 'primary' : 'secondary'} variant="outlined" />
+                <Chip size="small" label={role.level} variant="outlined" />
+                <Chip size="small" label={role.isActive ? 'Active' : 'Inactive'} color={role.isActive ? 'success' : 'default'} />
+                {role.isBuiltIn && <Chip size="small" label="Built-in" color="warning" variant="outlined" />}
+              </Stack>
+            </CardContent>
+          </Card>
+
+          <Card variant="outlined" sx={{ mb: 2 }}>
+            <CardContent>
+              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>Permission Summary</Typography>
+              <Typography variant="body2">Selected: <strong>{selectedPermissionIds.length}</strong></Typography>
+              <Typography variant="body2">High/Critical Risk: <strong>{highRiskCount}</strong></Typography>
+              <Typography variant="body2">Approval Required: <strong>{approvalRequiredCount}</strong></Typography>
+            </CardContent>
+          </Card>
+
+          <Card variant="outlined">
+            <CardContent>
+              <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
+                <GroupIcon fontSize="small" />
+                <Typography variant="subtitle2" color="text.secondary">Assigned Users</Typography>
+              </Stack>
+              {assignedUsers.length === 0 ? (
+                <Typography variant="body2" color="text.secondary">No users assigned</Typography>
+              ) : (
+                <Stack spacing={0.75}>
+                  {assignedUsers.slice(0, 12).map((user) => (
+                    <Box key={user.id}>
+                      <Typography variant="body2" sx={{ fontWeight: 500 }}>{user.fullName}</Typography>
+                      <Typography variant="caption" color="text.secondary">{user.email}</Typography>
+                    </Box>
+                  ))}
+                </Stack>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid size={{ xs: 12, md: 8 }}>
+          <Card variant="outlined">
+            <CardContent>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
+                Permissions
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Permission groups are shown vertically. Select per permission or per category.
+              </Typography>
+
+              <TextField
+                fullWidth
+                size="small"
+                label="Search permissions"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                sx={{ mb: 2 }}
+              />
+
+              {permissionGroups.length === 0 ? (
+                <Alert severity="info">No permissions match current filters.</Alert>
+              ) : (
+                <Stack spacing={2}>
+                  {permissionGroups.map((group) => {
+                    const ids = group.permissions.map((permission) => permission.id);
+                    const selectedCount = ids.filter((id) => selectedPermissionSet.has(id)).length;
+                    const allSelected = ids.length > 0 && selectedCount === ids.length;
+                    const someSelected = selectedCount > 0 && selectedCount < ids.length;
+
+                    return (
+                      <Box key={group.category} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1.5 }}>
+                        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                          <FormControlLabel
+                            control={(
+                              <Checkbox
+                                checked={allSelected}
+                                indeterminate={someSelected}
+                                onChange={(event) => toggleCategory(group.permissions, event.target.checked)}
+                              />
+                            )}
+                            label={<Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{group.category}</Typography>}
+                          />
+                          <Chip size="small" label={`${selectedCount}/${ids.length}`} variant="outlined" />
+                        </Stack>
+                        <Divider sx={{ mb: 1 }} />
+                        <Stack spacing={0.25}>
+                          {group.permissions.map((permission) => (
+                            <Box key={permission.id} sx={{ py: 0.5 }}>
+                              <FormControlLabel
+                                control={(
+                                  <Checkbox
+                                    checked={selectedPermissionSet.has(permission.id)}
+                                    onChange={(event) => togglePermission(permission.id, event.target.checked)}
+                                    disabled={role.isBuiltIn}
+                                  />
+                                )}
+                                label={(
+                                  <Box>
+                                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                      {toPermissionLabel(permission)}
+                                    </Typography>
+                                    {permission.description && (
+                                      <Typography variant="caption" color="text.secondary" display="block">
+                                        {permission.description}
+                                      </Typography>
+                                    )}
+                                    <Stack direction="row" spacing={0.75} sx={{ mt: 0.25 }}>
+                                      {permission.code && <Chip size="small" label={permission.code} variant="outlined" />}
+                                      {permission.riskLevel && <Chip size="small" label={permission.riskLevel} color={permission.riskLevel === 'CRITICAL' || permission.riskLevel === 'HIGH' ? 'error' : 'default'} variant="outlined" />}
+                                      {permission.requiresApproval && <Chip size="small" label="Requires Approval" color="warning" variant="outlined" />}
+                                    </Stack>
+                                  </Box>
+                                )}
+                                sx={{ alignItems: 'flex-start', m: 0 }}
+                              />
+                            </Box>
+                          ))}
+                        </Stack>
+                      </Box>
+                    );
+                  })}
+                </Stack>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+    </Box>
+  );
+}

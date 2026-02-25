@@ -4,7 +4,7 @@
 
 # Class: WorkflowRepository
 
-Defined in: [src/repositories/workflows.repository.ts:23](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/workflows.repository.ts#L23)
+Defined in: [src/repositories/workflows.repository.ts:23](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/workflows.repository.ts#L23)
 
 Workflow Repository: CRUD and business logic for workflows
 
@@ -14,7 +14,7 @@ Workflow Repository: CRUD and business logic for workflows
 
 > **new WorkflowRepository**(`db`): `WorkflowRepository`
 
-Defined in: [src/repositories/workflows.repository.ts:24](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/workflows.repository.ts#L24)
+Defined in: [src/repositories/workflows.repository.ts:24](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/workflows.repository.ts#L24)
 
 #### Parameters
 
@@ -32,7 +32,7 @@ Defined in: [src/repositories/workflows.repository.ts:24](https://github.com/ifr
 
 > **createWorkflow**(`data`): `Promise`\<\{ `completedAt`: `Date` \| `null`; `createdAt`: `Date`; `currentState`: `string`; `description`: `string` \| `null`; `entityId`: `string`; `entityType`: `string`; `expectedCompletionAt`: `Date` \| `null`; `id`: `string`; `isActive`: `boolean`; `metadata`: `unknown`; `previousState`: `string` \| `null`; `requestedBy`: `string` \| `null`; `requestReason`: `string` \| `null`; `tenantId`: `string`; `updatedAt`: `Date`; `workflowName`: `string`; `workflowType`: `string`; \}\>
 
-Defined in: [src/repositories/workflows.repository.ts:29](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/workflows.repository.ts#L29)
+Defined in: [src/repositories/workflows.repository.ts:29](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/workflows.repository.ts#L29)
 
 Create new workflow
 
@@ -118,7 +118,7 @@ Create new workflow
 
 > **createWorkflowJob**(`data`): `Promise`\<\{ `attempts`: `number` \| `null`; `completedAt`: `Date` \| `null`; `createdAt`: `Date`; `errorMessage`: `string` \| `null`; `id`: `string`; `jobId`: `string` \| `null`; `jobName`: `string` \| `null`; `jobType`: `string`; `maxAttempts`: `number` \| `null`; `result`: `unknown`; `startedAt`: `Date` \| `null`; `status`: `string`; `tenantId`: `string`; `updatedAt`: `Date`; `workflowId`: `string`; \}\>
 
-Defined in: [src/repositories/workflows.repository.ts:115](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/workflows.repository.ts#L115)
+Defined in: [src/repositories/workflows.repository.ts:115](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/workflows.repository.ts#L115)
 
 Create workflow job (for Bull queue tracking)
 
@@ -196,7 +196,7 @@ Create workflow job (for Bull queue tracking)
 
 > **getWorkflow**(`workflowId`): `Promise`\<\{ `completedAt`: `Date` \| `null`; `createdAt`: `Date`; `currentState`: `string`; `description`: `string` \| `null`; `entityId`: `string`; `entityType`: `string`; `expectedCompletionAt`: `Date` \| `null`; `id`: `string`; `isActive`: `boolean`; `metadata`: `unknown`; `previousState`: `string` \| `null`; `requestedBy`: `string` \| `null`; `requestReason`: `string` \| `null`; `tenantId`: `string`; `updatedAt`: `Date`; `workflowName`: `string`; `workflowType`: `string`; \} \| `undefined`\>
 
-Defined in: [src/repositories/workflows.repository.ts:37](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/workflows.repository.ts#L37)
+Defined in: [src/repositories/workflows.repository.ts:37](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/workflows.repository.ts#L37)
 
 Get workflow by ID
 
@@ -216,7 +216,7 @@ Get workflow by ID
 
 > **getWorkflowsByTenant**(`tenantId`): `Promise`\<`object`[]\>
 
-Defined in: [src/repositories/workflows.repository.ts:51](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/workflows.repository.ts#L51)
+Defined in: [src/repositories/workflows.repository.ts:51](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/workflows.repository.ts#L51)
 
 Get workflows for tenant
 
@@ -236,7 +236,7 @@ Get workflows for tenant
 
 > **transitionWorkflow**(`workflowId`, `toState`, `triggeredBy`, `transitionReason?`, `transitionNotes?`, `approvalAction?`, `approvalComment?`): `Promise`\<\{ `transition`: \{ `approvalAction`: `string` \| `null`; `approvalComment`: `string` \| `null`; `fromState`: `string`; `id`: `string`; `metadata`: `unknown`; `tenantId`: `string`; `toState`: `string`; `transitionNotes`: `string` \| `null`; `transitionReason`: `string` \| `null`; `triggeredAt`: `Date`; `triggeredBy`: `string` \| `null`; `workflowId`: `string`; \}; `workflow`: \{ `completedAt`: `Date` \| `null`; `createdAt`: `Date`; `currentState`: `string`; `description`: `string` \| `null`; `entityId`: `string`; `entityType`: `string`; `expectedCompletionAt`: `Date` \| `null`; `id`: `string`; `isActive`: `boolean`; `metadata`: `unknown`; `previousState`: `string` \| `null`; `requestedBy`: `string` \| `null`; `requestReason`: `string` \| `null`; `tenantId`: `string`; `updatedAt`: `Date`; `workflowName`: `string`; `workflowType`: `string`; \}; \}\>
 
-Defined in: [src/repositories/workflows.repository.ts:61](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/workflows.repository.ts#L61)
+Defined in: [src/repositories/workflows.repository.ts:61](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/workflows.repository.ts#L61)
 
 Transition workflow state + audit trail
 
@@ -280,7 +280,7 @@ Transition workflow state + audit trail
 
 > **updateJobStatus**(`jobId`, `status`, `result?`, `errorMessage?`): `Promise`\<\{ `attempts`: `number` \| `null`; `completedAt`: `Date` \| `null`; `createdAt`: `Date`; `errorMessage`: `string` \| `null`; `id`: `string`; `jobId`: `string` \| `null`; `jobName`: `string` \| `null`; `jobType`: `string`; `maxAttempts`: `number` \| `null`; `result`: `unknown`; `startedAt`: `Date` \| `null`; `status`: `string`; `tenantId`: `string`; `updatedAt`: `Date`; `workflowId`: `string`; \}\>
 
-Defined in: [src/repositories/workflows.repository.ts:123](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/workflows.repository.ts#L123)
+Defined in: [src/repositories/workflows.repository.ts:123](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/workflows.repository.ts#L123)
 
 Update workflow job status
 

@@ -694,20 +694,16 @@ export default function AccessManagementPage() {
   };
 
   const handleViewRole = (role: Role) => {
-    setRoleDialog({
-      open: true,
-      mode: 'view',
-      role,
-    });
+    const mode = searchParams.get('mode');
+    const nextQuery = new URLSearchParams();
+    if (mode) nextQuery.set('mode', mode);
+    const queryString = nextQuery.toString();
+    router.push(`/banking/maintenance/user-management/roles/${role.id}${queryString ? `?${queryString}` : ''}`);
   };
 
   const handleManagePermissions = (role: Role) => {
     if (!canManageRoles) return;
-    setPermissionDialog({
-      open: true,
-      role,
-      selectedPermissions: role.permissions.map(p => p.id),
-    });
+    handleViewRole(role);
   };
 
   const setApprovalNoticeFromResponse = (response: any, fallbackMessage: string) => {

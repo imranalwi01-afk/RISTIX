@@ -121,7 +121,8 @@ interface ApprovalAction {
 interface ApprovalMatrixLevel {
   level: number;
   name: string;
-  requiredRoles?: string[];
+  requiredRoleCodes?: string[];
+  requiredPermissionCodes?: string[];
   requiredCount?: number;
   timeoutHours?: number;
 }
@@ -155,7 +156,8 @@ interface ApprovalRoutingCandidate {
 interface ApprovalRoutingLevel {
   level: number;
   name: string;
-  requiredRoles: string[];
+  requiredRoleCodes: string[];
+  requiredPermissionCodes: string[];
   requiredCount: number;
   timeoutHours?: number;
   candidateCount: number;
@@ -343,11 +345,20 @@ export default function ApprovalManagementPage() {
           ? matrix.levels.map((level: any) => ({
             level: Number(level.level || 0),
             name: String(level.name || `Level ${level.level || '-'}`),
-            requiredRoles: Array.isArray(level.requiredRoles)
-              ? level.requiredRoles
-              : Array.isArray(level.required_roles)
-                ? level.required_roles
-                : [],
+            requiredRoleCodes: Array.isArray(level.requiredRoleCodes)
+              ? level.requiredRoleCodes
+              : Array.isArray(level.required_role_codes)
+                ? level.required_role_codes
+                : Array.isArray(level.requiredRoles)
+                  ? level.requiredRoles.filter((entry: string) => typeof entry === 'string' && !entry.includes('.'))
+                  : [],
+            requiredPermissionCodes: Array.isArray(level.requiredPermissionCodes)
+              ? level.requiredPermissionCodes
+              : Array.isArray(level.required_permission_codes)
+                ? level.required_permission_codes
+                : Array.isArray(level.requiredRoles)
+                  ? level.requiredRoles.filter((entry: string) => typeof entry === 'string' && entry.includes('.'))
+                  : ['approval.requests.approve'],
             requiredCount: Number(level.requiredCount ?? level.required_count ?? 1),
             timeoutHours: level.timeoutHours ?? level.timeout_hours ?? undefined,
           }))
@@ -401,7 +412,16 @@ export default function ApprovalManagementPage() {
           ? item.levels.map((level: any) => ({
             level: Number(level.level || 0),
             name: String(level.name || `Level ${level.level || '-'}`),
-            requiredRoles: Array.isArray(level.requiredRoles) ? level.requiredRoles : [],
+            requiredRoleCodes: Array.isArray(level.requiredRoleCodes)
+              ? level.requiredRoleCodes
+              : Array.isArray(level.requiredRoles)
+                ? level.requiredRoles.filter((entry: string) => typeof entry === 'string' && !entry.includes('.'))
+                : [],
+            requiredPermissionCodes: Array.isArray(level.requiredPermissionCodes)
+              ? level.requiredPermissionCodes
+              : Array.isArray(level.requiredRoles)
+                ? level.requiredRoles.filter((entry: string) => typeof entry === 'string' && entry.includes('.'))
+                : ['approval.requests.approve'],
             requiredCount: Number(level.requiredCount || 1),
             timeoutHours: level.timeoutHours ? Number(level.timeoutHours) : undefined,
             candidateCount: Number(level.candidateCount || 0),
@@ -1287,7 +1307,7 @@ export default function ApprovalManagementPage() {
                       .sort((a, b) => a.level - b.level)
                       .map((level) => (
                         <Typography key={`${matrix.id}-${level.level}`} variant="body2" sx={{ mb: 0.25 }}>
-                          L{level.level} {level.name} | Roles: {(level.requiredRoles || []).join(', ') || '-'} | Required: {level.requiredCount || 1}
+                          L{level.level} {level.name} | Roles: {(level.requiredRoleCodes || []).join(', ') || '-'} | Required: {level.requiredCount || 1}
                         </Typography>
                       ))
                   )}
@@ -1420,7 +1440,10 @@ export default function ApprovalManagementPage() {
                           L{level.level} {level.name} | Needed: {level.requiredCount}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                          Required Roles: {(level.requiredRoles || []).join(', ') || '-'}
+                          Required Roles: {(level.requiredRoleCodes || []).join(', ') || '-'}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" display="block">
+                          Required Permissions: {(level.requiredPermissionCodes || []).join(', ') || '-'}
                         </Typography>
                         <Typography variant="body2" sx={{ mt: 0.5, mb: 0.75 }}>
                           Candidate Approvers: <strong>{level.candidateCount}</strong>

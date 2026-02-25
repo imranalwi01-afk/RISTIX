@@ -4,7 +4,7 @@
 
 # Interface: LoginInput
 
-Defined in: [src/services/auth.service.ts:41](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/auth.service.ts#L41)
+Defined in: [src/services/auth.service.ts:41](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/auth.service.ts#L41)
 
 Input for the login operation.
 
@@ -14,7 +14,7 @@ Input for the login operation.
 
 > **email**: `string`
 
-Defined in: [src/services/auth.service.ts:43](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/auth.service.ts#L43)
+Defined in: [src/services/auth.service.ts:43](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/auth.service.ts#L43)
 
 User's email address
 
@@ -24,7 +24,7 @@ User's email address
 
 > **password**: `string`
 
-Defined in: [src/services/auth.service.ts:45](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/auth.service.ts#L45)
+Defined in: [src/services/auth.service.ts:45](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/auth.service.ts#L45)
 
 User's plain text password
 
@@ -34,6 +34,6 @@ User's plain text password
 
 > `optional` **tenantId**: `string`
 
-Defined in: [src/services/auth.service.ts:47](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/auth.service.ts#L47)
+Defined in: [src/services/auth.service.ts:47](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/auth.service.ts#L47)
 
 Optional tenant ID or slug for split authentication

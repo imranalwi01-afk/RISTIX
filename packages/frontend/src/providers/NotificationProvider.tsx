@@ -7,10 +7,13 @@ interface NotificationContextValue {
     notifications: NotificationPayload[]
     unreadCount: number
     isConnected: boolean
+    isLoading: boolean
+    loadError: string | null
     subscribeToApproval: (approvalRequestId: string) => void
     subscribeToECL: (workflowId: string) => void
     acknowledgeNotification: (notificationId: string) => void
     clearNotifications: () => void
+    refreshNotifications: () => Promise<void>
 }
 
 const NotificationContext = createContext<NotificationContextValue | undefined>(undefined)
@@ -24,10 +27,13 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
                 notifications: socket.notifications,
                 unreadCount: socket.unreadCount,
                 isConnected: socket.isConnected,
+                isLoading: socket.isLoading,
+                loadError: socket.loadError,
                 subscribeToApproval: socket.subscribeToApproval,
                 subscribeToECL: socket.subscribeToECL,
                 acknowledgeNotification: socket.acknowledgeNotification,
                 clearNotifications: socket.clearNotifications,
+                refreshNotifications: socket.refreshNotifications,
             }}
         >
             {children as any}

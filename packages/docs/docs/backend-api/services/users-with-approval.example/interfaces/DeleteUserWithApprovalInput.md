@@ -4,7 +4,7 @@
 
 # Interface: DeleteUserWithApprovalInput
 
-Defined in: [src/services/users-with-approval.example.ts:42](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/users-with-approval.example.ts#L42)
+Defined in: [src/services/users-with-approval.example.ts:42](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/users-with-approval.example.ts#L42)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: [src/services/users-with-approval.example.ts:42](https://github.com/
 
 > **id**: `string`
 
-Defined in: [src/services/users-with-approval.example.ts:43](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/users-with-approval.example.ts#L43)
+Defined in: [src/services/users-with-approval.example.ts:43](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/users-with-approval.example.ts#L43)
 
 ***
 
@@ -20,7 +20,7 @@ Defined in: [src/services/users-with-approval.example.ts:43](https://github.com/
 
 > **permissions**: `string`[]
 
-Defined in: [src/services/users-with-approval.example.ts:46](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/users-with-approval.example.ts#L46)
+Defined in: [src/services/users-with-approval.example.ts:46](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/users-with-approval.example.ts#L46)
 
 ***
 
@@ -28,7 +28,7 @@ Defined in: [src/services/users-with-approval.example.ts:46](https://github.com/
 
 > **requestedBy**: `string`
 
-Defined in: [src/services/users-with-approval.example.ts:45](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/users-with-approval.example.ts#L45)
+Defined in: [src/services/users-with-approval.example.ts:45](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/users-with-approval.example.ts#L45)
 
 ***
 
@@ -36,4 +36,4 @@ Defined in: [src/services/users-with-approval.example.ts:45](https://github.com/
 
 > **tenantId**: `string`
 
-Defined in: [src/services/users-with-approval.example.ts:47](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/users-with-approval.example.ts#L47)
+Defined in: [src/services/users-with-approval.example.ts:47](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/users-with-approval.example.ts#L47)

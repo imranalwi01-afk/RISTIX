@@ -4,7 +4,7 @@
 
 # Class: BusinessError
 
-Defined in: [src/lib/errors.ts:59](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/lib/errors.ts#L59)
+Defined in: [src/lib/errors.ts:59](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/lib/errors.ts#L59)
 
 Business rule violation
 
@@ -124,7 +124,7 @@ The cause of the error.
 
 > `readonly` **code**: `string`
 
-Defined in: [src/lib/errors.ts:61](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/lib/errors.ts#L61)
+Defined in: [src/lib/errors.ts:61](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/lib/errors.ts#L61)
 
 #### Inherited from
 
@@ -136,7 +136,7 @@ Defined in: [src/lib/errors.ts:61](https://github.com/ifrspro/ifrs9-iaf/blob/cf4
 
 > `readonly` `optional` **details**: `Record`\<`string`, `unknown`\>
 
-Defined in: [src/lib/errors.ts:62](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/lib/errors.ts#L62)
+Defined in: [src/lib/errors.ts:62](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/lib/errors.ts#L62)
 
 #### Inherited from
 

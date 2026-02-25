@@ -16,6 +16,7 @@ import { getDatabase } from '@/config/database'
 import { buildDefaultFourEyesRouting } from '@/lib/approval-helpers'
 import { getNotificationSocket, type NotificationPayload } from '@/socket/notification.socket'
 import { NotificationRepository } from '@/repositories/notification.repository'
+import { deriveNotificationCategory, filterNotificationRecipientsByPreferences } from '@/services/notifications.service'
 
 // =============================================================================
 // TYPES
@@ -63,7 +64,8 @@ export interface ApprovalRoutingCandidate {
 export interface ApprovalRoutingLevelOverview {
     level: number
     name: string
-    requiredRoles: string[]
+    requiredRoleCodes: string[]
+    requiredPermissionCodes: string[]
     requiredCount: number
     timeoutHours?: number
     candidateCount: number
@@ -275,7 +277,15 @@ export const processApprovalAction = (
                 }
 
                 const approverContext = await loadApproverContext(input.approverId, request.tenantId)
-                if (!matchesRequiredRoles(currentLevelConfig.requiredRoles, approverContext)) {
+                if (
+                    !matchesApprovalRequirements(
+                        currentLevelConfig.requiredRoleCodes,
+                        currentLevelConfig.requiredPermissionCodes,
+                        approverContext,
+                        currentLevelConfig.roleMatchMode,
+                        currentLevelConfig.permissionMatchMode
+                    )
+                ) {
                     throw new AuthorizationError({
                         message: `You are not eligible to approve level ${request.currentLevel}`,
                         requiredPermission: `approval.level.${request.currentLevel}`,
@@ -780,9 +790,10 @@ async function notifyNextLevelApprovers(request: any): Promise<void> {
     const currentLevel = levels.find((level) => level.level === request.currentLevel)
     if (!currentLevel) return
 
-    const candidates = await findApproverCandidatesForRoles(
+    const candidates = await findApproverCandidatesForLevel(
         request.tenantId,
-        currentLevel.requiredRoles
+        currentLevel.requiredRoleCodes,
+        currentLevel.requiredPermissionCodes
     )
 
     const notification: NotificationPayload = {
@@ -797,7 +808,8 @@ async function notifyNextLevelApprovers(request: any): Promise<void> {
         data: {
             requestId: request.id,
             entityType: request.entityType,
-            requiredRoles: currentLevel.requiredRoles,
+            requiredRoleCodes: currentLevel.requiredRoleCodes,
+            requiredPermissionCodes: currentLevel.requiredPermissionCodes,
             requiredCount: currentLevel.requiredCount,
             candidateCount: candidates.length,
         },
@@ -806,7 +818,7 @@ async function notifyNextLevelApprovers(request: any): Promise<void> {
 
     await safeEmitNotification(request.tenantId, notification, {
         userIds: candidates.map((candidate) => candidate.userId),
-        roleRooms: buildRoleRoomsFromRequiredRoles(currentLevel.requiredRoles),
+        roleRooms: buildRoleRoomsFromRequiredRoleCodes(currentLevel.requiredRoleCodes),
     })
 }
 
@@ -887,10 +899,15 @@ export const getPendingApprovalsForUser = (
             const levels = resolveApprovalLevelsFromRequest(req)
             if (!levels.length) return true // No routing data, allow all
 
-            // requiredRoles can contain role codes, role names, or permission codes.
             const currentLevel = levels.find((l) => l.level === req.currentLevel)
                 || levels[0]
-            return matchesRequiredRoles(currentLevel.requiredRoles, approverContext)
+            return matchesApprovalRequirements(
+                currentLevel.requiredRoleCodes,
+                currentLevel.requiredPermissionCodes,
+                approverContext,
+                currentLevel.roleMatchMode,
+                currentLevel.permissionMatchMode
+            )
         })
     })
 
@@ -1037,21 +1054,72 @@ function buildApproverContext(userRolesData: any[]): ApproverContext {
     return { roleCodes, roleNames, permissions }
 }
 
-function matchesRequiredRoles(requiredRoles: unknown, context: ApproverContext): boolean {
-    if (!Array.isArray(requiredRoles) || requiredRoles.length === 0) return true
-    const normalized = requiredRoles
+function normalizeStringArray(input: unknown): string[] {
+    if (!Array.isArray(input)) return []
+    return input
         .filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0)
-        .map(normalizeActor)
+        .map((entry) => entry.trim())
+}
 
-    return normalized.some((required) =>
-        context.roleCodes.has(required) || context.roleNames.has(required) || context.permissions.has(required)
-    )
+function splitLegacyRequiredRoles(requiredRoles: string[]): {
+    roleCodes: string[]
+    permissionCodes: string[]
+} {
+    const roleCodes: string[] = []
+    const permissionCodes: string[] = []
+
+    for (const entry of requiredRoles) {
+        // Legacy payload stored both role codes and permission codes in one list.
+        if (entry.includes('.')) {
+            permissionCodes.push(entry)
+        } else {
+            roleCodes.push(entry)
+        }
+    }
+
+    return { roleCodes, permissionCodes }
+}
+
+function hasMatchingRole(requiredRoleCodes: string[], context: ApproverContext, mode: 'ANY' | 'ALL' = 'ANY'): boolean {
+    if (!requiredRoleCodes.length) return true
+    const normalized = requiredRoleCodes.map(normalizeActor)
+    if (mode === 'ALL') {
+        return normalized.every((required) => context.roleCodes.has(required) || context.roleNames.has(required))
+    }
+    return normalized.some((required) => context.roleCodes.has(required) || context.roleNames.has(required))
+}
+
+function hasMatchingPermission(
+    requiredPermissionCodes: string[],
+    context: ApproverContext,
+    mode: 'ANY' | 'ALL' = 'ANY'
+): boolean {
+    if (!requiredPermissionCodes.length) return true
+    const normalized = requiredPermissionCodes.map(normalizeActor)
+    if (mode === 'ALL') {
+        return normalized.every((required) => context.permissions.has(required))
+    }
+    return normalized.some((required) => context.permissions.has(required))
+}
+
+function matchesApprovalRequirements(
+    requiredRoleCodes: string[],
+    requiredPermissionCodes: string[],
+    context: ApproverContext,
+    roleMatchMode: 'ANY' | 'ALL' = 'ANY',
+    permissionMatchMode: 'ANY' | 'ALL' = 'ANY'
+): boolean {
+    return hasMatchingRole(requiredRoleCodes, context, roleMatchMode)
+        && hasMatchingPermission(requiredPermissionCodes, context, permissionMatchMode)
 }
 
 type RoutingLevel = {
     level: number
     name: string
-    requiredRoles: string[]
+    requiredRoleCodes: string[]
+    requiredPermissionCodes: string[]
+    roleMatchMode: 'ANY' | 'ALL'
+    permissionMatchMode: 'ANY' | 'ALL'
     requiredCount: number
     timeoutHours?: number
 }
@@ -1063,14 +1131,32 @@ function normalizeRoutingLevels(levels: unknown): RoutingLevel[] {
             const levelNumber = Number(level?.level)
             if (!Number.isFinite(levelNumber) || levelNumber <= 0) return null
 
-            const requiredRoles = Array.isArray(level?.requiredRoles)
-                ? level.requiredRoles.filter((entry: unknown): entry is string => typeof entry === 'string')
-                : []
+            const explicitRoleCodes = normalizeStringArray(level?.requiredRoleCodes)
+            const explicitPermissionCodes = normalizeStringArray(level?.requiredPermissionCodes)
+            const legacyRequirements = splitLegacyRequiredRoles(normalizeStringArray(level?.requiredRoles))
+
+            const requiredRoleCodes = explicitRoleCodes.length > 0
+                ? explicitRoleCodes
+                : legacyRequirements.roleCodes
+
+            const requiredPermissionCodes = explicitPermissionCodes.length > 0
+                ? explicitPermissionCodes
+                : legacyRequirements.permissionCodes
+
+            const roleMatchMode = String(level?.roleMatchMode || 'ANY').toUpperCase() === 'ALL' ? 'ALL' : 'ANY'
+            const permissionMatchMode = String(level?.permissionMatchMode || 'ANY').toUpperCase() === 'ALL' ? 'ALL' : 'ANY'
+
+            const normalizedPermissionCodes = requiredPermissionCodes.length > 0
+                ? requiredPermissionCodes
+                : ['approval.requests.approve']
 
             return {
                 level: levelNumber,
                 name: String(level?.name || `Level ${levelNumber}`),
-                requiredRoles,
+                requiredRoleCodes,
+                requiredPermissionCodes: normalizedPermissionCodes,
+                roleMatchMode,
+                permissionMatchMode,
                 requiredCount: Math.max(1, Number(level?.requiredCount || 1)),
                 timeoutHours: level?.timeoutHours ? Number(level.timeoutHours) : undefined,
             }
@@ -1095,21 +1181,19 @@ function resolveApprovalLevelsFromRequest(request: any): RoutingLevel[] {
     return []
 }
 
-function buildRoleRoomsFromRequiredRoles(requiredRoles: unknown): string[] {
-    const normalized = Array.isArray(requiredRoles)
-        ? requiredRoles
+function buildRoleRoomsFromRequiredRoleCodes(requiredRoleCodes: unknown): string[] {
+    const normalized = Array.isArray(requiredRoleCodes)
+        ? requiredRoleCodes
             .filter((entry): entry is string => typeof entry === 'string')
             .map((entry) => entry.trim().toUpperCase())
             .filter(Boolean)
         : []
 
-    return Array.from(new Set([
-        ...normalized,
-        'CHECKER',
-        'APPROVER',
-        'SUPER_ADMIN',
-        'ADMIN',
-    ]))
+    if (normalized.length > 0) {
+        return Array.from(new Set(normalized))
+    }
+
+    return ['CHECKER', 'APPROVER', 'SUPER_ADMIN']
 }
 
 const resolveNotificationSeverity = (severity: string): 'info' | 'warning' | 'success' | 'error' => {
@@ -1132,7 +1216,13 @@ async function persistNotificationRecord(
     errorMessage?: string
 ): Promise<void> {
     const roleCandidateUserIds = options.roleRooms.length > 0
-        ? (await findApproverCandidatesForRoles(tenantId, options.roleRooms)).map((candidate) => candidate.userId)
+        ? (
+            await findApproverCandidatesForLevel(
+                tenantId,
+                options.roleRooms,
+                ['approval.requests.approve', 'approval.all', 'admin.super_admin']
+            )
+        ).map((candidate) => candidate.userId)
         : []
 
     const userTargets = Array.from(new Set([
@@ -1178,25 +1268,48 @@ async function safeEmitNotification(
     const userIds = Array.isArray(options?.userIds)
         ? options!.userIds!.filter((userId): userId is string => typeof userId === 'string' && userId.trim().length > 0)
         : []
+    let resolvedUserIds = userIds
 
     try {
         const socket = getNotificationSocket()
-
-        if (userIds.length) {
-            socket.broadcastApprovalNotificationToUsers(tenantId, notification, userIds)
+        const notificationCategory = deriveNotificationCategory(notification.type)
+        const notificationWithCategory: NotificationPayload = {
+            ...notification,
+            category: notificationCategory,
         }
 
-        if (roleRooms.length > 0) {
-            socket.broadcastApprovalNotification(tenantId, notification, roleRooms)
-        } else if (userIds.length === 0) {
-            // Fallback broadcast only when no explicit targets are provided.
-            socket.broadcastApprovalNotification(tenantId, notification)
+        const roleCandidateUserIds = roleRooms.length > 0
+            ? (
+                await findApproverCandidatesForLevel(
+                    tenantId,
+                    roleRooms,
+                    ['approval.requests.approve', 'approval.all', 'admin.super_admin']
+                )
+            ).map((candidate) => candidate.userId)
+            : []
+
+        const targetUserIds = Array.from(new Set([...userIds, ...roleCandidateUserIds]))
+        const hasExplicitTargets = roleRooms.length > 0 || targetUserIds.length > 0
+
+        const eligibleUserIds = await filterNotificationRecipientsByPreferences({
+            tenantId,
+            userIds: targetUserIds,
+            category: notificationCategory,
+            now: new Date(),
+        })
+        resolvedUserIds = eligibleUserIds
+
+        if (eligibleUserIds.length > 0) {
+            socket.broadcastApprovalNotificationToUsers(tenantId, notificationWithCategory, eligibleUserIds)
+        } else if (!hasExplicitTargets) {
+            // Fallback broadcast only when there are no explicit targets.
+            socket.broadcastApprovalNotification(tenantId, notificationWithCategory)
         }
 
         await persistNotificationRecord(
             tenantId,
-            notification,
-            { roleRooms, userIds },
+            notificationWithCategory,
+            { roleRooms: [], userIds: eligibleUserIds },
             'sent'
         )
     } catch (error) {
@@ -1204,7 +1317,7 @@ async function safeEmitNotification(
             await persistNotificationRecord(
                 tenantId,
                 notification,
-                { roleRooms, userIds },
+                { roleRooms: [], userIds: resolvedUserIds },
                 'failed',
                 error instanceof Error ? error.message : String(error)
             )
@@ -1216,9 +1329,12 @@ async function safeEmitNotification(
     }
 }
 
-async function findApproverCandidatesForRoles(
+async function findApproverCandidatesForLevel(
     tenantId: string,
-    requiredRoles: string[],
+    requiredRoleCodes: string[],
+    requiredPermissionCodes: string[],
+    roleMatchMode: 'ANY' | 'ALL' = 'ANY',
+    permissionMatchMode: 'ANY' | 'ALL' = 'ANY',
     options?: { department?: string }
 ): Promise<ApprovalRoutingCandidate[]> {
     const db = getDatabase(tenantId)
@@ -1265,7 +1381,15 @@ async function findApproverCandidatesForRoles(
     const candidates: ApprovalRoutingCandidate[] = []
     for (const [userId, rows] of assignmentByUser.entries()) {
         const context = buildApproverContext(rows)
-        if (!matchesRequiredRoles(requiredRoles, context)) {
+        if (
+            !matchesApprovalRequirements(
+                requiredRoleCodes,
+                requiredPermissionCodes,
+                context,
+                roleMatchMode,
+                permissionMatchMode
+            )
+        ) {
             continue
         }
 
@@ -1317,11 +1441,19 @@ export const getApprovalRoutingOverview = (input: {
         if (!filteredMatrices.length && entityType) {
             const fallbackLevels = buildDefaultFourEyesRouting(entityType)
             const levels = await Promise.all(fallbackLevels.map(async (level) => {
-                const candidates = await findApproverCandidatesForRoles(tenantId, level.requiredRoles, { department })
+                const candidates = await findApproverCandidatesForLevel(
+                    tenantId,
+                    level.requiredRoleCodes,
+                    level.requiredPermissionCodes,
+                    level.roleMatchMode,
+                    level.permissionMatchMode,
+                    { department }
+                )
                 return {
                     level: level.level,
                     name: level.name,
-                    requiredRoles: level.requiredRoles,
+                    requiredRoleCodes: level.requiredRoleCodes,
+                    requiredPermissionCodes: level.requiredPermissionCodes,
                     requiredCount: level.requiredCount,
                     timeoutHours: level.timeoutHours,
                     candidateCount: candidates.length,
@@ -1344,9 +1476,12 @@ export const getApprovalRoutingOverview = (input: {
             const levels = normalizeRoutingLevels(matrix.levels || [])
             const enrichedLevels: ApprovalRoutingLevelOverview[] = await Promise.all(
                 levels.map(async (level) => {
-                    const candidates = await findApproverCandidatesForRoles(
+                    const candidates = await findApproverCandidatesForLevel(
                         tenantId,
-                        level.requiredRoles,
+                        level.requiredRoleCodes,
+                        level.requiredPermissionCodes,
+                        level.roleMatchMode,
+                        level.permissionMatchMode,
                         { department }
                     )
                     return {

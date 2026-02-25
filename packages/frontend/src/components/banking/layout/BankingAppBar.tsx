@@ -18,7 +18,7 @@ import {
 } from '@mui/icons-material';
 import { useBankingTheme } from '../../../providers/BankingThemeProvider'; // Adjust path
 import { BankingProfileMenu } from './BankingProfileMenu';
-// import { NotificationBell } from '../NotificationBell';
+import { NotificationBell } from '../NotificationBell';
 
 
 interface BankingAppBarProps {
@@ -135,7 +135,7 @@ export const BankingAppBar: React.FC<BankingAppBarProps> = ({
                     </Tooltip>
 
                     {/* Notification Bell */}
-                    {/* <NotificationBell colorMode={colorMode} /> */}
+                    <NotificationBell colorMode={colorMode} />
 
                     {/* User avatar */}
                     <Tooltip title="User menu">

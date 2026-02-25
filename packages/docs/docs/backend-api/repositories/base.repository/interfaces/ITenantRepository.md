@@ -4,7 +4,7 @@
 
 # Interface: ITenantRepository\<T, TInsert, TId\>
 
-Defined in: [src/repositories/base.repository.ts:126](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/base.repository.ts#L126)
+Defined in: [src/repositories/base.repository.ts:126](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/base.repository.ts#L126)
 
 Extension of IRepository that specifically handles tenant isolation.
 
@@ -32,7 +32,7 @@ Extension of IRepository that specifically handles tenant isolation.
 
 > **create**(`data`): `Effect`\<`T`, [`DatabaseError`](../../../lib/errors/classes/DatabaseError.md)\>
 
-Defined in: [src/repositories/base.repository.ts:58](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/base.repository.ts#L58)
+Defined in: [src/repositories/base.repository.ts:58](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/base.repository.ts#L58)
 
 Create a new record
 
@@ -56,7 +56,7 @@ Create a new record
 
 > **delete**(`id`): `Effect`\<`T`, [`DatabaseError`](../../../lib/errors/classes/DatabaseError.md) \| [`NotFoundError`](../../../lib/errors/classes/NotFoundError.md)\>
 
-Defined in: [src/repositories/base.repository.ts:62](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/base.repository.ts#L62)
+Defined in: [src/repositories/base.repository.ts:62](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/base.repository.ts#L62)
 
 Categorically delete/soft-delete a record
 
@@ -80,7 +80,7 @@ Categorically delete/soft-delete a record
 
 > **findAll**(`options?`): `Effect`\<[`PaginatedResult`](PaginatedResult.md)\<`T`\>, [`DatabaseError`](../../../lib/errors/classes/DatabaseError.md)\>
 
-Defined in: [src/repositories/base.repository.ts:56](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/base.repository.ts#L56)
+Defined in: [src/repositories/base.repository.ts:56](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/base.repository.ts#L56)
 
 Find all items matching optional criteria with pagination
 
@@ -104,7 +104,7 @@ Find all items matching optional criteria with pagination
 
 > **findById**(`id`): `Effect`\<`T`, [`DatabaseError`](../../../lib/errors/classes/DatabaseError.md) \| [`NotFoundError`](../../../lib/errors/classes/NotFoundError.md)\>
 
-Defined in: [src/repositories/base.repository.ts:54](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/base.repository.ts#L54)
+Defined in: [src/repositories/base.repository.ts:54](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/base.repository.ts#L54)
 
 Find an item by its primary key
 
@@ -128,7 +128,7 @@ Find an item by its primary key
 
 > **findByTenant**(`tenantId`, `options?`): `Effect`\<[`PaginatedResult`](PaginatedResult.md)\<`T`\>, [`DatabaseError`](../../../lib/errors/classes/DatabaseError.md)\>
 
-Defined in: [src/repositories/base.repository.ts:128](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/base.repository.ts#L128)
+Defined in: [src/repositories/base.repository.ts:128](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/base.repository.ts#L128)
 
 Find all items belonging to a specific tenant
 
@@ -152,7 +152,7 @@ Find all items belonging to a specific tenant
 
 > **update**(`id`, `data`): `Effect`\<`T`, [`DatabaseError`](../../../lib/errors/classes/DatabaseError.md) \| [`NotFoundError`](../../../lib/errors/classes/NotFoundError.md)\>
 
-Defined in: [src/repositories/base.repository.ts:60](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/base.repository.ts#L60)
+Defined in: [src/repositories/base.repository.ts:60](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/base.repository.ts#L60)
 
 Update an existing record partially
 

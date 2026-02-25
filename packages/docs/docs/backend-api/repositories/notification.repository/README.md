@@ -9,6 +9,11 @@
 - [CreateNotificationInput](interfaces/CreateNotificationInput.md)
 - [UserNotificationRow](interfaces/UserNotificationRow.md)
 
+## Type Aliases
+
+- [NotificationCategory](type-aliases/NotificationCategory.md)
+- [NotificationReadStatus](type-aliases/NotificationReadStatus.md)
+
 ## Variables
 
 - [NotificationRepository](variables/NotificationRepository.md)

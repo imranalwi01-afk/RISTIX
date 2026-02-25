@@ -4,7 +4,7 @@
 
 # Interface: PaginatedResult\<T\>
 
-Defined in: [src/repositories/base.repository.ts:34](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/base.repository.ts#L34)
+Defined in: [src/repositories/base.repository.ts:34](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/base.repository.ts#L34)
 
 Structure of a paginated list of results.
 
@@ -20,7 +20,7 @@ Structure of a paginated list of results.
 
 > **data**: `T`[]
 
-Defined in: [src/repositories/base.repository.ts:36](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/base.repository.ts#L36)
+Defined in: [src/repositories/base.repository.ts:36](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/base.repository.ts#L36)
 
 The array of data for the current page
 
@@ -30,7 +30,7 @@ The array of data for the current page
 
 > **limit**: `number`
 
-Defined in: [src/repositories/base.repository.ts:42](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/base.repository.ts#L42)
+Defined in: [src/repositories/base.repository.ts:42](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/base.repository.ts#L42)
 
 Number of items per page
 
@@ -40,7 +40,7 @@ Number of items per page
 
 > **page**: `number`
 
-Defined in: [src/repositories/base.repository.ts:40](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/base.repository.ts#L40)
+Defined in: [src/repositories/base.repository.ts:40](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/base.repository.ts#L40)
 
 Current page index
 
@@ -50,6 +50,6 @@ Current page index
 
 > **total**: `number`
 
-Defined in: [src/repositories/base.repository.ts:38](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/base.repository.ts#L38)
+Defined in: [src/repositories/base.repository.ts:38](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/base.repository.ts#L38)
 
 Total number of records matching the query

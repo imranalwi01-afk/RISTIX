@@ -54,6 +54,18 @@ Re-exports [DrizzleDB](auth.repository/type-aliases/DrizzleDB.md)
 
 ***
 
+### NotificationCategory
+
+Re-exports [NotificationCategory](notification.repository/type-aliases/NotificationCategory.md)
+
+***
+
+### NotificationReadStatus
+
+Re-exports [NotificationReadStatus](notification.repository/type-aliases/NotificationReadStatus.md)
+
+***
+
 ### NotificationRepository
 
 Re-exports [NotificationRepository](notification.repository/variables/NotificationRepository.md)

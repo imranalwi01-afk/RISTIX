@@ -4,7 +4,7 @@
 
 # Class: PermissionApprovalService
 
-Defined in: [src/services/permission-approval.service.ts:28](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/permission-approval.service.ts#L28)
+Defined in: [src/services/permission-approval.service.ts:28](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/permission-approval.service.ts#L28)
 
 ## Constructors
 
@@ -12,7 +12,7 @@ Defined in: [src/services/permission-approval.service.ts:28](https://github.com/
 
 > **new PermissionApprovalService**(`db`): `PermissionApprovalService`
 
-Defined in: [src/services/permission-approval.service.ts:31](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/permission-approval.service.ts#L31)
+Defined in: [src/services/permission-approval.service.ts:31](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/permission-approval.service.ts#L31)
 
 #### Parameters
 
@@ -30,7 +30,7 @@ Defined in: [src/services/permission-approval.service.ts:31](https://github.com/
 
 > **canUserApprove**(`userMaxHierarchyLevel`, `requiredMinHierarchyLevel`): `boolean`
 
-Defined in: [src/services/permission-approval.service.ts:110](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/permission-approval.service.ts#L110)
+Defined in: [src/services/permission-approval.service.ts:110](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/permission-approval.service.ts#L110)
 
 Check if user can approve based on their role hierarchy level
 
@@ -54,7 +54,7 @@ Check if user can approve based on their role hierarchy level
 
 > **deletePolicy**(`id`): `Effect`\<`void`, [`DatabaseError`](../../../lib/errors/classes/DatabaseError.md), `never`\>
 
-Defined in: [src/services/permission-approval.service.ts:214](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/permission-approval.service.ts#L214)
+Defined in: [src/services/permission-approval.service.ts:214](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/permission-approval.service.ts#L214)
 
 Delete approval policy
 
@@ -74,7 +74,7 @@ Delete approval policy
 
 > **getApprovalRequirement**(`tenantId`, `permissionId`): `Effect`\<[`ApprovalRequirement`](../interfaces/ApprovalRequirement.md), [`DatabaseError`](../../../lib/errors/classes/DatabaseError.md), `never`\>
 
-Defined in: [src/services/permission-approval.service.ts:38](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/permission-approval.service.ts#L38)
+Defined in: [src/services/permission-approval.service.ts:38](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/permission-approval.service.ts#L38)
 
 Get approval requirements for a specific permission
 
@@ -98,7 +98,7 @@ Get approval requirements for a specific permission
 
 > **getBulkApprovalRequirements**(`tenantId`, `permissionIds`): `Effect`\<`Map`\<`string`, [`ApprovalRequirement`](../interfaces/ApprovalRequirement.md)\>, [`DatabaseError`](../../../lib/errors/classes/DatabaseError.md), `never`\>
 
-Defined in: [src/services/permission-approval.service.ts:159](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/permission-approval.service.ts#L159)
+Defined in: [src/services/permission-approval.service.ts:159](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/permission-approval.service.ts#L159)
 
 Bulk get approval requirements for multiple permissions
 
@@ -122,7 +122,7 @@ Bulk get approval requirements for multiple permissions
 
 > **getEligibleApproverLevel**(`tenantId`, `permissionId`): `Effect`\<`number` \| `null`, [`DatabaseError`](../../../lib/errors/classes/DatabaseError.md), `never`\>
 
-Defined in: [src/services/permission-approval.service.ts:124](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/permission-approval.service.ts#L124)
+Defined in: [src/services/permission-approval.service.ts:124](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/permission-approval.service.ts#L124)
 
 Get eligible approvers for a permission
 Returns the minimum hierarchy level needed
@@ -147,7 +147,7 @@ Returns the minimum hierarchy level needed
 
 > **getPermissionsRequiringApproval**(`tenantId`): `Effect`\<`object`[], [`DatabaseError`](../../../lib/errors/classes/DatabaseError.md), `never`\>
 
-Defined in: [src/services/permission-approval.service.ts:73](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/permission-approval.service.ts#L73)
+Defined in: [src/services/permission-approval.service.ts:73](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/permission-approval.service.ts#L73)
 
 Get all permissions requiring approval for a tenant
 
@@ -167,7 +167,7 @@ Get all permissions requiring approval for a tenant
 
 > **requiresApproval**(`tenantId`, `permissionId`): `Effect`\<`boolean`, [`DatabaseError`](../../../lib/errors/classes/DatabaseError.md), `never`\>
 
-Defined in: [src/services/permission-approval.service.ts:59](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/permission-approval.service.ts#L59)
+Defined in: [src/services/permission-approval.service.ts:59](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/permission-approval.service.ts#L59)
 
 Check if a permission requires approval
 
@@ -191,7 +191,7 @@ Check if a permission requires approval
 
 > **upsertPolicy**(`tenantId`, `permissionId`, `data`): `Effect`\<\{ `createdAt`: `Date`; `description`: `string` \| `null`; `id`: `string`; `isActive`: `boolean`; `matrixId`: `string` \| `null`; `minHierarchyLevel`: `number` \| `null`; `permissionId`: `string`; `requiredApprovers`: `number`; `requiresApproval`: `boolean`; `tenantId`: `string`; `updatedAt`: `Date`; \}, [`DatabaseError`](../../../lib/errors/classes/DatabaseError.md), `never`\>
 
-Defined in: [src/services/permission-approval.service.ts:87](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/permission-approval.service.ts#L87)
+Defined in: [src/services/permission-approval.service.ts:87](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/permission-approval.service.ts#L87)
 
 Create or update an approval policy
 
@@ -233,7 +233,7 @@ Create or update an approval policy
 
 > **validateApprovalRequest**(`tenantId`, `permissionId`): `Effect`\<\{ `needsApproval`: `boolean`; `requirement`: `null`; \} \| \{ `needsApproval`: `boolean`; `requirement`: [`ApprovalRequirement`](../interfaces/ApprovalRequirement.md); \}, [`DatabaseError`](../../../lib/errors/classes/DatabaseError.md), `never`\>
 
-Defined in: [src/services/permission-approval.service.ts:139](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/permission-approval.service.ts#L139)
+Defined in: [src/services/permission-approval.service.ts:139](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/permission-approval.service.ts#L139)
 
 Validate approval request
 Checks if the permission requires approval and returns requirements

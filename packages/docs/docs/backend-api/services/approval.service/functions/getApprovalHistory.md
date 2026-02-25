@@ -6,7 +6,7 @@
 
 > **getApprovalHistory**(`tenantId`, `entityType?`, `entityId?`): `Effect`\<`object`[], [`DatabaseError`](../../../lib/errors/classes/DatabaseError.md)\>
 
-Defined in: [src/services/approval.service.ts:925](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/approval.service.ts#L925)
+Defined in: [src/services/approval.service.ts:942](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/approval.service.ts#L942)
 
 Get approval history for an entity.
 

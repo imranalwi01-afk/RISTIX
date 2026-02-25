@@ -5,6 +5,11 @@ import * as schema from '../db/schema'
 import { withRequestIds } from '../lib/logger'
 import { verifyToken } from '../services/auth.service'
 import { NotificationRepository } from '../repositories/notification.repository'
+import {
+    deriveNotificationCategory,
+    filterNotificationRecipientsByPreferences,
+    type NotificationCategory,
+} from '../services/notifications.service'
 
 /**
  * Socket.IO server for real-time notifications
@@ -14,6 +19,7 @@ import { NotificationRepository } from '../repositories/notification.repository'
 export interface NotificationPayload {
     id: string
     type: 'APPROVAL_PENDING' | 'APPROVAL_APPROVED' | 'APPROVAL_REJECTED' | 'ECL_STARTED' | 'ECL_COMPLETED' | 'ECL_FAILED' | 'COMPLIANCE_ALERT'
+    category?: 'approval' | 'workflow' | 'analytics' | 'system'
     workflowId: string
     tenantId: string
     title: string
@@ -154,6 +160,67 @@ export class NotificationSocket {
         withRequestIds({}).info('Socket.IO namespaces configured')
     }
 
+    private normalizeUserIds(userIds: unknown[]): string[] {
+        return Array.from(new Set(
+            userIds
+                .filter((userId): userId is string => typeof userId === 'string' && userId.trim().length > 0)
+                .map((userId) => userId.trim())
+        ))
+    }
+
+    private async getConnectedUserIdsFromRoom(room: string): Promise<string[]> {
+        const sockets = await this.io.of('/admin/notifications').in(room).fetchSockets()
+        return this.normalizeUserIds(
+            sockets.map((socket) => (typeof socket.data?.userId === 'string' ? socket.data.userId : ''))
+        )
+    }
+
+    private async deliverNotificationWithPreferences(
+        tenantId: string,
+        notification: NotificationPayload,
+        options?: {
+            directUserIds?: string[]
+            rooms?: string[]
+        }
+    ): Promise<string[]> {
+        const roomUserIds = options?.rooms && options.rooms.length > 0
+            ? (
+                await Promise.all(options.rooms.map((room) => this.getConnectedUserIdsFromRoom(room)))
+            ).flat()
+            : []
+
+        const directUserIds = Array.isArray(options?.directUserIds) ? options.directUserIds : []
+        const candidateUserIds = this.normalizeUserIds([...directUserIds, ...roomUserIds])
+        if (candidateUserIds.length === 0) {
+            return []
+        }
+
+        const category = (notification.category || deriveNotificationCategory(notification.type)) as NotificationCategory
+        const payload: NotificationPayload = {
+            ...notification,
+            category,
+        }
+
+        let filteredUserIds = candidateUserIds
+        try {
+            filteredUserIds = await filterNotificationRecipientsByPreferences({
+                tenantId,
+                userIds: candidateUserIds,
+                category,
+                now: new Date(),
+            })
+        } catch (error) {
+            // Fallback to unfiltered delivery if preference lookup fails.
+            withRequestIds({ tenantId }).warn({ error }, 'Failed to filter notifications by user preferences')
+        }
+
+        filteredUserIds.forEach((userId) => {
+            this.io.of('/admin/notifications').to(`user:${userId}`).emit('notification', payload)
+        })
+
+        return filteredUserIds
+    }
+
     /**
      * Broadcast approval notification to admins/approvers
      */
@@ -174,11 +241,13 @@ export class NotificationSocket {
             ? normalizedRoles.map((role) => `role:${role}:${tenantId}`)
             : [`tenant:${tenantId}`]
 
-        rooms.forEach((room) => {
-            this.io.of('/admin/notifications').to(room).emit('notification', notification)
-        })
-
-        withRequestIds({ tenantId }).info({ rooms }, 'Approval notification broadcast')
+        void this.deliverNotificationWithPreferences(tenantId, notification, { rooms })
+            .then((targets) => {
+                withRequestIds({ tenantId }).info({ rooms, userCount: targets.length }, 'Approval notification broadcast')
+            })
+            .catch((error) => {
+                withRequestIds({ tenantId }).warn({ rooms, error }, 'Approval notification broadcast failed')
+            })
     }
 
     /**
@@ -190,10 +259,13 @@ export class NotificationSocket {
         userIds: string[]
     ) {
         const targets = Array.from(new Set(userIds.filter((userId) => typeof userId === 'string' && userId.trim().length > 0)))
-        targets.forEach((userId) => {
-            this.io.of('/admin/notifications').to(`user:${userId}`).emit('notification', notification)
-        })
-        withRequestIds({ tenantId }).info({ userCount: targets.length }, 'Approval notification broadcast to users')
+        void this.deliverNotificationWithPreferences(tenantId, notification, { directUserIds: targets })
+            .then((filteredTargets) => {
+                withRequestIds({ tenantId }).info({ userCount: filteredTargets.length }, 'Approval notification broadcast to users')
+            })
+            .catch((error) => {
+                withRequestIds({ tenantId }).warn({ userCount: targets.length, error }, 'Approval notification broadcast to users failed')
+            })
     }
 
     /**
@@ -208,6 +280,7 @@ export class NotificationSocket {
         const notification: NotificationPayload = {
             id: `ecl-${workflowId}-${Date.now()}`,
             type: eventType === 'completed' ? 'ECL_COMPLETED' : eventType === 'failed' ? 'ECL_FAILED' : 'ECL_STARTED',
+            category: 'analytics',
             workflowId,
             tenantId,
             title: {
@@ -223,10 +296,15 @@ export class NotificationSocket {
             actionUrl: `/workflows/${workflowId}`,
         }
 
-        this.io.of('/admin/notifications').to(`ecl:${workflowId}`).emit('notification', notification)
-        this.io.of('/admin/notifications').to(`tenant:${tenantId}`).emit('notification', notification)
-
-        withRequestIds({ tenantId }).info({ workflowId, eventType }, 'ECL event broadcast')
+        void this.deliverNotificationWithPreferences(tenantId, notification, {
+            rooms: [`ecl:${workflowId}`, `tenant:${tenantId}`],
+        })
+            .then((targets) => {
+                withRequestIds({ tenantId }).info({ workflowId, eventType, userCount: targets.length }, 'ECL event broadcast')
+            })
+            .catch((error) => {
+                withRequestIds({ tenantId }).warn({ workflowId, eventType, error }, 'ECL event broadcast failed')
+            })
     }
 
     /**
@@ -242,6 +320,7 @@ export class NotificationSocket {
         const notification: NotificationPayload = {
             id: `workflow-${workflowId}-${Date.now()}`,
             type: toState === 'COMPLETED' ? 'APPROVAL_APPROVED' : toState === 'REJECTED' ? 'APPROVAL_REJECTED' : 'APPROVAL_PENDING',
+            category: 'workflow',
             workflowId,
             tenantId,
             title: `Workflow Transition: ${fromState} → ${toState}`,
@@ -252,10 +331,15 @@ export class NotificationSocket {
             actionUrl: `/approvals/${workflowId}`,
         }
 
-        this.io.of('/admin/notifications').to(`tenant:${tenantId}`).emit('notification', notification)
-        this.io.of('/admin/notifications').to(`approval:${workflowId}`).emit('notification', notification)
-
-        withRequestIds({ tenantId }).info({ workflowId, fromState, toState }, 'Workflow transition broadcast')
+        void this.deliverNotificationWithPreferences(tenantId, notification, {
+            rooms: [`approval:${workflowId}`, `tenant:${tenantId}`],
+        })
+            .then((targets) => {
+                withRequestIds({ tenantId }).info({ workflowId, fromState, toState, userCount: targets.length }, 'Workflow transition broadcast')
+            })
+            .catch((error) => {
+                withRequestIds({ tenantId }).warn({ workflowId, fromState, toState, error }, 'Workflow transition broadcast failed')
+            })
     }
 
     /**
@@ -270,6 +354,7 @@ export class NotificationSocket {
         const notification: NotificationPayload = {
             id: `compliance-${Date.now()}`,
             type: 'COMPLIANCE_ALERT',
+            category: 'system',
             workflowId: '',
             tenantId,
             title: severity === 'error' ? '🚨 Compliance Alert' : '⚠️ Compliance Warning',
@@ -279,9 +364,15 @@ export class NotificationSocket {
             data,
         }
 
-        this.io.of('/admin/notifications').to(`role:ADMIN:${tenantId}`).emit('notification', notification)
-
-        withRequestIds({ tenantId }).warn({ severity, message, data }, 'Compliance alert broadcast')
+        void this.deliverNotificationWithPreferences(tenantId, notification, {
+            rooms: [`role:ADMIN:${tenantId}`],
+        })
+            .then((targets) => {
+                withRequestIds({ tenantId }).warn({ severity, message, data, userCount: targets.length }, 'Compliance alert broadcast')
+            })
+            .catch((error) => {
+                withRequestIds({ tenantId }).warn({ severity, message, data, error }, 'Compliance alert broadcast failed')
+            })
     }
 
     /**

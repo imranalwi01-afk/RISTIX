@@ -4,7 +4,7 @@
 
 # Interface: QueryOptions
 
-Defined in: [src/repositories/base.repository.ts:22](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/base.repository.ts#L22)
+Defined in: [src/repositories/base.repository.ts:22](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/base.repository.ts#L22)
 
 Common query options for repository methods.
 
@@ -22,7 +22,7 @@ Common query options for repository methods.
 
 > `optional` **filters**: [`FilterParams`](../../../lib/react-admin/interfaces/FilterParams.md)
 
-Defined in: [src/repositories/base.repository.ts:26](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/base.repository.ts#L26)
+Defined in: [src/repositories/base.repository.ts:26](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/base.repository.ts#L26)
 
 Filter parameters for searching and narrowing results
 
@@ -32,7 +32,7 @@ Filter parameters for searching and narrowing results
 
 > `optional` **includeInactive**: `boolean`
 
-Defined in: [src/repositories/base.repository.ts:28](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/base.repository.ts#L28)
+Defined in: [src/repositories/base.repository.ts:28](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/base.repository.ts#L28)
 
 Whether to include inactive/deleted records in the results
 
@@ -42,6 +42,6 @@ Whether to include inactive/deleted records in the results
 
 > `optional` **pagination**: [`PaginationParams`](../../../lib/react-admin/interfaces/PaginationParams.md)
 
-Defined in: [src/repositories/base.repository.ts:24](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/base.repository.ts#L24)
+Defined in: [src/repositories/base.repository.ts:24](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/base.repository.ts#L24)
 
 Pagination parameters (page and limit)

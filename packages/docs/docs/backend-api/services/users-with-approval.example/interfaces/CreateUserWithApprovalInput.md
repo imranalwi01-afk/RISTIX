@@ -4,7 +4,7 @@
 
 # Interface: CreateUserWithApprovalInput
 
-Defined in: [src/services/users-with-approval.example.ts:21](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/users-with-approval.example.ts#L21)
+Defined in: [src/services/users-with-approval.example.ts:21](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/users-with-approval.example.ts#L21)
 
 Example: Users Service with Approval Workflow Integration
 
@@ -17,7 +17,7 @@ The pattern shown here can be applied to other services (parameters, configurati
 
 > **email**: `string`
 
-Defined in: [src/services/users-with-approval.example.ts:22](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/users-with-approval.example.ts#L22)
+Defined in: [src/services/users-with-approval.example.ts:22](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/users-with-approval.example.ts#L22)
 
 ***
 
@@ -25,7 +25,7 @@ Defined in: [src/services/users-with-approval.example.ts:22](https://github.com/
 
 > **password**: `string`
 
-Defined in: [src/services/users-with-approval.example.ts:23](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/users-with-approval.example.ts#L23)
+Defined in: [src/services/users-with-approval.example.ts:23](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/users-with-approval.example.ts#L23)
 
 ***
 
@@ -33,7 +33,7 @@ Defined in: [src/services/users-with-approval.example.ts:23](https://github.com/
 
 > **permissions**: `string`[]
 
-Defined in: [src/services/users-with-approval.example.ts:28](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/users-with-approval.example.ts#L28)
+Defined in: [src/services/users-with-approval.example.ts:28](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/users-with-approval.example.ts#L28)
 
 ***
 
@@ -41,7 +41,7 @@ Defined in: [src/services/users-with-approval.example.ts:28](https://github.com/
 
 > `optional` **phone**: `string`
 
-Defined in: [src/services/users-with-approval.example.ts:24](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/users-with-approval.example.ts#L24)
+Defined in: [src/services/users-with-approval.example.ts:24](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/users-with-approval.example.ts#L24)
 
 ***
 
@@ -49,7 +49,7 @@ Defined in: [src/services/users-with-approval.example.ts:24](https://github.com/
 
 > **requestedBy**: `string`
 
-Defined in: [src/services/users-with-approval.example.ts:27](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/users-with-approval.example.ts#L27)
+Defined in: [src/services/users-with-approval.example.ts:27](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/users-with-approval.example.ts#L27)
 
 ***
 
@@ -57,4 +57,4 @@ Defined in: [src/services/users-with-approval.example.ts:27](https://github.com/
 
 > **tenantId**: `string`
 
-Defined in: [src/services/users-with-approval.example.ts:25](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/users-with-approval.example.ts#L25)
+Defined in: [src/services/users-with-approval.example.ts:25](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/users-with-approval.example.ts#L25)

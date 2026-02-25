@@ -4,7 +4,7 @@
 
 # Interface: SystemHealth
 
-Defined in: [src/services/platform-admin.service.ts:29](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/platform-admin.service.ts#L29)
+Defined in: [src/services/platform-admin.service.ts:29](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/platform-admin.service.ts#L29)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: [src/services/platform-admin.service.ts:29](https://github.com/ifrsp
 
 > **database**: `"healthy"` \| `"degraded"` \| `"unhealthy"`
 
-Defined in: [src/services/platform-admin.service.ts:30](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/platform-admin.service.ts#L30)
+Defined in: [src/services/platform-admin.service.ts:30](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/platform-admin.service.ts#L30)
 
 ***
 
@@ -20,7 +20,7 @@ Defined in: [src/services/platform-admin.service.ts:30](https://github.com/ifrsp
 
 > **memory**: `object`
 
-Defined in: [src/services/platform-admin.service.ts:31](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/platform-admin.service.ts#L31)
+Defined in: [src/services/platform-admin.service.ts:31](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/platform-admin.service.ts#L31)
 
 #### percentage
 
@@ -40,7 +40,7 @@ Defined in: [src/services/platform-admin.service.ts:31](https://github.com/ifrsp
 
 > **uptime**: `number`
 
-Defined in: [src/services/platform-admin.service.ts:36](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/platform-admin.service.ts#L36)
+Defined in: [src/services/platform-admin.service.ts:36](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/platform-admin.service.ts#L36)
 
 ***
 
@@ -48,4 +48,4 @@ Defined in: [src/services/platform-admin.service.ts:36](https://github.com/ifrsp
 
 > **version**: `string`
 
-Defined in: [src/services/platform-admin.service.ts:37](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/platform-admin.service.ts#L37)
+Defined in: [src/services/platform-admin.service.ts:37](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/platform-admin.service.ts#L37)

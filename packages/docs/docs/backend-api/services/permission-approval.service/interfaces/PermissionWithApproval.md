@@ -4,7 +4,7 @@
 
 # Interface: PermissionWithApproval
 
-Defined in: [src/services/permission-approval.service.ts:18](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/permission-approval.service.ts#L18)
+Defined in: [src/services/permission-approval.service.ts:18](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/permission-approval.service.ts#L18)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: [src/services/permission-approval.service.ts:18](https://github.com/
 
 > **category**: `string`
 
-Defined in: [src/services/permission-approval.service.ts:22](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/permission-approval.service.ts#L22)
+Defined in: [src/services/permission-approval.service.ts:22](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/permission-approval.service.ts#L22)
 
 ***
 
@@ -20,7 +20,7 @@ Defined in: [src/services/permission-approval.service.ts:22](https://github.com/
 
 > **code**: `string`
 
-Defined in: [src/services/permission-approval.service.ts:20](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/permission-approval.service.ts#L20)
+Defined in: [src/services/permission-approval.service.ts:20](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/permission-approval.service.ts#L20)
 
 ***
 
@@ -28,7 +28,7 @@ Defined in: [src/services/permission-approval.service.ts:20](https://github.com/
 
 > **name**: `string`
 
-Defined in: [src/services/permission-approval.service.ts:21](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/permission-approval.service.ts#L21)
+Defined in: [src/services/permission-approval.service.ts:21](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/permission-approval.service.ts#L21)
 
 ***
 
@@ -36,7 +36,7 @@ Defined in: [src/services/permission-approval.service.ts:21](https://github.com/
 
 > **permissionId**: `string`
 
-Defined in: [src/services/permission-approval.service.ts:19](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/permission-approval.service.ts#L19)
+Defined in: [src/services/permission-approval.service.ts:19](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/permission-approval.service.ts#L19)
 
 ***
 
@@ -44,7 +44,7 @@ Defined in: [src/services/permission-approval.service.ts:19](https://github.com/
 
 > **requiredApprovalLevel**: `number` \| `null`
 
-Defined in: [src/services/permission-approval.service.ts:24](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/permission-approval.service.ts#L24)
+Defined in: [src/services/permission-approval.service.ts:24](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/permission-approval.service.ts#L24)
 
 ***
 
@@ -52,7 +52,7 @@ Defined in: [src/services/permission-approval.service.ts:24](https://github.com/
 
 > **requiredApprovers**: `number`
 
-Defined in: [src/services/permission-approval.service.ts:25](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/permission-approval.service.ts#L25)
+Defined in: [src/services/permission-approval.service.ts:25](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/permission-approval.service.ts#L25)
 
 ***
 
@@ -60,4 +60,4 @@ Defined in: [src/services/permission-approval.service.ts:25](https://github.com/
 
 > **requiresApproval**: `boolean`
 
-Defined in: [src/services/permission-approval.service.ts:23](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/permission-approval.service.ts#L23)
+Defined in: [src/services/permission-approval.service.ts:23](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/permission-approval.service.ts#L23)

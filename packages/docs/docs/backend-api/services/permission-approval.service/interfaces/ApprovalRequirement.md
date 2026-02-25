@@ -4,7 +4,7 @@
 
 # Interface: ApprovalRequirement
 
-Defined in: [src/services/permission-approval.service.ts:11](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/permission-approval.service.ts#L11)
+Defined in: [src/services/permission-approval.service.ts:11](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/permission-approval.service.ts#L11)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: [src/services/permission-approval.service.ts:11](https://github.com/
 
 > `optional` **description**: `string`
 
-Defined in: [src/services/permission-approval.service.ts:15](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/permission-approval.service.ts#L15)
+Defined in: [src/services/permission-approval.service.ts:15](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/permission-approval.service.ts#L15)
 
 ***
 
@@ -20,7 +20,7 @@ Defined in: [src/services/permission-approval.service.ts:15](https://github.com/
 
 > **minHierarchyLevel**: `number` \| `null`
 
-Defined in: [src/services/permission-approval.service.ts:13](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/permission-approval.service.ts#L13)
+Defined in: [src/services/permission-approval.service.ts:13](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/permission-approval.service.ts#L13)
 
 ***
 
@@ -28,7 +28,7 @@ Defined in: [src/services/permission-approval.service.ts:13](https://github.com/
 
 > **requiredApprovers**: `number`
 
-Defined in: [src/services/permission-approval.service.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/permission-approval.service.ts#L14)
+Defined in: [src/services/permission-approval.service.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/permission-approval.service.ts#L14)
 
 ***
 
@@ -36,4 +36,4 @@ Defined in: [src/services/permission-approval.service.ts:14](https://github.com/
 
 > **requiresApproval**: `boolean`
 
-Defined in: [src/services/permission-approval.service.ts:12](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/permission-approval.service.ts#L12)
+Defined in: [src/services/permission-approval.service.ts:12](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/permission-approval.service.ts#L12)

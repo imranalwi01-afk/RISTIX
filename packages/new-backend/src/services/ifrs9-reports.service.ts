@@ -218,9 +218,12 @@ export class Ifrs9ReportsService {
 
     /**
      * Get ECL Result Report
-     * SQL Script: SELECT SUM(OUTSTANDING), SUM(ECL_CA_ONBS_AMT), SUM(ECL_FINAL_AMT), etc.
-     * FROM FRS9_MASTER_ACCOUNT WHERE PRC_DATE = @DATE AND SEGMENT_ID = @SEGMENT AND STAGE = @STAGE
+     * SQL Script:
+     * ```sql
+     * SELECT SUM(OUTSTANDING), SUM(ECL_CA_ONBS_AMT), SUM(ECL_FINAL_AMT), etc.
+     * FROM FRS9_MASTER_ACCOUNT WHERE PRC_DATE = :PRC_DATE AND SEGMENT_ID = :SEGMENT_ID AND STAGE = :STAGE
      * GROUP BY PRC_DATE, BRANCH_CODE, SEGMENT_ID, GROUP_SEGMENT, SEGMENT, SUB_SEGMENT, CURRENCY, etc.
+     * ```
      */
     async getECLResult(tenantId: string, page: number, limit: number, params?: ECLResultParams) {
         try {
@@ -325,7 +328,7 @@ export class Ifrs9ReportsService {
 
             // Build dynamic WHERE clause
             let whereClause = `prc_date = '${prcDate}'`;
-            
+
             // Handle multiple segments (Profit Centers)
             if (segment && segment.length > 0) {
                 const segmentList = segment.map(s => `'${s}'`).join(',');
@@ -401,7 +404,7 @@ export class Ifrs9ReportsService {
 
             const summaryRow = (summaryResult as any[])[0] || {};
             const total = Number(summaryRow.total || 0);
-            
+
             return {
                 data,
                 total,
@@ -560,10 +563,13 @@ export class Ifrs9ReportsService {
 
     /**
      * Get EAD Model Report (Payment Average by Tenor)
-     * SQL: SELECT TENOR AS [LT/MONTH], COUNTER AS SEQ, PAYM_AVG
+     * SQL: 
+     * ```sql
+     * SELECT TENOR AS [LT/MONTH], COUNTER AS SEQ, PAYM_AVG
      * FROM FRS9_IMP_CA_EAD_PAYM_AVG A 
-     * WHERE A.PRC_DATE = @DATE AND A.SEGMENT_ID = @EAD_CONFIG_ID
+     * WHERE A.PRC_DATE = :PRC_DATE AND A.SEGMENT_ID = :EAD_CONFIG_ID
      * PIVOT (SUM(PAYM_AVG) FOR SEQ IN (...))
+     * ```
      */
     async getEADModel(tenantId: string, page: number, limit: number, params?: EADModelParams) {
         try {
@@ -725,7 +731,7 @@ export class Ifrs9ReportsService {
             // Base WHERE clause
             let whereClause = `prc_date = '${effectiveDate}'`;
             if (segmentId) whereClause += ` AND segment_id = ${segmentId}`;
-            
+
             if (stage) {
                 if (Array.isArray(stage)) {
                     const stageList = stage.map(s => `'${s}'`).join(',');
@@ -802,7 +808,7 @@ export class Ifrs9ReportsService {
             const effectiveDate = (dateQuery as any[])[0]?.max_date || prcDate;
             let whereClause = `prc_date = '${effectiveDate}'`;
             if (segmentId) whereClause += ` AND segment_id = ${segmentId}`;
-            
+
             if (stage) {
                 if (Array.isArray(stage)) {
                     const stageList = stage.map(s => `'${s}'`).join(',');

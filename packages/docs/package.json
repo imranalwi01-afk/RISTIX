@@ -6,7 +6,7 @@
     "docusaurus": "docusaurus",
     "start": "docusaurus start",
     "build": "docusaurus build",
-    "docs:generate": "cd ../new-backend && pnpm run docs",
+    "docs:generate": "cd ../new-backend && pnpm run docs && cd ../frontend && pnpm run docs",
     "docs:all": "pnpm run docs:generate && pnpm run build",
     "dbml:build": "node ./scripts/build-dbml-artifacts.mjs",
     "dbdocs:publish": "node ./scripts/publish-dbdocs.mjs",

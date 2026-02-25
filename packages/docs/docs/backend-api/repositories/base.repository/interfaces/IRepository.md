@@ -4,7 +4,7 @@
 
 # Interface: IRepository\<T, TInsert, TId\>
 
-Defined in: [src/repositories/base.repository.ts:52](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/base.repository.ts#L52)
+Defined in: [src/repositories/base.repository.ts:52](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/base.repository.ts#L52)
 
 Core interface for standard CRUD repository operations.
 
@@ -32,7 +32,7 @@ Core interface for standard CRUD repository operations.
 
 > **create**(`data`): `Effect`\<`T`, [`DatabaseError`](../../../lib/errors/classes/DatabaseError.md)\>
 
-Defined in: [src/repositories/base.repository.ts:58](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/base.repository.ts#L58)
+Defined in: [src/repositories/base.repository.ts:58](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/base.repository.ts#L58)
 
 Create a new record
 
@@ -52,7 +52,7 @@ Create a new record
 
 > **delete**(`id`): `Effect`\<`T`, [`DatabaseError`](../../../lib/errors/classes/DatabaseError.md) \| [`NotFoundError`](../../../lib/errors/classes/NotFoundError.md)\>
 
-Defined in: [src/repositories/base.repository.ts:62](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/base.repository.ts#L62)
+Defined in: [src/repositories/base.repository.ts:62](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/base.repository.ts#L62)
 
 Categorically delete/soft-delete a record
 
@@ -72,7 +72,7 @@ Categorically delete/soft-delete a record
 
 > **findAll**(`options?`): `Effect`\<[`PaginatedResult`](PaginatedResult.md)\<`T`\>, [`DatabaseError`](../../../lib/errors/classes/DatabaseError.md)\>
 
-Defined in: [src/repositories/base.repository.ts:56](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/base.repository.ts#L56)
+Defined in: [src/repositories/base.repository.ts:56](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/base.repository.ts#L56)
 
 Find all items matching optional criteria with pagination
 
@@ -92,7 +92,7 @@ Find all items matching optional criteria with pagination
 
 > **findById**(`id`): `Effect`\<`T`, [`DatabaseError`](../../../lib/errors/classes/DatabaseError.md) \| [`NotFoundError`](../../../lib/errors/classes/NotFoundError.md)\>
 
-Defined in: [src/repositories/base.repository.ts:54](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/base.repository.ts#L54)
+Defined in: [src/repositories/base.repository.ts:54](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/base.repository.ts#L54)
 
 Find an item by its primary key
 
@@ -112,7 +112,7 @@ Find an item by its primary key
 
 > **update**(`id`, `data`): `Effect`\<`T`, [`DatabaseError`](../../../lib/errors/classes/DatabaseError.md) \| [`NotFoundError`](../../../lib/errors/classes/NotFoundError.md)\>
 
-Defined in: [src/repositories/base.repository.ts:60](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/base.repository.ts#L60)
+Defined in: [src/repositories/base.repository.ts:60](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/base.repository.ts#L60)
 
 Update an existing record partially
 

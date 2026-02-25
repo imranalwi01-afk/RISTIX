@@ -400,27 +400,28 @@ export const getAvailablePermissions = (tenantId: string) =>
     pipe(
         Effect.try(() => getDatabase(tenantId)),
         Effect.mapError(error => new DatabaseError({ operation: 'query', message: String(error) })),
-        Effect.flatMap(db =>
-            Effect.gen(function* (_) {
-                const permissions = yield* _(permissionsRepository.findAll(db))
-                const approvalService = new PermissionApprovalService(db)
+        Effect.flatMap((db) =>
+            pipe(
+                permissionsRepository.findAll(db),
+                Effect.flatMap((permissions) => {
+                    const approvalService = new PermissionApprovalService(db)
+                    const permissionIds = permissions.map((p) => p.id)
 
-                // Get approval requirements for all permissions
-                const permissionIds = permissions.map(p => p.id)
-                const approvalMap = yield* _(
-                    approvalService.getBulkApprovalRequirements(tenantId, permissionIds)
-                )
-
-                // Enrich permissions with approval metadata
-                return permissions.map(p => {
-                    const approval = approvalMap.get(p.id)
-                    return {
-                        ...p,
-                        requiresApproval: approval?.requiresApproval ?? false,
-                        requiredApprovalLevel: approval?.minHierarchyLevel ?? null,
-                        requiredApprovers: approval?.requiredApprovers ?? 1,
-                    }
+                    return pipe(
+                        approvalService.getBulkApprovalRequirements(tenantId, permissionIds),
+                        Effect.map((approvalMap) =>
+                            permissions.map((p) => {
+                                const approval = approvalMap.get(p.id)
+                                return {
+                                    ...p,
+                                    requiresApproval: approval?.requiresApproval ?? false,
+                                    requiredApprovalLevel: approval?.minHierarchyLevel ?? null,
+                                    requiredApprovers: approval?.requiredApprovers ?? 1,
+                                }
+                            })
+                        )
+                    )
                 })
-            })
+            )
         )
     )

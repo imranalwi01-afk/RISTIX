@@ -4,10 +4,10 @@ import type { Context, MiddlewareHandler } from 'hono'
  * React-Admin compatible response format
  * 
  * React-Admin data provider expects:
- * - getList: { data: Item[], total: number }
- * - getOne: { data: Item }
- * - create/update: { data: Item }
- * - delete: { data: Item }
+ * - getList: `{ data: Item[], total: number }`
+ * - getOne: `{ data: Item }`
+ * - create/update: `{ data: Item }`
+ * - delete: `{ data: Item }`
  * 
  * Additionally, X-Total-Count header for pagination
  */
@@ -127,7 +127,7 @@ export function calculateOffset(page: number, limit: number): number {
  * - Simple: ?name=John
  * - Contains: ?name_contains=John
  * - Greater/Less: ?age_gte=18, ?age_lte=65
- * - React-admin filter object: ?filter={"name":"John"}
+ * - React-admin filter object: `?filter={"name":"John"}`
  */
 export function parseFilterParams(c: Context): FilterParams {
     const query = c.req.query()

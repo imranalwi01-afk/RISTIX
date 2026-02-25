@@ -6,7 +6,7 @@
 
 > `const` **BucketParametersService**: `object`
 
-Defined in: [src/services/bucket-parameters.service.ts:10](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/bucket-parameters.service.ts#L10)
+Defined in: [src/services/bucket-parameters.service.ts:10](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/bucket-parameters.service.ts#L10)
 
 Service for managing Bucket Parameters.
 Handles business logic for bucket headers and details.

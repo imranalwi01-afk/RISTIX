@@ -39,7 +39,12 @@ const CancelRequestSchema = z.object({
 const MatrixLevelSchema = z.object({
     level: z.number().int().min(1),
     name: z.string().min(1),
-    requiredRoles: z.array(z.string()),
+    requiredRoleCodes: z.array(z.string()).optional(),
+    requiredPermissionCodes: z.array(z.string()).optional(),
+    roleMatchMode: z.enum(['ANY', 'ALL']).optional(),
+    permissionMatchMode: z.enum(['ANY', 'ALL']).optional(),
+    // Backward compatibility for older clients.
+    requiredRoles: z.array(z.string()).optional(),
     requiredCount: z.number().int().min(1).default(1),
     maxAmount: z.number().optional(),
     timeoutHours: z.number().int().optional(),
@@ -87,7 +92,8 @@ const RoutingCandidateSchema = z.object({
 const RoutingLevelSchema = z.object({
     level: z.number().int().min(1),
     name: z.string(),
-    requiredRoles: z.array(z.string()),
+    requiredRoleCodes: z.array(z.string()),
+    requiredPermissionCodes: z.array(z.string()),
     requiredCount: z.number().int().min(1),
     timeoutHours: z.number().int().optional(),
     candidateCount: z.number().int().min(0),
@@ -636,11 +642,31 @@ approvalRoutes.openapi(
         const body = c.req.valid('json')
 
         const { levels, ...matrixData } = body
+        const normalizedLevels = levels.map((level) => {
+            const legacyRequired = Array.isArray(level.requiredRoles) ? level.requiredRoles : []
+            const requiredRoleCodes = Array.isArray(level.requiredRoleCodes)
+                ? level.requiredRoleCodes
+                : legacyRequired.filter((entry) => typeof entry === 'string' && !entry.includes('.'))
+            const requiredPermissionCodes = Array.isArray(level.requiredPermissionCodes)
+                ? level.requiredPermissionCodes
+                : legacyRequired.filter((entry) => typeof entry === 'string' && entry.includes('.'))
+            const { requiredRoles, ...restLevel } = level
+
+            return {
+                ...restLevel,
+                requiredRoleCodes,
+                requiredPermissionCodes: requiredPermissionCodes.length > 0
+                    ? requiredPermissionCodes
+                    : ['approval.requests.approve'],
+                roleMatchMode: level.roleMatchMode || 'ANY',
+                permissionMatchMode: level.permissionMatchMode || 'ANY',
+            }
+        })
 
         const effect = pipe(
             approvalService.createApprovalMatrix(
                 { ...matrixData, tenantId },
-                levels
+                normalizedLevels
             ),
             Effect.map((matrix) => ({
                 ...matrix,

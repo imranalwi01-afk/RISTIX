@@ -1,47 +1,93 @@
-import { jest } from '@jest/globals'
+import { beforeEach, describe, expect, mock, test } from 'bun:test'
 
-// Mock getDatabase to return a fake db with spies
-const mockFindMany = jest.fn().mockResolvedValue([])
-const mockSelect = jest.fn().mockResolvedValue([{ count: 0 }])
-const mockInsert = jest.fn().mockReturnValue({ values: jest.fn().mockReturnValue({ returning: jest.fn().mockResolvedValue([]) }) })
+const state = {
+  getDatabaseCalls: [] as Array<string | undefined>,
+  jobsFindManyCalls: [] as unknown[][],
+  approvalFindManyCalls: [] as unknown[][],
+  jobsSelectCalls: [] as unknown[][],
+}
 
-jest.unstable_mockModule('@/config/database', () => ({
-  getDatabase: (tenantId?: string | null) => ({
-    query: {
-      jobExecutions: { findMany: mockFindMany, findFirst: jest.fn() },
-      jobDefinitions: { findMany: mockFindMany, findFirst: jest.fn() },
-      approvalRequests: { findMany: mockFindMany, findFirst: jest.fn() },
+const dbStub = {
+  query: {
+    jobExecutions: {
+      findMany: async (...args: unknown[]) => {
+        state.jobsFindManyCalls.push(args)
+        return [{ id: 'exec-1' }]
+      },
+      findFirst: async () => ({ id: 'exec-1' }),
     },
-    select: mockSelect,
-    insert: mockInsert,
-    transaction: jest.fn().mockImplementation(async (cb: any) => cb({ insert: mockInsert, delete: jest.fn(), update: jest.fn() })),
-  }),
+    jobDefinitions: {
+      findMany: async (...args: unknown[]) => {
+        state.jobsFindManyCalls.push(args)
+        return [{ id: 'def-1' }]
+      },
+      findFirst: async () => ({ id: 'def-1' }),
+    },
+    approvalRequests: {
+      findMany: async (...args: unknown[]) => {
+        state.approvalFindManyCalls.push(args)
+        return [{ id: 'apr-1' }]
+      },
+      findFirst: async () => ({ id: 'apr-1', tenantId: 'tenant-xyz' }),
+    },
+    approvalActions: {
+      findMany: async () => [],
+    },
+    approvalMatrices: {
+      findFirst: async () => null,
+      findMany: async () => [],
+    },
+  },
+  select: (...args: unknown[]) => {
+    state.jobsSelectCalls.push(args)
+    return {
+      from: () => ({
+        where: () => ({
+          orderBy: async () => [{ id: 'def-1' }],
+          limit: async () => [{ id: 'def-1' }],
+        }),
+      }),
+    }
+  },
+}
+
+mock.module('@/config/database', () => ({
+  db: dbStub,
+  getDatabase: (tenantId?: string | null) => {
+    state.getDatabaseCalls.push(tenantId ?? undefined)
+    return dbStub
+  },
 }))
 
 const { JobsRepository } = await import('@/repositories/jobs.repository')
 const { ApprovalRepository } = await import('@/repositories/approval.repository')
-const { getDatabase } = await import('@/config/database')
 
 describe('tenant DB routing — jobs & approval repositories', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    state.getDatabaseCalls = []
+    state.jobsFindManyCalls = []
+    state.approvalFindManyCalls = []
+    state.jobsSelectCalls = []
   })
 
-  test('JobsRepository.findExecutions uses tenant DB', async () => {
-    await JobsRepository.findExecutions('tenant-xyz')
-    expect(getDatabase).toHaveBeenCalledWith('tenant-xyz')
-    expect(mockFindMany).toHaveBeenCalled()
+  test('JobsRepository.findAllDefinitions routes through getDatabase(tenantId)', async () => {
+    const rows = await JobsRepository.findAllDefinitions('tenant-xyz')
+    expect(state.getDatabaseCalls).toEqual(['tenant-xyz'])
+    expect(state.jobsSelectCalls.length).toBe(1)
+    expect(rows.length).toBe(1)
   })
 
-  test('JobsRepository.findAllDefinitions uses tenant DB', async () => {
-    await JobsRepository.findAllDefinitions('tenant-xyz')
-    expect(getDatabase).toHaveBeenCalledWith('tenant-xyz')
-    expect(mockFindMany).toHaveBeenCalled()
+  test('JobsRepository.findDefinitionById routes through getDatabase(tenantId)', async () => {
+    const row = await JobsRepository.findDefinitionById('def-1', 'tenant-xyz')
+    expect(state.getDatabaseCalls).toEqual(['tenant-xyz'])
+    expect(state.jobsSelectCalls.length).toBe(1)
+    expect(row?.id).toBe('def-1')
   })
 
-  test('ApprovalRepository.findPendingRequests uses tenant DB (service-level)', async () => {
-    await ApprovalRepository.findPendingRequests('tenant-xyz')
-    expect(getDatabase).toHaveBeenCalledWith('tenant-xyz')
-    expect(mockFindMany).toHaveBeenCalled()
+  test('ApprovalRepository.findPendingRequests routes through getDatabase(tenantId)', async () => {
+    const rows = await ApprovalRepository.findPendingRequests('tenant-xyz')
+    expect(state.getDatabaseCalls).toEqual(['tenant-xyz'])
+    expect(state.approvalFindManyCalls.length).toBe(1)
+    expect(rows.length).toBe(1)
   })
 })

@@ -4,7 +4,7 @@
 
 # Class: WorkflowEventHandler
 
-Defined in: [src/repositories/workflows.repository.ts:148](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/workflows.repository.ts#L148)
+Defined in: [src/repositories/workflows.repository.ts:148](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/workflows.repository.ts#L148)
 
 Workflow Event Handler: trigger jobs and notifications on state changes
 
@@ -14,7 +14,7 @@ Workflow Event Handler: trigger jobs and notifications on state changes
 
 > **new WorkflowEventHandler**(`workflowRepo`, `db`): `WorkflowEventHandler`
 
-Defined in: [src/repositories/workflows.repository.ts:149](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/workflows.repository.ts#L149)
+Defined in: [src/repositories/workflows.repository.ts:149](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/workflows.repository.ts#L149)
 
 #### Parameters
 
@@ -36,7 +36,7 @@ Defined in: [src/repositories/workflows.repository.ts:149](https://github.com/if
 
 > **handleApprovalCompleted**(`workflowId`, `tenantId`, `action`, `approverUserId`, `approverName`, `requesterUserId`, `requesterEmail`, `workflowName`, `eclParams?`): `Promise`\<`void`\>
 
-Defined in: [src/repositories/workflows.repository.ts:158](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/workflows.repository.ts#L158)
+Defined in: [src/repositories/workflows.repository.ts:158](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/workflows.repository.ts#L158)
 
 Handle approval workflow completed
 Triggers: ECL calculation, notifications, audit log
@@ -89,7 +89,7 @@ Triggers: ECL calculation, notifications, audit log
 
 > **handleECLCalculationCompleted**(`workflowId`, `tenantId`, `jobId`, `result`, `userId`): `Promise`\<`void`\>
 
-Defined in: [src/repositories/workflows.repository.ts:260](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/workflows.repository.ts#L260)
+Defined in: [src/repositories/workflows.repository.ts:260](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/workflows.repository.ts#L260)
 
 Handle ECL calculation job completion
 Updates workflow, logs result, triggers compliance checks

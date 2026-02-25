@@ -72,7 +72,13 @@ export const approvalLevels = approvalSchema.table(
         level: integer('level').notNull(), // 1, 2, 3...
         name: varchar('name', { length: 100 }).notNull(),
         description: text('description'),
-        requiredRoles: jsonb('required_roles').$type<string[]>().notNull(),
+        requiredRoleCodes: jsonb('required_role_codes').$type<string[]>().notNull().default([]),
+        requiredPermissionCodes: jsonb('required_permission_codes')
+            .$type<string[]>()
+            .notNull()
+            .default(['approval.requests.approve']),
+        roleMatchMode: varchar('role_match_mode', { length: 10 }).notNull().default('ANY'),
+        permissionMatchMode: varchar('permission_match_mode', { length: 10 }).notNull().default('ANY'),
         requiredCount: integer('required_count').notNull().default(1),
         maxAmount: integer('max_amount'), // Amount limit for this level
         conditions: jsonb('conditions').$type<Record<string, unknown>>(),
@@ -220,6 +226,32 @@ export const notificationDeliveries = approvalSchema.table(
     ]
 )
 
+export const notificationPreferences = approvalSchema.table(
+    'notification_preferences',
+    {
+        id: uuid('id').primaryKey().defaultRandom(),
+        tenantId: uuid('tenant_id')
+            .notNull()
+            .references(() => tenants.id),
+        userId: uuid('user_id')
+            .notNull()
+            .references(() => users.id, { onDelete: 'cascade' }),
+        muteAll: boolean('mute_all').notNull().default(false),
+        mutedCategories: jsonb('muted_categories').$type<string[]>().notNull().default([]),
+        quietHoursEnabled: boolean('quiet_hours_enabled').notNull().default(false),
+        quietHoursStart: varchar('quiet_hours_start', { length: 5 }).notNull().default('22:00'),
+        quietHoursEnd: varchar('quiet_hours_end', { length: 5 }).notNull().default('07:00'),
+        timezone: varchar('timezone', { length: 64 }).notNull().default('Asia/Jakarta'),
+        createdAt: timestamp('created_at').notNull().defaultNow(),
+        updatedAt: timestamp('updated_at').notNull().defaultNow(),
+    },
+    (table) => [
+        index('notification_preferences_tenant_idx').on(table.tenantId),
+        index('notification_preferences_user_idx').on(table.userId),
+        index('notification_preferences_tenant_user_idx').on(table.tenantId, table.userId),
+    ]
+)
+
 // =============================================================================
 // RELATIONS
 // =============================================================================
@@ -303,6 +335,17 @@ export const notificationDeliveriesRelations = relations(notificationDeliveries,
     }),
 }))
 
+export const notificationPreferencesRelations = relations(notificationPreferences, ({ one }) => ({
+    tenant: one(tenants, {
+        fields: [notificationPreferences.tenantId],
+        references: [tenants.id],
+    }),
+    user: one(users, {
+        fields: [notificationPreferences.userId],
+        references: [users.id],
+    }),
+}))
+
 // =============================================================================
 // TYPE EXPORTS
 // =============================================================================
@@ -324,3 +367,6 @@ export type NewNotification = typeof notifications.$inferInsert
 
 export type NotificationDelivery = typeof notificationDeliveries.$inferSelect
 export type NewNotificationDelivery = typeof notificationDeliveries.$inferInsert
+
+export type NotificationPreference = typeof notificationPreferences.$inferSelect
+export type NewNotificationPreference = typeof notificationPreferences.$inferInsert

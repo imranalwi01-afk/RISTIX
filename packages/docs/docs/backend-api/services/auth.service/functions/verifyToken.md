@@ -6,7 +6,7 @@
 
 > **verifyToken**(`token`, `expectedType?`): `Promise`\<[`JwtPayload`](../interfaces/JwtPayload.md)\>
 
-Defined in: [src/services/auth.service.ts:201](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/auth.service.ts#L201)
+Defined in: [src/services/auth.service.ts:201](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/auth.service.ts#L201)
 
 Verify and decode a JWT token.
 

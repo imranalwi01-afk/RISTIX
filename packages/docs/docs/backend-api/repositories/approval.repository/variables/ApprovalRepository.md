@@ -6,7 +6,7 @@
 
 > `const` **ApprovalRepository**: `object`
 
-Defined in: [src/repositories/approval.repository.ts:24](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/approval.repository.ts#L24)
+Defined in: [src/repositories/approval.repository.ts:24](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/approval.repository.ts#L24)
 
 ## Type Declaration
 
@@ -168,7 +168,7 @@ The matrix data
 
 ##### levels
 
-`Omit`\<\{ `canDelegate?`: `boolean` \| `null`; `conditions?`: `Record`\<`string`, `unknown`\> \| `null`; `createdAt?`: `Date`; `description?`: `string` \| `null`; `id?`: `string`; `level`: `number`; `matrixId`: `string`; `maxAmount?`: `number` \| `null`; `name`: `string`; `requiredCount?`: `number`; `requiredRoles`: `string`[]; `timeoutHours?`: `number` \| `null`; \}, `"matrixId"`\>[]
+`Omit`\<\{ `canDelegate?`: `boolean` \| `null`; `conditions?`: `Record`\<`string`, `unknown`\> \| `null`; `createdAt?`: `Date`; `description?`: `string` \| `null`; `id?`: `string`; `level`: `number`; `matrixId`: `string`; `maxAmount?`: `number` \| `null`; `name`: `string`; `permissionMatchMode?`: `string`; `requiredCount?`: `number`; `requiredPermissionCodes?`: `string`[]; `requiredRoleCodes?`: `string`[]; `roleMatchMode?`: `string`; `timeoutHours?`: `number` \| `null`; \}, `"matrixId"`\>[]
 
 The levels data
 

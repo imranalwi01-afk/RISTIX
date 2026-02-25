@@ -4,7 +4,7 @@
 
 # Interface: UserNotificationRow
 
-Defined in: src/repositories/notification.repository.ts:32
+Defined in: [src/repositories/notification.repository.ts:32](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/notification.repository.ts#L32)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: src/repositories/notification.repository.ts:32
 
 > **actionUrl**: `string` \| `null`
 
-Defined in: src/repositories/notification.repository.ts:39
+Defined in: [src/repositories/notification.repository.ts:39](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/notification.repository.ts#L39)
 
 ***
 
@@ -20,7 +20,7 @@ Defined in: src/repositories/notification.repository.ts:39
 
 > **approvalRequestId**: `string` \| `null`
 
-Defined in: src/repositories/notification.repository.ts:41
+Defined in: [src/repositories/notification.repository.ts:41](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/notification.repository.ts#L41)
 
 ***
 
@@ -28,7 +28,7 @@ Defined in: src/repositories/notification.repository.ts:41
 
 > **createdAt**: `Date`
 
-Defined in: src/repositories/notification.repository.ts:49
+Defined in: [src/repositories/notification.repository.ts:49](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/notification.repository.ts#L49)
 
 ***
 
@@ -36,7 +36,7 @@ Defined in: src/repositories/notification.repository.ts:49
 
 > **deliveredAt**: `Date` \| `null`
 
-Defined in: src/repositories/notification.repository.ts:47
+Defined in: [src/repositories/notification.repository.ts:47](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/notification.repository.ts#L47)
 
 ***
 
@@ -44,7 +44,7 @@ Defined in: src/repositories/notification.repository.ts:47
 
 > **deliveryStatus**: `string`
 
-Defined in: src/repositories/notification.repository.ts:46
+Defined in: [src/repositories/notification.repository.ts:46](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/notification.repository.ts#L46)
 
 ***
 
@@ -52,7 +52,7 @@ Defined in: src/repositories/notification.repository.ts:46
 
 > **entityId**: `string` \| `null`
 
-Defined in: src/repositories/notification.repository.ts:43
+Defined in: [src/repositories/notification.repository.ts:43](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/notification.repository.ts#L43)
 
 ***
 
@@ -60,7 +60,7 @@ Defined in: src/repositories/notification.repository.ts:43
 
 > **entityType**: `string` \| `null`
 
-Defined in: src/repositories/notification.repository.ts:42
+Defined in: [src/repositories/notification.repository.ts:42](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/notification.repository.ts#L42)
 
 ***
 
@@ -68,7 +68,7 @@ Defined in: src/repositories/notification.repository.ts:42
 
 > **id**: `string`
 
-Defined in: src/repositories/notification.repository.ts:33
+Defined in: [src/repositories/notification.repository.ts:33](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/notification.repository.ts#L33)
 
 ***
 
@@ -76,7 +76,7 @@ Defined in: src/repositories/notification.repository.ts:33
 
 > **message**: `string`
 
-Defined in: src/repositories/notification.repository.ts:38
+Defined in: [src/repositories/notification.repository.ts:38](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/notification.repository.ts#L38)
 
 ***
 
@@ -84,7 +84,7 @@ Defined in: src/repositories/notification.repository.ts:38
 
 > **metadata**: `Record`\<`string`, `unknown`\> \| `null`
 
-Defined in: src/repositories/notification.repository.ts:45
+Defined in: [src/repositories/notification.repository.ts:45](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/notification.repository.ts#L45)
 
 ***
 
@@ -92,7 +92,7 @@ Defined in: src/repositories/notification.repository.ts:45
 
 > **notificationId**: `string`
 
-Defined in: src/repositories/notification.repository.ts:34
+Defined in: [src/repositories/notification.repository.ts:34](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/notification.repository.ts#L34)
 
 ***
 
@@ -100,7 +100,7 @@ Defined in: src/repositories/notification.repository.ts:34
 
 > **readAt**: `Date` \| `null`
 
-Defined in: src/repositories/notification.repository.ts:48
+Defined in: [src/repositories/notification.repository.ts:48](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/notification.repository.ts#L48)
 
 ***
 
@@ -108,7 +108,7 @@ Defined in: src/repositories/notification.repository.ts:48
 
 > **severity**: `string`
 
-Defined in: src/repositories/notification.repository.ts:36
+Defined in: [src/repositories/notification.repository.ts:36](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/notification.repository.ts#L36)
 
 ***
 
@@ -116,7 +116,7 @@ Defined in: src/repositories/notification.repository.ts:36
 
 > **source**: `string`
 
-Defined in: src/repositories/notification.repository.ts:44
+Defined in: [src/repositories/notification.repository.ts:44](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/notification.repository.ts#L44)
 
 ***
 
@@ -124,7 +124,7 @@ Defined in: src/repositories/notification.repository.ts:44
 
 > **title**: `string`
 
-Defined in: src/repositories/notification.repository.ts:37
+Defined in: [src/repositories/notification.repository.ts:37](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/notification.repository.ts#L37)
 
 ***
 
@@ -132,7 +132,7 @@ Defined in: src/repositories/notification.repository.ts:37
 
 > **type**: `string`
 
-Defined in: src/repositories/notification.repository.ts:35
+Defined in: [src/repositories/notification.repository.ts:35](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/notification.repository.ts#L35)
 
 ***
 
@@ -140,4 +140,4 @@ Defined in: src/repositories/notification.repository.ts:35
 
 > **workflowId**: `string` \| `null`
 
-Defined in: src/repositories/notification.repository.ts:40
+Defined in: [src/repositories/notification.repository.ts:40](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/notification.repository.ts#L40)

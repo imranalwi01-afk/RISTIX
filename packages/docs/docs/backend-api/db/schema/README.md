@@ -356,6 +356,12 @@ Re-exports [NewNotificationDelivery](approval.schema/type-aliases/NewNotificatio
 
 ***
 
+### NewNotificationPreference
+
+Re-exports [NewNotificationPreference](approval.schema/type-aliases/NewNotificationPreference.md)
+
+***
+
 ### NewPasswordResetToken
 
 Re-exports [NewPasswordResetToken](auth.schema/type-aliases/NewPasswordResetToken.md)
@@ -443,6 +449,24 @@ Re-exports [notificationDeliveriesRelations](approval.schema/variables/notificat
 ### NotificationDelivery
 
 Re-exports [NotificationDelivery](approval.schema/type-aliases/NotificationDelivery.md)
+
+***
+
+### NotificationPreference
+
+Re-exports [NotificationPreference](approval.schema/type-aliases/NotificationPreference.md)
+
+***
+
+### notificationPreferences
+
+Re-exports [notificationPreferences](approval.schema/variables/notificationPreferences.md)
+
+***
+
+### notificationPreferencesRelations
+
+Re-exports [notificationPreferencesRelations](approval.schema/variables/notificationPreferencesRelations.md)
 
 ***
 

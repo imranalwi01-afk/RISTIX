@@ -4,7 +4,7 @@
 
 # Interface: CreateApprovalRequestInput
 
-Defined in: [src/services/approval.service.ts:24](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/approval.service.ts#L24)
+Defined in: [src/services/approval.service.ts:25](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/approval.service.ts#L25)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: [src/services/approval.service.ts:24](https://github.com/ifrspro/ifr
 
 > `optional` **bankingMode**: `string`
 
-Defined in: [src/services/approval.service.ts:33](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/approval.service.ts#L33)
+Defined in: [src/services/approval.service.ts:34](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/approval.service.ts#L34)
 
 ***
 
@@ -20,7 +20,7 @@ Defined in: [src/services/approval.service.ts:33](https://github.com/ifrspro/ifr
 
 > `optional` **description**: `string`
 
-Defined in: [src/services/approval.service.ts:29](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/approval.service.ts#L29)
+Defined in: [src/services/approval.service.ts:30](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/approval.service.ts#L30)
 
 ***
 
@@ -28,7 +28,7 @@ Defined in: [src/services/approval.service.ts:29](https://github.com/ifrspro/ifr
 
 > `optional` **entityId**: `string`
 
-Defined in: [src/services/approval.service.ts:27](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/approval.service.ts#L27)
+Defined in: [src/services/approval.service.ts:28](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/approval.service.ts#L28)
 
 ***
 
@@ -36,7 +36,7 @@ Defined in: [src/services/approval.service.ts:27](https://github.com/ifrspro/ifr
 
 > **entityType**: `string`
 
-Defined in: [src/services/approval.service.ts:26](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/approval.service.ts#L26)
+Defined in: [src/services/approval.service.ts:27](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/approval.service.ts#L27)
 
 ***
 
@@ -44,7 +44,7 @@ Defined in: [src/services/approval.service.ts:26](https://github.com/ifrspro/ifr
 
 > `optional` **impactLevel**: `"low"` \| `"medium"` \| `"high"` \| `"critical"`
 
-Defined in: [src/services/approval.service.ts:32](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/approval.service.ts#L32)
+Defined in: [src/services/approval.service.ts:33](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/approval.service.ts#L33)
 
 ***
 
@@ -52,7 +52,7 @@ Defined in: [src/services/approval.service.ts:32](https://github.com/ifrspro/ifr
 
 > `optional` **requestData**: `Record`\<`string`, `unknown`\>
 
-Defined in: [src/services/approval.service.ts:30](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/approval.service.ts#L30)
+Defined in: [src/services/approval.service.ts:31](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/approval.service.ts#L31)
 
 ***
 
@@ -60,7 +60,7 @@ Defined in: [src/services/approval.service.ts:30](https://github.com/ifrspro/ifr
 
 > **requestedBy**: `string`
 
-Defined in: [src/services/approval.service.ts:31](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/approval.service.ts#L31)
+Defined in: [src/services/approval.service.ts:32](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/approval.service.ts#L32)
 
 ***
 
@@ -68,7 +68,7 @@ Defined in: [src/services/approval.service.ts:31](https://github.com/ifrspro/ifr
 
 > **tenantId**: `string`
 
-Defined in: [src/services/approval.service.ts:25](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/approval.service.ts#L25)
+Defined in: [src/services/approval.service.ts:26](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/approval.service.ts#L26)
 
 ***
 
@@ -76,4 +76,4 @@ Defined in: [src/services/approval.service.ts:25](https://github.com/ifrspro/ifr
 
 > **title**: `string`
 
-Defined in: [src/services/approval.service.ts:28](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/approval.service.ts#L28)
+Defined in: [src/services/approval.service.ts:29](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/approval.service.ts#L29)
