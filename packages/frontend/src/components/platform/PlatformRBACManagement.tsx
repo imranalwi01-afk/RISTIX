@@ -39,6 +39,7 @@ import {
     Verified as VerifiedIcon,
 } from '@mui/icons-material';
 import { rolesAPI, tenantsAPI, usersAPI } from '@/services/api';
+import { getErrorMessage } from '@/utils/error-message';
 
 interface TenantOption {
     id: string;
@@ -221,7 +222,7 @@ const PlatformRBACManagement = () => {
                 setSelectedTenant(requestedTenant || items[0]);
             }
         } catch (err: any) {
-            const message = err?.response?.data?.error || err?.response?.data?.message || err?.message || 'Failed to load tenants';
+            const message = getErrorMessage(err, 'Failed to load tenants');
             setError(message);
         } finally {
             setLoadingTenants(false);
@@ -320,7 +321,7 @@ const PlatformRBACManagement = () => {
             });
             setUserRoleMap(nextUserRoleMap);
         } catch (err: any) {
-            const message = err?.response?.data?.error || err?.response?.data?.message || err?.message || 'Failed to load tenant RBAC data';
+            const message = getErrorMessage(err, 'Failed to load tenant RBAC data');
             setError(message);
         } finally {
             setLoadingData(false);
@@ -414,7 +415,7 @@ const PlatformRBACManagement = () => {
 
             setSuccess('User role assignment updated.');
         } catch (err: any) {
-            const message = err?.response?.data?.error || err?.response?.data?.message || err?.message || 'Failed to save user role assignment';
+            const message = getErrorMessage(err, 'Failed to save user role assignment');
             setError(message);
         } finally {
             setSavingAssignments(false);
@@ -462,10 +463,11 @@ const PlatformRBACManagement = () => {
                 }
             );
 
-            const approvalRequired = Boolean((response as any)?.approvalRequired || (response as any)?.data?.approvalRequired);
+            const approvalRequired = Boolean((response as any)?.approvalRequired);
             if (approvalRequired) {
-                const requestId = (response as any)?.requestId || (response as any)?.data?.requestId;
-                setSuccess(`Permission update submitted for approval${requestId ? ` (Request: ${requestId})` : ''}.`);
+                const requestId = (response as any)?.requestId;
+                const message = (response as any)?.message || 'Permission update submitted for approval.';
+                setSuccess(`${message}${requestId ? ` (Request: ${requestId})` : ''}.`);
                 return;
             }
 
@@ -479,7 +481,7 @@ const PlatformRBACManagement = () => {
 
             setSuccess(`Permissions updated for ${selectedRole?.roleName || 'selected role'}.`);
         } catch (err: any) {
-            const message = err?.response?.data?.error || err?.response?.data?.message || err?.message || 'Failed to save role permissions';
+            const message = getErrorMessage(err, 'Failed to save role permissions');
             setError(message);
         } finally {
             setSavingPermissions(false);
@@ -526,7 +528,7 @@ const PlatformRBACManagement = () => {
                 setServerPreviewAllowed(Boolean(result?.hasPermission));
             } catch (err: any) {
                 setServerPreviewAllowed(null);
-                const message = err?.response?.data?.error || err?.response?.data?.message || err?.message || 'Permission check failed';
+                const message = getErrorMessage(err, 'Permission check failed');
                 setServerPreviewError(message);
             } finally {
                 setServerPreviewLoading(false);

@@ -389,7 +389,7 @@ export default function BusinessClient() {
                     setBusinessParameters(sorted);
                 }
             }
-        } catch (error: any) {
+        } catch (error) {
             setError(handleAPIError(error).message);
         } finally {
             setLoading(false);
@@ -447,7 +447,7 @@ export default function BusinessClient() {
             }
             setParamDialogOpen(false);
             loadBusinessParameters();
-        } catch (e: any) { setError(handleAPIError(e).message); }
+        } catch (e) { setError(handleAPIError(e).message); }
     };
 
     const handleDeleteParameter = async (row: BusinessParameter) => {
@@ -461,7 +461,7 @@ export default function BusinessClient() {
                 setSuccess('Deleted successfully');
             }
             loadBusinessParameters();
-        } catch (e: any) { setError(handleAPIError(e).message); }
+        } catch (e) { setError(handleAPIError(e).message); }
     };
 
     const handleSaveDetail = async (form: BusinessParameterDetailFormData) => {
@@ -488,7 +488,7 @@ export default function BusinessClient() {
             setSuccess('Detail saved');
             setDetailDialogOpen(false);
             setDetailRefreshTrigger(prev => prev + 1);
-        } catch (e: any) {
+        } catch (e) {
             const err = handleAPIError(e);
             setError(err.message);
         }
@@ -501,7 +501,7 @@ export default function BusinessClient() {
             await api.banking.businessSetup.deleteDetail(parseInt(detail.pkid || '0'));
             setSuccess('Detail deleted');
             setDetailRefreshTrigger(prev => prev + 1);
-        } catch (e: any) { setError(handleAPIError(e).message); }
+        } catch (e) { setError(handleAPIError(e).message); }
     };
 
     // Columns

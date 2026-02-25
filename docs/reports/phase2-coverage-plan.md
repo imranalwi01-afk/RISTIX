@@ -149,9 +149,11 @@ pnpm test:approval
 pnpm test:phase2:wave1
 pnpm test:phase2:wave2
 pnpm test:phase2:wave3
+pnpm test:phase2:wave4
 pnpm test:phase2:baseline
 pnpm test:phase2:baseline:wave2
 pnpm test:phase2:baseline:wave3
+pnpm test:phase2:baseline:wave4
 ```
 
 Note:
@@ -167,7 +169,10 @@ Note:
 ## Current Script Health (February 25, 2026)
 
 - `pnpm --dir packages/new-backend test:phase2:wave3`: passing
+- `pnpm --dir packages/new-backend test:phase2:wave4`: passing
 - `pnpm --dir packages/new-backend test:phase2:baseline:wave3`: passing
+- `pnpm --dir packages/new-backend test:phase2:baseline:wave4`: passing
+- `pnpm --dir packages/new-backend test:coverage:routes`: passing (now delegates to `test:phase2:baseline:wave4` for process isolation)
 - Cross-suite Bun mock collision was mitigated by splitting wave3 approval suites into separate process runs.
 - Additional Bun mock isolation applied for route contract suites:
   - `test:users-route-contract`
@@ -182,9 +187,11 @@ Note:
 ## Latest Coverage Snapshot (February 25, 2026)
 
 - `jobs.routes.ts`: **82.71% lines**, **85.48% funcs** (`test:jobs-route-contract --coverage`)
-- `approval.service.ts`: **82.11% lines**, **83.49% funcs** (`test:approval-service --coverage`)
+- `approval.service.ts`: **96.61% lines**, **93.97% funcs** (`test:approval-service --coverage`)
 - `ifrs9.routes.ts`: **100% lines**, **100% funcs** (`test:ifrs9-route-contract --coverage`)
-- `phase2:baseline:wave3`: passing end-to-end with expanded route + service suites
+- `tenants.routes.ts`: **95.75% lines**, **100% funcs** (`test:tenants-route-contract --coverage`)
+- `platform-admin.routes.ts`: **100% lines**, **100% funcs** (`test:platform-admin-route-contract --coverage`)
+- `phase2:baseline:wave4`: passing end-to-end with expanded route + service suites
 
 ## Risks and Mitigations
 

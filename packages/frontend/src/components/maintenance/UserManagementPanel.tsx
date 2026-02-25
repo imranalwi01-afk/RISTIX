@@ -59,6 +59,7 @@ import {
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/providers/AuthProvider';
+import { getErrorMessage } from '@/utils/error-message';
 
 // ✅ User Interface
 interface User {
@@ -161,24 +162,34 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
         limit: rowsPerPage,
         ...(searchTerm && { search: searchTerm }),
         ...(filterDepartment && { department: filterDepartment }),
-        ...(filterBankingAccess && { bankingAccess: filterBankingAccess }),
+        ...(filterBankingAccess && { bankingAccess: filterBankingAccess as 'CONVENTIONAL' | 'SYARIAH' | 'BOTH' }),
         ...(filterActive !== null && { isActive: filterActive })
       };
 
-      // Use centralized users API - Note: backend route is /user (singular)
-      const response = await api.client.get('/user', { params });
+      const response = await api.users.getAll(params);
+      const responsePayload =
+        response && typeof response === 'object' && !Array.isArray(response)
+          ? response
+          : {};
 
-      if (response.data.success) {
-        console.log('✅ Users loaded successfully:', {
-          count: response.data.data?.users?.length || 0,
-          total: response.data.pagination?.total || 0
-        });
-        setUsers(response.data.data?.users || []);
-        setTotalUsers(response.data.pagination?.total || 0);
-      } else {
-        throw new Error(response.data.message || 'Failed to load users');
+      if (responsePayload.success === false) {
+        throw new Error(responsePayload.message || 'Failed to load users');
       }
-    } catch (error) {
+
+      const userRows = responsePayload?.data?.users || responsePayload?.users || responsePayload?.data || [];
+      const normalizedUsers = Array.isArray(userRows) ? userRows : [];
+      const total = typeof responsePayload?.pagination?.total === 'number'
+        ? responsePayload.pagination.total
+        : normalizedUsers.length;
+
+      console.log('✅ Users loaded successfully:', {
+        count: normalizedUsers.length,
+        total
+      });
+
+      setUsers(normalizedUsers);
+      setTotalUsers(total);
+    } catch (error: any) {
       console.error('Error loading users:', error);
       setSnackbar({ open: true, message: error.message || 'Failed to load users', severity: 'error' });
     } finally {
@@ -191,34 +202,23 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
     try {
       console.log('➕ Creating user using centralized API service:', formData.email);
 
-      const response = await api.client.post('/user', formData);
-
-      const responseData = response?.data;
-      const hasSuccessFlag = responseData?.success === true;
-      const hasCreatedEntity = Boolean(responseData?.data?.id || responseData?.id);
-      const isCreatedStatus = response.status === 201;
-      const isApprovalPendingStatus = response.status === 202 || responseData?.approvalRequired === true;
-      const isCreateSuccess = hasSuccessFlag || hasCreatedEntity || isCreatedStatus || isApprovalPendingStatus;
-
-      if (!isCreateSuccess) {
-        throw new Error(responseData?.message || 'Failed to create user');
+      const response = await api.users.create(formData);
+      if (!response?.success) {
+        throw new Error(response?.message || 'Failed to create user');
       }
 
-      const successMessage = isApprovalPendingStatus
-        ? (responseData?.message || 'User create request submitted for approval')
-        : (responseData?.message || 'User created successfully');
+      const successMessage = response?.approvalRequired && response?.requestId
+        ? `${response.message} (Request: ${response.requestId})`
+        : (response?.message || 'User created successfully');
 
-      console.log('✅ User create request handled successfully:', responseData);
+      console.log('✅ User create request handled successfully:', response);
       setSnackbar({ open: true, message: successMessage, severity: 'success' });
       setOpenCreateDialog(false);
       resetForm();
-      loadUsers();
+      await loadUsers();
     } catch (error: any) {
       console.error('Error creating user:', error);
-      const message =
-        error?.response?.data?.message ||
-        error?.message ||
-        'Failed to create user';
+      const message = getErrorMessage(error, 'Failed to create user');
       setSnackbar({ open: true, message, severity: 'error' });
     }
   };
@@ -233,19 +233,21 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
 
       console.log('✏️ Updating user using centralized API service:', selectedUser.id, updateData);
 
-      const response = await api.client.put(`/user/${selectedUser.id}`, updateData);
-
-      if (response.data.success) {
-        console.log('✅ User updated successfully:', response.data.data);
-        setSnackbar({ open: true, message: 'User updated successfully', severity: 'success' });
+      const response = await api.users.update(selectedUser.id, updateData);
+      if (response?.success) {
+        const successMessage = response?.approvalRequired && response?.requestId
+          ? `${response.message} (Request: ${response.requestId})`
+          : (response?.message || 'User updated successfully');
+        console.log('✅ User updated successfully:', response);
+        setSnackbar({ open: true, message: successMessage, severity: 'success' });
         setOpenEditDialog(false);
         setSelectedUser(null);
         resetForm();
-        loadUsers();
+        await loadUsers();
       } else {
-        throw new Error(response.data.message || 'Failed to update user');
+        throw new Error(response?.message || 'Failed to update user');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating user:', error);
       setSnackbar({ open: true, message: error.message || 'Failed to update user', severity: 'error' });
     }
@@ -257,20 +259,24 @@ export default function UserManagementPanel({ embedded = false }: UserManagement
       const action = currentStatus ? 'disable' : 'enable';
       console.log(`🔄 ${action}ing user using centralized API service:`, userId);
 
-      const response = await api.client.post(`/user/${userId}/${action}`);
-
-      if (response.data.success) {
-        console.log(`✅ User ${action}d successfully:`, response.data.data);
+      const response = currentStatus
+        ? await api.users.disable(userId)
+        : await api.users.enable(userId);
+      if (response?.success) {
+        const successMessage = response?.approvalRequired && response?.requestId
+          ? `${response.message} (Request: ${response.requestId})`
+          : (response?.message || `User ${action}d successfully`);
+        console.log(`✅ User ${action}d successfully:`, response);
         setSnackbar({
           open: true,
-          message: `User ${action}d successfully`,
+          message: successMessage,
           severity: 'success'
         });
-        loadUsers();
+        await loadUsers();
       } else {
-        throw new Error(response.data.message || `Failed to ${action} user`);
+        throw new Error(response?.message || `Failed to ${action} user`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error toggling user status:', error);
       setSnackbar({ open: true, message: error.message || 'Failed to update user status', severity: 'error' });
     }

@@ -573,10 +573,11 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
     try {
       console.log(`🔗 Assigning role ${roleId} to user ${userId}`);
       const response = await api.roles.assignUser(roleId, userId);
-      const approvalRequired = Boolean(response?.approvalRequired || response?.data?.approvalRequired);
-      const requestId = response?.requestId || response?.data?.requestId;
+      const approvalRequired = Boolean(response?.approvalRequired);
+      const requestId = response?.requestId;
       if (approvalRequired) {
-        setNotice(`Role assignment submitted for approval${requestId ? ` (Request: ${requestId})` : ''}`);
+        const message = response?.message || 'Role assignment submitted for approval';
+        setNotice(`${message}${requestId ? ` (Request: ${requestId})` : ''}`);
       }
       onAssignmentChange?.();
       await fetchData();
@@ -590,10 +591,11 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
     try {
       console.log(`❌ Removing role ${roleId} from user ${userId}`);
       const response = await api.roles.removeUser(roleId, userId);
-      const approvalRequired = Boolean(response?.approvalRequired || response?.data?.approvalRequired);
-      const requestId = response?.requestId || response?.data?.requestId;
+      const approvalRequired = Boolean(response?.approvalRequired);
+      const requestId = response?.requestId;
       if (approvalRequired) {
-        setNotice(`Role removal submitted for approval${requestId ? ` (Request: ${requestId})` : ''}`);
+        const message = response?.message || 'Role removal submitted for approval';
+        setNotice(`${message}${requestId ? ` (Request: ${requestId})` : ''}`);
       }
       onAssignmentChange?.();
       await fetchData();
@@ -617,7 +619,7 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
       for (const roleId of bulkDialog.selectedRoles) {
         for (const userId of bulkDialog.selectedUsers) {
           const response = await api.roles.assignUser(roleId, userId);
-          if (response?.approvalRequired || response?.data?.approvalRequired) {
+          if (response?.approvalRequired) {
             approvalCount += 1;
           }
         }
@@ -649,7 +651,7 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
       for (const roleId of bulkDialog.selectedRoles) {
         for (const userId of bulkDialog.selectedUsers) {
           const response = await api.roles.removeUser(roleId, userId);
-          if (response?.approvalRequired || response?.data?.approvalRequired) {
+          if (response?.approvalRequired) {
             approvalCount += 1;
           }
         }
@@ -724,14 +726,14 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
 
       for (const roleId of rolesToAssign) {
         const response = await api.roles.assignUser(roleId, user.id);
-        if (response?.approvalRequired || response?.data?.approvalRequired) {
+        if (response?.approvalRequired) {
           setNotice('User role assignment change submitted for approval.');
         }
       }
 
       for (const roleId of rolesToRemove) {
         const response = await api.roles.removeUser(roleId, user.id);
-        if (response?.approvalRequired || response?.data?.approvalRequired) {
+        if (response?.approvalRequired) {
           setNotice('User role assignment change submitted for approval.');
         }
       }
@@ -762,14 +764,14 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
 
       for (const userId of usersToAssign) {
         const response = await api.roles.assignUser(role.id, userId);
-        if (response?.approvalRequired || response?.data?.approvalRequired) {
+        if (response?.approvalRequired) {
           setNotice('Role user assignment change submitted for approval.');
         }
       }
 
       for (const userId of usersToRemove) {
         const response = await api.roles.removeUser(role.id, userId);
-        if (response?.approvalRequired || response?.data?.approvalRequired) {
+        if (response?.approvalRequired) {
           setNotice('Role user assignment change submitted for approval.');
         }
       }

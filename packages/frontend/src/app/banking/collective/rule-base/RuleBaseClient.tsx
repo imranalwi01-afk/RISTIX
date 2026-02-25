@@ -530,7 +530,7 @@ export default function RuleBaseSettingPage() {
         throw new Error(result.error || 'Failed to load rule base settings');
       }
 
-    } catch (error: any) {
+    } catch (error) {
       console.error('❌ Failed to load rule base settings:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       setError(`Failed to load rule base settings: ${errorMessage}`);
@@ -650,7 +650,7 @@ export default function RuleBaseSettingPage() {
       await loadHeaders();
       await loadPendingApprovals();
 
-    } catch (error: any) {
+    } catch (error) {
       console.error('❌ Failed to delete rule header:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       setError(`Failed to delete rule header: ${errorMessage}`);
@@ -702,7 +702,7 @@ export default function RuleBaseSettingPage() {
       await loadHeaders();
       await loadPendingApprovals();
 
-    } catch (error: any) {
+    } catch (error) {
       console.error('❌ Failed to save rule header:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       setError(`Failed to save rule header: ${errorMessage}`);
@@ -764,7 +764,7 @@ export default function RuleBaseSettingPage() {
       await loadHeaders();
       await loadPendingApprovals();
 
-    } catch (error: any) {
+    } catch (error) {
       console.error('❌ Failed to delete rule detail:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       setError(`Failed to delete rule detail: ${errorMessage}`);
@@ -826,7 +826,7 @@ export default function RuleBaseSettingPage() {
       await loadHeaders();
       await loadPendingApprovals();
 
-    } catch (error: any) {
+    } catch (error) {
       console.error('❌ Failed to save rule detail:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       setError(`Failed to save rule detail: ${errorMessage}`);

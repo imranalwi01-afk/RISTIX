@@ -43,6 +43,7 @@ import { SegmentationDetail } from '../../../../components/banking/collective/se
 import { bankingAPI } from '@/services/api';
 import { ApprovalNotification, ApprovalStatusBadge } from '@/components/approval';
 import { usePermission } from '@/hooks/usePermission';
+import { getErrorMessage } from '@/utils/error-message';
 
 // ============================================================================
 // TYPES
@@ -136,7 +137,7 @@ export default function SegmentationClient() {
         setHeaders([]);
         setTotalCount(0);
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error loading segmentation headers:', err);
       setError('Failed to load segmentation data. Please try again.');
     } finally {
@@ -313,10 +314,10 @@ export default function SegmentationClient() {
 
       loadHeaders();
       loadPendingApprovals();
-    } catch (err: any) {
+    } catch (err) {
       setSnackbar({
         open: true,
-        message: err.response?.data?.message || 'Delete failed',
+        message: getErrorMessage(err, 'Delete failed'),
         type: 'error'
       });
     } finally {
@@ -379,10 +380,10 @@ export default function SegmentationClient() {
       setDetailOpen(false);
       loadHeaders();
       loadPendingApprovals();
-    } catch (err: any) {
+    } catch (err) {
       setSnackbar({
         open: true,
-        message: err.response?.data?.message || 'Save failed',
+        message: getErrorMessage(err, 'Save failed'),
         type: 'error'
       });
     } finally {

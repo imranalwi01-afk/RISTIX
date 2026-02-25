@@ -671,6 +671,75 @@ rbacRoutes.openapi(
 )
 
 /**
+ * POST /roles/:roleId/toggle - Toggle role active status (approval flow)
+ */
+rbacRoutes.openapi(
+    createRoute({
+        method: 'post',
+        path: '/{roleId}/toggle',
+        tags: ['RBAC'],
+        summary: 'Toggle Role Active Status',
+        security: [{ BearerAuth: [] }],
+        request: {
+            params: z.object({
+                roleId: z.string().openapi({ param: { name: 'roleId', in: 'path' } }),
+            }),
+        },
+        responses: {
+            202: {
+                content: {
+                    'application/json': {
+                        schema: z.object({
+                            success: z.boolean(),
+                            approvalRequired: z.boolean(),
+                            requestId: z.string(),
+                            message: z.string(),
+                        }),
+                    },
+                },
+                description: 'Role status toggle submitted for approval',
+            },
+        },
+    }),
+    async (c) => {
+        try {
+            const { roleId } = c.req.valid('param')
+            const tenantId = c.get('tenantId')!
+            const userId = c.get('userId') || 'system'
+            const role = await Effect.runPromise(rbacService.getRoleById(roleId, tenantId))
+            const nextIsActive = !Boolean(role.isActive)
+
+            const request = await createStrictApprovalRequest({
+                tenantId,
+                userId,
+                entityType: 'role',
+                entityId: roleId,
+                operation: 'update',
+                title: `${nextIsActive ? 'Enable' : 'Disable'} role: ${role.roleName}`,
+                description: `Role status update requested for ${role.roleName}.`,
+                payload: {
+                    id: roleId,
+                    roleName: role.roleName,
+                    isActive: nextIsActive,
+                    tenantId,
+                },
+                impactLevel: 'high',
+            })
+
+            return c.json(
+                buildApprovalAcceptedResponse(
+                    request.id,
+                    'Role status update submitted for approval.'
+                ),
+                202
+            )
+        } catch (error) {
+            return runEffect(c, Effect.fail(error as any))
+        }
+    }
+)
+
+/**
  * GET /roles/:roleId/permissions - Get role permissions
  */
 rbacRoutes.openapi(
@@ -709,6 +778,79 @@ rbacRoutes.openapi(
                 roleId: role.id,
                 roleName: role.roleName,
                 permissions: role.permissions,
+            }))
+        )
+
+        return runEffect(c, effect)
+    }
+)
+
+/**
+ * GET /roles/:roleId/users - Get users assigned to role
+ */
+rbacRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/{roleId}/users',
+        tags: ['RBAC'],
+        summary: 'Get Users for Role',
+        security: [{ BearerAuth: [] }],
+        request: {
+            params: z.object({
+                roleId: z.string().openapi({ param: { name: 'roleId', in: 'path' } }),
+            }),
+        },
+        responses: {
+            200: {
+                description: 'Users assigned to role',
+                content: {
+                    'application/json': {
+                        schema: z.object({
+                            success: z.boolean(),
+                            data: z.object({
+                                roleId: z.string(),
+                                users: z.array(z.object({
+                                    id: z.string(),
+                                    userId: z.string(),
+                                    fullName: z.string().nullable(),
+                                    username: z.string().nullable(),
+                                    email: z.string().nullable(),
+                                    assignedAt: z.string().nullable(),
+                                    validFrom: z.string().nullable(),
+                                    validUntil: z.string().nullable(),
+                                    isTemporary: z.boolean(),
+                                    isActive: z.boolean(),
+                                })),
+                            }),
+                        }),
+                    },
+                },
+            },
+        },
+    }),
+    async (c) => {
+        const { roleId } = c.req.valid('param')
+        const tenantId = c.get('tenantId')!
+
+        const effect = pipe(
+            rbacService.getRoleUsers(roleId, tenantId),
+            Effect.map((rows: any[]) => ({
+                success: true,
+                data: {
+                    roleId,
+                    users: rows.map((row) => ({
+                        id: row.userId,
+                        userId: row.userId,
+                        fullName: row.user?.fullName ?? null,
+                        username: row.user?.username ?? null,
+                        email: row.user?.email ?? null,
+                        assignedAt: row.assignedAt ? row.assignedAt.toISOString() : null,
+                        validFrom: row.validFrom ? row.validFrom.toISOString() : null,
+                        validUntil: row.validUntil ? row.validUntil.toISOString() : null,
+                        isTemporary: Boolean(row.isTemporary),
+                        isActive: Boolean(row.isActive),
+                    })),
+                },
             }))
         )
 

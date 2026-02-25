@@ -338,7 +338,7 @@ export default function ApplicationSettingPage() {
           setData(appParams.sort((a: any, b: any) => new Date(b.created_date || b.CreatedDate).getTime() - new Date(a.created_date || a.CreatedDate).getTime()));
         }
       }
-    } catch (error: any) {
+    } catch (error) {
       setError(`Failed to load data: ${handleAPIError(error).message}`);
     } finally {
       setLoading(false);
@@ -396,7 +396,7 @@ export default function ApplicationSettingPage() {
         setSuccess('Deleted successfully');
       }
       await loadData();
-    } catch (e: any) {
+    } catch (e) {
       setError(handleAPIError(e).message);
     } finally {
       setLoading(false);
@@ -437,7 +437,7 @@ export default function ApplicationSettingPage() {
       setCreateModalOpen(false);
       setEditModalOpen(false);
       loadData();
-    } catch (e: any) {
+    } catch (e) {
       setError(handleAPIError(e).message);
     } finally {
       setLoading(false);
@@ -470,7 +470,7 @@ export default function ApplicationSettingPage() {
       setDetailRefreshTrigger(prev => prev + 1); // For other panels if needed
       if (selectedRecord) loadDetailData(selectedRecord.CommonCode); // For View Dialog
 
-    } catch (e: any) {
+    } catch (e) {
       setError(handleAPIError(e).message);
     }
   }
@@ -533,7 +533,7 @@ export default function ApplicationSettingPage() {
       // Force refresh of the grid - simpler to just let user re-expand or auto-refresh if we tracked expanded state
       // For now, the detail panel itself fetches on mount/update so we are good if we trigger a re-render or if the user collapses/expands
       loadData(); // This refreshes the parent, but details are fetched by the panel
-    } catch (e: any) {
+    } catch (e) {
       setError(handleAPIError(e).message);
     } finally {
       setDetailLoading(false);
@@ -879,7 +879,7 @@ export default function ApplicationSettingPage() {
                                       await api.applicationParameter.details.delete(detail.ID.toString());
                                       await loadDetailData(selectedRecord?.CommonCode || '');
                                       setSuccess('Parameter detail deleted successfully');
-                                    } catch (error: any) {
+                                    } catch (error) {
                                       console.error('❌ Failed to delete detail:', error);
                                       setError(`Failed to delete detail: ${error instanceof Error ? error.message : 'Unknown error'}`);
                                     } finally {

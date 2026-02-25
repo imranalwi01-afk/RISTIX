@@ -10,6 +10,7 @@
 
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { menuApi } from '../../services/api/menu.api';
+import { getErrorMessage } from '@/utils/error-message';
 
 export interface MenuItem {
   id: string;
@@ -103,11 +104,7 @@ export const fetchUserMenu = createAsyncThunk(
       const response = await menuApi.getUserMenu();
       return response.data;
     } catch (error: any) {
-      return rejectWithValue(
-        error.response?.data?.message || 
-        error.message || 
-        'Failed to fetch menu'
-      );
+      return rejectWithValue(getErrorMessage(error, 'Failed to fetch menu'));
     }
   }
 );
@@ -122,11 +119,7 @@ export const fetchBreadcrumbs = createAsyncThunk(
       const response = await menuApi.getBreadcrumbs(path);
       return response.data;
     } catch (error: any) {
-      return rejectWithValue(
-        error.response?.data?.message || 
-        error.message || 
-        'Failed to fetch breadcrumbs'
-      );
+      return rejectWithValue(getErrorMessage(error, 'Failed to fetch breadcrumbs'));
     }
   }
 );

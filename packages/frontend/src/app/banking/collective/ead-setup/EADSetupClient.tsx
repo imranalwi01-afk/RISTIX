@@ -118,7 +118,7 @@ export default function EADSetupPage() {
       });
 
       setEadConfigs(enrichedConfigs);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Failed to load EAD data:', err);
       setError('Failed to load EAD configurations.');
     } finally {
@@ -198,7 +198,7 @@ export default function EADSetupPage() {
       setIsDialogOpen(false);
       setFormData({});
       setSelectedConfig(null);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Save failed:', err);
       setError('Failed to save configuration.');
     } finally {
@@ -222,7 +222,7 @@ export default function EADSetupPage() {
       }
       await loadData();
       await loadPendingApprovals();
-    } catch (err: any) {
+    } catch (err) {
       console.error('Delete failed:', err);
       setError('Failed to delete configuration.');
     } finally {

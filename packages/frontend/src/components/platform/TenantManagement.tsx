@@ -43,6 +43,7 @@ import {
 import { format } from 'date-fns';
 import { tenantsAPI } from '@/services/api';
 import { exportToCsv } from '@/utils/export-csv';
+import { getErrorMessage } from '@/utils/error-message';
 
 // Types
 interface Tenant {
@@ -279,7 +280,7 @@ const TenantManagement = () => {
             fetchTenants();
         } catch (err: any) {
             console.error('Form submission failed:', err);
-            const msg = err.response?.data?.message || err.message || 'Operation failed';
+            const msg = getErrorMessage(err, 'Operation failed');
             setError(`Failed to save tenant: ${msg}`);
         } finally {
             setFormLoading(false);

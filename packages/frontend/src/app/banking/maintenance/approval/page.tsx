@@ -10,7 +10,6 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import type { AxiosError } from 'axios';
 import {
   Box,
   Typography,
@@ -70,6 +69,7 @@ import { GridColDef } from '@mui/x-data-grid';
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 import { bankingAPI } from '@/services/api';
 import { useAuth } from '@/providers/AuthProvider';
+import { getErrorMessage } from '@/utils/error-message';
 
 // Types and interfaces
 interface ApprovalRequest {
@@ -284,7 +284,7 @@ export default function ApprovalManagementPage() {
       calculateStatistics(requests);
     } catch (error) {
       console.error('Error loading approval requests:', error);
-      showSnackbar(`Failed to load approval requests: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+      showSnackbar(getErrorMessage(error, 'Failed to load approval requests.'), 'error');
       // Set empty data on error
       setApprovalRequests([]);
       setFilteredRequests([]);
@@ -370,7 +370,7 @@ export default function ApprovalManagementPage() {
       setApprovalMatrices(mappedMatrices);
     } catch (error) {
       console.error('Error loading approval matrices:', error);
-      showSnackbar(`Failed to load approval matrices: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+      showSnackbar(getErrorMessage(error, 'Failed to load approval matrices.'), 'error');
       setApprovalMatrices([]);
     } finally {
       setMatricesLoading(false);
@@ -442,7 +442,7 @@ export default function ApprovalManagementPage() {
       setApprovalRouting(mapped);
     } catch (error) {
       console.error('Error loading approval routing:', error);
-      showSnackbar(`Failed to load approval routing: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+      showSnackbar(getErrorMessage(error, 'Failed to load approval routing.'), 'error');
       setApprovalRouting([]);
     } finally {
       setRoutingLoading(false);
@@ -492,12 +492,30 @@ export default function ApprovalManagementPage() {
     setSnackbar({ open: true, message, severity });
   };
 
+  const getResponseStatus = (error: unknown): number | undefined => {
+    if (typeof error !== 'object' || error === null) {
+      return undefined;
+    }
+    const response = (error as { response?: { status?: unknown } }).response;
+    return typeof response?.status === 'number' ? response.status : undefined;
+  };
+
+  const getResponsePayload = (error: unknown): Record<string, unknown> | null => {
+    if (typeof error !== 'object' || error === null) {
+      return null;
+    }
+    const responseData = (error as { response?: { data?: unknown } }).response?.data;
+    if (typeof responseData !== 'object' || responseData === null) {
+      return null;
+    }
+    return responseData as Record<string, unknown>;
+  };
+
   const resolveApprovalActionError = (error: unknown): { message: string; severity: 'error' | 'warning' } => {
-    const axiosError = error as AxiosError<any>;
-    const status = axiosError?.response?.status;
-    const payload = axiosError?.response?.data as any;
-    const code = String(payload?.code || '').toUpperCase();
-    const message = String(payload?.error || payload?.message || axiosError?.message || 'Failed to process approval action');
+    const status = getResponseStatus(error);
+    const payload = getResponsePayload(error);
+    const code = typeof payload?.code === 'string' ? payload.code.toUpperCase() : '';
+    const message = getErrorMessage(error, 'Failed to process approval action');
 
     if (status === 409 && code === 'REQUEST_NOT_PENDING') {
       if (message.toLowerCase().includes('already approved')) {

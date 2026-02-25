@@ -138,7 +138,7 @@ export default function LGDSetupPage() {
       });
 
       setLgdConfigs(enrichedConfigs);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Failed to load LGD data:', err);
       setError('Failed to load LGD configurations.');
     } finally {
@@ -234,7 +234,7 @@ export default function LGDSetupPage() {
       setIsDialogOpen(false);
       setFormData({});
       setSelectedConfig(null);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Save failed:', err);
       setError('Failed to save configuration.');
     } finally {
@@ -260,7 +260,7 @@ export default function LGDSetupPage() {
 
       await loadData();
       await loadPendingApprovals();
-    } catch (err: any) {
+    } catch (err) {
       console.error('Delete failed:', err);
       setError('Failed to delete configuration.');
     } finally {

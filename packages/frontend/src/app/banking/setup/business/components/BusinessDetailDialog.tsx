@@ -95,7 +95,7 @@ export function BusinessDetailDialog({ open, onClose, parameter }: BusinessDetai
                 // Fallback if data is directly returned or wrapped differently
                 setDetails(Array.isArray(response) ? response : (response.data || []));
             }
-        } catch (err: any) {
+        } catch (err) {
             console.error('Failed to load business details:', err);
             setError(`Failed to load details: ${handleAPIError(err).message}`);
         } finally {
@@ -148,7 +148,7 @@ export function BusinessDetailDialog({ open, onClose, parameter }: BusinessDetai
             await bankingAPI.businessSetup.deleteDetail(detail.id);
             setSuccess('Detail deleted successfully');
             await loadDetails();
-        } catch (err: any) {
+        } catch (err) {
             setError(`Failed to delete detail: ${handleAPIError(err).message}`);
         } finally {
             setLoading(false);
@@ -196,7 +196,7 @@ export function BusinessDetailDialog({ open, onClose, parameter }: BusinessDetai
             setIsEditing(false);
             await loadDetails();
 
-        } catch (err: any) {
+        } catch (err) {
             console.error('Save failed:', err);
             setError(`Failed to save: ${handleAPIError(err).message}`);
         } finally {

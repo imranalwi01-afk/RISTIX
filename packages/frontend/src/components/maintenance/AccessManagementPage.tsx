@@ -707,10 +707,11 @@ export default function AccessManagementPage() {
   };
 
   const setApprovalNoticeFromResponse = (response: any, fallbackMessage: string) => {
-    const approvalRequired = Boolean(response?.approvalRequired || response?.data?.approvalRequired);
-    const requestId = response?.requestId || response?.data?.requestId;
+    const approvalRequired = Boolean(response?.approvalRequired);
+    const requestId = response?.requestId;
     if (approvalRequired) {
-      setNotice(`${fallbackMessage}${requestId ? ` (Request: ${requestId})` : ''}`);
+      const message = response?.message || fallbackMessage;
+      setNotice(`${message}${requestId ? ` (Request: ${requestId})` : ''}`);
       return true;
     }
     return false;

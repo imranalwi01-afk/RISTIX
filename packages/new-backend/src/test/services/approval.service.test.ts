@@ -7,6 +7,8 @@ const state = {
   findMatrixByEntityTypeResult: null as any,
   findMatrixByEntityTypeError: null as Error | null,
   findMatricesByTenantResult: [] as any[],
+  createMatrixResult: { id: 'matrix-created' } as any,
+  createMatrixError: null as Error | null,
   createRequestResult: {
     id: 'approval-1',
     tenantId: 'tenant-approval-1',
@@ -33,6 +35,7 @@ const state = {
   createActionCalls: [] as unknown[][],
   updateRequestCalls: [] as unknown[][],
   createRequestCalls: [] as unknown[][],
+  createMatrixCalls: [] as unknown[][],
   userRolesFindByUserResult: [] as any[],
   routingAssignments: [] as any[],
   notificationCreateCalls: [] as any[],
@@ -42,6 +45,30 @@ const state = {
   socketError: null as Error | null,
   filteredRecipients: null as string[] | null,
   derivedCategory: 'approval',
+  userServiceCalls: {
+    create: [] as any[],
+    update: [] as any[],
+    delete: [] as any[],
+    enable: [] as any[],
+    disable: [] as any[],
+  },
+  rbacServiceCalls: {
+    createRole: [] as any[],
+    updateRole: [] as any[],
+    deleteRole: [] as any[],
+    assignRole: [] as any[],
+    removeRole: [] as any[],
+    updateRolePermissions: [] as any[],
+  },
+  parametersServiceCalls: {
+    create: [] as any[],
+    update: [] as any[],
+    delete: [] as any[],
+  },
+  availablePermissions: [
+    { id: 'perm-approval', code: 'approval.requests.approve' },
+    { id: 'perm-users-create', code: 'users.create' },
+  ] as Array<{ id: string; code: string }>,
   fallbackRouting: [
     {
       level: 1,
@@ -71,6 +98,13 @@ mock.module('@/repositories/approval.repository', () => ({
       return state.findMatrixByEntityTypeResult
     },
     findMatricesByTenant: async () => state.findMatricesByTenantResult,
+    createMatrix: async (...args: unknown[]) => {
+      if (state.createMatrixError) {
+        throw state.createMatrixError
+      }
+      state.createMatrixCalls.push(args)
+      return state.createMatrixResult
+    },
     createRequest: async (...args: unknown[]) => {
       state.createRequestCalls.push(args)
       return state.createRequestResult
@@ -162,6 +196,74 @@ mock.module('@/lib/approval-helpers', () => ({
   buildDefaultFourEyesRouting: () => state.fallbackRouting,
 }))
 
+mock.module('@/services/users.service', () => ({
+  createUser: (payload: any) => {
+    state.userServiceCalls.create.push(payload)
+    return Effect.succeed({ id: payload?.id || 'user-created' })
+  },
+  updateUser: (userId: string, payload: any) => {
+    state.userServiceCalls.update.push({ userId, payload })
+    return Effect.succeed({ id: userId })
+  },
+  deleteUser: (userId: string, tenantId: string) => {
+    state.userServiceCalls.delete.push({ userId, tenantId })
+    return Effect.succeed(undefined)
+  },
+  enableUser: (userId: string, tenantId: string) => {
+    state.userServiceCalls.enable.push({ userId, tenantId })
+    return Effect.succeed(undefined)
+  },
+  disableUser: (userId: string, tenantId: string) => {
+    state.userServiceCalls.disable.push({ userId, tenantId })
+    return Effect.succeed(undefined)
+  },
+}))
+
+mock.module('@/services/rbac.service', () => ({
+  createRole: (payload: any) => {
+    state.rbacServiceCalls.createRole.push(payload)
+    return Effect.succeed({ id: payload?.id || 'role-created' })
+  },
+  updateRole: (roleId: string, payload: any) => {
+    state.rbacServiceCalls.updateRole.push({ roleId, payload })
+    return Effect.succeed({ id: roleId })
+  },
+  deleteRole: (roleId: string, tenantId: string) => {
+    state.rbacServiceCalls.deleteRole.push({ roleId, tenantId })
+    return Effect.succeed(undefined)
+  },
+  assignRole: (payload: any) => {
+    state.rbacServiceCalls.assignRole.push(payload)
+    return Effect.succeed(undefined)
+  },
+  removeRole: (userId: string, roleId: string, tenantId: string) => {
+    state.rbacServiceCalls.removeRole.push({ userId, roleId, tenantId })
+    return Effect.succeed(undefined)
+  },
+  getAvailablePermissions: (_tenantId: string) => Effect.succeed(state.availablePermissions),
+  updateRolePermissions: (roleId: string, permissionIds: string[], tenantId: string) => {
+    state.rbacServiceCalls.updateRolePermissions.push({ roleId, permissionIds, tenantId })
+    return Effect.succeed(undefined)
+  },
+}))
+
+mock.module('@/services/parameters.service', () => ({
+  ParametersService: {
+    createAppSetting: (payload: any, scope: string) => {
+      state.parametersServiceCalls.create.push({ payload, scope })
+      return Effect.succeed(undefined)
+    },
+    updateAppSetting: (paramCode: string, payload: any, scope: string) => {
+      state.parametersServiceCalls.update.push({ paramCode, payload, scope })
+      return Effect.succeed(undefined)
+    },
+    deleteAppSetting: (paramCode: string) => {
+      state.parametersServiceCalls.delete.push({ paramCode })
+      return Effect.succeed(undefined)
+    },
+  },
+}))
+
 const approvalService = await import('@/services/approval.service')
 
 describe('approval.service behavior', () => {
@@ -171,6 +273,8 @@ describe('approval.service behavior', () => {
     state.findMatrixByEntityTypeResult = null
     state.findMatrixByEntityTypeError = null
     state.findMatricesByTenantResult = []
+    state.createMatrixResult = { id: 'matrix-created' }
+    state.createMatrixError = null
     state.createRequestResult = {
       id: 'approval-1',
       tenantId: 'tenant-approval-1',
@@ -197,6 +301,7 @@ describe('approval.service behavior', () => {
     state.createActionCalls = []
     state.updateRequestCalls = []
     state.createRequestCalls = []
+    state.createMatrixCalls = []
     state.userRolesFindByUserResult = []
     state.routingAssignments = []
     state.notificationCreateCalls = []
@@ -206,6 +311,30 @@ describe('approval.service behavior', () => {
     state.socketError = null
     state.filteredRecipients = null
     state.derivedCategory = 'approval'
+    state.userServiceCalls = {
+      create: [],
+      update: [],
+      delete: [],
+      enable: [],
+      disable: [],
+    }
+    state.rbacServiceCalls = {
+      createRole: [],
+      updateRole: [],
+      deleteRole: [],
+      assignRole: [],
+      removeRole: [],
+      updateRolePermissions: [],
+    }
+    state.parametersServiceCalls = {
+      create: [],
+      update: [],
+      delete: [],
+    }
+    state.availablePermissions = [
+      { id: 'perm-approval', code: 'approval.requests.approve' },
+      { id: 'perm-users-create', code: 'users.create' },
+    ]
     state.fallbackRouting = [
       {
         level: 1,
@@ -218,6 +347,23 @@ describe('approval.service behavior', () => {
         timeoutHours: 24,
       },
     ]
+  })
+
+  const makePendingApprovalRequest = (overrides: Record<string, any> = {}) => ({
+    id: 'approval-exec',
+    status: 'pending',
+    requestedBy: 'maker-1',
+    tenantId: 'tenant-approval-1',
+    approvalsRequired: 1,
+    approvalsReceived: 0,
+    currentLevel: 1,
+    actions: [],
+    requestData: {
+      operation: 'create',
+      entityType: 'user',
+      data: {},
+    },
+    ...overrides,
   })
 
   test('createApprovalRequest blocks duplicate pending requests with ConflictError', async () => {
@@ -1175,5 +1321,468 @@ describe('approval.service behavior', () => {
 
     expect(exit._tag).toBe('Failure')
     expect(String(exit.cause)).toContain('DatabaseError')
+  })
+
+  test('matrix query helpers return repository-backed data and map create errors', async () => {
+    state.findMatrixByEntityTypeResult = { id: 'matrix-lookup' }
+    state.findMatricesByTenantResult = [{ id: 'matrix-a' }, { id: 'matrix-b' }]
+    state.createMatrixResult = { id: 'matrix-created' }
+
+    const byEntity = await Effect.runPromise(
+      approvalService.getApprovalMatrix('tenant-approval-1', 'user', 'conventional')
+    )
+    const all = await Effect.runPromise(
+      approvalService.getApprovalMatrices('tenant-approval-1')
+    )
+    const created = await Effect.runPromise(
+      approvalService.createApprovalMatrix(
+        { tenantId: 'tenant-approval-1', entityType: 'user' } as any,
+        [{ level: 1, name: 'Checker', requiredCount: 1 } as any]
+      )
+    )
+
+    expect(byEntity.id).toBe('matrix-lookup')
+    expect(all).toHaveLength(2)
+    expect(created.id).toBe('matrix-created')
+    expect(state.createMatrixCalls).toHaveLength(1)
+
+    state.createMatrixError = new Error('matrix insert failed')
+    const createExit = await Effect.runPromiseExit(
+      approvalService.createApprovalMatrix(
+        { tenantId: 'tenant-approval-1', entityType: 'user' } as any,
+        [{ level: 1, name: 'Checker', requiredCount: 1 } as any]
+      )
+    )
+
+    expect(createExit._tag).toBe('Failure')
+    expect(String(createExit.cause)).toContain('DatabaseError')
+  })
+
+  test('processApprovalAction executes user and user_status branches', async () => {
+    state.findRequestByIdResult = makePendingApprovalRequest({
+      id: 'approval-user-create',
+      requestData: {
+        operation: 'create',
+        entityType: 'user',
+        data: { username: 'maker_a' },
+      },
+    })
+    await Effect.runPromise(
+      approvalService.processApprovalAction({
+        requestId: 'approval-user-create',
+        approverId: 'checker-1',
+        action: 'approve',
+      })
+    )
+
+    state.findRequestByIdResult = makePendingApprovalRequest({
+      id: 'approval-user-update',
+      entityId: 'user-updated-1',
+      requestData: {
+        operation: 'update',
+        entityType: 'user',
+        data: { fullName: 'Updated Name' },
+      },
+    })
+    await Effect.runPromise(
+      approvalService.processApprovalAction({
+        requestId: 'approval-user-update',
+        approverId: 'checker-1',
+        action: 'approve',
+      })
+    )
+
+    state.findRequestByIdResult = makePendingApprovalRequest({
+      id: 'approval-user-delete',
+      requestData: {
+        operation: 'delete',
+        entityType: 'user',
+        data: { id: 'user-delete-1' },
+      },
+    })
+    await Effect.runPromise(
+      approvalService.processApprovalAction({
+        requestId: 'approval-user-delete',
+        approverId: 'checker-1',
+        action: 'approve',
+      })
+    )
+
+    state.findRequestByIdResult = makePendingApprovalRequest({
+      id: 'approval-user-status-enable',
+      requestData: {
+        operation: 'update',
+        entityType: 'user_status',
+        data: { id: 'user-enable-1', isActive: true },
+      },
+    })
+    await Effect.runPromise(
+      approvalService.processApprovalAction({
+        requestId: 'approval-user-status-enable',
+        approverId: 'checker-1',
+        action: 'approve',
+      })
+    )
+
+    state.findRequestByIdResult = makePendingApprovalRequest({
+      id: 'approval-user-status-disable',
+      requestData: {
+        operation: 'update',
+        entityType: 'user_status',
+        data: { id: 'user-disable-1', isActive: false },
+      },
+    })
+    await Effect.runPromise(
+      approvalService.processApprovalAction({
+        requestId: 'approval-user-status-disable',
+        approverId: 'checker-1',
+        action: 'approve',
+      })
+    )
+
+    expect(state.userServiceCalls.create).toHaveLength(1)
+    expect(state.userServiceCalls.update).toHaveLength(1)
+    expect(state.userServiceCalls.update[0].userId).toBe('user-updated-1')
+    expect(state.userServiceCalls.delete).toHaveLength(1)
+    expect(state.userServiceCalls.enable).toHaveLength(1)
+    expect(state.userServiceCalls.disable).toHaveLength(1)
+  })
+
+  test('processApprovalAction executes role and role_assignment branches', async () => {
+    state.findRequestByIdResult = makePendingApprovalRequest({
+      id: 'approval-role-create',
+      requestData: {
+        operation: 'create',
+        entityType: 'role',
+        data: { roleName: 'Analyst' },
+      },
+    })
+    await Effect.runPromise(
+      approvalService.processApprovalAction({
+        requestId: 'approval-role-create',
+        approverId: 'checker-1',
+        action: 'approve',
+      })
+    )
+
+    state.findRequestByIdResult = makePendingApprovalRequest({
+      id: 'approval-role-update',
+      requestData: {
+        operation: 'update',
+        entityType: 'role',
+        data: { id: 'role-update-1', roleName: 'Senior Analyst' },
+      },
+    })
+    await Effect.runPromise(
+      approvalService.processApprovalAction({
+        requestId: 'approval-role-update',
+        approverId: 'checker-1',
+        action: 'approve',
+      })
+    )
+
+    state.findRequestByIdResult = makePendingApprovalRequest({
+      id: 'approval-role-delete',
+      requestData: {
+        operation: 'delete',
+        entityType: 'role',
+        data: { id: 'role-delete-1' },
+      },
+    })
+    await Effect.runPromise(
+      approvalService.processApprovalAction({
+        requestId: 'approval-role-delete',
+        approverId: 'checker-1',
+        action: 'approve',
+      })
+    )
+
+    state.findRequestByIdResult = makePendingApprovalRequest({
+      id: 'approval-role-assignment-create',
+      requestData: {
+        operation: 'create',
+        entityType: 'role_assignment',
+        data: {
+          userId: 'user-assign-1',
+          roleId: 'role-assign-1',
+          assignedBy: 'checker-1',
+          validFrom: '2026-02-25T00:00:00.000Z',
+          validUntil: '2026-03-25T00:00:00.000Z',
+          isTemporary: true,
+          temporaryReason: 'Project assignment',
+        },
+      },
+    })
+    await Effect.runPromise(
+      approvalService.processApprovalAction({
+        requestId: 'approval-role-assignment-create',
+        approverId: 'checker-1',
+        action: 'approve',
+      })
+    )
+
+    state.findRequestByIdResult = makePendingApprovalRequest({
+      id: 'approval-role-assignment-delete',
+      requestData: {
+        operation: 'delete',
+        entityType: 'role_assignment',
+        data: { userId: 'user-assign-1', roleId: 'role-assign-1' },
+      },
+    })
+    await Effect.runPromise(
+      approvalService.processApprovalAction({
+        requestId: 'approval-role-assignment-delete',
+        approverId: 'checker-1',
+        action: 'approve',
+      })
+    )
+
+    const beforeUnsupported = state.rbacServiceCalls.assignRole.length + state.rbacServiceCalls.removeRole.length
+    state.findRequestByIdResult = makePendingApprovalRequest({
+      id: 'approval-role-assignment-update-unsupported',
+      requestData: {
+        operation: 'update',
+        entityType: 'role_assignment',
+        data: { userId: 'user-assign-2', roleId: 'role-assign-2' },
+      },
+    })
+    await Effect.runPromise(
+      approvalService.processApprovalAction({
+        requestId: 'approval-role-assignment-update-unsupported',
+        approverId: 'checker-1',
+        action: 'approve',
+      })
+    )
+
+    expect(state.rbacServiceCalls.createRole).toHaveLength(1)
+    expect(state.rbacServiceCalls.updateRole).toHaveLength(1)
+    expect(state.rbacServiceCalls.deleteRole).toHaveLength(1)
+    expect(state.rbacServiceCalls.assignRole).toHaveLength(1)
+    expect(state.rbacServiceCalls.removeRole).toHaveLength(1)
+    expect(state.rbacServiceCalls.assignRole[0].validFrom instanceof Date).toBe(true)
+    expect(state.rbacServiceCalls.assignRole.length + state.rbacServiceCalls.removeRole.length).toBe(beforeUnsupported)
+  })
+
+  test('processApprovalAction maps role and role_assignment payload validation errors', async () => {
+    state.findRequestByIdResult = makePendingApprovalRequest({
+      id: 'approval-role-update-missing-id',
+      requestData: {
+        operation: 'update',
+        entityType: 'role',
+        data: {},
+      },
+    })
+    const roleUpdateExit = await Effect.runPromiseExit(
+      approvalService.processApprovalAction({
+        requestId: 'approval-role-update-missing-id',
+        approverId: 'checker-1',
+        action: 'approve',
+      })
+    )
+    expect(roleUpdateExit._tag).toBe('Failure')
+    expect(String(roleUpdateExit.cause)).toContain('Missing role id')
+
+    state.findRequestByIdResult = makePendingApprovalRequest({
+      id: 'approval-role-delete-missing-id',
+      requestData: {
+        operation: 'delete',
+        entityType: 'role',
+        data: {},
+      },
+    })
+    const roleDeleteExit = await Effect.runPromiseExit(
+      approvalService.processApprovalAction({
+        requestId: 'approval-role-delete-missing-id',
+        approverId: 'checker-1',
+        action: 'approve',
+      })
+    )
+    expect(roleDeleteExit._tag).toBe('Failure')
+    expect(String(roleDeleteExit.cause)).toContain('Missing role id')
+
+    state.findRequestByIdResult = makePendingApprovalRequest({
+      id: 'approval-role-assignment-missing-user-role',
+      requestData: {
+        operation: 'create',
+        entityType: 'role_assignment',
+        data: { userId: 'user-only' },
+      },
+    })
+    const roleAssignmentExit = await Effect.runPromiseExit(
+      approvalService.processApprovalAction({
+        requestId: 'approval-role-assignment-missing-user-role',
+        approverId: 'checker-1',
+        action: 'approve',
+      })
+    )
+    expect(roleAssignmentExit._tag).toBe('Failure')
+    expect(String(roleAssignmentExit.cause)).toContain('Missing userId/roleId')
+  })
+
+  test('processApprovalAction executes parameter-setting branches', async () => {
+    state.findRequestByIdResult = makePendingApprovalRequest({
+      id: 'approval-setting-create',
+      requestData: {
+        operation: 'create',
+        entityType: 'app_setting',
+        data: { paramCode: 'ALLOW_EXPORT', value: true },
+      },
+    })
+    await Effect.runPromise(
+      approvalService.processApprovalAction({
+        requestId: 'approval-setting-create',
+        approverId: 'checker-1',
+        action: 'approve',
+      })
+    )
+
+    state.findRequestByIdResult = makePendingApprovalRequest({
+      id: 'approval-setting-update',
+      requestData: {
+        operation: 'update',
+        entityType: 'business_setting',
+        data: { paramCode: 'ALLOW_EXPORT', value: false },
+      },
+    })
+    await Effect.runPromise(
+      approvalService.processApprovalAction({
+        requestId: 'approval-setting-update',
+        approverId: 'checker-1',
+        action: 'approve',
+      })
+    )
+
+    state.findRequestByIdResult = makePendingApprovalRequest({
+      id: 'approval-setting-delete',
+      requestData: {
+        operation: 'delete',
+        entityType: 'parameter',
+        data: { paramCode: 'ALLOW_EXPORT' },
+      },
+    })
+    await Effect.runPromise(
+      approvalService.processApprovalAction({
+        requestId: 'approval-setting-delete',
+        approverId: 'checker-1',
+        action: 'approve',
+      })
+    )
+
+    expect(state.parametersServiceCalls.create).toHaveLength(1)
+    expect(state.parametersServiceCalls.update).toHaveLength(1)
+    expect(state.parametersServiceCalls.delete).toHaveLength(1)
+    expect(state.parametersServiceCalls.update[0].paramCode).toBe('ALLOW_EXPORT')
+  })
+
+  test('processApprovalAction executes role-permission update branch with id/code resolution', async () => {
+    state.availablePermissions = [
+      { id: 'perm-approval', code: 'approval.requests.approve' },
+      { id: 'perm-users-create', code: 'users.create' },
+      { id: 'perm-jobs-run', code: 'jobs.run' },
+    ]
+
+    state.findRequestByIdResult = makePendingApprovalRequest({
+      id: 'approval-role-perm-role-id',
+      requestData: {
+        operation: 'update',
+        entityType: 'role_permission',
+        data: {
+          roleId: 'role-perm-1',
+          permissionIds: ['perm-approval', 'users.create'],
+        },
+      },
+    })
+    await Effect.runPromise(
+      approvalService.processApprovalAction({
+        requestId: 'approval-role-perm-role-id',
+        approverId: 'checker-1',
+        action: 'approve',
+      })
+    )
+
+    state.findRequestByIdResult = makePendingApprovalRequest({
+      id: 'approval-role-perm-id-fallback',
+      requestData: {
+        operation: 'update',
+        entityType: 'role_permissions',
+        data: {
+          id: 'role-perm-2',
+          permissions: ['jobs.run'],
+        },
+      },
+    })
+    await Effect.runPromise(
+      approvalService.processApprovalAction({
+        requestId: 'approval-role-perm-id-fallback',
+        approverId: 'checker-1',
+        action: 'approve',
+      })
+    )
+
+    state.findRequestByIdResult = makePendingApprovalRequest({
+      id: 'approval-role-perm-entity-id-fallback',
+      requestData: {
+        operation: 'update',
+        entityType: 'role_permissions',
+        data: {
+          entityId: 'role-perm-3',
+          permissions: ['perm-jobs-run'],
+        },
+      },
+    })
+    await Effect.runPromise(
+      approvalService.processApprovalAction({
+        requestId: 'approval-role-perm-entity-id-fallback',
+        approverId: 'checker-1',
+        action: 'approve',
+      })
+    )
+
+    expect(state.rbacServiceCalls.updateRolePermissions).toHaveLength(3)
+    expect(state.rbacServiceCalls.updateRolePermissions[0].roleId).toBe('role-perm-1')
+    expect(state.rbacServiceCalls.updateRolePermissions[0].permissionIds).toEqual(['perm-approval', 'perm-users-create'])
+    expect(state.rbacServiceCalls.updateRolePermissions[1].roleId).toBe('role-perm-2')
+    expect(state.rbacServiceCalls.updateRolePermissions[2].roleId).toBe('role-perm-3')
+  })
+
+  test('processApprovalAction maps role-permission payload validation errors', async () => {
+    state.findRequestByIdResult = makePendingApprovalRequest({
+      id: 'approval-role-perm-missing-role-id',
+      requestData: {
+        operation: 'update',
+        entityType: 'role_permission',
+        data: {},
+      },
+    })
+    const missingRoleExit = await Effect.runPromiseExit(
+      approvalService.processApprovalAction({
+        requestId: 'approval-role-perm-missing-role-id',
+        approverId: 'checker-1',
+        action: 'approve',
+      })
+    )
+    expect(missingRoleExit._tag).toBe('Failure')
+    expect(String(missingRoleExit.cause)).toContain('Missing roleId')
+
+    state.findRequestByIdResult = makePendingApprovalRequest({
+      id: 'approval-role-perm-unknown-perm',
+      requestData: {
+        operation: 'update',
+        entityType: 'role_permission',
+        data: {
+          roleId: 'role-perm-1',
+          permissionIds: ['not-registered-permission'],
+        },
+      },
+    })
+    const unknownPermExit = await Effect.runPromiseExit(
+      approvalService.processApprovalAction({
+        requestId: 'approval-role-perm-unknown-perm',
+        approverId: 'checker-1',
+        action: 'approve',
+      })
+    )
+    expect(unknownPermExit._tag).toBe('Failure')
+    expect(String(unknownPermExit.cause)).toContain('Unknown role permissions')
   })
 })

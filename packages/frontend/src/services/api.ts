@@ -11,6 +11,9 @@
 
 import axios, { AxiosResponse, AxiosError } from 'axios';
 import { getAuthToken } from '../utils/auth-token';
+import { normalizeUsersMutationResponse } from './users-api.utils';
+import { normalizeRolesMutationResponse } from './roles-api.utils';
+import { getErrorMessage } from '@/utils/error-message';
 
 // ============================================================================
 // 🏗️ CENTRALIZED API CONFIGURATION
@@ -113,8 +116,28 @@ export const authAPI = {
 // REAL USERS API - DATABASE INTEGRATION
 // ============================================================================
 export const usersAPI = {
+  normalizeMutationResponse: (
+    response: AxiosResponse<any>,
+    fallbackSuccessMessage: string
+  ): Record<string, any> & {
+    success: boolean;
+    approvalRequired: boolean;
+    status?: number;
+    message: string;
+    requestId?: string;
+  } => normalizeUsersMutationResponse(response, fallbackSuccessMessage),
+
   // Get all users from real database
-  getAll: async (params?: { page?: number; limit?: number; search?: string }, tenantId?: string) => {
+  getAll: async (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    department?: string;
+    bankingAccess?: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
+    isActive?: boolean;
+    sort?: string;
+    order?: 'asc' | 'desc' | 'ASC' | 'DESC';
+  }, tenantId?: string) => {
     console.log(`👥 Fetching users from real database${tenantId ? ` (tenant: ${tenantId})` : ''}`, params);
     const config: any = { params };
     if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
@@ -137,7 +160,7 @@ export const usersAPI = {
     const config: any = {};
     if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
     const response = await apiClient.post('/users', userData, config);
-    return response.data;
+    return usersAPI.normalizeMutationResponse(response, 'User created successfully');
   },
 
   // Update user in real database
@@ -146,7 +169,7 @@ export const usersAPI = {
     const config: any = {};
     if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
     const response = await apiClient.put(`/users/${id}`, userData, config);
-    return response.data;
+    return usersAPI.normalizeMutationResponse(response, 'User updated successfully');
   },
 
   // Delete user from real database
@@ -155,7 +178,7 @@ export const usersAPI = {
     const config: any = {};
     if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
     const response = await apiClient.delete(`/users/${id}`, config);
-    return response.data;
+    return usersAPI.normalizeMutationResponse(response, 'User deleted successfully');
   },
 
   // ✅ NEW: Enable/disable user actions
@@ -164,7 +187,7 @@ export const usersAPI = {
     const config: any = {};
     if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
     const response = await apiClient.post(`/users/${id}/enable`, {}, config);
-    return response.data;
+    return usersAPI.normalizeMutationResponse(response, 'User enabled successfully');
   },
 
   disable: async (id: string, tenantId?: string) => {
@@ -172,7 +195,7 @@ export const usersAPI = {
     const config: any = {};
     if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
     const response = await apiClient.post(`/users/${id}/disable`, {}, config);
-    return response.data;
+    return usersAPI.normalizeMutationResponse(response, 'User disabled successfully');
   },
 
   resetPassword: async (
@@ -184,7 +207,7 @@ export const usersAPI = {
     const config: any = {};
     if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
     const response = await apiClient.post(`/users/${id}/reset-password`, payload, config);
-    return response.data;
+    return usersAPI.normalizeMutationResponse(response, 'Password reset successfully');
   }
 };
 
@@ -192,6 +215,17 @@ export const usersAPI = {
 // REAL ROLES API - TENANT DATABASE INTEGRATION
 // ============================================================================
 export const rolesAPI = {
+  normalizeMutationResponse: (
+    response: AxiosResponse<any>,
+    fallbackSuccessMessage: string
+  ): Record<string, any> & {
+    success: boolean;
+    approvalRequired: boolean;
+    status?: number;
+    message: string;
+    requestId?: string;
+  } => normalizeRolesMutationResponse(response, fallbackSuccessMessage),
+
   // Get all roles from tenant database with filtering and pagination
   getAll: async (params?: {
     page?: number;
@@ -246,7 +280,7 @@ export const rolesAPI = {
       isActive: roleData.isActive,
     };
     const response = await apiClient.post('/roles', payload, config);
-    return response.data;
+    return rolesAPI.normalizeMutationResponse(response, 'Role created successfully');
   },
 
   // Update role in tenant database
@@ -275,7 +309,7 @@ export const rolesAPI = {
       isActive: roleData.isActive,
     };
     const response = await apiClient.put(`/roles/${id}`, payload, config);
-    return response.data;
+    return rolesAPI.normalizeMutationResponse(response, 'Role updated successfully');
   },
 
   // Delete role from tenant database
@@ -284,7 +318,7 @@ export const rolesAPI = {
     const config: any = {};
     if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
     const response = await apiClient.delete(`/roles/${id}`, config);
-    return response.data;
+    return rolesAPI.normalizeMutationResponse(response, 'Role deleted successfully');
   },
 
   // Toggle role active status
@@ -293,7 +327,7 @@ export const rolesAPI = {
     const config: any = {};
     if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
     const response = await apiClient.post(`/roles/${id}/toggle`, {}, config);
-    return response.data;
+    return rolesAPI.normalizeMutationResponse(response, 'Role status updated successfully');
   },
 
   // Get all available permissions
@@ -320,7 +354,7 @@ export const rolesAPI = {
       submitForApproval: options?.submitForApproval ?? true,
       approvalReason: options?.approvalReason
     }, config);
-    return response.data;
+    return rolesAPI.normalizeMutationResponse(response, 'Role permissions updated successfully');
   },
 
   // Get users assigned to role
@@ -346,9 +380,19 @@ export const rolesAPI = {
     console.log(`👤 Assigning role ${roleId} to user ${userId}${tenantId ? ` (tenant: ${tenantId})` : ''}`);
     const config: any = {};
     if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
-    // Backend expects assignment payload object
-    const response = await apiClient.post(`/users/${userId}/roles/${roleId}`, { isTemporary: false }, config);
-    return response.data;
+    const payload = { isTemporary: false };
+    try {
+      // Preferred RBAC route in new-backend: /roles/users/:userId/roles/:roleId
+      const response = await apiClient.post(`/roles/users/${userId}/roles/${roleId}`, payload, config);
+      return rolesAPI.normalizeMutationResponse(response, 'Role assigned successfully');
+    } catch (error: any) {
+      // Compatibility fallback for legacy route shape if RBAC-prefixed path is unavailable.
+      if (error?.response?.status === 404) {
+        const response = await apiClient.post(`/users/${userId}/roles/${roleId}`, payload, config);
+        return rolesAPI.normalizeMutationResponse(response, 'Role assigned successfully');
+      }
+      throw error;
+    }
   },
 
   // Remove role from user
@@ -356,9 +400,18 @@ export const rolesAPI = {
     console.log(`👤 Removing role ${roleId} from user ${userId}${tenantId ? ` (tenant: ${tenantId})` : ''}`);
     const config: any = {};
     if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
-    // Fixed path matching backend: DELETE /users/:userId/roles/:roleId
-    const response = await apiClient.delete(`/users/${userId}/roles/${roleId}`, config);
-    return response.data;
+    try {
+      // Preferred RBAC route in new-backend: /roles/users/:userId/roles/:roleId
+      const response = await apiClient.delete(`/roles/users/${userId}/roles/${roleId}`, config);
+      return rolesAPI.normalizeMutationResponse(response, 'Role removed successfully');
+    } catch (error: any) {
+      // Compatibility fallback for legacy route shape if RBAC-prefixed path is unavailable.
+      if (error?.response?.status === 404) {
+        const response = await apiClient.delete(`/users/${userId}/roles/${roleId}`, config);
+        return rolesAPI.normalizeMutationResponse(response, 'Role removed successfully');
+      }
+      throw error;
+    }
   },
 
   checkUserPermission: async (
@@ -1663,7 +1716,7 @@ export const handleAPIError = (error: any) => {
     return {
       type: 'server_error',
       status: error.response.status,
-      message: error.response.data?.message || 'Server error occurred',
+      message: getErrorMessage(error, 'Server error occurred'),
       details: error.response.data
     };
   } else if (error.request) {
@@ -1675,7 +1728,7 @@ export const handleAPIError = (error: any) => {
   } else {
     return {
       type: 'client_error',
-      message: error.message || 'An unexpected error occurred',
+      message: getErrorMessage(error, 'An unexpected error occurred'),
       details: error
     };
   }

@@ -13,6 +13,8 @@
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
     "type-check": "tsc --noEmit",
+    "test:users-api-utils": "bun test src/services/users-api.utils.test.ts",
+    "test:roles-api-utils": "bun test src/services/roles-api.utils.test.ts",
     "clean": "bun ops clean",
     "clean-all": "bun ops clean --all",
     "analyze": "ANALYZE=true NODE_OPTIONS='--max-old-space-size=4096' next build",

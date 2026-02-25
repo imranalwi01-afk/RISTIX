@@ -21,6 +21,12 @@ const fakeUser = {
 }
 
 const createUserMock = mock(() => Effect.succeed(fakeUser))
+const getUsersMock = mock(() =>
+  Effect.succeed({
+    data: [fakeUser],
+    total: 1,
+  })
+)
 
 const interceptCreateMock = mock(
   (
@@ -61,10 +67,12 @@ const passthroughMiddleware = async (c: any, next: any) => {
 
 mock.module('@/services/users.service', () => ({
   createUser: createUserMock,
+  getUsers: getUsersMock,
 }))
 
 mock.module('../../services/users.service', () => ({
   createUser: createUserMock,
+  getUsers: getUsersMock,
 }))
 
 mock.module('@/middleware/approval-interceptor.middleware', () => ({
@@ -101,7 +109,24 @@ describe('users routes response contracts', () => {
   beforeEach(() => {
     createMode = 'direct'
     createUserMock.mockClear()
+    getUsersMock.mockClear()
     interceptCreateMock.mockClear()
+  })
+
+  test('GET /api/v1/user returns list response contract for frontend alias route', async () => {
+    const app = new OpenAPIHono()
+    app.route('/api/v1/user', usersRoutes)
+
+    const response = await app.request('/api/v1/user?page=1&limit=10')
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(response.headers.get('x-total-count')).toBe('1')
+    expect(body.success).toBe(true)
+    expect(Array.isArray(body.data?.users)).toBe(true)
+    expect(body.data.users[0]?.id).toBe(fakeUser.id)
+    expect(body.pagination?.total).toBe(1)
+    expect(getUsersMock).toHaveBeenCalledTimes(1)
   })
 
   test('POST /api/v1/user returns 201 with success payload for direct create', async () => {

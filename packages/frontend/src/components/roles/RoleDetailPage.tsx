@@ -335,13 +335,14 @@ export default function RoleDetailPage({ roleId }: { roleId: string }) {
         { submitForApproval: true }
       );
 
-      const approvalRequired = Boolean(response?.approvalRequired || response?.data?.approvalRequired);
-      const requestId = response?.requestId || response?.data?.requestId;
+      const approvalRequired = Boolean(response?.approvalRequired);
+      const requestId = response?.requestId;
 
       if (approvalRequired) {
-        setNotice(`Permission update submitted for approval${requestId ? ` (Request: ${requestId})` : ''}.`);
+        const message = response?.message || 'Permission update submitted for approval';
+        setNotice(`${message}${requestId ? ` (Request: ${requestId})` : ''}.`);
       } else {
-        setNotice('Role permissions updated successfully.');
+        setNotice(response?.message || 'Role permissions updated successfully.');
       }
 
       setInitialPermissionIds([...selectedPermissionIds]);
