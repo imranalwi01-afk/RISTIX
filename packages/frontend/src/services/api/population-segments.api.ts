@@ -1,5 +1,5 @@
 // packages/frontend/src/services/api/population-segments.api.ts
-import { apiClient } from '../api.client';
+import { apiClient } from '../api-setup';
 
 // ============================================================================
 // INTERFACES
@@ -41,14 +41,14 @@ export const populationSegmentsApi = {
 
         const url = queryParams.toString() ? `${BASE_URL}?${queryParams}` : BASE_URL;
         const response = await apiClient.get<any>(url);
-        return response.data || [];
+        return response.data?.data || [];
     },
 
     async getById(id: string): Promise<PopulationSegment | undefined> {
         // Handle potential definition mismatch if API returns 404 as error vs null
         try {
             const response = await apiClient.get<any>(`${BASE_URL}/${id}`);
-            return response.data;
+            return response.data?.data;
         } catch (error) {
             return undefined;
         }
@@ -56,12 +56,12 @@ export const populationSegmentsApi = {
 
     async create(data: CreatePopulationSegmentDto): Promise<PopulationSegment> {
         const response = await apiClient.post<any>(BASE_URL, data);
-        return response.data!;
+        return response.data?.data!;
     },
 
     async update(id: string, data: UpdatePopulationSegmentDto): Promise<PopulationSegment> {
         const response = await apiClient.put<any>(`${BASE_URL}/${id}`, data);
-        return response.data!;
+        return response.data?.data!;
     },
 
     async delete(id: string): Promise<void> {

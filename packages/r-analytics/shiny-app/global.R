@@ -24,6 +24,13 @@ library(shinyWidgets)
 library(DBI)
 library(RPostgres)
 
+# Load database configuration
+if (file.exists("config/database.R")) {
+  source("config/database.R")
+} else {
+  warning("config/database.R not found!")
+}
+
 
 
 

@@ -12,8 +12,8 @@ Berikut adalah rincian teknis query untuk komponen konfigurasi aplikasi.
 
 - **Nama Sub Menu:** Application Setup (General)
 - **Link Sub Menu:** `/banking/setup/application`
-- **Database:** `Platform Admin`
-- **Skema:** `platform_admin`
+- **Database:** `FRS9PRO`
+- **Skema:** `core`
 - **Nama Tabel:** `configuration`
 - **Deskripsi:** Mengambil parameter konfigurasi umum aplikasi.
 - **Query:**
@@ -23,7 +23,7 @@ Berikut adalah rincian teknis query untuk komponen konfigurasi aplikasi.
       config_value,
       data_type,
       description
-  FROM platform_admin.configuration
+  FROM core.configuration
   WHERE category IN ('GENERAL', 'APPLICATION')
     AND is_visible = true
   ORDER BY sort_order;
@@ -35,16 +35,15 @@ Berikut adalah rincian teknis query untuk komponen konfigurasi aplikasi.
 
 - **Nama Sub Menu:** Application Setup (System Date)
 - **Link Sub Menu:** `/banking/setup/application`
-- **Database:** `Platform Admin`
-- **Skema:** `platform_admin`
+- **Database:** `FRS9PRO`
+- **Skema:** `core`
 - **Nama Tabel:** `configuration`
 - **Deskripsi:** Mengambil tanggal sistem saat ini untuk operasi perbankan.
 - **Query:**
   ```sql
   SELECT config_value as system_date
-  FROM platform_admin.configuration
-  WHERE config_key = 'CURRENT_BUSINESS_DATE'
-    AND tenant_id = :tenant_id;
+  FROM core.configuration
+  WHERE config_key = 'CURRENT_BUSINESS_DATE';
   ```
 
 ---
@@ -78,15 +77,14 @@ Berikut adalah rincian teknis query untuk komponen konfigurasi aplikasi.
 
 - **Nama Sub Menu:** Application Setup (Tenant Profile)
 - **Link Sub Menu:** `/banking/setup/application`
-- **Database:** `Platform Admin`
-- **Skema:** `platform_admin`
-- **Nama Tabel:** `tenants`
+- **Database:** `FRS9PRO`
+- **Skema:** `core`
+- **Nama Tabel:** `tenant_profile`
 - **Deskripsi:** Detail informasi bank/tenant yang sedang login.
 - **Query:**
   ```sql
   SELECT code, name, description, status, timezone
-  FROM platform_admin.tenants
-  WHERE id = :current_tenant_id;
+  FROM core.tenant_profile;
   ```
 
 ```

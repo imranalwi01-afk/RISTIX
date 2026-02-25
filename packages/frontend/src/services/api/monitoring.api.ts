@@ -1,5 +1,5 @@
 // packages/frontend/src/services/api/monitoring.api.ts
-import apiClient from '../api.client';
+import { apiClient } from '../api-setup';
 
 export interface MonitoringData {
     id: string;

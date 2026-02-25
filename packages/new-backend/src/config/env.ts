@@ -75,6 +75,9 @@ const envSchema = z.object({
     REDIS_SESSION_DB: z.string().optional(),
     REDIS_QUEUE_DB: z.string().default('0'),
 
+    // R Analytics Service
+    R_SERVICE_URL: z.string().url().default('http://localhost:4241'),
+
     // Logging
     LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
 })

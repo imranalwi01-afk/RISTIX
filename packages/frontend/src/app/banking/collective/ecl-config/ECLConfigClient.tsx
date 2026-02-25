@@ -73,6 +73,10 @@ import { GridColDef, GridRowId, GridToolbar } from '@mui/x-data-grid';
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 import { ApprovalNotification, ApprovalStatusBadge } from '@/components/approval';
 
+// Premium Layout Components
+import ReportPageLayout from '@/components/ifrs9/ReportPageLayout';
+import ReportDataGrid from '@/components/ifrs9/ReportDataGrid';
+
 // Types based on live database structure: frs9_imp_ca_ecl_configh + frs9_imp_ca_ecl_configd
 interface ECLConfigHeader {
   pkid: number;
@@ -769,70 +773,36 @@ export default function ECLConfigurationPage() {
   ];
 
   return (
-    <Container maxWidth="xl">
-      {/* Breadcrumb Navigation */}
-      <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
-        <Link
-          underline="hover"
-          color="inherit"
-          href="/banking/dashboard"
-          onClick={(e) => {
-            e.preventDefault();
-            router.push('/banking/dashboard');
-          }}
-          sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
-        >
-          <HomeIcon sx={{ mr: 0.5, fontSize: 16 }} />
-          Banking Dashboard
-        </Link>
-        <Typography color="text.primary" sx={{ display: 'flex', alignItems: 'center' }}>
-          <EclIcon sx={{ mr: 0.5, fontSize: 16 }} />
-          ECL Configuration
-        </Typography>
-      </Breadcrumbs>
-
-      {/* Page Header */}
-      <Box sx={{ mb: 4 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <EclIcon sx={{ mr: 2, fontSize: 32, color: 'primary.main' }} />
-            <Box>
-              <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
-                ECL Configuration
-              </Typography>
-              <Typography variant="subtitle1" color="text.secondary">
-                Expected Credit Loss calculation configuration and management
-              </Typography>
-            </Box>
-          </Box>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button
-              variant="outlined"
-              startIcon={<ScheduleIcon />}
-              onClick={() => console.log('Schedule ECL batch job')}
-            >
-              Schedule
-            </Button>
-            <Button
-              variant="outlined"
-              startIcon={<RefreshIcon />}
-              onClick={loadEclConfigurations}
-              disabled={loading}
-            >
-              Refresh
-            </Button>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleAdd}
-            >
-              Add ECL Configuration
-            </Button>
-          </Box>
-        </Box>
-
+    <ReportPageLayout
+      title="ECL Configuration"
+      description="Expected Credit Loss calculation configuration and management"
+      icon={<EclIcon />}
+      breadcrumbLabel="ECL Configuration"
+      actionButtons={[
+        {
+          label: 'Schedule',
+          icon: <ScheduleIcon />,
+          onClick: () => console.log('Schedule ECL batch job'),
+          variant: 'outlined',
+        },
+        {
+          label: 'Refresh',
+          icon: <RefreshIcon />,
+          onClick: loadEclConfigurations,
+          variant: 'outlined',
+          disabled: loading
+        },
+        {
+          label: 'Add ECL Configuration',
+          icon: <AddIcon />,
+          onClick: handleAdd,
+          variant: 'contained',
+          color: 'primary'
+        }
+      ]}
+    >
         {/* Statistics Cards */}
-        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 2, mb: 3 }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, gap: 2, mb: 3 }}>
           <Box>
             <Card>
               <CardContent sx={{ textAlign: 'center', py: 2 }}>
@@ -882,7 +852,6 @@ export default function ECLConfigurationPage() {
             </Card>
           </Box>
         </Box>
-      </Box>
 
       {/* Error Alert */}
       {error && (
@@ -958,21 +927,16 @@ export default function ECLConfigurationPage() {
             ECL Configurations ({filteredConfigs.length})
           </Typography>
           <Box sx={{ height: 600, width: '100%' }}>
-            <SafeDataGrid
+            <ReportDataGrid
               rows={filteredConfigs}
               columns={columns}
-              getRowId={(row) => row.pkid}
+              getRowId={(row: any) => row.pkid}
               loading={loading}
               pageSizeOptions={[10, 25, 50, 100]}
               initialState={{
                 pagination: { paginationModel: { pageSize: 25 } }
               }}
               disableRowSelectionOnClick
-              sx={{
-                '& .MuiDataGrid-row:hover': {
-                  backgroundColor: 'action.hover'
-                }
-              }}
             />
           </Box>
         </CardContent>
@@ -1038,7 +1002,7 @@ export default function ECLConfigurationPage() {
                 <Box>
                   <DatePicker
                     label="Effective Date"
-                    value={headerFormData.effective_date ? new Date(headerFormData.effective_date) : null}
+                    value={headerFormData.effective_date ? new Date(headerFormData.effective_date as string) : null}
                     onChange={(newValue) => {
                       if (newValue) {
                         const dateStr = newValue instanceof Date 
@@ -1260,6 +1224,6 @@ export default function ECLConfigurationPage() {
         requestId={approvalNotification.requestId}
         onClose={() => setApprovalNotification({ ...approvalNotification, open: false })}
       />
-    </Container>
+    </ReportPageLayout>
   );
 }

@@ -12,6 +12,13 @@ import { formatCurrency } from '@/app/banking/individual/assessment/utils';
 interface AssessmentKPIProps {
   watchlist: IndividualImpairmentWatchlistItem[];
   loading: boolean;
+  summary?: {
+    totalAccounts: number;
+    impairedAccounts: number;
+    pendingAssessments: number;
+    totalProvisions: number;
+    dataDate?: string;
+  };
 }
 
 interface KPICardProps {
@@ -111,7 +118,15 @@ const KPICard: React.FC<KPICardProps> = ({ title, value, gradient, icon, loading
 );
 
 // Main AssessmentKPI component
-export const AssessmentKPI: React.FC<AssessmentKPIProps> = ({ watchlist, loading }) => {
+export const AssessmentKPI: React.FC<AssessmentKPIProps> = ({ watchlist, loading, summary }) => {
+  // Use summary data if available, otherwise fallback to watchlist aggregation (which is inaccurate for paginated data)
+  // Fallback is only for initial load or if summary API fails
+  
+  const totalAccounts = summary ? summary.totalAccounts : watchlist.length;
+  const impairedAccounts = summary ? summary.impairedAccounts : watchlist.filter(a => a.impaired_flag === 'I').length;
+  const pendingAssessments = summary ? summary.pendingAssessments : watchlist.filter(a => a.assessment_status === 'PENDING').length;
+  const totalProvisions = summary ? summary.totalProvisions : watchlist.reduce((sum, a) => sum + (a.provision_amount || 0), 0);
+
   return (
     <Box
       sx={{
@@ -127,36 +142,43 @@ export const AssessmentKPI: React.FC<AssessmentKPIProps> = ({ watchlist, loading
     >
       <KPICard
         title="Total Accounts"
-        value={watchlist.length}
+        value={totalAccounts}
         gradient="linear-gradient(135deg, #1976d2 0%, #1565c0 100%)"
         icon={<TotalIcon sx={{ fontSize: 28 }} />}
-        loading={loading}
+        loading={loading && !summary}
         delay={0}
       />
       <KPICard
         title="Impaired Accounts"
-        value={watchlist.filter(a => a.impaired_flag === 'I').length}
+        value={impairedAccounts}
         gradient="linear-gradient(135deg, #d32f2f 0%, #c62828 100%)"
         icon={<ImpairedIcon sx={{ fontSize: 28 }} />}
-        loading={loading}
+        loading={loading && !summary}
         delay={100}
       />
       <KPICard
         title="Pending Assessments"
-        value={watchlist.filter(a => a.assessment_status === 'PENDING').length}
+        value={pendingAssessments}
         gradient="linear-gradient(135deg, #f57c00 0%, #ef6c00 100%)"
         icon={<PendingIcon sx={{ fontSize: 28 }} />}
-        loading={loading}
+        loading={loading && !summary}
         delay={200}
       />
       <KPICard
         title="Total Provisions"
-        value={formatCurrency(watchlist.reduce((sum, a) => sum + (a.provision_amount || 0), 0))}
+        value={formatCurrency(totalProvisions)}
         gradient="linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%)"
         icon={<ProvisionIcon sx={{ fontSize: 28 }} />}
-        loading={loading}
+        loading={loading && !summary}
         delay={300}
       />
+      {summary?.dataDate && (
+        <Box sx={{ gridColumn: '1 / -1', mt: 1, textAlign: 'right' }}>
+            <Typography variant="caption" color="text.secondary">
+                Data as of: <strong>{new Date(summary.dataDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>
+            </Typography>
+        </Box>
+      )}
     </Box>
   );
 };

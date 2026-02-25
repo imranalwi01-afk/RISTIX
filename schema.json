@@ -1,0 +1,530 @@
+[
+  {
+    "column_name": "pkid",
+    "data_type": "bigint"
+  },
+  {
+    "column_name": "prc_date",
+    "data_type": "date"
+  },
+  {
+    "column_name": "account_id",
+    "data_type": "bigint"
+  },
+  {
+    "column_name": "account_number",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "facility_number",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "cif_type",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "cif_number",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "cif_name",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "account_status",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "data_source",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "prd_group",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "prd_type",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "prd_code",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "gl_group",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "branch_code",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "tenor_org",
+    "data_type": "smallint"
+  },
+  {
+    "column_name": "remaining_tenor",
+    "data_type": "smallint"
+  },
+  {
+    "column_name": "start_date",
+    "data_type": "date"
+  },
+  {
+    "column_name": "maturity_date",
+    "data_type": "date"
+  },
+  {
+    "column_name": "start_amort_date",
+    "data_type": "date"
+  },
+  {
+    "column_name": "end_amort_date",
+    "data_type": "date"
+  },
+  {
+    "column_name": "paid_off_date",
+    "data_type": "date"
+  },
+  {
+    "column_name": "write_off_date",
+    "data_type": "date"
+  },
+  {
+    "column_name": "first_payment_date",
+    "data_type": "date"
+  },
+  {
+    "column_name": "next_payment_date",
+    "data_type": "date"
+  },
+  {
+    "column_name": "last_payment_date",
+    "data_type": "date"
+  },
+  {
+    "column_name": "next_sch_prin_date",
+    "data_type": "date"
+  },
+  {
+    "column_name": "next_sch_int_date",
+    "data_type": "date"
+  },
+  {
+    "column_name": "grace_type",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "grace_start_date",
+    "data_type": "date"
+  },
+  {
+    "column_name": "grace_end_date",
+    "data_type": "date"
+  },
+  {
+    "column_name": "market_rate",
+    "data_type": "double precision"
+  },
+  {
+    "column_name": "interest_rate",
+    "data_type": "double precision"
+  },
+  {
+    "column_name": "eff_interest_rate",
+    "data_type": "double precision"
+  },
+  {
+    "column_name": "collectability",
+    "data_type": "smallint"
+  },
+  {
+    "column_name": "collectability_group",
+    "data_type": "smallint"
+  },
+  {
+    "column_name": "dpd",
+    "data_type": "smallint"
+  },
+  {
+    "column_name": "dpd_group",
+    "data_type": "smallint"
+  },
+  {
+    "column_name": "dpd_counter",
+    "data_type": "smallint"
+  },
+  {
+    "column_name": "internal_rating_code_initial",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "internal_rating_code",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "ext_rating_id_initial",
+    "data_type": "smallint"
+  },
+  {
+    "column_name": "ext_rating_code_initial",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "ext_rating_agency_initial",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "ext_rating_id",
+    "data_type": "smallint"
+  },
+  {
+    "column_name": "ext_rating_code",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "ext_rating_agency",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "payment_code",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "payment_term",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "payment_freq",
+    "data_type": "smallint"
+  },
+  {
+    "column_name": "int_pmt_term",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "int_pmt_freq",
+    "data_type": "smallint"
+  },
+  {
+    "column_name": "amortization_type",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "pmt_sch_status",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "eir_sch_status",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "repo_flag",
+    "data_type": "boolean"
+  },
+  {
+    "column_name": "revolving_flag",
+    "data_type": "boolean"
+  },
+  {
+    "column_name": "bm_flag",
+    "data_type": "boolean"
+  },
+  {
+    "column_name": "committed_flag",
+    "data_type": "boolean"
+  },
+  {
+    "column_name": "npl_flag",
+    "data_type": "boolean"
+  },
+  {
+    "column_name": "npl_date",
+    "data_type": "date"
+  },
+  {
+    "column_name": "restructure_flag",
+    "data_type": "boolean"
+  },
+  {
+    "column_name": "restructure_date",
+    "data_type": "date"
+  },
+  {
+    "column_name": "restructure_review_date",
+    "data_type": "date"
+  },
+  {
+    "column_name": "fib_flag",
+    "data_type": "boolean"
+  },
+  {
+    "column_name": "fib_start_date",
+    "data_type": "date"
+  },
+  {
+    "column_name": "fib_tenor",
+    "data_type": "smallint"
+  },
+  {
+    "column_name": "fib_amt",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "special_case_flag",
+    "data_type": "boolean"
+  },
+  {
+    "column_name": "impaired_flag",
+    "data_type": "boolean"
+  },
+  {
+    "column_name": "impaired_status",
+    "data_type": "character"
+  },
+  {
+    "column_name": "segment_id",
+    "data_type": "smallint"
+  },
+  {
+    "column_name": "group_segment",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "segment",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "sub_segment",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "ecl_model_id",
+    "data_type": "smallint"
+  },
+  {
+    "column_name": "ead_config_id",
+    "data_type": "smallint"
+  },
+  {
+    "column_name": "pd_config_id",
+    "data_type": "smallint"
+  },
+  {
+    "column_name": "lgd_config_id",
+    "data_type": "smallint"
+  },
+  {
+    "column_name": "sicr_flag",
+    "data_type": "boolean"
+  },
+  {
+    "column_name": "stage_original",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "stage_override",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "stage",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "bucket_id_original",
+    "data_type": "smallint"
+  },
+  {
+    "column_name": "bucket_id_override",
+    "data_type": "smallint"
+  },
+  {
+    "column_name": "bucket_id",
+    "data_type": "smallint"
+  },
+  {
+    "column_name": "bucket_id_obligor",
+    "data_type": "smallint"
+  },
+  {
+    "column_name": "bucket_id_ed",
+    "data_type": "smallint"
+  },
+  {
+    "column_name": "interest_base",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "sppi_status",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "bm_status",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "asset_class",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "currency",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "exchange_rate",
+    "data_type": "double precision"
+  },
+  {
+    "column_name": "plafond",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "full_release_amt",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "unused_amt",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "outstanding",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "outstanding_wo",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "accrued_interest",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "installment_amt",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "fix_principal_amt",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "fix_interest_amt",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "initial_fee_amt",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "unamort_fee_amt",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "amort_fee_amt",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "initial_cost_amt",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "unamort_cost_amt",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "amort_cost_amt",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "initial_bm_amt",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "unamort_bm_amt",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "amort_bm_amt",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "initial_gainloss_amt",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "unamort_gainloss_amt",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "amort_gainloss_amt",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "carrying_amt",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "fair_value_amt",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "ecl_ca_onbs_amt",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "ecl_ca_offbs_amt",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "ecl_ia_onbs_amt",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "ecl_overlay_amt",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "ecl_final_amt",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "unwinding_ca_amt",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "unwinding_ia_amt",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "unwinding_ia_sum_amt",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "ecl_beginning_balance",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "ecl_charge",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "ecl_writeback",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "ecl_ending_balance",
+    "data_type": "numeric"
+  },
+  {
+    "column_name": "lgd",
+    "data_type": "double precision"
+  },
+  {
+    "column_name": "weighted_eff_interest_rate",
+    "data_type": "double precision"
+  },
+  {
+    "column_name": "weighted_interest_rate",
+    "data_type": "double precision"
+  }
+]

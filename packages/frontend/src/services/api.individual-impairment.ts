@@ -44,6 +44,7 @@ export interface IndividualImpairmentWatchlistItem {
   createddate: string;
   updatedby?: string;
   updateddate?: string;
+  is_override?: boolean;
 }
 
 export interface IndividualImpairmentAssessment {
@@ -302,6 +303,13 @@ export interface HistoryParams {
 export const individualImpairmentAPI = {
   // Watchlist Management
   watchlist: {
+    // Get watchlist summary
+    getSummary: async (date?: string) => {
+        console.log('📊 Fetching watchlist summary');
+        const response = await apiClient.get('/banking/individual/impairment/watchlist/summary', { params: { date } });
+        return response.data;
+    },
+
     // Get individual impairment watchlist with pagination and filtering
     getAll: async (params?: {
       page?: number;
@@ -424,9 +432,7 @@ export const individualImpairmentAPI = {
     // Get impairment assessment data for an account
     get: async (accountId: number) => {
       console.log(`📊 Fetching impairment assessment for account ${accountId}`);
-      const response = await apiClient.get(`/banking/individual/impairment/assessment`, {
-        params: { account_id: accountId }
-      });
+      const response = await apiClient.get(`/banking/individual/impairment/${accountId}`);
       return response.data;
     },
 
@@ -567,7 +573,7 @@ export const individualImpairmentAPI = {
     const response = await apiClient.post('/banking/individual/impairment/overrides', data);
     return response.data;
   },
-  getScenarios: async (params?: { status?: string }) => {
+  getScenarios: async (params?: { status?: string; accountId?: number }) => {
     const response = await apiClient.get('/banking/individual/impairment/scenarios', { params });
     return response.data;
   },

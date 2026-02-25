@@ -82,6 +82,7 @@ import WidgetManager from '../../../components/dashboard/WidgetManager'
 import PersonalizedWidget from '../../../components/dashboard/widgets/PersonalizedWidget'
 import EmptyState from '../../../components/common/EmptyState'
 import ErrorState from '../../../components/common/ErrorState'
+import ReportSummaryGrid, { KPIItem } from '@/components/ifrs9/ReportSummaryGrid'
 import {
     PieChart as RechartsPieChart,
     Pie,
@@ -111,160 +112,6 @@ const COLORS = {
 }
 
 // 📊 COMPONENTS
-const StatCard = (props: any) => {
-    const theme = useTheme();
-    // ✅ Responsive Design: Check for mobile
-    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-
-    const { title, value, fullValue, subtitle, icon, color, trend } = props;
-
-    return (
-        <Card sx={{
-            height: '100%',
-            background: theme.palette.mode === 'dark'
-                ? 'rgba(30, 41, 59, 0.7)' // Dark glass
-                : 'rgba(255, 255, 255, 0.9)', // Light glass
-            backdropFilter: 'blur(20px)',
-            borderRadius: 3,
-            transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-            border: `1px solid ${theme.palette.divider}`, // Subtle border
-            '&:hover': {
-                transform: isMobile ? 'none' : 'translateY(-5px)', // Disable hover effect on mobile
-                boxShadow: theme.palette.mode === 'dark'
-                    ? '0 12px 40px rgba(0,0,0,0.4)'
-                    : '0 12px 40px rgba(0,0,0,0.1)'
-            },
-            overflow: 'hidden',
-            position: 'relative'
-        }}>
-            <Box sx={{
-                position: 'absolute',
-                top: -20,
-                right: -20,
-                width: 100,
-                height: 100,
-                borderRadius: '50%',
-                background: color,
-                opacity: 0.1
-            }} />
-            <CardContent sx={{ p: isMobile ? 2 : 3 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: isMobile ? 1 : 2 }}>
-                    <Avatar sx={{
-                        bgcolor: alpha(color, 0.1),
-                        color: color,
-                        mr: isMobile ? 1.5 : 2,
-                        width: isMobile ? 40 : 48,
-                        height: isMobile ? 40 : 48
-                    }}>
-                        {icon}
-                    </Avatar>
-                    <Box sx={{ minWidth: 0, flex: 1 }}> {/* Ensure text truncates properly */}
-                        <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600, fontSize: isMobile ? '0.75rem' : '0.875rem' }}>{title}</Typography>
-                        <Tooltip title={fullValue || value} placement="top" arrow>
-                            <Box>
-                                <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5, flexWrap: 'wrap' }}>
-                                    {/^Rp/i.test(String(value).trim()) && (
-                                        <Typography
-                                            variant="h6"
-                                            component="span"
-                                            color="text.secondary"
-                                            sx={{
-                                                fontWeight: 500,
-                                                fontSize: isMobile ? '0.75rem' : '1rem',
-                                                mb: 0.5,
-                                                mr: 0.25
-                                            }}
-                                        >
-                                            Rp
-                                        </Typography>
-                                    )}
-                                    <Typography variant="h4" component="span" sx={{
-                                        fontWeight: 800,
-                                        color: theme.palette.mode === 'dark' ? '#F1F5F9' : '#1a237e', // ✅ Dynamic text color
-                                        wordBreak: 'break-word', // Changed to break-word for safety when wrapping
-                                        whiteSpace: 'normal',    // Allow wrapping
-                                        lineHeight: 1.2,
-                                        cursor: 'help',
-                                        fontSize: (() => {
-                                            const strVal = String(value).replace(/^Rp\s*/i, '').replace(/\u00A0/g, ' ').trim();
-                                            const len = strVal.length;
-
-                                            if (isMobile) {
-                                                // 📱 Mobile Sizing Logic - More aggressive scaling
-                                                if (len > 25) return '0.8rem';
-                                                if (len > 20) return '0.9rem';
-                                                if (len > 16) return '1.1rem'; // Reduced slightly
-                                                if (len > 13) return '1.25rem';
-                                                if (len > 10) return '1.5rem';
-                                                return '1.75rem';
-                                            } else {
-                                                // 💻 Desktop Sizing Logic
-                                                if (len > 25) return '1rem';
-                                                if (len > 20) return '1.1rem';
-                                                if (len > 16) return '1.25rem';
-                                                if (len > 13) return '1.5rem';
-                                                if (len > 10) return '1.8rem';
-                                                return '2.125rem';
-                                            }
-                                        })()
-                                    }}>
-                                        {String(value).replace(/^Rp\s*/i, '').replace(/\u00A0/g, ' ').trim()}
-                                    </Typography>
-                                </Box>
-
-                                {/* ✅ Terbilang (Amount in Words) */}
-                                {(() => {
-                                    const numericValue = typeof fullValue === 'number'
-                                        ? fullValue
-                                        : parseFloat(String(value).replace(/[^0-9.-]+/g, '').replace(/\./g, '').replace(/,/g, '.'));
-
-                                    if (!isNaN(numericValue)) {
-                                        const isCurrency = /^Rp/i.test(String(value).trim());
-                                        return (
-                                            <Typography
-                                                variant="caption"
-                                                sx={{
-                                                    display: 'block',
-                                                    mt: 0.5,
-                                                    fontWeight: 700,
-                                                    color: alpha(theme.palette.text.secondary, 0.7),
-                                                    fontStyle: 'italic',
-                                                    lineHeight: 1.1,
-                                                    fontSize: isMobile ? '0.65rem' : '0.7rem',
-                                                    maxWidth: '100%',
-                                                    overflow: 'hidden',
-                                                    textOverflow: 'ellipsis'
-                                                }}
-                                            >
-                                                ( {formatTerbilang(numericValue, isCurrency)} )
-                                            </Typography>
-                                        );
-                                    }
-                                    return null;
-                                })()}
-                            </Box>
-                        </Tooltip>
-                    </Box>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Typography variant="caption" color="text.secondary">{subtitle}</Typography>
-                    {trend && (
-                        <Chip
-                            label={trend.label}
-                            size="small"
-                            sx={{
-                                bgcolor: alpha(trend.color, 0.1),
-                                color: trend.color,
-                                fontWeight: 700,
-                                height: 20
-                            }}
-                        />
-                    )}
-                </Box>
-            </CardContent>
-        </Card>
-    )
-}
 
 const ECLDistributionChart = ({ data }: any) => {
     const chartData = [
@@ -333,7 +180,7 @@ const PortfolioTrendChart = ({ data }: { data: any[] }) => (
                 axisLine={false} 
                 tickLine={false} 
                 tick={{ fill: '#9e9e9e', fontSize: 10 }} 
-                tickFormatter={(value) => `Rp${(value / 1e9).toFixed(1)}B`}
+                tickFormatter={(value) => `Rp${(value / 1e9).toFixed(1)} Milyar`}
             />
             <RechartsTooltip
                 contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', background: 'rgba(255,255,255,0.9)' }}
@@ -415,7 +262,7 @@ export default function DashboardClient() {
     const [activities, setActivities] = useState<DashboardActivity[]>([])
     const [error, setError] = useState<any>(null)
     const [availableDates, setAvailableDates] = useState<string[]>([])
-    const [selectedDate, setSelectedDate] = useState<string>('')
+    const [selectedDate, setSelectedDate] = useState<string>('all')
     const [isLoadingDates, setIsLoadingDates] = useState<boolean>(true)
 
 
@@ -467,23 +314,6 @@ export default function DashboardClient() {
 
     const bankingContext = getBankingContext()
 
-    // ✅ INITIALIZATION: Load data on component mount
-    useEffect(() => {
-        if (isAuthenticated && user) {
-            // Load dashboard personalization
-            (dispatch as any)(fetchDashboardPersonalization({
-                userId: user.id,
-                tenantId: user.tenantSlug || 'default'
-            }))
-            
-            // Initial load of available dates
-            loadAvailableDates();
-        } else if (!isAuthenticated) {
-            router.push('/login')
-        }
-    }, [isAuthenticated, user, loadAvailableDates, dispatch, router])
-
-    // ✅ PERSONALIZATION: Save widget changes
     const handleWidgetLayoutChange = (widgets: any[]) => {
         dispatch(setCurrentWidgets(widgets))
     }
@@ -512,10 +342,13 @@ export default function DashboardClient() {
         setIsLoading(true)
         setError(null)
         try {
-            console.log('🔄 Loading dashboard data for:', date || 'latest');
+            console.log('🔄 Loading dashboard data for:', date || 'all');
+            // Explicitly handle 'all' or empty to call API with 'all' or undefined
+            const apiDate = date === 'all' ? 'all' : (date === '' ? undefined : date);
+            
             const [summaryData, trendData] = await Promise.all([
-                api.ifrs9.getCalculationsSummary(date),
-                api.ifrs9.getPortfolioTrend(date)
+                api.ifrs9.getCalculationsSummary(apiDate),
+                api.ifrs9.getPortfolioTrend(apiDate)
             ])
             
             // Extract data from response if it follows success/data pattern
@@ -525,9 +358,9 @@ export default function DashboardClient() {
             setEclSummary(summary)
             setPortfolioMetrics(summary) // Sync portfolio metrics
             setPortfolioTrend(trend || [])
-        } catch (err: any) {
-            console.error('Failed to load dashboard data:', err)
-            setError(handleAPIError(err))
+        } catch (error: any) {
+            console.error('❌ Error loading dashboard data:', error);
+            setError(handleAPIError(error))
         } finally {
             setIsLoading(false)
         }
@@ -539,8 +372,9 @@ export default function DashboardClient() {
             const datesResponse = await api.ifrs9.getAvailableDates();
             const dates = datesResponse?.success ? datesResponse.data : datesResponse;
             setAvailableDates(dates || []);
-            if (dates && dates.length > 0 && !selectedDate) {
-                setSelectedDate(dates[0]); // Default to latest
+            // Only set default if we aren't already in 'all' mode or have a specific date
+            if (dates && dates.length > 0 && selectedDate === '') {
+                setSelectedDate(dates[0]); // Fallback for unexpected empty state
             }
         } catch (err) {
             console.error('Failed to load available dates:', err);
@@ -549,18 +383,34 @@ export default function DashboardClient() {
         }
     }, [selectedDate]);
 
+    // ✅ INITIALIZATION: Load data on component mount
+    useEffect(() => {
+        if (isAuthenticated && user) {
+            // Load dashboard personalization
+            (dispatch as any)(fetchDashboardPersonalization({
+                userId: user.id,
+                tenantId: user.tenantSlug || 'default'
+            }))
+            
+            // Initial load of available dates
+            loadAvailableDates();
+        } else if (!isAuthenticated) {
+            router.push('/login')
+        }
+    }, [isAuthenticated, user, loadAvailableDates, dispatch, router])
+
     useEffect(() => {
         if (isAuthenticated) {
             loadAvailableDates();
         }
-    }, [isAuthenticated]);
+    }, [isAuthenticated, loadAvailableDates]);
 
     useEffect(() => {
-        if (isAuthenticated && selectedDate) {
+        if (isAuthenticated && selectedDate && selectedDate !== 'all') {
             loadDashboardData(selectedDate);
-        } else if (isAuthenticated && !selectedDate && !isLoadingDates) {
-            // If no dates specifically selected yet, load latest
-            loadDashboardData();
+        } else if (isAuthenticated && (selectedDate === 'all' || !selectedDate) && !isLoadingDates) {
+            // Load all-time/grand total
+            loadDashboardData('all');
         }
     }, [isAuthenticated, selectedDate, isLoadingDates]);
 
@@ -610,6 +460,45 @@ export default function DashboardClient() {
         )
     }
 
+    const kpiItems: KPIItem[] = [
+        {
+            title: 'Total ECL',
+            value: eclSummary?.totalECL || 0,
+            format: 'currency',
+            icon: <Calculate sx={{ fontSize: 28 }} />,
+            gradient: `linear-gradient(135deg, ${alpha(bankingContext.primary, 0.8)} 0%, ${bankingContext.primary} 100%)`,
+            mainColor: bankingContext.primary,
+            chipLabel: `Rate: ${eclSummary?.eclRate ? eclSummary.eclRate.toFixed(2) : '0.00'}%`
+        },
+        {
+            title: 'Total Exposure',
+            value: portfolioMetrics?.totalExposure || 0,
+            format: 'currency',
+            icon: <AccountBalance sx={{ fontSize: 28 }} />,
+            gradient: `linear-gradient(135deg, ${alpha(bankingContext.secondary, 0.8)} 0%, ${bankingContext.secondary} 100%)`,
+            mainColor: bankingContext.secondary,
+            chipLabel: 'Total Portfolio'
+        },
+        {
+            title: 'Active Accounts',
+            value: portfolioMetrics?.totalAccounts || 0,
+            format: 'count',
+            icon: <Business sx={{ fontSize: 28 }} />,
+            gradient: `linear-gradient(135deg, ${alpha(theme.palette.info.main, 0.8)} 0%, ${theme.palette.info.main} 100%)`,
+            mainColor: theme.palette.info.main,
+            chipLabel: 'Active Loans'
+        },
+        {
+            title: 'High Risk (Stage 3)',
+            value: eclSummary?.stage3ECL || 0,
+            format: 'currency',
+            icon: <Warning sx={{ fontSize: 28 }} />,
+            gradient: `linear-gradient(135deg, ${alpha(COLORS.stage3, 0.8)} 0%, ${COLORS.stage3} 100%)`,
+            mainColor: COLORS.stage3,
+            chipLabel: 'Credit Impaired'
+        }
+    ];
+
     return (
         <Box sx={{ transition: 'background-color 0.3s ease', pt: 8, pb: 4 }}>
             <Container maxWidth="xl">
@@ -618,13 +507,13 @@ export default function DashboardClient() {
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Box>
                         <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', color: 'white', mb: 1 }}>
-                            {bankingContext.icon} Banking Dashboard
+                            {bankingContext.icon} {selectedDate === 'all' ? 'Cumulative Grand Total' : 'Banking Dashboard'}
                         </Typography>
                         <Typography variant="subtitle1" sx={{ color: 'rgba(255,255,255,0.9)' }}>
-                            IFRS 9 {bankingContext.name} Interface
+                            {selectedDate === 'all' ? 'IFRS 9 All-Time Aggregate Summary' : `IFRS 9 ${bankingContext.name} Interface`}
                         </Typography>
                         <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)', mt: 1 }}>
-                            {bankingContext.greeting}, {user.fullName || user.email} • Last updated: {lastRefresh.toLocaleTimeString()}
+                            {bankingContext.greeting}, {user.fullName || user.email} • {selectedDate === 'all' ? 'Displaying System-wide Historical Aggregate' : (selectedDate && !isNaN(new Date(selectedDate).getTime()) ? `Process Date: ${new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }).format(new Date(selectedDate))}` : 'Initializing...')}
                         </Typography>
                         {eclSummary && (
                             <Box sx={{ mt: 1, display: 'flex', gap: 1 }}>
@@ -695,6 +584,19 @@ export default function DashboardClient() {
                                         }
                                     }}
                                 >
+                                    <MenuItem value="all" sx={{ 
+                                        fontWeight: 'bold', 
+                                        color: theme.palette.primary.main,
+                                        borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                                        py: 1.5,
+                                        backgroundColor: selectedDate === 'all' ? alpha(theme.palette.primary.main, 0.08) : 'transparent'
+                                    }}>
+                                        <Stack direction="row" spacing={1} alignItems="center">
+                                            <Assessment fontSize="small" />
+                                            <Typography variant="body2" fontWeight="bold">Grand Total (All Periods)</Typography>
+                                        </Stack>
+                                    </MenuItem>
+
                                     {availableDates.length > 0 ? (
                                         (() => {
                                             // Group dates by year for a premium UX
@@ -746,7 +648,7 @@ export default function DashboardClient() {
             {error && (
                 <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
                     <Typography variant="body2">
-                        <strong>Error Loading Data:</strong> {error}
+                                    <strong>Error Loading Data:</strong> {typeof error === 'object' ? (error.message || JSON.stringify(error)) : String(error)}
                     </Typography>
                 </Alert>
             )}
@@ -819,57 +721,24 @@ export default function DashboardClient() {
             {eclSummary && (
                 <Grid container spacing={isMobile ? 2 : 3} sx={{ mb: 4 }}>
                     {/* PRIMARY STATS */}
-                    <Grid size={{ xs: 12, md: 6 }}>
-                        <StatCard 
-                            title="Total ECL" 
-                            value={formatCurrency(eclSummary?.totalECL || 0, eclSummary?.currency || 'IDR')}
-                            fullValue={eclSummary?.totalECL || 0}
-                            subtitle={`ECL Rate: ${eclSummary?.eclRate ? eclSummary.eclRate.toFixed(2) : '0.00'}%`}
-                            icon={<Calculate />}
-                            color="#1976d2"
-                            trend={{ label: 'Current', color: '#1976d2' }}
-                        />
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                        <StatCard 
-                            title="Total Exposure" 
-                            value={formatCurrency(portfolioMetrics?.totalExposure || 0)}
-                            fullValue={portfolioMetrics?.totalExposure || 0}
-                            subtitle="Total Portfolio Value"
-                            icon={<AccountBalance />}
-                            color="#00C49F"
-                            trend={{ label: 'Stable', color: '#00C49F' }}
-                        />
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                        <StatCard 
-                            title="Active Accounts" 
-                            value={portfolioMetrics?.totalAccounts?.toLocaleString() || '0'}
-                            fullValue={portfolioMetrics?.totalAccounts || 0}
-                            subtitle="Total Active Loans"
-                            icon={<Business />}
-                            color="#FFBB28"
-                        />
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                        <StatCard 
-                            title="High Risk (Stage 3)" 
-                            value={formatCurrency(eclSummary?.stage3ECL || 0)}
-                            fullValue={eclSummary?.stage3ECL || 0}
-                            subtitle="Credit Impaired"
-                            icon={<Warning />}
-                            color="#FF8042"
-                            trend={{ label: 'Attention', color: '#FF8042' }}
-                        />
+                    <Grid size={{ xs: 12 }}>
+                        <ReportSummaryGrid items={kpiItems} mdCols={2} />
                     </Grid>
 
                     {/* CHARTS SECTION */}
                     <Grid size={{ xs: 12, md: 8 }}>
-                        <Card sx={{ borderRadius: 3, boxShadow: theme.shadows[2], height: '100%', overflow: 'hidden', background: theme.palette.background.paper }}>
-                            <CardContent>
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
+                        <Card sx={{ 
+                            borderRadius: 4, 
+                            boxShadow: `0 4px 12px ${alpha(bankingContext.primary, 0.08)}`, 
+                            border: `1px solid ${alpha(bankingContext.primary, 0.1)}`, 
+                            height: '100%', 
+                            overflow: 'hidden', 
+                            background: theme.palette.background.paper 
+                        }}>
+                            <CardContent sx={{ p: isMobile ? 2 : 3 }}>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3, alignItems: 'center' }}>
                                     <Typography variant="h6" fontWeight="bold">Portfolio Exposure Trend</Typography>
-                                    <Chip label="Historical" size="small" variant="outlined" />
+                                    <Chip label="Historical" size="small" variant="outlined" sx={{ fontWeight: 600, borderRadius: 2 }} />
                                 </Box>
                                 {/* RENDER TREND CHART */}
                                 <PortfolioTrendChart data={portfolioTrend} />
@@ -878,8 +747,14 @@ export default function DashboardClient() {
                     </Grid>
 
                     <Grid size={{ xs: 12, md: 4 }}>
-                        <Card sx={{ borderRadius: 3, boxShadow: theme.shadows[2], height: '100%', background: theme.palette.background.paper }}>
-                            <CardContent>
+                        <Card sx={{ 
+                            borderRadius: 4, 
+                            boxShadow: `0 4px 12px ${alpha(bankingContext.primary, 0.08)}`, 
+                            border: `1px solid ${alpha(bankingContext.primary, 0.1)}`,
+                            height: '100%', 
+                            background: theme.palette.background.paper 
+                        }}>
+                            <CardContent sx={{ p: isMobile ? 2 : 3 }}>
                                 <Typography variant="h6" fontWeight="bold" sx={{ mb: 3 }}>ECL Distribution</Typography>
                                 {/* RENDER PIE CHART */}
                                 <Box sx={{ position: 'relative', height: 300 }}>
@@ -939,18 +814,35 @@ export default function DashboardClient() {
             <Grid container spacing={3} sx={{ mb: 4 }}>
                 {/* Quick Actions */}
                 <Grid size={{ xs: 12, md: 6 }}>
-                    <Card sx={{ height: '100%' }}>
-                        <CardContent>
-                            <Typography variant="h6" gutterBottom sx={{ color: bankingContext.primary, display: 'flex', alignItems: 'center' }}>
-                                <Assessment sx={{ mr: 1 }} />
-                                Quick Actions
-                            </Typography>
+                    <Card sx={{ height: '100%', borderRadius: 4, boxShadow: `0 4px 12px ${alpha(bankingContext.primary, 0.08)}`, border: `1px solid ${alpha(bankingContext.primary, 0.1)}` }}>
+                        <CardContent sx={{ p: isMobile ? 2 : 3 }}>
+                            <Box sx={{ mb: 3, display: 'flex', alignItems: 'center' }}>
+                                <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: alpha(bankingContext.primary, 0.1), color: bankingContext.primary, mr: 2 }}>
+                                    <Assessment />
+                                </Box>
+                                <Typography variant="h6" fontWeight="bold">
+                                    Quick Actions
+                                </Typography>
+                            </Box>
                             <Stack spacing={2}>
                                 <Button
                                     variant="contained"
                                     fullWidth
                                     size="large"
-                                    sx={{ backgroundColor: bankingContext.primary, py: 1.5 }}
+                                    sx={{ 
+                                        py: 1.5, 
+                                        borderRadius: 2,
+                                        backgroundColor: bankingContext.primary,
+                                        boxShadow: `0 4px 12px ${alpha(bankingContext.primary, 0.3)}`,
+                                        '&:hover': {
+                                            backgroundColor: bankingContext.primary,
+                                            filter: 'brightness(0.9)',
+                                            transform: 'translateY(-2px)',
+                                            boxShadow: `0 6px 16px ${alpha(bankingContext.primary, 0.4)}`,
+                                        },
+                                        transition: 'all 0.2s ease-in-out',
+                                        fontWeight: 'bold'
+                                    }}
                                     startIcon={<Calculate />}
                                     onClick={() => router.push('/banking/ifrs9/calculations')}
                                 >
@@ -961,7 +853,18 @@ export default function DashboardClient() {
                                     fullWidth
                                     size="large"
                                     color="primary"
-                                    sx={{ py: 1.5 }}
+                                    sx={{ 
+                                        py: 1.5,
+                                        borderRadius: 2,
+                                        borderWidth: 1.5,
+                                        '&:hover': {
+                                            borderWidth: 1.5,
+                                            transform: 'translateY(-2px)',
+                                            boxShadow: `0 4px 12px ${alpha(bankingContext.primary, 0.1)}`,
+                                        },
+                                        transition: 'all 0.2s ease-in-out',
+                                        fontWeight: 'bold'
+                                    }}
                                     startIcon={<ShowChart />}
                                     onClick={() => router.push('/banking/portfolio/analysis')}
                                 >
@@ -972,7 +875,18 @@ export default function DashboardClient() {
                                     fullWidth
                                     size="large"
                                     color="primary"
-                                    sx={{ py: 1.5 }}
+                                    sx={{ 
+                                        py: 1.5,
+                                        borderRadius: 2,
+                                        borderWidth: 1.5,
+                                        '&:hover': {
+                                            borderWidth: 1.5,
+                                            transform: 'translateY(-2px)',
+                                            boxShadow: `0 4px 12px ${alpha(bankingContext.primary, 0.1)}`,
+                                        },
+                                        transition: 'all 0.2s ease-in-out',
+                                        fontWeight: 'bold'
+                                    }}
                                     startIcon={<Download />}
                                     onClick={() => router.push('/banking/reports/ifrs9')}
                                 >
@@ -983,7 +897,18 @@ export default function DashboardClient() {
                                     fullWidth
                                     size="large"
                                     color="primary"
-                                    sx={{ py: 1.5 }}
+                                    sx={{ 
+                                        py: 1.5,
+                                        borderRadius: 2,
+                                        borderWidth: 1.5,
+                                        '&:hover': {
+                                            borderWidth: 1.5,
+                                            transform: 'translateY(-2px)',
+                                            boxShadow: `0 4px 12px ${alpha(bankingContext.primary, 0.1)}`,
+                                        },
+                                        transition: 'all 0.2s ease-in-out',
+                                        fontWeight: 'bold'
+                                    }}
                                     startIcon={<Settings />}
                                     onClick={() => router.push('/banking/setup/application')}
                                 >
@@ -996,40 +921,70 @@ export default function DashboardClient() {
 
                 {/* Recent Activities - Real Data */}
                 <Grid size={{ xs: 12, md: 6 }}>
-                    <Card sx={{ height: '100%' }}>
-                        <CardContent>
-                            <Typography variant="h6" gutterBottom sx={{ color: bankingContext.primary, display: 'flex', alignItems: 'center' }}>
-                                <Timeline sx={{ mr: 1 }} />
-                                Recent Activities
-                            </Typography>
-                            <List>
+                    <Card sx={{ height: '100%', borderRadius: 4, boxShadow: `0 4px 12px ${alpha(bankingContext.primary, 0.08)}`, border: `1px solid ${alpha(bankingContext.primary, 0.1)}` }}>
+                        <CardContent sx={{ p: isMobile ? 2 : 3 }}>
+                            <Box sx={{ mb: 3, display: 'flex', alignItems: 'center' }}>
+                                <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: alpha(bankingContext.primary, 0.1), color: bankingContext.primary, mr: 2 }}>
+                                    <Timeline />
+                                </Box>
+                                <Typography variant="h6" fontWeight="bold">
+                                    Recent Activities
+                                </Typography>
+                            </Box>
+                            <List sx={{ p: 0 }}>
                                 {activities.length > 0 ? (
                                     activities.slice(0, 5).map((activity, index) => (
                                         <React.Fragment key={activity.id}>
-                                            <ListItem sx={{ px: 0 }}>
-                                                <ListItemIcon sx={{ minWidth: 40 }}>
-                                                    {activity.icon}
+                                            <ListItem sx={{ 
+                                                px: 2, 
+                                                py: 1.5,
+                                                borderRadius: 2,
+                                                mb: 1,
+                                                transition: 'all 0.2s ease-in-out',
+                                                '&:hover': {
+                                                    bgcolor: alpha(bankingContext.primary, 0.05),
+                                                    transform: 'translateX(4px)'
+                                                }
+                                            }}>
+                                                <ListItemIcon sx={{ minWidth: 48 }}>
+                                                    <Box sx={{ 
+                                                        p: 1, 
+                                                        borderRadius: 2, 
+                                                        bgcolor: activity.type === 'error' ? alpha(theme.palette.error.main, 0.1) : 
+                                                                 activity.type === 'warning' ? alpha(theme.palette.warning.main, 0.1) : 
+                                                                 activity.type === 'success' ? alpha(theme.palette.success.main, 0.1) : 
+                                                                 alpha(theme.palette.info.main, 0.1),
+                                                        color: activity.type === 'error' ? theme.palette.error.main : 
+                                                               activity.type === 'warning' ? theme.palette.warning.main : 
+                                                               activity.type === 'success' ? theme.palette.success.main : 
+                                                               theme.palette.info.main,
+                                                        display: 'flex'
+                                                    }}>
+                                                        {activity.icon}
+                                                    </Box>
                                                 </ListItemIcon>
                                                 <ListItemText
                                                     primary={activity.text}
                                                     secondary={activity.time}
-                                                    primaryTypographyProps={{ variant: 'body2' }}
-                                                    secondaryTypographyProps={{ variant: 'caption' }}
+                                                    primaryTypographyProps={{ variant: 'subtitle2', fontWeight: 600 }}
+                                                    secondaryTypographyProps={{ variant: 'caption', mt: 0.5 }}
                                                 />
                                             </ListItem>
-                                            {index < activities.length - 1 && index < 4 && <Divider />}
+                                            {index < activities.length - 1 && index < 4 && <Divider sx={{ my: 0.5, borderStyle: 'dashed' }} />}
                                         </React.Fragment>
                                     ))
                                 ) : (
-                                    <ListItem sx={{ px: 0 }}>
-                                        <ListItemIcon sx={{ minWidth: 40 }}>
-                                            <Info color="info" />
+                                    <ListItem sx={{ px: 2, py: 3, borderRadius: 2, bgcolor: alpha(theme.palette.info.main, 0.05) }}>
+                                        <ListItemIcon sx={{ minWidth: 48 }}>
+                                            <Box sx={{ p: 1, borderRadius: 2, bgcolor: alpha(theme.palette.info.main, 0.1), color: theme.palette.info.main, display: 'flex' }}>
+                                                <Info />
+                                            </Box>
                                         </ListItemIcon>
                                         <ListItemText
                                             primary="No recent activities"
                                             secondary="Activities will appear here as you use the system"
-                                            primaryTypographyProps={{ variant: 'body2' }}
-                                            secondaryTypographyProps={{ variant: 'caption' }}
+                                            primaryTypographyProps={{ variant: 'subtitle2', fontWeight: 600, color: 'text.primary' }}
+                                            secondaryTypographyProps={{ variant: 'caption', mt: 0.5 }}
                                         />
                                     </ListItem>
                                 )}

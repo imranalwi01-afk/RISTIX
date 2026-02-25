@@ -264,6 +264,35 @@ individualImpairmentRoutes.openapi(
 
 individualImpairmentRoutes.openapi(
     createRoute({
+        method: 'get',
+        path: '/watchlist/summary',
+        tags: ['Individual Impairment'],
+        summary: 'Get watchlist summary statistics',
+        description: 'Returns aggregated statistics for the watchlist (Total Accounts, Impaired, Pending, Provisions)',
+        responses: {
+            200: {
+                description: 'Summary statistics',
+                content: {
+                    'application/json': {
+                        schema: z.object({
+                            success: z.boolean(),
+                            data: z.object({
+                                totalAccounts: z.number().or(z.string()),
+                                impairedAccounts: z.number().or(z.string()),
+                                pendingAssessments: z.number().or(z.string()),
+                                totalProvisions: z.number().or(z.string())
+                            })
+                        })
+                    }
+                }
+            }
+        }
+    }),
+    (c) => individualImpairmentController.getWatchlistSummary(c)
+)
+
+individualImpairmentRoutes.openapi(
+    createRoute({
         method: 'post',
         path: '/watchlist',
         tags: ['Individual Impairment'],
@@ -303,11 +332,11 @@ individualImpairmentRoutes.openapi(
 individualImpairmentRoutes.openapi(
     createRoute({
         method: 'get',
-        path: '/assessment',
+        path: '/{accountId}',
         tags: ['Individual Impairment'],
         summary: 'Get Assessment',
         request: {
-            query: z.object({ account_id: z.string() })
+            params: z.object({ accountId: z.string() })
         },
         responses: {
             200: { content: { 'application/json': { schema: AssessmentResponse } }, description: 'Assessment' },
@@ -336,6 +365,63 @@ individualImpairmentRoutes.openapi(
         }
     }),
     (c) => individualImpairmentController.createAssessment(c)
+)
+
+individualImpairmentRoutes.openapi(
+    createRoute({
+        method: 'post',
+        path: '/assessment/{id}/submit',
+        tags: ['Individual Impairment'],
+        summary: 'Submit Assessment',
+        request: {
+            params: z.object({ id: z.string() }),
+            body: { content: { 'application/json': { schema: z.object({ comments: z.string().optional() }) } } }
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: SuccessResponseSchema } }, description: 'Submitted' },
+            401: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Unauthorized' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    (c) => individualImpairmentController.submitAssessment(c)
+)
+
+individualImpairmentRoutes.openapi(
+    createRoute({
+        method: 'post',
+        path: '/assessment/{id}/approve',
+        tags: ['Individual Impairment'],
+        summary: 'Approve Assessment',
+        request: {
+            params: z.object({ id: z.string() }),
+            body: { content: { 'application/json': { schema: z.object({ comments: z.string().optional() }) } } }
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: SuccessResponseSchema } }, description: 'Approved' },
+            401: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Unauthorized' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    (c) => individualImpairmentController.approveAssessment(c)
+)
+
+individualImpairmentRoutes.openapi(
+    createRoute({
+        method: 'post',
+        path: '/assessment/{id}/reject',
+        tags: ['Individual Impairment'],
+        summary: 'Reject Assessment',
+        request: {
+            params: z.object({ id: z.string() }),
+            body: { content: { 'application/json': { schema: z.object({ reason: z.string() }) } } }
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: SuccessResponseSchema } }, description: 'Rejected' },
+            401: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Unauthorized' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    (c) => individualImpairmentController.rejectAssessment(c)
 )
 
 // --- OVERRIDES ---

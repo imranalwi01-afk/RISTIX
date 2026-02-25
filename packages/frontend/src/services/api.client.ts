@@ -74,7 +74,14 @@ export class ApiClient {
     };
 
     // Add authentication token
-    const token = this.getAuthToken();
+    let token = this.getAuthToken();
+    
+    // ✅ SURGICAL FIX: Add demo token fallback for development
+    if (!token && process.env.NODE_ENV === 'development') {
+      token = 'demo_token_PLATFORM_SUPER_ADMIN';
+      console.log('🎭 [API CLIENT] Using demo token fallback for development');
+    }
+
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
@@ -85,6 +92,9 @@ export class ApiClient {
 
     if (contextSlug) {
       headers['X-Tenant-Slug'] = contextSlug;
+    } else if (!token?.startsWith('demo_token_') && process.env.NODE_ENV === 'development') {
+      // Fallback for demo mode if no slug present
+      headers['X-Tenant-Slug'] = 'iaf';
     }
 
     // Merge custom headers

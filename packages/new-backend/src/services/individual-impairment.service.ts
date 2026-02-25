@@ -1,5 +1,5 @@
 
-import { legacyDb } from '../config';
+import { db, legacyDb } from '../config';
 import {
     frs9ImpIaHeader,
     frs9ImpIaDetail,
@@ -7,7 +7,7 @@ import {
     frs9ImpIaResultH,
     frs9ImpIaResultD
 } from '../db/schema/legacy';
-import { frs9MasterAccount, users } from '../db/schema';
+import { frs9MasterAccount, users, individualImpairmentScenarios } from '../db/schema';
 import { and, eq, desc, sql, inArray, ilike, or } from 'drizzle-orm';
 
 
@@ -142,86 +142,132 @@ export class IndividualImpairmentService {
     // REVIEW SCENARIO DETAILS (1.4.4)
     // =========================================================================
 
-    async getScenarios(tenantId: string, filters: { status?: string; limit?: number; offset?: number }) {
-        // Return mock scenarios data for development
-        const mockScenarios = [
-            {
-                pkid: 1,
-                scenarioCode: 'BASELINE_2024',
-                scenarioName: 'Baseline Scenario 2024',
-                description: 'Base economic scenario for 2024 with current market conditions',
-                status: 'APPROVED',
-                activeFlag: true,
-                createdDate: '2024-01-15T00:00:00.000Z',
-                createdBy: 'System Admin'
-            },
-            {
-                pkid: 2,
-                scenarioCode: 'STRESS_SEVERE',
-                scenarioName: 'Severe Stress Scenario',
-                description: 'Severe economic stress scenario with 30% GDP contraction and high unemployment',
-                status: 'PENDING',
-                activeFlag: false,
-                createdDate: '2024-02-01T00:00:00.000Z',
-                createdBy: 'Risk Manager'
-            },
-            {
-                pkid: 3,
-                scenarioCode: 'OPTIMISTIC_GROWTH',
-                scenarioName: 'Optimistic Growth Scenario',
-                description: 'Optimistic scenario with 5% annual GDP growth and low unemployment',
-                status: 'DRAFT',
-                activeFlag: false,
-                createdDate: '2024-01-20T00:00:00.000Z',
-                createdBy: 'Economic Analyst'
-            },
-            {
-                pkid: 4,
-                scenarioCode: 'INFLATION_SPIKE',
-                scenarioName: 'Inflation Spike Scenario',
-                description: 'High inflation scenario with 10% annual inflation rate and interest rate hikes',
-                status: 'APPROVED',
-                activeFlag: true,
-                createdDate: '2024-01-25T00:00:00.000Z',
-                createdBy: 'Chief Economist'
+    async getScenarios(tenantId: string, filters: { status?: string; limit?: number; offset?: number; accountId?: number }) {
+        try {
+            // Base conditions: Active scenarios only by default
+            const conditions = [eq(individualImpairmentScenarios.isActive, true)];
+
+            // Filter by Account ID if provided
+            if (filters.accountId) {
+                conditions.push(eq(individualImpairmentScenarios.accountId, BigInt(filters.accountId)));
             }
-        ];
 
-        // Apply filters
-        let filteredScenarios = mockScenarios;
-        if (filters.status) {
-            filteredScenarios = filteredScenarios.filter(s => s.status === filters.status);
+            // Execute Query
+            const results = await db.select()
+                .from(individualImpairmentScenarios)
+                .where(and(...conditions))
+                .orderBy(desc(individualImpairmentScenarios.createdAt));
+
+            // If no custom scenarios found, return default templates
+            if (results.length === 0) {
+                return [
+                    {
+                        pkid: 1,
+                        scenarioCode: 'BASE_CASE',
+                        scenarioName: 'Base Case',
+                        description: 'Base economic scenario',
+                        status: 'APPROVED',
+                        activeFlag: true,
+                        createdDate: new Date().toISOString(),
+                        createdBy: 'System',
+                        discountRate: 8.5,
+                        recoveryRate: 60.0,
+                        growthRate: 2.0,
+                        timeHorizon: 60,
+                        paymentFrequency: 'monthly'
+                    },
+                    {
+                        pkid: 2,
+                        scenarioCode: 'OPTIMISTIC',
+                        scenarioName: 'Optimistic',
+                        description: 'Optimistic growth scenario',
+                        status: 'APPROVED',
+                        activeFlag: true,
+                        createdDate: new Date().toISOString(),
+                        createdBy: 'System',
+                        discountRate: 6.5,
+                        recoveryRate: 75.0,
+                        growthRate: 3.5,
+                        timeHorizon: 60,
+                        paymentFrequency: 'monthly'
+                    },
+                    {
+                        pkid: 3,
+                        scenarioCode: 'PESSIMISTIC',
+                        scenarioName: 'Pessimistic',
+                        description: 'Severe stress scenario',
+                        status: 'APPROVED',
+                        activeFlag: true,
+                        createdDate: new Date().toISOString(),
+                        createdBy: 'System',
+                        discountRate: 12.0,
+                        recoveryRate: 40.0,
+                        growthRate: 0.5,
+                        timeHorizon: 60,
+                        paymentFrequency: 'monthly'
+                    }
+                ];
+            }
+
+            // Map DB result to Frontend format
+            return results.map(r => ({
+                pkid: r.id,
+                scenarioCode: r.name.toUpperCase().replace(/\s+/g, '_'),
+                scenarioName: r.name,
+                description: `Scenario with DR=${r.discountRate}%, RR=${r.recoveryRate}%, GR=${r.growthRate}%`,
+                status: 'APPROVED', 
+                activeFlag: r.isActive,
+                createdDate: r.createdAt?.toISOString(),
+                createdBy: r.createdBy || 'System',
+                discountRate: r.discountRate,
+                recoveryRate: r.recoveryRate,
+                growthRate: r.growthRate,
+                timeHorizon: r.timeHorizon,
+                paymentFrequency: r.paymentFrequency
+            }));
+
+        } catch (error) {
+            console.error('Error fetching scenarios:', error);
+            // Fallback defaults on error
+            return [];
         }
-
-        return filteredScenarios;
     }
 
     async createScenario(data: any) {
-        // Create new scenario with mock data
-        const newScenario = {
-            pkid: Date.now(), // Use timestamp as ID for demo
-            scenarioCode: data.scenarioCode,
-            scenarioName: data.scenarioName,
-            description: data.description || '',
-            status: 'DRAFT',
-            activeFlag: false,
-            createdDate: new Date().toISOString(),
-            createdBy: data.createdBy || 'Current User'
-        };
+        try {
+            const [inserted] = await db.insert(individualImpairmentScenarios).values({
+                accountId: BigInt(data.accountId || 0), // 0 if global template? But schema says not null.
+                name: data.scenarioName,
+                discountRate: Number(data.discountRate || 0),
+                recoveryRate: Number(data.recoveryRate || 0),
+                growthRate: Number(data.growthRate || 0),
+                timeHorizon: Number(data.timeHorizon || 60),
+                paymentFrequency: data.paymentFrequency || 'monthly',
+                createdBy: data.createdBy || 'System',
+                isActive: true
+            }).returning();
 
-        return [newScenario];
+            return [{
+                pkid: inserted.id,
+                scenarioCode: inserted.name.toUpperCase().replace(/\s+/g, '_'),
+                scenarioName: inserted.name,
+                status: 'APPROVED',
+                activeFlag: inserted.isActive,
+                createdDate: inserted.createdAt?.toISOString(),
+                createdBy: inserted.createdBy,
+                discountRate: inserted.discountRate,
+                recoveryRate: inserted.recoveryRate,
+                growthRate: inserted.growthRate
+            }];
+        } catch (error) {
+            console.error('Error creating scenario:', error);
+            throw error;
+        }
     }
 
     async updateScenarioStatus(id: string, tenantId: string, status: string, approverId?: string) {
-        // Update scenario status with mock data
-        const updatedScenario = {
-            pkid: parseInt(id),
-            status: status,
-            updatedDate: new Date().toISOString(),
-            updatedBy: approverId || 'Current User'
-        };
-
-        return [updatedScenario];
+        // Not implemented fully yet as table structure is simple
+        return [];
     }
 
     // =========================================================================
@@ -341,51 +387,63 @@ export class IndividualImpairmentService {
         impaired_flag?: string; 
         status?: string; 
         rating_code?: string;
+        dateFrom?: string;
+        dateTo?: string;
         limit?: number; 
         offset?: number 
     }) {
         try {
-            const { limit = 50, offset = 0, search, stage, impaired_flag, status, rating_code } = filters;
+            const { limit = 50, offset = 0, search, stage, impaired_flag, status, rating_code, dateFrom, dateTo } = filters;
 
-            // 1. Build Query Conditions for Base Table (System Results)
+            // 1. Build Query Conditions for Master Account (Source Data)
             const conditions = [];
             
             if (search) {
                 conditions.push(or(
-                    ilike(frs9ImpIaResultH.accountNumber, `%${search}%`),
-                    ilike(frs9ImpIaResultH.cifName, `%${search}%`),
-                    ilike(frs9ImpIaResultH.cifNumber, `%${search}%`)
+                    ilike(frs9MasterAccount.accountNumber, `%${search}%`),
+                    ilike(frs9MasterAccount.cifName, `%${search}%`),
+                    ilike(frs9MasterAccount.cifNumber, `%${search}%`)
                 ));
             }
 
+            if (dateFrom) {
+                conditions.push(sql`${frs9MasterAccount.prcDate} >= ${dateFrom}`);
+            }
+
+            if (dateTo) {
+                conditions.push(sql`${frs9MasterAccount.prcDate} <= ${dateTo}`);
+            }
+
             if (rating_code) {
-                conditions.push(eq(frs9ImpIaResultH.ratingCode, rating_code));
+                conditions.push(eq(frs9MasterAccount.internalRatingCode, rating_code));
             }
 
-            // Note: Stage and Status filtering on Base Table is limited because they are derived
-            // but we can try basic matching on the columns that determine them (collectability/dpd)
-            if (stage === 3) {
-                conditions.push(or(sql`${frs9ImpIaResultH.collectability} > 2`, eq(frs9ImpIaResultH.dpd, 3))); // Simplified
+            if (stage) {
+                conditions.push(eq(frs9MasterAccount.stage, String(stage)));
+            }
+            
+            if (impaired_flag) {
+                conditions.push(eq(frs9MasterAccount.impairedFlag, impaired_flag === 'I'));
             }
 
-            // 2. Fetch Total Count for Pagination
+            // 2. Fetch Total Count
             const countResult = await legacyDb.select({ count: sql<number>`count(*)` })
-                .from(frs9ImpIaResultH)
+                .from(frs9MasterAccount)
                 .where(and(...conditions));
             
             const total = Number(countResult[0]?.count || 0);
 
             if (total === 0) return { data: [], total: 0 };
 
-            // 3. Fetch Paginated Results
+            // 3. Fetch Paginated Results from Master Account
             const results = await legacyDb.select()
-                .from(frs9ImpIaResultH)
+                .from(frs9MasterAccount)
                 .where(and(...conditions))
-                .orderBy(desc(frs9ImpIaResultH.createddate))
+                .orderBy(desc(frs9MasterAccount.prcDate), desc(frs9MasterAccount.outstanding))
                 .limit(limit)
                 .offset(offset);
 
-            // 4. Fetch Overrides (Manual Interventions)
+            // 4. Fetch Overrides (Manual Interventions) from Header
             const accountNumbers = results.map(r => r.accountNumber).filter((n): n is string => !!n);
             const overrides = accountNumbers.length > 0 
                 ? await legacyDb.select()
@@ -393,26 +451,26 @@ export class IndividualImpairmentService {
                     .where(inArray(frs9ImpIaHeader.accountNumber, accountNumbers))
                 : [];
 
-            // 5. Merge Logic: Override > System Result
+            // 5. Merge Logic: Override > Master Account
             const mergedData = results.map(row => {
                 const override = overrides.find(o => o.accountNumber === row.accountNumber);
 
-                // Base values from Result (System)
-                let currentStage = (row.collectability && row.collectability > 2) ? 3 : (row.dpd && row.dpd > 30) ? 2 : 1;
-                let currentStatus = 'PENDING';
-                let currentNotes = 'System Calculated';
-                let currentImpaired = (row.collectability && row.collectability > 2) ? 'I' : 'N';
+                // Base values from Master Account
+                let currentStage = Number(row.stage) || 1;
+                let currentStatus = 'PENDING'; // Master accounts are pending assessment by default
+                let currentNotes = '';
+                let currentImpaired = row.impairedFlag ? 'I' : 'N';
 
                 if (override) {
-                    currentStage = override.impairedFlag === 'I' ? 3 : (override.dpd && override.dpd > 30) ? 2 : 1;
+                    currentStage = override.impairedFlag === 'T' ? 3 : 1; 
                     currentStatus = STATUS_MAP_TO_STRING[override.status as number] || 'IN_PROGRESS';
                     currentNotes = override.triggerRemarks || 'Manual Override';
-                    currentImpaired = override.impairedFlag === 'I' ? 'I' : 'N';
+                    currentImpaired = override.impairedFlag === 'T' ? 'I' : 'N';
                 }
 
                 return {
-                    pkid: Number(row.pkid),
-                    ia_id: Number(row.iaId),
+                    pkid: Number(row.pkid), // Use actual unique row ID
+                    ia_id: override ? Number(override.iaId) : null,
                     prc_date: row.prcDate,
                     eff_date: row.prcDate,
                     cif_number: row.cifNumber,
@@ -422,32 +480,28 @@ export class IndividualImpairmentService {
                     currency: row.currency,
                     eff_interest_rate: Number(row.effInterestRate || 0),
                     interest_rate: Number(row.interestRate || 0),
-                    dpd: row.dpd,
-                    collectability: row.collectability,
-                    rating_code: row.ratingCode,
+                    dpd: row.dpd || 0,
+                    collectability: row.collectability || 0,
+                    rating_code: row.internalRatingCode,
                     impaired_flag: currentImpaired,
                     method: 'DCF',
                     outstanding_balance: Number(row.outstanding || 0),
-                    provision_amount: Number(row.eclIaAmt || 0),
-                    ecl_amount: Number(row.eclIaAmt || 0),
+                    provision_amount: Number(row.eclFinalAmt || 0),
+                    ecl_amount: Number(row.eclFinalAmt || 0),
                     stage: currentStage,
-                    priority_level: (row.eclIaAmt && Number(row.eclIaAmt) > 1000000000) ? 'HIGH' : 'MEDIUM',
+                    priority_level: (Number(row.outstanding) > 1000000000) ? 'HIGH' : 'MEDIUM',
                     assessment_status: currentStatus,
                     notes: currentNotes,
-                    createdby: row.createdby,
-                    createddate: row.createddate,
+                    createdby: 'SYSTEM',
+                    createddate: row.prcDate, // Use process date as creation date for list
                     is_override: !!override
                 };
             });
 
-            // 6. Final Filter check for derived status/stage if requested
+            // 6. Final Filter (Status filtering applies to Overrides primarily)
             let filteredResponse = mergedData;
-            if (stage || status) {
-                filteredResponse = mergedData.filter(item => {
-                    const stageMatch = !stage || item.stage === Number(stage);
-                    const statusMatch = !status || item.assessment_status === status;
-                    return stageMatch && statusMatch;
-                });
+            if (status) {
+                 filteredResponse = mergedData.filter(item => item.assessment_status === status);
             }
 
             return {
@@ -473,9 +527,9 @@ export class IndividualImpairmentService {
         }).returning();
     }
 
-    async removeFromWatchlist(id: string, tenantId: string) {
+    async removeFromWatchlist(accountId: string | number, tenantId: string) {
         return legacyDb.delete(frs9ImpIaHeader)
-            .where(eq(frs9ImpIaHeader.pkid, Number(id)))
+            .where(eq(frs9ImpIaHeader.accountId, Number(accountId)))
             .returning();
     }
 
@@ -484,54 +538,176 @@ export class IndividualImpairmentService {
     // =========================================================================
 
     async getAssessment(tenantId: string, accountId: number) {
+        // 1. Try to fetch existing assessment/override from Header
         const result = await legacyDb.select()
             .from(frs9ImpIaHeader)
             .where(eq(frs9ImpIaHeader.accountId, Number(accountId)))
             .orderBy(desc(frs9ImpIaHeader.createddate))
             .limit(1);
 
-        if (!result.length) return null;
+        if (result.length > 0) {
+            const row = result[0];
+            return {
+                pkid: row.pkid,
+                ia_id: Number(row.iaId),
+                account_id: Number(row.accountId),
+                account_number: row.accountNumber,
+                cif_number: row.cifNumber,
+                cif_name: row.cifName,
+                prc_date: row.prcDate,
+                eff_date: row.effDate,
+                currency: row.currency,
+                outstanding_balance: Number(row.outstanding),
+                interest_rate: row.interestRate,
+                eff_interest_rate: row.effInterestRate,
+                dpd: row.dpd,
+                collectability: row.collectability,
+                rating_code: row.ratingCode,
+                impaired_flag: row.impairedFlag === 'T' ? 'I' : 'N',
+                method: row.method,
+                stage: row.impairedFlag === 'T' ? 3 : 1,
+                previous_stage: 1, // Placeholder
+                impairment_reason: row.triggerRemarks, // Mapping trigger remarks to reason
+                assessment_basis: 'Individual Assessment', // Default
+                supporting_documents: row.triggerFilename ? [row.triggerFilename] : [],
+                analyst_comments: row.triggerRemarks, // Mapping trigger remarks to comments
+                reviewer_comments: null,
+                // Map status to Approval Status string
+                approval_status: STATUS_MAP_TO_STRING[row.status] || 'PENDING',
+                createdby: row.createdby,
+                createddate: row.createddate,
+                updatedby: row.updatedby,
+                updateddate: row.updateddate,
+                is_override: true
+            };
+        }
 
-        const row = result[0];
+        // 2. If not found, fetch from Master Account (Source Data)
+        // Note: accountId param here corresponds to frs9MasterAccount.accountId
+        const masterResult = await legacyDb.select()
+            .from(frs9MasterAccount)
+            .where(eq(frs9MasterAccount.accountId, Number(accountId)))
+            .limit(1);
 
-        return {
-            pkid: row.pkid,
-            ia_id: Number(row.iaId),
-            account_id: Number(row.accountId),
-            account_number: row.accountNumber,
-            cif_number: row.cifNumber,
-            cif_name: row.cifName,
-            prc_date: row.prcDate,
-            eff_date: row.effDate,
-            currency: row.currency,
-            outstanding_balance: Number(row.outstanding),
-            interest_rate: row.interestRate,
-            eff_interest_rate: row.effInterestRate,
-            dpd: row.dpd,
-            collectability: row.collectability,
-            rating_code: row.ratingCode,
-            impaired_flag: row.impairedFlag === 'T' ? 'I' : 'N',
-            method: row.method,
-            stage: row.impairedFlag === 'T' ? 3 : 1,
-            previous_stage: 1, // Placeholder
-            impairment_reason: row.triggerRemarks, // Mapping trigger remarks to reason
-            assessment_basis: 'Individual Assessment', // Default
-            supporting_documents: row.triggerFilename ? [row.triggerFilename] : [],
-            analyst_comments: row.triggerRemarks, // Mapping trigger remarks to comments
-            reviewer_comments: null,
-            // Map status to Approval Status string
-            approval_status: STATUS_MAP_TO_STRING[row.status] || 'PENDING',
-            createdby: row.createdby,
-            createddate: row.createddate,
-            updatedby: row.updatedby,
-            updateddate: row.updateddate
-        };
+        if (masterResult.length > 0) {
+            const row = masterResult[0];
+            return {
+                pkid: Number(row.pkid), // Use master pkid
+                ia_id: null,
+                account_id: Number(row.accountId),
+                account_number: row.accountNumber,
+                cif_number: row.cifNumber,
+                cif_name: row.cifName,
+                prc_date: row.prcDate,
+                eff_date: row.prcDate,
+                currency: row.currency,
+                outstanding_balance: Number(row.outstanding),
+                interest_rate: Number(row.interestRate || 0),
+                eff_interest_rate: Number(row.effInterestRate || 0),
+                dpd: row.dpd || 0,
+                collectability: row.collectability || 0,
+                rating_code: row.internalRatingCode,
+                impaired_flag: row.impairedFlag ? 'I' : 'N',
+                method: 'DCF',
+                stage: Number(row.stage) || 1,
+                previous_stage: 1,
+                impairment_reason: '',
+                assessment_basis: 'Individual Assessment',
+                supporting_documents: [],
+                analyst_comments: '',
+                reviewer_comments: null,
+                approval_status: 'PENDING', // Default for new assessment
+                createdby: 'SYSTEM',
+                createddate: row.prcDate,
+                updatedby: null,
+                updateddate: null,
+                is_override: false
+            };
+        }
+
+        return null;
     }
 
     async createAssessment(data: any) {
-        // Logic to insert/update assessment
-        // For now, we reuse addToWatchlist logic as it writes to the same table
-        return this.addToWatchlist(data);
+        // Robust UPSERT logic for Assessment
+        const accountId = Number(data.account_id || data.accountId);
+        if (!accountId) throw new Error("Account ID is required for assessment creation");
+
+        // 1. Check if record exists
+        const existing = await legacyDb.select()
+            .from(frs9ImpIaHeader)
+            .where(eq(frs9ImpIaHeader.accountId, accountId))
+            .limit(1);
+
+        const statusInt = STATUS_MAP_TO_INT[data.approval_status || 'PENDING'] ?? 0;
+        const remarks = data.analyst_comments || data.justification || '';
+        const userId = (data.createdby || data.createdBy || 'SYSTEM').slice(0, 36);
+
+        if (existing.length > 0) {
+            // UPDATE
+            const [updated] = await legacyDb.update(frs9ImpIaHeader)
+                .set({
+                    // Update relevant fields
+                    impairedFlag: data.overrideStage === '3' ? 'T' : 'F',
+                    triggerRemarks: remarks,
+                    status: statusInt,
+                    updatedby: userId,
+                    updateddate: new Date().toISOString(),
+                    // If stage is provided
+                    stage: data.overrideStage ? String(data.overrideStage) : undefined,
+                    // Store filename if provided
+                    triggerFilename: data.supportingDocument
+                })
+                .where(eq(frs9ImpIaHeader.pkid, existing[0].pkid))
+                .returning();
+            return updated; // Return object directly, not array
+        } else {
+            // INSERT
+            // Need to fetch Master Account details to populate required fields if missing
+            const masterAccount = await legacyDb.select()
+                .from(frs9MasterAccount)
+                .where(eq(frs9MasterAccount.accountId, accountId))
+                .limit(1);
+            
+            if (!masterAccount.length) throw new Error("Master Account not found");
+            const ma = masterAccount[0];
+
+            const iaId = await this.generateIaId();
+            const today = new Date().toISOString().split('T')[0];
+
+            const [inserted] = await legacyDb.insert(frs9ImpIaHeader).values({
+                iaId: iaId,
+                prcDate: ma.prcDate || today,
+                effDate: ma.prcDate || today,
+                cifNumber: ma.cifNumber || 'UNKNOWN',
+                cifName: ma.cifName || 'UNKNOWN',
+                accountId: accountId,
+                accountNumber: ma.accountNumber || 'UNKNOWN',
+                currency: ma.currency || 'IDR',
+                effInterestRate: Number(ma.effInterestRate || 0),
+                interestRate: Number(ma.interestRate || 0),
+                impairedFlag: data.overrideStage === '3' ? 'T' : 'F',
+                triggerRemarks: remarks,
+                status: statusInt,
+                createdby: userId,
+                createddate: new Date().toISOString(),
+                createdhost: 'localhost',
+                
+                // Defaults / Mapped from Master
+                outstanding: ma.outstanding || "0",
+                plafond: ma.plafond || "0",
+                accruedInterest: ma.accruedInterest || "0",
+                carryingAmt: ma.carryingAmt || "0",
+                eadAmt: ma.eadAmt || "0",
+                pvDcfAmt: "0",
+                eclIaAmt: "0",
+                poRate1: 0, poRate2: 0, poRate3: 0,
+
+                // Store filename if provided
+                triggerFilename: data.supportingDocument
+            }).returning();
+            return inserted; // Return object directly
+        }
     }
 
     // =========================================================================
@@ -643,6 +819,78 @@ export class IndividualImpairmentService {
         }
     }
 
+    async submitAssessment(accountId: number, comments: string, userId: string) {
+        // Find existing header
+        const existing = await legacyDb.select()
+            .from(frs9ImpIaHeader)
+            .where(eq(frs9ImpIaHeader.accountId, Number(accountId)))
+            .limit(1);
+
+        if (existing.length === 0) {
+            // Should not happen in normal flow, but if submitting without saving first
+            throw new Error(`Assessment for account ${accountId} not found. Please save first.`);
+        }
+
+        const [updated] = await legacyDb.update(frs9ImpIaHeader)
+            .set({
+                status: STATUS_MAP_TO_INT['PENDING'], // 0
+                updatedby: userId,
+                updateddate: new Date().toISOString(),
+                triggerRemarks: comments
+            })
+            .where(eq(frs9ImpIaHeader.pkid, existing[0].pkid))
+            .returning();
+            
+        return updated; // Return object directly
+    }
+
+    async approveAssessment(accountId: number, comments: string, userId: string) {
+        // Find existing header
+        const existing = await legacyDb.select()
+            .from(frs9ImpIaHeader)
+            .where(eq(frs9ImpIaHeader.accountId, Number(accountId)))
+            .limit(1);
+
+        if (existing.length === 0) throw new Error("Assessment not found");
+
+        const [updated] = await legacyDb.update(frs9ImpIaHeader)
+            .set({
+                status: STATUS_MAP_TO_INT['APPROVED'], // 1
+                updatedby: userId,
+                updateddate: new Date().toISOString(),
+                reviewedby: userId,
+                revieweddate: new Date().toISOString()
+            })
+            .where(eq(frs9ImpIaHeader.pkid, existing[0].pkid))
+            .returning();
+        
+        return updated; // Return object directly
+    }
+
+    async rejectAssessment(accountId: number, reason: string, userId: string) {
+        // Find existing header
+        const existing = await legacyDb.select()
+            .from(frs9ImpIaHeader)
+            .where(eq(frs9ImpIaHeader.accountId, Number(accountId)))
+            .limit(1);
+
+        if (existing.length === 0) throw new Error("Assessment not found");
+
+        const [updated] = await legacyDb.update(frs9ImpIaHeader)
+            .set({
+                status: STATUS_MAP_TO_INT['REJECTED'], // 2
+                updatedby: userId,
+                updateddate: new Date().toISOString(),
+                reviewedby: userId,
+                revieweddate: new Date().toISOString(),
+                triggerRemarks: reason
+            })
+            .where(eq(frs9ImpIaHeader.pkid, existing[0].pkid))
+            .returning();
+            
+        return updated; // Return object directly
+    }
+
     private async generateIaId(): Promise<number> {
         const result = await legacyDb.execute(sql`SELECT MAX(ia_id) as max_id FROM frs9_imp_ia_header`);
         const maxId = Number(result[0]?.max_id) || 0;
@@ -701,6 +949,65 @@ export class IndividualImpairmentService {
             return result;
         } catch (error) {
             console.error('Error in getStagingAnalysis:', error);
+            throw error;
+        }
+    }
+
+    // Get Watchlist Summary
+    async getWatchlistSummary(tenantId: string, date?: string) {
+        try {
+            // Determine target date safely
+            // Smart Default: If no date provided, prioritize latest date with significant data (>10 rows)
+            // to avoid showing empty dashboards due to future test dates with few records.
+            const targetDateQuery = date 
+                ? sql`SELECT ${date}::date as target_date` 
+                : sql`
+                    SELECT prc_date as target_date 
+                    FROM frs9_master_account 
+                    GROUP BY prc_date 
+                    ORDER BY (COUNT(*) > 10) DESC, prc_date DESC 
+                    LIMIT 1
+                `;
+
+            const query = sql`
+                WITH target_date_cte AS (
+                    ${targetDateQuery}
+                ),
+                counts AS (
+                    SELECT 
+                        COUNT(*) as "totalAccounts",
+                        COUNT(CASE WHEN impaired_flag = true THEN 1 END) as "impairedAccounts",
+                        SUM(CAST(ecl_final_amt AS DECIMAL)) as "totalProvisions"
+                    FROM frs9_master_account
+                    WHERE prc_date = (SELECT target_date FROM target_date_cte)
+                ),
+                completed AS (
+                    SELECT COUNT(*) as "completedCount"
+                    FROM frs9_imp_ia_header
+                    WHERE status IN (1, 2) -- Approved or Rejected
+                    AND prc_date = (SELECT target_date FROM target_date_cte)
+                )
+                SELECT 
+                    c."totalAccounts",
+                    c."impairedAccounts",
+                    (c."totalAccounts" - COALESCE(cmp."completedCount", 0)) as "pendingAssessments",
+                    c."totalProvisions",
+                    (SELECT target_date FROM target_date_cte) as "dataDate"
+                FROM counts c
+                CROSS JOIN completed cmp
+            `;
+            
+            const result = await legacyDb.execute(query);
+            const row = result[0];
+            return {
+                totalAccounts: Number(row?.totalAccounts || 0),
+                impairedAccounts: Number(row?.impairedAccounts || 0),
+                pendingAssessments: Number(row?.pendingAssessments || 0),
+                totalProvisions: Number(row?.totalProvisions || 0),
+                dataDate: row?.dataDate // Return the actual date used
+            };
+        } catch (error) {
+            console.error('Error in getWatchlistSummary:', error);
             throw error;
         }
     }

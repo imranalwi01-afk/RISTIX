@@ -3,7 +3,7 @@
 // IFRS9 Staging API Client
 // ============================================================================
 
-import { api } from './index';
+import { apiClient as api } from '../api-setup';
 
 export interface StagingAnalysis {
   prcDate: string | null;

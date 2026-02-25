@@ -1,10 +1,9 @@
 import crypto from 'node:crypto';
 import { db, legacyDb } from '../config/database';
+import { env } from '../config/env';
 import { sql, eq, desc, and, lte } from 'drizzle-orm';
 import { frs9ImpCaResultH, jobExecutions, jobDefinitions, frs9MasterAccount } from '../db/schema';
 import { JobsRepository } from '../repositories/jobs.repository';
-// Note: We might need to check if we have specific tables for collective calculation results
-// For now, I'll use placeholders or generic query structures assuming standard IFRS9 tables
 
 export class Ifrs9CalculationsService {
 
@@ -21,7 +20,65 @@ export class Ifrs9CalculationsService {
                 prcDate = latestResultDate[0]?.maxDate;
             }
 
-            if (prcDate) {
+            if (requestedDate === 'all') {
+                console.log('📊 Calculating Grand Total (All Periods)...');
+                // Aggregrate summary for ALL dates (Cumulative Grand Total)
+                const result = await legacyDb
+                    .select({
+                        totalECL: sql<string>`cast(sum(${frs9ImpCaResultH.eclAmount}) as text)`,
+                        totalPortfolio: sql<string>`cast(sum(${frs9ImpCaResultH.outstanding}) as text)`,
+                        count: sql<string>`cast(count(*) as text)`
+                    })
+                    .from(frs9ImpCaResultH);
+
+                const row = result[0];
+                if (row && Number(row.count) > 0) {
+                    const totalECL = parseFloat(row.totalECL || '0');
+                    const totalPortfolio = parseFloat(row.totalPortfolio || '0');
+                    const count = parseInt(row.count || '0', 10);
+
+                    const stages = await legacyDb
+                        .select({
+                            stage: frs9ImpCaResultH.stage,
+                            ecl: sql<string>`cast(sum(${frs9ImpCaResultH.eclAmount}) as text)`,
+                            count: sql<string>`cast(count(*) as text)`
+                        })
+                        .from(frs9ImpCaResultH)
+                        .groupBy(frs9ImpCaResultH.stage);
+
+                    const findStage = (sNum: number) => stages.find(s => Number(s.stage) === sNum);
+                    
+                    const stage1 = parseFloat(findStage(1)?.ecl || '0');
+                    const stage2 = parseFloat(findStage(2)?.ecl || '0');
+                    const stage3 = parseFloat(findStage(3)?.ecl || '0');
+                    
+                    const stage1Count = parseInt(findStage(1)?.count || '0', 10);
+                    const stage2Count = parseInt(findStage(2)?.count || '0', 10);
+                    const stage3Count = parseInt(findStage(3)?.count || '0', 10);
+
+                    console.log(`✅ Grand Total Summary loaded: ${count} total system records`);
+
+                    return {
+                        totalECL,
+                        stage1ECL: stage1,
+                        stage2ECL: stage2,
+                        stage3ECL: stage3,
+                        stage1Count,
+                        stage2Count,
+                        stage3Count,
+                        totalPortfolio,
+                        totalExposure: totalPortfolio,
+                        totalAccounts: count,
+                        activeAccounts: count,
+                        eclRate: totalPortfolio > 0 ? (totalECL / totalPortfolio) * 100 : 0,
+                        impairedRatio: totalPortfolio > 0 ? (stage3 / totalPortfolio) : 0,
+                        coverageRatio: totalPortfolio > 0 ? (totalECL / totalPortfolio) : 0,
+                        lastUpdated: 'Cumulative Grand Total (All Periods)',
+                        currency: 'IDR',
+                        isFallback: false
+                    };
+                }
+            } else if (prcDate) {
                 // Aggregrate summary for the latest process date
                 const result = await legacyDb
                     .select({
@@ -219,65 +276,94 @@ export class Ifrs9CalculationsService {
             });
             console.log('✅ Created execution record.');
 
-            // 3. --- MOCK CALCULATION ENGINE START ---
-            // In a real system, this would be an asyn worker.
-            // For this implementation, we run it inline to provide immediate dashboard results.
+            // 3. --- TRIGGER R ANALYTICS CALCULATION ---
             const processDate = config.processDate || new Date().toISOString().split('T')[0];
-            
-            console.log(`🔍 Mocking ECL results for date: ${processDate}...`);
+            console.log(`� Calling R Analytics Service for date: ${processDate}...`);
 
             // Clear existing results for this date to avoid duplicates
             await legacyDb.delete(frs9ImpCaResultH).where(sql`date(${frs9ImpCaResultH.prcDate}) = ${processDate}`);
 
-            // Fetch source data from Master Account
-            const sourceData = await legacyDb
-                .select()
-                .from(frs9MasterAccount)
-                .where(sql`date(${frs9MasterAccount.prcDate}) = ${processDate}`)
-                .limit(1000); // Process a representative sample
-
-            if (sourceData.length > 0) {
-                console.log(`📊 Found ${sourceData.length} source records. Calculating ECL...`);
-                
-                // Perform Simple Mock ECL Calculation
-                const results = sourceData.map(record => {
-                    const outstanding = Number(record.outstanding || 0);
-                    // Mock Stage Logic: 80% Stage 1, 15% Stage 2, 5% Stage 3
-                    const rand = Math.random();
-                    let stage = 1;
-                    let eclRate = 0.01; // Stage 1: 1%
-                    
-                    if (rand > 0.95) {
-                        stage = 3;
-                        eclRate = 0.45; // Stage 3: 45%
-                    } else if (rand > 0.80) {
-                        stage = 2;
-                        eclRate = 0.12; // Stage 2: 12%
-                    }
-
-                    const eclAmount = outstanding * eclRate;
-
-                    return {
-                        prcDate: record.prcDate,
-                        accountId: record.pkid, // Use pkid as ID
-                        facilityNumber: record.accountNumber,
-                        cifNumber: record.cifNumber,
-                        segmentId: 1, // Default segment
-                        stage: stage,
-                        currency: record.currency || 'IDR',
-                        outstanding: record.outstanding,
-                        eclAmount: eclAmount.toString(),
-                        eclFinal: eclAmount.toString(),
-                        bucketGroup: record.bucketId?.toString() || 'Standard',
-                        internalRatingCode: record.internalRatingCode || 'B',
-                    };
+            try {
+                // Call R API
+                const rResponse = await fetch(`${env.R_SERVICE_URL}/ifrs9/calculate-ecl`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        tenant_id: tenantId,
+                        calculation_date: processDate,
+                        parameters: {
+                            pd_method: config.pdMethod || 'historical',
+                            lgd_method: config.lgdMethod || 'historical',
+                            ead_method: config.eadMethod || 'current'
+                        }
+                    })
                 });
 
-                // Batch insert into results table
-                await legacyDb.insert(frs9ImpCaResultH).values(results as any);
-                console.log(`✅ Inserted ${results.length} calculation results into frs9ImpCaResultH`);
-            } else {
-                console.warn(`⚠️ No source data found in frs9MasterAccount for ${processDate}`);
+                if (!rResponse.ok) {
+                    throw new Error(`R Service responded with ${rResponse.status}: ${rResponse.statusText}`);
+                }
+
+                const rData: any = await rResponse.json();
+
+                if (!rData.success) {
+                    throw new Error(`R Calculation failed: ${rData.error}`);
+                }
+
+                const results = rData.data.results;
+                const summary = rData.data.summary;
+
+                console.log(`✅ R Calculation successful. Processing ${results.length} records...`);
+                console.log(`📊 Summary: Total ECL=${summary.total_ecl_final}, Stage 3 Accounts=${summary.stage3_accounts}`);
+
+                if (results.length > 0) {
+                    // Map R results to Drizzle Schema
+                    // Note: R returns snake_case, Drizzle expects camelCase (or snake_case depending on definition)
+                    // Based on schema definition: frs9ImpCaResultH uses camelCase properties mapping to snake_case columns
+                    
+                    const dbRecords = results.map((r: any) => ({
+                        prcDate: processDate,
+                        accountId: r.account_id, // Map from R
+                        facilityNumber: r.facility_number || r.account_id?.toString(), // Fallback
+                        cifNumber: r.cif_number || '', // Fallback
+                        segmentId: 1, // Default or map if available
+                        stage: r.IFRS9_Stage,
+                        currency: r.currency_code || 'IDR',
+                        outstanding: r.outstanding_amount?.toString() || '0',
+                        eclAmount: r.ECL_Final?.toString() || '0',
+                        eclFinal: r.ECL_Final?.toString() || '0',
+                        lgd: r.LGD,
+                        bucketGroup: r.bucket_group || 'Standard',
+                        internalRatingCode: r.internal_rating || '',
+                        
+                        // Fill other required fields with defaults
+                        createdby: 'R_ENGINE',
+                        createddate: new Date().toISOString()
+                    }));
+
+                    // Batch insert (Drizzle/Postgres limit is usually around 65535 params, so batching is good practice)
+                    // For now, simple insert. In production, chunk this array.
+                    const CHUNK_SIZE = 1000;
+                    for (let i = 0; i < dbRecords.length; i += CHUNK_SIZE) {
+                        const chunk = dbRecords.slice(i, i + CHUNK_SIZE);
+                        await legacyDb.insert(frs9ImpCaResultH).values(chunk as any);
+                    }
+                    
+                    console.log(`✅ Inserted ${dbRecords.length} calculation results into database`);
+                } else {
+                    console.warn(`⚠️ R returned no results for ${processDate}`);
+                }
+
+            } catch (rError: any) {
+                console.error('❌ R Service Integration Error:', rError);
+                // Mark execution as FAILED
+                await JobsRepository.updateExecution(executionId, {
+                    status: 'FAILED',
+                    endTime: new Date(),
+                    errorMessage: rError.message
+                });
+                throw rError; // Re-throw to be caught by outer catch
             }
 
             // 4. Update Execution Record to COMPLETED
@@ -285,7 +371,7 @@ export class Ifrs9CalculationsService {
                 status: 'COMPLETED',
                 endTime: new Date(),
             });
-            // --- MOCK CALCULATION ENGINE END ---
+            // --- CALCULATION ENGINE END ---
 
             return {
                 success: true,
@@ -317,7 +403,7 @@ export class Ifrs9CalculationsService {
                 })
                 .from(frs9ImpCaResultH);
 
-            if (endDate) {
+            if (endDate && endDate !== 'all') {
                 trendQuery.where(sql`date(${frs9ImpCaResultH.prcDate}) <= ${endDate}`);
             }
 
@@ -336,14 +422,21 @@ export class Ifrs9CalculationsService {
                     })
                     .from(frs9MasterAccount);
 
-                if (endDate) {
+                if (endDate && endDate !== 'all') {
                     masterTrendQuery.where(sql`date(${frs9MasterAccount.prcDate}) <= ${endDate}`);
                 }
 
-                trend = await masterTrendQuery
+                trend = (await masterTrendQuery
                     .groupBy(frs9MasterAccount.prcDate)
                     .orderBy(desc(frs9MasterAccount.prcDate))
-                    .limit(12);
+                    .limit(12)).map(t => ({
+                        date: t.date,
+                        stage1: 0,
+                        stage2: 0,
+                        stage3: 0,
+                        totalECL: 0,
+                        totalPortfolio: Number(t.value || 0)
+                    })) as any;
             }
 
             if (!trend || trend.length === 0) {
@@ -388,7 +481,7 @@ export class Ifrs9CalculationsService {
             return {
                 data: results.map((r) => ({
                     accountId: r.accountId,
-                    accountNumber: r.accountNumber || r.facilityNumber || r.accountId?.toString(),
+                    accountNumber: r.facilityNumber || r.accountId?.toString(),
                     facilityNumber: r.facilityNumber,
                     cifNumber: r.cifNumber,
                     outstanding: Number(r.outstanding || 0),

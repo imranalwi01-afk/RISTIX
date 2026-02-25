@@ -1,0 +1,9 @@
+Installing missing packages: shinythemes
+Installing package into 'C:/Users/IMRAN ALWI/AppData/Local/R/win-library/4.5'
+(as 'lib' is unspecified)
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.5/shinythemes_1.2.0.zip'
+Content type 'application/zip' length 991263 bytes (968 KB)
+==================================================
+downloaded 968 KB
+
+Setup Complete!

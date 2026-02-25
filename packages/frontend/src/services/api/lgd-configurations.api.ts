@@ -1,5 +1,5 @@
 // packages/frontend/src/services/api/lgd-configurations.api.ts
-import { apiClient } from '../api.client';
+import { apiClient } from '../api-setup';
 
 // ============================================================================
 // INTERFACES
@@ -63,22 +63,23 @@ export const lgdConfigurationsApi = {
         const url = queryParams.toString() ? `${BASE_URL}?${queryParams}` : BASE_URL;
 
         const response = await apiClient.get<any>(url);
-        return response.data || [];
+        return response.data?.data || [];
     },
 
     async getById(id: string): Promise<LGDConfiguration> {
         const response = await apiClient.get<any>(`${BASE_URL}/${id}`);
-        return response.data!;
+        if (!response.data?.data) throw new Error('LGD Configuration not found');
+        return response.data.data;
     },
 
     async create(data: CreateLGDConfigurationDto): Promise<LGDConfiguration> {
         const response = await apiClient.post<any>(BASE_URL, data);
-        return response.data!;
+        return response.data?.data;
     },
 
     async update(id: string, data: UpdateLGDConfigurationDto): Promise<LGDConfiguration> {
         const response = await apiClient.put<any>(`${BASE_URL}/${id}`, data);
-        return response.data!;
+        return response.data?.data;
     },
 
     async delete(id: string): Promise<void> {
@@ -89,13 +90,13 @@ export const lgdConfigurationsApi = {
         const response = await apiClient.get<any>(
             `${BASE_URL}/metadata/methods`
         );
-        return response.data || [];
+        return response.data?.data || [];
     },
 
     async getPopulationTypes(): Promise<Array<{ value: string; label: string }>> {
         const response = await apiClient.get<any>(
             `${BASE_URL}/metadata/population-types`
         );
-        return response.data || [];
+        return response.data?.data || [];
     },
 };

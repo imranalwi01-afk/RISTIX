@@ -1,0 +1,291 @@
+src/app/banking/collective/ecl-config/ECLConfigClient.tsx(779,7): error TS2322: Type '{ children: ("" | Element | null)[]; title: string; description: string; breadcrumbItems: ({ label: string; href: string; icon: Element; } | { label: string; icon: Element; })[]; actionButtons: ({ ...; } | ... 1 more ... | { ...; })[]; }' is not assignable to type 'IntrinsicAttributes & ReportPageLayoutProps'.
+  Property 'breadcrumbItems' does not exist on type 'IntrinsicAttributes & ReportPageLayoutProps'.
+src/app/banking/collective/pd-setup/PDSetupClient.tsx(394,10): error TS2552: Cannot find name 'Snackbar'. Did you mean 'snackbar'?
+src/app/banking/collective/pd-setup/PDSetupClient.tsx(398,11): error TS2552: Cannot find name 'Snackbar'. Did you mean 'snackbar'?
+src/app/banking/collective/segmentation/components/ApprovalHistoryTab.tsx(65,10): error TS2786: 'Timeline' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<TimelineProps & RefAttributes<HTMLUListElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<TimelineProps & RefAttributes<HTMLUListElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'import("D:/pro/ifrs9-new/node_modules/.pnpm/@types+react@19.2.10/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+        Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+          Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+src/app/banking/collective/segmentation/components/RuleEditorDialog.tsx(117,14): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: { component: ElementType<any, keyof IntrinsicElements>; } & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<...> & Omit<...>): Element | null', gave the following error.
+    Property 'component' is missing in type '{ children: Element; item: true; xs: number; md: number; }' but required in type '{ component: ElementType<any, keyof IntrinsicElements>; }'.
+  Overload 2 of 2, '(props: DefaultComponentProps<GridTypeMap<{}, "div">>): Element | null', gave the following error.
+    Type '{ children: Element; item: true; xs: number; md: number; }' is not assignable to type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+      Property 'item' does not exist on type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+src/app/banking/collective/segmentation/components/RuleEditorDialog.tsx(126,14): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: { component: ElementType<any, keyof IntrinsicElements>; } & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<...> & Omit<...>): Element | null', gave the following error.
+    Property 'component' is missing in type '{ children: Element; item: true; xs: number; md: number; }' but required in type '{ component: ElementType<any, keyof IntrinsicElements>; }'.
+  Overload 2 of 2, '(props: DefaultComponentProps<GridTypeMap<{}, "div">>): Element | null', gave the following error.
+    Type '{ children: Element; item: true; xs: number; md: number; }' is not assignable to type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+      Property 'item' does not exist on type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+src/app/banking/collective/segmentation/components/RuleEditorDialog.tsx(140,14): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: { component: ElementType<any, keyof IntrinsicElements>; } & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<...> & Omit<...>): Element | null', gave the following error.
+    Property 'component' is missing in type '{ children: Element; item: true; xs: number; }' but required in type '{ component: ElementType<any, keyof IntrinsicElements>; }'.
+  Overload 2 of 2, '(props: DefaultComponentProps<GridTypeMap<{}, "div">>): Element | null', gave the following error.
+    Type '{ children: Element; item: true; xs: number; }' is not assignable to type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+      Property 'item' does not exist on type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+src/app/banking/collective/segmentation/components/RuleEditorDialog.tsx(155,14): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: { component: ElementType<any, keyof IntrinsicElements>; } & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<...> & Omit<...>): Element | null', gave the following error.
+    Property 'component' is missing in type '{ children: Element; item: true; xs: number; }' but required in type '{ component: ElementType<any, keyof IntrinsicElements>; }'.
+  Overload 2 of 2, '(props: DefaultComponentProps<GridTypeMap<{}, "div">>): Element | null', gave the following error.
+    Type '{ children: Element; item: true; xs: number; }' is not assignable to type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+      Property 'item' does not exist on type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+src/app/banking/collective/segmentation/components/RuleEditorDialog.tsx(170,14): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: { component: ElementType<any, keyof IntrinsicElements>; } & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<...> & Omit<...>): Element | null', gave the following error.
+    Property 'component' is missing in type '{ children: Element; item: true; xs: number; md: number; }' but required in type '{ component: ElementType<any, keyof IntrinsicElements>; }'.
+  Overload 2 of 2, '(props: DefaultComponentProps<GridTypeMap<{}, "div">>): Element | null', gave the following error.
+    Type '{ children: Element; item: true; xs: number; md: number; }' is not assignable to type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+      Property 'item' does not exist on type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+src/app/banking/collective/segmentation/components/RuleEditorDialog.tsx(185,14): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: { component: ElementType<any, keyof IntrinsicElements>; } & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<...> & Omit<...>): Element | null', gave the following error.
+    Property 'component' is missing in type '{ children: Element; item: true; xs: number; md: number; }' but required in type '{ component: ElementType<any, keyof IntrinsicElements>; }'.
+  Overload 2 of 2, '(props: DefaultComponentProps<GridTypeMap<{}, "div">>): Element | null', gave the following error.
+    Type '{ children: Element; item: true; xs: number; md: number; }' is not assignable to type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+      Property 'item' does not exist on type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+src/app/banking/collective/segmentation/components/RuleEditorDialog.tsx(195,18): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: { component: ElementType<any, keyof IntrinsicElements>; } & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<...> & Omit<...>): Element | null', gave the following error.
+    Property 'component' is missing in type '{ children: Element; item: true; xs: number; md: number; }' but required in type '{ component: ElementType<any, keyof IntrinsicElements>; }'.
+  Overload 2 of 2, '(props: DefaultComponentProps<GridTypeMap<{}, "div">>): Element | null', gave the following error.
+    Type '{ children: Element; item: true; xs: number; md: number; }' is not assignable to type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+      Property 'item' does not exist on type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+src/app/banking/collective/segmentation/components/RulesTab.tsx(140,25): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: { component: ElementType<any, keyof IntrinsicElements>; } & ChipOwnProps & ChipSlotsAndSlotProps & CommonProps & Omit<...>): Element | null', gave the following error.
+    Type '"soft"' is not assignable to type 'OverridableStringUnion<"outlined" | "filled", ChipPropsVariantOverrides> | undefined'.
+  Overload 2 of 2, '(props: DefaultComponentProps<ChipTypeMap<{}, "div">>): Element | null', gave the following error.
+    Type '"soft"' is not assignable to type 'OverridableStringUnion<"outlined" | "filled", ChipPropsVariantOverrides> | undefined'.
+src/app/banking/dashboard/DashboardClient.tsx(469,56): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/app/banking/dashboard/DashboardClient.tsx(470,13): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/app/banking/dashboard/DashboardClient.tsx(478,56): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/app/banking/dashboard/DashboardClient.tsx(479,13): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/app/banking/dashboard/DashboardClient.tsx(732,60): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/app/banking/dashboard/DashboardClient.tsx(733,56): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/app/banking/dashboard/DashboardClient.tsx(752,60): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/app/banking/dashboard/DashboardClient.tsx(753,56): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/app/banking/dashboard/DashboardClient.tsx(817,97): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/app/banking/dashboard/DashboardClient.tsx(817,157): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/app/banking/dashboard/DashboardClient.tsx(820,84): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/app/banking/dashboard/DashboardClient.tsx(836,72): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/app/banking/dashboard/DashboardClient.tsx(841,76): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/app/banking/dashboard/DashboardClient.tsx(863,76): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/app/banking/dashboard/DashboardClient.tsx(885,76): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/app/banking/dashboard/DashboardClient.tsx(907,76): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/app/banking/dashboard/DashboardClient.tsx(924,97): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/app/banking/dashboard/DashboardClient.tsx(924,157): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/app/banking/dashboard/DashboardClient.tsx(927,84): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/app/banking/dashboard/DashboardClient.tsx(945,68): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/components/banking/collective/segmentation/SegmentationApprovalsTab.tsx(69,10): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: { component: ElementType<any, keyof IntrinsicElements>; } & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<...> & Omit<...>): Element | null', gave the following error.
+    Property 'component' is missing in type '{ children: Element; item: true; xs: number; }' but required in type '{ component: ElementType<any, keyof IntrinsicElements>; }'.
+  Overload 2 of 2, '(props: DefaultComponentProps<GridTypeMap<{}, "div">>): Element | null', gave the following error.
+    Type '{ children: Element; item: true; xs: number; }' is not assignable to type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+      Property 'item' does not exist on type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+src/components/banking/collective/segmentation/SegmentationApprovalsTab.tsx(95,21): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: { component: ElementType<any, keyof IntrinsicElements>; } & ChipOwnProps & ChipSlotsAndSlotProps & CommonProps & Omit<...>): Element | null', gave the following error.
+    Type '"soft"' is not assignable to type 'OverridableStringUnion<"outlined" | "filled", ChipPropsVariantOverrides> | undefined'.
+  Overload 2 of 2, '(props: DefaultComponentProps<ChipTypeMap<{}, "div">>): Element | null', gave the following error.
+    Type '"soft"' is not assignable to type 'OverridableStringUnion<"outlined" | "filled", ChipPropsVariantOverrides> | undefined'.
+src/components/banking/collective/segmentation/SegmentationApprovalsTab.tsx(102,10): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: { component: ElementType<any, keyof IntrinsicElements>; } & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<...> & Omit<...>): Element | null', gave the following error.
+    Property 'component' is missing in type '{ children: Element[]; item: true; xs: number; md: number; }' but required in type '{ component: ElementType<any, keyof IntrinsicElements>; }'.
+  Overload 2 of 2, '(props: DefaultComponentProps<GridTypeMap<{}, "div">>): Element | null', gave the following error.
+    Type '{ children: Element[]; item: true; xs: number; md: number; }' is not assignable to type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+      Property 'item' does not exist on type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+src/components/banking/collective/segmentation/SegmentationApprovalsTab.tsx(157,10): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: { component: ElementType<any, keyof IntrinsicElements>; } & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<...> & Omit<...>): Element | null', gave the following error.
+    Property 'component' is missing in type '{ children: Element; item: true; xs: number; md: number; }' but required in type '{ component: ElementType<any, keyof IntrinsicElements>; }'.
+  Overload 2 of 2, '(props: DefaultComponentProps<GridTypeMap<{}, "div">>): Element | null', gave the following error.
+    Type '{ children: Element; item: true; xs: number; md: number; }' is not assignable to type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+      Property 'item' does not exist on type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+src/components/banking/collective/segmentation/SegmentationConditionsTab.tsx(90,31): error TS2339: Property 'segmentation' does not exist on type '{ auth: { login: (email: string, password: string, tenantId?: string | undefined) => Promise<any>; logout: () => Promise<any>; me: () => Promise<any>; verifyToken: () => Promise<...>; changePassword: (data: any) => Promise<...>; refresh: (refreshToken: string) => Promise<...>; }; ... 10 more ...; client: AxiosInstan...'.
+src/components/banking/collective/segmentation/SegmentationConditionsTab.tsx(106,29): error TS2339: Property 'segmentation' does not exist on type '{ auth: { login: (email: string, password: string, tenantId?: string | undefined) => Promise<any>; logout: () => Promise<any>; me: () => Promise<any>; verifyToken: () => Promise<...>; changePassword: (data: any) => Promise<...>; refresh: (refreshToken: string) => Promise<...>; }; ... 10 more ...; client: AxiosInstan...'.
+src/components/banking/collective/segmentation/SegmentationConditionsTab.tsx(120,34): error TS2339: Property 'segmentation' does not exist on type '{ auth: { login: (email: string, password: string, tenantId?: string | undefined) => Promise<any>; logout: () => Promise<any>; me: () => Promise<any>; verifyToken: () => Promise<...>; changePassword: (data: any) => Promise<...>; refresh: (refreshToken: string) => Promise<...>; }; ... 10 more ...; client: AxiosInstan...'.
+src/components/banking/collective/segmentation/SegmentationConditionsTab.tsx(123,29): error TS2339: Property 'segmentation' does not exist on type '{ auth: { login: (email: string, password: string, tenantId?: string | undefined) => Promise<any>; logout: () => Promise<any>; me: () => Promise<any>; verifyToken: () => Promise<...>; changePassword: (data: any) => Promise<...>; refresh: (refreshToken: string) => Promise<...>; }; ... 10 more ...; client: AxiosInstan...'.
+src/components/banking/collective/segmentation/SegmentationConditionsTab.tsx(126,30): error TS2339: Property 'segmentation' does not exist on type '{ auth: { login: (email: string, password: string, tenantId?: string | undefined) => Promise<any>; logout: () => Promise<any>; me: () => Promise<any>; verifyToken: () => Promise<...>; changePassword: (data: any) => Promise<...>; refresh: (refreshToken: string) => Promise<...>; }; ... 10 more ...; client: AxiosInstan...'.
+src/components/banking/collective/segmentation/SegmentationConditionsTab.tsx(281,14): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: { component: ElementType<any, keyof IntrinsicElements>; } & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<...> & Omit<...>): Element | null', gave the following error.
+    Property 'component' is missing in type '{ children: Element; item: true; xs: number; md: number; }' but required in type '{ component: ElementType<any, keyof IntrinsicElements>; }'.
+  Overload 2 of 2, '(props: DefaultComponentProps<GridTypeMap<{}, "div">>): Element | null', gave the following error.
+    Type '{ children: Element; item: true; xs: number; md: number; }' is not assignable to type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+      Property 'item' does not exist on type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+src/components/banking/collective/segmentation/SegmentationConditionsTab.tsx(295,14): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: { component: ElementType<any, keyof IntrinsicElements>; } & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<...> & Omit<...>): Element | null', gave the following error.
+    Property 'component' is missing in type '{ children: Element; item: true; xs: number; md: number; }' but required in type '{ component: ElementType<any, keyof IntrinsicElements>; }'.
+  Overload 2 of 2, '(props: DefaultComponentProps<GridTypeMap<{}, "div">>): Element | null', gave the following error.
+    Type '{ children: Element; item: true; xs: number; md: number; }' is not assignable to type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+      Property 'item' does not exist on type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+src/components/banking/collective/segmentation/SegmentationConditionsTab.tsx(306,14): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: { component: ElementType<any, keyof IntrinsicElements>; } & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<...> & Omit<...>): Element | null', gave the following error.
+    Property 'component' is missing in type '{ children: Element; item: true; xs: number; md: number; }' but required in type '{ component: ElementType<any, keyof IntrinsicElements>; }'.
+  Overload 2 of 2, '(props: DefaultComponentProps<GridTypeMap<{}, "div">>): Element | null', gave the following error.
+    Type '{ children: Element; item: true; xs: number; md: number; }' is not assignable to type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+      Property 'item' does not exist on type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+src/components/banking/collective/segmentation/SegmentationConditionsTab.tsx(317,14): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: { component: ElementType<any, keyof IntrinsicElements>; } & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<...> & Omit<...>): Element | null', gave the following error.
+    Property 'component' is missing in type '{ children: Element; item: true; xs: number; md: number; }' but required in type '{ component: ElementType<any, keyof IntrinsicElements>; }'.
+  Overload 2 of 2, '(props: DefaultComponentProps<GridTypeMap<{}, "div">>): Element | null', gave the following error.
+    Type '{ children: Element; item: true; xs: number; md: number; }' is not assignable to type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+      Property 'item' does not exist on type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+src/components/banking/collective/segmentation/SegmentationConditionsTab.tsx(332,14): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: { component: ElementType<any, keyof IntrinsicElements>; } & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<...> & Omit<...>): Element | null', gave the following error.
+    Property 'component' is missing in type '{ children: Element; item: true; xs: number; md: number; }' but required in type '{ component: ElementType<any, keyof IntrinsicElements>; }'.
+  Overload 2 of 2, '(props: DefaultComponentProps<GridTypeMap<{}, "div">>): Element | null', gave the following error.
+    Type '{ children: Element; item: true; xs: number; md: number; }' is not assignable to type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+      Property 'item' does not exist on type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+src/components/banking/collective/segmentation/SegmentationConditionsTab.tsx(347,14): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: { component: ElementType<any, keyof IntrinsicElements>; } & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<...> & Omit<...>): Element | null', gave the following error.
+    Property 'component' is missing in type '{ children: Element; item: true; xs: number; md: number; }' but required in type '{ component: ElementType<any, keyof IntrinsicElements>; }'.
+  Overload 2 of 2, '(props: DefaultComponentProps<GridTypeMap<{}, "div">>): Element | null', gave the following error.
+    Type '{ children: Element; item: true; xs: number; md: number; }' is not assignable to type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+      Property 'item' does not exist on type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+src/components/banking/collective/segmentation/SegmentationConditionsTab.tsx(362,14): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: { component: ElementType<any, keyof IntrinsicElements>; } & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<...> & Omit<...>): Element | null', gave the following error.
+    Property 'component' is missing in type '{ children: Element; item: true; xs: number; md: number; }' but required in type '{ component: ElementType<any, keyof IntrinsicElements>; }'.
+  Overload 2 of 2, '(props: DefaultComponentProps<GridTypeMap<{}, "div">>): Element | null', gave the following error.
+    Type '{ children: Element; item: true; xs: number; md: number; }' is not assignable to type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+      Property 'item' does not exist on type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+src/components/banking/collective/segmentation/SegmentationConditionsTab.tsx(379,14): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: { component: ElementType<any, keyof IntrinsicElements>; } & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<...> & Omit<...>): Element | null', gave the following error.
+    Property 'component' is missing in type '{ children: Element; item: true; xs: number; md: number; }' but required in type '{ component: ElementType<any, keyof IntrinsicElements>; }'.
+  Overload 2 of 2, '(props: DefaultComponentProps<GridTypeMap<{}, "div">>): Element | null', gave the following error.
+    Type '{ children: Element; item: true; xs: number; md: number; }' is not assignable to type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+      Property 'item' does not exist on type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+src/components/banking/collective/segmentation/SegmentationConditionsTab.tsx(393,33): error TS2322: Type '{ endAdornment: JSX.Element; ref: React.Ref<any>; className: string; startAdornment: React.ReactNode; onMouseDown: React.MouseEventHandler; }' is not assignable to type 'Partial<OutlinedInputProps> | Partial<FilledInputProps> | Partial<InputProps> | undefined'.
+  Type '{ endAdornment: JSX.Element; ref: React.Ref<any>; className: string; startAdornment: React.ReactNode; onMouseDown: React.MouseEventHandler; }' is not assignable to type 'Partial<InputProps>'.
+    Types of property 'ref' are incompatible.
+      Type 'Ref<any>' is not assignable to type '((instance: unknown) => void | (() => VoidOrUndefinedOnly)) | RefObject<unknown> | null | undefined'.
+        Type '(instance: any) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '((instance: unknown) => void | (() => VoidOrUndefinedOnly)) | RefObject<unknown> | null | undefined'.
+          Type '(instance: any) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: unknown) => void | (() => VoidOrUndefinedOnly)'.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+src/components/banking/collective/segmentation/SegmentationConditionsTab.tsx(418,17): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: { component: ElementType<any, keyof IntrinsicElements>; } & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<...> & Omit<...>): Element | null', gave the following error.
+    Property 'component' is missing in type '{ children: Element; item: true; xs: number; md: number; }' but required in type '{ component: ElementType<any, keyof IntrinsicElements>; }'.
+  Overload 2 of 2, '(props: DefaultComponentProps<GridTypeMap<{}, "div">>): Element | null', gave the following error.
+    Type '{ children: Element; item: true; xs: number; md: number; }' is not assignable to type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+      Property 'item' does not exist on type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+src/components/banking/collective/segmentation/SegmentationConditionsTab.tsx(431,14): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: { component: ElementType<any, keyof IntrinsicElements>; } & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<...> & Omit<...>): Element | null', gave the following error.
+    Property 'component' is missing in type '{ children: Element; item: true; xs: number; }' but required in type '{ component: ElementType<any, keyof IntrinsicElements>; }'.
+  Overload 2 of 2, '(props: DefaultComponentProps<GridTypeMap<{}, "div">>): Element | null', gave the following error.
+    Type '{ children: Element; item: true; xs: number; }' is not assignable to type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+      Property 'item' does not exist on type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+src/components/banking/collective/segmentation/SegmentationDetailsTab.tsx(42,10): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: { component: ElementType<any, keyof IntrinsicElements>; } & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<...> & Omit<...>): Element | null', gave the following error.
+    Property 'component' is missing in type '{ children: Element; item: true; xs: number; md: number; }' but required in type '{ component: ElementType<any, keyof IntrinsicElements>; }'.
+  Overload 2 of 2, '(props: DefaultComponentProps<GridTypeMap<{}, "div">>): Element | null', gave the following error.
+    Type '{ children: Element; item: true; xs: number; md: number; }' is not assignable to type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+      Property 'item' does not exist on type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+src/components/banking/collective/segmentation/SegmentationDetailsTab.tsx(50,16): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: { component: ElementType<any, keyof IntrinsicElements>; } & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<...> & Omit<...>): Element | null', gave the following error.
+    Property 'component' is missing in type '{ children: Element; item: true; xs: number; }' but required in type '{ component: ElementType<any, keyof IntrinsicElements>; }'.
+  Overload 2 of 2, '(props: DefaultComponentProps<GridTypeMap<{}, "div">>): Element | null', gave the following error.
+    Type '{ children: Element; item: true; xs: number; }' is not assignable to type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+      Property 'item' does not exist on type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+src/components/banking/collective/segmentation/SegmentationDetailsTab.tsx(65,16): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: { component: ElementType<any, keyof IntrinsicElements>; } & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<...> & Omit<...>): Element | null', gave the following error.
+    Property 'component' is missing in type '{ children: Element; item: true; xs: number; md: number; }' but required in type '{ component: ElementType<any, keyof IntrinsicElements>; }'.
+  Overload 2 of 2, '(props: DefaultComponentProps<GridTypeMap<{}, "div">>): Element | null', gave the following error.
+    Type '{ children: Element; item: true; xs: number; md: number; }' is not assignable to type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+      Property 'item' does not exist on type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+src/components/banking/collective/segmentation/SegmentationDetailsTab.tsx(79,16): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: { component: ElementType<any, keyof IntrinsicElements>; } & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<...> & Omit<...>): Element | null', gave the following error.
+    Property 'component' is missing in type '{ children: Element; item: true; xs: number; md: number; }' but required in type '{ component: ElementType<any, keyof IntrinsicElements>; }'.
+  Overload 2 of 2, '(props: DefaultComponentProps<GridTypeMap<{}, "div">>): Element | null', gave the following error.
+    Type '{ children: Element; item: true; xs: number; md: number; }' is not assignable to type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+      Property 'item' does not exist on type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+src/components/banking/collective/segmentation/SegmentationDetailsTab.tsx(92,16): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: { component: ElementType<any, keyof IntrinsicElements>; } & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<...> & Omit<...>): Element | null', gave the following error.
+    Property 'component' is missing in type '{ children: Element; item: true; xs: number; }' but required in type '{ component: ElementType<any, keyof IntrinsicElements>; }'.
+  Overload 2 of 2, '(props: DefaultComponentProps<GridTypeMap<{}, "div">>): Element | null', gave the following error.
+    Type '{ children: Element; item: true; xs: number; }' is not assignable to type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+      Property 'item' does not exist on type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+src/components/banking/collective/segmentation/SegmentationDetailsTab.tsx(111,10): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: { component: ElementType<any, keyof IntrinsicElements>; } & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<...> & Omit<...>): Element | null', gave the following error.
+    Property 'component' is missing in type '{ children: Element; item: true; xs: number; md: number; }' but required in type '{ component: ElementType<any, keyof IntrinsicElements>; }'.
+  Overload 2 of 2, '(props: DefaultComponentProps<GridTypeMap<{}, "div">>): Element | null', gave the following error.
+    Type '{ children: Element; item: true; xs: number; md: number; }' is not assignable to type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+      Property 'item' does not exist on type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+src/components/common/forms/DynamicFormRenderer.tsx(130,38): error TS2353: Object literal may only specify known properties, and 'invalid_type_error' does not exist in type '{ error?: string | $ZodErrorMap<$ZodIssueInvalidType<unknown>> | undefined; message?: string | undefined; }'.
+src/components/dashboard/LoadingSkeleton.tsx(80,22): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: { component: ElementType<any, keyof IntrinsicElements>; } & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<...> & Omit<...>): Element | null', gave the following error.
+    Property 'component' is missing in type '{ children: Element; item: true; xs: number; md: number; key: number; }' but required in type '{ component: ElementType<any, keyof IntrinsicElements>; }'.
+  Overload 2 of 2, '(props: DefaultComponentProps<GridTypeMap<{}, "div">>): Element | null', gave the following error.
+    Type '{ children: Element; item: true; xs: number; md: number; key: number; }' is not assignable to type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+      Property 'item' does not exist on type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+src/components/dashboard/LoadingSkeleton.tsx(88,18): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: { component: ElementType<any, keyof IntrinsicElements>; } & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<...> & Omit<...>): Element | null', gave the following error.
+    Property 'component' is missing in type '{ children: Element; item: true; xs: number; md: number; }' but required in type '{ component: ElementType<any, keyof IntrinsicElements>; }'.
+  Overload 2 of 2, '(props: DefaultComponentProps<GridTypeMap<{}, "div">>): Element | null', gave the following error.
+    Type '{ children: Element; item: true; xs: number; md: number; }' is not assignable to type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+      Property 'item' does not exist on type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+src/components/dashboard/LoadingSkeleton.tsx(91,18): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: { component: ElementType<any, keyof IntrinsicElements>; } & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<...> & Omit<...>): Element | null', gave the following error.
+    Property 'component' is missing in type '{ children: Element; item: true; xs: number; md: number; }' but required in type '{ component: ElementType<any, keyof IntrinsicElements>; }'.
+  Overload 2 of 2, '(props: DefaultComponentProps<GridTypeMap<{}, "div">>): Element | null', gave the following error.
+    Type '{ children: Element; item: true; xs: number; md: number; }' is not assignable to type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+      Property 'item' does not exist on type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+src/components/dashboard/LoadingSkeleton.tsx(98,18): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: { component: ElementType<any, keyof IntrinsicElements>; } & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<...> & Omit<...>): Element | null', gave the following error.
+    Property 'component' is missing in type '{ children: Element; item: true; xs: number; md: number; }' but required in type '{ component: ElementType<any, keyof IntrinsicElements>; }'.
+  Overload 2 of 2, '(props: DefaultComponentProps<GridTypeMap<{}, "div">>): Element | null', gave the following error.
+    Type '{ children: Element; item: true; xs: number; md: number; }' is not assignable to type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+      Property 'item' does not exist on type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+src/components/dashboard/LoadingSkeleton.tsx(108,18): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: { component: ElementType<any, keyof IntrinsicElements>; } & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<...> & Omit<...>): Element | null', gave the following error.
+    Property 'component' is missing in type '{ children: Element; item: true; xs: number; md: number; }' but required in type '{ component: ElementType<any, keyof IntrinsicElements>; }'.
+  Overload 2 of 2, '(props: DefaultComponentProps<GridTypeMap<{}, "div">>): Element | null', gave the following error.
+    Type '{ children: Element; item: true; xs: number; md: number; }' is not assignable to type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+      Property 'item' does not exist on type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+src/components/ifrs9/BaseIfrs9Report.tsx(338,74): error TS2345: Argument of type '{ prc_date: string; pd_config_id?: number; pd_method?: number; scalar_id?: number; lgd_config_id?: number; lgd_method?: number; model_id?: number; ead_config_id?: number; segment_id?: number; ... 6 more ...; limit?: number; }' is not assignable to parameter of type '{ prc_date: string; segment_id?: number | undefined; stage?: string | undefined; branch_code?: string | undefined; page?: number | undefined; limit?: number | undefined; }'.
+  Types of property 'stage' are incompatible.
+    Type 'string | string[] | undefined' is not assignable to type 'string | undefined'.
+      Type 'string[]' is not assignable to type 'string'.
+src/components/ifrs9/BaseIfrs9Report.tsx(356,67): error TS2345: Argument of type '{ prc_date: string; pd_config_id?: number; pd_method?: number; scalar_id?: number; lgd_config_id?: number; lgd_method?: number; model_id?: number; ead_config_id?: number; segment_id?: number; ... 6 more ...; limit?: number; }' is not assignable to parameter of type '{ prc_date: string; segment_id?: number | undefined; stage?: string | undefined; sub_segment?: string | undefined; }'.
+  Types of property 'stage' are incompatible.
+    Type 'string | string[] | undefined' is not assignable to type 'string | undefined'.
+      Type 'string[]' is not assignable to type 'string'.
+src/components/ifrs9/BaseIfrs9Report.tsx(359,69): error TS2345: Argument of type '{ prc_date: string; pd_config_id?: number; pd_method?: number; scalar_id?: number; lgd_config_id?: number; lgd_method?: number; model_id?: number; ead_config_id?: number; segment_id?: number; ... 6 more ...; limit?: number; }' is not assignable to parameter of type '{ prc_date: string; segment_id?: number | undefined; stage?: string | undefined; }'.
+  Types of property 'stage' are incompatible.
+    Type 'string | string[] | undefined' is not assignable to type 'string | undefined'.
+      Type 'string[]' is not assignable to type 'string'.
+src/components/ifrs9/BaseIfrs9Report.tsx(362,69): error TS2345: Argument of type '{ prc_date: string; pd_config_id?: number; pd_method?: number; scalar_id?: number; lgd_config_id?: number; lgd_method?: number; model_id?: number; ead_config_id?: number; segment_id?: number; ... 6 more ...; limit?: number; }' is not assignable to parameter of type '{ prc_date: string; segment_id?: number | undefined; stage?: string | undefined; }'.
+  Types of property 'stage' are incompatible.
+    Type 'string | string[] | undefined' is not assignable to type 'string | undefined'.
+      Type 'string[]' is not assignable to type 'string'.
+src/components/platform/TenantUserManagement.tsx(293,37): error TS2322: Type '{ startAdornment: JSX.Element; endAdornment: JSX.Element; ref: React.Ref<any>; className: string; onMouseDown: React.MouseEventHandler; }' is not assignable to type 'Partial<OutlinedInputProps> | Partial<FilledInputProps> | Partial<InputProps> | undefined'.
+  Type '{ startAdornment: JSX.Element; endAdornment: JSX.Element; ref: React.Ref<any>; className: string; onMouseDown: React.MouseEventHandler; }' is not assignable to type 'Partial<InputProps>'.
+    Types of property 'ref' are incompatible.
+      Type 'Ref<any>' is not assignable to type '((instance: unknown) => void | (() => VoidOrUndefinedOnly)) | RefObject<unknown> | null | undefined'.
+        Type '(instance: any) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '((instance: unknown) => void | (() => VoidOrUndefinedOnly)) | RefObject<unknown> | null | undefined'.
+          Type '(instance: any) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: unknown) => void | (() => VoidOrUndefinedOnly)'.
+            Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+                Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                    Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+src/services/api/staging.api.ts(6,21): error TS2307: Cannot find module './index' or its corresponding type declarations.

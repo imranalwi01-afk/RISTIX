@@ -9,44 +9,35 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Typography,
-  Container,
   Paper,
   Grid,
-  Card,
-  CardContent,
   Button,
-  CircularProgress,
   Alert,
-  Breadcrumbs,
-  Link,
   Chip,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TablePagination,
   TextField,
   MenuItem,
   FormControl,
   InputLabel,
   Select,
-  IconButton,
-  Tooltip,
-  Skeleton
 } from '@mui/material';
 import {
   Category as PageIcon,
-  Home as HomeIcon,
-  ArrowBack as BackIcon,
   Download as DownloadIcon,
   Refresh as RefreshIcon,
-  FilterList as FilterIcon
+  FilterList as FilterIcon,
+  AccountBalance as ExposureIcon,
+  Calculate as CalculationIcon,
+  CheckCircle as Stage1Icon,
+  Warning as Stage3Icon
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
+
+import ReportPageLayout from '@/components/ifrs9/ReportPageLayout';
+import ReportSummaryGrid, { KPIItem } from '@/components/ifrs9/ReportSummaryGrid';
+import ReportDataGrid from '@/components/ifrs9/ReportDataGrid';
 
 // Real API implementation with demo token for development
 const stagingApi = {
@@ -124,9 +115,49 @@ export default function IFRS9StagingPage() {
     segmentId: ''
   });
   
-  // Table pagination
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(25);
+  
+  // Table columns setup
+  const columns: GridColDef[] = [
+    { field: 'prcDate', headerName: 'Process Date', width: 130, valueFormatter: (params) => params || '-' },
+    { 
+      field: 'stage', 
+      headerName: 'Stage', 
+      width: 160,
+      renderCell: (params: GridRenderCellParams) => (
+        <Chip
+          label={getStageLabel(params.value as string)}
+          size="small"
+          sx={{
+            backgroundColor: getStageColor(params.value as string),
+            color: 'white',
+            fontWeight: 'bold'
+          }}
+        />
+      )
+    },
+    { field: 'segmentId', headerName: 'Segment ID', width: 120, valueFormatter: (params) => params || '-' },
+    { 
+      field: 'totalOutstanding', 
+      headerName: 'Total Outstanding', 
+      width: 180, 
+      type: 'number',
+      valueFormatter: (value) => value ? formatCurrency(Number(value)) : '-'
+    },
+    { 
+      field: 'totalECL', 
+      headerName: 'Total ECL', 
+      width: 180, 
+      type: 'number',
+      valueFormatter: (value) => value ? formatCurrency(Number(value)) : '-'
+    },
+    { 
+      field: 'avgOutstanding', 
+      headerName: 'Avg Outstanding', 
+      width: 180, 
+      type: 'number',
+      valueFormatter: (value) => value ? formatCurrency(Number(value)) : '-'
+    }
+  ];
 
   // Load staging data
   const loadStagingData = async () => {
@@ -157,22 +188,6 @@ export default function IFRS9StagingPage() {
     loadStagingData();
   }, []);
 
-  // Pagination
-  const paginatedData = useMemo(() => {
-    const start = page * rowsPerPage;
-    const end = start + rowsPerPage;
-    return data.slice(start, end);
-  }, [data, page, rowsPerPage]);
-
-  const handleChangePage = (event: unknown, newPage: number) => {
-    setPage(newPage);
-  };
-
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  };
-
   const getStageColor = (stage: string | null) => {
     switch (stage) {
       case '1': return '#4caf50';
@@ -191,120 +206,75 @@ export default function IFRS9StagingPage() {
     }
   };
 
+  // Set up KPI items
+  const kpiItems: KPIItem[] = summary ? [
+    {
+      title: 'Total Outstanding',
+      value: parseFloat(summary.totalOutstanding) || 0,
+      format: 'currency',
+      icon: <ExposureIcon sx={{ fontSize: 28 }} />,
+      gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+      mainColor: '#4facfe',
+      chipLabel: 'PORTFOLIO'
+    },
+    {
+      title: 'Total ECL',
+      value: parseFloat(summary.totalECL) || 0,
+      format: 'currency',
+      icon: <CalculationIcon sx={{ fontSize: 28 }} />,
+      gradient: 'linear-gradient(135deg, #f9d423 0%, #ff4e50 100%)',
+      mainColor: '#ff4e50',
+      chipLabel: 'ECL RESERVE'
+    },
+    {
+      title: 'Stage 1 Accounts',
+      value: parseInt(summary.stage1Count) || 0,
+      format: 'count',
+      icon: <Stage1Icon sx={{ fontSize: 28 }} />,
+      gradient: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+      mainColor: '#43e97b',
+      chipLabel: `${formatCurrency(parseFloat(summary.stage1ECL) || 0)} ECL`
+    },
+    {
+      title: 'Stage 3 Accounts',
+      value: parseInt(summary.stage3Count) || 0,
+      format: 'count',
+      icon: <Stage3Icon sx={{ fontSize: 28 }} />,
+      gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      mainColor: '#667eea',
+      chipLabel: `${formatCurrency(parseFloat(summary.stage3ECL) || 0)} ECL`
+    }
+  ] : [];
+
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Container maxWidth="xl">
-        {/* Breadcrumb Navigation */}
-        <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
-          <Link
-            underline="hover"
-            color="inherit"
-            href="/banking/dashboard"
-            onClick={(e) => {
-              e.preventDefault();
-              window.location.href = '/banking/dashboard';
-            }}
-            sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
-          >
-            <HomeIcon sx={{ mr: 0.5, fontSize: 16 }} />
-            Dashboard
-          </Link>
-          <Typography color="text.primary" sx={{ display: 'flex', alignItems: 'center' }}>
-            <PageIcon sx={{ mr: 0.5, fontSize: 16 }} />
-            IFRS 9 Staging
-          </Typography>
-        </Breadcrumbs>
-
-        {/* Page Header */}
-        <Box sx={{ mb: 4 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <PageIcon sx={{ mr: 2, fontSize: 32, color: 'primary.main' }} />
-              <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
-                IFRS 9 Staging Analysis
-              </Typography>
-            </Box>
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <Button
-                variant="outlined"
-                startIcon={<RefreshIcon />}
-                onClick={loadStagingData}
-                disabled={loading}
-              >
-                Refresh
-              </Button>
-              <Button
-                variant="contained"
-                startIcon={<DownloadIcon />}
-                disabled={loading || data.length === 0}
-              >
-                Export
-              </Button>
-            </Box>
-          </Box>
-          <Typography variant="subtitle1" color="text.secondary">
-            IFRS 9 staging classification and stage management analysis
-          </Typography>
-        </Box>
+      <ReportPageLayout
+        title="IFRS 9 Staging Analysis"
+        description="IFRS 9 staging classification and stage management analysis"
+        icon={<PageIcon fontSize="inherit" />}
+        actionButtons={[
+          {
+            label: 'Refresh',
+            icon: <RefreshIcon />,
+            onClick: loadStagingData,
+            variant: 'outlined',
+            color: 'inherit',
+            disabled: loading
+          },
+          {
+            label: 'Export',
+            icon: <DownloadIcon />,
+            onClick: () => {}, // placeholder
+            variant: 'contained',
+            color: 'primary',
+            disabled: loading || data.length === 0
+          }
+        ]}
+      >
 
         {/* Summary Cards */}
         {summary && (
-          <Grid container spacing={3} sx={{ mb: 4 }}>
-            <Grid size={{ xs: 12, md: 3 }}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" color="primary" gutterBottom>
-                    Total Outstanding
-                  </Typography>
-                  <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-                    {formatCurrency(summary.totalOutstanding || 0)}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid size={{ xs: 12, md: 3 }}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" color="primary" gutterBottom>
-                    Total ECL
-                  </Typography>
-                  <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-                    {formatCurrency(summary.totalECL || 0)}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid size={{ xs: 12, md: 3 }}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" color="success.main" gutterBottom>
-                    Stage 1 Accounts
-                  </Typography>
-                  <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'success.main' }}>
-                    {summary.stage1Count || 0}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {formatCurrency(summary.stage1ECL || 0)} ECL
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid size={{ xs: 12, md: 3 }}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" color="error.main" gutterBottom>
-                    Stage 3 Accounts
-                  </Typography>
-                  <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'error.main' }}>
-                    {summary.stage3Count || 0}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {formatCurrency(summary.stage3ECL || 0)} ECL
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
+          <ReportSummaryGrid items={kpiItems} mdCols={2} sx={{ mb: 4 }} />
         )}
 
         {/* Filters */}
@@ -318,7 +288,7 @@ export default function IFRS9StagingPage() {
               <DatePicker
                 label="Start Date"
                 value={filters.startDate}
-                onChange={(newValue) => setFilters(prev => ({ ...prev, startDate: newValue }))}
+                onChange={(newValue: any) => setFilters(prev => ({ ...prev, startDate: newValue as any }))}
                 slotProps={{ textField: { fullWidth: true, size: 'small' } }}
               />
             </Grid>
@@ -326,7 +296,7 @@ export default function IFRS9StagingPage() {
               <DatePicker
                 label="End Date"
                 value={filters.endDate}
-                onChange={(newValue) => setFilters(prev => ({ ...prev, endDate: newValue }))}
+                onChange={(newValue: any) => setFilters(prev => ({ ...prev, endDate: newValue as any }))}
                 slotProps={{ textField: { fullWidth: true, size: 'small' } }}
               />
             </Grid>
@@ -366,75 +336,19 @@ export default function IFRS9StagingPage() {
         )}
 
         {/* Staging Data Table */}
-        <Paper>
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Process Date</TableCell>
-                  <TableCell>Stage</TableCell>
-                  <TableCell align="right">Segment ID</TableCell>
-                  <TableCell align="right">Total Outstanding</TableCell>
-                  <TableCell align="right">Total ECL</TableCell>
-                  <TableCell align="right">Average Outstanding</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {loading ? (
-                  Array.from({ length: rowsPerPage }).map((_, index) => (
-                    <TableRow key={index}>
-                      <TableCell><Skeleton variant="text" /></TableCell>
-                      <TableCell><Skeleton variant="text" /></TableCell>
-                      <TableCell align="right"><Skeleton variant="text" /></TableCell>
-                      <TableCell align="right"><Skeleton variant="text" /></TableCell>
-                      <TableCell align="right"><Skeleton variant="text" /></TableCell>
-                      <TableCell align="right"><Skeleton variant="text" /></TableCell>
-                    </TableRow>
-                  ))
-                ) : paginatedData.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} align="center">
-                      <Typography variant="body2" color="text.secondary" sx={{ py: 3 }}>
-                        No staging data found
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  paginatedData.map((row, index) => (
-                    <TableRow key={index} hover>
-                      <TableCell>{row.prcDate || '-'}</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={getStageLabel(row.stage)}
-                          size="small"
-                          sx={{
-                            backgroundColor: getStageColor(row.stage),
-                            color: 'white',
-                            fontWeight: 'bold'
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell align="right">{row.segmentId || '-'}</TableCell>
-                      <TableCell align="right">{formatCurrency(row.totalOutstanding || 0)}</TableCell>
-                      <TableCell align="right">{formatCurrency(row.totalECL || 0)}</TableCell>
-                      <TableCell align="right">{formatCurrency(row.avgOutstanding || 0)}</TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-          <TablePagination
-            rowsPerPageOptions={[10, 25, 50, 100]}
-            component="div"
-            count={data.length}
-            rowsPerPage={rowsPerPage}
-            page={page}
-            onPageChange={handleChangePage}
-            onRowsPerPageChange={handleChangeRowsPerPage}
+        <Box sx={{ width: '100%', height: 600 }}>
+          <ReportDataGrid
+            rows={data.map((row, index) => ({ id: `${row.prcDate}-${row.segmentId}-${index}`, ...row }))}
+            columns={columns}
+            loading={loading}
+            pageSizeOptions={[10, 25, 50, 100]}
+            initialState={{
+              pagination: { paginationModel: { pageSize: 25 } }
+            }}
+            disableRowSelectionOnClick
           />
-        </Paper>
-      </Container>
+        </Box>
+      </ReportPageLayout>
     </LocalizationProvider>
   );
 }

@@ -1204,6 +1204,7 @@ export const bankingAPI = {
       }) => {
         console.log('📊 Getting Lifetime PD Yearly data from DS2 database');
         const response = await apiClient.get('/ifrs9/reports/lifetime-pd/yearly', { params });
+        console.log('RAW YEARLY API RESPONSE:', response.data);
         return response.data;
       },
 
@@ -1255,6 +1256,14 @@ export const bankingAPI = {
       }) => {
         console.log('📊 Getting EAD Model data from DS2 database');
         const response = await apiClient.get('/ifrs9/reports/ead-model', { params });
+        return response.data;
+      },
+      getSummary: async (params: {
+        prc_date: string;
+        ead_config_id?: number;
+      }) => {
+        console.log('📊 Getting EAD Model Summary data from DS2 database');
+        const response = await apiClient.get('/ifrs9/reports/ead-model/summary', { params });
         return response.data;
       }
     },

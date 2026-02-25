@@ -101,6 +101,13 @@ export {
     type NewTenant,
 } from './platform.schema'
 
+// Individual Impairment
+export {
+    individualImpairmentScenarios,
+    type IndividualImpairmentScenario,
+    type NewIndividualImpairmentScenario,
+} from './individual-impairment.schema'
+
 // Jobs / Queue
 export {
     jobDefinitions,

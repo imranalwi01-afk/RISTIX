@@ -7,9 +7,14 @@ import {
   FormControl,
   InputLabel,
   Select,
-  Button
+  Button,
+  Stack
 } from '@mui/material';
-import { Search as SearchIcon, Clear as ClearIcon } from '@mui/icons-material';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import dayjs from 'dayjs';
+import { Search as SearchIcon, Clear as ClearIcon, CalendarMonth as CalendarIcon } from '@mui/icons-material';
 import { FILTER_DEFAULTS } from '@/app/banking/individual/assessment/constants';
 // import { useDebounce } from '@/hooks/useDebounce'; // Removed invalid import
 
@@ -74,6 +79,24 @@ export const AssessmentFilters: React.FC<AssessmentFiltersProps> = ({ filters, o
         }}
         sx={{ minWidth: 250 }}
       />
+
+      <LocalizationProvider dateAdapter={AdapterDayjs}>
+        <DatePicker
+          label="Download Date"
+          value={filters.downloadDate ? dayjs(filters.downloadDate) : null}
+          onChange={(newValue) => {
+            const formattedDate = newValue ? newValue.format('YYYY-MM-DD') : '';
+            onFilterChange('downloadDate', formattedDate);
+          }}
+          slotProps={{ 
+            textField: { 
+              size: 'small', 
+              sx: { minWidth: 180 } 
+            } 
+          }}
+          format="DD/MM/YYYY"
+        />
+      </LocalizationProvider>
 
       <FormControl size="small" sx={{ minWidth: 120 }}>
         <InputLabel>Stage</InputLabel>

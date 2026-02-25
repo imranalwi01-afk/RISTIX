@@ -127,7 +127,7 @@ reportsRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    (c) => ifrs9ReportsController.getLifetimePDYearly(c) // Use Yearly fallback if not specialized
+    (c) => ifrs9ReportsController.getLifetimePDAccountDetails(c)
 )
 
 // GET /lifetime-lgd
@@ -164,6 +164,24 @@ reportsRoutes.openapi(
         }
     }),
     (c) => ifrs9ReportsController.getEADModel(c)
+)
+
+// GET /ead-model/summary
+reportsRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/ead-model/summary',
+        tags: ['Reports'],
+        summary: 'Get EAD Model Summary',
+        request: {
+            query: PaginationSchema
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: GenericListResponse(ReportDataSchema) } }, description: 'Report Data' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    (c) => ifrs9ReportsController.getEADModelSummary(c)
 )
 
 // GET /ecl-result

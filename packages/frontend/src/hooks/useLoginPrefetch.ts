@@ -11,6 +11,7 @@
 
 import { useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { frontendEnvironmentLoader } from '@/config/environment-loader-frontend';
 
 // Pages to prefetch during login
 const PREFETCH_ROUTES = [
@@ -55,11 +56,16 @@ export const useLoginPrefetch = () => {
   const warmupAPIs = useCallback(async () => {
     console.log('🔥 [LOGIN PREFETCH] Warming up APIs...');
     
+    // Get API base URL
+    const config = frontendEnvironmentLoader.getConfiguration();
+    const baseUrl = config.api.base || `${config.api.backend}/api/v1`;
+
     // Fire-and-forget API calls to warm up backend connections
     WARMUP_ENDPOINTS.forEach(async (endpoint) => {
       try {
+        const fullUrl = `${baseUrl}${endpoint}`;
         // Use HEAD request to minimize data transfer
-        fetch(endpoint, { 
+        fetch(fullUrl, { 
           method: 'HEAD',
           credentials: 'include',
           // Abort after 2 seconds - we just want connection warmup
@@ -67,7 +73,7 @@ export const useLoginPrefetch = () => {
         }).catch(() => {
           // Ignore errors - this is just warmup
         });
-        console.log(`🔥 Warming up: ${endpoint}`);
+        console.log(`🔥 Warming up: ${fullUrl}`);
       } catch (error) {
         // Ignore - this is optional optimization
       }

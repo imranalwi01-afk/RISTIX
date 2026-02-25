@@ -16,7 +16,8 @@ import {
 import {
   Visibility as VisibilityIcon,
   Edit as EditIcon,
-  MoreVert as MoreVertIcon
+  MoreVert as MoreVertIcon,
+  RestartAlt as RestartAltIcon
 } from '@mui/icons-material';
 import { IndividualImpairmentWatchlistItem } from '@/services/api.individual-impairment';
 import {
@@ -39,6 +40,7 @@ interface AssessmentWatchlistProps {
   onRowsPerPageChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onAccountSelect: (account: IndividualImpairmentWatchlistItem) => void;
   onEditAssessment: (account: IndividualImpairmentWatchlistItem) => void;
+  onResetAssessment?: (account: IndividualImpairmentWatchlistItem) => void;
 }
 
 export const AssessmentWatchlist: React.FC<AssessmentWatchlistProps> = ({
@@ -48,7 +50,8 @@ export const AssessmentWatchlist: React.FC<AssessmentWatchlistProps> = ({
   onPageChange,
   onRowsPerPageChange,
   onAccountSelect,
-  onEditAssessment
+  onEditAssessment,
+  onResetAssessment
 }) => {
   if (loading && watchlist.length === 0) {
     return (
@@ -276,6 +279,16 @@ export const AssessmentWatchlist: React.FC<AssessmentWatchlistProps> = ({
                         <EditIcon />
                       </IconButton>
                     </Tooltip>
+                    <Tooltip title="Reset Assessment">
+                      <IconButton
+                        size="small"
+                        color="error"
+                        onClick={() => onResetAssessment?.(account)}
+                        disabled={!account.is_override} // Only reset existing assessments
+                      >
+                        <RestartAltIcon />
+                      </IconButton>
+                    </Tooltip>
                     <Tooltip title="More Actions">
                       <IconButton size="small">
                         <MoreVertIcon />
@@ -299,7 +312,7 @@ export const AssessmentWatchlist: React.FC<AssessmentWatchlistProps> = ({
       </TableContainer>
 
       <TablePagination
-        rowsPerPageOptions={[10, 25, 50, 100]}
+        rowsPerPageOptions={[10, 25, 50, 100, 200, 500]}
         component="div"
         count={pagination.total}
         rowsPerPage={pagination.limit}

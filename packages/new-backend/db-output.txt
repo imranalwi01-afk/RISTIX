@@ -1,0 +1,11 @@
+﻿≡ƒöì Checking Lifetime PD Tables...
+≡ƒôà Max Date in PD Structure (Charts): 2023-11-30
+≡ƒôà Max Date in Result D (Account Details): 2022-10-31
+--- Checking Date: 2023-11-30 ---
+≡ƒôê PD Structure Count: 840
+≡ƒôê Result D Count: 0
+≡ƒôè Distinct Methods in Structure: 1
+ΓÜÖ∩╕Å Distinct Configs in Structure: 1
+--- Checking Date: 2023-12-31 ---
+≡ƒôê PD Structure Count: 0
+≡ƒôê Result D Count: 0

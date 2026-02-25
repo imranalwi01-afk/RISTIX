@@ -1,0 +1,6 @@
+﻿≡ƒöì Checking frs9_imp_ca_ead_paym_avg table...
+≡ƒôà Top 20 Processing Dates: ["2020-12-31"]
+≡ƒôª Distinct Segment IDs: [ 1 ]
+≡ƒôà Max Processing Date: 2020-12-31
+≡ƒôê Total record count for 2020-12-31: 144
+≡ƒôª Segment IDs for 2020-12-31: [ 1 ]

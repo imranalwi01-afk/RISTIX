@@ -1,0 +1,3 @@
+✅ Logging system initialized successfully
+[32m[2026-02-24 11:54:38] [INFO] [SYSTEM] [doTryCatch] Logging system initialized
+[0mLoading UserAuthModule from config/auth.R

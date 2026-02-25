@@ -28,14 +28,14 @@ Halaman ini berfungsi sebagai pusat kontrol konfigurasi global aplikasi untuk te
 **Status: CORE CONFIGURATION**
 
 - **Deskripsi:** Pengaturan dasar aplikasi seperti Nama Aplikasi, Format Tanggal, Timezone, dan Bahasa Default.
-- **Tabel Utama:** `platform_admin.configuration`
+- **Tabel Utama:** `core.configuration`
 - **Logika:** Mengambil konfigurasi dengan kategori 'GENERAL' atau 'APP_SETTINGS'.
 
 **Query Pattern:**
 
 ```sql
 SELECT config_key, config_value, description
-FROM platform_admin.configuration
+FROM core.configuration
 WHERE category = 'GENERAL'
   AND is_active = true;
 ```
@@ -47,14 +47,14 @@ WHERE category = 'GENERAL'
 **Status: CRITICAL**
 
 - **Deskripsi:** Menampilkan dan mengatur Tanggal Proses (Current Business Date) dan Periode Akuntansi yang sedang berjalan.
-- **Tabel Utama:** `platform_admin.configuration` (Key spesifik)
+- **Tabel Utama:** `core.configuration` (Key spesifik)
 - **Logika:** Nilai ini dikunci (read-only) jika proses EOD sedang berjalan.
 
 **Query Pattern:**
 
 ```sql
 SELECT config_value as current_date
-FROM platform_admin.configuration
+FROM core.configuration
 WHERE config_key = 'SYSTEM_DATE';
 ```
 
@@ -85,26 +85,25 @@ LIMIT 1;
 **Status: INFO**
 
 - **Deskripsi:** Informasi lisensi dan profil tenant (Bank Name, Logo, Address).
-- **Tabel Utama:** `platform_admin.tenants`
+- **Tabel Utama:** `core.tenant_profile`
 - **Logika:** Mengambil data tenant berdasarkan session user yang login.
 
 **Query Pattern:**
 
 ```sql
 SELECT name, code, license_type, status
-FROM platform_admin.tenants
-WHERE id = :current_tenant_id;
+FROM core.tenant_profile;
 ```
 
 ---
 
 ## 📊 RINGKASAN SKEMA DATABASE
 
-Halaman ini mengakses data administratif dari schema `platform_admin` dan status job dari `public`:
+Halaman ini mengakses data konfigurasi dari schema `core` (FRS9PRO) dan status job dari `public`:
 
-1.  **Schema `platform_admin`**:
+1.  **Schema `core`**:
     - `configuration`: Penyimpanan Key-Value untuk parameter sistem dinamis.
-    - `tenants`: Data profil entitas bank.
+    - `tenant_profile`: Data profil entitas bank.
 2.  **Schema `public`**:
     - `job_executions`: Log eksekusi proses batch (EOD).
 

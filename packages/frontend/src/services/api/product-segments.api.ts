@@ -1,5 +1,5 @@
 // packages/frontend/src/services/api/product-segments.api.ts
-import apiClient from '../api.client';
+import { apiClient } from '../api-setup';
 import { getAuthToken } from '@/utils/auth-token';
 
 export interface ProductSegment {
@@ -36,7 +36,7 @@ export const productSegmentsApi = {
         const response = await apiClient.get(BASE_URL, {
             headers: { Authorization: `Bearer ${token}` }
         });
-        return response.data;
+        return response.data?.data ?? response.data;
     },
 
     getById: async (id: string): Promise<ProductSegment> => {
@@ -44,7 +44,7 @@ export const productSegmentsApi = {
         const response = await apiClient.get(`${BASE_URL}/${id}`, {
             headers: { Authorization: `Bearer ${token}` }
         });
-        return response.data;
+        return response.data?.data ?? response.data;
     },
 
     create: async (data: CreateProductSegmentDto): Promise<ProductSegment> => {
@@ -52,7 +52,7 @@ export const productSegmentsApi = {
         const response = await apiClient.post(BASE_URL, data, {
             headers: { Authorization: `Bearer ${token}` }
         });
-        return response.data;
+        return response.data?.data ?? response.data;
     },
 
     update: async (id: string, data: Partial<CreateProductSegmentDto>): Promise<ProductSegment> => {
@@ -60,7 +60,7 @@ export const productSegmentsApi = {
         const response = await apiClient.put(`${BASE_URL}/${id}`, data, {
             headers: { Authorization: `Bearer ${token}` }
         });
-        return response.data;
+        return response.data?.data ?? response.data;
     },
 
     delete: async (id: string): Promise<void> => {

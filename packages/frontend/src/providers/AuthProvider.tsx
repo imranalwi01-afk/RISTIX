@@ -349,7 +349,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             // ✅ FIXED: Use centralized configuration for dual-mode support
             let backendUrl: string;
             try {
+              // Ensure configuration is loaded
               const { frontendEnvironmentLoader } = require('../config/environment-loader-frontend');
+              try {
+                // Force load if not loaded
+                frontendEnvironmentLoader.loadConfiguration();
+              } catch (e) {
+                // Ignore if already loaded
+              }
               const config = frontendEnvironmentLoader.getConfiguration();
               backendUrl = config.api.backend;
               console.log('✅ Using centralized backend URL for token validation:', backendUrl);
@@ -357,17 +364,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               console.warn('⚠️ Failed to load centralized backend URL, using fallback:', error);
               // Fallback to environment variable or hostname-based detection
               if (typeof window !== 'undefined') {
-                // Try process.env first (for server-side rendering), then hostname detection
-                backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL ||
-                  (window.location.hostname.includes('danafin.com')
-                    ? 'https://iaf-ifrs-be.danafin.com'
-                    : 'https://iaf-ifrs-be.ifrspro.id');
+                // Check for localhost
+                if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                  backendUrl = 'http://localhost:4232';
+                } else {
+                  // Try process.env first (for server-side rendering), then hostname detection
+                  backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL ||
+                    (window.location.hostname.includes('danafin.com')
+                      ? 'https://iaf-ifrs-be.danafin.com'
+                      : 'https://iaf-ifrs-be.ifrspro.id');
+                }
               } else {
                 // Server-side fallback
                 backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://iaf-ifrs-be.ifrspro.id';
               }
             }
-            const response = await fetch(`${backendUrl}/api/v1/auth/verify`, {
+            
+            // Ensure URL doesn't end with slash
+            backendUrl = backendUrl.replace(/\/$/, '');
+            // Ensure we don't duplicate /api/v1 if it's already in the URL
+            const verifyUrl = backendUrl.includes('/api/v1') 
+              ? `${backendUrl}/auth/verify` 
+              : `${backendUrl}/api/v1/auth/verify`;
+
+            console.log('🔐 Verifying token at:', verifyUrl);
+
+            const response = await fetch(verifyUrl, {
               headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json',
@@ -472,6 +494,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // Use centralized environment loader for dual environment support
         try {
           const { frontendEnvironmentLoader } = require('../config/environment-loader-frontend');
+          try {
+            // Force load if not loaded
+            frontendEnvironmentLoader.loadConfiguration();
+          } catch (e) {
+            // Ignore if already loaded
+          }
           const config = frontendEnvironmentLoader.getConfiguration();
           console.log('🎯 Using centralized environment loader:', config.urls.backend);
           return config.urls.backend;

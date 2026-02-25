@@ -10,11 +10,11 @@
 #' @description Returns database configuration matching original working app
 #' @return Database configuration list for IFRS9 analytics
 get_database_config <- function() {
-  # Configuration matching the original working app exactly
+  # Configuration matching the backend .env
   return(list(
-    host = "192.168.0.106",
+    host = "10.8.0.2",
     port = 5433,
-    dbname = "IFRS9_pro",
+    dbname = "FRS9PRO",
     user = "postgres",
     password = "postgres",
     sslmode = "disable"
@@ -25,14 +25,13 @@ get_database_config <- function() {
 #' @description Configures database connection matching original working app
 #' @return List containing database connection and reference data
 setup_database <- function() {
-  cat("🔗 Setting up database connection (matching original app)...\n")
+  cat("🔗 Setting up database connection (matching backend .env)...\n")
 
-  # Use the exact same database configuration as the original working app
-  # Based on /home/doppelgaenger/ifrspro/_analytics/_v30/app30.R
-
-  cat("🏢 Database: 192.168.0.106 : 5433 / IFRS9_pro\n")
+  # Use the exact same database configuration as the backend
+  
+  cat("🏢 Database: 10.8.0.2 : 5433 / FRS9PRO\n")
   cat("🔐 SSL Mode: disable\n")
-  cat("📋 Schema: dbo (matching original app)\n")
+  cat("📋 Schema: public (default)\n")
 
   # Initialize variables with safe defaults
   con <- NULL
@@ -48,11 +47,11 @@ setup_database <- function() {
       stop("Required database packages (DBI, RPostgres) are not installed")
     }
 
-    # Use the EXACT same connection as the working app in _v30/app30.R
+    # Use the EXACT same connection as the backend
     con <- DBI::dbConnect(RPostgres::Postgres(),
-                         host = "192.168.0.106",
+                         host = "10.8.0.2",
                          port = 5433,
-                         dbname = "IFRS9_pro",
+                         dbname = "FRS9PRO",
                          user = "postgres",
                          password = "postgres",
                          sslmode = "disable")
@@ -73,14 +72,14 @@ setup_database <- function() {
       cat("⚠️ Connection test failed - continuing anyway\n")
     }
 
-    # Set schema path exactly like the original app - use dbo schema
+    # Set schema path to include both public and dbo
     tryCatch({
-      DBI::dbExecute(con, "SET search_path TO dbo;")
-      cat("🎯 Schema path set to dbo (matching original app)\n")
+      DBI::dbExecute(con, "SET search_path TO public, dbo;")
+      cat("🎯 Schema path set to public, dbo\n")
     }, error = function(e) {
-      # Fallback to public if dbo doesn't exist
+      cat("⚠️ Failed to set search path:", e$message, "\n")
+      # Fallback to public
       DBI::dbExecute(con, "SET search_path TO public;")
-      cat("🎯 Schema path set to public (fallback)\n")
     })
 
     # Ensure analytics_joined_data table exists for modular app
@@ -160,9 +159,9 @@ setup_database <- function() {
   return(list(
     connection = con,
     config = list(
-      host = "192.168.0.106",
+      host = "10.8.0.2",
       port = 5433,
-      dbname = "IFRS9_pro",
+      dbname = "FRS9PRO",
       user = "postgres",
       sslmode = "disable"
     ),

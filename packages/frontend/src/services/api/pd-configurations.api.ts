@@ -1,5 +1,5 @@
 // packages/frontend/src/services/api/pd-configurations.api.ts
-import { apiClient } from '../api.client';
+import { apiClient } from '../api-setup';
 
 // ============================================================================
 // INTERFACES
@@ -87,35 +87,35 @@ export const pdConfigurationsApi = {
         if (params?.is_active !== undefined) queryParams.append('is_active', params.is_active.toString());
 
         const url = queryParams.toString() ? `${BASE_URL}?${queryParams}` : BASE_URL;
-        const response = await apiClient.get<PDConfiguration[]>(url);
-        return response.data || [];
+        const response = await apiClient.get<any>(url);
+        return response.data?.data || [];
     },
 
     /**
      * Get single PD configuration by ID
      */
     async getById(id: string): Promise<PDConfiguration> {
-        const response = await apiClient.get<PDConfiguration>(`${BASE_URL}/${id}`);
-        if (!response.data) throw new Error('PD Configuration not found');
-        return response.data;
+        const response = await apiClient.get<any>(`${BASE_URL}/${id}`);
+        if (!response.data?.data) throw new Error('PD Configuration not found');
+        return response.data.data;
     },
 
     /**
      * Create new PD configuration
      */
     async create(data: CreatePDConfigurationDto): Promise<PDConfiguration> {
-        const response = await apiClient.post<PDConfiguration>(BASE_URL, data);
-        if (!response.data) throw new Error('Failed to create PD configuration');
-        return response.data;
+        const response = await apiClient.post<any>(BASE_URL, data);
+        if (!response.data?.data) throw new Error('Failed to create PD configuration');
+        return response.data.data;
     },
 
     /**
      * Update existing PD configuration
      */
     async update(id: string, data: UpdatePDConfigurationDto): Promise<PDConfiguration> {
-        const response = await apiClient.put<PDConfiguration>(`${BASE_URL}/${id}`, data);
-        if (!response.data) throw new Error('Failed to update PD configuration');
-        return response.data;
+        const response = await apiClient.put<any>(`${BASE_URL}/${id}`, data);
+        if (!response.data?.data) throw new Error('Failed to update PD configuration');
+        return response.data.data;
     },
 
     /**
@@ -129,19 +129,19 @@ export const pdConfigurationsApi = {
      * Get calculation methods metadata
      */
     async getMethods(): Promise<Array<{ value: number; label: string }>> {
-        const response = await apiClient.get<Array<{ value: number; label: string }>>(
+        const response = await apiClient.get<any>(
             `${BASE_URL}/metadata/methods`
         );
-        return response.data || [];
+        return response.data?.data || [];
     },
 
     /**
      * Get population types metadata
      */
     async getPopulationTypes(): Promise<Array<{ value: number; label: string }>> {
-        const response = await apiClient.get<Array<{ value: number; label: string }>>(
+        const response = await apiClient.get<any>(
             `${BASE_URL}/metadata/population-types`
         );
-        return response.data || [];
+        return response.data?.data || [];
     },
 };
