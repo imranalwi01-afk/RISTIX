@@ -34,19 +34,20 @@ export interface NotificationPayload {
 const resolveSocketAllowedOrigins = (): string[] => {
     const configured = String(env.CORS_ORIGINS || '')
         .split(',')
-        .map((origin) => origin.trim())
+        .map((origin) => origin.trim().replace(/\/+$/, ''))
         .filter((origin) => origin.length > 0)
 
-    if (env.NODE_ENV === 'development') {
-        configured.push('http://localhost:4231', 'http://127.0.0.1:4231')
-    }
+    // Always allow local frontend origins for local docker/frontend-dev workflows.
+    configured.push('http://localhost:4231', 'http://127.0.0.1:4231')
 
     return Array.from(new Set(configured))
 }
 
+const normalizeOrigin = (origin: string): string => origin.trim().replace(/\/+$/, '')
+
 const isSocketOriginAllowed = (origin: string | undefined, allowedOrigins: string[]): boolean => {
     if (!origin) return true
-    return allowedOrigins.includes(origin)
+    return allowedOrigins.includes(normalizeOrigin(origin))
 }
 
 export class NotificationSocket {

@@ -14,8 +14,7 @@ import {
   TimelineSeparator,
   TimelineConnector,
   TimelineContent,
-  TimelineDot,
-  TimelineOppositeContent
+  TimelineDot
 } from '@mui/lab';
 import {
   History as HistoryIcon,
@@ -178,7 +177,7 @@ export const AssessmentTimeline: React.FC<AssessmentTimelineProps> = ({ account,
         {history.map((event, index) => (
           <TimelineItem key={event.id || index}>
             <TimelineSeparator>
-              <TimelineDot color={getEventColor(event.action)} size="small">
+              <TimelineDot color={getEventColor(event.action)}>
                 {getEventIcon(event.action)}
               </TimelineDot>
               {index < history.length - 1 && <TimelineConnector />}

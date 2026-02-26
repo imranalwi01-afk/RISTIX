@@ -36,15 +36,15 @@ export async function startServer() {
     const socketAllowedOrigins = Array.from(new Set([
         ...String(env.CORS_ORIGINS || '')
             .split(',')
-            .map((origin) => origin.trim())
+            .map((origin) => origin.trim().replace(/\/+$/, ''))
             .filter((origin) => origin.length > 0),
-        ...(env.NODE_ENV === 'development'
-            ? ['http://localhost:4231', 'http://127.0.0.1:4231']
-            : []),
+        'http://localhost:4231',
+        'http://127.0.0.1:4231',
     ]))
 
+    const normalizeOrigin = (origin: string) => origin.trim().replace(/\/+$/, '')
     const isSocketOriginAllowed = (origin: string | null | undefined) =>
-        !origin || socketAllowedOrigins.includes(origin)
+        !origin || socketAllowedOrigins.includes(normalizeOrigin(origin))
 
     const engine = new Engine({
         cors: {

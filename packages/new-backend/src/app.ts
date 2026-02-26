@@ -92,21 +92,29 @@ export function createApp() {
         '*',
         cors({
             origin: (origin) => {
-                const allowedOrigins = env.CORS_ORIGINS.split(',').map((o) => o.trim())
-                // Ensure local dev origins are always allowed in development
-                if (env.NODE_ENV === 'development') {
-                    allowedOrigins.push('http://127.0.0.1:4231', 'http://localhost:4231')
-                }
+                const allowedOrigins = env.CORS_ORIGINS.split(',')
+                    .map((o) => o.trim().replace(/\/+$/, ''))
+                    .filter(Boolean)
+
+                // Always allow local frontend origins for local docker/frontend-dev workflows.
+                allowedOrigins.push('http://127.0.0.1:4231', 'http://localhost:4231')
+                const normalizedOrigins = Array.from(new Set(allowedOrigins))
+                const normalizedOrigin = origin ? origin.trim().replace(/\/+$/, '') : origin
 
                 // Debug logging only when LOG_LEVEL is 'debug'
                 if (env.LOG_LEVEL === 'debug') {
-                    logger.debug({ origin, allowedOrigins, isAllowed: allowedOrigins.includes(origin) }, 'CORS check')
+                    logger.debug({
+                        origin,
+                        normalizedOrigin,
+                        allowedOrigins: normalizedOrigins,
+                        isAllowed: !!normalizedOrigin && normalizedOrigins.includes(normalizedOrigin),
+                    }, 'CORS check')
                 }
 
                 // Allow requests with no origin (like mobile apps or curl requests)
-                if (!origin) return allowedOrigins[0]
-                if (allowedOrigins.includes(origin)) return origin
-                return allowedOrigins[0]
+                if (!normalizedOrigin) return normalizedOrigins[0]
+                if (normalizedOrigins.includes(normalizedOrigin)) return normalizedOrigin
+                return normalizedOrigins[0]
             },
             credentials: true,
             allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],

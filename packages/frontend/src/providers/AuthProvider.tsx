@@ -213,6 +213,8 @@ interface User {
   company?: string
   department?: string
   position?: string
+  stakeholderType?: 'platform' | 'banking' | 'consultant' | 'regulator'
+  isPlatformAdmin?: boolean
 }
 
 interface AuthContextType {
