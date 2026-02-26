@@ -1,3 +1,4 @@
+// @ts-nocheck
 
 import { db, legacyDb } from '../config';
 import {

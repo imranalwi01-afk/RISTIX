@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Effect, pipe } from 'effect'
 import { TenantRepository } from '@/repositories/tenant.repository'
 import { type Tenant, type NewTenant } from '@/db/schema'

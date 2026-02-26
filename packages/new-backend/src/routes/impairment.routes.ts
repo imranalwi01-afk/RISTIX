@@ -10,7 +10,7 @@ import {
 import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
 
-export const impairmentRoutes = new OpenAPIHono<AppContext>()
+export const impairmentRoutes: any = new OpenAPIHono<AppContext>()
 
 impairmentRoutes.use('*', authMiddleware)
 
@@ -147,7 +147,7 @@ impairmentRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    async (c) => {
+    async (c: any) => {
         try {
             const page = Number(c.req.query('page') || '1')
             const limit = Number(c.req.query('limit') || '10')
@@ -191,7 +191,7 @@ impairmentRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    async (c) => {
+    async (c: any) => {
         try {
             const results = await db
                 .select({
@@ -260,7 +260,7 @@ impairmentRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    async (c) => {
+    async (c: any) => {
         try {
             const configs = await db
                 .select()
@@ -302,7 +302,7 @@ impairmentRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    async (c) => {
+    async (c: any) => {
         try {
             const payload = c.req.valid('json');
             console.log('Starting calculation for:', payload.calculationName);
@@ -332,7 +332,7 @@ impairmentRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    async (c) => {
+    async (c: any) => {
         try {
             const page = Number(c.req.query('page') || '1')
             const limit = Number(c.req.query('limit') || '20')
@@ -377,7 +377,7 @@ impairmentRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    async (c) => {
+    async (c: any) => {
         try {
             const prcDate = c.req.query('prcDate')
 

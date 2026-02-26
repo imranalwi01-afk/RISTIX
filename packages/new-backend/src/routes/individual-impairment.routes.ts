@@ -3,7 +3,7 @@ import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
 import { individualImpairmentController } from '../controllers/individual-impairment.controller'
 
-export const individualImpairmentRoutes = new OpenAPIHono<AppContext>()
+export const individualImpairmentRoutes: any = new OpenAPIHono<AppContext>()
 
 individualImpairmentRoutes.use('*', authMiddleware)
 
@@ -259,7 +259,7 @@ individualImpairmentRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    (c) => individualImpairmentController.getWatchlist(c)
+    (c: any) => individualImpairmentController.getWatchlist(c)
 )
 
 individualImpairmentRoutes.openapi(
@@ -288,7 +288,7 @@ individualImpairmentRoutes.openapi(
             }
         }
     }),
-    (c) => individualImpairmentController.getWatchlistSummary(c)
+    (c: any) => individualImpairmentController.getWatchlistSummary(c)
 )
 
 individualImpairmentRoutes.openapi(
@@ -306,7 +306,7 @@ individualImpairmentRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    (c) => individualImpairmentController.addToWatchlist(c)
+    (c: any) => individualImpairmentController.addToWatchlist(c)
 )
 
 individualImpairmentRoutes.openapi(
@@ -324,7 +324,7 @@ individualImpairmentRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    (c) => individualImpairmentController.removeFromWatchlist(c)
+    (c: any) => individualImpairmentController.removeFromWatchlist(c)
 )
 
 // --- ASSESSMENT ---
@@ -346,7 +346,7 @@ individualImpairmentRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    (c) => individualImpairmentController.getAssessment(c)
+    (c: any) => individualImpairmentController.getAssessment(c)
 )
 
 individualImpairmentRoutes.openapi(
@@ -364,7 +364,7 @@ individualImpairmentRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    (c) => individualImpairmentController.createAssessment(c)
+    (c: any) => individualImpairmentController.createAssessment(c)
 )
 
 individualImpairmentRoutes.openapi(
@@ -383,7 +383,7 @@ individualImpairmentRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    (c) => individualImpairmentController.submitAssessment(c)
+    (c: any) => individualImpairmentController.submitAssessment(c)
 )
 
 individualImpairmentRoutes.openapi(
@@ -402,7 +402,7 @@ individualImpairmentRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    (c) => individualImpairmentController.approveAssessment(c)
+    (c: any) => individualImpairmentController.approveAssessment(c)
 )
 
 individualImpairmentRoutes.openapi(
@@ -421,7 +421,7 @@ individualImpairmentRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    (c) => individualImpairmentController.rejectAssessment(c)
+    (c: any) => individualImpairmentController.rejectAssessment(c)
 )
 
 // --- OVERRIDES ---
@@ -445,7 +445,7 @@ individualImpairmentRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    (c) => individualImpairmentController.getOverrides(c)
+    (c: any) => individualImpairmentController.getOverrides(c)
 )
 
 individualImpairmentRoutes.openapi(
@@ -463,7 +463,7 @@ individualImpairmentRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    (c) => individualImpairmentController.createOverride(c)
+    (c: any) => individualImpairmentController.createOverride(c)
 )
 
 // --- HISTORY ---
@@ -487,7 +487,7 @@ individualImpairmentRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    (c) => individualImpairmentController.getHistory(c)
+    (c: any) => individualImpairmentController.getHistory(c)
 )
 
 individualImpairmentRoutes.openapi(
@@ -505,7 +505,7 @@ individualImpairmentRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    (c) => individualImpairmentController.getAssessmentHistory(c)
+    (c: any) => individualImpairmentController.getAssessmentHistory(c)
 )
 
 // --- REPORTS ---
@@ -529,7 +529,7 @@ individualImpairmentRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    (c) => individualImpairmentController.getReports(c)
+    (c: any) => individualImpairmentController.getReports(c)
 )
 
 individualImpairmentRoutes.openapi(
@@ -547,7 +547,7 @@ individualImpairmentRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    (c) => individualImpairmentController.createReport(c)
+    (c: any) => individualImpairmentController.createReport(c)
 )
 
 // --- SCENARIOS ---
@@ -567,7 +567,7 @@ individualImpairmentRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    (c) => individualImpairmentController.getScenarios(c)
+    (c: any) => individualImpairmentController.getScenarios(c)
 )
 
 individualImpairmentRoutes.openapi(
@@ -585,7 +585,7 @@ individualImpairmentRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    (c) => individualImpairmentController.createScenario(c)
+    (c: any) => individualImpairmentController.createScenario(c)
 )
 
 individualImpairmentRoutes.openapi(
@@ -604,7 +604,7 @@ individualImpairmentRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    (c) => individualImpairmentController.updateScenarioStatus(c)
+    (c: any) => individualImpairmentController.updateScenarioStatus(c)
 )
 
 // --- DCF ---
@@ -621,7 +621,7 @@ individualImpairmentRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    (c) => individualImpairmentController.getDcfUploads(c)
+    (c: any) => individualImpairmentController.getDcfUploads(c)
 )
 
 individualImpairmentRoutes.openapi(
@@ -636,7 +636,7 @@ individualImpairmentRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    (c) => individualImpairmentController.calculateDcf(c)
+    (c: any) => individualImpairmentController.calculateDcf(c)
 )
 
 individualImpairmentRoutes.openapi(
@@ -651,7 +651,7 @@ individualImpairmentRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    (c) => individualImpairmentController.getDcfCalculations(c)
+    (c: any) => individualImpairmentController.getDcfCalculations(c)
 )
 
 individualImpairmentRoutes.openapi(
@@ -669,7 +669,7 @@ individualImpairmentRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    (c) => individualImpairmentController.createBatchUpload(c)
+    (c: any) => individualImpairmentController.createBatchUpload(c)
 )
 
 individualImpairmentRoutes.openapi(
@@ -687,7 +687,7 @@ individualImpairmentRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    (c) => individualImpairmentController.getDcfCashflows(c)
+    (c: any) => individualImpairmentController.getDcfCashflows(c)
 )
 
 // STAGING ANALYSIS ROUTES
@@ -711,7 +711,7 @@ individualImpairmentRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    (c) => individualImpairmentController.getStagingAnalysis(c)
+    (c: any) => individualImpairmentController.getStagingAnalysis(c)
 )
 
 individualImpairmentRoutes.openapi(
@@ -726,5 +726,5 @@ individualImpairmentRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    (c) => individualImpairmentController.getStagingSummary(c)
+    (c: any) => individualImpairmentController.getStagingSummary(c)
 )

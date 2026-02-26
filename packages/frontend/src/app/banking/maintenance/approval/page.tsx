@@ -106,9 +106,6 @@ interface ApprovalRequest {
 }
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const KNOWN_REQUESTER_OVERRIDES: Record<string, string> = {
-  '550e8400-e29b-41d4-a716-446655440001': 'admin@ifrspro.id',
-};
 
 const looksLikeUuid = (value: unknown): boolean =>
   typeof value === 'string' && UUID_REGEX.test(value.trim());
@@ -145,11 +142,6 @@ const getRequestedByDisplay = (req: any): string => {
   ].filter((entry) => !!entry && !looksLikeUuid(entry));
 
   if (fallbackCandidates.length > 0) return fallbackCandidates[0];
-
-  const requestedById = typeof req?.requestedBy === 'string' ? req.requestedBy.trim() : '';
-  if (requestedById && KNOWN_REQUESTER_OVERRIDES[requestedById]) {
-    return KNOWN_REQUESTER_OVERRIDES[requestedById];
-  }
 
   return 'Unknown User';
 };
@@ -234,6 +226,150 @@ interface ApprovalRoutingItem {
   levels: ApprovalRoutingLevel[];
 }
 
+type ApprovalOperation = 'create' | 'update' | 'delete';
+
+interface RequestRoutingMatch {
+  entityType: string;
+  operation: ApprovalOperation | null;
+  operationMatched: boolean;
+  routing: ApprovalRoutingItem | null;
+}
+
+const DETAIL_CANDIDATE_VISIBLE_LIMIT = 24;
+
+const normalizeString = (value: unknown): string =>
+  typeof value === 'string' ? value.trim().toLowerCase() : '';
+
+const normalizeApprovalOperation = (value: unknown): ApprovalOperation | null => {
+  const normalized = normalizeString(value);
+  if (normalized === 'create' || normalized === 'update' || normalized === 'delete') {
+    return normalized;
+  }
+  return null;
+};
+
+const toRecord = (value: unknown): Record<string, unknown> =>
+  value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+
+const resolveRequestEntityType = (request: ApprovalRequest): string => {
+  const requestData = toRecord(request.requestData);
+  const nestedData = toRecord(requestData.data);
+
+  return normalizeString(
+    request.entityType
+    || request.requestType
+    || requestData.entityType
+    || nestedData.entityType
+  );
+};
+
+const resolveRequestOperation = (request: ApprovalRequest): ApprovalOperation | null => {
+  const requestData = toRecord(request.requestData);
+  const nestedData = toRecord(requestData.data);
+  const directRequestRecord = request as unknown as Record<string, unknown>;
+
+  const explicitOperation = [
+    requestData.operation,
+    requestData.operationType,
+    requestData.action,
+    nestedData.operation,
+    nestedData.operationType,
+    nestedData.action,
+    directRequestRecord.operation,
+    directRequestRecord.operationType,
+  ]
+    .map(normalizeApprovalOperation)
+    .find((operation): operation is ApprovalOperation => operation !== null);
+
+  if (explicitOperation) return explicitOperation;
+
+  const titleOperation = normalizeString(request.requestTitle || request.title).match(/\b(create|update|delete)\b/i);
+  if (titleOperation?.[1]) return normalizeApprovalOperation(titleOperation[1]);
+
+  const descriptionOperation = normalizeString(request.description).match(/\b(create|update|delete)\b/i);
+  if (descriptionOperation?.[1]) return normalizeApprovalOperation(descriptionOperation[1]);
+
+  return null;
+};
+
+const routingSupportsOperation = (routingOperationType: string, operation: ApprovalOperation | null): boolean => {
+  if (!operation) return true;
+  const normalized = String(routingOperationType || '')
+    .split(',')
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+  if (normalized.length === 0) return true;
+  return normalized.includes(operation);
+};
+
+const computeOperationSpecificity = (routingOperationType: string, operation: ApprovalOperation | null): number => {
+  if (!operation) return 0;
+  const normalized = String(routingOperationType || '')
+    .split(',')
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+  if (normalized.length === 0) return 0;
+  if (!normalized.includes(operation)) return -1;
+  return normalized.length === 1 ? 2 : 1;
+};
+
+const resolveRoutingForRequest = (
+  request: ApprovalRequest,
+  routingItems: ApprovalRoutingItem[]
+): RequestRoutingMatch => {
+  const entityType = resolveRequestEntityType(request);
+  const operation = resolveRequestOperation(request);
+
+  if (!entityType) {
+    return {
+      entityType,
+      operation,
+      operationMatched: false,
+      routing: null,
+    };
+  }
+
+  const entityMatches = routingItems.filter(
+    (item) => normalizeString(item.entityType) === entityType
+  );
+
+  if (entityMatches.length === 0) {
+    return {
+      entityType,
+      operation,
+      operationMatched: false,
+      routing: null,
+    };
+  }
+
+  const operationMatches = operation
+    ? entityMatches.filter((item) => routingSupportsOperation(item.operationType, operation))
+    : entityMatches;
+
+  const candidates = operationMatches.length > 0 ? operationMatches : entityMatches;
+  const operationMatched = operationMatches.length > 0;
+
+  const ranked = [...candidates].sort((a, b) => {
+    if (a.isActive !== b.isActive) return a.isActive ? -1 : 1;
+
+    const opSpecificityA = computeOperationSpecificity(a.operationType, operation);
+    const opSpecificityB = computeOperationSpecificity(b.operationType, operation);
+    if (opSpecificityA !== opSpecificityB) return opSpecificityB - opSpecificityA;
+
+    if (Boolean(a.matrixId) !== Boolean(b.matrixId)) return a.matrixId ? -1 : 1;
+    return a.matrixName.localeCompare(b.matrixName);
+  });
+
+  return {
+    entityType,
+    operation,
+    operationMatched,
+    routing: ranked[0] ?? null,
+  };
+};
+
 export default function ApprovalManagementPage() {
   const router = useRouter();
   const { user } = useAuth();
@@ -281,6 +417,7 @@ export default function ApprovalManagementPage() {
   }>({
     open: false,
   });
+  const [expandedDetailCandidateLevels, setExpandedDetailCandidateLevels] = useState<Record<string, boolean>>({});
 
   // Snackbar state
   const [snackbar, setSnackbar] = useState({
@@ -620,6 +757,7 @@ export default function ApprovalManagementPage() {
 
 
   const handleViewDetails = (request: ApprovalRequest) => {
+    setExpandedDetailCandidateLevels({});
     setDetailDialog({ open: true, request });
   };
 
@@ -659,6 +797,13 @@ export default function ApprovalManagementPage() {
     loadApprovalRouting();
     loadStatistics();
   };
+
+  const detailRoutingMatch = useMemo(() => {
+    if (!detailDialog.request) {
+      return null;
+    }
+    return resolveRoutingForRequest(detailDialog.request, approvalRouting);
+  }, [detailDialog.request, approvalRouting]);
 
   // DataGrid columns
   const columns: GridColDef[] = [
@@ -1664,6 +1809,144 @@ export default function ApprovalManagementPage() {
                     />
                   </Grid>
                 )}
+                <Grid size={12}>
+                  <Box sx={{ pt: 1.5 }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+                      Who Can Approve This Request
+                    </Typography>
+                    {routingLoading ? (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <CircularProgress size={18} />
+                        <Typography variant="body2" color="text.secondary">
+                          Loading routing candidates...
+                        </Typography>
+                      </Box>
+                    ) : !detailRoutingMatch?.entityType ? (
+                      <Alert severity="info">
+                        Entity type is not available in this request, so approver routing cannot be resolved.
+                      </Alert>
+                    ) : !detailRoutingMatch?.routing ? (
+                      <Alert severity="warning">
+                        No routing matrix found for entity <strong>{detailRoutingMatch.entityType}</strong>.
+                      </Alert>
+                    ) : (
+                      <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1.5 }}>
+                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', mb: 1 }}>
+                          <Chip
+                            size="small"
+                            label={detailRoutingMatch.routing.matrixName}
+                            color={detailRoutingMatch.routing.isActive ? 'success' : 'default'}
+                            variant="outlined"
+                          />
+                          <Chip size="small" variant="outlined" label={`Entity: ${detailRoutingMatch.routing.entityType}`} />
+                          <Chip size="small" variant="outlined" label={`Ops: ${detailRoutingMatch.routing.operationType}`} />
+                          {detailRoutingMatch.operation && (
+                            <Chip
+                              size="small"
+                              label={`Request op: ${detailRoutingMatch.operation}`}
+                              color={detailRoutingMatch.operationMatched ? 'success' : 'warning'}
+                              variant="outlined"
+                            />
+                          )}
+                        </Box>
+
+                        {!detailRoutingMatch.operationMatched && detailRoutingMatch.operation && (
+                          <Alert severity="info" sx={{ mb: 1 }}>
+                            Exact operation routing was not found for <strong>{detailRoutingMatch.operation}</strong>.
+                            Showing closest entity-level routing instead.
+                          </Alert>
+                        )}
+
+                        {detailRoutingMatch.routing.levels.length === 0 ? (
+                          <Typography variant="body2" color="text.secondary">
+                            No approval levels configured.
+                          </Typography>
+                        ) : (
+                          [...detailRoutingMatch.routing.levels]
+                            .sort((a, b) => a.level - b.level)
+                            .map((level) => {
+                              const levelKey = [
+                                detailDialog.request?.id || 'request',
+                                detailRoutingMatch.routing?.matrixId || detailRoutingMatch.routing?.entityType,
+                                level.level,
+                              ].join(':');
+                              const expanded = Boolean(expandedDetailCandidateLevels[levelKey]);
+                              const visibleCandidates = expanded
+                                ? level.candidates
+                                : level.candidates.slice(0, DETAIL_CANDIDATE_VISIBLE_LIMIT);
+                              const hiddenCount = Math.max(level.candidates.length - DETAIL_CANDIDATE_VISIBLE_LIMIT, 0);
+
+                              return (
+                                <Box
+                                  key={`${detailRoutingMatch.routing?.matrixId || detailRoutingMatch.routing?.entityType}-detail-${level.level}`}
+                                  sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1.25, mb: 1 }}
+                                >
+                                  <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+                                    L{level.level} {level.name} | Needed: {level.requiredCount}
+                                  </Typography>
+                                  <Typography variant="caption" color="text.secondary">
+                                    Required Roles: {(level.requiredRoleCodes || []).join(', ') || '-'}
+                                  </Typography>
+                                  <Typography variant="caption" color="text.secondary" display="block">
+                                    Required Permissions: {(level.requiredPermissionCodes || []).join(', ') || '-'}
+                                  </Typography>
+                                  <Typography variant="body2" sx={{ mt: 0.5, mb: 0.75 }}>
+                                    Candidate Approvers: <strong>{level.candidateCount}</strong>
+                                  </Typography>
+                                  {level.candidates.length === 0 ? (
+                                    <Typography variant="caption" color="error">
+                                      No eligible approvers found for this level.
+                                    </Typography>
+                                  ) : (
+                                    <>
+                                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                        {visibleCandidates.map((candidate) => (
+                                          <Tooltip
+                                            key={`detail-${level.level}-${candidate.userId}`}
+                                            title={[
+                                              candidate.email,
+                                              candidate.department ? `Dept: ${candidate.department}` : null,
+                                              candidate.position ? `Position: ${candidate.position}` : null,
+                                              candidate.roleCodes?.length ? `Roles: ${candidate.roleCodes.join(', ')}` : null,
+                                            ].filter(Boolean).join(' | ')}
+                                          >
+                                            <Chip size="small" label={candidate.fullName} />
+                                          </Tooltip>
+                                        ))}
+                                        {!expanded && hiddenCount > 0 && (
+                                          <Chip
+                                            size="small"
+                                            variant="outlined"
+                                            label={`+${hiddenCount} more`}
+                                          />
+                                        )}
+                                      </Box>
+                                      {hiddenCount > 0 && (
+                                        <Box sx={{ mt: 0.75 }}>
+                                          <Button
+                                            size="small"
+                                            variant="text"
+                                            onClick={() => {
+                                              setExpandedDetailCandidateLevels((prev) => ({
+                                                ...prev,
+                                                [levelKey]: !expanded,
+                                              }));
+                                            }}
+                                          >
+                                            {expanded ? 'Show less' : `Show all ${level.candidates.length} candidates`}
+                                          </Button>
+                                        </Box>
+                                      )}
+                                    </>
+                                  )}
+                                </Box>
+                              );
+                            })
+                        )}
+                      </Box>
+                    )}
+                  </Box>
+                </Grid>
               </Grid>
             </Box>
           )}
@@ -1678,7 +1961,14 @@ export default function ApprovalManagementPage() {
               Open in RBAC
             </Button>
           )}
-          <Button onClick={() => setDetailDialog({ open: false })}>Close</Button>
+          <Button
+            onClick={() => {
+              setExpandedDetailCandidateLevels({});
+              setDetailDialog({ open: false });
+            }}
+          >
+            Close
+          </Button>
         </DialogActions>
       </Dialog>
 

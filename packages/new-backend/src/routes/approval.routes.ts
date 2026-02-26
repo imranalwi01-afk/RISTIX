@@ -121,13 +121,6 @@ const ApprovalRoutingSchema = z.object({
 }).openapi('ApprovalRouting')
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-const KNOWN_REQUESTER_OVERRIDES: Record<string, { name: string; email: string; username: string }> = {
-    '550e8400-e29b-41d4-a716-446655440001': {
-        name: 'Platform Administrator',
-        email: 'admin@ifrspro.id',
-        username: 'admin',
-    },
-}
 
 const looksLikeUuid = (value: unknown): boolean =>
     typeof value === 'string' && UUID_REGEX.test(value.trim())
@@ -168,20 +161,12 @@ const buildRequestedByMeta = (request: any): {
         || dataName
         || dataEmail
         || dataUsername
-        || (() => {
-            const requestedById = typeof request?.requestedBy === 'string' ? request.requestedBy.trim() : ''
-            return requestedById && KNOWN_REQUESTER_OVERRIDES[requestedById]
-                ? `${KNOWN_REQUESTER_OVERRIDES[requestedById].name} (${KNOWN_REQUESTER_OVERRIDES[requestedById].email})`
-                : 'Unknown User'
-        })()
-
-    const requestedById = typeof request?.requestedBy === 'string' ? request.requestedBy.trim() : ''
-    const knownOverride = requestedById ? KNOWN_REQUESTER_OVERRIDES[requestedById] : null
+        || 'Unknown User'
 
     return {
         requestedByName,
-        requestedByEmail: email || explicitEmail || dataEmail || knownOverride?.email || null,
-        requestedByUsername: username || explicitUsername || dataUsername || knownOverride?.username || null,
+        requestedByEmail: email || explicitEmail || dataEmail || null,
+        requestedByUsername: username || explicitUsername || dataUsername || null,
     }
 }
 

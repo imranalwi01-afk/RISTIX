@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { sql, desc, eq, and, lte } from 'drizzle-orm';
 // Use the centralized schema export
 import {

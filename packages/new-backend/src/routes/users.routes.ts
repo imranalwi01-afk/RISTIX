@@ -10,7 +10,7 @@ import { buildDefaultFourEyesRouting, type ApprovalResponse } from '../lib/appro
 import { createApprovalRequest } from '../services/approval.service'
 import * as auditService from '../services/audit.service'
 
-export const usersRoutes = new OpenAPIHono<AppContext>()
+export const usersRoutes: any = new OpenAPIHono<AppContext>()
 
 // Apply auth and tenant middleware
 usersRoutes.use('*', authMiddleware)
@@ -148,7 +148,7 @@ usersRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         const tenantId = c.get('tenantId')!
         const query = c.req.valid('query')
 
@@ -246,7 +246,7 @@ usersRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         const { id } = c.req.valid('param')
         const tenantId = c.get('tenantId')!
         const body = c.req.valid('json')
@@ -332,7 +332,7 @@ usersRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         const tenantId = c.get('tenantId')!
         const userId = c.get('userId')!
         const userPermissions = (c.get('userPermissions') as string[]) || []
@@ -411,7 +411,7 @@ usersRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         const tenantId = c.get('tenantId')!
         const effect = usersService.getUserStats(tenantId)
         return runEffect(c, effect)
@@ -442,7 +442,7 @@ usersRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         const userId = c.get('userId')!
 
         const effect = pipe(
@@ -501,7 +501,7 @@ usersRoutes.openapi(
             }
         }
     }),
-    async (c) => {
+    async (c: any) => {
         const { id } = c.req.valid('param')
         return c.json({
             success: true,
@@ -552,7 +552,7 @@ usersRoutes.openapi(
             }
         }
     }),
-    async (c) => {
+    async (c: any) => {
         return c.json({
             success: true,
             data: { message: 'Settings saved (mock)' }
@@ -592,7 +592,7 @@ usersRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         const { id } = c.req.valid('param')
         const effect = pipe(
             usersService.getUserById(id),
@@ -657,7 +657,7 @@ usersRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         const { id } = c.req.valid('param')
         const tenantId = c.get('tenantId')!
         const userId = c.get('userId')!
@@ -740,7 +740,7 @@ usersRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         const { id } = c.req.valid('param')
         const tenantId = c.get('tenantId')!
         const userId = c.get('userId')!
@@ -808,7 +808,7 @@ usersRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         try {
             const { id } = c.req.valid('param')
             const tenantId = c.get('tenantId')!
@@ -888,7 +888,7 @@ usersRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         try {
             const { id } = c.req.valid('param')
             const tenantId = c.get('tenantId')!

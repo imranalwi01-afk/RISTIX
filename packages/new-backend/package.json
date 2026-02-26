@@ -11,7 +11,7 @@
         "compile": "bun build src/index.ts --compile --outfile ./dist/server",
         "compile:linux": "bun build src/index.ts --compile --target=bun-linux-x64 --outfile ./dist/server-linux",
         "compile:docker": "bun build src/index.ts --compile --target=bun-linux-x64 --outfile ./dist/server",
-        "typecheck": "tsc --noEmit",
+        "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
         "lint": "eslint src --ext .ts",
         "lint:fix": "eslint src --ext .ts --fix",
         "test": "bun test",

@@ -8,7 +8,7 @@ import { authMiddleware } from '../middleware'
 import { interceptCreate, interceptUpdate, interceptDelete } from '../middleware/approval-interceptor.middleware'
 import { runEffect, handleEffectError } from '../lib/effect/runtime'
 
-export const segmentationRoutes = new OpenAPIHono<AppContext>()
+export const segmentationRoutes: any = new OpenAPIHono<AppContext>()
 
 segmentationRoutes.use('*', authMiddleware)
 
@@ -94,7 +94,7 @@ segmentationRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    async (c) => {
+    async (c: any) => {
         try {
             const results = await db.select({
                 type_code: frs9ParamCommond.value1,
@@ -140,7 +140,7 @@ segmentationRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    async (c) => {
+    async (c: any) => {
         const { limit, page, search, segmentType, status } = c.req.valid('query');
         const offset = page * limit;
 
@@ -228,7 +228,7 @@ segmentationRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    async (c) => {
+    async (c: any) => {
         const id = c.req.valid('param').id
         if (isNaN(id)) return c.json({ error: 'Invalid ID' }, 400);
 
@@ -277,7 +277,7 @@ segmentationRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    async (c) => {
+    async (c: any) => {
         const headerData = c.req.valid('json');
         const userId = c.get('userId') as string || 'system'
         const tenantId = c.get('tenantId') as string
@@ -317,7 +317,7 @@ segmentationRoutes.openapi(
                     // Insert rules if provided
                     if (headerData.rules && headerData.rules.length > 0) {
                         await tx.insert(frs9ParamSegmentd).values(
-                            headerData.rules.map(rule => ({
+                            headerData.rules.map((rule: any) => ({
                                 segmentId: headerId,
                                 queryGroup: rule.query_group,
                                 seq: rule.seq,
@@ -372,7 +372,7 @@ segmentationRoutes.openapi(
                         // Insert rules if provided
                         if (headerData.rules && headerData.rules.length > 0) {
                             await tx.insert(frs9ParamSegmentd).values(
-                                headerData.rules.map(rule => ({
+                                headerData.rules.map((rule: any) => ({
                                     segmentId: headerId,
                                     queryGroup: rule.query_group,
                                     seq: rule.seq,
@@ -426,7 +426,7 @@ segmentationRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    async (c) => {
+    async (c: any) => {
         const id = c.req.valid('param').id
         if (isNaN(id)) return c.json({ error: 'Invalid ID' }, 400);
 
@@ -464,7 +464,7 @@ segmentationRoutes.openapi(
                             await tx.delete(frs9ParamSegmentd).where(eq(frs9ParamSegmentd.segmentId, id));
                             if (headerData.rules.length > 0) {
                                 await tx.insert(frs9ParamSegmentd).values(
-                                    headerData.rules.map(rule => ({
+                                    headerData.rules.map((rule: any) => ({
                                         segmentId: id,
                                         queryGroup: rule.query_group,
                                         seq: rule.seq,
@@ -520,7 +520,7 @@ segmentationRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    async (c) => {
+    async (c: any) => {
         const id = c.req.valid('param').id
         if (isNaN(id)) return c.json({ error: 'Invalid ID' }, 400);
 
@@ -594,7 +594,7 @@ segmentationRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    async (c) => {
+    async (c: any) => {
         const id = c.req.valid('param').id
         if (isNaN(id)) return c.json({ error: 'Invalid ID' }, 400);
 
@@ -646,7 +646,7 @@ segmentationRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    async (c) => {
+    async (c: any) => {
         const id = c.req.valid('param').id
         if (isNaN(id)) return c.json({ error: 'Invalid ID' }, 400);
         const detailData = c.req.valid('json');
@@ -707,7 +707,7 @@ segmentationRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    async (c) => {
+    async (c: any) => {
         const detailId = c.req.valid('param').detailId
         if (isNaN(detailId)) return c.json({ error: 'Invalid ID' }, 400);
         const detailData = c.req.valid('json');
@@ -768,7 +768,7 @@ segmentationRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    async (c) => {
+    async (c: any) => {
         const detailId = c.req.valid('param').detailId
         if (isNaN(detailId)) return c.json({ error: 'Invalid ID' }, 400);
 

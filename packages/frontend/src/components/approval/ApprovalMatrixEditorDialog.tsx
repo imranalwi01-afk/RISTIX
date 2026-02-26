@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     Dialog,
     DialogTitle,
@@ -14,19 +14,28 @@ import {
     Select,
     MenuItem,
     Paper,
+    Chip,
+    Checkbox,
+    ListItemText,
+    FormHelperText,
 } from '@mui/material';
 import { Save as SaveIcon } from '@mui/icons-material';
-import { bankingAPI } from '@/services/api';
+import { bankingAPI, api } from '@/services/api';
 import { getErrorMessage } from '@/utils/error-message';
 
 // Internal types mirrored from page.tsx logic
 interface MatrixLevelEditor {
     level: number;
     name: string;
-    requiredRoleCodes: string;
+    requiredRoleCodes: string[];
     requiredPermissionCodes: string;
     requiredCount: number;
     timeoutHours: string;
+}
+
+interface RoleOption {
+    code: string;
+    label: string;
 }
 
 interface ApprovalMatrixEditorDialogProps {
@@ -50,6 +59,96 @@ const parseCodeList = (value: string): string[] => {
 const formatCodeList = (values?: string[] | null): string =>
     Array.isArray(values) ? values.join(', ') : '';
 
+const toCodeArray = (value: unknown): string[] => {
+    if (Array.isArray(value)) {
+        return Array.from(
+            new Set(
+                value
+                    .map((entry) => (typeof entry === 'string' ? entry.trim() : ''))
+                    .filter((entry) => entry.length > 0)
+            )
+        );
+    }
+    if (typeof value === 'string') return parseCodeList(value);
+    return [];
+};
+
+const clampRequiredCount = (count: number, roleCount: number): number => {
+    const normalizedCount = Math.max(1, Number(count || 1));
+    if (roleCount > 0) return Math.min(normalizedCount, roleCount);
+    return normalizedCount;
+};
+
+const extractRoleRecords = (input: unknown): Record<string, unknown>[] => {
+    if (Array.isArray(input)) {
+        return input.filter((entry): entry is Record<string, unknown> => !!entry && typeof entry === 'object');
+    }
+
+    if (!input || typeof input !== 'object') return [];
+
+    const record = input as Record<string, unknown>;
+    const directKeys = ['roles', 'items', 'results', 'data'];
+    for (const key of directKeys) {
+        const value = record[key];
+        if (Array.isArray(value)) {
+            return value.filter((entry): entry is Record<string, unknown> => !!entry && typeof entry === 'object');
+        }
+    }
+
+    if (record.data && typeof record.data === 'object') {
+        const nestedData = record.data as Record<string, unknown>;
+        const nestedKeys = ['roles', 'items', 'results'];
+        for (const key of nestedKeys) {
+            const value = nestedData[key];
+            if (Array.isArray(value)) {
+                return value.filter((entry): entry is Record<string, unknown> => !!entry && typeof entry === 'object');
+            }
+        }
+    }
+
+    return [];
+};
+
+const normalizeRoleOptions = (input: unknown): RoleOption[] => {
+    const options = extractRoleRecords(input)
+        .map((role) => {
+            const code = String(
+                role.roleCode
+                ?? role.role_code
+                ?? role.code
+                ?? role.name
+                ?? role.roleName
+                ?? role.role_name
+                ?? ''
+            ).trim();
+            if (!code) return null;
+
+            const label = String(
+                role.displayName
+                ?? role.display_name
+                ?? role.roleName
+                ?? role.role_name
+                ?? role.name
+                ?? role.roleCode
+                ?? role.role_code
+                ?? code
+            ).trim();
+
+            return {
+                code,
+                label: label || code,
+            } as RoleOption;
+        })
+        .filter((entry): entry is RoleOption => !!entry);
+
+    const dedup = new Map<string, RoleOption>();
+    options.forEach((option) => {
+        dedup.set(option.code, option);
+    });
+
+    return Array.from(dedup.values()).sort((left, right) => left.label.localeCompare(right.label));
+};
+
 export const ApprovalMatrixEditorDialog: React.FC<ApprovalMatrixEditorDialogProps> = ({
     open,
     onClose,
@@ -62,6 +161,12 @@ export const ApprovalMatrixEditorDialog: React.FC<ApprovalMatrixEditorDialogProp
     const [isActive, setIsActive] = useState(true);
     const [levels, setLevels] = useState<MatrixLevelEditor[]>([]);
     const [saving, setSaving] = useState(false);
+    const [availableRoles, setAvailableRoles] = useState<RoleOption[]>([]);
+    const [rolesLoading, setRolesLoading] = useState(false);
+    const roleLabelMap = useMemo(
+        () => new Map(availableRoles.map((role) => [role.code, role.label])),
+        [availableRoles]
+    );
 
     // Initialize state when matrix prop changes or dialog opens
     useEffect(() => {
@@ -75,9 +180,12 @@ export const ApprovalMatrixEditorDialog: React.FC<ApprovalMatrixEditorDialogProp
                 .map((level) => ({
                     level: Number(level.level || 0),
                     name: String(level.name || `Level ${level.level || '-'}`),
-                    requiredRoleCodes: formatCodeList(level.requiredRoleCodes),
+                    requiredRoleCodes: toCodeArray(level.requiredRoleCodes ?? level.required_role_codes ?? level.requiredRoles),
                     requiredPermissionCodes: formatCodeList(level.requiredPermissionCodes),
-                    requiredCount: Math.max(1, Number(level.requiredCount || 1)),
+                    requiredCount: clampRequiredCount(
+                        Number(level.requiredCount || level.required_count || 1),
+                        toCodeArray(level.requiredRoleCodes ?? level.required_role_codes ?? level.requiredRoles).length
+                    ),
                     timeoutHours: level.timeoutHours == null ? '' : String(level.timeoutHours),
                 }));
             setLevels(initialLevels);
@@ -89,7 +197,7 @@ export const ApprovalMatrixEditorDialog: React.FC<ApprovalMatrixEditorDialogProp
             setLevels([{
                 level: 1,
                 name: 'Level 1',
-                requiredRoleCodes: '',
+                requiredRoleCodes: [],
                 requiredPermissionCodes: 'approval.requests.approve',
                 requiredCount: 1,
                 timeoutHours: ''
@@ -97,15 +205,49 @@ export const ApprovalMatrixEditorDialog: React.FC<ApprovalMatrixEditorDialogProp
         }
     }, [open, matrix]);
 
+    useEffect(() => {
+        if (!open) return;
+
+        const loadRoles = async () => {
+            try {
+                setRolesLoading(true);
+                const response = await api.roles.getAll({ limit: 500 });
+                setAvailableRoles(normalizeRoleOptions(response));
+            } catch (error) {
+                console.error('Error loading roles for approval matrix editor:', error);
+                onError(getErrorMessage(error, 'Failed to load roles for matrix editor.'), 'warning');
+                setAvailableRoles([]);
+            } finally {
+                setRolesLoading(false);
+            }
+        };
+
+        void loadRoles();
+    }, [open, onError]);
+
     const updateMatrixLevel = (
         index: number,
         field: keyof MatrixLevelEditor,
-        value: string | number
+        value: string | number | string[]
     ) => {
         setLevels((prev) =>
             prev.map((level, levelIndex) =>
                 levelIndex === index ? { ...level, [field]: value } : level
             )
+        );
+    };
+
+    const updateLevelRoles = (index: number, selectedRoleCodes: string[]) => {
+        const normalizedRoles = toCodeArray(selectedRoleCodes);
+        setLevels((prev) =>
+            prev.map((level, levelIndex) => {
+                if (levelIndex !== index) return level;
+                return {
+                    ...level,
+                    requiredRoleCodes: normalizedRoles,
+                    requiredCount: clampRequiredCount(level.requiredCount, normalizedRoles.length),
+                };
+            })
         );
     };
 
@@ -124,9 +266,9 @@ export const ApprovalMatrixEditorDialog: React.FC<ApprovalMatrixEditorDialogProp
                     .map((level) => ({
                         level: Math.max(1, Number(level.level || 1)),
                         name: String(level.name || `Level ${level.level || '-'}`).trim(),
-                        requiredRoleCodes: parseCodeList(level.requiredRoleCodes),
+                        requiredRoleCodes: toCodeArray(level.requiredRoleCodes),
                         requiredPermissionCodes: parseCodeList(level.requiredPermissionCodes),
-                        requiredCount: Math.max(1, Number(level.requiredCount || 1)),
+                        requiredCount: clampRequiredCount(Number(level.requiredCount || 1), toCodeArray(level.requiredRoleCodes).length),
                         timeoutHours: level.timeoutHours === '' ? undefined : Math.max(1, Number(level.timeoutHours)),
                     })),
             };
@@ -233,9 +375,19 @@ export const ApprovalMatrixEditorDialog: React.FC<ApprovalMatrixEditorDialogProp
                                             fullWidth
                                             label="Required Count"
                                             type="number"
-                                            inputProps={{ min: 1 }}
+                                            inputProps={{
+                                                min: 1,
+                                                max: level.requiredRoleCodes.length > 0 ? level.requiredRoleCodes.length : undefined,
+                                            }}
                                             value={level.requiredCount}
-                                            onChange={(e) => updateMatrixLevel(index, 'requiredCount', Math.max(1, Number(e.target.value || 1)))}
+                                            onChange={(e) => {
+                                                const rawValue = Math.max(1, Number(e.target.value || 1));
+                                                updateMatrixLevel(
+                                                    index,
+                                                    'requiredCount',
+                                                    clampRequiredCount(rawValue, level.requiredRoleCodes.length)
+                                                );
+                                            }}
                                             disabled={saving}
                                         />
                                     </Grid>
@@ -251,14 +403,45 @@ export const ApprovalMatrixEditorDialog: React.FC<ApprovalMatrixEditorDialogProp
                                         />
                                     </Grid>
                                     <Grid size={12}>
-                                        <TextField
-                                            fullWidth
-                                            label="Required Role Codes"
-                                            helperText="Comma-separated role codes (e.g. CHECKER, APPROVER)"
-                                            value={level.requiredRoleCodes}
-                                            onChange={(e) => updateMatrixLevel(index, 'requiredRoleCodes', e.target.value)}
-                                            disabled={saving}
-                                        />
+                                        <FormControl fullWidth disabled={saving || rolesLoading}>
+                                            <InputLabel id={`required-roles-label-${index}`}>Required Roles</InputLabel>
+                                            <Select
+                                                multiple
+                                                labelId={`required-roles-label-${index}`}
+                                                label="Required Roles"
+                                                value={level.requiredRoleCodes}
+                                                onChange={(e) => updateLevelRoles(index, e.target.value as string[])}
+                                                renderValue={(selected) => {
+                                                    const selectedCodes = selected as string[];
+                                                    if (selectedCodes.length === 0) return 'No role restriction';
+                                                    return (
+                                                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                                            {selectedCodes.map((code) => (
+                                                                <Chip
+                                                                    key={`${index}-${code}`}
+                                                                    size="small"
+                                                                    label={roleLabelMap.get(code) || code}
+                                                                />
+                                                            ))}
+                                                        </Box>
+                                                    );
+                                                }}
+                                            >
+                                                {availableRoles.map((role) => (
+                                                    <MenuItem key={`required-role-${role.code}`} value={role.code}>
+                                                        <Checkbox checked={level.requiredRoleCodes.includes(role.code)} />
+                                                        <ListItemText primary={role.label} secondary={role.code} />
+                                                    </MenuItem>
+                                                ))}
+                                            </Select>
+                                            <FormHelperText>
+                                                {rolesLoading
+                                                    ? 'Loading tenant roles...'
+                                                    : availableRoles.length === 0
+                                                        ? 'No roles found. Leave empty to rely on permission codes.'
+                                                        : 'Select approver roles for this level. Leave empty for permission-only approval.'}
+                                            </FormHelperText>
+                                        </FormControl>
                                     </Grid>
                                     <Grid size={12}>
                                         <TextField

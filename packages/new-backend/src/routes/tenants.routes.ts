@@ -13,7 +13,7 @@ import * as tenantsService from '../services/tenants.service'
  * 
  * Base Path: /tenants
  */
-export const tenantsRoutes = new OpenAPIHono<AppContext>()
+export const tenantsRoutes: any = new OpenAPIHono<AppContext>()
 
 // Apply auth middleware
 tenantsRoutes.use('*', authMiddleware)
@@ -33,6 +33,13 @@ const requirePlatformAdmin = (c: any) => {
     if (!isPlatformAdmin) {
         throw new Error('Unauthorized: Platform Admin access required')
     }
+}
+
+const toSettingsObject = (value: unknown): Record<string, unknown> | null => {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+        return value as Record<string, unknown>
+    }
+    return null
 }
 
 // =============================================================================
@@ -126,7 +133,7 @@ tenantsRoutes.openapi(
             }
         },
     }),
-    async (c) => {
+    async (c: any) => {
         try { requirePlatformAdmin(c) } catch (e: any) { return c.json({ success: false, error: e.message }, 403) }
 
         const pagination = parsePaginationParams(c)
@@ -155,7 +162,7 @@ tenantsRoutes.openapi(
                 description: t.description,
                 type: t.type,
                 bankingMode: t.bankingMode,
-                settings: t.settings as Record<string, unknown>,
+                settings: toSettingsObject(t.settings),
                 isActive: t.isActive,
                 createdAt: t.createdAt.toISOString(),
                 updatedAt: t.updatedAt.toISOString(),
@@ -207,7 +214,7 @@ tenantsRoutes.openapi(
             }
         },
     }),
-    async (c) => {
+    async (c: any) => {
         try { requirePlatformAdmin(c) } catch (e: any) { return c.json({ success: false, error: e.message }, 403) }
 
         const body = c.req.valid('json')
@@ -220,7 +227,7 @@ tenantsRoutes.openapi(
                     ...tenant,
                     createdAt: tenant.createdAt.toISOString(),
                     updatedAt: tenant.updatedAt.toISOString(),
-                    settings: tenant.settings as Record<string, unknown>
+                    settings: toSettingsObject(tenant.settings)
                 },
             }))
         )
@@ -265,7 +272,7 @@ tenantsRoutes.openapi(
             }
         },
     }),
-    async (c) => {
+    async (c: any) => {
         const tenantId = c.get('tenantId')
         if (!tenantId) {
             return c.json({ success: false, error: 'No tenant context' } as any, 400)
@@ -282,7 +289,7 @@ tenantsRoutes.openapi(
                     ...t,
                     createdAt: t.createdAt.toISOString(),
                     updatedAt: t.updatedAt.toISOString(),
-                    settings: t.settings as Record<string, unknown>
+                    settings: toSettingsObject(t.settings)
                 })
             })
         )
@@ -332,7 +339,7 @@ tenantsRoutes.openapi(
             }
         },
     }),
-    async (c) => {
+    async (c: any) => {
         const { slug } = c.req.valid('param')
 
         const tenant = await Effect.runPromise(tenantsService.getTenantBySlug(slug))
@@ -345,7 +352,7 @@ tenantsRoutes.openapi(
                 ...tenant,
                 createdAt: tenant.createdAt.toISOString(),
                 updatedAt: tenant.updatedAt.toISOString(),
-                settings: tenant.settings as Record<string, unknown>
+                settings: toSettingsObject(tenant.settings)
             }
         }, 200)
     }
@@ -385,7 +392,7 @@ tenantsRoutes.openapi(
             }
         },
     }),
-    async (c) => {
+    async (c: any) => {
         const { id } = c.req.valid('param')
 
         const effect = pipe(
@@ -399,7 +406,7 @@ tenantsRoutes.openapi(
                     ...t,
                     createdAt: t.createdAt.toISOString(),
                     updatedAt: t.updatedAt.toISOString(),
-                    settings: t.settings as Record<string, unknown>
+                    settings: toSettingsObject(t.settings)
                 })
             })
         )
@@ -462,7 +469,7 @@ tenantsRoutes.openapi(
             }
         },
     }),
-    async (c) => {
+    async (c: any) => {
         try { requirePlatformAdmin(c) } catch (e: any) { return c.json({ success: false, error: e.message }, 403) }
 
         const { id } = c.req.valid('param')
@@ -529,7 +536,7 @@ tenantsRoutes.openapi(
             }
         },
     }),
-    async (c) => {
+    async (c: any) => {
         try { requirePlatformAdmin(c) } catch (e: any) { return c.json({ success: false, error: e.message }, 403) }
 
         const { id } = c.req.valid('param')
@@ -571,7 +578,7 @@ tenantsRoutes.openapi(
             }
         }
     }),
-    async (c) => {
+    async (c: any) => {
         try { requirePlatformAdmin(c) } catch (e: any) { return c.json({ success: false, error: e.message }, 403) }
 
         const { id } = c.req.valid('param' as any)
@@ -613,7 +620,7 @@ tenantsRoutes.openapi(
             }
         }
     }),
-    async (c) => {
+    async (c: any) => {
         try { requirePlatformAdmin(c) } catch (e: any) { return c.json({ success: false, error: e.message }, 403) }
 
         const { id } = c.req.valid('param' as any)

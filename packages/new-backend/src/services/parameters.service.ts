@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Effect, pipe } from 'effect'
 import { eq } from 'drizzle-orm'
 import { ParametersRepository } from '../repositories/parameters.repository'

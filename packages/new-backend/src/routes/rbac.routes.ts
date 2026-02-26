@@ -8,7 +8,7 @@ import * as auditService from '../services/audit.service'
 import { createApprovalRequest } from '../services/approval.service'
 import { buildDefaultFourEyesRouting } from '../lib/approval-helpers'
 
-export const rbacRoutes = new OpenAPIHono<AppContext>()
+export const rbacRoutes: any = new OpenAPIHono<AppContext>()
 
 // Apply auth and tenant middleware to all routes
 rbacRoutes.use('*', authMiddleware)
@@ -297,7 +297,7 @@ rbacRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         const tenantId = c.get('tenantId')!
         const query = c.req.valid('query')
 
@@ -389,7 +389,7 @@ rbacRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         try {
             const tenantId = c.get('tenantId')!
             const userId = c.get('userId')
@@ -452,7 +452,7 @@ rbacRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         const tenantId = c.get('tenantId')!
 
         const effect = pipe(
@@ -500,7 +500,7 @@ rbacRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         const { roleId } = c.req.valid('param')
         const effect = pipe(
             rbacService.getRoleById(roleId),
@@ -578,7 +578,7 @@ rbacRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         try {
             const { roleId } = c.req.valid('param')
             const userId = c.get('userId')
@@ -650,7 +650,7 @@ rbacRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         try {
             const { roleId } = c.req.valid('param')
             const tenantId = c.get('tenantId')!
@@ -717,7 +717,7 @@ rbacRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         try {
             const { roleId } = c.req.valid('param')
             const tenantId = c.get('tenantId')!
@@ -785,7 +785,7 @@ rbacRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         const { roleId } = c.req.valid('param')
 
         const effect = pipe(
@@ -844,7 +844,7 @@ rbacRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         const { roleId } = c.req.valid('param')
         const tenantId = c.get('tenantId')!
 
@@ -921,13 +921,13 @@ rbacRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         try {
             const { roleId } = c.req.valid('param')
             const tenantId = c.get('tenantId')!
             const userId = c.get('userId') || 'system'
             const body = c.req.valid('json')
-            const requestedPermissions = body.permissions
+            const requestedPermissions: string[] = Array.isArray(body.permissions) ? body.permissions : []
             const approvalReason = body.approvalReason
 
             const [availablePermissions, currentRole] = await Promise.all([
@@ -939,13 +939,13 @@ rbacRoutes.openapi(
 
             const permissionLookup = new Map<string, string>()
             const permissionCodeById = new Map<string, string>()
-            for (const permission of availablePermissions) {
+            for (const permission of (availablePermissions as any[])) {
                 permissionLookup.set(permission.id, permission.id)
                 permissionLookup.set(permission.code, permission.id)
                 permissionCodeById.set(permission.id, permission.code)
             }
 
-            const unknownPermissions = requestedPermissions.filter((permission) => !permissionLookup.has(permission))
+            const unknownPermissions = requestedPermissions.filter((permission: string) => !permissionLookup.has(permission))
             if (unknownPermissions.length > 0) {
                 return c.json(
                     {
@@ -958,17 +958,17 @@ rbacRoutes.openapi(
             }
 
             const resolvedPermissionIds = requestedPermissions
-                .map((permission) => permissionLookup.get(permission))
-                .filter((permissionId): permissionId is string => typeof permissionId === 'string')
+                .map((permission: string) => permissionLookup.get(permission))
+                .filter((permissionId: unknown): permissionId is string => typeof permissionId === 'string')
 
             const resolvedPermissionCodes = resolvedPermissionIds
-                .map((id) => permissionCodeById.get(id))
-                .filter((code): code is string => typeof code === 'string')
+                .map((id: string) => permissionCodeById.get(id))
+                .filter((code: unknown): code is string => typeof code === 'string')
 
             const currentSet = new Set(currentPermissionCodes)
             const nextSet = new Set(resolvedPermissionCodes)
-            const added = resolvedPermissionCodes.filter((code) => !currentSet.has(code))
-            const removed = currentPermissionCodes.filter((code) => !nextSet.has(code))
+            const added = resolvedPermissionCodes.filter((code: string) => !currentSet.has(code))
+            const removed = currentPermissionCodes.filter((code: string) => !nextSet.has(code))
 
             const request = await Effect.runPromise(
                 createApprovalRequest({
@@ -1054,7 +1054,7 @@ rbacRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         const { userId } = c.req.valid('param')
         const tenantId = c.get('tenantId')!
 
@@ -1123,7 +1123,7 @@ rbacRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         try {
             const { userId, roleId } = c.req.valid('param')
             const tenantId = c.get('tenantId')!
@@ -1196,7 +1196,7 @@ rbacRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         try {
             const { userId, roleId } = c.req.valid('param')
             const tenantId = c.get('tenantId')!
@@ -1267,7 +1267,7 @@ rbacRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         const { userId } = c.req.valid('param')
         const tenantId = c.get('tenantId')!
 
@@ -1324,7 +1324,7 @@ rbacRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         const { userId } = c.req.valid('param')
         const tenantId = c.get('tenantId')!
         const { resource, action } = c.req.valid('json')

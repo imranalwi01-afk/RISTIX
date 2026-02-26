@@ -10,10 +10,10 @@ import { parsePaginationParams, parseFilterParams } from '../lib/react-admin'
 import { DatabaseError } from '../lib/errors'
 import * as tenantsService from '../services/tenants.service'
 
-export const platformUsersRoutes = new OpenAPIHono<AppContext>()
+export const platformUsersRoutes: any = new OpenAPIHono<AppContext>()
 
 platformUsersRoutes.use('*', authMiddleware)
-platformUsersRoutes.use('*', async (c, next) => {
+platformUsersRoutes.use('*', async (c: any, next: any) => {
     const permissions = ((c.get('permissions') as string[]) || []).filter((item): item is string => typeof item === 'string')
     const canManagePlatformUsers =
         Boolean(c.get('isSystemUser')) ||
@@ -108,7 +108,7 @@ platformUsersRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         const pagination = parsePaginationParams(c)
         const filters = parseFilterParams(c)
 
@@ -169,19 +169,19 @@ platformUsersRoutes.openapi(
 
         c.header('X-Total-Count', result.total.toString())
         return c.json({
-            data: result.data.map(u => ({
-                id: u.id,
-                email: u.email,
-                fullName: u.fullName,
-                username: u.username,
-                phone: u.phone ?? null,
-                department: u.department ?? null,
-                position: u.position ?? null,
+            data: result.data.map((u: any) => ({
+                id: (u as any).id,
+                email: (u as any).email,
+                fullName: (u as any).fullName,
+                username: (u as any).username,
+                phone: (u as any).phone ?? null,
+                department: (u as any).department ?? null,
+                position: (u as any).position ?? null,
                 // Cast to any because TS might complain if type is missing in my view of schema
                 isPlatformAdmin: (u as any).isPlatformAdmin ?? true,
-                isActive: u.isActive ?? false,
-                isVerified: u.isVerified ?? false,
-                createdAt: u.createdAt ? u.createdAt.toISOString() : undefined,
+                isActive: (u as any).isActive ?? false,
+                isVerified: (u as any).isVerified ?? false,
+                createdAt: (u as any).createdAt ? (u as any).createdAt.toISOString() : undefined,
             })),
             total: result.total
         })
@@ -218,7 +218,7 @@ platformUsersRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         const body = c.req.valid('json')
 
         const effect = Effect.tryPromise({
@@ -242,17 +242,17 @@ platformUsersRoutes.openapi(
                 }).returning()
 
                 return {
-                    id: newUser.id,
-                    email: newUser.email,
-                    fullName: newUser.fullName,
-                    username: newUser.username,
-                    phone: newUser.phone ?? null,
-                    department: newUser.department ?? null,
-                    position: newUser.position ?? null,
+                    id: (newUser as any).id,
+                    email: (newUser as any).email,
+                    fullName: (newUser as any).fullName,
+                    username: (newUser as any).username,
+                    phone: (newUser as any).phone ?? null,
+                    department: (newUser as any).department ?? null,
+                    position: (newUser as any).position ?? null,
                     isPlatformAdmin: true,
-                    isActive: newUser.isActive ?? false,
-                    isVerified: newUser.isVerified ?? false,
-                    createdAt: newUser.createdAt ? newUser.createdAt.toISOString() : undefined,
+                    isActive: (newUser as any).isActive ?? false,
+                    isVerified: (newUser as any).isVerified ?? false,
+                    createdAt: (newUser as any).createdAt ? (newUser as any).createdAt.toISOString() : undefined,
                 }
             },
             catch: (e) => new DatabaseError({ operation: 'insert', message: 'Failed to create platform user', cause: e })
@@ -265,7 +265,7 @@ platformUsersRoutes.openapi(
 /**
  * GET /platform-users/tenants - Compatibility endpoint for platform UI
  */
-platformUsersRoutes.get('/tenants', async (c) => {
+platformUsersRoutes.get('/tenants', async (c: any) => {
     const effect = tenantsService.getTenants({
         pagination: { page: 1, limit: 200 },
         includeInactive: false,
@@ -274,7 +274,7 @@ platformUsersRoutes.get('/tenants', async (c) => {
 
     const result = await Effect.runPromise(effect)
     return c.json({
-        data: result.data.map((t) => ({
+        data: result.data.map((t: any) => ({
             id: t.id,
             code: t.code,
             name: t.name,
@@ -311,7 +311,7 @@ platformUsersRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         const { id } = c.req.valid('param')
         const effect = Effect.tryPromise({
             try: async () => {
@@ -321,17 +321,17 @@ platformUsersRoutes.openapi(
                 }
 
                 return {
-                    id: u.id,
-                    email: u.email,
-                    fullName: u.fullName,
-                    username: u.username,
-                    phone: u.phone ?? null,
-                    department: u.department ?? null,
-                    position: u.position ?? null,
+                    id: (u as any).id,
+                    email: (u as any).email,
+                    fullName: (u as any).fullName,
+                    username: (u as any).username,
+                    phone: (u as any).phone ?? null,
+                    department: (u as any).department ?? null,
+                    position: (u as any).position ?? null,
                     isPlatformAdmin: (u as any).isPlatformAdmin ?? true,
-                    isActive: u.isActive ?? false,
-                    isVerified: u.isVerified ?? false,
-                    createdAt: u.createdAt ? u.createdAt.toISOString() : undefined,
+                    isActive: (u as any).isActive ?? false,
+                    isVerified: (u as any).isVerified ?? false,
+                    createdAt: (u as any).createdAt ? (u as any).createdAt.toISOString() : undefined,
                 }
             },
             catch: (e) => new DatabaseError({ operation: 'query', message: 'Failed to fetch platform user', cause: e }),
@@ -379,7 +379,7 @@ platformUsersRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         const { id } = c.req.valid('param')
         const body = c.req.valid('json')
 
@@ -398,17 +398,17 @@ platformUsersRoutes.openapi(
                 }
 
                 return {
-                    id: updatedUser.id,
-                    email: updatedUser.email,
-                    fullName: updatedUser.fullName,
-                    username: updatedUser.username,
-                    phone: updatedUser.phone ?? null,
-                    department: updatedUser.department ?? null,
-                    position: updatedUser.position ?? null,
+                    id: (updatedUser as any).id,
+                    email: (updatedUser as any).email,
+                    fullName: (updatedUser as any).fullName,
+                    username: (updatedUser as any).username,
+                    phone: (updatedUser as any).phone ?? null,
+                    department: (updatedUser as any).department ?? null,
+                    position: (updatedUser as any).position ?? null,
                     isPlatformAdmin: true,
-                    isActive: updatedUser.isActive ?? false,
-                    isVerified: updatedUser.isVerified ?? false,
-                    createdAt: updatedUser.createdAt ? updatedUser.createdAt.toISOString() : undefined,
+                    isActive: (updatedUser as any).isActive ?? false,
+                    isVerified: (updatedUser as any).isVerified ?? false,
+                    createdAt: (updatedUser as any).createdAt ? (updatedUser as any).createdAt.toISOString() : undefined,
                 }
             },
             catch: (e) => new DatabaseError({ operation: 'update', message: 'Failed to update user', cause: e })
@@ -446,7 +446,7 @@ platformUsersRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         const { id } = c.req.valid('param')
 
         const effect = Effect.tryPromise({
