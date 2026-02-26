@@ -79,6 +79,29 @@ const UserStatsResponse = z.object({
     inactiveUsers: z.number(),
 }).openapi('UserStatsResponse')
 
+const isPendingApprovalRequest = (request: { status?: string } | null | undefined): boolean => {
+    const normalizedStatus = String(request?.status || '').trim().toLowerCase()
+    return normalizedStatus === '' || normalizedStatus === 'pending'
+}
+
+const buildApprovalSubmissionResponse = (request: { id: string; status?: string }, message: string) => {
+    const isPending = isPendingApprovalRequest(request)
+    const isApproved = String(request.status || '').trim().toLowerCase() === 'approved'
+
+    return {
+        success: true,
+        approvalRequired: isPending,
+        autoApproved: !isPending && isApproved,
+        requestId: request.id,
+        message: isPending
+            ? message
+            : 'Request auto-approved and executed successfully.',
+    }
+}
+
+const getApprovalSubmissionStatus = (request: { status?: string }): number =>
+    isPendingApprovalRequest(request) ? 202 : 200
+
 // =============================================================================
 // ROUTES
 // =============================================================================
@@ -821,13 +844,11 @@ usersRoutes.openapi(
             )
 
             return c.json(
-                {
-                    success: true,
-                    approvalRequired: true,
-                    requestId: request.id,
-                    message: 'User enable request submitted for approval.',
-                },
-                202
+                buildApprovalSubmissionResponse(
+                    request,
+                    'User enable request submitted for approval.'
+                ),
+                getApprovalSubmissionStatus(request)
             )
         } catch (error) {
             return runEffect(c, Effect.fail(error as any))
@@ -903,13 +924,11 @@ usersRoutes.openapi(
             )
 
             return c.json(
-                {
-                    success: true,
-                    approvalRequired: true,
-                    requestId: request.id,
-                    message: 'User disable request submitted for approval.',
-                },
-                202
+                buildApprovalSubmissionResponse(
+                    request,
+                    'User disable request submitted for approval.'
+                ),
+                getApprovalSubmissionStatus(request)
             )
         } catch (error) {
             return runEffect(c, Effect.fail(error as any))

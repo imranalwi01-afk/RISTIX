@@ -3,6 +3,7 @@ import { Server as SocketIOServer, Socket } from 'socket.io'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import * as schema from '../db/schema'
 import { withRequestIds } from '../lib/logger'
+import { env } from '../config/env'
 import { verifyToken } from '../services/auth.service'
 import { NotificationRepository } from '../repositories/notification.repository'
 import {
@@ -30,12 +31,56 @@ export interface NotificationPayload {
     actionUrl?: string
 }
 
+const resolveSocketAllowedOrigins = (): string[] => {
+    const configured = String(env.CORS_ORIGINS || '')
+        .split(',')
+        .map((origin) => origin.trim())
+        .filter((origin) => origin.length > 0)
+
+    if (env.NODE_ENV === 'development') {
+        configured.push('http://localhost:4231', 'http://127.0.0.1:4231')
+    }
+
+    return Array.from(new Set(configured))
+}
+
+const isSocketOriginAllowed = (origin: string | undefined, allowedOrigins: string[]): boolean => {
+    if (!origin) return true
+    return allowedOrigins.includes(origin)
+}
+
 export class NotificationSocket {
     private io: SocketIOServer
     private connectedAdmins: Map<string, Set<string>> = new Map() // tenantId -> Set of socketIds
 
     constructor(engine: Engine) {
-        this.io = new SocketIOServer()
+        const allowedOrigins = resolveSocketAllowedOrigins()
+        this.io = new SocketIOServer({
+            cors: {
+                origin: allowedOrigins,
+                credentials: true,
+                methods: ['GET', 'POST', 'OPTIONS'],
+                allowedHeaders: [
+                    'Authorization',
+                    'Content-Type',
+                    'X-Tenant-ID',
+                    'X-Tenant-Slug',
+                    'X-Request-Time',
+                    'X-Client',
+                ],
+            },
+            allowRequest: (req, callback) => {
+                const originHeader = req.headers.origin
+                const origin = Array.isArray(originHeader) ? originHeader[0] : originHeader
+                const allowed = isSocketOriginAllowed(origin, allowedOrigins)
+
+                if (!allowed) {
+                    withRequestIds({}).warn({ origin, allowedOrigins }, 'Socket.IO CORS origin rejected')
+                }
+
+                callback(allowed ? null : 'origin not allowed', allowed)
+            },
+        })
         
         // Bind Socket.IO to Bun engine
         this.io.bind(engine)

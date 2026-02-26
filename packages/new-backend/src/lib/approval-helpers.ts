@@ -20,6 +20,7 @@ export interface ApprovalCheckResult {
 export interface ApprovalResponse {
     success: boolean
     approvalRequired: boolean
+    autoApproved?: boolean
     requestId?: string
     data?: any
     message?: string
@@ -78,6 +79,31 @@ export const calculateApprovalProgress = (request: ApprovalRequest): number => {
 export const formatApprovalRequiredResponse = (
     request: ApprovalRequest
 ): ApprovalResponse => {
+    const normalizedStatus = String(request.status || '').trim().toLowerCase()
+    const isPending = normalizedStatus === '' || normalizedStatus === 'pending'
+    const isAutoApproved = normalizedStatus === 'approved'
+    const progress = calculateApprovalProgress(request)
+
+    if (!isPending) {
+        return {
+            success: true,
+            approvalRequired: false,
+            autoApproved: isAutoApproved,
+            requestId: request.id,
+            message: isAutoApproved
+                ? 'Request was auto-approved and executed successfully.'
+                : `Request completed with status: ${request.status}.`,
+            data: {
+                requestId: request.id,
+                status: request.status,
+                currentLevel: request.currentLevel,
+                approvalsRequired: request.approvalsRequired,
+                approvalsReceived: request.approvalsReceived,
+                progress,
+            },
+        }
+    }
+
     return {
         success: true,
         approvalRequired: true,
@@ -89,7 +115,7 @@ export const formatApprovalRequiredResponse = (
             currentLevel: request.currentLevel,
             approvalsRequired: request.approvalsRequired,
             approvalsReceived: request.approvalsReceived,
-            progress: calculateApprovalProgress(request),
+            progress,
         },
     }
 }

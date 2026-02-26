@@ -44,6 +44,7 @@ interface Permission {
 
 interface Role {
   id: string;
+  code: string;
   name: string;
   displayName: string;
   description?: string;
@@ -59,6 +60,19 @@ interface AssignedUser {
   id: string;
   fullName: string;
   email: string;
+}
+
+interface RoleApprovalUsage {
+  entityType: string;
+  operationType: string;
+  matrixId: string | null;
+  matrixName: string;
+  level: number;
+  levelName: string;
+  requiredCount: number;
+  requiredRoleCodes: string[];
+  requiredPermissionCodes: string[];
+  candidateCount: number;
 }
 
 const extractCollection = <T,>(payload: unknown, keys: string[] = []): T[] => {
@@ -106,6 +120,7 @@ const extractObject = <T,>(payload: unknown, keys: string[] = []): T | null => {
 
 const normalizeRole = (raw: Record<string, unknown>): Role => ({
   id: String(raw.id ?? ''),
+  code: String(raw.code ?? raw.roleCode ?? raw.role_code ?? raw.name ?? raw.roleName ?? raw.role_name ?? ''),
   name: String(raw.name ?? raw.roleCode ?? raw.role_code ?? 'UNNAMED_ROLE'),
   displayName: String(raw.displayName ?? raw.display_name ?? raw.roleName ?? raw.role_name ?? raw.name ?? 'Unnamed Role'),
   description: typeof raw.description === 'string' ? raw.description : undefined,
@@ -193,6 +208,62 @@ const groupByCategory = (permissions: Permission[]): Array<{
     .sort((a, b) => a.category.localeCompare(b.category));
 };
 
+const normalizeCode = (value: unknown): string =>
+  typeof value === 'string' ? value.trim().toLowerCase() : '';
+
+const toStringArray = (value: unknown): string[] =>
+  Array.isArray(value)
+    ? value.filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0).map((entry) => entry.trim())
+    : [];
+
+const computeRoleApprovalUsage = (role: Role, routingPayload: unknown): RoleApprovalUsage[] => {
+  const roleCodes = new Set(
+    [role.code, role.name, role.displayName]
+      .map((entry) => normalizeCode(entry))
+      .filter((entry) => entry.length > 0)
+  );
+
+  if (roleCodes.size === 0) return [];
+
+  const routingItems = extractCollection<Record<string, unknown>>(routingPayload, ['data']);
+  const rows: RoleApprovalUsage[] = [];
+
+  routingItems.forEach((item) => {
+    const levels = Array.isArray(item.levels) ? item.levels as Record<string, unknown>[] : [];
+    levels.forEach((level) => {
+      const requiredRoleCodes = toStringArray(
+        level.requiredRoleCodes ?? level.required_role_codes ?? level.requiredRoles
+      );
+
+      const hasMatch = requiredRoleCodes.some((requiredRoleCode) =>
+        roleCodes.has(normalizeCode(requiredRoleCode))
+      );
+      if (!hasMatch) return;
+
+      rows.push({
+        entityType: String(item.entityType ?? 'unknown'),
+        operationType: String(item.operationType ?? 'create,update,delete'),
+        matrixId: item.matrixId ? String(item.matrixId) : null,
+        matrixName: String(item.matrixName ?? 'Unnamed Matrix'),
+        level: Number(level.level ?? 0),
+        levelName: String(level.name ?? `Level ${String(level.level ?? '-')}`),
+        requiredCount: Number(level.requiredCount ?? level.required_count ?? 1),
+        requiredRoleCodes,
+        requiredPermissionCodes: toStringArray(
+          level.requiredPermissionCodes ?? level.required_permission_codes
+        ),
+        candidateCount: Number(level.candidateCount ?? 0),
+      });
+    });
+  });
+
+  return rows.sort((a, b) => {
+    const matrixSort = a.matrixName.localeCompare(b.matrixName);
+    if (matrixSort !== 0) return matrixSort;
+    return a.level - b.level;
+  });
+};
+
 export default function RoleDetailPage({ roleId }: { roleId: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -205,6 +276,7 @@ export default function RoleDetailPage({ roleId }: { roleId: string }) {
   const [role, setRole] = useState<Role | null>(null);
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [assignedUsers, setAssignedUsers] = useState<AssignedUser[]>([]);
+  const [approvalUsage, setApprovalUsage] = useState<RoleApprovalUsage[]>([]);
   const [search, setSearch] = useState('');
   const [selectedPermissionIds, setSelectedPermissionIds] = useState<string[]>([]);
   const [initialPermissionIds, setInitialPermissionIds] = useState<string[]>([]);
@@ -247,10 +319,14 @@ export default function RoleDetailPage({ roleId }: { roleId: string }) {
       setAssignedUsers(users);
       setSelectedPermissionIds(currentPermissionIds);
       setInitialPermissionIds(currentPermissionIds);
+
+      const routingResponse = await api.banking.approval.getRoutingOverview().catch(() => null);
+      setApprovalUsage(computeRoleApprovalUsage(normalizedRole, routingResponse));
     } catch (err) {
       console.error('Failed loading role detail:', err);
       setError(err instanceof Error ? err.message : 'Failed to load role details');
       setRole(null);
+      setApprovalUsage([]);
     } finally {
       setLoading(false);
     }
@@ -425,6 +501,48 @@ export default function RoleDetailPage({ roleId }: { roleId: string }) {
               <Typography variant="body2">Selected: <strong>{selectedPermissionIds.length}</strong></Typography>
               <Typography variant="body2">High/Critical Risk: <strong>{highRiskCount}</strong></Typography>
               <Typography variant="body2">Approval Required: <strong>{approvalRequiredCount}</strong></Typography>
+            </CardContent>
+          </Card>
+
+          <Card variant="outlined" sx={{ mb: 2 }}>
+            <CardContent>
+              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+                Approval Eligibility
+              </Typography>
+
+              {approvalUsage.length === 0 ? (
+                <Typography variant="body2" color="text.secondary">
+                  This role is not explicitly configured in current approval routing levels.
+                </Typography>
+              ) : (
+                <Stack spacing={1}>
+                  <Typography variant="body2">
+                    This role can approve in <strong>{approvalUsage.length}</strong> routing level(s).
+                  </Typography>
+                  {approvalUsage.slice(0, 8).map((usage) => (
+                    <Box
+                      key={`${usage.matrixId || usage.matrixName}-${usage.level}-${usage.entityType}`}
+                      sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1 }}
+                    >
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        {usage.matrixName}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" display="block">
+                        {usage.entityType} · {usage.operationType} · L{usage.level} {usage.levelName}
+                      </Typography>
+                      <Stack direction="row" spacing={0.75} sx={{ mt: 0.5, flexWrap: 'wrap' }}>
+                        <Chip size="small" label={`Required: ${usage.requiredCount}`} variant="outlined" />
+                        <Chip size="small" label={`Candidates: ${usage.candidateCount}`} variant="outlined" />
+                      </Stack>
+                    </Box>
+                  ))}
+                  {approvalUsage.length > 8 && (
+                    <Typography variant="caption" color="text.secondary">
+                      Showing first 8 levels. Narrow routing filters in Approval page for full details.
+                    </Typography>
+                  )}
+                </Stack>
+              )}
             </CardContent>
           </Card>
 

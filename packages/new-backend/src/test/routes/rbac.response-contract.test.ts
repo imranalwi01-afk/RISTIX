@@ -105,6 +105,7 @@ const hasPermissionMock = mock(() => Effect.succeed(true))
 const createApprovalRequestMock = mock((input: any) =>
   Effect.succeed({
     id: `approval-${state.approvalCounter++}`,
+    status: 'pending',
     title: input?.title ?? 'Approval Request',
   })
 )
@@ -257,6 +258,35 @@ describe('rbac routes response contracts', () => {
     expect(body.approvalRequired).toBe(true)
     expect(createApprovalRequestMock).toHaveBeenCalledTimes(1)
     expect(logApprovalRequestedMock).toHaveBeenCalledTimes(1)
+  })
+
+  test('POST /api/v1/roles returns 200 with auto-approved metadata when request is immediately approved', async () => {
+    createApprovalRequestMock.mockImplementationOnce((input: any) =>
+      Effect.succeed({
+        id: `approval-${state.approvalCounter++}`,
+        status: 'approved',
+        title: input?.title ?? 'Approval Request',
+      })
+    )
+
+    const app = new OpenAPIHono()
+    app.route('/api/v1/roles', rbacRoutes)
+
+    const response = await app.request('/api/v1/roles', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        name: 'Role Auto Approved',
+        description: 'Auto approved role',
+      }),
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body.success).toBe(true)
+    expect(body.approvalRequired).toBe(false)
+    expect(body.autoApproved).toBe(true)
+    expect(body.requestId).toBe('approval-1')
   })
 
   test('PUT /api/v1/roles/{id} submits role update for approval', async () => {

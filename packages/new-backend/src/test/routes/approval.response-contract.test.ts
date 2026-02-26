@@ -97,6 +97,16 @@ const createApprovalMatrixMock = mock(() =>
   })
 )
 
+const updateApprovalMatrixMock = mock(() =>
+  Effect.succeed({
+    id: 'matrix-1',
+    name: 'Updated Matrix',
+    entityType: 'user',
+    levels: [],
+    createdAt: new Date('2026-02-20T00:00:00.000Z'),
+  })
+)
+
 const passthroughMiddleware = async (c: any, next: any) => {
   c.set('tenantId', 'tenant-approval-1')
   c.set('userId', 'user-approval-1')
@@ -114,6 +124,7 @@ mock.module('@/services/approval.service', () => ({
   getApprovalRoutingOverview: getApprovalRoutingOverviewMock,
   getApprovalMatrices: getApprovalMatricesMock,
   createApprovalMatrix: createApprovalMatrixMock,
+  updateApprovalMatrix: updateApprovalMatrixMock,
 }))
 
 mock.module('../../services/approval.service', () => ({
@@ -126,6 +137,7 @@ mock.module('../../services/approval.service', () => ({
   getApprovalRoutingOverview: getApprovalRoutingOverviewMock,
   getApprovalMatrices: getApprovalMatricesMock,
   createApprovalMatrix: createApprovalMatrixMock,
+  updateApprovalMatrix: updateApprovalMatrixMock,
 }))
 
 mock.module('@/middleware', () => ({
@@ -157,6 +169,7 @@ describe('approval routes response contracts', () => {
     getApprovalRoutingOverviewMock.mockClear()
     getApprovalMatricesMock.mockClear()
     createApprovalMatrixMock.mockClear()
+    updateApprovalMatrixMock.mockClear()
   })
 
   test('GET /api/v1/approvals/pending returns pending approval list envelope', async () => {
@@ -232,7 +245,7 @@ describe('approval routes response contracts', () => {
 
     expect(response.status).toBe(200)
     expect(body.success).toBe(true)
-    expect(createApprovalRequestMock).toHaveBeenCalledWith({
+    expect(createApprovalRequestMock).toHaveBeenCalledWith(expect.objectContaining({
       entityType: 'user',
       entityId: 'user-1',
       title: 'Create User',
@@ -240,7 +253,7 @@ describe('approval routes response contracts', () => {
       impactLevel: 'medium',
       tenantId: 'tenant-approval-1',
       requestedBy: 'user-approval-1',
-    })
+    }))
   })
 
   test('GET /api/v1/approvals/requests/{id} returns request detail envelope', async () => {
@@ -444,6 +457,54 @@ describe('approval routes response contracts', () => {
       name: 'Approver Level',
       requiredRoleCodes: ['approver'],
       requiredPermissionCodes: ['approval.requests.approve'],
+      roleMatchMode: 'ANY',
+      permissionMatchMode: 'ANY',
+    }))
+  })
+
+  test('PUT /api/v1/approvals/matrices/{id} updates matrix and levels', async () => {
+    const app = new OpenAPIHono()
+    app.route('/api/v1/approvals', approvalRoutes)
+
+    const response = await app.request('/api/v1/approvals/matrices/matrix-1', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        name: 'Updated Matrix',
+        description: 'Updated desc',
+        isActive: true,
+        levels: [
+          {
+            level: 1,
+            name: 'Checker Review',
+            requiredRoles: ['checker', 'approval.requests.approve'],
+            requiredCount: 2,
+            timeoutHours: 24,
+          },
+        ],
+      }),
+    })
+
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body.success).toBe(true)
+    expect(updateApprovalMatrixMock).toHaveBeenCalledTimes(1)
+
+    const updateArgs = updateApprovalMatrixMock.mock.calls[0] as any[]
+    expect(updateArgs[0]).toBe('tenant-approval-1')
+    expect(updateArgs[1]).toBe('matrix-1')
+    expect(updateArgs[2]).toEqual(expect.objectContaining({
+      name: 'Updated Matrix',
+      description: 'Updated desc',
+      isActive: true,
+    }))
+    expect(updateArgs[3]?.[0]).toEqual(expect.objectContaining({
+      level: 1,
+      name: 'Checker Review',
+      requiredRoleCodes: ['checker'],
+      requiredPermissionCodes: ['approval.requests.approve'],
+      requiredCount: 2,
       roleMatchMode: 'ANY',
       permissionMatchMode: 'ANY',
     }))

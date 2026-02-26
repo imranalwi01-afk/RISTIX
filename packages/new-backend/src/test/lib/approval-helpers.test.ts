@@ -79,6 +79,23 @@ describe('approval-helpers', () => {
     expect(String(response.message)).toContain('Requires 4 approval(s)')
   })
 
+  test('formatApprovalRequiredResponse marks approved requests as auto-approved completion', () => {
+    const request = createRequest({
+      status: 'approved',
+      approvalsRequired: 2,
+      approvalsReceived: 2,
+    })
+
+    const response = formatApprovalRequiredResponse(request)
+
+    expect(response.success).toBe(true)
+    expect(response.approvalRequired).toBe(false)
+    expect(response.autoApproved).toBe(true)
+    expect(response.requestId).toBe('apr-1')
+    expect(response.data?.status).toBe('approved')
+    expect(String(response.message)).toContain('auto-approved')
+  })
+
   test('formatDirectExecutionResponse returns default and custom messages', () => {
     expect(formatDirectExecutionResponse({ ok: true })).toEqual({
       success: true,

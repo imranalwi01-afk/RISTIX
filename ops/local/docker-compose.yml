@@ -73,7 +73,7 @@ services:
       target: builder
     container_name: ifrs9-new-backend-dev
     env_file:
-      - .env
+      - backend.env
     environment:
       # Only set what needs to be different from .env
       NODE_ENV: development
@@ -118,7 +118,7 @@ services:
       dockerfile: Dockerfile
     container_name: ifrs9-frontend-dev
     env_file:
-      - .env
+      - frontend.env
     environment:
       NODE_ENV: development
       HOSTNAME: "0.0.0.0"
@@ -140,7 +140,7 @@ services:
     container_name: ifrs9-frontend-dev-hot
     working_dir: /app
     env_file:
-      - .env
+      - frontend.env
     environment:
       - NODE_ENV=development
       - PORT=4231

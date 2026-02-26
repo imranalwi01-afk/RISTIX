@@ -4,7 +4,7 @@ const ACCESS_MANAGEMENT_BASE_PATH = '/banking/maintenance/access-management/role
 
 type SearchParamsInput = Record<string, string | string[] | undefined>;
 
-export default async function UserManagementRolesIndexPage({
+export default async function Page({
   searchParams,
 }: {
   searchParams: Promise<SearchParamsInput>;

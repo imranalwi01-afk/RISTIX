@@ -186,17 +186,33 @@ const extractRolePermissionCodes = (role: any): string[] => {
     return Array.from(new Set(codes))
 }
 
+const isPendingApprovalRequest = (request: { status?: string } | null | undefined): boolean => {
+    const normalizedStatus = String(request?.status || '').trim().toLowerCase()
+    return normalizedStatus === '' || normalizedStatus === 'pending'
+}
+
 const buildApprovalAcceptedResponse = (
-    requestId: string,
+    request: { id: string; status?: string },
     message: string,
     extras?: Record<string, unknown>
-) => ({
-    success: true,
-    approvalRequired: true,
-    requestId,
-    message,
-    ...(extras || {}),
-})
+) => {
+    const isPending = isPendingApprovalRequest(request)
+    const isApproved = String(request.status || '').trim().toLowerCase() === 'approved'
+
+    return {
+        success: true,
+        approvalRequired: isPending,
+        autoApproved: !isPending && isApproved,
+        requestId: request.id,
+        message: isPending
+            ? message
+            : 'Request auto-approved and executed successfully.',
+        ...(extras || {}),
+    }
+}
+
+const getApprovalResponseStatus = (request: { status?: string }, nonPendingStatus = 200): number =>
+    isPendingApprovalRequest(request) ? 202 : nonPendingStatus
 
 const createStrictApprovalRequest = async (input: {
     tenantId: string
@@ -401,10 +417,10 @@ rbacRoutes.openapi(
 
             return c.json(
                 buildApprovalAcceptedResponse(
-                    request.id,
+                    request,
                     'Role creation submitted for approval.'
                 ),
-                202
+                getApprovalResponseStatus(request)
             )
         } catch (error) {
             return runEffect(c, Effect.fail(error as any))
@@ -594,10 +610,10 @@ rbacRoutes.openapi(
 
             return c.json(
                 buildApprovalAcceptedResponse(
-                    request.id,
+                    request,
                     'Role update submitted for approval.'
                 ),
-                202
+                getApprovalResponseStatus(request)
             )
         } catch (error) {
             return runEffect(c, Effect.fail(error as any))
@@ -659,10 +675,10 @@ rbacRoutes.openapi(
 
             return c.json(
                 buildApprovalAcceptedResponse(
-                    request.id,
+                    request,
                     'Role deletion submitted for approval.'
                 ),
-                202
+                getApprovalResponseStatus(request)
             )
         } catch (error) {
             return runEffect(c, Effect.fail(error as any))
@@ -728,10 +744,10 @@ rbacRoutes.openapi(
 
             return c.json(
                 buildApprovalAcceptedResponse(
-                    request.id,
+                    request,
                     'Role status update submitted for approval.'
                 ),
-                202
+                getApprovalResponseStatus(request)
             )
         } catch (error) {
             return runEffect(c, Effect.fail(error as any))
@@ -989,14 +1005,12 @@ rbacRoutes.openapi(
             )
 
             return c.json(
-                {
-                    success: true,
-                    approvalRequired: true,
-                    requestId: request.id,
-                    message: 'Role permission update submitted for approval.',
-                    diff: { added, removed },
-                },
-                202
+                buildApprovalAcceptedResponse(
+                    request,
+                    'Role permission update submitted for approval.',
+                    { diff: { added, removed } }
+                ),
+                getApprovalResponseStatus(request)
             )
         } catch (error) {
             return runEffect(c, Effect.fail(error as any))
@@ -1141,10 +1155,10 @@ rbacRoutes.openapi(
 
             return c.json(
                 buildApprovalAcceptedResponse(
-                    request.id,
+                    request,
                     'Role assignment submitted for approval.'
                 ),
-                202
+                getApprovalResponseStatus(request)
             )
         } catch (error) {
             return runEffect(c, Effect.fail(error as any))
@@ -1209,10 +1223,10 @@ rbacRoutes.openapi(
 
             return c.json(
                 buildApprovalAcceptedResponse(
-                    request.id,
+                    request,
                     'Role removal submitted for approval.'
                 ),
-                202
+                getApprovalResponseStatus(request)
             )
         } catch (error) {
             return runEffect(c, Effect.fail(error as any))

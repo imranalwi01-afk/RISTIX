@@ -268,6 +268,10 @@ const approvalService = await import('@/services/approval.service')
 
 describe('approval.service behavior', () => {
   beforeEach(() => {
+    process.env.APPROVAL_ALLOW_SUPERADMIN_SELF_APPROVAL = 'false'
+    process.env.APPROVAL_ALLOW_SUPERADMIN_LEVEL_BYPASS = 'false'
+    process.env.APPROVAL_ALLOW_SUPERADMIN_COUNT_BYPASS = 'false'
+
     state.findDuplicatePendingRequestResult = null
     state.findDuplicatePendingRequestError = null
     state.findMatrixByEntityTypeResult = null
@@ -412,6 +416,69 @@ describe('approval.service behavior', () => {
     expect(payload.expiresAt instanceof Date).toBe(true)
   })
 
+  test('createApprovalRequest auto-approves for super admin when enabled and payload is executable', async () => {
+    process.env.APPROVAL_AUTO_APPROVE_SUPERADMIN_REQUESTS = 'true'
+
+    state.createRequestResult = {
+      ...state.createRequestResult,
+      id: 'approval-auto-1',
+      entityType: 'role',
+      requestedBy: 'super-admin-1',
+      approvalsRequired: 2,
+      currentLevel: 1,
+      requestData: {
+        operation: 'create',
+        entityType: 'role',
+        data: {
+          roleName: 'AUTO_APPROVED_ROLE',
+          roleCode: 'AUTO_APPROVED_ROLE',
+        },
+      },
+    }
+    state.findRequestByIdById.set('approval-auto-1', {
+      ...state.createRequestResult,
+      tenantId: 'tenant-approval-1',
+      status: 'pending',
+      actions: [],
+    })
+    state.userRolesFindByUserResult = [
+      {
+        role: {
+          roleCode: 'SUPER_ADMIN',
+          roleName: 'Super Admin',
+          rolePermissions: [{ permission: { code: 'admin.super_admin' } }],
+        },
+      },
+    ]
+
+    const result = await Effect.runPromise(
+      approvalService.createApprovalRequest({
+        tenantId: 'tenant-approval-1',
+        entityType: 'role',
+        entityId: 'role-1',
+        title: 'Create role: AUTO_APPROVED_ROLE',
+        requestedBy: 'super-admin-1',
+        requestData: {
+          operation: 'create',
+          entityType: 'role',
+          data: {
+            roleName: 'AUTO_APPROVED_ROLE',
+            roleCode: 'AUTO_APPROVED_ROLE',
+          },
+        },
+      })
+    )
+
+    expect(result.id).toBe('approval-auto-1')
+    const actionPayload = state.createActionCalls[0]?.[0] as any
+    expect(actionPayload.action).toBe('approve')
+    expect(actionPayload.comment).toContain('Auto-approved')
+    expect(actionPayload.conditions).toContain('APPROVAL_AUTO_APPROVE_SUPERADMIN_REQUESTS')
+    const updatePayload = state.updateRequestCalls[0]?.[1] as any
+    expect(updatePayload.status).toBe('approved')
+    expect(updatePayload.approvalsReceived).toBe(2)
+  })
+
   test('processApprovalAction returns NotFoundError when request is missing', async () => {
     state.findRequestByIdResult = null
 
@@ -450,6 +517,113 @@ describe('approval.service behavior', () => {
 
     expect(exit._tag).toBe('Failure')
     expect(String(exit.cause)).toContain('You cannot approve your own request')
+  })
+
+  test('processApprovalAction allows super admin self-approval when bypass is enabled', async () => {
+    process.env.APPROVAL_ALLOW_SUPERADMIN_SELF_APPROVAL = 'true'
+
+    state.findRequestByIdResult = {
+      id: 'approval-1',
+      status: 'pending',
+      requestedBy: 'maker-1',
+      tenantId: 'tenant-approval-1',
+      approvalsRequired: 1,
+      approvalsReceived: 0,
+      currentLevel: 1,
+      actions: [],
+      matrix: {
+        levels: [
+          {
+            level: 1,
+            name: 'Final Approval',
+            requiredRoleCodes: ['SUPER_ADMIN'],
+            requiredPermissionCodes: ['admin.super_admin'],
+            roleMatchMode: 'ANY',
+            permissionMatchMode: 'ANY',
+            requiredCount: 1,
+          },
+        ],
+      },
+      requestData: { operation: 'create', entityType: 'role', data: {} },
+    }
+    state.userRolesFindByUserResult = [
+      {
+        role: {
+          roleCode: 'SUPER_ADMIN',
+          roleName: 'Super Admin',
+          rolePermissions: [
+            { permission: { code: 'admin.super_admin' } },
+            { permission: { code: 'approval.requests.approve' } },
+          ],
+        },
+      },
+    ]
+
+    const result = await Effect.runPromise(
+      approvalService.processApprovalAction({
+        requestId: 'approval-1',
+        approverId: 'maker-1',
+        action: 'approve',
+        comment: 'Emergency governance override with full accountability',
+      })
+    )
+
+    expect(result.status).toBe('approved')
+    const actionPayload = state.createActionCalls[0]?.[0] as any
+    expect(actionPayload?.conditions).toBeDefined()
+    const conditionJson = JSON.parse(String(actionPayload.conditions))
+    expect(conditionJson.selfApprovalBypass).toBe(true)
+    expect(conditionJson.policy).toBe('APPROVAL_ALLOW_SUPERADMIN_SELF_APPROVAL')
+  })
+
+  test('processApprovalAction requires comment for super admin self-approval bypass', async () => {
+    process.env.APPROVAL_ALLOW_SUPERADMIN_SELF_APPROVAL = 'true'
+
+    state.findRequestByIdResult = {
+      id: 'approval-1',
+      status: 'pending',
+      requestedBy: 'maker-1',
+      tenantId: 'tenant-approval-1',
+      approvalsRequired: 1,
+      approvalsReceived: 0,
+      currentLevel: 1,
+      actions: [],
+      matrix: {
+        levels: [
+          {
+            level: 1,
+            name: 'Final Approval',
+            requiredRoleCodes: ['SUPER_ADMIN'],
+            requiredPermissionCodes: ['admin.super_admin'],
+            roleMatchMode: 'ANY',
+            permissionMatchMode: 'ANY',
+            requiredCount: 1,
+          },
+        ],
+      },
+      requestData: { operation: 'create', entityType: 'role', data: {} },
+    }
+    state.userRolesFindByUserResult = [
+      {
+        role: {
+          roleCode: 'SUPER_ADMIN',
+          roleName: 'Super Admin',
+          rolePermissions: [{ permission: { code: 'admin.super_admin' } }],
+        },
+      },
+    ]
+
+    const exit = await Effect.runPromiseExit(
+      approvalService.processApprovalAction({
+        requestId: 'approval-1',
+        approverId: 'maker-1',
+        action: 'approve',
+        comment: '   ',
+      })
+    )
+
+    expect(exit._tag).toBe('Failure')
+    expect(String(exit.cause)).toContain('Super admin self-approval bypass requires approval comment')
   })
 
   test('cancelApprovalRequest prevents non-requester cancellation', async () => {
@@ -552,6 +726,62 @@ describe('approval.service behavior', () => {
 
     expect(result).toHaveLength(1)
     expect(result[0].id).toBe('request-1')
+  })
+
+  test('getPendingApprovalsForUser includes routed requests for superadmin when level bypass is enabled', async () => {
+    process.env.APPROVAL_ALLOW_SUPERADMIN_LEVEL_BYPASS = 'true'
+
+    state.userRolesFindByUserResult = [
+      {
+        role: {
+          roleCode: 'SUPER_ADMIN',
+          roleName: 'Super Admin',
+          rolePermissions: [{ permission: { code: 'admin.super_admin' } }],
+        },
+      },
+    ]
+
+    state.findPendingRequestsResult = [
+      {
+        id: 'request-superadmin-visible',
+        currentLevel: 1,
+        actions: [],
+        matrix: {
+          levels: [
+            {
+              level: 1,
+              name: 'Checker',
+              requiredRoleCodes: ['checker'],
+              requiredPermissionCodes: ['approval.requests.approve'],
+              requiredCount: 1,
+            },
+          ],
+        },
+      },
+      {
+        id: 'request-already-approved-by-user',
+        currentLevel: 1,
+        actions: [{ action: 'approve', approverId: 'superadmin-1', level: 1 }],
+        matrix: {
+          levels: [
+            {
+              level: 1,
+              name: 'Checker',
+              requiredRoleCodes: ['checker'],
+              requiredPermissionCodes: ['approval.requests.approve'],
+              requiredCount: 1,
+            },
+          ],
+        },
+      },
+    ]
+
+    const result = await Effect.runPromise(
+      approvalService.getPendingApprovalsForUser('superadmin-1', 'tenant-approval-1')
+    )
+
+    expect(result).toHaveLength(1)
+    expect(result[0].id).toBe('request-superadmin-visible')
   })
 
   test('getApprovalRoutingOverview returns fallback routing with approver candidates', async () => {
@@ -753,6 +983,123 @@ describe('approval.service behavior', () => {
 
     expect(exit._tag).toBe('Failure')
     expect(String(exit.cause)).toContain('AuthorizationError')
+  })
+
+  test('processApprovalAction allows super admin to bypass level routing when enabled', async () => {
+    process.env.APPROVAL_ALLOW_SUPERADMIN_LEVEL_BYPASS = 'true'
+
+    state.findRequestByIdResult = {
+      id: 'approval-level-bypass',
+      status: 'pending',
+      requestedBy: 'maker-1',
+      tenantId: 'tenant-approval-1',
+      approvalsRequired: 1,
+      approvalsReceived: 0,
+      currentLevel: 1,
+      actions: [],
+      matrix: {
+        levels: [
+          {
+            level: 1,
+            name: 'Checker',
+            requiredRoleCodes: ['checker'],
+            requiredPermissionCodes: ['approval.requests.approve'],
+            requiredCount: 1,
+          },
+        ],
+      },
+      requestData: {
+        operation: 'update',
+        entityType: 'custom_entity',
+        data: { id: 'entity-1' },
+      },
+    }
+    state.userRolesFindByUserResult = [
+      {
+        role: {
+          roleCode: 'SUPER_ADMIN',
+          roleName: 'Super Admin',
+          rolePermissions: [{ permission: { code: 'admin.super_admin' } }],
+        },
+      },
+    ]
+
+    const result = await Effect.runPromise(
+      approvalService.processApprovalAction({
+        requestId: 'approval-level-bypass',
+        approverId: 'superadmin-1',
+        action: 'approve',
+        comment: 'Escalated approval with superadmin override',
+      })
+    )
+
+    expect(result.status).toBe('approved')
+    const actionPayload = state.createActionCalls[0]?.[0] as any
+    expect(actionPayload?.conditions).toBeDefined()
+    const conditionJson = JSON.parse(String(actionPayload.conditions))
+    expect(conditionJson.levelRoutingBypass).toBe(true)
+    expect(conditionJson.policy).toBe('APPROVAL_ALLOW_SUPERADMIN_LEVEL_BYPASS')
+  })
+
+  test('processApprovalAction allows super admin to bypass required approval count when enabled', async () => {
+    process.env.APPROVAL_ALLOW_SUPERADMIN_COUNT_BYPASS = 'true'
+
+    state.findRequestByIdResult = {
+      id: 'approval-count-bypass',
+      status: 'pending',
+      requestedBy: 'maker-1',
+      tenantId: 'tenant-approval-1',
+      approvalsRequired: 2,
+      approvalsReceived: 0,
+      currentLevel: 1,
+      actions: [],
+      matrix: {
+        levels: [
+          {
+            level: 1,
+            name: 'Final Approval',
+            requiredRoleCodes: ['SUPER_ADMIN'],
+            requiredPermissionCodes: ['admin.super_admin'],
+            roleMatchMode: 'ANY',
+            permissionMatchMode: 'ANY',
+            requiredCount: 2,
+          },
+        ],
+      },
+      requestData: {
+        operation: 'update',
+        entityType: 'custom_entity',
+        data: { id: 'entity-1' },
+      },
+    }
+    state.userRolesFindByUserResult = [
+      {
+        role: {
+          roleCode: 'SUPER_ADMIN',
+          roleName: 'Super Admin',
+          rolePermissions: [{ permission: { code: 'admin.super_admin' } }],
+        },
+      },
+    ]
+
+    const result = await Effect.runPromise(
+      approvalService.processApprovalAction({
+        requestId: 'approval-count-bypass',
+        approverId: 'superadmin-1',
+        action: 'approve',
+        comment: 'Emergency governance override',
+      })
+    )
+
+    expect(result.status).toBe('approved')
+    expect(state.updateRequestCalls[0]?.[1]?.status).toBe('approved')
+    expect(state.updateRequestCalls[0]?.[1]?.approvalsReceived).toBe(2)
+
+    const actionPayload = state.createActionCalls[0]?.[0] as any
+    expect(actionPayload?.conditions).toBeDefined()
+    const conditionJson = JSON.parse(String(actionPayload.conditions))
+    expect(conditionJson.approvalCountBypass).toBe(true)
+    expect(conditionJson.policy).toBe('APPROVAL_ALLOW_SUPERADMIN_COUNT_BYPASS')
   })
 
   test('processApprovalAction in matrix flow advances to next level when current level is complete', async () => {

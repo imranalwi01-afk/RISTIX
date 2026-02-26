@@ -63,6 +63,8 @@ import {
   Visibility as ViewIcon,
   Security as SecurityIcon,
   DoNotDisturb as CancelRequestIcon,
+  Edit as EditIcon,
+  Save as SaveIcon,
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { GridColDef } from '@mui/x-data-grid';
@@ -70,6 +72,7 @@ import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeD
 import { bankingAPI } from '@/services/api';
 import { useAuth } from '@/providers/AuthProvider';
 import { getErrorMessage } from '@/utils/error-message';
+import { ApprovalActionDialog, ApprovalMatrixEditorDialog } from '@/components/approval';
 
 // Types and interfaces
 interface ApprovalRequest {
@@ -101,6 +104,55 @@ interface ApprovalRequest {
   complianceRelevant?: boolean;
   currentLevel?: number;
 }
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const KNOWN_REQUESTER_OVERRIDES: Record<string, string> = {
+  '550e8400-e29b-41d4-a716-446655440001': 'admin@ifrspro.id',
+};
+
+const looksLikeUuid = (value: unknown): boolean =>
+  typeof value === 'string' && UUID_REGEX.test(value.trim());
+
+const getRequestedByDisplay = (req: any): string => {
+  const requester = (req?.requester ?? {}) as Record<string, unknown>;
+  const requestData = (req?.requestData ?? req?.request_data ?? {}) as Record<string, unknown>;
+
+  const requesterFullName = typeof requester.fullName === 'string' ? requester.fullName.trim() : '';
+  const requesterEmail = typeof requester.email === 'string' ? requester.email.trim() : '';
+  const requesterUsername = typeof requester.username === 'string' ? requester.username.trim() : '';
+
+  if (requesterFullName && requesterEmail) {
+    return `${requesterFullName} (${requesterEmail})`;
+  }
+  if (requesterEmail) return requesterEmail;
+  if (requesterUsername) return requesterUsername;
+  if (requesterFullName) return requesterFullName;
+
+  const explicitName = typeof req?.requestedByName === 'string' ? req.requestedByName.trim() : '';
+  const explicitEmail = typeof req?.requestedByEmail === 'string' ? req.requestedByEmail.trim() : '';
+  const explicitUsername = typeof req?.requestedByUsername === 'string' ? req.requestedByUsername.trim() : '';
+  const dataEmail = typeof requestData?.requestedByEmail === 'string' ? requestData.requestedByEmail.trim() : '';
+  const dataUsername = typeof requestData?.requestedByUsername === 'string' ? requestData.requestedByUsername.trim() : '';
+  const dataName = typeof requestData?.requestedByName === 'string' ? requestData.requestedByName.trim() : '';
+
+  const fallbackCandidates = [
+    explicitName,
+    explicitEmail,
+    explicitUsername,
+    dataName,
+    dataEmail,
+    dataUsername,
+  ].filter((entry) => !!entry && !looksLikeUuid(entry));
+
+  if (fallbackCandidates.length > 0) return fallbackCandidates[0];
+
+  const requestedById = typeof req?.requestedBy === 'string' ? req.requestedBy.trim() : '';
+  if (requestedById && KNOWN_REQUESTER_OVERRIDES[requestedById]) {
+    return KNOWN_REQUESTER_OVERRIDES[requestedById];
+  }
+
+  return 'Unknown User';
+};
 
 interface ApprovalStatistics {
   totalRequests: number;
@@ -142,6 +194,15 @@ interface ApprovalMatrix {
   } | null;
   levels: ApprovalMatrixLevel[];
   createdAt: string;
+}
+
+interface MatrixLevelEditor {
+  level: number;
+  name: string;
+  requiredRoleCodes: string;
+  requiredPermissionCodes: string;
+  requiredCount: number;
+  timeoutHours: string;
 }
 
 interface ApprovalRoutingCandidate {
@@ -203,12 +264,8 @@ export default function ApprovalManagementPage() {
     open: boolean;
     request?: ApprovalRequest;
     action?: 'approve' | 'reject' | 'request_info' | 'delegate' | 'cancel';
-    reason: string;
-    delegateTo: string;
   }>({
     open: false,
-    reason: '',
-    delegateTo: ''
   });
 
   const [detailDialog, setDetailDialog] = useState<{
@@ -216,6 +273,13 @@ export default function ApprovalManagementPage() {
     request?: ApprovalRequest;
   }>({
     open: false
+  });
+
+  const [matrixEditDialog, setMatrixEditDialog] = useState<{
+    open: boolean;
+    matrix?: ApprovalMatrix;
+  }>({
+    open: false,
   });
 
   // Snackbar state
@@ -270,7 +334,7 @@ export default function ApprovalManagementPage() {
         requestedAt: req.createdAt || req.requestedAt || new Date().toISOString(),
         completedAt: req.completedAt || req.completed_at,
         // Placeholders/Joins
-        requestedByName: req.requester?.email || req.requestedByName || req.requestedBy || 'Unknown',
+        requestedByName: getRequestedByDisplay(req),
         bankingType: req.matrix?.bankingMode || req.bankingType || 'conventional',
         // Ensure required fields have defaults
         approvalsRequired: req.approvalsRequired || 1,
@@ -342,26 +406,32 @@ export default function ApprovalManagementPage() {
         syariahBoardRequired: matrix.syariahBoardRequired ?? matrix.syariah_board_required ?? false,
         autoApprovalRules: matrix.autoApprovalRules ?? matrix.auto_approval_rules ?? null,
         levels: Array.isArray(matrix.levels)
-          ? matrix.levels.map((level: any) => ({
-            level: Number(level.level || 0),
-            name: String(level.name || `Level ${level.level || '-'}`),
-            requiredRoleCodes: Array.isArray(level.requiredRoleCodes)
-              ? level.requiredRoleCodes
-              : Array.isArray(level.required_role_codes)
-                ? level.required_role_codes
-                : Array.isArray(level.requiredRoles)
-                  ? level.requiredRoles.filter((entry: string) => typeof entry === 'string' && !entry.includes('.'))
-                  : [],
-            requiredPermissionCodes: Array.isArray(level.requiredPermissionCodes)
-              ? level.requiredPermissionCodes
-              : Array.isArray(level.required_permission_codes)
-                ? level.required_permission_codes
-                : Array.isArray(level.requiredRoles)
-                  ? level.requiredRoles.filter((entry: string) => typeof entry === 'string' && entry.includes('.'))
-                  : ['approval.requests.approve'],
-            requiredCount: Number(level.requiredCount ?? level.required_count ?? 1),
-            timeoutHours: level.timeoutHours ?? level.timeout_hours ?? undefined,
-          }))
+          ? matrix.levels.map((level: any) => {
+            const levelRecord = (level ?? {}) as Record<string, unknown>;
+            const requiredCountRaw = levelRecord.requiredCount ?? levelRecord.required_count;
+            const timeoutHoursRaw = levelRecord.timeoutHours ?? levelRecord.timeout_hours;
+
+            return {
+              level: Number(levelRecord.level || 0),
+              name: String(levelRecord.name || `Level ${levelRecord.level || '-'}`),
+              requiredRoleCodes: Array.isArray(levelRecord.requiredRoleCodes)
+                ? levelRecord.requiredRoleCodes
+                : Array.isArray(levelRecord.required_role_codes)
+                  ? levelRecord.required_role_codes
+                  : Array.isArray(levelRecord.requiredRoles)
+                    ? levelRecord.requiredRoles.filter((entry: string) => typeof entry === 'string' && !entry.includes('.'))
+                    : [],
+              requiredPermissionCodes: Array.isArray(levelRecord.requiredPermissionCodes)
+                ? levelRecord.requiredPermissionCodes
+                : Array.isArray(levelRecord.required_permission_codes)
+                  ? levelRecord.required_permission_codes
+                  : Array.isArray(levelRecord.requiredRoles)
+                    ? levelRecord.requiredRoles.filter((entry: string) => typeof entry === 'string' && entry.includes('.'))
+                    : ['approval.requests.approve'],
+              requiredCount: Number(requiredCountRaw ?? 1),
+              timeoutHours: timeoutHoursRaw ?? undefined,
+            };
+          })
           : [],
         createdAt: String(matrix.createdAt || matrix.created_at || new Date().toISOString()),
       }));
@@ -409,33 +479,39 @@ export default function ApprovalManagementPage() {
         matrixName: String(item.matrixName || 'Unnamed Routing'),
         isActive: Boolean(item.isActive ?? true),
         levels: Array.isArray(item.levels)
-          ? item.levels.map((level: any) => ({
-            level: Number(level.level || 0),
-            name: String(level.name || `Level ${level.level || '-'}`),
-            requiredRoleCodes: Array.isArray(level.requiredRoleCodes)
-              ? level.requiredRoleCodes
-              : Array.isArray(level.requiredRoles)
-                ? level.requiredRoles.filter((entry: string) => typeof entry === 'string' && !entry.includes('.'))
+          ? item.levels.map((level: any) => {
+            const levelRecord = (level ?? {}) as Record<string, unknown>;
+            const requiredCountRaw = levelRecord.requiredCount ?? levelRecord.required_count;
+            const timeoutHoursRaw = levelRecord.timeoutHours ?? levelRecord.timeout_hours;
+
+            return {
+              level: Number(levelRecord.level || 0),
+              name: String(levelRecord.name || `Level ${levelRecord.level || '-'}`),
+              requiredRoleCodes: Array.isArray(levelRecord.requiredRoleCodes)
+                ? levelRecord.requiredRoleCodes
+                : Array.isArray(levelRecord.requiredRoles)
+                  ? levelRecord.requiredRoles.filter((entry: string) => typeof entry === 'string' && !entry.includes('.'))
+                  : [],
+              requiredPermissionCodes: Array.isArray(levelRecord.requiredPermissionCodes)
+                ? levelRecord.requiredPermissionCodes
+                : Array.isArray(levelRecord.requiredRoles)
+                  ? levelRecord.requiredRoles.filter((entry: string) => typeof entry === 'string' && entry.includes('.'))
+                  : ['approval.requests.approve'],
+              requiredCount: Number(requiredCountRaw ?? 1),
+              timeoutHours: timeoutHoursRaw ? Number(timeoutHoursRaw) : undefined,
+              candidateCount: Number(levelRecord.candidateCount || 0),
+              candidates: Array.isArray(levelRecord.candidates)
+                ? levelRecord.candidates.map((candidate: any) => ({
+                  userId: String(candidate.userId || ''),
+                  fullName: String(candidate.fullName || 'Unknown User'),
+                  email: String(candidate.email || ''),
+                  department: candidate.department ?? null,
+                  position: candidate.position ?? null,
+                  roleCodes: Array.isArray(candidate.roleCodes) ? candidate.roleCodes : [],
+                }))
                 : [],
-            requiredPermissionCodes: Array.isArray(level.requiredPermissionCodes)
-              ? level.requiredPermissionCodes
-              : Array.isArray(level.requiredRoles)
-                ? level.requiredRoles.filter((entry: string) => typeof entry === 'string' && entry.includes('.'))
-                : ['approval.requests.approve'],
-            requiredCount: Number(level.requiredCount || 1),
-            timeoutHours: level.timeoutHours ? Number(level.timeoutHours) : undefined,
-            candidateCount: Number(level.candidateCount || 0),
-            candidates: Array.isArray(level.candidates)
-              ? level.candidates.map((candidate: any) => ({
-                userId: String(candidate.userId || ''),
-                fullName: String(candidate.fullName || 'Unknown User'),
-                email: String(candidate.email || ''),
-                department: candidate.department ?? null,
-                position: candidate.position ?? null,
-                roleCodes: Array.isArray(candidate.roleCodes) ? candidate.roleCodes : [],
-              }))
-              : [],
-          }))
+            };
+          })
           : [],
       }));
 
@@ -492,58 +568,6 @@ export default function ApprovalManagementPage() {
     setSnackbar({ open: true, message, severity });
   };
 
-  const getResponseStatus = (error: unknown): number | undefined => {
-    if (typeof error !== 'object' || error === null) {
-      return undefined;
-    }
-    const response = (error as { response?: { status?: unknown } }).response;
-    return typeof response?.status === 'number' ? response.status : undefined;
-  };
-
-  const getResponsePayload = (error: unknown): Record<string, unknown> | null => {
-    if (typeof error !== 'object' || error === null) {
-      return null;
-    }
-    const responseData = (error as { response?: { data?: unknown } }).response?.data;
-    if (typeof responseData !== 'object' || responseData === null) {
-      return null;
-    }
-    return responseData as Record<string, unknown>;
-  };
-
-  const resolveApprovalActionError = (error: unknown): { message: string; severity: 'error' | 'warning' } => {
-    const status = getResponseStatus(error);
-    const payload = getResponsePayload(error);
-    const code = typeof payload?.code === 'string' ? payload.code.toUpperCase() : '';
-    const message = getErrorMessage(error, 'Failed to process approval action');
-
-    if (status === 409 && code === 'REQUEST_NOT_PENDING') {
-      if (message.toLowerCase().includes('already approved')) {
-        return { message: 'Request is already approved by another approver.', severity: 'warning' };
-      }
-      if (message.toLowerCase().includes('already rejected')) {
-        return { message: 'Request is already rejected.', severity: 'warning' };
-      }
-      return { message: 'Request is no longer pending.', severity: 'warning' };
-    }
-
-    if (status === 404) {
-      return { message: 'Request no longer exists.', severity: 'warning' };
-    }
-
-    if (status === 422) {
-      if (code === 'CANCEL_NOT_ALLOWED') {
-        return { message: 'Only the requester can cancel this request.', severity: 'warning' };
-      }
-      return { message, severity: 'warning' };
-    }
-
-    if (status === 409 && code === 'REQUEST_NOT_CANCELLABLE') {
-      return { message: 'Request is no longer cancellable.', severity: 'warning' };
-    }
-
-    return { message, severity: 'error' };
-  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -582,97 +606,18 @@ export default function ApprovalManagementPage() {
     return new Date(dueDate) < new Date();
   };
 
+
+
   // Action handlers
-  const handleApprovalAction = async (request: ApprovalRequest, action: 'approve' | 'reject' | 'request_info' | 'delegate' | 'cancel') => {
+  const handleApprovalAction = (request: ApprovalRequest, action: 'approve' | 'reject' | 'request_info' | 'delegate' | 'cancel') => {
     setActionDialog({
       open: true,
       request,
       action,
-      reason: '',
-      delegateTo: ''
     });
   };
 
-  const extractActionResult = (response: any): { status?: string } => {
-    if (!response || typeof response !== 'object') return {};
-    if (response.result && typeof response.result === 'object') return response.result;
-    if (response.data && typeof response.data === 'object') {
-      if (response.data.result && typeof response.data.result === 'object') return response.data.result;
-      return response.data;
-    }
-    return response;
-  };
 
-  const submitApprovalAction = async () => {
-    try {
-      const { request, action, reason, delegateTo } = actionDialog;
-      if (!request || !action) return;
-
-      console.log(`Submitting approval action: ${action} for request ${request.id}`);
-
-      let response;
-
-      switch (action) {
-        case 'approve':
-          response = await bankingAPI.approval.approveRequest(request.id, { comment: reason });
-          break;
-        case 'reject':
-          response = await bankingAPI.approval.rejectRequest(request.id, { comment: reason });
-          break;
-        case 'cancel':
-          response = await bankingAPI.approval.cancelRequest(request.id, { reason });
-          break;
-        case 'delegate':
-          response = await bankingAPI.approval.delegateRequest(request.id, {
-            delegatedTo: delegateTo,
-            reason
-          });
-          break;
-        case 'request_info':
-          // Not yet implemented on backend explicitly but can be added or handled as comment
-          showSnackbar('Request Info action is not fully supported yet by backend', 'warning');
-          return;
-      }
-
-      console.log('Action successful:', response);
-      const result = extractActionResult(response);
-      const nextStatus = String(
-        result.status ||
-        (action === 'approve'
-          ? 'approved'
-          : action === 'reject'
-            ? 'rejected'
-            : action === 'cancel'
-              ? 'cancelled'
-              : 'pending')
-      ).toLowerCase();
-
-      // Update local state for immediate feedback
-      setApprovalRequests(prev => prev.map(req =>
-        req.id === request.id
-          ? {
-            ...req,
-            status: nextStatus as ApprovalRequest['status'],
-            completedAt: nextStatus === 'approved' || nextStatus === 'rejected' || nextStatus === 'cancelled'
-              ? new Date().toISOString()
-              : req.completedAt,
-          }
-          : req
-      ));
-
-      showSnackbar(`Request ${action}ed successfully`, 'success');
-      setActionDialog({ open: false, reason: '', delegateTo: '' });
-
-      // Refresh list to get full updated state
-      loadApprovalRequests();
-
-    } catch (error) {
-      console.error('Error submitting approval action:', error);
-      const resolved = resolveApprovalActionError(error);
-      showSnackbar(resolved.message, resolved.severity);
-      loadApprovalRequests();
-    }
-  };
 
   const handleViewDetails = (request: ApprovalRequest) => {
     setDetailDialog({ open: true, request });
@@ -1291,12 +1236,23 @@ export default function ApprovalManagementPage() {
               <Paper sx={{ p: 2, height: '100%' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
                   <Typography variant="h6">{matrix.name}</Typography>
-                  <Chip
-                    label={matrix.isActive ? 'Active' : 'Inactive'}
-                    color={matrix.isActive ? 'success' : 'default'}
-                    size="small"
-                    variant="outlined"
-                  />
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Chip
+                      label={matrix.isActive ? 'Active' : 'Inactive'}
+                      color={matrix.isActive ? 'success' : 'default'}
+                      size="small"
+                      variant="outlined"
+                    />
+                    <Tooltip title="Edit matrix">
+                      <IconButton
+                        size="small"
+                        color="primary"
+                        onClick={() => setMatrixEditDialog({ open: true, matrix })}
+                      >
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
                 </Box>
 
                 {matrix.description && (
@@ -1321,7 +1277,7 @@ export default function ApprovalManagementPage() {
                       No levels configured.
                     </Typography>
                   ) : (
-                    matrix.levels
+                    [...matrix.levels]
                       .sort((a, b) => a.level - b.level)
                       .map((level) => (
                         <Typography key={`${matrix.id}-${level.level}`} variant="body2" sx={{ mb: 0.25 }}>
@@ -1601,57 +1557,38 @@ export default function ApprovalManagementPage() {
         {activeTab === 4 && renderApprovalRouting()}
       </Box>
 
-      {/* Action Dialog */}
-      <Dialog open={actionDialog.open} onClose={() => setActionDialog({ open: false, reason: '', delegateTo: '' })} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          {actionDialog.action === 'approve' && 'Approve Request'}
-          {actionDialog.action === 'reject' && 'Reject Request'}
-          {actionDialog.action === 'request_info' && 'Request Information'}
-          {actionDialog.action === 'delegate' && 'Delegate Request'}
-          {actionDialog.action === 'cancel' && 'Cancel Request'}
-        </DialogTitle>
-        <DialogContent>
-          <Box sx={{ mt: 2 }}>
-            <Typography variant="subtitle2" gutterBottom>
-              Request: {actionDialog.request?.requestTitle}
-            </Typography>
-
-            <TextField
-              label="Reason/Comments"
-              multiline
-              rows={4}
-              fullWidth
-              value={actionDialog.reason}
-              onChange={(e) => setActionDialog(prev => ({ ...prev, reason: e.target.value }))}
-              sx={{ mt: 2 }}
-              required
-            />
-
-            {actionDialog.action === 'delegate' && (
-              <TextField
-                label="Delegate To (User ID)"
-                fullWidth
-                value={actionDialog.delegateTo}
-                onChange={(e) => setActionDialog(prev => ({ ...prev, delegateTo: e.target.value }))}
-                sx={{ mt: 2 }}
-                required
-              />
-            )}
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setActionDialog({ open: false, reason: '', delegateTo: '' })}>
-            Cancel
-          </Button>
-          <Button
-            onClick={submitApprovalAction}
-            variant="contained"
-            disabled={!actionDialog.reason || (actionDialog.action === 'delegate' && !actionDialog.delegateTo)}
-          >
-            Submit
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {/* Refactored Action Dialog */}
+      <ApprovalActionDialog
+        open={actionDialog.open}
+        request={actionDialog.request}
+        action={actionDialog.action}
+        onClose={() => setActionDialog({ open: false })}
+        onSuccess={(requestId, nextStatus) => {
+          setApprovalRequests((prev) =>
+            prev.map((req) =>
+              req.id === requestId
+                ? {
+                  ...req,
+                  status: nextStatus as ApprovalRequest['status'],
+                  completedAt:
+                    nextStatus === 'approved' ||
+                      nextStatus === 'rejected' ||
+                      nextStatus === 'cancelled'
+                      ? new Date().toISOString()
+                      : req.completedAt,
+                }
+                : req
+            )
+          );
+          showSnackbar(`Request ${actionDialog.action}ed successfully`, 'success');
+          setActionDialog({ open: false });
+          loadApprovalRequests();
+        }}
+        onError={(message, severity) => {
+          showSnackbar(message, severity);
+          loadApprovalRequests();
+        }}
+      />
 
       {/* Detail Dialog */}
       <Dialog open={detailDialog.open} onClose={() => setDetailDialog({ open: false })} maxWidth="md" fullWidth>
@@ -1731,7 +1668,7 @@ export default function ApprovalManagementPage() {
             </Box>
           )}
         </DialogContent>
-      <DialogActions>
+        <DialogActions>
           {detailDialog.request && isRolePermissionRequest(detailDialog.request) && (
             <Button
               color="secondary"
@@ -1742,8 +1679,23 @@ export default function ApprovalManagementPage() {
             </Button>
           )}
           <Button onClick={() => setDetailDialog({ open: false })}>Close</Button>
-      </DialogActions>
+        </DialogActions>
       </Dialog>
+
+      {/* Refactored Matrix Edit Dialog */}
+      <ApprovalMatrixEditorDialog
+        open={matrixEditDialog.open}
+        matrix={matrixEditDialog.matrix}
+        onClose={() => setMatrixEditDialog({ open: false })}
+        onSuccess={() => {
+          showSnackbar('Approval matrix updated successfully.', 'success');
+          setMatrixEditDialog({ open: false });
+          Promise.all([loadApprovalMatrices(), loadApprovalRouting()]);
+        }}
+        onError={(message, severity) => {
+          showSnackbar(message, severity);
+        }}
+      />
 
       {/* Snackbar */}
       <Snackbar

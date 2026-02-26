@@ -16,18 +16,16 @@ const normalizeTab = (value?: string): string => {
   return tab;
 };
 
-export default async function UserManagementEntryPage({
+export default async function Page({
   searchParams,
 }: {
   searchParams: Promise<SearchParamsInput>;
 }) {
   const resolvedSearchParams = await searchParams;
   const tab = normalizeTab(pickFirst(resolvedSearchParams?.tab));
-  const targetPath = tab === 'roles'
-    ? `${ACCESS_MANAGEMENT_BASE_PATH}/roles`
-    : tab === 'users'
-      ? `${ACCESS_MANAGEMENT_BASE_PATH}/users`
-      : `${ACCESS_MANAGEMENT_BASE_PATH}/${tab}`;
+
+  // Standardized redirect target
+  const targetPath = `${ACCESS_MANAGEMENT_BASE_PATH}/${tab}`;
 
   const nextQuery = new URLSearchParams();
   Object.entries(resolvedSearchParams || {}).forEach(([key, rawValue]) => {

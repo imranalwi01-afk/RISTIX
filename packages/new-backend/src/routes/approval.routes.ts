@@ -60,6 +60,17 @@ const CreateMatrixSchema = z.object({
     levels: z.array(MatrixLevelSchema),
 }).openapi('CreateApprovalMatrixInput')
 
+const UpdateMatrixSchema = z.object({
+    name: z.string().min(1).max(255).optional(),
+    description: z.string().nullable().optional(),
+    entityType: z.string().min(1).optional(),
+    operationType: z.string().nullable().optional(),
+    bankingMode: z.enum(['conventional', 'syariah', 'dual']).nullable().optional(),
+    syariahBoardRequired: z.boolean().optional(),
+    isActive: z.boolean().optional(),
+    levels: z.array(MatrixLevelSchema).optional(),
+}).openapi('UpdateApprovalMatrixInput')
+
 const ApprovalRequestSchema = z.object({
     id: z.string().openapi({ example: '123e4567-e89b-12d3-a456-426614174000' }),
     entityType: z.string(),
@@ -109,6 +120,71 @@ const ApprovalRoutingSchema = z.object({
     levels: z.array(RoutingLevelSchema),
 }).openapi('ApprovalRouting')
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+const KNOWN_REQUESTER_OVERRIDES: Record<string, { name: string; email: string; username: string }> = {
+    '550e8400-e29b-41d4-a716-446655440001': {
+        name: 'Platform Administrator',
+        email: 'admin@ifrspro.id',
+        username: 'admin',
+    },
+}
+
+const looksLikeUuid = (value: unknown): boolean =>
+    typeof value === 'string' && UUID_REGEX.test(value.trim())
+
+const toNonUuidString = (value: unknown): string | null => {
+    if (typeof value !== 'string') return null
+    const trimmed = value.trim()
+    if (!trimmed || looksLikeUuid(trimmed)) return null
+    return trimmed
+}
+
+const buildRequestedByMeta = (request: any): {
+    requestedByName: string
+    requestedByEmail: string | null
+    requestedByUsername: string | null
+} => {
+    const requester = request?.requester || {}
+    const requestData = request?.requestData || {}
+
+    const fullName = toNonUuidString(requester?.fullName)
+    const email = toNonUuidString(requester?.email)
+    const username = toNonUuidString(requester?.username)
+    const explicitName = toNonUuidString(request?.requestedByName)
+    const explicitEmail = toNonUuidString(request?.requestedByEmail)
+    const explicitUsername = toNonUuidString(request?.requestedByUsername)
+    const dataName = toNonUuidString(requestData?.requestedByName)
+    const dataEmail = toNonUuidString(requestData?.requestedByEmail)
+    const dataUsername = toNonUuidString(requestData?.requestedByUsername)
+
+    const requestedByName =
+        (fullName && email ? `${fullName} (${email})` : null)
+        || email
+        || username
+        || fullName
+        || explicitName
+        || explicitEmail
+        || explicitUsername
+        || dataName
+        || dataEmail
+        || dataUsername
+        || (() => {
+            const requestedById = typeof request?.requestedBy === 'string' ? request.requestedBy.trim() : ''
+            return requestedById && KNOWN_REQUESTER_OVERRIDES[requestedById]
+                ? `${KNOWN_REQUESTER_OVERRIDES[requestedById].name} (${KNOWN_REQUESTER_OVERRIDES[requestedById].email})`
+                : 'Unknown User'
+        })()
+
+    const requestedById = typeof request?.requestedBy === 'string' ? request.requestedBy.trim() : ''
+    const knownOverride = requestedById ? KNOWN_REQUESTER_OVERRIDES[requestedById] : null
+
+    return {
+        requestedByName,
+        requestedByEmail: email || explicitEmail || dataEmail || knownOverride?.email || null,
+        requestedByUsername: username || explicitUsername || dataUsername || knownOverride?.username || null,
+    }
+}
+
 // =============================================================================
 // ROUTES
 // =============================================================================
@@ -146,6 +222,7 @@ approvalRoutes.openapi(
             approvalService.getPendingApprovalsForUser(userId, tenantId),
             Effect.map((requests) => requests.map(r => ({
                 ...(r as any),
+                ...buildRequestedByMeta(r),
                 description: (r as any).description ?? null,
                 createdAt: r.createdAt.toISOString(),
                 updatedAt: (r as any).updatedAt?.toISOString() || new Date().toISOString(),
@@ -209,6 +286,88 @@ approvalRoutes.openapi(
     }
 )
 
+/**
+ * PUT /approvals/matrices/:id - Update approval matrix
+ */
+approvalRoutes.openapi(
+    createRoute({
+        method: 'put',
+        path: '/matrices/{id}',
+        tags: ['Approvals'],
+        summary: 'Update Approval Matrix',
+        security: [{ BearerAuth: [] }],
+        request: {
+            params: z.object({
+                id: z.string().openapi({ param: { name: 'id', in: 'path' } }),
+            }),
+            body: {
+                content: {
+                    'application/json': {
+                        schema: UpdateMatrixSchema,
+                    },
+                },
+            },
+        },
+        responses: {
+            200: {
+                content: {
+                    'application/json': {
+                        schema: ApprovalMatrixSchema,
+                    },
+                },
+                description: 'Matrix updated',
+            },
+        },
+    }),
+    async (c) => {
+        const tenantId = c.get('tenantId')!
+        const { id } = c.req.valid('param')
+        const body = c.req.valid('json')
+
+        const normalizeLevel = (level: z.infer<typeof MatrixLevelSchema>) => {
+            const legacyRequired = Array.isArray(level.requiredRoles) ? level.requiredRoles : []
+            const requiredRoleCodes = Array.isArray(level.requiredRoleCodes)
+                ? level.requiredRoleCodes
+                : legacyRequired.filter((entry) => typeof entry === 'string' && !entry.includes('.'))
+            const requiredPermissionCodes = Array.isArray(level.requiredPermissionCodes)
+                ? level.requiredPermissionCodes
+                : legacyRequired.filter((entry) => typeof entry === 'string' && entry.includes('.'))
+            const { requiredRoles, ...restLevel } = level
+
+            return {
+                ...restLevel,
+                requiredRoleCodes,
+                requiredPermissionCodes: requiredPermissionCodes.length > 0
+                    ? requiredPermissionCodes
+                    : ['approval.requests.approve'],
+                roleMatchMode: level.roleMatchMode || 'ANY',
+                permissionMatchMode: level.permissionMatchMode || 'ANY',
+            }
+        }
+
+        const levels = Array.isArray(body.levels)
+            ? body.levels.map(normalizeLevel)
+            : undefined
+
+        const matrixData = { ...body } as Record<string, unknown>
+        delete matrixData.levels
+        const effect = pipe(
+            approvalService.updateApprovalMatrix(
+                tenantId,
+                id,
+                matrixData as any,
+                levels as any
+            ),
+            Effect.map((matrix) => ({
+                ...matrix,
+                createdAt: matrix.createdAt.toISOString(),
+            }))
+        )
+
+        return runEffect(c, effect)
+    }
+)
+
 // =============================================================================
 // APPROVAL REQUESTS
 // =============================================================================
@@ -249,6 +408,7 @@ approvalRoutes.openapi(
             approvalService.getApprovalHistory(tenantId, entityType, entityId),
             Effect.map((requests) => requests.map(r => ({
                 ...r,
+                ...buildRequestedByMeta(r),
                 description: r.description ?? null,
                 createdAt: r.createdAt.toISOString(),
                 updatedAt: (r as any).completedAt?.toISOString() || r.createdAt.toISOString(),
@@ -293,12 +453,28 @@ approvalRoutes.openapi(
         const userId = c.get('userId')!
         const tenantId = c.get('tenantId')!
         const body = c.req.valid('json')
+        const user = c.get('user') as Record<string, unknown> | undefined
+        const incomingRequestData = (body.requestData || {}) as Record<string, unknown>
+        const requestData: Record<string, unknown> = {
+            ...incomingRequestData,
+        }
+
+        if (!toNonUuidString(requestData.requestedByName)) {
+            requestData.requestedByName = toNonUuidString(user?.fullName) || toNonUuidString(user?.username) || null
+        }
+        if (!toNonUuidString(requestData.requestedByEmail)) {
+            requestData.requestedByEmail = toNonUuidString(user?.email) || null
+        }
+        if (!toNonUuidString(requestData.requestedByUsername)) {
+            requestData.requestedByUsername = toNonUuidString(user?.username) || null
+        }
 
         const effect = pipe(
             approvalService.createApprovalRequest({
                 ...body,
                 tenantId,
                 requestedBy: userId,
+                requestData,
             }),
             Effect.map((request) => ({
                 ...request,
@@ -344,12 +520,16 @@ approvalRoutes.openapi(
 
         const effect = pipe(
             approvalService.getApprovalRequest(id),
-            Effect.map(request => ({
+            Effect.map(request => {
+                const requestedByMeta = buildRequestedByMeta(request)
+                return ({
                 ...request,
+                ...requestedByMeta,
                 description: request.description ?? null,
                 createdAt: request.createdAt.toISOString(),
                 updatedAt: (request as any).completedAt?.toISOString() || request.createdAt.toISOString(),
-            }))
+                })
+            })
         )
 
         return runEffect(c, effect)

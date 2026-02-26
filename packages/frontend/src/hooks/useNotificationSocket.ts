@@ -23,6 +23,45 @@ export interface NotificationPayload {
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
+const trimTrailingSlashes = (value: string) => value.replace(/\/+$/, '')
+
+const normalizeSocketBaseFromApi = (rawUrl?: string | null): string => {
+    if (!rawUrl) return ''
+
+    let normalized = trimTrailingSlashes(String(rawUrl).trim())
+    if (!normalized) return ''
+
+    while (/\/api(?:\/v1)?$/i.test(normalized)) {
+        normalized = normalized.replace(/\/api(?:\/v1)?$/i, '')
+    }
+
+    return normalized
+}
+
+const resolveSocketBaseUrl = (): string => {
+    const explicitWsUrl = normalizeSocketBaseFromApi(process.env.NEXT_PUBLIC_WS_URL || '')
+    if (explicitWsUrl) {
+        return explicitWsUrl
+    }
+
+    const backendBase =
+        process.env.NEXT_PUBLIC_BACKEND_URL ||
+        process.env.NEXT_PUBLIC_BACKEND_API_URL ||
+        process.env.NEXT_PUBLIC_API_BASE_URL ||
+        ''
+
+    const normalizedBackend = normalizeSocketBaseFromApi(backendBase)
+    if (normalizedBackend) {
+        return normalizedBackend
+    }
+
+    if (typeof window !== 'undefined') {
+        return window.location.origin
+    }
+
+    return ''
+}
+
 const mapPersistedNotification = (row: any): NotificationPayload => ({
     id: String(row.notificationId || row.id),
     type: String(row.type || 'APPROVAL_PENDING') as NotificationPayload['type'],
@@ -84,8 +123,9 @@ export function useNotificationSocket() {
             return
         }
 
-        // Initialize Socket.IO connection
-        const socket = io(`${window.location.origin}/admin/notifications`, {
+        // Initialize Socket.IO connection against backend URL (not frontend host)
+        const socketBaseUrl = resolveSocketBaseUrl()
+        const socket = io(`${socketBaseUrl}/admin/notifications`, {
             auth: { token },
             reconnection: true,
             reconnectionDelay: 1000,

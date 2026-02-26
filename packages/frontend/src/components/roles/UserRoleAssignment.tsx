@@ -126,6 +126,7 @@ interface UserRoleAssignment {
 
 interface Permission {
   id: string;
+  code?: string;
   module: string;
   resource: string;
   action: string;
@@ -285,6 +286,16 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
     if (!groupedPermissions || typeof groupedPermissions !== 'object') return [];
     return Object.values(groupedPermissions).flat();
   };
+  const canRoleApproveRequests = (role: Role): boolean => {
+    const approvalPermissionCodes = new Set([
+      'approval.requests.approve',
+      'approval.all',
+      'admin.super_admin',
+    ]);
+    return flattenPermissions(role.permissions).some((permission) =>
+      approvalPermissionCodes.has(String(permission.code || '').trim().toLowerCase())
+    );
+  };
   // Bulk assignment state
   const [bulkDialog, setBulkDialog] = useState<{
     open: boolean;
@@ -331,6 +342,7 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRoleType, setFilterRoleType] = useState<string>('all');
   const [filterUserStatus, setFilterUserStatus] = useState<string>('all');
+  const [approvalCoverageFilter, setApprovalCoverageFilter] = useState<'all' | 'can_approve' | 'no_approval'>('all');
   const [showInactiveUsers, setShowInactiveUsers] = useState(false);
   const [showInactiveRoles, setShowInactiveRoles] = useState(false);
   const [userPage, setUserPage] = useState(0);
@@ -475,9 +487,11 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
       if (!showInactiveRoles && !role.isActive) return false;
       if (searchTerm && !getRoleLabel(role).toLowerCase().includes(searchTerm.toLowerCase()) &&
         !role.name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+      if (approvalCoverageFilter === 'can_approve' && !canRoleApproveRequests(role)) return false;
+      if (approvalCoverageFilter === 'no_approval' && canRoleApproveRequests(role)) return false;
       return true;
     });
-  }, [roles, searchTerm, showInactiveRoles]);
+  }, [roles, searchTerm, showInactiveRoles, approvalCoverageFilter]);
 
   // Paginated data
   const paginatedUsers = useMemo(() => {
@@ -1058,6 +1072,21 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
               </Grid>
 
               <Grid size={{ xs: 12, md: 2 }}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Approval Coverage</InputLabel>
+                  <Select
+                    value={approvalCoverageFilter}
+                    onChange={(e) => setApprovalCoverageFilter(e.target.value as 'all' | 'can_approve' | 'no_approval')}
+                    label="Approval Coverage"
+                  >
+                    <MenuItem value="all">All Roles</MenuItem>
+                    <MenuItem value="can_approve">Can Approve</MenuItem>
+                    <MenuItem value="no_approval">No Approval</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 2 }}>
                 <FormControlLabel
                   control={
                     <Switch
@@ -1398,6 +1427,7 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
                   <TableCell>Status</TableCell>
                   <TableCell>Assigned Users</TableCell>
                   <TableCell>Permissions</TableCell>
+                  <TableCell>Approval Scope</TableCell>
                   <TableCell>Created</TableCell>
                   <TableCell>Actions</TableCell>
                 </TableRow>
@@ -1447,6 +1477,14 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
                       <Badge badgeContent={flattenPermissions(role.permissions).length} color="secondary">
                         <SecurityIcon fontSize="small" />
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        size="small"
+                        label={canRoleApproveRequests(role) ? 'Can Approve' : 'No Approval'}
+                        color={canRoleApproveRequests(role) ? 'success' : 'default'}
+                        variant="outlined"
+                      />
                     </TableCell>
                     <TableCell>
                       {format(parseISO(role.createdAt), 'MMM dd, yyyy')}
