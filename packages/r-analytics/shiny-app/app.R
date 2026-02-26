@@ -18,12 +18,14 @@ if (nzchar(shiny_server_version) && !grepl("^[0-9]+(\\.[0-9]+)*$", shiny_server_
 # This sets up: con, PD, LGD, database_setup
 
 # Load additional libraries (only ones not already loaded in global.R)
-library(shinythemes)
-library(openxlsx)
-library(combinat)
-library(nortest)
-library(shinyWidgets)
-library(shinycssloaders)
+suppressPackageStartupMessages({
+  library(shinythemes)
+  library(openxlsx)
+  library(combinat)
+  library(nortest)
+  library(shinyWidgets)
+  library(shinycssloaders)
+})
 
 # Note: Core packages (shiny, shinydashboard, DT, data.table, dplyr, etc.)
 # are already loaded in global.R with conflict resolution

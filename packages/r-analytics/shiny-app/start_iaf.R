@@ -9,6 +9,8 @@
 # =============================================================================
 
 # Silent startup - no banner to prevent log corruption
+options(tidyverse.quiet = TRUE)
+options(conflicts.policy = list(error = FALSE, warn = FALSE))
 # Environment configuration will be loaded silently
 
 # Get environment variables from shell

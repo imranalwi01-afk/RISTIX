@@ -334,7 +334,7 @@ loop_akurasi_forecast_list <- function(list_data, byy = "month", makur = "MAPE")
 #' @param hasil_list List of forecast results
 #' @return Data frame with forecasts for all variables
 gabung_hasil_forecast <- function(hasil_list) {
-  library(dplyr)
+  suppressPackageStartupMessages(library(dplyr))
 
   df_final <- NULL
 

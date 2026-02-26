@@ -192,6 +192,11 @@ setup_database <- function() {
       ra_log_info("LGD configuration loaded", context = list(rows = nrow(lgd_data)))
       lgd_data
     }, error = function(e) {
+      cat("\n*******************************************************************************\n")
+      cat("❌ SQL FAILURE: Failed to load LGD configuration from frs9_imp_ca_lgd_config\n")
+      cat("   Error Message:", e$message, "\n")
+      cat("   Check if the table exists and is accessible in schema:", db_schema, "\n")
+      cat("*******************************************************************************\n\n")
       ra_log_warn("LGD configuration load failed, using empty dataset", context = list(error = e$message))
       data.frame()
     })
@@ -203,6 +208,11 @@ setup_database <- function() {
       ra_log_info("PD configuration loaded", context = list(rows = nrow(pd_data)))
       pd_data
     }, error = function(e) {
+      cat("\n*******************************************************************************\n")
+      cat("❌ SQL FAILURE: Failed to load PD configuration from frs9_imp_ca_pd_config\n")
+      cat("   Error Message:", e$message, "\n")
+      cat("   Check if the table exists and is accessible in schema:", db_schema, "\n")
+      cat("*******************************************************************************\n\n")
       ra_log_warn("PD configuration load failed, using empty dataset", context = list(error = e$message))
       data.frame()
     })
@@ -210,15 +220,22 @@ setup_database <- function() {
     ra_log_info("Database setup completed successfully")
 
   }, error = function(e) {
+    cat("\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
+    cat("🚨 DATABASE CONNECTION CRITICAL ERROR\n")
+    cat("   Failed to connect to:", db_cfg$host, ":", db_cfg$port, "\n")
+    cat("   Database name:", db_cfg$dbname, "\n")
+    cat("   Error Message:", e$message, "\n")
+    cat("   Switching to OFFLINE MODE with sample models.\n")
+    cat("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\n")
+    
     ra_log_error("Database connection failed, switching to offline mode", context = list(error = e$message))
-    ra_log_info("Offline mode enabled with sample data")
 
     # Ensure connection is NULL for offline mode
-    con <- NULL
+    con <<- NULL
 
     # Create sample configuration data for offline mode
     ra_log_info("Creating sample configuration data")
-    LGD <- data.frame(
+    LGD <<- data.frame(
       pkid = 1:5,
       lgd_model_name = paste("Sample LGD Model", 1:5),
       lgd_rate = c(0.45, 0.50, 0.40, 0.55, 0.48),
@@ -226,7 +243,7 @@ setup_database <- function() {
       description = paste("Sample LGD Configuration", 1:5)
     )
 
-    PD <- data.frame(
+    PD <<- data.frame(
       pkid = 1:5,
       pd_model_name = paste("Sample PD Model", 1:5),
       pd_rate = c(0.02, 0.015, 0.025, 0.018, 0.022),

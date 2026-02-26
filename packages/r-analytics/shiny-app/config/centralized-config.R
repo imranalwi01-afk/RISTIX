@@ -7,7 +7,7 @@
 # =============================================================================
 
 # Load required R6 library
-library(R6)
+suppressPackageStartupMessages(library(R6))
 
 #' Centralized Configuration Manager
 #' @description Loads and manages all configuration from environment variables

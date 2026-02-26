@@ -16,7 +16,12 @@
 #' @param PD PD configuration data
 #' @param LGD LGD configuration data
 #' @return None (handles reactive logic)
-data_server <- function(input, output, session, con, PD, LGD, persistent_data) {
+  # =============================================================================
+  # DIAGNOSTIC LOGGING
+  # =============================================================================
+  cat("📊 DEBUG [DATA_SERVER_START]: PD rows:", nrow(PD), "| LGD rows:", nrow(LGD), "\n")
+  if (nrow(PD) > 0) cat("  - Sample PD models:", paste(head(PD$pd_model_name, 3), collapse=", "), "...\n")
+  if (nrow(LGD) > 0) cat("  - Sample LGD models:", paste(head(LGD$lgd_model_name, 3), collapse=", "), "...\n")
 
   # =============================================================================
   # UTILITY FUNCTIONS
