@@ -4,6 +4,13 @@ set -euo pipefail
 # This is a basic entrypoint for the R Analytics container
 echo "Starting R Analytics Entrypoint..."
 
+# Some base images export SHINY_SERVER_VERSION=latest (non-semver), which breaks compareVersion().
+# Normalize this immediately so every execution path (with/without custom CMD) is safe.
+if [ -n "${SHINY_SERVER_VERSION:-}" ] && ! echo "${SHINY_SERVER_VERSION}" | grep -Eq '^[0-9]+(\.[0-9]+)*$'; then
+  echo "Sanitizing SHINY_SERVER_VERSION='${SHINY_SERVER_VERSION}' (unset for runtime)"
+  unset SHINY_SERVER_VERSION
+fi
+
 # Resolve DB variables consistently: prefer FRS9_DB_* when provided.
 if [ -n "${FRS9_DB_HOST:-}" ]; then export DB_HOST="${FRS9_DB_HOST}"; fi
 if [ -n "${FRS9_DB_PORT:-}" ]; then export DB_PORT="${FRS9_DB_PORT}"; fi
@@ -56,12 +63,6 @@ else
   (
     cd /opt/r-analytics/shiny-app
     export R_ANALYTICS_SHINY_APP_DIR="/opt/r-analytics/shiny-app"
-
-    # Some base images set SHINY_SERVER_VERSION=latest, which breaks compareVersion().
-    if [ -n "${SHINY_SERVER_VERSION:-}" ] && ! echo "${SHINY_SERVER_VERSION}" | grep -Eq '^[0-9]+(\.[0-9]+)*$'; then
-      echo "Sanitizing SHINY_SERVER_VERSION='${SHINY_SERVER_VERSION}' (unset for runtime)"
-      unset SHINY_SERVER_VERSION
-    fi
 
     Rscript -e "shiny::runApp('/opt/r-analytics/shiny-app', host='0.0.0.0', port=as.integer(Sys.getenv('R_PORT','4236')), launch.browser=FALSE)"
   ) 2>&1 | prefix_logs "[SHINY] " &

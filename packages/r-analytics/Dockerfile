@@ -78,6 +78,8 @@ ENV FRS9_DB_PASSWORD=postgres
 ENV R_LIBS_USER=/opt/r-analytics/R-libs
 ENV SHINY_HOST=0.0.0.0
 ENV SHINY_PORT=4236
+# Keep semver format to avoid Shiny compareVersion() failures when base image exports "latest".
+ENV SHINY_SERVER_VERSION=1.5.23
 
 # Create R library directory
 RUN mkdir -p $R_LIBS_USER && chown r-analytics:r-analytics $R_LIBS_USER
