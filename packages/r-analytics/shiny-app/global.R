@@ -24,11 +24,19 @@ library(shinyWidgets)
 library(DBI)
 library(RPostgres)
 
-# Load database configuration
-if (file.exists("config/database.R")) {
-  source("config/database.R")
+# Load database configuration with robust path fallback.
+database_config_candidates <- unique(c(
+  file.path(getwd(), "config", "database.R"),
+  "config/database.R",
+  file.path(Sys.getenv("R_ANALYTICS_SHINY_APP_DIR", ""), "config", "database.R"),
+  "/opt/r-analytics/shiny-app/config/database.R"
+))
+
+database_config_path <- database_config_candidates[file.exists(database_config_candidates)][1]
+if (!is.na(database_config_path) && nzchar(database_config_path)) {
+  source(database_config_path)
 } else {
-  warning("config/database.R not found!")
+  warning(sprintf("config/database.R not found. Checked: %s", paste(database_config_candidates, collapse = ", ")))
 }
 
 
@@ -3502,5 +3510,4 @@ build_monthly_rows <- function(mpd_mat, cpd_mat = NULL, scenario_id, prc_date, p
     stringsAsFactors = FALSE
   )
 }
-
 

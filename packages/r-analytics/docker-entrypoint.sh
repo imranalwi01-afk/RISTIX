@@ -55,7 +55,15 @@ else
   echo "Starting R Analytics Dashboard (Port ${DASHBOARD_PORT})..."
   (
     cd /opt/r-analytics/shiny-app
-    Rscript app.R
+    export R_ANALYTICS_SHINY_APP_DIR="/opt/r-analytics/shiny-app"
+
+    # Some base images set SHINY_SERVER_VERSION=latest, which breaks compareVersion().
+    if [ -n "${SHINY_SERVER_VERSION:-}" ] && ! echo "${SHINY_SERVER_VERSION}" | grep -Eq '^[0-9]+(\.[0-9]+)*$'; then
+      echo "Sanitizing SHINY_SERVER_VERSION='${SHINY_SERVER_VERSION}' (unset for runtime)"
+      unset SHINY_SERVER_VERSION
+    fi
+
+    Rscript -e "shiny::runApp('/opt/r-analytics/shiny-app', host='0.0.0.0', port=as.integer(Sys.getenv('R_PORT','4236')), launch.browser=FALSE)"
   ) 2>&1 | prefix_logs "[SHINY] " &
   SHINY_PIPE_PID=$!
 

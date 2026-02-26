@@ -6,6 +6,12 @@
 # ✅ FIXED: All UI modules properly imported and working
 # =============================================================================
 
+# Guard against non-semver values (e.g. "latest") that break compareVersion() in Shiny startup.
+shiny_server_version <- Sys.getenv("SHINY_SERVER_VERSION", "")
+if (nzchar(shiny_server_version) && !grepl("^[0-9]+(\\.[0-9]+)*$", shiny_server_version)) {
+  Sys.unsetenv("SHINY_SERVER_VERSION")
+}
+
 # Note: global.R is automatically loaded by Shiny
 # Do NOT manually load it here to avoid duplicate execution
 # Database connection and configuration data are loaded from global.R
