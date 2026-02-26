@@ -11,8 +11,25 @@ import {
   Container,
   Alert,
   Snackbar,
-  Drawer
+  Drawer,
+  Stack,
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Tooltip,
+  Button,
+  Chip,
+  Menu,
+  MenuItem
 } from '@mui/material';
+import {
+  Refresh as RefreshIcon,
+  Download as ExportIcon,
+  HelpOutline as HelpIcon,
+  FilterList as FilterIcon,
+  Add as AddIcon
+} from '@mui/icons-material';
 import { api } from '../../../../services/api';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 
@@ -24,7 +41,9 @@ import { SegmentationDetail } from '../../../../components/banking/collective/se
 
 // Hooks & Existing Services
 import { bankingAPI } from '@/services/api';
-import { ApprovalNotification } from '@/components/approval';
+import { ApprovalNotification, ApprovalStatusBadge } from '@/components/approval';
+import { usePermission } from '@/hooks/usePermission';
+import { getErrorMessage } from '@/utils/error-message';
 
 // ============================================================================
 // TYPES
@@ -60,6 +79,7 @@ export default function SegmentationClient() {
 
   // Search & Filter
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [filters, setFilters] = useState({
     segmentType: '',
     status: '',
@@ -69,17 +89,28 @@ export default function SegmentationClient() {
   });
 
   // Detail View
+  const [exportAnchorEl, setExportAnchorEl] = useState<null | HTMLElement>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerMode, setDrawerMode] = useState<'add' | 'edit' | 'view'>('view');
+  const [details, setDetails] = useState<any[]>([]);
+  const [formData, setFormData] = useState<any>({});
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailMode, setDetailMode] = useState<'add' | 'edit' | 'view'>('view');
   const [selectedHeader, setSelectedHeader] = useState<SegmentationHeaderData | null>(null);
 
+  // Permissions
+  const { hasPermission } = usePermission();
+  const canManageSegmentation = hasPermission('segmentation.manage');
+  const canViewSegmentation = hasPermission('segmentation.view');
+  const canExportSegmentation = hasPermission('segmentation.export');
+
   // UI Feedback
   const [error, setError] = useState<string | null>(null);
-  const [snackbar, setSnackbar] = useState<{ open: boolean, message: string, type: 'success' | 'info' | 'warning' | 'error' }>({ 
-    open: false, message: '', type: 'success' 
+  const [snackbar, setSnackbar] = useState<{ open: boolean, message: string, type: 'success' | 'info' | 'warning' | 'error' }>({
+    open: false, message: '', type: 'success'
   });
-  const [approvalNotification, setApprovalNotification] = useState<{ open: boolean, message: string }>({ 
-    open: false, message: '' 
+  const [approvalNotification, setApprovalNotification] = useState<{ open: boolean, message: string }>({
+    open: false, message: ''
   });
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
 
@@ -98,7 +129,7 @@ export default function SegmentationClient() {
         ...filters
       };
       const response = await api.banking.segmentation.getHeaders(params);
-      
+
       if (response && response.success) {
         setHeaders(response.data || []);
         setTotalCount(response.total || response.pagination?.total || (response.data?.length || 0));
@@ -106,7 +137,7 @@ export default function SegmentationClient() {
         setHeaders([]);
         setTotalCount(0);
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error loading segmentation headers:', err);
       setError('Failed to load segmentation data. Please try again.');
     } finally {
@@ -147,6 +178,14 @@ export default function SegmentationClient() {
         e.preventDefault();
         searchInputRef.current?.focus();
       }
+      if (e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        setFilterDrawerOpen(true);
+      }
+      if (e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        if (canManageSegmentation) handleOpenDrawer('add');
+      }
       if (e.key.toLowerCase() === 'r') {
         e.preventDefault();
         loadHeaders();
@@ -155,16 +194,52 @@ export default function SegmentationClient() {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [detailOpen, loadHeaders]);
+  }, [drawerOpen, filterDrawerOpen, loadHeaders, canManageSegmentation]);
+
 
   // ============================================================================
   // HANDLERS
   // ============================================================================
 
-  const handleAdd = () => {
-    setDetailMode('add');
+  const loadDetails = async (headerId: number) => {
+    try {
+      const response = await api.banking.segmentation.getDetails(headerId);
+      setDetails(Array.isArray(response) ? response : []);
+    } catch (err) {
+      setDetails([]);
+    }
+  };
+
+  const handleSearch = () => {
+    setPage(0);
+    loadHeaders();
+  };
+
+  const handleOpenDrawer = async (mode: 'add' | 'edit' | 'view', header?: SegmentationHeaderData) => {
+    if (mode !== 'view' && !canManageSegmentation) return;
+    setDrawerMode(mode);
+    setDrawerOpen(true);
+
+    if (header) {
+      setSelectedHeader(header);
+      setFormData({ ...header });
+      await loadDetails(header.id);
+    } else {
+      setSelectedHeader(null);
+      setDetails([]);
+      setFormData({
+        group_segment: '',
+        segment: '',
+        segment_type: 'PD',
+        seq: totalCount + 1,
+        active_flag: true
+      });
+    }
+  };
+
+  const handleCloseDrawer = () => {
+    setDrawerOpen(false);
     setSelectedHeader(null);
-    setDetailOpen(true);
   };
 
   const handleView = async (header: SegmentationHeaderData) => {
@@ -179,6 +254,11 @@ export default function SegmentationClient() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSaveHeader = async (isDraft: boolean) => {
+    if (!canManageSegmentation) return;
+    handleSave(formData, isDraft);
   };
 
   const handleEdit = async (header: SegmentationHeaderData) => {
@@ -197,11 +277,11 @@ export default function SegmentationClient() {
 
   const handleDelete = async (header: SegmentationHeaderData) => {
     if (!window.confirm(`Are you sure you want to delete segment "${header.group_segment}"?`)) return;
-    
+
     setLoading(true);
     try {
       const response = await api.banking.segmentation.deleteHeader(header.id);
-      
+
       if (response.approvalRequired) {
         // Auto-approve for development/demo user
         if (process.env.NODE_ENV === 'development') {
@@ -210,10 +290,10 @@ export default function SegmentationClient() {
             await api.banking.approval.approveRequest(response.requestId, {
               comment: 'Auto-approved for development testing'
             });
-            setSnackbar({ 
-              open: true, 
-              message: 'Segmentation deleted successfully (auto-approved)', 
-              type: 'success' 
+            setSnackbar({
+              open: true,
+              message: 'Segmentation deleted successfully (auto-approved)',
+              type: 'success'
             });
           } catch (approveError) {
             console.error('Auto-approve failed:', approveError);
@@ -231,14 +311,14 @@ export default function SegmentationClient() {
       } else {
         setSnackbar({ open: true, message: 'Segmentation deleted successfully', type: 'success' });
       }
-      
+
       loadHeaders();
       loadPendingApprovals();
-    } catch (err: any) {
-      setSnackbar({ 
-        open: true, 
-        message: err.response?.data?.message || 'Delete failed', 
-        type: 'error' 
+    } catch (err) {
+      setSnackbar({
+        open: true,
+        message: getErrorMessage(err, 'Delete failed'),
+        type: 'error'
       });
     } finally {
       setLoading(false);
@@ -250,11 +330,11 @@ export default function SegmentationClient() {
     try {
       const details = await api.banking.segmentation.getDetails(header.id);
       setDetailMode('add');
-      setSelectedHeader({ 
-        ...header, 
-        id: 0, 
-        status: 'Draft', 
-        rules: (details.data || details || []).map((r: any) => ({ ...r, id: undefined })) 
+      setSelectedHeader({
+        ...header,
+        id: 0,
+        status: 'Draft',
+        rules: (details.data || details || []).map((r: any) => ({ ...r, id: undefined }))
       });
       setDetailOpen(true);
     } catch (err) {
@@ -290,21 +370,21 @@ export default function SegmentationClient() {
           message: response.message || 'Request submitted for approval'
         });
       } else {
-        setSnackbar({ 
-          open: true, 
-          message: `Segmentation ${detailMode === 'add' ? 'created' : 'updated'} successfully`, 
-          type: 'success' 
+        setSnackbar({
+          open: true,
+          message: `Segmentation ${detailMode === 'add' ? 'created' : 'updated'} successfully`,
+          type: 'success'
         });
       }
 
       setDetailOpen(false);
       loadHeaders();
       loadPendingApprovals();
-    } catch (err: any) {
-      setSnackbar({ 
-        open: true, 
-        message: err.response?.data?.message || 'Save failed', 
-        type: 'error' 
+    } catch (err) {
+      setSnackbar({
+        open: true,
+        message: getErrorMessage(err, 'Save failed'),
+        type: 'error'
       });
     } finally {
       setLoading(false);
@@ -318,9 +398,14 @@ export default function SegmentationClient() {
   return (
     <Container maxWidth="xl" sx={{ position: 'relative', pb: 5 }}>
       <FullstackIndicator />
+      {!canViewSegmentation && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          You do not have permission to view segmentation configuration.
+        </Alert>
+      )}
 
       {/* Header Section */}
-      <SegmentationHeader 
+      <SegmentationHeader
         onRefresh={loadHeaders}
         onExport={handleExport}
         onHelp={() => window.open('#', '_blank')}
@@ -328,17 +413,41 @@ export default function SegmentationClient() {
         dbStatus="active"
       />
 
-      {/* Toolbar Section */}
-      <SegmentationToolbar 
-        searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
-        onSearchSubmit={loadHeaders}
-        onFilterClick={() => {}} // TODO: Connect Filter Drawer
-        onAddClick={handleAdd}
-        activeFiltersCount={Object.values(filters).filter(Boolean).length}
-        onClearFilters={() => setFilters({ segmentType: '', status: '', tableName: '', columnName: '', operator: '' })}
-        searchInputRef={searchInputRef}
-      />
+      {/* Header Card */}
+      <Card sx={{ mb: 3, borderRadius: 2 }}>
+        <CardContent>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+            <Box>
+              <Typography variant="h4" component="h1" fontWeight="bold" gutterBottom>
+                Segmentation Configuration
+              </Typography>
+              <Typography variant="body1" color="text.secondary">
+                Master-detail configuration for portfolio segmentation rules and criteria
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Tooltip title="Shortcut: R"><Button startIcon={<RefreshIcon />} onClick={() => loadHeaders()}>Refresh</Button></Tooltip>
+              {canExportSegmentation && (
+                <>
+                  <Button startIcon={<ExportIcon />} onClick={(e) => setExportAnchorEl(e.currentTarget)}>Export</Button>
+                  <Menu anchorEl={exportAnchorEl} open={Boolean(exportAnchorEl)} onClose={() => setExportAnchorEl(null)}>
+                    <MenuItem onClick={() => setExportAnchorEl(null)}>Export to Excel</MenuItem>
+                    <MenuItem onClick={() => setExportAnchorEl(null)}>Export to CSV</MenuItem>
+                    <MenuItem onClick={() => setExportAnchorEl(null)}>Export to PDF</MenuItem>
+                  </Menu>
+                </>
+              )}
+              <Button variant="outlined" startIcon={<HelpIcon />}>Help</Button>
+            </Box>
+          </Box>
+          <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+            <Typography variant="caption" color="text.secondary" sx={{ mr: 2 }}>
+              Last updated: {new Date().toLocaleTimeString()}
+            </Typography>
+            <Chip label="Database Active" size="small" color="success" variant="outlined" />
+          </Box>
+        </CardContent>
+      </Card>
 
       {/* Error Feedback */}
       {error && (
@@ -347,9 +456,10 @@ export default function SegmentationClient() {
         </Alert>
       )}
 
-      {/* Data Table */}
-      <SegmentationTable 
+      {/* Main Table */}
+      <SegmentationTable
         data={headers}
+        canManage={canManageSegmentation}
         loading={loading}
         page={page}
         rowsPerPage={rowsPerPage}
@@ -368,21 +478,21 @@ export default function SegmentationClient() {
         pendingRequests={pendingRequests}
       />
 
-      {/* Detail Drawer */}
-      <Drawer
-        anchor="right"
-        open={detailOpen}
-        onClose={() => setDetailOpen(false)}
-        PaperProps={{ sx: { width: { xs: '100%', md: '85%' }, maxWidth: 1200 } }}
-      >
-        <SegmentationDetail 
-            key={selectedHeader?.id || (detailMode === 'add' ? 'new' : 'none')}
+      {detailOpen && selectedHeader && (
+        <Drawer
+          anchor="right"
+          open={detailOpen}
+          onClose={() => setDetailOpen(false)}
+          PaperProps={{ sx: { width: { xs: '100%', md: '80%', lg: '70%' } } }}
+        >
+          <SegmentationDetail
             mode={detailMode}
             initialData={selectedHeader}
-            onSubmit={handleSave}
+            onSubmit={(data, isDraft) => handleSave(data, isDraft)}
             onClose={() => setDetailOpen(false)}
-        />
-      </Drawer>
+          />
+        </Drawer>
+      )}
 
       {/* Notifications */}
       <Snackbar

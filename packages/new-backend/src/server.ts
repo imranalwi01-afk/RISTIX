@@ -8,6 +8,7 @@ import { Server as Engine } from '@socket.io/bun-engine'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { app } from './app'
 import { env, db, closeDatabase } from './config'
+import { ensureApprovalLevelRequirementsCompatibility } from './config/database'
 import { logger } from './lib/logger'
 import { initializeNotificationSocket } from './socket/notification.socket'
 import { setupQueues, closeQueues } from './queue/bull-setup'
@@ -24,13 +25,51 @@ export async function startServer() {
     // 1. DATABASE (already initialized from config)
     // ============================================================================
     logger.info('Database connection ready')
+    await ensureApprovalLevelRequirementsCompatibility()
+    logger.info('Approval schema compatibility check passed')
     // db is imported from config/database.ts
 
     // ============================================================================
     // 2. CREATE BUN ENGINE FOR SOCKET.IO
     // ============================================================================
     logger.info('Creating Bun engine...')
-    const engine = new Engine()
+    const socketAllowedOrigins = Array.from(new Set([
+        ...String(env.CORS_ORIGINS || '')
+            .split(',')
+            .map((origin) => origin.trim())
+            .filter((origin) => origin.length > 0),
+        ...(env.NODE_ENV === 'development'
+            ? ['http://localhost:4231', 'http://127.0.0.1:4231']
+            : []),
+    ]))
+
+    const isSocketOriginAllowed = (origin: string | null | undefined) =>
+        !origin || socketAllowedOrigins.includes(origin)
+
+    const engine = new Engine({
+        cors: {
+            origin: socketAllowedOrigins,
+            credentials: true,
+            methods: ['GET', 'POST', 'OPTIONS'],
+            allowedHeaders: [
+                'Authorization',
+                'Content-Type',
+                'X-Tenant-ID',
+                'X-Tenant-Slug',
+                'X-Request-Time',
+                'X-Client',
+            ],
+        },
+        allowRequest: (req) => {
+            const originHeader = req.headers.get('origin')
+            if (isSocketOriginAllowed(originHeader)) {
+                return Promise.resolve()
+            }
+
+            logger.warn({ origin: originHeader, socketAllowedOrigins }, 'Socket.IO engine origin rejected')
+            return Promise.reject('origin not allowed')
+        },
+    })
 
     // ============================================================================
     // 3. INITIALIZE SOCKET.IO

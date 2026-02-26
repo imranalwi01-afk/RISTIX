@@ -10,13 +10,21 @@ R_SERVICE_CONFIG <- list(
   timeout_seconds = as.integer(Sys.getenv("R_TIMEOUT_SECONDS", "300"))
 )
 
+get_preferred_env <- function(primary, fallback, default = "") {
+  primary_val <- Sys.getenv(primary, "")
+  if (nzchar(primary_val)) return(primary_val)
+  fallback_val <- Sys.getenv(fallback, "")
+  if (nzchar(fallback_val)) return(fallback_val)
+  default
+}
+
 # Database Configuration
 DB_CONFIG <- list(
-  host = Sys.getenv("DB_HOST", "localhost"),
-  port = as.integer(Sys.getenv("DB_PORT", "5432")),
-  user = Sys.getenv("DB_USER", "postgres"),
-  password = Sys.getenv("DB_PASSWORD", "postgres"),
-  dbname = Sys.getenv("DB_NAME", "postgres")
+  host = get_preferred_env("FRS9_DB_HOST", "DB_HOST", "localhost"),
+  port = as.integer(get_preferred_env("FRS9_DB_PORT", "DB_PORT", "5432")),
+  user = get_preferred_env("FRS9_DB_USER", "DB_USER", "postgres"),
+  password = get_preferred_env("FRS9_DB_PASSWORD", "DB_PASSWORD", "postgres"),
+  dbname = get_preferred_env("FRS9_DB_NAME", "DB_NAME", "FRS9PRO")
 )
 
 # IFRS 9 Model Configuration

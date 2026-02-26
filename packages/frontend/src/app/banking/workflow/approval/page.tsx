@@ -31,6 +31,7 @@ import {
   ArrowBack as BackIcon
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
+import { Can } from '@/components/rbac/Can';
 
 export default function ApprovalSystemPage() {
   const router = useRouter();
@@ -123,13 +124,15 @@ export default function ApprovalSystemPage() {
               </Alert>
 
               <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
-                <Button
-                  variant="contained"
-                  startIcon={<PageIcon />}
-                  disabled
-                >
-                  Configure Approval System
-                </Button>
+                <Can permission={['approval.requests.approve', 'approval.all', 'admin.super_admin']}>
+                  <Button
+                    variant="contained"
+                    startIcon={<PageIcon />}
+                    disabled
+                  >
+                    Configure Approval System
+                  </Button>
+                </Can>
                 <Button
                   variant="outlined"
                   startIcon={<BackIcon />}

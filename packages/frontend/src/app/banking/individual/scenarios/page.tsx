@@ -38,8 +38,14 @@ import {
 } from '@mui/icons-material';
 import { individualImpairmentAPI } from '../../../../services/api/individual-impairment.api';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
+import { Can } from '@/components/rbac/Can';
+import { usePermission } from '@/hooks/usePermission';
 
 export default function ScenariosPage() {
+  const { hasAnyPermission } = usePermission();
+  const canCreateScenario = hasAnyPermission(['banking.individual.create', 'banking.individual.manage', 'admin.super_admin']);
+  const canApproveScenario = hasAnyPermission(['approval.requests.approve', 'approval.all', 'banking.individual.approve', 'admin.super_admin']);
+
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -77,6 +83,7 @@ export default function ScenariosPage() {
   }, []);
 
   const handleCreate = async () => {
+    if (!canCreateScenario) return;
     if (!formData.scenarioName || !formData.scenarioCode) return;
 
     try {
@@ -111,6 +118,7 @@ export default function ScenariosPage() {
   };
 
   const handleStatusUpdate = async (status: string) => {
+    if (!canApproveScenario) return;
     if (!selectedRow) return;
     try {
       await individualImpairmentAPI.updateScenarioStatus(selectedRow.id, status);
@@ -163,9 +171,11 @@ export default function ScenariosPage() {
       width: 100,
       sortable: false,
       renderCell: (params: GridRenderCellParams) => (
-        <IconButton onClick={(e) => handleOpenMenu(e, params.row)}>
-          <MoreVertIcon />
-        </IconButton>
+        canApproveScenario ? (
+          <IconButton onClick={(e) => handleOpenMenu(e, params.row)}>
+            <MoreVertIcon />
+          </IconButton>
+        ) : null
       )
     }
   ];
@@ -188,13 +198,15 @@ export default function ScenariosPage() {
         <Typography variant="h4" component="h1" gutterBottom>
           Scenario Details
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => setOpenDialog(true)}
-        >
-          New Scenario
-        </Button>
+        <Can permission={['banking.individual.create', 'banking.individual.manage', 'admin.super_admin']}>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setOpenDialog(true)}
+          >
+            New Scenario
+          </Button>
+        </Can>
       </Box>
 
       <Paper sx={{ height: 600, width: '100%' }}>
@@ -208,18 +220,20 @@ export default function ScenariosPage() {
       </Paper>
 
       {/* Action Menu */}
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleCloseMenu}
-      >
-        <MenuItem onClick={() => handleStatusUpdate('APPROVED')}>
-          <ApproveIcon fontSize="small" sx={{ mr: 1, color: 'success.main' }} /> Approve
-        </MenuItem>
-        <MenuItem onClick={() => handleStatusUpdate('REJECTED')}>
-          <RejectIcon fontSize="small" sx={{ mr: 1, color: 'error.main' }} /> Reject
-        </MenuItem>
-      </Menu>
+      {canApproveScenario && (
+        <Menu
+          anchorEl={anchorEl}
+          open={Boolean(anchorEl)}
+          onClose={handleCloseMenu}
+        >
+          <MenuItem onClick={() => handleStatusUpdate('APPROVED')}>
+            <ApproveIcon fontSize="small" sx={{ mr: 1, color: 'success.main' }} /> Approve
+          </MenuItem>
+          <MenuItem onClick={() => handleStatusUpdate('REJECTED')}>
+            <RejectIcon fontSize="small" sx={{ mr: 1, color: 'error.main' }} /> Reject
+          </MenuItem>
+        </Menu>
+      )}
 
       {/* Create Dialog */}
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
@@ -265,7 +279,7 @@ export default function ScenariosPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
-          <Button onClick={handleCreate} variant="contained" disabled={loading}>
+          <Button onClick={handleCreate} variant="contained" disabled={loading || !canCreateScenario}>
             Create Scenario
           </Button>
         </DialogActions>

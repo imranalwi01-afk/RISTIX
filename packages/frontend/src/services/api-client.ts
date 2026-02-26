@@ -11,7 +11,7 @@ import { frontendEnvironmentLoader } from '../config/environment-loader-frontend
 
 // Initialize configuration
 const config = frontendEnvironmentLoader.getConfiguration();
-const baseURL = config?.api?.base || config?.api?.backend || 'http://localhost:4232/api/v1';
+const baseURL = config?.api?.base || config?.api?.backend || '/api/v1';
 
 console.log('🔧 [API CLIENT] Initializing shared axios client with baseURL:', baseURL);
 

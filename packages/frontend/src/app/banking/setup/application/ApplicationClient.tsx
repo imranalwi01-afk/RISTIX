@@ -60,6 +60,8 @@ import { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import EmptyState from '@/components/banking/shared/EmptyState';
 import api, { handleAPIError, bankingAPI } from '../../../../services/api';
 import { ApprovalStatusBadge, PendingChangesDialog } from '@/components/approval';
+import { Can } from '@/components/rbac/Can';
+import { usePermission } from '@/hooks/usePermission';
 
 import {
   ApplicationFormDialog,
@@ -70,19 +72,10 @@ import {
   type DetailFormData
 } from './components';
 
-// Legacy Permission Interface
-interface ViewBagPermissions {
-  ViewAction: boolean;
-  UpdateAction: boolean;
-  DeleteAction: boolean;
-  InsertAction: boolean;
-  ExportAction: boolean;
-}
-
 // =====================================================
 // DETAIL PANEL COMPONENT
 // =====================================================
-const ApplicationDetailPanel = ({ row, onEditDetail, onDeleteDetail, onAddDetail, refreshTrigger }: any) => {
+const ApplicationDetailPanel = ({ row, onEditDetail, onDeleteDetail, onAddDetail, refreshTrigger, canManage = false }: any) => {
   const [details, setDetails] = useState<ApplicationSettingDetailDataTable[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -128,14 +121,16 @@ const ApplicationDetailPanel = ({ row, onEditDetail, onDeleteDetail, onAddDetail
         <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
           Parameter Details for {row.CommonCode}
         </Typography>
-        <Button
-          size="small"
-          startIcon={<AddIcon />}
-          variant="contained"
-          onClick={() => onAddDetail(row)}
-        >
-          Add Detail
-        </Button>
+        {canManage && (
+          <Button
+            size="small"
+            startIcon={<AddIcon />}
+            variant="contained"
+            onClick={() => onAddDetail(row)}
+          >
+            Add Detail
+          </Button>
+        )}
       </Box>
 
       {details.length === 0 ? (
@@ -162,14 +157,16 @@ const ApplicationDetailPanel = ({ row, onEditDetail, onDeleteDetail, onAddDetail
                   <TableCell>{detail.Value3 || '-'}</TableCell>
                   <TableCell>{detail.Description}</TableCell>
                   <TableCell>
-                    <Box sx={{ display: 'flex' }}>
-                      <IconButton size="small" color="primary" onClick={() => onEditDetail(detail, row)}>
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-                      <IconButton size="small" color="error" onClick={() => onDeleteDetail(detail, row.CommonCode, loadDetails)}>
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </Box>
+                    {canManage && (
+                      <Box sx={{ display: 'flex' }}>
+                        <IconButton size="small" color="primary" onClick={() => onEditDetail(detail, row)}>
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton size="small" color="error" onClick={() => onDeleteDetail(detail, row.CommonCode, loadDetails)}>
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Box>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
@@ -186,15 +183,11 @@ const ApplicationDetailPanel = ({ row, onEditDetail, onDeleteDetail, onAddDetail
 // =====================================================
 
 export default function ApplicationSettingPage() {
+  const { hasAnyPermission } = usePermission();
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<ApplicationSettingDataTable[]>([]);
-  const [permissions] = useState<ViewBagPermissions>({
-    ViewAction: true,
-    UpdateAction: true,
-    DeleteAction: true,
-    InsertAction: true,
-    ExportAction: true
-  });
+  const canViewApplication = hasAnyPermission(['banking.setup.application.view', 'banking.setup.application.manage', 'banking.setup.application', 'admin.super_admin']);
+  const canManageApplication = hasAnyPermission(['banking.setup.application.manage', 'banking.setup.application.create', 'banking.setup.application.update', 'banking.setup.application.delete', 'admin.super_admin']);
 
   // Pagination State (Segmentation Pattern)
   const [page, setPage] = useState(0);
@@ -345,7 +338,7 @@ export default function ApplicationSettingPage() {
           setData(appParams.sort((a: any, b: any) => new Date(b.created_date || b.CreatedDate).getTime() - new Date(a.created_date || a.CreatedDate).getTime()));
         }
       }
-    } catch (error: any) {
+    } catch (error) {
       setError(`Failed to load data: ${handleAPIError(error).message}`);
     } finally {
       setLoading(false);
@@ -379,16 +372,19 @@ export default function ApplicationSettingPage() {
 
   // CRUD Handlers
   const handleCreate = () => {
+    if (!canManageApplication) return;
     setSelectedRecord(null);
     setCreateModalOpen(true);
   };
 
   const handleEdit = (row: ApplicationSettingDataTable) => {
+    if (!canManageApplication) return;
     setSelectedRecord(row);
     setEditModalOpen(true);
   };
 
   const handleDelete = async (row: ApplicationSettingDataTable) => {
+    if (!canManageApplication) return;
     if (!confirm(`Are you sure you want to delete "${row.CommonCode}"?`)) return;
     try {
       setLoading(true);
@@ -400,7 +396,7 @@ export default function ApplicationSettingPage() {
         setSuccess('Deleted successfully');
       }
       await loadData();
-    } catch (e: any) {
+    } catch (e) {
       setError(handleAPIError(e).message);
     } finally {
       setLoading(false);
@@ -408,6 +404,7 @@ export default function ApplicationSettingPage() {
   };
 
   const handleApplicationFormSave = async (formData: ApplicationSettingFormData) => {
+    if (!canManageApplication) return;
     try {
       setLoading(true);
       const payload = {
@@ -440,7 +437,7 @@ export default function ApplicationSettingPage() {
       setCreateModalOpen(false);
       setEditModalOpen(false);
       loadData();
-    } catch (e: any) {
+    } catch (e) {
       setError(handleAPIError(e).message);
     } finally {
       setLoading(false);
@@ -449,6 +446,7 @@ export default function ApplicationSettingPage() {
 
   // Detail CRUD
   const handleAddDetail = async (row: ApplicationSettingDataTable) => {
+    if (!canManageApplication) return;
     setSelectedRecord(row);
     await fetchDetailsForModal(row.CommonCode);
     setSelectedDetail(null);
@@ -456,12 +454,14 @@ export default function ApplicationSettingPage() {
   };
 
   const handleEditDetail = (detail: ApplicationSettingDetailDataTable, row: ApplicationSettingDataTable) => {
+    if (!canManageApplication) return;
     setSelectedRecord(row);
     setSelectedDetail(detail);
     setDetailModalOpen(true);
   };
 
   const handleDeleteDetail = async (detail: ApplicationSettingDetailDataTable, paramCode: string, refreshCallback: () => void) => {
+    if (!canManageApplication) return;
     if (!confirm(`Delete detail sequence ${detail.SeqNo}?`)) return;
     try {
       await api.applicationParameter.details.delete(detail.ID.toString());
@@ -470,7 +470,7 @@ export default function ApplicationSettingPage() {
       setDetailRefreshTrigger(prev => prev + 1); // For other panels if needed
       if (selectedRecord) loadDetailData(selectedRecord.CommonCode); // For View Dialog
 
-    } catch (e: any) {
+    } catch (e) {
       setError(handleAPIError(e).message);
     }
   }
@@ -481,6 +481,7 @@ export default function ApplicationSettingPage() {
 
   // Detail CRUD Operations
   const handleCreateDetail = () => {
+    if (!canManageApplication) return;
     if (!selectedRecord) return;
 
     setSelectedDetail(null);
@@ -496,6 +497,7 @@ export default function ApplicationSettingPage() {
   };
 
   const handleDetailFormSave = async (formData: DetailFormData) => {
+    if (!canManageApplication) return;
     if (!selectedRecord) return;
     try {
       setDetailLoading(true);
@@ -531,7 +533,7 @@ export default function ApplicationSettingPage() {
       // Force refresh of the grid - simpler to just let user re-expand or auto-refresh if we tracked expanded state
       // For now, the detail panel itself fetches on mount/update so we are good if we trigger a re-render or if the user collapses/expands
       loadData(); // This refreshes the parent, but details are fetched by the panel
-    } catch (e: any) {
+    } catch (e) {
       setError(handleAPIError(e).message);
     } finally {
       setDetailLoading(false);
@@ -576,7 +578,7 @@ export default function ApplicationSettingPage() {
       headerName: 'Actions',
       type: 'actions',
       width: 120,
-      getActions: (params: any) => [
+      getActions: (params: any) => canManageApplication ? [
         <SafeGridActionsCellItem
           key="edit"
           label="Edit"
@@ -589,12 +591,17 @@ export default function ApplicationSettingPage() {
           icon={<DeleteIcon color="error" />}
           onClick={() => handleDelete(params.row)}
         />
-      ]
+      ] : []
     }
   ];
 
   return (
     <Container maxWidth="xl">
+      {!canViewApplication && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          You do not have permission to view application settings.
+        </Alert>
+      )}
       <Box sx={{ mb: 3, py: 1, bgcolor: 'grey.50', borderRadius: 1, px: 2 }}>
         <Typography variant="body2" color="text.secondary">
           General Setup / Application Setting
@@ -612,9 +619,11 @@ export default function ApplicationSettingPage() {
             {/* Export not fully implemented in refactor yet, placeholder */}
             <Button variant="outlined" startIcon={<DownloadIcon />} disabled>Export</Button>
 
-            <Button variant="contained" startIcon={<AddIcon />} onClick={handleCreate}>
-              Add Application Setting
-            </Button>
+            <Can permission={['banking.setup.application.create', 'banking.setup.application.manage', 'admin.super_admin']}>
+              <Button variant="contained" startIcon={<AddIcon />} onClick={handleCreate}>
+                Add Application Setting
+              </Button>
+            </Can>
           </Box>
 
           <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
@@ -662,6 +671,7 @@ export default function ApplicationSettingPage() {
                   onEditDetail={handleEditDetail}
                   onDeleteDetail={handleDeleteDetail}
                   onAddDetail={handleAddDetail}
+                  canManage={canManageApplication}
                   refreshTrigger={detailRefreshTrigger}
                 />
               )}
@@ -750,16 +760,18 @@ export default function ApplicationSettingPage() {
             <Typography variant="h6">
               Parameter Details
             </Typography>
-            <Button
-              variant="contained"
-              size="small"
-              startIcon={<AddIcon />}
-              onClick={handleCreateDetail}
-              disabled={detailLoading}
-              data-testid="btn-add-detail"
-            >
-              Add Detail
-            </Button>
+            {canManageApplication && (
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={<AddIcon />}
+                onClick={handleCreateDetail}
+                disabled={detailLoading}
+                data-testid="btn-add-detail"
+              >
+                Add Detail
+              </Button>
+            )}
           </Box>
 
           {detailLoading && (
@@ -771,14 +783,16 @@ export default function ApplicationSettingPage() {
           {!detailLoading && detailData.length === 0 && (
             <Alert severity="info" sx={{ mb: 2 }}>
               No details configured for this parameter.
-              <Button
-                size="small"
-                startIcon={<AddIcon />}
-                sx={{ ml: 1 }}
-                onClick={handleCreateDetail}
-              >
-                Add First Detail
-              </Button>
+              {canManageApplication && (
+                <Button
+                  size="small"
+                  startIcon={<AddIcon />}
+                  sx={{ ml: 1 }}
+                  onClick={handleCreateDetail}
+                >
+                  Add First Detail
+                </Button>
+              )}
             </Alert>
           )}
 
@@ -828,52 +842,56 @@ export default function ApplicationSettingPage() {
                       </TableCell>
                       <TableCell>
                         <Box sx={{ display: 'flex', gap: 1 }}>
-                          <Tooltip title="Edit Detail">
-                            <IconButton
-                              size="small"
-                              color="primary"
-                              onClick={() => {
-                                setSelectedDetail(detail);
-                                setDetailFormData({
-                                  ParamCode: detail.param_code ?? '',
-                                  SeqNo: detail.param_seq ?? 0,
-                                  Value1: detail.value1 ?? '',
-                                  Value2: detail.value2 ?? '',
-                                  Value3: detail.value3 ?? '',
-                                  Description: detail.paramdesc ?? ''
-                                });
-                                setDetailModalOpen(true);
-                              }}
-                              data-testid="btn-edit-detail"
-                            >
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Delete Detail">
-                            <IconButton
-                              size="small"
-                              color="error"
-                              data-testid="btn-delete-detail"
-                              onClick={async () => {
-                                if (!confirm(`Are you sure you want to delete detail sequence ${detail.param_seq ?? detail.SeqNo}?`)) {
-                                  return;
-                                }
-                                try {
-                                  setDetailLoading(true);
-                                  await api.applicationParameter.details.delete(detail.ID.toString());
-                                  await loadDetailData(selectedRecord?.CommonCode || '');
-                                  setSuccess('Parameter detail deleted successfully');
-                                } catch (error: any) {
-                                  console.error('❌ Failed to delete detail:', error);
-                                  setError(`Failed to delete detail: ${error instanceof Error ? error.message : 'Unknown error'}`);
-                                } finally {
-                                  setDetailLoading(false);
-                                }
-                              }}
-                            >
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
+                          {canManageApplication && (
+                            <>
+                              <Tooltip title="Edit Detail">
+                                <IconButton
+                                  size="small"
+                                  color="primary"
+                                  onClick={() => {
+                                    setSelectedDetail(detail);
+                                    setDetailFormData({
+                                      ParamCode: detail.param_code ?? '',
+                                      SeqNo: detail.param_seq ?? 0,
+                                      Value1: detail.value1 ?? '',
+                                      Value2: detail.value2 ?? '',
+                                      Value3: detail.value3 ?? '',
+                                      Description: detail.paramdesc ?? ''
+                                    });
+                                    setDetailModalOpen(true);
+                                  }}
+                                  data-testid="btn-edit-detail"
+                                >
+                                  <EditIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="Delete Detail">
+                                <IconButton
+                                  size="small"
+                                  color="error"
+                                  data-testid="btn-delete-detail"
+                                  onClick={async () => {
+                                    if (!confirm(`Are you sure you want to delete detail sequence ${detail.param_seq ?? detail.SeqNo}?`)) {
+                                      return;
+                                    }
+                                    try {
+                                      setDetailLoading(true);
+                                      await api.applicationParameter.details.delete(detail.ID.toString());
+                                      await loadDetailData(selectedRecord?.CommonCode || '');
+                                      setSuccess('Parameter detail deleted successfully');
+                                    } catch (error) {
+                                      console.error('❌ Failed to delete detail:', error);
+                                      setError(`Failed to delete detail: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                                    } finally {
+                                      setDetailLoading(false);
+                                    }
+                                  }}
+                                >
+                                  <DeleteIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            </>
+                          )}
                         </Box>
                       </TableCell>
                     </TableRow>

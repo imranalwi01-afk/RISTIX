@@ -87,7 +87,7 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
     const loadTables = async () => {
       setLoading(prev => ({ ...prev, tables: true }));
       try {
-        const res = await api.segmentation.getBusinessSettingsTables();
+        const res = await api.banking.segmentation.getBusinessSettingsTables();
         setTables(Array.isArray(res) ? res : []);
       } catch (err) {
         console.error('Error loading tables:', err);
@@ -103,7 +103,7 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
     if (!tableName) return;
     setLoading(prev => ({ ...prev, columns: true }));
     try {
-      const res = await api.segmentation.getBusinessSettingsColumns(tableName);
+      const res = await api.banking.segmentation.getBusinessSettingsColumns(tableName);
       setColumns(Array.isArray(res) ? res : []);
     } catch (err) {
       console.error('Error loading columns:', err);
@@ -117,13 +117,13 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
     setLoading(prev => ({ ...prev, dataType: true, operators: true, values: true }));
     try {
       // Get Data Type
-      const dataType = await api.segmentation.getBusinessSettingsDataType(table, column);
-      
+      const dataType = await api.banking.segmentation.getBusinessSettingsDataType(table, column);
+
       // Get Operators based on data type
-      const ops = await api.segmentation.getBusinessSettingsOperators(dataType || 'String');
-      
+      const ops = await api.banking.segmentation.getBusinessSettingsOperators(dataType || 'String');
+
       // Get Column Values
-      const vals = await api.segmentation.getBusinessSettingsValues(table, column);
+      const vals = await api.banking.segmentation.getBusinessSettingsValues(table, column);
 
       setEditForm(prev => prev ? { ...prev, data_type: dataType || 'String' } : null);
       setOperators(Array.isArray(ops) ? ops : []);
@@ -137,7 +137,7 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
 
   const handleFieldChange = (field: keyof Rule, value: any) => {
     if (!editForm) return;
-    
+
     const updatedForm = { ...editForm, [field]: value };
 
     // Reset downstream fields when upstream changes
@@ -184,7 +184,7 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
     const ruleToEdit = rules[index];
     setEditForm({ ...ruleToEdit });
     setIsAdding(false);
-    
+
     // Kick off metadata loads
     loadColumnsForTable(ruleToEdit.table_name);
     loadDataAndOperators(ruleToEdit.table_name, ruleToEdit.column_name);
@@ -205,7 +205,7 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
     } else {
       updatedRules.push(editForm);
     }
-    
+
     onRulesChange(updatedRules);
     handleCancel();
   };
@@ -225,7 +225,7 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
   const renderExpression = (rule: Rule) => {
     const { condition, column_name, operator, value1, value2 } = rule;
     if (!column_name) return '...';
-    
+
     let expr = `${condition} (${column_name} ${operator} `;
     if (operator === 'BETWEEN') {
       expr += `'${value1 || '?'}' AND '${value2 || '?'}'`;
@@ -267,18 +267,18 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
       {(isAdding || editingIndex !== null) && editForm && (
         <Paper variant="outlined" sx={{ p: 4, mb: 4, borderRadius: 2, bgcolor: '#f8fafc', border: '1px solid', borderColor: 'primary.light' }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-             <Typography variant="subtitle1" fontWeight="bold" color="primary.dark">
-                {isAdding ? 'Defining New Rule' : `Editing Rule #${editingIndex! + 1}`}
-             </Typography>
-             <Stack direction="row" spacing={1}>
-                <Button size="small" variant="outlined" color="inherit" onClick={handleCancel} startIcon={<CancelIcon />}>Discard</Button>
-                <Button size="small" variant="contained" color="primary" onClick={handleSave} startIcon={<SaveIcon />}>Confirm Rule</Button>
-             </Stack>
+            <Typography variant="subtitle1" fontWeight="bold" color="primary.dark">
+              {isAdding ? 'Defining New Rule' : `Editing Rule #${editingIndex! + 1}`}
+            </Typography>
+            <Stack direction="row" spacing={1}>
+              <Button size="small" variant="outlined" color="inherit" onClick={handleCancel} startIcon={<CancelIcon />}>Discard</Button>
+              <Button size="small" variant="contained" color="primary" onClick={handleSave} startIcon={<SaveIcon />}>Confirm Rule</Button>
+            </Stack>
           </Stack>
 
           <Grid container spacing={3}>
             {/* Control Group */}
-            <Grid item xs={12} md={3}>
+            <Grid size={{ xs: 12, md: 3 }}>
               <FormControl fullWidth size="small">
                 <InputLabel>Logic</InputLabel>
                 <Select
@@ -292,7 +292,7 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={3}>
+            <Grid size={{ xs: 12, md: 3 }}>
               <TextField
                 fullWidth
                 size="small"
@@ -303,7 +303,7 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
               />
             </Grid>
-            <Grid item xs={12} md={3}>
+            <Grid size={{ xs: 12, md: 3 }}>
               <TextField
                 fullWidth
                 size="small"
@@ -314,7 +314,7 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
               />
             </Grid>
-            <Grid item xs={12} md={3}>
+            <Grid size={{ xs: 12, md: 3 }}>
               <TextField
                 fullWidth
                 size="small"
@@ -323,13 +323,13 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
                 disabled
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 }, bgcolor: 'white' }}
                 InputProps={{
-                    startAdornment: loading.dataType ? <CircularProgress size={16} sx={{ mr: 1 }} /> : null
+                  startAdornment: loading.dataType ? <CircularProgress size={16} sx={{ mr: 1 }} /> : null
                 }}
               />
             </Grid>
 
             {/* Field Selection Group */}
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <FormControl fullWidth size="small">
                 <InputLabel id="table-select-label">Table</InputLabel>
                 <Select
@@ -344,7 +344,7 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <FormControl fullWidth size="small" disabled={!editForm.table_name}>
                 <InputLabel id="column-select-label">Column</InputLabel>
                 <Select
@@ -359,7 +359,7 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <FormControl fullWidth size="small" disabled={!editForm.data_type}>
                 <InputLabel id="operator-select-label">Operator</InputLabel>
                 <Select
@@ -376,68 +376,68 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
             </Grid>
 
             {/* Value Controls */}
-            <Grid item xs={12} md={editForm.operator === 'BETWEEN' ? 6 : 12}>
-                {columnValues.length > 0 ? (
-                    <Autocomplete
-                        freeSolo
-                        size="small"
-                        options={columnValues}
-                        value={editForm.value1 || ''}
-                        onInputChange={(_, newVal) => handleFieldChange('value1', newVal)}
-                        renderInput={(params) => (
-                            <TextField 
-                                {...params} 
-                                label={editForm.operator === 'BETWEEN' ? "Start Value" : "Value"}
-                                placeholder="Select or type..."
-                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 }, bgcolor: 'white' }}
-                                InputProps={{
-                                    ...params.InputProps,
-                                    endAdornment: (
-                                        <>
-                                            {loading.values ? <CircularProgress color="inherit" size={20} /> : null}
-                                            {params.InputProps.endAdornment}
-                                        </>
-                                    ),
-                                }}
-                            />
-                        )}
-                    />
-                ) : (
+            <Grid size={{ xs: 12, md: editForm.operator === 'BETWEEN' ? 6 : 12 }}>
+              {columnValues.length > 0 ? (
+                <Autocomplete
+                  freeSolo
+                  size="small"
+                  options={columnValues}
+                  value={editForm.value1 || ''}
+                  onInputChange={(_, newVal) => handleFieldChange('value1', newVal)}
+                  renderInput={(params) => (
                     <TextField
-                        fullWidth
-                        size="small"
-                        label={editForm.operator === 'BETWEEN' ? "Start Value" : "Value"}
-                        value={editForm.value1 || ''}
-                        onChange={(e) => handleFieldChange('value1', e.target.value)}
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 }, bgcolor: 'white' }}
+                      {...params}
+                      label={editForm.operator === 'BETWEEN' ? "Start Value" : "Value"}
+                      placeholder="Select or type..."
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 }, bgcolor: 'white' }}
+                      InputProps={{
+                        ...params.InputProps,
+                        endAdornment: (
+                          <>
+                            {loading.values ? <CircularProgress color="inherit" size={20} /> : null}
+                            {params.InputProps.endAdornment}
+                          </>
+                        ),
+                      }}
                     />
-                )}
+                  )}
+                />
+              ) : (
+                <TextField
+                  fullWidth
+                  size="small"
+                  label={editForm.operator === 'BETWEEN' ? "Start Value" : "Value"}
+                  value={editForm.value1 || ''}
+                  onChange={(e) => handleFieldChange('value1', e.target.value)}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 }, bgcolor: 'white' }}
+                />
+              )}
             </Grid>
 
             {editForm.operator === 'BETWEEN' && (
-               <Grid item xs={12} md={6}>
-                  <TextField
-                        fullWidth
-                        size="small"
-                        label="End Value"
-                        value={editForm.value2 || ''}
-                        onChange={(e) => handleFieldChange('value2', e.target.value)}
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 }, bgcolor: 'white' }}
-                    />
-               </Grid>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="End Value"
+                  value={editForm.value2 || ''}
+                  onChange={(e) => handleFieldChange('value2', e.target.value)}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 }, bgcolor: 'white' }}
+                />
+              </Grid>
             )}
 
             {/* Preview Section */}
-            <Grid item xs={12}>
-               <Box sx={{ p: 2, bgcolor: '#eef2f6', borderRadius: 2, border: '1px dashed #cbd5e1' }}>
-                  <Stack direction="row" spacing={1} alignItems="center">
-                     <PreviewIcon color="primary" sx={{ fontSize: 16 }} />
-                     <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 'bold' }}>LIVE SQL PREVIEW:</Typography>
-                     <Typography variant="body2" sx={{ fontFamily: 'monospace', color: '#334155' }}>
-                        {renderExpression(editForm)}
-                     </Typography>
-                  </Stack>
-               </Box>
+            <Grid size={12}>
+              <Box sx={{ p: 2, bgcolor: '#eef2f6', borderRadius: 2, border: '1px dashed #cbd5e1' }}>
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <PreviewIcon color="primary" sx={{ fontSize: 16 }} />
+                  <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 'bold' }}>LIVE SQL PREVIEW:</Typography>
+                  <Typography variant="body2" sx={{ fontFamily: 'monospace', color: '#334155' }}>
+                    {renderExpression(editForm)}
+                  </Typography>
+                </Stack>
+              </Box>
             </Grid>
           </Grid>
         </Paper>
@@ -464,51 +464,51 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
             </TableHead>
             <TableBody>
               {rules.map((rule, idx) => (
-                <TableRow 
-                  key={idx} 
-                  hover 
-                  sx={{ 
-                      bgcolor: editingIndex === idx ? 'rgba(25, 118, 210, 0.04)' : 'transparent',
-                      transition: 'background-color 0.2s'
+                <TableRow
+                  key={idx}
+                  hover
+                  sx={{
+                    bgcolor: editingIndex === idx ? 'rgba(25, 118, 210, 0.04)' : 'transparent',
+                    transition: 'background-color 0.2s'
                   }}
                 >
                   <TableCell>
-                     <DragIcon color="disabled" fontSize="small" />
+                    <DragIcon color="disabled" fontSize="small" />
                   </TableCell>
                   <TableCell>{rule.seq}</TableCell>
                   <TableCell>
-                     <Chip label={`G${rule.query_group}`} size="small" sx={{ fontWeight: 'bold', height: 20, fontSize: '0.65rem' }} />
+                    <Chip label={`G${rule.query_group}`} size="small" sx={{ fontWeight: 'bold', height: 20, fontSize: '0.65rem' }} />
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'primary.dark' }}>{rule.table_name}</Typography>
                     <Typography variant="caption" color="text.secondary">{rule.column_name}</Typography>
                   </TableCell>
                   <TableCell sx={{ verticalAlign: 'middle' }}>
-                     <Stack direction="row" spacing={1} alignItems="center">
-                        <Chip label={rule.operator} size="small" variant="outlined" color="primary" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 800 }} />
-                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                            {rule.operator === 'BETWEEN' ? `${rule.value1} AND ${rule.value2}` : rule.value1}
-                        </Typography>
-                     </Stack>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Chip label={rule.operator} size="small" variant="outlined" color="primary" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 800 }} />
+                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                        {rule.operator === 'BETWEEN' ? `${rule.value1} AND ${rule.value2}` : rule.value1}
+                      </Typography>
+                    </Stack>
                   </TableCell>
                   <TableCell>
-                    <Chip 
-                        label={rule.condition} 
-                        size="small" 
-                        color={rule.condition === 'OR' ? 'info' : 'primary'} 
-                        sx={{ fontWeight: 800, height: 18, minWidth: 40, fontSize: '0.65rem' }} 
+                    <Chip
+                      label={rule.condition}
+                      size="small"
+                      color={rule.condition === 'OR' ? 'info' : 'primary'}
+                      sx={{ fontWeight: 800, height: 18, minWidth: 40, fontSize: '0.65rem' }}
                     />
                   </TableCell>
                   {!readOnly && (
                     <TableCell align="center">
-                       <Stack direction="row" spacing={0.5} justifyContent="center">
-                          <IconButton size="small" onClick={() => handleEditStart(idx)} disabled={editingIndex !== null || isAdding}>
-                             <EditIcon fontSize="small" color={editingIndex === idx ? "primary" : "action"} />
-                          </IconButton>
-                          <IconButton size="small" onClick={() => handleDelete(idx)} disabled={editingIndex !== null || isAdding} color="error">
-                             <DeleteIcon fontSize="small" />
-                          </IconButton>
-                       </Stack>
+                      <Stack direction="row" spacing={0.5} justifyContent="center">
+                        <IconButton size="small" onClick={() => handleEditStart(idx)} disabled={editingIndex !== null || isAdding}>
+                          <EditIcon fontSize="small" color={editingIndex === idx ? "primary" : "action"} />
+                        </IconButton>
+                        <IconButton size="small" onClick={() => handleDelete(idx)} disabled={editingIndex !== null || isAdding} color="error">
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Stack>
                     </TableCell>
                   )}
                 </TableRow>
@@ -520,25 +520,25 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
 
       {/* SQL View Summary */}
       {rules.length > 0 && (
-          <Box sx={{ mt: 4, p: 3, bgcolor: '#1e293b', borderRadius: 2 }}>
-             <Typography variant="caption" color="primary.light" sx={{ fontWeight: 'bold', mb: 1, display: 'block' }}>
-                GENERATED SEGMENTATION QUERY
-             </Typography>
-             <Typography sx={{ 
-                 fontFamily: '"Fira Code", monospace', 
-                 color: '#f8fafc', 
-                 fontSize: '0.85rem',
-                 lineHeight: 1.6
-             }}>
-                SELECT * FROM accounts WHERE <br />
-                {rules.map((r, i) => (
-                    <span key={i} style={{ paddingLeft: '20px', display: 'block' }}>
-                        {i > 0 && <span style={{ color: '#fbbf24', fontWeight: 'bold' }}>{r.condition} </span>}
-                        ({r.column_name} {r.operator} <span style={{ color: '#38bdf8' }}>{r.operator === 'BETWEEN' ? `'${r.value1}' AND '${r.value2}'` : `'${r.value1}'`}</span>)
-                    </span>
-                ))}
-             </Typography>
-          </Box>
+        <Box sx={{ mt: 4, p: 3, bgcolor: '#1e293b', borderRadius: 2 }}>
+          <Typography variant="caption" color="primary.light" sx={{ fontWeight: 'bold', mb: 1, display: 'block' }}>
+            GENERATED SEGMENTATION QUERY
+          </Typography>
+          <Typography sx={{
+            fontFamily: '"Fira Code", monospace',
+            color: '#f8fafc',
+            fontSize: '0.85rem',
+            lineHeight: 1.6
+          }}>
+            SELECT * FROM accounts WHERE <br />
+            {rules.map((r, i) => (
+              <span key={i} style={{ paddingLeft: '20px', display: 'block' }}>
+                {i > 0 && <span style={{ color: '#fbbf24', fontWeight: 'bold' }}>{r.condition} </span>}
+                ({r.column_name} {r.operator} <span style={{ color: '#38bdf8' }}>{r.operator === 'BETWEEN' ? `'${r.value1}' AND '${r.value2}'` : `'${r.value1}'`}</span>)
+              </span>
+            ))}
+          </Typography>
+        </Box>
       )}
     </Box>
   );

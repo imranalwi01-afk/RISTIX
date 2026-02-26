@@ -91,7 +91,6 @@ export class MenuConfigurationService {
       // Defensive environment configuration access
       const apiBackend = envConfig?.api?.backend || envConfig?.backend?.url || '/api/v1';
       const bankingType = envConfig?.iaf?.bankingType || envConfig?.banking?.type || 'conventional';
-      const environmentName = envConfig?.environmentName || 'development';
 
       // Environment-based configuration loading
       this.config = {
@@ -200,7 +199,7 @@ export class MenuConfigurationService {
       };
 
       console.log('✅ Menu configuration loaded successfully:', {
-        environment: environmentName,
+        environment: envConfig?.nodeEnv || 'development',
         apiTimeout: this.config.api.timeout,
         cacheEnabled: this.config.cache.enabled,
         roleMappings: Object.keys(this.config.roles.mappings).length

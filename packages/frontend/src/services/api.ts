@@ -11,6 +11,9 @@
 
 import axios, { AxiosResponse, AxiosError } from 'axios';
 import { getAuthToken } from '../utils/auth-token';
+import { normalizeUsersMutationResponse } from './users-api.utils';
+import { normalizeRolesMutationResponse } from './roles-api.utils';
+import { getErrorMessage } from '@/utils/error-message';
 
 // ============================================================================
 // 🏗️ CENTRALIZED API CONFIGURATION
@@ -37,6 +40,7 @@ import { flScalarAPI } from './api/fl-scalar.api';
 import { eclConfigurationsApi } from './api/ecl-configurations.api';
 import { impairmentApi } from './api/impairment.api';
 import { approvalAPI } from './api/approval.api';
+import { notificationAPI } from './api/notification.api';
 // Import IFRS9 API service
 import { ifrs9API as ifrs9Service, ifrs9API } from './api/ifrs9.api';
 export { ifrs9API };
@@ -102,8 +106,8 @@ export const authAPI = {
   // Real token refresh
   refresh: async (refreshToken: string) => {
     console.log('🔄 Real token refresh');
-    // ✅ FIXED: Use explicit v1 path for refresh to avoid ambiguity
-    const response = await apiClient.post('/api/v1/auth/refresh', { refreshToken });
+    // Use relative auth path so we don't duplicate /api/v1 on configured base URLs
+    const response = await apiClient.post('/auth/refresh', { refreshToken });
     return response.data;
   }
 };
@@ -112,8 +116,28 @@ export const authAPI = {
 // REAL USERS API - DATABASE INTEGRATION
 // ============================================================================
 export const usersAPI = {
+  normalizeMutationResponse: (
+    response: AxiosResponse<any>,
+    fallbackSuccessMessage: string
+  ): Record<string, any> & {
+    success: boolean;
+    approvalRequired: boolean;
+    status?: number;
+    message: string;
+    requestId?: string;
+  } => normalizeUsersMutationResponse(response, fallbackSuccessMessage),
+
   // Get all users from real database
-  getAll: async (params?: { page?: number; limit?: number; search?: string }, tenantId?: string) => {
+  getAll: async (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    department?: string;
+    bankingAccess?: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
+    isActive?: boolean;
+    sort?: string;
+    order?: 'asc' | 'desc' | 'ASC' | 'DESC';
+  }, tenantId?: string) => {
     console.log(`👥 Fetching users from real database${tenantId ? ` (tenant: ${tenantId})` : ''}`, params);
     const config: any = { params };
     if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
@@ -136,7 +160,7 @@ export const usersAPI = {
     const config: any = {};
     if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
     const response = await apiClient.post('/users', userData, config);
-    return response.data;
+    return usersAPI.normalizeMutationResponse(response, 'User created successfully');
   },
 
   // Update user in real database
@@ -145,7 +169,7 @@ export const usersAPI = {
     const config: any = {};
     if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
     const response = await apiClient.put(`/users/${id}`, userData, config);
-    return response.data;
+    return usersAPI.normalizeMutationResponse(response, 'User updated successfully');
   },
 
   // Delete user from real database
@@ -154,7 +178,7 @@ export const usersAPI = {
     const config: any = {};
     if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
     const response = await apiClient.delete(`/users/${id}`, config);
-    return response.data;
+    return usersAPI.normalizeMutationResponse(response, 'User deleted successfully');
   },
 
   // ✅ NEW: Enable/disable user actions
@@ -163,7 +187,7 @@ export const usersAPI = {
     const config: any = {};
     if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
     const response = await apiClient.post(`/users/${id}/enable`, {}, config);
-    return response.data;
+    return usersAPI.normalizeMutationResponse(response, 'User enabled successfully');
   },
 
   disable: async (id: string, tenantId?: string) => {
@@ -171,7 +195,19 @@ export const usersAPI = {
     const config: any = {};
     if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
     const response = await apiClient.post(`/users/${id}/disable`, {}, config);
-    return response.data;
+    return usersAPI.normalizeMutationResponse(response, 'User disabled successfully');
+  },
+
+  resetPassword: async (
+    id: string,
+    payload: { newPassword: string; forcePasswordChange?: boolean },
+    tenantId?: string
+  ) => {
+    console.log(`🔐 Resetting password for user ${id}${tenantId ? ` (tenant: ${tenantId})` : ''}`);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.post(`/users/${id}/reset-password`, payload, config);
+    return usersAPI.normalizeMutationResponse(response, 'Password reset successfully');
   }
 };
 
@@ -179,6 +215,17 @@ export const usersAPI = {
 // REAL ROLES API - TENANT DATABASE INTEGRATION
 // ============================================================================
 export const rolesAPI = {
+  normalizeMutationResponse: (
+    response: AxiosResponse<any>,
+    fallbackSuccessMessage: string
+  ): Record<string, any> & {
+    success: boolean;
+    approvalRequired: boolean;
+    status?: number;
+    message: string;
+    requestId?: string;
+  } => normalizeRolesMutationResponse(response, fallbackSuccessMessage),
+
   // Get all roles from tenant database with filtering and pagination
   getAll: async (params?: {
     page?: number;
@@ -188,95 +235,194 @@ export const rolesAPI = {
     level?: 'PLATFORM' | 'TENANT' | 'DEPARTMENT';
     bankingAccess?: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
     isActive?: boolean;
-  }) => {
-    console.log('🔒 Fetching roles from tenant database with real API', params);
-    const response = await apiClient.get('/roles', { params });
+  }, tenantId?: string) => {
+    console.log(`🔒 Fetching roles from tenant database with real API${tenantId ? ` (tenant: ${tenantId})` : ''}`, params);
+    const config: any = { params };
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.get('/roles', config);
     return response.data;
   },
 
   // Get role by ID from tenant database
-  getById: async (id: string) => {
-    console.log(`🔒 Fetching role ${id} from tenant database`);
-    const response = await apiClient.get(`/roles/${id}`);
+  getById: async (id: string, tenantId?: string) => {
+    console.log(`🔒 Fetching role ${id} from tenant database${tenantId ? ` (tenant: ${tenantId})` : ''}`);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.get(`/roles/${id}`, config);
     return response.data;
   },
 
   // Create role in tenant database
   create: async (roleData: {
+    roleName?: string;
     name: string;
     displayName?: string;
     description?: string;
+    permissions?: string[];
     type?: 'SYSTEM' | 'BANKING' | 'CUSTOM';
     level?: 'PLATFORM' | 'TENANT' | 'DEPARTMENT';
+    bankingTypeSpecific?: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
     bankingAccess?: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
+    complianceLevel?: string;
+    hierarchyLevel?: number;
     isActive?: boolean;
-  }) => {
-    console.log('➕ Creating role in tenant database', roleData.name);
-    const response = await apiClient.post('/roles', roleData);
-    return response.data;
+  }, tenantId?: string) => {
+    console.log(`➕ Creating role in tenant database${tenantId ? ` (tenant: ${tenantId})` : ''}`, roleData.name);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const payload = {
+      roleName: roleData.roleName || roleData.name || roleData.displayName,
+      description: roleData.description,
+      permissions: roleData.permissions || [],
+      bankingTypeSpecific: roleData.bankingTypeSpecific || roleData.bankingAccess,
+      complianceLevel: roleData.complianceLevel,
+      hierarchyLevel: roleData.hierarchyLevel,
+      isActive: roleData.isActive,
+    };
+    const response = await apiClient.post('/roles', payload, config);
+    return rolesAPI.normalizeMutationResponse(response, 'Role created successfully');
   },
 
   // Update role in tenant database
   update: async (id: string, roleData: {
+    roleName?: string;
     name?: string;
     displayName?: string;
     description?: string;
+    permissions?: string[];
+    bankingTypeSpecific?: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
     bankingAccess?: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
+    complianceLevel?: string;
+    hierarchyLevel?: number;
     isActive?: boolean;
-  }) => {
-    console.log(`✏️ Updating role ${id} in tenant database`);
-    const response = await apiClient.put(`/roles/${id}`, roleData);
-    return response.data;
+  }, tenantId?: string) => {
+    console.log(`✏️ Updating role ${id} in tenant database${tenantId ? ` (tenant: ${tenantId})` : ''}`);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const payload = {
+      roleName: roleData.roleName || roleData.name || roleData.displayName,
+      description: roleData.description,
+      permissions: roleData.permissions,
+      bankingTypeSpecific: roleData.bankingTypeSpecific || roleData.bankingAccess,
+      complianceLevel: roleData.complianceLevel,
+      hierarchyLevel: roleData.hierarchyLevel,
+      isActive: roleData.isActive,
+    };
+    const response = await apiClient.put(`/roles/${id}`, payload, config);
+    return rolesAPI.normalizeMutationResponse(response, 'Role updated successfully');
   },
 
   // Delete role from tenant database
-  delete: async (id: string) => {
-    console.log(`🗑️ Deleting role ${id} from tenant database`);
-    const response = await apiClient.delete(`/roles/${id}`);
-    return response.data;
+  delete: async (id: string, tenantId?: string) => {
+    console.log(`🗑️ Deleting role ${id} from tenant database${tenantId ? ` (tenant: ${tenantId})` : ''}`);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.delete(`/roles/${id}`, config);
+    return rolesAPI.normalizeMutationResponse(response, 'Role deleted successfully');
   },
 
   // Toggle role active status
-  toggle: async (id: string) => {
-    console.log(`🔄 Toggling role ${id} active status`);
-    const response = await apiClient.post(`/roles/${id}/toggle`);
-    return response.data;
+  toggle: async (id: string, tenantId?: string) => {
+    console.log(`🔄 Toggling role ${id} active status${tenantId ? ` (tenant: ${tenantId})` : ''}`);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.post(`/roles/${id}/toggle`, {}, config);
+    return rolesAPI.normalizeMutationResponse(response, 'Role status updated successfully');
   },
 
   // Get all available permissions
-  getPermissions: async () => {
-    console.log('🔑 Fetching permissions from tenant database');
-    const response = await apiClient.get('/roles/permissions');
+  getPermissions: async (tenantId?: string) => {
+    console.log(`🔑 Fetching permissions from tenant database${tenantId ? ` (tenant: ${tenantId})` : ''}`);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.get('/roles/permissions', config);
     return response.data;
   },
 
   // Update role permissions
-  updatePermissions: async (id: string, permissions: string[]) => {
-    console.log(`🔑 Updating permissions for role ${id}`);
-    const response = await apiClient.put(`/roles/${id}/permissions`, { permissions });
-    return response.data;
+  updatePermissions: async (
+    id: string,
+    permissions: string[],
+    tenantId?: string,
+    options?: { submitForApproval?: boolean; approvalReason?: string }
+  ) => {
+    console.log(`🔑 Updating permissions for role ${id}${tenantId ? ` (tenant: ${tenantId})` : ''}`);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.put(`/roles/${id}/permissions`, {
+      permissions,
+      submitForApproval: options?.submitForApproval ?? true,
+      approvalReason: options?.approvalReason
+    }, config);
+    return rolesAPI.normalizeMutationResponse(response, 'Role permissions updated successfully');
   },
 
   // Get users assigned to role
-  getUsers: async (roleId: string) => {
-    console.log(`👥 Fetching users for role ${roleId}`);
-    const response = await apiClient.get(`/roles/${roleId}/users`);
+  getUsers: async (roleId: string, tenantId?: string) => {
+    console.log(`👥 Fetching users for role ${roleId}${tenantId ? ` (tenant: ${tenantId})` : ''}`);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.get(`/roles/${roleId}/users`, config);
+    return response.data;
+  },
+
+  // Get roles assigned to user
+  getUserRoles: async (userId: string, tenantId?: string) => {
+    console.log(`👤 Fetching role assignments for user ${userId}${tenantId ? ` (tenant: ${tenantId})` : ''}`);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.get(`/roles/users/${userId}/roles`, config);
     return response.data;
   },
 
   // Assign role to user
-  assignUser: async (roleId: string, userId: string) => {
-    console.log(`👤 Assigning role ${roleId} to user ${userId}`);
-    // Fixed path matching backend: POST /users/:userId/roles/:roleId
-    const response = await apiClient.post(`/users/${userId}/roles/${roleId}`);
-    return response.data;
+  assignUser: async (roleId: string, userId: string, tenantId?: string) => {
+    console.log(`👤 Assigning role ${roleId} to user ${userId}${tenantId ? ` (tenant: ${tenantId})` : ''}`);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const payload = { isTemporary: false };
+    try {
+      // Preferred RBAC route in new-backend: /roles/users/:userId/roles/:roleId
+      const response = await apiClient.post(`/roles/users/${userId}/roles/${roleId}`, payload, config);
+      return rolesAPI.normalizeMutationResponse(response, 'Role assigned successfully');
+    } catch (error: any) {
+      // Compatibility fallback for legacy route shape if RBAC-prefixed path is unavailable.
+      if (error?.response?.status === 404) {
+        const response = await apiClient.post(`/users/${userId}/roles/${roleId}`, payload, config);
+        return rolesAPI.normalizeMutationResponse(response, 'Role assigned successfully');
+      }
+      throw error;
+    }
   },
 
   // Remove role from user
-  removeUser: async (roleId: string, userId: string) => {
-    console.log(`👤 Removing role ${roleId} from user ${userId}`);
-    // Fixed path matching backend: DELETE /users/:userId/roles/:roleId
-    const response = await apiClient.delete(`/users/${userId}/roles/${roleId}`);
+  removeUser: async (roleId: string, userId: string, tenantId?: string) => {
+    console.log(`👤 Removing role ${roleId} from user ${userId}${tenantId ? ` (tenant: ${tenantId})` : ''}`);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    try {
+      // Preferred RBAC route in new-backend: /roles/users/:userId/roles/:roleId
+      const response = await apiClient.delete(`/roles/users/${userId}/roles/${roleId}`, config);
+      return rolesAPI.normalizeMutationResponse(response, 'Role removed successfully');
+    } catch (error: any) {
+      // Compatibility fallback for legacy route shape if RBAC-prefixed path is unavailable.
+      if (error?.response?.status === 404) {
+        const response = await apiClient.delete(`/users/${userId}/roles/${roleId}`, config);
+        return rolesAPI.normalizeMutationResponse(response, 'Role removed successfully');
+      }
+      throw error;
+    }
+  },
+
+  checkUserPermission: async (
+    userId: string,
+    input: { resource: string; action: string },
+    tenantId?: string
+  ) => {
+    console.log(`🔍 Checking permission for user ${userId}${tenantId ? ` (tenant: ${tenantId})` : ''}`, input);
+    const config: any = {};
+    if (tenantId) config.headers = { 'X-Tenant-ID': tenantId };
+    const response = await apiClient.post(`/roles/users/${userId}/permissions/check`, input, config);
     return response.data;
   }
 };
@@ -366,6 +512,7 @@ export const bankingAPI = {
   eclConfigurations: eclConfigurationsApi,
   impairment: impairmentApi,
   approval: approvalAPI,
+  notifications: notificationAPI,
 
   // Jobs Monitoring API (backend /api/v1/jobs)
   jobs: {
@@ -377,12 +524,30 @@ export const bankingAPI = {
       const response = await apiClient.get('/jobs/executions', { params })
       return response.data
     },
+    getExecution: async (executionId: string) => {
+      const response = await apiClient.get(`/jobs/executions/${executionId}`)
+      return response.data
+    },
     getMetrics: async () => {
       const response = await apiClient.get('/jobs/metrics')
       return response.data
     },
+    getExecutionRuntime: async (executionId: string) => {
+      const response = await apiClient.get(`/jobs/executions/${executionId}/runtime`)
+      return response.data
+    },
     runJob: async (definitionId: string) => {
       const response = await apiClient.post(`/jobs/${definitionId}/run`)
+      return response.data
+    },
+    approveExecution: async (executionId: string, comment?: string) => {
+      const payload = comment ? { comment } : {}
+      const response = await apiClient.post(`/jobs/executions/${executionId}/approve`, payload)
+      return response.data
+    },
+    rejectExecution: async (executionId: string, comment?: string) => {
+      const payload = comment ? { comment } : {}
+      const response = await apiClient.post(`/jobs/executions/${executionId}/reject`, payload)
       return response.data
     },
     controlJob: async (executionId: string, action: 'pause' | 'resume' | 'stop') => {
@@ -1560,7 +1725,7 @@ export const handleAPIError = (error: any) => {
     return {
       type: 'server_error',
       status: error.response.status,
-      message: error.response.data?.message || 'Server error occurred',
+      message: getErrorMessage(error, 'Server error occurred'),
       details: error.response.data
     };
   } else if (error.request) {
@@ -1572,7 +1737,7 @@ export const handleAPIError = (error: any) => {
   } else {
     return {
       type: 'client_error',
-      message: error.message || 'An unexpected error occurred',
+      message: getErrorMessage(error, 'An unexpected error occurred'),
       details: error
     };
   }
@@ -1587,10 +1752,10 @@ if (typeof window !== 'undefined') {
     client: apiClient,
     diagnostics: apiDiagnostics,
     config: {
-      baseUrl: API_BASE_URL || 'https://iaf-ifrs-be.ifrspro.id/api/v1',
-      backendUrl: BACKEND_URL || 'https://iaf-ifrs-be.ifrspro.id',
-      deploymentMode: 'IAF_ECS',
-      ecsServer: '10.18.11.35',
+      baseUrl: API_BASE_URL || '/api/v1',
+      backendUrl: BACKEND_URL || '',
+      deploymentMode: process.env.NEXT_PUBLIC_ENVIRONMENT || process.env.NODE_ENV || 'development',
+      ecsServer: process.env.BACKEND_HOST || '',
       realDatabaseMode: true,
       mockupData: false,
       singleTenantMode: true
@@ -1599,9 +1764,9 @@ if (typeof window !== 'undefined') {
     diagnose: apiDiagnostics.diagnose,
   };
 
-  console.log('🏗️ IAF ECS API debugging available: window.__IFRS9_IAF_API__');
+  console.log('🏗️ API debugging available: window.__IFRS9_IAF_API__');
   console.log('🏗️ Run window.__IFRS9_IAF_API__.diagnose() for diagnostics');
-  console.log('🏗️ IAF Single Tenant Deployment: ECS Server URLs CONFIGURED');
+  console.log('🏗️ Single tenant mode active');
 }
 
 

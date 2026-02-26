@@ -52,7 +52,7 @@ export const ROLE_TO_STAKEHOLDER_MAP: Record<string, StakeholderType> = {
 
 // ✅ CORRECTED: Default dashboard routes for YOUR actual DIRECT FOLDER structure
 export const STAKEHOLDER_DASHBOARDS: Record<StakeholderType, string> = {
-  'platform-admin': '/platform/dashboard',
+  'platform-admin': '/platform/users',
   'banking': '/banking/dashboard',  // ✅ YOUR STRUCTURE: direct folder → /banking/dashboard
   'consultant': '/consultant/dashboard',
   'regulator': '/regulator/dashboard',

@@ -6,6 +6,11 @@
     "docusaurus": "docusaurus",
     "start": "docusaurus start",
     "build": "docusaurus build",
+    "docs:generate": "cd ../new-backend && pnpm run docs && cd ../frontend && pnpm run docs",
+    "docs:all": "pnpm run docs:generate && pnpm run build",
+    "dbml:build": "node ./scripts/build-dbml-artifacts.mjs",
+    "dbdocs:publish": "node ./scripts/publish-dbdocs.mjs",
+    "dbdocs:publish:dry": "node ./scripts/publish-dbdocs.mjs --dry-run",
     "swizzle": "docusaurus swizzle",
     "deploy": "docusaurus deploy",
     "clear": "docusaurus clear",
@@ -22,7 +27,8 @@
     "clsx": "^2.0.0",
     "prism-react-renderer": "^2.3.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "redocusaurus": "^2.5.0"
   },
   "devDependencies": {
     "@docusaurus/module-type-aliases": "3.9.2",
@@ -44,5 +50,6 @@
   },
   "engines": {
     "node": ">=20.0"
-  }
+  },
+  "packageManager": "pnpm@10.14.0+sha512.ad27a79641b49c3e481a16a805baa71817a04bbe06a38d17e60e2eaee83f6a146c6a688125f5792e48dd5ba30e7da52a5cda4c3992b9ccf333f9ce223af84748"
 }

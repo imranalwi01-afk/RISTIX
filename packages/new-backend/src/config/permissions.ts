@@ -179,6 +179,24 @@ export const PERMISSION_GROUPS: Record<string, PermissionGroup> = {
             }
         }
     },
+    notifications_management: {
+        label: 'Notifications',
+        icon: 'bell',
+        permissions: {
+            'notifications.view': {
+                label: 'View Notifications',
+                description: 'Access notification inbox and history'
+            },
+            'notifications.manage': {
+                label: 'Manage Notifications',
+                description: 'Mark read/unread and perform bulk notification actions'
+            },
+            'notifications.preferences.manage': {
+                label: 'Manage Notification Preferences',
+                description: 'Manage muted categories and quiet hours'
+            }
+        }
+    },
     job_management: {
         label: 'Job Management',
         icon: 'clock',
@@ -202,6 +220,10 @@ export const PERMISSION_GROUPS: Record<string, PermissionGroup> = {
             'jobs.approve': {
                 label: 'Approve Jobs',
                 description: 'Approve job execution requests'
+            },
+            'jobs.runtime.view': {
+                label: 'View Job Runtime',
+                description: 'View live runtime diagnostics for active jobs'
             }
         }
     },

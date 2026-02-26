@@ -114,7 +114,7 @@ export default function RuleEditorDialog({ open, onClose, onSave, initialRule }:
       <DialogTitle>{initialRule ? 'Edit Rule' : 'Add New Rule'}</DialogTitle>
       <DialogContent dividers>
         <Grid container spacing={2}>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
                  <TextField
                     label="Sequence"
                     type="number"
@@ -123,7 +123,7 @@ export default function RuleEditorDialog({ open, onClose, onSave, initialRule }:
                     onChange={(e) => handleChange('seq', parseInt(e.target.value))}
                  />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
                  <FormControl fullWidth>
                     <InputLabel>Condition</InputLabel>
                     <Select
@@ -137,7 +137,7 @@ export default function RuleEditorDialog({ open, onClose, onSave, initialRule }:
                  </FormControl>
             </Grid>
             
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
                 <FormControl fullWidth>
                     <InputLabel>Table Name</InputLabel>
                     <Select
@@ -152,7 +152,7 @@ export default function RuleEditorDialog({ open, onClose, onSave, initialRule }:
                 </FormControl>
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
                 <FormControl fullWidth disabled={!formData.table_name}>
                     <InputLabel>Column Name</InputLabel>
                     <Select
@@ -167,7 +167,7 @@ export default function RuleEditorDialog({ open, onClose, onSave, initialRule }:
                 </FormControl>
             </Grid>
 
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
                 <FormControl fullWidth>
                     <InputLabel>Operator</InputLabel>
                     <Select
@@ -182,7 +182,7 @@ export default function RuleEditorDialog({ open, onClose, onSave, initialRule }:
                 </FormControl>
             </Grid>
 
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                     label="Value 1"
                     fullWidth
@@ -192,7 +192,7 @@ export default function RuleEditorDialog({ open, onClose, onSave, initialRule }:
             </Grid>
 
             {formData.operator === 'BETWEEN' && (
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                     <TextField
                         label="Value 2"
                         fullWidth

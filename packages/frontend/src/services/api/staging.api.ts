@@ -3,7 +3,11 @@
 // IFRS9 Staging API Client
 // ============================================================================
 
+<<<<<<< HEAD
 import { apiClient as api } from '../api-setup';
+=======
+import { api } from '../api';
+>>>>>>> 521306240d98329e44c992adf972ef8b04b40740
 
 export interface StagingAnalysis {
   prcDate: string | null;
@@ -39,14 +43,14 @@ export const stagingApi = {
     if (filters?.stage) params.append('stage', filters.stage);
     if (filters?.segmentId) params.append('segmentId', filters.segmentId.toString());
 
-    const response = await api.get(`/banking/ifrs9/impairment-module/staging-analysis${params.toString() ? `?${params.toString()}` : ''}`);
+    const response = await api.client.get(`/banking/ifrs9/impairment-module/staging-analysis${params.toString() ? `?${params.toString()}` : ''}`);
     return response;
   },
 
   // Get staging summary
   getStagingSummary: async (date?: string) => {
     const params = date ? `?date=${date}` : '';
-    const response = await api.get(`/banking/ifrs9/impairment-module/staging-summary${params}`);
+    const response = await api.client.get(`/banking/ifrs9/impairment-module/staging-summary${params}`);
     return response;
   },
 
@@ -61,7 +65,7 @@ export const stagingApi = {
     if (filters?.endDate) params.append('endDate', filters.endDate);
     if (filters?.format) params.append('format', filters.format);
 
-    const response = await api.get(`/banking/ifrs9/impairment-module/staging-export${params.toString() ? `?${params.toString()}` : ''}`, {
+    const response = await api.client.get(`/banking/ifrs9/impairment-module/staging-export${params.toString() ? `?${params.toString()}` : ''}`, {
       responseType: 'blob'
     });
     return response;

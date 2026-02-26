@@ -1,0 +1,4 @@
+schema,table,exact_rows,scans,total_size
+audit,data_change_history,0,5,40 kB
+audit,user_activity_logs,0,5,48 kB
+core,user_sessions,0,6,64 kB

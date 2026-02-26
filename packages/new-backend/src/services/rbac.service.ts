@@ -204,6 +204,21 @@ export const getUserRoles = (userId: string, tenantId: string) =>
     )
 
 /**
+ * Retrieve active user assignments for a role.
+ *
+ * @param roleId - The unique identifier of the role
+ * @param tenantId - The unique identifier of the tenant
+ * @returns An Effect that succeeds with an array of active user-role assignments
+ */
+export const getRoleUsers = (roleId: string, tenantId: string) =>
+    pipe(
+        Effect.try(() => getDatabase(tenantId)),
+        Effect.mapError(e => new DatabaseError({ operation: 'query', message: String(e) })),
+        Effect.flatMap(db => userRolesRepository.findByRole(db, roleId)),
+        Effect.map(assignments => assignments.filter(assignment => assignment.isActive))
+    )
+
+/**
  * Assign a role to a user with optional temporal constraints.
  * 
  * @param input - Assignment details including userId, roleId, and tenure info
@@ -342,6 +357,33 @@ export const getUserPermissions = (
     )
 
 /**
+ * Returns canonical permission codes (e.g. banking.setup.business.view) for the user.
+ * This is used by frontend auth snapshot refresh to avoid lossy resource/action mapping.
+ */
+export const getUserPermissionCodes = (
+    userId: string,
+    tenantId: string
+): Effect.Effect<string[], DatabaseError> =>
+    pipe(
+        getUserRoles(userId, tenantId),
+        Effect.map((userRolesData) => {
+            const codeSet = new Set<string>()
+
+            for (const ur of userRolesData) {
+                const rolePermissions = (ur as any).role?.rolePermissions ?? []
+                for (const rp of rolePermissions) {
+                    const code = rp?.permission?.code
+                    if (typeof code === 'string' && code.trim().length > 0) {
+                        codeSet.add(code.trim())
+                    }
+                }
+            }
+
+            return Array.from(codeSet)
+        })
+    )
+
+/**
  * Update permissions for a specific role by replacing all existing role-permission associations.
  * 
  * @param roleId - The unique identifier of the role
@@ -373,27 +415,28 @@ export const getAvailablePermissions = (tenantId: string) =>
     pipe(
         Effect.try(() => getDatabase(tenantId)),
         Effect.mapError(error => new DatabaseError({ operation: 'query', message: String(error) })),
-        Effect.flatMap(db =>
-            Effect.gen(function* (_) {
-                const permissions = yield* _(permissionsRepository.findAll(db))
-                const approvalService = new PermissionApprovalService(db)
+        Effect.flatMap((db) =>
+            pipe(
+                permissionsRepository.findAll(db),
+                Effect.flatMap((permissions) => {
+                    const approvalService = new PermissionApprovalService(db)
+                    const permissionIds = permissions.map((p) => p.id)
 
-                // Get approval requirements for all permissions
-                const permissionIds = permissions.map(p => p.id)
-                const approvalMap = yield* _(
-                    approvalService.getBulkApprovalRequirements(tenantId, permissionIds)
-                )
-
-                // Enrich permissions with approval metadata
-                return permissions.map(p => {
-                    const approval = approvalMap.get(p.id)
-                    return {
-                        ...p,
-                        requiresApproval: approval?.requiresApproval ?? false,
-                        requiredApprovalLevel: approval?.minHierarchyLevel ?? null,
-                        requiredApprovers: approval?.requiredApprovers ?? 1,
-                    }
+                    return pipe(
+                        approvalService.getBulkApprovalRequirements(tenantId, permissionIds),
+                        Effect.map((approvalMap) =>
+                            permissions.map((p) => {
+                                const approval = approvalMap.get(p.id)
+                                return {
+                                    ...p,
+                                    requiresApproval: approval?.requiresApproval ?? false,
+                                    requiredApprovalLevel: approval?.minHierarchyLevel ?? null,
+                                    requiredApprovers: approval?.requiredApprovers ?? 1,
+                                }
+                            })
+                        )
+                    )
                 })
-            })
+            )
         )
     )

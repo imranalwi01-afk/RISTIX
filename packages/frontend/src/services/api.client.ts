@@ -1,38 +1,16 @@
 import { getAuthToken } from '../utils/auth-token';
 import { ApiResponse } from '../types/api';
+import { frontendEnvironmentLoader } from '../config/environment-loader-frontend';
 
 /**
  * Base API client configuration - Use centralized environment loader
  */
 const getBaseUrl = (): string => {
   try {
-    // Try to use centralized environment loader first
-    const { frontendEnvironmentLoader } = require('../config/environment-loader-frontend');
     const config = frontendEnvironmentLoader.getConfiguration();
-    console.log('✅ Using centralized API base URL:', config.api.base);
     return config.api.base;
-  } catch (error) {
-    console.warn('⚠️ Failed to load centralized API base URL, using fallback:', error);
-
-    // Fallback to environment variables with hostname detection
-    const isProductionDomain = typeof window !== 'undefined' && (window.location.hostname.includes('danafin.com') || window.location.hostname.includes('ifrspro.id'));
-    const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-
-    let fallbackUrl = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL;
-
-    if (isLocalhost) {
-      console.log('🔧 Localhost detected: Forcing local API URL');
-      fallbackUrl = 'http://localhost:3000/api/v1';
-    } else if (!fallbackUrl) {
-      if (isProductionDomain) {
-        fallbackUrl = 'https://iaf-ifrs-be.ifrspro.id/api/v1';
-      } else {
-        fallbackUrl = 'https://iaf-ifrs-be.ifrspro.id/api/v1';
-      }
-    }
-
-    console.log('🔧 Resolved API Base URL:', fallbackUrl);
-    return fallbackUrl;
+  } catch {
+    return process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || '/api/v1';
   }
 };
 
@@ -102,6 +80,29 @@ export class ApiClient {
   }
 
   /**
+   * Parse API response safely.
+   * Handles 201/204 responses with empty bodies without throwing JSON parse errors.
+   */
+  private async parseResponse<T = any>(response: Response): Promise<ApiResponse<T>> {
+    const rawBody = await response.text();
+    if (!rawBody || rawBody.trim().length === 0) {
+      return {
+        success: true,
+        data: null as T,
+      };
+    }
+
+    try {
+      return JSON.parse(rawBody) as ApiResponse<T>;
+    } catch {
+      return {
+        success: true,
+        data: rawBody as T,
+      };
+    }
+  }
+
+  /**
    * Generic GET request
    */
   async get<T = any>(endpoint: string, options?: RequestInit): Promise<ApiResponse<T>> {
@@ -118,7 +119,7 @@ export class ApiClient {
       throw new Error(`HTTP ${response.status}: ${response.statusText} for URL ${url}`);
     }
 
-    return response.json();
+    return this.parseResponse<T>(response);
   }
 
   /**
@@ -138,7 +139,7 @@ export class ApiClient {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
-    return response.json();
+    return this.parseResponse<T>(response);
   }
 
   /**
@@ -158,7 +159,7 @@ export class ApiClient {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
-    return response.json();
+    return this.parseResponse<T>(response);
   }
 
   /**
@@ -177,7 +178,7 @@ export class ApiClient {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
-    return response.json();
+    return this.parseResponse<T>(response);
   }
 
   /**
@@ -219,7 +220,7 @@ export class ApiClient {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
-    return response.json();
+    return this.parseResponse<T>(response);
   }
 }
 

@@ -66,6 +66,23 @@ const config: Config = {
         },
       } satisfies Preset.Options,
     ],
+    [
+      'redocusaurus',
+      {
+        // Plugin Options for customizing
+        specs: [
+          {
+            spec: 'static/openapi_spec.json',
+            route: '/api/',
+          },
+        ],
+        // Theme Options for customizing how redoc looks
+        theme: {
+          // Section to pass options to Redoc
+          primaryColor: '#1890ff',
+        },
+      },
+    ],
   ],
 
   themeConfig: {
@@ -86,6 +103,11 @@ const config: Config = {
           sidebarId: 'docsSidebar',
           position: 'left',
           label: 'Documentation',
+        },
+        {
+          to: '/api/',
+          label: 'API Reference',
+          position: 'left',
         },
         // {to: '/blog', label: 'Blog', position: 'left'},
         {

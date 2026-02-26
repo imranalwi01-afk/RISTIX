@@ -20,6 +20,7 @@ export interface ApprovalCheckResult {
 export interface ApprovalResponse {
     success: boolean
     approvalRequired: boolean
+    autoApproved?: boolean
     requestId?: string
     data?: any
     message?: string
@@ -78,6 +79,31 @@ export const calculateApprovalProgress = (request: ApprovalRequest): number => {
 export const formatApprovalRequiredResponse = (
     request: ApprovalRequest
 ): ApprovalResponse => {
+    const normalizedStatus = String(request.status || '').trim().toLowerCase()
+    const isPending = normalizedStatus === '' || normalizedStatus === 'pending'
+    const isAutoApproved = normalizedStatus === 'approved'
+    const progress = calculateApprovalProgress(request)
+
+    if (!isPending) {
+        return {
+            success: true,
+            approvalRequired: false,
+            autoApproved: isAutoApproved,
+            requestId: request.id,
+            message: isAutoApproved
+                ? 'Request was auto-approved and executed successfully.'
+                : `Request completed with status: ${request.status}.`,
+            data: {
+                requestId: request.id,
+                status: request.status,
+                currentLevel: request.currentLevel,
+                approvalsRequired: request.approvalsRequired,
+                approvalsReceived: request.approvalsReceived,
+                progress,
+            },
+        }
+    }
+
     return {
         success: true,
         approvalRequired: true,
@@ -89,7 +115,7 @@ export const formatApprovalRequiredResponse = (
             currentLevel: request.currentLevel,
             approvalsRequired: request.approvalsRequired,
             approvalsReceived: request.approvalsReceived,
-            progress: calculateApprovalProgress(request),
+            progress,
         },
     }
 }
@@ -165,28 +191,40 @@ export const buildApprovalDescription = (
 
 /**
  * Build approval permission code from entity and operation
- * Example: 'user' + 'create' => 'APPROVE_USER_CREATE'
+ * Example: 'user' + 'create' => 'approval.user.create'
  */
 export const buildApprovalPermission = (
     entityType: string,
     operation: 'create' | 'update' | 'delete'
 ): string => {
-    const entity = entityType.toUpperCase().replace(/[^A-Z0-9]/g, '_')
-    const op = operation.toUpperCase()
-    return `APPROVE_${entity}_${op}`
+    const entity = entityType.toLowerCase().replace(/[^a-z0-9_]/g, '_')
+    return `approval.${entity}.${operation}`
 }
 
 /**
- * Build operation permission code
- * Example: 'user' + 'create' => 'CREATE_USER'
+ * Build canonical banking CRUD permission code.
+ * Example: 'product_parameter' + 'create' => 'banking.parameter.product.create'
  */
 export const buildOperationPermission = (
     entityType: string,
     operation: 'create' | 'update' | 'delete'
 ): string => {
-    const entity = entityType.toUpperCase().replace(/[^A-Z0-9]/g, '_')
-    const op = operation.toUpperCase()
-    return `${op}_${entity}`
+    const entity = entityType.toLowerCase().replace(/[^a-z0-9_]/g, '_')
+    const entityPathMap: Record<string, string> = {
+        parameter: 'parameter',
+        product_parameter: 'parameter.product',
+        journal_parameter: 'parameter.journal',
+        segmentation: 'parameter.segmentation',
+        rule_base_setting: 'collective.rule_base',
+        bucket_parameter: 'collective.bucket',
+        pd_configuration: 'collective.pd',
+        lgd_configuration: 'collective.lgd',
+        ead_configuration: 'collective.ead',
+        ecl_configuration: 'collective.ecl',
+        fl_scalar: 'collective.fl_scalar',
+    }
+    const permissionPath = entityPathMap[entity] || entity.replace(/_/g, '.')
+    return `banking.${permissionPath}.${operation}`
 }
 
 /**
@@ -198,7 +236,7 @@ export const hasApprovalPermission = (
     operation: 'create' | 'update' | 'delete'
 ): boolean => {
     const approvalPerm = buildApprovalPermission(entityType, operation)
-    return userPermissions.includes(approvalPerm) || userPermissions.includes('APPROVE_ALL')
+    return userPermissions.includes(approvalPerm) || userPermissions.includes('approval.all')
 }
 
 /**
@@ -209,8 +247,10 @@ export const hasOperationPermission = (
     entityType: string,
     operation: 'create' | 'update' | 'delete'
 ): boolean => {
+    const entity = entityType.toLowerCase().replace(/[^a-z0-9_]/g, '_')
     const operationPerm = buildOperationPermission(entityType, operation)
-    return userPermissions.includes(operationPerm)
+    const legacyOperationPerm = `operation.${entity}.${operation}`
+    return userPermissions.includes(operationPerm) || userPermissions.includes(legacyOperationPerm)
 }
 
 // =============================================================================
@@ -273,6 +313,10 @@ export const shouldAutoApprove = (
     operation: 'create' | 'update' | 'delete',
     impactLevel?: string
 ): boolean => {
+    if (requiresStrictFourEyes(entityType)) {
+        return false
+    }
+
     // No matrix means no approval required
     if (!matrix) return true
 
@@ -297,6 +341,64 @@ export const shouldAutoApprove = (
     // Check if user has approval permission (can self-approve)
     return hasApprovalPermission(userPermissions, entityType, operation)
 }
+
+const STRICT_FOUR_EYES_ENTITIES = new Set([
+    'user',
+    'role',
+    'role_permission',
+    'role_permissions',
+    'role_assignment',
+    'user_status',
+])
+
+export interface ApprovalRoutingLevel {
+    level: number
+    name: string
+    requiredRoleCodes: string[]
+    requiredPermissionCodes: string[]
+    roleMatchMode: 'ANY' | 'ALL'
+    permissionMatchMode: 'ANY' | 'ALL'
+    requiredCount: number
+    timeoutHours?: number
+}
+
+/**
+ * Strict 4-eyes mode can be disabled explicitly for lower environments.
+ * By default it is enabled to prevent self-approval bypass for privileged entities.
+ */
+export const requiresStrictFourEyes = (entityType: string): boolean => {
+    const strictModeEnabled = (process.env.APPROVAL_STRICT_FOUR_EYES ?? 'true').toLowerCase() !== 'false'
+    if (!strictModeEnabled) return false
+    const normalized = String(entityType || '').trim().toLowerCase()
+    return STRICT_FOUR_EYES_ENTITIES.has(normalized)
+}
+
+/**
+ * Default fallback routing for strict entities when matrix data is missing.
+ * This keeps approval eligibility deterministic and visible.
+ */
+export const buildDefaultFourEyesRouting = (_entityType: string): ApprovalRoutingLevel[] => ([
+    {
+        level: 1,
+        name: 'Checker Review',
+        requiredRoleCodes: ['CHECKER'],
+        requiredPermissionCodes: ['approval.requests.approve'],
+        roleMatchMode: 'ANY',
+        permissionMatchMode: 'ANY',
+        requiredCount: 1,
+        timeoutHours: 24,
+    },
+    {
+        level: 2,
+        name: 'Final Approval',
+        requiredRoleCodes: ['APPROVER', 'SUPER_ADMIN', 'IAF_TENANT_SUPER_ADMIN'],
+        requiredPermissionCodes: ['approval.requests.approve', 'approval.all', 'admin.super_admin'],
+        roleMatchMode: 'ANY',
+        permissionMatchMode: 'ANY',
+        requiredCount: 1,
+        timeoutHours: 24,
+    },
+])
 
 /**
  * Get required approval level for operation

@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import { db, legacyDb } from '../config/database';
 import { env } from '../config/env';
 import { sql, eq, desc, and, lte } from 'drizzle-orm';
-import { frs9ImpCaResultH, jobExecutions, jobDefinitions, frs9MasterAccount } from '../db/schema';
+import { frs9ImpCaResultH, jobExecutions, jobDefinitions, frs9MasterAccount, frs9PrcDate } from '../db/schema';
 import { JobsRepository } from '../repositories/jobs.repository';
 
 export class Ifrs9CalculationsService {
@@ -502,28 +502,41 @@ export class Ifrs9CalculationsService {
         }
     }
     async getAvailableDates(tenantId: string) {
+        // 1. PRIMARY: Query frs9_prc_date — the dedicated process date tracking table
         try {
-            // Get distinct dates from both result and master tables
-            const resultDates = await legacyDb
-                .select({ date: frs9ImpCaResultH.prcDate })
-                .from(frs9ImpCaResultH)
-                .groupBy(frs9ImpCaResultH.prcDate);
-            
+            const prcDateRows = await legacyDb
+                .select({ currdate: frs9PrcDate.currdate })
+                .from(frs9PrcDate)
+                .orderBy(desc(frs9PrcDate.currdate));
+
+            if (prcDateRows.length > 0) {
+                const dates = prcDateRows
+                    .map(r => r.currdate ? r.currdate.toString() : null)
+                    .filter(Boolean) as string[];
+                console.log(`✅ Available dates from frs9_prc_date: ${dates.length} dates found`);
+                return dates;
+            }
+            console.warn('⚠️ frs9_prc_date is empty, trying frs9_master_account...');
+        } catch (err: any) {
+            console.error('❌ frs9_prc_date query failed:', err.message || err);
+        }
+
+        // 2. FALLBACK: Derive unique dates from frs9_master_account
+        try {
             const masterDates = await legacyDb
                 .select({ date: frs9MasterAccount.prcDate })
                 .from(frs9MasterAccount)
-                .groupBy(frs9MasterAccount.prcDate);
-            
-            // Combine and sort unique dates
-            const allDates = [...new Set([
-                ...resultDates.map(d => d.date).filter(Boolean),
-                ...masterDates.map(d => d.date).filter(Boolean)
-            ])];
-            
-            // Fixed sort: Ensure proper date string sorting
-            return allDates.sort((a, b) => (b as string).localeCompare(a as string)); // Newest first
-        } catch (error) {
-            console.error('Error fetching available dates:', error);
+                .groupBy(frs9MasterAccount.prcDate)
+                .orderBy(desc(frs9MasterAccount.prcDate));
+
+            const fallbackDates = masterDates
+                .map(d => d.date ? d.date.toString() : null)
+                .filter(Boolean) as string[];
+
+            console.log(`📅 Available dates from frs9_master_account: ${fallbackDates.length} dates found`);
+            return fallbackDates;
+        } catch (err: any) {
+            console.error('❌ frs9_master_account query failed:', err.message || err);
             return [];
         }
     }

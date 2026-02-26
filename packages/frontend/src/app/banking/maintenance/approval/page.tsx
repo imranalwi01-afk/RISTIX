@@ -57,14 +57,22 @@ import {
   Assessment as StatsIcon,
   PendingActions as PendingIcon,
   TableChart as MatrixIcon,
+  AccountTree as RoutingIcon,
   Notifications as NotificationIcon,
   CloudDownload as ExportIcon,
   Visibility as ViewIcon,
+  Security as SecurityIcon,
+  DoNotDisturb as CancelRequestIcon,
+  Edit as EditIcon,
+  Save as SaveIcon,
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { GridColDef } from '@mui/x-data-grid';
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 import { bankingAPI } from '@/services/api';
+import { useAuth } from '@/providers/AuthProvider';
+import { getErrorMessage } from '@/utils/error-message';
+import { ApprovalActionDialog, ApprovalMatrixEditorDialog } from '@/components/approval';
 
 // Types and interfaces
 interface ApprovalRequest {
@@ -84,6 +92,7 @@ interface ApprovalRequest {
   requestedBy: string;
   requestedByName: string;
   requestedAt: string;
+  completedAt?: string;
   status: 'pending' | 'approved' | 'rejected' | 'info_requested' | 'delegated' | 'cancelled' | 'completed';
   impactLevel?: 'low' | 'medium' | 'high' | 'critical'; // Mapped to priority
   approvalsRequired: number;
@@ -96,6 +105,55 @@ interface ApprovalRequest {
   currentLevel?: number;
 }
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const KNOWN_REQUESTER_OVERRIDES: Record<string, string> = {
+  '550e8400-e29b-41d4-a716-446655440001': 'admin@ifrspro.id',
+};
+
+const looksLikeUuid = (value: unknown): boolean =>
+  typeof value === 'string' && UUID_REGEX.test(value.trim());
+
+const getRequestedByDisplay = (req: any): string => {
+  const requester = (req?.requester ?? {}) as Record<string, unknown>;
+  const requestData = (req?.requestData ?? req?.request_data ?? {}) as Record<string, unknown>;
+
+  const requesterFullName = typeof requester.fullName === 'string' ? requester.fullName.trim() : '';
+  const requesterEmail = typeof requester.email === 'string' ? requester.email.trim() : '';
+  const requesterUsername = typeof requester.username === 'string' ? requester.username.trim() : '';
+
+  if (requesterFullName && requesterEmail) {
+    return `${requesterFullName} (${requesterEmail})`;
+  }
+  if (requesterEmail) return requesterEmail;
+  if (requesterUsername) return requesterUsername;
+  if (requesterFullName) return requesterFullName;
+
+  const explicitName = typeof req?.requestedByName === 'string' ? req.requestedByName.trim() : '';
+  const explicitEmail = typeof req?.requestedByEmail === 'string' ? req.requestedByEmail.trim() : '';
+  const explicitUsername = typeof req?.requestedByUsername === 'string' ? req.requestedByUsername.trim() : '';
+  const dataEmail = typeof requestData?.requestedByEmail === 'string' ? requestData.requestedByEmail.trim() : '';
+  const dataUsername = typeof requestData?.requestedByUsername === 'string' ? requestData.requestedByUsername.trim() : '';
+  const dataName = typeof requestData?.requestedByName === 'string' ? requestData.requestedByName.trim() : '';
+
+  const fallbackCandidates = [
+    explicitName,
+    explicitEmail,
+    explicitUsername,
+    dataName,
+    dataEmail,
+    dataUsername,
+  ].filter((entry) => !!entry && !looksLikeUuid(entry));
+
+  if (fallbackCandidates.length > 0) return fallbackCandidates[0];
+
+  const requestedById = typeof req?.requestedBy === 'string' ? req.requestedBy.trim() : '';
+  if (requestedById && KNOWN_REQUESTER_OVERRIDES[requestedById]) {
+    return KNOWN_REQUESTER_OVERRIDES[requestedById];
+  }
+
+  return 'Unknown User';
+};
+
 interface ApprovalStatistics {
   totalRequests: number;
   pendingRequests: number;
@@ -107,18 +165,87 @@ interface ApprovalStatistics {
 
 interface ApprovalAction {
   approvalId: string;
-  action: 'approve' | 'reject' | 'request_info' | 'delegate';
+  action: 'approve' | 'reject' | 'request_info' | 'delegate' | 'cancel';
   reason: string;
   delegateTo?: string;
 }
 
+interface ApprovalMatrixLevel {
+  level: number;
+  name: string;
+  requiredRoleCodes?: string[];
+  requiredPermissionCodes?: string[];
+  requiredCount?: number;
+  timeoutHours?: number;
+}
+
+interface ApprovalMatrix {
+  id: string;
+  name: string;
+  description?: string | null;
+  entityType: string;
+  operationType?: string | null;
+  bankingMode?: string | null;
+  isActive?: boolean;
+  syariahBoardRequired?: boolean;
+  autoApprovalRules?: {
+    bypassPermissions?: string[];
+    autoApproveImpactLevels?: string[];
+  } | null;
+  levels: ApprovalMatrixLevel[];
+  createdAt: string;
+}
+
+interface MatrixLevelEditor {
+  level: number;
+  name: string;
+  requiredRoleCodes: string;
+  requiredPermissionCodes: string;
+  requiredCount: number;
+  timeoutHours: string;
+}
+
+interface ApprovalRoutingCandidate {
+  userId: string;
+  fullName: string;
+  email: string;
+  department?: string | null;
+  position?: string | null;
+  roleCodes: string[];
+}
+
+interface ApprovalRoutingLevel {
+  level: number;
+  name: string;
+  requiredRoleCodes: string[];
+  requiredPermissionCodes: string[];
+  requiredCount: number;
+  timeoutHours?: number;
+  candidateCount: number;
+  candidates: ApprovalRoutingCandidate[];
+}
+
+interface ApprovalRoutingItem {
+  entityType: string;
+  operationType: string;
+  matrixId: string | null;
+  matrixName: string;
+  isActive: boolean;
+  levels: ApprovalRoutingLevel[];
+}
+
 export default function ApprovalManagementPage() {
   const router = useRouter();
+  const { user } = useAuth();
 
   // State management
   const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading] = useState(true);
   const [approvalRequests, setApprovalRequests] = useState<ApprovalRequest[]>([]);
+  const [approvalMatrices, setApprovalMatrices] = useState<ApprovalMatrix[]>([]);
+  const [approvalRouting, setApprovalRouting] = useState<ApprovalRoutingItem[]>([]);
+  const [matricesLoading, setMatricesLoading] = useState(false);
+  const [routingLoading, setRoutingLoading] = useState(false);
   const [statistics, setStatistics] = useState<ApprovalStatistics | null>(null);
   const [filteredRequests, setFilteredRequests] = useState<ApprovalRequest[]>([]);
 
@@ -128,18 +255,17 @@ export default function ApprovalManagementPage() {
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [bankingTypeFilter, setBankingTypeFilter] = useState('all');
   const [requestTypeFilter, setRequestTypeFilter] = useState('all');
+  const [routingEntityFilter, setRoutingEntityFilter] = useState('all');
+  const [routingOperationFilter, setRoutingOperationFilter] = useState<'all' | 'create' | 'update' | 'delete'>('all');
+  const [routingDepartmentFilter, setRoutingDepartmentFilter] = useState('');
 
   // Dialog states
   const [actionDialog, setActionDialog] = useState<{
     open: boolean;
     request?: ApprovalRequest;
-    action?: 'approve' | 'reject' | 'request_info' | 'delegate';
-    reason: string;
-    delegateTo: string;
+    action?: 'approve' | 'reject' | 'request_info' | 'delegate' | 'cancel';
   }>({
     open: false,
-    reason: '',
-    delegateTo: ''
   });
 
   const [detailDialog, setDetailDialog] = useState<{
@@ -147,6 +273,13 @@ export default function ApprovalManagementPage() {
     request?: ApprovalRequest;
   }>({
     open: false
+  });
+
+  const [matrixEditDialog, setMatrixEditDialog] = useState<{
+    open: boolean;
+    matrix?: ApprovalMatrix;
+  }>({
+    open: false,
   });
 
   // Snackbar state
@@ -161,6 +294,8 @@ export default function ApprovalManagementPage() {
   // Load data
   useEffect(() => {
     loadApprovalRequests();
+    loadApprovalMatrices();
+    loadApprovalRouting();
     // Statistics loaded after requests since we calculate them client-side
   }, []);
 
@@ -197,14 +332,15 @@ export default function ApprovalManagementPage() {
         priority: req.impactLevel || req.priority || 'medium',
         dueDate: req.expiresAt || req.dueDate,
         requestedAt: req.createdAt || req.requestedAt || new Date().toISOString(),
+        completedAt: req.completedAt || req.completed_at,
         // Placeholders/Joins
-        requestedByName: req.requester?.email || req.requestedByName || req.requestedBy || 'Unknown',
+        requestedByName: getRequestedByDisplay(req),
         bankingType: req.matrix?.bankingMode || req.bankingType || 'conventional',
         // Ensure required fields have defaults
         approvalsRequired: req.approvalsRequired || 1,
         approvalsReceived: req.approvalsReceived || 0,
         currentApprovers: req.currentApprovers || [],
-        status: req.status || 'pending'
+        status: String(req.status || 'pending').toLowerCase()
       }));
 
       setApprovalRequests(requests);
@@ -212,7 +348,7 @@ export default function ApprovalManagementPage() {
       calculateStatistics(requests);
     } catch (error) {
       console.error('Error loading approval requests:', error);
-      showSnackbar(`Failed to load approval requests: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+      showSnackbar(getErrorMessage(error, 'Failed to load approval requests.'), 'error');
       // Set empty data on error
       setApprovalRequests([]);
       setFilteredRequests([]);
@@ -244,6 +380,149 @@ export default function ApprovalManagementPage() {
 
   const loadStatistics = async () => {
     // Deprecated: Statistics now calculated from loadApprovalRequests
+  };
+
+  const loadApprovalMatrices = async () => {
+    try {
+      setMatricesLoading(true);
+      const response = await bankingAPI.approval.getMatrices();
+
+      const rawMatrices = Array.isArray(response)
+        ? response
+        : Array.isArray(response?.data)
+          ? response.data
+          : Array.isArray(response?.matrices)
+            ? response.matrices
+            : [];
+
+      const mappedMatrices: ApprovalMatrix[] = rawMatrices.map((matrix: any) => ({
+        id: String(matrix.id),
+        name: String(matrix.name || 'Unnamed Matrix'),
+        description: matrix.description ?? null,
+        entityType: String(matrix.entityType || matrix.entity_type || 'unknown'),
+        operationType: matrix.operationType || matrix.operation_type || null,
+        bankingMode: matrix.bankingMode || matrix.banking_mode || null,
+        isActive: matrix.isActive ?? matrix.is_active ?? true,
+        syariahBoardRequired: matrix.syariahBoardRequired ?? matrix.syariah_board_required ?? false,
+        autoApprovalRules: matrix.autoApprovalRules ?? matrix.auto_approval_rules ?? null,
+        levels: Array.isArray(matrix.levels)
+          ? matrix.levels.map((level: any) => {
+            const levelRecord = (level ?? {}) as Record<string, unknown>;
+            const requiredCountRaw = levelRecord.requiredCount ?? levelRecord.required_count;
+            const timeoutHoursRaw = levelRecord.timeoutHours ?? levelRecord.timeout_hours;
+
+            return {
+              level: Number(levelRecord.level || 0),
+              name: String(levelRecord.name || `Level ${levelRecord.level || '-'}`),
+              requiredRoleCodes: Array.isArray(levelRecord.requiredRoleCodes)
+                ? levelRecord.requiredRoleCodes
+                : Array.isArray(levelRecord.required_role_codes)
+                  ? levelRecord.required_role_codes
+                  : Array.isArray(levelRecord.requiredRoles)
+                    ? levelRecord.requiredRoles.filter((entry: string) => typeof entry === 'string' && !entry.includes('.'))
+                    : [],
+              requiredPermissionCodes: Array.isArray(levelRecord.requiredPermissionCodes)
+                ? levelRecord.requiredPermissionCodes
+                : Array.isArray(levelRecord.required_permission_codes)
+                  ? levelRecord.required_permission_codes
+                  : Array.isArray(levelRecord.requiredRoles)
+                    ? levelRecord.requiredRoles.filter((entry: string) => typeof entry === 'string' && entry.includes('.'))
+                    : ['approval.requests.approve'],
+              requiredCount: Number(requiredCountRaw ?? 1),
+              timeoutHours: timeoutHoursRaw ?? undefined,
+            };
+          })
+          : [],
+        createdAt: String(matrix.createdAt || matrix.created_at || new Date().toISOString()),
+      }));
+
+      mappedMatrices.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setApprovalMatrices(mappedMatrices);
+    } catch (error) {
+      console.error('Error loading approval matrices:', error);
+      showSnackbar(getErrorMessage(error, 'Failed to load approval matrices.'), 'error');
+      setApprovalMatrices([]);
+    } finally {
+      setMatricesLoading(false);
+    }
+  };
+
+  const loadApprovalRouting = async (overrides?: {
+    entityType?: string;
+    operation?: 'create' | 'update' | 'delete';
+    department?: string;
+  }) => {
+    try {
+      setRoutingLoading(true);
+
+      const entityType = overrides?.entityType ?? (routingEntityFilter !== 'all' ? routingEntityFilter : undefined);
+      const operation = overrides?.operation ?? (routingOperationFilter !== 'all' ? routingOperationFilter : undefined);
+      const departmentRaw = overrides?.department ?? routingDepartmentFilter;
+      const department = departmentRaw?.trim() ? departmentRaw.trim() : undefined;
+
+      const response = await bankingAPI.approval.getRoutingOverview({
+        entityType,
+        operation,
+        department,
+      });
+
+      const rawData = Array.isArray(response)
+        ? response
+        : Array.isArray(response?.data)
+          ? response.data
+          : [];
+
+      const mapped: ApprovalRoutingItem[] = rawData.map((item: any) => ({
+        entityType: String(item.entityType || 'unknown'),
+        operationType: String(item.operationType || 'create,update,delete'),
+        matrixId: item.matrixId ?? null,
+        matrixName: String(item.matrixName || 'Unnamed Routing'),
+        isActive: Boolean(item.isActive ?? true),
+        levels: Array.isArray(item.levels)
+          ? item.levels.map((level: any) => {
+            const levelRecord = (level ?? {}) as Record<string, unknown>;
+            const requiredCountRaw = levelRecord.requiredCount ?? levelRecord.required_count;
+            const timeoutHoursRaw = levelRecord.timeoutHours ?? levelRecord.timeout_hours;
+
+            return {
+              level: Number(levelRecord.level || 0),
+              name: String(levelRecord.name || `Level ${levelRecord.level || '-'}`),
+              requiredRoleCodes: Array.isArray(levelRecord.requiredRoleCodes)
+                ? levelRecord.requiredRoleCodes
+                : Array.isArray(levelRecord.requiredRoles)
+                  ? levelRecord.requiredRoles.filter((entry: string) => typeof entry === 'string' && !entry.includes('.'))
+                  : [],
+              requiredPermissionCodes: Array.isArray(levelRecord.requiredPermissionCodes)
+                ? levelRecord.requiredPermissionCodes
+                : Array.isArray(levelRecord.requiredRoles)
+                  ? levelRecord.requiredRoles.filter((entry: string) => typeof entry === 'string' && entry.includes('.'))
+                  : ['approval.requests.approve'],
+              requiredCount: Number(requiredCountRaw ?? 1),
+              timeoutHours: timeoutHoursRaw ? Number(timeoutHoursRaw) : undefined,
+              candidateCount: Number(levelRecord.candidateCount || 0),
+              candidates: Array.isArray(levelRecord.candidates)
+                ? levelRecord.candidates.map((candidate: any) => ({
+                  userId: String(candidate.userId || ''),
+                  fullName: String(candidate.fullName || 'Unknown User'),
+                  email: String(candidate.email || ''),
+                  department: candidate.department ?? null,
+                  position: candidate.position ?? null,
+                  roleCodes: Array.isArray(candidate.roleCodes) ? candidate.roleCodes : [],
+                }))
+                : [],
+            };
+          })
+          : [],
+      }));
+
+      setApprovalRouting(mapped);
+    } catch (error) {
+      console.error('Error loading approval routing:', error);
+      showSnackbar(getErrorMessage(error, 'Failed to load approval routing.'), 'error');
+      setApprovalRouting([]);
+    } finally {
+      setRoutingLoading(false);
+    }
   };
 
   // Filter and search logic
@@ -289,6 +568,7 @@ export default function ApprovalManagementPage() {
     setSnackbar({ open: true, message, severity });
   };
 
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return 'warning';
@@ -326,75 +606,57 @@ export default function ApprovalManagementPage() {
     return new Date(dueDate) < new Date();
   };
 
+
+
   // Action handlers
-  const handleApprovalAction = async (request: ApprovalRequest, action: 'approve' | 'reject' | 'request_info' | 'delegate') => {
+  const handleApprovalAction = (request: ApprovalRequest, action: 'approve' | 'reject' | 'request_info' | 'delegate' | 'cancel') => {
     setActionDialog({
       open: true,
       request,
       action,
-      reason: '',
-      delegateTo: ''
     });
   };
 
-  const submitApprovalAction = async () => {
-    try {
-      const { request, action, reason, delegateTo } = actionDialog;
-      if (!request || !action) return;
 
-      console.log(`Submitting approval action: ${action} for request ${request.id}`);
-
-      let response;
-
-      switch (action) {
-        case 'approve':
-          response = await bankingAPI.approval.approveRequest(request.id, { comment: reason });
-          break;
-        case 'reject':
-          response = await bankingAPI.approval.rejectRequest(request.id, { comment: reason });
-          break;
-        case 'delegate':
-          response = await bankingAPI.approval.delegateRequest(request.id, {
-            delegatedTo: delegateTo,
-            reason
-          });
-          break;
-        case 'request_info':
-          // Not yet implemented on backend explicitly but can be added or handled as comment
-          showSnackbar('Request Info action is not fully supported yet by backend', 'warning');
-          return;
-      }
-
-      console.log('Action successful:', response);
-
-      // Update local state for immediate feedback
-      setApprovalRequests(prev => prev.map(req =>
-        req.id === request.id
-          ? {
-            ...req,
-            status: response?.status || (action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : 'pending')
-          }
-          : req
-      ));
-
-      showSnackbar(`Request ${action}d successfully`, 'success');
-      setActionDialog({ open: false, reason: '', delegateTo: '' });
-
-      // Refresh list to get full updated state
-      loadApprovalRequests();
-
-    } catch (error) {
-      console.error('Error submitting approval action:', error);
-      showSnackbar('Failed to process approval action', 'error');
-    }
-  };
 
   const handleViewDetails = (request: ApprovalRequest) => {
     setDetailDialog({ open: true, request });
   };
 
+  const isRolePermissionRequest = (request: ApprovalRequest): boolean => {
+    const requestType = String(request.requestType || request.entityType || '').toLowerCase();
+    return requestType === 'role_permission' || requestType === 'role_permissions';
+  };
+
+  const resolveRoleTarget = (request: ApprovalRequest): { tenantId?: string; roleId?: string } => {
+    const payload = request.requestData || {};
+    const nestedData = payload?.data || {};
+    return {
+      tenantId: request.tenantId || nestedData?.tenantId || payload?.tenantId,
+      roleId: request.entityId || nestedData?.roleId || payload?.roleId,
+    };
+  };
+
+  const openRolePermissionInRBAC = (request: ApprovalRequest) => {
+    const { tenantId, roleId } = resolveRoleTarget(request);
+    if (!tenantId || !roleId) {
+      showSnackbar('Role/tenant target is missing from this approval request.', 'warning');
+      return;
+    }
+
+    const query = new URLSearchParams({
+      tenantId,
+      roleId,
+      requestId: request.id,
+    });
+
+    router.push(`/platform/rbac?${query.toString()}`);
+  };
+
   const handleRefresh = () => {
     loadApprovalRequests();
+    loadApprovalMatrices();
+    loadApprovalRouting();
     loadStatistics();
   };
 
@@ -500,30 +762,53 @@ export default function ApprovalManagementPage() {
       headerName: 'Actions',
       width: 120,
       getActions: (params) => {
+        const request = params.row as ApprovalRequest;
         const actions = [
           <SafeGridActionsCellItem
             key="view"
             icon={<ViewIcon />}
             label="View Details"
-            onClick={() => handleViewDetails(params.row)}
+            onClick={() => handleViewDetails(request)}
           />,
         ];
 
-        if (params.row.status === 'pending' || params.row.status === 'info_requested') {
+        if (isRolePermissionRequest(request)) {
+          actions.push(
+            <SafeGridActionsCellItem
+              key="open-rbac"
+              icon={<SecurityIcon color="primary" />}
+              label="Open RBAC"
+              onClick={() => openRolePermissionInRBAC(request)}
+            />
+          );
+        }
+
+        if (request.status === 'pending' || request.status === 'info_requested') {
           actions.push(
             <SafeGridActionsCellItem
               key="approve"
               icon={<ApproveIcon color="success" />}
               label="Approve"
-              onClick={() => handleApprovalAction(params.row, 'approve')}
+              onClick={() => handleApprovalAction(request, 'approve')}
             />,
             <SafeGridActionsCellItem
               key="reject"
               icon={<RejectIcon color="error" />}
               label="Reject"
-              onClick={() => handleApprovalAction(params.row, 'reject')}
+              onClick={() => handleApprovalAction(request, 'reject')}
             />
           );
+
+          if (request.requestedBy === user?.id) {
+            actions.push(
+              <SafeGridActionsCellItem
+                key="cancel"
+                icon={<CancelRequestIcon color="warning" />}
+                label="Cancel Request"
+                onClick={() => handleApprovalAction(request, 'cancel')}
+              />
+            );
+          }
         }
 
         return actions;
@@ -712,7 +997,9 @@ export default function ApprovalManagementPage() {
               <Box sx={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                 <Box sx={{ textAlign: 'center' }}>
                   <Typography variant="h6" color="success.main">
-                    {((statistics.approvedRequests / statistics.totalRequests) * 100).toFixed(1)}%
+                    {statistics.totalRequests > 0
+                      ? ((statistics.approvedRequests / statistics.totalRequests) * 100).toFixed(1)
+                      : '0.0'}%
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
                     Approval Rate
@@ -720,7 +1007,9 @@ export default function ApprovalManagementPage() {
                 </Box>
                 <Box sx={{ textAlign: 'center' }}>
                   <Typography variant="h6" color="error.main">
-                    {((statistics.rejectedRequests / statistics.totalRequests) * 100).toFixed(1)}%
+                    {statistics.totalRequests > 0
+                      ? ((statistics.rejectedRequests / statistics.totalRequests) * 100).toFixed(1)
+                      : '0.0'}%
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
                     Rejection Rate
@@ -745,7 +1034,7 @@ export default function ApprovalManagementPage() {
   const renderApprovalHistory = () => {
     // Filter for completed requests (approved or rejected)
     const historyRequests = approvalRequests.filter(
-      req => req.status === 'approved' || req.status === 'rejected' || req.status === 'completed'
+      req => req.status === 'approved' || req.status === 'rejected' || req.status === 'completed' || req.status === 'cancelled'
     );
 
     const historyColumns: GridColDef[] = [
@@ -812,16 +1101,27 @@ export default function ApprovalManagementPage() {
       {
         field: 'actions',
         headerName: 'Actions',
-        width: 100,
+        width: 140,
         sortable: false,
         renderCell: (params) => (
-          <IconButton
-            size="small"
-            onClick={() => handleViewDetails(params.row)}
-            color="primary"
-          >
-            <ViewIcon />
-          </IconButton>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <IconButton
+              size="small"
+              onClick={() => handleViewDetails(params.row)}
+              color="primary"
+            >
+              <ViewIcon />
+            </IconButton>
+            {isRolePermissionRequest(params.row) && (
+              <IconButton
+                size="small"
+                color="secondary"
+                onClick={() => openRolePermissionInRBAC(params.row)}
+              >
+                <SecurityIcon fontSize="small" />
+              </IconButton>
+            )}
+          </Box>
         ),
       },
     ];
@@ -844,6 +1144,7 @@ export default function ApprovalManagementPage() {
                 <MenuItem value="approved">Approved</MenuItem>
                 <MenuItem value="rejected">Rejected</MenuItem>
                 <MenuItem value="completed">Completed</MenuItem>
+                <MenuItem value="cancelled">Cancelled</MenuItem>
               </Select>
             </FormControl>
             <TextField
@@ -900,6 +1201,250 @@ export default function ApprovalManagementPage() {
       </Box>
     );
   };
+
+  const renderApprovalMatrix = () => (
+    <Box>
+      <Paper sx={{ mb: 2, p: 2 }}>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+          <Typography variant="h6">
+            Approval Matrices ({approvalMatrices.length})
+          </Typography>
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<RefreshIcon />}
+            onClick={loadApprovalMatrices}
+            disabled={matricesLoading}
+          >
+            Refresh Matrices
+          </Button>
+        </Box>
+      </Paper>
+
+      {matricesLoading ? (
+        <Paper sx={{ p: 4, textAlign: 'center' }}>
+          <CircularProgress size={28} />
+        </Paper>
+      ) : approvalMatrices.length === 0 ? (
+        <Alert severity="info">
+          No approval matrix found for this tenant.
+        </Alert>
+      ) : (
+        <Grid container spacing={2}>
+          {approvalMatrices.map((matrix) => (
+            <Grid key={matrix.id} size={{ xs: 12, md: 6 }}>
+              <Paper sx={{ p: 2, height: '100%' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                  <Typography variant="h6">{matrix.name}</Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Chip
+                      label={matrix.isActive ? 'Active' : 'Inactive'}
+                      color={matrix.isActive ? 'success' : 'default'}
+                      size="small"
+                      variant="outlined"
+                    />
+                    <Tooltip title="Edit matrix">
+                      <IconButton
+                        size="small"
+                        color="primary"
+                        onClick={() => setMatrixEditDialog({ open: true, matrix })}
+                      >
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                </Box>
+
+                {matrix.description && (
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                    {matrix.description}
+                  </Typography>
+                )}
+
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 1.5 }}>
+                  <Chip label={matrix.entityType.replace(/_/g, ' ')} size="small" />
+                  {matrix.operationType && <Chip label={`Ops: ${matrix.operationType}`} size="small" variant="outlined" />}
+                  {matrix.bankingMode && <Chip label={`Mode: ${matrix.bankingMode}`} size="small" variant="outlined" />}
+                  <Chip label={`${matrix.levels.length} level(s)`} size="small" variant="outlined" />
+                </Box>
+
+                <Box sx={{ mb: 1.5 }}>
+                  <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+                    Levels
+                  </Typography>
+                  {matrix.levels.length === 0 ? (
+                    <Typography variant="body2" color="text.secondary">
+                      No levels configured.
+                    </Typography>
+                  ) : (
+                    [...matrix.levels]
+                      .sort((a, b) => a.level - b.level)
+                      .map((level) => (
+                        <Typography key={`${matrix.id}-${level.level}`} variant="body2" sx={{ mb: 0.25 }}>
+                          L{level.level} {level.name} | Roles: {(level.requiredRoleCodes || []).join(', ') || '-'} | Required: {level.requiredCount || 1}
+                        </Typography>
+                      ))
+                  )}
+                </Box>
+
+                {matrix.autoApprovalRules?.bypassPermissions?.length ? (
+                  <Box sx={{ mb: 1 }}>
+                    <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+                      Bypass Permissions
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {matrix.autoApprovalRules.bypassPermissions.join(', ')}
+                    </Typography>
+                  </Box>
+                ) : null}
+
+                <Typography variant="caption" color="text.secondary">
+                  Created: {formatDate(matrix.createdAt)}
+                </Typography>
+              </Paper>
+            </Grid>
+          ))}
+        </Grid>
+      )}
+    </Box>
+  );
+
+  const routingEntityOptions = useMemo(() => {
+    const entities = new Set<string>();
+    approvalMatrices.forEach((matrix) => entities.add(matrix.entityType));
+    approvalRequests.forEach((request) => entities.add(String(request.requestType || request.entityType || '')));
+    return Array.from(entities).filter(Boolean).sort();
+  }, [approvalMatrices, approvalRequests]);
+
+  const renderApprovalRouting = () => (
+    <Box>
+      <Paper sx={{ mb: 2, p: 2 }}>
+        <Grid container spacing={2} alignItems="center">
+          <Grid size={{ xs: 12, md: 3 }}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Entity Type</InputLabel>
+              <Select
+                value={routingEntityFilter}
+                label="Entity Type"
+                onChange={(event) => setRoutingEntityFilter(String(event.target.value))}
+              >
+                <MenuItem value="all">All Entities</MenuItem>
+                {routingEntityOptions.map((entity) => (
+                  <MenuItem key={entity} value={entity}>{entity}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid size={{ xs: 12, md: 3 }}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Operation</InputLabel>
+              <Select
+                value={routingOperationFilter}
+                label="Operation"
+                onChange={(event) => setRoutingOperationFilter(event.target.value as 'all' | 'create' | 'update' | 'delete')}
+              >
+                <MenuItem value="all">All Operations</MenuItem>
+                <MenuItem value="create">Create</MenuItem>
+                <MenuItem value="update">Update</MenuItem>
+                <MenuItem value="delete">Delete</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid size={{ xs: 12, md: 4 }}>
+            <TextField
+              fullWidth
+              size="small"
+              label="Department (optional)"
+              value={routingDepartmentFilter}
+              onChange={(event) => setRoutingDepartmentFilter(event.target.value)}
+              placeholder="e.g. Risk Management"
+            />
+          </Grid>
+          <Grid size={{ xs: 12, md: 2 }}>
+            <Button
+              fullWidth
+              variant="outlined"
+              startIcon={<RefreshIcon />}
+              onClick={() => loadApprovalRouting()}
+              disabled={routingLoading}
+            >
+              Apply
+            </Button>
+          </Grid>
+        </Grid>
+      </Paper>
+
+      {routingLoading ? (
+        <Paper sx={{ p: 4, textAlign: 'center' }}>
+          <CircularProgress size={28} />
+        </Paper>
+      ) : approvalRouting.length === 0 ? (
+        <Alert severity="info">
+          No approval routing data found for this filter.
+        </Alert>
+      ) : (
+        <Grid container spacing={2}>
+          {approvalRouting.map((routing) => (
+            <Grid key={`${routing.entityType}-${routing.matrixId || 'fallback'}`} size={{ xs: 12, md: 6 }}>
+              <Paper sx={{ p: 2, height: '100%' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                  <Typography variant="h6">{routing.matrixName}</Typography>
+                  <Chip
+                    size="small"
+                    label={routing.isActive ? 'Active' : 'Inactive'}
+                    color={routing.isActive ? 'success' : 'default'}
+                    variant="outlined"
+                  />
+                </Box>
+
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  Entity: <strong>{routing.entityType}</strong> | Operations: <strong>{routing.operationType}</strong>
+                </Typography>
+
+                {routing.levels.length === 0 ? (
+                  <Typography variant="body2" color="text.secondary">
+                    No levels configured.
+                  </Typography>
+                ) : (
+                  routing.levels
+                    .sort((a, b) => a.level - b.level)
+                    .map((level) => (
+                      <Box key={`${routing.entityType}-${level.level}`} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1.5, mb: 1 }}>
+                        <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+                          L{level.level} {level.name} | Needed: {level.requiredCount}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Required Roles: {(level.requiredRoleCodes || []).join(', ') || '-'}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" display="block">
+                          Required Permissions: {(level.requiredPermissionCodes || []).join(', ') || '-'}
+                        </Typography>
+                        <Typography variant="body2" sx={{ mt: 0.5, mb: 0.75 }}>
+                          Candidate Approvers: <strong>{level.candidateCount}</strong>
+                        </Typography>
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                          {level.candidates.slice(0, 6).map((candidate) => (
+                            <Tooltip
+                              key={candidate.userId}
+                              title={`${candidate.email}${candidate.department ? ` | ${candidate.department}` : ''}`}
+                            >
+                              <Chip size="small" label={candidate.fullName} />
+                            </Tooltip>
+                          ))}
+                          {level.candidates.length > 6 && (
+                            <Chip size="small" variant="outlined" label={`+${level.candidates.length - 6} more`} />
+                          )}
+                        </Box>
+                      </Box>
+                    ))
+                )}
+              </Paper>
+            </Grid>
+          ))}
+        </Grid>
+      )}
+    </Box>
+  );
 
   if (loading && !approvalRequests.length) {
     return (
@@ -995,6 +1540,11 @@ export default function ApprovalManagementPage() {
             label="Approval Matrix"
             iconPosition="start"
           />
+          <Tab
+            icon={<RoutingIcon />}
+            label="Routing"
+            iconPosition="start"
+          />
         </Tabs>
       </Paper>
 
@@ -1003,63 +1553,42 @@ export default function ApprovalManagementPage() {
         {activeTab === 0 && renderPendingApprovals()}
         {activeTab === 1 && renderStatistics()}
         {activeTab === 2 && renderApprovalHistory()}
-        {activeTab === 3 && (
-          <Alert severity="info">
-            Approval matrix configuration will be implemented soon.
-          </Alert>
-        )}
+        {activeTab === 3 && renderApprovalMatrix()}
+        {activeTab === 4 && renderApprovalRouting()}
       </Box>
 
-      {/* Action Dialog */}
-      <Dialog open={actionDialog.open} onClose={() => setActionDialog({ open: false, reason: '', delegateTo: '' })} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          {actionDialog.action === 'approve' && 'Approve Request'}
-          {actionDialog.action === 'reject' && 'Reject Request'}
-          {actionDialog.action === 'request_info' && 'Request Information'}
-          {actionDialog.action === 'delegate' && 'Delegate Request'}
-        </DialogTitle>
-        <DialogContent>
-          <Box sx={{ mt: 2 }}>
-            <Typography variant="subtitle2" gutterBottom>
-              Request: {actionDialog.request?.requestTitle}
-            </Typography>
-
-            <TextField
-              label="Reason/Comments"
-              multiline
-              rows={4}
-              fullWidth
-              value={actionDialog.reason}
-              onChange={(e) => setActionDialog(prev => ({ ...prev, reason: e.target.value }))}
-              sx={{ mt: 2 }}
-              required
-            />
-
-            {actionDialog.action === 'delegate' && (
-              <TextField
-                label="Delegate To (User ID)"
-                fullWidth
-                value={actionDialog.delegateTo}
-                onChange={(e) => setActionDialog(prev => ({ ...prev, delegateTo: e.target.value }))}
-                sx={{ mt: 2 }}
-                required
-              />
-            )}
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setActionDialog({ open: false, reason: '', delegateTo: '' })}>
-            Cancel
-          </Button>
-          <Button
-            onClick={submitApprovalAction}
-            variant="contained"
-            disabled={!actionDialog.reason || (actionDialog.action === 'delegate' && !actionDialog.delegateTo)}
-          >
-            Submit
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {/* Refactored Action Dialog */}
+      <ApprovalActionDialog
+        open={actionDialog.open}
+        request={actionDialog.request}
+        action={actionDialog.action}
+        onClose={() => setActionDialog({ open: false })}
+        onSuccess={(requestId, nextStatus) => {
+          setApprovalRequests((prev) =>
+            prev.map((req) =>
+              req.id === requestId
+                ? {
+                  ...req,
+                  status: nextStatus as ApprovalRequest['status'],
+                  completedAt:
+                    nextStatus === 'approved' ||
+                      nextStatus === 'rejected' ||
+                      nextStatus === 'cancelled'
+                      ? new Date().toISOString()
+                      : req.completedAt,
+                }
+                : req
+            )
+          );
+          showSnackbar(`Request ${actionDialog.action}ed successfully`, 'success');
+          setActionDialog({ open: false });
+          loadApprovalRequests();
+        }}
+        onError={(message, severity) => {
+          showSnackbar(message, severity);
+          loadApprovalRequests();
+        }}
+      />
 
       {/* Detail Dialog */}
       <Dialog open={detailDialog.open} onClose={() => setDetailDialog({ open: false })} maxWidth="md" fullWidth>
@@ -1140,9 +1669,33 @@ export default function ApprovalManagementPage() {
           )}
         </DialogContent>
         <DialogActions>
+          {detailDialog.request && isRolePermissionRequest(detailDialog.request) && (
+            <Button
+              color="secondary"
+              startIcon={<SecurityIcon />}
+              onClick={() => openRolePermissionInRBAC(detailDialog.request!)}
+            >
+              Open in RBAC
+            </Button>
+          )}
           <Button onClick={() => setDetailDialog({ open: false })}>Close</Button>
         </DialogActions>
       </Dialog>
+
+      {/* Refactored Matrix Edit Dialog */}
+      <ApprovalMatrixEditorDialog
+        open={matrixEditDialog.open}
+        matrix={matrixEditDialog.matrix}
+        onClose={() => setMatrixEditDialog({ open: false })}
+        onSuccess={() => {
+          showSnackbar('Approval matrix updated successfully.', 'success');
+          setMatrixEditDialog({ open: false });
+          Promise.all([loadApprovalMatrices(), loadApprovalRouting()]);
+        }}
+        onError={(message, severity) => {
+          showSnackbar(message, severity);
+        }}
+      />
 
       {/* Snackbar */}
       <Snackbar

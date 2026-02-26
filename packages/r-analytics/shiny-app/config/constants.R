@@ -153,10 +153,10 @@ MAX_VIF <- 10
 # =============================================================================
 
 # FRS9 Parameter Tables
-FRS9_PARAM_PD_MODEL_H <- "FRS9_PARAM_PD_MODEL_H"
-FRS9_PARAM_LGD_MODEL_H <- "FRS9_PARAM_LGD_MODEL_H"
-FRS9_PARAM_PRODUCT <- "FRS9_PARAM_PRODUCT"
-FRS9_PARAM_JOURNAL <- "FRS9_PARAM_JOURNAL"
+FRS9_PARAM_PD_MODEL_H <- "frs9_param_pd_model_h"
+FRS9_PARAM_LGD_MODEL_H <- "frs9_param_lgd_model_h"
+FRS9_PARAM_PRODUCT <- "frs9_param_product"
+FRS9_PARAM_JOURNAL <- "frs9_param_journal"
 
 # Output Tables
 FRS9_R_PD_OUTPUT_YEARLY <- "frs9_r_pd_output_yearly"

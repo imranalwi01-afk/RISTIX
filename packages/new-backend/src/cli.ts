@@ -80,7 +80,7 @@ program.command('fix-db-schema')
     .action(fixDbSchema);
 
 program.command('fix-platform-users')
-    .description('Sync platform_admin.platform_users columns and rebuild core.users view')
+    .description('Consolidate legacy platform_admin.platform_users into canonical platform_admin.users')
     .action(fixPlatformUsers);
 
 program.command('fix-remote-schema')
@@ -100,7 +100,7 @@ program.command('inspect-db-schema')
     .action(inspectDbSchema);
 
 program.command('inspect-platform-users')
-    .description('Inspect columns of platform_admin.platform_users')
+    .description('Inspect canonical platform_admin.users and legacy compatibility view platform_admin.platform_users')
     .action(inspectPlatformUsers);
 
 program.command('list-tenant-tables')
@@ -139,5 +139,4 @@ program.command('reset-password')
     .action(resetPassword);
 
 program.parse();
-
 

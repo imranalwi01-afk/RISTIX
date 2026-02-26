@@ -22,7 +22,7 @@ required_packages <- c(
     "nortest", "tibble", "ggplot2", "plotly", "shinyWidgets",
     "DBI", "RPostgres", "lubridate", "shinycssloaders",
     "future", "future.apply", "smooth", "fpp2", "aTSA", "date",
-    "tidyverse", "readxl"
+    "tidyverse", "readxl", "plumber"
 )
 
 # Identify missing packages
@@ -41,7 +41,8 @@ if (length(new_packages)) {
 # Mengarahkan koneksi ke server database eksternal 10.8.0.2
 Sys.setenv(DB_HOST = "10.8.0.2")
 Sys.setenv(DB_PORT = "5433")
-Sys.setenv(DB_NAME = "IFRS9_pro")
+Sys.setenv(DB_NAME = "FRS9PRO")
+Sys.setenv(DB_SCHEMA = "public")
 Sys.setenv(DB_USER = "postgres")
 Sys.setenv(DB_PASSWORD = "postgres")
 Sys.setenv(R_ANALYTICS_DEBUG_MODE = "true")
@@ -65,7 +66,7 @@ tryCatch(
             connect_timeout = 5
         )
         # Test simple query and schema
-        DBI::dbExecute(con_test, "SET search_path TO ifrs9, dbo, public;")
+        DBI::dbExecute(con_test, "SET search_path TO public;")
         message("✅ KONEKSI BERHASIL: Terhubung ke database server luar (10.8.0.2)")
         DBI::dbDisconnect(con_test)
     },

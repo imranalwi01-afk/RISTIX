@@ -143,14 +143,34 @@ const SidebarItem = React.memo(({
   const { hasPermission } = usePermission();
   const theme = useTheme(); // Hook for theme access if needed
 
-  const isAllowed = React.useMemo(() => {
-    if (!item.requiredPermissions || item.requiredPermissions.length === 0) return true;
-    return item.requiredPermissions.some((code) => hasPermission(code));
-  }, [item.requiredPermissions, hasPermission]);
+  const { isAllowed, visibleChildren } = React.useMemo(() => {
+    const canAccessItem = (menuItem: HierarchicalMenuItem): boolean => {
+      const requiredPermissions = menuItem.requiredPermissions || [];
+      const isSelfAllowed =
+        requiredPermissions.length === 0 ||
+        requiredPermissions.some((code) => hasPermission(code));
+
+      if (isSelfAllowed) return true;
+      if (!menuItem.children || menuItem.children.length === 0) return false;
+
+      return menuItem.children.some((child) => canAccessItem(child));
+    };
+
+    const children = (item.children || []).filter((child) => canAccessItem(child));
+    const requiredPermissions = item.requiredPermissions || [];
+    const isSelfAllowed =
+      requiredPermissions.length === 0 ||
+      requiredPermissions.some((code) => hasPermission(code));
+
+    return {
+      isAllowed: isSelfAllowed || children.length > 0,
+      visibleChildren: children,
+    };
+  }, [item, hasPermission]);
 
   if (!isAllowed) return null;
 
-  const hasChildren = item.children && item.children.length > 0;
+  const hasChildren = visibleChildren.length > 0;
   const isExpanded = expandedItems.has(item.id);
   const isActiveParent = activeItems.has(item.id);
   const isSelected = selectedItemId === item.id;
@@ -159,7 +179,7 @@ const SidebarItem = React.memo(({
   const childElements = hasChildren && !collapsed && isExpanded ? (
     <Collapse in={isExpanded} timeout="auto" unmountOnExit>
       <List component="div" disablePadding sx={{ pb: 0.25 }}>
-        {item.children!.map(child => (
+        {visibleChildren.map(child => (
           <SidebarItem
             key={child.id}
             item={child}
@@ -185,7 +205,7 @@ const SidebarItem = React.memo(({
           <ListItemButton
             onClick={(e) => {
               if (collapsed && hasChildren) {
-                onFlyoutOpen(e, item);
+                onFlyoutOpen(e, { ...item, children: visibleChildren });
               } else if (hasChildren) {
                 onExpandToggle(item.id);
               } else if (item.url) {

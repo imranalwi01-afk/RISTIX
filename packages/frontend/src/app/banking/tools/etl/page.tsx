@@ -62,6 +62,7 @@ import {
   FitScreen as FitScreenIcon,
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
+import { usePermission } from '@/hooks/usePermission';
 
 // React Flow imports
 import ReactFlow, {
@@ -439,6 +440,10 @@ const ETLNode = ({ data, selected, id }: { data: any; selected: boolean; id: str
 };
 
 function ETLWorkflowDesignerContent() {
+  const { hasAnyPermission } = usePermission();
+  const canViewToolsEtl = hasAnyPermission(['banking.tools.etl.view', 'banking.tools.etl.manage', 'banking.tools.manage', 'admin.super_admin']);
+  const canManageToolsEtl = hasAnyPermission(['banking.tools.etl.manage', 'banking.tools.etl.create', 'banking.tools.etl.update', 'banking.tools.etl.run', 'banking.tools.manage', 'admin.super_admin']);
+
   const router = useRouter();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
@@ -505,9 +510,14 @@ function ETLWorkflowDesignerContent() {
     event.dataTransfer.dropEffect = 'move';
   }, []);
 
+  const showSnackbar = useCallback((message: string, severity: 'success' | 'error' | 'info' | 'warning') => {
+    setSnackbar({ open: true, message, severity });
+  }, []);
+
   // Handle drop of new nodes
   const onDrop = useCallback((event: React.DragEvent) => {
     event.preventDefault();
+    if (!canManageToolsEtl) return;
 
     const nodeType = event.dataTransfer.getData('application/reactflow');
     if (!nodeType || !reactFlowInstance) return;
@@ -531,22 +541,20 @@ function ETLWorkflowDesignerContent() {
 
     setNodes((nds) => nds.concat(newNode));
     showSnackbar(`${template.label} node added`, 'success');
-  }, [reactFlowInstance, setNodes]);
+  }, [reactFlowInstance, setNodes, canManageToolsEtl, showSnackbar]);
 
   // Drag start handler for palette items
   const onDragStart = (event: React.DragEvent, nodeType: NodeType) => {
+    if (!canManageToolsEtl) return;
     event.dataTransfer.setData('application/reactflow', nodeType);
     event.dataTransfer.effectAllowed = 'move';
-  };
-
-  const showSnackbar = (message: string, severity: 'success' | 'error' | 'info' | 'warning') => {
-    setSnackbar({ open: true, message, severity });
   };
 
   // Get currently selected node
   const selectedNode = selectedNodeId ? nodes.find(n => n.id === selectedNodeId) : null;
 
   const createNewWorkflow = async () => {
+    if (!canManageToolsEtl) return;
     if (!newWorkflow.name.trim()) return;
 
     const workflow: ETLWorkflow = {
@@ -578,6 +586,7 @@ function ETLWorkflowDesignerContent() {
   };
 
   const saveWorkflow = async () => {
+    if (!canManageToolsEtl) return;
     if (!currentWorkflow) return;
 
     try {
@@ -598,6 +607,7 @@ function ETLWorkflowDesignerContent() {
   };
 
   const executeWorkflow = async () => {
+    if (!canManageToolsEtl) return;
     if (!currentWorkflow) return;
 
     showSnackbar('Workflow execution started', 'info');
@@ -617,11 +627,13 @@ function ETLWorkflowDesignerContent() {
   };
 
   const deleteNode = (nodeId: string) => {
+    if (!canManageToolsEtl) return;
     setNodes((nds) => nds.filter((node) => node.id !== nodeId));
     setEdges((eds) => eds.filter((edge) => edge.source !== nodeId && edge.target !== nodeId));
   };
 
   const updateNodeData = (nodeId: string, newData: any) => {
+    if (!canManageToolsEtl) return;
     setNodes((nds) =>
       nds.map((node) => {
         if (node.id === nodeId) {
@@ -650,6 +662,11 @@ function ETLWorkflowDesignerContent() {
 
   return (
     <Container maxWidth="xl" sx={{ height: '100vh', display: 'flex', flexDirection: 'column', p: 1 }}>
+      {!canViewToolsEtl && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          You do not have permission to view ETL workflow tools.
+        </Alert>
+      )}
       {/* Header */}
       <Box sx={{ mb: 2 }}>
         <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 1 }}>
@@ -686,33 +703,39 @@ function ETLWorkflowDesignerContent() {
           </Box>
 
           <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button
-              variant="outlined"
-              startIcon={<AddIcon />}
-              onClick={() => setWorkflowDialogOpen(true)}
-              size="small"
-            >
-              New
-            </Button>
+            {canManageToolsEtl && (
+              <Button
+                variant="outlined"
+                startIcon={<AddIcon />}
+                onClick={() => setWorkflowDialogOpen(true)}
+                size="small"
+              >
+                New
+              </Button>
+            )}
             {currentWorkflow && (
               <>
-                <Button
-                  variant="contained"
-                  startIcon={<SaveIcon />}
-                  onClick={saveWorkflow}
-                  size="small"
-                >
-                  Save
-                </Button>
-                <Button
-                  variant="contained"
-                  color="success"
-                  startIcon={<RunIcon />}
-                  onClick={executeWorkflow}
-                  size="small"
-                >
-                  Run
-                </Button>
+                {canManageToolsEtl && (
+                  <>
+                    <Button
+                      variant="contained"
+                      startIcon={<SaveIcon />}
+                      onClick={saveWorkflow}
+                      size="small"
+                    >
+                      Save
+                    </Button>
+                    <Button
+                      variant="contained"
+                      color="success"
+                      startIcon={<RunIcon />}
+                      onClick={executeWorkflow}
+                      size="small"
+                    >
+                      Run
+                    </Button>
+                  </>
+                )}
               </>
             )}
           </Box>
@@ -795,7 +818,7 @@ function ETLWorkflowDesignerContent() {
                     <Paper
                       sx={{
                         p: 1.5,
-                        cursor: 'grab',
+                        cursor: canManageToolsEtl ? 'grab' : 'default',
                         textAlign: 'center',
                         backgroundColor: template.color + '10',
                         border: `1px solid ${template.color}40`,
@@ -804,11 +827,11 @@ function ETLWorkflowDesignerContent() {
                           transform: 'scale(1.02)',
                         },
                         '&:active': {
-                          cursor: 'grabbing'
+                          cursor: canManageToolsEtl ? 'grabbing' : 'default'
                         },
                         transition: 'all 0.2s'
                       }}
-                      draggable
+                      draggable={canManageToolsEtl}
                       onDragStart={(event: React.DragEvent) => onDragStart(event, nodeType as NodeType)}
                     >
                       <IconComponent sx={{ color: template.color, fontSize: 24, mb: 0.5 }} />
@@ -904,6 +927,7 @@ function ETLWorkflowDesignerContent() {
                 variant="contained"
                 startIcon={<AddIcon />}
                 onClick={() => setWorkflowDialogOpen(true)}
+                disabled={!canManageToolsEtl}
               >
                 Create New Workflow
               </Button>
@@ -989,6 +1013,7 @@ function ETLWorkflowDesignerContent() {
                         variant="outlined"
                         size="small"
                         value={selectedNode.data.label || ''}
+                        disabled={!canManageToolsEtl}
                         onChange={(e) => {
                           updateNodeData(selectedNode.id, { label: e.target.value });
                         }}
@@ -1020,8 +1045,9 @@ function ETLWorkflowDesignerContent() {
                           fullWidth
                           variant="outlined"
                           size="small"
-                          value={value as string}
-                          onChange={(e) => {
+                        value={value as string}
+                        disabled={!canManageToolsEtl}
+                        onChange={(e) => {
                             const newConfig = { ...selectedNode.data.config, [key]: e.target.value };
                             updateNodeData(selectedNode.id, { config: newConfig });
                           }}
@@ -1048,6 +1074,7 @@ function ETLWorkflowDesignerContent() {
                         multiline
                         rows={2}
                         value={selectedNode.data.description || ''}
+                        disabled={!canManageToolsEtl}
                         onChange={(e) => {
                           updateNodeData(selectedNode.id, { description: e.target.value });
                         }}
@@ -1059,7 +1086,9 @@ function ETLWorkflowDesignerContent() {
                         variant="outlined"
                         size="small"
                         value={selectedNode.position.x}
+                        disabled={!canManageToolsEtl}
                         onChange={(e) => {
+                          if (!canManageToolsEtl) return;
                           const newNodes = nodes.map(n =>
                             n.id === selectedNode.id
                               ? { ...n, position: { ...n.position, x: parseInt(e.target.value) || 0 } }
@@ -1075,7 +1104,9 @@ function ETLWorkflowDesignerContent() {
                         variant="outlined"
                         size="small"
                         value={selectedNode.position.y}
+                        disabled={!canManageToolsEtl}
                         onChange={(e) => {
+                          if (!canManageToolsEtl) return;
                           const newNodes = nodes.map(n =>
                             n.id === selectedNode.id
                               ? { ...n, position: { ...n.position, y: parseInt(e.target.value) || 0 } }
@@ -1091,20 +1122,22 @@ function ETLWorkflowDesignerContent() {
 
                 {/* Actions */}
                 <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
-                  <Button
-                    variant="outlined"
-                    color="error"
-                    size="small"
-                    startIcon={<CloseIcon />}
-                    onClick={() => {
-                      deleteNode(selectedNode.id);
-                      setSelectedNodeId(null);
-                      showSnackbar('Node deleted', 'info');
-                    }}
-                    fullWidth
-                  >
-                    Delete Node
-                  </Button>
+                  {canManageToolsEtl && (
+                    <Button
+                      variant="outlined"
+                      color="error"
+                      size="small"
+                      startIcon={<CloseIcon />}
+                      onClick={() => {
+                        deleteNode(selectedNode.id);
+                        setSelectedNodeId(null);
+                        showSnackbar('Node deleted', 'info');
+                      }}
+                      fullWidth
+                    >
+                      Delete Node
+                    </Button>
+                  )}
                 </Box>
               </Box>
             ) : (
@@ -1156,7 +1189,7 @@ function ETLWorkflowDesignerContent() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setWorkflowDialogOpen(false)}>Cancel</Button>
-          <Button onClick={createNewWorkflow} variant="contained" disabled={!newWorkflow.name.trim()}>
+          <Button onClick={createNewWorkflow} variant="contained" disabled={!newWorkflow.name.trim() || !canManageToolsEtl}>
             Create
           </Button>
         </DialogActions>

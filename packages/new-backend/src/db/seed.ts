@@ -16,6 +16,8 @@ async function seed() {
         '001_seed_roles.sql',
         '002_seed_menus.sql',
         '003_seed_users.sql',
+        // Legacy FRS9 binary system flags (no-op when legacy tables are absent)
+        '014_seed_legacy_system_flags.sql',
         // '004_seed_product_segments.sql',
         // '005_seed_rule_base_settings.sql',
         // '006_seed_bucket_parameters.sql',
@@ -55,8 +57,8 @@ async function seed() {
         console.log('✅ All seed scripts executed successfully!')
 
         // Execute TypeScript Seeders
-        const { seedPermissions } = await import('./seeds/permissions.seed')
-        await seedPermissions()
+        // NOTE: permissions.seed contains deprecated legacy uppercase permission codes.
+        // Keep permission seeding controlled by dedicated migration/seeder scripts.
 
         const { seedRoles } = await import('./seeds/roles.seed')
         await seedRoles()

@@ -5,6 +5,7 @@ import { eq, and, inArray, or, sql } from 'drizzle-orm'
 const PREFERRED_TENANT_ID = process.env.TENANT_UUID || 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be'
 const TARGET_TENANT_SLUG = process.env.TENANT_SLUG || 'iaf'
 const PASSWORD_HASH = '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj/RK.s5uO.GG' // Password: 1019181716
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 async function setupMakerChecker() {
     console.log(`🏗️  Setting up Maker and Checker roles/users for tenant '${TARGET_TENANT_SLUG}'...`)
@@ -20,24 +21,37 @@ async function setupMakerChecker() {
                OR to_jsonb(t)->>'tenant_slug' = ${TARGET_TENANT_SLUG}
                OR upper(coalesce(to_jsonb(t)->>'code', '')) = ${TARGET_TENANT_SLUG.toUpperCase()}
             LIMIT 1
-        `) as { rows?: Array<{ id: string }> }
+        `) as any
 
-        let tenantId = platformTenantResult.rows?.[0]?.id
+        const firstPlatformRow = Array.isArray(platformTenantResult)
+            ? platformTenantResult[0]
+            : platformTenantResult?.rows?.[0]
+
+        let tenantId = firstPlatformRow?.id as string | undefined
 
         if (!tenantId) {
             console.log('  ⚠ Not found in platform registry, trying tenant DB core.tenants...')
-            const [tenantRecord] = await db
-                .select({ id: tenants.id })
-                .from(tenants)
-                .where(
-                    or(
-                        eq(tenants.id, PREFERRED_TENANT_ID),
-                        eq(tenants.slug, TARGET_TENANT_SLUG),
-                        eq(tenants.code, TARGET_TENANT_SLUG.toUpperCase())
+            try {
+                const [tenantRecord] = await db
+                    .select({ id: tenants.id })
+                    .from(tenants)
+                    .where(
+                        or(
+                            eq(tenants.id, PREFERRED_TENANT_ID),
+                            eq(tenants.slug, TARGET_TENANT_SLUG),
+                            eq(tenants.code, TARGET_TENANT_SLUG.toUpperCase())
+                        )
                     )
-                )
-                .limit(1)
-            tenantId = tenantRecord?.id
+                    .limit(1)
+                tenantId = tenantRecord?.id
+            } catch (error) {
+                console.log('  ⚠ core.tenants unavailable on this tenant DB, skipping fallback lookup')
+            }
+        }
+
+        if (!tenantId && UUID_REGEX.test(PREFERRED_TENANT_ID)) {
+            tenantId = PREFERRED_TENANT_ID
+            console.log(`  ⚠ Using TENANT_UUID directly: ${tenantId}`)
         }
 
         if (!tenantId) {
@@ -59,8 +73,17 @@ async function setupMakerChecker() {
             {
                 roleCode: 'CHECKER',
                 roleName: 'Checker',
-                description: 'Can approve changes initiated by makers',
+                description: 'Can review maker changes at checker stage',
                 hierarchyLevel: 50,
+                tenantId,
+                isActive: true,
+                isSystemRole: false,
+            },
+            {
+                roleCode: 'APPROVER',
+                roleName: 'Approver',
+                description: 'Can perform final approval after checker stage',
+                hierarchyLevel: 70,
                 tenantId,
                 isActive: true,
                 isSystemRole: false,
@@ -86,33 +109,39 @@ async function setupMakerChecker() {
         // Get the role IDs
         const dbRoles = await db.select().from(roles).where(
             and(
-                inArray(roles.roleCode, ['MAKER', 'CHECKER']),
+                inArray(roles.roleCode, ['MAKER', 'CHECKER', 'APPROVER']),
                 eq(roles.tenantId, tenantId)
             )
         )
         const makerRoleId = dbRoles.find(r => r.roleCode === 'MAKER')?.id
         const checkerRoleId = dbRoles.find(r => r.roleCode === 'CHECKER')?.id
+        const approverRoleId = dbRoles.find(r => r.roleCode === 'APPROVER')?.id
 
-        if (!makerRoleId || !checkerRoleId) {
+        if (!makerRoleId || !checkerRoleId || !approverRoleId) {
             throw new Error('Failed to retrieve role IDs')
         }
 
-        // 2. Assign Permissions to Checker
-        console.log('🔐 Assigning approval permissions to CHECKER...')
+        // 2. Assign Permissions to Checker and Approver
+        console.log('🔐 Assigning approval permissions to CHECKER and APPROVER...')
         const approvalPerms = await db.select().from(permissions).where(eq(permissions.category, 'approval'))
 
         if (approvalPerms.length === 0) {
             console.warn('  ⚠ No approval permissions found in database. Please run seed-approval-matrices first.')
         } else {
-            for (const perm of approvalPerms) {
-                await db.insert(rolePermissions)
-                    .values({
-                        roleId: checkerRoleId,
-                        permissionId: perm.id,
-                        grantedAt: new Date(),
-                    })
-                    .onConflictDoNothing()
-                console.log(`    ✓ Assigned ${perm.code} to CHECKER`)
+            for (const target of [
+                { roleId: checkerRoleId, roleCode: 'CHECKER' },
+                { roleId: approverRoleId, roleCode: 'APPROVER' },
+            ]) {
+                for (const perm of approvalPerms) {
+                    await db.insert(rolePermissions)
+                        .values({
+                            roleId: target.roleId,
+                            permissionId: perm.id,
+                            grantedAt: new Date(),
+                        })
+                        .onConflictDoNothing()
+                    console.log(`    ✓ Assigned ${perm.code} to ${target.roleCode}`)
+                }
             }
         }
 
@@ -154,8 +183,43 @@ async function setupMakerChecker() {
             .onConflictDoNothing()
         console.log(`  ✓ Assigned MAKER role to ${makerUserEmail}`)
 
-        // 5. Assign CHECKER role to admin@iaf.co.id
-        console.log('👤 Configuring Admin as Checker...')
+        // 5. Create Checker user and assign CHECKER role
+        console.log('👤 Creating Checker user...')
+        const checkerUserEmail = 'checker@iaf.co.id'
+        const [checkerUser] = await db.insert(users)
+            .values({
+                email: checkerUserEmail,
+                username: 'checker_iaf',
+                fullName: 'IAF Checker User',
+                passwordHash: PASSWORD_HASH,
+                tenantId,
+                isActive: true,
+                emailVerifiedAt: new Date(),
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            })
+            .onConflictDoUpdate({
+                target: [users.email],
+                set: {
+                    isActive: true,
+                    tenantId
+                }
+            })
+            .returning()
+
+        await db.insert(userRoles)
+            .values({
+                userId: checkerUser.id,
+                roleId: checkerRoleId,
+                tenantId,
+                isActive: true,
+                assignedAt: new Date(),
+            })
+            .onConflictDoNothing()
+        console.log(`  ✓ Assigned CHECKER role to ${checkerUserEmail}`)
+
+        // 6. Assign APPROVER role to admin@iaf.co.id
+        console.log('👤 Configuring Admin as Approver...')
         const adminEmail = 'admin@iaf.co.id'
         let adminUser = await db.query.users.findFirst({
             where: and(eq(users.email, adminEmail), eq(users.tenantId, tenantId))
@@ -193,16 +257,16 @@ async function setupMakerChecker() {
             await db.insert(userRoles)
                 .values({
                     userId: adminUser.id,
-                    roleId: checkerRoleId,
+                    roleId: approverRoleId,
                     tenantId,
                     isActive: true,
                     assignedAt: new Date(),
                 })
                 .onConflictDoNothing()
-            console.log(`  ✓ Assigned CHECKER role to ${adminEmail}`)
+            console.log(`  ✓ Assigned APPROVER role to ${adminEmail}`)
         }
 
-        console.log('\n🎉 Maker-Checker setup complete for tenant!')
+        console.log('\n🎉 Maker-Checker-Approver setup complete for tenant!')
         process.exit(0)
     } catch (error) {
         console.error('\n❌ Setup failed:', error)

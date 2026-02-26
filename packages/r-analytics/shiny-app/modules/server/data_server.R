@@ -77,14 +77,14 @@ data_server <- function(input, output, session, con, PD, LGD, persistent_data) {
         log_database("QUERY", "FRS9_IMP_CA_PD_ODR/LGD_H", "STARTED",
                     details = list(dependent = input$dependent, segment = input$segment))
         if (input$dependent == "PD") {
-          df <- dbGetQuery(con, 'SELECT * FROM "FRS9_IMP_CA_PD_ODR" WHERE "PD_CONFIG_ID" = $1',
+          df <- dbGetQuery(con, "SELECT * FROM frs9_imp_ca_pd_odr WHERE pd_config_id = $1",
                           params = list(as.integer(input$segment)))
-          log_database("QUERY", "FRS9_IMP_CA_PD_ODR", "SUCCESS",
+          log_database("QUERY", "frs9_imp_ca_pd_odr", "SUCCESS",
                       details = list(rows = nrow(df)))
         } else {
-          df <- dbGetQuery(con, 'SELECT * FROM "FRS9_IMP_CA_LGD_H" WHERE "LGD_CONFIG_ID" = $1',
+          df <- dbGetQuery(con, "SELECT * FROM frs9_imp_ca_lgd_h WHERE lgd_config_id = $1",
                           params = list(as.integer(input$segment)))
-          log_database("QUERY", "FRS9_IMP_CA_LGD_H", "SUCCESS",
+          log_database("QUERY", "frs9_imp_ca_lgd_h", "SUCCESS",
                       details = list(rows = nrow(df)))
         }
       }, error = function(e) {

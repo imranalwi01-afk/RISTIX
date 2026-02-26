@@ -78,25 +78,43 @@ import {
 import { useTheme } from '@mui/material/styles';
 import { format, parseISO, subDays, addMinutes, differenceInMinutes } from 'date-fns';
 import { bankingAPI } from '@/services/api';
+import { usePermission } from '@/hooks/usePermission';
+import { getErrorMessage } from '@/utils/error-message';
+
+type SupportedJobType = 'SQL_SP' | 'INTERNAL_SCRIPT' | 'SHELL_COMMAND';
+
+interface JobRuntimeSummary {
+  available: boolean;
+  pid?: number;
+  state?: string;
+  runtimeSeconds?: number;
+  waitEventType?: string | null;
+  waitEvent?: string | null;
+  blockedByPids?: number[];
+  dbSessionStart?: string | null;
+  queryStart?: string | null;
+  reason?: string;
+}
 
 // Types and Interfaces
 interface JobExecution {
   id: string;
   jobId: string;
   jobName: string;
-  jobType: 'SQL_SP' | 'INTERNAL_SCRIPT' | 'SHELL_COMMAND' | 'IFRS9_CALCULATION' | 'ETL_PROCESS' | 'DATA_VALIDATION' | 'REPORT_GENERATION' | 'BACKUP' | 'MAINTENANCE';
-  status: 'RUNNING' | 'COMPLETED' | 'FAILED' | 'PENDING' | 'PAUSED' | 'CANCELLED' | 'active' | 'waiting';
+  jobType: SupportedJobType | string;
+  status: 'RUNNING' | 'COMPLETED' | 'FAILED' | 'PENDING' | 'PAUSED' | 'CANCELLED' | string;
   priority: 'LOW' | 'NORMAL' | 'HIGH' | 'CRITICAL';
   startTime: string;
   endTime?: string;
   duration?: number;
   progress: number;
-  userId: string;
+  userId?: string;
   userName?: string;
   tenantId?: string;
   tenantName?: string;
   parameters?: any;
   resultData?: any;
+  resultSummary?: any;
   errorMessage?: string;
   triggeredBy?: string;
   errorDetails?: string;
@@ -111,11 +129,12 @@ interface JobExecution {
     averageResponseTime: number;
   };
   nextRunTime?: string;
-  isScheduled: boolean;
+  isScheduled?: boolean;
   scheduleExpression?: string;
-  retryCount: number;
-  maxRetries: number;
-  tags: string[];
+  retryCount?: number;
+  maxRetries?: number;
+  tags?: string[];
+  runtime?: JobRuntimeSummary;
 }
 
 interface JobDefinition {
@@ -165,6 +184,141 @@ interface TabPanelProps {
   value: number;
 }
 
+interface CreateJobForm {
+  name: string;
+  description?: string;
+  type: SupportedJobType;
+  parameters: Record<string, unknown>;
+  priority: string;
+  maxRetries: number;
+  timeout: number;
+  isEnabled: boolean;
+  scheduleExpression: string;
+  targetDatabase?: 'TENANT' | 'LEGACY';
+  schemaName?: string;
+  procedureName?: string;
+  handlerName?: string;
+  command?: string;
+}
+
+const SUPPORTED_JOB_TYPE_OPTIONS: Array<{ value: SupportedJobType; label: string }> = [
+  { value: 'SQL_SP', label: 'Stored Procedure' },
+  { value: 'INTERNAL_SCRIPT', label: 'Internal Script' },
+  { value: 'SHELL_COMMAND', label: 'Shell Command' },
+];
+
+const JOB_VIEW_PERMISSIONS = ['jobs.view', 'jobs.manage', 'jobs.access', 'admin.system.view', 'admin.system.manage', 'admin.super_admin'];
+const JOB_CREATE_PERMISSIONS = ['jobs.create', 'jobs.manage', 'jobs.access', 'admin.system.manage', 'admin.super_admin'];
+const JOB_RUN_PERMISSIONS = ['jobs.run', 'jobs.manage', 'jobs.access', 'admin.system.manage', 'admin.super_admin'];
+const JOB_CONTROL_PERMISSIONS = ['jobs.control', 'jobs.manage', 'jobs.access', 'admin.system.manage', 'admin.super_admin'];
+const JOB_RUNTIME_PERMISSIONS = ['jobs.runtime.view', 'jobs.manage', 'admin.system.view', 'admin.system.manage', 'admin.super_admin'];
+
+const DEFAULT_NEW_JOB_DATA: CreateJobForm = {
+  name: '',
+  type: 'SQL_SP',
+  parameters: {},
+  priority: 'NORMAL',
+  maxRetries: 3,
+  timeout: 3600,
+  isEnabled: true,
+  scheduleExpression: '',
+  targetDatabase: 'TENANT',
+  schemaName: '',
+  procedureName: '',
+  handlerName: '',
+  command: '',
+};
+
+const LEGACY_IFRS9_SEQUENCE_JOB_TEMPLATE: CreateJobForm = {
+  ...DEFAULT_NEW_JOB_DATA,
+  name: 'IFRS9 Impairment Sequence',
+  type: 'SQL_SP',
+  targetDatabase: 'LEGACY',
+  schemaName: 'public',
+  procedureName: 'sp_frs9_imp_sequence',
+  priority: 'HIGH',
+};
+
+const toUiStatus = (rawStatus?: string | null): string => {
+  if (!rawStatus) return 'PENDING';
+  const status = rawStatus.toUpperCase();
+  switch (status) {
+    case 'ACTIVE':
+      return 'RUNNING';
+    case 'WAITING':
+    case 'PENDING_APPROVAL':
+      return 'PENDING';
+    case 'COMPLETED':
+      return 'COMPLETED';
+    case 'FAILED':
+      return 'FAILED';
+    case 'PAUSED':
+      return 'PAUSED';
+    case 'CANCELLED':
+      return 'CANCELLED';
+    default:
+      return status;
+  }
+};
+
+const toExecutionUiStatus = (execution: { status?: string | null; endTime?: string | null; error?: string | null }): JobExecution['status'] => {
+  const mapped = toUiStatus(execution.status) as JobExecution['status'];
+
+  // Guard against stale backend status where end_time/error already indicates terminal state.
+  if (mapped === 'RUNNING' && execution.endTime) {
+    return execution.error ? 'FAILED' : 'COMPLETED';
+  }
+
+  return mapped;
+};
+
+const mapExecutionFromApi = (e: any): JobExecution => {
+  const rawError = typeof e.error === 'string' ? e.error : '';
+  const [summary, ...details] = rawError.split('\n');
+  const runtime = e.runtime && typeof e.runtime === 'object' ? e.runtime as JobRuntimeSummary : undefined;
+
+  return {
+    id: e.id,
+    jobId: e.jobDefinitionId || e.jobId || e.id,
+    jobName: e.jobName || e.jobType,
+    jobType: e.jobType,
+    status: toExecutionUiStatus(e),
+    priority: e.priority || 'NORMAL',
+    startTime: e.startTime || new Date().toISOString(),
+    endTime: e.endTime || undefined,
+    progress: typeof e.progress === 'number' ? e.progress : 0,
+    resultSummary: e.result || undefined,
+    errorMessage: summary || undefined,
+    errorDetails: details.join('\n').trim() || undefined,
+    triggeredBy: e.triggeredBy || undefined,
+    userName: e.userName || e.triggeredBy || 'System',
+    tenantName: e.tenantName || 'Main Tenant',
+    runtime: runtime?.available ? runtime : undefined,
+  };
+};
+
+const getHttpStatus = (error: unknown): number | undefined => {
+  if (typeof error !== 'object' || error === null) {
+    return undefined;
+  }
+
+  const response = (error as { response?: { status?: unknown } }).response;
+  return typeof response?.status === 'number' ? response.status : undefined;
+};
+
+const getHttpPayload = (error: unknown): Record<string, unknown> | null => {
+  if (typeof error !== 'object' || error === null) {
+    return null;
+  }
+
+  const payload = (error as { response?: { data?: unknown } }).response?.data;
+  if (typeof payload !== 'object' || payload === null) {
+    return null;
+  }
+
+  return payload as Record<string, unknown>;
+};
+
 const TabPanel = ({ children, value, index, ...other }: TabPanelProps) => (
   <div
     role="tabpanel"
@@ -180,6 +334,12 @@ const TabPanel = ({ children, value, index, ...other }: TabPanelProps) => (
 export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
   void params; // required by typed routes signature, unused in this page
   const theme = useTheme();
+  const { hasAnyPermission } = usePermission();
+  const canViewJobs = hasAnyPermission(JOB_VIEW_PERMISSIONS);
+  const canCreateJobs = hasAnyPermission(JOB_CREATE_PERMISSIONS);
+  const canRunJobs = hasAnyPermission(JOB_RUN_PERMISSIONS);
+  const canControlJobs = hasAnyPermission(JOB_CONTROL_PERMISSIONS);
+  const canViewRuntime = hasAnyPermission(JOB_RUNTIME_PERMISSIONS);
   const [currentTab, setCurrentTab] = useState(0);
   const [statusTab, setStatusTab] = useState(0); // 0: All, 1: Ongoing, 2: Running, 3: Completed, 4: Failed
   const [jobExecutions, setJobExecutions] = useState<JobExecution[]>([]);
@@ -213,42 +373,90 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
   });
 
   const [createJobDialogOpen, setCreateJobDialogOpen] = useState(false);
-  const [newJobData, setNewJobData] = useState<Partial<JobDefinition>>({
-    name: '',
-    type: 'SQL_SP',
-    parameters: {},
-    priority: 'NORMAL',
-    maxRetries: 3,
-    timeout: 3600,
-    isEnabled: true,
-    scheduleExpression: ''
-  });
+  const [newJobData, setNewJobData] = useState<CreateJobForm>(DEFAULT_NEW_JOB_DATA);
+
+  const normalizeSqlProcedureInput = (jobData: CreateJobForm) => {
+    const rawProcedure = (jobData.procedureName || '').trim();
+    const rawSchema = (jobData.schemaName || '').trim();
+    const parts = rawProcedure.split('.').map((part) => part.trim()).filter(Boolean);
+
+    let schemaName = rawSchema;
+    let procedureName = rawProcedure;
+    let targetDatabase = jobData.targetDatabase || 'TENANT';
+    let sourceDatabase: string | undefined;
+
+    if (parts.length === 2) {
+      if (!schemaName) schemaName = parts[0];
+      procedureName = parts[1];
+    }
+
+    if (parts.length >= 3) {
+      sourceDatabase = parts[0];
+      if (!schemaName) schemaName = parts[1];
+      procedureName = parts.slice(2).join('.');
+      if (targetDatabase === 'TENANT') {
+        targetDatabase = 'LEGACY';
+      }
+    }
+
+    const normalized: Record<string, unknown> = {
+      ...jobData.parameters,
+      procedureName,
+      targetDatabase,
+    };
+
+    if (schemaName) normalized.schemaName = schemaName;
+    if (sourceDatabase) normalized.sourceDatabase = sourceDatabase;
+
+    return { defaultParameters: normalized };
+  };
 
   const handleCreateJob = async () => {
+    if (!canCreateJobs) {
+      setError('You do not have permission to create job definitions.');
+      return;
+    }
+
     try {
+      const trimmedName = (newJobData.name || '').trim();
+      if (!trimmedName) {
+        setError('Job name is required.');
+        return;
+      }
+
+      if (newJobData.type === 'SQL_SP' && !(newJobData.procedureName || '').trim()) {
+        setError('Stored Procedure Name is required for Stored Procedure jobs.');
+        return;
+      }
+
+      if (newJobData.type === 'INTERNAL_SCRIPT' && !(newJobData.handlerName || '').trim()) {
+        setError('Handler Name is required for Internal Script jobs.');
+        return;
+      }
+
+      if (newJobData.type === 'SHELL_COMMAND' && !(newJobData.command || '').trim()) {
+        setError('Shell Command is required for Shell Command jobs.');
+        return;
+      }
+
       setLoading(true);
 
       // Construct defaultParameters based on job type
-      const jobData = newJobData as any;
-      const defaultParams: any = { ...(newJobData.parameters || {}) };
+      let defaultParams: Record<string, unknown> = { ...(newJobData.parameters || {}) };
 
-      if (jobData.type === 'SQL_SP' && jobData.procedureName) {
-        defaultParams.procedureName = jobData.procedureName;
-        if (jobData.schemaName) {
-          defaultParams.schemaName = jobData.schemaName;
-        }
-        if (jobData.targetDatabase) {
-          defaultParams.targetDatabase = jobData.targetDatabase;
-        }
-      } else if (jobData.type === 'INTERNAL_SCRIPT' && jobData.handlerName) {
-        defaultParams.handlerName = jobData.handlerName;
-      } else if (jobData.type === 'SHELL_COMMAND' && jobData.command) {
-        defaultParams.command = jobData.command;
+      if (newJobData.type === 'SQL_SP') {
+        const normalized = normalizeSqlProcedureInput(newJobData);
+        defaultParams = normalized.defaultParameters;
+      } else if (newJobData.type === 'INTERNAL_SCRIPT' && newJobData.handlerName) {
+        defaultParams.handlerName = newJobData.handlerName.trim();
+      } else if (newJobData.type === 'SHELL_COMMAND' && newJobData.command) {
+        defaultParams.command = newJobData.command.trim();
       }
 
       // Map frontend fields to backend schema
       const payload = {
-        name: newJobData.name,
+        name: trimmedName,
+        description: newJobData.description?.trim() || undefined,
         jobType: newJobData.type,
         cronExpression: newJobData.scheduleExpression || undefined,
         defaultParameters: defaultParams,
@@ -264,28 +472,45 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
       fetchJobExecutions();
 
       // Reset form
-      setNewJobData({
-        name: '',
-        type: 'SQL_SP',
-        parameters: {},
-        priority: 'NORMAL',
-        maxRetries: 3,
-        timeout: 3600,
-        isEnabled: true,
-        scheduleExpression: ''
-      });
+      setNewJobData(DEFAULT_NEW_JOB_DATA);
     } catch (error) {
       console.error('Error creating job:', error);
-      setError('Failed to create job definition. Please check your inputs.');
+      setError(getErrorMessage(error, 'Failed to create job definition. Please check your inputs.'));
     } finally {
       setLoading(false);
     }
   };
 
+  const handleOpenCreateLegacyIfrs9Job = () => {
+    if (!canCreateJobs) {
+      setError('You do not have permission to create job definitions.');
+      return;
+    }
+
+    setNewJobData(LEGACY_IFRS9_SEQUENCE_JOB_TEMPLATE);
+    setCreateJobDialogOpen(true);
+  };
+
+  const isCreateJobDisabled =
+    loading
+    || !(newJobData.name || '').trim()
+    || (newJobData.type === 'SQL_SP' && !(newJobData.procedureName || '').trim())
+    || (newJobData.type === 'INTERNAL_SCRIPT' && !(newJobData.handlerName || '').trim())
+    || (newJobData.type === 'SHELL_COMMAND' && !(newJobData.command || '').trim());
+
 
 
   // Fetch data
   const fetchJobExecutions = useCallback(async () => {
+    if (!canViewJobs) {
+      setJobExecutions([]);
+      setJobDefinitions([]);
+      setSystemMetrics(null);
+      setLoading(false);
+      setError('You do not have permission to view job monitoring.');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -297,29 +522,56 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
       ]);
 
       // Map backend statuses to UI statuses
-      const mapped: JobExecution[] = (executions || []).map((e: any) => ({
-        id: e.id,
-        jobId: e.id,
-        jobName: e.jobName || e.jobType,
-        jobType: e.jobType,
-        status:
-          e.status === 'active' ? 'RUNNING'
-            : e.status === 'completed' ? 'COMPLETED'
-              : e.status === 'failed' ? 'FAILED'
-                : e.status === 'waiting' ? 'PENDING'
-                  : 'PENDING',
-        startTime: e.startTime || new Date().toISOString(),
-        endTime: e.endTime || undefined,
-        progress: typeof e.progress === 'number' ? e.progress : 0,
-        resultSummary: e.result || undefined,
-        errorMessage: e.error || undefined,
-        triggeredBy: e.triggeredBy || undefined,
-        userName: e.userName || e.triggeredBy || 'System',
-        tenantName: e.tenantName || 'Main Tenant',
-      }));
+      const mapped: JobExecution[] = (executions || []).map((e: any) => mapExecutionFromApi(e));
+
+      const latestExecutionByDefinition = new Map<string, JobExecution>();
+      for (const execution of mapped) {
+        if (!execution.jobId || execution.jobId === execution.id) continue;
+        if (!latestExecutionByDefinition.has(execution.jobId)) {
+          latestExecutionByDefinition.set(execution.jobId, execution);
+        }
+      }
+
+      const mappedDefinitions: JobDefinition[] = (definitions || []).map((d: any) => {
+        const latestExecution = latestExecutionByDefinition.get(d.id);
+
+        return {
+          id: d.id,
+          name: d.name,
+          description: d.description || '',
+          type: d.type || d.jobType || 'UNKNOWN',
+          isEnabled: Boolean(d.isEnabled),
+          scheduleExpression: d.scheduleExpression || d.cronExpression || '',
+          parameters: d.parameters || d.defaultParameters || {},
+          maxRetries: Number(d.maxRetries ?? 0),
+          timeout: Number(d.timeout ?? 3600),
+          priority: d.priority || 'NORMAL',
+          createdBy: d.createdBy || '',
+          lastModified: d.updatedAt || d.lastModified || d.createdAt || new Date().toISOString(),
+          nextRunTime: d.nextRunTime || undefined,
+          lastRunStatus: d.lastRunStatus
+            ? toUiStatus(d.lastRunStatus)
+            : latestExecution
+              ? toUiStatus(latestExecution.status)
+              : undefined,
+          lastRunTime: d.lastRunTime || latestExecution?.startTime || undefined,
+        };
+      });
 
       setJobExecutions(mapped);
-      setJobDefinitions(definitions || []);
+      setJobDefinitions((prev) => {
+        const prevById = new Map(prev.map((job) => [job.id, job]));
+
+        return mappedDefinitions.map((job) => {
+          const previous = prevById.get(job.id);
+          return {
+            ...job,
+            // Preserve optimistic status/time until backend has persisted last-run state.
+            lastRunStatus: job.lastRunStatus ?? previous?.lastRunStatus,
+            lastRunTime: job.lastRunTime ?? previous?.lastRunTime,
+          };
+        });
+      });
       setSystemMetrics({
         cpuUsage: metrics?.cpuUsage || 0,
         memoryUsage: metrics?.memoryUsage || 0,
@@ -333,11 +585,11 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
       });
     } catch (error) {
       console.error('Error fetching job data:', error);
-      setError('Failed to fetch job data. Please try again.');
+      setError(getErrorMessage(error, 'Failed to fetch job data. Please try again.'));
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filters, canViewJobs]);
 
   useEffect(() => {
     fetchJobExecutions();
@@ -381,12 +633,50 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
     fetchJobExecutions();
   };
 
+  const fetchExecutionRuntime = useCallback(async (executionId: string) => {
+    if (!canViewRuntime) return;
+
+    try {
+      const runtime = await bankingAPI.jobs.getExecutionRuntime(executionId);
+      if (!runtime || !runtime.available) return;
+
+      setJobExecutions((prev) =>
+        prev.map((job) => (job.id === executionId ? { ...job, runtime } : job))
+      );
+
+      setJobDetailsDialog((prev) => {
+        if (!prev.job || prev.job.id !== executionId) return prev;
+        return {
+          ...prev,
+          job: {
+            ...prev.job,
+            runtime,
+          },
+        };
+      });
+    } catch (runtimeError) {
+      const statusCode = getHttpStatus(runtimeError);
+      if (statusCode === 403 || statusCode === 404) {
+        return;
+      }
+      console.error('Failed to fetch runtime diagnostics:', runtimeError);
+    }
+  }, [canViewRuntime]);
+
   const handleViewJobDetails = (job: JobExecution) => {
     setJobDetailsDialog({
       open: true,
       job
     });
   };
+
+  useEffect(() => {
+    if (!canViewRuntime) return;
+    if (!jobDetailsDialog.open || !jobDetailsDialog.job) return;
+    if (jobDetailsDialog.job.status !== 'RUNNING') return;
+    if (jobDetailsDialog.job.runtime?.available) return;
+    fetchExecutionRuntime(jobDetailsDialog.job.id);
+  }, [jobDetailsDialog, fetchExecutionRuntime, canViewRuntime]);
 
   const handleJobControl = async (job: JobExecution, action: 'start' | 'pause' | 'stop' | 'restart') => {
     setJobControlDialog({
@@ -398,17 +688,70 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
 
   const handleJobAction = async (jobId: string, action: 'start' | 'pause' | 'stop' | 'restart') => {
     if (action === 'start') {
+      if (!canRunJobs) {
+        setError('You do not have permission to run jobs.');
+        return;
+      }
+
       try {
         setLoading(true);
-        await bankingAPI.jobs.runJob(jobId);
-        fetchJobExecutions();
+        const runResponse = await bankingAPI.jobs.runJob(jobId);
+        const immediateStatus = toUiStatus(runResponse?.status || 'PENDING');
+        const nowIso = new Date().toISOString();
+
+        // Optimistic status update on definitions card after "Run Now"
+        setJobDefinitions((prev) =>
+          prev.map((job) =>
+            job.id === jobId
+              ? { ...job, lastRunStatus: immediateStatus, lastRunTime: nowIso }
+              : job
+          )
+        );
+
+        await fetchJobExecutions();
       } catch (error) {
-        console.error('Run job error:', error);
-        setError('Failed to start job execution.');
+        const statusCode = getHttpStatus(error);
+        const payload = getHttpPayload(error);
+
+        if (statusCode === 409 && payload) {
+          const activeExecutionId = typeof payload.activeExecutionId === 'string'
+            ? payload.activeExecutionId
+            : undefined;
+          setError(getErrorMessage(error, 'Job is already running.'));
+
+          if (activeExecutionId) {
+            const existing = jobExecutions.find((execution) => execution.id === activeExecutionId);
+            if (existing) {
+              setJobDetailsDialog({ open: true, job: existing });
+            } else {
+              try {
+                const executionRecord = await bankingAPI.jobs.getExecution(activeExecutionId);
+                if (executionRecord) {
+                  setJobDetailsDialog({ open: true, job: mapExecutionFromApi(executionRecord) });
+                }
+              } catch (detailsError) {
+                console.error('Failed to load active execution details:', detailsError);
+              }
+            }
+            await fetchJobExecutions();
+          }
+        } else {
+          if (statusCode === 403) {
+            setError('You do not have permission to run jobs.');
+            return;
+          }
+          console.error('Run job error:', error);
+          setError(getErrorMessage(error, 'Failed to start job execution.'));
+        }
       } finally {
         setLoading(false);
       }
     } else {
+      if (!canControlJobs) {
+        setError('You do not have permission to control jobs.');
+        return;
+      }
+
       // For existing executions
       const execution = jobExecutions.find(e => e.id === jobId);
       if (execution) {
@@ -420,6 +763,16 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
   const executeJobControl = async () => {
     if (!jobControlDialog.job || !jobControlDialog.action) return;
 
+    if (jobControlDialog.action === 'start' || jobControlDialog.action === 'restart') {
+      if (!canRunJobs) {
+        setError('You do not have permission to run jobs.');
+        return;
+      }
+    } else if (!canControlJobs) {
+      setError('You do not have permission to control jobs.');
+      return;
+    }
+
     try {
       if (jobControlDialog.action === 'start' || jobControlDialog.action === 'restart') {
         await bankingAPI.jobs.runJob(jobControlDialog.job.jobId || jobControlDialog.job.id);
@@ -430,12 +783,22 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
       setJobControlDialog({ open: false, job: null, action: null });
       fetchJobExecutions();
     } catch (error) {
+      const statusCode = getHttpStatus(error);
+      if (statusCode === 403) {
+        setError('You do not have permission to control this job.');
+        return;
+      }
       console.error('Job control error:', error);
-      setError('Failed to control job. Please try again.');
+      setError(getErrorMessage(error, 'Failed to control job. Please try again.'));
     }
   };
 
   const toggleJobDefinition = async (jobId: string, enabled: boolean) => {
+    if (!canControlJobs) {
+      setError('You do not have permission to control jobs.');
+      return;
+    }
+
     try {
       await bankingAPI.jobs.toggleJob(jobId);
 
@@ -445,14 +808,19 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
         )
       );
     } catch (error) {
+      const statusCode = getHttpStatus(error);
+      if (statusCode === 403) {
+        setError('You do not have permission to toggle job definitions.');
+        return;
+      }
       console.error('Toggle job error:', error);
-      setError('Failed to toggle job. Please try again.');
+      setError(getErrorMessage(error, 'Failed to toggle job. Please try again.'));
     }
   };
 
   // Helper functions
   const getStatusColor = (status: string) => {
-    switch (status) {
+    switch (toUiStatus(status)) {
       case 'RUNNING': return 'info';
       case 'COMPLETED': return 'success';
       case 'FAILED': return 'error';
@@ -677,7 +1045,7 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
               <VisibilityIcon fontSize="small" />
             </IconButton>
           </Tooltip>
-          {params.row.status === 'RUNNING' && (
+          {canControlJobs && params.row.status === 'RUNNING' && (
             <Tooltip title="Pause Job">
               <IconButton
                 size="small"
@@ -687,7 +1055,7 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
               </IconButton>
             </Tooltip>
           )}
-          {params.row.status === 'PAUSED' && (
+          {canControlJobs && params.row.status === 'PAUSED' && (
             <Tooltip title="Resume Job">
               <IconButton
                 size="small"
@@ -697,7 +1065,7 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
               </IconButton>
             </Tooltip>
           )}
-          {(params.row.status === 'RUNNING' || params.row.status === 'PAUSED') && (
+          {canControlJobs && (params.row.status === 'RUNNING' || params.row.status === 'PAUSED') && (
             <Tooltip title="Stop Job">
               <IconButton
                 size="small"
@@ -776,15 +1144,30 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<AddIcon />}
-            onClick={() => setCreateJobDialogOpen(true)}
-            sx={{ mr: 1, boxShadow: '0 4px 12px rgba(25, 118, 210, 0.3)' }}
-          >
-            Create Job
-          </Button>
+          {canCreateJobs && (
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<AddIcon />}
+              onClick={() => {
+                setNewJobData(DEFAULT_NEW_JOB_DATA);
+                setCreateJobDialogOpen(true);
+              }}
+              sx={{ mr: 1, boxShadow: '0 4px 12px rgba(25, 118, 210, 0.3)' }}
+            >
+              Create Job
+            </Button>
+          )}
+          {canCreateJobs && (
+            <Button
+              variant="outlined"
+              color="secondary"
+              startIcon={<ScriptIcon />}
+              onClick={handleOpenCreateLegacyIfrs9Job}
+            >
+              Quick Add IFRS9 Legacy Job
+            </Button>
+          )}
 
           <Tooltip title="Refresh All Data">
             <IconButton onClick={handleRefresh} disabled={loading} color="primary" sx={{ border: '1px solid', borderColor: 'primary.light' }}>
@@ -1043,15 +1426,9 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
                     label="Type"
                   >
                     <MenuItem value="">All</MenuItem>
-                    <MenuItem value="SQL_SP">Stored Procedure</MenuItem>
-                    <MenuItem value="INTERNAL_SCRIPT">Internal Script</MenuItem>
-                    <MenuItem value="SHELL_COMMAND">Shell Command</MenuItem>
-                    <MenuItem value="IFRS9_CALCULATION">IFRS9 Calculation</MenuItem>
-                    <MenuItem value="ETL_PROCESS">ETL Process</MenuItem>
-                    <MenuItem value="DATA_VALIDATION">Data Validation</MenuItem>
-                    <MenuItem value="REPORT_GENERATION">Report Generation</MenuItem>
-                    <MenuItem value="BACKUP">Backup</MenuItem>
-                    <MenuItem value="MAINTENANCE">Maintenance</MenuItem>
+                    {SUPPORTED_JOB_TYPE_OPTIONS.map((option) => (
+                      <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+                    ))}
                   </Select>
                 </FormControl>
               </Grid>
@@ -1138,6 +1515,7 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
                     <Switch
                       checked={job.isEnabled}
                       onChange={(e) => toggleJobDefinition(job.id, e.target.checked)}
+                      disabled={!canControlJobs}
                       size="small"
                     />
                   }
@@ -1185,7 +1563,7 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
                       size="small"
                       startIcon={<RunIcon />}
                       onClick={() => handleJobAction(job.id, 'start')}
-                      disabled={!job.isEnabled || loading}
+                      disabled={!canRunJobs || !job.isEnabled || loading}
                       fullWidth
                     >
                       Run Now
@@ -1276,17 +1654,21 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
                 <Select
                   value={newJobData.type}
                   label="Job Type"
-                  onChange={(e) => setNewJobData({ ...newJobData, type: e.target.value })}
+                  onChange={(e) =>
+                    setNewJobData((prev) => ({
+                      ...prev,
+                      type: e.target.value as SupportedJobType,
+                      // Reset type-specific fields when switching job type
+                      procedureName: '',
+                      schemaName: '',
+                      handlerName: '',
+                      command: '',
+                    }))
+                  }
                 >
-                  <MenuItem value="SQL_SP">Stored Procedure</MenuItem>
-                  <MenuItem value="INTERNAL_SCRIPT">Internal Script</MenuItem>
-                  <MenuItem value="SHELL_COMMAND">Shell Command</MenuItem>
-                  <MenuItem value="IFRS9_CALCULATION">IFRS9 Calculation</MenuItem>
-                  <MenuItem value="ETL_PROCESS">ETL Process</MenuItem>
-                  <MenuItem value="DATA_VALIDATION">Data Validation</MenuItem>
-                  <MenuItem value="REPORT_GENERATION">Report Generation</MenuItem>
-                  <MenuItem value="BACKUP">Backup</MenuItem>
-                  <MenuItem value="MAINTENANCE">Maintenance</MenuItem>
+                  {SUPPORTED_JOB_TYPE_OPTIONS.map((option) => (
+                    <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+                  ))}
                 </Select>
               </FormControl>
             </Grid>
@@ -1298,9 +1680,9 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
                   <FormControl fullWidth>
                     <InputLabel>Target Database</InputLabel>
                     <Select
-                      value={(newJobData as any).targetDatabase || 'TENANT'}
+                      value={newJobData.targetDatabase || 'TENANT'}
                       label="Target Database"
-                      onChange={(e) => setNewJobData({ ...newJobData, targetDatabase: e.target.value } as any)}
+                      onChange={(e) => setNewJobData({ ...newJobData, targetDatabase: e.target.value as 'TENANT' | 'LEGACY' })}
                     >
                       <MenuItem value="TENANT">Tenant DB (Default)</MenuItem>
                       <MenuItem value="LEGACY">Legacy DB (IFRS9 Engine)</MenuItem>
@@ -1312,8 +1694,8 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
                     fullWidth
                     label="Schema Name"
                     placeholder="e.g. core, risk, public"
-                    value={(newJobData as any).schemaName || ''}
-                    onChange={(e) => setNewJobData({ ...newJobData, schemaName: e.target.value } as any)}
+                    value={newJobData.schemaName || ''}
+                    onChange={(e) => setNewJobData({ ...newJobData, schemaName: e.target.value })}
                     helperText="Database schema (optional, defaults to public/core)"
                   />
                 </Grid>
@@ -1321,10 +1703,11 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
                   <TextField
                     fullWidth
                     label="Stored Procedure Name"
-                    placeholder="e.g. calculate_daily_interest"
-                    value={(newJobData as any).procedureName || ''}
-                    onChange={(e) => setNewJobData({ ...newJobData, procedureName: e.target.value } as any)}
-                    helperText="Name of the stored procedure to execute"
+                    placeholder="e.g. sp_frs9_imp_sequence or FRS9PRO.public.sp_frs9_imp_sequence"
+                    value={newJobData.procedureName || ''}
+                    onChange={(e) => setNewJobData({ ...newJobData, procedureName: e.target.value })}
+                    helperText="Required. Supports schema/db qualified format."
+                    required
                   />
                 </Grid>
               </>
@@ -1336,9 +1719,10 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
                   fullWidth
                   label="Handler Name"
                   placeholder="e.g. test_handler"
-                  value={(newJobData as any).handlerName || ''}
-                  onChange={(e) => setNewJobData({ ...newJobData, handlerName: e.target.value } as any)}
+                  value={newJobData.handlerName || ''}
+                  onChange={(e) => setNewJobData({ ...newJobData, handlerName: e.target.value })}
                   helperText="Registered internal handler name"
+                  required
                 />
               </Grid>
             )}
@@ -1349,9 +1733,10 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
                   fullWidth
                   label="Shell Command"
                   placeholder="e.g. ls -la"
-                  value={(newJobData as any).command || ''}
-                  onChange={(e) => setNewJobData({ ...newJobData, command: e.target.value } as any)}
+                  value={newJobData.command || ''}
+                  onChange={(e) => setNewJobData({ ...newJobData, command: e.target.value })}
                   helperText="System command to execute (use with caution)"
+                  required
                 />
               </Grid>
             )}
@@ -1414,7 +1799,7 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setCreateJobDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleCreateJob} variant="contained" disabled={!newJobData.name}>
+          <Button onClick={handleCreateJob} variant="contained" disabled={isCreateJobDisabled}>
             Create
           </Button>
         </DialogActions>
@@ -1508,6 +1893,49 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
                   </Box>
                 </Stack>
               </Grid>
+              {canViewRuntime && jobDetailsDialog.job.runtime?.available && (
+                <Grid size={{ xs: 12 }}>
+                  <Typography variant="h6" gutterBottom>
+                    Runtime Diagnostics
+                  </Typography>
+                  <Paper variant="outlined" sx={{ p: 2 }}>
+                    <Grid container spacing={2}>
+                      <Grid size={{ xs: 12, md: 4 }}>
+                        <Typography variant="body2" color="text.secondary">Backend PID</Typography>
+                        <Typography variant="body2">{jobDetailsDialog.job.runtime.pid ?? '-'}</Typography>
+                      </Grid>
+                      <Grid size={{ xs: 12, md: 4 }}>
+                        <Typography variant="body2" color="text.secondary">DB State</Typography>
+                        <Typography variant="body2">{jobDetailsDialog.job.runtime.state || '-'}</Typography>
+                      </Grid>
+                      <Grid size={{ xs: 12, md: 4 }}>
+                        <Typography variant="body2" color="text.secondary">Runtime</Typography>
+                        <Typography variant="body2">
+                          {typeof jobDetailsDialog.job.runtime.runtimeSeconds === 'number'
+                            ? `${Math.floor(jobDetailsDialog.job.runtime.runtimeSeconds / 60)}m ${jobDetailsDialog.job.runtime.runtimeSeconds % 60}s`
+                            : '-'}
+                        </Typography>
+                      </Grid>
+                      <Grid size={{ xs: 12, md: 4 }}>
+                        <Typography variant="body2" color="text.secondary">Wait Event Type</Typography>
+                        <Typography variant="body2">{jobDetailsDialog.job.runtime.waitEventType || '-'}</Typography>
+                      </Grid>
+                      <Grid size={{ xs: 12, md: 4 }}>
+                        <Typography variant="body2" color="text.secondary">Wait Event</Typography>
+                        <Typography variant="body2">{jobDetailsDialog.job.runtime.waitEvent || '-'}</Typography>
+                      </Grid>
+                      <Grid size={{ xs: 12, md: 4 }}>
+                        <Typography variant="body2" color="text.secondary">Blocking PIDs</Typography>
+                        <Typography variant="body2">
+                          {jobDetailsDialog.job.runtime.blockedByPids?.length
+                            ? jobDetailsDialog.job.runtime.blockedByPids.join(', ')
+                            : '-'}
+                        </Typography>
+                      </Grid>
+                    </Grid>
+                  </Paper>
+                </Grid>
+              )}
               {jobDetailsDialog.job.resourceUsage && (
                 <Grid size={{ xs: 12, md: 6 }}>
                   <Typography variant="h6" gutterBottom>
@@ -1562,11 +1990,23 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
                     Error Information
                   </Typography>
                   <Alert severity="error">
-                    <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                    <Typography
+                      variant="body2"
+                      sx={{ fontWeight: 'medium', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
+                    >
                       {jobDetailsDialog.job.errorMessage}
                     </Typography>
                     {jobDetailsDialog.job.errorDetails && (
-                      <Typography variant="body2" sx={{ mt: 1 }}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          mt: 1,
+                          whiteSpace: 'pre-wrap',
+                          wordBreak: 'break-word',
+                          fontFamily: 'monospace',
+                          fontSize: '0.8rem',
+                        }}
+                      >
                         {jobDetailsDialog.job.errorDetails}
                       </Typography>
                     )}

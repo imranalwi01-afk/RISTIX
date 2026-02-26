@@ -137,7 +137,7 @@ export default function RulesTab({ rules, onChangeRules, readOnly = false }: Rul
                         label={rule.operator} 
                         size="small" 
                         color="secondary" 
-                        variant="soft" 
+                        variant="outlined" 
                         sx={{ fontSize: '0.7rem', fontWeight: 'bold' }}
                     />
                   </TableCell>

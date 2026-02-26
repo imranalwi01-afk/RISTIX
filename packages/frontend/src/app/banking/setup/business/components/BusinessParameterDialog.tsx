@@ -160,7 +160,7 @@ const BusinessParameterDialog = memo(function BusinessParameterDialog({
                 param_value: formData.param_value.trim()
             });
             onClose();
-        } catch (err: any) {
+        } catch (err) {
             setError(err.message || 'Failed to save parameter');
         } finally {
             setLoading(false);

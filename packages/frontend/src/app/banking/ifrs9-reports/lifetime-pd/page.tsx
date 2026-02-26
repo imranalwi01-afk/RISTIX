@@ -1,12 +1,21 @@
 'use client';
 
 import React from 'react';
+<<<<<<< HEAD
 import { Timeline as PageIcon } from '@mui/icons-material';
 import LifetimePDReport from '@/components/ifrs9/LifetimePDReport';
 import ReportPageLayout from '@/components/ifrs9/ReportPageLayout';
+=======
+import { Alert, Box, Typography, Container, Breadcrumbs, Link } from '@mui/material';
+import { Timeline as PageIcon, Home as HomeIcon } from '@mui/icons-material';
+import { useRouter } from 'next/navigation';
+import LifetimePDReport from '@/components/ifrs9/LifetimePDReport';
+import { Can } from '@/components/rbac/Can';
+>>>>>>> 521306240d98329e44c992adf972ef8b04b40740
 
 export default function LifetimePDReportsPage() {
   return (
+<<<<<<< HEAD
     <ReportPageLayout
       title="Lifetime PD Reports"
       description="Probability of Default with yearly and monthly marginal analysis"
@@ -14,5 +23,54 @@ export default function LifetimePDReportsPage() {
     >
       <LifetimePDReport />
     </ReportPageLayout>
+=======
+    <Can
+      permission={['banking.reports.ifrs9.lifetime_pd.view', 'banking.reports.ifrs9.view', 'admin.super_admin']}
+      fallback={
+        <Container maxWidth="xl">
+          <Alert severity="error">You do not have permission to access Lifetime PD Reports.</Alert>
+        </Container>
+      }
+    >
+      <Container maxWidth="xl">
+        {/* Breadcrumb Navigation */}
+        <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
+          <Link
+            underline="hover"
+            color="inherit"
+            href="/banking/dashboard"
+            onClick={(e) => {
+              e.preventDefault();
+              router.push('/banking/dashboard');
+            }}
+            sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+          >
+            <HomeIcon sx={{ mr: 0.5, fontSize: 16 }} />
+            Dashboard
+          </Link>
+          <Typography color="text.primary" sx={{ display: 'flex', alignItems: 'center' }}>
+            <PageIcon sx={{ mr: 0.5, fontSize: 16 }} />
+            Lifetime PD Reports
+          </Typography>
+        </Breadcrumbs>
+
+        {/* Page Header */}
+        <Box sx={{ mb: 4 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+            <PageIcon sx={{ mr: 2, fontSize: 32, color: 'warning.main' }} />
+            <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
+              Lifetime PD Reports
+            </Typography>
+          </Box>
+          <Typography variant="subtitle1" color="text.secondary">
+            Probability of Default with yearly and monthly marginal analysis
+          </Typography>
+        </Box>
+
+        {/* Main Content - Using the Premium Component */}
+        <LifetimePDReport />
+      </Container>
+    </Can>
+>>>>>>> 521306240d98329e44c992adf972ef8b04b40740
   );
 }

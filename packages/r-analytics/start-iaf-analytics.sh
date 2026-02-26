@@ -113,7 +113,8 @@ export DB_HOST=$(get_config "LEGACY_DB_HOST" "192.168.0.106")
 export DB_PORT=$(get_config "LEGACY_DB_PORT" "5433")
 export DB_USER=$(get_config "LEGACY_DB_USER" "postgres")
 export DB_PASSWORD=$(get_config "LEGACY_DB_PASSWORD" "postgres")
-export DB_NAME=$(get_config "LEGACY_DB_NAME" "IFRS9_pro")
+export DB_NAME=$(get_config "LEGACY_DB_NAME" "FRS9PRO")
+export DB_SCHEMA=$(get_config "LEGACY_DB_SCHEMA" "public")
 
 # IAF-specific configuration
 export BANKING_TYPE=$(get_config "BANKING_TYPE" "conventional")
@@ -140,6 +141,7 @@ if [ "$R_ANALYTICS_DEBUG_MODE" = "true" ]; then
   echo "${LOG_PREFIX}   R Port: $R_PORT"
   echo "${LOG_PREFIX}   R Service Port: $R_SERVICE_PORT"
   echo "${LOG_PREFIX}   Database: $DB_HOST:$DB_PORT/$DB_NAME"
+  echo "${LOG_PREFIX}   DB Schema: $DB_SCHEMA"
   echo "${LOG_PREFIX}   Banking Type: $BANKING_TYPE"
   echo "${LOG_PREFIX}   Tenant: $TENANT_SLUG"
   echo "${LOG_PREFIX}   Authentication Enabled: $R_ANALYTICS_AUTH_ENABLED"

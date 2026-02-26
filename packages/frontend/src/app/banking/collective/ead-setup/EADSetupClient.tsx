@@ -44,6 +44,7 @@ import { EADConfiguration } from '../../../../services/api/ead-configurations.ap
 import { FLScalarWithDetails } from '../../../../services/api/fl-scalar.api';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 import { PopulationSegment } from '../../../../services/api/population-segments.api';
+import { usePermission } from '@/hooks/usePermission';
 
 // Safe DataGrid wrapper to prevent bundling issues
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
@@ -54,6 +55,9 @@ interface EADConfigUI extends EADConfiguration {
 }
 
 export default function EADSetupPage() {
+  const { hasAnyPermission } = usePermission();
+  const canViewEadSetup = hasAnyPermission(['banking.collective.ead_setup.view', 'banking.collective.ead_setup.manage', 'banking.collective.manage', 'banking.collective', 'admin.super_admin']);
+  const canManageEadSetup = hasAnyPermission(['banking.collective.ead_setup.manage', 'banking.collective.ead_setup.create', 'banking.collective.ead_setup.update', 'banking.collective.ead_setup.delete', 'banking.collective.manage', 'admin.super_admin']);
   const router = useRouter();
 
   const [loading, setLoading] = useState(false);
@@ -114,7 +118,7 @@ export default function EADSetupPage() {
       });
 
       setEadConfigs(enrichedConfigs);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Failed to load EAD data:', err);
       setError('Failed to load EAD configurations.');
     } finally {
@@ -163,6 +167,7 @@ export default function EADSetupPage() {
   };
 
   const handleSave = async () => {
+    if (!canManageEadSetup) return;
     if (!validateForm()) return;
     setLoading(true);
     try {
@@ -193,7 +198,7 @@ export default function EADSetupPage() {
       setIsDialogOpen(false);
       setFormData({});
       setSelectedConfig(null);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Save failed:', err);
       setError('Failed to save configuration.');
     } finally {
@@ -202,6 +207,7 @@ export default function EADSetupPage() {
   };
 
   const handleDelete = async (id: number) => {
+    if (!canManageEadSetup) return;
     if (!confirm('Are you sure you want to delete this configuration?')) return;
     setLoading(true);
     try {
@@ -216,7 +222,7 @@ export default function EADSetupPage() {
       }
       await loadData();
       await loadPendingApprovals();
-    } catch (err: any) {
+    } catch (err) {
       console.error('Delete failed:', err);
       setError('Failed to delete configuration.');
     } finally {
@@ -250,7 +256,7 @@ export default function EADSetupPage() {
       type: 'actions',
       headerName: 'Actions',
       width: 100,
-      getActions: (params) => [
+      getActions: (params) => canManageEadSetup ? [
         <SafeGridActionsCellItem
           key="edit"
           icon={<EditIcon color="primary" />}
@@ -268,12 +274,17 @@ export default function EADSetupPage() {
           label="Delete"
           onClick={() => handleDelete(params.row.id!)}
         />
-      ]
+      ] : []
     }
   ];
 
   return (
     <Container maxWidth="xl">
+      {!canViewEadSetup && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          You do not have permission to view EAD setup.
+        </Alert>
+      )}
       <Breadcrumbs sx={{ mb: 2 }}>
         <Link href="/banking/dashboard" underline="hover" color="inherit">Dashboard</Link>
         <Typography color="text.primary">EAD Setup</Typography>
@@ -283,16 +294,18 @@ export default function EADSetupPage() {
         <Typography variant="h4" component="h1">EAD Setup Management</Typography>
         <Box>
           <Button startIcon={<RefreshIcon />} onClick={loadData} disabled={loading} sx={{ mr: 1 }}>Refresh</Button>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => {
-            setSelectedConfig(null);
-            setFormData({
-              is_active: true,
-              ead_method: 'CCF',
-              calc_method: 'Revolving'
-            });
-            setIsEditing(false);
-            setIsDialogOpen(true);
-          }}>Add Configuration</Button>
+          {canManageEadSetup && (
+            <Button variant="contained" startIcon={<AddIcon />} onClick={() => {
+              setSelectedConfig(null);
+              setFormData({
+                is_active: true,
+                ead_method: 'CCF',
+                calc_method: 'Revolving'
+              });
+              setIsEditing(false);
+              setIsDialogOpen(true);
+            }}>Add Configuration</Button>
+          )}
         </Box>
       </Box>
 
@@ -380,7 +393,9 @@ export default function EADSetupPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleSave} disabled={loading}>{selectedConfig ? 'Update' : 'Create'}</Button>
+          {canManageEadSetup && (
+            <Button variant="contained" onClick={handleSave} disabled={loading}>{selectedConfig ? 'Update' : 'Create'}</Button>
+          )}
         </DialogActions>
       </Dialog>
       <ApprovalNotification

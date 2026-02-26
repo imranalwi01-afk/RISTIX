@@ -240,9 +240,7 @@ eadConfigurationsRoutes.openapi(
                 catch: (error) => error
             })
         )
-
-        const result = await runEffect(c, effect)
-        return c.json(result, result.approvalRequired ? 202 : 201)
+        return runEffect(c, effect, (result: any) => result.approvalRequired ? 202 : 201)
     }
 )
 
@@ -305,9 +303,7 @@ eadConfigurationsRoutes.openapi(
                 catch: (error: any) => error
             })
         )
-
-        const result = await runEffect(c, effect)
-        return c.json(result, result.approvalRequired ? 202 : 200)
+        return runEffect(c, effect, (result: any) => result.approvalRequired ? 202 : 200)
     }
 )
 
@@ -358,9 +354,7 @@ eadConfigurationsRoutes.openapi(
                 catch: (error: any) => error
             })
         )
-
-        const result = await runEffect(c, effect)
-        return c.json(result, result.approvalRequired ? 202 : 200)
+        return runEffect(c, effect, (result: any) => result.approvalRequired ? 202 : 200)
     }
 )
 

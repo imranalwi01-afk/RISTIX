@@ -90,38 +90,53 @@ import { getMenuIcon } from '@/config/menu-config';
 // IAF-SPECIFIC SITEMAP STRUCTURE - Based on IAF Navigation Requirements
 // Default permission mapping for static menu (can be overridden per id/code)
 const PERMISSION_OVERRIDES: Record<string, string | string[]> = {
-    dashboard: 'VIEW_DASHBOARD',
-    'system-setup': 'MANAGE_SYSTEM_SETUP',
-    'application-configuration': 'MANAGE_APP_CONFIG',
-    'business-configuration': 'MANAGE_BUSINESS_CONFIG',
-    'parameter-management': 'MANAGE_PARAMETERS',
-    'product-parameters': 'MANAGE_PRODUCT_PARAMS',
-    'accounting-parameters': 'MANAGE_ACCOUNTING_PARAMS',
-    'segmentation-configuration': 'MANAGE_SEGMENTATION',
-    'rule-base-setting': 'MANAGE_RULES',
-    'bucket-parameter': 'MANAGE_BUCKETS',
-    'pd-setup-management': 'MANAGE_PD',
-    'lgd-setup-management': 'MANAGE_LGD',
-    'ead-setup-management': 'MANAGE_EAD',
-    'ecl-configuration': 'MANAGE_ECL_CONFIG',
-    'ifrs9': 'VIEW_IFRS9',
-    'ifrs9-report': 'VIEW_IFRS9_REPORTS',
-    'maintenance': 'ADMIN_MAINTENANCE',
-    'user-management': 'ADMIN_USERS',
-    'role-management': 'ADMIN_ROLES',
-    'menu-management': 'ADMIN_MENUS',
-    'job-monitoring': 'VIEW_JOB_MONITORING',
-    'workflow-management': 'VIEW_WORKFLOWS',
-    'approval-system': 'VIEW_APPROVALS',
-    'workflow-configuration': 'CONFIGURE_WORKFLOWS',
-    'process-monitoring': 'VIEW_PROCESS_MONITORING',
-    'tools': 'USE_TOOLS',
-    'manual-upload': 'USE_MANUAL_UPLOAD',
-    'bulk-data-import': 'USE_BULK_IMPORT',
-    'data-export': 'USE_EXPORT',
-    'etl-tools': 'USE_ETL',
-    'direct-db-connection': 'USE_DIRECT_DB',
-    'data-scheduler': 'USE_DATA_SCHEDULER',
+    dashboard: 'banking.dashboard.view',
+    'system-setup': 'banking.setup.application',
+    'application-configuration': 'banking.setup.application.view',
+    'business-configuration': 'banking.setup.business.view',
+    'parameter-management': 'banking.parameter',
+    'product-parameters': 'banking.parameter.product.view',
+    'accounting-parameters': 'banking.parameter.journal.view',
+    'segmentation-configuration': 'banking.parameter.segmentation.view',
+    'collective-impairment': ['banking.collective', 'banking.collective.view', 'banking.collective.manage'],
+    'rule-base-setting': 'banking.collective.rule_base.view',
+    'bucket-parameter': 'banking.collective.bucket.view',
+    'pd-setup-management': 'banking.collective.pd.view',
+    'lgd-setup-management': 'banking.collective.lgd.view',
+    'ead-setup-management': 'banking.collective.ead.view',
+    'ecl-configuration': 'banking.collective.ecl.view',
+    'ifrs9': 'banking.processing.view',
+    'ifrs9-report': 'banking.reports.ifrs9.view',
+    'nominative-report': ['banking.reports.ifrs9.nominative.view', 'banking.reports.ifrs9.view'],
+    'lifetime-pd': ['banking.reports.ifrs9.lifetime_pd.view', 'banking.reports.ifrs9.view'],
+    'lifetime-lgd': ['banking.reports.ifrs9.lifetime_lgd.view', 'banking.reports.ifrs9.view'],
+    'ead-model': ['banking.reports.ifrs9.ead_model.view', 'banking.reports.ifrs9.view'],
+    'ecl-result': ['banking.reports.ifrs9.ecl_result.view', 'banking.reports.ifrs9.view'],
+    'ecl-movement': ['banking.reports.ifrs9.ecl_movement.view', 'banking.reports.ifrs9.view'],
+    'gca-movement': ['banking.reports.ifrs9.gca_movement.view', 'banking.reports.ifrs9.view'],
+    'advanced-analytics': ['banking.analytics.view', 'banking.analytics.r.view'],
+    'r-analytics': ['banking.analytics.r.view', 'banking.analytics.view'],
+    'financial-reports': 'banking.analytics.view',
+    'executive-dashboard': 'banking.analytics.view',
+    'advanced-export': 'banking.analytics.view',
+    'maintenance': 'admin.maintenance.access',
+    'access-management': ['admin.users.manage', 'admin.roles.manage', 'admin.maintenance.access'],
+    'user-management': 'admin.users.manage',
+    'role-management': 'admin.roles.manage',
+    'menu-management': 'admin.system.manage',
+    'job-monitoring': ['jobs.view', 'jobs.manage', 'admin.system.manage'],
+    'workflow-management': 'approval.requests.approve',
+    'approval-system': 'approval.requests.approve',
+    'workflow-notifications': ['notifications.view', 'notifications.manage', 'approval.requests.approve'],
+    'workflow-configuration': 'approval.requests.approve',
+    'process-monitoring': 'approval.requests.approve',
+    'tools': 'banking.configuration.ifrs9.manage',
+    'manual-upload': 'banking.configuration.ifrs9.manage',
+    'bulk-data-import': 'banking.configuration.ifrs9.manage',
+    'data-export': 'banking.configuration.ifrs9.manage',
+    'etl-tools': 'banking.configuration.ifrs9.manage',
+    'direct-db-connection': 'banking.configuration.ifrs9.manage',
+    'data-scheduler': 'banking.configuration.ifrs9.manage',
 };
 
 const derivePermissionCodes = (idOrCode: string | undefined): string[] => {
@@ -129,7 +144,7 @@ const derivePermissionCodes = (idOrCode: string | undefined): string[] => {
     const key = idOrCode.toLowerCase();
     const override = PERMISSION_OVERRIDES[key];
     if (override) return Array.isArray(override) ? override : [override];
-    return [`VIEW_${idOrCode.replace(/[^a-zA-Z0-9]+/g, '_').toUpperCase()}`];
+    return [`banking.${idOrCode.replace(/[^a-zA-Z0-9]+/g, '.').toLowerCase()}.view`];
 };
 const BANKING_MENU_STRUCTURE: MenuItem[] = [
     {
@@ -550,6 +565,13 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
                 description: 'Multi-level Approval Management'
             },
             {
+                id: 'workflow-notifications',
+                label: 'Notifications',
+                href: '/banking/notifications',
+                icon: <NotificationImportant />,
+                description: 'Notification center and preferences'
+            },
+            {
                 id: 'workflow-configuration',
                 label: 'Workflow Configuration',
                 href: '/banking/workflow/configuration',
@@ -640,25 +662,11 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
         description: 'System Administration',
         children: [
             {
-                id: 'user-management',
-                label: 'User Management',
-                href: '/banking/maintenance/users',
+                id: 'access-management',
+                label: 'Access Management',
+                href: '/banking/maintenance/user-management',
                 icon: <ManageAccounts />,
-                description: 'Manage system users'
-            },
-            {
-                id: 'role-management',
-                label: 'Role Management',
-                href: '/banking/maintenance/roles',
-                icon: <VpnKey />,
-                description: 'Manage roles and permissions'
-            },
-            {
-                id: 'user-assignments',
-                label: 'User Assignments',
-                href: '/banking/maintenance/assignments',
-                icon: <SupervisorAccount />,
-                description: 'Assign roles to users'
+                description: 'Users, roles, permissions, and assignments'
             },
             {
                 id: 'approval',
@@ -935,6 +943,7 @@ export const getIconForMenuItem = (code: string, level: number): React.ReactElem
         'etl-tools': <Transform />,
         'direct-db-connection': <Storage />,
         'data-scheduler': <Schedule />,
+        'access-management': <ManageAccounts />,
         'user-management': <ManageAccounts />,
         'role-management': <VpnKey />,
         'menu-management': <Menu />
@@ -1006,6 +1015,7 @@ const MENU_ICON_MAP: Record<string, string> = {
     'direct-db-connection': 'storage',
     'data-scheduler': 'schedule',
     'maintenance': 'build',
+    'access-management': 'manage_accounts',
     'user-management': 'manage_accounts',
     'role-management': 'vpn_key',
     'user-assignments': 'supervisor_account',

@@ -67,6 +67,7 @@ import {
   type IndividualImpairmentWatchlistItem,
   type IndividualImpairmentAssessment
 } from '@/services/api.individual-impairment';
+import { getErrorMessage } from '@/utils/error-message';
 
 // Components
 import ModernLoader from '@/components/common/ModernLoader';
@@ -417,7 +418,7 @@ export default function IndividualAssessmentPage() {
 
       setSnackbar({
         open: true,
-        message: error.response?.data?.message || error.message || 'DCF calculation failed',
+        message: getErrorMessage(error, 'DCF calculation failed'),
         severity: 'error'
       });
     } finally {

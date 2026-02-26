@@ -128,12 +128,17 @@ function TabPanel(props: TabPanelProps) {
 // ============================================================================
 
 import { api } from '@/services/api';
+import { usePermission } from '@/hooks/usePermission';
 
 // ============================================================================
 // MAIN COMPONENT
 // ============================================================================
 
 export default function FLScalarManagementPage() {
+  const { hasAnyPermission } = usePermission();
+  const canViewFlScalar = hasAnyPermission(['banking.collective.fl_scalar.view', 'banking.collective.fl_scalar.manage', 'banking.collective.manage', 'banking.collective', 'admin.super_admin']);
+  const canManageFlScalar = hasAnyPermission(['banking.collective.fl_scalar.manage', 'banking.collective.fl_scalar.create', 'banking.collective.fl_scalar.update', 'banking.collective.fl_scalar.delete', 'banking.collective.manage', 'admin.super_admin']);
+
   // State Management - INITIALIZED EMPTY (NO MOCK DATA!)
   const [scalars, setScalars] = useState<FLScalarWithDetails[]>([]);
   const [loading, setLoading] = useState(false);
@@ -201,7 +206,7 @@ export default function FLScalarManagementPage() {
       // Set real data from database
       setScalars(data);
 
-    } catch (err: any) {
+    } catch (err) {
       const errorMessage = `Failed to load FL Scalar configurations from DS2 database: ${err.message || err}`;
       setError(errorMessage);
       console.error('❌ Error loading FL scalars from DS2 database:', err);
@@ -266,6 +271,7 @@ export default function FLScalarManagementPage() {
   };
 
   const handleSave = async () => {
+    if (!canManageFlScalar) return;
     if (!validateForm()) return;
 
     const isEdit = dialogState.mode === 'edit';
@@ -278,7 +284,7 @@ export default function FLScalarManagementPage() {
       };
 
       await handleSaveResult(isEdit, saveData);
-    } catch (err: any) {
+    } catch (err) {
       const errorMessage = `Failed to ${isEdit ? 'update' : 'create'} FL Scalar: ${err.message || err}`;
       setError(errorMessage);
     } finally {
@@ -315,6 +321,7 @@ export default function FLScalarManagementPage() {
   };
 
   const handleDelete = async (id: GridRowId) => {
+    if (!canManageFlScalar) return;
     if (!confirm('Are you sure you want to delete this FL Scalar configuration?')) return;
 
     setLoading(true);
@@ -335,7 +342,7 @@ export default function FLScalarManagementPage() {
 
       await loadScalars();
       await loadPendingApprovals();
-    } catch (err: any) {
+    } catch (err) {
       const errorMessage = `Failed to delete FL Scalar: ${err.message || err}`;
       setError(errorMessage);
     } finally {
@@ -348,6 +355,7 @@ export default function FLScalarManagementPage() {
   // ============================================================================
 
   const openDialog = (mode: DialogState['mode'], data: Partial<FLScalarWithDetails> = {}) => {
+    if (mode !== 'view' && !canManageFlScalar) return;
     setDialogState({ open: true, mode, data });
   };
 
@@ -373,6 +381,7 @@ export default function FLScalarManagementPage() {
   // ============================================================================
 
   const addScalarPeriod = () => {
+    if (!canManageFlScalar) return;
     const newPeriod = Math.max(0, ...(scalarDetails?.map(d => d.period) || [0])) + 1;
     const newDetail: FLScalarDetail = {
       pkid: 0, // Will be set on save
@@ -387,6 +396,7 @@ export default function FLScalarManagementPage() {
   };
 
   const updateScalarDetail = (index: number, field: keyof FLScalarDetail, value: any) => {
+    if (!canManageFlScalar) return;
     setScalarDetails(prev => prev.map((detail, i) =>
       i === index ? { ...detail, [field]: value } : detail
     ));
@@ -398,6 +408,7 @@ export default function FLScalarManagementPage() {
   };
 
   const removeScalarPeriod = (index: number) => {
+    if (!canManageFlScalar) return;
     setScalarDetails(prev => prev.filter((_, i) => i !== index));
   };
 
@@ -418,18 +429,20 @@ export default function FLScalarManagementPage() {
           label="View"
           onClick={() => openDialog('view', params.row)}
         />,
-        <SafeGridActionsCellItem
-          key="edit"
-          icon={<EditIcon color="primary" />}
-          label="Edit"
-          onClick={() => openDialog('edit', params.row)}
-        />,
-        <SafeGridActionsCellItem
-          key="delete"
-          icon={<DeleteIcon color="error" />}
-          label="Delete"
-          onClick={() => handleDelete(params.id)}
-        />,
+        ...(canManageFlScalar ? [
+          <SafeGridActionsCellItem
+            key="edit"
+            icon={<EditIcon color="primary" />}
+            label="Edit"
+            onClick={() => openDialog('edit', params.row)}
+          />,
+          <SafeGridActionsCellItem
+            key="delete"
+            icon={<DeleteIcon color="error" />}
+            label="Delete"
+            onClick={() => handleDelete(params.id)}
+          />,
+        ] : []),
       ],
     },
     {
@@ -509,7 +522,7 @@ export default function FLScalarManagementPage() {
   // ============================================================================
 
   const renderDialogContent = () => {
-    const isReadOnly = dialogState.mode === 'view';
+    const isReadOnly = dialogState.mode === 'view' || !canManageFlScalar;
 
     return (
       <Box>
@@ -686,6 +699,11 @@ export default function FLScalarManagementPage() {
 
   return (
     <Box sx={{ p: 3 }}>
+      {!canViewFlScalar && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          You do not have permission to view FL scalar setup.
+        </Alert>
+      )}
       {/* Header */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, color: 'primary.main' }}>
@@ -738,14 +756,16 @@ export default function FLScalarManagementPage() {
             >
               Download Template
             </Button>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => openDialog('create')}
-              disabled={loading}
-            >
-              Create FL Scalar
-            </Button>
+            {canManageFlScalar && (
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => openDialog('create')}
+                disabled={loading}
+              >
+                Create FL Scalar
+              </Button>
+            )}
           </Box>
         </Box>
 

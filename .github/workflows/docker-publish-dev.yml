@@ -1,0 +1,224 @@
+name: Docker Develop Publish
+
+on:
+  push:
+    branches: [ 'develop' ]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # ==============================================================================
+  # FRONTEND BUILD JOB
+  # ==============================================================================
+  frontend:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.filter.outputs.frontend }}
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for changes in Frontend
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            frontend:
+              - 'packages/frontend/**'
+
+      - name: Login to Container Registry
+        if: steps.filter.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Metadata (tags, labels)
+        if: steps.filter.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch'
+        id: meta-frontend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend
+          tags: |
+            type=raw,value=develop
+            type=sha,format=long
+
+      - name: Set up Docker Buildx
+        if: steps.filter.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and Push (Frontend)
+        if: steps.filter.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch'
+        uses: docker/build-push-action@v5
+        with:
+          context: packages/frontend
+          file: packages/frontend/Dockerfile
+          push: true
+          tags: ${{ steps.meta-frontend.outputs.tags }}
+          labels: ${{ steps.meta-frontend.outputs.labels }}
+          build-args: |
+            NEXT_PUBLIC_ENVIRONMENT=development
+            NEXT_PUBLIC_FRONTEND_URL=https://iaf-ifrs.ifrspro.id
+            NEXT_PUBLIC_BACKEND_URL=https://iaf-ifrs-be.ifrspro.id
+            NEXT_PUBLIC_BACKEND_API_URL=https://iaf-ifrs-be.ifrspro.id/api/v1
+            NEXT_PUBLIC_R_ANALYTICS_URL=https://iaf-ifrs-analytics.ifrspro.id
+            NEXT_PUBLIC_R_API_URL=https://iaf-ifrs-analytics-calc.ifrspro.id/api
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ==============================================================================
+  # BACKEND BUILD JOB
+  # ==============================================================================
+  backend:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.filter.outputs.backend }}
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for changes in Backend
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            backend:
+              - 'packages/new-backend/**'
+
+      - name: Login to Container Registry
+        if: steps.filter.outputs.backend == 'true' || github.event_name == 'workflow_dispatch'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Metadata (tags, labels)
+        if: steps.filter.outputs.backend == 'true' || github.event_name == 'workflow_dispatch'
+        id: meta-backend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend
+          tags: |
+            type=raw,value=develop
+            type=sha,format=long
+
+      - name: Set up Docker Buildx
+        if: steps.filter.outputs.backend == 'true' || github.event_name == 'workflow_dispatch'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and Push (Backend)
+        if: steps.filter.outputs.backend == 'true' || github.event_name == 'workflow_dispatch'
+        uses: docker/build-push-action@v5
+        with:
+          context: packages/new-backend
+          file: packages/new-backend/Dockerfile
+          push: true
+          tags: ${{ steps.meta-backend.outputs.tags }}
+          labels: ${{ steps.meta-backend.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ==============================================================================
+  # R ANALYTICS BUILD JOB
+  # ==============================================================================
+  analytics:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.filter.outputs.analytics }}
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for changes in Analytics
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            analytics:
+              - 'packages/r-analytics/**'
+
+      - name: Login to Container Registry
+        if: steps.filter.outputs.analytics == 'true' || github.event_name == 'workflow_dispatch'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Metadata (tags, labels)
+        if: steps.filter.outputs.analytics == 'true' || github.event_name == 'workflow_dispatch'
+        id: meta-analytics
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/r-analytics
+          tags: |
+            type=raw,value=develop
+            type=sha,format=long
+
+      - name: Set up Docker Buildx
+        if: steps.filter.outputs.analytics == 'true' || github.event_name == 'workflow_dispatch'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and Push (R Analytics)
+        if: steps.filter.outputs.analytics == 'true' || github.event_name == 'workflow_dispatch'
+        uses: docker/build-push-action@v5
+        with:
+          context: packages/r-analytics
+          file: packages/r-analytics/Dockerfile
+          push: true
+          tags: ${{ steps.meta-analytics.outputs.tags }}
+          labels: ${{ steps.meta-analytics.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+
+  # ==============================================================================
+  # DEPLOY TO DEVELOPMENT (SELF-HOSTED WINDOWS RUNNER)
+  # ==============================================================================
+  deploy:
+    name: Deploy to Development Server
+    runs-on: [self-hosted, X64, Windows, badak]
+    needs: [frontend, backend, analytics]
+
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_PAT }}
+
+      - name: Deploy app profile (frontend/backend)
+        if: needs.frontend.outputs.changed == 'true' || needs.backend.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
+        run: |
+          cd C:\opt\ifrspro
+          docker compose --profile app pull
+          docker compose --profile app up -d
+
+      - name: Deploy analytics profile
+        if: needs.analytics.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
+        run: |
+          cd C:\opt\ifrspro
+          docker compose --profile analytics pull
+          docker compose --profile analytics up -d --force-recreate r-analytics

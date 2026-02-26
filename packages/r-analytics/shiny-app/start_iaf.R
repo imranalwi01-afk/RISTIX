@@ -16,11 +16,21 @@ deployment_target <- Sys.getenv("DEPLOYMENT_TARGET", "localdev")
 node_env <- Sys.getenv("NODE_ENV", "development")
 r_port <- Sys.getenv("R_PORT", "4236")
 r_service_port <- Sys.getenv("R_SERVICE_PORT", "4241")
-db_host <- Sys.getenv("DB_HOST", "192.168.0.106")
-db_port <- Sys.getenv("DB_PORT", "5433")
-db_user <- Sys.getenv("DB_USER", "postgres")
-db_password <- Sys.getenv("DB_PASSWORD", "postgres")
-db_name <- Sys.getenv("DB_NAME", "IFRS9_pro")
+
+get_preferred_env <- function(primary, fallback, default = "") {
+  primary_val <- Sys.getenv(primary, "")
+  if (nzchar(primary_val)) return(primary_val)
+  fallback_val <- Sys.getenv(fallback, "")
+  if (nzchar(fallback_val)) return(fallback_val)
+  default
+}
+
+db_host <- get_preferred_env("FRS9_DB_HOST", "DB_HOST", "192.168.0.106")
+db_port <- get_preferred_env("FRS9_DB_PORT", "DB_PORT", "5433")
+db_user <- get_preferred_env("FRS9_DB_USER", "DB_USER", "postgres")
+db_password <- get_preferred_env("FRS9_DB_PASSWORD", "DB_PASSWORD", "postgres")
+db_name <- get_preferred_env("FRS9_DB_NAME", "DB_NAME", "FRS9PRO")
+db_schema <- get_preferred_env("FRS9_DB_SCHEMA", "DB_SCHEMA", "public")
 banking_type <- Sys.getenv("BANKING_TYPE", "conventional")
 tenant_slug <- Sys.getenv("TENANT_SLUG", "iaf")
 company_name <- Sys.getenv("COMPANY_NAME", "Indonesia Airawata Finance")
@@ -40,6 +50,7 @@ Sys.setenv(DB_PORT = db_port)
 Sys.setenv(DB_USER = db_user)
 Sys.setenv(DB_PASSWORD = db_password)
 Sys.setenv(DB_NAME = db_name)
+Sys.setenv(DB_SCHEMA = db_schema)
 Sys.setenv(BANKING_TYPE = banking_type)
 Sys.setenv(TENANT_SLUG = tenant_slug)
 Sys.setenv(COMPANY_NAME = company_name)
@@ -57,6 +68,7 @@ db_config <- list(
   user = db_user,
   password = db_password,
   dbname = db_name,
+  schema = db_schema,
   sslmode = if (deployment_target == "iafecs") "require" else "disable"
 )
 

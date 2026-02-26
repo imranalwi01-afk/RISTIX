@@ -49,25 +49,25 @@ const stagingApi = {
   } = {}) => {
     // Build query parameters
     const params = new URLSearchParams();
-    
+
     if (filters.stage) {
       params.append('stage', filters.stage);
     }
-    
+
     if (filters.segmentId) {
       params.append('segmentId', filters.segmentId);
     }
-    
+
     if (filters.startDate) {
       params.append('startDate', filters.startDate.toISOString().split('T')[0]);
     }
-    
+
     if (filters.endDate) {
       params.append('endDate', filters.endDate.toISOString().split('T')[0]);
     }
-    
+
     const url = `http://localhost:4232/api/v1/banking/individual/impairment/staging-analysis${params.toString() ? '?' + params.toString() : ''}`;
-    
+
     const response = await fetch(url, {
       method: 'GET',
       headers: {
@@ -78,7 +78,7 @@ const stagingApi = {
     });
     return await response.json();
   },
-  
+
   getStagingSummary: async () => {
     const response = await fetch('http://localhost:4232/api/v1/banking/individual/impairment/staging-summary', {
       method: 'GET',
@@ -106,7 +106,7 @@ export default function IFRS9StagingPage() {
   const [data, setData] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Filter states
   const [filters, setFilters] = useState({
     startDate: null as Date | null,
@@ -114,6 +114,7 @@ export default function IFRS9StagingPage() {
     stage: '',
     segmentId: ''
   });
+<<<<<<< HEAD
   
   
   // Table columns setup
@@ -158,12 +159,18 @@ export default function IFRS9StagingPage() {
       valueFormatter: (value) => value ? formatCurrency(Number(value)) : '-'
     }
   ];
+=======
+
+  // Table pagination
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
+>>>>>>> 521306240d98329e44c992adf972ef8b04b40740
 
   // Load staging data
   const loadStagingData = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const [analysisResponse, summaryResponse] = await Promise.all([
         stagingApi.getStagingAnalysis(filters),
@@ -173,7 +180,7 @@ export default function IFRS9StagingPage() {
       if (analysisResponse.success) {
         setData(analysisResponse.data || []);
       }
-      
+
       if (summaryResponse.success) {
         setSummary(summaryResponse.data);
       }
@@ -288,16 +295,26 @@ export default function IFRS9StagingPage() {
               <DatePicker
                 label="Start Date"
                 value={filters.startDate}
+<<<<<<< HEAD
                 onChange={(newValue: any) => setFilters(prev => ({ ...prev, startDate: newValue as any }))}
                 slotProps={{ textField: { fullWidth: true, size: 'small' } }}
+=======
+                onChange={(newValue: any) => setFilters(prev => ({ ...prev, startDate: newValue }))}
+                slotProps={{ textField: { fullWidth: true, size: 'small' } as any }}
+>>>>>>> 521306240d98329e44c992adf972ef8b04b40740
               />
             </Grid>
             <Grid size={{ xs: 12, md: 3 }}>
               <DatePicker
                 label="End Date"
                 value={filters.endDate}
+<<<<<<< HEAD
                 onChange={(newValue: any) => setFilters(prev => ({ ...prev, endDate: newValue as any }))}
                 slotProps={{ textField: { fullWidth: true, size: 'small' } }}
+=======
+                onChange={(newValue: any) => setFilters(prev => ({ ...prev, endDate: newValue }))}
+                slotProps={{ textField: { fullWidth: true, size: 'small' } as any }}
+>>>>>>> 521306240d98329e44c992adf972ef8b04b40740
               />
             </Grid>
             <Grid size={{ xs: 12, md: 3 }}>

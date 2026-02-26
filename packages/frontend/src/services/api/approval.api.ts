@@ -51,6 +51,13 @@ export const approvalAPI = {
     return response.data;
   },
 
+  // Cancel a request
+  cancelRequest: async (id: string, data?: { reason?: string }) => {
+    console.log(`🛑 Cancelling request ${id}`);
+    const response = await apiClient.post(`/approvals/requests/${id}/cancel`, data || {});
+    return response.data;
+  },
+
   // Delegate a request
   delegateRequest: async (id: string, data: { delegatedTo: string; reason?: string }) => {
     console.log(`⏩ Delegating request ${id} to ${data.delegatedTo}`);
@@ -70,5 +77,24 @@ export const approvalAPI = {
     console.log('➕ Creating approval matrix', data.name);
     const response = await apiClient.post('/approvals/matrices', data);
     return response.data;
-  }
+  },
+
+  // Update approval matrix
+  updateMatrix: async (id: string, data: any) => {
+    console.log(`✏️ Updating approval matrix ${id}`);
+    const response = await apiClient.put(`/approvals/matrices/${id}`, data);
+    return response.data;
+  },
+
+  // Get approval routing overview + candidate approvers
+  getRoutingOverview: async (params?: {
+    entityType?: string;
+    operation?: 'create' | 'update' | 'delete';
+    department?: string;
+    bankingMode?: 'conventional' | 'syariah' | 'dual';
+  }) => {
+    console.log('🧭 Fetching approval routing overview', params);
+    const response = await apiClient.get('/approvals/routing', { params });
+    return response.data;
+  },
 };

@@ -54,7 +54,9 @@ services:
     ports:
       - "4232:4232"
     networks:
-      - ifrs9-prod
+      ifrs9-prod:
+        aliases:
+          - new-backend
     profiles: [ "app", "full" ]
 
   # ============================================================================
@@ -66,6 +68,8 @@ services:
     restart: always
     env_file:
       - ./env/frontend.env
+    environment:
+      HOSTNAME: "0.0.0.0"
     ports:
       - "4231:4231"
     networks:

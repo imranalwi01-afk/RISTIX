@@ -22,6 +22,7 @@ interface SegmentationDrawerProps {
   open: boolean;
   onClose: () => void;
   mode: 'add' | 'edit' | 'view';
+  canManage: boolean;
   initialData?: any;
   
   // Data & Acts
@@ -66,6 +67,7 @@ export default function SegmentationDrawer({
   open, 
   onClose, 
   mode, 
+  canManage,
   initialData,
   formData,
   setFormData,
@@ -89,7 +91,7 @@ export default function SegmentationDrawer({
     }
   };
 
-  const readOnly = mode === 'view';
+  const readOnly = mode === 'view' || !canManage;
 
   return (
     <Drawer

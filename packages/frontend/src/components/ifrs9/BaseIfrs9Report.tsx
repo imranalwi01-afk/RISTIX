@@ -343,10 +343,18 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
       }
 
       let response: ReportResponse;
+<<<<<<< HEAD
       const params: any = {
         ...filters,
         prc_date: filters.prc_date.toISOString().split('T')[0],
         stage: Array.isArray(filters.stage) ? filters.stage.join(',') : filters.stage
+=======
+      const normalizedStage = Array.isArray(filters.stage) ? filters.stage.join(',') : filters.stage;
+      const params = {
+        ...filters,
+        stage: normalizedStage,
+        prc_date: filters.prc_date.toISOString().split('T')[0]
+>>>>>>> 521306240d98329e44c992adf972ef8b04b40740
       };
 
       // Route to appropriate API method based on report type

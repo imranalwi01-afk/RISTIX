@@ -4,8 +4,11 @@
 # ============================================================================
 # Profiles:
 #   - db: Run databases only (postgres + redis)
-#   - app: Run application service logic
-#   - full: Run databases + backend + frontend (hot reload)
+#   - app: Run application service logic (backend + optional frontend static)
+#   - backend: Run backend only
+#   - frontend / frontend-only / dev-frontend: Run frontend variants
+#   - analytics: Run R analytics service only
+#   - full: Run all major services
 # ============================================================================
 
 version: '3.8'
@@ -70,7 +73,7 @@ services:
       target: builder
     container_name: ifrs9-new-backend-dev
     env_file:
-      - .env
+      - backend.env
     environment:
       # Only set what needs to be different from .env
       NODE_ENV: development
@@ -92,7 +95,7 @@ services:
       - new-backend-node-modules:/app/node_modules
 
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:4232/health" ]
+      test: [ "CMD", "bun", "-e", "fetch('http://localhost:4232/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -115,14 +118,11 @@ services:
       dockerfile: Dockerfile
     container_name: ifrs9-frontend-dev
     env_file:
-      - .env
+      - frontend.env
     environment:
       NODE_ENV: development
-      NEXT_PUBLIC_BACKEND_URL: ${BACKEND_URL:-http://localhost:4232/api}
-      NEXT_PUBLIC_API_BASE_URL: ${API_BASE_URL:-http://localhost:4232/api}
-      NEXT_PUBLIC_BACKEND_API_URL: ${BACKEND_API_URL:-http://localhost:4232/api}
-      NEXT_PUBLIC_R_ANALYTICS_URL: ${NEXT_PUBLIC_R_ANALYTICS_URL:-https://iaf-ifrs-analytics.ifrspro.id}
-      NEXT_PUBLIC_RAPI_BASE_URL: ${NEXT_PUBLIC_RAPI_BASE_URL:-https://iaf-ifrs-analytics-calc.ifrspro.id/api}
+      HOSTNAME: "0.0.0.0"
+      BACKEND_INTERNAL_URL: ${BACKEND_INTERNAL_URL:-http://new-backend:4232}
     ports:
       - "4231:4231"
     networks:
@@ -130,6 +130,7 @@ services:
     profiles:
       - app
       - with-frontend
+      - frontend
 
   # ============================================================================
   # 💻 FRONTEND DEVELOPMENT (Hot Reload)
@@ -139,13 +140,11 @@ services:
     container_name: ifrs9-frontend-dev-hot
     working_dir: /app
     env_file:
-      - .env
+      - frontend.env
     environment:
       - NODE_ENV=development
       - PORT=4231
-      - NEXT_PUBLIC_BACKEND_API_URL=${BACKEND_API_URL:-http://localhost:4232/api}
-      - NEXT_PUBLIC_R_ANALYTICS_URL=${NEXT_PUBLIC_R_ANALYTICS_URL:-https://iaf-ifrs-analytics.ifrspro.id}
-      - NEXT_PUBLIC_RAPI_BASE_URL=${NEXT_PUBLIC_RAPI_BASE_URL:-https://iaf-ifrs-analytics-calc.ifrspro.id/api}
+      - BACKEND_INTERNAL_URL=${BACKEND_INTERNAL_URL:-http://new-backend:4232}
       # Server-side env vars (for Next.js server)
       # Client-side uses .env file which has localhost URLs
       - NEXT_TELEMETRY_DISABLED=1
@@ -167,6 +166,7 @@ services:
       - hot-reload
       - full
       - frontend-only
+      - frontend
 
   # ============================================================================
   # 📈 R ANALYTICS (Shiny)
@@ -186,7 +186,8 @@ services:
       MODELLING_DIR: /opt/r-analytics/modelling
       DB_HOST: ${R_DB_HOST:-10.8.0.2}
       DB_PORT: ${R_DB_PORT:-5433}
-      DB_NAME: ${R_DB_NAME:-IFRS9_pro}
+      DB_NAME: ${R_DB_NAME:-FRS9PRO}
+      DB_SCHEMA: ${R_DB_SCHEMA:-public}
       DB_USER: ${R_DB_USER:-postgres}
       DB_PASSWORD: ${R_DB_PASSWORD:-postgres}
     ports:

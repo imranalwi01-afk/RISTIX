@@ -18,6 +18,8 @@ const connectionConfig = {
     max: 10,
     idle_timeout: 20,
     connect_timeout: 10,
+    // Keep TCP traffic flowing for long-running SP calls behind VPN/NAT.
+    keep_alive: 10,
 }
 
 /**
@@ -87,4 +89,98 @@ export function getDatabase(tenantId?: string | null) {
     }
     debugLog('[Database] Routing to Platform DB');
     return platformDb
+}
+
+/**
+ * Ensure approval level requirement columns exist in tenant DB.
+ *
+ * Some environments were initialized before migration 0030 and still only have
+ * `required_roles`. This guard is idempotent and safe to run at startup.
+ */
+export async function ensureApprovalLevelRequirementsCompatibility(): Promise<void> {
+    const [tableCheck] = await tenantConnection<{ exists: boolean }[]>`
+        select to_regclass('approval.approval_levels') is not null as exists
+    `
+
+    if (!tableCheck?.exists) {
+        return
+    }
+
+    await tenantConnection.unsafe(`
+        ALTER TABLE approval.approval_levels
+            ADD COLUMN IF NOT EXISTS required_role_codes JSONB NOT NULL DEFAULT '[]'::jsonb,
+            ADD COLUMN IF NOT EXISTS required_permission_codes JSONB NOT NULL DEFAULT '["approval.requests.approve"]'::jsonb,
+            ADD COLUMN IF NOT EXISTS role_match_mode VARCHAR(10) NOT NULL DEFAULT 'ANY',
+            ADD COLUMN IF NOT EXISTS permission_match_mode VARCHAR(10) NOT NULL DEFAULT 'ANY';
+    `)
+
+    await tenantConnection.unsafe(`
+        DO $$
+        BEGIN
+            IF EXISTS (
+                SELECT 1
+                FROM information_schema.columns
+                WHERE table_schema = 'approval'
+                  AND table_name = 'approval_levels'
+                  AND column_name = 'required_roles'
+            ) THEN
+                UPDATE approval.approval_levels AS al
+                SET
+                    required_role_codes = CASE
+                        WHEN jsonb_typeof(al.required_role_codes) = 'array'
+                             AND jsonb_array_length(al.required_role_codes) > 0
+                            THEN al.required_role_codes
+                        ELSE COALESCE(
+                            (
+                                SELECT jsonb_agg(DISTINCT trim(value))
+                                FROM jsonb_array_elements_text(al.required_roles) AS value
+                                WHERE trim(value) <> ''
+                                  AND position('.' IN trim(value)) = 0
+                            ),
+                            '[]'::jsonb
+                        )
+                    END,
+                    required_permission_codes = CASE
+                        WHEN jsonb_typeof(al.required_permission_codes) = 'array'
+                             AND jsonb_array_length(al.required_permission_codes) > 0
+                            THEN al.required_permission_codes
+                        ELSE COALESCE(
+                            (
+                                SELECT jsonb_agg(DISTINCT trim(value))
+                                FROM jsonb_array_elements_text(al.required_roles) AS value
+                                WHERE trim(value) <> ''
+                                  AND position('.' IN trim(value)) > 0
+                            ),
+                            '["approval.requests.approve"]'::jsonb
+                        )
+                    END
+                WHERE jsonb_typeof(al.required_roles) = 'array';
+            END IF;
+        END
+        $$;
+    `)
+
+    const missingColumns = await tenantConnection<{ column_name: string }[]>`
+        select required.column_name
+        from unnest(
+            ARRAY[
+                'required_role_codes',
+                'required_permission_codes',
+                'role_match_mode',
+                'permission_match_mode'
+            ]::text[]
+        ) as required(column_name)
+        where not exists (
+            select 1
+            from information_schema.columns existing
+            where existing.table_schema = 'approval'
+              and existing.table_name = 'approval_levels'
+              and existing.column_name = required.column_name
+        )
+    `
+
+    if (missingColumns.length > 0) {
+        const names = missingColumns.map((item) => item.column_name).join(', ')
+        throw new Error(`approval.approval_levels missing required columns after compatibility check: ${names}`)
+    }
 }

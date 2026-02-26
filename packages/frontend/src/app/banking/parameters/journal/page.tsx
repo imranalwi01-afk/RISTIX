@@ -52,6 +52,7 @@ import PageHeader from '@/components/banking/shared/PageHeader';
 import EmptyState from '@/components/banking/shared/EmptyState';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 import { ApprovalStatusBadge, PendingChangesDialog } from '@/components/approval';
+import { usePermission } from '@/hooks/usePermission';
 
 // Extracted memoized dialog component
 import {
@@ -62,6 +63,11 @@ import {
 } from './components';
 
 export default function JournalParametersPage() {
+  const { hasAnyPermission } = usePermission();
+  const canViewJournal = hasAnyPermission(['banking.parameter.journal.view', 'banking.parameter.journal.manage', 'banking.parameter.journal', 'admin.super_admin']);
+  const canManageJournal = hasAnyPermission(['banking.parameter.journal.manage', 'banking.parameter.journal.create', 'banking.parameter.journal.update', 'banking.parameter.journal.delete', 'admin.super_admin']);
+  const canExportJournal = hasAnyPermission(['banking.parameter.journal.export', 'banking.parameter.journal.manage', 'admin.super_admin']);
+
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<JournalParameter[]>([]);
@@ -187,7 +193,7 @@ export default function JournalParametersPage() {
       type: 'actions',
       headerName: 'Actions',
       width: 120,
-      getActions: (params: GridRowParams) => [
+      getActions: (params: GridRowParams) => canManageJournal ? [
         <SafeGridActionsCellItem
           icon={<EditIcon color="primary" />}
           label="Edit"
@@ -200,7 +206,7 @@ export default function JournalParametersPage() {
           onClick={() => params?.row && handleDelete(params.row)}
           key="delete"
         />
-      ]
+      ] : []
     }
   ];
 
@@ -359,16 +365,19 @@ export default function JournalParametersPage() {
   }, [data, searchTerm, filterGlGroup, filterCurrency, filterActive]);
 
   const handleCreate = () => {
+    if (!canManageJournal) return;
     setSelectedJournal(null);
     setDialogOpen(true);
   };
 
   const handleEdit = (journal: JournalParameter) => {
+    if (!canManageJournal) return;
     setSelectedJournal(journal);
     setDialogOpen(true);
   };
 
   const handleDelete = async (journal: JournalParameter) => {
+    if (!canManageJournal) return;
     if (!confirm(`Are you sure you want to delete journal entry "${journal.glCode}"?`)) {
       return;
     }
@@ -397,6 +406,7 @@ export default function JournalParametersPage() {
 
   // Memoized callback to prevent dialog re-renders
   const handleSave = useCallback(async (formData: JournalFormData) => {
+    if (!canManageJournal) return;
     try {
       setLoading(true);
       setError(null);
@@ -440,7 +450,7 @@ export default function JournalParametersPage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedJournal, loadData]);
+  }, [selectedJournal, loadData, canManageJournal]);
 
   // Memoized close handler
   const handleCloseDialog = useCallback(() => {
@@ -449,6 +459,7 @@ export default function JournalParametersPage() {
 
   // Export handler (Client-side export matching Product Parameters)
   const handleExport = (format: 'xlsx' | 'csv' | 'pdf') => {
+    if (!canExportJournal) return;
     try {
       setExportMenuAnchor(null);
 
@@ -512,6 +523,11 @@ export default function JournalParametersPage() {
   return (
     <Container maxWidth="xl" sx={{ position: 'relative' }}>
       <FullstackIndicator />
+      {!canViewJournal && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          You do not have permission to view journal parameters.
+        </Alert>
+      )}
       <PageHeader
         title="Journal Parameters"
         subtitle="Journal entry and accounting parameter configuration"
@@ -519,22 +535,26 @@ export default function JournalParametersPage() {
         loading={loading}
         extraActions={(
           <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button
-              variant="outlined"
-              startIcon={<DownloadIcon />}
-              onClick={(e) => setExportMenuAnchor(e.currentTarget)}
-              disabled={loading || data.length === 0}
-            >
-              Export
-            </Button>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleCreate}
-              disabled={loading}
-            >
-              Add Journal Entry
-            </Button>
+            {canExportJournal && (
+              <Button
+                variant="outlined"
+                startIcon={<DownloadIcon />}
+                onClick={(e) => setExportMenuAnchor(e.currentTarget)}
+                disabled={loading || data.length === 0}
+              >
+                Export
+              </Button>
+            )}
+            {canManageJournal && (
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={handleCreate}
+                disabled={loading}
+              >
+                Add Journal Entry
+              </Button>
+            )}
           </Box>
         )}
       />
@@ -542,7 +562,7 @@ export default function JournalParametersPage() {
       {/* Export Menu */}
       <Menu
         anchorEl={exportMenuAnchor}
-        open={Boolean(exportMenuAnchor)}
+        open={canExportJournal && Boolean(exportMenuAnchor)}
         onClose={() => setExportMenuAnchor(null)}
       >
         <MenuItem onClick={() => handleExport('xlsx')}>

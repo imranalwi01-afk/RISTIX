@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { logger } from '../lib/logger'
+import { fileURLToPath } from 'node:url'
 
 /**
  * Environment schema with Zod validation
@@ -65,6 +66,7 @@ const envSchema = z.object({
 
     // JWT
     JWT_SECRET: z.string().min(32),
+    JWT_REFRESH_SECRET: z.string().min(32).optional(),
     JWT_EXPIRES_IN: z.string().default('1h'),
 
     // Redis (optional)
@@ -88,27 +90,50 @@ export type Env = z.infer<typeof envSchema>
  * Parse and validate environment variables
  */
 function parseEnv(): Env {
-    // Manual fallback: Read .env if LEGACY_DATABASE_URL is missing
-    // This handles cases where bun might not load .env from the expected location or cache issues
-    if (!process.env.LEGACY_DATABASE_URL) {
+    const shouldAttemptManualLoad =
+        !process.env.LEGACY_DATABASE_URL ||
+        !process.env.JWT_SECRET ||
+        !process.env.DB_HOST
+
+    // Manual fallback: Read environment files from common project locations.
+    // This helps when scripts are run from nested folders (e.g. src/db/seeds).
+    if (shouldAttemptManualLoad) {
         try {
             // Use dynamic import or require to avoid top-level node types issues if strict
             const fs = require('fs')
             const path = require('path')
-            const envPath = path.resolve(process.cwd(), '.env')
+            const envFileDir = path.dirname(fileURLToPath(import.meta.url))
 
-            if (fs.existsSync(envPath)) {
+            const candidateEnvPaths = [
+                process.env.ENV_FILE,
+                path.resolve(process.cwd(), '.env'),
+                path.resolve(process.cwd(), 'ops/local/.env'),
+                path.resolve(process.cwd(), '../ops/local/.env'),
+                path.resolve(process.cwd(), '../../ops/local/.env'),
+                path.resolve(process.cwd(), '../../../ops/local/.env'),
+                path.resolve(process.cwd(), '../../../../ops/local/.env'),
+                path.resolve(envFileDir, '../../.env'),
+                path.resolve(envFileDir, '../../../../ops/local/.env'),
+            ].filter(Boolean)
+
+            const loadedPaths = new Set<string>()
+            for (const envPath of candidateEnvPaths) {
+                if (loadedPaths.has(envPath as string)) continue
+                loadedPaths.add(envPath as string)
+
+                if (!fs.existsSync(envPath)) continue
                 logger.info({ envPath }, 'Manually loading .env from file')
                 const content = fs.readFileSync(envPath, 'utf-8')
+
                 content.split('\n').forEach((line: string) => {
                     const match = line.match(/^\s*([\w_]+)\s*=\s*(.*)?\s*$/)
-                    if (match) {
-                        const key = match[1]
-                        const value = match[2] ? match[2].trim() : ''
-                        // Only set if not already defined
-                        if (!process.env[key]) {
-                            process.env[key] = value
-                        }
+                    if (!match) return
+                    const key = match[1]
+                    let value = match[2] ? match[2].trim() : ''
+                    value = value.replace(/^["'](.*)["']$/, '$1')
+                    // Only set if not already defined
+                    if (!process.env[key]) {
+                        process.env[key] = value
                     }
                 })
             }
