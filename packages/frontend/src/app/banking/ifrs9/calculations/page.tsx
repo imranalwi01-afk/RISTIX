@@ -99,13 +99,6 @@ interface CalculationSummary {
   stage1_ecl: number;
   stage2_ecl: number;
   stage3_ecl: number;
-  stage1Count?: number;
-  stage2Count?: number;
-  stage3Count?: number;
-  lastUpdated?: string;
-  totalAccounts?: number;
-  eclRate?: number;
-  coverageRatio?: number;
 }
 
 interface TabPanelProps {
@@ -459,7 +452,7 @@ export default function IFRS9CalculationDashboard() {
         };
         setCalculationSummary(summaryData);
         if (summaryResponse.data.lastUpdated && !selectedProcessDate) {
-          setSelectedProcessDate(summaryResponse.data.lastUpdated);
+           setSelectedProcessDate(summaryResponse.data.lastUpdated);
         }
         console.log('✅ Loaded calculation summary:', summaryData);
       }
@@ -498,10 +491,10 @@ export default function IFRS9CalculationDashboard() {
 
       // Note: Individual calculation results would need a separate API endpoint
       if (prcDate) {
-        const results = await fetchBatchResults(prcDate);
-        setCalculationResults(results);
+         const results = await fetchBatchResults(prcDate);
+         setCalculationResults(results);
       } else {
-        setCalculationResults([]);
+         setCalculationResults([]);
       }
 
     } catch (error: any) {
@@ -629,7 +622,6 @@ export default function IFRS9CalculationDashboard() {
         </Button>
       </Box>
 
-<<<<<<< HEAD
       {/* Error Alert */}
       {error && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
@@ -658,63 +650,6 @@ export default function IFRS9CalculationDashboard() {
 
       {/* KPI Summary */}
       <ReportSummaryGrid items={kpiItems} mdCols={2} sx={{ mb: 3 }} />
-=======
-      {/* Summary Cards */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                <PortfolioIcon sx={{ mr: 1, color: 'primary.main' }} />
-                <Typography variant="h6">Total Accounts</Typography>
-              </Box>
-              <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-                {calculationSummary?.total_accounts.toLocaleString('id-ID')}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                <EclIcon sx={{ mr: 1, color: 'success.main' }} />
-                <Typography variant="h6">Total Outstanding</Typography>
-              </Box>
-              <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-                {calculationSummary && formatCurrency(calculationSummary.total_outstanding)}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                <EclIcon sx={{ mr: 1, color: 'warning.main' }} />
-                <Typography variant="h6">Total ECL</Typography>
-              </Box>
-              <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-                {calculationSummary && formatCurrency(calculationSummary.total_ecl)}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                <PerformanceIcon sx={{ mr: 1, color: 'info.main' }} />
-                <Typography variant="h6">Coverage Ratio</Typography>
-              </Box>
-              {calculationSummary && calculationSummary.total_outstanding > 0
-                ? ((calculationSummary.total_ecl / calculationSummary.total_outstanding) * 100).toFixed(2)
-                : '0.00'}%
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
->>>>>>> 521306240d98329e44c992adf972ef8b04b40740
 
       {/* Main Content Tabs */}
       <Paper sx={{ width: '100%', mb: 2 }}>

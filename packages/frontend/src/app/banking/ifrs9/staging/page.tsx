@@ -5,7 +5,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -38,59 +38,7 @@ import { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import ReportPageLayout from '@/components/ifrs9/ReportPageLayout';
 import ReportSummaryGrid, { KPIItem } from '@/components/ifrs9/ReportSummaryGrid';
 import ReportDataGrid from '@/components/ifrs9/ReportDataGrid';
-
-// Real API implementation with demo token for development
-const stagingApi = {
-  getStagingAnalysis: async (filters: {
-    startDate?: Date | null;
-    endDate?: Date | null;
-    stage?: string;
-    segmentId?: string;
-  } = {}) => {
-    // Build query parameters
-    const params = new URLSearchParams();
-
-    if (filters.stage) {
-      params.append('stage', filters.stage);
-    }
-
-    if (filters.segmentId) {
-      params.append('segmentId', filters.segmentId);
-    }
-
-    if (filters.startDate) {
-      params.append('startDate', filters.startDate.toISOString().split('T')[0]);
-    }
-
-    if (filters.endDate) {
-      params.append('endDate', filters.endDate.toISOString().split('T')[0]);
-    }
-
-    const url = `http://localhost:4232/api/v1/banking/individual/impairment/staging-analysis${params.toString() ? '?' + params.toString() : ''}`;
-
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer demo_token_ADMIN',
-        'X-Tenant-ID': 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be'
-      }
-    });
-    return await response.json();
-  },
-
-  getStagingSummary: async () => {
-    const response = await fetch('http://localhost:4232/api/v1/banking/individual/impairment/staging-summary', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer demo_token_ADMIN',
-        'X-Tenant-ID': 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be'
-      }
-    });
-    return await response.json();
-  }
-};
+import { stagingApi } from '@/services/api/staging.api';
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('id-ID', {
@@ -114,15 +62,14 @@ export default function IFRS9StagingPage() {
     stage: '',
     segmentId: ''
   });
-<<<<<<< HEAD
-  
-  
+
+
   // Table columns setup
   const columns: GridColDef[] = [
     { field: 'prcDate', headerName: 'Process Date', width: 130, valueFormatter: (params) => params || '-' },
-    { 
-      field: 'stage', 
-      headerName: 'Stage', 
+    {
+      field: 'stage',
+      headerName: 'Stage',
       width: 160,
       renderCell: (params: GridRenderCellParams) => (
         <Chip
@@ -137,34 +84,28 @@ export default function IFRS9StagingPage() {
       )
     },
     { field: 'segmentId', headerName: 'Segment ID', width: 120, valueFormatter: (params) => params || '-' },
-    { 
-      field: 'totalOutstanding', 
-      headerName: 'Total Outstanding', 
-      width: 180, 
+    {
+      field: 'totalOutstanding',
+      headerName: 'Total Outstanding',
+      width: 180,
       type: 'number',
       valueFormatter: (value) => value ? formatCurrency(Number(value)) : '-'
     },
-    { 
-      field: 'totalECL', 
-      headerName: 'Total ECL', 
-      width: 180, 
+    {
+      field: 'totalECL',
+      headerName: 'Total ECL',
+      width: 180,
       type: 'number',
       valueFormatter: (value) => value ? formatCurrency(Number(value)) : '-'
     },
-    { 
-      field: 'avgOutstanding', 
-      headerName: 'Avg Outstanding', 
-      width: 180, 
+    {
+      field: 'avgOutstanding',
+      headerName: 'Avg Outstanding',
+      width: 180,
       type: 'number',
       valueFormatter: (value) => value ? formatCurrency(Number(value)) : '-'
     }
   ];
-=======
-
-  // Table pagination
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(25);
->>>>>>> 521306240d98329e44c992adf972ef8b04b40740
 
   // Load staging data
   const loadStagingData = async () => {
@@ -172,17 +113,31 @@ export default function IFRS9StagingPage() {
     setError(null);
 
     try {
+      const requestFilters = {
+        startDate: filters.startDate ? filters.startDate.toISOString().split('T')[0] : undefined,
+        endDate: filters.endDate ? filters.endDate.toISOString().split('T')[0] : undefined,
+        stage: filters.stage || undefined,
+        segmentId: filters.segmentId ? Number(filters.segmentId) : undefined
+      };
+
       const [analysisResponse, summaryResponse] = await Promise.all([
-        stagingApi.getStagingAnalysis(filters),
+        stagingApi.getStagingAnalysis(requestFilters),
         stagingApi.getStagingSummary()
       ]);
 
-      if (analysisResponse.success) {
-        setData(analysisResponse.data || []);
+      const analysisPayload = analysisResponse?.data ?? analysisResponse;
+      const summaryPayload = summaryResponse?.data ?? summaryResponse;
+
+      if (analysisPayload?.success) {
+        setData(analysisPayload.data || []);
+      } else if (Array.isArray(analysisPayload)) {
+        setData(analysisPayload);
       }
 
-      if (summaryResponse.success) {
-        setSummary(summaryResponse.data);
+      if (summaryPayload?.success) {
+        setSummary(summaryPayload.data);
+      } else if (summaryPayload) {
+        setSummary(summaryPayload);
       }
     } catch (err: any) {
       setError(err.message || 'Failed to load staging data');
@@ -295,26 +250,16 @@ export default function IFRS9StagingPage() {
               <DatePicker
                 label="Start Date"
                 value={filters.startDate}
-<<<<<<< HEAD
                 onChange={(newValue: any) => setFilters(prev => ({ ...prev, startDate: newValue as any }))}
                 slotProps={{ textField: { fullWidth: true, size: 'small' } }}
-=======
-                onChange={(newValue: any) => setFilters(prev => ({ ...prev, startDate: newValue }))}
-                slotProps={{ textField: { fullWidth: true, size: 'small' } as any }}
->>>>>>> 521306240d98329e44c992adf972ef8b04b40740
               />
             </Grid>
             <Grid size={{ xs: 12, md: 3 }}>
               <DatePicker
                 label="End Date"
                 value={filters.endDate}
-<<<<<<< HEAD
                 onChange={(newValue: any) => setFilters(prev => ({ ...prev, endDate: newValue as any }))}
                 slotProps={{ textField: { fullWidth: true, size: 'small' } }}
-=======
-                onChange={(newValue: any) => setFilters(prev => ({ ...prev, endDate: newValue }))}
-                slotProps={{ textField: { fullWidth: true, size: 'small' } as any }}
->>>>>>> 521306240d98329e44c992adf972ef8b04b40740
               />
             </Grid>
             <Grid size={{ xs: 12, md: 3 }}>

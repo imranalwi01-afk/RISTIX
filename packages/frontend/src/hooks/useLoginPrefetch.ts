@@ -27,7 +27,7 @@ const PREFETCH_ROUTES = [
   '/banking/ifrs9/calculations',
 ];
 
-// API endpoints to warm up (public-only to avoid noisy 401/403 during login screen)
+// API endpoints to warm up (public only to avoid noisy 401/403 on login screen)
 const WARMUP_ENDPOINTS = [
   '/auth/status',
   '/auth/login-data',
@@ -43,6 +43,16 @@ const stripApiSuffix = (value: string): string => {
 };
 
 const resolveApiBaseUrl = (): string => {
+  try {
+    const config = frontendEnvironmentLoader.getConfiguration();
+    const configuredBase = config?.api?.base || `${config?.api?.backend || ''}/api/v1`;
+    if (configuredBase && configuredBase.trim().length > 0) {
+      return trimTrailingSlash(configuredBase);
+    }
+  } catch {
+    // Ignore loader errors and fallback to env/runtime below.
+  }
+
   const fromApiBase = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (fromApiBase && fromApiBase.trim().length > 0) {
     const normalized = stripApiSuffix(fromApiBase);
@@ -85,24 +95,13 @@ export const useLoginPrefetch = () => {
   const warmupAPIs = useCallback(async () => {
     console.log('🔥 [LOGIN PREFETCH] Warming up APIs...');
     const apiBaseUrl = resolveApiBaseUrl();
-    
-    // Get API base URL
-    const config = frontendEnvironmentLoader.getConfiguration();
-    const baseUrl = config.api.base || `${config.api.backend}/api/v1`;
 
     // Fire-and-forget API calls to warm up backend connections
     WARMUP_ENDPOINTS.forEach(async (endpoint) => {
       try {
-<<<<<<< HEAD
-        const fullUrl = `${baseUrl}${endpoint}`;
-        // Use HEAD request to minimize data transfer
-        fetch(fullUrl, { 
-          method: 'HEAD',
-=======
         const warmupUrl = `${apiBaseUrl}${endpoint}`;
-        fetch(warmupUrl, { 
+        fetch(warmupUrl, {
           method: 'GET',
->>>>>>> 521306240d98329e44c992adf972ef8b04b40740
           credentials: 'include',
           cache: 'no-store',
           // Abort after 2 seconds - we just want connection warmup
@@ -110,11 +109,7 @@ export const useLoginPrefetch = () => {
         }).catch(() => {
           // Ignore errors - this is just warmup
         });
-<<<<<<< HEAD
-        console.log(`🔥 Warming up: ${fullUrl}`);
-=======
         console.log(`🔥 Warming up: ${warmupUrl}`);
->>>>>>> 521306240d98329e44c992adf972ef8b04b40740
       } catch (error) {
         // Ignore - this is optional optimization
       }

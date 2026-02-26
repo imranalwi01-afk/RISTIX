@@ -68,7 +68,6 @@ import {
 import { useRouter } from 'next/navigation'
 import { useSelector, useDispatch } from 'react-redux'
 import type { RootState } from '../../../store'
-import { usePermission } from '../../../hooks/usePermission'
 import { api, handleAPIError } from '../../../services/api'
 import {
     fetchDashboardPersonalization,
@@ -84,6 +83,7 @@ import PersonalizedWidget from '../../../components/dashboard/widgets/Personaliz
 import EmptyState from '../../../components/common/EmptyState'
 import ErrorState from '../../../components/common/ErrorState'
 import ReportSummaryGrid, { KPIItem } from '@/components/ifrs9/ReportSummaryGrid'
+import { usePermission } from '@/hooks/usePermission'
 import {
     PieChart as RechartsPieChart,
     Pie,
@@ -177,19 +177,11 @@ const PortfolioTrendChart = ({ data }: { data: any[] }) => (
                 tick={{ fill: '#9e9e9e', fontSize: 12 }}
                 dy={10}
             />
-<<<<<<< HEAD
-            <YAxis 
-                axisLine={false} 
-                tickLine={false} 
-                tick={{ fill: '#9e9e9e', fontSize: 10 }} 
-                tickFormatter={(value) => `Rp${(value / 1e9).toFixed(1)} Milyar`}
-=======
             <YAxis
                 axisLine={false}
                 tickLine={false}
                 tick={{ fill: '#9e9e9e', fontSize: 10 }}
-                tickFormatter={(value) => `Rp${(value / 1e9).toFixed(1)}B`}
->>>>>>> 521306240d98329e44c992adf972ef8b04b40740
+                tickFormatter={(value) => `Rp${(value / 1e9).toFixed(1)} Milyar`}
             />
             <RechartsTooltip
                 contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', background: 'rgba(255,255,255,0.9)' }}
@@ -243,8 +235,8 @@ interface DashboardActivity {
 
 export default function DashboardClient() {
     const router = useRouter()
-    const { hasAnyPermission } = usePermission()
     const dispatch = useDispatch()
+    const { hasAnyPermission } = usePermission()
 
     // ✅ PERFORMANCE: Pre-warm ALL API endpoints and routes on dashboard mount
     // This ensures all menu pages load instantly (<1 second)
@@ -278,7 +270,16 @@ export default function DashboardClient() {
 
     // ✅ SURGICAL FIX: Determine banking context from real user data
     const getBankingContext = () => {
-        if (!user) return { type: 'conventional', name: 'Banking Institution', greeting: 'Welcome' }
+        if (!user) {
+            return {
+                type: 'conventional' as const,
+                name: 'Banking Institution',
+                greeting: 'Welcome',
+                icon: '🏦',
+                primary: '#1976d2',
+                secondary: '#424242'
+            }
+        }
 
         const bankingType = user.bankingType || 'conventional'
         const tenantSlug = user.tenantSlug || ''
@@ -324,67 +325,6 @@ export default function DashboardClient() {
 
     const bankingContext = getBankingContext()
 
-<<<<<<< HEAD
-=======
-    const loadDashboardData = useCallback(async (date?: string) => {
-        setIsLoading(true)
-        setError(null)
-        try {
-            console.log('🔄 Loading dashboard data for:', date || 'latest');
-            const [summaryData, trendData] = await Promise.all([
-                api.ifrs9.getCalculationsSummary(date),
-                api.ifrs9.getPortfolioTrend(date)
-            ])
-
-            // Extract data from response if it follows success/data pattern
-            const summary = summaryData?.success ? summaryData.data : summaryData;
-            const trend = trendData?.success ? trendData.data : trendData;
-
-            setEclSummary(summary)
-            setPortfolioMetrics(summary) // Sync portfolio metrics
-            setPortfolioTrend(trend || [])
-        } catch (err: any) {
-            console.error('Failed to load dashboard data:', err)
-            setError(handleAPIError(err))
-        } finally {
-            setIsLoading(false)
-        }
-    }, []) // Stable identity
-
-    const loadAvailableDates = useCallback(async () => {
-        setIsLoadingDates(true);
-        try {
-            const datesResponse = await api.ifrs9.getAvailableDates();
-            const dates = datesResponse?.success ? datesResponse.data : datesResponse;
-            setAvailableDates(dates || []);
-            if (dates && dates.length > 0 && !selectedDate) {
-                setSelectedDate(dates[0]); // Default to latest
-            }
-        } catch (err) {
-            console.error('Failed to load available dates:', err);
-        } finally {
-            setIsLoadingDates(false);
-        }
-    }, [selectedDate]);
-
-    // ✅ INITIALIZATION: Load data on component mount
-    useEffect(() => {
-        if (isAuthenticated && user) {
-            // Load dashboard personalization
-            (dispatch as any)(fetchDashboardPersonalization({
-                userId: user.id,
-                tenantId: user.tenantSlug || 'default'
-            }))
-
-            // Initial load of available dates
-            loadAvailableDates();
-        } else if (!isAuthenticated) {
-            router.push('/login')
-        }
-    }, [isAuthenticated, user, loadAvailableDates, dispatch, router])
-
-    // ✅ PERSONALIZATION: Save widget changes
->>>>>>> 521306240d98329e44c992adf972ef8b04b40740
     const handleWidgetLayoutChange = (widgets: any[]) => {
         dispatch(setCurrentWidgets(widgets))
     }
@@ -409,7 +349,6 @@ export default function DashboardClient() {
         }
     }
 
-<<<<<<< HEAD
     const loadDashboardData = useCallback(async (date?: string) => {
         setIsLoading(true)
         setError(null)
@@ -417,12 +356,12 @@ export default function DashboardClient() {
             console.log('🔄 Loading dashboard data for:', date || 'all');
             // Explicitly handle 'all' or empty to call API with 'all' or undefined
             const apiDate = date === 'all' ? 'all' : (date === '' ? undefined : date);
-            
+
             const [summaryData, trendData] = await Promise.all([
                 api.ifrs9.getCalculationsSummary(apiDate),
                 api.ifrs9.getPortfolioTrend(apiDate)
             ])
-            
+
             // Extract data from response if it follows success/data pattern
             const summary = summaryData?.success ? summaryData.data : summaryData;
             const trend = trendData?.success ? trendData.data : trendData;
@@ -454,9 +393,6 @@ export default function DashboardClient() {
             setIsLoadingDates(false);
         }
     }, [selectedDate]);
-=======
-
->>>>>>> 521306240d98329e44c992adf972ef8b04b40740
 
     // ✅ INITIALIZATION: Load data on component mount
     useEffect(() => {
@@ -466,7 +402,7 @@ export default function DashboardClient() {
                 userId: user.id,
                 tenantId: user.tenantSlug || 'default'
             }))
-            
+
             // Initial load of available dates
             loadAvailableDates();
         } else if (!isAuthenticated) {
@@ -512,7 +448,7 @@ export default function DashboardClient() {
     // Instead of a full page loader, we show the dashboard layout immediately
     // and show indicators inside the widgets if data is still loading.
 
-    /* 
+    /*
     if (isLoading) {
        // Removed blocking loader
     }
@@ -535,7 +471,19 @@ export default function DashboardClient() {
         )
     }
 
-<<<<<<< HEAD
+    if (!hasAnyPermission(['banking', 'banking.dashboard.view', 'banking.dashboard.manage', 'admin.super_admin'])) {
+        return (
+            <Box sx={{ p: 3 }}>
+                <Alert severity="error" sx={{ mb: 3 }}>
+                    <Typography variant="h6">Access Denied</Typography>
+                    <Typography variant="body2">
+                        You do not have permission to access the banking dashboard.
+                    </Typography>
+                </Alert>
+            </Box>
+        )
+    }
+
     const kpiItems: KPIItem[] = [
         {
             title: 'Total ECL',
@@ -574,25 +522,10 @@ export default function DashboardClient() {
             chipLabel: 'Credit Impaired'
         }
     ];
-=======
-    if (!hasAnyPermission(['banking', 'banking.dashboard.view', 'banking.dashboard.manage', 'admin.super_admin'])) {
-        return (
-            <Box sx={{ p: 3 }}>
-                <Alert severity="error" sx={{ mb: 3 }}>
-                    <Typography variant="h6">Access Denied</Typography>
-                    <Typography variant="body2">
-                        You do not have permission to access the banking dashboard.
-                    </Typography>
-                </Alert>
-            </Box>
-        )
-    }
->>>>>>> 521306240d98329e44c992adf972ef8b04b40740
 
     return (
         <Box sx={{ transition: 'background-color 0.3s ease', pt: 8, pb: 4 }}>
             <Container maxWidth="xl">
-<<<<<<< HEAD
             {/* Header with Real User Data */}
             <Paper elevation={1} sx={{ p: 3, mb: 4, borderRadius: 2, background: `linear-gradient(135deg, ${bankingContext.primary} 0%, ${bankingContext.secondary} 100%)` }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -608,7 +541,7 @@ export default function DashboardClient() {
                         </Typography>
                         {eclSummary && (
                             <Box sx={{ mt: 1, display: 'flex', gap: 1 }}>
-                                <Chip 
+                                <Chip
                                     size="small"
                                     icon={<CheckCircle sx={{ fontSize: '1rem !important' }} />}
                                     label={eclSummary.isFallback ? "Master Account Source (Fallback)" : "Calc Result Source (Real)"}
@@ -626,69 +559,34 @@ export default function DashboardClient() {
                             </Box>
                         )}
                     </Box>
-=======
-                {/* Header with Real User Data */}
-                <Paper elevation={1} sx={{ p: 3, mb: 4, borderRadius: 2, background: `linear-gradient(135deg, ${bankingContext.primary} 0%, ${bankingContext.secondary} 100%)` }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Box>
-                            <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', color: 'white', mb: 1 }}>
-                                {bankingContext.icon} Banking Dashboard
-                            </Typography>
-                            <Typography variant="subtitle1" sx={{ color: 'rgba(255,255,255,0.9)' }}>
-                                IFRS 9 {bankingContext.name} Interface
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)', mt: 1 }}>
-                                {bankingContext.greeting}, {user.fullName || user.email} • Last updated: {lastRefresh.toLocaleTimeString()}
-                            </Typography>
-                            {eclSummary && (
-                                <Box sx={{ mt: 1, display: 'flex', gap: 1 }}>
-                                    <Chip
-                                        size="small"
-                                        icon={<CheckCircle sx={{ fontSize: '1rem !important' }} />}
-                                        label={eclSummary.isFallback ? "Master Account Source (Fallback)" : "Calc Result Source (Real)"}
-                                        color={eclSummary.isFallback ? "warning" : "success"}
-                                        variant="filled"
-                                        sx={{ fontWeight: 'bold' }}
-                                    />
-                                    {eclSummary.isFallback && (
-                                        <Tooltip title="Calculation results for this process date were not found. Data shown is from the raw master account table.">
-                                            <IconButton size="small" sx={{ p: 0, color: 'white' }}>
-                                                <Info sx={{ fontSize: '1rem' }} />
-                                            </IconButton>
-                                        </Tooltip>
-                                    )}
-                                </Box>
-                            )}
-                        </Box>
->>>>>>> 521306240d98329e44c992adf972ef8b04b40740
 
-                        <Stack direction="row" spacing={2} alignItems="center">
-                            <Badge badgeContent={activities.length} color="error">
-                                <IconButton sx={{ color: 'white' }}>
-                                    <Notifications />
-                                </IconButton>
-                            </Badge>
+                    <Stack direction="row" spacing={2} alignItems="center">
+                        <Badge badgeContent={activities.length} color="error">
+                            <IconButton sx={{ color: 'white' }}>
+                                <Notifications />
+                            </IconButton>
+                        </Badge>
+                        <Chip
+                            label={bankingContext.name}
+                            sx={{ backgroundColor: 'rgba(255,255,255,0.2)', color: 'white', fontWeight: 'bold' }}
+                        />
+                        {user.tenantSlug && (
                             <Chip
-                                label={bankingContext.name}
-                                sx={{ backgroundColor: 'rgba(255,255,255,0.2)', color: 'white', fontWeight: 'bold' }}
+                                label={user.tenantSlug.toUpperCase()}
+                                variant="outlined"
+                                sx={{ borderColor: 'white', color: 'white' }}
                             />
-                            {user.tenantSlug && (
-                                <Chip
-                                    label={user.tenantSlug.toUpperCase()}
-                                    variant="outlined"
-                                    sx={{ borderColor: 'white', color: 'white' }}
-                                />
-                            )}
+                        )}
 
-                            <FormControl variant="filled" size="small" sx={{
-                                minWidth: 150,
-                                backgroundColor: 'rgba(255,255,255,0.1)',
-                                borderRadius: 1,
-                                '& .MuiFilledInput-root': { color: 'white' },
-                                '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.7)' },
-                                '& .MuiSelect-icon': { color: 'white' }
-                            }}>
-                                <InputLabel id="select-date-label">Process Date</InputLabel>
+                        <FormControl variant="filled" size="small" sx={{
+                            minWidth: 150,
+                            backgroundColor: 'rgba(255,255,255,0.1)',
+                            borderRadius: 1,
+                            '& .MuiFilledInput-root': { color: 'white' },
+                            '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.7)' },
+                            '& .MuiSelect-icon': { color: 'white' }
+                        }}>
+                            <InputLabel id="select-date-label">Process Date</InputLabel>
                                 <Select
                                     labelId="select-date-label"
                                     value={selectedDate}
@@ -710,8 +608,8 @@ export default function DashboardClient() {
                                         }
                                     }}
                                 >
-                                    <MenuItem value="all" sx={{ 
-                                        fontWeight: 'bold', 
+                                    <MenuItem value="all" sx={{
+                                        fontWeight: 'bold',
                                         color: theme.palette.primary.main,
                                         borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
                                         py: 1.5,
@@ -753,60 +651,56 @@ export default function DashboardClient() {
                                         <MenuItem value="" disabled>No dates available</MenuItem>
                                     )}
                                 </Select>
-                            </FormControl>
+                        </FormControl>
 
-                            <IconButton onClick={handleRefresh} sx={{ color: 'white' }} title="Refresh Data">
-                                <Refresh />
+                        <IconButton onClick={handleRefresh} sx={{ color: 'white' }} title="Refresh Data">
+                            <Refresh />
+                        </IconButton>
+                        <IconButton sx={{ color: 'white' }} onClick={() => setShowWidgetManager(true)}>
+                            <Settings />
+                        </IconButton>
+                        {hasUnsavedChanges && (
+                            <IconButton sx={{ color: 'white' }} onClick={savePersonalizationSettings}>
+                                <Save />
                             </IconButton>
-                            <IconButton sx={{ color: 'white' }} onClick={() => setShowWidgetManager(true)}>
-                                <Settings />
-                            </IconButton>
-                            {hasUnsavedChanges && (
-                                <IconButton sx={{ color: 'white' }} onClick={savePersonalizationSettings}>
-                                    <Save />
-                                </IconButton>
-                            )}
-                        </Stack>
-                    </Box>
-                </Paper>
+                        )}
+                    </Stack>
+                </Box>
+            </Paper>
 
-                {/* Error Alert */}
-                {error && (
-                    <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
-                        <Typography variant="body2">
-                            <strong>Error Loading Data:</strong> {error}
-                        </Typography>
-                    </Alert>
-                )}
-
-                {/* Banking Type Alert */}
-                <Alert
-                    severity={bankingContext.type === 'syariah' ? 'success' : 'info'}
-                    sx={{ mb: 3 }}
-                    icon={<Info />}
-                >
+            {/* Error Alert */}
+            {error && (
+                <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
                     <Typography variant="body2">
-<<<<<<< HEAD
                                     <strong>Error Loading Data:</strong> {typeof error === 'object' ? (error.message || JSON.stringify(error)) : String(error)}
-=======
-                        <strong>{bankingContext.name} Interface Active</strong> - You are accessing the IFRS 9 system as a banking institution user.
-                        {bankingContext.type === 'syariah' && ' All calculations are Syariah-compliant and follow Islamic banking principles.'}
-                        {user.tenantSlug && ` Connected to tenant: ${user.tenantSlug}`}
->>>>>>> 521306240d98329e44c992adf972ef8b04b40740
                     </Typography>
                 </Alert>
+            )}
 
-                {/* Widget Manager - Personalization Controls */}
-                {showWidgetManager && (
-                    <WidgetManager
-                        userId={user?.id || ''}
-                        tenantId={user?.tenantSlug || 'default'}
-                        onLayoutChange={handleWidgetLayoutChange}
-                    />
-                )}
+            {/* Banking Type Alert */}
+            <Alert
+                severity={bankingContext.type === 'syariah' ? 'success' : 'info'}
+                sx={{ mb: 3 }}
+                icon={<Info />}
+            >
+                <Typography variant="body2">
+                    <strong>{bankingContext.name} Interface Active</strong> - You are accessing the IFRS 9 system as a banking institution user.
+                    {bankingContext.type === 'syariah' && ' All calculations are Syariah-compliant and follow Islamic banking principles.'}
+                    {user.tenantSlug && ` Connected to tenant: ${user.tenantSlug}`}
+                </Typography>
+            </Alert>
 
-                {/* Personalized Widgets - CURRENTLY DISABLED TO FORCE MODERN UI */}
-                {/* - [x] Adjust StatCard font sizing for long nominals <!-- id: 4 -->
+            {/* Widget Manager - Personalization Controls */}
+            {showWidgetManager && (
+                <WidgetManager
+                    userId={user?.id || ''}
+                    tenantId={user?.tenantSlug || 'default'}
+                    onLayoutChange={handleWidgetLayoutChange}
+                />
+            )}
+
+            {/* Personalized Widgets - CURRENTLY DISABLED TO FORCE MODERN UI */}
+            {/* - [x] Adjust StatCard font sizing for long nominals <!-- id: 4 -->
       <Grid container spacing={3} sx={{ mb: 4 }}>
         {currentWidgets.map((widget) => (
           <Grid
@@ -841,13 +735,12 @@ export default function DashboardClient() {
       </Grid>
       */}
 
-                {/* 🚀 MODERN DASHBOARD LAYOUT - ALWAYS VISIBLE */}
-                {/* Fallback ECL Summary Cards - For compatibility with existing code */}
-                { /* Removed conditional check to force modern UI */}
-                {/* 🚀 MODERN DASHBOARD LAYOUT - ALWAYS VISIBLE */}
-                {/* Fallback ECL Summary Cards - For compatibility with existing code */}
+            {/* 🚀 MODERN DASHBOARD LAYOUT - ALWAYS VISIBLE */}
+            {/* Fallback ECL Summary Cards - For compatibility with existing code */}
+            { /* Removed conditional check to force modern UI */}
+            {/* 🚀 MODERN DASHBOARD LAYOUT - ALWAYS VISIBLE */}
+            {/* Fallback ECL Summary Cards - For compatibility with existing code */}
 
-<<<<<<< HEAD
             {/* 🚀 MODERN DASHBOARD LAYOUT */}
             {eclSummary && (
                 <Grid container spacing={isMobile ? 2 : 3} sx={{ mb: 4 }}>
@@ -858,13 +751,13 @@ export default function DashboardClient() {
 
                     {/* CHARTS SECTION */}
                     <Grid size={{ xs: 12, md: 8 }}>
-                        <Card sx={{ 
-                            borderRadius: 4, 
-                            boxShadow: `0 4px 12px ${alpha(bankingContext.primary, 0.08)}`, 
-                            border: `1px solid ${alpha(bankingContext.primary, 0.1)}`, 
-                            height: '100%', 
-                            overflow: 'hidden', 
-                            background: theme.palette.background.paper 
+                        <Card sx={{
+                            borderRadius: 4,
+                            boxShadow: `0 4px 12px ${alpha(bankingContext.primary, 0.08)}`,
+                            border: `1px solid ${alpha(bankingContext.primary, 0.1)}`,
+                            height: '100%',
+                            overflow: 'hidden',
+                            background: theme.palette.background.paper
                         }}>
                             <CardContent sx={{ p: isMobile ? 2 : 3 }}>
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3, alignItems: 'center' }}>
@@ -878,12 +771,12 @@ export default function DashboardClient() {
                     </Grid>
 
                     <Grid size={{ xs: 12, md: 4 }}>
-                        <Card sx={{ 
-                            borderRadius: 4, 
-                            boxShadow: `0 4px 12px ${alpha(bankingContext.primary, 0.08)}`, 
+                        <Card sx={{
+                            borderRadius: 4,
+                            boxShadow: `0 4px 12px ${alpha(bankingContext.primary, 0.08)}`,
                             border: `1px solid ${alpha(bankingContext.primary, 0.1)}`,
-                            height: '100%', 
-                            background: theme.palette.background.paper 
+                            height: '100%',
+                            background: theme.palette.background.paper
                         }}>
                             <CardContent sx={{ p: isMobile ? 2 : 3 }}>
                                 <Typography variant="h6" fontWeight="bold" sx={{ mb: 3 }}>ECL Distribution</Typography>
@@ -899,191 +792,48 @@ export default function DashboardClient() {
                                         textAlign: 'center',
                                         width: '100%'
                                     }}>
-                                        <Typography variant="h4" fontWeight="bold" sx={{ 
+                                        <Typography variant="h4" fontWeight="bold" sx={{
                                             color: theme.palette.mode === 'dark' ? 'white' : '#1a237e',
                                             lineHeight: 1
-=======
-                {/* 🚀 MODERN DASHBOARD LAYOUT */}
-                {eclSummary && (
-                    <Grid container spacing={isMobile ? 2 : 3} sx={{ mb: 4 }}>
-                        {/* PRIMARY STATS */}
-                        <Grid size={{ xs: 12, md: 6 }}>
-                            <StatCard
-                                title="Total ECL"
-                                value={formatCurrency(eclSummary?.totalECL || 0, eclSummary?.currency || 'IDR')}
-                                fullValue={eclSummary?.totalECL || 0}
-                                subtitle={`ECL Rate: ${eclSummary?.eclRate ? eclSummary.eclRate.toFixed(2) : '0.00'}%`}
-                                icon={<Calculate />}
-                                color="#1976d2"
-                                trend={{ label: 'Current', color: '#1976d2' }}
-                            />
-                        </Grid>
-                        <Grid size={{ xs: 12, md: 6 }}>
-                            <StatCard
-                                title="Total Exposure"
-                                value={formatCurrency(portfolioMetrics?.totalExposure || 0)}
-                                fullValue={portfolioMetrics?.totalExposure || 0}
-                                subtitle="Total Portfolio Value"
-                                icon={<AccountBalance />}
-                                color="#00C49F"
-                                trend={{ label: 'Stable', color: '#00C49F' }}
-                            />
-                        </Grid>
-                        <Grid size={{ xs: 12, md: 6 }}>
-                            <StatCard
-                                title="Active Accounts"
-                                value={portfolioMetrics?.totalAccounts?.toLocaleString() || '0'}
-                                fullValue={portfolioMetrics?.totalAccounts || 0}
-                                subtitle="Total Active Loans"
-                                icon={<Business />}
-                                color="#FFBB28"
-                            />
-                        </Grid>
-                        <Grid size={{ xs: 12, md: 6 }}>
-                            <StatCard
-                                title="High Risk (Stage 3)"
-                                value={formatCurrency(eclSummary?.stage3ECL || 0)}
-                                fullValue={eclSummary?.stage3ECL || 0}
-                                subtitle="Credit Impaired"
-                                icon={<Warning />}
-                                color="#FF8042"
-                                trend={{ label: 'Attention', color: '#FF8042' }}
-                            />
-                        </Grid>
-
-                        {/* CHARTS SECTION */}
-                        <Grid size={{ xs: 12, md: 8 }}>
-                            <Card sx={{ borderRadius: 3, boxShadow: theme.shadows[2], height: '100%', overflow: 'hidden', background: theme.palette.background.paper }}>
-                                <CardContent>
-                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-                                        <Typography variant="h6" fontWeight="bold">Portfolio Exposure Trend</Typography>
-                                        <Chip label="Historical" size="small" variant="outlined" />
-                                    </Box>
-                                    {/* RENDER TREND CHART */}
-                                    <PortfolioTrendChart data={portfolioTrend} />
-                                </CardContent>
-                            </Card>
-                        </Grid>
-
-                        <Grid size={{ xs: 12, md: 4 }}>
-                            <Card sx={{ borderRadius: 3, boxShadow: theme.shadows[2], height: '100%', background: theme.palette.background.paper }}>
-                                <CardContent>
-                                    <Typography variant="h6" fontWeight="bold" sx={{ mb: 3 }}>ECL Distribution</Typography>
-                                    {/* RENDER PIE CHART */}
-                                    <Box sx={{ position: 'relative', height: 300 }}>
-                                        <ECLDistributionChart data={eclSummary} />
-                                        {/* Center Label */}
-                                        <Box sx={{
-                                            position: 'absolute',
-                                            top: '50%',
-                                            left: '50%',
-                                            transform: 'translate(-50%, -50%)',
-                                            textAlign: 'center',
-                                            width: '100%'
->>>>>>> 521306240d98329e44c992adf972ef8b04b40740
                                         }}>
-                                            <Typography variant="h4" fontWeight="bold" sx={{
-                                                color: theme.palette.mode === 'dark' ? 'white' : '#1a237e',
-                                                lineHeight: 1
-                                            }}>
-                                                {eclSummary.totalECL > 0 ? '3' : '0'}
-                                            </Typography>
-                                            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>
-                                                {eclSummary.totalECL > 0 ? 'Stages Found' : 'No Data'}
-                                            </Typography>
-                                        </Box>
+                                            {eclSummary.totalECL > 0 ? '3' : '0'}
+                                        </Typography>
+                                        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>
+                                            {eclSummary.totalECL > 0 ? 'Stages Found' : 'No Data'}
+                                        </Typography>
                                     </Box>
+                                </Box>
 
-                                    {/* Legend */}
-                                    <Stack spacing={1} sx={{ mt: 2 }}>
-                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: COLORS.stage1 }} />
-                                                <Typography variant="body2">Stage 1 (12-month)</Typography>
-                                            </Box>
-                                            <Typography variant="body2" fontWeight="bold">{eclSummary.stage1ECL > 0 ? formatCurrency(eclSummary.stage1ECL) : 'N/A'}</Typography>
+                                {/* Legend */}
+                                <Stack spacing={1} sx={{ mt: 2 }}>
+                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                            <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: COLORS.stage1 }} />
+                                            <Typography variant="body2">Stage 1 (12-month)</Typography>
                                         </Box>
-                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: COLORS.stage2 }} />
-                                                <Typography variant="body2">Stage 2 (Lifetime)</Typography>
-                                            </Box>
-                                            <Typography variant="body2" fontWeight="bold">{eclSummary.stage2ECL > 0 ? formatCurrency(eclSummary.stage2ECL) : 'N/A'}</Typography>
+                                        <Typography variant="body2" fontWeight="bold">{eclSummary.stage1ECL > 0 ? formatCurrency(eclSummary.stage1ECL) : 'N/A'}</Typography>
+                                    </Box>
+                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                            <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: COLORS.stage2 }} />
+                                            <Typography variant="body2">Stage 2 (Lifetime)</Typography>
                                         </Box>
-                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: COLORS.stage3 }} />
-                                                <Typography variant="body2">Stage 3 (Impaired)</Typography>
-                                            </Box>
-                                            <Typography variant="body2" fontWeight="bold">{eclSummary.stage3ECL > 0 ? formatCurrency(eclSummary.stage3ECL) : 'N/A'}</Typography>
+                                        <Typography variant="body2" fontWeight="bold">{eclSummary.stage2ECL > 0 ? formatCurrency(eclSummary.stage2ECL) : 'N/A'}</Typography>
+                                    </Box>
+                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                            <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: COLORS.stage3 }} />
+                                            <Typography variant="body2">Stage 3 (Impaired)</Typography>
                                         </Box>
-                                    </Stack>
-                                </CardContent>
-                            </Card>
-                        </Grid>
-                    </Grid>
-                )}
-
-                {/* Main Content Area */}
-                <Grid container spacing={3} sx={{ mb: 4 }}>
-                    {/* Quick Actions */}
-                    <Grid size={{ xs: 12, md: 6 }}>
-                        <Card sx={{ height: '100%' }}>
-                            <CardContent>
-                                <Typography variant="h6" gutterBottom sx={{ color: bankingContext.primary, display: 'flex', alignItems: 'center' }}>
-                                    <Assessment sx={{ mr: 1 }} />
-                                    Quick Actions
-                                </Typography>
-                                <Stack spacing={2}>
-                                    <Button
-                                        variant="contained"
-                                        fullWidth
-                                        size="large"
-                                        sx={{ backgroundColor: bankingContext.primary, py: 1.5 }}
-                                        startIcon={<Calculate />}
-                                        onClick={() => router.push('/banking/ifrs9/calculations')}
-                                    >
-                                        Run ECL Calculation
-                                    </Button>
-                                    <Button
-                                        variant="outlined"
-                                        fullWidth
-                                        size="large"
-                                        color="primary"
-                                        sx={{ py: 1.5 }}
-                                        startIcon={<ShowChart />}
-                                        onClick={() => router.push('/banking/portfolio/analysis')}
-                                    >
-                                        View Portfolio Analysis
-                                    </Button>
-                                    <Button
-                                        variant="outlined"
-                                        fullWidth
-                                        size="large"
-                                        color="primary"
-                                        sx={{ py: 1.5 }}
-                                        startIcon={<Download />}
-                                        onClick={() => router.push('/banking/reports/ifrs9')}
-                                    >
-                                        Generate IFRS 9 Report
-                                    </Button>
-                                    <Button
-                                        variant="outlined"
-                                        fullWidth
-                                        size="large"
-                                        color="primary"
-                                        sx={{ py: 1.5 }}
-                                        startIcon={<Settings />}
-                                        onClick={() => router.push('/banking/setup/application')}
-                                    >
-                                        System Configuration
-                                    </Button>
+                                        <Typography variant="body2" fontWeight="bold">{eclSummary.stage3ECL > 0 ? formatCurrency(eclSummary.stage3ECL) : 'N/A'}</Typography>
+                                    </Box>
                                 </Stack>
                             </CardContent>
                         </Card>
                     </Grid>
+                </Grid>
+            )}
 
-<<<<<<< HEAD
             {/* Main Content Area */}
             <Grid container spacing={3} sx={{ mb: 4 }}>
                 {/* Quick Actions */}
@@ -1103,8 +853,8 @@ export default function DashboardClient() {
                                     variant="contained"
                                     fullWidth
                                     size="large"
-                                    sx={{ 
-                                        py: 1.5, 
+                                    sx={{
+                                        py: 1.5,
                                         borderRadius: 2,
                                         backgroundColor: bankingContext.primary,
                                         boxShadow: `0 4px 12px ${alpha(bankingContext.primary, 0.3)}`,
@@ -1127,7 +877,7 @@ export default function DashboardClient() {
                                     fullWidth
                                     size="large"
                                     color="primary"
-                                    sx={{ 
+                                    sx={{
                                         py: 1.5,
                                         borderRadius: 2,
                                         borderWidth: 1.5,
@@ -1149,7 +899,7 @@ export default function DashboardClient() {
                                     fullWidth
                                     size="large"
                                     color="primary"
-                                    sx={{ 
+                                    sx={{
                                         py: 1.5,
                                         borderRadius: 2,
                                         borderWidth: 1.5,
@@ -1171,7 +921,7 @@ export default function DashboardClient() {
                                     fullWidth
                                     size="large"
                                     color="primary"
-                                    sx={{ 
+                                    sx={{
                                         py: 1.5,
                                         borderRadius: 2,
                                         borderWidth: 1.5,
@@ -1209,8 +959,8 @@ export default function DashboardClient() {
                                 {activities.length > 0 ? (
                                     activities.slice(0, 5).map((activity, index) => (
                                         <React.Fragment key={activity.id}>
-                                            <ListItem sx={{ 
-                                                px: 2, 
+                                            <ListItem sx={{
+                                                px: 2,
                                                 py: 1.5,
                                                 borderRadius: 2,
                                                 mb: 1,
@@ -1221,16 +971,16 @@ export default function DashboardClient() {
                                                 }
                                             }}>
                                                 <ListItemIcon sx={{ minWidth: 48 }}>
-                                                    <Box sx={{ 
-                                                        p: 1, 
-                                                        borderRadius: 2, 
-                                                        bgcolor: activity.type === 'error' ? alpha(theme.palette.error.main, 0.1) : 
-                                                                 activity.type === 'warning' ? alpha(theme.palette.warning.main, 0.1) : 
-                                                                 activity.type === 'success' ? alpha(theme.palette.success.main, 0.1) : 
+                                                    <Box sx={{
+                                                        p: 1,
+                                                        borderRadius: 2,
+                                                        bgcolor: activity.type === 'error' ? alpha(theme.palette.error.main, 0.1) :
+                                                                 activity.type === 'warning' ? alpha(theme.palette.warning.main, 0.1) :
+                                                                 activity.type === 'success' ? alpha(theme.palette.success.main, 0.1) :
                                                                  alpha(theme.palette.info.main, 0.1),
-                                                        color: activity.type === 'error' ? theme.palette.error.main : 
-                                                               activity.type === 'warning' ? theme.palette.warning.main : 
-                                                               activity.type === 'success' ? theme.palette.success.main : 
+                                                        color: activity.type === 'error' ? theme.palette.error.main :
+                                                               activity.type === 'warning' ? theme.palette.warning.main :
+                                                               activity.type === 'success' ? theme.palette.success.main :
                                                                theme.palette.info.main,
                                                         display: 'flex'
                                                     }}>
@@ -1267,62 +1017,16 @@ export default function DashboardClient() {
                     </Card>
                 </Grid>
             </Grid>
-=======
-                    {/* Recent Activities - Real Data */}
-                    <Grid size={{ xs: 12, md: 6 }}>
-                        <Card sx={{ height: '100%' }}>
-                            <CardContent>
-                                <Typography variant="h6" gutterBottom sx={{ color: bankingContext.primary, display: 'flex', alignItems: 'center' }}>
-                                    <Timeline sx={{ mr: 1 }} />
-                                    Recent Activities
-                                </Typography>
-                                <List>
-                                    {activities.length > 0 ? (
-                                        activities.slice(0, 5).map((activity, index) => (
-                                            <React.Fragment key={activity.id}>
-                                                <ListItem sx={{ px: 0 }}>
-                                                    <ListItemIcon sx={{ minWidth: 40 }}>
-                                                        {activity.icon}
-                                                    </ListItemIcon>
-                                                    <ListItemText
-                                                        primary={activity.text}
-                                                        secondary={activity.time}
-                                                        primaryTypographyProps={{ variant: 'body2' }}
-                                                        secondaryTypographyProps={{ variant: 'caption' }}
-                                                    />
-                                                </ListItem>
-                                                {index < activities.length - 1 && index < 4 && <Divider />}
-                                            </React.Fragment>
-                                        ))
-                                    ) : (
-                                        <ListItem sx={{ px: 0 }}>
-                                            <ListItemIcon sx={{ minWidth: 40 }}>
-                                                <Info color="info" />
-                                            </ListItemIcon>
-                                            <ListItemText
-                                                primary="No recent activities"
-                                                secondary="Activities will appear here as you use the system"
-                                                primaryTypographyProps={{ variant: 'body2' }}
-                                                secondaryTypographyProps={{ variant: 'caption' }}
-                                            />
-                                        </ListItem>
-                                    )}
-                                </List>
-                            </CardContent>
-                        </Card>
-                    </Grid>
-                </Grid>
 
->>>>>>> 521306240d98329e44c992adf972ef8b04b40740
 
-                {/* System Status Footer */}
-                <Alert severity="success" sx={{ mt: 3 }}>
-                    <Typography variant="body2">
-                        <strong>✅ Banking System Online:</strong> IFRS 9 calculation engine operational.
-                        {bankingContext.type === 'syariah' && ' All calculations are Syariah-compliant.'}
-                        {eclSummary && ` Last calculation: ${eclSummary.lastUpdated || 'Never'}`} • Portfolio health: Excellent
-                    </Typography>
-                </Alert>
+            {/* System Status Footer */}
+            <Alert severity="success" sx={{ mt: 3 }}>
+                <Typography variant="body2">
+                    <strong>✅ Banking System Online:</strong> IFRS 9 calculation engine operational.
+                    {bankingContext.type === 'syariah' && ' All calculations are Syariah-compliant.'}
+                    {eclSummary && ` Last calculation: ${eclSummary.lastUpdated || 'Never'}`} • Portfolio health: Excellent
+                </Typography>
+            </Alert>
             </Container>
         </Box>
     )

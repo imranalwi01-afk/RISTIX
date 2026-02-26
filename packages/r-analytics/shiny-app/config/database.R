@@ -37,26 +37,15 @@ if (!exists("ra_log_info")) {
 #' @description Returns database configuration matching original working app
 #' @return Database configuration list for IFRS9 analytics
 get_database_config <- function() {
-<<<<<<< HEAD
-  # Configuration matching the backend .env
-  return(list(
-    host = "10.8.0.2",
-    port = 5433,
-    dbname = "FRS9PRO",
-    user = "postgres",
-    password = "postgres",
-    sslmode = "disable"
-=======
   # Configuration driven by environment (FRS9_DB_* preferred, then DB_*)
   return(list(
-    host = get_preferred_env("FRS9_DB_HOST", "DB_HOST", "192.168.0.106"),
+    host = get_preferred_env("FRS9_DB_HOST", "DB_HOST", "10.8.0.2"),
     port = as.integer(get_preferred_env("FRS9_DB_PORT", "DB_PORT", "5433")),
     dbname = get_preferred_env("FRS9_DB_NAME", "DB_NAME", "FRS9PRO"),
     schema = get_preferred_env("FRS9_DB_SCHEMA", "DB_SCHEMA", "public"),
     user = get_preferred_env("FRS9_DB_USER", "DB_USER", "postgres"),
     password = get_preferred_env("FRS9_DB_PASSWORD", "DB_PASSWORD", "postgres"),
     sslmode = Sys.getenv("DB_SSLMODE", "disable")
->>>>>>> 521306240d98329e44c992adf972ef8b04b40740
   ))
 }
 
@@ -64,15 +53,6 @@ get_database_config <- function() {
 #' @description Configures database connection matching original working app
 #' @return List containing database connection and reference data
 setup_database <- function() {
-<<<<<<< HEAD
-  cat("🔗 Setting up database connection (matching backend .env)...\n")
-
-  # Use the exact same database configuration as the backend
-  
-  cat("🏢 Database: 10.8.0.2 : 5433 / FRS9PRO\n")
-  cat("🔐 SSL Mode: disable\n")
-  cat("📋 Schema: public (default)\n")
-=======
   ra_log_info("Setting up database connection")
   db_cfg <- get_database_config()
   db_schema <- db_cfg$schema
@@ -90,7 +70,6 @@ setup_database <- function() {
     schema = db_schema,
     sslmode = db_cfg$sslmode
   ))
->>>>>>> 521306240d98329e44c992adf972ef8b04b40740
 
   # Initialize variables with safe defaults
   con <- NULL
@@ -106,16 +85,6 @@ setup_database <- function() {
       stop("Required database packages (DBI, RPostgres) are not installed")
     }
 
-<<<<<<< HEAD
-    # Use the EXACT same connection as the backend
-    con <- DBI::dbConnect(RPostgres::Postgres(),
-                         host = "10.8.0.2",
-                         port = 5433,
-                         dbname = "FRS9PRO",
-                         user = "postgres",
-                         password = "postgres",
-                         sslmode = "disable")
-=======
     # Use centralized env-driven configuration.
     con <- DBI::dbConnect(RPostgres::Postgres(),
                          host = db_cfg$host,
@@ -124,7 +93,6 @@ setup_database <- function() {
                          user = db_cfg$user,
                          password = db_cfg$password,
                          sslmode = db_cfg$sslmode)
->>>>>>> 521306240d98329e44c992adf972ef8b04b40740
 
     ra_log_info("Database connection established")
 
@@ -142,16 +110,6 @@ setup_database <- function() {
       ra_log_warn("Connection test failed - continuing anyway")
     }
 
-<<<<<<< HEAD
-    # Set schema path to include both public and dbo
-    tryCatch({
-      DBI::dbExecute(con, "SET search_path TO public, dbo;")
-      cat("🎯 Schema path set to public, dbo\n")
-    }, error = function(e) {
-      cat("⚠️ Failed to set search path:", e$message, "\n")
-      # Fallback to public
-      DBI::dbExecute(con, "SET search_path TO public;")
-=======
     # Set schema path from environment (FRS9PRO uses public by default)
     tryCatch({
       search_path_sql <- paste0('SET search_path TO "', db_schema, '", public;')
@@ -161,7 +119,6 @@ setup_database <- function() {
       # Fallback to public if configured schema doesn't exist
       DBI::dbExecute(con, "SET search_path TO public;")
       ra_log_warn("Schema configuration failed, fallback to public", context = list(error = e$message))
->>>>>>> 521306240d98329e44c992adf972ef8b04b40740
     })
 
     # Ensure analytics_joined_data table exists for modular app
@@ -236,20 +193,12 @@ setup_database <- function() {
   return(list(
     connection = con,
     config = list(
-<<<<<<< HEAD
-      host = "10.8.0.2",
-      port = 5433,
-      dbname = "FRS9PRO",
-      user = "postgres",
-      sslmode = "disable"
-=======
       host = db_cfg$host,
       port = db_cfg$port,
       dbname = db_cfg$dbname,
       schema = db_schema,
       user = db_cfg$user,
       sslmode = db_cfg$sslmode
->>>>>>> 521306240d98329e44c992adf972ef8b04b40740
     ),
     environment = "local",
     PD = PD,
