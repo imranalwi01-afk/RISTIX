@@ -23,6 +23,51 @@ data_server <- function(input, output, session, con, PD, LGD, persistent_data) {
   # =============================================================================
   # Utility functions are already sourced in app.R - no duplication needed
 
+  resolve_col <- function(df, candidates) {
+    if (!is.data.frame(df) || ncol(df) == 0) return(NULL)
+    col_names <- names(df)
+    lower_names <- tolower(col_names)
+    for (candidate in candidates) {
+      idx <- match(tolower(candidate), lower_names)
+      if (!is.na(idx)) return(col_names[[idx]])
+    }
+    NULL
+  }
+
+  normalize_column_names <- function(df) {
+    if (!is.data.frame(df) || ncol(df) == 0) return(df)
+    names(df) <- tolower(names(df))
+    df
+  }
+
+  build_segment_choices <- function(df, id_candidates, name_candidates, fallback_prefix) {
+    if (!is.data.frame(df) || nrow(df) == 0) {
+      return(c("No segmentation data found" = ""))
+    }
+
+    id_col <- resolve_col(df, id_candidates)
+    name_col <- resolve_col(df, name_candidates)
+
+    if (is.null(id_col) || is.null(name_col)) {
+      return(c("Segmentation config columns not found" = ""))
+    }
+
+    ids <- as.character(df[[id_col]])
+    labels <- as.character(df[[name_col]])
+    valid <- !is.na(ids) & nzchar(trimws(ids))
+
+    if (!any(valid)) {
+      return(c("No valid segmentation ID found" = ""))
+    }
+
+    ids <- ids[valid]
+    labels <- labels[valid]
+    label_missing <- is.na(labels) | !nzchar(trimws(labels))
+    labels[label_missing] <- paste(fallback_prefix, ids[label_missing])
+
+    stats::setNames(ids, labels)
+  }
+
   # =============================================================================
   # REACTIVE VALUES
   # =============================================================================
@@ -31,6 +76,17 @@ data_server <- function(input, output, session, con, PD, LGD, persistent_data) {
   rv_df <- reactiveVal()  # Menyimpan df untuk digunakan ulang
   df1 <- reactiveVal(NULL)  # Data independent
 
+  output$dependent_data <- renderDT({
+    df <- rv_df()
+    if (is.null(df)) {
+      return(datatable(
+        data.frame(Info = "Select dependent + segmentation, then click Submit."),
+        options = list(dom = "t", paging = FALSE, searching = FALSE, ordering = FALSE)
+      ))
+    }
+    datatable(df, options = list(scrollX = TRUE))
+  })
+
   # =============================================================================
   # DEPENDENT VARIABLE LOGIC
   # =============================================================================
@@ -38,11 +94,23 @@ data_server <- function(input, output, session, con, PD, LGD, persistent_data) {
   # Dynamic UI for segmentation based on dependent variable selection
   output$segmentationUI <- renderUI({
     if (input$dependent == "PD") {
+      pd_choices <- build_segment_choices(
+        PD,
+        id_candidates = c("pkid", "pd_config_id", "config_id", "id"),
+        name_candidates = c("pd_model_name", "model_name", "name", "description"),
+        fallback_prefix = "PD"
+      )
       selectInput("segment", "Segmentation:",
-                  choices = setNames(PD$PKID, PD$PD_MODEL_NAME))
+                  choices = pd_choices)
     } else if (input$dependent == "LGD") {
+      lgd_choices <- build_segment_choices(
+        LGD,
+        id_candidates = c("pkid", "lgd_config_id", "config_id", "id"),
+        name_candidates = c("lgd_model_name", "model_name", "name", "description"),
+        fallback_prefix = "LGD"
+      )
       selectInput("segment", "Segmentation:",
-                  choices = setNames(LGD$PKID, LGD$LGD_MODEL_NAME))
+                  choices = lgd_choices)
     }
   })
 
@@ -65,6 +133,7 @@ data_server <- function(input, output, session, con, PD, LGD, persistent_data) {
         } else {
           read.csv(input$file_upload_other1$datapath, sep = input$csv_sep1)
         }
+        df <- normalize_column_names(df)
         log_data_operation("UPLOAD", "SUCCESS",
                           details = list(rows = nrow(df), cols = ncol(df)))
       } else {
@@ -77,13 +146,15 @@ data_server <- function(input, output, session, con, PD, LGD, persistent_data) {
         log_database("QUERY", "FRS9_IMP_CA_PD_ODR/LGD_H", "STARTED",
                     details = list(dependent = input$dependent, segment = input$segment))
         if (input$dependent == "PD") {
-          df <- dbGetQuery(con, "SELECT * FROM frs9_imp_ca_pd_odr WHERE pd_config_id = $1",
-                          params = list(as.integer(input$segment)))
+          df <- dbGetQuery(con, "SELECT * FROM frs9_imp_ca_pd_odr WHERE pd_config_id::text = $1",
+                          params = list(as.character(input$segment)))
+          df <- normalize_column_names(df)
           log_database("QUERY", "frs9_imp_ca_pd_odr", "SUCCESS",
                       details = list(rows = nrow(df)))
         } else {
-          df <- dbGetQuery(con, "SELECT * FROM frs9_imp_ca_lgd_h WHERE lgd_config_id = $1",
-                          params = list(as.integer(input$segment)))
+          df <- dbGetQuery(con, "SELECT * FROM frs9_imp_ca_lgd_h WHERE lgd_config_id::text = $1",
+                          params = list(as.character(input$segment)))
+          df <- normalize_column_names(df)
           log_database("QUERY", "frs9_imp_ca_lgd_h", "SUCCESS",
                       details = list(rows = nrow(df)))
         }
@@ -100,11 +171,6 @@ data_server <- function(input, output, session, con, PD, LGD, persistent_data) {
                            columns = if(is.null(df)) "NULL" else paste(names(df), collapse=", ")))
     rv_df(df)
     log_info("Reactive value rv_df successfully set", category = "DATA")
-
-    # Tampilkan ke UI
-    output$dependent_data <- renderDT({
-      datatable(rv_df(), options = list(scrollX = TRUE))
-    })
   })
 
   # Data transformation for dependent variable
@@ -128,19 +194,19 @@ data_server <- function(input, output, session, con, PD, LGD, persistent_data) {
 
       # Get the base dependent data
       if (input$dependent == "PD"){
-        if (!all(c("PRC_DATE", "ODR") %in% names(base_data))) {
+        if (!all(c("prc_date", "odr") %in% names(base_data))) {
           log_error("Missing required columns for PD transformation", category = "DATA",
-                   details = list(required = "PRC_DATE, ODR", available = paste(names(base_data), collapse=", ")))
-          data.frame(Error = "Missing required columns: PRC_DATE, ODR")
+                   details = list(required = "prc_date, odr", available = paste(names(base_data), collapse=", ")))
+          data.frame(Error = "Missing required columns: prc_date, odr")
         }
-        data_dependent <- base_data[,c("PRC_DATE","ODR")]
+        data_dependent <- base_data[,c("prc_date","odr")]
       }else if(input$dependent == "LGD"){
-        if (!all(c("PRC_DATE", "LGD") %in% names(base_data))) {
+        if (!all(c("prc_date", "lgd") %in% names(base_data))) {
           log_error("Missing required columns for LGD transformation", category = "DATA",
-                   details = list(required = "PRC_DATE, LGD", available = paste(names(base_data), collapse=", ")))
-          data.frame(Error = "Missing required columns: PRC_DATE, LGD")
+                   details = list(required = "prc_date, lgd", available = paste(names(base_data), collapse=", ")))
+          data.frame(Error = "Missing required columns: prc_date, lgd")
         }
-        data_dependent <- base_data[,c("PRC_DATE","LGD")]
+        data_dependent <- base_data[,c("prc_date","lgd")]
       }else if(input$dependent=="OTHERS"){
         data_dependent <- base_data
         data_dependent <- convert_dates(data_dependent)
@@ -198,9 +264,15 @@ data_server <- function(input, output, session, con, PD, LGD, persistent_data) {
   # Display transformed dependent data
   output$tabel_data_dependent_tr <- renderDT({
     cat("🔍 DEBUG [RENDER_DEPENDENT_TR]: renderDT for tabel_data_dependent_tr called\n")
-    req(data_dependent_tr())
+    transformed <- data_dependent_tr()
+    if (is.null(transformed) || !is.data.frame(transformed) || nrow(transformed) == 0) {
+      return(datatable(
+        data.frame(Info = "Transformed preview appears after Submit."),
+        options = list(dom = "t", paging = FALSE, searching = FALSE, ordering = FALSE)
+      ))
+    }
     cat("✅ DEBUG [RENDER_DEPENDENT_TR]: data_dependent_tr() available, rendering table\n")
-    datatable(data_dependent_tr(), options = list(scrollX = TRUE))
+    datatable(transformed, options = list(scrollX = TRUE))
   })
 
   # =============================================================================
@@ -314,9 +386,9 @@ data_server <- function(input, output, session, con, PD, LGD, persistent_data) {
     ext <- tools::file_ext(input_file$name)
     tryCatch({
       if (ext %in% c("xlsx", "xls")) {
-        readxl::read_excel(input_file$datapath)
+        normalize_column_names(readxl::read_excel(input_file$datapath))
       } else {
-        read.csv(input_file$datapath, sep = sep, stringsAsFactors = FALSE)
+        normalize_column_names(read.csv(input_file$datapath, sep = sep, stringsAsFactors = FALSE))
       }
     }, error = function(e) {
       showNotification(paste("Gagal membaca file:", e$message), type = "error")

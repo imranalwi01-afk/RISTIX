@@ -14,6 +14,53 @@ get_preferred_env <- function(primary, fallback, default = "") {
   default
 }
 
+# Resolve a lowercase column name by trying candidate names.
+resolve_column_name <- function(df, candidates) {
+  if (!is.data.frame(df) || ncol(df) == 0 || length(candidates) == 0) {
+    return(NULL)
+  }
+  col_names <- names(df)
+  for (candidate in candidates) {
+    if (candidate %in% col_names) {
+      return(candidate)
+    }
+  }
+  NULL
+}
+
+normalize_column_names <- function(df) {
+  if (!is.data.frame(df) || ncol(df) == 0) {
+    return(df)
+  }
+  names(df) <- tolower(names(df))
+  df
+}
+
+# Normalize PD/LGD config frames to lowercase, canonical column names.
+normalize_reference_config <- function(df, model_type = c("pd", "lgd")) {
+  model_type <- match.arg(model_type)
+  out <- normalize_column_names(df)
+  if (!is.data.frame(out) || ncol(out) == 0) {
+    return(out)
+  }
+
+  if (model_type == "pd") {
+    id_col <- resolve_column_name(out, c("pkid", "pd_config_id", "config_id", "id"))
+    name_col <- resolve_column_name(out, c("pd_model_name", "model_name", "name", "description", "rating"))
+
+    if (!is.null(id_col) && !("pkid" %in% names(out))) out$pkid <- out[[id_col]]
+    if (!is.null(name_col) && !("pd_model_name" %in% names(out))) out$pd_model_name <- out[[name_col]]
+  } else {
+    id_col <- resolve_column_name(out, c("pkid", "lgd_config_id", "config_id", "id"))
+    name_col <- resolve_column_name(out, c("lgd_model_name", "model_name", "name", "description"))
+
+    if (!is.null(id_col) && !("pkid" %in% names(out))) out$pkid <- out[[id_col]]
+    if (!is.null(name_col) && !("lgd_model_name" %in% names(out))) out$lgd_model_name <- out[[name_col]]
+  }
+
+  out
+}
+
 # Load runtime logger if not already loaded.
 if (!exists("ra_log_info")) {
   for (logger_path in c("../logger.R", "/opt/r-analytics/logger.R", "logger.R")) {
@@ -141,6 +188,7 @@ setup_database <- function() {
     # Try to load LGD configuration
     LGD <- tryCatch({
       lgd_data <- DBI::dbGetQuery(con, "SELECT * FROM frs9_imp_ca_lgd_config")
+      lgd_data <- normalize_reference_config(lgd_data, "lgd")
       ra_log_info("LGD configuration loaded", context = list(rows = nrow(lgd_data)))
       lgd_data
     }, error = function(e) {
@@ -151,6 +199,7 @@ setup_database <- function() {
     # Try to load PD configuration
     PD <- tryCatch({
       pd_data <- DBI::dbGetQuery(con, "SELECT * FROM frs9_imp_ca_pd_config")
+      pd_data <- normalize_reference_config(pd_data, "pd")
       ra_log_info("PD configuration loaded", context = list(rows = nrow(pd_data)))
       pd_data
     }, error = function(e) {
@@ -170,16 +219,17 @@ setup_database <- function() {
     # Create sample configuration data for offline mode
     ra_log_info("Creating sample configuration data")
     LGD <- data.frame(
-      config_id = 1:5,
+      pkid = 1:5,
+      lgd_model_name = paste("Sample LGD Model", 1:5),
       lgd_rate = c(0.45, 0.50, 0.40, 0.55, 0.48),
       recovery_rate = c(0.55, 0.50, 0.60, 0.45, 0.52),
       description = paste("Sample LGD Configuration", 1:5)
     )
 
     PD <- data.frame(
-      config_id = 1:5,
+      pkid = 1:5,
+      pd_model_name = paste("Sample PD Model", 1:5),
       pd_rate = c(0.02, 0.015, 0.025, 0.018, 0.022),
-      rating = paste("BBB", 1:5),
       description = paste("Sample PD Configuration", 1:5)
     )
 

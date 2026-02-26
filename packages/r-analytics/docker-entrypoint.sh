@@ -22,30 +22,58 @@ echo "  DB_SCHEMA=${DB_SCHEMA:-public}"
 if [ $# -gt 0 ]; then
   exec "$@"
 else
-  echo "Preserving environment variables for Shiny Server..."
-  # Explicitly preserve connection and tenant variables so Shiny Server sees them
-  env | grep -E '^(DB_|FRS9_|TENANT_|BANKING_|USER_|SHINY_|R_)' > /opt/r-analytics/shiny-app/.Renviron
-  chown r-analytics:r-analytics /opt/r-analytics/shiny-app/.Renviron
+  echo "Preserving environment variables for R runtime..."
+  # Explicitly preserve connection and tenant variables so R sessions see them.
+  # Avoid writing under /opt/r-analytics/shiny-app because local compose mounts it read-only.
+  R_ENV_FILE="/tmp/r-analytics.Renviron"
+  env | grep -E '^(DB_|FRS9_|TENANT_|BANKING_|USER_|SHINY_|R_)' > "${R_ENV_FILE}"
+  export R_ENVIRON_USER="${R_ENV_FILE}"
 
   prefix_logs() {
     local prefix="$1"
     awk -v p="$prefix" '{ print p $0; fflush(); }'
   }
 
-  echo "Starting R Analytics API (Port 4241)..."
+  DASHBOARD_PORT="${R_PORT:-4236}"
+  API_PORT="${R_SERVICE_PORT:-4241}"
+  export R_PORT="${DASHBOARD_PORT}"
+  export R_SERVICE_PORT="${API_PORT}"
+
+  # Centralized log dir for Docker visibility.
+  export R_ANALYTICS_LOG_DIR="${R_ANALYTICS_LOG_DIR:-/opt/r-analytics/logs}"
+  mkdir -p "${R_ANALYTICS_LOG_DIR}"
+  touch "${R_ANALYTICS_LOG_DIR}/ifrs9_app.log" \
+        "${R_ANALYTICS_LOG_DIR}/ifrs9_error.log" \
+        "${R_ANALYTICS_LOG_DIR}/ifrs9_data.log" \
+        "${R_ANALYTICS_LOG_DIR}/ifrs9_model.log" \
+        "${R_ANALYTICS_LOG_DIR}/ifrs9_pd.log"
+
+  echo "Starting R Analytics API (Port ${API_PORT})..."
   Rscript start_api.R 2>&1 | prefix_logs "[R-API] " &
   API_PIPE_PID=$!
 
-  echo "Starting Shiny Server (Port 3838)..."
-  shiny-server 2>&1 | prefix_logs "[SHINY] " &
+  echo "Starting R Analytics Dashboard (Port ${DASHBOARD_PORT})..."
+  (
+    cd /opt/r-analytics/shiny-app
+    Rscript app.R
+  ) 2>&1 | prefix_logs "[SHINY] " &
   SHINY_PIPE_PID=$!
+
+  # Also forward file-based app logs to Docker stdout for easy diagnostics.
+  tail -n +1 -F \
+    "${R_ANALYTICS_LOG_DIR}/ifrs9_app.log" \
+    "${R_ANALYTICS_LOG_DIR}/ifrs9_error.log" \
+    "${R_ANALYTICS_LOG_DIR}/ifrs9_data.log" \
+    "${R_ANALYTICS_LOG_DIR}/ifrs9_model.log" \
+    "${R_ANALYTICS_LOG_DIR}/ifrs9_pd.log" 2>/dev/null | prefix_logs "[R-LOG] " &
+  LOG_TAIL_PID=$!
 
   # If either process exits, stop the container so orchestration can restart it.
   wait -n "$API_PIPE_PID" "$SHINY_PIPE_PID"
   EXIT_CODE=$?
   echo "A critical service stopped. Shutting down container (exit code: ${EXIT_CODE})."
 
-  kill "$API_PIPE_PID" "$SHINY_PIPE_PID" 2>/dev/null || true
-  wait "$API_PIPE_PID" "$SHINY_PIPE_PID" 2>/dev/null || true
+  kill "$API_PIPE_PID" "$SHINY_PIPE_PID" "$LOG_TAIL_PID" 2>/dev/null || true
+  wait "$API_PIPE_PID" "$SHINY_PIPE_PID" "$LOG_TAIL_PID" 2>/dev/null || true
   exit "$EXIT_CODE"
 fi

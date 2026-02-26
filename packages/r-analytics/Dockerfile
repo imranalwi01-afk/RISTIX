@@ -77,7 +77,7 @@ ENV FRS9_DB_PASSWORD=postgres
 # R and Shiny configuration
 ENV R_LIBS_USER=/opt/r-analytics/R-libs
 ENV SHINY_HOST=0.0.0.0
-ENV SHINY_PORT=3838
+ENV SHINY_PORT=4236
 
 # Create R library directory
 RUN mkdir -p $R_LIBS_USER && chown r-analytics:r-analytics $R_LIBS_USER
@@ -95,10 +95,10 @@ USER r-analytics
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:3838/ || exit 1
+    CMD curl -f http://localhost:4236/ || exit 1
 
 # Expose Shiny port and API port
-EXPOSE 3838 4241
+EXPOSE 4236 4241
 
 # Volume for logs and temporary files
 VOLUME ["/opt/r-analytics/logs", "/opt/r-analytics/temp"]

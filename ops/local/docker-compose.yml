@@ -180,7 +180,8 @@ services:
     env_file:
       - .env
     environment:
-      R_PORT: 4236
+      R_PORT: ${R_ANALYTICS_PORT:-4236}
+      R_SERVICE_PORT: ${R_SERVICE_PORT:-4241}
       DEPLOYMENT_TARGET: localdev
       NODE_ENV: development
       MODELLING_DIR: /opt/r-analytics/modelling
@@ -190,8 +191,17 @@ services:
       DB_SCHEMA: ${R_DB_SCHEMA:-public}
       DB_USER: ${R_DB_USER:-postgres}
       DB_PASSWORD: ${R_DB_PASSWORD:-postgres}
+      FRS9_DB_HOST: ${R_DB_HOST:-10.8.0.2}
+      FRS9_DB_PORT: ${R_DB_PORT:-5433}
+      FRS9_DB_NAME: ${R_DB_NAME:-FRS9PRO}
+      FRS9_DB_SCHEMA: ${R_DB_SCHEMA:-public}
+      FRS9_DB_USER: ${R_DB_USER:-postgres}
+      FRS9_DB_PASSWORD: ${R_DB_PASSWORD:-postgres}
+      R_ANALYTICS_LOG_DIR: /opt/r-analytics/logs
+      R_ENABLE_CORS: "true"
     ports:
       - "4236:4236"
+      - "4241:4241"
     networks:
       - ifrs9-dev
     volumes:

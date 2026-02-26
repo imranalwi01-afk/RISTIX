@@ -53,7 +53,7 @@ forecast_server <- function(input, output, session, model_results, data_results,
       sources <- unique(sapply(strsplit(namax, "_"), `[`, 1))
 
       # Remove date/period columns if present
-      sources <- sources[!sources %in% c("PRC", "DATE", "PERIOD", "TANGGAL")]
+      sources <- sources[!tolower(sources) %in% c("prc", "date", "period", "tanggal")]
 
       # Filter to only include columns that exist in data (line 1595)
       sources <- sources[sources %in% names(model_data_full)]

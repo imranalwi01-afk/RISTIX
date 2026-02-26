@@ -14,7 +14,9 @@ on:
 jobs:
   deploy:
     name: Build and Deploy Docs
-    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/docs
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -27,7 +29,7 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@v3
         with:
-          version: 9
+          version: 10
 
       - name: Get pnpm store directory
         shell: bash
@@ -43,13 +45,16 @@ jobs:
             ${{ runner.os }}-pnpm-store-
 
       - name: Install Dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: |
+          pnpm install --no-frozen-lockfile
+          pnpm -C ../new-backend install --no-frozen-lockfile
+          pnpm -C ../frontend install --no-frozen-lockfile
 
       - name: Generate Code Documentation
-        run: pnpm --filter docs run docs:generate
+        run: pnpm run docs:generate
 
       - name: Build TechDocs
-        run: pnpm --filter docs run build
+        run: pnpm run build
 
       - name: Deploy to Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
