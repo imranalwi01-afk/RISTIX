@@ -49,10 +49,10 @@ ENV R_ENABLE_CORS=true
 
 # Database connection defaults
 ENV DB_HOST=host.docker.internal
-ENV DB_PORT=5432
+ENV DB_PORT=5433
 ENV DB_USER=postgres
 ENV DB_PASSWORD=postgres
-ENV FRS9_DB_HOST=10.8.0.2
+ENV FRS9_DB_HOST=host.docker.internal
 ENV FRS9_DB_PORT=5433
 ENV FRS9_DB_USER=postgres
 ENV FRS9_DB_PASSWORD=postgres
