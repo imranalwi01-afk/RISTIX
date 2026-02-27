@@ -91,8 +91,8 @@ RUN R -e "options(Ncpus = parallel::detectCores()); \
 
 # Step 6: Shiny & Visualization
 RUN R -e "options(Ncpus = parallel::detectCores()); \
-    install.packages(c('shiny', 'shinydashboard', 'shinyWidgets', 'shinycssloaders', 'shinyjs', 'DT', 'ggplot2', 'plotly'), repos='https://packagemanager.posit.co/cran/__linux__/jammy/latest'); \
-    if (!all(c('shiny', 'shinydashboard', 'shinyWidgets', 'shinycssloaders', 'shinyjs', 'DT', 'ggplot2', 'plotly') %in% installed.packages()[,1])) stop('Step 6 failed')"
+    install.packages(c('shiny', 'shinydashboard', 'shinythemes', 'shinyWidgets', 'shinycssloaders', 'shinyjs', 'DT', 'ggplot2', 'plotly', 'promises'), repos='https://packagemanager.posit.co/cran/__linux__/jammy/latest'); \
+    if (!all(c('shiny', 'shinydashboard', 'shinythemes', 'shinyWidgets', 'shinycssloaders', 'shinyjs', 'DT', 'ggplot2', 'plotly', 'promises') %in% installed.packages()[,1])) stop('Step 6 failed')"
 
 # Step 7: File I/O & Machine Learning
 RUN R -e "options(Ncpus = parallel::detectCores()); \
