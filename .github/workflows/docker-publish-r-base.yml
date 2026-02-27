@@ -2,6 +2,8 @@ name: Docker R Analytics BASE Publish
 
 on:
   push:
+    branches-ignore:
+      - 'develop'
     paths:
       - 'packages/r-analytics/Dockerfile.base'
   workflow_dispatch:
