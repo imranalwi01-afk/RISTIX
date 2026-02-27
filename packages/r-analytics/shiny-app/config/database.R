@@ -259,6 +259,17 @@ setup_database <- function() {
       lgd_rows = nrow(LGD),
       pd_rows = nrow(PD)
     ))
+    flush.console()
+    
+    # Return from error block to ensure setup_setup captures this
+    return(list(
+      connection = con,
+      config = list(host = db_cfg$host, port = db_cfg$port, dbname = db_cfg$dbname, schema = db_cfg$schema, user = db_cfg$user),
+      environment = "local",
+      PD = PD,
+      LGD = LGD,
+      offline_mode = TRUE
+    ))
   })
 
   # Return comprehensive database setup

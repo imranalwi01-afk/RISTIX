@@ -18,8 +18,8 @@ LABEL version="1.0.0"
 # 📄 COPY APPLICATION FILES
 # ============================================================================
 
-# Copy R application files if they exist
-COPY --chown=r-analytics:r-analytics shiny-app/*.R ./shiny-app/
+# Copy R application files recursively
+COPY --chown=r-analytics:r-analytics shiny-app/ ./shiny-app/
 
 # Rename entry point to standard app.R
 RUN if [ -f ./shiny-app/app34.R ]; then mv ./shiny-app/app34.R ./shiny-app/app.R; fi
@@ -35,6 +35,8 @@ RUN chmod +x docker-entrypoint.sh
 # Copy API/runtime files
 COPY --chown=r-analytics:r-analytics iaf-r-api.R start_api.R logger.R ./
 COPY --chown=r-analytics:r-analytics api/ ./api/
+COPY --chown=r-analytics:r-analytics src/ ./src/
+COPY --chown=r-analytics:r-analytics scripts/ ./scripts/
 
 # ============================================================================
 # 🌐 SHINY SERVER CONFIGURATION
