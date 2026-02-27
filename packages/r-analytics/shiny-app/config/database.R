@@ -126,7 +126,8 @@ setup_database <- function() {
   cat("🚀 setup_database: Beginning connection attempt...\n")
   flush.console()
   # Try to establish database connection with enhanced error handling
-  tryCatch({
+  # IMPORTANT: Capture the tryCatch result — the error handler returns a list
+  result <- tryCatch({
     ra_log_info("Connecting to database")
 
     # Check if required database packages are available
@@ -224,6 +225,23 @@ setup_database <- function() {
 
     ra_log_info("Database setup completed successfully")
 
+    # Return successful result
+    list(
+      connection = con,
+      config = list(
+        host = db_cfg$host,
+        port = db_cfg$port,
+        dbname = db_cfg$dbname,
+        schema = db_schema,
+        user = db_cfg$user,
+        sslmode = db_cfg$sslmode
+      ),
+      environment = "local",
+      PD = PD,
+      LGD = LGD,
+      offline_mode = FALSE
+    )
+
   }, error = function(e) {
     cat("\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
     cat("🚨 DATABASE CONNECTION CRITICAL ERROR\n")
@@ -235,12 +253,9 @@ setup_database <- function() {
     
     ra_log_error("Database connection failed, switching to offline mode", context = list(error = e$message))
 
-    # Ensure connection is NULL for offline mode
-    con <<- NULL
-
     # Create sample configuration data for offline mode
     ra_log_info("Creating sample configuration data")
-    LGD <<- data.frame(
+    sample_LGD <- data.frame(
       pkid = 1:5,
       lgd_model_name = paste("Sample LGD Model", 1:5),
       lgd_rate = c(0.45, 0.50, 0.40, 0.55, 0.48),
@@ -248,7 +263,7 @@ setup_database <- function() {
       description = paste("Sample LGD Configuration", 1:5)
     )
 
-    PD <<- data.frame(
+    sample_PD <- data.frame(
       pkid = 1:5,
       pd_model_name = paste("Sample PD Model", 1:5),
       pd_rate = c(0.02, 0.015, 0.025, 0.018, 0.022),
@@ -256,38 +271,24 @@ setup_database <- function() {
     )
 
     ra_log_info("Sample configuration data created", context = list(
-      lgd_rows = nrow(LGD),
-      pd_rows = nrow(PD)
+      lgd_rows = nrow(sample_LGD),
+      pd_rows = nrow(sample_PD)
     ))
     flush.console()
     
-    # Return from error block to ensure setup_setup captures this
-    return(list(
-      connection = con,
+    # Return offline mode result (this is the tryCatch return value)
+    list(
+      connection = NULL,
       config = list(host = db_cfg$host, port = db_cfg$port, dbname = db_cfg$dbname, schema = db_cfg$schema, user = db_cfg$user),
       environment = "local",
-      PD = PD,
-      LGD = LGD,
+      PD = sample_PD,
+      LGD = sample_LGD,
       offline_mode = TRUE
-    ))
+    )
   })
 
-  # Return comprehensive database setup
-  return(list(
-    connection = con,
-    config = list(
-      host = db_cfg$host,
-      port = db_cfg$port,
-      dbname = db_cfg$dbname,
-      schema = db_schema,
-      user = db_cfg$user,
-      sslmode = db_cfg$sslmode
-    ),
-    environment = "local",
-    PD = PD,
-    LGD = LGD,
-    offline_mode = is.null(con)
-  ))
+  # Return the captured result from tryCatch (success or error path)
+  return(result)
 }
 
 # =============================================================================

@@ -12,7 +12,7 @@
 #' @return Shiny tabItem for forecasting operations
 forecast_ui <- function() {
   tabItem(tabName = "forecast",
-          tabBox(title = "", width = 12,
+          tabBox(id = "forecast_tabs", title = "", width = 12,
                  tabPanel("Forecast X",
 
                           # Bungkus dalam fluidRow agar rapi di layout
@@ -65,7 +65,7 @@ forecast_ui <- function() {
                                      condition = "input.mevfore == 'MEV_Awal'",
 
                                      box(width = 12, title = "Tabel MEV Historis", solidHeader = TRUE, status = "warning",
-                                         tabBox(width = 12,
+                                         tabBox(id = "forecast_x_mev_tabs", width = 12,
                                                 tabPanel("Hasil Forecast",shinycssloaders::withSpinner(DT::dataTableOutput("tabelfrommevhis"), type = 6, color = "#007bff"),
                                                          br(),br(),
                                                          checkboxInput("transform4","Transformasi",value = F)
