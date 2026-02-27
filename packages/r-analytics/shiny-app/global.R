@@ -81,10 +81,9 @@ if (!is.na(database_config_path)) {
   cat(sprintf("📖 Sourcing database config from: %s\n", database_config_path))
   flush.console()
   source(database_config_path)
-} else if (!exists("setup_database")) {
-  cat("⚠️ Warning: setup_database not found in global scope\n")
+} else {
+  cat("⚠️ Warning: config/database.R not found\n")
   flush.console()
-  # Only warn if setup_database isn't already available (e.g. from previous source)
   warning(sprintf("config/database.R not found. Checked: %s", paste(unique(database_config_candidates), collapse = ", ")))
 }
 cat("✅ global.R basic setup complete\n")

@@ -15,7 +15,7 @@ if (nzchar(shiny_server_version) && !grepl("^[0-9]+(\\.[0-9]+)*$", shiny_server_
 # Note: global.R is automatically loaded by Shiny
 # Do NOT manually load it here to avoid duplicate execution
 # Database connection and configuration data are loaded from global.R
-# This sets up: con, PD, LGD, database_setup
+# This sets up: con, PD, LGD (directly at top level, same as app34.R)
 
 # Load additional libraries (only ones not already loaded in global.R)
 suppressPackageStartupMessages({
