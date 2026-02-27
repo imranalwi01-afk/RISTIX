@@ -57,8 +57,18 @@ data_server <- function(input, output, session, con, PD, LGD, persistent_data) {
     id_col <- resolve_col(df, id_candidates)
     name_col <- resolve_col(df, name_candidates)
 
+    # CRITICAL FALLBACK: If column names don't match candidates, 
+    # just use the first two columns for ID and Name respectively.
     if (is.null(id_col) || is.null(name_col)) {
-      return(c("Segmentation config columns not found" = ""))
+      if (ncol(df) >= 2) {
+        id_col <- names(df)[1]
+        name_col <- names(df)[2]
+      } else if (ncol(df) == 1) {
+        id_col <- names(df)[1]
+        name_col <- names(df)[1]
+      } else {
+        return(c("Segmentation config columns not found" = ""))
+      }
     }
 
     ids <- as.character(df[[id_col]])

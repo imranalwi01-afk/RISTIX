@@ -17,9 +17,10 @@ get_preferred_env <- function(primary, fallback, default = "") {
 
 resolve_column_name <- function(df, candidates) {
   if (!is.data.frame(df) || ncol(df) == 0 || length(candidates) == 0) return(NULL)
-  col_names <- names(df)
+  lower_names <- tolower(names(df))
   for (candidate in candidates) {
-    if (candidate %in% col_names) return(candidate)
+    idx <- match(tolower(candidate), lower_names)
+    if (!is.na(idx)) return(names(df)[idx])
   }
   NULL
 }
