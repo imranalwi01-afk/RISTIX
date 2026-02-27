@@ -15,40 +15,7 @@ get_preferred_env <- function(primary, fallback, default = "") {
   default
 }
 
-resolve_column_name <- function(df, candidates) {
-  if (!is.data.frame(df) || ncol(df) == 0 || length(candidates) == 0) return(NULL)
-  lower_names <- tolower(names(df))
-  for (candidate in candidates) {
-    idx <- match(tolower(candidate), lower_names)
-    if (!is.na(idx)) return(names(df)[idx])
-  }
-  NULL
-}
 
-normalize_column_names <- function(df) {
-  if (!is.data.frame(df) || ncol(df) == 0) return(df)
-  names(df) <- tolower(names(df))
-  df
-}
-
-normalize_reference_config <- function(df, model_type = c("pd", "lgd")) {
-  model_type <- match.arg(model_type)
-  if (!is.data.frame(df) || nrow(df) == 0) return(df)
-  df <- normalize_column_names(df)
-
-  if (model_type == "pd") {
-    model_col <- resolve_column_name(df, c("pd_model_name", "model_name", "name"))
-    if (!is.null(model_col) && model_col != "pd_model_name") {
-      names(df)[names(df) == model_col] <- "pd_model_name"
-    }
-  } else {
-    model_col <- resolve_column_name(df, c("lgd_model_name", "model_name", "name"))
-    if (!is.null(model_col) && model_col != "lgd_model_name") {
-      names(df)[names(df) == model_col] <- "lgd_model_name"
-    }
-  }
-  df
-}
 
 # --- Logger bootstrap --------------------------------------------------------
 
@@ -127,20 +94,6 @@ if (!is.null(con)) {
   })
 }
 
-# Ensure analytics_joined_data table exists
-if (!is.null(con)) {
-  tryCatch({
-    DBI::dbExecute(con, 'CREATE TABLE IF NOT EXISTS analytics_joined_data (
-      id SERIAL PRIMARY KEY,
-      data_content TEXT NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      session_id VARCHAR(255)
-    )')
-    ra_log_info("analytics_joined_data table ready")
-  }, error = function(e) {
-    ra_log_warn("Failed to create analytics_joined_data table", context = list(error = e$message))
-  })
-}
 
 # =============================================================================
 # LOAD PD / LGD CONFIG (matches app34.R lines 126-145)
@@ -149,7 +102,6 @@ if (!is.null(con)) {
 if (!is.null(con)) {
   LGD <- tryCatch({
     lgd_data <- DBI::dbGetQuery(con, "SELECT * FROM frs9_imp_ca_lgd_config")
-    lgd_data <- normalize_reference_config(lgd_data, "lgd")
     ra_log_info("LGD configuration loaded", context = list(rows = nrow(lgd_data)))
     lgd_data
   }, error = function(e) {
@@ -159,7 +111,6 @@ if (!is.null(con)) {
 
   PD <- tryCatch({
     pd_data <- DBI::dbGetQuery(con, "SELECT * FROM frs9_imp_ca_pd_config")
-    pd_data <- normalize_reference_config(pd_data, "pd")
     ra_log_info("PD configuration loaded", context = list(rows = nrow(pd_data)))
     pd_data
   }, error = function(e) {
@@ -167,7 +118,7 @@ if (!is.null(con)) {
     data.frame()
   })
 } else {
-  ra_log_warn("Running in offline mode: DB unavailable, using empty PD/LGD config")
+  ra_log_warn("Running in offline mode: DB unavailable at startup, using empty PD/LGD config")
   LGD <- data.frame()
   PD <- data.frame()
 }

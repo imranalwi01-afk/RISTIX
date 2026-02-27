@@ -141,7 +141,7 @@ normalize_config_df <- function(df, prefix) {
   if (is.null(name_col) && ncol(df) >= 2) name_col <- names(df)[2]
   
   # Standardize for app34.R variables
-  if (!is.null(id_col)) names(df)[names(df) == id_col] <- "PKID"
+  if (!is.null(id_col)) names(df)[names(df) == id_col] <- "pkid"
   if (!is.null(name_col)) names(df)[names(df) == name_col] <- toupper(paste0(prefix, "_MODEL_NAME"))
   
   df
@@ -410,7 +410,7 @@ ui <- dashboardPage(
             fluidRow(
               box(
                 width = 4, title = "Input Data", solidHeader = TRUE, status = "primary",
-                selectInput("dependent", "Choose Dependent:", choices = c("PD", "LGD", "OTHERS")),
+                selectInput("dependent", "Choose Dependent:", choices = c("PD", "lgd", "OTHERS")),
                 conditionalPanel(
                   condition = "input.dependent != 'OTHERS'",
                   uiOutput("segmentationUI")
@@ -1048,11 +1048,11 @@ server <- function(input, output, session) {
   output$segmentationUI <- renderUI({
     if (input$dependent == "PD") {
       selectInput("segment", "Segmentation:",
-        choices = setNames(PD$PKID, PD$PD_MODEL_NAME)
+        choices = setNames(PD$pkid, PD$pd_model_name)
       )
-    } else if (input$dependent == "LGD") {
+    } else if (input$dependent == "lgd") {
       selectInput("segment", "Segmentation:",
-        choices = setNames(LGD$PKID, LGD$LGD_MODEL_NAME)
+        choices = setNames(LGD$pkid, LGD$lgd_model_name)
       )
     }
   })
@@ -1080,6 +1080,10 @@ server <- function(input, output, session) {
       df <- dbGetQuery(con, query)
     }
 
+    if (is.data.frame(df)) {
+      names(df) <- toupper(names(df))
+    }
+
     # Simpan ke reactiveVal
     rv_df(df)
 
@@ -1093,9 +1097,9 @@ server <- function(input, output, session) {
   data_dependent_tr <- eventReactive(input$submit, {
     req(input$dependent)
     if (input$dependent == "PD") {
-      data_dependent <- rv_df()[, c("PRC_DATE", "ODR")]
-    } else if (input$dependent == "LGD") {
-      data_dependent <- rv_df()[, c("PRC_DATE", "LGD")]
+      data_dependent <- rv_df()[, c("prc_date", "odr")]
+    } else if (input$dependent == "lgd") {
+      data_dependent <- rv_df()[, c("prc_date", "lgd")]
     } else if (input$dependent == "OTHERS") {
       data_dependent <- rv_df()
       data_dependent <- convert_dates(data_dependent)
@@ -3410,7 +3414,7 @@ server <- function(input, output, session) {
 
 
   output$segmentationPDAFLUI <- renderUI({
-    selectInput("segmentpd", "Segmentation:", choices = setNames(PD$PKID, PD$PD_MODEL_NAME))
+    selectInput("segmentpd", "Segmentation:", choices = setNames(PD$pkid, PD$pd_model_name))
   })
 
   dataissuerrr0 <- eventReactive(input$runpdafl, {
@@ -3436,20 +3440,20 @@ server <- function(input, output, session) {
     config <- konfig_id()
 
     # pastikan tipe data Date
-    dataisu$PRC_DATE <- as.Date(dataisu$PRC_DATE)
-    config$OBSERVATION_START_DATE <- as.Date(config$OBSERVATION_START_DATE)
+    dataisu$prc_date <- as.Date(dataisu$prc_date)
+    config$observation_start_date <- as.Date(config$observation_start_date)
 
-    if (config$POPULATION_TYPE == 1) {
+    if (config$population_type == 1) {
       dataku <- dataisu
-    } else if (config$POPULATION_TYPE == 2) {
+    } else if (config$population_type == 2) {
       # ambil n periode terakhir sesuai OBSERVATION_PERIOD
-      last_n_dates <- tail(unique(dataisu$PRC_DATE), config$OBSERVATION_PERIOD)
+      last_n_dates <- tail(unique(dataisu$prc_date), config$observation_period)
       # print(last_n_dates[1])
-      dataku <- dataisu[dataisu$PRC_DATE %in% last_n_dates, ]
+      dataku <- dataisu[dataisu$prc_date %in% last_n_dates, ]
 
       # filter tambahan jika mulai periode lebih besar dari start date
-      if (min(last_n_dates) < config$OBSERVATION_START_DATE) {
-        dataku <- dataku[dataku$PRC_DATE >= config$OBSERVATION_START_DATE, ]
+      if (min(last_n_dates) < config$observation_start_date) {
+        dataku <- dataku[dataku$prc_date >= config$observation_start_date, ]
       }
 
       # } else {
@@ -3843,27 +3847,27 @@ server <- function(input, output, session) {
     datay2 <- back_trans(datay, input$backtransform)
 
     # dataissuer2=aggregate(CALC_AMOUNT~BUCKET_FROM,data=dataissuerrr01(),sum)
-    # issuer=dataissuer2$CALC_AMOUNT
+    # issuer=dataissuer2$calc_amount
 
     dataissuer2 <- dataissuerrr01() %>%
       group_by(BUCKET_FROM) %>%
       summarise(CALC_AMOUNT = sum(CALC_AMOUNT), .groups = "drop") %>%
       complete(BUCKET_FROM = 1:5, fill = list(CALC_AMOUNT = 0))
     dataissuer2 <- data.frame(dataissuer2)
-    issuer <- dataissuer2$CALC_AMOUNT
+    issuer <- dataissuer2$calc_amount
 
 
     datammult <- as.data.frame(datammulttt0())
-    filtered_datammult <- datammult[datammult$PRC_DATE == datammult$PRC_DATE[nrow(datammult)] & datammult$BUCKET_TO == 5, ]
-    filtered_datammult$BUCKET_FROM <- factor(filtered_datammult$BUCKET_FROM, levels = 1:5)
+    filtered_datammult <- datammult[datammult$prc_date == datammult$prc_date[nrow(datammult)] & datammult$bucket_to == 5, ]
+    filtered_datammult$bucket_from <- factor(filtered_datammult$bucket_from, levels = 1:5)
 
     ym.pd <- as.data.frame.matrix(xtabs(MMULT ~ BUCKET_FROM + FL_SEQ, data = filtered_datammult))
     ym.pd[5, 2:ncol(ym.pd)] <- 0
 
 
-    PD.Base <- PD_engine1(fo.y.boxplot$`ODR BASE`, datahisto$ODR, issuer, ym.pd)
-    PD.Best <- PD_engine1(fo.y.boxplot$`ODR BEST`, datahisto$ODR, issuer, ym.pd)
-    PD.Worst <- PD_engine1(fo.y.boxplot$`ODR WORST`, datahisto$ODR, issuer, ym.pd)
+    PD.Base <- PD_engine1(fo.y.boxplot$`ODR BASE`, datahisto$odr, issuer, ym.pd)
+    PD.Best <- PD_engine1(fo.y.boxplot$`ODR BEST`, datahisto$odr, issuer, ym.pd)
+    PD.Worst <- PD_engine1(fo.y.boxplot$`ODR WORST`, datahisto$odr, issuer, ym.pd)
 
 
     list(
@@ -4035,7 +4039,7 @@ server <- function(input, output, session) {
   }
 
   output$download_all_xlsx <- downloadHandler(
-    filename = function() paste0("PDAFL_All_", max(dataissuerrr01()$PRC_DATE), " rep-", Sys.Date(), ".xlsx"),
+    filename = function() paste0("PDAFL_All_", max(dataissuerrr01()$prc_date), " rep-", Sys.Date(), ".xlsx"),
     content = function(file) {
       wb <- createWorkbook()
 
@@ -4107,8 +4111,8 @@ server <- function(input, output, session) {
       report_text <- tryCatch(
         {
           x <- dataissuerrr01()
-          if (!is.null(x) && "PRC_DATE" %in% names(x)) {
-            dt <- suppressWarnings(max(as.Date(x$PRC_DATE), na.rm = TRUE))
+          if (!is.null(x) && "prc_date" %in% names(x)) {
+            dt <- suppressWarnings(max(as.Date(x$prc_date), na.rm = TRUE))
             paste0("Report PD Date ", format(dt, "%Y-%m-%d"))
           } else {
             "Report PD Date -"
@@ -4227,7 +4231,7 @@ server <- function(input, output, session) {
       req(hasilPD())
 
       # meta
-      prc_date <- max(dataissuerrr01()$PRC_DATE, na.rm = TRUE)
+      prc_date <- max(dataissuerrr01()$prc_date, na.rm = TRUE)
       pd_config_id <- as.integer(input$segmentpd)
       model_id <- current_model_id()
       created_by <- if (!is.null(session$user) && nzchar(session$user)) session$user else if (!is.na(Sys.info()[["user"]])) Sys.info()[["user"]] else "shiny"

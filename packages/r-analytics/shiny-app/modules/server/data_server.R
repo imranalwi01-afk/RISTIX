@@ -121,12 +121,12 @@ data_server <- function(input, output, session, con, PD, LGD, persistent_data) {
       )
       selectInput("segment", "Segmentation:",
                   choices = pd_choices)
-    } else if (input$dependent == "LGD") {
+    } else if (input$dependent == "lgd") {
       lgd_choices <- build_segment_choices(
         LGD,
         id_candidates = c("pkid", "lgd_config_id", "config_id", "id"),
         name_candidates = c("lgd_model_name", "model_name", "name", "description"),
-        fallback_prefix = "LGD"
+        fallback_prefix = "lgd"
       )
       selectInput("segment", "Segmentation:",
                   choices = lgd_choices)
@@ -219,7 +219,7 @@ data_server <- function(input, output, session, con, PD, LGD, persistent_data) {
           data.frame(Error = "Missing required columns: prc_date, odr")
         }
         data_dependent <- base_data[,c("prc_date","odr")]
-      }else if(input$dependent == "LGD"){
+      }else if(input$dependent == "lgd"){
         if (!all(c("prc_date", "lgd") %in% names(base_data))) {
           log_error("Missing required columns for LGD transformation", category = "DATA",
                    details = list(required = "prc_date, lgd", available = paste(names(base_data), collapse=", ")))
@@ -816,180 +816,35 @@ data_server <- function(input, output, session, con, PD, LGD, persistent_data) {
       }
     }),
     joined_data = reactive({
-      # Use persistent data first, fall back to datagabung
-      if (!is.null(persistent_data$joined_data) && is.data.frame(persistent_data$joined_data)) {
-        cat("🔄 Using persistent joined_data\n")
-        persistent_data$joined_data
-      } else {
-        # Try to load saved joined data from database
-        if (!is.null(con)) {
-          tryCatch({
-            cat("🔍 DEBUG [DATA_SERVER]: Attempting to load saved joined data from database...\n")
-
-            # Query to get the most recent joined data
-            query <- "SELECT data_content, created_at FROM analytics_joined_data ORDER BY created_at DESC LIMIT 1"
-            result <- DBI::dbGetQuery(con, query)
-
-            if (nrow(result) > 0 && !is.null(result$data_content[1])) {
-              # Deserialize the data
-              joined_data <- unserialize(base64enc::base64decode(result$data_content[1]))
-
-              if (is.data.frame(joined_data) && nrow(joined_data) > 0) {
-                cat("✅ Loaded saved joined data from database (", nrow(joined_data), "rows)\n")
-                cat("📅 Date range:", range(joined_data$Date, na.rm = TRUE), "\n")
-                cat("📅 Saved on:", result$created_at[1], "\n")
-
-                # Store in persistent data
-                persistent_data$joined_data <<- joined_data
-
-                return(joined_data)
-              }
-            }
-          }, error = function(e) {
-            cat("⚠️ Could not load saved joined data from database:", e$message, "\n")
-          })
-        }
-
-        # Check if join operation has been triggered and has valid data
-        # Only call datagabung() if the join button has been clicked
-        if (is.null(input$join) || input$join == 0) {
-          # Join button not clicked yet and no saved data available
-          cat("⚠️ No joined data available - click 'Full Join' button to create joined data\n")
-          return(data.frame())
-        }
-
-        tryCatch({
-          cat("🔍 DEBUG [DATA_SERVER]: Calling datagabung()...\n")
-          result <- datagabung()
-          cat("🔍 DEBUG [DATA_SERVER]: datagabung() returned:\n")
-          cat("  - type:", class(result), "\n")
-          if (!is.null(result) && is.data.frame(result)) {
-            cat("  - dimensions:", paste(dim(result), collapse="x"), "\n")
-
-            # Store in persistent data
-            persistent_data$joined_data <<- result
-
-            # ✅ SAVE JOINED DATA TO DATABASE FOR PERSISTENCE
-            if (!is.null(con) && nrow(result) > 0) {
-              tryCatch({
-                cat("💾 Saving joined data to database for persistence...\n")
-
-                # Serialize the data
-                serialized_data <- base64enc::base64encode(serialize(result, NULL))
-
-                # Check if table exists, create if not
-                table_check_query <- "CREATE TABLE IF NOT EXISTS analytics_joined_data (
-                  id SERIAL PRIMARY KEY,
-                  data_content TEXT NOT NULL,
-                  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                  session_id VARCHAR(255)
-                )"
-
-                DBI::dbExecute(con, table_check_query)
-
-                # Insert the data
-                insert_query <- "INSERT INTO analytics_joined_data (data_content, session_id) VALUES ($1, $2)"
-                session_id <- session$token  # Get session identifier
-                DBI::dbExecute(con, insert_query, list(serialized_data, session_id))
-
-                # Clean up old records (keep only the latest)
-                cleanup_query <- "DELETE FROM analytics_joined_data WHERE id NOT IN (
-                  SELECT id FROM analytics_joined_data ORDER BY created_at DESC LIMIT 1
-                )"
-                DBI::dbExecute(con, cleanup_query)
-
-                cat("✅ Joined data saved to database successfully\n")
-              }, error = function(e) {
-                cat("❌ Failed to save joined data to database:", e$message, "\n")
-              })
-            }
-
-            # ✅ UPDATE DATE INPUTS AFTER SUCCESSFUL JOIN
-            # Update date inputs in Model tab based on joined data
-            if (nrow(result) > 0) {
-              cat("🔍 DEBUG [DATA_SERVER]: Updating date inputs from joined data...\n")
-
-              # Check for Date columns
-              date_colx <- names(result)[sapply(result, function(col) inherits(col, "Date"))]
-              if (length(date_colx) == 0) {
-                # Try to find datetime column if no Date column found
-                date_colx <- names(result)[sapply(result, function(col) inherits(col, "POSIXct") || inherits(col, "POSIXt"))]
-                if (length(date_colx) > 0) {
-                  cat("🔍 DEBUG [DATA_SERVER]: Found datetime column instead of Date column\n")
-                }
-              }
-
-              if (length(date_colx) > 0) {
-                date_col <- date_colx[1]
-                cat("✅ DEBUG [DATA_SERVER]: Using date column:", date_col, "\n")
-
-                # Get valid dates (remove NAs)
-                valid_dates <- result[[date_col]][!is.na(result[[date_col]])]
-                if (length(valid_dates) > 0) {
-                  # Update date inputs
-                  updateDateInput(session, "train_start", value = valid_dates[1],
-                                  min = min(valid_dates), max = max(valid_dates))
-
-                  updateDateInput(session, "train_split", value = valid_dates[round(length(valid_dates)/2)],
-                                  min = min(valid_dates), max = max(valid_dates))
-
-                  updateDateInput(session, "test_end", value = valid_dates[length(valid_dates)],
-                                  min = min(valid_dates), max = max(valid_dates))
-
-                  cat("✅ DEBUG [DATA_SERVER]: Date inputs updated successfully\n")
-                  cat("  - First date:", valid_dates[1], "\n")
-                  cat("  - Middle date:", valid_dates[round(length(valid_dates)/2)], "\n")
-                  cat("  - Last date:", valid_dates[length(valid_dates)], "\n")
-                } else {
-                  cat("⚠️ DEBUG [DATA_SERVER]: No valid dates found in column:", date_col, "\n")
-                }
-              } else {
-                cat("⚠️ DEBUG [DATA_SERVER]: No date/datetime columns found in joined data\n")
-              }
-            }
-
-            result
-          } else {
-            # Return empty data frame if no data available
-            cat("  - datagabung returned NULL or invalid data\n")
-            data.frame()
-          }
-        }, error = function(e) {
-          cat("⚠️ datagabung not available or error:", e$message, "\n")
-          data.frame()
-        })
+      # Check if join operation has been triggered and has valid data
+      if (is.null(input$join) || input$join == 0) {
+        cat("⚠️ No joined data available - click 'Full Join' button to create joined data\n")
+        return(data.frame())
       }
+
+      tryCatch({
+        cat("🔍 DEBUG [DATA_SERVER]: Calling datagabung()...\n")
+        result <- datagabung()
+        if (!is.null(result) && is.data.frame(result)) {
+           return(result)
+        } else {
+           return(data.frame())
+        }
+      }, error = function(e) {
+        cat("⚠️ datagabung not available or error:", e$message, "\n")
+        data.frame()
+      })
     }),
     data_status = reactive({
       # Return data processing status
       list(
         has_dependent = !is.null(persistent_data$dependent_data),
         has_independent = !is.null(persistent_data$independent_data),
-        has_joined = !is.null(persistent_data$joined_data),
+        has_joined = (!is.null(input$join) && input$join > 0 && is.data.frame(datagabung())),
         processed_rows = if (!is.null(persistent_data$dependent_data)) nrow(persistent_data$dependent_data) else 0
       )
     })
   ))
-
-  # =============================================================================
-  # SESSION CLEANUP - Clear joined data when session ends
-  # =============================================================================
-  session$onSessionEnded(function() {
-    cat("🧹 Session ended - clearing joined data from database...\n")
-
-    if (!is.null(con)) {
-      tryCatch({
-        # Clear joined data for this session
-        query <- "DELETE FROM analytics_joined_data WHERE session_id = $1"
-        session_id <- session$token
-        DBI::dbExecute(con, query, list(session_id))
-
-        cat("✅ Cleared joined data from database\n")
-      }, error = function(e) {
-        cat("⚠️ Failed to clear session data:", e$message, "\n")
-      })
-    }
-  })
 
   # =============================================================================
   # RETURN VALUES (CRITICAL for modular architecture)

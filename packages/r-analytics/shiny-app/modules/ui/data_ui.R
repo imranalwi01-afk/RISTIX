@@ -16,7 +16,7 @@ data_ui <- function() {
                  tabPanel("Dependent Variable",
                           fluidRow(
                             box(width = 4, title = "Input Data", solidHeader = TRUE, status = "primary",
-                                selectInput("dependent", "Choose Dependent:", choices = c("PD", "LGD", "OTHERS")),
+                                selectInput("dependent", "Choose Dependent:", choices = c("PD", "lgd", "OTHERS")),
 
                                 conditionalPanel(
                                   condition = "input.dependent != 'OTHERS'",
@@ -129,7 +129,7 @@ data_ui_content <- function() {
     tabPanel("Dependent Variable",
              fluidRow(
                box(width = 4, title = "Input Data", solidHeader = TRUE, status = "primary",
-                   selectInput("dependent", "Choose Dependent:", choices = c("PD", "LGD", "OTHERS")),
+                   selectInput("dependent", "Choose Dependent:", choices = c("PD", "lgd", "OTHERS")),
 
                    conditionalPanel(
                      condition = "input.dependent != 'OTHERS'",
