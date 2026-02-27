@@ -189,7 +189,7 @@ setup_database <- function() {
     LGD <- tryCatch({
       lgd_data <- DBI::dbGetQuery(con, "SELECT * FROM frs9_imp_ca_lgd_config")
       lgd_data <- normalize_reference_config(lgd_data, "lgd")
-      ra_log_info("LGD configuration loaded", context = list(rows = nrow(lgd_data)))
+      ra_log_info("LGD configuration loaded", context = list(rows = nrow(lgd_data), cols = paste(names(lgd_data), collapse=", ")))
       lgd_data
     }, error = function(e) {
       cat("\n*******************************************************************************\n")
@@ -205,7 +205,7 @@ setup_database <- function() {
     PD <- tryCatch({
       pd_data <- DBI::dbGetQuery(con, "SELECT * FROM frs9_imp_ca_pd_config")
       pd_data <- normalize_reference_config(pd_data, "pd")
-      ra_log_info("PD configuration loaded", context = list(rows = nrow(pd_data)))
+      ra_log_info("PD configuration loaded", context = list(rows = nrow(pd_data), cols = paste(names(pd_data), collapse=", ")))
       pd_data
     }, error = function(e) {
       cat("\n*******************************************************************************\n")
