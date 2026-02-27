@@ -537,6 +537,65 @@ forecast_server <- function(input, output, session, model_results, data_results,
   })
 
   # =============================================================================
+  # FORECAST AVERAGE Y LOGIC (Restored from app34.R)
+  # =============================================================================
+
+  forecastaveragey <- eventReactive(input$runforaveragey, {
+    req(model_results$finalmodel())
+
+    if (input$mevfore == "MEV_Awal") {
+      df <- transformed_result_forecast()
+    } else if (input$mevfore == "External_Data") {
+      df <- datainputforecast()
+    } else {
+      return(NULL)
+    }
+
+    date_col <- names(df)[sapply(df, inherits, "Date")]
+    if (length(date_col) == 0) {
+      showNotification("Tidak ditemukan kolom bertipe Date di df.", type = "error")
+      return(NULL)
+    }
+
+    date_col_name <- date_col[1]
+    
+    # Safe rename of Date column
+    names(df)[names(df) == date_col_name] <- "Date"
+
+    data0_data <- model_results$independent_data()
+    req(data0_data)
+    tanggal_terakhir_awal <- max(data0_data[, 1], na.rm = TRUE)
+
+    datafor <- subset(df, Date > tanggal_terakhir_awal)
+
+    predictions <- predict_from_model_table_safe(
+      model_tbl = model_results$finalmodel(),
+      train_data = model_results$newdata(),
+      new_data = datafor,
+      formula_col = "Model"
+    )
+
+    predictions
+  })
+
+  output$table_forecastaveragey <- DT::renderDataTable({
+    req(forecastaveragey())
+    DT::datatable(forecastaveragey(), options = list(scrollX = TRUE))
+  })
+
+  averageygabmodel <- eventReactive(input$runforaveragey, {
+    req(forecastaveragey(), model_results$finalmodel())
+    bbc <- add_average_forecast(forecast_df = forecastaveragey(), window_size = 12, unit = "Y")
+    hasilbbc <- cbind(model_results$finalmodel(), bbc[, -1, drop = FALSE])
+    hasilbbc
+  })
+
+  output$table_averageygabmodel <- DT::renderDataTable({
+    req(averageygabmodel())
+    DT::datatable(averageygabmodel(), options = list(scrollX = TRUE))
+  })
+
+  # =============================================================================
   # FORECAST EXECUTION
   # =============================================================================
 
