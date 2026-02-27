@@ -31,6 +31,7 @@ conflict_prefer("recode", "dplyr", quiet = TRUE)
 conflict_prefer("transpose", "purrr", quiet = TRUE)
 conflict_prefer("some", "purrr", quiet = TRUE)
 conflict_prefer("spread", "tidyr", quiet = TRUE)
+conflict_prefer("box", "shinydashboard", quiet = TRUE)
 
 # Load all other libraries silently
 suppressPackageStartupMessages({
@@ -62,18 +63,19 @@ suppressPackageStartupMessages({
 })
 
 # Load database configuration with robust path fallback.
-database_config_candidates <- unique(c(
-  file.path(getwd(), "config", "database.R"),
+database_config_candidates <- c(
   "config/database.R",
-  file.path(Sys.getenv("R_ANALYTICS_SHINY_APP_DIR", ""), "config", "database.R"),
+  file.path(getwd(), "config", "database.R"),
+  file.path(Sys.getenv("R_ANALYTICS_SHINY_APP_DIR", getwd()), "config", "database.R"),
   "/opt/r-analytics/shiny-app/config/database.R"
-))
+)
 
 database_config_path <- database_config_candidates[file.exists(database_config_candidates)][1]
-if (!is.na(database_config_path) && nzchar(database_config_path)) {
+if (!is.na(database_config_path)) {
   source(database_config_path)
-} else {
-  warning(sprintf("config/database.R not found. Checked: %s", paste(database_config_candidates, collapse = ", ")))
+} else if (!exists("setup_database")) {
+  # Only warn if setup_database isn't already available (e.g. from previous source)
+  warning(sprintf("config/database.R not found. Checked: %s", paste(unique(database_config_candidates), collapse = ", ")))
 }
 
 
