@@ -32,6 +32,12 @@ conflict_prefer("transpose", "purrr", quiet = TRUE)
 conflict_prefer("some", "purrr", quiet = TRUE)
 conflict_prefer("spread", "tidyr", quiet = TRUE)
 conflict_prefer("box", "shinydashboard", quiet = TRUE)
+conflict_prefer("dataTableOutput", "DT", quiet = TRUE)
+conflict_prefer("renderDataTable", "DT", quiet = TRUE)
+conflict_prefer("select", "dplyr", quiet = TRUE)
+conflict_prefer("validate", "shiny", quiet = TRUE)
+conflict_prefer("layout", "plotly", quiet = TRUE)
+conflict_prefer("date", "lubridate", quiet = TRUE)
 
 # Load all other libraries silently
 suppressPackageStartupMessages({
