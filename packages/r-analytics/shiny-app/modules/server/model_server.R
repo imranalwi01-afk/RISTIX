@@ -522,15 +522,7 @@ model_server <- function(input, output, session, dependent_data, independent_dat
       # Check if data exists (this matches original req(df) logic)
       if(is.null(df)) {
         cat("⚠️ DEBUG [INTUITION_RAW]: independent_data() returned NULL - no data uploaded\n")
-        # Return sample intuition table with common variable names for demonstration
-        # This helps users understand the interface even without uploading data
-        sample_vars <- c("GDP", "INFL", "IR", "ER", "BI", "CPI", "M2", "TRADE", "UNEMP")
-        sample_table <- data.frame(
-          var = sample_vars,
-          sign = rep(0, length(sample_vars))
-        )
-        cat("✅ DEBUG [INTUITION_RAW]: Returning sample intuition table with", nrow(sample_table), "variables\n")
-        return(sample_table)
+        return(NULL)
       }
 
       req(df)
@@ -556,14 +548,7 @@ model_server <- function(input, output, session, dependent_data, independent_dat
 
     }, error = function(e) {
       cat("❌ DEBUG [INTUITION_RAW]: ERROR:", e$message, "\n")
-      # Return sample table on error instead of empty
-      sample_vars <- c("GDP", "INFL", "IR", "ER", "BI")
-      sample_table <- data.frame(
-        var = sample_vars,
-        sign = rep(0, length(sample_vars))
-      )
-      cat("⚠️ DEBUG [INTUITION_RAW]: Returning fallback sample table\n")
-      return(sample_table)
+      return(NULL)
     })
   })
 
