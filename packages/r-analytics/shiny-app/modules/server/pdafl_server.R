@@ -261,7 +261,7 @@ pdafl_server <- function(input, output, session, con, PD) {
       ORDER BY reporting_date DESC
       LIMIT $2'
 
-      historical_data <- dbGetQuery(con, query, params = list(segment_id, n_periods))
+      historical_data <- DBI::dbGetQuery(con, query, params = list(segment_id, n_periods))
       historical_data <- normalize_column_names(historical_data)
 
       if (nrow(historical_data) > 0) {
@@ -1061,7 +1061,7 @@ pdafl_server <- function(input, output, session, con, PD) {
     # Use exact same pattern as original working version - with params list
     datais <- tryCatch({
       cat(" DEBUG [DATAISSUERRR0]: Executing frs9_imp_ca_pd_enr query\n")
-      result <- dbGetQuery(con, "SELECT prc_date, bucket_from, calc_amount
+      result <- DBI::dbGetQuery(con, "SELECT prc_date, bucket_from, calc_amount
       FROM frs9_imp_ca_pd_enr
       WHERE pd_config_id = $1",
                            params = list(input$segmentpd))
@@ -1074,7 +1074,7 @@ pdafl_server <- function(input, output, session, con, PD) {
     })
 
     if(is.null(datais)) {
-      cat(" DEBUG [DATAISSUERRR0]: No data returned from FRS9_IMP_CA_PD_ENR\n")
+      cat(" DEBUG [DATAISSUERRR0]: No data returned from frs9_imp_ca_pd_enr\n")
       return(NULL)
     }
 
@@ -1097,7 +1097,7 @@ pdafl_server <- function(input, output, session, con, PD) {
     # Use exact same pattern as original working version - with params list
     datacon <- tryCatch({
       cat(" DEBUG [KONFIG_ID]: Executing frs9_imp_ca_pd_config query\n")
-      result <- dbGetQuery(con, "SELECT population_type, observation_period, observation_start_date
+      result <- DBI::dbGetQuery(con, "SELECT population_type, observation_period, observation_start_date
       FROM frs9_imp_ca_pd_config
       WHERE pkid = $1",
                             params = list(input$segmentpd))
@@ -1110,7 +1110,7 @@ pdafl_server <- function(input, output, session, con, PD) {
     })
 
     if(is.null(datacon)) {
-      cat(" DEBUG [KONFIG_ID]: No data returned from FRS9_IMP_CA_PD_CONFIG\n")
+      cat(" DEBUG [KONFIG_ID]: No data returned from frs9_imp_ca_pd_config\n")
       return(NULL)
     }
 
@@ -1212,7 +1212,7 @@ pdafl_server <- function(input, output, session, con, PD) {
     # Use exact same pattern as original working version - with params list
     dataemut <- tryCatch({
       cat(" DEBUG [DATAMMULTTT0]: Executing frs9_imp_ca_pd_mmult query\n")
-      result <- dbGetQuery(con, "SELECT * FROM frs9_imp_ca_pd_mmult
+      result <- DBI::dbGetQuery(con, "SELECT * FROM frs9_imp_ca_pd_mmult
       WHERE pd_config_id = $1",
                            params = list(input$segmentpd))
       result <- normalize_column_names(result)
@@ -1224,7 +1224,7 @@ pdafl_server <- function(input, output, session, con, PD) {
     })
 
     if(is.null(dataemut)) {
-      cat(" DEBUG [DATAMMULTTT0]: No data returned from FRS9_IMP_CA_PD_MMULT\n")
+      cat(" DEBUG [DATAMMULTTT0]: No data returned from frs9_imp_ca_pd_mmult\n")
       return(NULL)
     }
 
@@ -1264,7 +1264,7 @@ pdafl_server <- function(input, output, session, con, PD) {
 
     # Execute database query with error handling
     tryCatch({
-      result <- dbGetQuery(con, "
+      result <- DBI::dbGetQuery(con, "
         SELECT model_id, model_name, model_status, dependent_variable, r_squared, mape, created_date
         FROM frs9_r_model_summary
         WHERE id_deleted = FALSE
@@ -1312,7 +1312,7 @@ pdafl_server <- function(input, output, session, con, PD) {
   # Original app15.R line 2556-2565: Query ALL models ordered by created_date DESC
   observeEvent(input$refresh, {
     modelupload <- tryCatch(
-      dbGetQuery(con, 'SELECT "model_id","model_name" FROM "frs9_r_model_summary" ORDER BY created_date DESC'),
+      DBI::dbGetQuery(con, 'SELECT "model_id","model_name" FROM "frs9_r_model_summary" ORDER BY created_date DESC'),
       error = function(e) { NULL }
     )
     if (!is.null(modelupload) && nrow(modelupload) > 0) {
@@ -1329,7 +1329,7 @@ pdafl_server <- function(input, output, session, con, PD) {
 
     # FIXED: Use direct dbGetQuery with proper parameter binding like original working version
     result0 <- tryCatch({
-      dbGetQuery(con, 'SELECT "dependent_variable", "data_file" FROM "frs9_r_model_summary"
+      DBI::dbGetQuery(con, 'SELECT "dependent_variable", "data_file" FROM "frs9_r_model_summary"
       WHERE "model_name" = $1 LIMIT 1',
                  params = list(input$choose_model))
     }, error = function(e) {
@@ -2451,7 +2451,7 @@ pdafl_server <- function(input, output, session, con, PD) {
   current_model_id <- reactive({
     req(input$choose_model)
     tryCatch({
-      res <- dbGetQuery(con, 'SELECT "model_id" FROM "frs9_r_model_summary" WHERE "model_name" = $1 LIMIT 1',
+      res <- DBI::dbGetQuery(con, 'SELECT "model_id" FROM "frs9_r_model_summary" WHERE "model_name" = $1 LIMIT 1',
                         params = list(input$choose_model))
       if (nrow(res) > 0) as.integer(res$model_id[[1]]) else NA_integer_
     }, error = function(e) {

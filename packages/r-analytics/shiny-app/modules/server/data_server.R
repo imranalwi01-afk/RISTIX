@@ -152,23 +152,23 @@ data_server <- function(input, output, session, con, PD, LGD, persistent_data) {
     } else {
       # FIXED: Use direct dbGetQuery with proper parameter binding exactly like original working version
       tryCatch({
-        log_database("QUERY", "FRS9_IMP_CA_PD_ODR/LGD_H", "STARTED",
+        log_database("QUERY", "frs9_imp_ca_pd_odr/lgd_h", "STARTED",
                     details = list(dependent = input$dependent, segment = input$segment))
         if (input$dependent == "PD") {
-          df <- dbGetQuery(con, "SELECT * FROM frs9_imp_ca_pd_odr WHERE pd_config_id::text = $1",
+          df <- DBI::dbGetQuery(con, "SELECT * FROM frs9_imp_ca_pd_odr WHERE pd_config_id::text = $1",
                           params = list(as.character(input$segment)))
           df <- normalize_column_names(df)
           log_database("QUERY", "frs9_imp_ca_pd_odr", "SUCCESS",
                       details = list(rows = nrow(df)))
         } else {
-          df <- dbGetQuery(con, "SELECT * FROM frs9_imp_ca_lgd_h WHERE lgd_config_id::text = $1",
+          df <- DBI::dbGetQuery(con, "SELECT * FROM frs9_imp_ca_lgd_h WHERE lgd_config_id::text = $1",
                           params = list(as.character(input$segment)))
           df <- normalize_column_names(df)
           log_database("QUERY", "frs9_imp_ca_lgd_h", "SUCCESS",
                       details = list(rows = nrow(df)))
         }
       }, error = function(e) {
-        log_database("QUERY", "FRS9_IMP_CA", "FAILED",
+        log_database("QUERY", "frs9_imp_ca", "FAILED",
                     details = list(error = e$message, dependent = input$dependent))
         df <- data.frame(Warning = paste("No data found for", input$dependent))
       })
@@ -596,7 +596,7 @@ data_server <- function(input, output, session, con, PD, LGD, persistent_data) {
     }
 
     tryCatch({
-      uploads <- dbGetQuery(con, 'SELECT id, filename FROM upload_history WHERE purpose = \'independent\' ORDER BY upload_time DESC')
+      uploads <- DBI::dbGetQuery(con, 'SELECT id, filename FROM upload_history WHERE purpose = \'independent\' ORDER BY upload_time DESC')
       choices <- setNames(uploads$id, uploads$filename)
       updateSelectInput(session, "download_upload_id", choices = choices)
       cat("✅ DEBUG [UPLOAD_HISTORY]: Updated", length(choices), "upload choices\n")
@@ -631,7 +631,7 @@ data_server <- function(input, output, session, con, PD, LGD, persistent_data) {
     }
 
     tryCatch({
-      uploads <- dbGetQuery(con, '
+      uploads <- DBI::dbGetQuery(con, '
         SELECT id, filename, file_type, rows, columns, upload_time
         FROM upload_history
         WHERE purpose = \'independent\'
@@ -669,7 +669,7 @@ data_server <- function(input, output, session, con, PD, LGD, persistent_data) {
                         details = list(upload_id = input$download_upload_id))
 
       # Delete from upload_history table
-      dbExecute(con, "DELETE FROM upload_history WHERE id = $1",
+      DBI::dbExecute(con, "DELETE FROM upload_history WHERE id = $1",
                 params = list(input$download_upload_id))
 
       log_database("DELETE", "upload_history", "SUCCESS",
@@ -678,7 +678,7 @@ data_server <- function(input, output, session, con, PD, LGD, persistent_data) {
       removeModal()
 
       # Refresh selectInput and DT
-      uploads <- dbGetQuery(con, "SELECT id, filename FROM upload_history WHERE purpose = 'independent' ORDER BY upload_time DESC")
+      uploads <- DBI::dbGetQuery(con, "SELECT id, filename FROM upload_history WHERE purpose = 'independent' ORDER BY upload_time DESC")
       updateSelectInput(session, "download_upload_id", choices = setNames(uploads$id, uploads$filename))
 
       # Show success notification
@@ -699,7 +699,7 @@ data_server <- function(input, output, session, con, PD, LGD, persistent_data) {
       req(input$download_upload_id)
 
       tryCatch({
-        fname <- dbGetQuery(con, "
+        fname <- DBI::dbGetQuery(con, "
           SELECT filename FROM upload_history WHERE id = $1
         ", params = list(input$download_upload_id))
 

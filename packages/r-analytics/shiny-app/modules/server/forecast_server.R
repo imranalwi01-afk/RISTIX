@@ -1189,7 +1189,7 @@ forecast_server <- function(input, output, session, model_results, data_results,
 
     # Check for duplicate name in database
     tryCatch({
-      dup <- dbGetQuery(
+      dup <- DBI::dbGetQuery(
         con,
         'SELECT model_id
          FROM frs9_r_model_summary
@@ -1434,7 +1434,7 @@ forecast_server <- function(input, output, session, model_results, data_results,
 
     # Try to fetch models from database
     tryCatch({
-      models <- dbGetQuery(
+      models <- DBI::dbGetQuery(
         con,
         'SELECT model_id, model_name, created_date
          FROM frs9_r_model_summary
