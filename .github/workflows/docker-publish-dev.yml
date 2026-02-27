@@ -3,6 +3,9 @@ name: Docker Develop Publish
 on:
   push:
     branches: [ 'develop' ]
+    paths:
+      - 'packages/frontend/**'
+      - 'packages/new-backend/**'
   workflow_dispatch:
 
 env:
