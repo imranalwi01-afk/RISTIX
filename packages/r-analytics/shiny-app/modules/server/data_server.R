@@ -975,6 +975,9 @@ data_server <- function(input, output, session, con, PD, LGD, persistent_data) {
         DBI::dbExecute(con, query, list(session_id))
 
         cat("✅ Cleared joined data from database\n")
+      }, error = function(e) {
+        cat("⚠️ Failed to clear session data:", e$message, "\n")
+      })
     }
   })
 
