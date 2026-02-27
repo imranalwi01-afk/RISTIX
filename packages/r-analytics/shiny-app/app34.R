@@ -122,18 +122,45 @@ if (!is.null(con)) {
   dbExecute(con, paste0('SET search_path TO "', db_schema, '", public;'))
 }
 
+normalize_config_df <- function(df, prefix) {
+  if (!is.data.frame(df) || nrow(df) == 0) return(df)
+  names(df) <- tolower(names(df))
+  
+  # Find ID column (case-insensitively mapped to lowercase)
+  id_col <- NULL
+  for (c in c("pkid", paste0(prefix, "_config_id"), "config_id", "id")) {
+    if (c %in% names(df)) { id_col <- c; break }
+  }
+  if (is.null(id_col) && ncol(df) >= 1) id_col <- names(df)[1]
+  
+  # Find Name column
+  name_col <- NULL
+  for (c in c(paste0(prefix, "_model_name"), "model_name", "name", "description")) {
+    if (c %in% names(df)) { name_col <- c; break }
+  }
+  if (is.null(name_col) && ncol(df) >= 2) name_col <- names(df)[2]
+  
+  # Standardize for app34.R variables
+  if (!is.null(id_col)) names(df)[names(df) == id_col] <- "PKID"
+  if (!is.null(name_col)) names(df)[names(df) == name_col] <- toupper(paste0(prefix, "_MODEL_NAME"))
+  
+  df
+}
+
 # Load konfigurasi
 if (!is.null(con)) {
-  LGD <- tryCatch(
-    dbGetQuery(con, "SELECT * FROM frs9_imp_ca_lgd_config"),
-    error = function(e) {
+  LGD <- tryCatch({
+    df <- dbGetQuery(con, "SELECT * FROM frs9_imp_ca_lgd_config")
+    normalize_config_df(df, "lgd")
+  }, error = function(e) {
       ra_log_warn("Failed to load LGD config", context = list(error = e$message))
       data.frame()
     }
   )
-  PD <- tryCatch(
-    dbGetQuery(con, "SELECT * FROM frs9_imp_ca_pd_config"),
-    error = function(e) {
+  PD <- tryCatch({
+    df <- dbGetQuery(con, "SELECT * FROM frs9_imp_ca_pd_config")
+    normalize_config_df(df, "pd")
+  }, error = function(e) {
       ra_log_warn("Failed to load PD config", context = list(error = e$message))
       data.frame()
     }

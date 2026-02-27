@@ -64,7 +64,7 @@ else
     cd /opt/r-analytics/shiny-app
     export R_ANALYTICS_SHINY_APP_DIR="/opt/r-analytics/shiny-app"
 
-    Rscript -e "shiny::runApp('/opt/r-analytics/shiny-app', host='0.0.0.0', port=as.integer(Sys.getenv('R_PORT','4236')), launch.browser=FALSE)"
+    Rscript -e "shiny::runApp('/opt/r-analytics/shiny-app/app34.R', host='0.0.0.0', port=as.integer(Sys.getenv('R_PORT','4236')), launch.browser=FALSE)"
   ) 2>&1 | prefix_logs "[SHINY] " &
   SHINY_PIPE_PID=$!
 
