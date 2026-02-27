@@ -276,6 +276,7 @@ write_log <- function(level, message, category = "APP", details = NULL, log_file
       } else {
         cat(log_entry)
       }
+      flush.console()
     }
 
   }, error = function(e) {

@@ -123,6 +123,8 @@ setup_database <- function() {
   PD <- data.frame()
   LGD <- data.frame()
 
+  cat("🚀 setup_database: Beginning connection attempt...\n")
+  flush.console()
   # Try to establish database connection with enhanced error handling
   tryCatch({
     ra_log_info("Connecting to database")
@@ -180,6 +182,7 @@ setup_database <- function() {
       ra_log_info("analytics_joined_data table ready")
     }, error = function(e) {
       ra_log_warn("Failed to create analytics_joined_data table", context = list(error = e$message))
+      flush.console()
     })
 
     # Load configuration data with comprehensive error handling
@@ -198,6 +201,7 @@ setup_database <- function() {
       cat("   Check if the table exists and is accessible in schema:", db_schema, "\n")
       cat("*******************************************************************************\n\n")
       ra_log_warn("LGD configuration load failed, using empty dataset", context = list(error = e$message))
+      flush.console()
       data.frame()
     })
 
@@ -214,6 +218,7 @@ setup_database <- function() {
       cat("   Check if the table exists and is accessible in schema:", db_schema, "\n")
       cat("*******************************************************************************\n\n")
       ra_log_warn("PD configuration load failed, using empty dataset", context = list(error = e$message))
+      flush.console()
       data.frame()
     })
 
