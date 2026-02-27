@@ -83,7 +83,21 @@ forecast_ui <- function() {
 
                           )
                  ),
-                 tabPanel("Forecast Y",
+                  tabPanel("Forecast Average Y",
+                           box(
+                             width = 3, solidHeader = TRUE, status = "primary",
+                             actionButton("runforaveragey", "RUN", class = "btn-success")
+                           ),
+                           box(
+                             title = "Model Final with Average Year", width = 12, status = "primary", solidHeader = TRUE,
+                             DT::dataTableOutput("table_averageygabmodel")
+                           ),
+                           box(
+                             title = "Forecast Y", width = 12, status = "primary", solidHeader = TRUE,
+                             DT::dataTableOutput("table_forecastaveragey")
+                           )
+                  ),
+                  tabPanel("Forecast Y",
                           fluidRow(
                             box(title = "Hasil Forecast",width = 6,
 

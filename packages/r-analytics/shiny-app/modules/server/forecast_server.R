@@ -714,6 +714,74 @@ forecast_server <- function(input, output, session, model_results, data_results,
     })
   })
 
+  # =============================================================================
+  # FORECAST AVERAGE Y (Original: app34.R lines 2095-2142)
+  # =============================================================================
+
+  forecastaveragey <- eventReactive(input$runforaveragey, {
+    req(finalmodel())
+
+    if (input$mevfore == "MEV_Awal") {
+      # Use transformed_result_forecast() if available, otherwise fallback to df_forecast1
+      df <- transformed_result_forecast()
+      if (is.null(df)) df <- df_forecast1()
+    } else if (input$mevfore == "External_Data") {
+      df <- datainputforecast()
+    }
+
+    req(df)
+
+    date_col <- names(df)[sapply(df, inherits, "Date")]
+    if (length(date_col) == 0) {
+      showNotification("Tidak ditemukan kolom bertipe Date di data forecast.", type = "error")
+      return(NULL)
+    }
+
+    date_col_name <- date_col[1]
+    # Match original app34.R logic but with fixed typo (names(df) not names(df1))
+    temp_df <- df
+    names(temp_df)[names(temp_df) == date_col_name] <- "Date"
+
+    # Ambil tanggal maksimum dari data awal
+    model_data <- model_results$model_data()
+    tanggal_terakhir_awal <- max(model_data[, 1])
+
+    # Filter data kedua agar hanya berisi data setelah tanggal terakhir di data_awal
+    datafor <- subset(temp_df, Date > tanggal_terakhir_awal)
+
+    if (nrow(datafor) == 0) {
+      showNotification("Tidak ada data forecast setelah tanggal terakhir data historis.", type = "warning")
+      return(NULL)
+    }
+
+    # newdata() in app34.R corresponds to model_results$training_data()
+    predictions <- predict_from_model_table_safe(
+      model_tbl = finalmodel(),
+      train_data = model_results$training_data(),
+      new_data = datafor,
+      formula_col = "Model"
+    )
+
+    predictions
+  })
+
+  output$table_forecastaveragey <- DT::renderDataTable({
+    req(forecastaveragey())
+    DT::datatable(forecastaveragey(), options = list(scrollX = TRUE))
+  })
+
+  averageygabmodel <- eventReactive(input$runforaveragey, {
+    req(forecastaveragey())
+    bbc <- add_average_forecast(forecast_df = forecastaveragey(), window_size = 12, unit = "Y")
+    hasilbbc <- cbind(finalmodel(), bbc[, -1])
+    hasilbbc
+  })
+
+  output$table_averageygabmodel <- DT::renderDataTable({
+    req(averageygabmodel())
+    DT::datatable(averageygabmodel(), options = list(scrollX = TRUE))
+  })
+
   # Selected model information
   tabel_pemilihan_model_akhir <- eventReactive(input$runforecast, {
     # Validate inputs
@@ -1451,6 +1519,8 @@ forecast_server <- function(input, output, session, model_results, data_results,
 
   return(list(
     forecast_results = hasilforecast,
+    forecast_average_y = forecastaveragey,
+    average_gab_model = averageygabmodel,
     final_model = finalmodel,
     filtered_models = final_filtered_data,
     backtest_results = model_results$back_test,

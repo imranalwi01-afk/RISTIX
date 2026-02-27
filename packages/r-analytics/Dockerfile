@@ -21,12 +21,8 @@ LABEL version="1.0.0"
 # Copy R application files recursively
 COPY --chown=r-analytics:r-analytics shiny-app/ ./shiny-app/
 
-# Rename entry point to standard app.R
-RUN if [ -f ./shiny-app/app34.R ]; then mv ./shiny-app/app34.R ./shiny-app/app.R; fi
-
 # Copy configuration files if they exist
 COPY --chown=r-analytics:r-analytics config/ ./config/
-# COPY --chown=r-analytics:r-analytics functions/ ./functions/ # Removed as directory is missing
 
 # Copy startup script
 COPY --chown=r-analytics:r-analytics docker-entrypoint.sh ./
@@ -37,21 +33,6 @@ COPY --chown=r-analytics:r-analytics iaf-r-api.R start_api.R logger.R ./
 COPY --chown=r-analytics:r-analytics api/ ./api/
 COPY --chown=r-analytics:r-analytics src/ ./src/
 COPY --chown=r-analytics:r-analytics scripts/ ./scripts/
-
-# ============================================================================
-# 🌐 SHINY SERVER CONFIGURATION
-# ============================================================================
-
-# Create custom Shiny server configuration
-RUN echo "run_as r-analytics; \n\
-    server { \
-    listen 3838 0.0.0.0; \
-    location / { \
-    app_dir /opt/r-analytics/shiny-app; \
-    log_dir /opt/r-analytics/logs; \
-    directory_index on; \
-    } \
-    }" > /etc/shiny-server/shiny-server.conf
 
 # ============================================================================
 # 🔧 ENVIRONMENT CONFIGURATION

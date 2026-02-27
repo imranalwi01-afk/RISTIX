@@ -54,7 +54,7 @@ IF EXIST "%API_DIR%\start_api.R" (
     ECHO [WARNING] API service was not started.
 )
 
-ECHO [*] Starting R Analytics Dashboard...
+ECHO [*] Starting R Analytics Dashboard (Modular app.R)...
 set "R_PORT=4236"
 Rscript run_local.R
 

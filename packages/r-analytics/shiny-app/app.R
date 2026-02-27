@@ -88,12 +88,14 @@ source("modules/ui/home_ui.R")
 source("modules/ui/data_ui.R")
 source("modules/ui/model_ui.R")
 source("modules/ui/forecast_ui.R")
+source("modules/ui/forecast_manual_ui.R")
 source("modules/ui/pdafl_ui.R")
 
 # Load all server modules once
 source("modules/server/data_server.R")
 source("modules/server/model_server.R")
 source("modules/server/forecast_server.R")
+source("modules/server/forecast_manual_server.R")
 source("modules/server/pdafl_server.R")
 
 # =============================================================================
@@ -326,6 +328,19 @@ ui <- navbarPage(
   ),
 
   tabPanel(
+    title = "Forecast Manual",
+    value = "forecast_manual",
+    icon = icon("edit"),
+    div(
+      div(style = "background-color: #f8f9fa; padding: 10px; margin-bottom: 20px; border-radius: 4px; border: 1px solid #dee2e6; font-size: 14px;",
+        tags$span(style = "color: #6c757d;", "📊 IFRS9 Analytics / "),
+        tags$span(style = "color: #0078BD; font-weight: 500;", "Manual Forecasting")
+      ),
+      forecast_manual_ui()
+    )
+  ),
+
+  tabPanel(
     title = "PD & AFL",
     value = "pdafl",
     icon = icon("calculator"),
@@ -450,6 +465,9 @@ server <- function(input, output, session) {
 
   # PD-AFL server module - handles PD & AFL calculations
   pdafl_results <- pdafl_server(input, output, session, con, PD)
+
+  # Forecast manual server module
+  forecast_manual_results <- forecast_manual_server(input, output, session, data_results)
 
   # =============================================================================
   # 🔄 DATA PERSISTENCE & DATE SYNCHRONIZATION
