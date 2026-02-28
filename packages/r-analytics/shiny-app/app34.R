@@ -142,7 +142,7 @@ normalize_config_df <- function(df, prefix) {
   
   # Standardize for app34.R variables
   if (!is.null(id_col)) names(df)[names(df) == id_col] <- "pkid"
-  if (!is.null(name_col)) names(df)[names(df) == name_col] <- toupper(paste0(prefix, "_MODEL_NAME"))
+  if (!is.null(name_col)) names(df)[names(df) == name_col] <- tolower(paste0(prefix, "_model_name"))
   
   df
 }
@@ -1081,7 +1081,7 @@ server <- function(input, output, session) {
     }
 
     if (is.data.frame(df)) {
-      names(df) <- toupper(names(df))
+      names(df) <- tolower(names(df))
     }
 
     # Simpan ke reactiveVal
