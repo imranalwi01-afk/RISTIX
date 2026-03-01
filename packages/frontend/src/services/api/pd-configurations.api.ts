@@ -8,13 +8,13 @@ import { apiClient } from '../api-setup';
 export interface PDConfiguration {
     id?: string;
     model_name: string;
-    population_segment?: number;
+    population_segment?: string | number;
     population_segment_id?: string;
     population_segment_desc?: string;
-    selected_method: number;
+    selected_method: string | number;
     selected_method_desc?: string;
     migration_interval: number;
-    population_type?: number;
+    population_type?: string | number;
     population_type_desc?: string;
     historical_month: number;
     first_historical_date?: string;
@@ -39,13 +39,13 @@ export interface PDConfiguration {
 
 export interface CreatePDConfigurationDto {
     model_name: string;
-    population_segment?: number;
+    population_segment?: string | number;
     population_segment_id?: string;
     population_segment_desc?: string;
-    selected_method: number;
+    selected_method: string | number;
     selected_method_desc?: string;
     migration_interval?: number;
-    population_type?: number;
+    population_type?: string | number;
     population_type_desc?: string;
     historical_month?: number;
     first_historical_date?: string;
@@ -76,7 +76,7 @@ export const pdConfigurationsApi = {
      */
     async getAll(params?: {
         search?: string;
-        selected_method?: number;
+        selected_method?: string | number;
         bucket?: string;
         is_active?: boolean;
     }): Promise<PDConfiguration[]> {
@@ -129,7 +129,7 @@ export const pdConfigurationsApi = {
     /**
      * Get calculation methods metadata
      */
-    async getMethods(): Promise<Array<{ value: number; label: string }>> {
+    async getMethods(): Promise<Array<{ value: string | number; label: string }>> {
         const response = await apiClient.get<any>(
             `${BASE_URL}/metadata/methods`
         );
@@ -139,7 +139,7 @@ export const pdConfigurationsApi = {
     /**
      * Get population types metadata
      */
-    async getPopulationTypes(): Promise<Array<{ value: number; label: string }>> {
+    async getPopulationTypes(): Promise<Array<{ value: string | number; label: string }>> {
         const response = await apiClient.get<any>(
             `${BASE_URL}/metadata/population-types`
         );

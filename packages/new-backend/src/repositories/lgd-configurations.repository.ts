@@ -7,7 +7,7 @@ import { DatabaseError, NotFoundError } from '../lib/errors'
 
 export interface LgdQueryOptions {
     search?: string
-    lgdMethod?: number
+    lgdMethod?: string | number
     isActive?: boolean
 }
 

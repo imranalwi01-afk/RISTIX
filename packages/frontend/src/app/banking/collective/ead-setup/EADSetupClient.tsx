@@ -103,7 +103,7 @@ export default function EADSetupPage() {
         api.banking.eadConfigurations.getAll(),
         api.banking.eadConfigurations.getMethods(),
         api.banking.eadConfigurations.getCalcMethods(),
-        api.banking.populationSegments.getAll({ active_flag: true })
+        api.banking.populationSegments.getAll({ active_flag: true, segment_type: 'EAD' })
       ]);
 
       setMethodOptions(methodsRes);

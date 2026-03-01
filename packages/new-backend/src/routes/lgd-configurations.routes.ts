@@ -19,7 +19,7 @@ const LgdConfigSchema = z.object({
     model_name: z.string().nullable(),
     segment_id: z.number().nullable(),
     lgd_method: z.union([z.string(), z.number()]).nullable(),
-    population_type: z.string().nullable(),
+    population_type: z.union([z.string(), z.number()]).nullable(),
     observation_period: z.string().nullable(),
     observation_start_date: z.string().nullable(),
     workout_period: z.number().nullable(),
@@ -36,8 +36,8 @@ const LgdConfigSchema = z.object({
 const CreateLgdConfigSchema = z.object({
     model_name: z.string().min(1).max(255),
     segment_id: z.number().int().optional(),
-    lgd_method: z.number().int(),
-    population_type: z.string().optional(),
+    lgd_method: z.union([z.string(), z.number()]),
+    population_type: z.union([z.string(), z.number()]).optional(),
     observation_period: z.string().optional(),
     workout_period: z.number().int().optional(),
     fl_flag: z.boolean().default(false),
@@ -283,7 +283,7 @@ app.openapi(
                     'application/json': {
                         schema: z.object({
                             success: z.boolean(),
-                            data: z.array(z.object({ value: z.number(), label: z.string() }))
+                            data: z.array(z.object({ value: z.union([z.string(), z.number()]), label: z.string() }))
                         })
                     }
                 },

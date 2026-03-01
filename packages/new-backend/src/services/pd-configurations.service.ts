@@ -140,7 +140,7 @@ export const PdConfigurationsService = {
             ParametersRepository.findDetailByCode('B0018'),
             Effect.map(details =>
                 details.map(d => ({
-                    value: parseInt(d.value1 ?? '0', 10),
+                    value: d.value1 ?? '',
                     label: d.value2 ?? d.value1 ?? '',
                 }))
             )
@@ -157,7 +157,7 @@ export const PdConfigurationsService = {
             ParametersRepository.findDetailByCode('B0019'),
             Effect.map(details =>
                 details.map(d => ({
-                    value: parseInt(d.value1 ?? '0', 10),
+                    value: d.value1 ?? '',
                     label: d.value2 ?? d.value1 ?? '',
                 }))
             )
@@ -170,9 +170,9 @@ const transformPdConfig = (config: typeof frs9ImpCaPdConfig.$inferSelect) => ({
     id: config.pkid,
     model_name: config.pdModelName,
     population_segment_id: config.segmentId,
-    selected_method: parseInt(config.pdMethod || '0', 10),
+    selected_method: config.pdMethod,
     migration_interval: config.interval,
-    population_type: parseInt(config.populationType || '0', 10),
+    population_type: config.populationType,
     historical_month: config.observationPeriod,
     first_historical_date: config.observationStartDate ? config.observationStartDate.split('T')[0] : null,
     multiplication: config.multiplication,

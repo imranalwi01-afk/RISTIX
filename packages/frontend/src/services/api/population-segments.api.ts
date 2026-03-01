@@ -9,6 +9,7 @@ export interface PopulationSegment {
     id?: string;
     segment_name: string;
     description?: string;
+    segment_type?: string;
     active_flag: boolean;
     created_by?: string;
     updated_by?: string;
@@ -34,10 +35,12 @@ export const populationSegmentsApi = {
     async getAll(params?: {
         search?: string;
         active_flag?: boolean;
+        segment_type?: string;
     }): Promise<PopulationSegment[]> {
         const queryParams = new URLSearchParams();
         if (params?.search) queryParams.append('search', params.search);
         if (params?.active_flag !== undefined) queryParams.append('active_flag', params.active_flag.toString());
+        if (params?.segment_type) queryParams.append('segment_type', params.segment_type);
 
         const url = queryParams.toString() ? `${BASE_URL}?${queryParams}` : BASE_URL;
         const response = await apiClient.get<any>(url);

@@ -17,6 +17,7 @@ const SegmentSchema = z.object({
     id: z.number(),
     segment_name: z.string().nullable(),
     description: z.string().optional(),
+    segment_type: z.string().nullable(),
     active_flag: z.boolean().nullable(),
     created_by: z.string().nullable(),
     updated_by: z.string().nullable(),
@@ -57,6 +58,7 @@ const transformSegment = (segment: typeof frs9ParamSegmenth.$inferSelect) => ({
     id: segment.pkid,
     segment_name: segment.segment,
     description: segment.subSegment || '',
+    segment_type: segment.segmentType,
     active_flag: segment.activeFlag,
     created_by: segment.createdby,
     updated_by: segment.updatedby,
@@ -80,7 +82,8 @@ populationSegmentsRoutes.openapi(
         request: {
             query: z.object({
                 search: z.string().optional(),
-                active_flag: z.string().optional()
+                active_flag: z.string().optional(),
+                segment_type: z.string().optional()
             })
         },
         responses: {
@@ -90,7 +93,7 @@ populationSegmentsRoutes.openapi(
     }),
     async (c) => {
         try {
-            const { search, active_flag } = c.req.valid('query')
+            const { search, active_flag, segment_type } = c.req.valid('query')
             const conditions = []
 
             if (search) {
@@ -99,6 +102,10 @@ populationSegmentsRoutes.openapi(
 
             if (active_flag !== undefined) {
                 conditions.push(eq(frs9ParamSegmenth.activeFlag, active_flag === 'true'))
+            }
+
+            if (segment_type) {
+                conditions.push(eq(frs9ParamSegmenth.segmentType, segment_type))
             }
 
             const segments = await db

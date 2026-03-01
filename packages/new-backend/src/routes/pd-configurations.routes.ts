@@ -18,9 +18,9 @@ const PdConfigSchema = z.object({
     id: z.number(),
     model_name: z.string().nullable(),
     population_segment_id: z.number().nullable(),
-    selected_method: z.number().nullable(),
+    selected_method: z.union([z.string(), z.number()]).nullable(),
     migration_interval: z.number().nullable(),
-    population_type: z.number().nullable(),
+    population_type: z.union([z.string(), z.number()]).nullable(),
     historical_month: z.number().nullable(),
     first_historical_date: z.string().nullable(),
     multiplication: z.string().nullable(),
@@ -38,9 +38,9 @@ const PdConfigSchema = z.object({
 const CreatePdConfigSchema = z.object({
     model_name: z.string().min(1).max(250),
     population_segment_id: z.union([z.number(), z.string().transform(val => parseInt(val))]),
-    selected_method: z.number().int(),
+    selected_method: z.union([z.string(), z.number()]),
     migration_interval: z.number().int(),
-    population_type: z.number().int(),
+    population_type: z.union([z.string(), z.number()]),
     historical_month: z.number().int(),
     first_historical_date: z.string().optional(),
     multiplication: z.number().int().optional(),
@@ -64,7 +64,7 @@ const PdResponse = z.object({
 
 const MetadataResponse = z.object({
     success: z.boolean(),
-    data: z.array(z.object({ value: z.number(), label: z.string() }))
+    data: z.array(z.object({ value: z.union([z.string(), z.number()]), label: z.string() }))
 }).openapi('MetadataResponse')
 
 const ErrorResponse = z.object({

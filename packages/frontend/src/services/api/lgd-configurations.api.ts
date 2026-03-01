@@ -9,8 +9,8 @@ export interface LGDConfiguration {
     id?: number; // Legacy uses pkid (smallint)
     model_name: string;
     segment_id?: number; // Maps to SEGMENT_ID
-    lgd_method: number;
-    population_type?: string;     // varchar(20)
+    lgd_method: string | number;
+    population_type?: string | number;     // varchar(20)
     observation_period?: string;  // varchar(50)
     observation_start_date?: string; // date
     workout_period?: number;      // integer
@@ -27,8 +27,8 @@ export interface LGDConfiguration {
 export interface CreateLGDConfigurationDto {
     modelName: string;
     segmentId?: number;
-    lgdMethod: number;
-    populationType?: string;
+    lgdMethod: string | number;
+    populationType?: string | number;
     observationPeriod?: string;
     // observationStartDate?: string; // Not in form yet? Should be added if needed, but backend supports it
     workoutPeriod?: number;
@@ -52,7 +52,7 @@ export const lgdConfigurationsApi = {
      */
     async getAll(params?: {
         search?: string;
-        lgd_method?: number;
+        lgd_method?: string | number;
         is_active?: boolean;
     }): Promise<LGDConfiguration[]> {
         const queryParams = new URLSearchParams();
@@ -86,14 +86,14 @@ export const lgdConfigurationsApi = {
         await apiClient.delete(`${BASE_URL}/${id}`);
     },
 
-    async getMethods(): Promise<Array<{ value: number; label: string }>> {
+    async getMethods(): Promise<Array<{ value: string | number; label: string }>> {
         const response = await apiClient.get<any>(
             `${BASE_URL}/metadata/methods`
         );
         return response.data?.data || [];
     },
 
-    async getPopulationTypes(): Promise<Array<{ value: string; label: string }>> {
+    async getPopulationTypes(): Promise<Array<{ value: string | number; label: string }>> {
         const response = await apiClient.get<any>(
             `${BASE_URL}/metadata/population-types`
         );

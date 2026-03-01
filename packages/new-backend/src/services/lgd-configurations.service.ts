@@ -19,7 +19,7 @@ export const LgdConfigurationsService = {
         return pipe(
             LgdConfigurationsRepository.findAll({
                 search: options.search,
-                lgdMethod: options.lgd_method ? parseInt(options.lgd_method) : undefined,
+                lgdMethod: options.lgd_method,
                 isActive: options.is_active ? options.is_active === 'true' : undefined
             }),
             Effect.map(configs => configs.map(transformLgdConfig))
@@ -140,7 +140,7 @@ export const LgdConfigurationsService = {
             ParametersRepository.findDetailByCode('B0022'),
             Effect.map(details =>
                 details.map(d => ({
-                    value: parseInt(d.value1 ?? '0', 10),
+                    value: d.value1 ?? '',
                     label: d.value2 ?? d.value1 ?? '',
                 }))
             )

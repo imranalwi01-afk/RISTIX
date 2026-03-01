@@ -81,8 +81,8 @@ const PdSetupPage = () => {
   const [error, setError] = useState<string | null>(null);
 
   // Metadata
-  const [methodOptions, setMethodOptions] = useState<{ value: number, label: string }[]>([]);
-  const [popTypeOptions, setPopTypeOptions] = useState<{ value: number, label: string }[]>([]);
+  const [methodOptions, setMethodOptions] = useState<{ value: string | number, label: string }[]>([]);
+  const [popTypeOptions, setPopTypeOptions] = useState<{ value: string | number, label: string }[]>([]);
   const [bucketGroups, setBucketGroups] = useState<any[]>([]);
   const [populationSegments, setPopulationSegments] = useState<PopulationSegment[]>([]);
 
@@ -130,7 +130,7 @@ const PdSetupPage = () => {
         api.banking.pdConfigurations.getMethods(),
         api.banking.pdConfigurations.getPopulationTypes(),
         api.banking.bucketParameter.getHeaders(),
-        api.banking.populationSegments.getAll({ active_flag: true })
+        api.banking.populationSegments.getAll({ active_flag: true, segment_type: 'PD' })
       ]);
 
       setMethodOptions(methodsRes);
@@ -140,7 +140,7 @@ const PdSetupPage = () => {
 
       const enrichedConfigs = configsRes.map(config => {
         const segment = segmentsRes.find(s => s.id === config.population_segment_id);
-        const method = methodsRes.find(m => m.value === config.selected_method);
+        const method = methodsRes.find(m => String(m.value) === String(config.selected_method));
         return {
           ...config,
           segment_name: segment?.segment_name || config.population_segment_desc || 'Unknown',
@@ -395,9 +395,9 @@ const PdSetupPage = () => {
               setSelectedConfig(null);
               setFormData({
                 is_active: true,
-                selected_method: 1,
+                selected_method: '1',
                 migration_interval: 12,
-                population_type: 1,
+                population_type: '1',
                 historical_month: 24,
                 multiplication: 1
               });
@@ -481,9 +481,9 @@ const PdSetupPage = () => {
                 <FormControl fullWidth>
                   <InputLabel>Method</InputLabel>
                   <Select
-                    value={formData.selected_method || 1}
+                    value={formData.selected_method || '1'}
                     label="Method"
-                    onChange={(e) => setFormData({ ...formData, selected_method: Number(e.target.value) })}
+                    onChange={(e) => setFormData({ ...formData, selected_method: e.target.value })}
                     data-testid="method-select"
                   >
                     {methodOptions.map(m => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
@@ -528,9 +528,9 @@ const PdSetupPage = () => {
                 <FormControl fullWidth>
                   <InputLabel>Population Type</InputLabel>
                   <Select
-                    value={formData.population_type || 1}
+                    value={formData.population_type || '1'}
                     label="Population Type"
-                    onChange={(e) => setFormData({ ...formData, population_type: Number(e.target.value) })}
+                    onChange={(e) => setFormData({ ...formData, population_type: e.target.value })}
                     disabled={isFieldDisabled('population_type')}
                     data-testid="population-type-select"
                   >
