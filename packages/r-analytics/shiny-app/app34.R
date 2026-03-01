@@ -434,10 +434,6 @@ ui <- dashboardPage(
                 conditionalPanel(
                   condition = "input.dependent == 'OTHERS'",
                   tagList(
-                    selectInput("Forecast_Scenarios", "Macroeconomic Scenario",
-                            choices = c("Base", "Best", "Worst"),
-                            selected = "Base"
-                    ),
                     fileInput("file_upload_other1", "Upload CSV File",
                       accept = c(".csv", ".xlsx", ".xls")
                     ),

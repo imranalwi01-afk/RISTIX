@@ -105,10 +105,13 @@ export * from './legacy'
 export {
     platformSchema,
     platformUsers,
+    platformSettings,
     tenants,
     tenantsRelations, // ✅ Export tenantsRelations
     type PlatformUser,
     type NewPlatformUser,
+    type PlatformSetting,
+    type NewPlatformSetting,
     type Tenant,
     type NewTenant,
 } from './platform.schema'

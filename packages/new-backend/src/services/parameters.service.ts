@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm'
 import { ParametersRepository } from '../repositories/parameters.repository'
 import { NotFoundError, DatabaseError, ValidationError } from '../lib/errors'
 import { frs9ParamCommond } from '../db/schema'
+import { legacyDb } from '../config'
 
 /**
  * Service for managing Application and Business parameters.
@@ -240,7 +241,7 @@ export const ParametersService = {
             // Need to get current detail to have paramCode for duplicate checks
             Effect.tryPromise({
                 try: async () => {
-                    const results = await frs9ParamCommond.db.select().from(frs9ParamCommond).where(eq(frs9ParamCommond.pkid, BigInt(id)))
+                    const results = await legacyDb.select().from(frs9ParamCommond).where(eq(frs9ParamCommond.pkid, BigInt(id)))
                     return results[0]
                 },
                 catch: (e) => new DatabaseError({ message: 'Failed to fetch detail for update', operation: 'query', cause: e })

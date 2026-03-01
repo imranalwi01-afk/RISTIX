@@ -10,6 +10,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import { AuthProvider } from '../providers/AuthProvider';
 import { ConfigurationProvider } from '../providers/ConfigurationProvider';
 import { BankingThemeProvider } from '../providers/BankingThemeProvider';
+import { PlatformSettingsProvider } from '../providers/PlatformSettingsProvider';
 
 import { store, persistor } from '../store';
 
@@ -28,16 +29,18 @@ export default function ClientProviders({ children }: { children: React.ReactNod
     <AppRouterCacheProvider options={{ key: 'mui' }}>
       <Provider store={store}>
         <PersistGate loading={null} persistor={persistor}>
-          <ConfigurationProvider>
-            <AuthProvider>
-              <BankingThemeProvider>
-                <LocalizationProvider dateAdapter={AdapterDateFns}>
-                  <CssBaseline />
-                  {children as any}
-                </LocalizationProvider>
-              </BankingThemeProvider>
-            </AuthProvider>
-          </ConfigurationProvider>
+          <PlatformSettingsProvider>
+            <ConfigurationProvider>
+              <AuthProvider>
+                <BankingThemeProvider>
+                  <LocalizationProvider dateAdapter={AdapterDateFns}>
+                    <CssBaseline />
+                    {children as any}
+                  </LocalizationProvider>
+                </BankingThemeProvider>
+              </AuthProvider>
+            </ConfigurationProvider>
+          </PlatformSettingsProvider>
         </PersistGate>
       </Provider>
     </AppRouterCacheProvider>

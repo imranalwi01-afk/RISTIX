@@ -29,6 +29,7 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../../../providers/AuthProvider';
 import { useLoginPrefetch } from '@/hooks/useLoginPrefetch';
+import { usePlatformSettings } from '@/providers/PlatformSettingsProvider';
 
 // Dynamic import for ModernLoader to improve initial page load
 const ModernLoader = dynamic<ModernLoaderProps>(
@@ -77,6 +78,7 @@ export default function LoginPage({ initialRole }: LoginPageProps) {
   // const router = useRouter(); // Unused
   const searchParams = useSearchParams();
   const { login, error, clearError } = useAuth();
+  const { settings } = usePlatformSettings();
   // const theme = useTheme(); // Unused
 
   // ✅ PERFORMANCE: Prefetch dashboard routes while user is on login page
@@ -242,7 +244,7 @@ export default function LoginPage({ initialRole }: LoginPageProps) {
             const user = userRaw ? JSON.parse(userRaw) : {};
             const isPlatformUser =
               user?.stakeholderType === 'platform' || user?.isPlatformAdmin === true;
-            const fallbackPath = isPlatformUser ? '/platform/users' : '/banking/dashboard';
+            const fallbackPath = isPlatformUser ? '/platform' : '/banking/dashboard';
 
             console.warn('⚠️ Login redirect timeout reached, applying fallback navigation', { fallbackPath });
             window.location.assign(fallbackPath);
@@ -405,7 +407,11 @@ export default function LoginPage({ initialRole }: LoginPageProps) {
           <Box sx={{ width: '100%', maxWidth: 420, opacity: showAuthenticatingOverlay ? 0.4 : 1, transition: 'opacity 0.4s', filter: showAuthenticatingOverlay ? 'blur(2px)' : 'none' }}>
             {/* Mobile Logo (Visible only on xs) */}
             <Box sx={{ display: { xs: 'flex', md: 'none' }, mb: 4, justifyContent: 'center' }}>
-              <img src="/images/logo-iaf.png" alt="IAF Logo" style={{ height: 40 }} />
+              {settings.logoUrl ? (
+                <img src={settings.logoUrl} alt={settings.platformName || "Platform Logo"} style={{ height: 40, objectFit: 'contain' }} />
+              ) : (
+                <Typography variant="h5" sx={{ fontWeight: 800, color: '#1976D2' }}>{settings.platformName}</Typography>
+              )}
             </Box>
 
             <Fade in timeout={800}>
@@ -521,7 +527,7 @@ export default function LoginPage({ initialRole }: LoginPageProps) {
             {/* Footer Copyright */}
             <Box sx={{ mt: 8, textAlign: 'center' }}>
               <Typography variant="caption" color="text.secondary">
-                © 2026 Indonesia Airawata Finance. <br /> Secured by Enterprise Grade Encryption.
+                © 2026 {settings.platformName} Platform & Airawata Framework. <br /> Secured by Enterprise Grade Encryption.
               </Typography>
             </Box>
           </Box>

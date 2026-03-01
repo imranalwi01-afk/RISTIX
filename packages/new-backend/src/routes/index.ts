@@ -44,6 +44,7 @@ import { securityRoutes } from './security.routes'
 import { userActivityRoutes } from './user-activity.routes'
 import { userRegistrationRoutes } from './user-registration.routes'
 import { tenantRegistryRoutes } from './tenant-registry.routes'
+import { platformSettingsRoutes } from './platform-settings.routes'
 import { platformInfrastructureRoutes } from './platform-infrastructure.routes'
 import { adminDashboardRoutes } from './admin-dashboard.routes'
 import { ifrs9Routes } from './ifrs9.routes'
@@ -118,6 +119,7 @@ routes.route('/user-registration', userRegistrationRoutes)
 
 // NEW STUB ROUTES - Platform Management
 routes.route('/tenant-registry', tenantRegistryRoutes)
+routes.route('/platform/settings', platformSettingsRoutes)
 routes.route('/platform-infrastructure', platformInfrastructureRoutes)
 routes.route('/admin-dashboard', adminDashboardRoutes)
 

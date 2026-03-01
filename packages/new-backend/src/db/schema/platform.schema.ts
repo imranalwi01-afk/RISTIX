@@ -60,6 +60,31 @@ export type PlatformTenant = typeof platformTenants.$inferSelect
 export type NewPlatformTenant = typeof platformTenants.$inferInsert
 
 // =============================================================================
+// PLATFORM SETTINGS TABLE
+// =============================================================================
+
+/**
+ * Platform Settings table definition.
+ * Global Key-Value store for platform-wide configurations (e.g., branding, maintenance mode).
+ */
+export const platformSettings = platformSchema.table(
+    'settings',
+    {
+        id: uuid('id').primaryKey().defaultRandom(),
+        key: varchar('key', { length: 100 }).notNull().unique(),
+        value: jsonb('value').notNull().default({}),
+        description: text('description'),
+        updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    },
+    (table) => [
+        uniqueIndex('platform_settings_key_idx').on(table.key),
+    ]
+)
+
+export type PlatformSetting = typeof platformSettings.$inferSelect
+export type NewPlatformSetting = typeof platformSettings.$inferInsert
+
+// =============================================================================
 // PLATFORM USERS TABLE
 // =============================================================================
 

@@ -121,8 +121,9 @@ export const pdConfigurationsApi = {
     /**
      * Delete PD configuration
      */
-    async delete(id: string): Promise<void> {
-        await apiClient.delete(`${BASE_URL}/${id}`);
+    async delete(id: string): Promise<any> {
+        const response = await apiClient.delete(`${BASE_URL}/${id}`);
+        return response.data;
     },
 
     /**
