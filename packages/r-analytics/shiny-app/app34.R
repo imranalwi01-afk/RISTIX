@@ -127,23 +127,28 @@ normalize_config_df <- function(df, prefix) {
   names(df) <- tolower(names(df))
   
   # Find ID column (case-insensitively mapped to lowercase)
+  # Identify model config id
   id_col <- NULL
   for (c in c("pkid", paste0(prefix, "_config_id"), "config_id", "id")) {
-    if (c %in% names(df)) { id_col <- c; break }
+    if (c %in% names(df)) {
+      id_col <- c
+      break
+    }
   }
   if (is.null(id_col) && ncol(df) >= 1) id_col <- names(df)[1]
-  
-  # Find Name column
+
+  # Identify model config name
   name_col <- NULL
   for (c in c(paste0(prefix, "_model_name"), "model_name", "name", "description")) {
-    if (c %in% names(df)) { name_col <- c; break }
+    if (c %in% names(df)) {
+      name_col <- c
+      break
+    }
   }
   if (is.null(name_col) && ncol(df) >= 2) name_col <- names(df)[2]
   
   # Standardize for app34.R variables
   if (!is.null(id_col)) names(df)[names(df) == id_col] <- "pkid"
-  if (!is.null(name_col)) names(df)[names(df) == name_col] <- tolower(paste0(prefix, "_model_name"))
-  
   if (!is.null(name_col)) names(df)[names(df) == name_col] <- tolower(paste0(prefix, "_model_name"))
   
   df
@@ -429,6 +434,10 @@ ui <- dashboardPage(
                 conditionalPanel(
                   condition = "input.dependent == 'OTHERS'",
                   tagList(
+                    selectInput("Forecast_Scenarios", "Macroeconomic Scenario",
+                            choices = c("Base", "Best", "Worst"),
+                            selected = "Base"
+                    ),
                     fileInput("file_upload_other1", "Upload CSV File",
                       accept = c(".csv", ".xlsx", ".xls")
                     ),
@@ -531,6 +540,8 @@ ui <- dashboardPage(
               box(
                 title = "Parameter", status = "primary", width = 6, solidHeader = TRUE,
                 numericInput("pval", "P-value", value = 0.05),
+                numericInput("pdafl_ttc_pd", "Through-the-Cycle (TTC) PD (%)", value = 5.0, min = 0, max = 100, step = 0.1),
+                numericInput("pdafl_scaling_factor", "Scaling Factor", value = 1.0, min = 0, step = 0.1),
                 numericInput("rsq", "R-Square Single Factor", value = 0.0),
                 numericInput("corr", "Correlation", value = 0.6),
                 radioButtons("normal", "Normality test", choices = c("shapiro", "kolmogorov", "anderson")),
@@ -705,7 +716,7 @@ ui <- dashboardPage(
                 actionButton("runforecast", "RUN", class = "btn-success"),
                 br(), br(),
                 DT::dataTableOutput("dataforecast"),
-                br(), br(),
+                br(), br()
               ),
               box(
                 title = "Graph", solidHeader = T, status = "warning", width = 6,
@@ -1038,12 +1049,14 @@ server <- function(input, output, session) {
 
   options(
     # Tambahkan fungsi lain untuk modularisasi
-    showNotification(
-      "Terjadi kesalahan sistem. Silakan ulangi.",
-      type = "error",
-      duration = NULL
-    )
-  })
+    shiny.error = function() {
+      showNotification(
+        "Terjadi kesalahan sistem. Silakan ulangi.",
+        type = "error",
+        duration = NULL
+      )
+    }
+  )
 
   # (Future plan is now handled globally, removed broken onStop hook)
 
@@ -2486,7 +2499,7 @@ server <- function(input, output, session) {
     hasil <- hasil_forecast6()
     hasilfulldf <- gabung_hasil_forecast1(hasil)
     dfxx <- df6()
-    dfxx()$Date <- as.Date(dfxx$Date)
+    dfxx$Date <- as.Date(dfxx$Date)
     hasilfulldf$Date <- as.Date(hasilfulldf$Date)
 
     df <- bind_rows(dfxx, hasilfulldf) %>%
@@ -2519,7 +2532,7 @@ server <- function(input, output, session) {
       hasil <- hasil_forecast6()
       hasilfulldf <- gabung_hasil_forecast1(hasil)
       dfxx <- df6()
-      dfxx()$Date <- as.Date(dfxx$Date)
+      dfxx$Date <- as.Date(dfxx$Date)
       hasilfulldf$Date <- as.Date(hasilfulldf$Date)
 
       df_download <- bind_rows(dfxx, hasilfulldf) %>%
