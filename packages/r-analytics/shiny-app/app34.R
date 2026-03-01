@@ -173,7 +173,7 @@ if (!is.null(con)) {
     }
   )
 } else {
-  ra_log_warn("Cannot load PD/LGD configs: Database connection is NULL")
+  ra_log_warn("Running in offline mode: DB unavailable at startup, using empty PD/LGD config")
   LGD <- data.frame()
   PD <- data.frame()
 }
@@ -540,8 +540,6 @@ ui <- dashboardPage(
               box(
                 title = "Parameter", status = "primary", width = 6, solidHeader = TRUE,
                 numericInput("pval", "P-value", value = 0.05),
-                numericInput("pdafl_ttc_pd", "Through-the-Cycle (TTC) PD (%)", value = 5.0, min = 0, max = 100, step = 0.1),
-                numericInput("pdafl_scaling_factor", "Scaling Factor", value = 1.0, min = 0, step = 0.1),
                 numericInput("rsq", "R-Square Single Factor", value = 0.0),
                 numericInput("corr", "Correlation", value = 0.6),
                 radioButtons("normal", "Normality test", choices = c("shapiro", "kolmogorov", "anderson")),
@@ -1811,19 +1809,34 @@ server <- function(input, output, session) {
 
 
   observeEvent(input$runmodel, {
-    ra_log_debug("Computing combined model table")
-    tryCatch(
-      {
-        ra_log_debug("Combined model row counts", context = list(
-          reg2 = nrow(model_reg2var()),
-          reg3 = nrow(model_reg3var()),
-          reg23 = nrow(model_reg23var())
-        ))
-      },
-      error = function(e) {
-        ra_log_warn("Combined model debug failed", context = list(error = e$message))
-      }
-    )
+    removeNotification(id = "runmodel_notif")
+    withProgress(message = 'Memulai perhitungan model...', value = 0, {
+      ra_log_debug("Computing combined model table")
+      tryCatch(
+        {
+          incProgress(0.1, detail = "Mengevaluasi regresi univariat & multivariat...")
+          # Force evaluation of the final model to trigger reactive chain and catch any errors
+          nrow_final <- nrow(finalmodel())
+          
+          incProgress(0.8, detail = "Menyelesaikan kombinasi & uji asumsi...")
+          
+          showNotification(paste("Perhitungan sukses. Ditemukan", nrow_final, "kombinasi model akhir yang memenuhi syarat."), type = "message", duration = 5, id = "runmodel_notif")
+          
+          ra_log_debug("Combined model row counts", context = list(
+            reg2 = nrow(model_reg2var()),
+            reg3 = nrow(model_reg3var()),
+            reg23 = nrow(model_reg23var()),
+            final = nrow_final
+          ))
+          
+          incProgress(0.1, detail = "Selesai!")
+        },
+        error = function(e) {
+          showNotification(paste("Terjadi kesalahan komputasi:", e$message), type = "error", duration = 10, id = "runmodel_notif")
+          ra_log_warn("Combined model debug failed", context = list(error = e$message))
+        }
+      )
+    })
   })
 
   ############## uji asumsi########################

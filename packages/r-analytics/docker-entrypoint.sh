@@ -49,14 +49,12 @@ else
   # Centralized log dir for Docker visibility.
   export R_ANALYTICS_LOG_DIR="${R_ANALYTICS_LOG_DIR:-/opt/r-analytics/logs}"
   mkdir -p "${R_ANALYTICS_LOG_DIR}"
-  touch "${R_ANALYTICS_LOG_DIR}/ifrs9_app.log" \
-        "${R_ANALYTICS_LOG_DIR}/ifrs9_error.log" \
-        "${R_ANALYTICS_LOG_DIR}/ifrs9_data.log" \
-        "${R_ANALYTICS_LOG_DIR}/ifrs9_model.log" \
-        "${R_ANALYTICS_LOG_DIR}/ifrs9_pd.log"
+  for log_file in "ifrs9_app.log" "ifrs9_error.log" "ifrs9_data.log" "ifrs9_model.log" "ifrs9_pd.log"; do
+    > "${R_ANALYTICS_LOG_DIR}/${log_file}"
+  done
 
   echo "Starting R Analytics API (Port ${API_PORT})..."
-  Rscript start_api.R 2>&1 | prefix_logs "[R-API] " &
+  stdbuf -oL -eL Rscript start_api.R 2>&1 | prefix_logs "[R-API] " &
   API_PIPE_PID=$!
 
   echo "Starting R Analytics Dashboard (Port ${DASHBOARD_PORT})..."
@@ -64,7 +62,7 @@ else
     cd /opt/r-analytics/shiny-app
     export R_ANALYTICS_SHINY_APP_DIR="/opt/r-analytics/shiny-app"
 
-    Rscript -e "shiny::runApp('/opt/r-analytics/shiny-app/app34.R', host='0.0.0.0', port=as.integer(Sys.getenv('R_PORT','4236')), launch.browser=FALSE)"
+    stdbuf -oL -eL Rscript -e "shiny::runApp('/opt/r-analytics/shiny-app/app34.R', host='0.0.0.0', port=as.integer(Sys.getenv('R_PORT','4236')), launch.browser=FALSE)"
   ) 2>&1 | prefix_logs "[SHINY] " &
   SHINY_PIPE_PID=$!
 

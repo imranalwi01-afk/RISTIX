@@ -27,6 +27,7 @@ import { journalParameterRoutes } from './journal-parameters.routes'
 import { segmentationRoutes } from './segmentation.routes'
 import { impairmentRoutes } from './impairment.routes'
 import { amortizationRoutes } from './amortization.routes'
+import { forecastRoutes } from './forecast.routes'
 import { reportsRoutes } from './reports.routes'
 import { jobsRoutes } from './jobs.routes'
 import { consultantsRoutes } from './consultants.routes'
@@ -93,6 +94,7 @@ routes.route('/banking/parameters/segmentation', segmentationRoutes)
 routes.route('/banking/individual/impairment', individualImpairmentRoutes)
 routes.route('/banking/ifrs9/impairment-module', impairmentRoutes)
 routes.route('/banking/ifrs9/amortization-module', amortizationRoutes)
+routes.route('/banking/ifrs9/forecast', forecastRoutes)
 
 // NEW STUB ROUTES - Main banking operations
 routes.route('/banking', bankingRoutes)

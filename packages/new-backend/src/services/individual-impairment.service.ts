@@ -216,7 +216,7 @@ export class IndividualImpairmentService {
                 scenarioCode: r.name.toUpperCase().replace(/\s+/g, '_'),
                 scenarioName: r.name,
                 description: `Scenario with DR=${r.discountRate}%, RR=${r.recoveryRate}%, GR=${r.growthRate}%`,
-                status: 'APPROVED', 
+                status: 'APPROVED',
                 activeFlag: r.isActive,
                 createdDate: r.createdAt?.toISOString(),
                 createdBy: r.createdBy || 'System',
@@ -382,23 +382,23 @@ export class IndividualImpairmentService {
     // WATCHLIST (1.4.1) -> frs9_imp_ia_header
     // =========================================================================
 
-    async getWatchlist(tenantId: string, filters: { 
-        search?: string; 
-        stage?: number; 
-        impaired_flag?: string; 
-        status?: string; 
+    async getWatchlist(tenantId: string, filters: {
+        search?: string;
+        stage?: number;
+        impaired_flag?: string;
+        status?: string;
         rating_code?: string;
         dateFrom?: string;
         dateTo?: string;
-        limit?: number; 
-        offset?: number 
+        limit?: number;
+        offset?: number
     }) {
         try {
             const { limit = 50, offset = 0, search, stage, impaired_flag, status, rating_code, dateFrom, dateTo } = filters;
 
             // 1. Build Query Conditions for Master Account (Source Data)
             const conditions = [];
-            
+
             if (search) {
                 conditions.push(or(
                     ilike(frs9MasterAccount.accountNumber, `%${search}%`),
@@ -422,7 +422,7 @@ export class IndividualImpairmentService {
             if (stage) {
                 conditions.push(eq(frs9MasterAccount.stage, String(stage)));
             }
-            
+
             if (impaired_flag) {
                 conditions.push(eq(frs9MasterAccount.impairedFlag, impaired_flag === 'I'));
             }
@@ -431,7 +431,7 @@ export class IndividualImpairmentService {
             const countResult = await legacyDb.select({ count: sql<number>`count(*)` })
                 .from(frs9MasterAccount)
                 .where(and(...conditions));
-            
+
             const total = Number(countResult[0]?.count || 0);
 
             if (total === 0) return { data: [], total: 0 };
@@ -446,7 +446,7 @@ export class IndividualImpairmentService {
 
             // 4. Fetch Overrides (Manual Interventions) from Header
             const accountNumbers = results.map(r => r.accountNumber).filter((n): n is string => !!n);
-            const overrides = accountNumbers.length > 0 
+            const overrides = accountNumbers.length > 0
                 ? await legacyDb.select()
                     .from(frs9ImpIaHeader)
                     .where(inArray(frs9ImpIaHeader.accountNumber, accountNumbers))
@@ -463,7 +463,7 @@ export class IndividualImpairmentService {
                 let currentImpaired = row.impairedFlag ? 'I' : 'N';
 
                 if (override) {
-                    currentStage = override.impairedFlag === 'T' ? 3 : 1; 
+                    currentStage = override.impairedFlag === 'T' ? 3 : 1;
                     currentStatus = STATUS_MAP_TO_STRING[override.status as number] || 'IN_PROGRESS';
                     currentNotes = override.triggerRemarks || 'Manual Override';
                     currentImpaired = override.impairedFlag === 'T' ? 'I' : 'N';
@@ -502,7 +502,7 @@ export class IndividualImpairmentService {
             // 6. Final Filter (Status filtering applies to Overrides primarily)
             let filteredResponse = mergedData;
             if (status) {
-                 filteredResponse = mergedData.filter(item => item.assessment_status === status);
+                filteredResponse = mergedData.filter(item => item.assessment_status === status);
             }
 
             return {
@@ -669,7 +669,7 @@ export class IndividualImpairmentService {
                 .from(frs9MasterAccount)
                 .where(eq(frs9MasterAccount.accountId, accountId))
                 .limit(1);
-            
+
             if (!masterAccount.length) throw new Error("Master Account not found");
             const ma = masterAccount[0];
 
@@ -693,7 +693,7 @@ export class IndividualImpairmentService {
                 createdby: userId,
                 createddate: new Date().toISOString(),
                 createdhost: 'localhost',
-                
+
                 // Defaults / Mapped from Master
                 outstanding: ma.outstanding || "0",
                 plafond: ma.plafond || "0",
@@ -841,7 +841,7 @@ export class IndividualImpairmentService {
             })
             .where(eq(frs9ImpIaHeader.pkid, existing[0].pkid))
             .returning();
-            
+
         return updated; // Return object directly
     }
 
@@ -864,7 +864,7 @@ export class IndividualImpairmentService {
             })
             .where(eq(frs9ImpIaHeader.pkid, existing[0].pkid))
             .returning();
-        
+
         return updated; // Return object directly
     }
 
@@ -888,7 +888,7 @@ export class IndividualImpairmentService {
             })
             .where(eq(frs9ImpIaHeader.pkid, existing[0].pkid))
             .returning();
-            
+
         return updated; // Return object directly
     }
 
@@ -898,54 +898,58 @@ export class IndividualImpairmentService {
         return maxId + 1;
     }
 
-    // Get Staging Analysis - real implementation with filters
-    async getStagingAnalysis(tenantId: string, filters: { 
-        stage?: string; 
-        segmentId?: string; 
-        startDate?: string; 
-        endDate?: string 
+    // Get Staging Analysis - unified implementation with filters
+    async getStagingAnalysis(tenantId: string, filters: {
+        stage?: string;
+        segmentId?: string;
+        startDate?: string;
+        endDate?: string
     } = {}) {
         try {
-            // Build WHERE conditions dynamically
-            const whereConditions = [];
-            
-            if (filters.stage) {
-                whereConditions.push(sql`stage = ${filters.stage}`);
-            }
-            
+            // Build WHERE conditions for the master account (base)
+            const masterConditions = [];
+
             if (filters.segmentId) {
-                whereConditions.push(sql`segment_id = ${filters.segmentId}`);
+                masterConditions.push(sql`m.segment = ${filters.segmentId}`);
             }
-            
             if (filters.startDate) {
-                whereConditions.push(sql`prc_date >= ${filters.startDate}`);
+                masterConditions.push(sql`m.prc_date >= ${filters.startDate}`);
             }
-            
             if (filters.endDate) {
-                whereConditions.push(sql`prc_date <= ${filters.endDate}`);
+                masterConditions.push(sql`m.prc_date <= ${filters.endDate}`);
             }
 
-            const whereClause = whereConditions.length > 0 
-                ? sql`WHERE ${whereConditions.reduce((acc, condition, index) => 
-                    index === 0 ? condition : sql`${acc} AND ${condition}`
-                )}`
+            const masterWhere = masterConditions.length > 0
+                ? sql`WHERE ${masterConditions.reduce((acc, condition, index) => index === 0 ? condition : sql`${acc} AND ${condition}`)}`
                 : sql``;
 
-            // Query frs9_imp_ca_result_h for staging analysis with filters
+            // We apply the stage filter AFTER computing the final unified stage
+            const stageFilter = filters.stage ? sql`HAVING COALESCE(MAX(ia.stage), MAX(ca.stage), MAX(m.stage)) = ${filters.stage}` : sql``;
+
             const query = sql`
+                WITH latest_date AS (
+                    SELECT MAX(prc_date) as prc_date FROM frs9_master_account
+                )
                 SELECT 
-                    prc_date as "prcDate",
-                    stage,
-                    segment_id as "segmentId",
-                    SUM(CAST(outstanding AS DECIMAL)) as "totalOutstanding",
-                    SUM(CAST(ecl_amount AS DECIMAL)) as "totalECL",
-                    AVG(CAST(outstanding AS DECIMAL)) as "avgOutstanding"
-                FROM frs9_imp_ca_result_h 
-                ${whereClause}
-                GROUP BY prc_date, stage, segment_id
-                ORDER BY prc_date DESC, stage
+                    m.prc_date as "prcDate",
+                    COALESCE(MAX(ia.stage), MAX(ca.stage), MAX(m.stage)) as "stage",
+                    m.segment as "segmentId",
+                    SUM(CAST(m.outstanding AS DECIMAL)) as "totalOutstanding",
+                    SUM(COALESCE(CAST(ia.ecl_ia_amt AS DECIMAL), CAST(ca.ecl_amount AS DECIMAL), 0)) as "totalECL",
+                    AVG(CAST(m.outstanding AS DECIMAL)) as "avgOutstanding"
+                FROM frs9_master_account m
+                LEFT JOIN frs9_imp_ia_header ia 
+                    ON m.account_id = ia.account_id AND ia.status = 1 -- Only approved IA overrides
+                LEFT JOIN frs9_imp_ca_result_h ca 
+                    ON m.account_id = ca.account_id AND m.prc_date = ca.prc_date
+                ${masterWhere}
+                -- If no date filter is provided, default to the latest date
+                ${(!filters.startDate && !filters.endDate) ? sql`AND m.prc_date = (SELECT prc_date FROM latest_date)` : sql``}
+                GROUP BY m.prc_date, m.segment
+                ${stageFilter}
+                ORDER BY m.prc_date DESC, "stage", m.segment
             `;
-            
+
             const result = await legacyDb.execute(query);
             return result;
         } catch (error) {
@@ -960,8 +964,8 @@ export class IndividualImpairmentService {
             // Determine target date safely
             // Smart Default: If no date provided, prioritize latest date with significant data (>10 rows)
             // to avoid showing empty dashboards due to future test dates with few records.
-            const targetDateQuery = date 
-                ? sql`SELECT ${date}::date as target_date` 
+            const targetDateQuery = date
+                ? sql`SELECT ${date}::date as target_date`
                 : sql`
                     SELECT prc_date as target_date 
                     FROM frs9_master_account 
@@ -997,7 +1001,7 @@ export class IndividualImpairmentService {
                 FROM counts c
                 CROSS JOIN completed cmp
             `;
-            
+
             const result = await legacyDb.execute(query);
             const row = result[0];
             return {
@@ -1013,27 +1017,39 @@ export class IndividualImpairmentService {
         }
     }
 
-    // Get Staging Summary - real implementation  
+    // Get Staging Summary - unified implementation  
     async getStagingSummary(tenantId: string) {
         try {
-            // Get latest staging summary
+            // Get latest unified staging summary
             const query = sql`
+                WITH latest_date AS (
+                    SELECT MAX(prc_date) as prc_date FROM frs9_master_account
+                ),
+                unified_data AS (
+                    SELECT 
+                        m.account_id,
+                        m.outstanding,
+                        COALESCE(ia.stage, ca.stage, m.stage) as final_stage,
+                        COALESCE(ia.ecl_ia_amt, ca.ecl_amount, 0) as final_ecl
+                    FROM frs9_master_account m
+                    LEFT JOIN frs9_imp_ia_header ia 
+                        ON m.account_id = ia.account_id AND ia.status = 1
+                    LEFT JOIN frs9_imp_ca_result_h ca 
+                        ON m.account_id = ca.account_id AND m.prc_date = ca.prc_date
+                    WHERE m.prc_date = (SELECT prc_date FROM latest_date)
+                )
                 SELECT 
                     SUM(CAST(outstanding AS DECIMAL)) as "totalOutstanding",
-                    SUM(CAST(ecl_amount AS DECIMAL)) as "totalECL",
-                    COUNT(CASE WHEN stage = 1 THEN 1 END) as "stage1Count",
-                    COUNT(CASE WHEN stage = 2 THEN 1 END) as "stage2Count", 
-                    COUNT(CASE WHEN stage = 3 THEN 1 END) as "stage3Count",
-                    SUM(CASE WHEN stage = 1 THEN CAST(ecl_amount AS DECIMAL) ELSE 0 END) as "stage1ECL",
-                    SUM(CASE WHEN stage = 2 THEN CAST(ecl_amount AS DECIMAL) ELSE 0 END) as "stage2ECL",
-                    SUM(CASE WHEN stage = 3 THEN CAST(ecl_amount AS DECIMAL) ELSE 0 END) as "stage3ECL"
-                FROM frs9_imp_ca_result_h 
-                WHERE prc_date = (
-                    SELECT MAX(prc_date) 
-                    FROM frs9_imp_ca_result_h 
-                )
+                    SUM(CAST(final_ecl AS DECIMAL)) as "totalECL",
+                    COUNT(CASE WHEN final_stage = 1 THEN 1 END) as "stage1Count",
+                    COUNT(CASE WHEN final_stage = 2 THEN 1 END) as "stage2Count", 
+                    COUNT(CASE WHEN final_stage = 3 THEN 1 END) as "stage3Count",
+                    SUM(CASE WHEN final_stage = 1 THEN CAST(final_ecl AS DECIMAL) ELSE 0 END) as "stage1ECL",
+                    SUM(CASE WHEN final_stage = 2 THEN CAST(final_ecl AS DECIMAL) ELSE 0 END) as "stage2ECL",
+                    SUM(CASE WHEN final_stage = 3 THEN CAST(final_ecl AS DECIMAL) ELSE 0 END) as "stage3ECL"
+                FROM unified_data
             `;
-            
+
             const result = await legacyDb.execute(query);
             return result[0] || {
                 totalOutstanding: 0,
