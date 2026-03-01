@@ -181,20 +181,6 @@ if (!is.null(con)) {
 plan(multisession, workers = 7)
 ra_log_info("Global multiprocessing plan set to multisession with 7 workers")
 
-# Define UI
-ui <- dashboardPage(
-    df <- dbGetQuery(con, "SELECT * FROM frs9_imp_ca_pd_config")
-    normalize_config_df(df, "pd")
-  }, error = function(e) {
-      ra_log_warn("Failed to load PD config", context = list(error = e$message))
-      data.frame()
-    }
-  )
-} else {
-  ra_log_warn("Running in offline mode: DB unavailable at startup, using empty PD/LGD config")
-  LGD <- data.frame()
-  PD <- data.frame()
-}
 
 
 pd_tables_map <- list(
