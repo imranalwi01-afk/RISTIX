@@ -546,7 +546,7 @@ ui <- dashboardPage(
               ),
               box(
                 title = "Intuition", status = "primary", width = 6, solidHeader = TRUE,
-                DT::dataTableOutput("intuisi_table")
+                withSpinner(DTOutput("intuisi_table"))
               )
             ),
             fluidRow(
@@ -1521,9 +1521,15 @@ server <- function(input, output, session) {
   })
 
   # Tampilkan tabel
-  output$intuisi_table <- DT::renderDataTable({
+  output$intuisi_table <- renderDT({
     req(intuisiData$data)
-    DT::datatable(intuisiData$data, editable = TRUE, options = list(scrollX = TRUE))
+    datatable(intuisiData$data, 
+              editable = TRUE, 
+              options = list(
+                scrollX = TRUE, 
+                pageLength = 10,
+                dom = 'ltip'
+              ))
   })
 
   # Update data berdasarkan edit dari user
@@ -3110,317 +3116,169 @@ server <- function(input, output, session) {
   )
 
 
-  observeEvent(input$save_model_db, {
-    # req(input$model_name_input)
+  #' Save R Model to Database
+  #'
+  #' This function captures the current state of the model building pipeline,
+  #' generates an Excel workbook containing all intermediate and final results,
+  #' and persists it as a binary blob in the PostgreSQL database.
+  #'
+  #' @param name The descriptive name for the model (must be unique).
+  #' @param session The Shiny session object.
+  #'
+  #' @details
+  #' The function performs the following steps:
+  #' 1. Validates the existence of a database connection.
+  #' 2. Checks for duplicates in the `frs9_r_model_summary` table.
+  #' 3. Creates a multi-sheet Excel workbook using the `openxlsx` package.
+  #' 4. Captures data from approximately 17 reactive elements.
+  #' 5. Converts the workbook to a raw binary blob.
+  #' 6. Executes a SQL INSERT statement into `frs9_r_model_summary`.
+  #'
+  #' @return NULL (side effects: database insertion and UI notifications).
+  save_r_model_to_db <- function(name, session) {
+    ra_log_info("Starting model save process", context = list(model_name = name))
 
+    # Check connection health
+    is_valid <- tryCatch(dbIsValid(con), error = function(e) FALSE)
+    if (is.null(con) || !is_valid) {
+      ra_log_error("Database connection (con) is NULL or invalid. Cannot save.")
+      showNotification("❌ Koneksi database tidak tersedia atau terputus.", type = "error")
+      return()
+    }
 
-    # --- VALIDASI NAMA (wajib & unik) ---
-    nm <- input$model_name_input
-    if (is.null(nm)) nm <- ""
-    nm <- gsub("^\\s+|\\s+$", "", nm) # trim spasi kiri-kanan
-
+    # 1. Validation Logic
+    nm <- gsub("^\\s+|\\s+$", "", name)
     if (nm == "") {
       showNotification("Nama model tidak boleh kosong.", type = "error")
       return()
     }
-    if (nchar(nm) > 50) {
-      showNotification("Nama model terlalu panjang (maks 50 karakter).", type = "error")
-      return()
-    }
 
-    # Cek duplikat di DB (case-insensitive) untuk yang belum dihapus
-    dup <- dbGetQuery(
-      con,
-      "SELECT model_id
-     FROM frs9_r_model_summary
-     WHERE lower(model_name) = lower($1)
-       AND id_deleted = FALSE
-     LIMIT 1",
-      params = list(nm)
-    )
+    # 2. Duplicate Check
+    ra_log_info("Checking for duplicate model name", context = list(name = nm))
+    dup <- tryCatch({
+       dbGetQuery(con,
+        "SELECT model_id FROM frs9_r_model_summary WHERE lower(model_name) = lower($1) AND id_deleted = FALSE LIMIT 1",
+        params = list(nm)
+      )
+    }, error = function(e) {
+      ra_log_error("Failed to check duplicates", context = list(error = e$message))
+      return(data.frame())
+    })
 
     if (nrow(dup) > 0) {
-      showNotification(
-        paste0("Nama model '", nm, "' sudah ada (ID=", dup$model_id[1], "). Gunakan nama lain."),
-        type = "error"
-      )
+      showNotification(paste0("Nama model '", nm, "' sudah ada. Gunakan nama lain."), type = "error")
       return()
     }
 
-    # Simpan ke workbook
+    # 3. Workbook Creation
+    ra_log_info("Generating Excel workbook for model storage")
     file_path <- tempfile(fileext = ".xlsx")
     wb <- createWorkbook()
-    # Tambahkan semua data frame hasil ke sheet Excel, gunakan tryCatch untuk menangani error
 
-    addWorksheet(wb, "Data Y awal")
-    tryCatch(
-      {
-        writeData(wb, "Data Y awal", data_dependent_tr())
-      },
-      error = function(e) {
-        log_sheet_error("Data Y awal", e)
-        writeData(wb, "Data Y awal", data.frame()) # Kosongkan jika error
-      }
-    )
+    # Helper to add sheet safely
+    add_safe_sheet <- function(wb, sheet_name, reactive_expr) {
+      addWorksheet(wb, sheet_name)
+      # We use tryCatch with a timeout/null check to prevent silent hangs
+      data <- tryCatch({
+        val <- reactive_expr()
+        if (is.null(val)) data.frame(Info = "No Data") else val
+      }, error = function(e) {
+        ra_log_warn(paste("Failed to capture data for sheet:", sheet_name), context = list(error = e$message))
+        data.frame(Error = e$message)
+      })
+      writeData(wb, sheet_name, data)
+    }
 
-    addWorksheet(wb, "Data full")
-    tryCatch(
-      {
-        writeData(wb, "Data full", yx())
-      },
-      error = function(e) {
-        log_sheet_error("Data full", e)
-        writeData(wb, "Data full", data.frame()) # Kosongkan jika error
-      }
-    )
+    # List of all reactives to capture
+    ra_log_debug("Capturing reactive data sources")
+    add_safe_sheet(wb, "Data Y awal", data_dependent_tr)
+    add_safe_sheet(wb, "Data full", yx)
+    add_safe_sheet(wb, "Data Trained", data1)
+    add_safe_sheet(wb, "Intuisi", function() intuisiData$data) 
+    add_safe_sheet(wb, "Sign Intuisi", signintuisikor)
+    add_safe_sheet(wb, "Single Factor", model_reg1var)
+    add_safe_sheet(wb, "Korelasi 2 Var", korel_reg2var)
+    add_safe_sheet(wb, "Korelasi 3 Var", korel_reg3var)
+    add_safe_sheet(wb, "Regresi 2 Var", model_reg2var)
+    add_safe_sheet(wb, "Regresi 3 Var", model_reg3var)
+    add_safe_sheet(wb, "Gabungan Model", model_reg23var)
+    add_safe_sheet(wb, "Uji Asumsi", ujiasumsif)
+    add_safe_sheet(wb, "Backtest", backtestf)
+    add_safe_sheet(wb, "Final Model", finalmodel)
+    add_safe_sheet(wb, "Model Akhir", tabel_pemilihan_model_akhir)
+    add_safe_sheet(wb, "Forecast X", forecastxxx)
+    add_safe_sheet(wb, "Forecast Y", hasilforecast)
 
-    addWorksheet(wb, "Data Trained")
-    tryCatch(
-      {
-        writeData(wb, "Data Trained", data1())
-      },
-      error = function(e) {
-        log_sheet_error("Data Trained", e)
-        writeData(wb, "Data Trained", data.frame()) # Kosongkan jika error
-      }
-    )
-
-    addWorksheet(wb, "Intuisi")
-    tryCatch(
-      {
-        writeData(wb, "Intuisi", refInt())
-      },
-      error = function(e) {
-        log_sheet_error("Intuisi", e)
-        writeData(wb, "Intuisi", data.frame()) # Kosongkan jika error
-      }
-    )
-
-
-    addWorksheet(wb, "Sign Intuisi")
-    tryCatch(
-      {
-        writeData(wb, "Sign Intuisi", signintuisikor())
-      },
-      error = function(e) {
-        log_sheet_error("Sign Intuisi", e)
-        writeData(wb, "Sign Intuisi", data.frame()) # Kosongkan jika error
-      }
-    )
-
-    addWorksheet(wb, "Single Factor")
-    tryCatch(
-      {
-        writeData(wb, "Single Factor", model_reg1var())
-      },
-      error = function(e) {
-        log_sheet_error("Single Factor", e)
-        writeData(wb, "Single Factor", data.frame()) # Kosongkan jika error
-      }
-    )
-
-    addWorksheet(wb, "Korelasi 2 Var")
-    tryCatch(
-      {
-        writeData(wb, "Korelasi 2 Var", korel_reg2var())
-      },
-      error = function(e) {
-        log_sheet_error("Korelasi 2 Var", e)
-        writeData(wb, "Korelasi 2 Var", data.frame()) # Kosongkan jika error
-      }
-    )
-
-    addWorksheet(wb, "Korelasi 3 Var")
-    tryCatch(
-      {
-        writeData(wb, "Korelasi 3 Var", korel_reg3var())
-      },
-      error = function(e) {
-        log_sheet_error("Korelasi 3 Var", e)
-        writeData(wb, "Korelasi 3 Var", data.frame()) # Kosongkan jika error
-      }
-    )
-
-    addWorksheet(wb, "Regresi 2 Var")
-    tryCatch(
-      {
-        writeData(wb, "Regresi 2 Var", model_reg2var())
-      },
-      error = function(e) {
-        log_sheet_error("Regresi 2 Var", e)
-        writeData(wb, "Regresi 2 Var", data.frame()) # Kosongkan jika error
-      }
-    )
-
-    addWorksheet(wb, "Regresi 3 Var")
-    tryCatch(
-      {
-        writeData(wb, "Regresi 3 Var", model_reg3var())
-      },
-      error = function(e) {
-        log_sheet_error("Regresi 3 Var", e)
-        writeData(wb, "Regresi 3 Var", data.frame()) # Kosongkan jika error
-      }
-    )
-
-    addWorksheet(wb, "Gabungan Model")
-    tryCatch(
-      {
-        writeData(wb, "Gabungan Model", model_reg23var())
-      },
-      error = function(e) {
-        log_sheet_error("Gabungan Model", e)
-        writeData(wb, "Gabungan Model", data.frame()) # Kosongkan jika error
-      }
-    )
-
-    addWorksheet(wb, "Uji Asumsi")
-    tryCatch(
-      {
-        writeData(wb, "Uji Asumsi", ujiasumsif())
-      },
-      error = function(e) {
-        log_sheet_error("Uji Asumsi", e)
-        writeData(wb, "Uji Asumsi", data.frame()) # Kosongkan jika error
-      }
-    )
-
-    addWorksheet(wb, "Backtest")
-    tryCatch(
-      {
-        writeData(wb, "Backtest", backtestf())
-      },
-      error = function(e) {
-        log_sheet_error("Backtest", e)
-        writeData(wb, "Backtest", data.frame()) # Kosongkan jika error
-      }
-    )
-
-    addWorksheet(wb, "Final Model")
-    tryCatch(
-      {
-        writeData(wb, "Final Model", finalmodel())
-      },
-      error = function(e) {
-        log_sheet_error("Final Model", e)
-        writeData(wb, "Final Model", data.frame()) # Kosongkan jika error
-      }
-    )
-
-    addWorksheet(wb, "Model Akhir")
-    tryCatch(
-      {
-        writeData(wb, "Model Akhir", tabel_pemilihan_model_akhir())
-      },
-      error = function(e) {
-        log_sheet_error("Model Akhir", e)
-        writeData(wb, "Model Akhir", data.frame()) # Kosongkan jika error
-      }
-    )
-
-    addWorksheet(wb, "Forecast X")
-    tryCatch(
-      {
-        writeData(wb, "Forecast X", forecastxxx())
-      },
-      error = function(e) {
-        log_sheet_error("Forecast X", e)
-        writeData(wb, "Forecast X", data.frame()) # Kosongkan jika error
-      }
-    )
-
-    addWorksheet(wb, "Forecast Y")
-    tryCatch(
-      {
-        writeData(wb, "Forecast Y", hasilforecast())
-      },
-      error = function(e) {
-        log_sheet_error("Forecast Y", e)
-        writeData(wb, "Forecast Y", data.frame()) # Kosongkan jika error
-      }
-    )
-
-
+    # 4. Save and Read binary
+    ra_log_info("Saving workbook to temporary file")
     saveWorkbook(wb, file = file_path, overwrite = TRUE)
 
     if (!file.exists(file_path)) {
-      showNotification("❌ File hasil workbook tidak ditemukan.", type = "error")
+      ra_log_error("Failed to write temporary Excel file")
+      showNotification("❌ Gagal membuat file Excel.", type = "error")
       return()
     }
 
-    file_size <- file.info(file_path)$size
-    if (is.na(file_size) || file_size == 0) {
-      showNotification("❌ File Excel kosong atau gagal dibuat.", type = "error")
+    ra_log_info("Reading binary data from file", context = list(path = file_path, size = file.info(file_path)$size))
+    raw_data <- tryCatch({
+      con_file <- file(file_path, "rb")
+      bin_content <- readBin(con_file, what = "raw", n = file.info(file_path)$size)
+      close(con_file)
+      bin_content
+    }, error = function(e) {
+      ra_log_error("Binary read failure", context = list(error = e$message))
+      return(NULL)
+    })
+
+    if (is.null(raw_data) || length(raw_data) == 0) {
+      showNotification("❌ Gagal memproses data model.", type = "error")
       return()
     }
 
-
-    # Baca file sebagai raw
-    # raw_data <- readBin(file_path, what = "raw", n = file.info(file_path)$size)
-    # Baca sebagai raw, pastikan bukan list
-    raw_data <- tryCatch(
-      {
-        con_file <- file(file_path, "rb") # rb = read binary
-        on.exit(close(con_file), add = TRUE)
-        readBin(con_file, what = "raw", n = file.info(file_path)$size)
-      },
-      error = function(e) {
-        showNotification(paste("❌ Gagal membaca file sebagai raw:", e$message), type = "error")
-        return(NULL)
-      }
-    )
-
-
-    if (is.null(raw_data) || !is.raw(raw_data) || length(raw_data) == 0) {
-      showNotification("❌ Data file tidak valid untuk disimpan ke PostgreSQL.", type = "error")
-      return()
-    }
-
-    ra_log_debug("Workbook raw payload prepared", context = list(
-      type = typeof(raw_data),
-      length = length(raw_data)
-    ))
-
-
-    # Ambil nilai dari satu baris model final
-    model_row <- tabel_pemilihan_model_akhir() # Gunakan baris pertama saja sebagai ringkasan
+    # 5. Database Insertion
+    ra_log_info("Executing DB Insertion")
+    model_row <- tryCatch(tabel_pemilihan_model_akhir(), error = function(e) data.frame())
     r_squared <- if ("R_squared" %in% names(model_row)) model_row$R_squared else NA
     mape <- if ("MAPEgabung" %in% names(model_row)) model_row$MAPEgabung else NA
-    dep_var <- namay()
+    dep_var <- tryCatch(namay(), error = function(e) "Unknown")
+    user_name <- Sys.getenv("USERNAME", Sys.getenv("USER", "IAF_USER"))
 
-    # Simpan ke PostgreSQL
-
-    tryCatch(
-      {
-        query <- "
-              INSERT INTO frs9_r_model_summary
-              (model_name, model_status, dependent_variable, r_squared, mape, data_file, created_by)
-              VALUES ($1, $2, $3, $4, $5, $6, $7)
-              "
-
-        stmt <- dbSendQuery(con, query)
-
-        # Kirim parameter satu per satu
-        dbBind(stmt, list(
-          nm,
-          "active",
-          dep_var,
-          r_squared,
-          mape,
-          I(list(raw_data)), # penting: bungkus dengan I() + list() agar dianggap binary
-          Sys.getenv("USERNAME")
-        ))
-
-        dbClearResult(stmt)
-
-        showNotification("✅ Model berhasil disimpan ke database.", type = "message")
-        updateTextInput(session, "model_name_input", value = "")
-      },
-      error = function(e) {
-        showNotification(paste("❌ Gagal simpan model:", e$message), type = "error")
+    tryCatch({
+      query <- "
+        INSERT INTO frs9_r_model_summary
+        (model_name, model_status, dependent_variable, r_squared, mape, data_file, created_by)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+      "
+      stmt <- dbSendQuery(con, query)
+      dbBind(stmt, list(
+        nm, "active", dep_var, r_squared, mape,
+        I(list(raw_data)),
+        user_name
+      ))
+      dbClearResult(stmt)
+      
+      ra_log_info("Model successfully saved to database", context = list(name = nm))
+      showNotification("✅ Model berhasil disimpan ke database.", type = "message")
+      updateTextInput(session, "model_name_input", value = "")
+      
+      # Refresh table list if it exists
+      if (exists("model_summary_data_DB")) {
+        try(model_summary_data_DB(dbGetQuery(con, "SELECT model_id, model_name, model_status, dependent_variable, r_squared, mape, created_date FROM frs9_r_model_summary WHERE id_deleted = FALSE ORDER BY model_id DESC")))
       }
-    )
+
+    }, error = function(e) {
+      ra_log_error("Database insertion failure", context = list(error = e$message))
+      showNotification(paste("❌ Gagal simpan model:", e$message), type = "error")
+    })
+    
+    # Clean up
+    if (file.exists(file_path)) unlink(file_path)
+  }
+
+  observeEvent(input$save_model_db, {
+    save_r_model_to_db(input$model_name_input, session)
   })
+
 
 
   model_summary_data_DB <- reactiveVal({
