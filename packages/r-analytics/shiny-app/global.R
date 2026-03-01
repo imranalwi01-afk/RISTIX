@@ -500,7 +500,7 @@ tabel_korelasi2 <- function(data, chunk_size = 1000) {
   # Generate kombinasi unik dari 2 variabel dengan sumber berbeda
   valid_combinations_2 <- Filter(
     function(combo) length(unique(variable_source[combo])) == 2,
-    combn(independent_vars, 2, simplify = FALSE)
+    utils::combn(independent_vars, 2, simplify = FALSE)
   )
   
   # Fungsi untuk memproses dalam partisi
@@ -546,7 +546,7 @@ tabel_korelasi <- function(data, threshold = 0, chunk_size = 1000) {
   # Generate kombinasi unik dari tiga variabel dengan sumber berbeda
   valid_combinations_3 <- Filter(
     function(combo) length(unique(variable_source[combo])) == 3,
-    combn(independent_vars, 3, simplify = FALSE)
+    utils::combn(independent_vars, 3, simplify = FALSE)
   )
   
   # Jika tidak ada kombinasi valid
@@ -1607,14 +1607,19 @@ save_upload_to_db <- function(file_input, file_data, con,
     stop("File upload kosong atau gagal dikonversi ke binary.")
   }
   
+  # PostgreSQL sequence desync fix: Manually calculate the next ID
+  max_id_df <- dbGetQuery(con, "SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM upload_history")
+  next_id <- as.integer(max_id_df$next_id)
+  
   # Eksekusi insert ke DB
   query <- "
     INSERT INTO upload_history (
-      user_id, filename, file_type, purpose, rows, columns, data
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+      id, user_id, filename, file_type, purpose, rows, columns, data
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
   "
   
   dbExecute(con, query, params = list(
+    next_id,
     ifelse(is.null(user_id), Sys.info()[["user"]], user_id),
     filename,
     ext,

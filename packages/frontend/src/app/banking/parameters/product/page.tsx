@@ -28,31 +28,6 @@ import ProductDrawer from './components/ProductDrawer';
 import ProductToolbar from './components/ProductToolbar';
 import ProductFilterDrawer from './components/ProductFilterDrawer';
 
-// Constants
-const DATA_SOURCE_OPTIONS = [
-  { id: 'CORE', name: 'Core Banking' },
-  { id: 'LOS', name: 'Loan Origination System' },
-  { id: 'CBS', name: 'Central Banking System' },
-  { id: 'MANUAL', name: 'Manual Entry' },
-];
-
-const PRODUCT_GROUP_OPTIONS = [
-  { id: 'LOAN', name: 'Loans' },
-  { id: 'DEPOSIT', name: 'Deposits' },
-  { id: 'INVESTMENT', name: 'Investments' },
-  { id: 'TRADE', name: 'Trade Finance' },
-];
-
-const PRODUCT_TYPE_OPTIONS = [
-  { id: 'CONSUMER', name: 'Consumer Loan' },
-  { id: 'COMMERCIAL', name: 'Commercial Loan' },
-  { id: 'MORTGAGE', name: 'Mortgage / Housing' },
-  { id: 'CREDIT_CARD', name: 'Credit Card' },
-  { id: 'OVERDRAFT', name: 'Overdraft' },
-  { id: 'TERM_DEPOSIT', name: 'Term Deposit' },
-  { id: 'SAVINGS', name: 'Savings Account' },
-  { id: 'CURRENT', name: 'Current Account' },
-];
 
 export default function ProductParametersPage() {
   const { hasAnyPermission } = usePermission();
@@ -84,14 +59,15 @@ export default function ProductParametersPage() {
   const [selectedPendingRequest, setSelectedPendingRequest] = useState<any>(null);
   const [currentRecordForPending, setCurrentRecordForPending] = useState<any>(null);
 
-  // Options state
+  // Options state - populated dynamically from business settings (B0001, B0002, B0003)
+  // Starting as empty arrays; fallback defaults removed per tech spec requirement
   const [options, setOptions] = useState({
-    dataSources: DATA_SOURCE_OPTIONS,
-    productGroups: PRODUCT_GROUP_OPTIONS,
-    productTypes: PRODUCT_TYPE_OPTIONS,
-    currencies: [{ id: 'IDR', name: 'Indonesian Rupiah' }, { id: 'USD', name: 'US Dollar' }],
-    amortizationTypes: [{ id: 'EIR', name: 'Effective Interest Rate' }, { id: 'SLM', name: 'Straight Line' }],
-    instrumentClasses: [{ id: 'A', name: 'Asset' }, { id: 'L', name: 'Liabilities' }]
+    dataSources: [] as { id: string; name: string }[],
+    productGroups: [] as { id: string; name: string }[],
+    productTypes: [] as { id: string; name: string }[],
+    currencies: [] as { id: string; name: string }[],
+    amortizationTypes: [] as { id: string; name: string }[],
+    instrumentClasses: [] as { id: string; name: string }[],
   });
 
   // Data Loading

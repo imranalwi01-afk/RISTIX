@@ -1,5 +1,6 @@
 import { Effect, pipe } from 'effect'
 import { LgdConfigurationsRepository } from '../repositories/lgd-configurations.repository'
+import { ParametersRepository } from '../repositories/parameters.repository'
 import { NotFoundError } from '../lib/errors'
 import { frs9ImpCaLgdConfig } from '../db/schema'
 
@@ -129,21 +130,38 @@ export const LgdConfigurationsService = {
         )
     },
 
-    /** Get available LGD methods options. */
+    /**
+     * Get available LGD method options.
+     * Dynamically sourced from Business Setting B0022 in FRS9_PARAM_COMMOND.
+     * Per tech spec: LGD_METHOD = Combo Box (Business Setting B0022)
+     */
     getMethods: () => {
-        return Effect.succeed([
-            { value: 1, label: 'Linear' },
-            { value: 2, label: 'Vintage' },
-            { value: 3, label: 'Recovery Rate' },
-        ])
+        return pipe(
+            ParametersRepository.findDetailByCode('B0022'),
+            Effect.map(details =>
+                details.map(d => ({
+                    value: parseInt(d.value1 ?? '0', 10),
+                    label: d.value2 ?? d.value1 ?? '',
+                }))
+            )
+        )
     },
 
-    /** Get available population types options. */
+    /**
+     * Get available LGD population type options.
+     * Dynamically sourced from Business Setting B0023 in FRS9_PARAM_COMMOND.
+     * Per tech spec: POLUPATION_TYPE = Combo Box (Business Setting B0023)
+     */
     getPopulationTypes: () => {
-        return Effect.succeed([
-            { value: 'Monthly', label: 'Monthly' },
-            { value: 'Quarterly', label: 'Quarterly' },
-        ])
+        return pipe(
+            ParametersRepository.findDetailByCode('B0023'),
+            Effect.map(details =>
+                details.map(d => ({
+                    value: d.value1 ?? '',
+                    label: d.value2 ?? d.value1 ?? '',
+                }))
+            )
+        )
     }
 }
 

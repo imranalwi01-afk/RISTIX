@@ -144,6 +144,8 @@ normalize_config_df <- function(df, prefix) {
   if (!is.null(id_col)) names(df)[names(df) == id_col] <- "pkid"
   if (!is.null(name_col)) names(df)[names(df) == name_col] <- tolower(paste0(prefix, "_model_name"))
   
+  if (!is.null(name_col)) names(df)[names(df) == name_col] <- tolower(paste0(prefix, "_model_name"))
+  
   df
 }
 
@@ -158,6 +160,29 @@ if (!is.null(con)) {
     }
   )
   PD <- tryCatch({
+    df <- dbGetQuery(con, "SELECT * FROM frs9_imp_ca_pd_config")
+    normalize_config_df(df, "pd")
+  }, error = function(e) {
+      ra_log_warn("Failed to load PD config", context = list(error = e$message))
+      data.frame()
+    }
+  )
+} else {
+  ra_log_warn("Cannot load PD/LGD configs: Database connection is NULL")
+  LGD <- data.frame()
+  PD <- data.frame()
+}
+
+# =============================================================================
+# GLOBAL MULTIPROCESSING
+# =============================================================================
+# Set this globally so multiple users sharing the app don't crush each other's 
+# background processes when disconnecting.
+plan(multisession, workers = 7)
+ra_log_info("Global multiprocessing plan set to multisession with 7 workers")
+
+# Define UI
+ui <- dashboardPage(
     df <- dbGetQuery(con, "SELECT * FROM frs9_imp_ca_pd_config")
     normalize_config_df(df, "pd")
   }, error = function(e) {
@@ -1026,21 +1051,15 @@ server <- function(input, output, session) {
   plan(multisession, workers = 7)
 
   options(
-    shiny.error = function() {
-      showNotification(
-        "Terjadi kesalahan sistem. Silakan ulangi.",
-        type = "error",
-        duration = NULL
-      )
-    }
-  )
-
-  # Tambahkan cleanup saat app dimatikan
-  onStop(function() {
-    ra_log_info("Shiny stopped, resetting future plan to sequential")
-    plan(sequential) # agar tidak ganggu Shiny lain
+    # Tambahkan fungsi lain untuk modularisasi
+    showNotification(
+      "Terjadi kesalahan sistem. Silakan ulangi.",
+      type = "error",
+      duration = NULL
+    )
   })
 
+  # (Future plan is now handled globally, removed broken onStop hook)
 
   # variabel dependent
   rv_df <- reactiveVal() # Menyimpan df untuk digunakan ulang
@@ -1060,8 +1079,11 @@ server <- function(input, output, session) {
   observeEvent(input$submit, {
     # Ambil data berdasarkan input
     df <- NULL
+    ra_log_info(paste("Initiating Dependent Data load. Type:", input$dependent))
+    
     if (input$dependent == "OTHERS") {
       if (!is.null(input$file_upload_other1)) {
+        ra_log_info(paste("Loading custom dependent data from file:", input$file_upload_other1$name))
         ext <- tools::file_ext(input$file_upload_other1$name)
         df <- if (ext %in% c("xlsx", "xls")) {
           readxl::read_excel(input$file_upload_other1$datapath)
@@ -1069,6 +1091,7 @@ server <- function(input, output, session) {
           read.csv(input$file_upload_other1$datapath, sep = input$csv_sep1)
         }
       } else {
+        ra_log_warn("Custom upload selected but no file was provided.")
         df <- data.frame(Warning = "No file uploaded")
       }
     } else {
@@ -1077,6 +1100,7 @@ server <- function(input, output, session) {
       } else {
         sprintf("SELECT * FROM frs9_imp_ca_lgd_h WHERE lgd_config_id = %s", input$segment)
       }
+      ra_log_info(paste("Fetching dependent data from database. Query:", query))
       df <- dbGetQuery(con, query)
     }
 
@@ -1810,6 +1834,16 @@ server <- function(input, output, session) {
 
     # Jalankan fungsi dengan data baru
     hasilujiasumsi <- ujiasumsi(newdata(), namay(), cmodelfinal, normalmethod = input$normal)
+
+    # Guard: if ujiasumsi returned NULL or empty, return empty frame instead of crashing mutate
+    if (is.null(hasilujiasumsi) || nrow(hasilujiasumsi) == 0) {
+      return(data.frame(
+        Model = character(0), MAPE = numeric(0), RMSE = numeric(0),
+        normal_P = numeric(0), homogen_P = numeric(0), DW_P = numeric(0),
+        VIF1 = numeric(0), VIF2 = numeric(0), VIF3 = numeric(0),
+        statasumsi = character(0), stringsAsFactors = FALSE
+      ))
+    }
 
     # status hasil uji asumsi#
     hasilujiasumsi <- hasilujiasumsi %>%

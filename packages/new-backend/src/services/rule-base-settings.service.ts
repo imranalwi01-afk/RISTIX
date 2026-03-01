@@ -1,5 +1,6 @@
 import { Effect, pipe } from 'effect'
 import { RuleBaseSettingsRepository } from '../repositories/rule-base-settings.repository'
+import { ParametersRepository } from '../repositories/parameters.repository'
 import { NotFoundError } from '../lib/errors'
 import { frs9ParamScenarioRulesh, frs9ParamScenarioRulesd } from '../db/schema'
 
@@ -189,14 +190,21 @@ export const RuleBaseSettingsService = {
 
     // Metadata Handlers
 
-    /** Get available rule types options. */
+    /**
+     * Get available rule types options.
+     * Dynamically sourced from Business Setting B0008 in FRS9_PARAM_COMMOND.
+     * Per tech spec: RULE_TYPE = Combo Box (Business Setting B0008)
+     */
     getRuleTypes: () => {
-        return Effect.succeed([
-            { value: 'DEFAULT', label: 'Default' },
-            { value: 'GL', label: 'GL Grouping' },
-            { value: 'STAGE', label: 'IFRS 9 Stage' },
-            { value: 'CUSTOM', label: 'Custom Rule' },
-        ])
+        return pipe(
+            ParametersRepository.findDetailByCode('B0008'),
+            Effect.map(details =>
+                details.map(d => ({
+                    value: d.value1 ?? '',
+                    label: d.value2 ?? d.value1 ?? '',
+                }))
+            )
+        )
     },
 
     /**

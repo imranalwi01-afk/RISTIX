@@ -1,5 +1,6 @@
 import { Effect, pipe } from 'effect'
 import { PdConfigurationsRepository } from '../repositories/pd-configurations.repository'
+import { ParametersRepository } from '../repositories/parameters.repository'
 import { NotFoundError } from '../lib/errors'
 import { frs9ImpCaPdConfig } from '../db/schema'
 
@@ -129,19 +130,38 @@ export const PdConfigurationsService = {
 
     // Metadata
 
-    /** Get available PD methods options. */
+    /**
+     * Get available PD method options.
+     * Dynamically sourced from Business Setting B0018 in FRS9_PARAM_COMMOND.
+     * Per tech spec: PD_METHOD = Combo Box (Business Setting B0018)
+     */
     getMethods: () => {
-        return Effect.succeed([
-            { value: 1, label: 'NOA Migration' },
-            { value: 3, label: 'Proxy PD' },
-        ])
+        return pipe(
+            ParametersRepository.findDetailByCode('B0018'),
+            Effect.map(details =>
+                details.map(d => ({
+                    value: parseInt(d.value1 ?? '0', 10),
+                    label: d.value2 ?? d.value1 ?? '',
+                }))
+            )
+        )
     },
 
-    /** Get available population types options. */
+    /**
+     * Get available PD population type options.
+     * Dynamically sourced from Business Setting B0019 in FRS9_PARAM_COMMOND.
+     * Per tech spec: POPULATION_TYPE = Combo Box (Business Setting B0019)
+     */
     getPopulationTypes: () => {
-        return Effect.succeed([
-            { value: 2, label: 'Window Moving Period' },
-        ])
+        return pipe(
+            ParametersRepository.findDetailByCode('B0019'),
+            Effect.map(details =>
+                details.map(d => ({
+                    value: parseInt(d.value1 ?? '0', 10),
+                    label: d.value2 ?? d.value1 ?? '',
+                }))
+            )
+        )
     }
 }
 

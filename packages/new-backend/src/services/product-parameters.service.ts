@@ -1,5 +1,6 @@
 import { Effect, pipe } from 'effect'
 import { ProductParametersRepository } from '../repositories/product-parameters.repository'
+import { ParametersRepository } from '../repositories/parameters.repository'
 import { NotFoundError, ConflictError } from '../lib/errors'
 import { frs9ParamProduct } from '../db/schema'
 
@@ -20,7 +21,7 @@ export const ProductParametersService = {
      */
     list: (mode: string, options: { page: number, limit: number, search?: string }) => {
         console.log(`📝 [PROD-SERVICE] Fetching product parameters for mode: ${mode}, page: ${options.page}, limit: ${options.limit}`);
-        
+
         return pipe(
             ProductParametersRepository.findMany(options),
             Effect.map(({ products, total }) => ({
@@ -76,10 +77,10 @@ export const ProductParametersService = {
 
         return pipe(
             ProductParametersRepository.findByCode(data.prdCode),
-            Effect.flatMap(existing => 
-                existing 
-                    ? Effect.fail(new ConflictError({ 
-                        message: `Product Code ${data.prdCode} already exists`, 
+            Effect.flatMap(existing =>
+                existing
+                    ? Effect.fail(new ConflictError({
+                        message: `Product Code ${data.prdCode} already exists`,
                         resource: 'Product Parameter',
                         field: 'prdCode',
                         value: data.prdCode
@@ -138,12 +139,21 @@ export const ProductParametersService = {
 
     // Options Helper
 
-    /** Get instrument class options. */
+    /**
+     * Get instrument class options (AL_FLAG field).
+     * Dynamically sourced from Business Setting B0003 in FRS9_PARAM_COMMOND.
+     * Per tech spec: AL_FLAG = Combo Box (Business Setting 'B0003')
+     */
     getInstrumentClassOptions: () => {
-        return Effect.succeed([
-            { id: 'A', name: 'Asset' },
-            { id: 'L', name: 'Liabilities' }
-        ])
+        return pipe(
+            ParametersRepository.findDetailByCode('B0003'),
+            Effect.map(details =>
+                details.map(d => ({
+                    id: d.value1 ?? '',
+                    name: d.value2 ?? d.value1 ?? '',
+                }))
+            )
+        )
     }
 }
 

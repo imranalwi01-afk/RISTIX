@@ -202,14 +202,14 @@ const JournalFormDialog = memo(function JournalFormDialog({
                         required
                         disabled={optionsLoading}
                         error={!formData.glGroup.trim()}
-                        helperText={!formData.glGroup.trim() && 'Journal Group is required'}
+                        helperText={!formData.glGroup.trim() ? 'Journal Group is required' : 'Source: Rule Based Setting (type = GL)'}
                     >
                         {glGroupOptions.length > 0 ? (
                             glGroupOptions.map(option => (
                                 <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
                             ))
                         ) : (
-                            <MenuItem value="">Loading...</MenuItem>
+                            <MenuItem disabled value="">No options — configure GL rule in Rule Based Settings</MenuItem>
                         )}
                     </TextField>
                     <TextField
@@ -221,14 +221,14 @@ const JournalFormDialog = memo(function JournalFormDialog({
                         required
                         disabled={optionsLoading}
                         error={!formData.currency.trim()}
-                        helperText={!formData.currency.trim() && 'Currency is required'}
+                        helperText={!formData.currency.trim() ? 'Currency is required' : 'Source: Business Setting B0001'}
                     >
                         {currencyOptions.length > 0 ? (
                             currencyOptions.map(option => (
                                 <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
                             ))
                         ) : (
-                            <MenuItem value="">Loading...</MenuItem>
+                            <MenuItem disabled value="">No options — configure B0001 in Business Settings</MenuItem>
                         )}
                     </TextField>
                     <TextField
@@ -240,14 +240,14 @@ const JournalFormDialog = memo(function JournalFormDialog({
                         required
                         disabled={optionsLoading}
                         error={!formData.glType.trim()}
-                        helperText={!formData.glType.trim() && 'Journal Type is required'}
+                        helperText={!formData.glType.trim() ? 'Journal Type is required' : 'Source: Business Setting B0005'}
                     >
                         {journalTypeOptions.length > 0 ? (
                             journalTypeOptions.map(option => (
                                 <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
                             ))
                         ) : (
-                            <MenuItem value="">Loading...</MenuItem>
+                            <MenuItem disabled value="">No options — configure B0005 in Business Settings</MenuItem>
                         )}
                     </TextField>
                     <TextField
@@ -259,14 +259,14 @@ const JournalFormDialog = memo(function JournalFormDialog({
                         required
                         disabled={optionsLoading}
                         error={!formData.glCode.trim()}
-                        helperText={!formData.glCode.trim() && 'Journal Code is required'}
+                        helperText={!formData.glCode.trim() ? 'Journal Code is required' : 'Source: Business Setting B0006'}
                     >
                         {journalCodeOptions.length > 0 ? (
                             journalCodeOptions.map(option => (
                                 <MenuItem key={option.id} value={option.id}>{option.id} - {option.name}</MenuItem>
                             ))
                         ) : (
-                            <MenuItem value="">Loading...</MenuItem>
+                            <MenuItem disabled value="">No options — configure B0006 in Business Settings</MenuItem>
                         )}
                     </TextField>
                     <TextField
@@ -287,14 +287,14 @@ const JournalFormDialog = memo(function JournalFormDialog({
                         required
                         disabled={optionsLoading}
                         error={!formData.dbcr.trim()}
-                        helperText={!formData.dbcr.trim() && 'DB/CR is required'}
+                        helperText={!formData.dbcr.trim() ? 'DB/CR is required' : 'Source: Business Setting B0007'}
                     >
                         {dbcrOptions.length > 0 ? (
                             dbcrOptions.map(option => (
                                 <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
                             ))
                         ) : (
-                            <MenuItem value="">Loading...</MenuItem>
+                            <MenuItem disabled value="">No options — configure B0007 in Business Settings</MenuItem>
                         )}
                     </TextField>
                     <TextField

@@ -265,11 +265,15 @@ const ProductFormDialog = memo(function ProductFormDialog({
                         fullWidth
                         required
                         error={!formData.currency.trim()}
-                        helperText={!formData.currency.trim() && 'Currency is required'}
+                        helperText={!formData.currency.trim() ? 'Currency is required' : 'Source: Business Setting B0001'}
                     >
-                        {currencyOptions.map((option) => (
-                            <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
-                        ))}
+                        {currencyOptions.length > 0 ? (
+                            currencyOptions.map((option) => (
+                                <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+                            ))
+                        ) : (
+                            <MenuItem disabled value="">No options — configure B0001 in Business Settings</MenuItem>
+                        )}
                     </TextField>
                     <TextField
                         label="Amortization Type"
@@ -277,10 +281,15 @@ const ProductFormDialog = memo(function ProductFormDialog({
                         value={formData.amortizationType}
                         onChange={handleFieldChange('amortizationType')}
                         fullWidth
+                        helperText="Source: Business Setting B0002"
                     >
-                        {amortizationOptions.map((option) => (
-                            <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
-                        ))}
+                        {amortizationOptions.length > 0 ? (
+                            amortizationOptions.map((option) => (
+                                <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+                            ))
+                        ) : (
+                            <MenuItem disabled value="">No options — configure B0002 in Business Settings</MenuItem>
+                        )}
                     </TextField>
                     <TextField
                         label="Instrument Class *"
@@ -290,11 +299,15 @@ const ProductFormDialog = memo(function ProductFormDialog({
                         fullWidth
                         required
                         error={!formData.instrumentClass.trim()}
-                        helperText={!formData.instrumentClass.trim() && 'Instrument Class is required'}
+                        helperText={!formData.instrumentClass.trim() ? 'Instrument Class is required' : 'Source: Business Setting B0003'}
                     >
-                        {instrumentClassOptions.map((option) => (
-                            <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
-                        ))}
+                        {instrumentClassOptions.length > 0 ? (
+                            instrumentClassOptions.map((option) => (
+                                <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+                            ))
+                        ) : (
+                            <MenuItem disabled value="">No options — configure B0003 in Business Settings</MenuItem>
+                        )}
                     </TextField>
                     <TextField
                         label="Expected Life"
