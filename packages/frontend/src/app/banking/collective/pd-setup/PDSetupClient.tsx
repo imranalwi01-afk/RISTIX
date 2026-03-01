@@ -27,6 +27,7 @@ import {
   Select,
   FormControlLabel,
   Switch,
+  FormHelperText,
   Grid,
   alpha,
   useTheme
@@ -472,6 +473,7 @@ const PdSetupPage = () => {
                       <MenuItem key={s.id} value={s.id}>{s.segment_name}</MenuItem>
                     ))}
                   </Select>
+                  <FormHelperText>Source: Population Segments table</FormHelperText>
                 </FormControl>
               </Box>
 
@@ -486,6 +488,7 @@ const PdSetupPage = () => {
                   >
                     {methodOptions.map(m => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
                   </Select>
+                  <FormHelperText>Source: Business Setting B0018</FormHelperText>
                 </FormControl>
               </Box>
 
@@ -515,6 +518,9 @@ const PdSetupPage = () => {
                       <MenuItem key={b.id} value={b.bucket_group}>{b.bucket_group}</MenuItem>
                     ))}
                   </Select>
+                  <FormHelperText error={!!formErrors.bucket}>
+                    {formErrors.bucket || 'Source: Bucket Parameter table'}
+                  </FormHelperText>
                 </FormControl>
               </Box>
 
@@ -530,6 +536,7 @@ const PdSetupPage = () => {
                   >
                     {popTypeOptions.map(m => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
                   </Select>
+                  <FormHelperText>Source: Business Setting B0019</FormHelperText>
                 </FormControl>
               </Box>
 

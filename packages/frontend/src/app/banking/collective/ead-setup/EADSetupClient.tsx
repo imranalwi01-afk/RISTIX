@@ -25,6 +25,7 @@ import {
   Select,
   FormControlLabel,
   Switch,
+  FormHelperText,
   Checkbox,
   CircularProgress
 } from '@mui/material';
@@ -358,6 +359,9 @@ export default function EADSetupPage() {
                   <MenuItem key={s.id} value={s.id}>{s.segment_name}</MenuItem>
                 ))}
               </Select>
+              <FormHelperText error={!!formErrors.segment_id}>
+                {formErrors.segment_id || 'Source: Population Segments table'}
+              </FormHelperText>
             </FormControl>
 
             <FormControl fullWidth error={!!formErrors.ead_method}>
@@ -369,6 +373,9 @@ export default function EADSetupPage() {
               >
                 {methodOptions.map(m => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
               </Select>
+              <FormHelperText error={!!formErrors.ead_method}>
+                {formErrors.ead_method || 'Source: Business Setting B0020'}
+              </FormHelperText>
             </FormControl>
 
             <FormControl fullWidth error={!!formErrors.calc_method}>
@@ -380,6 +387,9 @@ export default function EADSetupPage() {
               >
                 {calcMethodOptions.map(m => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
               </Select>
+              <FormHelperText error={!!formErrors.calc_method}>
+                {formErrors.calc_method || 'Source: Business Setting B0021'}
+              </FormHelperText>
             </FormControl>
 
             <Box sx={{ gridColumn: 'span 2' }}>

@@ -26,6 +26,7 @@ import {
   FormControlLabel,
   Switch,
   CircularProgress,
+  FormHelperText,
   Snackbar
 } from '@mui/material';
 import { ApprovalNotification, ApprovalStatusBadge } from '@/components/approval';
@@ -423,6 +424,9 @@ export default function LGDSetupPage() {
                     <MenuItem key={s.id} value={s.id}>{s.segment_name}</MenuItem>
                   ))}
                 </Select>
+                <FormHelperText error={!!formErrors.segment_id}>
+                  {formErrors.segment_id || 'Source: Population Segments table'}
+                </FormHelperText>
               </FormControl>
 
               <FormControl fullWidth error={!!formErrors.lgd_method}>
@@ -434,6 +438,9 @@ export default function LGDSetupPage() {
                 >
                   {methodOptions.map(m => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
                 </Select>
+                <FormHelperText error={!!formErrors.lgd_method}>
+                  {formErrors.lgd_method || 'Source: Business Setting B0022'}
+                </FormHelperText>
               </FormControl>
 
               <FormControl fullWidth>
@@ -445,6 +452,7 @@ export default function LGDSetupPage() {
                 >
                   {popTypeOptions.map(m => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
                 </Select>
+                <FormHelperText>Source: Business Setting B0023</FormHelperText>
               </FormControl>
 
               <TextField
@@ -502,6 +510,9 @@ export default function LGDSetupPage() {
                       <MenuItem key={s.pkid} value={s.pkid}>{s.scalar_name}</MenuItem>
                     ))}
                   </Select>
+                  <FormHelperText error={!!formErrors.fl_scalar_id}>
+                    {formErrors.fl_scalar_id || 'Source: FL Scalar table'}
+                  </FormHelperText>
                 </FormControl>
               )}
 

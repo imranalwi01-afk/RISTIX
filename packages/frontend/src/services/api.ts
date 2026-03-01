@@ -670,9 +670,9 @@ export const bankingAPI = {
 
   // Product parameters (FRS9_PARAM_PRODUCT)
   productParameters: {
-    getAll: async (mode: string, params?: { 
-      page?: number; 
-      limit?: number; 
+    getAll: async (mode: string, params?: {
+      page?: number;
+      limit?: number;
       search?: string;
       sortBy?: string;
       sortOrder?: 'ASC' | 'DESC';
@@ -819,10 +819,6 @@ export const bankingAPI = {
       return response.data;
     }
   },
-
-  // ==========================================
-  // PD SETUP API - IFRS9 COLLECTIVE IMPAIRMENT PD CONFIGURATION
-  // ==========================================
 
   // ==========================================
   // JOURNAL PARAMETER API (frs9_param_journal)
