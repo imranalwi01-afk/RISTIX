@@ -205,8 +205,8 @@ const JournalFormDialog = memo(function JournalFormDialog({
                         helperText={!formData.glGroup.trim() ? 'Journal Group is required' : 'Source: Rule Based Setting (type = GL)'}
                     >
                         {glGroupOptions.length > 0 ? (
-                            glGroupOptions.map(option => (
-                                <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
+                            glGroupOptions.map((option, idx) => (
+                                <MenuItem key={`${option.id}-${idx}`} value={option.id}>{option.name}</MenuItem>
                             ))
                         ) : (
                             <MenuItem disabled value="">No options — configure GL rule in Rule Based Settings</MenuItem>
@@ -224,8 +224,8 @@ const JournalFormDialog = memo(function JournalFormDialog({
                         helperText={!formData.currency.trim() ? 'Currency is required' : 'Source: Business Setting B0001'}
                     >
                         {currencyOptions.length > 0 ? (
-                            currencyOptions.map(option => (
-                                <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
+                            currencyOptions.map((option, idx) => (
+                                <MenuItem key={`${option.id}-${idx}`} value={option.id}>{option.name}</MenuItem>
                             ))
                         ) : (
                             <MenuItem disabled value="">No options — configure B0001 in Business Settings</MenuItem>
@@ -243,8 +243,8 @@ const JournalFormDialog = memo(function JournalFormDialog({
                         helperText={!formData.glType.trim() ? 'Journal Type is required' : 'Source: Business Setting B0005'}
                     >
                         {journalTypeOptions.length > 0 ? (
-                            journalTypeOptions.map(option => (
-                                <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
+                            journalTypeOptions.map((option, idx) => (
+                                <MenuItem key={`${option.id}-${idx}`} value={option.id}>{option.name}</MenuItem>
                             ))
                         ) : (
                             <MenuItem disabled value="">No options — configure B0005 in Business Settings</MenuItem>
@@ -262,8 +262,8 @@ const JournalFormDialog = memo(function JournalFormDialog({
                         helperText={!formData.glCode.trim() ? 'Journal Code is required' : 'Source: Business Setting B0006'}
                     >
                         {journalCodeOptions.length > 0 ? (
-                            journalCodeOptions.map(option => (
-                                <MenuItem key={option.id} value={option.id}>{option.id} - {option.name}</MenuItem>
+                            journalCodeOptions.map((option, idx) => (
+                                <MenuItem key={`${option.id}-${idx}`} value={option.id}>{option.id} - {option.name}</MenuItem>
                             ))
                         ) : (
                             <MenuItem disabled value="">No options — configure B0006 in Business Settings</MenuItem>
@@ -290,8 +290,8 @@ const JournalFormDialog = memo(function JournalFormDialog({
                         helperText={!formData.dbcr.trim() ? 'DB/CR is required' : 'Source: Business Setting B0007'}
                     >
                         {dbcrOptions.length > 0 ? (
-                            dbcrOptions.map(option => (
-                                <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
+                            dbcrOptions.map((option, idx) => (
+                                <MenuItem key={`${option.id}-${idx}`} value={option.id}>{option.name}</MenuItem>
                             ))
                         ) : (
                             <MenuItem disabled value="">No options — configure B0007 in Business Settings</MenuItem>

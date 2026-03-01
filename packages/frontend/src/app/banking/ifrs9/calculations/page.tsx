@@ -452,7 +452,7 @@ export default function IFRS9CalculationDashboard() {
         };
         setCalculationSummary(summaryData);
         if (summaryResponse.data.lastUpdated && !selectedProcessDate) {
-           setSelectedProcessDate(summaryResponse.data.lastUpdated);
+          setSelectedProcessDate(summaryResponse.data.lastUpdated);
         }
         console.log('✅ Loaded calculation summary:', summaryData);
       }
@@ -491,10 +491,10 @@ export default function IFRS9CalculationDashboard() {
 
       // Note: Individual calculation results would need a separate API endpoint
       if (prcDate) {
-         const results = await fetchBatchResults(prcDate);
-         setCalculationResults(results);
+        const results = await fetchBatchResults(prcDate);
+        setCalculationResults(results);
       } else {
-         setCalculationResults([]);
+        setCalculationResults([]);
       }
 
     } catch (error: any) {
@@ -596,8 +596,8 @@ export default function IFRS9CalculationDashboard() {
             <MenuItem value="">
               <em>Latest</em>
             </MenuItem>
-            {availableDates.map((date) => (
-              <MenuItem key={date} value={date}>
+            {availableDates.map((date, idx) => (
+              <MenuItem key={`${date}-${idx}`} value={date}>
                 {date}
               </MenuItem>
             ))}

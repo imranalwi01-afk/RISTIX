@@ -77,7 +77,7 @@ export default function ProductFilterDrawer({
 
         <Box sx={{ p: 3, flexGrow: 1, overflowY: 'auto' }}>
           <Stack spacing={3}>
-            
+
             <FormControl fullWidth>
               <InputLabel>Currency</InputLabel>
               <Select
@@ -86,8 +86,8 @@ export default function ProductFilterDrawer({
                 onChange={(e) => handleChange('currency', e.target.value)}
               >
                 <MenuItem value=""><em>All Currencies</em></MenuItem>
-                {options.currencies.map(opt => (
-                  <MenuItem key={opt.id} value={opt.id}>{opt.id} - {opt.name}</MenuItem>
+                {options.currencies.map((opt, idx) => (
+                  <MenuItem key={`${opt.id}-${idx}`} value={opt.id}>{opt.id} - {opt.name}</MenuItem>
                 ))}
               </Select>
             </FormControl>
@@ -113,8 +113,8 @@ export default function ProductFilterDrawer({
                 onChange={(e) => handleChange('dataSource', e.target.value)}
               >
                 <MenuItem value=""><em>All Sources</em></MenuItem>
-                {options.dataSources.map(opt => (
-                  <MenuItem key={opt.id} value={opt.id}>{opt.name}</MenuItem>
+                {options.dataSources.map((opt, idx) => (
+                  <MenuItem key={`${opt.id}-${idx}`} value={opt.id}>{opt.name}</MenuItem>
                 ))}
               </Select>
             </FormControl>

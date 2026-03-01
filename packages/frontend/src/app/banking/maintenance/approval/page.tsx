@@ -1376,8 +1376,8 @@ export default function ApprovalManagementPage() {
         </Alert>
       ) : (
         <Grid container spacing={2}>
-          {approvalMatrices.map((matrix) => (
-            <Grid key={matrix.id} size={{ xs: 12, md: 6 }}>
+          {approvalMatrices.map((matrix, idx) => (
+            <Grid key={`${matrix.id}-${idx}`} size={{ xs: 12, md: 6 }}>
               <Paper sx={{ p: 2, height: '100%' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
                   <Typography variant="h6">{matrix.name}</Typography>
@@ -1474,8 +1474,8 @@ export default function ApprovalManagementPage() {
                 onChange={(event) => setRoutingEntityFilter(String(event.target.value))}
               >
                 <MenuItem value="all">All Entities</MenuItem>
-                {routingEntityOptions.map((entity) => (
-                  <MenuItem key={entity} value={entity}>{entity}</MenuItem>
+                {routingEntityOptions.map((entity, idx) => (
+                  <MenuItem key={`${entity}-${idx}`} value={entity}>{entity}</MenuItem>
                 ))}
               </Select>
             </FormControl>

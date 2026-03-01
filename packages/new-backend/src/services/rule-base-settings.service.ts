@@ -199,10 +199,12 @@ export const RuleBaseSettingsService = {
         return pipe(
             ParametersRepository.findDetailByCode('B0008'),
             Effect.map(details =>
-                details.map(d => ({
-                    value: d.value1 ?? '',
-                    label: d.value2 ?? d.value1 ?? '',
-                }))
+                details
+                    .filter(d => d.value1 !== null && d.value1 !== '')
+                    .map(d => ({
+                        value: d.value1!,
+                        label: d.value2 ?? d.value1!,
+                    }))
             )
         )
     },

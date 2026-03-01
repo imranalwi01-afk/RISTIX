@@ -801,57 +801,57 @@ export default function ECLConfigurationPage() {
         }
       ]}
     >
-        {/* Statistics Cards */}
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, gap: 2, mb: 3 }}>
-          <Box>
-            <Card>
-              <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                <Typography variant="h4" color="primary.main" fontWeight="bold">
-                  {eclConfigs.length}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  ECL Models
-                </Typography>
-              </CardContent>
-            </Card>
-          </Box>
-          <Box>
-            <Card>
-              <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                <Typography variant="h4" color="success.main" fontWeight="bold">
-                  {eclConfigs.filter(c => c.active_flag).length}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Active Models
-                </Typography>
-              </CardContent>
-            </Card>
-          </Box>
-          <Box>
-            <Card>
-              <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                <Typography variant="h4" color="info.main" fontWeight="bold">
-                  {eclConfigs.reduce((sum, config) => sum + (config.details?.length || 0), 0)}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Total Segments
-                </Typography>
-              </CardContent>
-            </Card>
-          </Box>
-          <Box>
-            <Card>
-              <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                <Typography variant="h4" color="warning.main" fontWeight="bold">
-                  {mockModules.length}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Available Modules
-                </Typography>
-              </CardContent>
-            </Card>
-          </Box>
+      {/* Statistics Cards */}
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, gap: 2, mb: 3 }}>
+        <Box>
+          <Card>
+            <CardContent sx={{ textAlign: 'center', py: 2 }}>
+              <Typography variant="h4" color="primary.main" fontWeight="bold">
+                {eclConfigs.length}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                ECL Models
+              </Typography>
+            </CardContent>
+          </Card>
         </Box>
+        <Box>
+          <Card>
+            <CardContent sx={{ textAlign: 'center', py: 2 }}>
+              <Typography variant="h4" color="success.main" fontWeight="bold">
+                {eclConfigs.filter(c => c.active_flag).length}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Active Models
+              </Typography>
+            </CardContent>
+          </Card>
+        </Box>
+        <Box>
+          <Card>
+            <CardContent sx={{ textAlign: 'center', py: 2 }}>
+              <Typography variant="h4" color="info.main" fontWeight="bold">
+                {eclConfigs.reduce((sum, config) => sum + (config.details?.length || 0), 0)}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Total Segments
+              </Typography>
+            </CardContent>
+          </Card>
+        </Box>
+        <Box>
+          <Card>
+            <CardContent sx={{ textAlign: 'center', py: 2 }}>
+              <Typography variant="h4" color="warning.main" fontWeight="bold">
+                {mockModules.length}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Available Modules
+              </Typography>
+            </CardContent>
+          </Card>
+        </Box>
+      </Box>
 
       {/* Error Alert */}
       {error && (
@@ -889,8 +889,8 @@ export default function ECLConfigurationPage() {
                   onChange={(e) => setFilterModule(e.target.value as string)}
                 >
                   <MenuItem value="">All Modules</MenuItem>
-                  {mockModules.map((module) => (
-                    <MenuItem key={module.value} value={module.value}>
+                  {mockModules.map((module, idx) => (
+                    <MenuItem key={`${module.value}-${idx}`} value={module.value}>
                       {module.label}
                     </MenuItem>
                   ))}
@@ -985,8 +985,8 @@ export default function ECLConfigurationPage() {
                       label="Module"
                       onChange={(e) => handleHeaderFieldChange('module', e.target.value)}
                     >
-                      {mockModules.map((module) => (
-                        <MenuItem key={module.value} value={module.value}>
+                      {mockModules.map((module, idx) => (
+                        <MenuItem key={`${module.value}-${idx}`} value={module.value}>
                           {module.label}
                         </MenuItem>
                       ))}
@@ -1005,8 +1005,8 @@ export default function ECLConfigurationPage() {
                     value={headerFormData.effective_date ? new Date(headerFormData.effective_date as string) : null}
                     onChange={(newValue) => {
                       if (newValue) {
-                        const dateStr = newValue instanceof Date 
-                          ? newValue.toISOString().split('T')[0] 
+                        const dateStr = newValue instanceof Date
+                          ? newValue.toISOString().split('T')[0]
                           : (newValue as any).toISOString().split('T')[0];
                         handleHeaderFieldChange('effective_date', dateStr);
                       } else {
@@ -1055,8 +1055,8 @@ export default function ECLConfigurationPage() {
                       label="Segment"
                       onChange={(e) => handleDetailFieldChange('pf_segment_id', e.target.value)}
                     >
-                      {mockSegments.map((segment) => (
-                        <MenuItem key={segment.value} value={segment.value}>
+                      {mockSegments.map((segment, idx) => (
+                        <MenuItem key={`${segment.value}-${idx}`} value={segment.value}>
                           {segment.label}
                         </MenuItem>
                       ))}
@@ -1072,8 +1072,8 @@ export default function ECLConfigurationPage() {
                       label="Stage Rule"
                       onChange={(e) => handleDetailFieldChange('stage_rule_id', e.target.value)}
                     >
-                      {mockStageRules.map((rule) => (
-                        <MenuItem key={rule.value} value={rule.value}>
+                      {mockStageRules.map((rule, idx) => (
+                        <MenuItem key={`${rule.value}-${idx}`} value={rule.value}>
                           {rule.label}
                         </MenuItem>
                       ))}
@@ -1089,8 +1089,8 @@ export default function ECLConfigurationPage() {
                       label="PD Model"
                       onChange={(e) => handleDetailFieldChange('pd_model_id', e.target.value)}
                     >
-                      {mockPdModels.map((model) => (
-                        <MenuItem key={model.value} value={model.value}>
+                      {mockPdModels.map((model, idx) => (
+                        <MenuItem key={`${model.value}-${idx}`} value={model.value}>
                           {model.label}
                         </MenuItem>
                       ))}
@@ -1106,8 +1106,8 @@ export default function ECLConfigurationPage() {
                       label="LGD Model"
                       onChange={(e) => handleDetailFieldChange('lgd_model_id', e.target.value)}
                     >
-                      {mockLgdModels.map((model) => (
-                        <MenuItem key={model.value} value={model.value}>
+                      {mockLgdModels.map((model, idx) => (
+                        <MenuItem key={`${model.value}-${idx}`} value={model.value}>
                           {model.label}
                         </MenuItem>
                       ))}
@@ -1123,8 +1123,8 @@ export default function ECLConfigurationPage() {
                       label="EAD Model"
                       onChange={(e) => handleDetailFieldChange('ead_model_id', e.target.value)}
                     >
-                      {mockEadModels.map((model) => (
-                        <MenuItem key={model.value} value={model.value}>
+                      {mockEadModels.map((model, idx) => (
+                        <MenuItem key={`${model.value}-${idx}`} value={model.value}>
                           {model.label}
                         </MenuItem>
                       ))}

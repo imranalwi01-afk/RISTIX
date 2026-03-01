@@ -291,7 +291,7 @@ export default function SegmentationRuleDialog({
                 onChange={(e) => handleChange('table_name', e.target.value)}
               >
                 {loading.tables ? <MenuItem disabled><CircularProgress size={20} /></MenuItem> : null}
-                {tables.map(t => <MenuItem key={t} value={t}>{t}</MenuItem>)}
+                {tables.map((t, idx) => <MenuItem key={`${t}-${idx}`} value={t}>{t}</MenuItem>)}
               </Select>
               <FormHelperText>Source: Database tables (from business settings schema)</FormHelperText>
             </FormControl>
@@ -307,7 +307,7 @@ export default function SegmentationRuleDialog({
                 onChange={(e) => handleChange('column_name', e.target.value)}
               >
                 {loading.columns ? <MenuItem disabled><CircularProgress size={20} /></MenuItem> : null}
-                {columns.map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
+                {columns.map((c, idx) => <MenuItem key={`${c}-${idx}`} value={c}>{c}</MenuItem>)}
               </Select>
               <FormHelperText>Source: Columns of the selected table</FormHelperText>
             </FormControl>
@@ -337,7 +337,7 @@ export default function SegmentationRuleDialog({
                 onChange={(e) => handleChange('operator', e.target.value)}
               >
                 {loading.operators ? <MenuItem disabled><CircularProgress size={20} /></MenuItem> : null}
-                {operators.map(o => <MenuItem key={o} value={o}>{o}</MenuItem>)}
+                {operators.map((o, idx) => <MenuItem key={`${o}-${idx}`} value={o}>{o}</MenuItem>)}
               </Select>
               <FormHelperText>Source: Operators for detected data type</FormHelperText>
             </FormControl>

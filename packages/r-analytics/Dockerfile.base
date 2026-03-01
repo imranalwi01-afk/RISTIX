@@ -6,8 +6,8 @@
 # Does NOT contain: Application code (shiny-app/, config/, scripts/)
 # ============================================================================
 
-# Use official R base image with Shiny pre-installed
-FROM rocker/shiny:4.3.2
+# Use official R base image with Shiny pre-installed (force amd64 for Mac compatibility)
+FROM --platform=linux/amd64 rocker/shiny:4.3.2
 
 # Metadata
 LABEL maintainer="IFRS9 Platform Team"

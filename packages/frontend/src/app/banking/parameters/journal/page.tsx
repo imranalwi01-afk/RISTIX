@@ -595,8 +595,8 @@ export default function JournalParametersPage() {
                 label="GL Group"
               >
                 <MenuItem value="">All</MenuItem>
-                {Array.isArray(glGroupOptions) && glGroupOptions.map(option => (
-                  <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
+                {Array.isArray(glGroupOptions) && glGroupOptions.map((option, idx) => (
+                  <MenuItem key={`${option.id}-${idx}`} value={option.id}>{option.name}</MenuItem>
                 ))}
               </Select>
             </FormControl>
@@ -609,8 +609,8 @@ export default function JournalParametersPage() {
                 label="Currency"
               >
                 <MenuItem value="">All</MenuItem>
-                {Array.isArray(currencyOptions) && currencyOptions.map(option => (
-                  <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
+                {Array.isArray(currencyOptions) && currencyOptions.map((option, idx) => (
+                  <MenuItem key={`${option.id}-${idx}`} value={option.id}>{option.name}</MenuItem>
                 ))}
               </Select>
             </FormControl>

@@ -268,8 +268,8 @@ const ProductFormDialog = memo(function ProductFormDialog({
                         helperText={!formData.currency.trim() ? 'Currency is required' : 'Source: Business Setting B0001'}
                     >
                         {currencyOptions.length > 0 ? (
-                            currencyOptions.map((option) => (
-                                <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+                            currencyOptions.map((option, idx) => (
+                                <MenuItem key={`${option.value}-${idx}`} value={option.value}>{option.label}</MenuItem>
                             ))
                         ) : (
                             <MenuItem disabled value="">No options — configure B0001 in Business Settings</MenuItem>
@@ -284,8 +284,8 @@ const ProductFormDialog = memo(function ProductFormDialog({
                         helperText="Source: Business Setting B0002"
                     >
                         {amortizationOptions.length > 0 ? (
-                            amortizationOptions.map((option) => (
-                                <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+                            amortizationOptions.map((option, idx) => (
+                                <MenuItem key={`${option.value}-${idx}`} value={option.value}>{option.label}</MenuItem>
                             ))
                         ) : (
                             <MenuItem disabled value="">No options — configure B0002 in Business Settings</MenuItem>
@@ -302,8 +302,8 @@ const ProductFormDialog = memo(function ProductFormDialog({
                         helperText={!formData.instrumentClass.trim() ? 'Instrument Class is required' : 'Source: Business Setting B0003'}
                     >
                         {instrumentClassOptions.length > 0 ? (
-                            instrumentClassOptions.map((option) => (
-                                <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+                            instrumentClassOptions.map((option, idx) => (
+                                <MenuItem key={`${option.value}-${idx}`} value={option.value}>{option.label}</MenuItem>
                             ))
                         ) : (
                             <MenuItem disabled value="">No options — configure B0003 in Business Settings</MenuItem>

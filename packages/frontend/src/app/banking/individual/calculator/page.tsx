@@ -239,8 +239,8 @@ export default function DcfCalculatorPage() {
                                     value={params.startDate ? new Date(params.startDate) : null}
                                     onChange={(newValue) => {
                                         if (newValue) {
-                                            const dateStr = newValue instanceof Date 
-                                                ? newValue.toISOString().split('T')[0] 
+                                            const dateStr = newValue instanceof Date
+                                                ? newValue.toISOString().split('T')[0]
                                                 : (newValue as any).toISOString().split('T')[0];
                                             setParams({ ...params, startDate: dateStr });
                                         }
@@ -261,8 +261,8 @@ export default function DcfCalculatorPage() {
                                     onChange={(e) => setParams({ ...params, method: e.target.value })}
                                     margin="normal" size="small"
                                 >
-                                    {METHODS.map((option) => (
-                                        <MenuItem key={option.value} value={option.value}>
+                                    {METHODS.map((option, idx) => (
+                                        <MenuItem key={`${option.value}-${idx}`} value={option.value}>
                                             {option.label}
                                         </MenuItem>
                                     ))}

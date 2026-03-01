@@ -1426,8 +1426,8 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
                     label="Type"
                   >
                     <MenuItem value="">All</MenuItem>
-                    {SUPPORTED_JOB_TYPE_OPTIONS.map((option) => (
-                      <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+                    {SUPPORTED_JOB_TYPE_OPTIONS.map((option, idx) => (
+                      <MenuItem key={`${option.value}-${idx}`} value={option.value}>{option.label}</MenuItem>
                     ))}
                   </Select>
                 </FormControl>

@@ -39,18 +39,27 @@ const CreatePdConfigSchema = z.object({
     model_name: z.string().min(1).max(250),
     population_segment_id: z.union([z.number(), z.string().transform(val => parseInt(val))]),
     selected_method: z.union([z.string(), z.number()]),
-    migration_interval: z.number().int(),
-    population_type: z.union([z.string(), z.number()]),
-    historical_month: z.number().int(),
-    first_historical_date: z.string().optional(),
-    multiplication: z.number().int().optional(),
+    migration_interval: z.number().int().nullable().optional(),
+    population_type: z.union([z.string(), z.number()]).nullable().optional(),
+    historical_month: z.number().int().nullable().optional(),
+    first_historical_date: z.string().nullable().optional(),
+    multiplication: z.number().int().nullable().optional(),
     fl_flag: z.boolean().default(false),
+    fl_scalar_id: z.number().int().nullable().optional(),
     ia_flag: z.boolean().default(false),
     bucket: z.string().max(30).optional(),
     is_active: z.boolean().default(true)
+}).superRefine((data, ctx) => {
+    if (data.fl_flag && data.fl_scalar_id == null) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "FL Scalar is required when FL Flag is true",
+            path: ["fl_scalar_id"]
+        });
+    }
 }).openapi('CreatePdConfigInput')
 
-const UpdatePdConfigSchema = CreatePdConfigSchema.partial().openapi('UpdatePdConfigInput')
+const UpdatePdConfigSchema = CreatePdConfigSchema.openapi('UpdatePdConfigInput')
 
 const PdListResponse = z.object({
     success: z.boolean(),

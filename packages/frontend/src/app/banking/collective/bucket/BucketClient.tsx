@@ -717,8 +717,8 @@ export default function BucketParameterPage() {
                 data-testid="bucket-basis-select"
               >
                 <MenuItem value="">All Basis</MenuItem>
-                {basisOptions.map((option) => (
-                  <MenuItem key={option.value1} value={option.value1}>
+                {basisOptions.map((option, idx) => (
+                  <MenuItem key={`${option.value1}-${idx}`} value={option.value1}>
                     {option.paramdesc}
                   </MenuItem>
                 ))}
@@ -833,8 +833,8 @@ export default function BucketParameterPage() {
                     onChange={(e) => setHeaderFormData(prev => ({ ...prev, basis: e.target.value }))}
                     data-testid="bucket-basis-field"
                   >
-                    {basisOptions.map((option) => (
-                      <MenuItem key={option.value1} value={option.value1}>
+                    {basisOptions.map((option, idx) => (
+                      <MenuItem key={`${option.value1}-${idx}`} value={option.value1}>
                         {option.paramdesc}
                       </MenuItem>
                     ))}

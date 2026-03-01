@@ -84,6 +84,8 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_URL: redis://redis:6379
+      # R Analytics API URL mapped to docker service
+      R_SERVICE_URL: http://r-analytics:4241
     ports:
       - "4232:4232"
     networks:
@@ -172,7 +174,6 @@ services:
   # 📈 R ANALYTICS (Shiny)
   # ============================================================================
   r-analytics:
-    platform: linux/amd64
     build:
       context: ../../packages/r-analytics
       dockerfile: Dockerfile

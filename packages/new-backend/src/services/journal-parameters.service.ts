@@ -118,10 +118,12 @@ export const JournalParametersService = {
             ParametersRepository.findHeaderByCode(paramCode),
             Effect.map((param: any) => {
                 if (!param || !param.details) return []
-                return param.details.map((d: any) => ({
-                    id: String(d.value1 || d.paramValue || ''),
-                    name: String(d.paramdesc || d.paramDesc || d.value1 || '')
-                }))
+                return param.details
+                    .filter((d: any) => d.value1 !== null && d.value1 !== '')
+                    .map((d: any) => ({
+                        id: String(d.value1),
+                        name: String(d.value2 ?? d.value1)
+                    }))
             })
         )
     },

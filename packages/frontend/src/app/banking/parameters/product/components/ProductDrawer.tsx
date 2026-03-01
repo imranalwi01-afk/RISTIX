@@ -109,7 +109,7 @@ export default function ProductDrawer({
     if (!formData.prdGroup) newErrors.prdGroup = 'Group is required';
     if (!formData.prdType) newErrors.prdType = 'Type is required';
     if (!formData.currency) newErrors.currency = 'Currency is required';
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -164,8 +164,8 @@ export default function ProductDrawer({
                   onChange={(e) => handleChange('dataSource', e.target.value)}
                   disabled={loading}
                 >
-                  {options.dataSources.map(opt => (
-                    <MenuItem key={opt.id} value={opt.id}>{opt.name}</MenuItem>
+                  {options.dataSources.map((opt, idx) => (
+                    <MenuItem key={`${opt.id}-${idx}`} value={opt.id}>{opt.name}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
@@ -191,8 +191,8 @@ export default function ProductDrawer({
                   onChange={(e) => handleChange('prdGroup', e.target.value)}
                   disabled={loading}
                 >
-                  {options.productGroups.map(opt => (
-                    <MenuItem key={opt.id} value={opt.id}>{opt.name}</MenuItem>
+                  {options.productGroups.map((opt, idx) => (
+                    <MenuItem key={`${opt.id}-${idx}`} value={opt.id}>{opt.name}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
@@ -204,8 +204,8 @@ export default function ProductDrawer({
                   onChange={(e) => handleChange('prdType', e.target.value)}
                   disabled={loading}
                 >
-                  {options.productTypes.map(opt => (
-                    <MenuItem key={opt.id} value={opt.id}>{opt.name}</MenuItem>
+                  {options.productTypes.map((opt, idx) => (
+                    <MenuItem key={`${opt.id}-${idx}`} value={opt.id}>{opt.name}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
@@ -222,8 +222,8 @@ export default function ProductDrawer({
                   onChange={(e) => handleChange('currency', e.target.value)}
                   disabled={loading}
                 >
-                  {options.currencies.map(opt => (
-                    <MenuItem key={opt.id} value={opt.id}>{opt.id} - {opt.name}</MenuItem>
+                  {options.currencies.map((opt, idx) => (
+                    <MenuItem key={`${opt.id}-${idx}`} value={opt.id}>{opt.id} - {opt.name}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
@@ -235,8 +235,8 @@ export default function ProductDrawer({
                   onChange={(e) => handleChange('alFlag', e.target.value)}
                   disabled={loading}
                 >
-                  {options.instrumentClasses.map(opt => (
-                    <MenuItem key={opt.id} value={opt.id}>{opt.name}</MenuItem>
+                  {options.instrumentClasses.map((opt, idx) => (
+                    <MenuItem key={`${opt.id}-${idx}`} value={opt.id}>{opt.name}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
@@ -250,8 +250,8 @@ export default function ProductDrawer({
                 onChange={(e) => handleChange('amortizationType', e.target.value)}
                 disabled={loading}
               >
-                {options.amortizationTypes.map(opt => (
-                  <MenuItem key={opt.id} value={opt.id}>{opt.name}</MenuItem>
+                {options.amortizationTypes.map((opt, idx) => (
+                  <MenuItem key={`${opt.id}-${idx}`} value={opt.id}>{opt.name}</MenuItem>
                 ))}
               </Select>
             </FormControl>

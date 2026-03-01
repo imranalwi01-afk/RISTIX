@@ -148,10 +148,12 @@ export const ProductParametersService = {
         return pipe(
             ParametersRepository.findDetailByCode('B0003'),
             Effect.map(details =>
-                details.map(d => ({
-                    id: d.value1 ?? '',
-                    name: d.value2 ?? d.value1 ?? '',
-                }))
+                details
+                    .filter(d => d.value1 !== null && d.value1 !== '')
+                    .map(d => ({
+                        id: d.value1!,
+                        name: d.value2 ?? d.value1!,
+                    }))
             )
         )
     }

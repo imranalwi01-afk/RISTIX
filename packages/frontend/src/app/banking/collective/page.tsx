@@ -6,7 +6,7 @@
 import { Suspense } from 'react';
 import CollectiveLoading from './loading';
 import type { Metadata } from 'next';
-import CollectiveLandingClient from './CollectiveLandingClient';
+import CollectiveLandingClient from '@/app/banking/collective/CollectiveLandingClient';
 
 export const metadata: Metadata = {
     title: 'Collective Impairment | IFRS 9 Platform',

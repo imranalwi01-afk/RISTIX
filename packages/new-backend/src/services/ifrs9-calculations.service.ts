@@ -4,6 +4,7 @@ import { env } from '../config/env';
 import { sql, eq, desc, and, lte } from 'drizzle-orm';
 import { frs9ImpCaResultH, jobExecutions, jobDefinitions, frs9MasterAccount, frs9PrcDate } from '../db/schema';
 import { JobsRepository } from '../repositories/jobs.repository';
+import { EclEngineFactory } from './ecl-engines/ecl-engine-factory';
 
 export class Ifrs9CalculationsService {
 
@@ -11,7 +12,7 @@ export class Ifrs9CalculationsService {
         try {
             // 1. Determine the process date to use
             let prcDate = requestedDate;
-            
+
             if (!prcDate) {
                 // If no date requested, find the latest process date in the result table
                 const latestResultDate = await legacyDb
@@ -47,11 +48,11 @@ export class Ifrs9CalculationsService {
                         .groupBy(frs9ImpCaResultH.stage);
 
                     const findStage = (sNum: number) => stages.find(s => Number(s.stage) === sNum);
-                    
+
                     const stage1 = parseFloat(findStage(1)?.ecl || '0');
                     const stage2 = parseFloat(findStage(2)?.ecl || '0');
                     const stage3 = parseFloat(findStage(3)?.ecl || '0');
-                    
+
                     const stage1Count = parseInt(findStage(1)?.count || '0', 10);
                     const stage2Count = parseInt(findStage(2)?.count || '0', 10);
                     const stage3Count = parseInt(findStage(3)?.count || '0', 10);
@@ -90,7 +91,7 @@ export class Ifrs9CalculationsService {
                     .where(sql`date(${frs9ImpCaResultH.prcDate}) = ${prcDate}`);
 
                 const row = result[0];
-                
+
                 if (row && Number(row.count) > 0) {
                     const totalECL = Number(row.totalECL || 0);
                     const totalPortfolio = Number(row.totalPortfolio || 0);
@@ -110,7 +111,7 @@ export class Ifrs9CalculationsService {
                     const stage1 = Number(stages.find(s => s.stage === 1)?.ecl || 0);
                     const stage2 = Number(stages.find(s => s.stage === 2)?.ecl || 0);
                     const stage3 = Number(stages.find(s => s.stage === 3)?.ecl || 0);
-                    
+
                     const stage1Count = Number(stages.find(s => s.stage === 1)?.count || 0);
                     const stage2Count = Number(stages.find(s => s.stage === 2)?.count || 0);
                     const stage3Count = Number(stages.find(s => s.stage === 3)?.count || 0);
@@ -141,7 +142,7 @@ export class Ifrs9CalculationsService {
 
             // 2. FALLBACK: No calculation results found, try to get basic metrics from Master Account
             console.log('⚠️ No calculation results found, trying fallback to Master Account...');
-            
+
             let masterDate = requestedDate;
 
             if (!masterDate) {
@@ -159,7 +160,7 @@ export class Ifrs9CalculationsService {
                     })
                     .from(frs9MasterAccount)
                     .where(sql`date(${frs9MasterAccount.prcDate}) = ${masterDate}`);
-                
+
                 const row = masterSummary[0];
                 const totalExposure = Number(row?.totalExposure || 0);
                 const count = Number(row?.count || 0);
@@ -216,8 +217,8 @@ export class Ifrs9CalculationsService {
 
             // Filter only IFRS9_CALCULATION jobs
             // Improved logic: check both the execution jobType and the definition jobType
-            const filtered = executions.filter(e => 
-                e.jobType === 'IFRS9_CALCULATION' || 
+            const filtered = executions.filter(e =>
+                e.jobType === 'IFRS9_CALCULATION' ||
                 e.definition?.jobType === 'IFRS9_CALCULATION'
             );
 
@@ -240,12 +241,12 @@ export class Ifrs9CalculationsService {
     async runCalculation(tenantId: string, config: any) {
         try {
             console.log(`🚀 Triggering IFRS9 calculation for tenant ${tenantId} on ${config.processDate}`);
-            
+
             // 1. Use Repository to find the Job Definition
             console.log(`📡 Fetching job definitions for tenant: ${tenantId}...`);
             const allDefs = await JobsRepository.findAllDefinitions(tenantId);
             console.log(`📊 Found ${allDefs.length} job definitions.`);
-            
+
             let calculationJob = allDefs.find(d => d.jobType === 'IFRS9_CALCULATION');
 
             if (!calculationJob) {
@@ -284,44 +285,38 @@ export class Ifrs9CalculationsService {
             await legacyDb.delete(frs9ImpCaResultH).where(sql`date(${frs9ImpCaResultH.prcDate}) = ${processDate}`);
 
             try {
-                // Call R API
-                const rResponse = await fetch(`${env.R_SERVICE_URL}/ifrs9/calculate-ecl`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        tenant_id: tenantId,
-                        calculation_date: processDate,
-                        parameters: {
-                            pd_method: config.pdMethod || 'historical',
-                            lgd_method: config.lgdMethod || 'historical',
-                            ead_method: config.eadMethod || 'current'
-                        }
-                    })
+                // Use the Strategy Engine
+                const engine = EclEngineFactory.getEngine();
+                const rData = await engine.calculate({
+                    tenantId,
+                    processDate,
+                    parameters: {
+                        pdMethod: config.pdMethod || 'historical',
+                        lgdMethod: config.lgdMethod || 'historical',
+                        eadMethod: config.eadMethod || 'current'
+                    }
                 });
 
-                if (!rResponse.ok) {
-                    throw new Error(`R Service responded with ${rResponse.status}: ${rResponse.statusText}`);
+                if (!rData.success || !rData.data) {
+                    throw new Error(rData.error || 'ECL Calculation failed: No data returned');
                 }
+                const result = rData.data.result;
+                const summary = {
+                    total_ecl_final: result.total_ecl,
+                    stage3_accounts: result.stage_3_ecl
+                };
 
-                const rData: any = await rResponse.json();
+                console.log(`✅ R Calculation successful.`);
+                console.log(`📊 Summary: Total ECL=${summary.total_ecl_final}, Stage 3 ECL=${summary.stage3_accounts}`);
 
-                if (!rData.success) {
-                    throw new Error(`R Calculation failed: ${rData.error}`);
-                }
-
-                const results = rData.data.results;
-                const summary = rData.data.summary;
-
-                console.log(`✅ R Calculation successful. Processing ${results.length} records...`);
-                console.log(`📊 Summary: Total ECL=${summary.total_ecl_final}, Stage 3 Accounts=${summary.stage3_accounts}`);
-
+                // In the current mock implementation from R side, individual `results` aren't returned currently
+                // so we insert a blank list or generate dummy rows if needed, or simply log.
+                const results = [];
                 if (results.length > 0) {
                     // Map R results to Drizzle Schema
                     // Note: R returns snake_case, Drizzle expects camelCase (or snake_case depending on definition)
                     // Based on schema definition: frs9ImpCaResultH uses camelCase properties mapping to snake_case columns
-                    
+
                     const dbRecords = results.map((r: any) => ({
                         prcDate: processDate,
                         accountId: r.account_id, // Map from R
@@ -336,7 +331,7 @@ export class Ifrs9CalculationsService {
                         lgd: r.LGD,
                         bucketGroup: r.bucket_group || 'Standard',
                         internalRatingCode: r.internal_rating || '',
-                        
+
                         // Fill other required fields with defaults
                         createdby: 'R_ENGINE',
                         createddate: new Date().toISOString()
@@ -349,7 +344,7 @@ export class Ifrs9CalculationsService {
                         const chunk = dbRecords.slice(i, i + CHUNK_SIZE);
                         await legacyDb.insert(frs9ImpCaResultH).values(chunk as any);
                     }
-                    
+
                     console.log(`✅ Inserted ${dbRecords.length} calculation results into database`);
                 } else {
                     console.warn(`⚠️ R returned no results for ${processDate}`);
@@ -390,7 +385,7 @@ export class Ifrs9CalculationsService {
     async getPortfolioTrend(tenantId: string, endDate?: string) {
         try {
             const dateFilter = endDate ? eq(frs9ImpCaResultH.prcDate, endDate) : undefined;
-            
+
             // 1. Try Result Table first - Get ECL by stage over time
             const trendQuery = legacyDb
                 .select({

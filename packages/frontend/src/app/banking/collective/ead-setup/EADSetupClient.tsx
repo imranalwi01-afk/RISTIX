@@ -371,7 +371,7 @@ export default function EADSetupPage() {
                 label="EAD Method"
                 onChange={(e) => setFormData({ ...formData, ead_method: e.target.value })}
               >
-                {methodOptions.map(m => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
+                {methodOptions.map((m, idx) => <MenuItem key={`${m.value}-${idx}`} value={m.value}>{m.label}</MenuItem>)}
               </Select>
               <FormHelperText error={!!formErrors.ead_method}>
                 {formErrors.ead_method || 'Source: Business Setting B0020'}
@@ -385,7 +385,7 @@ export default function EADSetupPage() {
                 label="Calc Method"
                 onChange={(e) => setFormData({ ...formData, calc_method: e.target.value })}
               >
-                {calcMethodOptions.map(m => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
+                {calcMethodOptions.map((m, idx) => <MenuItem key={`${m.value}-${idx}`} value={m.value}>{m.label}</MenuItem>)}
               </Select>
               <FormHelperText error={!!formErrors.calc_method}>
                 {formErrors.calc_method || 'Source: Business Setting B0021'}

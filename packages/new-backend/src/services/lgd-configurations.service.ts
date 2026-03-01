@@ -54,8 +54,8 @@ export const LgdConfigurationsService = {
         const payload = {
             lgdModelName: data.modelName,
             segmentId: data.segmentId,
-            lgdMethod: data.lgdMethod,
-            populationType: data.populationType,
+            lgdMethod: data.lgdMethod != null ? Number(data.lgdMethod) : null,
+            populationType: data.populationType != null ? String(data.populationType) : null,
             observationPeriod: data.observationPeriod,
             workoutPeriod: data.workoutPeriod,
             flFlag: data.flFlag,
@@ -139,10 +139,12 @@ export const LgdConfigurationsService = {
         return pipe(
             ParametersRepository.findDetailByCode('B0022'),
             Effect.map(details =>
-                details.map(d => ({
-                    value: d.value1 ?? '',
-                    label: d.value2 ?? d.value1 ?? '',
-                }))
+                details
+                    .filter(d => d.value1 !== null && d.value1 !== '')
+                    .map(d => ({
+                        value: d.value1!,
+                        label: d.value2 ?? d.value1!,
+                    }))
             )
         )
     },
@@ -156,10 +158,12 @@ export const LgdConfigurationsService = {
         return pipe(
             ParametersRepository.findDetailByCode('B0023'),
             Effect.map(details =>
-                details.map(d => ({
-                    value: d.value1 ?? '',
-                    label: d.value2 ?? d.value1 ?? '',
-                }))
+                details
+                    .filter(d => d.value1 !== null && d.value1 !== '')
+                    .map(d => ({
+                        value: d.value1!,
+                        label: d.value2 ?? d.value1!,
+                    }))
             )
         )
     }

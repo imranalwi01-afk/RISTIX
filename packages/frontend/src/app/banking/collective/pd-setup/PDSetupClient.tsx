@@ -85,6 +85,7 @@ const PdSetupPage = () => {
   const [popTypeOptions, setPopTypeOptions] = useState<{ value: string | number, label: string }[]>([]);
   const [bucketGroups, setBucketGroups] = useState<any[]>([]);
   const [populationSegments, setPopulationSegments] = useState<PopulationSegment[]>([]);
+  const [flScalars, setFlScalars] = useState<any[]>([]);
 
   // Dialog & Selection
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -101,9 +102,9 @@ const PdSetupPage = () => {
   const [formData, setFormData] = useState<Partial<PDConfiguration>>({
     model_name: '',
     population_segment_id: undefined,
-    selected_method: 1,
+    selected_method: '1',
     migration_interval: 12,
-    population_type: 1,
+    population_type: '1',
     historical_month: 24,
     first_historical_date: undefined,
     multiplication: 1,
@@ -125,21 +126,24 @@ const PdSetupPage = () => {
     setLoading(true);
     setError(null);
     try {
-      const [configsRes, methodsRes, popTypesRes, bucketsRes, segmentsRes] = await Promise.all([
+      const [configsRes, methodsRes, popTypesRes, bucketsRes, segmentsRes, flScalarsRes] = await Promise.all([
         api.banking.pdConfigurations.getAll(),
         api.banking.pdConfigurations.getMethods(),
         api.banking.pdConfigurations.getPopulationTypes(),
         api.banking.bucketParameter.getHeaders(),
-        api.banking.populationSegments.getAll({ active_flag: true, segment_type: 'PD' })
+        api.banking.populationSegments.getAll({ active_flag: true, segment_type: 'PD' }),
+        api.banking.flScalar.getAll()
       ]);
 
       setMethodOptions(methodsRes);
       setPopTypeOptions(popTypesRes);
       setBucketGroups(bucketsRes.data || []); // Assuming paginated response structure or direct array
       setPopulationSegments(segmentsRes);
+      setFlScalars(flScalarsRes);
 
       const enrichedConfigs = configsRes.map(config => {
-        const segment = segmentsRes.find(s => s.id === config.population_segment_id);
+        // Robust ID matching using String() for both pkid and business codes
+        const segment = segmentsRes.find(s => String(s.id) === String(config.population_segment_id));
         const method = methodsRes.find(m => String(m.value) === String(config.selected_method));
         return {
           ...config,
@@ -310,7 +314,7 @@ const PdSetupPage = () => {
   // Logic to disable fields based on method (Proxy PD = 3)
   const isFieldDisabled = (field: string) => {
     if (!isEditing && !isDialogOpen) return true;
-    if (formData.selected_method === 3) {
+    if (String(formData.selected_method) === '3') {
       const disabled = ['migration_interval', 'population_type', 'historical_month', 'first_historical_date', 'multiplication'];
       return disabled.includes(field);
     }
@@ -486,7 +490,7 @@ const PdSetupPage = () => {
                     onChange={(e) => setFormData({ ...formData, selected_method: e.target.value })}
                     data-testid="method-select"
                   >
-                    {methodOptions.map(m => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
+                    {methodOptions.map((m, idx) => <MenuItem key={`${m.value}-${idx}`} value={m.value}>{m.label}</MenuItem>)}
                   </Select>
                   <FormHelperText>Source: Business Setting B0018</FormHelperText>
                 </FormControl>
@@ -534,7 +538,7 @@ const PdSetupPage = () => {
                     disabled={isFieldDisabled('population_type')}
                     data-testid="population-type-select"
                   >
-                    {popTypeOptions.map(m => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
+                    {popTypeOptions.map((m, idx) => <MenuItem key={`${m.value}-${idx}`} value={m.value}>{m.label}</MenuItem>)}
                   </Select>
                   <FormHelperText>Source: Business Setting B0019</FormHelperText>
                 </FormControl>
@@ -588,6 +592,25 @@ const PdSetupPage = () => {
                   label="IA Flag"
                 />
               </Box>
+
+              {formData.fl_flag && (
+                <Box>
+                  <FormControl fullWidth>
+                    <InputLabel>FL Scalar</InputLabel>
+                    <Select
+                      value={formData.fl_scalar_id || ''}
+                      label="FL Scalar"
+                      onChange={(e) => setFormData({ ...formData, fl_scalar_id: Number(e.target.value) })}
+                      data-testid="fl-scalar-select"
+                    >
+                      {flScalars.map(fs => (
+                        <MenuItem key={fs.pkid} value={fs.pkid}>{fs.scalar_name}</MenuItem>
+                      ))}
+                    </Select>
+                    <FormHelperText>Source: FL Scalar Parameters</FormHelperText>
+                  </FormControl>
+                </Box>
+              )}
 
             </Box>
           </LocalizationProvider>

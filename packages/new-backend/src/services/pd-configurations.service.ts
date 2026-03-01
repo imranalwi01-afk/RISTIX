@@ -53,9 +53,9 @@ export const PdConfigurationsService = {
         const payload = {
             pdModelName: data.model_name,
             segmentId: data.population_segment_id,
-            pdMethod: String(data.selected_method),
+            pdMethod: data.selected_method != null ? String(data.selected_method) : null,
             interval: data.migration_interval,
-            populationType: String(data.population_type),
+            populationType: data.population_type != null ? String(data.population_type) : null,
             observationPeriod: data.historical_month,
             observationStartDate: data.first_historical_date ? new Date(data.first_historical_date).toISOString() : null,
             multiplication: data.multiplication,
@@ -92,17 +92,17 @@ export const PdConfigurationsService = {
             updatedhost: 'localhost'
         }
 
-        if (data.model_name) updateData.pdModelName = data.model_name
-        if (data.population_segment_id) updateData.segmentId = data.population_segment_id
-        if (data.selected_method) updateData.pdMethod = String(data.selected_method)
-        if (data.migration_interval) updateData.interval = data.migration_interval
-        if (data.population_type) updateData.populationType = String(data.population_type)
-        if (data.historical_month) updateData.observationPeriod = data.historical_month
-        if (data.first_historical_date) updateData.observationStartDate = new Date(data.first_historical_date).toISOString()
+        if (data.model_name !== undefined) updateData.pdModelName = data.model_name
+        if (data.population_segment_id !== undefined) updateData.segmentId = data.population_segment_id
+        if (data.selected_method !== undefined) updateData.pdMethod = data.selected_method != null ? String(data.selected_method) : null
+        if (data.migration_interval !== undefined) updateData.interval = data.migration_interval
+        if (data.population_type !== undefined) updateData.populationType = data.population_type != null ? String(data.population_type) : null
+        if (data.historical_month !== undefined) updateData.observationPeriod = data.historical_month
+        if (data.first_historical_date !== undefined) updateData.observationStartDate = data.first_historical_date ? new Date(data.first_historical_date).toISOString() : null
         if (data.multiplication !== undefined) updateData.multiplication = data.multiplication
         if (data.fl_flag !== undefined) updateData.flFlag = data.fl_flag
         if (data.ia_flag !== undefined) updateData.iaFlag = data.ia_flag
-        if (data.bucket) updateData.bucketGroup = data.bucket
+        if (data.bucket !== undefined) updateData.bucketGroup = data.bucket
         if (data.is_active !== undefined) updateData.activeFlag = data.is_active
 
         return pipe(
@@ -139,10 +139,12 @@ export const PdConfigurationsService = {
         return pipe(
             ParametersRepository.findDetailByCode('B0018'),
             Effect.map(details =>
-                details.map(d => ({
-                    value: d.value1 ?? '',
-                    label: d.value2 ?? d.value1 ?? '',
-                }))
+                details
+                    .filter(d => d.value1 !== null && d.value1 !== '')
+                    .map(d => ({
+                        value: d.value1!,
+                        label: d.value2 ?? d.value1!,
+                    }))
             )
         )
     },
@@ -156,10 +158,12 @@ export const PdConfigurationsService = {
         return pipe(
             ParametersRepository.findDetailByCode('B0019'),
             Effect.map(details =>
-                details.map(d => ({
-                    value: d.value1 ?? '',
-                    label: d.value2 ?? d.value1 ?? '',
-                }))
+                details
+                    .filter(d => d.value1 !== null && d.value1 !== '')
+                    .map(d => ({
+                        value: d.value1!,
+                        label: d.value2 ?? d.value1!,
+                    }))
             )
         )
     }

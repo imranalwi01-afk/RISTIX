@@ -136,8 +136,8 @@ export default function ProvisioningPage() {
                             onChange={(e) => setSelectedPeriod(e.target.value)}
                         >
                             <MenuItem value="all">All Periods (Last 12)</MenuItem>
-                            {data.map((item) => (
-                                <MenuItem key={item.prcDate} value={item.prcDate}>
+                            {data.map((item, idx) => (
+                                <MenuItem key={`${item.prcDate}-${idx}`} value={item.prcDate}>
                                     {new Date(item.prcDate).toLocaleDateString()}
                                 </MenuItem>
                             ))}

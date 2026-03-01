@@ -870,8 +870,8 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
                   ) : null
                 }}
               >
-                {tables.map((table) => (
-                  <MenuItem key={table.id} value={table.value}>
+                {tables.map((table, idx) => (
+                  <MenuItem key={`${table.id}-${idx}`} value={table.value}>
                     {table.label}
                   </MenuItem>
                 ))}
@@ -896,8 +896,8 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
                   ) : null
                 }}
               >
-                {columns.map((column) => (
-                  <MenuItem key={column.id} value={column.value}>
+                {columns.map((column, idx) => (
+                  <MenuItem key={`${column.id}-${idx}`} value={column.value}>
                     {column.label}
                   </MenuItem>
                 ))}
@@ -940,8 +940,8 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
                   ) : null
                 }}
               >
-                {operators.map((operator) => (
-                  <MenuItem key={operator.id} value={operator.value}>
+                {operators.map((operator, idx) => (
+                  <MenuItem key={`${operator.id}-${idx}`} value={operator.value}>
                     {operator.label}
                   </MenuItem>
                 ))}
@@ -977,8 +977,8 @@ const BusinessParameterSegmentationModal: React.FC<BusinessParameterSegmentation
                   ) : null
                 }}
               >
-                {conditions.map((condition) => (
-                  <MenuItem key={condition.id} value={condition.value}>
+                {conditions.map((condition, idx) => (
+                  <MenuItem key={`${condition.id}-${idx}`} value={condition.value}>
                     {condition.label}
                   </MenuItem>
                 ))}

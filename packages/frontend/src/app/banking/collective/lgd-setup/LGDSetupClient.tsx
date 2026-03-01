@@ -88,7 +88,7 @@ export default function LGDSetupPage() {
   const [formData, setFormData] = useState<Partial<LGDConfiguration>>({
     model_name: '',
     segment_id: undefined,
-    lgd_method: 1,
+    lgd_method: '1',
     population_type: 'Monthly',
     observation_period: '',
     workout_period: 12,
@@ -125,10 +125,10 @@ export default function LGDSetupPage() {
       setFlScalars(flScalarsRes);
 
       const enrichedConfigs = configsRes.map(config => {
-        const segment = segmentsRes.find(s => s.id === config.segment_id);
+        const segment = segmentsRes.find(s => String(s.id) === String(config.segment_id));
         const method = methodsRes.find(m => String(m.value) === String(config.lgd_method));
         // Note: flScalarsRes uses 'pkid', config uses 'fl_scalar_id'
-        const scalar = flScalarsRes.find(s => s.pkid === config.fl_scalar_id);
+        const scalar = flScalarsRes.find(s => String(s.pkid) === String(config.fl_scalar_id));
 
         return {
           ...config,
@@ -436,7 +436,7 @@ export default function LGDSetupPage() {
                   label="Method"
                   onChange={(e) => setFormData({ ...formData, lgd_method: e.target.value })}
                 >
-                  {methodOptions.map(m => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
+                  {methodOptions.map((m, idx) => <MenuItem key={`${m.value}-${idx}`} value={m.value}>{m.label}</MenuItem>)}
                 </Select>
                 <FormHelperText error={!!formErrors.lgd_method}>
                   {formErrors.lgd_method || 'Source: Business Setting B0022'}
@@ -450,7 +450,7 @@ export default function LGDSetupPage() {
                   label="Population Type"
                   onChange={(e) => setFormData({ ...formData, population_type: e.target.value })}
                 >
-                  {popTypeOptions.map(m => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
+                  {popTypeOptions.map((m, idx) => <MenuItem key={`${m.value}-${idx}`} value={m.value}>{m.label}</MenuItem>)}
                 </Select>
                 <FormHelperText>Source: Business Setting B0023</FormHelperText>
               </FormControl>
