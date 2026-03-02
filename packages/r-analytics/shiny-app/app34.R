@@ -1044,8 +1044,9 @@ server <- function(input, output, session) {
   options(
     # Tambahkan fungsi lain untuk modularisasi
     shiny.error = function() {
+      err_msg <- geterrmessage()
       showNotification(
-        "Terjadi kesalahan sistem. Silakan ulangi.",
+        paste("Terjadi kesalahan sistem:", err_msg),
         type = "error",
         duration = NULL
       )
@@ -1123,6 +1124,20 @@ server <- function(input, output, session) {
     }
 
     hasildependent <- transform_y(data_dependent, input$transformasi, logit_value = 0.000001, moving_avg_window = 3)
+    
+    # Alert for data quality issues
+    report <- attr(hasildependent, "quality_report")
+    if (length(report) > 0) {
+      msg <- paste0("Ditemukan nilai tidak valid (Inf/NaN) pada variabel dependent:\n", 
+                    paste(names(report), "pada tanggal", sapply(report, function(x) paste(head(x), collapse=", ")), collapse="\n"))
+      showModal(modalDialog(
+        title = "Peringatan Kualitas Data (Dependent)",
+        msg,
+        easyClose = TRUE,
+        footer = modalButton("Tutup")
+      ))
+    }
+    
     hasildependent
   })
 
@@ -1183,7 +1198,19 @@ server <- function(input, output, session) {
         if (ext %in% c("xlsx", "xls")) {
           readxl::read_excel(input_file$datapath)
         } else {
-          read.csv(input_file$datapath, sep = sep, stringsAsFactors = FALSE)
+          df <- read.csv(input_file$datapath, sep = sep, stringsAsFactors = FALSE)
+          # Auto-detection: if only 1 column is found, try other common delimiters
+          if (ncol(df) <= 1) {
+            for (alt_sep in c(";", "\t", "|")) {
+              if (alt_sep == sep) next
+              df_alt <- read.csv(input_file$datapath, sep = alt_sep, stringsAsFactors = FALSE)
+              if (ncol(df_alt) > 1) {
+                df <- df_alt
+                break
+              }
+            }
+          }
+          df
         }
       },
       error = function(e) {
@@ -1253,6 +1280,20 @@ server <- function(input, output, session) {
     if (input$transform) {
       df3x <- df2[, !names(df2) %in% date_col, drop = FALSE]
       df3new <- transform(df3x)
+      
+      # Alert for data quality issues
+      report <- attr(df3new, "quality_report")
+      if (length(report) > 0) {
+        msg <- paste0("Ditemukan nilai tidak valid (Inf/NaN) hasil transformasi (Division by Zero?):\n\n", 
+                      paste(lapply(names(report), function(n) paste0("- ", n, ": ", paste(head(report[[n]], 3), collapse=", "))), collapse="\n"))
+        showModal(modalDialog(
+          title = "Peringatan Kualitas Data (Independent)",
+          msg,
+          easyClose = TRUE,
+          footer = modalButton("Tutup")
+        ))
+      }
+      
       df3new <- cbind(df2[, date_col, drop = FALSE], df3new)
       df3new <- na.omit(df3new)
       return(df3new)
@@ -1358,14 +1399,29 @@ server <- function(input, output, session) {
 
   ################ Joint data####################
   datagabung <- eventReactive(input$join, {
-    req(data_dependent_tr(), df_final())
+    # Explicit checks instead of silent req()
+    if (is.null(df_final())) {
+      showNotification("Data Independent (MEV) belum siap. Silakan upload file di tab Independent.", type = "error")
+      return(NULL)
+    }
+    if (is.null(data_dependent_tr())) {
+      showNotification("Data Dependent belum siap. Silakan klik Submit di tab Dependent Data.", type = "error")
+      return(NULL)
+    }
 
     data_dep <- data_dependent_tr()
     data_ind <- df_final()
 
-
-    hasilgabung <- inner_join_date(data_dep, data_ind)
-    hasilgabung
+    tryCatch({
+      hasilgabung <- inner_join_date(data_dep, data_ind)
+      if (nrow(hasilgabung) == 0) {
+        showNotification("Hasil join kosong. Pastikan rentang waktu (Date) di kedua file beririsan.", type = "warning")
+      }
+      return(hasilgabung)
+    }, error = function(e) {
+      showNotification(paste("Gagal menggabungkan data:", e$message), type = "error")
+      return(NULL)
+    })
   })
 
   output$tabel_hasil_join <- renderDT({
@@ -1506,7 +1562,9 @@ server <- function(input, output, session) {
     df3x <- df[, !names(df) %in% date_col, drop = FALSE]
     namax <- names(df3x)
 
-    sources <- unique(sapply(strsplit(namax, "_"), `[`, 1))
+    # Get original variables from df1, excluding the Date column
+    raw_names <- names(df1())
+    sources <- raw_names[!(raw_names %in% c("Date", "date", "DATE"))]
 
     abc <- data.frame(var = sources, sign = rep(0, length(sources)))
     return(abc)
@@ -1828,7 +1886,7 @@ server <- function(input, output, session) {
           incProgress(0.1, detail = "Selesai!")
         },
         error = function(e) {
-          showNotification(paste("Terjadi kesalahan komputasi:", e$message), type = "error", duration = 10, id = "runmodel_notif")
+          showNotification(paste("Terjadi kesalahan komputasi:", e$message), type = "error", duration = 15, id = "runmodel_notif")
           ra_log_warn("Combined model debug failed", context = list(error = e$message))
         }
       )
@@ -2088,7 +2146,9 @@ server <- function(input, output, session) {
 
   df_forecast0 <- eventReactive(input$forecastX, {
     namax <- names(df_final())
-    sources <- unique(sapply(strsplit(namax, "_"), `[`, 1))
+    # Get original variables from df1, excluding the Date column
+    raw_names <- names(df1())
+    sources <- raw_names[!(raw_names %in% c("Date", "date", "DATE"))]
     datacorex <- df_final()[, sources, drop = FALSE]
 
     list_variabel <- konversi_ke_list_forecast(datacorex)
@@ -2107,7 +2167,9 @@ server <- function(input, output, session) {
 
   df_forecast1 <- eventReactive(input$forecastX, {
     namax <- names(df_final())
-    sources <- unique(sapply(strsplit(namax, "_"), `[`, 1))
+    # Get original variables from df1, excluding the Date column
+    raw_names <- names(df1())
+    sources <- raw_names[!(raw_names %in% c("Date", "date", "DATE"))]
     datacorex <- df_final()[, sources, drop = FALSE]
     list_variabel <- konversi_ke_list_forecast(datacorex)
     hasil_forecastmetode <- forecast_dengan_metode_terbaik(list_variabel, df_forecast0(), jf = input$jumlah_forecast)
@@ -3610,8 +3672,12 @@ server <- function(input, output, session) {
     req(!is.null(df), ncol(df) >= 2)
 
     namax <- names(df)
-    sources <- unique(sapply(strsplit(namax, "_"), `[`, 1))
-    sources <- sources[sources %in% names(df)] # guard kolom
+    # Robust extraction of source variables (excluding transformations)
+    all_names <- names(df)
+    sources <- all_names[!sapply(all_names, function(n) {
+      base <- gsub("(_Y|_Diff12|_Ln|_Lg[1-4])$", "", n)
+      n != base && base %in% all_names
+    })]
     if (length(sources) == 0) {
       return(df)
     } # fallback: kembalikan df apa adanya

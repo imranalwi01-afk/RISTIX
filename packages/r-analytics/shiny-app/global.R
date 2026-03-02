@@ -1086,6 +1086,41 @@ runreg3models3 <- function(data, target_var, regression_models, chunk_size = 100
 }
 
 
+# ------------------- Data Quality & Sanitization -------------------
+
+#' Check for invalid numeric values (Inf, -Inf, NaN)
+#' @param df Data frame to check
+#' @return A list with problematic columns and the dates where errors occur
+check_data_quality <- function(df) {
+  # Tentukan kolom tanggal
+  date_col <- names(df)[sapply(df, inherits, "Date")][1]
+  if (is.na(date_col)) date_col <- "Date" # Fallback if not formal Date class
+  
+  results <- list()
+  num_cols <- names(df)[sapply(df, is.numeric)]
+  
+  for (col in num_cols) {
+    invalid_idx <- which(is.infinite(df[[col]]) | is.nan(df[[col]]))
+    if (length(invalid_idx) > 0) {
+      dates <- if (date_col %in% names(df)) as.character(df[[date_col]][invalid_idx]) else paste("Row", invalid_idx)
+      results[[col]] <- dates
+    }
+  }
+  return(results)
+}
+
+#' Sanitize data by converting Inf/NaN to NA
+#' @param df Data frame to sanitize
+sanitize_data <- function(df) {
+  df[] <- lapply(df, function(x) {
+    if (is.numeric(x)) {
+      x[is.infinite(x) | is.nan(x)] <- NA
+    }
+    return(x)
+  })
+  return(df)
+}
+
 transform <- function(data) {
   vars <- names(data)
   data <- data %>%
@@ -1154,6 +1189,13 @@ transform <- function(data) {
         )
     }
   }
+  
+  # Data Quality Check & Sanitization
+  quality_report <- check_data_quality(data)
+  data <- sanitize_data(data)
+  
+  # Attach report as attribute
+  attr(data, "quality_report") <- quality_report
   
   return(data)
 }
@@ -1227,8 +1269,14 @@ transform2 <- function(data) {
         )
     }
   }
-  bad_cols <- sapply(data, function(col) any(is.infinite(col) | is.nan(col)))
-  data <- data[, !bad_cols, drop = FALSE]
+  
+  # Data Quality Check & Sanitization
+  quality_report <- check_data_quality(data)
+  data <- sanitize_data(data)
+  
+  # Attach report as attribute
+  attr(data, "quality_report") <- quality_report
+  
   return(data)
 }
 
@@ -1393,7 +1441,12 @@ transform_y <- function(df, transformations = c("logit", "average", "moving_aver
       df[[paste0("log_", col_name)]] <- log_transform(df[[col_name]])
     }
   }
-  
+
+  # Data Quality Check & Sanitization
+  quality_report <- check_data_quality(df)
+  df <- sanitize_data(df)
+  attr(df, "quality_report") <- quality_report
+
   return(df)
 }
 
@@ -1407,8 +1460,12 @@ inner_join_date <- function(df1, df2) {
   date_col2 <- names(df2)[sapply(df2, inherits, "Date")]
   
   # Periksa jika kedua tabel memiliki kolom tanggal yang valid
-  if (length(date_col1) == 0 | length(date_col2) == 0) {
-    stop("Kolom tanggal tidak ditemukan pada salah satu atau kedua tabel.")
+  if (length(date_col1) == 0 && length(date_col2) == 0) {
+    stop("Kolom tanggal tidak ditemukan pada kedua tabel (Dependent & Independent).")
+  } else if (length(date_col1) == 0) {
+    stop("Kolom tanggal tidak ditemukan pada tabel Dependent (Input pertama).")
+  } else if (length(date_col2) == 0) {
+    stop("Kolom tanggal tidak ditemukan pada tabel Independent (Input kedua).")
   }
   
   # Ganti nama kolom tanggal menjadi "Date" di kedua data frame
