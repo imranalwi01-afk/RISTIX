@@ -43,6 +43,7 @@ const CreateLgdConfigSchema = z.object({
     fl_flag: z.boolean().default(false),
     fl_scalar_id: z.number().int().nullable().optional(),
     lgd_rate: z.number().optional(),
+    is_active: z.boolean().optional(),
     observation_start_date: z.string().nullable().optional(),
 }).superRefine((data, ctx) => {
     if (data.fl_flag && data.fl_scalar_id == null) {

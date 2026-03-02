@@ -57,13 +57,13 @@ export default function PlatformDashboard() {
                     Platform Control Center
                 </Typography>
                 <Typography variant="body1" color="text.secondary">
-                    Welcome back, {user?.name || 'Administrator'}. Manage your IFRS9 engine infrastructure here.
+                    Welcome back, {user?.fullName || user?.username || 'Administrator'}. Manage your IFRS9 engine infrastructure here.
                 </Typography>
             </Box>
 
             <Grid container spacing={4}>
                 {platformModules.map((mod, idx) => (
-                    <Grid item xs={12} md={6} key={idx}>
+                    <Grid key={idx} size={{ xs: 12, md: 6 }}>
                         <Card
                             onClick={() => router.push(mod.route)}
                             sx={{

@@ -311,7 +311,7 @@ export class Ifrs9CalculationsService {
 
                 // In the current mock implementation from R side, individual `results` aren't returned currently
                 // so we insert a blank list or generate dummy rows if needed, or simply log.
-                const results = [];
+                const results: any[] = [];
                 if (results.length > 0) {
                     // Map R results to Drizzle Schema
                     // Note: R returns snake_case, Drizzle expects camelCase (or snake_case depending on definition)
