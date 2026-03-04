@@ -51,7 +51,7 @@ import dayjs from 'dayjs';
 import { useRouter } from 'next/navigation';
 import { api } from '@/services/api';
 import { PDConfiguration } from '@/services/api/pd-configurations.api';
-import { PopulationSegment } from '@/services/api/population-segments.api';
+import { PopulationSegment, filterPopulationSegmentsByType } from '@/services/api/population-segments.api';
 import { ApprovalNotification, ApprovalStatusBadge } from '@/components/approval';
 import { bankingAPI } from '@/services/api';
 import { PDStructureVisualization, FLScalarVisualization } from '@/components/banking/pd-setup/PDStructureVisualization';
@@ -138,12 +138,13 @@ const PdSetupPage = () => {
       setMethodOptions(methodsRes);
       setPopTypeOptions(popTypesRes);
       setBucketGroups(bucketsRes.data || []); // Assuming paginated response structure or direct array
-      setPopulationSegments(segmentsRes);
+      const pdSegments = filterPopulationSegmentsByType(segmentsRes, 'PD');
+      setPopulationSegments(pdSegments);
       setFlScalars(flScalarsRes);
 
       const enrichedConfigs = configsRes.map(config => {
         // Robust ID matching using String() for both pkid and business codes
-        const segment = segmentsRes.find(s => String(s.id) === String(config.population_segment_id));
+        const segment = pdSegments.find(s => String(s.id) === String(config.population_segment_id));
         const method = methodsRes.find(m => String(m.value) === String(config.selected_method));
         return {
           ...config,

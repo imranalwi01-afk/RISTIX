@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Box,
   TextField,
@@ -13,16 +13,30 @@ import {
   Typography,
   Paper,
   Divider,
-  Stack
+  Stack,
+  FormHelperText
 } from '@mui/material';
 import {
   InfoOutlined as InfoIcon,
   Settings as SettingsIcon
 } from '@mui/icons-material';
+import { api } from '@/services/api';
+
+type SegmentationHeaderFormData = {
+  group_segment?: string;
+  segment?: string;
+  sub_segment?: string;
+  segment_type?: string;
+  seq?: number;
+  active_flag?: boolean;
+  requires_approval?: boolean;
+  description?: string;
+  [key: string]: string | number | boolean | undefined;
+};
 
 interface SegmentationDetailsTabProps {
-  formData: any;
-  setFormData: (data: any) => void;
+  formData: SegmentationHeaderFormData;
+  setFormData: (data: Partial<SegmentationHeaderFormData>) => void;
   readOnly?: boolean;
 }
 
@@ -31,9 +45,55 @@ export const SegmentationDetailsTab: React.FC<SegmentationDetailsTabProps> = ({
   setFormData,
   readOnly = false
 }) => {
-  const handleChange = (field: string, value: any) => {
-    setFormData((prev: any) => ({ ...prev, [field]: value }));
+  const [segmentTypeOptions, setSegmentTypeOptions] = useState<Array<{ code: string; name: string }>>([]);
+
+  const selectedSegmentType = useMemo(
+    () => String(formData.segment_type || ''),
+    [formData.segment_type]
+  );
+
+  const handleChange = (field: keyof SegmentationHeaderFormData, value: SegmentationHeaderFormData[keyof SegmentationHeaderFormData]) => {
+    setFormData({ [field]: value });
   };
+
+  useEffect(() => {
+    const loadSegmentTypes = async () => {
+      try {
+        const response = await api.banking.segmentation.getSegmentTypes();
+        const payload = response?.data && typeof response.data === 'object' ? response.data : response;
+        const rows = Array.isArray(payload?.data)
+          ? payload.data
+          : Array.isArray(payload)
+            ? payload
+            : [];
+
+        const mapped = rows
+          .map((row: unknown) => {
+            const rowData = row as { type_code?: unknown; value1?: unknown; type_name?: unknown; paramdesc?: unknown };
+            const code = String(rowData?.type_code ?? rowData?.value1 ?? '').trim();
+            if (!code) return null;
+            const name = String(rowData?.type_name ?? rowData?.paramdesc ?? code).trim() || code;
+            return { code, name };
+          })
+          .filter(Boolean) as Array<{ code: string; name: string }>;
+
+        setSegmentTypeOptions(mapped);
+      } catch (error) {
+        console.warn('Failed to load segment type options (B0011):', error);
+        setSegmentTypeOptions([]);
+      }
+    };
+
+    loadSegmentTypes();
+  }, []);
+
+  useEffect(() => {
+    if (segmentTypeOptions.length === 0) return;
+    const existsInOptions = segmentTypeOptions.some((option) => option.code === selectedSegmentType);
+    if (!selectedSegmentType || !existsInOptions) {
+      setFormData({ segment_type: segmentTypeOptions[0].code });
+    }
+  }, [segmentTypeOptions, selectedSegmentType, setFormData]);
 
   return (
     <Box>
@@ -120,16 +180,24 @@ export const SegmentationDetailsTab: React.FC<SegmentationDetailsTabProps> = ({
                 <InputLabel id="segment-type-label">Segment Type</InputLabel>
                 <Select
                   labelId="segment-type-label"
-                  value={formData.segment_type || 'PD'}
+                  value={selectedSegmentType}
                   label="Segment Type"
                   onChange={(e) => handleChange('segment_type', e.target.value)}
                   sx={{ borderRadius: 1.5 }}
                 >
-                  <MenuItem value="PD">Probability of Default (PD)</MenuItem>
-                  <MenuItem value="LGD">Loss Given Default (LGD)</MenuItem>
-                  <MenuItem value="EAD">Exposure at Default (EAD)</MenuItem>
-                  <MenuItem value="PREPAYMENT">Prepayment</MenuItem>
+                  {segmentTypeOptions.length > 0 ? (
+                    segmentTypeOptions.map((option) => (
+                      <MenuItem key={option.code} value={option.code}>
+                        {option.name}
+                      </MenuItem>
+                    ))
+                  ) : (
+                    <MenuItem disabled value="">
+                      No options - configure B0011 in Business Settings
+                    </MenuItem>
+                  )}
                 </Select>
+                <FormHelperText>Source: Business Setting B0011</FormHelperText>
               </FormControl>
 
               <TextField

@@ -1113,7 +1113,7 @@ server <- function(input, output, session) {
 
 
   data_dependent_tr <- eventReactive(input$submit, {
-    req(input$dependent)
+    req(input$dependent, rv_df())
     if (input$dependent == "PD") {
       data_dependent <- rv_df()[, c("prc_date", "odr")]
     } else if (input$dependent == "lgd") {

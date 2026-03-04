@@ -62,6 +62,8 @@ interface SegmentationHeaderData {
   rules?: any[];
 }
 
+const BANKING_TOP_OFFSET = 74; // Banking app bar (42) + breadcrumbs row (32)
+
 export default function SegmentationClient() {
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -483,7 +485,13 @@ export default function SegmentationClient() {
           anchor="right"
           open={detailOpen}
           onClose={() => setDetailOpen(false)}
-          PaperProps={{ sx: { width: { xs: '100%', md: '80%', lg: '70%' } } }}
+          PaperProps={{
+            sx: {
+              width: { xs: '100%', md: '80%', lg: '70%' },
+              top: `${BANKING_TOP_OFFSET}px`,
+              height: `calc(100% - ${BANKING_TOP_OFFSET}px)`,
+            }
+          }}
         >
           <SegmentationDetail
             mode={detailMode}

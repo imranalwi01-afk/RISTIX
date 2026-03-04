@@ -44,7 +44,7 @@ import { bankingAPI } from '@/services/api';
 import { EADConfiguration } from '../../../../services/api/ead-configurations.api';
 import { FLScalarWithDetails } from '../../../../services/api/fl-scalar.api';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
-import { PopulationSegment } from '../../../../services/api/population-segments.api';
+import { PopulationSegment, filterPopulationSegmentsByType } from '../../../../services/api/population-segments.api';
 import { usePermission } from '@/hooks/usePermission';
 
 // Safe DataGrid wrapper to prevent bundling issues
@@ -108,10 +108,11 @@ export default function EADSetupPage() {
 
       setMethodOptions(methodsRes);
       setCalcMethodOptions(calcMethodsRes);
-      setPopulationSegments(segmentsRes);
+      const eadSegments = filterPopulationSegmentsByType(segmentsRes, 'EAD');
+      setPopulationSegments(eadSegments);
 
       const enrichedConfigs = configsRes.map(config => {
-        const segment = segmentsRes.find(s => String(s.id) === String(config.segment_id));
+        const segment = eadSegments.find(s => String(s.id) === String(config.segment_id));
         return {
           ...config,
           segment_name: segment?.segment_name || String(config.segment_id || 'Unknown'),

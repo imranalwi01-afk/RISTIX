@@ -46,7 +46,7 @@ import dayjs from 'dayjs';
 import { useRouter } from 'next/navigation';
 import { api } from '../../../../services/api';
 import { LGDConfiguration } from '../../../../services/api/lgd-configurations.api';
-import { PopulationSegment } from '../../../../services/api/population-segments.api';
+import { PopulationSegment, filterPopulationSegmentsByType } from '../../../../services/api/population-segments.api';
 import { FLScalarWithDetails } from '../../../../services/api/fl-scalar.api';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 import { usePermission } from '@/hooks/usePermission';
@@ -121,11 +121,12 @@ export default function LGDSetupPage() {
 
       setMethodOptions(methodsRes);
       setPopTypeOptions(popTypesRes);
-      setPopulationSegments(segmentsRes);
+      const lgdSegments = filterPopulationSegmentsByType(segmentsRes, 'LGD');
+      setPopulationSegments(lgdSegments);
       setFlScalars(flScalarsRes);
 
       const enrichedConfigs = configsRes.map(config => {
-        const segment = segmentsRes.find(s => String(s.id) === String(config.segment_id));
+        const segment = lgdSegments.find(s => String(s.id) === String(config.segment_id));
         const method = methodsRes.find(m => String(m.value) === String(config.lgd_method));
         // Note: flScalarsRes uses 'pkid', config uses 'fl_scalar_id'
         const scalar = flScalarsRes.find(s => String(s.pkid) === String(config.fl_scalar_id));

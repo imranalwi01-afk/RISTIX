@@ -16,6 +16,11 @@ convert_dates <- function(df, threshold = 0.9,
                                date_formats = c("%Y-%m-%d", "%d-%m-%Y", "%m/%d/%Y", "%d/%m/%Y",
                                                 "%Y/%m/%d", "%d.%m.%Y", "%Y.%m.%d")) {
 
+  if (is.null(df) || ncol(df) == 0) {
+    warning("Data kosong atau tidak memiliki kolom di convert_dates.")
+    return(df)
+  }
+
   is_date_col <- logical(length = ncol(df))
   best_formats <- character(length = ncol(df))
 

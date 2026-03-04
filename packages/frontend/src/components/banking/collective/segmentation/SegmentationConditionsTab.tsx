@@ -13,10 +13,8 @@ import {
   Paper,
   IconButton,
   Chip,
-  Tooltip,
   Stack,
   Alert,
-  Divider,
   Grid,
   TextField,
   FormControl,
@@ -24,15 +22,13 @@ import {
   Select,
   MenuItem,
   Autocomplete,
-  CircularProgress
+  CircularProgress,
+  FormHelperText
 } from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  Storage as TableIcon,
-  ViewColumn as ColumnIcon,
-  SettingsEthernet as OperatorIcon,
   Code as LogicIcon,
   Save as SaveIcon,
   Close as CancelIcon,
@@ -40,6 +36,33 @@ import {
   DragIndicator as DragIcon
 } from '@mui/icons-material';
 import { api } from '../../../../services/api';
+
+const normalizeListPayload = (payload: unknown): string[] => {
+  const source =
+    payload && typeof payload === 'object' && 'data' in payload
+      ? (payload as { data: unknown }).data
+      : payload;
+  const rawList = Array.isArray(source)
+    ? source
+    : source && typeof source === 'object' && 'data' in source && Array.isArray((source as { data: unknown }).data)
+      ? (source as { data: unknown[] }).data
+      : [];
+  return rawList
+    .map((item: unknown) => String(item ?? '').trim())
+    .filter((item: string) => item.length > 0);
+};
+
+const normalizeDataTypePayload = (payload: unknown): string => {
+  const source =
+    payload && typeof payload === 'object' && 'data' in payload
+      ? (payload as { data: unknown }).data
+      : payload;
+  if (source && typeof source === 'object' && 'data' in source && typeof (source as { data: unknown }).data === 'string') {
+    return ((source as { data: string }).data || '').trim();
+  }
+  if (typeof source === 'string') return source.trim();
+  return '';
+};
 
 interface Rule {
   id?: string | number;
@@ -60,6 +83,30 @@ interface SegmentationConditionsTabProps {
   readOnly?: boolean;
 }
 
+type DataKind = 'date' | 'number' | 'varchar' | 'boolean' | 'unknown';
+
+const isSetOperator = (operator: string) => ['IN', 'NOT IN'].includes(operator);
+const isBetweenOperator = (operator: string) => operator === 'BETWEEN';
+
+const getDataKind = (dataType: string): DataKind => {
+  const normalized = String(dataType || '').trim().toUpperCase();
+  if (['DATE', 'DATETIME', 'TIMESTAMP'].includes(normalized)) return 'date';
+  if (['NUMBER', 'NUMERIC', 'INTEGER', 'INT', 'DECIMAL', 'FLOAT', 'DOUBLE'].includes(normalized)) return 'number';
+  if (['BOOLEAN', 'BOOL', 'BIT'].includes(normalized)) return 'boolean';
+  if (['VARCHAR', 'CHAR', 'STRING', 'TEXT'].includes(normalized)) return 'varchar';
+  return 'unknown';
+};
+
+const isValidNumberValue = (value: string) => value.trim() !== '' && !Number.isNaN(Number(value));
+
+const isValidDateValue = (value: string) =>
+  /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`));
+
+const isValidNumberList = (value: string) => {
+  const tokens = value.split(',').map((token) => token.trim()).filter(Boolean);
+  return tokens.length > 0 && tokens.every(isValidNumberValue);
+};
+
 export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps> = ({
   rules,
   onRulesChange,
@@ -73,6 +120,7 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
   const [tables, setTables] = useState<string[]>([]);
   const [columns, setColumns] = useState<string[]>([]);
   const [operators, setOperators] = useState<string[]>([]);
+  const [conditions, setConditions] = useState<string[]>([]);
   const [columnValues, setColumnValues] = useState<string[]>([]);
   const [loading, setLoading] = useState({
     tables: false,
@@ -81,21 +129,29 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
     values: false,
     dataType: false
   });
+  const currentDataKind = getDataKind(editForm?.data_type || '');
 
   // Load Initial Metadata
   useEffect(() => {
-    const loadTables = async () => {
+    const loadInitialMetadata = async () => {
       setLoading(prev => ({ ...prev, tables: true }));
       try {
-        const res = await api.banking.segmentation.getBusinessSettingsTables();
-        setTables(Array.isArray(res) ? res : []);
+        const [tablesRes, conditionsRes] = await Promise.all([
+          api.banking.businessSettings.getTables(),
+          api.banking.businessSettings.getConditions()
+        ]);
+
+        setTables(normalizeListPayload(tablesRes));
+        setConditions(normalizeListPayload(conditionsRes));
       } catch (err) {
-        console.error('Error loading tables:', err);
+        console.error('Error loading initial segmentation metadata:', err);
+        setTables([]);
+        setConditions([]);
       } finally {
         setLoading(prev => ({ ...prev, tables: false }));
       }
     };
-    loadTables();
+    loadInitialMetadata();
   }, []);
 
   // Handlers for Metadata Loading
@@ -103,10 +159,11 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
     if (!tableName) return;
     setLoading(prev => ({ ...prev, columns: true }));
     try {
-      const res = await api.banking.segmentation.getBusinessSettingsColumns(tableName);
-      setColumns(Array.isArray(res) ? res : []);
+      const res = await api.banking.businessSettings.getColumns(tableName);
+      setColumns(normalizeListPayload(res));
     } catch (err) {
       console.error('Error loading columns:', err);
+      setColumns([]);
     } finally {
       setLoading(prev => ({ ...prev, columns: false }));
     }
@@ -117,48 +174,62 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
     setLoading(prev => ({ ...prev, dataType: true, operators: true, values: true }));
     try {
       // Get Data Type
-      const dataType = await api.banking.segmentation.getBusinessSettingsDataType(table, column);
+      const dataTypeRes = await api.banking.businessSettings.getDataType(column, table);
+      const dataType = normalizeDataTypePayload(dataTypeRes) || 'String';
 
       // Get Operators based on data type
-      const ops = await api.banking.segmentation.getBusinessSettingsOperators(dataType || 'String');
+      const ops = await api.banking.businessSettings.getOperators(dataType);
 
       // Get Column Values
-      const vals = await api.banking.segmentation.getBusinessSettingsValues(table, column);
+      const vals = await api.banking.businessSettings.getColumnValues(column, table);
 
-      setEditForm(prev => prev ? { ...prev, data_type: dataType || 'String' } : null);
-      setOperators(Array.isArray(ops) ? ops : []);
-      setColumnValues(Array.isArray(vals) ? vals : []);
+      setEditForm(prev => prev ? { ...prev, data_type: dataType } : null);
+      setOperators(normalizeListPayload(ops));
+      setColumnValues(normalizeListPayload(vals));
     } catch (err) {
       console.error('Error loading rule metadata:', err);
+      setOperators([]);
+      setColumnValues([]);
     } finally {
       setLoading(prev => ({ ...prev, dataType: false, operators: false, values: false }));
     }
   };
 
-  const handleFieldChange = (field: keyof Rule, value: any) => {
+  const handleFieldChange = (field: keyof Rule, value: unknown) => {
     if (!editForm) return;
 
-    const updatedForm = { ...editForm, [field]: value };
+    const updatedForm: Rule = { ...editForm, [field]: value as Rule[keyof Rule] };
 
     // Reset downstream fields when upstream changes
     if (field === 'table_name') {
       updatedForm.column_name = '';
       updatedForm.data_type = '';
-      updatedForm.operator = '=';
+      updatedForm.operator = '';
       updatedForm.value1 = '';
       updatedForm.value2 = '';
       setColumns([]);
       setOperators([]);
       setColumnValues([]);
-      loadColumnsForTable(value);
+      loadColumnsForTable(String(value));
     }
 
     if (field === 'column_name') {
       updatedForm.data_type = '';
-      updatedForm.operator = '=';
+      updatedForm.operator = '';
       updatedForm.value1 = '';
       updatedForm.value2 = '';
-      loadDataAndOperators(updatedForm.table_name, value);
+      loadDataAndOperators(updatedForm.table_name, String(value));
+    }
+
+    if (field === 'operator') {
+      updatedForm.value1 = '';
+      updatedForm.value2 = '';
+    }
+
+    if ((field === 'value1' || field === 'value2') && currentDataKind === 'number' && !isSetOperator(String(editForm.operator))) {
+      const incoming = String(value ?? '');
+      if (incoming !== '' && !/^-?\d*\.?\d*$/.test(incoming)) return;
+      updatedForm[field] = incoming as Rule[keyof Rule];
     }
 
     setEditForm(updatedForm);
@@ -172,9 +243,9 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
       table_name: '',
       column_name: '',
       data_type: '',
-      operator: '=',
+      operator: '',
       value1: '',
-      condition: 'AND'
+      condition: (conditions[0] as 'AND' | 'OR') || 'AND'
     });
     setIsAdding(true);
   };
@@ -197,6 +268,44 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
     if (!editForm.table_name || !editForm.column_name || !editForm.value1) {
       alert('Please fill in all required fields (Table, Column, Value)');
       return;
+    }
+    const dataKind = getDataKind(editForm.data_type);
+    const operator = editForm.operator || '';
+
+    if (dataKind === 'date') {
+      if (!isValidDateValue(editForm.value1)) {
+        alert('Value must be a valid date (YYYY-MM-DD).');
+        return;
+      }
+      if (isBetweenOperator(operator) && !isValidDateValue(String(editForm.value2 || ''))) {
+        alert('End Value must be a valid date (YYYY-MM-DD) for BETWEEN.');
+        return;
+      }
+    }
+
+    if (dataKind === 'number') {
+      if (isSetOperator(operator)) {
+        if (!isValidNumberList(editForm.value1)) {
+          alert('Value must contain comma-separated numbers for this operator.');
+          return;
+        }
+      } else if (!isValidNumberValue(editForm.value1)) {
+        alert('Value must be numeric for NUMBER data type.');
+        return;
+      }
+
+      if (isBetweenOperator(operator) && !isValidNumberValue(String(editForm.value2 || ''))) {
+        alert('End Value must be numeric for BETWEEN.');
+        return;
+      }
+    }
+
+    if (dataKind === 'boolean') {
+      const allowed = ['1', '0', 'TRUE', 'FALSE'];
+      if (!allowed.includes(String(editForm.value1 || '').trim().toUpperCase())) {
+        alert('Value must be True/False for BOOLEAN data type.');
+        return;
+      }
     }
 
     const updatedRules = [...rules];
@@ -237,6 +346,10 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
     expr += ')';
     return expr;
   };
+
+  const generatedTableName = (
+    rules.find((rule) => String(rule.table_name || '').trim().length > 0)?.table_name || 'FRS9_MASTER_ACCOUNT'
+  ).toLowerCase();
 
   return (
     <Box>
@@ -287,9 +400,19 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
                   onChange={(e) => handleFieldChange('condition', e.target.value)}
                   sx={{ borderRadius: 1.5 }}
                 >
-                  <MenuItem value="AND">AND (Append)</MenuItem>
-                  <MenuItem value="OR">OR (Separate)</MenuItem>
+                  {conditions.length > 0 ? (
+                    conditions.map((condition) => (
+                      <MenuItem key={condition} value={condition}>
+                        {condition}
+                      </MenuItem>
+                    ))
+                  ) : (
+                    <MenuItem disabled value="">
+                      No options - configure B0015 in Business Settings
+                    </MenuItem>
+                  )}
                 </Select>
+                <FormHelperText>Source: Business Setting B0015</FormHelperText>
               </FormControl>
             </Grid>
             <Grid size={{ xs: 12, md: 3 }}>
@@ -321,6 +444,7 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
                 label="Data Type"
                 value={editForm.data_type || ''}
                 disabled
+                helperText="Source: Business Setting B0013"
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 }, bgcolor: 'white' }}
                 InputProps={{
                   startAdornment: loading.dataType ? <CircularProgress size={16} sx={{ mr: 1 }} /> : null
@@ -340,8 +464,14 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
                   sx={{ borderRadius: 1.5, bgcolor: 'white' }}
                 >
                   {loading.tables ? <MenuItem disabled><CircularProgress size={16} /></MenuItem> : null}
+                  {!loading.tables && tables.length === 0 ? (
+                    <MenuItem disabled value="">
+                      No options - configure B0012 in Business Settings
+                    </MenuItem>
+                  ) : null}
                   {tables.map(t => <MenuItem key={t} value={t}>{t}</MenuItem>)}
                 </Select>
+                <FormHelperText>Source: Business Setting B0012</FormHelperText>
               </FormControl>
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
@@ -355,8 +485,14 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
                   sx={{ borderRadius: 1.5, bgcolor: 'white' }}
                 >
                   {loading.columns ? <MenuItem disabled><CircularProgress size={16} /></MenuItem> : null}
+                  {!loading.columns && columns.length === 0 ? (
+                    <MenuItem disabled value="">
+                      No options - configure B0013 in Business Settings
+                    </MenuItem>
+                  ) : null}
                   {columns.map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
                 </Select>
+                <FormHelperText>Source: Business Setting B0013</FormHelperText>
               </FormControl>
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
@@ -364,31 +500,50 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
                 <InputLabel id="operator-select-label">Operator</InputLabel>
                 <Select
                   labelId="operator-select-label"
-                  value={editForm.operator || '='}
+                  value={editForm.operator || ''}
                   label="Operator"
                   onChange={(e) => handleFieldChange('operator', e.target.value)}
                   sx={{ borderRadius: 1.5, bgcolor: 'white' }}
                 >
                   {loading.operators ? <MenuItem disabled><CircularProgress size={16} /></MenuItem> : null}
+                  {!loading.operators && operators.length === 0 ? (
+                    <MenuItem disabled value="">
+                      No options - configure B0014 in Business Settings
+                    </MenuItem>
+                  ) : null}
                   {operators.map(o => <MenuItem key={o} value={o}>{o}</MenuItem>)}
                 </Select>
+                <FormHelperText>Source: Business Setting B0014</FormHelperText>
               </FormControl>
             </Grid>
 
             {/* Value Controls */}
-            <Grid size={{ xs: 12, md: editForm.operator === 'BETWEEN' ? 6 : 12 }}>
-              {columnValues.length > 0 ? (
+            <Grid size={{ xs: 12, md: isBetweenOperator(editForm.operator) ? 6 : 12 }}>
+              {isSetOperator(editForm.operator) && currentDataKind === 'varchar' ? (
                 <Autocomplete
+                  multiple
                   freeSolo
                   size="small"
                   options={columnValues}
-                  value={editForm.value1 || ''}
-                  onInputChange={(_, newVal) => handleFieldChange('value1', newVal)}
+                  value={String(editForm.value1 || '')
+                    .split(',')
+                    .map((value) => value.trim())
+                    .filter(Boolean)}
+                  onChange={(_, newValues) =>
+                    handleFieldChange(
+                      'value1',
+                      newValues
+                        .map((value) => String(value).trim())
+                        .filter(Boolean)
+                        .join(',')
+                    )
+                  }
                   renderInput={(params) => (
                     <TextField
                       {...params}
-                      label={editForm.operator === 'BETWEEN' ? "Start Value" : "Value"}
-                      placeholder="Select or type..."
+                      label="Value"
+                      placeholder="Select one or more values..."
+                      helperText="Source: Business Setting B0016"
                       sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 }, bgcolor: 'white' }}
                       InputProps={{
                         ...params.InputProps,
@@ -402,28 +557,94 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
                     />
                   )}
                 />
+              ) : currentDataKind === 'date' ? (
+                <TextField
+                  fullWidth
+                  size="small"
+                  type="date"
+                  label={isBetweenOperator(editForm.operator) ? 'Start Date' : 'Date'}
+                  value={editForm.value1 || ''}
+                  onChange={(e) => handleFieldChange('value1', e.target.value)}
+                  slotProps={{ inputLabel: { shrink: true } }}
+                  helperText="Date Picker (YYYY-MM-DD)"
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 }, bgcolor: 'white' }}
+                />
+              ) : currentDataKind === 'number' ? (
+                <TextField
+                  fullWidth
+                  size="small"
+                  type={isSetOperator(editForm.operator) ? 'text' : 'number'}
+                  label={isSetOperator(editForm.operator) ? 'Value List' : 'Value'}
+                  value={editForm.value1 || ''}
+                  onChange={(e) => handleFieldChange('value1', e.target.value)}
+                  placeholder={isSetOperator(editForm.operator) ? 'e.g. 10,20,30' : undefined}
+                  helperText={isSetOperator(editForm.operator) ? 'Use comma-separated numeric values' : 'Numeric input only'}
+                  slotProps={{ htmlInput: isSetOperator(editForm.operator) ? { inputMode: 'text' } : { inputMode: 'decimal', step: 'any' } }}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 }, bgcolor: 'white' }}
+                />
+              ) : currentDataKind === 'boolean' ? (
+                <FormControl fullWidth size="small">
+                  <InputLabel id="boolean-value-label">Value</InputLabel>
+                  <Select
+                    labelId="boolean-value-label"
+                    label="Value"
+                    value={String(editForm.value1 || '')}
+                    onChange={(e) => handleFieldChange('value1', e.target.value)}
+                    sx={{ borderRadius: 1.5, bgcolor: 'white' }}
+                  >
+                    <MenuItem value="1">True</MenuItem>
+                    <MenuItem value="0">False</MenuItem>
+                  </Select>
+                </FormControl>
               ) : (
                 <TextField
                   fullWidth
                   size="small"
-                  label={editForm.operator === 'BETWEEN' ? "Start Value" : "Value"}
+                  label={isBetweenOperator(editForm.operator) ? "Start Value" : "Value"}
                   value={editForm.value1 || ''}
                   onChange={(e) => handleFieldChange('value1', e.target.value)}
+                  helperText={editForm.operator ? 'Input value based on selected operator' : 'Select operator first'}
                   sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 }, bgcolor: 'white' }}
                 />
               )}
             </Grid>
 
-            {editForm.operator === 'BETWEEN' && (
+            {isBetweenOperator(editForm.operator) && (
               <Grid size={{ xs: 12, md: 6 }}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="End Value"
-                  value={editForm.value2 || ''}
-                  onChange={(e) => handleFieldChange('value2', e.target.value)}
-                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 }, bgcolor: 'white' }}
-                />
+                {currentDataKind === 'date' ? (
+                  <TextField
+                    fullWidth
+                    size="small"
+                    type="date"
+                    label="End Date"
+                    value={editForm.value2 || ''}
+                    onChange={(e) => handleFieldChange('value2', e.target.value)}
+                    slotProps={{ inputLabel: { shrink: true } }}
+                    helperText="Date Picker (YYYY-MM-DD)"
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 }, bgcolor: 'white' }}
+                  />
+                ) : currentDataKind === 'number' ? (
+                  <TextField
+                    fullWidth
+                    size="small"
+                    type="number"
+                    label="End Value"
+                    value={editForm.value2 || ''}
+                    onChange={(e) => handleFieldChange('value2', e.target.value)}
+                    helperText="Numeric input only"
+                    slotProps={{ htmlInput: { inputMode: 'decimal', step: 'any' } }}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 }, bgcolor: 'white' }}
+                  />
+                ) : (
+                  <TextField
+                    fullWidth
+                    size="small"
+                    label="End Value"
+                    value={editForm.value2 || ''}
+                    onChange={(e) => handleFieldChange('value2', e.target.value)}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 }, bgcolor: 'white' }}
+                  />
+                )}
               </Grid>
             )}
 
@@ -446,7 +667,7 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
       {/* Rules Result Table */}
       {rules.length === 0 && !isAdding ? (
         <Alert severity="info" sx={{ borderRadius: 2, border: '1px dashed', borderColor: 'info.light', bgcolor: '#f0f9ff' }}>
-          No segmentation rules defined yet. Click "Add New Rule" to begin.
+          No segmentation rules defined yet. Click Add New Rule to begin.
         </Alert>
       ) : (
         <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>
@@ -530,7 +751,7 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
             fontSize: '0.85rem',
             lineHeight: 1.6
           }}>
-            SELECT * FROM accounts WHERE <br />
+            SELECT * FROM {generatedTableName} WHERE <br />
             {rules.map((r, i) => (
               <span key={i} style={{ paddingLeft: '20px', display: 'block' }}>
                 {i > 0 && <span style={{ color: '#fbbf24', fontWeight: 'bold' }}>{r.condition} </span>}

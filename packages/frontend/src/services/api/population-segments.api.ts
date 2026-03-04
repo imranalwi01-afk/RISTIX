@@ -31,6 +31,31 @@ export interface UpdatePopulationSegmentDto extends Partial<CreatePopulationSegm
 
 const BASE_URL = '/banking/parameters/population-segments';
 
+const normalizeSegmentToken = (value?: string | null): string => (value || '').trim().toUpperCase();
+
+export const matchesPopulationSegmentType = (
+    segment: PopulationSegment,
+    expectedType: string
+): boolean => {
+    const target = normalizeSegmentToken(expectedType).replace(/\s+SEGMENT$/, '');
+    if (!target) return true;
+
+    const segmentType = normalizeSegmentToken(segment.segment_type);
+    if (segmentType) {
+        if (segmentType === target) return true;
+        if (segmentType === `${target} SEGMENT`) return true;
+        if (segmentType.startsWith(`${target} `)) return true;
+    }
+
+    const segmentName = normalizeSegmentToken(segment.segment_name);
+    return segmentName === target || segmentName.startsWith(`${target} `);
+};
+
+export const filterPopulationSegmentsByType = (
+    segments: PopulationSegment[],
+    expectedType: string
+): PopulationSegment[] => segments.filter((segment) => matchesPopulationSegmentType(segment, expectedType));
+
 export const populationSegmentsApi = {
     async getAll(params?: {
         search?: string;
@@ -39,8 +64,15 @@ export const populationSegmentsApi = {
     }): Promise<PopulationSegment[]> {
         const queryParams = new URLSearchParams();
         if (params?.search) queryParams.append('search', params.search);
-        if (params?.active_flag !== undefined) queryParams.append('active_flag', params.active_flag.toString());
-        if (params?.segment_type) queryParams.append('segment_type', params.segment_type);
+        if (params?.active_flag !== undefined) {
+            const activeFlag = params.active_flag.toString();
+            queryParams.append('active_flag', activeFlag);
+            queryParams.append('activeFlag', activeFlag); // Compatibility with endpoints using camelCase
+        }
+        if (params?.segment_type) {
+            queryParams.append('segment_type', params.segment_type);
+            queryParams.append('segmentType', params.segment_type); // Compatibility with endpoints using camelCase
+        }
 
         const url = queryParams.toString() ? `${BASE_URL}?${queryParams}` : BASE_URL;
         const response = await apiClient.get<any>(url);

@@ -24,10 +24,61 @@ import ModernLoader from '@/components/common/ModernLoader';
 import { PendingChangesDialog } from '@/components/approval';
 import { usePermission } from '@/hooks/usePermission';
 import ProductTable from './components/ProductTable';
-import ProductDrawer from './components/ProductDrawer';
+import ProductFormDialog from './components/ProductFormDialog';
 import ProductToolbar from './components/ProductToolbar';
 import ProductFilterDrawer from './components/ProductFilterDrawer';
 
+type SettingLocator = {
+  preferredCodes: string[];
+};
+
+const PRODUCT_SETTING_LOCATORS: Record<
+  'currency' | 'amortizationType' | 'instrumentClass' | 'dataSource' | 'productGroup' | 'productType',
+  SettingLocator
+> = {
+  currency: { preferredCodes: ['B0001'] },
+  amortizationType: { preferredCodes: ['B0002'] },
+  instrumentClass: { preferredCodes: ['B0003'] },
+  dataSource: { preferredCodes: ['B0028'] },
+  productGroup: { preferredCodes: ['B0029'] },
+  productType: { preferredCodes: ['B0030'] },
+} as const;
+
+type OptionItem = { id: string; name: string };
+
+const normalizeCode = (value: unknown) => String(value ?? '').trim().toUpperCase();
+
+const normalizeOption = (detail: any): OptionItem | null => {
+  const idRaw = detail?.value1 ?? detail?.param_value ?? '';
+  const id = String(idRaw ?? '').trim();
+  if (!id) return null;
+
+  const nameRaw = detail?.value2 ?? detail?.param_desc ?? detail?.paramdesc ?? id;
+  const name = String(nameRaw ?? '').trim() || id;
+  return { id, name };
+};
+
+const findBusinessSettingHeader = (rows: any[], locator: SettingLocator): any | undefined => {
+  const codeSet = new Set(locator.preferredCodes.map(normalizeCode));
+  return rows.find((row: any) => codeSet.has(normalizeCode(row?.param_code ?? row?.paramCode)));
+};
+
+const extractBusinessOptions = (rows: any[], locator: SettingLocator): OptionItem[] => {
+  const header = findBusinessSettingHeader(rows, locator);
+  const details = Array.isArray(header?.details) ? header.details : [];
+  const mapped = details.map(normalizeOption).filter(Boolean) as OptionItem[];
+  const unique = new Map<string, OptionItem>();
+  mapped.forEach((option) => {
+    unique.set(option.id, option);
+  });
+  return Array.from(unique.values());
+};
+
+const toDropdownOptions = (items: OptionItem[], withCodePrefix = false) =>
+  items.map((item) => ({
+    value: item.id,
+    label: withCodePrefix ? `${item.id} - ${item.name}` : item.name,
+  }));
 
 export default function ProductParametersPage() {
   const { hasAnyPermission } = usePermission();
@@ -46,7 +97,7 @@ export default function ProductParametersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({ currency: '', activeOnly: 'all', dataSource: '' });
 
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
 
@@ -59,15 +110,14 @@ export default function ProductParametersPage() {
   const [selectedPendingRequest, setSelectedPendingRequest] = useState<any>(null);
   const [currentRecordForPending, setCurrentRecordForPending] = useState<any>(null);
 
-  // Options state - populated dynamically from business settings (B0001, B0002, B0003)
-  // Starting as empty arrays; fallback defaults removed per tech spec requirement
+  // Options state - populated dynamically from business settings
   const [options, setOptions] = useState({
-    dataSources: [] as { id: string; name: string }[],
-    productGroups: [] as { id: string; name: string }[],
-    productTypes: [] as { id: string; name: string }[],
-    currencies: [] as { id: string; name: string }[],
-    amortizationTypes: [] as { id: string; name: string }[],
-    instrumentClasses: [] as { id: string; name: string }[],
+    dataSources: [] as OptionItem[],
+    productGroups: [] as OptionItem[],
+    productTypes: [] as OptionItem[],
+    currencies: [] as OptionItem[],
+    amortizationTypes: [] as OptionItem[],
+    instrumentClasses: [] as OptionItem[],
   });
 
   // Data Loading
@@ -145,29 +195,46 @@ export default function ProductParametersPage() {
           ? instrumentPayload
           : [];
 
-      if (businessRes?.success) {
-        setOptions(prev => {
-          // Extract B0001 (Currency) and B0002 (Amortization)
-          const currencies = businessRows.find((p: any) => p.param_code === 'B0001')?.details?.map((d: any) => ({
-            id: d.value1 || d.param_value,
-            name: d.paramdesc || d.value1
-          })) || prev.currencies;
-
-          const amortMethods = businessRows.find((p: any) => p.param_code === 'B0002')?.details?.map((d: any) => ({
-            id: d.value1,
-            name: d.paramdesc || d.value1
-          })) || prev.amortizationTypes;
-
-          return {
-            ...prev,
-            currencies,
-            amortizationTypes: amortMethods,
-            instrumentClasses: instrumentRes?.success && instrumentRows.length > 0 ? instrumentRows : prev.instrumentClasses
-          };
+      if (!businessRes?.success) {
+        setOptions({
+          dataSources: [],
+          productGroups: [],
+          productTypes: [],
+          currencies: [],
+          amortizationTypes: [],
+          instrumentClasses: instrumentRes?.success && instrumentRows.length > 0 ? instrumentRows : [],
         });
+        return;
       }
+
+      const dataSources = extractBusinessOptions(businessRows, PRODUCT_SETTING_LOCATORS.dataSource);
+      const productGroups = extractBusinessOptions(businessRows, PRODUCT_SETTING_LOCATORS.productGroup);
+      const productTypes = extractBusinessOptions(businessRows, PRODUCT_SETTING_LOCATORS.productType);
+      const currencies = extractBusinessOptions(businessRows, PRODUCT_SETTING_LOCATORS.currency);
+      const amortizationTypes = extractBusinessOptions(businessRows, PRODUCT_SETTING_LOCATORS.amortizationType);
+      const instrumentClassesFromBusiness = extractBusinessOptions(businessRows, PRODUCT_SETTING_LOCATORS.instrumentClass);
+
+      setOptions({
+        dataSources,
+        productGroups,
+        productTypes,
+        currencies,
+        amortizationTypes,
+        instrumentClasses:
+          instrumentRes?.success && instrumentRows.length > 0
+            ? instrumentRows
+            : instrumentClassesFromBusiness,
+      });
     } catch (err) {
       console.warn('Failed to load dynamic options', err);
+      setOptions({
+        dataSources: [],
+        productGroups: [],
+        productTypes: [],
+        currencies: [],
+        amortizationTypes: [],
+        instrumentClasses: [],
+      });
     }
   }, []);
 
@@ -183,13 +250,13 @@ export default function ProductParametersPage() {
   const handleEdit = (product: any) => {
     if (!canManageProduct) return;
     setSelectedProduct(product);
-    setDrawerOpen(true);
+    setFormOpen(true);
   };
 
   const handleClone = (product: any) => {
     if (!canManageProduct) return;
     setSelectedProduct({ ...product, pkid: undefined, _clone: true });
-    setDrawerOpen(true);
+    setFormOpen(true);
   };
 
   const handleSave = async (formData: any) => {
@@ -197,17 +264,20 @@ export default function ProductParametersPage() {
     setLoading(true);
     try {
       const payload = { ...formData, mode };
-      const res = selectedProduct && !formData._clone
+      const isClone = Boolean(selectedProduct?._clone);
+      const isEdit = Boolean(selectedProduct && !isClone);
+      const res = isEdit
         ? await api.banking.productParameters.update(String(selectedProduct.pkid), payload)
         : await api.banking.productParameters.create(payload);
 
       if (res.success) {
         if (res.approvalRequired) {
-          setSuccess(`${selectedProduct && !formData._clone ? 'Update' : 'Creation'} submitted for approval`);
+          setSuccess(`${isEdit ? 'Update' : 'Creation'} submitted for approval`);
         } else {
-          setSuccess(`Product ${selectedProduct && !formData._clone ? 'updated' : 'created'} successfully`);
+          setSuccess(`Product ${isEdit ? 'updated' : 'created'} successfully`);
         }
-        setDrawerOpen(false);
+        setFormOpen(false);
+        setSelectedProduct(null);
         loadData();
       } else {
         setError(res.message || 'Save failed');
@@ -282,7 +352,7 @@ export default function ProductParametersPage() {
         onSearchChange={setSearchTerm}
         onFilterClick={() => setFilterDrawerOpen(true)}
         onExportClick={(e) => setExportMenuAnchor(e.currentTarget)}
-        onAddClick={() => { setSelectedProduct(null); setDrawerOpen(true); }}
+        onAddClick={() => { setSelectedProduct(null); setFormOpen(true); }}
         onRefreshClick={loadData}
         loading={loading}
         activeFilterCount={activeFilterCount}
@@ -310,14 +380,21 @@ export default function ProductParametersPage() {
       </Box>
 
       {/* Overlays */}
-      <ProductDrawer
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
+      <ProductFormDialog
+        open={formOpen}
+        onClose={() => {
+          setFormOpen(false);
+          setSelectedProduct(null);
+        }}
         onSave={handleSave}
-        initialData={selectedProduct}
-        loading={loading}
-        canManage={canManageProduct}
-        options={options}
+        product={selectedProduct}
+        isExternalLoading={loading}
+        dataSourceOptions={toDropdownOptions(options.dataSources)}
+        productGroupOptions={toDropdownOptions(options.productGroups)}
+        productTypeOptions={toDropdownOptions(options.productTypes)}
+        currencyOptions={toDropdownOptions(options.currencies, true)}
+        amortizationOptions={toDropdownOptions(options.amortizationTypes)}
+        instrumentClassOptions={toDropdownOptions(options.instrumentClasses)}
       />
 
       <PendingChangesDialog

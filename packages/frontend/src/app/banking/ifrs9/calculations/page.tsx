@@ -129,7 +129,7 @@ export default function IFRS9CalculationDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [tabValue, setTabValue] = useState(0);
-  const [processStatus, setProcessStatus] = useState<'idle' | 'running' | 'completed' | 'error'>('idle');
+  const [processStatus, setProcessStatus] = useState<'idle' | 'running' | 'queued' | 'completed' | 'error'>('idle');
   const [calculationProgress, setCalculationProgress] = useState(0);
   const [runConfigOpen, setRunConfigOpen] = useState(false);
   const [resultDetailsOpen, setResultDetailsOpen] = useState(false);
@@ -281,21 +281,13 @@ export default function IFRS9CalculationDashboard() {
       });
 
       if (response.success) {
-        // Simulate progress while real calculation runs
-        const interval = setInterval(() => {
-          setCalculationProgress(prev => {
-            if (prev >= 100) {
-              clearInterval(interval);
-              setProcessStatus('completed');
-              setSuccess('ECL calculation completed successfully!');
-              // Refresh data to show new results for the date just calculated
-              loadData(runConfig.process_date);
-              setSelectedProcessDate(runConfig.process_date);
-              return 100;
-            }
-            return prev + Math.random() * 10;
-          });
-        }, 300);
+        setProcessStatus('queued');
+        setCalculationProgress(0);
+        const executionId = response.executionId || response.jobId || '-';
+        setSuccess(`ECL calculation queued successfully (Execution ID: ${executionId}).`);
+        // Refresh data so queued execution is visible in process history.
+        loadData(runConfig.process_date);
+        setSelectedProcessDate(runConfig.process_date);
       } else {
         throw new Error(response.message || 'Failed to start ECL calculation');
       }
@@ -645,6 +637,14 @@ export default function IFRS9CalculationDashboard() {
             </Typography>
             <LinearProgress variant="determinate" value={calculationProgress} sx={{ mt: 1 }} />
           </Box>
+        </Alert>
+      )}
+
+      {processStatus === 'queued' && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          <Typography variant="body2">
+            ECL calculation is queued and will run in background via SQL stored procedure executor.
+          </Typography>
         </Alert>
       )}
 

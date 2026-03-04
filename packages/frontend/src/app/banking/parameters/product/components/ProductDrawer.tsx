@@ -11,6 +11,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  FormHelperText,
   FormControlLabel,
   Switch,
   Divider,
@@ -164,10 +165,19 @@ export default function ProductDrawer({
                   onChange={(e) => handleChange('dataSource', e.target.value)}
                   disabled={loading}
                 >
-                  {options.dataSources.map((opt, idx) => (
-                    <MenuItem key={`${opt.id}-${idx}`} value={opt.id}>{opt.name}</MenuItem>
-                  ))}
+                  {options.dataSources.length > 0 ? (
+                    options.dataSources.map((opt, idx) => (
+                      <MenuItem key={`${opt.id}-${idx}`} value={opt.id}>{opt.name}</MenuItem>
+                    ))
+                  ) : (
+                    <MenuItem disabled value="">
+                      No options — configure B0028 in Business Settings
+                    </MenuItem>
+                  )}
                 </Select>
+                <FormHelperText error={!!errors.dataSource}>
+                  {errors.dataSource || 'Source: Business Setting B0028'}
+                </FormHelperText>
               </FormControl>
             </Box>
 
@@ -191,10 +201,19 @@ export default function ProductDrawer({
                   onChange={(e) => handleChange('prdGroup', e.target.value)}
                   disabled={loading}
                 >
-                  {options.productGroups.map((opt, idx) => (
-                    <MenuItem key={`${opt.id}-${idx}`} value={opt.id}>{opt.name}</MenuItem>
-                  ))}
+                  {options.productGroups.length > 0 ? (
+                    options.productGroups.map((opt, idx) => (
+                      <MenuItem key={`${opt.id}-${idx}`} value={opt.id}>{opt.name}</MenuItem>
+                    ))
+                  ) : (
+                    <MenuItem disabled value="">
+                      No options — configure B0029 in Business Settings
+                    </MenuItem>
+                  )}
                 </Select>
+                <FormHelperText error={!!errors.prdGroup}>
+                  {errors.prdGroup || 'Source: Business Setting B0029'}
+                </FormHelperText>
               </FormControl>
               <FormControl fullWidth error={!!errors.prdType} required>
                 <InputLabel>Product Type</InputLabel>
@@ -204,10 +223,19 @@ export default function ProductDrawer({
                   onChange={(e) => handleChange('prdType', e.target.value)}
                   disabled={loading}
                 >
-                  {options.productTypes.map((opt, idx) => (
-                    <MenuItem key={`${opt.id}-${idx}`} value={opt.id}>{opt.name}</MenuItem>
-                  ))}
+                  {options.productTypes.length > 0 ? (
+                    options.productTypes.map((opt, idx) => (
+                      <MenuItem key={`${opt.id}-${idx}`} value={opt.id}>{opt.name}</MenuItem>
+                    ))
+                  ) : (
+                    <MenuItem disabled value="">
+                      No options — configure B0030 in Business Settings
+                    </MenuItem>
+                  )}
                 </Select>
+                <FormHelperText error={!!errors.prdType}>
+                  {errors.prdType || 'Source: Business Setting B0030'}
+                </FormHelperText>
               </FormControl>
             </Box>
 
@@ -222,10 +250,19 @@ export default function ProductDrawer({
                   onChange={(e) => handleChange('currency', e.target.value)}
                   disabled={loading}
                 >
-                  {options.currencies.map((opt, idx) => (
-                    <MenuItem key={`${opt.id}-${idx}`} value={opt.id}>{opt.id} - {opt.name}</MenuItem>
-                  ))}
+                  {options.currencies.length > 0 ? (
+                    options.currencies.map((opt, idx) => (
+                      <MenuItem key={`${opt.id}-${idx}`} value={opt.id}>{opt.id} - {opt.name}</MenuItem>
+                    ))
+                  ) : (
+                    <MenuItem disabled value="">
+                      No options — configure B0001 in Business Settings
+                    </MenuItem>
+                  )}
                 </Select>
+                <FormHelperText error={!!errors.currency}>
+                  {errors.currency || 'Source: Business Setting B0001'}
+                </FormHelperText>
               </FormControl>
               <FormControl fullWidth>
                 <InputLabel>Instrument Class</InputLabel>
@@ -235,10 +272,17 @@ export default function ProductDrawer({
                   onChange={(e) => handleChange('alFlag', e.target.value)}
                   disabled={loading}
                 >
-                  {options.instrumentClasses.map((opt, idx) => (
-                    <MenuItem key={`${opt.id}-${idx}`} value={opt.id}>{opt.name}</MenuItem>
-                  ))}
+                  {options.instrumentClasses.length > 0 ? (
+                    options.instrumentClasses.map((opt, idx) => (
+                      <MenuItem key={`${opt.id}-${idx}`} value={opt.id}>{opt.name}</MenuItem>
+                    ))
+                  ) : (
+                    <MenuItem disabled value="">
+                      No options — configure B0003 in Business Settings
+                    </MenuItem>
+                  )}
                 </Select>
+                <FormHelperText>Source: Business Setting B0003</FormHelperText>
               </FormControl>
             </Box>
 
@@ -250,10 +294,17 @@ export default function ProductDrawer({
                 onChange={(e) => handleChange('amortizationType', e.target.value)}
                 disabled={loading}
               >
-                {options.amortizationTypes.map((opt, idx) => (
-                  <MenuItem key={`${opt.id}-${idx}`} value={opt.id}>{opt.name}</MenuItem>
-                ))}
+                {options.amortizationTypes.length > 0 ? (
+                  options.amortizationTypes.map((opt, idx) => (
+                    <MenuItem key={`${opt.id}-${idx}`} value={opt.id}>{opt.name}</MenuItem>
+                  ))
+                ) : (
+                  <MenuItem disabled value="">
+                    No options — configure B0002 in Business Settings
+                  </MenuItem>
+                )}
               </Select>
+              <FormHelperText>Source: Business Setting B0002</FormHelperText>
             </FormControl>
 
             <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 2 }}>

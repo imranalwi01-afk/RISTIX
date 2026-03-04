@@ -1,12 +1,82 @@
 import crypto from 'node:crypto';
-import { db, legacyDb } from '../config/database';
-import { env } from '../config/env';
-import { sql, eq, desc, and, lte } from 'drizzle-orm';
-import { frs9ImpCaResultH, jobExecutions, jobDefinitions, frs9MasterAccount, frs9PrcDate } from '../db/schema';
+import { getDatabase, legacyDb } from '../config/database';
+import { sql, eq, desc, and } from 'drizzle-orm';
+import { frs9ImpCaResultH, jobExecutions, frs9MasterAccount, frs9PrcDate, frs9ImpCaEclConfigh } from '../db/schema';
 import { JobsRepository } from '../repositories/jobs.repository';
-import { EclEngineFactory } from './ecl-engines/ecl-engine-factory';
+import { addJob } from './queue.service';
 
 export class Ifrs9CalculationsService {
+    private static readonly IFRS9_PREVIEW_SP_NAME = 'sp_frs9_preview_sequence';
+    private static readonly IFRS9_SQL_SP_JOB_NAME = 'IFRS9 Preview Sequence';
+
+    private normalizeProcedureName(value: unknown): string {
+        return String(value || '').trim().toLowerCase();
+    }
+
+    private isIfrs9PreviewSqlSpParameters(parameters: any): boolean {
+        const procedureName = this.normalizeProcedureName(parameters?.procedureName);
+        return (
+            procedureName === Ifrs9CalculationsService.IFRS9_PREVIEW_SP_NAME
+            || procedureName.endsWith(`.${Ifrs9CalculationsService.IFRS9_PREVIEW_SP_NAME}`)
+        );
+    }
+
+    private isIfrs9CalculationExecution(execution: any): boolean {
+        const executionJobType = String(execution?.jobType || '').toUpperCase();
+        if (executionJobType === 'IFRS9_CALCULATION') return true;
+
+        if (executionJobType === 'SQL_SP') {
+            if (this.isIfrs9PreviewSqlSpParameters(execution?.parameters)) return true;
+            if (this.isIfrs9PreviewSqlSpParameters(execution?.defaultParameters)) return true;
+            if (this.isIfrs9PreviewSqlSpParameters(execution?.definition?.defaultParameters)) return true;
+        }
+
+        return false;
+    }
+
+    private buildIfrs9SqlSpDefaultParameters() {
+        return {
+            schemaName: 'public',
+            procedureName: Ifrs9CalculationsService.IFRS9_PREVIEW_SP_NAME,
+            targetDatabase: 'LEGACY',
+            parameters: [] as any[],
+        };
+    }
+
+    private async resolveConfigHeader(config: any): Promise<string> {
+        const explicitConfigHeader = String(
+            config?.configHeader
+            || config?.eclModelName
+            || config?.modelName
+            || ''
+        ).trim();
+
+        if (explicitConfigHeader) {
+            return explicitConfigHeader;
+        }
+
+        const [activeConfig] = await legacyDb
+            .select({
+                eclModelName: frs9ImpCaEclConfigh.eclModelName,
+            })
+            .from(frs9ImpCaEclConfigh)
+            .where(eq(frs9ImpCaEclConfigh.activeFlag, true))
+            .orderBy(
+                desc(frs9ImpCaEclConfigh.effectiveDate),
+                desc(frs9ImpCaEclConfigh.updateddate),
+                desc(frs9ImpCaEclConfigh.pkid),
+            )
+            .limit(1);
+
+        const fallbackConfigHeader = String(activeConfig?.eclModelName || '').trim();
+        if (fallbackConfigHeader) {
+            return fallbackConfigHeader;
+        }
+
+        throw new Error(
+            'No active ECL model found to run SP_FRS9_PREVIEW_SEQUENCE. Please activate ECL configuration first.'
+        );
+    }
 
     async getSummary(tenantId: string, requestedDate?: string) {
         try {
@@ -215,12 +285,8 @@ export class Ifrs9CalculationsService {
             // Using Repository instead of direct DB access to ensure schema consistency
             const executions = await JobsRepository.findExecutions(tenantId, 10);
 
-            // Filter only IFRS9_CALCULATION jobs
-            // Improved logic: check both the execution jobType and the definition jobType
-            const filtered = executions.filter(e =>
-                e.jobType === 'IFRS9_CALCULATION' ||
-                e.definition?.jobType === 'IFRS9_CALCULATION'
-            );
+            // Include legacy IFRS9_CALCULATION jobs and the new SQL_SP preview-sequence jobs.
+            const filtered = executions.filter((e: any) => this.isIfrs9CalculationExecution(e));
 
             return {
                 batches: filtered.map(e => ({
@@ -240,138 +306,150 @@ export class Ifrs9CalculationsService {
 
     async runCalculation(tenantId: string, config: any) {
         try {
-            console.log(`🚀 Triggering IFRS9 calculation for tenant ${tenantId} on ${config.processDate}`);
+            const processDate = config.processDate || new Date().toISOString().split('T')[0];
+            console.log(`🚀 Queueing IFRS9 calculation (SP) for tenant ${tenantId} on ${processDate}`);
 
-            // 1. Use Repository to find the Job Definition
-            console.log(`📡 Fetching job definitions for tenant: ${tenantId}...`);
+            // 1. Resolve ECL model header for SP argument.
+            const configHeader = await this.resolveConfigHeader(config);
+
+            // 2. Resolve or create SQL_SP definition bound to SP_FRS9_PREVIEW_SEQUENCE.
             const allDefs = await JobsRepository.findAllDefinitions(tenantId);
-            console.log(`📊 Found ${allDefs.length} job definitions.`);
-
-            let calculationJob = allDefs.find(d => d.jobType === 'IFRS9_CALCULATION');
+            let calculationJob = allDefs.find((definition: any) => (
+                String(definition.jobType || '').toUpperCase() === 'SQL_SP'
+                && this.isIfrs9PreviewSqlSpParameters(definition.defaultParameters)
+            ));
 
             if (!calculationJob) {
-                console.log('📝 IFRS9_CALCULATION job definition not found, creating a default one...');
-                calculationJob = await JobsRepository.createDefinition({
-                    id: crypto.randomUUID(),
-                    tenantId: tenantId as any,
-                    name: 'IFRS9 Impairment Sequence',
-                    description: 'Standard IFRS9 ECL Calculation',
-                    jobType: 'IFRS9_CALCULATION',
-                    isEnabled: true,
-                });
-                console.log('✅ Created default job definition:', calculationJob.id);
+                const legacyDefinition = allDefs.find((definition: any) => (
+                    String(definition.jobType || '').toUpperCase() === 'IFRS9_CALCULATION'
+                ));
+
+                if (legacyDefinition) {
+                    calculationJob = await JobsRepository.updateDefinition(
+                        legacyDefinition.id,
+                        {
+                            name: Ifrs9CalculationsService.IFRS9_SQL_SP_JOB_NAME,
+                            description: 'IFRS9 calculation execution using SP_FRS9_PREVIEW_SEQUENCE',
+                            jobType: 'SQL_SP',
+                            isEnabled: true,
+                            defaultParameters: this.buildIfrs9SqlSpDefaultParameters(),
+                            priority: 'HIGH',
+                            timeout: 3600,
+                            maxRetries: 0,
+                        } as any,
+                        tenantId,
+                    );
+                } else {
+                    calculationJob = await JobsRepository.createDefinition({
+                        id: crypto.randomUUID(),
+                        tenantId: tenantId as any,
+                        name: Ifrs9CalculationsService.IFRS9_SQL_SP_JOB_NAME,
+                        description: 'IFRS9 calculation execution using SP_FRS9_PREVIEW_SEQUENCE',
+                        jobType: 'SQL_SP',
+                        isEnabled: true,
+                        defaultParameters: this.buildIfrs9SqlSpDefaultParameters(),
+                        priority: 'HIGH',
+                        timeout: 3600,
+                        maxRetries: 0,
+                    } as any);
+                }
             }
 
-            // 2. Use Repository to create execution record (Start as RUNNING)
+            if (!calculationJob?.id) {
+                throw new Error('Unable to resolve IFRS9 SQL_SP job definition');
+            }
+
+            const targetDb = getDatabase(tenantId);
+            const [activeExecution] = await targetDb
+                .select({
+                    id: jobExecutions.id,
+                    startTime: jobExecutions.startTime,
+                })
+                .from(jobExecutions)
+                .where(and(
+                    eq(jobExecutions.jobDefinitionId, calculationJob.id),
+                    sql`${jobExecutions.endTime} is null and lower(${jobExecutions.status}) in ('pending', 'waiting', 'queued', 'active', 'running', 'pending_approval')`,
+                ))
+                .orderBy(desc(jobExecutions.startTime))
+                .limit(1);
+
+            if (activeExecution) {
+                return {
+                    success: false,
+                    status: 'CONFLICT',
+                    message: 'IFRS9 calculation is already running or queued.',
+                    activeExecutionId: activeExecution.id,
+                    startTime: activeExecution.startTime ? new Date(activeExecution.startTime).toISOString() : null,
+                };
+            }
+
+            const previewData = config.previewData ?? {
+                segmentIds: config.segmentIds ?? [],
+                calculationType: config.calculationType ?? null,
+                recalculate: Boolean(config.recalculate),
+                scenarios: config.scenarios ?? [],
+            };
+
+            const executionParameters = {
+                ...(calculationJob.defaultParameters || this.buildIfrs9SqlSpDefaultParameters()),
+                parameters: [configHeader, previewData, processDate],
+                processDate,
+                configHeader,
+                source: 'ifrs9-calculations',
+            };
+
+            // 3. Create execution row before queueing to avoid race with worker events.
             const executionId = crypto.randomUUID();
-            console.log(`📝 Creating execution record: ${executionId} for job: ${calculationJob.id}...`);
-            const execution = await JobsRepository.createExecution({
+            await JobsRepository.createExecution({
                 id: executionId,
                 jobDefinitionId: calculationJob.id,
                 tenantId: tenantId as any,
-                jobName: calculationJob.name,
-                jobType: calculationJob.jobType,
-                status: 'RUNNING',
+                jobName: calculationJob.name || Ifrs9CalculationsService.IFRS9_SQL_SP_JOB_NAME,
+                jobType: 'SQL_SP',
+                status: 'pending',
+                progress: 0,
+                parameters: executionParameters as any,
                 startTime: new Date(),
-                parameters: config,
-            });
-            console.log('✅ Created execution record.');
+                approvalStatus: 'not_required',
+            } as any);
 
-            // 3. --- TRIGGER R ANALYTICS CALCULATION ---
-            const processDate = config.processDate || new Date().toISOString().split('T')[0];
-            console.log(`� Calling R Analytics Service for date: ${processDate}...`);
-
-            // Clear existing results for this date to avoid duplicates
-            await legacyDb.delete(frs9ImpCaResultH).where(sql`date(${frs9ImpCaResultH.prcDate}) = ${processDate}`);
-
+            // 4. Enqueue into Bull; worker executes SQL_SP via JobExecutorService.
             try {
-                // Use the Strategy Engine
-                const engine = EclEngineFactory.getEngine();
-                const rData = await engine.calculate({
+                await addJob('SQL_SP', {
+                    definitionId: calculationJob.id,
                     tenantId,
-                    processDate,
-                    parameters: {
-                        pdMethod: config.pdMethod || 'historical',
-                        lgdMethod: config.lgdMethod || 'historical',
-                        eadMethod: config.eadMethod || 'current'
-                    }
+                    parameters: executionParameters,
+                }, {
+                    jobId: executionId,
+                    priority: calculationJob.priority === 'CRITICAL' ? 0 : calculationJob.priority === 'HIGH' ? 1 : 5,
+                    attempts: (calculationJob.maxRetries || 0) + 1,
+                    timeout: (calculationJob.timeout || 3600) * 1000,
                 });
-
-                if (!rData.success || !rData.data) {
-                    throw new Error(rData.error || 'ECL Calculation failed: No data returned');
-                }
-                const result = rData.data.result;
-                const summary = {
-                    total_ecl_final: result.total_ecl,
-                    stage3_accounts: result.stage_3_ecl
-                };
-
-                console.log(`✅ R Calculation successful.`);
-                console.log(`📊 Summary: Total ECL=${summary.total_ecl_final}, Stage 3 ECL=${summary.stage3_accounts}`);
-
-                // In the current mock implementation from R side, individual `results` aren't returned currently
-                // so we insert a blank list or generate dummy rows if needed, or simply log.
-                const results: any[] = [];
-                if (results.length > 0) {
-                    // Map R results to Drizzle Schema
-                    // Note: R returns snake_case, Drizzle expects camelCase (or snake_case depending on definition)
-                    // Based on schema definition: frs9ImpCaResultH uses camelCase properties mapping to snake_case columns
-
-                    const dbRecords = results.map((r: any) => ({
-                        prcDate: processDate,
-                        accountId: r.account_id, // Map from R
-                        facilityNumber: r.facility_number || r.account_id?.toString(), // Fallback
-                        cifNumber: r.cif_number || '', // Fallback
-                        segmentId: 1, // Default or map if available
-                        stage: r.IFRS9_Stage,
-                        currency: r.currency_code || 'IDR',
-                        outstanding: r.outstanding_amount?.toString() || '0',
-                        eclAmount: r.ECL_Final?.toString() || '0',
-                        eclFinal: r.ECL_Final?.toString() || '0',
-                        lgd: r.LGD,
-                        bucketGroup: r.bucket_group || 'Standard',
-                        internalRatingCode: r.internal_rating || '',
-
-                        // Fill other required fields with defaults
-                        createdby: 'R_ENGINE',
-                        createddate: new Date().toISOString()
-                    }));
-
-                    // Batch insert (Drizzle/Postgres limit is usually around 65535 params, so batching is good practice)
-                    // For now, simple insert. In production, chunk this array.
-                    const CHUNK_SIZE = 1000;
-                    for (let i = 0; i < dbRecords.length; i += CHUNK_SIZE) {
-                        const chunk = dbRecords.slice(i, i + CHUNK_SIZE);
-                        await legacyDb.insert(frs9ImpCaResultH).values(chunk as any);
-                    }
-
-                    console.log(`✅ Inserted ${dbRecords.length} calculation results into database`);
-                } else {
-                    console.warn(`⚠️ R returned no results for ${processDate}`);
-                }
-
-            } catch (rError: any) {
-                console.error('❌ R Service Integration Error:', rError);
-                // Mark execution as FAILED
+            } catch (queueError: any) {
+                const queueErrorMessage = queueError?.message || 'Failed to enqueue job';
                 await JobsRepository.updateExecution(executionId, {
-                    status: 'FAILED',
+                    status: 'failed',
+                    error: `Queue enqueue failed: ${queueErrorMessage}`,
                     endTime: new Date(),
-                    errorMessage: rError.message
-                });
-                throw rError; // Re-throw to be caught by outer catch
-            }
+                } as any, tenantId);
 
-            // 4. Update Execution Record to COMPLETED
-            await JobsRepository.updateExecution(executionId, {
-                status: 'COMPLETED',
-                endTime: new Date(),
-            });
-            // --- CALCULATION ENGINE END ---
+                return {
+                    success: false,
+                    status: 'FAILED',
+                    message: `Queue enqueue failed: ${queueErrorMessage}`,
+                    jobId: executionId,
+                    executionId,
+                };
+            }
 
             return {
                 success: true,
-                message: 'Calculation completed successfully',
-                jobId: executionId
+                status: 'QUEUED',
+                message: 'Calculation queued using SP_FRS9_PREVIEW_SEQUENCE',
+                jobId: executionId,
+                executionId,
+                processDate,
+                configHeader,
             };
         } catch (error: any) {
             console.error('Error triggering calculation:', error);
