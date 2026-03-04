@@ -117,6 +117,7 @@ export const SegmentationDetailsTab: React.FC<SegmentationDetailsTabProps> = ({
                   disabled={readOnly}
                   required
                   variant="outlined"
+                  inputProps={{ 'data-testid': 'segment-group-field' }}
                   sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
                   helperText="Unique identifier for the segmentation group"
                 />
@@ -132,6 +133,7 @@ export const SegmentationDetailsTab: React.FC<SegmentationDetailsTabProps> = ({
                   disabled={readOnly}
                   required
                   variant="outlined"
+                  inputProps={{ 'data-testid': 'segment-name-field' }}
                   sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
                 />
               </Grid>
@@ -183,6 +185,7 @@ export const SegmentationDetailsTab: React.FC<SegmentationDetailsTabProps> = ({
                   value={selectedSegmentType}
                   label="Segment Type"
                   onChange={(e) => handleChange('segment_type', e.target.value)}
+                  data-testid="segment-type-select"
                   sx={{ borderRadius: 1.5 }}
                 >
                   {segmentTypeOptions.length > 0 ? (
@@ -209,6 +212,7 @@ export const SegmentationDetailsTab: React.FC<SegmentationDetailsTabProps> = ({
                 disabled={readOnly}
                 required
                 variant="outlined"
+                inputProps={{ 'data-testid': 'segment-seq-field' }}
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
                 helperText="Priority level in calculation engine"
               />

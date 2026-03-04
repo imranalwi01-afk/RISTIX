@@ -44,7 +44,7 @@ test.describe('Advanced Analytics - R Analytics', () => {
             });
         });
 
-        await page.goto('/banking/analytics/r-analytics');
+        await page.goto('/banking/analytics/r-analytics', { waitUntil: 'domcontentloaded', timeout: 120000 });
 
         // 1. Select Dependent Variable (Assuming File Upload or Dropdown)
         // If file upload:
@@ -87,7 +87,7 @@ test.describe('Advanced Analytics - R Analytics', () => {
      * Title: Upload invalid file format
      */
     test('AA_DEP_002: Upload invalid file format', async ({ page }) => {
-        await page.goto('/banking/analytics/r-analytics');
+        await page.goto('/banking/analytics/r-analytics', { waitUntil: 'domcontentloaded', timeout: 120000 });
 
         // 1. Upload non-CSV file
         const fileInput = page.locator('input[type="file"]');

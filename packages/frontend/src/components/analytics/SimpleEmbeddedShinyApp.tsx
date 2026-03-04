@@ -44,21 +44,28 @@ import { frontendEnvironmentLoader } from '../../config/environment-loader-front
 const getRAnalyticsUrl = () => {
   const config = frontendEnvironmentLoader.getConfiguration();
   const dashboardUrl = config.rAnalytics.dashboard;
-  
+
   // If the configured URL is remote, use it
   if (dashboardUrl && !dashboardUrl.includes('localhost') && !dashboardUrl.includes('127.0.0.1')) {
     return dashboardUrl;
   }
-  
+
   // Otherwise, handle localhost logic
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
+    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+
+    // If we have a configured remote domain, ALWAYS prefer it even if we are on localhost
+    if (dashboardUrl && !dashboardUrl.includes('localhost') && !dashboardUrl.includes('127.0.0.1')) {
+      return dashboardUrl;
+    }
+
     const isProductionDomain = hostname.includes('ifrspro.id') || hostname.includes('danafin.com');
-    if (!isProductionDomain && (hostname === 'localhost' || hostname === '127.0.0.1')) {
+    if (!isProductionDomain && isLocalhost) {
       return 'http://localhost:4236';
     }
   }
-  
+
   return 'https://iaf-ifrs-analytics.ifrspro.id';
 };
 

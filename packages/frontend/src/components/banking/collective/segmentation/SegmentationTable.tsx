@@ -193,14 +193,28 @@ export const SegmentationTable: React.FC<SegmentationTableProps> = ({
                     <TableCell>
                       <Box sx={{ display: 'flex', gap: 0.5 }}>
                         <Tooltip title="View Details">
-                          <IconButton size="small" onClick={() => onView(row)} color="info" sx={{ p: 0.5 }}>
+                          <IconButton
+                            size="small"
+                            onClick={() => onView(row)}
+                            color="info"
+                            sx={{ p: 0.5 }}
+                            aria-label="view-segmentation"
+                            data-testid="view-segmentation-btn"
+                          >
                             <ViewIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
                         {canManage && (
                           <>
                             <Tooltip title="Edit">
-                              <IconButton size="small" onClick={() => onEdit(row)} color="warning" sx={{ p: 0.5 }}>
+                              <IconButton
+                                size="small"
+                                onClick={() => onEdit(row)}
+                                color="warning"
+                                sx={{ p: 0.5 }}
+                                aria-label="edit-segmentation"
+                                data-testid="edit-segmentation-btn"
+                              >
                                 <EditIcon fontSize="small" />
                               </IconButton>
                             </Tooltip>
@@ -210,7 +224,14 @@ export const SegmentationTable: React.FC<SegmentationTableProps> = ({
                               </IconButton>
                             </Tooltip>
                             <Tooltip title="Delete">
-                              <IconButton size="small" onClick={() => onDelete(row)} color="error" sx={{ p: 0.5 }}>
+                              <IconButton
+                                size="small"
+                                onClick={() => onDelete(row)}
+                                color="error"
+                                sx={{ p: 0.5 }}
+                                aria-label="delete-segmentation"
+                                data-testid="delete-segmentation-btn"
+                              >
                                 <DeleteIcon fontSize="small" />
                               </IconButton>
                             </Tooltip>

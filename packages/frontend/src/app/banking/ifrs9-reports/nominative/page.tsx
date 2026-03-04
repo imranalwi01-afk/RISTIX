@@ -14,12 +14,12 @@ export default function NominativeReportsPage() {
       permission={['banking.reports.ifrs9.nominative.view', 'banking.reports.ifrs9.view', 'admin.super_admin']}
       fallback={
         <Container maxWidth="xl">
-          <Alert severity="error">You do not have permission to access Nominative Reports.</Alert>
+          <Alert severity="error">You do not have permission to access Nominative Report.</Alert>
         </Container>
       }
     >
       <ReportPageLayout
-        title="Nominative Reports"
+        title="Nominative Report"
         description="Detailed ECL calculation results per account"
         icon={<PageIcon />}
       >

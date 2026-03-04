@@ -65,7 +65,7 @@ export default function NominativeReportsPage() {
         setData(result.data);
       }
     } catch (error) {
-      console.error('Error loading Nominative Reports data:', error);
+      console.error('Error loading Nominative Report data:', error);
     } finally {
       setLoading(false);
     }
@@ -103,7 +103,7 @@ export default function NominativeReportsPage() {
         </Link>
         <Typography color="text.primary" sx={{ display: 'flex', alignItems: 'center' }}>
           <PageIcon sx={{ mr: 0.5, fontSize: 16 }} />
-          Nominative Reports
+          Nominative Report
         </Typography>
       </Breadcrumbs>
 
@@ -112,7 +112,7 @@ export default function NominativeReportsPage() {
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
           <PageIcon sx={{ mr: 2, fontSize: 32, color: 'primary.main' }} />
           <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
-            Nominative Reports
+            Nominative Report
           </Typography>
         </Box>
         <Typography variant="subtitle1" color="text.secondary">

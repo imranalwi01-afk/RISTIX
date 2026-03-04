@@ -656,10 +656,11 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
       domainBase = currentDashboardUrl;
     }
     // ✅ FALLBACK: Localhost development
-    else if (!config.isProduction) {
+    else if (!config.isProduction && !isProductionEnvironment) {
       console.log('💻 LOCALHOST DETECTED - Falling back to local R Analytics');
       domainBase = `http://localhost:4236`;
     }
+
 
     // Last-resort fallback so direct embed always has a usable URL.
     if (!domainBase) {

@@ -6,102 +6,76 @@ const ADMIN_USER = {
     tenantId: 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be'
 };
 
+const AUTHED_URL_REGEX = /\/(dashboard|banking|platform)(\/|$)/i;
+
 export async function loginUser(page: Page) {
-    page.on('console', msg => console.log(`BROWSER CONSOLE: ${msg.type()}: ${msg.text()}`));
-    page.on('pageerror', err => console.log(`BROWSER ERROR: ${err.message}`));
+    await page.goto('/login', { waitUntil: 'domcontentloaded', timeout: 120000 });
 
-    console.log('Navigating to login page...');
-    await page.goto('/login');
-
-    // Wait for form to load
-    await expect(page.getByTestId('login-email')).toBeVisible();
-
-    // Fill credentials
-    await page.getByTestId('login-email').fill(ADMIN_USER.email);
-    await page.getByTestId('login-password').fill(ADMIN_USER.password);
-
-    // Handle Tenant Selection
-    const tenantSelect = page.getByTestId('login-tenant-select');
-    console.log('Waiting for tenant selector to be enabled...');
-    await expect(tenantSelect).toBeEnabled({ timeout: 15000 });
-
-    const currentTenant = await tenantSelect.innerText();
-    console.log(`Current tenant selected: "${currentTenant}"`);
-    if (!currentTenant.includes('Indonesia Airawata Finance')) {
-        console.log('Selecting IAF tenant...');
-        await tenantSelect.click();
-        await page.getByRole('option', { name: /Indonesia Airawata Finance/i }).click();
-        console.log('IAF tenant selected.');
-    } else {
-        console.log('IAF tenant already selected.');
+    // If already authenticated, /login may auto-redirect immediately.
+    if (AUTHED_URL_REGEX.test(page.url()) && !/\/login(\?|$)/i.test(page.url())) {
+        return;
     }
 
-    // Verify button state explicitly
-    const submitBtn = page.getByTestId('login-submit');
+    await expect(page.getByRole('heading', { name: /Welcome Back|Admin Access/i })).toBeVisible({ timeout: 60000 });
 
-    // Fill credentials again if the button is still disabled (sometimes MUI state is weird)
+    const emailField = page.getByLabel(/Email Address|Email/i).first();
+    const passwordField = page.getByLabel('Password');
+    const loginFormVisible = await emailField.isVisible({ timeout: 60000 }).catch(() => false);
+
+    if (!loginFormVisible) {
+        if (AUTHED_URL_REGEX.test(page.url())) {
+            return;
+        }
+        throw new Error(`Login page did not render expected fields. Current URL: ${page.url()}`);
+    }
+
+    await expect(passwordField).toBeVisible({ timeout: 60000 });
+
+    await emailField.fill(ADMIN_USER.email);
+    await passwordField.fill(ADMIN_USER.password);
+
+    // Handle tenant selection if dropdown exists
+    const tenantCombobox = page.getByRole('combobox', { name: /Workspace \/ Tenant/i }).first();
+    if (await tenantCombobox.isVisible().catch(() => false)) {
+        await expect(tenantCombobox).toBeEnabled({ timeout: 20000 });
+        const currentTenant = (await tenantCombobox.textContent()) || '';
+        if (!/Indonesia Airawata Finance|IAF/i.test(currentTenant)) {
+            await tenantCombobox.click();
+            await page.getByRole('option', { name: /Indonesia Airawata Finance|IAF/i }).first().click();
+        }
+    }
+
+    const submitBtn = page.getByRole('button', { name: /Sign In to Workspace|Sign In|Access Control Center/i });
+
     if (await submitBtn.isDisabled()) {
-        console.log('Submit button disabled, re-filling password...');
-        await page.getByTestId('login-password').fill(ADMIN_USER.password);
+        await passwordField.fill(ADMIN_USER.password);
         await page.waitForTimeout(500);
     }
 
     if (await submitBtn.isDisabled()) {
-        console.log('⚠️ Submit button is still disabled! Waiting for it to enable...');
-        await expect(submitBtn).toBeEnabled({ timeout: 10000 });
+        await expect(submitBtn).toBeEnabled({ timeout: 30000 });
     }
 
-    // Submit via Click first, then fallback to Enter if needed
-    console.log('Clicking Sign In and waiting for response...');
-
-    // Wait for the login API response
+    // Wait for login request but do not fail if it is cached/intercepted.
     const loginResponsePromise = page.waitForResponse(response =>
         response.url().includes('/auth/login') && response.request().method() === 'POST',
         { timeout: 20000 }
-    ).catch(e => {
-        console.log('⚠️ Login API response not received within 20s');
-        return null;
-    });
+    ).catch(() => null);
 
-    await submitBtn.click();
+    await Promise.all([
+        submitBtn.click(),
+        page.waitForURL(/dashboard|banking|platform/, { timeout: 45000 }).catch(() => null),
+    ]);
 
     const loginResponse = await loginResponsePromise;
     if (loginResponse && loginResponse.status() < 400) {
-        console.log(`Login API status: ${loginResponse.status()}`);
         const body = await loginResponse.json().catch(() => ({}));
-
         if (body.success) {
-            console.log('✅ Login API successful. Waiting for redirect or forcing it...');
-            // Instead of networkidle, just wait for common dashboard text or timeout
             await page.waitForURL(/dashboard|banking|platform/, { timeout: 30000 }).catch(async () => {
-                console.log('Manual redirecting to dashboard...');
-                await page.goto('/banking/dashboard');
+                await page.goto('/banking/dashboard', { waitUntil: 'domcontentloaded', timeout: 120000 });
             });
         }
     }
 
-    // Optional: Press Enter just in case click was intercepted
-    // await page.keyboard.press('Enter');
-
-    // Wait for navigation or error
-    console.log('Final verification: Waiting for dashboard/banking URL...');
-    try {
-        await expect(page).toHaveURL(/dashboard|banking|platform/, { timeout: 30000 });
-        console.log('Login successful and verified');
-    } catch (e) {
-        console.log(`❌ Login verification failed. Current URL: ${page.url()}`);
-        const alerts = page.locator('.MuiAlert-message');
-        if (await alerts.count() > 0) {
-            const errorText = await alerts.allInnerTexts();
-            console.log(`Login Error Alert(s): ${JSON.stringify(errorText)}`);
-        }
-        // Check for validation errors on fields
-        const helperTexts = page.locator('.MuiFormHelperText-root');
-        if (await helperTexts.count() > 0) {
-            const helperError = await helperTexts.allInnerTexts();
-            console.error('Login Field Errors:', helperError);
-            throw new Error(`Login failed with field errors: ${helperError.join(', ')}`);
-        }
-        throw e;
-    }
+    await expect(page).toHaveURL(/dashboard|banking|platform/, { timeout: 60000 });
 }

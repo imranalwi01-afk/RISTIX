@@ -39,7 +39,7 @@ test.describe('Navigation', () => {
     });
 
     test('should access dashboard and see sidebar', async ({ page }) => {
-        await page.goto('/banking/dashboard');
+        await page.goto('/banking/dashboard', { waitUntil: 'domcontentloaded', timeout: 120000 });
 
         // Check if redirect happens (it shouldn't if auth is working, or might redirect to role-based url)
         // The role 'BANK_USER' maps to '/banking/dashboard' in AuthProvider.

@@ -553,7 +553,7 @@ export default function BusinessClient() {
         },
         {
             field: 'actions', headerName: 'Actions', type: 'actions', width: 100, align: 'right', headerAlign: 'right', getActions: (p) => canManageBusiness ? [
-                <SafeGridActionsCellItem key="e" label="Edit" icon={<EditIcon fontSize="small" />} onClick={() => { setEditingParameter(p.row); setParamDialogOpen(true); }} />,
+                <SafeGridActionsCellItem key="e" label="Edit" icon={<EditIcon fontSize="small" />} onClick={() => { setEditingParameter(p.row); setParamDialogOpen(true); }} data-testid="btn-edit-business-setting" />,
                 <SafeGridActionsCellItem key="d" label="Delete" icon={<DeleteIcon fontSize="small" color="error" />} onClick={() => handleDeleteParameter(p.row)} />
             ] : []
         }
@@ -571,7 +571,7 @@ export default function BusinessClient() {
                 subtitle="Business parameters configuration with Master-Detail"
                 onRefresh={loadBusinessParameters}
                 loading={loading}
-                extraActions={canManageBusiness ? <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setEditingParameter(null); setParamDialogOpen(true); }}>Create</Button> : undefined}
+                extraActions={canManageBusiness ? <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setEditingParameter(null); setParamDialogOpen(true); }} data-testid="btn-create-business-setting">Create</Button> : undefined}
             />
 
             <Card sx={{ mt: 2, borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
@@ -582,6 +582,7 @@ export default function BusinessClient() {
                             placeholder="Search parameters..."
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
+                            inputProps={{ 'data-testid': 'input-search' }}
                             InputProps={{
                                 startAdornment: <SearchIcon sx={{ color: 'text.secondary', mr: 1, fontSize: 20 }} />,
                                 sx: { borderRadius: 2, bgcolor: 'background.paper' }
