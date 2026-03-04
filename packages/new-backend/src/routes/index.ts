@@ -50,6 +50,7 @@ import { adminDashboardRoutes } from './admin-dashboard.routes'
 import { ifrs9Routes } from './ifrs9.routes'
 import { securityConfigRoutes } from './security-config.routes'
 import { bankingResourceRoutes } from './banking-resource.routes'
+import { monitoringRoutes } from './monitoring.routes'
 
 // DEBUG ROUTE
 const debugRoutes = new OpenAPIHono<AppContext>()
@@ -71,6 +72,7 @@ routes.route('/approvals', approvalRoutes)
 routes.route('/notifications', notificationsRoutes)
 routes.route('/rbac', rbacRoutes)
 routes.route('/audit', auditRoutes)
+routes.route('/monitoring', monitoringRoutes)
 
 routes.route('/consultants', consultantsRoutes)
 routes.route('/platform-users', platformUsersRoutes)

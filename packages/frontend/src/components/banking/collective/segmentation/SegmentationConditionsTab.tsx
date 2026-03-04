@@ -229,7 +229,7 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
     if ((field === 'value1' || field === 'value2') && currentDataKind === 'number' && !isSetOperator(String(editForm.operator))) {
       const incoming = String(value ?? '');
       if (incoming !== '' && !/^-?\d*\.?\d*$/.test(incoming)) return;
-      updatedForm[field] = incoming as Rule[keyof Rule];
+      (updatedForm as any)[field] = incoming;
     }
 
     setEditForm(updatedForm);

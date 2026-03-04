@@ -57,14 +57,26 @@ send_runtime_alert <- local({
     assign(cache_key, now, envir = last_sent)
 
     timestamp <- format(Sys.time(), "%Y-%m-%dT%H:%M:%S%z")
-    payload <- paste0(
-      "{\"service\":\"r-analytics-shiny\",",
-      "\"event\":\"", escape_json_text(event), "\",",
-      "\"message\":\"", escape_json_text(message), "\",",
-      "\"sheet\":\"", escape_json_text(sheet_name), "\",",
-      "\"error\":\"", escape_json_text(context$error %||% ""), "\",",
-      "\"timestamp\":\"", escape_json_text(timestamp), "\"}"
-    )
+    is_discord_webhook <- grepl("discord(app)?\\.com/api/webhooks/", webhook_url, ignore.case = TRUE)
+    payload <- if (is_discord_webhook) {
+      content <- paste0(
+        "[r-analytics-shiny] ", event,
+        " | ", message,
+        " | sheet=", sheet_name,
+        " | error=", context$error %||% "",
+        " | ts=", timestamp
+      )
+      paste0("{\"content\":\"", escape_json_text(content), "\"}")
+    } else {
+      paste0(
+        "{\"service\":\"r-analytics-shiny\",",
+        "\"event\":\"", escape_json_text(event), "\",",
+        "\"message\":\"", escape_json_text(message), "\",",
+        "\"sheet\":\"", escape_json_text(sheet_name), "\",",
+        "\"error\":\"", escape_json_text(context$error %||% ""), "\",",
+        "\"timestamp\":\"", escape_json_text(timestamp), "\"}"
+      )
+    }
 
     tmp_payload <- tempfile(fileext = ".json")
     writeLines(payload, tmp_payload, useBytes = TRUE)
@@ -1284,8 +1296,8 @@ server <- function(input, output, session) {
   })
 
 
-  data_dependent_tr <- eventReactive(input$submit, {
-    req(input$dependent, rv_df())
+  data_dependent_tr <- reactive({
+    req(input$dependent, rv_df(), input$submit)
     if (input$dependent == "PD") {
       data_dependent <- rv_df()[, c("prc_date", "odr")]
     } else if (input$dependent == "lgd") {

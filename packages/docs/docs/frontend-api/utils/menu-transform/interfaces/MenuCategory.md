@@ -4,7 +4,7 @@
 
 # Interface: MenuCategory
 
-Defined in: [utils/menu-transform.ts:19](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/menu-transform.ts#L19)
+Defined in: [utils/menu-transform.ts:19](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/menu-transform.ts#L19)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: [utils/menu-transform.ts:19](https://github.com/ifrspro/ifrs9-iaf/bl
 
 > **children**: `string`[]
 
-Defined in: [utils/menu-transform.ts:26](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/menu-transform.ts#L26)
+Defined in: [utils/menu-transform.ts:26](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/menu-transform.ts#L26)
 
 ***
 
@@ -20,7 +20,7 @@ Defined in: [utils/menu-transform.ts:26](https://github.com/ifrspro/ifrs9-iaf/bl
 
 > **description**: `string`
 
-Defined in: [utils/menu-transform.ts:23](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/menu-transform.ts#L23)
+Defined in: [utils/menu-transform.ts:23](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/menu-transform.ts#L23)
 
 ***
 
@@ -28,7 +28,7 @@ Defined in: [utils/menu-transform.ts:23](https://github.com/ifrspro/ifrs9-iaf/bl
 
 > **icon**: `string`
 
-Defined in: [utils/menu-transform.ts:24](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/menu-transform.ts#L24)
+Defined in: [utils/menu-transform.ts:24](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/menu-transform.ts#L24)
 
 ***
 
@@ -36,7 +36,7 @@ Defined in: [utils/menu-transform.ts:24](https://github.com/ifrspro/ifrs9-iaf/bl
 
 > **id**: `string`
 
-Defined in: [utils/menu-transform.ts:20](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/menu-transform.ts#L20)
+Defined in: [utils/menu-transform.ts:20](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/menu-transform.ts#L20)
 
 ***
 
@@ -44,7 +44,7 @@ Defined in: [utils/menu-transform.ts:20](https://github.com/ifrspro/ifrs9-iaf/bl
 
 > **key**: `string`
 
-Defined in: [utils/menu-transform.ts:21](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/menu-transform.ts#L21)
+Defined in: [utils/menu-transform.ts:21](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/menu-transform.ts#L21)
 
 ***
 
@@ -52,7 +52,7 @@ Defined in: [utils/menu-transform.ts:21](https://github.com/ifrspro/ifrs9-iaf/bl
 
 > **sort\_order**: `number`
 
-Defined in: [utils/menu-transform.ts:25](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/menu-transform.ts#L25)
+Defined in: [utils/menu-transform.ts:25](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/menu-transform.ts#L25)
 
 ***
 
@@ -60,4 +60,4 @@ Defined in: [utils/menu-transform.ts:25](https://github.com/ifrspro/ifrs9-iaf/bl
 
 > **title**: `string`
 
-Defined in: [utils/menu-transform.ts:22](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/menu-transform.ts#L22)
+Defined in: [utils/menu-transform.ts:22](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/menu-transform.ts#L22)

@@ -4,7 +4,7 @@
 
 # Interface: ApprovalMetadata
 
-Defined in: [utils/approval.ts:5](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/approval.ts#L5)
+Defined in: [utils/approval.ts:5](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/approval.ts#L5)
 
 Approval utilities for checking user eligibility and permission requirements
 
@@ -14,7 +14,7 @@ Approval utilities for checking user eligibility and permission requirements
 
 > **requiredApprovalLevel**: `number` \| `null`
 
-Defined in: [utils/approval.ts:7](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/approval.ts#L7)
+Defined in: [utils/approval.ts:7](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/approval.ts#L7)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [utils/approval.ts:7](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b
 
 > **requiredApprovers**: `number`
 
-Defined in: [utils/approval.ts:8](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/approval.ts#L8)
+Defined in: [utils/approval.ts:8](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/approval.ts#L8)
 
 ***
 
@@ -30,4 +30,4 @@ Defined in: [utils/approval.ts:8](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b
 
 > **requiresApproval**: `boolean`
 
-Defined in: [utils/approval.ts:6](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/approval.ts#L6)
+Defined in: [utils/approval.ts:6](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/approval.ts#L6)

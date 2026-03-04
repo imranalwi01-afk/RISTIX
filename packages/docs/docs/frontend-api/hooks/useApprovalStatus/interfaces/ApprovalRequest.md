@@ -4,7 +4,7 @@
 
 # Interface: ApprovalRequest
 
-Defined in: [hooks/useApprovalStatus.ts:5](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/hooks/useApprovalStatus.ts#L5)
+Defined in: [hooks/useApprovalStatus.ts:5](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/hooks/useApprovalStatus.ts#L5)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: [hooks/useApprovalStatus.ts:5](https://github.com/ifrspro/ifrs9-iaf/
 
 > **createdAt**: `string`
 
-Defined in: [hooks/useApprovalStatus.ts:11](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/hooks/useApprovalStatus.ts#L11)
+Defined in: [hooks/useApprovalStatus.ts:11](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/hooks/useApprovalStatus.ts#L11)
 
 ***
 
@@ -20,7 +20,7 @@ Defined in: [hooks/useApprovalStatus.ts:11](https://github.com/ifrspro/ifrs9-iaf
 
 > `optional` **entityId**: `string`
 
-Defined in: [hooks/useApprovalStatus.ts:8](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/hooks/useApprovalStatus.ts#L8)
+Defined in: [hooks/useApprovalStatus.ts:8](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/hooks/useApprovalStatus.ts#L8)
 
 ***
 
@@ -28,7 +28,7 @@ Defined in: [hooks/useApprovalStatus.ts:8](https://github.com/ifrspro/ifrs9-iaf/
 
 > **entityType**: `string`
 
-Defined in: [hooks/useApprovalStatus.ts:7](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/hooks/useApprovalStatus.ts#L7)
+Defined in: [hooks/useApprovalStatus.ts:7](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/hooks/useApprovalStatus.ts#L7)
 
 ***
 
@@ -36,7 +36,7 @@ Defined in: [hooks/useApprovalStatus.ts:7](https://github.com/ifrspro/ifrs9-iaf/
 
 > **id**: `string`
 
-Defined in: [hooks/useApprovalStatus.ts:6](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/hooks/useApprovalStatus.ts#L6)
+Defined in: [hooks/useApprovalStatus.ts:6](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/hooks/useApprovalStatus.ts#L6)
 
 ***
 
@@ -44,7 +44,7 @@ Defined in: [hooks/useApprovalStatus.ts:6](https://github.com/ifrspro/ifrs9-iaf/
 
 > **requestData**: `any`
 
-Defined in: [hooks/useApprovalStatus.ts:10](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/hooks/useApprovalStatus.ts#L10)
+Defined in: [hooks/useApprovalStatus.ts:10](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/hooks/useApprovalStatus.ts#L10)
 
 ***
 
@@ -52,7 +52,7 @@ Defined in: [hooks/useApprovalStatus.ts:10](https://github.com/ifrspro/ifrs9-iaf
 
 > **status**: `"pending"` \| `"rejected"` \| `"approved"`
 
-Defined in: [hooks/useApprovalStatus.ts:9](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/hooks/useApprovalStatus.ts#L9)
+Defined in: [hooks/useApprovalStatus.ts:9](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/hooks/useApprovalStatus.ts#L9)
 
 ***
 
@@ -60,4 +60,4 @@ Defined in: [hooks/useApprovalStatus.ts:9](https://github.com/ifrspro/ifrs9-iaf/
 
 > **updatedAt**: `string`
 
-Defined in: [hooks/useApprovalStatus.ts:12](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/hooks/useApprovalStatus.ts#L12)
+Defined in: [hooks/useApprovalStatus.ts:12](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/hooks/useApprovalStatus.ts#L12)

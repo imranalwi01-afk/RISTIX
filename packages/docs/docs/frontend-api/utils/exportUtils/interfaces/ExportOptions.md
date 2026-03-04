@@ -4,7 +4,7 @@
 
 # Interface: ExportOptions
 
-Defined in: [utils/exportUtils.ts:8](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/exportUtils.ts#L8)
+Defined in: [utils/exportUtils.ts:8](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/exportUtils.ts#L8)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: [utils/exportUtils.ts:8](https://github.com/ifrspro/ifrs9-iaf/blob/5
 
 > `optional` **confidential**: `boolean`
 
-Defined in: [utils/exportUtils.ts:15](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/exportUtils.ts#L15)
+Defined in: [utils/exportUtils.ts:15](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/exportUtils.ts#L15)
 
 ***
 
@@ -20,7 +20,7 @@ Defined in: [utils/exportUtils.ts:15](https://github.com/ifrspro/ifrs9-iaf/blob/
 
 > `optional` **exportedBy**: `string`
 
-Defined in: [utils/exportUtils.ts:12](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/exportUtils.ts#L12)
+Defined in: [utils/exportUtils.ts:12](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/exportUtils.ts#L12)
 
 ***
 
@@ -28,7 +28,7 @@ Defined in: [utils/exportUtils.ts:12](https://github.com/ifrspro/ifrs9-iaf/blob/
 
 > `optional` **filename**: `string`
 
-Defined in: [utils/exportUtils.ts:9](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/exportUtils.ts#L9)
+Defined in: [utils/exportUtils.ts:9](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/exportUtils.ts#L9)
 
 ***
 
@@ -36,7 +36,7 @@ Defined in: [utils/exportUtils.ts:9](https://github.com/ifrspro/ifrs9-iaf/blob/5
 
 > `optional` **filters**: `Record`\<`string`, `any`\>
 
-Defined in: [utils/exportUtils.ts:13](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/exportUtils.ts#L13)
+Defined in: [utils/exportUtils.ts:13](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/exportUtils.ts#L13)
 
 ***
 
@@ -44,7 +44,7 @@ Defined in: [utils/exportUtils.ts:13](https://github.com/ifrspro/ifrs9-iaf/blob/
 
 > `optional` **modelVersion**: `string`
 
-Defined in: [utils/exportUtils.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/exportUtils.ts#L14)
+Defined in: [utils/exportUtils.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/exportUtils.ts#L14)
 
 ***
 
@@ -52,7 +52,7 @@ Defined in: [utils/exportUtils.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob/
 
 > `optional` **subtitle**: `string`
 
-Defined in: [utils/exportUtils.ts:11](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/exportUtils.ts#L11)
+Defined in: [utils/exportUtils.ts:11](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/exportUtils.ts#L11)
 
 ***
 
@@ -60,4 +60,4 @@ Defined in: [utils/exportUtils.ts:11](https://github.com/ifrspro/ifrs9-iaf/blob/
 
 > `optional` **title**: `string`
 
-Defined in: [utils/exportUtils.ts:10](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/exportUtils.ts#L10)
+Defined in: [utils/exportUtils.ts:10](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/exportUtils.ts#L10)

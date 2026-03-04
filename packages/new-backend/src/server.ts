@@ -14,12 +14,59 @@ import { initializeNotificationSocket } from './socket/notification.socket'
 import { setupQueues, closeQueues } from './queue/bull-setup'
 import { setupAllWorkers } from './queue/workers'
 import { createWorkflowRepository, createWorkflowEventHandler } from './repositories/workflows.repository'
+import { sendDiscordAlert } from './services/discord-alert.service'
+
+let processErrorHooksRegistered = false
+
+function toErrorMessage(reason: unknown): string {
+    if (reason instanceof Error) return reason.message
+    if (typeof reason === 'string') return reason
+    try {
+        return JSON.stringify(reason)
+    } catch {
+        return String(reason)
+    }
+}
+
+function registerProcessErrorHooks() {
+    if (processErrorHooksRegistered) return
+    processErrorHooksRegistered = true
+
+    process.on('unhandledRejection', (reason) => {
+        const message = toErrorMessage(reason)
+        logger.error({ reason }, 'Unhandled promise rejection')
+        void sendDiscordAlert({
+            source: 'backend',
+            severity: 'critical',
+            event: 'process_unhandled_rejection',
+            message,
+            context: {
+                reason: message,
+            },
+        })
+    })
+
+    process.on('uncaughtExceptionMonitor', (error, origin) => {
+        logger.error({ err: error, origin }, 'Uncaught exception monitor')
+        void sendDiscordAlert({
+            source: 'backend',
+            severity: 'critical',
+            event: 'process_uncaught_exception',
+            message: error?.message || 'Uncaught exception',
+            context: {
+                origin,
+                stack: error?.stack ? String(error.stack).split('\n').slice(0, 8).join(' | ') : undefined,
+            },
+        })
+    })
+}
 
 /**
  * Start the server with all integrations
  */
 export async function startServer() {
     logger.info('Starting IFRS9 Backend Server...')
+    registerProcessErrorHooks()
 
     // ============================================================================
     // 1. DATABASE (already initialized from config)

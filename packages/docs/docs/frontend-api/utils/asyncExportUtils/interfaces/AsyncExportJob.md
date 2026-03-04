@@ -4,7 +4,7 @@
 
 # Interface: AsyncExportJob
 
-Defined in: [utils/asyncExportUtils.ts:9](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/asyncExportUtils.ts#L9)
+Defined in: [utils/asyncExportUtils.ts:9](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/asyncExportUtils.ts#L9)
 
 Async Export Utilities for Large Datasets
 Handles exports >50k rows with progress tracking and email notification
@@ -15,7 +15,7 @@ Handles exports >50k rows with progress tracking and email notification
 
 > `optional` **completedAt**: `string`
 
-Defined in: [utils/asyncExportUtils.ts:16](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/asyncExportUtils.ts#L16)
+Defined in: [utils/asyncExportUtils.ts:16](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/asyncExportUtils.ts#L16)
 
 ***
 
@@ -23,7 +23,7 @@ Defined in: [utils/asyncExportUtils.ts:16](https://github.com/ifrspro/ifrs9-iaf/
 
 > `optional` **downloadUrl**: `string`
 
-Defined in: [utils/asyncExportUtils.ts:17](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/asyncExportUtils.ts#L17)
+Defined in: [utils/asyncExportUtils.ts:17](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/asyncExportUtils.ts#L17)
 
 ***
 
@@ -31,7 +31,7 @@ Defined in: [utils/asyncExportUtils.ts:17](https://github.com/ifrspro/ifrs9-iaf/
 
 > `optional` **error**: `string`
 
-Defined in: [utils/asyncExportUtils.ts:18](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/asyncExportUtils.ts#L18)
+Defined in: [utils/asyncExportUtils.ts:18](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/asyncExportUtils.ts#L18)
 
 ***
 
@@ -39,7 +39,7 @@ Defined in: [utils/asyncExportUtils.ts:18](https://github.com/ifrspro/ifrs9-iaf/
 
 > **jobId**: `string`
 
-Defined in: [utils/asyncExportUtils.ts:10](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/asyncExportUtils.ts#L10)
+Defined in: [utils/asyncExportUtils.ts:10](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/asyncExportUtils.ts#L10)
 
 ***
 
@@ -47,7 +47,7 @@ Defined in: [utils/asyncExportUtils.ts:10](https://github.com/ifrspro/ifrs9-iaf/
 
 > **processedRows**: `number`
 
-Defined in: [utils/asyncExportUtils.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/asyncExportUtils.ts#L14)
+Defined in: [utils/asyncExportUtils.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/asyncExportUtils.ts#L14)
 
 ***
 
@@ -55,7 +55,7 @@ Defined in: [utils/asyncExportUtils.ts:14](https://github.com/ifrspro/ifrs9-iaf/
 
 > **progress**: `number`
 
-Defined in: [utils/asyncExportUtils.ts:12](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/asyncExportUtils.ts#L12)
+Defined in: [utils/asyncExportUtils.ts:12](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/asyncExportUtils.ts#L12)
 
 ***
 
@@ -63,7 +63,7 @@ Defined in: [utils/asyncExportUtils.ts:12](https://github.com/ifrspro/ifrs9-iaf/
 
 > **startedAt**: `string`
 
-Defined in: [utils/asyncExportUtils.ts:15](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/asyncExportUtils.ts#L15)
+Defined in: [utils/asyncExportUtils.ts:15](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/asyncExportUtils.ts#L15)
 
 ***
 
@@ -71,7 +71,7 @@ Defined in: [utils/asyncExportUtils.ts:15](https://github.com/ifrspro/ifrs9-iaf/
 
 > **status**: `"pending"` \| `"completed"` \| `"failed"` \| `"processing"`
 
-Defined in: [utils/asyncExportUtils.ts:11](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/asyncExportUtils.ts#L11)
+Defined in: [utils/asyncExportUtils.ts:11](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/asyncExportUtils.ts#L11)
 
 ***
 
@@ -79,4 +79,4 @@ Defined in: [utils/asyncExportUtils.ts:11](https://github.com/ifrspro/ifrs9-iaf/
 
 > **totalRows**: `number`
 
-Defined in: [utils/asyncExportUtils.ts:13](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/asyncExportUtils.ts#L13)
+Defined in: [utils/asyncExportUtils.ts:13](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/asyncExportUtils.ts#L13)

@@ -4,7 +4,7 @@
 
 # Interface: HierarchicalMenuItem
 
-Defined in: [utils/menu-hierarchy.ts:38](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/menu-hierarchy.ts#L38)
+Defined in: [utils/menu-hierarchy.ts:38](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/menu-hierarchy.ts#L38)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: [utils/menu-hierarchy.ts:38](https://github.com/ifrspro/ifrs9-iaf/bl
 
 > **active**: `boolean`
 
-Defined in: [utils/menu-hierarchy.ts:51](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/menu-hierarchy.ts#L51)
+Defined in: [utils/menu-hierarchy.ts:51](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/menu-hierarchy.ts#L51)
 
 ***
 
@@ -20,7 +20,7 @@ Defined in: [utils/menu-hierarchy.ts:51](https://github.com/ifrspro/ifrs9-iaf/bl
 
 > **banking\_modes**: `string`[]
 
-Defined in: [utils/menu-hierarchy.ts:55](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/menu-hierarchy.ts#L55)
+Defined in: [utils/menu-hierarchy.ts:55](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/menu-hierarchy.ts#L55)
 
 ***
 
@@ -28,7 +28,7 @@ Defined in: [utils/menu-hierarchy.ts:55](https://github.com/ifrspro/ifrs9-iaf/bl
 
 > `optional` **banking\_types**: `string`[]
 
-Defined in: [utils/menu-hierarchy.ts:56](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/menu-hierarchy.ts#L56)
+Defined in: [utils/menu-hierarchy.ts:56](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/menu-hierarchy.ts#L56)
 
 ***
 
@@ -36,7 +36,7 @@ Defined in: [utils/menu-hierarchy.ts:56](https://github.com/ifrspro/ifrs9-iaf/bl
 
 > `optional` **children**: `HierarchicalMenuItem`[]
 
-Defined in: [utils/menu-hierarchy.ts:48](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/menu-hierarchy.ts#L48)
+Defined in: [utils/menu-hierarchy.ts:48](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/menu-hierarchy.ts#L48)
 
 ***
 
@@ -44,7 +44,7 @@ Defined in: [utils/menu-hierarchy.ts:48](https://github.com/ifrspro/ifrs9-iaf/bl
 
 > `optional` **description**: `string`
 
-Defined in: [utils/menu-hierarchy.ts:42](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/menu-hierarchy.ts#L42)
+Defined in: [utils/menu-hierarchy.ts:42](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/menu-hierarchy.ts#L42)
 
 ***
 
@@ -52,7 +52,7 @@ Defined in: [utils/menu-hierarchy.ts:42](https://github.com/ifrspro/ifrs9-iaf/bl
 
 > **expanded**: `boolean`
 
-Defined in: [utils/menu-hierarchy.ts:50](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/menu-hierarchy.ts#L50)
+Defined in: [utils/menu-hierarchy.ts:50](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/menu-hierarchy.ts#L50)
 
 ***
 
@@ -60,7 +60,7 @@ Defined in: [utils/menu-hierarchy.ts:50](https://github.com/ifrspro/ifrs9-iaf/bl
 
 > **icon**: `string`
 
-Defined in: [utils/menu-hierarchy.ts:43](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/menu-hierarchy.ts#L43)
+Defined in: [utils/menu-hierarchy.ts:43](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/menu-hierarchy.ts#L43)
 
 ***
 
@@ -68,7 +68,7 @@ Defined in: [utils/menu-hierarchy.ts:43](https://github.com/ifrspro/ifrs9-iaf/bl
 
 > **id**: `string`
 
-Defined in: [utils/menu-hierarchy.ts:39](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/menu-hierarchy.ts#L39)
+Defined in: [utils/menu-hierarchy.ts:39](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/menu-hierarchy.ts#L39)
 
 ***
 
@@ -76,7 +76,7 @@ Defined in: [utils/menu-hierarchy.ts:39](https://github.com/ifrspro/ifrs9-iaf/bl
 
 > **key**: `string`
 
-Defined in: [utils/menu-hierarchy.ts:40](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/menu-hierarchy.ts#L40)
+Defined in: [utils/menu-hierarchy.ts:40](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/menu-hierarchy.ts#L40)
 
 ***
 
@@ -84,7 +84,7 @@ Defined in: [utils/menu-hierarchy.ts:40](https://github.com/ifrspro/ifrs9-iaf/bl
 
 > **level**: `number`
 
-Defined in: [utils/menu-hierarchy.ts:49](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/menu-hierarchy.ts#L49)
+Defined in: [utils/menu-hierarchy.ts:49](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/menu-hierarchy.ts#L49)
 
 ***
 
@@ -92,7 +92,7 @@ Defined in: [utils/menu-hierarchy.ts:49](https://github.com/ifrspro/ifrs9-iaf/bl
 
 > `optional` **metadata**: `Record`\<`string`, `any`\>
 
-Defined in: [utils/menu-hierarchy.ts:59](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/menu-hierarchy.ts#L59)
+Defined in: [utils/menu-hierarchy.ts:59](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/menu-hierarchy.ts#L59)
 
 ***
 
@@ -100,7 +100,7 @@ Defined in: [utils/menu-hierarchy.ts:59](https://github.com/ifrspro/ifrs9-iaf/bl
 
 > **parent\_id**: `string` \| `null`
 
-Defined in: [utils/menu-hierarchy.ts:47](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/menu-hierarchy.ts#L47)
+Defined in: [utils/menu-hierarchy.ts:47](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/menu-hierarchy.ts#L47)
 
 ***
 
@@ -108,7 +108,7 @@ Defined in: [utils/menu-hierarchy.ts:47](https://github.com/ifrspro/ifrs9-iaf/bl
 
 > **permissions**: `string`[]
 
-Defined in: [utils/menu-hierarchy.ts:53](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/menu-hierarchy.ts#L53)
+Defined in: [utils/menu-hierarchy.ts:53](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/menu-hierarchy.ts#L53)
 
 ***
 
@@ -116,7 +116,7 @@ Defined in: [utils/menu-hierarchy.ts:53](https://github.com/ifrspro/ifrs9-iaf/bl
 
 > `optional` **requiredPermissions**: `string`[]
 
-Defined in: [utils/menu-hierarchy.ts:54](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/menu-hierarchy.ts#L54)
+Defined in: [utils/menu-hierarchy.ts:54](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/menu-hierarchy.ts#L54)
 
 ***
 
@@ -124,7 +124,7 @@ Defined in: [utils/menu-hierarchy.ts:54](https://github.com/ifrspro/ifrs9-iaf/bl
 
 > **sort\_order**: `number`
 
-Defined in: [utils/menu-hierarchy.ts:46](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/menu-hierarchy.ts#L46)
+Defined in: [utils/menu-hierarchy.ts:46](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/menu-hierarchy.ts#L46)
 
 ***
 
@@ -132,7 +132,7 @@ Defined in: [utils/menu-hierarchy.ts:46](https://github.com/ifrspro/ifrs9-iaf/bl
 
 > **tenant\_types**: `string`[]
 
-Defined in: [utils/menu-hierarchy.ts:58](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/menu-hierarchy.ts#L58)
+Defined in: [utils/menu-hierarchy.ts:58](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/menu-hierarchy.ts#L58)
 
 ***
 
@@ -140,7 +140,7 @@ Defined in: [utils/menu-hierarchy.ts:58](https://github.com/ifrspro/ifrs9-iaf/bl
 
 > **title**: `string`
 
-Defined in: [utils/menu-hierarchy.ts:41](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/menu-hierarchy.ts#L41)
+Defined in: [utils/menu-hierarchy.ts:41](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/menu-hierarchy.ts#L41)
 
 ***
 
@@ -148,7 +148,7 @@ Defined in: [utils/menu-hierarchy.ts:41](https://github.com/ifrspro/ifrs9-iaf/bl
 
 > **type**: `"group"` \| `"item"`
 
-Defined in: [utils/menu-hierarchy.ts:45](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/menu-hierarchy.ts#L45)
+Defined in: [utils/menu-hierarchy.ts:45](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/menu-hierarchy.ts#L45)
 
 ***
 
@@ -156,7 +156,7 @@ Defined in: [utils/menu-hierarchy.ts:45](https://github.com/ifrspro/ifrs9-iaf/bl
 
 > **url**: `string` \| `null`
 
-Defined in: [utils/menu-hierarchy.ts:44](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/menu-hierarchy.ts#L44)
+Defined in: [utils/menu-hierarchy.ts:44](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/menu-hierarchy.ts#L44)
 
 ***
 
@@ -164,7 +164,7 @@ Defined in: [utils/menu-hierarchy.ts:44](https://github.com/ifrspro/ifrs9-iaf/bl
 
 > **user\_types**: `string`[]
 
-Defined in: [utils/menu-hierarchy.ts:57](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/menu-hierarchy.ts#L57)
+Defined in: [utils/menu-hierarchy.ts:57](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/menu-hierarchy.ts#L57)
 
 ***
 
@@ -172,4 +172,4 @@ Defined in: [utils/menu-hierarchy.ts:57](https://github.com/ifrspro/ifrs9-iaf/bl
 
 > **visible**: `boolean`
 
-Defined in: [utils/menu-hierarchy.ts:52](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/menu-hierarchy.ts#L52)
+Defined in: [utils/menu-hierarchy.ts:52](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/menu-hierarchy.ts#L52)

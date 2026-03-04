@@ -6,7 +6,7 @@
 
 > **getCookieConfig**(`expiryDays?`): [`CookieDomainConfig`](../interfaces/CookieDomainConfig.md) & `object`
 
-Defined in: [utils/cookie-domain.ts:50](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/cookie-domain.ts#L50)
+Defined in: [utils/cookie-domain.ts:50](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/cookie-domain.ts#L50)
 
 Get complete cookie configuration based on environment
 

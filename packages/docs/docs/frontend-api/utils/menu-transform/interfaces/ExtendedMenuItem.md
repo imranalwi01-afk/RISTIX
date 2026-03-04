@@ -4,7 +4,7 @@
 
 # Interface: ExtendedMenuItem
 
-Defined in: [utils/menu-transform.ts:13](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/menu-transform.ts#L13)
+Defined in: [utils/menu-transform.ts:13](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/menu-transform.ts#L13)
 
 ## Extends
 
@@ -16,7 +16,7 @@ Defined in: [utils/menu-transform.ts:13](https://github.com/ifrspro/ifrs9-iaf/bl
 
 > `optional` **badge**: `object`
 
-Defined in: [services/menu.service.ts:21](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/services/menu.service.ts#L21)
+Defined in: [services/menu.service.ts:21](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/services/menu.service.ts#L21)
 
 #### color?
 
@@ -36,7 +36,7 @@ Defined in: [services/menu.service.ts:21](https://github.com/ifrspro/ifrs9-iaf/b
 
 > `optional` **banking\_modes**: (`"conventional"` \| `"syariah"` \| `"dual"`)[]
 
-Defined in: [services/menu.service.ts:19](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/services/menu.service.ts#L19)
+Defined in: [services/menu.service.ts:19](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/services/menu.service.ts#L19)
 
 #### Inherited from
 
@@ -48,7 +48,7 @@ Defined in: [services/menu.service.ts:19](https://github.com/ifrspro/ifrs9-iaf/b
 
 > `optional` **children**: `ExtendedMenuItem`[]
 
-Defined in: [utils/menu-transform.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/menu-transform.ts#L14)
+Defined in: [utils/menu-transform.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/menu-transform.ts#L14)
 
 #### Overrides
 
@@ -60,7 +60,7 @@ Defined in: [utils/menu-transform.ts:14](https://github.com/ifrspro/ifrs9-iaf/bl
 
 > **code**: `string`
 
-Defined in: [services/menu.service.ts:9](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/services/menu.service.ts#L9)
+Defined in: [services/menu.service.ts:9](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/services/menu.service.ts#L9)
 
 #### Inherited from
 
@@ -72,7 +72,7 @@ Defined in: [services/menu.service.ts:9](https://github.com/ifrspro/ifrs9-iaf/bl
 
 > `optional` **created\_at**: `string`
 
-Defined in: [services/menu.service.ts:31](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/services/menu.service.ts#L31)
+Defined in: [services/menu.service.ts:31](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/services/menu.service.ts#L31)
 
 #### Inherited from
 
@@ -84,7 +84,7 @@ Defined in: [services/menu.service.ts:31](https://github.com/ifrspro/ifrs9-iaf/b
 
 > `optional` **description**: `string`
 
-Defined in: [services/menu.service.ts:12](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/services/menu.service.ts#L12)
+Defined in: [services/menu.service.ts:12](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/services/menu.service.ts#L12)
 
 #### Inherited from
 
@@ -96,7 +96,7 @@ Defined in: [services/menu.service.ts:12](https://github.com/ifrspro/ifrs9-iaf/b
 
 > `optional` **external\_url**: `string`
 
-Defined in: [services/menu.service.ts:29](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/services/menu.service.ts#L29)
+Defined in: [services/menu.service.ts:29](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/services/menu.service.ts#L29)
 
 #### Inherited from
 
@@ -108,7 +108,7 @@ Defined in: [services/menu.service.ts:29](https://github.com/ifrspro/ifrs9-iaf/b
 
 > `optional` **href**: `string`
 
-Defined in: [services/menu.service.ts:11](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/services/menu.service.ts#L11)
+Defined in: [services/menu.service.ts:11](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/services/menu.service.ts#L11)
 
 #### Inherited from
 
@@ -120,7 +120,7 @@ Defined in: [services/menu.service.ts:11](https://github.com/ifrspro/ifrs9-iaf/b
 
 > `optional` **icon**: `string`
 
-Defined in: [services/menu.service.ts:13](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/services/menu.service.ts#L13)
+Defined in: [services/menu.service.ts:13](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/services/menu.service.ts#L13)
 
 #### Inherited from
 
@@ -132,7 +132,7 @@ Defined in: [services/menu.service.ts:13](https://github.com/ifrspro/ifrs9-iaf/b
 
 > **id**: `string`
 
-Defined in: [services/menu.service.ts:8](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/services/menu.service.ts#L8)
+Defined in: [services/menu.service.ts:8](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/services/menu.service.ts#L8)
 
 #### Inherited from
 
@@ -144,7 +144,7 @@ Defined in: [services/menu.service.ts:8](https://github.com/ifrspro/ifrs9-iaf/bl
 
 > **is\_active**: `boolean`
 
-Defined in: [services/menu.service.ts:18](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/services/menu.service.ts#L18)
+Defined in: [services/menu.service.ts:18](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/services/menu.service.ts#L18)
 
 #### Inherited from
 
@@ -156,7 +156,7 @@ Defined in: [services/menu.service.ts:18](https://github.com/ifrspro/ifrs9-iaf/b
 
 > `optional` **is\_new**: `boolean`
 
-Defined in: [services/menu.service.ts:26](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/services/menu.service.ts#L26)
+Defined in: [services/menu.service.ts:26](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/services/menu.service.ts#L26)
 
 #### Inherited from
 
@@ -168,7 +168,7 @@ Defined in: [services/menu.service.ts:26](https://github.com/ifrspro/ifrs9-iaf/b
 
 > **key**: `string`
 
-Defined in: [utils/menu-transform.ts:15](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/menu-transform.ts#L15)
+Defined in: [utils/menu-transform.ts:15](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/menu-transform.ts#L15)
 
 ***
 
@@ -176,7 +176,7 @@ Defined in: [utils/menu-transform.ts:15](https://github.com/ifrspro/ifrs9-iaf/bl
 
 > **label**: `string`
 
-Defined in: [services/menu.service.ts:10](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/services/menu.service.ts#L10)
+Defined in: [services/menu.service.ts:10](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/services/menu.service.ts#L10)
 
 #### Inherited from
 
@@ -188,7 +188,7 @@ Defined in: [services/menu.service.ts:10](https://github.com/ifrspro/ifrs9-iaf/b
 
 > **level**: `number`
 
-Defined in: [services/menu.service.ts:16](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/services/menu.service.ts#L16)
+Defined in: [services/menu.service.ts:16](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/services/menu.service.ts#L16)
 
 #### Inherited from
 
@@ -200,7 +200,7 @@ Defined in: [services/menu.service.ts:16](https://github.com/ifrspro/ifrs9-iaf/b
 
 > `optional` **parent\_id**: `string`
 
-Defined in: [services/menu.service.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/services/menu.service.ts#L14)
+Defined in: [services/menu.service.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/services/menu.service.ts#L14)
 
 #### Inherited from
 
@@ -212,7 +212,7 @@ Defined in: [services/menu.service.ts:14](https://github.com/ifrspro/ifrs9-iaf/b
 
 > **path**: `string`
 
-Defined in: [services/menu.service.ts:17](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/services/menu.service.ts#L17)
+Defined in: [services/menu.service.ts:17](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/services/menu.service.ts#L17)
 
 #### Inherited from
 
@@ -224,7 +224,7 @@ Defined in: [services/menu.service.ts:17](https://github.com/ifrspro/ifrs9-iaf/b
 
 > `optional` **requires\_setup**: `boolean`
 
-Defined in: [services/menu.service.ts:27](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/services/menu.service.ts#L27)
+Defined in: [services/menu.service.ts:27](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/services/menu.service.ts#L27)
 
 #### Inherited from
 
@@ -236,7 +236,7 @@ Defined in: [services/menu.service.ts:27](https://github.com/ifrspro/ifrs9-iaf/b
 
 > `optional` **roles**: `string`[]
 
-Defined in: [services/menu.service.ts:20](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/services/menu.service.ts#L20)
+Defined in: [services/menu.service.ts:20](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/services/menu.service.ts#L20)
 
 #### Inherited from
 
@@ -248,7 +248,7 @@ Defined in: [services/menu.service.ts:20](https://github.com/ifrspro/ifrs9-iaf/b
 
 > **sort\_order**: `number`
 
-Defined in: [services/menu.service.ts:15](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/services/menu.service.ts#L15)
+Defined in: [services/menu.service.ts:15](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/services/menu.service.ts#L15)
 
 #### Inherited from
 
@@ -260,7 +260,7 @@ Defined in: [services/menu.service.ts:15](https://github.com/ifrspro/ifrs9-iaf/b
 
 > `optional` **status**: `"error"` \| `"active"` \| `"disabled"` \| `"warning"`
 
-Defined in: [services/menu.service.ts:25](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/services/menu.service.ts#L25)
+Defined in: [services/menu.service.ts:25](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/services/menu.service.ts#L25)
 
 #### Inherited from
 
@@ -272,7 +272,7 @@ Defined in: [services/menu.service.ts:25](https://github.com/ifrspro/ifrs9-iaf/b
 
 > `optional` **target**: `"_self"` \| `"_blank"`
 
-Defined in: [services/menu.service.ts:28](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/services/menu.service.ts#L28)
+Defined in: [services/menu.service.ts:28](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/services/menu.service.ts#L28)
 
 #### Inherited from
 
@@ -284,7 +284,7 @@ Defined in: [services/menu.service.ts:28](https://github.com/ifrspro/ifrs9-iaf/b
 
 > `optional` **updated\_at**: `string`
 
-Defined in: [services/menu.service.ts:32](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/services/menu.service.ts#L32)
+Defined in: [services/menu.service.ts:32](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/services/menu.service.ts#L32)
 
 #### Inherited from
 

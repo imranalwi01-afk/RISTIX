@@ -1502,7 +1502,7 @@ export default function MenuManagement({ params }: { params: Promise<{}> }) {
                   <MenuItem value="">None (Root Menu)</MenuItem>
                   {menus
                     .filter(menu => !menu.parentId)
-                    .map(menu => (
+                    .map((menu, idx) => (
                       <MenuItem key={`${menu.id}-${idx}`} value={menu.id}>
                         {menu.label}
                       </MenuItem>

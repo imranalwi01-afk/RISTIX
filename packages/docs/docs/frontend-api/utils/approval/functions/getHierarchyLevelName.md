@@ -6,7 +6,7 @@
 
 > **getHierarchyLevelName**(`level`): `string`
 
-Defined in: [utils/approval.ts:113](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/approval.ts#L113)
+Defined in: [utils/approval.ts:113](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/approval.ts#L113)
 
 Get hierarchy level display name
 

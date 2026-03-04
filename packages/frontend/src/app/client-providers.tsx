@@ -16,6 +16,7 @@ import { store, persistor } from '../store';
 
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import '@/services/logging.service';
 
 export default function ClientProviders({ children }: { children: React.ReactNode }) {
   // WORKAROUND: Prevent MUI v7 SvgIcon from trying to access _theme_vars

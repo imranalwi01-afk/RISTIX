@@ -4,7 +4,7 @@
 
 # Interface: UserRoleInfo
 
-Defined in: [utils/approval.ts:11](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/approval.ts#L11)
+Defined in: [utils/approval.ts:11](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/approval.ts#L11)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: [utils/approval.ts:11](https://github.com/ifrspro/ifrs9-iaf/blob/5a4
 
 > **hierarchyLevel**: `number`
 
-Defined in: [utils/approval.ts:12](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/approval.ts#L12)
+Defined in: [utils/approval.ts:12](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/approval.ts#L12)
 
 ***
 
@@ -20,7 +20,7 @@ Defined in: [utils/approval.ts:12](https://github.com/ifrspro/ifrs9-iaf/blob/5a4
 
 > **roleCode**: `string`
 
-Defined in: [utils/approval.ts:13](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/approval.ts#L13)
+Defined in: [utils/approval.ts:13](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/approval.ts#L13)
 
 ***
 
@@ -28,4 +28,4 @@ Defined in: [utils/approval.ts:13](https://github.com/ifrspro/ifrs9-iaf/blob/5a4
 
 > **roleName**: `string`
 
-Defined in: [utils/approval.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/approval.ts#L14)
+Defined in: [utils/approval.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/approval.ts#L14)

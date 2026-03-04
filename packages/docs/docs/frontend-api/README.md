@@ -29,6 +29,7 @@
 | [utils/constants](utils/constants/README.md) | - |
 | [utils/cookie-domain](utils/cookie-domain/README.md) | - |
 | [utils/date](utils/date/README.md) | - |
+| [utils/error-message](utils/error-message/README.md) | - |
 | [utils/export-csv](utils/export-csv/README.md) | - |
 | [utils/exportUtils](utils/exportUtils/README.md) | - |
 | [utils/ifrs9](utils/ifrs9/README.md) | - |

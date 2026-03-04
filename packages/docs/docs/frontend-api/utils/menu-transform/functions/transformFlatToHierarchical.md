@@ -6,7 +6,7 @@
 
 > **transformFlatToHierarchical**(`flatItems`): [`ExtendedMenuItem`](../interfaces/ExtendedMenuItem.md)[]
 
-Defined in: [utils/menu-transform.ts:237](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/utils/menu-transform.ts#L237)
+Defined in: [utils/menu-transform.ts:237](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/utils/menu-transform.ts#L237)
 
 Transform flat database menu items into hierarchical structure
 

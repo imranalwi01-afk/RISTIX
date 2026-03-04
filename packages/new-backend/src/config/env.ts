@@ -82,6 +82,12 @@ const envSchema = z.object({
 
     // Logging
     LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
+
+    // Alerting
+    ALERT_DISCORD_WEBHOOK_URL: z.string().optional(),
+    ALERT_DISCORD_TIMEOUT_MS: z.coerce.number().default(5000),
+    ALERT_MIN_LEVEL: z.enum(['info', 'warn', 'error', 'critical']).default('error'),
+    ALERT_THROTTLE_MS: z.coerce.number().default(60000),
 })
 
 export type Env = z.infer<typeof envSchema>

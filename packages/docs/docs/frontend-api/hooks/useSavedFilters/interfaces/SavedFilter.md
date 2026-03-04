@@ -4,7 +4,7 @@
 
 # Interface: SavedFilter
 
-Defined in: [hooks/useSavedFilters.ts:6](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/hooks/useSavedFilters.ts#L6)
+Defined in: [hooks/useSavedFilters.ts:6](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/hooks/useSavedFilters.ts#L6)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: [hooks/useSavedFilters.ts:6](https://github.com/ifrspro/ifrs9-iaf/bl
 
 > **createdAt**: `string`
 
-Defined in: [hooks/useSavedFilters.ts:10](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/hooks/useSavedFilters.ts#L10)
+Defined in: [hooks/useSavedFilters.ts:10](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/hooks/useSavedFilters.ts#L10)
 
 ***
 
@@ -20,7 +20,7 @@ Defined in: [hooks/useSavedFilters.ts:10](https://github.com/ifrspro/ifrs9-iaf/b
 
 > **filters**: `Record`\<`string`, `any`\>
 
-Defined in: [hooks/useSavedFilters.ts:9](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/hooks/useSavedFilters.ts#L9)
+Defined in: [hooks/useSavedFilters.ts:9](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/hooks/useSavedFilters.ts#L9)
 
 ***
 
@@ -28,7 +28,7 @@ Defined in: [hooks/useSavedFilters.ts:9](https://github.com/ifrspro/ifrs9-iaf/bl
 
 > **id**: `string`
 
-Defined in: [hooks/useSavedFilters.ts:7](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/hooks/useSavedFilters.ts#L7)
+Defined in: [hooks/useSavedFilters.ts:7](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/hooks/useSavedFilters.ts#L7)
 
 ***
 
@@ -36,7 +36,7 @@ Defined in: [hooks/useSavedFilters.ts:7](https://github.com/ifrspro/ifrs9-iaf/bl
 
 > **name**: `string`
 
-Defined in: [hooks/useSavedFilters.ts:8](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/hooks/useSavedFilters.ts#L8)
+Defined in: [hooks/useSavedFilters.ts:8](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/hooks/useSavedFilters.ts#L8)
 
 ***
 
@@ -44,4 +44,4 @@ Defined in: [hooks/useSavedFilters.ts:8](https://github.com/ifrspro/ifrs9-iaf/bl
 
 > **updatedAt**: `string`
 
-Defined in: [hooks/useSavedFilters.ts:11](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/hooks/useSavedFilters.ts#L11)
+Defined in: [hooks/useSavedFilters.ts:11](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/hooks/useSavedFilters.ts#L11)

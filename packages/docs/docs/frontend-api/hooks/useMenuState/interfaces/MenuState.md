@@ -4,7 +4,7 @@
 
 # Interface: MenuState
 
-Defined in: [hooks/useMenuState.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/hooks/useMenuState.ts#L14)
+Defined in: [hooks/useMenuState.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/hooks/useMenuState.ts#L14)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: [hooks/useMenuState.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob
 
 > **activeItems**: `Set`\<`string`\>
 
-Defined in: [hooks/useMenuState.ts:20](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/hooks/useMenuState.ts#L20)
+Defined in: [hooks/useMenuState.ts:20](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/hooks/useMenuState.ts#L20)
 
 ***
 
@@ -20,7 +20,7 @@ Defined in: [hooks/useMenuState.ts:20](https://github.com/ifrspro/ifrs9-iaf/blob
 
 > **activeParentIds**: `Set`\<`string`\>
 
-Defined in: [hooks/useMenuState.ts:22](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/hooks/useMenuState.ts#L22)
+Defined in: [hooks/useMenuState.ts:22](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/hooks/useMenuState.ts#L22)
 
 ***
 
@@ -28,7 +28,7 @@ Defined in: [hooks/useMenuState.ts:22](https://github.com/ifrspro/ifrs9-iaf/blob
 
 > **autoExpandActiveParents**: `boolean`
 
-Defined in: [hooks/useMenuState.ts:29](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/hooks/useMenuState.ts#L29)
+Defined in: [hooks/useMenuState.ts:29](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/hooks/useMenuState.ts#L29)
 
 ***
 
@@ -36,7 +36,7 @@ Defined in: [hooks/useMenuState.ts:29](https://github.com/ifrspro/ifrs9-iaf/blob
 
 > **collapsed**: `boolean`
 
-Defined in: [hooks/useMenuState.ts:17](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/hooks/useMenuState.ts#L17)
+Defined in: [hooks/useMenuState.ts:17](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/hooks/useMenuState.ts#L17)
 
 ***
 
@@ -44,7 +44,7 @@ Defined in: [hooks/useMenuState.ts:17](https://github.com/ifrspro/ifrs9-iaf/blob
 
 > **currentPath**: `string`
 
-Defined in: [hooks/useMenuState.ts:25](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/hooks/useMenuState.ts#L25)
+Defined in: [hooks/useMenuState.ts:25](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/hooks/useMenuState.ts#L25)
 
 ***
 
@@ -52,7 +52,7 @@ Defined in: [hooks/useMenuState.ts:25](https://github.com/ifrspro/ifrs9-iaf/blob
 
 > **expandedItems**: `Set`\<`string`\>
 
-Defined in: [hooks/useMenuState.ts:16](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/hooks/useMenuState.ts#L16)
+Defined in: [hooks/useMenuState.ts:16](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/hooks/useMenuState.ts#L16)
 
 ***
 
@@ -60,7 +60,7 @@ Defined in: [hooks/useMenuState.ts:16](https://github.com/ifrspro/ifrs9-iaf/blob
 
 > **persistExpansionState**: `boolean`
 
-Defined in: [hooks/useMenuState.ts:30](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/hooks/useMenuState.ts#L30)
+Defined in: [hooks/useMenuState.ts:30](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/hooks/useMenuState.ts#L30)
 
 ***
 
@@ -68,7 +68,7 @@ Defined in: [hooks/useMenuState.ts:30](https://github.com/ifrspro/ifrs9-iaf/blob
 
 > **previousPath**: `string` \| `null`
 
-Defined in: [hooks/useMenuState.ts:26](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/hooks/useMenuState.ts#L26)
+Defined in: [hooks/useMenuState.ts:26](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/hooks/useMenuState.ts#L26)
 
 ***
 
@@ -76,4 +76,4 @@ Defined in: [hooks/useMenuState.ts:26](https://github.com/ifrspro/ifrs9-iaf/blob
 
 > **selectedItem**: `string` \| `null`
 
-Defined in: [hooks/useMenuState.ts:21](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/frontend/src/hooks/useMenuState.ts#L21)
+Defined in: [hooks/useMenuState.ts:21](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/hooks/useMenuState.ts#L21)

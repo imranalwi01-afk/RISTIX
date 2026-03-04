@@ -64,10 +64,16 @@ send_alert() {
   host="$(hostname 2>/dev/null || echo unknown)"
 
   local payload
-  payload="$(cat <<EOF
+  if echo "${webhook_url}" | grep -Eqi 'discord(app)?\.com/api/webhooks/'; then
+    local content
+    content="[r-analytics][${component}] ${event} | ${message} | host=${host} | ts=${now}"
+    payload="{\"content\":\"$(json_escape "${content}")\"}"
+  else
+    payload="$(cat <<EOF
 {"service":"r-analytics","event":"$(json_escape "${event}")","component":"$(json_escape "${component}")","host":"$(json_escape "${host}")","timestamp":"$(json_escape "${now}")","message":"$(json_escape "${message}")"}
 EOF
 )"
+  fi
 
   local timeout="${R_ANALYTICS_ALERT_WEBHOOK_TIMEOUT:-8}"
   curl -sS -m "${timeout}" \
