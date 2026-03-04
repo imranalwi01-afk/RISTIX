@@ -144,7 +144,9 @@ describe('users.service', () => {
     state.throwOn = 'findUsersByTenant'
     const exit = await Effect.runPromiseExit(usersService.getUsers('tenant-1'))
     expect(exit._tag).toBe('Failure')
-    expect(String(exit.cause)).toContain('DatabaseError')
+    if (exit._tag === 'Failure') {
+      expect(String(exit.cause)).toContain('DatabaseError')
+    }
   })
 
   test('getUserById returns user when found', async () => {
@@ -157,10 +159,12 @@ describe('users.service', () => {
 
   test('getUserById fails with NotFoundError when missing', async () => {
     state.findUserByIdResult = null
-    const exit = await Effect.runPromiseExit(usersService.getUserById('missing-user', 'tenant-1'))
+    const result = await Effect.runPromiseExit(usersService.getUserById('missing-user', 'tenant-1'))
 
-    expect(exit._tag).toBe('Failure')
-    expect(String(exit.cause)).toContain('NotFoundError')
+    expect(result._tag).toBe('Failure')
+    if (result._tag === 'Failure') {
+      expect(String(result.cause)).toContain('NotFoundError')
+    }
   })
 
   test('getUserByEmail and getUserStats delegate to repository', async () => {
@@ -171,7 +175,7 @@ describe('users.service', () => {
     const stats = await Effect.runPromise(usersService.getUserStats('tenant-1'))
 
     expect(byEmail?.email).toBe('checker@iaf.co.id')
-    expect(stats).toEqual({ totalUsers: 4, activeUsers: 3, inactiveUsers: 1 })
+    expect(stats).toEqual({ total: 4, active: 3, inactive: 1, verifiedEmail: 0 })
   })
 
   test('createUser creates new user with normalized username/fullName and hashed password', async () => {
@@ -198,7 +202,7 @@ describe('users.service', () => {
 
   test('createUser fails with ValidationError when email already exists', async () => {
     state.findUserByEmailResult = createBaseUser({ email: 'existing@iaf.co.id' })
-    const exit = await Effect.runPromiseExit(
+    const result = await Effect.runPromiseExit(
       usersService.createUser({
         email: 'existing@iaf.co.id',
         password: 'Secret123',
@@ -206,9 +210,11 @@ describe('users.service', () => {
       } as any)
     )
 
-    expect(exit._tag).toBe('Failure')
-    expect(String(exit.cause)).toContain('ValidationError')
-    expect(String(exit.cause)).toContain('email')
+    expect(result._tag).toBe('Failure')
+    if (result._tag === 'Failure') {
+      expect(String(result.cause)).toContain('ValidationError')
+      expect(String(result.cause)).toContain('email')
+    }
   })
 
   test('createUser maps hashing and insert failures to DatabaseError', async () => {
@@ -220,8 +226,10 @@ describe('users.service', () => {
       } as any)
     )
     expect(hashFail._tag).toBe('Failure')
-    expect(String(hashFail.cause)).toContain('DatabaseError')
-    expect(String(hashFail.cause)).toContain('Failed to hash password')
+    if (hashFail._tag === 'Failure') {
+      expect(String(hashFail.cause)).toContain('DatabaseError')
+      expect(String(hashFail.cause)).toContain('Failed to hash password')
+    }
 
     state.throwOn = 'createUser'
     const insertFail = await Effect.runPromiseExit(
@@ -232,7 +240,9 @@ describe('users.service', () => {
       } as any)
     )
     expect(insertFail._tag).toBe('Failure')
-    expect(String(insertFail.cause)).toContain('DatabaseError')
+    if (insertFail._tag === 'Failure') {
+      expect(String(insertFail.cause)).toContain('DatabaseError')
+    }
   })
 
   test('updateUser/deleteUser/enableUser/disableUser call repository with expected payload', async () => {
@@ -259,8 +269,10 @@ describe('users.service', () => {
   test('updatePassword maps hash failures to DatabaseError', async () => {
     const exit = await Effect.runPromiseExit(usersService.updatePassword('u-1', '', 'tenant-1'))
     expect(exit._tag).toBe('Failure')
-    expect(String(exit.cause)).toContain('DatabaseError')
-    expect(String(exit.cause)).toContain('Failed to hash password')
+    if (exit._tag === 'Failure') {
+      expect(String(exit.cause)).toContain('DatabaseError')
+      expect(String(exit.cause)).toContain('Failed to hash password')
+    }
   })
 
   test('resetPassword sets forcePasswordChange default and override before reading user', async () => {
@@ -282,8 +294,10 @@ describe('users.service', () => {
   test('resetPassword maps hash failures to DatabaseError', async () => {
     const exit = await Effect.runPromiseExit(usersService.resetPassword('u-2', '', 'tenant-1'))
     expect(exit._tag).toBe('Failure')
-    expect(String(exit.cause)).toContain('DatabaseError')
-    expect(String(exit.cause)).toContain('Failed to hash password')
+    if (exit._tag === 'Failure') {
+      expect(String(exit.cause)).toContain('DatabaseError')
+      expect(String(exit.cause)).toContain('Failed to hash password')
+    }
   })
 
   test('verifyEmail updates and returns fresh user', async () => {

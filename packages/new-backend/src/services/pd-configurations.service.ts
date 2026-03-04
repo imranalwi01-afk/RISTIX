@@ -36,7 +36,7 @@ export const PdConfigurationsService = {
             Effect.flatMap(config =>
                 config
                     ? Effect.succeed(transformPdConfig(config))
-                    : Effect.fail(new NotFoundError({ resource: 'PD Configuration', id: String(id) }))
+                    : Effect.fail(new NotFoundError({ message: 'PD Configuration not found', resource: 'PD Configuration', id: String(id) }))
             )
         )
     },
@@ -110,7 +110,7 @@ export const PdConfigurationsService = {
             Effect.flatMap(updated =>
                 updated
                     ? Effect.succeed(transformPdConfig(updated))
-                    : Effect.fail(new NotFoundError({ resource: 'PD Configuration', id: String(id) }))
+                    : Effect.fail(new NotFoundError({ message: 'PD Configuration not found', resource: 'PD Configuration', id: String(id) }))
             )
         )
     },

@@ -31,6 +31,7 @@ export class ValidationError extends Data.TaggedError('ValidationError')<{
  * Resource not found error
  */
 export class NotFoundError extends Data.TaggedError('NotFoundError')<{
+    readonly message: string
     readonly resource: string
     readonly id: string | number
 }> { }

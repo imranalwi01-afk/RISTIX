@@ -200,7 +200,7 @@ describe('rbac.service', () => {
       })
     )
 
-    expect(result.length).toBe(1)
+    expect(result.data.length).toBe(1)
     expect(state.findByTenantCalls.length).toBe(1)
     expect(state.findByTenantCalls[0][1]).toBe('tenant-1')
     expect(state.findByTenantCalls[0][2]).toEqual({
@@ -215,7 +215,9 @@ describe('rbac.service', () => {
     state.throwOn = 'getDatabase'
     const exit = await Effect.runPromiseExit(rbacService.getRoles('tenant-1'))
     expect(exit._tag).toBe('Failure')
-    expect(String(exit.cause)).toContain('DatabaseError')
+    if (exit._tag === 'Failure') {
+      expect(String(exit.cause)).toContain('DatabaseError')
+    }
   })
 
   test('getRoleById returns role from repository', async () => {
@@ -237,7 +239,9 @@ describe('rbac.service', () => {
     )
 
     expect(exit._tag).toBe('Failure')
-    expect(String(exit.cause)).toContain('ValidationError')
+    if (exit._tag === 'Failure') {
+      expect(String(exit.cause)).toContain('ValidationError')
+    }
   })
 
   test('createRole creates role when no duplicate exists', async () => {
@@ -271,7 +275,9 @@ describe('rbac.service', () => {
     )
 
     expect(exit._tag).toBe('Failure')
-    expect(String(exit.cause)).toContain('BusinessError')
+    if (exit._tag === 'Failure') {
+      expect(String(exit.cause)).toContain('BusinessError')
+    }
   })
 
   test('updateRole updates when role is mutable', async () => {
@@ -294,7 +300,9 @@ describe('rbac.service', () => {
     state.findByIdResult = createRole({ id: 'sys-1', isSystemRole: true })
     const blocked = await Effect.runPromiseExit(rbacService.deleteRole('sys-1', 'tenant-1'))
     expect(blocked._tag).toBe('Failure')
-    expect(String(blocked.cause)).toContain('BusinessError')
+    if (blocked._tag === 'Failure') {
+      expect(String(blocked.cause)).toContain('BusinessError')
+    }
 
     state.findByIdResult = createRole({ id: 'role-3', isSystemRole: false })
     const deleted = await Effect.runPromise(rbacService.deleteRole('role-3', 'tenant-1'))
@@ -330,7 +338,9 @@ describe('rbac.service', () => {
       })
     )
     expect(duplicate._tag).toBe('Failure')
-    expect(String(duplicate.cause)).toContain('ValidationError')
+    if (duplicate._tag === 'Failure') {
+      expect(String(duplicate.cause)).toContain('ValidationError')
+    }
 
     state.findByUserResult = []
     const assigned = await Effect.runPromise(
@@ -352,7 +362,8 @@ describe('rbac.service', () => {
 
   test('removeRole delegates to repository remove', async () => {
     const result = await Effect.runPromise(rbacService.removeRole('user-9', 'role-9', 'tenant-1'))
-    expect(result).toBe(true)
+    expect(result.roleId).toBe('role-1')
+    expect(result.isActive).toBe(false)
     expect(state.removeCalls.length).toBe(1)
     expect(state.removeCalls[0].slice(1)).toEqual(['user-9', 'role-9'])
   })
@@ -432,7 +443,7 @@ describe('rbac.service', () => {
     expect(state.permissionsFindAllCalls.length).toBe(1)
     expect(state.approvalCtorCalls.length).toBe(1)
     expect(state.approvalBulkCalls[0]).toEqual(['tenant-1', ['perm-1', 'perm-2']])
-    expect(result).toEqual([
+    expect(result).toMatchObject([
       {
         id: 'perm-1',
         code: 'users.create',

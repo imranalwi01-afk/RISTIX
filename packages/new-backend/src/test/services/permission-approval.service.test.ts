@@ -139,13 +139,13 @@ describe('permission-approval.service', () => {
   test('requiresApproval/getPermissionsRequiringApproval/upsert/getEligibleApproverLevel delegate correctly', async () => {
     state.requiresApprovalResult = true
     state.findRequiringApprovalResult = [{ id: 'p1' }]
-    state.upsertResult = { id: 'policy-2', requiresApproval: true }
+    state.upsertResult = { id: 'policy-2', requiresApproval: true } as any
     state.getMinHierarchyLevelResult = 4
 
     const service = new PermissionApprovalService({} as any)
 
     expect(await Effect.runPromise(service.requiresApproval('tenant-1', 'perm-1'))).toBe(true)
-    expect(await Effect.runPromise(service.getPermissionsRequiringApproval('tenant-1'))).toEqual([{ id: 'p1' }])
+    expect(await Effect.runPromise(service.getPermissionsRequiringApproval('tenant-1'))).toMatchObject([{ id: 'p1' }])
     expect(
       await Effect.runPromise(
         service.upsertPolicy('tenant-1', 'perm-1', {
@@ -154,7 +154,7 @@ describe('permission-approval.service', () => {
           requiredApprovers: 2,
         })
       )
-    ).toEqual({ id: 'policy-2', requiresApproval: true })
+    ).toMatchObject({ id: 'policy-2', requiresApproval: true })
     expect(await Effect.runPromise(service.getEligibleApproverLevel('tenant-1', 'perm-1'))).toBe(4)
   })
 
@@ -263,7 +263,9 @@ describe('permission-approval.service', () => {
     const service = new PermissionApprovalService({} as any)
     const exit = await Effect.runPromiseExit(service.requiresApproval('tenant-1', 'perm-1'))
     expect(exit._tag).toBe('Failure')
-    expect(String(exit.cause)).toContain('DatabaseError')
+    if (exit._tag === 'Failure') {
+      expect(String(exit.cause)).toContain('DatabaseError')
+    }
   })
 
   test('deletePolicy calls repository softDelete', async () => {

@@ -49,7 +49,7 @@ export const ProductParametersService = {
             Effect.flatMap(product =>
                 product
                     ? Effect.succeed(transformProduct(product))
-                    : Effect.fail(new NotFoundError({ resource: 'Product Parameter', id: String(id) }))
+                    : Effect.fail(new NotFoundError({ message: 'Product Parameter not found', resource: 'Product Parameter', id: String(id) }))
             )
         )
     },
@@ -114,7 +114,7 @@ export const ProductParametersService = {
             Effect.flatMap(updated =>
                 updated
                     ? Effect.succeed(transformProduct(updated))
-                    : Effect.fail(new NotFoundError({ resource: 'Product Parameter', id: String(id) }))
+                    : Effect.fail(new NotFoundError({ message: 'Product Parameter not found', resource: 'Product Parameter', id: String(id) }))
             )
         )
     },
@@ -132,7 +132,7 @@ export const ProductParametersService = {
             Effect.flatMap(deleted =>
                 deleted
                     ? Effect.succeed({ message: 'Deleted successfully' })
-                    : Effect.fail(new NotFoundError({ resource: 'Product Parameter', id: String(id) }))
+                    : Effect.fail(new NotFoundError({ message: 'Product Parameter not found', resource: 'Product Parameter', id: String(id) }))
             )
         )
     },

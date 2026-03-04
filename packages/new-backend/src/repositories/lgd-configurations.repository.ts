@@ -27,7 +27,7 @@ export const LgdConfigurationsRepository = {
             }
 
             if (options?.lgdMethod !== undefined) {
-                conditions.push(eq(frs9ImpCaLgdConfig.lgdMethod, options.lgdMethod))
+                conditions.push(eq(frs9ImpCaLgdConfig.lgdMethod, Number(options.lgdMethod)))
             }
 
             if (options?.isActive !== undefined) {

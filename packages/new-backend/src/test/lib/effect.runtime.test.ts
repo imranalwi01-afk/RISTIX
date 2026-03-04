@@ -98,7 +98,7 @@ describe('effect runtime helpers', () => {
 
     const notFound = handleEffectError(
       c,
-      { _tag: 'Fail', error: new NotFoundError({ resource: 'Role', id: 'r-1' }) } as any
+      { _tag: 'Fail', error: new NotFoundError({ message: 'Role not found', resource: 'Role', id: 'r-1' }) } as any
     )
     const notFoundPayload = await readJson(notFound)
     expect(notFound.status).toBe(404)
@@ -228,7 +228,9 @@ describe('effect runtime helpers', () => {
       })
     )
     expect(failed._tag).toBe('Failure')
-    expect(String(failed.cause)).toContain('cannot insert')
+    if (failed._tag === 'Failure') {
+      expect(String(failed.cause)).toContain('cannot insert')
+    }
   })
 
   test('validate returns parsed value and ValidationError on invalid input', async () => {
@@ -248,6 +250,8 @@ describe('effect runtime helpers', () => {
 
     const failed = await Effect.runPromiseExit(validate(schema, {}))
     expect(failed._tag).toBe('Failure')
-    expect(String(failed.cause)).toContain('ValidationError')
+    if (failed._tag === 'Failure') {
+      expect(String(failed.cause)).toContain('ValidationError')
+    }
   })
 })

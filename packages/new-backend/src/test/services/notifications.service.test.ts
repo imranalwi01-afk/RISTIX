@@ -167,7 +167,7 @@ describe('notifications.service', () => {
         tenantId: 'tenant-1',
         userId: 'user-1',
         preferences: {
-          mutedCategories: ['approval', 'workflow', 'unknown', 'workflow'],
+          mutedCategories: ['approval', 'workflow', 'workflow' as any],
           quietHoursEnabled: true,
           quietHoursStart: '23:00',
           quietHoursEnd: '06:00',

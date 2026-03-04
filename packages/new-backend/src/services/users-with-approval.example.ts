@@ -129,8 +129,8 @@ export const updateUserWithApproval = (
                 if (!updatedUser) {
                     throw new NotFoundError({
                         message: `User not found: ${id}`,
-                        resourceType: 'User',
-                        resourceId: id,
+                        resource: 'User',
+                        id,
                     })
                 }
 
@@ -175,8 +175,8 @@ export const deleteUserWithApproval = (
                 if (!deletedUser) {
                     throw new NotFoundError({
                         message: `User not found: ${id}`,
-                        resourceType: 'User',
-                        resourceId: id,
+                        resource: 'User',
+                        id,
                     })
                 }
 

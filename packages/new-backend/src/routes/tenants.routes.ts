@@ -282,6 +282,7 @@ tenantsRoutes.openapi(
             tenantsService.getTenantById(tenantId),
             Effect.flatMap(t => {
                 if (!t) return Effect.fail(new NotFoundError({
+                    message: 'Tenant not found',
                     resource: 'Tenant',
                     id: tenantId
                 }))
@@ -295,7 +296,7 @@ tenantsRoutes.openapi(
         )
 
         try {
-        return runEffect(c, effect)
+            return runEffect(c, effect)
         } catch (e: any) {
             return c.json({ success: false, error: e.message }, 404)
         }
@@ -399,6 +400,7 @@ tenantsRoutes.openapi(
             tenantsService.getTenantById(id),
             Effect.flatMap(t => {
                 if (!t) return Effect.fail(new NotFoundError({
+                    message: 'Tenant not found',
                     resource: 'Tenant',
                     id: id
                 }))
@@ -412,7 +414,7 @@ tenantsRoutes.openapi(
         )
 
         try {
-        return runEffect(c, effect)
+            return runEffect(c, effect)
         } catch (e: any) {
             return c.json({ success: false, error: e.message } as any, 404)
         }
@@ -479,6 +481,7 @@ tenantsRoutes.openapi(
             tenantsService.updateTenant(id, body),
             Effect.flatMap(t => {
                 if (!t) return Effect.fail(new NotFoundError({
+                    message: 'Tenant not found',
                     resource: 'Tenant',
                     id: id
                 }))
@@ -492,7 +495,7 @@ tenantsRoutes.openapi(
         )
 
         try {
-        return runEffect(c, effect)
+            return runEffect(c, effect)
         } catch (e: any) {
             return c.json({ success: false, error: e.message } as any, 404)
         }

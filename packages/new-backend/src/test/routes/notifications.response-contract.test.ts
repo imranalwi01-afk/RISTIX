@@ -115,7 +115,7 @@ describe('notifications routes response contracts', () => {
     expect(body.meta?.unreadCount).toBe(3)
     expect(body.meta?.total).toBe(1)
 
-    const input = getMyNotificationsMock.mock.calls[0]?.[0] as any
+    const input = (getMyNotificationsMock.mock.calls as any[])[0]?.[0]
     expect(input.tenantId).toBe('tenant-notif-1')
     expect(input.userId).toBe('user-notif-1')
     expect(input.unreadOnly).toBe(true)

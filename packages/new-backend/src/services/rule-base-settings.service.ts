@@ -35,7 +35,7 @@ export const RuleBaseSettingsService = {
             Effect.flatMap(header =>
                 header
                     ? Effect.succeed(transformHeader(header))
-                    : Effect.fail(new NotFoundError({ resource: 'Rule Header', id: String(id) }))
+                    : Effect.fail(new NotFoundError({ message: 'Rule Header not found', resource: 'Rule Header', id: String(id) }))
             )
         )
     },
@@ -85,7 +85,7 @@ export const RuleBaseSettingsService = {
             Effect.flatMap(updated =>
                 updated
                     ? Effect.succeed(transformHeader(updated))
-                    : Effect.fail(new NotFoundError({ resource: 'Rule Header', id: String(id) }))
+                    : Effect.fail(new NotFoundError({ message: 'Rule Header not found', resource: 'Rule Header', id: String(id) }))
             )
         )
     },
@@ -166,7 +166,7 @@ export const RuleBaseSettingsService = {
             Effect.flatMap(updated =>
                 updated
                     ? Effect.succeed(transformDetail(updated))
-                    : Effect.fail(new NotFoundError({ resource: 'Rule Detail', id: String(id) }))
+                    : Effect.fail(new NotFoundError({ message: 'Rule Detail not found', resource: 'Rule Detail', id: String(id) }))
             )
         )
     },
@@ -183,7 +183,7 @@ export const RuleBaseSettingsService = {
             Effect.flatMap(deleted =>
                 deleted
                     ? Effect.succeed({ message: 'Rule detail deleted successfully' })
-                    : Effect.fail(new NotFoundError({ resource: 'Rule Detail', id: String(id) }))
+                    : Effect.fail(new NotFoundError({ message: 'Rule Detail not found', resource: 'Rule Detail', id: String(id) }))
             )
         )
     },

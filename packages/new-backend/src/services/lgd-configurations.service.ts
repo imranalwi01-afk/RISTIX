@@ -38,7 +38,7 @@ export const LgdConfigurationsService = {
             Effect.flatMap(config =>
                 config
                     ? Effect.succeed(transformLgdConfig(config))
-                    : Effect.fail(new NotFoundError({ resource: 'LGD Configuration', id: String(id) }))
+                    : Effect.fail(new NotFoundError({ message: 'LGD Configuration not found', resource: 'LGD Configuration', id: String(id) }))
             )
         )
     },
@@ -108,7 +108,7 @@ export const LgdConfigurationsService = {
             Effect.flatMap(updated =>
                 updated
                     ? Effect.succeed(transformLgdConfig(updated))
-                    : Effect.fail(new NotFoundError({ resource: 'LGD Configuration', id: String(id) }))
+                    : Effect.fail(new NotFoundError({ message: 'LGD Configuration not found', resource: 'LGD Configuration', id: String(id) }))
             )
         )
     },
@@ -125,7 +125,7 @@ export const LgdConfigurationsService = {
             Effect.flatMap(deleted =>
                 deleted
                     ? Effect.succeed({ message: 'LGD configuration deleted successfully' })
-                    : Effect.fail(new NotFoundError({ resource: 'LGD Configuration', id: String(id) }))
+                    : Effect.fail(new NotFoundError({ message: 'LGD Configuration not found', resource: 'LGD Configuration', id: String(id) }))
             )
         )
     },

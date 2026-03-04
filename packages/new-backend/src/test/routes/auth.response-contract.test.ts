@@ -98,7 +98,7 @@ const authMiddlewareMock = async (c: any, next: any) => {
   const tenantHeader = c.req.header('x-test-tenant')
   const permissionsHeader = c.req.header('x-test-permissions')
   const permissions = permissionsHeader
-    ? permissionsHeader.split(',').map((p) => p.trim()).filter(Boolean)
+    ? permissionsHeader.split(',').map((p: any) => p.trim()).filter(Boolean)
     : ['token.permissions.read']
 
   c.set('userId', 'user-auth-1')

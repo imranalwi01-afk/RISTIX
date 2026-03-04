@@ -33,7 +33,7 @@ export const JournalParametersService = {
             Effect.flatMap(journal =>
                 journal
                     ? Effect.succeed(transformJournal(journal))
-                    : Effect.fail(new NotFoundError({ resource: 'Journal Parameter', id: String(id) }))
+                    : Effect.fail(new NotFoundError({ message: 'Journal Parameter not found', resource: 'Journal Parameter', id: String(id) }))
             )
         )
     },
@@ -85,7 +85,7 @@ export const JournalParametersService = {
             Effect.flatMap(updated =>
                 updated
                     ? Effect.succeed(transformJournal(updated))
-                    : Effect.fail(new NotFoundError({ resource: 'Journal Parameter', id: String(id) }))
+                    : Effect.fail(new NotFoundError({ message: 'Journal Parameter not found', resource: 'Journal Parameter', id: String(id) }))
             )
         )
     },
@@ -103,7 +103,7 @@ export const JournalParametersService = {
             Effect.flatMap(deleted =>
                 deleted
                     ? Effect.succeed({ message: 'Deleted successfully' })
-                    : Effect.fail(new NotFoundError({ resource: 'Journal Parameter', id: String(id) }))
+                    : Effect.fail(new NotFoundError({ message: 'Journal Parameter not found', resource: 'Journal Parameter', id: String(id) }))
             )
         )
     },
