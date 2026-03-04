@@ -389,8 +389,14 @@ const RoleCRUDOperations: React.FC<RoleCRUDOperationsProps> = ({
         response = await api.roles.update(crudDialog.role.id, formData);
       }
 
-      setSuccess(`Role ${crudDialog.mode === 'create' ? 'created' : 'updated'} successfully`);
-      onRoleChange?.(response.data);
+      const approvalRequired = Boolean(response?.approvalRequired);
+      const requestId = response?.requestId;
+      const fallbackMessage = `Role ${crudDialog.mode === 'create' ? 'created' : 'updated'} successfully`;
+      const message = response?.message || fallbackMessage;
+      setSuccess(requestId ? `${message} (Request: ${requestId})` : message);
+      if (!approvalRequired && response?.data) {
+        onRoleChange?.(response.data);
+      }
       setCrudDialog({ open: false, mode: 'create', role: null });
 
       // Re-fetch data to get updated list
@@ -414,10 +420,15 @@ const RoleCRUDOperations: React.FC<RoleCRUDOperationsProps> = ({
 
     try {
       console.log(`🗑️ Deleting role:`, crudDialog.role.name);
-      await api.roles.delete(crudDialog.role.id);
+      const response = await api.roles.delete(crudDialog.role.id);
+      const approvalRequired = Boolean(response?.approvalRequired);
+      const requestId = response?.requestId;
+      const message = response?.message || 'Role deleted successfully';
 
-      setSuccess('Role deleted successfully');
-      onRoleChange?.(roles.find(r => r.id !== crudDialog.role!.id)!);
+      setSuccess(requestId ? `${message} (Request: ${requestId})` : message);
+      if (!approvalRequired) {
+        onRoleChange?.(roles.find(r => r.id !== crudDialog.role!.id)!);
+      }
       setCrudDialog({ open: false, mode: 'create', role: null });
 
       // Re-fetch data to get updated list

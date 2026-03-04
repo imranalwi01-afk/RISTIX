@@ -4,14 +4,8 @@ import {
   Box,
   Typography,
   Grid,
-  TextField,
-  Button,
   Card,
   CardContent,
-  CircularProgress,
-  IconButton,
-  Tooltip,
-  Chip,
   Paper,
   alpha
 } from '@mui/material';
@@ -34,13 +28,11 @@ import {
   Cell,
   ComposedChart,
   Line,
-  Area,
-  AreaChart,
   LabelList
 } from 'recharts';
-import { useTheme } from '@mui/material/styles';
 import { useBankingTheme } from '../../providers/BankingThemeProvider';
 import BaseIfrs9Report from './BaseIfrs9Report';
+import ReportSummaryGrid, { KPIItem } from './ReportSummaryGrid';
 
 interface SegmentBreakdownItem {
   segment: string;
@@ -95,40 +87,40 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
     }
   };
 
-  const themeColors = getThemeColors();
+  const tc = getThemeColors();
 
-  const items = [
+  const items: KPIItem[] = [
     {
       title: 'Total ECL Amount',
       value: stats.totalECL,
       format: 'currency',
       icon: <LossIcon sx={{ fontSize: 32 }} />,
-      gradient: themeColors.primaryGradient,
-      mainColor: themeColors.mainColor
+      gradient: tc.primaryGradient,
+      mainColor: tc.mainColor
     },
     {
       title: 'Total Outstanding',
       value: stats.totalOutstanding,
       format: 'currency',
       icon: <BalanceIcon sx={{ fontSize: 32 }} />,
-      gradient: themeColors.secondaryGradient,
-      mainColor: themeColors.mainColor
+      gradient: tc.secondaryGradient,
+      mainColor: tc.mainColor
     },
     {
       title: 'ECL Coverage Ratio',
       value: `${stats.eclRatio.toFixed(2)}%`,
       format: 'raw',
       icon: <AssessmentIcon sx={{ fontSize: 32 }} />,
-      gradient: themeColors.tertiaryGradient,
-      mainColor: themeColors.mainColor
+      gradient: tc.tertiaryGradient,
+      mainColor: tc.mainColor
     },
     {
       title: 'Overall Risk Level',
       value: stats.eclRatio < 2 ? 'Low' : stats.eclRatio < 5 ? 'Medium' : 'High',
       format: 'raw',
       icon: <PieIcon sx={{ fontSize: 32 }} />,
-      gradient: themeColors.quaternaryGradient,
-      mainColor: themeColors.mainColor
+      gradient: tc.quaternaryGradient,
+      mainColor: tc.mainColor
     },
     {
       title: 'ECL Overlay',
@@ -148,106 +140,11 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
     }
   ];
 
-  return (
-    <Grid container spacing={3} sx={{ mb: 5 }}>
-      {items.map((item, index) => (
-        <Grid size={{ xs: 12, sm: 6, md: index < 4 ? 3 : 6 }} key={index}>
-          <Card sx={{ 
-            height: '100%',
-            borderRadius: 4,
-            position: 'relative',
-            overflow: 'hidden',
-            background: 'white',
-            boxShadow: `0 4px 12px ${alpha(item.mainColor, 0.12)}`,
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            border: `1px solid ${alpha(item.mainColor, 0.1)}`,
-            '&:hover': {
-              transform: 'translateY(-8px)',
-              boxShadow: `0 12px 32px ${alpha(item.mainColor, 0.25)}`,
-              '& .card-icon-container': {
-                transform: 'rotate(10deg) scale(1.1)'
-              }
-            }
-          }}>
-            <CardContent sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
-              <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    fontWeight: 800,
-                    textTransform: 'uppercase',
-                    letterSpacing: 1.5,
-                    color: 'text.secondary',
-                    opacity: 0.8
-                  }}
-                >
-                  {item.title}
-                </Typography>
-                <Box
-                  className="card-icon-container"
-                  sx={{
-                    p: 1.5,
-                    borderRadius: 2,
-                    background: item.gradient,
-                    color: 'white',
-                    display: 'flex',
-                    transition: 'transform 0.3s ease',
-                    boxShadow: `0 4px 12px ${alpha(item.mainColor, 0.4)}`
-                  }}
-                >
-                  {item.icon}
-                </Box>
-              </Box>
-
-              <Box sx={{ mt: 'auto' }}>
-                <Typography
-                  variant="h4"
-                  sx={{
-                    fontWeight: 800,
-                    color: item.mainColor, // Fallback
-                    background: item.gradient,
-                    backgroundClip: 'text',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    mb: 0.5
-                  }}
-                >
-                  {item.format === 'currency'
-                    ? new Intl.NumberFormat('id-ID', {
-                      style: 'currency',
-                      currency: 'IDR',
-                      notation: 'compact',
-                      maximumFractionDigits: 1
-                    }).format(item.value as number)
-                    : item.value
-                  }
-                </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', opacity: 0.7 }}>
-                  <Chip
-                    size="small"
-                    label="LIVE DATA"
-                    variant="outlined"
-                    sx={{
-                      height: 20,
-                      fontSize: '0.65rem',
-                      fontWeight: 700,
-                      borderColor: alpha(item.mainColor, 0.3),
-                      color: item.mainColor
-                    }}
-                  />
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      ))}
-    </Grid>
-  );
+  return <ReportSummaryGrid items={items} mdCols={3} />;
 };
 
 const StageBreakdownCard: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
   const { bankingMode } = useBankingTheme();
-  const theme = useTheme();
 
   const getStageColor = (stage: number) => {
     if (bankingMode === 'syariah') {

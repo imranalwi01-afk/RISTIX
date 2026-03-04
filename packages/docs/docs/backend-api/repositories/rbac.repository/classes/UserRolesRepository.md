@@ -4,7 +4,7 @@
 
 # Class: UserRolesRepository
 
-Defined in: [src/repositories/rbac.repository.ts:462](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/rbac.repository.ts#L462)
+Defined in: [src/repositories/rbac.repository.ts:462](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/rbac.repository.ts#L462)
 
 Repository for managing user-role associations.
 
@@ -24,7 +24,7 @@ Repository for managing user-role associations.
 
 > **assign**(`db`, `data`): `Effect`\<\{ `assignedAt`: `Date` \| `null`; `assignedBy`: `string` \| `null`; `bankingTypeRestriction`: `string` \| `null`; `createdAt`: `Date` \| `null`; `id`: `string`; `isActive`: `boolean` \| `null`; `isTemporary`: `boolean` \| `null`; `roleId`: `string`; `temporaryReason`: `string` \| `null`; `tenantId`: `string`; `updatedAt`: `Date` \| `null`; `userId`: `string`; `validFrom`: `Date` \| `null`; `validUntil`: `Date` \| `null`; \}, [`DatabaseError`](../../../lib/errors/classes/DatabaseError.md)\>
 
-Defined in: [src/repositories/rbac.repository.ts:546](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/rbac.repository.ts#L546)
+Defined in: [src/repositories/rbac.repository.ts:546](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/rbac.repository.ts#L546)
 
 Assign a role to a user.
 
@@ -108,7 +108,7 @@ An Effect that succeeds with the created assignment
 
 > **exists**(`db`, `userId`, `roleId`): `Effect`\<`boolean`, [`DatabaseError`](../../../lib/errors/classes/DatabaseError.md)\>
 
-Defined in: [src/repositories/rbac.repository.ts:586](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/rbac.repository.ts#L586)
+Defined in: [src/repositories/rbac.repository.ts:586](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/rbac.repository.ts#L586)
 
 Check if user has role
 
@@ -136,7 +136,7 @@ Check if user has role
 
 > **findByRole**(`db`, `roleId`, `options?`): `Effect`\<`object`[], [`DatabaseError`](../../../lib/errors/classes/DatabaseError.md)\>
 
-Defined in: [src/repositories/rbac.repository.ts:522](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/rbac.repository.ts#L522)
+Defined in: [src/repositories/rbac.repository.ts:522](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/rbac.repository.ts#L522)
 
 Find all user assignments for a specific role.
 
@@ -172,7 +172,7 @@ An Effect that succeeds with an array of UserRole assignments
 
 > **findByUser**(`db`, `userId`, `tenantId?`, `options?`): `Effect`\<`object` & `object`[], [`DatabaseError`](../../../lib/errors/classes/DatabaseError.md)\>
 
-Defined in: [src/repositories/rbac.repository.ts:472](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/rbac.repository.ts#L472)
+Defined in: [src/repositories/rbac.repository.ts:472](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/rbac.repository.ts#L472)
 
 Find all roles assigned to a specific user.
 
@@ -214,7 +214,7 @@ An Effect that succeeds with a rich array of UserRoles with associated role and 
 
 > **remove**(`db`, `userId`, `roleId`): `Effect`\<\{ `assignedAt`: `Date` \| `null`; `assignedBy`: `string` \| `null`; `bankingTypeRestriction`: `string` \| `null`; `createdAt`: `Date` \| `null`; `id`: `string`; `isActive`: `boolean` \| `null`; `isTemporary`: `boolean` \| `null`; `roleId`: `string`; `temporaryReason`: `string` \| `null`; `tenantId`: `string`; `updatedAt`: `Date` \| `null`; `userId`: `string`; `validFrom`: `Date` \| `null`; `validUntil`: `Date` \| `null`; \}, [`DatabaseError`](../../../lib/errors/classes/DatabaseError.md) \| [`NotFoundError`](../../../lib/errors/classes/NotFoundError.md)\>
 
-Defined in: [src/repositories/rbac.repository.ts:563](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/rbac.repository.ts#L563)
+Defined in: [src/repositories/rbac.repository.ts:563](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/rbac.repository.ts#L563)
 
 Remove role assignment
 

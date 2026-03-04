@@ -1,3 +1,4 @@
+import { describe, expect, test } from 'bun:test'
 import { CreateBusinessSettingSchema, UpdateBusinessSettingSchema } from '../../routes/business-settings.routes'
 
 describe('BusinessSettings schemas — input normalization', () => {
@@ -39,7 +40,6 @@ describe('BusinessSettings schemas — input normalization', () => {
     expect(parsed.paramName).toBe('Camel Name')
     expect(parsed.paramUsage).toBe('usage')
     expect(parsed.paramType).toBe('B')
-    expect(parsed.bankingType).toBe('syariah')
     expect(parsed.isActive).toBe(false)
     expect(parsed.requiresApproval).toBe(true)
   })

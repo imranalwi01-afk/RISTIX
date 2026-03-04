@@ -77,8 +77,17 @@ const envSchema = z.object({
     REDIS_SESSION_DB: z.string().optional(),
     REDIS_QUEUE_DB: z.string().default('0'),
 
+    // R Analytics Service
+    R_SERVICE_URL: z.string().url().default('http://localhost:4241'),
+
     // Logging
     LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
+
+    // Alerting
+    ALERT_DISCORD_WEBHOOK_URL: z.string().optional(),
+    ALERT_DISCORD_TIMEOUT_MS: z.coerce.number().default(5000),
+    ALERT_MIN_LEVEL: z.enum(['info', 'warn', 'error', 'critical']).default('error'),
+    ALERT_THROTTLE_MS: z.coerce.number().default(60000),
 })
 
 export type Env = z.infer<typeof envSchema>

@@ -206,7 +206,7 @@ export default function FLScalarManagementPage() {
       // Set real data from database
       setScalars(data);
 
-    } catch (err: any) {
+    } catch (err) {
       const errorMessage = `Failed to load FL Scalar configurations from DS2 database: ${err.message || err}`;
       setError(errorMessage);
       console.error('❌ Error loading FL scalars from DS2 database:', err);
@@ -284,7 +284,7 @@ export default function FLScalarManagementPage() {
       };
 
       await handleSaveResult(isEdit, saveData);
-    } catch (err: any) {
+    } catch (err) {
       const errorMessage = `Failed to ${isEdit ? 'update' : 'create'} FL Scalar: ${err.message || err}`;
       setError(errorMessage);
     } finally {
@@ -342,7 +342,7 @@ export default function FLScalarManagementPage() {
 
       await loadScalars();
       await loadPendingApprovals();
-    } catch (err: any) {
+    } catch (err) {
       const errorMessage = `Failed to delete FL Scalar: ${err.message || err}`;
       setError(errorMessage);
     } finally {

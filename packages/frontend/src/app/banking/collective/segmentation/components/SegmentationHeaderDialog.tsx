@@ -102,7 +102,7 @@ export default function SegmentationHeaderDialog({
     if (!formData.segment) newErrors.segment = 'Segment is required';
     if (!formData.segment_type) newErrors.segment_type = 'Segment Type is required';
     if (formData.seq === undefined || formData.seq === null) newErrors.seq = 'Sequence is required';
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -116,14 +116,14 @@ export default function SegmentationHeaderDialog({
   const readOnly = mode === 'view';
 
   return (
-    <Dialog 
-        open={open} 
-        onClose={onClose} 
-        maxWidth="md" 
-        fullWidth
-        PaperProps={{
-            sx: { borderRadius: 2 }
-        }}
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="md"
+      fullWidth
+      PaperProps={{
+        sx: { borderRadius: 2 }
+      }}
     >
       <DialogTitle sx={{ m: 0, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: 'primary.main', color: 'primary.contrastText' }}>
         <Typography variant="h6" fontWeight="bold">
@@ -133,10 +133,10 @@ export default function SegmentationHeaderDialog({
           <CloseIcon />
         </IconButton>
       </DialogTitle>
-      
+
       <DialogContent dividers sx={{ p: 4 }}>
         <Grid container spacing={4}>
-        <Grid size={{ xs: 12, md: 6 }}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <TextField
               fullWidth
               label="Group Segment *"
@@ -160,7 +160,7 @@ export default function SegmentationHeaderDialog({
               placeholder="e.g. Mortgage"
             />
           </Grid>
-        <Grid size={{ xs: 12, md: 6 }}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <TextField
               fullWidth
               label="Sub Segment"
@@ -170,7 +170,7 @@ export default function SegmentationHeaderDialog({
               placeholder="e.g. First Time Buyer"
             />
           </Grid>
-        <Grid size={{ xs: 12, md: 6 }}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <FormControl fullWidth error={!!errors.segment_type} disabled={readOnly}>
               <InputLabel>Segment Type *</InputLabel>
               <Select
@@ -178,8 +178,8 @@ export default function SegmentationHeaderDialog({
                 label="Segment Type *"
                 onChange={(e) => handleChange('segment_type', e.target.value)}
               >
-                {segmentTypes.map((type) => (
-                  <MenuItem key={type.type_code} value={type.type_code}>
+                {segmentTypes.map((type, idx) => (
+                  <MenuItem key={`${type.type_code}-${idx}`} value={type.type_code}>
                     {type.type_name}
                   </MenuItem>
                 ))}
@@ -187,7 +187,7 @@ export default function SegmentationHeaderDialog({
               {errors.segment_type && <FormHelperText>{errors.segment_type}</FormHelperText>}
             </FormControl>
           </Grid>
-        <Grid size={{ xs: 12, md: 6 }}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <TextField
               fullWidth
               type="number"
@@ -199,23 +199,23 @@ export default function SegmentationHeaderDialog({
               helperText={errors.seq || "Processing priority"}
             />
           </Grid>
-        <Grid size={{ xs: 12, md: 6 }}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Box sx={{ height: '100%', display: 'flex', alignItems: 'center' }}>
-                <FormControlLabel
+              <FormControlLabel
                 control={
-                    <Switch
+                  <Switch
                     checked={formData.active_flag !== false}
                     onChange={(e) => handleChange('active_flag', e.target.checked)}
                     disabled={readOnly}
                     color="primary"
-                    />
+                  />
                 }
                 label={
-                    <Typography fontWeight={500}>
-                        {formData.active_flag !== false ? "Active Status" : "Inactive Status"}
-                    </Typography>
+                  <Typography fontWeight={500}>
+                    {formData.active_flag !== false ? "Active Status" : "Inactive Status"}
+                  </Typography>
                 }
-                />
+              />
             </Box>
           </Grid>
         </Grid>
@@ -226,10 +226,10 @@ export default function SegmentationHeaderDialog({
           Cancel
         </Button>
         {!readOnly && (
-          <Button 
-            onClick={handleSubmit} 
-            variant="contained" 
-            color="primary" 
+          <Button
+            onClick={handleSubmit}
+            variant="contained"
+            color="primary"
             startIcon={<SaveIcon />}
             sx={{ px: 4 }}
           >

@@ -35,7 +35,7 @@ import {
   FileDownload as ExportIcon
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { SafeDataGrid } from '@/components/shared/SafeDataGrid';
+import { ReportDataGrid } from './index';
 import { GridColDef, GridPaginationModel, GridRenderCellParams } from '@mui/x-data-grid';
 import * as XLSX from 'xlsx';
 import { reportsAPI } from '../../services/api.reports';
@@ -809,8 +809,8 @@ const NominativeReport: React.FC = () => {
             sx={{ fontWeight: 600 }}
           />
         </Stack>
-        <Box sx={{ height: 600, width: '100%' }}>
-          <SafeDataGrid
+        <Box sx={{ width: '100%' }}>
+          <ReportDataGrid
             rows={filteredData}
             getRowId={(row) => row.account_number || Math.random()}
             columns={columns
@@ -818,7 +818,7 @@ const NominativeReport: React.FC = () => {
                 const baseCol: GridColDef = {
                   field: col.key,
                   headerName: col.label,
-                  width: col.width || 150, 
+                  width: col.width || 150,
                   sortable: true,
                   align: col.align || 'left',
                   headerAlign: col.headerAlign || 'left' as any
@@ -863,51 +863,7 @@ const NominativeReport: React.FC = () => {
             paginationMode="server"
             paginationModel={paginationModel}
             onPaginationModelChange={setPaginationModel}
-            sx={{
-              border: 'none',
-              borderRadius: 2,
-              '& .MuiDataGrid-columnHeaders': {
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                color: 'white',
-                borderRadius: '8px 8px 0 0',
-                '& .MuiDataGrid-columnHeader': {
-                  color: 'white',
-                  fontWeight: 700,
-                  fontSize: '0.9rem',
-                  '&:hover': {
-                    bgcolor: 'rgba(255, 255, 255, 0.1)'
-                  },
-                  '& .MuiDataGrid-iconButtonContainer': {
-                    '& .MuiIconButton-root': {
-                      color: 'white'
-                    }
-                  }
-                }
-              },
-              '& .MuiDataGrid-row': {
-                transition: 'all 0.2s ease',
-                '&:hover': {
-                  backgroundColor: 'rgba(102, 126, 234, 0.04)',
-                  transform: 'scale(1.001)',
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)'
-                },
-                '&.Mui-selected': {
-                  backgroundColor: 'rgba(102, 126, 234, 0.08)',
-                  '&:hover': {
-                    backgroundColor: 'rgba(102, 126, 234, 0.12)'
-                  }
-                }
-              },
-              '& .MuiDataGrid-cell': {
-                borderBottom: '1px solid rgba(224, 224, 224, 0.5)',
-                fontSize: '0.875rem'
-              },
-              '& .MuiDataGrid-footerContainer': {
-                borderTop: '2px solid',
-                borderColor: 'divider',
-                bgcolor: 'background.default'
-              }
-            }}
+            height={600}
           />
         </Box>
       </Paper>

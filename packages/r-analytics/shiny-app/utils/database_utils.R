@@ -48,15 +48,20 @@ save_upload_to_db <- function(file_input, file_data, con,
     stop("File upload kosong atau gagal dikonversi ke binary.")
   }
 
+  # Safe sequence bypass for duplicate key constraint errors
+  max_id_df <- dbGetQuery(con, "SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM upload_history")
+  next_id <- as.integer(max_id_df$next_id)
+
   # Eksekusi insert ke DB with RETURNING id
   query <- "
     INSERT INTO upload_history (
-      user_id, filename, file_type, purpose, rows, columns, data
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+      id, user_id, filename, file_type, purpose, rows, columns, data
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
     RETURNING id
   "
 
   result <- dbGetQuery(con, query, params = list(
+    next_id,
     ifelse(is.null(user_id), Sys.info()[["user"]], user_id),
     filename,
     ext,

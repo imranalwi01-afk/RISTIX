@@ -125,8 +125,10 @@ const PERMISSION_OVERRIDES: Record<string, string | string[]> = {
     'role-management': 'admin.roles.manage',
     'menu-management': 'admin.system.manage',
     'job-monitoring': ['jobs.view', 'jobs.manage', 'admin.system.manage'],
+    'assessment-workspace': 'banking.individual.view',
     'workflow-management': 'approval.requests.approve',
     'approval-system': 'approval.requests.approve',
+    'workflow-notifications': ['notifications.view', 'notifications.manage', 'approval.requests.approve'],
     'workflow-configuration': 'approval.requests.approve',
     'process-monitoring': 'approval.requests.approve',
     'tools': 'banking.configuration.ifrs9.manage',
@@ -564,6 +566,13 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
                 description: 'Multi-level Approval Management'
             },
             {
+                id: 'workflow-notifications',
+                label: 'Notifications',
+                href: '/banking/notifications',
+                icon: <NotificationImportant />,
+                description: 'Notification center and preferences'
+            },
+            {
                 id: 'workflow-configuration',
                 label: 'Workflow Configuration',
                 href: '/banking/workflow/configuration',
@@ -656,7 +665,7 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
             {
                 id: 'access-management',
                 label: 'Access Management',
-                href: '/banking/maintenance/access-management',
+                href: '/banking/maintenance/user-management',
                 icon: <ManageAccounts />,
                 description: 'Users, roles, permissions, and assignments'
             },

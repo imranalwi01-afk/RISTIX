@@ -27,6 +27,7 @@ interface SegmentationToolbarProps {
   activeFiltersCount: number;
   onClearFilters: () => void;
   searchInputRef?: React.RefObject<HTMLInputElement | null>;
+  canManage?: boolean;
 }
 
 export const SegmentationToolbar: React.FC<SegmentationToolbarProps> = ({
@@ -37,7 +38,8 @@ export const SegmentationToolbar: React.FC<SegmentationToolbarProps> = ({
   onAddClick,
   activeFiltersCount,
   onClearFilters,
-  searchInputRef
+  searchInputRef,
+  canManage = false
 }) => {
   return (
     <Card sx={{ mb: 3, borderRadius: 2, boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
@@ -113,21 +115,23 @@ export const SegmentationToolbar: React.FC<SegmentationToolbarProps> = ({
             </Button>
           </Tooltip>
 
-          <Tooltip title="Shortcut: A">
-            <Button 
-                variant="contained" 
-                startIcon={<AddIcon />} 
-                onClick={onAddClick} 
-                sx={{ 
-                    borderRadius: 2,
-                    textTransform: 'none',
-                    px: 4,
-                    boxShadow: '0 4px 12px rgba(25, 118, 210, 0.2)'
-                }}
-            >
-              Add Segmentation
-            </Button>
-          </Tooltip>
+          {canManage && (
+            <Tooltip title="Shortcut: A">
+              <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={onAddClick}
+                  sx={{
+                      borderRadius: 2,
+                      textTransform: 'none',
+                      px: 4,
+                      boxShadow: '0 4px 12px rgba(25, 118, 210, 0.2)'
+                  }}
+              >
+                Add Segmentation
+              </Button>
+            </Tooltip>
+          )}
         </Stack>
 
         {activeFiltersCount > 0 && (

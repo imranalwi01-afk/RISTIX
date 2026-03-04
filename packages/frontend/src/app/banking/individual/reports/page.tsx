@@ -9,6 +9,7 @@ import { FullstackIndicator } from '@/components/common/feedback/FullstackIndica
 import { individualImpairmentAPI } from '@/services/api.individual-impairment';
 import ModernLoader from '@/components/common/ModernLoader';
 import { StatCard } from '@/components/common/StatCard';
+import { useAssessmentWorkspaceEmbedded } from '../assessment/embedded-context';
 import {
   Assessment as ReportIcon,
   CheckCircle as ReadyIcon,
@@ -42,6 +43,7 @@ const columns: GridColDef[] = [
 ];
 
 export default function IndividualReportsPage() {
+  const embedded = useAssessmentWorkspaceEmbedded();
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -74,17 +76,19 @@ export default function IndividualReportsPage() {
   };
 
   return (
-    <Container maxWidth="xl">
-      <FullstackIndicator />
+    <Container maxWidth="xl" sx={embedded ? { px: '0 !important' } : undefined}>
+      {!embedded && <FullstackIndicator />}
       <ModernLoader
         open={loading}
         message="Loading Reports"
         subMessage="Fetching report history..."
       />
-      <PageHeader
-        title="List of Individual Reports"
-        subtitle="Generated impairment reports and archives"
-      />
+      {!embedded && (
+        <PageHeader
+          title="List of Individual Reports"
+          subtitle="Generated impairment reports and archives"
+        />
+      )}
 
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>

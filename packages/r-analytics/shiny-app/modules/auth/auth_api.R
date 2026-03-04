@@ -7,9 +7,11 @@
 # =============================================================================
 
 # Load required libraries
-library(httr)
-library(jsonlite)
-library(R6)
+suppressPackageStartupMessages({
+  library(httr)
+  library(jsonlite)
+  library(R6)
+})
 
 #' Authentication API Service
 #' @description Handles API calls to IAF backend authentication endpoints

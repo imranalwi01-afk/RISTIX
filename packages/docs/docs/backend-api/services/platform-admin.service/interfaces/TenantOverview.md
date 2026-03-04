@@ -4,7 +4,7 @@
 
 # Interface: TenantOverview
 
-Defined in: [src/services/platform-admin.service.ts:40](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/platform-admin.service.ts#L40)
+Defined in: [src/services/platform-admin.service.ts:40](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/platform-admin.service.ts#L40)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: [src/services/platform-admin.service.ts:40](https://github.com/ifrsp
 
 > **bankingMode**: `string` \| `null`
 
-Defined in: [src/services/platform-admin.service.ts:44](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/platform-admin.service.ts#L44)
+Defined in: [src/services/platform-admin.service.ts:44](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/platform-admin.service.ts#L44)
 
 ***
 
@@ -20,7 +20,7 @@ Defined in: [src/services/platform-admin.service.ts:44](https://github.com/ifrsp
 
 > **code**: `string`
 
-Defined in: [src/services/platform-admin.service.ts:43](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/platform-admin.service.ts#L43)
+Defined in: [src/services/platform-admin.service.ts:43](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/platform-admin.service.ts#L43)
 
 ***
 
@@ -28,7 +28,7 @@ Defined in: [src/services/platform-admin.service.ts:43](https://github.com/ifrsp
 
 > **createdAt**: `Date`
 
-Defined in: [src/services/platform-admin.service.ts:47](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/platform-admin.service.ts#L47)
+Defined in: [src/services/platform-admin.service.ts:47](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/platform-admin.service.ts#L47)
 
 ***
 
@@ -36,7 +36,7 @@ Defined in: [src/services/platform-admin.service.ts:47](https://github.com/ifrsp
 
 > **id**: `string`
 
-Defined in: [src/services/platform-admin.service.ts:41](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/platform-admin.service.ts#L41)
+Defined in: [src/services/platform-admin.service.ts:41](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/platform-admin.service.ts#L41)
 
 ***
 
@@ -44,7 +44,7 @@ Defined in: [src/services/platform-admin.service.ts:41](https://github.com/ifrsp
 
 > **isActive**: `boolean`
 
-Defined in: [src/services/platform-admin.service.ts:46](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/platform-admin.service.ts#L46)
+Defined in: [src/services/platform-admin.service.ts:46](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/platform-admin.service.ts#L46)
 
 ***
 
@@ -52,7 +52,7 @@ Defined in: [src/services/platform-admin.service.ts:46](https://github.com/ifrsp
 
 > **name**: `string`
 
-Defined in: [src/services/platform-admin.service.ts:42](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/platform-admin.service.ts#L42)
+Defined in: [src/services/platform-admin.service.ts:42](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/platform-admin.service.ts#L42)
 
 ***
 
@@ -60,4 +60,4 @@ Defined in: [src/services/platform-admin.service.ts:42](https://github.com/ifrsp
 
 > **userCount**: `number`
 
-Defined in: [src/services/platform-admin.service.ts:45](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/platform-admin.service.ts#L45)
+Defined in: [src/services/platform-admin.service.ts:45](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/platform-admin.service.ts#L45)

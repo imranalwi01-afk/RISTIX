@@ -10,7 +10,7 @@ import { buildDefaultFourEyesRouting, type ApprovalResponse } from '../lib/appro
 import { createApprovalRequest } from '../services/approval.service'
 import * as auditService from '../services/audit.service'
 
-export const usersRoutes = new OpenAPIHono<AppContext>()
+export const usersRoutes: any = new OpenAPIHono<AppContext>()
 
 // Apply auth and tenant middleware
 usersRoutes.use('*', authMiddleware)
@@ -79,6 +79,29 @@ const UserStatsResponse = z.object({
     inactiveUsers: z.number(),
 }).openapi('UserStatsResponse')
 
+const isPendingApprovalRequest = (request: { status?: string } | null | undefined): boolean => {
+    const normalizedStatus = String(request?.status || '').trim().toLowerCase()
+    return normalizedStatus === '' || normalizedStatus === 'pending'
+}
+
+const buildApprovalSubmissionResponse = (request: { id: string; status?: string }, message: string) => {
+    const isPending = isPendingApprovalRequest(request)
+    const isApproved = String(request.status || '').trim().toLowerCase() === 'approved'
+
+    return {
+        success: true,
+        approvalRequired: isPending,
+        autoApproved: !isPending && isApproved,
+        requestId: request.id,
+        message: isPending
+            ? message
+            : 'Request auto-approved and executed successfully.',
+    }
+}
+
+const getApprovalSubmissionStatus = (request: { status?: string }): number =>
+    isPendingApprovalRequest(request) ? 202 : 200
+
 // =============================================================================
 // ROUTES
 // =============================================================================
@@ -125,7 +148,7 @@ usersRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         const tenantId = c.get('tenantId')!
         const query = c.req.valid('query')
 
@@ -223,7 +246,7 @@ usersRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         const { id } = c.req.valid('param')
         const tenantId = c.get('tenantId')!
         const body = c.req.valid('json')
@@ -309,7 +332,7 @@ usersRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         const tenantId = c.get('tenantId')!
         const userId = c.get('userId')!
         const userPermissions = (c.get('userPermissions') as string[]) || []
@@ -388,7 +411,7 @@ usersRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         const tenantId = c.get('tenantId')!
         const effect = usersService.getUserStats(tenantId)
         return runEffect(c, effect)
@@ -419,7 +442,7 @@ usersRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         const userId = c.get('userId')!
 
         const effect = pipe(
@@ -478,7 +501,7 @@ usersRoutes.openapi(
             }
         }
     }),
-    async (c) => {
+    async (c: any) => {
         const { id } = c.req.valid('param')
         return c.json({
             success: true,
@@ -529,7 +552,7 @@ usersRoutes.openapi(
             }
         }
     }),
-    async (c) => {
+    async (c: any) => {
         return c.json({
             success: true,
             data: { message: 'Settings saved (mock)' }
@@ -569,7 +592,7 @@ usersRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         const { id } = c.req.valid('param')
         const effect = pipe(
             usersService.getUserById(id),
@@ -634,7 +657,7 @@ usersRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         const { id } = c.req.valid('param')
         const tenantId = c.get('tenantId')!
         const userId = c.get('userId')!
@@ -717,7 +740,7 @@ usersRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         const { id } = c.req.valid('param')
         const tenantId = c.get('tenantId')!
         const userId = c.get('userId')!
@@ -785,7 +808,7 @@ usersRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         try {
             const { id } = c.req.valid('param')
             const tenantId = c.get('tenantId')!
@@ -821,13 +844,11 @@ usersRoutes.openapi(
             )
 
             return c.json(
-                {
-                    success: true,
-                    approvalRequired: true,
-                    requestId: request.id,
-                    message: 'User enable request submitted for approval.',
-                },
-                202
+                buildApprovalSubmissionResponse(
+                    request,
+                    'User enable request submitted for approval.'
+                ),
+                getApprovalSubmissionStatus(request)
             )
         } catch (error) {
             return runEffect(c, Effect.fail(error as any))
@@ -867,7 +888,7 @@ usersRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         try {
             const { id } = c.req.valid('param')
             const tenantId = c.get('tenantId')!
@@ -903,13 +924,11 @@ usersRoutes.openapi(
             )
 
             return c.json(
-                {
-                    success: true,
-                    approvalRequired: true,
-                    requestId: request.id,
-                    message: 'User disable request submitted for approval.',
-                },
-                202
+                buildApprovalSubmissionResponse(
+                    request,
+                    'User disable request submitted for approval.'
+                ),
+                getApprovalSubmissionStatus(request)
             )
         } catch (error) {
             return runEffect(c, Effect.fail(error as any))

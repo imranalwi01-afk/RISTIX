@@ -79,6 +79,7 @@ import { useTheme } from '@mui/material/styles';
 import { format, parseISO, subDays, addMinutes, differenceInMinutes } from 'date-fns';
 import { bankingAPI } from '@/services/api';
 import { usePermission } from '@/hooks/usePermission';
+import { getErrorMessage } from '@/utils/error-message';
 
 type SupportedJobType = 'SQL_SP' | 'INTERNAL_SCRIPT' | 'SHELL_COMMAND';
 
@@ -296,6 +297,28 @@ const mapExecutionFromApi = (e: any): JobExecution => {
   };
 };
 
+const getHttpStatus = (error: unknown): number | undefined => {
+  if (typeof error !== 'object' || error === null) {
+    return undefined;
+  }
+
+  const response = (error as { response?: { status?: unknown } }).response;
+  return typeof response?.status === 'number' ? response.status : undefined;
+};
+
+const getHttpPayload = (error: unknown): Record<string, unknown> | null => {
+  if (typeof error !== 'object' || error === null) {
+    return null;
+  }
+
+  const payload = (error as { response?: { data?: unknown } }).response?.data;
+  if (typeof payload !== 'object' || payload === null) {
+    return null;
+  }
+
+  return payload as Record<string, unknown>;
+};
+
 const TabPanel = ({ children, value, index, ...other }: TabPanelProps) => (
   <div
     role="tabpanel"
@@ -452,7 +475,7 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
       setNewJobData(DEFAULT_NEW_JOB_DATA);
     } catch (error) {
       console.error('Error creating job:', error);
-      setError('Failed to create job definition. Please check your inputs.');
+      setError(getErrorMessage(error, 'Failed to create job definition. Please check your inputs.'));
     } finally {
       setLoading(false);
     }
@@ -562,7 +585,7 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
       });
     } catch (error) {
       console.error('Error fetching job data:', error);
-      setError('Failed to fetch job data. Please try again.');
+      setError(getErrorMessage(error, 'Failed to fetch job data. Please try again.'));
     } finally {
       setLoading(false);
     }
@@ -631,8 +654,9 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
           },
         };
       });
-    } catch (runtimeError: any) {
-      if (runtimeError?.response?.status === 403 || runtimeError?.response?.status === 404) {
+    } catch (runtimeError) {
+      const statusCode = getHttpStatus(runtimeError);
+      if (statusCode === 403 || statusCode === 404) {
         return;
       }
       console.error('Failed to fetch runtime diagnostics:', runtimeError);
@@ -686,12 +710,14 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
 
         await fetchJobExecutions();
       } catch (error) {
-        const statusCode = (error as any)?.response?.status;
-        const payload = (error as any)?.response?.data;
+        const statusCode = getHttpStatus(error);
+        const payload = getHttpPayload(error);
 
         if (statusCode === 409 && payload) {
-          const activeExecutionId = payload.activeExecutionId as string | undefined;
-          setError(payload.message || 'Job is already running.');
+          const activeExecutionId = typeof payload.activeExecutionId === 'string'
+            ? payload.activeExecutionId
+            : undefined;
+          setError(getErrorMessage(error, 'Job is already running.'));
 
           if (activeExecutionId) {
             const existing = jobExecutions.find((execution) => execution.id === activeExecutionId);
@@ -715,7 +741,7 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
             return;
           }
           console.error('Run job error:', error);
-          setError('Failed to start job execution.');
+          setError(getErrorMessage(error, 'Failed to start job execution.'));
         }
       } finally {
         setLoading(false);
@@ -757,13 +783,13 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
       setJobControlDialog({ open: false, job: null, action: null });
       fetchJobExecutions();
     } catch (error) {
-      const statusCode = (error as any)?.response?.status;
+      const statusCode = getHttpStatus(error);
       if (statusCode === 403) {
         setError('You do not have permission to control this job.');
         return;
       }
       console.error('Job control error:', error);
-      setError('Failed to control job. Please try again.');
+      setError(getErrorMessage(error, 'Failed to control job. Please try again.'));
     }
   };
 
@@ -782,13 +808,13 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
         )
       );
     } catch (error) {
-      const statusCode = (error as any)?.response?.status;
+      const statusCode = getHttpStatus(error);
       if (statusCode === 403) {
         setError('You do not have permission to toggle job definitions.');
         return;
       }
       console.error('Toggle job error:', error);
-      setError('Failed to toggle job. Please try again.');
+      setError(getErrorMessage(error, 'Failed to toggle job. Please try again.'));
     }
   };
 
@@ -1400,8 +1426,8 @@ export default function JobMonitoringPage({ params }: { params: Promise<{}> }) {
                     label="Type"
                   >
                     <MenuItem value="">All</MenuItem>
-                    {SUPPORTED_JOB_TYPE_OPTIONS.map((option) => (
-                      <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+                    {SUPPORTED_JOB_TYPE_OPTIONS.map((option, idx) => (
+                      <MenuItem key={`${option.value}-${idx}`} value={option.value}>{option.label}</MenuItem>
                     ))}
                   </Select>
                 </FormControl>

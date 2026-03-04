@@ -33,7 +33,7 @@ export const JournalParametersService = {
             Effect.flatMap(journal =>
                 journal
                     ? Effect.succeed(transformJournal(journal))
-                    : Effect.fail(new NotFoundError({ resource: 'Journal Parameter', id: String(id) }))
+                    : Effect.fail(new NotFoundError({ message: 'Journal Parameter not found', resource: 'Journal Parameter', id: String(id) }))
             )
         )
     },
@@ -85,7 +85,7 @@ export const JournalParametersService = {
             Effect.flatMap(updated =>
                 updated
                     ? Effect.succeed(transformJournal(updated))
-                    : Effect.fail(new NotFoundError({ resource: 'Journal Parameter', id: String(id) }))
+                    : Effect.fail(new NotFoundError({ message: 'Journal Parameter not found', resource: 'Journal Parameter', id: String(id) }))
             )
         )
     },
@@ -103,7 +103,7 @@ export const JournalParametersService = {
             Effect.flatMap(deleted =>
                 deleted
                     ? Effect.succeed({ message: 'Deleted successfully' })
-                    : Effect.fail(new NotFoundError({ resource: 'Journal Parameter', id: String(id) }))
+                    : Effect.fail(new NotFoundError({ message: 'Journal Parameter not found', resource: 'Journal Parameter', id: String(id) }))
             )
         )
     },
@@ -118,10 +118,12 @@ export const JournalParametersService = {
             ParametersRepository.findHeaderByCode(paramCode),
             Effect.map((param: any) => {
                 if (!param || !param.details) return []
-                return param.details.map((d: any) => ({
-                    id: String(d.value1 || d.paramValue || ''),
-                    name: String(d.paramdesc || d.paramDesc || d.value1 || '')
-                }))
+                return param.details
+                    .filter((d: any) => d.value1 !== null && d.value1 !== '')
+                    .map((d: any) => ({
+                        id: String(d.value1),
+                        name: String(d.value2 ?? d.value1)
+                    }))
             })
         )
     },

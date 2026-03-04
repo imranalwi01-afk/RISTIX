@@ -1,0 +1,23 @@
+{
+    "$schema": "https://typedoc.org/schema.json",
+    "entryPointStrategy": "expand",
+    "entryPoints": [
+        "src/hooks",
+        "src/utils"
+    ],
+    "out": "../docs/docs/frontend-api",
+    "plugin": [
+        "typedoc-plugin-markdown"
+    ],
+    "hideBreadcrumbs": true,
+    "readme": "none",
+    "indexFormat": "table",
+    "cleanOutputDir": true,
+    "exclude": [
+        "**/*.test.ts",
+        "**/*.test.tsx"
+    ],
+    "githubPages": false,
+    "name": "Frontend API Reference",
+    "includeVersion": true
+}

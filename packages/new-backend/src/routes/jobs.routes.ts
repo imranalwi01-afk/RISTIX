@@ -817,6 +817,41 @@ jobsRoutes.openapi(
         const id = c.req.param('id')!
         const includeRuntime = hasAdminRuntimeAccess(c)
 
+        // Hono route matching can resolve /executions/pending-approval into /executions/{id}.
+        // Keep behavior stable by handling the static pending-approval path explicitly here.
+        if (id === 'pending-approval') {
+            if (!hasAnyRequiredPermission(c, JOB_PERMISSION_REQUIREMENTS.approve)) {
+                return forbiddenForPermissions(c, JOB_PERMISSION_REQUIREMENTS.approve)
+            }
+
+            const pendingWhereClause = tenantId
+                ? and(
+                    eq(jobExecutions.tenantId, tenantId),
+                    eq(jobExecutions.approvalStatus, 'pending')
+                )
+                : eq(jobExecutions.approvalStatus, 'pending')
+
+            const pending = await targetDb
+                .select()
+                .from(jobExecutions)
+                .where(pendingWhereClause)
+                .orderBy(desc(jobExecutions.startTime))
+
+            return c.json(pending.map(e => ({
+                ...e,
+                startTime: e.startTime ? e.startTime.toISOString() : null,
+                endTime: e.endTime ? e.endTime.toISOString() : null,
+                progress: e.progress ?? null,
+                error: e.error ?? null,
+                result: e.result ?? null,
+                parameters: e.parameters ?? null,
+                approvalRequestId: e.approvalRequestId ?? null,
+                approvalStatus: e.approvalStatus ?? null,
+                triggeredBy: e.triggeredBy ?? null,
+                tenantId: e.tenantId ?? null,
+            }) as any))
+        }
+
         const execution = await targetDb
             .select()
             .from(jobExecutions)

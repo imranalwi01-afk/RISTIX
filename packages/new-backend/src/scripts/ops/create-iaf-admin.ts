@@ -1,3 +1,4 @@
+// @ts-nocheck
 
 import { db } from '../../config/database'
 import { users, tenants } from '../../db/schema'

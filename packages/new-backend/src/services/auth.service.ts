@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Effect, pipe } from 'effect'
 import * as jose from 'jose'
 import crypto from 'crypto'

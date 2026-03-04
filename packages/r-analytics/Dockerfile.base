@@ -6,8 +6,8 @@
 # Does NOT contain: Application code (shiny-app/, config/, scripts/)
 # ============================================================================
 
-# Use official R base image with Shiny pre-installed
-FROM rocker/shiny:4.3.2
+# Use official R base image with Shiny pre-installed (force amd64 for Mac compatibility)
+FROM --platform=linux/amd64 rocker/shiny:4.3.2
 
 # Metadata
 LABEL maintainer="IFRS9 Platform Team"
@@ -34,7 +34,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxt-dev \
     # Image & Font processing (for tidyverse/ggplot2)
     libpng-dev \
-
     libtiff5-dev \
     libfontconfig1-dev \
     libfreetype6-dev \
@@ -54,6 +53,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     cmake \
     libicu-dev \
     zlib1g-dev \
+    # Utilities for openxlsx
+    zip \
+    unzip \
     # Cleanup
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
@@ -65,8 +67,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Use all available cores for compilation
 # Step 1: Core & DB Connectivity
 RUN R -e "options(Ncpus = parallel::detectCores()); \
-    install.packages(c('DBI', 'RPostgres', 'jsonlite', 'httr', 'curl', 'xml2', 'plumber'), repos='https://packagemanager.posit.co/cran/__linux__/jammy/latest'); \
-    if (!all(c('DBI', 'RPostgres', 'jsonlite', 'httr', 'curl', 'xml2', 'plumber') %in% installed.packages()[,1])) stop('Step 1 failed')"
+    install.packages(c('DBI', 'RPostgres', 'jsonlite', 'httr', 'curl', 'xml2', 'plumber', 'conflicted'), repos='https://packagemanager.posit.co/cran/__linux__/jammy/latest'); \
+    if (!all(c('DBI', 'RPostgres', 'jsonlite', 'httr', 'curl', 'xml2', 'plumber', 'conflicted') %in% installed.packages()[,1])) stop('Step 1 failed')"
 
 
 # Step 2: Data Manipulation (Splitting tidyverse for reliability)
@@ -81,8 +83,8 @@ RUN R -e "options(Ncpus = parallel::detectCores()); \
 
 # Step 4: Statistical Analysis & Tests
 RUN R -e "options(Ncpus = parallel::detectCores()); \
-    install.packages(c('MASS', 'nortest', 'lmtest', 'car', 'combinat', 'tseries', 'smooth'), repos='https://packagemanager.posit.co/cran/__linux__/jammy/latest'); \
-    if (!all(c('MASS', 'nortest', 'lmtest', 'car', 'combinat', 'tseries', 'smooth') %in% installed.packages()[,1])) stop('Step 4 failed')"
+    install.packages(c('MASS', 'nortest', 'lmtest', 'car', 'combinat', 'tseries', 'smooth', 'greybox'), repos='https://packagemanager.posit.co/cran/__linux__/jammy/latest'); \
+    if (!all(c('MASS', 'nortest', 'lmtest', 'car', 'combinat', 'tseries', 'smooth', 'greybox') %in% installed.packages()[,1])) stop('Step 4 failed')"
 
 # Step 5: Forecasting & Advanced Analytics
 RUN R -e "options(Ncpus = parallel::detectCores()); \
@@ -91,8 +93,8 @@ RUN R -e "options(Ncpus = parallel::detectCores()); \
 
 # Step 6: Shiny & Visualization
 RUN R -e "options(Ncpus = parallel::detectCores()); \
-    install.packages(c('shiny', 'shinydashboard', 'shinyWidgets', 'shinycssloaders', 'shinyjs', 'DT', 'ggplot2', 'plotly'), repos='https://packagemanager.posit.co/cran/__linux__/jammy/latest'); \
-    if (!all(c('shiny', 'shinydashboard', 'shinyWidgets', 'shinycssloaders', 'shinyjs', 'DT', 'ggplot2', 'plotly') %in% installed.packages()[,1])) stop('Step 6 failed')"
+    install.packages(c('shiny', 'shinydashboard', 'shinythemes', 'shinyWidgets', 'shinycssloaders', 'shinyjs', 'DT', 'ggplot2', 'plotly', 'promises'), repos='https://packagemanager.posit.co/cran/__linux__/jammy/latest'); \
+    if (!all(c('shiny', 'shinydashboard', 'shinythemes', 'shinyWidgets', 'shinycssloaders', 'shinyjs', 'DT', 'ggplot2', 'plotly', 'promises') %in% installed.packages()[,1])) stop('Step 6 failed')"
 
 # Step 7: File I/O & Machine Learning
 RUN R -e "options(Ncpus = parallel::detectCores()); \

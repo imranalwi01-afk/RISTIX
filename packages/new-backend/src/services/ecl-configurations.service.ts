@@ -34,7 +34,7 @@ export const EclConfigurationsService = {
                         ...transformHeader(header),
                         details: details.map(transformDetail)
                     })
-                    : Effect.fail(new NotFoundError({ resource: 'ECL Configuration', id: String(id) })) as any
+                    : Effect.fail(new NotFoundError({ message: 'ECL Configuration not found', resource: 'ECL Configuration', id: String(id) })) as any
             )
         ) as any
     },
@@ -144,7 +144,7 @@ export const EclConfigurationsService = {
                             details: details.map(transformDetail)
                         }))
                     )
-                    : Effect.fail(new NotFoundError({ resource: 'ECL Configuration', id: String(id) })) as any
+                    : Effect.fail(new NotFoundError({ message: 'ECL Configuration not found', resource: 'ECL Configuration', id: String(id) })) as any
             )
         ) as any
     },

@@ -32,5 +32,6 @@ export const FILTER_DEFAULTS = {
   impairedFlag: '',
   assessmentStatus: '',
   priorityLevel: '',
-  ratingCode: ''
+  ratingCode: '',
+  downloadDate: '' // New field for Date Filter
 };

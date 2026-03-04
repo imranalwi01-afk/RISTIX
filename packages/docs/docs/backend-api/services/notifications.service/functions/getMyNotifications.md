@@ -4,13 +4,25 @@
 
 # Function: getMyNotifications()
 
-> **getMyNotifications**(`input`): `Effect`\<`any`[], [`DatabaseError`](../../../lib/errors/classes/DatabaseError.md)\>
+> **getMyNotifications**(`input`): `Effect`\<\{ `rows`: `any`[]; `total`: `number`; \}, [`DatabaseError`](../../../lib/errors/classes/DatabaseError.md)\>
 
-Defined in: src/services/notifications.service.ts:6
+Defined in: [src/services/notifications.service.ts:107](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/notifications.service.ts#L107)
 
 ## Parameters
 
 ### input
+
+#### category?
+
+[`NotificationCategory`](../type-aliases/NotificationCategory.md)
+
+#### dateFrom?
+
+`Date`
+
+#### dateTo?
+
+`Date`
 
 #### limit?
 
@@ -19,6 +31,14 @@ Defined in: src/services/notifications.service.ts:6
 #### offset?
 
 `number`
+
+#### readStatus?
+
+[`NotificationReadStatus`](../type-aliases/NotificationReadStatus.md)
+
+#### search?
+
+`string`
 
 #### tenantId
 
@@ -34,4 +54,4 @@ Defined in: src/services/notifications.service.ts:6
 
 ## Returns
 
-`Effect`\<`any`[], [`DatabaseError`](../../../lib/errors/classes/DatabaseError.md)\>
+`Effect`\<\{ `rows`: `any`[]; `total`: `number`; \}, [`DatabaseError`](../../../lib/errors/classes/DatabaseError.md)\>

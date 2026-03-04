@@ -4,7 +4,7 @@
 
 # Interface: JwtPayload
 
-Defined in: [src/services/auth.service.ts:67](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/auth.service.ts#L67)
+Defined in: [src/services/auth.service.ts:67](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/auth.service.ts#L67)
 
 Structure of the JWT payload.
 
@@ -14,7 +14,7 @@ Structure of the JWT payload.
 
 > **email**: `string`
 
-Defined in: [src/services/auth.service.ts:71](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/auth.service.ts#L71)
+Defined in: [src/services/auth.service.ts:71](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/auth.service.ts#L71)
 
 User's email address
 
@@ -24,7 +24,7 @@ User's email address
 
 > **jti**: `string`
 
-Defined in: [src/services/auth.service.ts:75](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/auth.service.ts#L75)
+Defined in: [src/services/auth.service.ts:75](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/auth.service.ts#L75)
 
 Unique Token ID (JWT ID)
 
@@ -34,7 +34,7 @@ Unique Token ID (JWT ID)
 
 > `optional` **permissions**: `string`[]
 
-Defined in: [src/services/auth.service.ts:83](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/auth.service.ts#L83)
+Defined in: [src/services/auth.service.ts:83](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/auth.service.ts#L83)
 
 List of permission codes assigned to the user
 
@@ -44,7 +44,7 @@ List of permission codes assigned to the user
 
 > `optional` **role**: `string`
 
-Defined in: [src/services/auth.service.ts:81](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/auth.service.ts#L81)
+Defined in: [src/services/auth.service.ts:81](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/auth.service.ts#L81)
 
 Primary/First role code
 
@@ -54,7 +54,7 @@ Primary/First role code
 
 > `optional` **roles**: `string`[]
 
-Defined in: [src/services/auth.service.ts:79](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/auth.service.ts#L79)
+Defined in: [src/services/auth.service.ts:79](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/auth.service.ts#L79)
 
 List of role codes assigned to the user
 
@@ -64,7 +64,7 @@ List of role codes assigned to the user
 
 > `optional` **stakeholderType**: `string`
 
-Defined in: [src/services/auth.service.ts:85](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/auth.service.ts#L85)
+Defined in: [src/services/auth.service.ts:85](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/auth.service.ts#L85)
 
 Calculated stakeholder type (banking, platform, etc.)
 
@@ -74,7 +74,7 @@ Calculated stakeholder type (banking, platform, etc.)
 
 > **sub**: `string`
 
-Defined in: [src/services/auth.service.ts:69](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/auth.service.ts#L69)
+Defined in: [src/services/auth.service.ts:69](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/auth.service.ts#L69)
 
 User ID (Subject)
 
@@ -84,7 +84,7 @@ User ID (Subject)
 
 > `optional` **tenantId**: `string`
 
-Defined in: [src/services/auth.service.ts:73](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/auth.service.ts#L73)
+Defined in: [src/services/auth.service.ts:73](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/auth.service.ts#L73)
 
 Optional tenant ID associated with the user
 
@@ -94,6 +94,6 @@ Optional tenant ID associated with the user
 
 > **type**: `"access"` \| `"refresh"`
 
-Defined in: [src/services/auth.service.ts:77](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/auth.service.ts#L77)
+Defined in: [src/services/auth.service.ts:77](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/auth.service.ts#L77)
 
 Token type: either 'access' or 'refresh'

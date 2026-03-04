@@ -27,6 +27,8 @@ export class IndividualImpairmentController {
             const status = c.req.query('filter[assessment_status]') || c.req.query('status');
             const impaired_flag = c.req.query('filter[impaired_flag]') || c.req.query('impairedFlag');
             const rating_code = c.req.query('filter[rating_code]') || c.req.query('ratingCode');
+            const dateFrom = c.req.query('dateFrom');
+            const dateTo = c.req.query('dateTo');
 
             // 3. Call Service
             const result = await individualImpairmentService.getWatchlist(user.tenantId, { 
@@ -35,6 +37,8 @@ export class IndividualImpairmentController {
                 status,
                 impaired_flag,
                 rating_code,
+                dateFrom,
+                dateTo,
                 limit, 
                 offset 
             });
@@ -91,13 +95,58 @@ export class IndividualImpairmentController {
             const user = c.get('user');
             if (!user?.tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
 
-            const accountId = Number(c.req.query('account_id'));
+            const accountId = Number(c.req.param('accountId'));
             if (!accountId) return c.json({ success: false, message: 'Account ID required' }, 400);
 
             const data = await individualImpairmentService.getAssessment(user.tenantId, accountId);
             if (!data) return c.json({ success: false, message: 'Assessment not found' }, 404);
 
             return c.json({ success: true, data });
+        } catch (error: any) {
+            return this.handleError(c, error);
+        }
+    }
+
+    async submitAssessment(c: Context) {
+        try {
+            const user = c.get('user');
+            if (!user?.tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
+
+            const id = Number(c.req.param('id'));
+            const { comments } = await c.req.json();
+            
+            const data = await individualImpairmentService.submitAssessment(id, comments, user.id);
+            return c.json({ success: true, data: data });
+        } catch (error: any) {
+            return this.handleError(c, error);
+        }
+    }
+
+    async approveAssessment(c: Context) {
+        try {
+            const user = c.get('user');
+            if (!user?.tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
+
+            const id = Number(c.req.param('id'));
+            const { comments } = await c.req.json();
+            
+            const data = await individualImpairmentService.approveAssessment(id, comments, user.id);
+            return c.json({ success: true, data: data });
+        } catch (error: any) {
+            return this.handleError(c, error);
+        }
+    }
+
+    async rejectAssessment(c: Context) {
+        try {
+            const user = c.get('user');
+            if (!user?.tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
+
+            const id = Number(c.req.param('id'));
+            const { reason } = await c.req.json();
+            
+            const data = await individualImpairmentService.rejectAssessment(id, reason, user.id);
+            return c.json({ success: true, data: data });
         } catch (error: any) {
             return this.handleError(c, error);
         }
@@ -114,7 +163,7 @@ export class IndividualImpairmentController {
                 tenantId: user.tenantId,
                 createdBy: user.id
             });
-            return c.json({ success: true, data: data[0] });
+            return c.json({ success: true, data: data });
         } catch (error: any) {
             return this.handleError(c, error);
         }
@@ -228,7 +277,9 @@ export class IndividualImpairmentController {
             if (!user?.tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
 
             const status = c.req.query('status');
-            const data = await individualImpairmentService.getScenarios(user.tenantId, { status });
+            const accountId = Number(c.req.query('accountId'));
+
+            const data = await individualImpairmentService.getScenarios(user.tenantId, { status, accountId });
             return c.json({ success: true, data });
         } catch (error: any) {
             return this.handleError(c, error);
@@ -382,10 +433,25 @@ export class IndividualImpairmentController {
         return c.json({ success: false, message: 'System Error: ' + msg }, 500);
     }
 
+    // Get Watchlist Summary
+    async getWatchlistSummary(c: Context) {
+        try {
+            const user = c.get('user');
+            if (!user?.tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
+            
+            const date = c.req.query('date'); // Extract date from query params
+            const summary = await individualImpairmentService.getWatchlistSummary(user.tenantId, date);
+            return c.json({ success: true, data: summary });
+        } catch (error: any) {
+            return this.handleError(c, error);
+        }
+    }
+
     // Get Staging Summary - for dashboard cards
     async getStagingSummary(c: Context) {
         try {
-            const tenantId = c.get('tenantId');
+            const user = c.get('user');
+            const tenantId = user?.tenantId || c.get('tenantId');
             
             if (!tenantId) {
                 return c.json({ success: false, message: 'Tenant ID required' }, 400);

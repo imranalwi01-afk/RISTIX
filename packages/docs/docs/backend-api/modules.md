@@ -37,6 +37,7 @@
 - [repositories/journal-parameters.repository](repositories/journal-parameters.repository/README.md)
 - [repositories/lgd-configurations.repository](repositories/lgd-configurations.repository/README.md)
 - [repositories/master-account.repository](repositories/master-account.repository/README.md)
+- [repositories/notification-preferences.repository](repositories/notification-preferences.repository/README.md)
 - [repositories/notification.repository](repositories/notification.repository/README.md)
 - [repositories/parameters.repository](repositories/parameters.repository/README.md)
 - [repositories/pd-configurations.repository](repositories/pd-configurations.repository/README.md)

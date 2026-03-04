@@ -18,12 +18,15 @@ import {
   IconButton,
   CircularProgress,
   alpha,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
   Chip
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { Info as InfoIcon, Close as CloseIcon } from '@mui/icons-material';
+import { Info as InfoIcon, Close as CloseIcon, ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
 import { productSegmentsApi } from '../../services/api/product-segments.api';
 import { pdConfigurationsApi } from '../../services/api/pd-configurations.api';
 import { flScalarAPI } from '../../services/api/fl-scalar.api';
@@ -36,10 +39,10 @@ interface LifetimePDConfigPanelProps {
 
 export default function LifetimePDConfigPanel({ open, onClose, onRun }: LifetimePDConfigPanelProps) {
   // Local state for form fields
-  const [procDate, setProcDate] = useState<Date | null>(new Date());
+  const [procDate, setProcDate] = useState<Date | null>(new Date('2022-10-31'));
   const [selectedSegments, setSelectedSegments] = useState<any[]>([]);
   const [pdConfigId, setPdConfigId] = useState('');
-  const [pdMethod, setPdMethod] = useState('PIT');
+  const [pdMethod, setPdMethod] = useState('TTC');
   const [isForwardLooking, setIsForwardLooking] = useState(false);
   const [scalarId, setScalarId] = useState('');
 
@@ -77,6 +80,13 @@ export default function LifetimePDConfigPanel({ open, onClose, onRun }: Lifetime
       fetchMetadata();
     }
   }, [open]);
+
+  // Auto-select the first PD Config ID when metadata is loaded and none is selected
+  useEffect(() => {
+    if (pdConfigs.length > 0 && !pdConfigId) {
+      setPdConfigId(pdConfigs[0].id.toString());
+    }
+  }, [pdConfigs, pdConfigId]);
 
   const handleRun = () => {
     onRun({
@@ -156,32 +166,8 @@ export default function LifetimePDConfigPanel({ open, onClose, onRun }: Lifetime
           {...({} as any)}
         />
 
-        {/* Comparison Mode Toggle */}
-        <Box sx={{ 
-          p: 1.5, 
-          borderRadius: 2, 
-          bgcolor: alpha('#667eea', 0.05),
-          border: '1px dashed',
-          borderColor: alpha('#667eea', 0.2)
-        }}>
-          <FormControlLabel
-            control={
-              <Switch
-                size="small"
-                checked={isCompareMode}
-                onChange={(e) => setIsCompareMode(e.target.checked)}
-              />
-            }
-            label={
-              <Typography variant="body2" fontWeight={700} color="#667eea">
-                Activate Comparison Mode
-              </Typography>
-            }
-          />
-        </Box>
-
         <Divider>
-          <Chip label={isCompareMode ? "Model A (Baseline)" : "Model Configuration"} size="small" />
+          <Chip label="Model Configuration" size="small" />
         </Divider>
 
         {/* PD Config ID */}
@@ -226,121 +212,156 @@ export default function LifetimePDConfigPanel({ open, onClose, onRun }: Lifetime
           </Typography>
         </FormControl>
 
-        <Divider />
-
-        {/* Forward Looking */}
-        <Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={isForwardLooking}
-                  onChange={(e) => setIsForwardLooking(e.target.checked)}
-                />
-              }
-              label={
-                <Typography fontWeight={600}>Forward Looking</Typography>
-              }
-            />
-            <Tooltip title="Mengaktifkan skenario makro">
-              <InfoIcon fontSize="small" color="action" sx={{ ml: 1 }} />
-            </Tooltip>
-          </Box>
-          
-          {isForwardLooking && (
-            <Autocomplete
-              options={scalars.map(s => s.scalar_name || s.pkid?.toString() || '')}
-              loading={loadingMetadata}
-              value={scalarId}
-              onChange={(_: any, newValue: any) => setScalarId(newValue || '')}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Scalar ID"
-                  required
-                  helperText="Wajib saat FL ON"
-                  InputProps={{
-                    ...params.InputProps,
-                    endAdornment: (
-                      <Fragment>
-                        {loadingMetadata ? <CircularProgress color="inherit" size={20} /> : null}
-                        {(params.InputProps as any).endAdornment}
-                      </Fragment>
-                    )
-                  } as any}
-                />
-              )}
-              {...({} as any)}
-            />
-          )}
-        </Box>
-
-        {/* Comparison Model B Section */}
-        {isCompareMode && (
-          <Fragment>
-            <Divider>
-              <Chip label="Model B (Challenger)" size="small" color="secondary" />
-            </Divider>
-            
-            <Box>
-              <FormControl fullWidth required error={!pdConfigIdB}>
-                <InputLabel>PD Config ID (B)</InputLabel>
-                <Select
-                  value={pdConfigIdB}
-                  label="PD Config ID (B)"
-                  onChange={(e: any) => setPdConfigIdB(e.target.value)}
-                  disabled={loadingMetadata}
-                >
-                  {pdConfigs.map(cfg => (
-                    <MenuItem key={cfg.id} value={cfg.id}>
-                      {cfg.model_name} (ID: {cfg.id})
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Box>
-
-            <FormControl fullWidth required>
-              <InputLabel>PD Method (B)</InputLabel>
-              <Select
-                value={pdMethodB}
-                label="PD Method (B)"
-                onChange={(e: any) => setPdMethodB(e.target.value)}
-              >
-                <MenuItem value="PIT">PIT (Point-in-Time)</MenuItem>
-                <MenuItem value="TTC">TTC (Through-the-Cycle)</MenuItem>
-                <MenuItem value="Hybrid">Hybrid</MenuItem>
-              </Select>
-            </FormControl>
-
-            {isForwardLooking && (
-               <Autocomplete
-                options={scalars.map(s => s.scalar_name || s.pkid?.toString() || '')}
-                loading={loadingMetadata}
-                value={scalarIdB}
-                onChange={(_: any, newValue: any) => setScalarIdB(newValue || '')}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Scalar ID (B)"
-                    required
-                    helperText="Scenario selection for Model B"
-                    InputProps={{
-                      ...params.InputProps,
-                      endAdornment: (
-                        <Fragment>
-                          {loadingMetadata ? <CircularProgress color="inherit" size={20} /> : null}
-                          {(params.InputProps as any).endAdornment}
-                        </Fragment>
-                      )
-                    } as any}
+        <Accordion elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, '&:before': { display: 'none' } }}>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ bgcolor: alpha('#667eea', 0.03) }}>
+            <Typography fontWeight={700} color="primary">Advanced Settings</Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            <Stack spacing={3}>
+              {/* Forward Looking */}
+              <Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={isForwardLooking}
+                        onChange={(e) => setIsForwardLooking(e.target.checked)}
+                      />
+                    }
+                    label={
+                      <Typography fontWeight={600} variant="body2">Forward Looking (Macro Scenarios)</Typography>
+                    }
+                  />
+                  <Tooltip title="Mengaktifkan skenario makro">
+                    <InfoIcon fontSize="small" color="action" sx={{ ml: 1 }} />
+                  </Tooltip>
+                </Box>
+                
+                {isForwardLooking && (
+                  <Autocomplete
+                    options={scalars.map(s => s.scalar_name || s.pkid?.toString() || '')}
+                    loading={loadingMetadata}
+                    value={scalarId}
+                    onChange={(_: any, newValue: any) => setScalarId(newValue || '')}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Scalar ID"
+                        required
+                        size="small"
+                        helperText="Wajib saat FL ON"
+                        InputProps={{
+                          ...params.InputProps,
+                          endAdornment: (
+                            <Fragment>
+                              {loadingMetadata ? <CircularProgress color="inherit" size={20} /> : null}
+                              {(params.InputProps as any).endAdornment}
+                            </Fragment>
+                          )
+                        } as any}
+                      />
+                    )}
+                    {...({} as any)}
                   />
                 )}
-                {...({} as any)}
-              />
-            )}
-          </Fragment>
-        )}
+              </Box>
+
+              <Divider />
+
+              {/* Comparison Mode Toggle */}
+              <Box sx={{ 
+                p: 1.5, 
+                borderRadius: 2, 
+                bgcolor: alpha('#667eea', 0.05),
+                border: '1px dashed',
+                borderColor: alpha('#667eea', 0.2)
+              }}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      size="small"
+                      checked={isCompareMode}
+                      onChange={(e) => setIsCompareMode(e.target.checked)}
+                    />
+                  }
+                  label={
+                    <Typography variant="body2" fontWeight={700} color="#667eea">
+                      Activate Comparison Mode
+                    </Typography>
+                  }
+                />
+              </Box>
+
+              {/* Comparison Model B Section */}
+              {isCompareMode && (
+                <Fragment>
+                  <Divider>
+                    <Chip label="Model B (Challenger)" size="small" color="secondary" />
+                  </Divider>
+                  
+                  <Box>
+                    <FormControl fullWidth required error={!pdConfigIdB} size="small">
+                      <InputLabel>PD Config ID (B)</InputLabel>
+                      <Select
+                        value={pdConfigIdB}
+                        label="PD Config ID (B)"
+                        onChange={(e: any) => setPdConfigIdB(e.target.value)}
+                        disabled={loadingMetadata}
+                      >
+                        {pdConfigs.map(cfg => (
+                          <MenuItem key={cfg.id} value={cfg.id}>
+                            {cfg.model_name} (ID: {cfg.id})
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Box>
+
+                  <FormControl fullWidth required size="small">
+                    <InputLabel>PD Method (B)</InputLabel>
+                    <Select
+                      value={pdMethodB}
+                      label="PD Method (B)"
+                      onChange={(e: any) => setPdMethodB(e.target.value)}
+                    >
+                      <MenuItem value="PIT">PIT (Point-in-Time)</MenuItem>
+                      <MenuItem value="TTC">TTC (Through-the-Cycle)</MenuItem>
+                      <MenuItem value="Hybrid">Hybrid</MenuItem>
+                    </Select>
+                  </FormControl>
+
+                  {isForwardLooking && (
+                     <Autocomplete
+                      options={scalars.map(s => s.scalar_name || s.pkid?.toString() || '')}
+                      loading={loadingMetadata}
+                      value={scalarIdB}
+                      onChange={(_: any, newValue: any) => setScalarIdB(newValue || '')}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Scalar ID (B)"
+                          required
+                          size="small"
+                          helperText="Scenario selection for Model B"
+                          InputProps={{
+                            ...params.InputProps,
+                            endAdornment: (
+                              <Fragment>
+                                {loadingMetadata ? <CircularProgress color="inherit" size={20} /> : null}
+                                {(params.InputProps as any).endAdornment}
+                              </Fragment>
+                            )
+                          } as any}
+                        />
+                      )}
+                      {...({} as any)}
+                    />
+                  )}
+                </Fragment>
+              )}
+            </Stack>
+          </AccordionDetails>
+        </Accordion>
 
         {/* Actions */}
         <Box sx={{ pt: 2, display: 'flex', gap: 2 }}>
@@ -358,10 +379,10 @@ export default function LifetimePDConfigPanel({ open, onClose, onRun }: Lifetime
             variant="outlined"
             size="large"
             onClick={() => {
-              setProcDate(new Date());
+              setProcDate(new Date('2022-10-31'));
               setSelectedSegments([]);
-              setPdConfigId('');
-              setPdMethod('PIT');
+              if (pdConfigs.length > 0) setPdConfigId(pdConfigs[0].id.toString());
+              setPdMethod('TTC');
               setIsForwardLooking(false);
               setScalarId('');
               setIsCompareMode(false);

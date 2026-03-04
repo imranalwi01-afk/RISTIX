@@ -1,5 +1,5 @@
 // packages/frontend/src/services/api/ead-configurations.api.ts
-import { apiClient } from '../api.client';
+import { apiClient } from '../api-setup';
 
 // ============================================================================
 // INTERFACES
@@ -49,41 +49,42 @@ export const eadConfigurationsApi = {
         if (params?.is_active !== undefined) queryParams.append('is_active', params.is_active.toString());
 
         const url = queryParams.toString() ? `${BASE_URL}?${queryParams}` : BASE_URL;
-        const response = await apiClient.get<EADConfiguration[]>(url);
-        return response.data!;
+        const response = await apiClient.get<any>(url);
+        return response.data?.data || [];
     },
 
     async getById(id: string): Promise<EADConfiguration> {
-        const response = await apiClient.get<EADConfiguration>(`${BASE_URL}/${id}`);
-        return response.data!;
+        const response = await apiClient.get<any>(`${BASE_URL}/${id}`);
+        if (!response.data?.data) throw new Error('EAD Configuration not found');
+        return response.data.data;
     },
 
     async create(data: CreateEADConfigurationDto): Promise<any> {
         const response = await apiClient.post<any>(BASE_URL, data);
-        return response as any;
+        return response.data;
     },
 
     async update(id: string, data: UpdateEADConfigurationDto): Promise<any> {
         const response = await apiClient.put<any>(`${BASE_URL}/${id}`, data);
-        return response as any;
+        return response.data;
     },
 
     async delete(id: string): Promise<any> {
         const response = await apiClient.delete<any>(`${BASE_URL}/${id}`);
-        return response as any;
+        return response.data;
     },
 
     async getMethods(): Promise<Array<{ value: string; label: string }>> {
-        const response = await apiClient.get<Array<{ value: string; label: string }>>(
+        const response = await apiClient.get<any>(
             `${BASE_URL}/metadata/methods`
         );
-        return response.data!;
+        return response.data?.data || [];
     },
 
     async getCalcMethods(): Promise<Array<{ value: string; label: string }>> {
-        const response = await apiClient.get<Array<{ value: string; label: string }>>(
+        const response = await apiClient.get<any>(
             `${BASE_URL}/metadata/calc-methods`
         );
-        return response.data!;
+        return response.data?.data || [];
     },
 };

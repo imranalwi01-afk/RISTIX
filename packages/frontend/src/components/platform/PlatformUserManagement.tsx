@@ -44,6 +44,7 @@ import {
 import { format } from 'date-fns';
 import { platformUsersAPI } from '@/services/api';
 import { exportToCsv } from '@/utils/export-csv';
+import { getErrorMessage } from '@/utils/error-message';
 
 // Types
 interface PlatformUser {
@@ -233,7 +234,7 @@ const PlatformUserManagement = () => {
             fetchUsers();
         } catch (err: any) {
             console.error('Form submission failed:', err);
-            const msg = err.response?.data?.message || err.message || 'Operation failed';
+            const msg = getErrorMessage(err, 'Operation failed');
             setError(`Failed to save user: ${msg}`);
         } finally {
             setFormLoading(false);

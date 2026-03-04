@@ -1,4 +1,4 @@
-import { apiClient } from '../api.client';
+import { apiClient } from '../api-setup';
 
 // ============================================================================
 // INTERFACES
@@ -52,32 +52,32 @@ export const appSettingsApi = {
      * Note: Backend returns headers with 'details' relation loaded
      */
     async getAll(): Promise<Array<AppSettingsHeader & { details: AppSettingsDetail[] }>> {
-        const response = await apiClient.get<Array<AppSettingsHeader & { details: AppSettingsDetail[] }>>(BASE_URL);
-        return response.data!;
+        const response = await apiClient.get<any>(BASE_URL);
+        return response.data?.data;
     },
 
     /**
      * Get details for a specific param code
      */
     async getByCode(code: string): Promise<AppSettingsHeader & { details: AppSettingsDetail[] }> {
-        const response = await apiClient.get<AppSettingsHeader & { details: AppSettingsDetail[] }>(`${BASE_URL}/${code}`);
-        return response.data!;
+        const response = await apiClient.get<any>(`${BASE_URL}/${code}`);
+        return response.data?.data;
     },
 
     /**
      * Create a new detail
      */
     async createDetail(data: CreateAppSettingsDetailDto): Promise<AppSettingsDetail> {
-        const response = await apiClient.post<AppSettingsDetail>(BASE_URL, data);
-        return response.data!;
+        const response = await apiClient.post<any>(BASE_URL, data);
+        return response.data?.data;
     },
 
     /**
      * Update a detail
      */
     async updateDetail(id: number, data: UpdateAppSettingsDetailDto): Promise<AppSettingsDetail> {
-        const response = await apiClient.put<AppSettingsDetail>(`${BASE_URL}/details/${id}`, data);
-        return response.data!;
+        const response = await apiClient.put<any>(`${BASE_URL}/details/${id}`, data);
+        return response.data?.data;
     },
 
     /**

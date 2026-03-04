@@ -26,6 +26,7 @@ import {
   FormControlLabel,
   Switch,
   CircularProgress,
+  FormHelperText,
   Snackbar
 } from '@mui/material';
 import { ApprovalNotification, ApprovalStatusBadge } from '@/components/approval';
@@ -45,7 +46,7 @@ import dayjs from 'dayjs';
 import { useRouter } from 'next/navigation';
 import { api } from '../../../../services/api';
 import { LGDConfiguration } from '../../../../services/api/lgd-configurations.api';
-import { PopulationSegment } from '../../../../services/api/population-segments.api';
+import { PopulationSegment, filterPopulationSegmentsByType } from '../../../../services/api/population-segments.api';
 import { FLScalarWithDetails } from '../../../../services/api/fl-scalar.api';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 import { usePermission } from '@/hooks/usePermission';
@@ -73,8 +74,8 @@ export default function LGDSetupPage() {
   const [error, setError] = useState<string | null>(null);
 
   // Metadata
-  const [methodOptions, setMethodOptions] = useState<{ value: number, label: string }[]>([]);
-  const [popTypeOptions, setPopTypeOptions] = useState<{ value: string, label: string }[]>([]);
+  const [methodOptions, setMethodOptions] = useState<{ value: string | number, label: string }[]>([]);
+  const [popTypeOptions, setPopTypeOptions] = useState<{ value: string | number, label: string }[]>([]);
   const [populationSegments, setPopulationSegments] = useState<PopulationSegment[]>([]);
   const [flScalars, setFlScalars] = useState<FLScalarWithDetails[]>([]);
 
@@ -87,7 +88,7 @@ export default function LGDSetupPage() {
   const [formData, setFormData] = useState<Partial<LGDConfiguration>>({
     model_name: '',
     segment_id: undefined,
-    lgd_method: 1,
+    lgd_method: '1',
     population_type: 'Monthly',
     observation_period: '',
     workout_period: 12,
@@ -114,20 +115,21 @@ export default function LGDSetupPage() {
         api.banking.lgdConfigurations.getAll(),
         api.banking.lgdConfigurations.getMethods(),
         api.banking.lgdConfigurations.getPopulationTypes(),
-        api.banking.populationSegments.getAll({ active_flag: true }),
+        api.banking.populationSegments.getAll({ active_flag: true, segment_type: 'LGD' }),
         api.banking.flScalar.getAll()
       ]);
 
       setMethodOptions(methodsRes);
       setPopTypeOptions(popTypesRes);
-      setPopulationSegments(segmentsRes);
+      const lgdSegments = filterPopulationSegmentsByType(segmentsRes, 'LGD');
+      setPopulationSegments(lgdSegments);
       setFlScalars(flScalarsRes);
 
       const enrichedConfigs = configsRes.map(config => {
-        const segment = segmentsRes.find(s => s.id === config.segment_id);
-        const method = methodsRes.find(m => m.value === config.lgd_method);
+        const segment = lgdSegments.find(s => String(s.id) === String(config.segment_id));
+        const method = methodsRes.find(m => String(m.value) === String(config.lgd_method));
         // Note: flScalarsRes uses 'pkid', config uses 'fl_scalar_id'
-        const scalar = flScalarsRes.find(s => s.pkid === config.fl_scalar_id);
+        const scalar = flScalarsRes.find(s => String(s.pkid) === String(config.fl_scalar_id));
 
         return {
           ...config,
@@ -138,7 +140,7 @@ export default function LGDSetupPage() {
       });
 
       setLgdConfigs(enrichedConfigs);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Failed to load LGD data:', err);
       setError('Failed to load LGD configurations.');
     } finally {
@@ -196,7 +198,7 @@ export default function LGDSetupPage() {
       const payload: any = {
         model_name: formData.model_name,
         segment_id: formData.segment_id,
-        lgd_method: formData.lgd_method || 1,
+        lgd_method: formData.lgd_method || '1',
         population_type: formData.population_type,
         observation_period: formData.observation_period,
         workout_period: formData.workout_period,
@@ -234,7 +236,7 @@ export default function LGDSetupPage() {
       setIsDialogOpen(false);
       setFormData({});
       setSelectedConfig(null);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Save failed:', err);
       setError('Failed to save configuration.');
     } finally {
@@ -260,7 +262,7 @@ export default function LGDSetupPage() {
 
       await loadData();
       await loadPendingApprovals();
-    } catch (err: any) {
+    } catch (err) {
       console.error('Delete failed:', err);
       setError('Failed to delete configuration.');
     } finally {
@@ -351,7 +353,7 @@ export default function LGDSetupPage() {
               setSelectedConfig(null);
               setFormData({
                 is_active: true,
-                lgd_method: 1,
+                lgd_method: '1',
                 population_type: 'Monthly',
                 workout_period: 12,
                 fl_flag: false
@@ -423,17 +425,23 @@ export default function LGDSetupPage() {
                     <MenuItem key={s.id} value={s.id}>{s.segment_name}</MenuItem>
                   ))}
                 </Select>
+                <FormHelperText error={!!formErrors.segment_id}>
+                  {formErrors.segment_id || 'Source: Population Segments table'}
+                </FormHelperText>
               </FormControl>
 
               <FormControl fullWidth error={!!formErrors.lgd_method}>
                 <InputLabel>Method</InputLabel>
                 <Select
-                  value={formData.lgd_method || 1}
+                  value={formData.lgd_method || '1'}
                   label="Method"
-                  onChange={(e) => setFormData({ ...formData, lgd_method: Number(e.target.value) })}
+                  onChange={(e) => setFormData({ ...formData, lgd_method: e.target.value })}
                 >
-                  {methodOptions.map(m => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
+                  {methodOptions.map((m, idx) => <MenuItem key={`${m.value}-${idx}`} value={m.value}>{m.label}</MenuItem>)}
                 </Select>
+                <FormHelperText error={!!formErrors.lgd_method}>
+                  {formErrors.lgd_method || 'Source: Business Setting B0022'}
+                </FormHelperText>
               </FormControl>
 
               <FormControl fullWidth>
@@ -443,8 +451,9 @@ export default function LGDSetupPage() {
                   label="Population Type"
                   onChange={(e) => setFormData({ ...formData, population_type: e.target.value })}
                 >
-                  {popTypeOptions.map(m => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
+                  {popTypeOptions.map((m, idx) => <MenuItem key={`${m.value}-${idx}`} value={m.value}>{m.label}</MenuItem>)}
                 </Select>
+                <FormHelperText>Source: Business Setting B0023</FormHelperText>
               </FormControl>
 
               <TextField
@@ -502,6 +511,9 @@ export default function LGDSetupPage() {
                       <MenuItem key={s.pkid} value={s.pkid}>{s.scalar_name}</MenuItem>
                     ))}
                   </Select>
+                  <FormHelperText error={!!formErrors.fl_scalar_id}>
+                    {formErrors.fl_scalar_id || 'Source: FL Scalar table'}
+                  </FormHelperText>
                 </FormControl>
               )}
 

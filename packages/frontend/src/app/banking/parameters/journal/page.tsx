@@ -284,40 +284,22 @@ export default function JournalParametersPage() {
         api.banking.journalParameters.getDbcrOptions()
       ]);
 
-      // Set options with fallbacks if data is empty or request failed
-      setGlGroupOptions(glGroup.success && glGroup.data?.length ? glGroup.data : [
-        { id: 'ASSETS', name: 'Assets' },
-        { id: 'LIABILITIES', name: 'Liabilities' }
-      ]);
-
-      setCurrencyOptions(currency.success && currency.data?.length ? currency.data : [
-        { id: 'IDR', name: 'Indonesian Rupiah' },
-        { id: 'USD', name: 'US Dollar' }
-      ]);
-
-      setJournalTypeOptions(journalType.success && journalType.data?.length ? journalType.data : [
-        { id: 'GENERAL', name: 'General' },
-        { id: 'ADJUSTMENT', name: 'Adjustment' }
-      ]);
-
-      setJournalCodeOptions(journalCode.success && journalCode.data?.length ? journalCode.data : [
-        { id: 'GJ', name: 'General Journal' },
-        { id: 'AJ', name: 'Adjustment Journal' }
-      ]);
-
-      setDbcrOptions(dbcr.success && dbcr.data?.length ? dbcr.data : [
-        { id: 'D', name: 'Debit' },
-        { id: 'C', name: 'Credit' }
-      ]);
+      // Per tech spec: all dropdown values must come from business settings (B0001, B0005, B0006, B0007)
+      // If DB returns empty, the dropdown is empty — no hardcoded fallbacks
+      setGlGroupOptions(glGroup.success && glGroup.data?.length ? glGroup.data : []);
+      setCurrencyOptions(currency.success && currency.data?.length ? currency.data : []);
+      setJournalTypeOptions(journalType.success && journalType.data?.length ? journalType.data : []);
+      setJournalCodeOptions(journalCode.success && journalCode.data?.length ? journalCode.data : []);
+      setDbcrOptions(dbcr.success && dbcr.data?.length ? dbcr.data : []);
 
     } catch (error) {
       console.error('❌ Failed to load dropdown options:', error);
-      // Final hardcoded fallbacks just in case
-      setGlGroupOptions([{ id: 'ASSETS', name: 'Assets' }, { id: 'LIABILITIES', name: 'Liabilities' }]);
-      setCurrencyOptions([{ id: 'IDR', name: 'Indonesian Rupiah' }, { id: 'USD', name: 'US Dollar' }]);
-      setJournalTypeOptions([{ id: 'GENERAL', name: 'General' }, { id: 'ADJUSTMENT', name: 'Adjustment' }]);
-      setJournalCodeOptions([{ id: 'GJ', name: 'General Journal' }, { id: 'AJ', name: 'Adjustment Journal' }]);
-      setDbcrOptions([{ id: 'D', name: 'Debit' }, { id: 'C', name: 'Credit' }]);
+      // No fallback hardcodes — all options must come from business settings per tech spec
+      setGlGroupOptions([]);
+      setCurrencyOptions([]);
+      setJournalTypeOptions([]);
+      setJournalCodeOptions([]);
+      setDbcrOptions([]);
     } finally {
       setOptionsLoading(false);
     }
@@ -613,8 +595,8 @@ export default function JournalParametersPage() {
                 label="GL Group"
               >
                 <MenuItem value="">All</MenuItem>
-                {Array.isArray(glGroupOptions) && glGroupOptions.map(option => (
-                  <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
+                {Array.isArray(glGroupOptions) && glGroupOptions.map((option, idx) => (
+                  <MenuItem key={`${option.id}-${idx}`} value={option.id}>{option.name}</MenuItem>
                 ))}
               </Select>
             </FormControl>
@@ -627,8 +609,8 @@ export default function JournalParametersPage() {
                 label="Currency"
               >
                 <MenuItem value="">All</MenuItem>
-                {Array.isArray(currencyOptions) && currencyOptions.map(option => (
-                  <MenuItem key={option.id} value={option.id}>{option.name}</MenuItem>
+                {Array.isArray(currencyOptions) && currencyOptions.map((option, idx) => (
+                  <MenuItem key={`${option.id}-${idx}`} value={option.id}>{option.name}</MenuItem>
                 ))}
               </Select>
             </FormControl>

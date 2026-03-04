@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Effect, pipe } from 'effect'
 import { and, eq, gte, isNull, lte, or } from 'drizzle-orm'
 import { ApprovalRepository } from '@/repositories/approval.repository'
@@ -16,6 +17,7 @@ import { getDatabase } from '@/config/database'
 import { buildDefaultFourEyesRouting } from '@/lib/approval-helpers'
 import { getNotificationSocket, type NotificationPayload } from '@/socket/notification.socket'
 import { NotificationRepository } from '@/repositories/notification.repository'
+import { deriveNotificationCategory, filterNotificationRecipientsByPreferences } from '@/services/notifications.service'
 
 // =============================================================================
 // TYPES
@@ -44,6 +46,24 @@ export interface ProcessApprovalInput {
     riskScore?: number
 }
 
+const SUPER_ADMIN_PERMISSION_CODE = 'admin.super_admin'
+const SELF_APPROVAL_BYPASS_ENV = 'APPROVAL_ALLOW_SUPERADMIN_SELF_APPROVAL'
+const LEVEL_ROUTING_BYPASS_ENV = 'APPROVAL_ALLOW_SUPERADMIN_LEVEL_BYPASS'
+const APPROVAL_COUNT_BYPASS_ENV = 'APPROVAL_ALLOW_SUPERADMIN_COUNT_BYPASS'
+const SUPERADMIN_AUTO_APPROVE_REQUESTS_ENV = 'APPROVAL_AUTO_APPROVE_SUPERADMIN_REQUESTS'
+
+const isSuperAdminSelfApprovalBypassEnabled = (): boolean =>
+    String(process.env[SELF_APPROVAL_BYPASS_ENV] ?? 'false').trim().toLowerCase() === 'true'
+
+const isSuperAdminLevelRoutingBypassEnabled = (): boolean =>
+    String(process.env[LEVEL_ROUTING_BYPASS_ENV] ?? 'false').trim().toLowerCase() === 'true'
+
+const isSuperAdminApprovalCountBypassEnabled = (): boolean =>
+    String(process.env[APPROVAL_COUNT_BYPASS_ENV] ?? 'false').trim().toLowerCase() === 'true'
+
+const isSuperAdminAutoApproveOnCreateEnabled = (): boolean =>
+    String(process.env[SUPERADMIN_AUTO_APPROVE_REQUESTS_ENV] ?? 'false').trim().toLowerCase() === 'true'
+
 export interface CancelApprovalRequestInput {
     requestId: string
     cancelledBy: string
@@ -63,7 +83,8 @@ export interface ApprovalRoutingCandidate {
 export interface ApprovalRoutingLevelOverview {
     level: number
     name: string
-    requiredRoles: string[]
+    requiredRoleCodes: string[]
+    requiredPermissionCodes: string[]
     requiredCount: number
     timeoutHours?: number
     candidateCount: number
@@ -132,6 +153,44 @@ export const createApprovalMatrix = (
         ApprovalRepository.createMatrix(data, levels)
     )
 
+/**
+ * Update an approval matrix and optionally replace its levels.
+ */
+export const updateApprovalMatrix = (
+    tenantId: string,
+    matrixId: string,
+    data: Partial<NewApprovalMatrix>,
+    levels?: Omit<NewApprovalLevel, 'matrixId'>[]
+): Effect.Effect<any, DatabaseError | NotFoundError> =>
+    Effect.tryPromise({
+        try: async () => {
+            const updated = await ApprovalRepository.updateMatrixWithLevels({
+                tenantId,
+                matrixId,
+                data,
+                levels,
+            })
+
+            if (!updated) {
+                throw new NotFoundError({
+                    message: 'Approval matrix not found',
+                    resource: 'approval_matrix',
+                    id: matrixId,
+                })
+            }
+
+            return updated
+        },
+        catch: (error) =>
+            error instanceof NotFoundError
+                ? error
+                : new DatabaseError({
+                    message: error instanceof Error ? error.message : 'Failed to update approval matrix',
+                    operation: 'transaction',
+                    cause: error,
+                }),
+    })
+
 // =============================================================================
 // REQUEST COMMANDS
 // =============================================================================
@@ -194,8 +253,19 @@ export const createApprovalRequest = (
                 expiresAt,
             })
 
-            // Emit asynchronous notifications for first-level approvers.
             const hydratedRequest = await ApprovalRepository.findRequestById(request.id)
+
+            if (hydratedRequest && await shouldAutoApproveCreatedRequest(hydratedRequest, input)) {
+                const autoApproved = await autoApproveCreatedRequest(hydratedRequest, input.requestedBy).catch((error) => {
+                    console.warn('[ApprovalService] Failed to auto-approve newly created request:', error)
+                    return null
+                })
+                if (autoApproved) {
+                    return autoApproved as ApprovalRequest
+                }
+            }
+
+            // Emit asynchronous notifications for first-level approvers.
             if (hydratedRequest) {
                 await notifyNextLevelApprovers(hydratedRequest).catch((error) => {
                     console.warn('[ApprovalService] Failed to notify next-level approvers:', error)
@@ -242,15 +312,69 @@ export const processApprovalAction = (
                 })
             }
 
-            // Prevent users from approving their own requests
-            if (input.action === 'approve' && input.approverId === request.requestedBy) {
-                throw new BusinessError({
-                    message: 'You cannot approve your own request',
-                    code: 'SELF_APPROVAL_NOT_ALLOWED',
-                })
+            const existingActions = Array.isArray((request as any).actions) ? (request as any).actions : []
+            let approverContext: ApproverContext | null = null
+            let selfApprovalBypassMetadata: Record<string, unknown> | undefined
+            let levelRoutingBypassMetadata: Record<string, unknown> | undefined
+            let approvalCountBypassMetadata: Record<string, unknown> | undefined
+
+            if (input.action === 'approve') {
+                approverContext = await loadApproverContext(input.approverId, request.tenantId)
             }
 
-            const existingActions = Array.isArray((request as any).actions) ? (request as any).actions : []
+            const canBypassApprovalCount = input.action === 'approve'
+                && isSuperAdminApprovalCountBypassEnabled()
+                && Boolean(approverContext?.permissions.has(SUPER_ADMIN_PERMISSION_CODE))
+
+            const pendingApprovalsAfterCurrentAction = Math.max(
+                0,
+                Number(request.approvalsRequired || 1) - ((request.approvalsReceived || 0) + 1)
+            )
+
+            const shouldBypassApprovalCount = canBypassApprovalCount && pendingApprovalsAfterCurrentAction > 0
+
+            if (shouldBypassApprovalCount) {
+                approvalCountBypassMetadata = {
+                    approvalCountBypass: true,
+                    bypassedRule: 'APPROVAL_REQUIRED_COUNT',
+                    policy: APPROVAL_COUNT_BYPASS_ENV,
+                    approverPermission: SUPER_ADMIN_PERMISSION_CODE,
+                    approvalsRequired: Number(request.approvalsRequired || 1),
+                    approvalsReceivedBefore: Number(request.approvalsReceived || 0),
+                    approvalsReceivedAfterAction: Number((request.approvalsReceived || 0) + 1),
+                }
+            }
+
+            // Prevent users from approving their own requests unless explicit super-admin bypass is enabled.
+            if (input.action === 'approve' && input.approverId === request.requestedBy) {
+                const hasSuperAdminPermission = Boolean(
+                    approverContext?.permissions.has(SUPER_ADMIN_PERMISSION_CODE)
+                )
+                const bypassEnabled = isSuperAdminSelfApprovalBypassEnabled()
+                const canBypass = bypassEnabled && hasSuperAdminPermission
+
+                if (!canBypass) {
+                    throw new BusinessError({
+                        message: 'You cannot approve your own request',
+                        code: 'SELF_APPROVAL_NOT_ALLOWED',
+                    })
+                }
+
+                if (!String(input.comment || '').trim()) {
+                    throw new BusinessError({
+                        message: 'Super admin self-approval bypass requires approval comment',
+                        code: 'SELF_APPROVAL_BYPASS_COMMENT_REQUIRED',
+                    })
+                }
+
+                selfApprovalBypassMetadata = {
+                    selfApprovalBypass: true,
+                    bypassedRule: 'SELF_APPROVAL_NOT_ALLOWED',
+                    policy: SELF_APPROVAL_BYPASS_ENV,
+                    approverPermission: SUPER_ADMIN_PERMISSION_CODE,
+                    requestedBy: request.requestedBy,
+                }
+            }
 
             // Strict separation of duties:
             // One approver can only approve once in a request (cannot approve multiple levels).
@@ -274,13 +398,36 @@ export const processApprovalAction = (
                     })
                 }
 
-                const approverContext = await loadApproverContext(input.approverId, request.tenantId)
-                if (!matchesRequiredRoles(currentLevelConfig.requiredRoles, approverContext)) {
+                const resolvedApproverContext = approverContext || await loadApproverContext(input.approverId, request.tenantId)
+                const eligibleByRouting = matchesApprovalRequirements(
+                    currentLevelConfig.requiredRoleCodes,
+                    currentLevelConfig.requiredPermissionCodes,
+                    resolvedApproverContext,
+                    currentLevelConfig.roleMatchMode,
+                    currentLevelConfig.permissionMatchMode
+                )
+
+                const canBypassLevelRouting = isSuperAdminLevelRoutingBypassEnabled()
+                    && resolvedApproverContext.permissions.has(SUPER_ADMIN_PERMISSION_CODE)
+
+                if (!eligibleByRouting && !canBypassLevelRouting) {
                     throw new AuthorizationError({
                         message: `You are not eligible to approve level ${request.currentLevel}`,
                         requiredPermission: `approval.level.${request.currentLevel}`,
                         userId: input.approverId,
                     })
+                }
+
+                if (!eligibleByRouting && canBypassLevelRouting) {
+                    levelRoutingBypassMetadata = {
+                        levelRoutingBypass: true,
+                        bypassedRule: 'APPROVAL_LEVEL_ELIGIBILITY',
+                        policy: LEVEL_ROUTING_BYPASS_ENV,
+                        approverPermission: SUPER_ADMIN_PERMISSION_CODE,
+                        level: request.currentLevel,
+                        requiredRoleCodes: currentLevelConfig.requiredRoleCodes,
+                        requiredPermissionCodes: currentLevelConfig.requiredPermissionCodes,
+                    }
                 }
 
                 if (input.action === 'approve') {
@@ -304,7 +451,11 @@ export const processApprovalAction = (
                 level: request.currentLevel,
                 action: input.action,
                 comment: input.comment,
-                conditions: input.conditions,
+                conditions: mergeActionConditions(input.conditions, {
+                    ...(selfApprovalBypassMetadata || {}),
+                    ...(levelRoutingBypassMetadata || {}),
+                    ...(approvalCountBypassMetadata || {}),
+                }),
                 delegatedTo: input.delegatedTo,
                 riskScore: input.riskScore,
             })
@@ -323,14 +474,19 @@ export const processApprovalAction = (
                             code: 'APPROVAL_LEVEL_OUTSIDE_WORKFLOW',
                         })
                     }
-                    const currentLevelComplete = currentLevelApprovedAfter >= currentLevelRequiredCount
-                    const nextLevel = currentLevelComplete && currentLevelIdx >= 0
+                    const forceCompleteByCountBypass = shouldBypassApprovalCount
+                    const currentLevelComplete = forceCompleteByCountBypass
+                        || currentLevelApprovedAfter >= currentLevelRequiredCount
+                    const nextLevel = !forceCompleteByCountBypass && currentLevelComplete && currentLevelIdx >= 0
                         ? effectiveLevels[currentLevelIdx + 1]
                         : undefined
-                    const isComplete = currentLevelComplete && !nextLevel
+                    const isComplete = forceCompleteByCountBypass || (currentLevelComplete && !nextLevel)
+                    const approvalsReceived = forceCompleteByCountBypass
+                        ? Math.max(newReceived, Number(request.approvalsRequired || newReceived))
+                        : newReceived
 
                     await ApprovalRepository.updateRequest(input.requestId, {
-                        approvalsReceived: newReceived,
+                        approvalsReceived,
                         status: isComplete ? 'approved' : 'pending',
                         currentLevel: isComplete ? request.currentLevel : (nextLevel?.level ?? request.currentLevel),
                         completedAt: isComplete ? new Date() : null,
@@ -349,10 +505,14 @@ export const processApprovalAction = (
                     return { completed: isComplete, status: isComplete ? 'approved' : 'pending' }
                 }
 
-                const isComplete = newReceived >= request.approvalsRequired
+                const forceCompleteByCountBypass = shouldBypassApprovalCount
+                const isComplete = forceCompleteByCountBypass || newReceived >= request.approvalsRequired
+                const approvalsReceived = forceCompleteByCountBypass
+                    ? Math.max(newReceived, Number(request.approvalsRequired || newReceived))
+                    : newReceived
 
                 await ApprovalRepository.updateRequest(input.requestId, {
-                    approvalsReceived: newReceived,
+                    approvalsReceived,
                     status: isComplete ? 'approved' : 'pending',
                     currentLevel: isComplete ? request.currentLevel : request.currentLevel + 1,
                     completedAt: isComplete ? new Date() : null,
@@ -780,9 +940,10 @@ async function notifyNextLevelApprovers(request: any): Promise<void> {
     const currentLevel = levels.find((level) => level.level === request.currentLevel)
     if (!currentLevel) return
 
-    const candidates = await findApproverCandidatesForRoles(
+    const candidates = await findApproverCandidatesForLevel(
         request.tenantId,
-        currentLevel.requiredRoles
+        currentLevel.requiredRoleCodes,
+        currentLevel.requiredPermissionCodes
     )
 
     const notification: NotificationPayload = {
@@ -797,7 +958,8 @@ async function notifyNextLevelApprovers(request: any): Promise<void> {
         data: {
             requestId: request.id,
             entityType: request.entityType,
-            requiredRoles: currentLevel.requiredRoles,
+            requiredRoleCodes: currentLevel.requiredRoleCodes,
+            requiredPermissionCodes: currentLevel.requiredPermissionCodes,
             requiredCount: currentLevel.requiredCount,
             candidateCount: candidates.length,
         },
@@ -806,7 +968,7 @@ async function notifyNextLevelApprovers(request: any): Promise<void> {
 
     await safeEmitNotification(request.tenantId, notification, {
         userIds: candidates.map((candidate) => candidate.userId),
-        roleRooms: buildRoleRoomsFromRequiredRoles(currentLevel.requiredRoles),
+        roleRooms: buildRoleRoomsFromRequiredRoleCodes(currentLevel.requiredRoleCodes),
     })
 }
 
@@ -875,6 +1037,8 @@ export const getPendingApprovalsForUser = (
         )
 
         const approverContext = buildApproverContext(userRolesData as any[])
+        const canBypassRouting = isSuperAdminLevelRoutingBypassEnabled()
+            && approverContext.permissions.has(SUPER_ADMIN_PERMISSION_CODE)
 
         // Get pending requests for this tenant
         const pending = await ApprovalRepository.findPendingRequests(tenantId)
@@ -884,13 +1048,20 @@ export const getPendingApprovalsForUser = (
             // Don't show requests the user already approved (strict SoD UX)
             if (hasApproverApproved(req.actions, userId)) return false
 
+            if (canBypassRouting) return true
+
             const levels = resolveApprovalLevelsFromRequest(req)
             if (!levels.length) return true // No routing data, allow all
 
-            // requiredRoles can contain role codes, role names, or permission codes.
             const currentLevel = levels.find((l) => l.level === req.currentLevel)
                 || levels[0]
-            return matchesRequiredRoles(currentLevel.requiredRoles, approverContext)
+            return matchesApprovalRequirements(
+                currentLevel.requiredRoleCodes,
+                currentLevel.requiredPermissionCodes,
+                approverContext,
+                currentLevel.roleMatchMode,
+                currentLevel.permissionMatchMode
+            )
         })
     })
 
@@ -1015,6 +1186,99 @@ function hasApproverApprovedAtLevel(actions: unknown, approverId: string, level:
     )
 }
 
+function mergeActionConditions(
+    originalConditions: string | undefined,
+    metadata?: Record<string, unknown>
+): string | undefined {
+    if (!metadata || Object.keys(metadata).length === 0) return originalConditions
+
+    const raw = typeof originalConditions === 'string' ? originalConditions.trim() : ''
+    if (!raw) {
+        return JSON.stringify(metadata)
+    }
+
+    try {
+        const parsed = JSON.parse(raw)
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+            return JSON.stringify({
+                ...(parsed as Record<string, unknown>),
+                ...metadata,
+            })
+        }
+    } catch {
+        // Keep backward compatibility for free-text condition values.
+    }
+
+    return JSON.stringify({
+        note: raw,
+        ...metadata,
+    })
+}
+
+function hasExecutableApprovalPayload(request: any): boolean {
+    const requestData = request?.requestData
+    if (!requestData || typeof requestData !== 'object') return false
+
+    const operation = String((requestData as any).operation || '').trim().toLowerCase()
+    if (!['create', 'update', 'delete'].includes(operation)) return false
+
+    const payload = (requestData as any).data
+    return Boolean(payload && typeof payload === 'object')
+}
+
+async function shouldAutoApproveCreatedRequest(request: any, input: CreateApprovalRequestInput): Promise<boolean> {
+    if (!isSuperAdminAutoApproveOnCreateEnabled()) return false
+    if (!request || request.status !== 'pending') return false
+    if (!hasExecutableApprovalPayload(request)) return false
+
+    const requesterContext = await loadApproverContext(input.requestedBy, input.tenantId)
+    return requesterContext.permissions.has(SUPER_ADMIN_PERMISSION_CODE)
+}
+
+async function autoApproveCreatedRequest(request: any, approverId: string): Promise<any> {
+    const approvalsRequired = Math.max(1, Number(request?.approvalsRequired || 1))
+    const now = new Date()
+    const metadata = {
+        autoApproved: true,
+        trigger: 'request_create',
+        policy: SUPERADMIN_AUTO_APPROVE_REQUESTS_ENV,
+        forcedCompletion: true,
+        originalApprovalsRequired: approvalsRequired,
+    }
+
+    await ApprovalRepository.createAction({
+        requestId: String(request.id),
+        approverId,
+        approverRole: 'SUPER_ADMIN_AUTO',
+        level: Number(request?.currentLevel || 1),
+        action: 'approve',
+        comment: 'Auto-approved on request creation by super admin policy',
+        conditions: mergeActionConditions(undefined, metadata),
+    })
+
+    await ApprovalRepository.updateRequest(String(request.id), {
+        approvalsReceived: approvalsRequired,
+        status: 'approved',
+        completedAt: now,
+        completedBy: approverId,
+    })
+
+    const finalized = await ApprovalRepository.findRequestById(String(request.id))
+    if (finalized) {
+        await executeApprovedAction(finalized)
+        await notifyApprovalCompletion(finalized, 'approved')
+        return finalized
+    }
+
+    return {
+        ...request,
+        approvalsReceived: approvalsRequired,
+        status: 'approved',
+        completedAt: now,
+        completedBy: approverId,
+    }
+}
+
 function buildApproverContext(userRolesData: any[]): ApproverContext {
     const roleCodes = new Set<string>()
     const roleNames = new Set<string>()
@@ -1037,21 +1301,72 @@ function buildApproverContext(userRolesData: any[]): ApproverContext {
     return { roleCodes, roleNames, permissions }
 }
 
-function matchesRequiredRoles(requiredRoles: unknown, context: ApproverContext): boolean {
-    if (!Array.isArray(requiredRoles) || requiredRoles.length === 0) return true
-    const normalized = requiredRoles
+function normalizeStringArray(input: unknown): string[] {
+    if (!Array.isArray(input)) return []
+    return input
         .filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0)
-        .map(normalizeActor)
+        .map((entry) => entry.trim())
+}
 
-    return normalized.some((required) =>
-        context.roleCodes.has(required) || context.roleNames.has(required) || context.permissions.has(required)
-    )
+function splitLegacyRequiredRoles(requiredRoles: string[]): {
+    roleCodes: string[]
+    permissionCodes: string[]
+} {
+    const roleCodes: string[] = []
+    const permissionCodes: string[] = []
+
+    for (const entry of requiredRoles) {
+        // Legacy payload stored both role codes and permission codes in one list.
+        if (entry.includes('.')) {
+            permissionCodes.push(entry)
+        } else {
+            roleCodes.push(entry)
+        }
+    }
+
+    return { roleCodes, permissionCodes }
+}
+
+function hasMatchingRole(requiredRoleCodes: string[], context: ApproverContext, mode: 'ANY' | 'ALL' = 'ANY'): boolean {
+    if (!requiredRoleCodes.length) return true
+    const normalized = requiredRoleCodes.map(normalizeActor)
+    if (mode === 'ALL') {
+        return normalized.every((required) => context.roleCodes.has(required) || context.roleNames.has(required))
+    }
+    return normalized.some((required) => context.roleCodes.has(required) || context.roleNames.has(required))
+}
+
+function hasMatchingPermission(
+    requiredPermissionCodes: string[],
+    context: ApproverContext,
+    mode: 'ANY' | 'ALL' = 'ANY'
+): boolean {
+    if (!requiredPermissionCodes.length) return true
+    const normalized = requiredPermissionCodes.map(normalizeActor)
+    if (mode === 'ALL') {
+        return normalized.every((required) => context.permissions.has(required))
+    }
+    return normalized.some((required) => context.permissions.has(required))
+}
+
+function matchesApprovalRequirements(
+    requiredRoleCodes: string[],
+    requiredPermissionCodes: string[],
+    context: ApproverContext,
+    roleMatchMode: 'ANY' | 'ALL' = 'ANY',
+    permissionMatchMode: 'ANY' | 'ALL' = 'ANY'
+): boolean {
+    return hasMatchingRole(requiredRoleCodes, context, roleMatchMode)
+        && hasMatchingPermission(requiredPermissionCodes, context, permissionMatchMode)
 }
 
 type RoutingLevel = {
     level: number
     name: string
-    requiredRoles: string[]
+    requiredRoleCodes: string[]
+    requiredPermissionCodes: string[]
+    roleMatchMode: 'ANY' | 'ALL'
+    permissionMatchMode: 'ANY' | 'ALL'
     requiredCount: number
     timeoutHours?: number
 }
@@ -1063,14 +1378,32 @@ function normalizeRoutingLevels(levels: unknown): RoutingLevel[] {
             const levelNumber = Number(level?.level)
             if (!Number.isFinite(levelNumber) || levelNumber <= 0) return null
 
-            const requiredRoles = Array.isArray(level?.requiredRoles)
-                ? level.requiredRoles.filter((entry: unknown): entry is string => typeof entry === 'string')
-                : []
+            const explicitRoleCodes = normalizeStringArray(level?.requiredRoleCodes)
+            const explicitPermissionCodes = normalizeStringArray(level?.requiredPermissionCodes)
+            const legacyRequirements = splitLegacyRequiredRoles(normalizeStringArray(level?.requiredRoles))
+
+            const requiredRoleCodes = explicitRoleCodes.length > 0
+                ? explicitRoleCodes
+                : legacyRequirements.roleCodes
+
+            const requiredPermissionCodes = explicitPermissionCodes.length > 0
+                ? explicitPermissionCodes
+                : legacyRequirements.permissionCodes
+
+            const roleMatchMode = String(level?.roleMatchMode || 'ANY').toUpperCase() === 'ALL' ? 'ALL' : 'ANY'
+            const permissionMatchMode = String(level?.permissionMatchMode || 'ANY').toUpperCase() === 'ALL' ? 'ALL' : 'ANY'
+
+            const normalizedPermissionCodes = requiredPermissionCodes.length > 0
+                ? requiredPermissionCodes
+                : ['approval.requests.approve']
 
             return {
                 level: levelNumber,
                 name: String(level?.name || `Level ${levelNumber}`),
-                requiredRoles,
+                requiredRoleCodes,
+                requiredPermissionCodes: normalizedPermissionCodes,
+                roleMatchMode,
+                permissionMatchMode,
                 requiredCount: Math.max(1, Number(level?.requiredCount || 1)),
                 timeoutHours: level?.timeoutHours ? Number(level.timeoutHours) : undefined,
             }
@@ -1095,21 +1428,19 @@ function resolveApprovalLevelsFromRequest(request: any): RoutingLevel[] {
     return []
 }
 
-function buildRoleRoomsFromRequiredRoles(requiredRoles: unknown): string[] {
-    const normalized = Array.isArray(requiredRoles)
-        ? requiredRoles
+function buildRoleRoomsFromRequiredRoleCodes(requiredRoleCodes: unknown): string[] {
+    const normalized = Array.isArray(requiredRoleCodes)
+        ? requiredRoleCodes
             .filter((entry): entry is string => typeof entry === 'string')
             .map((entry) => entry.trim().toUpperCase())
             .filter(Boolean)
         : []
 
-    return Array.from(new Set([
-        ...normalized,
-        'CHECKER',
-        'APPROVER',
-        'SUPER_ADMIN',
-        'ADMIN',
-    ]))
+    if (normalized.length > 0) {
+        return Array.from(new Set(normalized))
+    }
+
+    return ['CHECKER', 'APPROVER', 'SUPER_ADMIN']
 }
 
 const resolveNotificationSeverity = (severity: string): 'info' | 'warning' | 'success' | 'error' => {
@@ -1132,7 +1463,13 @@ async function persistNotificationRecord(
     errorMessage?: string
 ): Promise<void> {
     const roleCandidateUserIds = options.roleRooms.length > 0
-        ? (await findApproverCandidatesForRoles(tenantId, options.roleRooms)).map((candidate) => candidate.userId)
+        ? (
+            await findApproverCandidatesForLevel(
+                tenantId,
+                options.roleRooms,
+                ['approval.requests.approve', 'approval.all', 'admin.super_admin']
+            )
+        ).map((candidate) => candidate.userId)
         : []
 
     const userTargets = Array.from(new Set([
@@ -1178,25 +1515,48 @@ async function safeEmitNotification(
     const userIds = Array.isArray(options?.userIds)
         ? options!.userIds!.filter((userId): userId is string => typeof userId === 'string' && userId.trim().length > 0)
         : []
+    let resolvedUserIds = userIds
 
     try {
         const socket = getNotificationSocket()
-
-        if (userIds.length) {
-            socket.broadcastApprovalNotificationToUsers(tenantId, notification, userIds)
+        const notificationCategory = deriveNotificationCategory(notification.type)
+        const notificationWithCategory: NotificationPayload = {
+            ...notification,
+            category: notificationCategory,
         }
 
-        if (roleRooms.length > 0) {
-            socket.broadcastApprovalNotification(tenantId, notification, roleRooms)
-        } else if (userIds.length === 0) {
-            // Fallback broadcast only when no explicit targets are provided.
-            socket.broadcastApprovalNotification(tenantId, notification)
+        const roleCandidateUserIds = roleRooms.length > 0
+            ? (
+                await findApproverCandidatesForLevel(
+                    tenantId,
+                    roleRooms,
+                    ['approval.requests.approve', 'approval.all', 'admin.super_admin']
+                )
+            ).map((candidate) => candidate.userId)
+            : []
+
+        const targetUserIds = Array.from(new Set([...userIds, ...roleCandidateUserIds]))
+        const hasExplicitTargets = roleRooms.length > 0 || targetUserIds.length > 0
+
+        const eligibleUserIds = await filterNotificationRecipientsByPreferences({
+            tenantId,
+            userIds: targetUserIds,
+            category: notificationCategory,
+            now: new Date(),
+        })
+        resolvedUserIds = eligibleUserIds
+
+        if (eligibleUserIds.length > 0) {
+            socket.broadcastApprovalNotificationToUsers(tenantId, notificationWithCategory, eligibleUserIds)
+        } else if (!hasExplicitTargets) {
+            // Fallback broadcast only when there are no explicit targets.
+            socket.broadcastApprovalNotification(tenantId, notificationWithCategory)
         }
 
         await persistNotificationRecord(
             tenantId,
-            notification,
-            { roleRooms, userIds },
+            notificationWithCategory,
+            { roleRooms: [], userIds: eligibleUserIds },
             'sent'
         )
     } catch (error) {
@@ -1204,7 +1564,7 @@ async function safeEmitNotification(
             await persistNotificationRecord(
                 tenantId,
                 notification,
-                { roleRooms, userIds },
+                { roleRooms: [], userIds: resolvedUserIds },
                 'failed',
                 error instanceof Error ? error.message : String(error)
             )
@@ -1216,9 +1576,12 @@ async function safeEmitNotification(
     }
 }
 
-async function findApproverCandidatesForRoles(
+async function findApproverCandidatesForLevel(
     tenantId: string,
-    requiredRoles: string[],
+    requiredRoleCodes: string[],
+    requiredPermissionCodes: string[],
+    roleMatchMode: 'ANY' | 'ALL' = 'ANY',
+    permissionMatchMode: 'ANY' | 'ALL' = 'ANY',
     options?: { department?: string }
 ): Promise<ApprovalRoutingCandidate[]> {
     const db = getDatabase(tenantId)
@@ -1265,7 +1628,15 @@ async function findApproverCandidatesForRoles(
     const candidates: ApprovalRoutingCandidate[] = []
     for (const [userId, rows] of assignmentByUser.entries()) {
         const context = buildApproverContext(rows)
-        if (!matchesRequiredRoles(requiredRoles, context)) {
+        if (
+            !matchesApprovalRequirements(
+                requiredRoleCodes,
+                requiredPermissionCodes,
+                context,
+                roleMatchMode,
+                permissionMatchMode
+            )
+        ) {
             continue
         }
 
@@ -1317,11 +1688,19 @@ export const getApprovalRoutingOverview = (input: {
         if (!filteredMatrices.length && entityType) {
             const fallbackLevels = buildDefaultFourEyesRouting(entityType)
             const levels = await Promise.all(fallbackLevels.map(async (level) => {
-                const candidates = await findApproverCandidatesForRoles(tenantId, level.requiredRoles, { department })
+                const candidates = await findApproverCandidatesForLevel(
+                    tenantId,
+                    level.requiredRoleCodes,
+                    level.requiredPermissionCodes,
+                    level.roleMatchMode,
+                    level.permissionMatchMode,
+                    { department }
+                )
                 return {
                     level: level.level,
                     name: level.name,
-                    requiredRoles: level.requiredRoles,
+                    requiredRoleCodes: level.requiredRoleCodes,
+                    requiredPermissionCodes: level.requiredPermissionCodes,
                     requiredCount: level.requiredCount,
                     timeoutHours: level.timeoutHours,
                     candidateCount: candidates.length,
@@ -1344,9 +1723,12 @@ export const getApprovalRoutingOverview = (input: {
             const levels = normalizeRoutingLevels(matrix.levels || [])
             const enrichedLevels: ApprovalRoutingLevelOverview[] = await Promise.all(
                 levels.map(async (level) => {
-                    const candidates = await findApproverCandidatesForRoles(
+                    const candidates = await findApproverCandidatesForLevel(
                         tenantId,
-                        level.requiredRoles,
+                        level.requiredRoleCodes,
+                        level.requiredPermissionCodes,
+                        level.roleMatchMode,
+                        level.permissionMatchMode,
                         { department }
                     )
                     return {

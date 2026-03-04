@@ -4,7 +4,7 @@
 
 # Interface: ECLResultParams
 
-Defined in: [src/services/ifrs9-reports.service.ts:41](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/ifrs9-reports.service.ts#L41)
+Defined in: [src/services/ifrs9-reports.service.ts:41](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/ifrs9-reports.service.ts#L41)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: [src/services/ifrs9-reports.service.ts:41](https://github.com/ifrspr
 
 > **prc\_date**: `string`
 
-Defined in: [src/services/ifrs9-reports.service.ts:42](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/ifrs9-reports.service.ts#L42)
+Defined in: [src/services/ifrs9-reports.service.ts:42](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/ifrs9-reports.service.ts#L42)
 
 ***
 
@@ -20,7 +20,7 @@ Defined in: [src/services/ifrs9-reports.service.ts:42](https://github.com/ifrspr
 
 > `optional` **segment\_id**: `number`
 
-Defined in: [src/services/ifrs9-reports.service.ts:43](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/ifrs9-reports.service.ts#L43)
+Defined in: [src/services/ifrs9-reports.service.ts:43](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/ifrs9-reports.service.ts#L43)
 
 ***
 
@@ -28,4 +28,4 @@ Defined in: [src/services/ifrs9-reports.service.ts:43](https://github.com/ifrspr
 
 > `optional` **stage**: `string` \| `string`[]
 
-Defined in: [src/services/ifrs9-reports.service.ts:44](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/ifrs9-reports.service.ts#L44)
+Defined in: [src/services/ifrs9-reports.service.ts:44](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/ifrs9-reports.service.ts#L44)

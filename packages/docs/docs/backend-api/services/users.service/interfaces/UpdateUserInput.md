@@ -4,7 +4,7 @@
 
 # Interface: UpdateUserInput
 
-Defined in: [src/services/users.service.ts:22](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/users.service.ts#L22)
+Defined in: [src/services/users.service.ts:22](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/users.service.ts#L22)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: [src/services/users.service.ts:22](https://github.com/ifrspro/ifrs9-
 
 > `optional` **department**: `string`
 
-Defined in: [src/services/users.service.ts:24](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/users.service.ts#L24)
+Defined in: [src/services/users.service.ts:24](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/users.service.ts#L24)
 
 ***
 
@@ -20,7 +20,7 @@ Defined in: [src/services/users.service.ts:24](https://github.com/ifrspro/ifrs9-
 
 > `optional` **isActive**: `boolean`
 
-Defined in: [src/services/users.service.ts:26](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/users.service.ts#L26)
+Defined in: [src/services/users.service.ts:26](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/users.service.ts#L26)
 
 ***
 
@@ -28,7 +28,7 @@ Defined in: [src/services/users.service.ts:26](https://github.com/ifrspro/ifrs9-
 
 > `optional` **phone**: `string`
 
-Defined in: [src/services/users.service.ts:23](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/users.service.ts#L23)
+Defined in: [src/services/users.service.ts:23](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/users.service.ts#L23)
 
 ***
 
@@ -36,7 +36,7 @@ Defined in: [src/services/users.service.ts:23](https://github.com/ifrspro/ifrs9-
 
 > `optional` **position**: `string`
 
-Defined in: [src/services/users.service.ts:25](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/users.service.ts#L25)
+Defined in: [src/services/users.service.ts:25](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/users.service.ts#L25)
 
 ***
 
@@ -44,4 +44,4 @@ Defined in: [src/services/users.service.ts:25](https://github.com/ifrspro/ifrs9-
 
 > `optional` **tenantId**: `string`
 
-Defined in: [src/services/users.service.ts:27](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/users.service.ts#L27)
+Defined in: [src/services/users.service.ts:27](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/users.service.ts#L27)

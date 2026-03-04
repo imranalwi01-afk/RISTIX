@@ -33,8 +33,11 @@ import {
   AreaChart,
   Area
 } from 'recharts';
+import { GridColDef } from '@mui/x-data-grid';
+import { SafeDataGrid } from '@/components/shared/SafeDataGrid';
 import { useBankingTheme } from '../../providers/BankingThemeProvider';
 import BaseIfrs9Report from './BaseIfrs9Report';
+import ReportSummaryGrid, { KPIItem } from './ReportSummaryGrid';
 
 interface EADTrendItem {
   month: string;
@@ -92,267 +95,56 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
 
   const themeColors = getThemeColors();
 
-  const items = [
+  const kpiItems: KPIItem[] = [
     {
-      title: 'Total Accounts',
-      value: stats.totalAccounts.toLocaleString('id-ID'),
-      format: 'raw',
-      icon: <BalanceIcon sx={{ fontSize: 32 }} />,
+      title: 'TOTAL ACCOUNTS',
+      value: stats.totalAccounts,
+      format: 'count',
+      chipLabel: 'REPORTED',
+      icon: <BalanceIcon fontSize="large" />,
       gradient: themeColors.primaryGradient,
       mainColor: themeColors.mainColor
     },
     {
-      title: 'Average EAD',
+      title: 'AVERAGE EAD',
       value: stats.avgEAD,
       format: 'currency',
-      icon: <TrendingUpIcon sx={{ fontSize: 32 }} />,
+      chipLabel: 'EXPOSURE',
+      icon: <TrendingUpIcon fontSize="large" />,
       gradient: themeColors.secondaryGradient,
       mainColor: themeColors.mainColor
     },
     {
-      title: 'Average CCF',
-      value: `${(stats.avgCCF * 100).toFixed(2)}%`,
-      format: 'raw',
-      icon: <AnalyticsIcon sx={{ fontSize: 32 }} />,
+      title: 'AVERAGE CCF',
+      value: stats.avgCCF * 100,
+      format: 'percent',
+      chipLabel: 'EAD-WEIGHTED',
+      icon: <AnalyticsIcon fontSize="large" />,
       gradient: themeColors.tertiaryGradient,
       mainColor: themeColors.mainColor
     },
     {
-      title: 'Avg Utilization',
-      value: `${(stats.avgUtilization * 100).toFixed(2)}%`,
-      format: 'raw',
-      icon: <TimelineIcon sx={{ fontSize: 32 }} />,
+      title: 'AVG UTILIZATION',
+      value: stats.avgUtilization * 100,
+      format: 'percent',
+      chipLabel: 'PORTFOLIO',
+      icon: <TimelineIcon fontSize="large" />,
       gradient: themeColors.quaternaryGradient,
       mainColor: themeColors.mainColor
     }
   ];
 
   return (
-    <Grid container spacing={3} sx={{ mb: 5 }}>
-      {items.map((item, index) => (
-        <Grid size={{ xs: 12, sm: 6, md: 3 }} key={index}>
-          <Card sx={{
-            height: '100%',
-            borderRadius: 4,
-            position: 'relative',
-            overflow: 'hidden',
-            background: 'white',
-            boxShadow: `0 4px 12px ${alpha(item.mainColor, 0.12)}`,
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            border: `1px solid ${alpha(item.mainColor, 0.1)}`,
-            '&:hover': {
-              transform: 'translateY(-8px)',
-              boxShadow: `0 12px 32px ${alpha(item.mainColor, 0.25)}`,
-              '& .card-icon-container': {
-                transform: 'rotate(10deg) scale(1.1)'
-              }
-            }
-          }}>
-            <CardContent sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
-              <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    fontWeight: 800,
-                    textTransform: 'uppercase',
-                    letterSpacing: 1.5,
-                    color: 'text.secondary',
-                    opacity: 0.8
-                  }}
-                >
-                  {item.title}
-                </Typography>
-                <Box
-                  className="card-icon-container"
-                  sx={{
-                    p: 1.5,
-                    borderRadius: 2,
-                    background: item.gradient,
-                    color: 'white',
-                    display: 'flex',
-                    transition: 'transform 0.3s ease',
-                    boxShadow: `0 4px 12px ${alpha(item.mainColor, 0.4)}`
-                  }}
-                >
-                  {item.icon}
-                </Box>
-              </Box>
-
-              <Box sx={{ mt: 'auto' }}>
-                <Typography
-                  variant="h4"
-                  sx={{
-                    fontWeight: 800,
-                    color: item.mainColor, // Fallback
-                    background: item.gradient,
-                    backgroundClip: 'text',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    mb: 0.5,
-                    fontSize: item.value.toString().length > 12 ? '1.5rem' : '2.125rem'
-                  }}
-                >
-                  {item.format === 'currency'
-                    ? new Intl.NumberFormat('id-ID', {
-                      style: 'currency',
-                      currency: 'IDR',
-                      notation: 'compact',
-                      maximumFractionDigits: 1
-                    }).format(item.value as number)
-                    : item.value
-                  }
-                </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', opacity: 0.7 }}>
-                  <Chip
-                    size="small"
-                    label="MODEL METRIC"
-                    variant="outlined"
-                    sx={{
-                      height: 20,
-                      fontSize: '0.65rem',
-                      fontWeight: 700,
-                      borderColor: alpha(item.mainColor, 0.3),
-                      color: item.mainColor
-                    }}
-                  />
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      ))}
-    </Grid>
+    <Box sx={{ mb: 4 }}>
+      <Typography variant="h5" fontWeight={800} sx={{ mb: 3, display: 'flex', alignItems: 'center', color: themeColors.mainColor }}>
+        <AnalyticsIcon sx={{ mr: 1.5, fontSize: 32 }} />
+        EAD Model Key Metrics
+      </Typography>
+      <ReportSummaryGrid items={kpiItems} mdCols={4} />
+    </Box>
   );
 };
 
-const ModelParametersCard: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
-  const { bankingMode } = useBankingTheme();
-
-  const getThemeColors = () => {
-    switch (bankingMode) {
-      case 'syariah':
-        return {
-          primary: '#00695c',
-          secondary: '#00897b',
-          tertiary: '#00796b',
-          shadowPrimary: 'rgba(0, 105, 92, 0.3)',
-          shadowSecondary: 'rgba(0, 137, 123, 0.3)',
-          shadowTertiary: 'rgba(0, 121, 107, 0.3)'
-        };
-      case 'dual':
-        return {
-          primary: '#37474f',
-          secondary: '#546e7a',
-          tertiary: '#455a64',
-          shadowPrimary: 'rgba(55, 71, 79, 0.3)',
-          shadowSecondary: 'rgba(84, 110, 122, 0.3)',
-          shadowTertiary: 'rgba(69, 90, 100, 0.3)'
-        };
-      default:
-        return {
-          primary: '#667eea',
-          secondary: '#43e97b',
-          tertiary: '#4facfe',
-          shadowPrimary: 'rgba(102, 126, 234, 0.3)',
-          shadowSecondary: 'rgba(67, 233, 123, 0.3)',
-          shadowTertiary: 'rgba(79, 172, 254, 0.3)'
-        };
-    }
-  };
-
-  const themeColors = getThemeColors();
-
-  return (
-    <Card sx={{
-      mb: 5,
-      borderRadius: 4,
-      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
-      background: 'linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(249, 250, 251, 1) 100%)'
-    }}>
-      <CardContent sx={{ p: 4 }}>
-        <Typography variant="h5" fontWeight={700} gutterBottom sx={{ mb: 3 }}>
-          EAD Model Key Metrics
-        </Typography>
-        <Grid container spacing={3}>
-          <Grid size={{ xs: 12, md: 4 }}>
-            <Paper sx={{
-              p: 4,
-              textAlign: 'center',
-              background: `linear-gradient(135deg, ${themeColors.primary} 0%, ${alpha(themeColors.primary, 0.7)} 100%)`,
-              color: 'white',
-              borderRadius: 3,
-              boxShadow: `0 8px 24px ${themeColors.shadowPrimary}`,
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                transform: 'translateY(-4px)',
-                boxShadow: `0 12px 32px ${alpha(themeColors.primary, 0.4)}`
-              }
-            }}>
-              <Typography variant="h6" gutterBottom fontWeight={700}>Credit Conversion Factor</Typography>
-              <Typography variant="h3" component="div" fontWeight="800" sx={{ my: 2 }}>
-                {(stats.avgCCF * 100).toFixed(2)}%
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9, fontWeight: 500 }}>
-                Average CCF Rate
-              </Typography>
-            </Paper>
-          </Grid>
-          <Grid size={{ xs: 12, md: 4 }}>
-            <Paper sx={{
-              p: 4,
-              textAlign: 'center',
-              background: `linear-gradient(135deg, ${themeColors.secondary} 0%, ${alpha(themeColors.secondary, 0.7)} 100%)`,
-              color: 'white',
-              borderRadius: 3,
-              boxShadow: `0 8px 24px ${themeColors.shadowSecondary}`,
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                transform: 'translateY(-4px)',
-                boxShadow: `0 12px 32px ${alpha(themeColors.secondary, 0.4)}`
-              }
-            }}>
-              <Typography variant="h6" gutterBottom fontWeight={700}>Utilization Rate</Typography>
-              <Typography variant="h3" component="div" fontWeight="800" sx={{ my: 2 }}>
-                {(stats.avgUtilization * 100).toFixed(2)}%
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9, fontWeight: 500 }}>
-                Current Avg Utilization
-              </Typography>
-            </Paper>
-          </Grid>
-          <Grid size={{ xs: 12, md: 4 }}>
-            <Paper sx={{ 
-              p: 4, 
-              textAlign: 'center', 
-              background: `linear-gradient(135deg, ${themeColors.tertiary} 0%, ${alpha(themeColors.tertiary, 0.7)} 100%)`, 
-              color: 'white',
-              borderRadius: 3,
-              boxShadow: `0 8px 24px ${themeColors.shadowTertiary}`,
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                transform: 'translateY(-4px)',
-                boxShadow: `0 12px 32px ${alpha(themeColors.tertiary, 0.4)}`
-              }
-            }}>
-              <Typography variant="h6" gutterBottom fontWeight={700}>Exposure at Default</Typography>
-              <Typography variant="h3" component="div" fontWeight="800" sx={{ my: 2 }}>
-                {new Intl.NumberFormat('id-ID', {
-                  style: 'currency',
-                  currency: 'IDR',
-                  notation: 'compact',
-                  maximumFractionDigits: 1
-                }).format(stats.avgEAD)}
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9, fontWeight: 500 }}>
-                Average EAD Amount
-              </Typography>
-            </Paper>
-          </Grid>
-        </Grid>
-      </CardContent>
-    </Card>
-  );
-};
 
 const EADCharts: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
   <Grid container spacing={3} sx={{ mb: 5 }}>
@@ -371,8 +163,21 @@ const EADCharts: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
             <AreaChart data={stats.eadTrend}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={alpha('#000', 0.05)} />
               <XAxis dataKey="month" axisLine={false} tickLine={false} />
-              <YAxis yAxisId="left" axisLine={false} tickLine={false} />
-              <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} />
+              <YAxis 
+                yAxisId="left" 
+                axisLine={false} 
+                tickLine={false} 
+                width={80}
+                tickFormatter={(value) => new Intl.NumberFormat('id-ID', { notation: 'compact', compactDisplay: 'short' }).format(value)}
+              />
+              <YAxis 
+                yAxisId="right" 
+                orientation="right" 
+                axisLine={false} 
+                tickLine={false} 
+                width={50}
+                tickFormatter={(value) => `${(value * 100).toFixed(0)}%`}
+              />
               <Tooltip
                 contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}
                 formatter={(value: number, name: string) => {
@@ -390,7 +195,7 @@ const EADCharts: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
               <Area
                 yAxisId="left"
                 type="monotone"
-                dataKey="ead"
+                dataKey="eadAmount"
                 stroke="#667eea"
                 strokeWidth={3}
                 fill="url(#colorEad)"
@@ -405,7 +210,7 @@ const EADCharts: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
               <Line
                 yAxisId="right"
                 type="monotone"
-                dataKey="ccf"
+                dataKey="ccfRate"
                 stroke="#ff4e50"
                 strokeWidth={3}
                 dot={{ r: 4 }}
@@ -414,7 +219,7 @@ const EADCharts: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
               <Line
                 yAxisId="right"
                 type="monotone"
-                dataKey="utilization"
+                dataKey="utilizationRate"
                 stroke="#43e97b"
                 strokeWidth={3}
                 dot={{ r: 4 }}
@@ -491,14 +296,49 @@ const EADModelReport: React.FC = () => {
   });
 
   const [pivotData, setPivotData] = useState<Record<string, unknown>[]>([]);
-  const [pivotColumns, setPivotColumns] = useState<string[]>([]);
+  const [pivotColumns, setPivotColumns] = useState<GridColDef[]>([]);
 
-  const handleDataLoaded = React.useCallback((data: Record<string, unknown>[]) => {
+  const handleDataLoaded = React.useCallback((data: Record<string, unknown>[], summary?: any) => {
+    console.log("📊 [EADModelReport] handleDataLoaded called", { dataLength: data?.length, summary });
     const { pivotData: pData, columns: pCols } = processEADPivotData(data);
     setPivotData(pData);
-    setPivotColumns(pCols);
+    
+    // Generate dynamic columns for SafeDataGrid
+    const gridCols: GridColDef[] = pCols.map(col => {
+      const isDynamic = col.match(/^(tenor|month|paym|seq|seq_)_\d+$/i);
+      const isNumber = pData.length > 0 && typeof pData[0][col] === 'number';
 
-    if (data && data.length > 0) {
+      return {
+        field: col,
+        headerName: isDynamic 
+          ? col.replace(/^(tenor|month|paym|seq|seq_)_?/i, '').toUpperCase()
+          : col.replace(/_/g, ' ').toUpperCase(),
+        width: isDynamic ? 100 : 150,
+        type: isNumber ? 'number' : 'string',
+        align: isNumber ? 'right' : 'left',
+        headerAlign: isNumber ? 'right' : 'left',
+        valueFormatter: (value: any) => {
+          if (value === null || value === undefined) return '';
+          if (typeof value === 'number') {
+            return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(value);
+          }
+          return value;
+        }
+      };
+    });
+
+    setPivotColumns(gridCols);
+
+    if (summary) {
+      setSummaryStats({
+        totalAccounts: summary.totalAccounts || 0,
+        avgEAD: summary.avgEAD || 0,
+        avgCCF: summary.avgCCF || 0,
+        avgUtilization: summary.avgUtilization || 0,
+        eadTrend: summary.eadTrend || [],
+        productDistribution: summary.productDistribution || []
+      });
+    } else if (data && data.length > 0) {
       const stats = data.reduce<{ totalAccounts: number; avgEAD: number; avgCCF: number; avgUtilization: number }>((acc, row) => {
         const rowEad = parseFloat(row.ead_amount as string) || 0;
         const rowCcf = parseFloat(row.ccf_rate as string) || 0;
@@ -563,21 +403,31 @@ const EADModelReport: React.FC = () => {
       optionalParams={optionalParams}
       supportsPagination={false}
       supportsCharts={true}
+      hideDataGrid={true}
       onDataLoaded={handleDataLoaded}
     >
       <SummaryCards stats={summaryStats} />
-      <ModelParametersCard stats={summaryStats} />
       <EADCharts stats={summaryStats} />
 
-      <Card sx={{ mt: 3, borderRadius: 4, boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)' }}>
+      <Card sx={{ mt: 4, borderRadius: 4, boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)' }}>
         <CardContent sx={{ p: 4 }}>
           <Typography variant="h6" fontWeight={700} gutterBottom sx={{ mb: 3 }}>
             Payment Average by Tenor (Pivoted)
           </Typography>
-          <EADPivotTable
-            data={pivotData}
-            columns={pivotColumns}
-          />
+          <Box sx={{ height: 600, width: '100%' }}>
+            <SafeDataGrid
+              rows={pivotData}
+              columns={pivotColumns}
+              getRowId={(row) => row.id || row.account_id || Math.random()}
+              initialState={{
+                pagination: {
+                  paginationModel: { pageSize: 100 }
+                }
+              }}
+              pageSizeOptions={[100]}
+              disableRowSelectionOnClick
+            />
+          </Box>
         </CardContent>
       </Card>
     </BaseIfrs9Report>
@@ -588,10 +438,10 @@ const processEADPivotData = (data: Record<string, unknown>[]) => {
   if (!data || data.length === 0) return { pivotData: [], columns: [] };
 
   const firstRow = data[0];
-  const baseColumns = ['account_id', 'product_type', 'segment_name', 'tenor'];
+  const baseColumns = ['account_id', 'product_type', 'segment_name', 'tenor', 'id', 'lt_month'];
 
   const dynamicColumns = Object.keys(firstRow).filter(key =>
-    key.match(/^(tenor|month|paym)_\d+$/)
+    key.match(/^(tenor|month|paym|seq|seq_)_\d+$/i)
   ).sort();
 
   const pivotCols = dynamicColumns.length > 0 ? dynamicColumns : Object.keys(firstRow).filter(k => !baseColumns.includes(k) && typeof firstRow[k] === 'number');
@@ -601,65 +451,6 @@ const processEADPivotData = (data: Record<string, unknown>[]) => {
     pivotData: data,
     columns: allColumns
   };
-};
-
-const EADPivotTable = ({ data, columns }: { data: Record<string, any>[], columns: string[] }) => {
-  if (!data || data.length === 0) return null;
-
-  const baseColumns = columns.filter(col => !col.match(/^(tenor|month|paym)_\d+$/));
-  const dynamicColumns = columns.filter(col => col.match(/^(tenor|month|paym)_\d+$/));
-
-  const finalBase = dynamicColumns.length > 0 ? baseColumns : columns;
-  const finalDynamic = dynamicColumns.length > 0 ? dynamicColumns : [];
-
-  const { bankingMode } = useBankingTheme();
-  const headerBg = bankingMode === 'syariah' ? '#004d40' : bankingMode === 'dual' ? '#263238' : '#0D47A1';
-
-  return (
-    <Box sx={{ width: '100%', overflow: 'hidden' }}>
-      <Box sx={{ maxHeight: 600, overflow: 'auto', borderRadius: 2, border: '1px solid rgba(0,0,0,0.08)' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
-          <thead style={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: headerBg, color: 'white' }}>
-            <tr>
-              {finalBase.map(col => (
-                <th key={col} style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 700 }}>
-                  {col.replace(/_/g, ' ').toUpperCase()}
-                </th>
-              ))}
-              {finalDynamic.map(col => (
-                <th key={col} style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, minWidth: 80 }}>
-                  {col.replace(/^(tenor|month|paym)_/, '').toUpperCase()}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {data.slice(0, 100).map((row, index) => (
-              <tr key={index} style={{ borderBottom: '1px solid #f0f0f0', backgroundColor: index % 2 === 0 ? 'white' : '#f9faff' }}>
-                {finalBase.map(col => (
-                  <td key={col} style={{ padding: '12px 16px' }}>
-                    {row[col]?.toString() || '-'}
-                  </td>
-                ))}
-                {finalDynamic.map(col => (
-                  <td key={col} style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 600 }}>
-                    {row[col] !== null && row[col] !== undefined ? (
-                      new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(row[col])
-                    ) : '-'}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </Box>
-      {data.length > 100 && (
-        <Typography variant="caption" sx={{ display: 'block', mt: 1, color: 'text.secondary', textAlign: 'center' }}>
-          Showing first 100 rows. Export to see full data.
-        </Typography>
-      )}
-    </Box>
-  );
 };
 
 export default EADModelReport;

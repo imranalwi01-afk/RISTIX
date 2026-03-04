@@ -24,11 +24,195 @@ ra_init_logger(service = "r-analytics-shiny")
 ra_log_info("Starting app initialization")
 ra_log_info("Loading libraries")
 
+escape_json_text <- function(value) {
+  if (is.null(value)) return("")
+  out <- as.character(value)
+  out <- gsub("\\\\", "\\\\\\\\", out)
+  out <- gsub("\"", "\\\\\"", out)
+  out <- gsub("[\r\n]", " ", out)
+  out
+}
+
+send_runtime_alert <- local({
+  last_sent <- new.env(parent = emptyenv())
+
+  function(event, message, context = list(), throttle_seconds = 60) {
+    webhook_url <- Sys.getenv("R_ANALYTICS_ALERT_WEBHOOK_URL", "")
+    if (!nzchar(webhook_url)) {
+      return(invisible(FALSE))
+    }
+
+    sheet_name <- if (!is.null(context$sheet)) as.character(context$sheet) else ""
+    cache_key <- paste(event, sheet_name, sep = "::")
+    now <- as.numeric(Sys.time())
+    last_time <- if (exists(cache_key, envir = last_sent, inherits = FALSE)) {
+      get(cache_key, envir = last_sent, inherits = FALSE)
+    } else {
+      NA_real_
+    }
+
+    if (!is.na(last_time) && (now - last_time) < throttle_seconds) {
+      return(invisible(FALSE))
+    }
+    assign(cache_key, now, envir = last_sent)
+
+    timestamp <- format(Sys.time(), "%Y-%m-%dT%H:%M:%S%z")
+    is_discord_webhook <- grepl("discord(app)?\\.com/api/webhooks/", webhook_url, ignore.case = TRUE)
+    payload <- if (is_discord_webhook) {
+      content <- paste0(
+        "[r-analytics-shiny] ", event,
+        " | ", message,
+        " | sheet=", sheet_name,
+        " | error=", context$error %||% "",
+        " | ts=", timestamp
+      )
+      paste0("{\"content\":\"", escape_json_text(content), "\"}")
+    } else {
+      paste0(
+        "{\"service\":\"r-analytics-shiny\",",
+        "\"event\":\"", escape_json_text(event), "\",",
+        "\"message\":\"", escape_json_text(message), "\",",
+        "\"sheet\":\"", escape_json_text(sheet_name), "\",",
+        "\"error\":\"", escape_json_text(context$error %||% ""), "\",",
+        "\"timestamp\":\"", escape_json_text(timestamp), "\"}"
+      )
+    }
+
+    tmp_payload <- tempfile(fileext = ".json")
+    writeLines(payload, tmp_payload, useBytes = TRUE)
+    on.exit(unlink(tmp_payload), add = TRUE)
+
+    timeout <- Sys.getenv("R_ANALYTICS_ALERT_WEBHOOK_TIMEOUT", "8")
+    tryCatch({
+      system2(
+        "curl",
+        args = c(
+          "-sS",
+          "-X", "POST",
+          "-H", "Content-Type: application/json",
+          "--max-time", timeout,
+          "--data-binary", paste0("@", tmp_payload),
+          webhook_url
+        ),
+        stdout = FALSE,
+        stderr = FALSE,
+        wait = TRUE
+      )
+      TRUE
+    }, error = function(e) {
+      ra_log_warn("Runtime alert dispatch failed", context = list(error = e$message))
+      FALSE
+    })
+  }
+})
+
 log_sheet_error <- function(sheet_name, error_obj) {
+  error_message <- if (!is.null(error_obj$message) && nzchar(error_obj$message)) {
+    error_obj$message
+  } else {
+    "Unknown worksheet error"
+  }
+
   ra_log_warn("Worksheet write failed", context = list(
     sheet = sheet_name,
-    error = error_obj$message
+    error = error_message
   ))
+  send_runtime_alert(
+    event = "worksheet_write_failed",
+    message = paste("Worksheet write failed:", sheet_name),
+    context = list(sheet = sheet_name, error = error_message),
+    throttle_seconds = 90
+  )
+}
+
+safe_write_sheet <- function(wb, sheet_name, data_supplier) {
+  added <- tryCatch({
+    addWorksheet(wb, sheet_name)
+    TRUE
+  }, error = function(e) {
+    log_sheet_error(sheet_name, e)
+    FALSE
+  })
+
+  if (!isTRUE(added)) {
+    return(FALSE)
+  }
+
+  payload <- tryCatch({
+    data_value <- data_supplier()
+    if (is.null(data_value)) {
+      data.frame(Note = "No data available")
+    } else {
+      data_value
+    }
+  }, error = function(e) {
+    log_sheet_error(sheet_name, e)
+    data.frame(Note = "Data source failed, fallback sheet generated.")
+  })
+
+  write_ok <- tryCatch({
+    writeData(wb, sheet_name, payload)
+    TRUE
+  }, error = function(e) {
+    log_sheet_error(sheet_name, e)
+    tryCatch({
+      writeData(wb, sheet_name, data.frame(Note = "Worksheet fallback after write failure."))
+      TRUE
+    }, error = function(fallback_error) {
+      ra_log_error("Worksheet fallback write failed", context = list(
+        sheet = sheet_name,
+        error = fallback_error$message
+      ))
+      send_runtime_alert(
+        event = "worksheet_fallback_failed",
+        message = paste("Worksheet fallback write failed:", sheet_name),
+        context = list(sheet = sheet_name, error = fallback_error$message),
+        throttle_seconds = 120
+      )
+      FALSE
+    })
+  })
+
+  isTRUE(write_ok)
+}
+
+safe_save_workbook <- function(wb, file_path) {
+  saved <- tryCatch({
+    saveWorkbook(wb, file_path, overwrite = TRUE)
+    TRUE
+  }, error = function(e) {
+    ra_log_error("Workbook save failed", context = list(error = e$message))
+    send_runtime_alert(
+      event = "workbook_save_failed",
+      message = "Workbook save failed",
+      context = list(error = e$message),
+      throttle_seconds = 120
+    )
+    FALSE
+  })
+
+  if (isTRUE(saved)) {
+    return(TRUE)
+  }
+
+  tryCatch({
+    fallback_wb <- createWorkbook()
+    addWorksheet(fallback_wb, "Error")
+    writeData(
+      fallback_wb,
+      "Error",
+      data.frame(
+        status = "FAILED",
+        message = "Workbook generation failed. Check server logs for details.",
+        timestamp = format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+      )
+    )
+    saveWorkbook(fallback_wb, file_path, overwrite = TRUE)
+    TRUE
+  }, error = function(e) {
+    ra_log_error("Fallback workbook save failed", context = list(error = e$message))
+    FALSE
+  })
 }
 
 library(shiny)
@@ -122,18 +306,52 @@ if (!is.null(con)) {
   dbExecute(con, paste0('SET search_path TO "', db_schema, '", public;'))
 }
 
+normalize_config_df <- function(df, prefix) {
+  if (!is.data.frame(df) || nrow(df) == 0) return(df)
+  names(df) <- tolower(names(df))
+  
+  # Find ID column (case-insensitively mapped to lowercase)
+  # Identify model config id
+  id_col <- NULL
+  for (c in c("pkid", paste0(prefix, "_config_id"), "config_id", "id")) {
+    if (c %in% names(df)) {
+      id_col <- c
+      break
+    }
+  }
+  if (is.null(id_col) && ncol(df) >= 1) id_col <- names(df)[1]
+
+  # Identify model config name
+  name_col <- NULL
+  for (c in c(paste0(prefix, "_model_name"), "model_name", "name", "description")) {
+    if (c %in% names(df)) {
+      name_col <- c
+      break
+    }
+  }
+  if (is.null(name_col) && ncol(df) >= 2) name_col <- names(df)[2]
+  
+  # Standardize for app34.R variables
+  if (!is.null(id_col)) names(df)[names(df) == id_col] <- "pkid"
+  if (!is.null(name_col)) names(df)[names(df) == name_col] <- tolower(paste0(prefix, "_model_name"))
+  
+  df
+}
+
 # Load konfigurasi
 if (!is.null(con)) {
-  LGD <- tryCatch(
-    dbGetQuery(con, "SELECT * FROM frs9_imp_ca_lgd_config"),
-    error = function(e) {
+  LGD <- tryCatch({
+    df <- dbGetQuery(con, "SELECT * FROM frs9_imp_ca_lgd_config")
+    normalize_config_df(df, "lgd")
+  }, error = function(e) {
       ra_log_warn("Failed to load LGD config", context = list(error = e$message))
       data.frame()
     }
   )
-  PD <- tryCatch(
-    dbGetQuery(con, "SELECT * FROM frs9_imp_ca_pd_config"),
-    error = function(e) {
+  PD <- tryCatch({
+    df <- dbGetQuery(con, "SELECT * FROM frs9_imp_ca_pd_config")
+    normalize_config_df(df, "pd")
+  }, error = function(e) {
       ra_log_warn("Failed to load PD config", context = list(error = e$message))
       data.frame()
     }
@@ -143,6 +361,15 @@ if (!is.null(con)) {
   LGD <- data.frame()
   PD <- data.frame()
 }
+
+# =============================================================================
+# GLOBAL MULTIPROCESSING
+# =============================================================================
+# Set this globally so multiple users sharing the app don't crush each other's 
+# background processes when disconnecting.
+plan(multisession, workers = 7)
+ra_log_info("Global multiprocessing plan set to multisession with 7 workers")
+
 
 
 pd_tables_map <- list(
@@ -383,7 +610,7 @@ ui <- dashboardPage(
             fluidRow(
               box(
                 width = 4, title = "Input Data", solidHeader = TRUE, status = "primary",
-                selectInput("dependent", "Choose Dependent:", choices = c("PD", "LGD", "OTHERS")),
+                selectInput("dependent", "Choose Dependent:", choices = c("PD", "lgd", "OTHERS")),
                 conditionalPanel(
                   condition = "input.dependent != 'OTHERS'",
                   uiOutput("segmentationUI")
@@ -503,7 +730,7 @@ ui <- dashboardPage(
               ),
               box(
                 title = "Intuition", status = "primary", width = 6, solidHeader = TRUE,
-                DT::dataTableOutput("intuisi_table")
+                withSpinner(DTOutput("intuisi_table"))
               )
             ),
             fluidRow(
@@ -667,7 +894,7 @@ ui <- dashboardPage(
                 actionButton("runforecast", "RUN", class = "btn-success"),
                 br(), br(),
                 DT::dataTableOutput("dataforecast"),
-                br(), br(),
+                br(), br()
               ),
               box(
                 title = "Graph", solidHeader = T, status = "warning", width = 6,
@@ -999,21 +1226,18 @@ server <- function(input, output, session) {
   plan(multisession, workers = 7)
 
   options(
+    # Tambahkan fungsi lain untuk modularisasi
     shiny.error = function() {
+      err_msg <- geterrmessage()
       showNotification(
-        "Terjadi kesalahan sistem. Silakan ulangi.",
+        paste("Terjadi kesalahan sistem:", err_msg),
         type = "error",
         duration = NULL
       )
     }
   )
 
-  # Tambahkan cleanup saat app dimatikan
-  onStop(function() {
-    ra_log_info("Shiny stopped, resetting future plan to sequential")
-    plan(sequential) # agar tidak ganggu Shiny lain
-  })
-
+  # (Future plan is now handled globally, removed broken onStop hook)
 
   # variabel dependent
   rv_df <- reactiveVal() # Menyimpan df untuk digunakan ulang
@@ -1021,11 +1245,11 @@ server <- function(input, output, session) {
   output$segmentationUI <- renderUI({
     if (input$dependent == "PD") {
       selectInput("segment", "Segmentation:",
-        choices = setNames(PD$PKID, PD$PD_MODEL_NAME)
+        choices = setNames(PD$pkid, PD$pd_model_name)
       )
-    } else if (input$dependent == "LGD") {
+    } else if (input$dependent == "lgd") {
       selectInput("segment", "Segmentation:",
-        choices = setNames(LGD$PKID, LGD$LGD_MODEL_NAME)
+        choices = setNames(LGD$pkid, LGD$lgd_model_name)
       )
     }
   })
@@ -1033,8 +1257,11 @@ server <- function(input, output, session) {
   observeEvent(input$submit, {
     # Ambil data berdasarkan input
     df <- NULL
+    ra_log_info(paste("Initiating Dependent Data load. Type:", input$dependent))
+    
     if (input$dependent == "OTHERS") {
       if (!is.null(input$file_upload_other1)) {
+        ra_log_info(paste("Loading custom dependent data from file:", input$file_upload_other1$name))
         ext <- tools::file_ext(input$file_upload_other1$name)
         df <- if (ext %in% c("xlsx", "xls")) {
           readxl::read_excel(input$file_upload_other1$datapath)
@@ -1042,6 +1269,7 @@ server <- function(input, output, session) {
           read.csv(input$file_upload_other1$datapath, sep = input$csv_sep1)
         }
       } else {
+        ra_log_warn("Custom upload selected but no file was provided.")
         df <- data.frame(Warning = "No file uploaded")
       }
     } else {
@@ -1050,7 +1278,12 @@ server <- function(input, output, session) {
       } else {
         sprintf("SELECT * FROM frs9_imp_ca_lgd_h WHERE lgd_config_id = %s", input$segment)
       }
+      ra_log_info(paste("Fetching dependent data from database. Query:", query))
       df <- dbGetQuery(con, query)
+    }
+
+    if (is.data.frame(df)) {
+      names(df) <- tolower(names(df))
     }
 
     # Simpan ke reactiveVal
@@ -1063,18 +1296,32 @@ server <- function(input, output, session) {
   })
 
 
-  data_dependent_tr <- eventReactive(input$submit, {
-    req(input$dependent)
+  data_dependent_tr <- reactive({
+    req(input$dependent, rv_df(), input$submit)
     if (input$dependent == "PD") {
-      data_dependent <- rv_df()[, c("PRC_DATE", "ODR")]
-    } else if (input$dependent == "LGD") {
-      data_dependent <- rv_df()[, c("PRC_DATE", "LGD")]
+      data_dependent <- rv_df()[, c("prc_date", "odr")]
+    } else if (input$dependent == "lgd") {
+      data_dependent <- rv_df()[, c("prc_date", "lgd")]
     } else if (input$dependent == "OTHERS") {
       data_dependent <- rv_df()
       data_dependent <- convert_dates(data_dependent)
     }
 
     hasildependent <- transform_y(data_dependent, input$transformasi, logit_value = 0.000001, moving_avg_window = 3)
+    
+    # Alert for data quality issues
+    report <- attr(hasildependent, "quality_report")
+    if (length(report) > 0) {
+      msg <- paste0("Ditemukan nilai tidak valid (Inf/NaN) pada variabel dependent:\n", 
+                    paste(names(report), "pada tanggal", sapply(report, function(x) paste(head(x), collapse=", ")), collapse="\n"))
+      showModal(modalDialog(
+        title = "Peringatan Kualitas Data (Dependent)",
+        msg,
+        easyClose = TRUE,
+        footer = modalButton("Tutup")
+      ))
+    }
+    
     hasildependent
   })
 
@@ -1135,7 +1382,19 @@ server <- function(input, output, session) {
         if (ext %in% c("xlsx", "xls")) {
           readxl::read_excel(input_file$datapath)
         } else {
-          read.csv(input_file$datapath, sep = sep, stringsAsFactors = FALSE)
+          df <- read.csv(input_file$datapath, sep = sep, stringsAsFactors = FALSE)
+          # Auto-detection: if only 1 column is found, try other common delimiters
+          if (ncol(df) <= 1) {
+            for (alt_sep in c(";", "\t", "|")) {
+              if (alt_sep == sep) next
+              df_alt <- read.csv(input_file$datapath, sep = alt_sep, stringsAsFactors = FALSE)
+              if (ncol(df_alt) > 1) {
+                df <- df_alt
+                break
+              }
+            }
+          }
+          df
         }
       },
       error = function(e) {
@@ -1205,6 +1464,20 @@ server <- function(input, output, session) {
     if (input$transform) {
       df3x <- df2[, !names(df2) %in% date_col, drop = FALSE]
       df3new <- transform(df3x)
+      
+      # Alert for data quality issues
+      report <- attr(df3new, "quality_report")
+      if (length(report) > 0) {
+        msg <- paste0("Ditemukan nilai tidak valid (Inf/NaN) hasil transformasi (Division by Zero?):\n\n", 
+                      paste(lapply(names(report), function(n) paste0("- ", n, ": ", paste(head(report[[n]], 3), collapse=", "))), collapse="\n"))
+        showModal(modalDialog(
+          title = "Peringatan Kualitas Data (Independent)",
+          msg,
+          easyClose = TRUE,
+          footer = modalButton("Tutup")
+        ))
+      }
+      
       df3new <- cbind(df2[, date_col, drop = FALSE], df3new)
       df3new <- na.omit(df3new)
       return(df3new)
@@ -1310,14 +1583,29 @@ server <- function(input, output, session) {
 
   ################ Joint data####################
   datagabung <- eventReactive(input$join, {
-    req(data_dependent_tr(), df_final())
+    # Explicit checks instead of silent req()
+    if (is.null(df_final())) {
+      showNotification("Data Independent (MEV) belum siap. Silakan upload file di tab Independent.", type = "error")
+      return(NULL)
+    }
+    if (is.null(data_dependent_tr())) {
+      showNotification("Data Dependent belum siap. Silakan klik Submit di tab Dependent Data.", type = "error")
+      return(NULL)
+    }
 
     data_dep <- data_dependent_tr()
     data_ind <- df_final()
 
-
-    hasilgabung <- inner_join_date(data_dep, data_ind)
-    hasilgabung
+    tryCatch({
+      hasilgabung <- inner_join_date(data_dep, data_ind)
+      if (nrow(hasilgabung) == 0) {
+        showNotification("Hasil join kosong. Pastikan rentang waktu (Date) di kedua file beririsan.", type = "warning")
+      }
+      return(hasilgabung)
+    }, error = function(e) {
+      showNotification(paste("Gagal menggabungkan data:", e$message), type = "error")
+      return(NULL)
+    })
   })
 
   output$tabel_hasil_join <- renderDT({
@@ -1458,7 +1746,9 @@ server <- function(input, output, session) {
     df3x <- df[, !names(df) %in% date_col, drop = FALSE]
     namax <- names(df3x)
 
-    sources <- unique(sapply(strsplit(namax, "_"), `[`, 1))
+    # Get original variables from df1, excluding the Date column
+    raw_names <- names(df1())
+    sources <- raw_names[!(raw_names %in% c("Date", "date", "DATE"))]
 
     abc <- data.frame(var = sources, sign = rep(0, length(sources)))
     return(abc)
@@ -1473,9 +1763,15 @@ server <- function(input, output, session) {
   })
 
   # Tampilkan tabel
-  output$intuisi_table <- DT::renderDataTable({
+  output$intuisi_table <- renderDT({
     req(intuisiData$data)
-    DT::datatable(intuisiData$data, editable = TRUE, options = list(scrollX = TRUE))
+    datatable(intuisiData$data, 
+              editable = TRUE, 
+              options = list(
+                scrollX = TRUE, 
+                pageLength = 10,
+                dom = 'ltip'
+              ))
   })
 
   # Update data berdasarkan edit dari user
@@ -1757,19 +2053,34 @@ server <- function(input, output, session) {
 
 
   observeEvent(input$runmodel, {
-    ra_log_debug("Computing combined model table")
-    tryCatch(
-      {
-        ra_log_debug("Combined model row counts", context = list(
-          reg2 = nrow(model_reg2var()),
-          reg3 = nrow(model_reg3var()),
-          reg23 = nrow(model_reg23var())
-        ))
-      },
-      error = function(e) {
-        ra_log_warn("Combined model debug failed", context = list(error = e$message))
-      }
-    )
+    removeNotification(id = "runmodel_notif")
+    withProgress(message = 'Memulai perhitungan model...', value = 0, {
+      ra_log_debug("Computing combined model table")
+      tryCatch(
+        {
+          incProgress(0.1, detail = "Mengevaluasi regresi univariat & multivariat...")
+          # Force evaluation of the final model to trigger reactive chain and catch any errors
+          nrow_final <- nrow(finalmodel())
+          
+          incProgress(0.8, detail = "Menyelesaikan kombinasi & uji asumsi...")
+          
+          showNotification(paste("Perhitungan sukses. Ditemukan", nrow_final, "kombinasi model akhir yang memenuhi syarat."), type = "message", duration = 5, id = "runmodel_notif")
+          
+          ra_log_debug("Combined model row counts", context = list(
+            reg2 = nrow(model_reg2var()),
+            reg3 = nrow(model_reg3var()),
+            reg23 = nrow(model_reg23var()),
+            final = nrow_final
+          ))
+          
+          incProgress(0.1, detail = "Selesai!")
+        },
+        error = function(e) {
+          showNotification(paste("Terjadi kesalahan komputasi:", e$message), type = "error", duration = 15, id = "runmodel_notif")
+          ra_log_warn("Combined model debug failed", context = list(error = e$message))
+        }
+      )
+    })
   })
 
   ############## uji asumsi########################
@@ -1779,6 +2090,16 @@ server <- function(input, output, session) {
 
     # Jalankan fungsi dengan data baru
     hasilujiasumsi <- ujiasumsi(newdata(), namay(), cmodelfinal, normalmethod = input$normal)
+
+    # Guard: if ujiasumsi returned NULL or empty, return empty frame instead of crashing mutate
+    if (is.null(hasilujiasumsi) || nrow(hasilujiasumsi) == 0) {
+      return(data.frame(
+        Model = character(0), MAPE = numeric(0), RMSE = numeric(0),
+        normal_P = numeric(0), homogen_P = numeric(0), DW_P = numeric(0),
+        VIF1 = numeric(0), VIF2 = numeric(0), VIF3 = numeric(0),
+        statasumsi = character(0), stringsAsFactors = FALSE
+      ))
+    }
 
     # status hasil uji asumsi#
     hasilujiasumsi <- hasilujiasumsi %>%
@@ -2015,7 +2336,9 @@ server <- function(input, output, session) {
 
   df_forecast0 <- eventReactive(input$forecastX, {
     namax <- names(df_final())
-    sources <- unique(sapply(strsplit(namax, "_"), `[`, 1))
+    # Get original variables from df1, excluding the Date column
+    raw_names <- names(df1())
+    sources <- raw_names[!(raw_names %in% c("Date", "date", "DATE"))]
     datacorex <- df_final()[, sources, drop = FALSE]
 
     list_variabel <- konversi_ke_list_forecast(datacorex)
@@ -2034,7 +2357,9 @@ server <- function(input, output, session) {
 
   df_forecast1 <- eventReactive(input$forecastX, {
     namax <- names(df_final())
-    sources <- unique(sapply(strsplit(namax, "_"), `[`, 1))
+    # Get original variables from df1, excluding the Date column
+    raw_names <- names(df1())
+    sources <- raw_names[!(raw_names %in% c("Date", "date", "DATE"))]
     datacorex <- df_final()[, sources, drop = FALSE]
     list_variabel <- konversi_ke_list_forecast(datacorex)
     hasil_forecastmetode <- forecast_dengan_metode_terbaik(list_variabel, df_forecast0(), jf = input$jumlah_forecast)
@@ -2337,21 +2662,10 @@ server <- function(input, output, session) {
     },
     content = function(file) {
       wb <- createWorkbook()
-
-      # Tambahkan semua data frame hasil ke sheet Excel, gunakan tryCatch untuk menangani error
-
-      addWorksheet(wb, "Data Forecast Pilih")
-      tryCatch(
-        {
-          writeData(wb, "Data Forecast Pilih", transformed5_result_forecast())
-        },
-        error = function(e) {
-          log_sheet_error("Data Forecast Pilih", e)
-          writeData(wb, "Data Forecast Pilih", data.frame()) # Kosongkan jika error
-        }
-      )
-
-      saveWorkbook(wb, file, overwrite = TRUE)
+      safe_write_sheet(wb, "Data Forecast Pilih", transformed5_result_forecast)
+      if (!safe_save_workbook(wb, file)) {
+        showNotification("Gagal membuat file forecast manual.", type = "error")
+      }
     }
   )
 
@@ -2435,7 +2749,7 @@ server <- function(input, output, session) {
     hasil <- hasil_forecast6()
     hasilfulldf <- gabung_hasil_forecast1(hasil)
     dfxx <- df6()
-    dfxx()$Date <- as.Date(dfxx$Date)
+    dfxx$Date <- as.Date(dfxx$Date)
     hasilfulldf$Date <- as.Date(hasilfulldf$Date)
 
     df <- bind_rows(dfxx, hasilfulldf) %>%
@@ -2468,7 +2782,7 @@ server <- function(input, output, session) {
       hasil <- hasil_forecast6()
       hasilfulldf <- gabung_hasil_forecast1(hasil)
       dfxx <- df6()
-      dfxx()$Date <- as.Date(dfxx$Date)
+      dfxx$Date <- as.Date(dfxx$Date)
       hasilfulldf$Date <- as.Date(hasilfulldf$Date)
 
       df_download <- bind_rows(dfxx, hasilfulldf) %>%
@@ -2597,166 +2911,30 @@ server <- function(input, output, session) {
     },
     content = function(file) {
       wb <- createWorkbook()
-
-      # Tambahkan semua data frame hasil ke sheet Excel, gunakan tryCatch untuk menangani error
-
-      addWorksheet(wb, "Data Y awal")
-      tryCatch(
-        {
-          writeData(wb, "Data Y awal", data_dependent_tr())
-        },
-        error = function(e) {
-          log_sheet_error("Data Y awal", e)
-          writeData(wb, "Data Y awal", data.frame()) # Kosongkan jika error
-        }
+      sheet_specs <- list(
+        list(name = "Data Y awal", fn = data_dependent_tr),
+        list(name = "Data full", fn = yx),
+        list(name = "Data Trained", fn = data1),
+        list(name = "Intuisi", fn = refInt),
+        list(name = "Sign Intuisi", fn = signintuisikor),
+        list(name = "Single Factor", fn = model_reg1var),
+        list(name = "Korelasi 2 Var", fn = korel_reg2var),
+        list(name = "Korelasi 3 Var", fn = korel_reg3var),
+        list(name = "Regresi 2 Var", fn = model_reg2var),
+        list(name = "Regresi 3 Var", fn = model_reg3var),
+        list(name = "Gabungan Model", fn = model_reg23var),
+        list(name = "Uji Asumsi", fn = ujiasumsif),
+        list(name = "Backtest", fn = backtestf),
+        list(name = "Final Model", fn = finalmodel)
       )
 
-      addWorksheet(wb, "Data full")
-      tryCatch(
-        {
-          writeData(wb, "Data full", yx())
-        },
-        error = function(e) {
-          log_sheet_error("Data full", e)
-          writeData(wb, "Data full", data.frame()) # Kosongkan jika error
-        }
-      )
+      for (sheet_spec in sheet_specs) {
+        safe_write_sheet(wb, sheet_spec$name, sheet_spec$fn)
+      }
 
-      addWorksheet(wb, "Data Trained")
-      tryCatch(
-        {
-          writeData(wb, "Data Trained", data1())
-        },
-        error = function(e) {
-          log_sheet_error("Data Trained", e)
-          writeData(wb, "Data Trained", data.frame()) # Kosongkan jika error
-        }
-      )
-
-      addWorksheet(wb, "Intuisi")
-      tryCatch(
-        {
-          writeData(wb, "Intuisi", refInt())
-        },
-        error = function(e) {
-          log_sheet_error("Intuisi", e)
-          writeData(wb, "Intuisi", data.frame()) # Kosongkan jika error
-        }
-      )
-
-
-      addWorksheet(wb, "Sign Intuisi")
-      tryCatch(
-        {
-          writeData(wb, "Sign Intuisi", signintuisikor())
-        },
-        error = function(e) {
-          log_sheet_error("Sign Intuisi", e)
-          writeData(wb, "Sign Intuisi", data.frame()) # Kosongkan jika error
-        }
-      )
-
-      addWorksheet(wb, "Single Factor")
-      tryCatch(
-        {
-          writeData(wb, "Single Factor", model_reg1var())
-        },
-        error = function(e) {
-          log_sheet_error("Single Factor", e)
-          writeData(wb, "Single Factor", data.frame()) # Kosongkan jika error
-        }
-      )
-
-      addWorksheet(wb, "Korelasi 2 Var")
-      tryCatch(
-        {
-          writeData(wb, "Korelasi 2 Var", korel_reg2var())
-        },
-        error = function(e) {
-          log_sheet_error("Korelasi 2 Var", e)
-          writeData(wb, "Korelasi 2 Var", data.frame()) # Kosongkan jika error
-        }
-      )
-
-      addWorksheet(wb, "Korelasi 3 Var")
-      tryCatch(
-        {
-          writeData(wb, "Korelasi 3 Var", korel_reg3var())
-        },
-        error = function(e) {
-          log_sheet_error("Korelasi 3 Var", e)
-          writeData(wb, "Korelasi 3 Var", data.frame()) # Kosongkan jika error
-        }
-      )
-
-      addWorksheet(wb, "Regresi 2 Var")
-      tryCatch(
-        {
-          writeData(wb, "Regresi 2 Var", model_reg2var())
-        },
-        error = function(e) {
-          log_sheet_error("Regresi 2 Var", e)
-          writeData(wb, "Regresi 2 Var", data.frame()) # Kosongkan jika error
-        }
-      )
-
-      addWorksheet(wb, "Regresi 3 Var")
-      tryCatch(
-        {
-          writeData(wb, "Regresi 3 Var", model_reg3var())
-        },
-        error = function(e) {
-          log_sheet_error("Regresi 3 Var", e)
-          writeData(wb, "Regresi 3 Var", data.frame()) # Kosongkan jika error
-        }
-      )
-
-      addWorksheet(wb, "Gabungan Model")
-      tryCatch(
-        {
-          writeData(wb, "Gabungan Model", model_reg23var())
-        },
-        error = function(e) {
-          log_sheet_error("Gabungan Model", e)
-          writeData(wb, "Gabungan Model", data.frame()) # Kosongkan jika error
-        }
-      )
-
-      addWorksheet(wb, "Uji Asumsi")
-      tryCatch(
-        {
-          writeData(wb, "Uji Asumsi", ujiasumsif())
-        },
-        error = function(e) {
-          log_sheet_error("Uji Asumsi", e)
-          writeData(wb, "Uji Asumsi", data.frame()) # Kosongkan jika error
-        }
-      )
-
-      addWorksheet(wb, "Backtest")
-      tryCatch(
-        {
-          writeData(wb, "Backtest", backtestf())
-        },
-        error = function(e) {
-          log_sheet_error("Backtest", e)
-          writeData(wb, "Backtest", data.frame()) # Kosongkan jika error
-        }
-      )
-
-      addWorksheet(wb, "Final Model")
-      tryCatch(
-        {
-          writeData(wb, "Final Model", finalmodel())
-        },
-        error = function(e) {
-          log_sheet_error("Final Model", e)
-          writeData(wb, "Final Model", data.frame()) # Kosongkan jika error
-        }
-      )
-
-
-      saveWorkbook(wb, file, overwrite = TRUE)
+      if (!safe_save_workbook(wb, file)) {
+        showNotification("Gagal membuat file hasil modeling.", type = "error")
+      }
     }
   )
 
@@ -2767,224 +2945,35 @@ server <- function(input, output, session) {
     },
     content = function(file) {
       wb <- createWorkbook()
-
-      # Tambahkan semua data frame hasil ke sheet Excel, gunakan tryCatch untuk menangani error
-
-      addWorksheet(wb, "Data Y awal")
-      tryCatch(
-        {
-          writeData(wb, "Data Y awal", data_dependent_tr())
-        },
-        error = function(e) {
-          log_sheet_error("Data Y awal", e)
-          writeData(wb, "Data Y awal", data.frame()) # Kosongkan jika error
-        }
+      sheet_specs <- list(
+        list(name = "Data Y awal", fn = data_dependent_tr),
+        list(name = "Data full", fn = yx),
+        list(name = "Data Trained", fn = data1),
+        list(name = "Intuisi", fn = refInt),
+        list(name = "Sign Intuisi", fn = signintuisikor),
+        list(name = "Single Factor", fn = model_reg1var),
+        list(name = "Korelasi 2 Var", fn = korel_reg2var),
+        list(name = "Korelasi 3 Var", fn = korel_reg3var),
+        list(name = "Regresi 2 Var", fn = model_reg2var),
+        list(name = "Regresi 3 Var", fn = model_reg3var),
+        list(name = "Gabungan Model", fn = model_reg23var),
+        list(name = "Uji Asumsi", fn = ujiasumsif),
+        list(name = "Backtest", fn = backtestf),
+        list(name = "Final Model", fn = finalmodel),
+        list(name = "Model Akhir", fn = tabel_pemilihan_model_akhir),
+        list(name = "Forecast X", fn = forecastxxx),
+        list(name = "Forecast ALL Y", fn = forecastaveragey),
+        list(name = "Forecast ALL averageY", fn = averageygabmodel),
+        list(name = "Forecast Y", fn = hasilforecast)
       )
 
-      addWorksheet(wb, "Data full")
-      tryCatch(
-        {
-          writeData(wb, "Data full", yx())
-        },
-        error = function(e) {
-          log_sheet_error("Data full", e)
-          writeData(wb, "Data full", data.frame()) # Kosongkan jika error
-        }
-      )
+      for (sheet_spec in sheet_specs) {
+        safe_write_sheet(wb, sheet_spec$name, sheet_spec$fn)
+      }
 
-      addWorksheet(wb, "Data Trained")
-      tryCatch(
-        {
-          writeData(wb, "Data Trained", data1())
-        },
-        error = function(e) {
-          log_sheet_error("Data Trained", e)
-          writeData(wb, "Data Trained", data.frame()) # Kosongkan jika error
-        }
-      )
-
-      addWorksheet(wb, "Intuisi")
-      tryCatch(
-        {
-          writeData(wb, "Intuisi", refInt())
-        },
-        error = function(e) {
-          log_sheet_error("Intuisi", e)
-          writeData(wb, "Intuisi", data.frame()) # Kosongkan jika error
-        }
-      )
-
-
-      addWorksheet(wb, "Sign Intuisi")
-      tryCatch(
-        {
-          writeData(wb, "Sign Intuisi", signintuisikor())
-        },
-        error = function(e) {
-          log_sheet_error("Sign Intuisi", e)
-          writeData(wb, "Sign Intuisi", data.frame()) # Kosongkan jika error
-        }
-      )
-
-      addWorksheet(wb, "Single Factor")
-      tryCatch(
-        {
-          writeData(wb, "Single Factor", model_reg1var())
-        },
-        error = function(e) {
-          log_sheet_error("Single Factor", e)
-          writeData(wb, "Single Factor", data.frame()) # Kosongkan jika error
-        }
-      )
-
-      addWorksheet(wb, "Korelasi 2 Var")
-      tryCatch(
-        {
-          writeData(wb, "Korelasi 2 Var", korel_reg2var())
-        },
-        error = function(e) {
-          log_sheet_error("Korelasi 2 Var", e)
-          writeData(wb, "Korelasi 2 Var", data.frame()) # Kosongkan jika error
-        }
-      )
-
-      addWorksheet(wb, "Korelasi 3 Var")
-      tryCatch(
-        {
-          writeData(wb, "Korelasi 3 Var", korel_reg3var())
-        },
-        error = function(e) {
-          log_sheet_error("Korelasi 3 Var", e)
-          writeData(wb, "Korelasi 3 Var", data.frame()) # Kosongkan jika error
-        }
-      )
-
-      addWorksheet(wb, "Regresi 2 Var")
-      tryCatch(
-        {
-          writeData(wb, "Regresi 2 Var", model_reg2var())
-        },
-        error = function(e) {
-          log_sheet_error("Regresi 2 Var", e)
-          writeData(wb, "Regresi 2 Var", data.frame()) # Kosongkan jika error
-        }
-      )
-
-      addWorksheet(wb, "Regresi 3 Var")
-      tryCatch(
-        {
-          writeData(wb, "Regresi 3 Var", model_reg3var())
-        },
-        error = function(e) {
-          log_sheet_error("Regresi 3 Var", e)
-          writeData(wb, "Regresi 3 Var", data.frame()) # Kosongkan jika error
-        }
-      )
-
-      addWorksheet(wb, "Gabungan Model")
-      tryCatch(
-        {
-          writeData(wb, "Gabungan Model", model_reg23var())
-        },
-        error = function(e) {
-          log_sheet_error("Gabungan Model", e)
-          writeData(wb, "Gabungan Model", data.frame()) # Kosongkan jika error
-        }
-      )
-
-      addWorksheet(wb, "Uji Asumsi")
-      tryCatch(
-        {
-          writeData(wb, "Uji Asumsi", ujiasumsif())
-        },
-        error = function(e) {
-          log_sheet_error("Uji Asumsi", e)
-          writeData(wb, "Uji Asumsi", data.frame()) # Kosongkan jika error
-        }
-      )
-
-      addWorksheet(wb, "Backtest")
-      tryCatch(
-        {
-          writeData(wb, "Backtest", backtestf())
-        },
-        error = function(e) {
-          log_sheet_error("Backtest", e)
-          writeData(wb, "Backtest", data.frame()) # Kosongkan jika error
-        }
-      )
-
-      addWorksheet(wb, "Final Model")
-      tryCatch(
-        {
-          writeData(wb, "Final Model", finalmodel())
-        },
-        error = function(e) {
-          log_sheet_error("Final Model", e)
-          writeData(wb, "Final Model", data.frame()) # Kosongkan jika error
-        }
-      )
-
-      addWorksheet(wb, "Model Akhir")
-      tryCatch(
-        {
-          writeData(wb, "Model Akhir", tabel_pemilihan_model_akhir())
-        },
-        error = function(e) {
-          log_sheet_error("Model Akhir", e)
-          writeData(wb, "Model Akhir", data.frame()) # Kosongkan jika error
-        }
-      )
-
-      addWorksheet(wb, "Forecast X")
-      tryCatch(
-        {
-          writeData(wb, "Forecast X", forecastxxx())
-        },
-        error = function(e) {
-          log_sheet_error("Forecast X", e)
-          writeData(wb, "Forecast X", data.frame()) # Kosongkan jika error
-        }
-      )
-
-
-      addWorksheet(wb, "Forecast ALL Y")
-      tryCatch(
-        {
-          writeData(wb, "Forecast ALL Y", forecastaveragey())
-        },
-        error = function(e) {
-          log_sheet_error("Forecast ALL Y", e)
-          writeData(wb, "Forecast ALL Y", data.frame()) # Kosongkan jika error
-        }
-      )
-
-
-      addWorksheet(wb, "Forecast ALL averageY")
-      tryCatch(
-        {
-          writeData(wb, "Forecast ALL averageY", averageygabmodel())
-        },
-        error = function(e) {
-          log_sheet_error("Forecast ALL averageY", e)
-          writeData(wb, "Forecast ALL averageY", data.frame()) # Kosongkan jika error
-        }
-      )
-
-
-      addWorksheet(wb, "Forecast Y")
-      tryCatch(
-        {
-          writeData(wb, "Forecast Y", hasilforecast())
-        },
-        error = function(e) {
-          log_sheet_error("Forecast Y", e)
-          writeData(wb, "Forecast Y", data.frame()) # Kosongkan jika error
-        }
-      )
-
-
-      saveWorkbook(wb, file, overwrite = TRUE)
+      if (!safe_save_workbook(wb, file)) {
+        showNotification("Gagal membuat file output lengkap.", type = "error")
+      }
     }
   )
 
@@ -3037,317 +3026,164 @@ server <- function(input, output, session) {
   )
 
 
-  observeEvent(input$save_model_db, {
-    # req(input$model_name_input)
+  #' Save R Model to Database
+  #'
+  #' This function captures the current state of the model building pipeline,
+  #' generates an Excel workbook containing all intermediate and final results,
+  #' and persists it as a binary blob in the PostgreSQL database.
+  #'
+  #' @param name The descriptive name for the model (must be unique).
+  #' @param session The Shiny session object.
+  #'
+  #' @details
+  #' The function performs the following steps:
+  #' 1. Validates the existence of a database connection.
+  #' 2. Checks for duplicates in the `frs9_r_model_summary` table.
+  #' 3. Creates a multi-sheet Excel workbook using the `openxlsx` package.
+  #' 4. Captures data from approximately 17 reactive elements.
+  #' 5. Converts the workbook to a raw binary blob.
+  #' 6. Executes a SQL INSERT statement into `frs9_r_model_summary`.
+  #'
+  #' @return NULL (side effects: database insertion and UI notifications).
+  save_r_model_to_db <- function(name, session) {
+    ra_log_info("Starting model save process", context = list(model_name = name))
 
+    # Check connection health
+    is_valid <- tryCatch(dbIsValid(con), error = function(e) FALSE)
+    if (is.null(con) || !is_valid) {
+      ra_log_error("Database connection (con) is NULL or invalid. Cannot save.")
+      showNotification("❌ Koneksi database tidak tersedia atau terputus.", type = "error")
+      return()
+    }
 
-    # --- VALIDASI NAMA (wajib & unik) ---
-    nm <- input$model_name_input
-    if (is.null(nm)) nm <- ""
-    nm <- gsub("^\\s+|\\s+$", "", nm) # trim spasi kiri-kanan
-
+    # 1. Validation Logic
+    nm <- gsub("^\\s+|\\s+$", "", name)
     if (nm == "") {
       showNotification("Nama model tidak boleh kosong.", type = "error")
       return()
     }
-    if (nchar(nm) > 50) {
-      showNotification("Nama model terlalu panjang (maks 50 karakter).", type = "error")
-      return()
-    }
 
-    # Cek duplikat di DB (case-insensitive) untuk yang belum dihapus
-    dup <- dbGetQuery(
-      con,
-      "SELECT model_id
-     FROM frs9_r_model_summary
-     WHERE lower(model_name) = lower($1)
-       AND id_deleted = FALSE
-     LIMIT 1",
-      params = list(nm)
-    )
+    # 2. Duplicate Check
+    ra_log_info("Checking for duplicate model name", context = list(name = nm))
+    dup <- tryCatch({
+       dbGetQuery(con,
+        "SELECT model_id FROM frs9_r_model_summary WHERE lower(model_name) = lower($1) AND id_deleted = FALSE LIMIT 1",
+        params = list(nm)
+      )
+    }, error = function(e) {
+      ra_log_error("Failed to check duplicates", context = list(error = e$message))
+      return(data.frame())
+    })
 
     if (nrow(dup) > 0) {
-      showNotification(
-        paste0("Nama model '", nm, "' sudah ada (ID=", dup$model_id[1], "). Gunakan nama lain."),
-        type = "error"
-      )
+      showNotification(paste0("Nama model '", nm, "' sudah ada. Gunakan nama lain."), type = "error")
       return()
     }
 
-    # Simpan ke workbook
+    # 3. Workbook Creation
+    ra_log_info("Generating Excel workbook for model storage")
     file_path <- tempfile(fileext = ".xlsx")
     wb <- createWorkbook()
-    # Tambahkan semua data frame hasil ke sheet Excel, gunakan tryCatch untuk menangani error
 
-    addWorksheet(wb, "Data Y awal")
-    tryCatch(
-      {
-        writeData(wb, "Data Y awal", data_dependent_tr())
-      },
-      error = function(e) {
-        log_sheet_error("Data Y awal", e)
-        writeData(wb, "Data Y awal", data.frame()) # Kosongkan jika error
-      }
+    # List of all reactives to capture
+    ra_log_debug("Capturing reactive data sources")
+    sheet_specs <- list(
+      list(name = "Data Y awal", fn = data_dependent_tr),
+      list(name = "Data full", fn = yx),
+      list(name = "Data Trained", fn = data1),
+      list(name = "Intuisi", fn = function() intuisiData$data),
+      list(name = "Sign Intuisi", fn = signintuisikor),
+      list(name = "Single Factor", fn = model_reg1var),
+      list(name = "Korelasi 2 Var", fn = korel_reg2var),
+      list(name = "Korelasi 3 Var", fn = korel_reg3var),
+      list(name = "Regresi 2 Var", fn = model_reg2var),
+      list(name = "Regresi 3 Var", fn = model_reg3var),
+      list(name = "Gabungan Model", fn = model_reg23var),
+      list(name = "Uji Asumsi", fn = ujiasumsif),
+      list(name = "Backtest", fn = backtestf),
+      list(name = "Final Model", fn = finalmodel),
+      list(name = "Model Akhir", fn = tabel_pemilihan_model_akhir),
+      list(name = "Forecast X", fn = forecastxxx),
+      list(name = "Forecast Y", fn = hasilforecast)
     )
 
-    addWorksheet(wb, "Data full")
-    tryCatch(
-      {
-        writeData(wb, "Data full", yx())
-      },
-      error = function(e) {
-        log_sheet_error("Data full", e)
-        writeData(wb, "Data full", data.frame()) # Kosongkan jika error
-      }
-    )
+    for (sheet_spec in sheet_specs) {
+      safe_write_sheet(wb, sheet_spec$name, sheet_spec$fn)
+    }
 
-    addWorksheet(wb, "Data Trained")
-    tryCatch(
-      {
-        writeData(wb, "Data Trained", data1())
-      },
-      error = function(e) {
-        log_sheet_error("Data Trained", e)
-        writeData(wb, "Data Trained", data.frame()) # Kosongkan jika error
-      }
-    )
-
-    addWorksheet(wb, "Intuisi")
-    tryCatch(
-      {
-        writeData(wb, "Intuisi", refInt())
-      },
-      error = function(e) {
-        log_sheet_error("Intuisi", e)
-        writeData(wb, "Intuisi", data.frame()) # Kosongkan jika error
-      }
-    )
-
-
-    addWorksheet(wb, "Sign Intuisi")
-    tryCatch(
-      {
-        writeData(wb, "Sign Intuisi", signintuisikor())
-      },
-      error = function(e) {
-        log_sheet_error("Sign Intuisi", e)
-        writeData(wb, "Sign Intuisi", data.frame()) # Kosongkan jika error
-      }
-    )
-
-    addWorksheet(wb, "Single Factor")
-    tryCatch(
-      {
-        writeData(wb, "Single Factor", model_reg1var())
-      },
-      error = function(e) {
-        log_sheet_error("Single Factor", e)
-        writeData(wb, "Single Factor", data.frame()) # Kosongkan jika error
-      }
-    )
-
-    addWorksheet(wb, "Korelasi 2 Var")
-    tryCatch(
-      {
-        writeData(wb, "Korelasi 2 Var", korel_reg2var())
-      },
-      error = function(e) {
-        log_sheet_error("Korelasi 2 Var", e)
-        writeData(wb, "Korelasi 2 Var", data.frame()) # Kosongkan jika error
-      }
-    )
-
-    addWorksheet(wb, "Korelasi 3 Var")
-    tryCatch(
-      {
-        writeData(wb, "Korelasi 3 Var", korel_reg3var())
-      },
-      error = function(e) {
-        log_sheet_error("Korelasi 3 Var", e)
-        writeData(wb, "Korelasi 3 Var", data.frame()) # Kosongkan jika error
-      }
-    )
-
-    addWorksheet(wb, "Regresi 2 Var")
-    tryCatch(
-      {
-        writeData(wb, "Regresi 2 Var", model_reg2var())
-      },
-      error = function(e) {
-        log_sheet_error("Regresi 2 Var", e)
-        writeData(wb, "Regresi 2 Var", data.frame()) # Kosongkan jika error
-      }
-    )
-
-    addWorksheet(wb, "Regresi 3 Var")
-    tryCatch(
-      {
-        writeData(wb, "Regresi 3 Var", model_reg3var())
-      },
-      error = function(e) {
-        log_sheet_error("Regresi 3 Var", e)
-        writeData(wb, "Regresi 3 Var", data.frame()) # Kosongkan jika error
-      }
-    )
-
-    addWorksheet(wb, "Gabungan Model")
-    tryCatch(
-      {
-        writeData(wb, "Gabungan Model", model_reg23var())
-      },
-      error = function(e) {
-        log_sheet_error("Gabungan Model", e)
-        writeData(wb, "Gabungan Model", data.frame()) # Kosongkan jika error
-      }
-    )
-
-    addWorksheet(wb, "Uji Asumsi")
-    tryCatch(
-      {
-        writeData(wb, "Uji Asumsi", ujiasumsif())
-      },
-      error = function(e) {
-        log_sheet_error("Uji Asumsi", e)
-        writeData(wb, "Uji Asumsi", data.frame()) # Kosongkan jika error
-      }
-    )
-
-    addWorksheet(wb, "Backtest")
-    tryCatch(
-      {
-        writeData(wb, "Backtest", backtestf())
-      },
-      error = function(e) {
-        log_sheet_error("Backtest", e)
-        writeData(wb, "Backtest", data.frame()) # Kosongkan jika error
-      }
-    )
-
-    addWorksheet(wb, "Final Model")
-    tryCatch(
-      {
-        writeData(wb, "Final Model", finalmodel())
-      },
-      error = function(e) {
-        log_sheet_error("Final Model", e)
-        writeData(wb, "Final Model", data.frame()) # Kosongkan jika error
-      }
-    )
-
-    addWorksheet(wb, "Model Akhir")
-    tryCatch(
-      {
-        writeData(wb, "Model Akhir", tabel_pemilihan_model_akhir())
-      },
-      error = function(e) {
-        log_sheet_error("Model Akhir", e)
-        writeData(wb, "Model Akhir", data.frame()) # Kosongkan jika error
-      }
-    )
-
-    addWorksheet(wb, "Forecast X")
-    tryCatch(
-      {
-        writeData(wb, "Forecast X", forecastxxx())
-      },
-      error = function(e) {
-        log_sheet_error("Forecast X", e)
-        writeData(wb, "Forecast X", data.frame()) # Kosongkan jika error
-      }
-    )
-
-    addWorksheet(wb, "Forecast Y")
-    tryCatch(
-      {
-        writeData(wb, "Forecast Y", hasilforecast())
-      },
-      error = function(e) {
-        log_sheet_error("Forecast Y", e)
-        writeData(wb, "Forecast Y", data.frame()) # Kosongkan jika error
-      }
-    )
-
-
-    saveWorkbook(wb, file = file_path, overwrite = TRUE)
+    # 4. Save and Read binary
+    ra_log_info("Saving workbook to temporary file")
+    if (!safe_save_workbook(wb, file_path)) {
+      showNotification("❌ Gagal membuat file Excel.", type = "error")
+      return()
+    }
 
     if (!file.exists(file_path)) {
-      showNotification("❌ File hasil workbook tidak ditemukan.", type = "error")
+      ra_log_error("Failed to write temporary Excel file")
+      showNotification("❌ Gagal membuat file Excel.", type = "error")
       return()
     }
 
-    file_size <- file.info(file_path)$size
-    if (is.na(file_size) || file_size == 0) {
-      showNotification("❌ File Excel kosong atau gagal dibuat.", type = "error")
+    ra_log_info("Reading binary data from file", context = list(path = file_path, size = file.info(file_path)$size))
+    raw_data <- tryCatch({
+      con_file <- file(file_path, "rb")
+      bin_content <- readBin(con_file, what = "raw", n = file.info(file_path)$size)
+      close(con_file)
+      bin_content
+    }, error = function(e) {
+      ra_log_error("Binary read failure", context = list(error = e$message))
+      return(NULL)
+    })
+
+    if (is.null(raw_data) || length(raw_data) == 0) {
+      showNotification("❌ Gagal memproses data model.", type = "error")
       return()
     }
 
-
-    # Baca file sebagai raw
-    # raw_data <- readBin(file_path, what = "raw", n = file.info(file_path)$size)
-    # Baca sebagai raw, pastikan bukan list
-    raw_data <- tryCatch(
-      {
-        con_file <- file(file_path, "rb") # rb = read binary
-        on.exit(close(con_file), add = TRUE)
-        readBin(con_file, what = "raw", n = file.info(file_path)$size)
-      },
-      error = function(e) {
-        showNotification(paste("❌ Gagal membaca file sebagai raw:", e$message), type = "error")
-        return(NULL)
-      }
-    )
-
-
-    if (is.null(raw_data) || !is.raw(raw_data) || length(raw_data) == 0) {
-      showNotification("❌ Data file tidak valid untuk disimpan ke PostgreSQL.", type = "error")
-      return()
-    }
-
-    ra_log_debug("Workbook raw payload prepared", context = list(
-      type = typeof(raw_data),
-      length = length(raw_data)
-    ))
-
-
-    # Ambil nilai dari satu baris model final
-    model_row <- tabel_pemilihan_model_akhir() # Gunakan baris pertama saja sebagai ringkasan
+    # 5. Database Insertion
+    ra_log_info("Executing DB Insertion")
+    model_row <- tryCatch(tabel_pemilihan_model_akhir(), error = function(e) data.frame())
     r_squared <- if ("R_squared" %in% names(model_row)) model_row$R_squared else NA
     mape <- if ("MAPEgabung" %in% names(model_row)) model_row$MAPEgabung else NA
-    dep_var <- namay()
+    dep_var <- tryCatch(namay(), error = function(e) "Unknown")
+    user_name <- Sys.getenv("USERNAME", Sys.getenv("USER", "IAF_USER"))
 
-    # Simpan ke PostgreSQL
-
-    tryCatch(
-      {
-        query <- "
-              INSERT INTO frs9_r_model_summary
-              (model_name, model_status, dependent_variable, r_squared, mape, data_file, created_by)
-              VALUES ($1, $2, $3, $4, $5, $6, $7)
-              "
-
-        stmt <- dbSendQuery(con, query)
-
-        # Kirim parameter satu per satu
-        dbBind(stmt, list(
-          nm,
-          "active",
-          dep_var,
-          r_squared,
-          mape,
-          I(list(raw_data)), # penting: bungkus dengan I() + list() agar dianggap binary
-          Sys.getenv("USERNAME")
-        ))
-
-        dbClearResult(stmt)
-
-        showNotification("✅ Model berhasil disimpan ke database.", type = "message")
-        updateTextInput(session, "model_name_input", value = "")
-      },
-      error = function(e) {
-        showNotification(paste("❌ Gagal simpan model:", e$message), type = "error")
+    tryCatch({
+      query <- "
+        INSERT INTO frs9_r_model_summary
+        (model_name, model_status, dependent_variable, r_squared, mape, data_file, created_by)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+      "
+      stmt <- dbSendQuery(con, query)
+      dbBind(stmt, list(
+        nm, "active", dep_var, r_squared, mape,
+        I(list(raw_data)),
+        user_name
+      ))
+      dbClearResult(stmt)
+      
+      ra_log_info("Model successfully saved to database", context = list(name = nm))
+      showNotification("✅ Model berhasil disimpan ke database.", type = "message")
+      updateTextInput(session, "model_name_input", value = "")
+      
+      # Refresh table list if it exists
+      if (exists("model_summary_data_DB")) {
+        try(model_summary_data_DB(dbGetQuery(con, "SELECT model_id, model_name, model_status, dependent_variable, r_squared, mape, created_date FROM frs9_r_model_summary WHERE id_deleted = FALSE ORDER BY model_id DESC")))
       }
-    )
+
+    }, error = function(e) {
+      ra_log_error("Database insertion failure", context = list(error = e$message))
+      showNotification(paste("❌ Gagal simpan model:", e$message), type = "error")
+    })
+    
+    # Clean up
+    if (file.exists(file_path)) unlink(file_path)
+  }
+
+  observeEvent(input$save_model_db, {
+    save_r_model_to_db(input$model_name_input, session)
   })
+
 
 
   model_summary_data_DB <- reactiveVal({
@@ -3383,7 +3219,7 @@ server <- function(input, output, session) {
 
 
   output$segmentationPDAFLUI <- renderUI({
-    selectInput("segmentpd", "Segmentation:", choices = setNames(PD$PKID, PD$PD_MODEL_NAME))
+    selectInput("segmentpd", "Segmentation:", choices = setNames(PD$pkid, PD$pd_model_name))
   })
 
   dataissuerrr0 <- eventReactive(input$runpdafl, {
@@ -3409,20 +3245,20 @@ server <- function(input, output, session) {
     config <- konfig_id()
 
     # pastikan tipe data Date
-    dataisu$PRC_DATE <- as.Date(dataisu$PRC_DATE)
-    config$OBSERVATION_START_DATE <- as.Date(config$OBSERVATION_START_DATE)
+    dataisu$prc_date <- as.Date(dataisu$prc_date)
+    config$observation_start_date <- as.Date(config$observation_start_date)
 
-    if (config$POPULATION_TYPE == 1) {
+    if (config$population_type == 1) {
       dataku <- dataisu
-    } else if (config$POPULATION_TYPE == 2) {
+    } else if (config$population_type == 2) {
       # ambil n periode terakhir sesuai OBSERVATION_PERIOD
-      last_n_dates <- tail(unique(dataisu$PRC_DATE), config$OBSERVATION_PERIOD)
+      last_n_dates <- tail(unique(dataisu$prc_date), config$observation_period)
       # print(last_n_dates[1])
-      dataku <- dataisu[dataisu$PRC_DATE %in% last_n_dates, ]
+      dataku <- dataisu[dataisu$prc_date %in% last_n_dates, ]
 
       # filter tambahan jika mulai periode lebih besar dari start date
-      if (min(last_n_dates) < config$OBSERVATION_START_DATE) {
-        dataku <- dataku[dataku$PRC_DATE >= config$OBSERVATION_START_DATE, ]
+      if (min(last_n_dates) < config$observation_start_date) {
+        dataku <- dataku[dataku$prc_date >= config$observation_start_date, ]
       }
 
       # } else {
@@ -3537,8 +3373,12 @@ server <- function(input, output, session) {
     req(!is.null(df), ncol(df) >= 2)
 
     namax <- names(df)
-    sources <- unique(sapply(strsplit(namax, "_"), `[`, 1))
-    sources <- sources[sources %in% names(df)] # guard kolom
+    # Robust extraction of source variables (excluding transformations)
+    all_names <- names(df)
+    sources <- all_names[!sapply(all_names, function(n) {
+      base <- gsub("(_Y|_Diff12|_Ln|_Lg[1-4])$", "", n)
+      n != base && base %in% all_names
+    })]
     if (length(sources) == 0) {
       return(df)
     } # fallback: kembalikan df apa adanya
@@ -3816,27 +3656,27 @@ server <- function(input, output, session) {
     datay2 <- back_trans(datay, input$backtransform)
 
     # dataissuer2=aggregate(CALC_AMOUNT~BUCKET_FROM,data=dataissuerrr01(),sum)
-    # issuer=dataissuer2$CALC_AMOUNT
+    # issuer=dataissuer2$calc_amount
 
     dataissuer2 <- dataissuerrr01() %>%
       group_by(BUCKET_FROM) %>%
       summarise(CALC_AMOUNT = sum(CALC_AMOUNT), .groups = "drop") %>%
       complete(BUCKET_FROM = 1:5, fill = list(CALC_AMOUNT = 0))
     dataissuer2 <- data.frame(dataissuer2)
-    issuer <- dataissuer2$CALC_AMOUNT
+    issuer <- dataissuer2$calc_amount
 
 
     datammult <- as.data.frame(datammulttt0())
-    filtered_datammult <- datammult[datammult$PRC_DATE == datammult$PRC_DATE[nrow(datammult)] & datammult$BUCKET_TO == 5, ]
-    filtered_datammult$BUCKET_FROM <- factor(filtered_datammult$BUCKET_FROM, levels = 1:5)
+    filtered_datammult <- datammult[datammult$prc_date == datammult$prc_date[nrow(datammult)] & datammult$bucket_to == 5, ]
+    filtered_datammult$bucket_from <- factor(filtered_datammult$bucket_from, levels = 1:5)
 
     ym.pd <- as.data.frame.matrix(xtabs(MMULT ~ BUCKET_FROM + FL_SEQ, data = filtered_datammult))
     ym.pd[5, 2:ncol(ym.pd)] <- 0
 
 
-    PD.Base <- PD_engine1(fo.y.boxplot$`ODR BASE`, datahisto$ODR, issuer, ym.pd)
-    PD.Best <- PD_engine1(fo.y.boxplot$`ODR BEST`, datahisto$ODR, issuer, ym.pd)
-    PD.Worst <- PD_engine1(fo.y.boxplot$`ODR WORST`, datahisto$ODR, issuer, ym.pd)
+    PD.Base <- PD_engine1(fo.y.boxplot$`ODR BASE`, datahisto$odr, issuer, ym.pd)
+    PD.Best <- PD_engine1(fo.y.boxplot$`ODR BEST`, datahisto$odr, issuer, ym.pd)
+    PD.Worst <- PD_engine1(fo.y.boxplot$`ODR WORST`, datahisto$odr, issuer, ym.pd)
 
 
     list(
@@ -4008,7 +3848,7 @@ server <- function(input, output, session) {
   }
 
   output$download_all_xlsx <- downloadHandler(
-    filename = function() paste0("PDAFL_All_", max(dataissuerrr01()$PRC_DATE), " rep-", Sys.Date(), ".xlsx"),
+    filename = function() paste0("PDAFL_All_", max(dataissuerrr01()$prc_date), " rep-", Sys.Date(), ".xlsx"),
     content = function(file) {
       wb <- createWorkbook()
 
@@ -4080,8 +3920,8 @@ server <- function(input, output, session) {
       report_text <- tryCatch(
         {
           x <- dataissuerrr01()
-          if (!is.null(x) && "PRC_DATE" %in% names(x)) {
-            dt <- suppressWarnings(max(as.Date(x$PRC_DATE), na.rm = TRUE))
+          if (!is.null(x) && "prc_date" %in% names(x)) {
+            dt <- suppressWarnings(max(as.Date(x$prc_date), na.rm = TRUE))
             paste0("Report PD Date ", format(dt, "%Y-%m-%d"))
           } else {
             "Report PD Date -"
@@ -4200,7 +4040,7 @@ server <- function(input, output, session) {
       req(hasilPD())
 
       # meta
-      prc_date <- max(dataissuerrr01()$PRC_DATE, na.rm = TRUE)
+      prc_date <- max(dataissuerrr01()$prc_date, na.rm = TRUE)
       pd_config_id <- as.integer(input$segmentpd)
       model_id <- current_model_id()
       created_by <- if (!is.null(session$user) && nzchar(session$user)) session$user else if (!is.na(Sys.info()[["user"]])) Sys.info()[["user"]] else "shiny"

@@ -33,6 +33,8 @@ interface User {
   isActive?: boolean;
   phone?: string;
   lastLoginAt?: string;
+  stakeholderType?: 'platform' | 'banking' | 'consultant' | 'regulator';
+  isPlatformAdmin?: boolean;
   preferences?: {
     language?: string;
     timezone?: string;

@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull, sql } from 'drizzle-orm'
+import { and, desc, eq, gte, ilike, inArray, isNotNull, isNull, like, lte, not, or, sql } from 'drizzle-orm'
 import { getDatabase } from '@/config/database'
 import {
     notifications,
@@ -47,6 +47,36 @@ export interface UserNotificationRow {
     deliveredAt: Date | null
     readAt: Date | null
     createdAt: Date
+}
+
+export type NotificationCategory = 'approval' | 'workflow' | 'analytics' | 'system'
+export type NotificationReadStatus = 'all' | 'read' | 'unread'
+
+const buildCategoryPredicate = (category?: NotificationCategory) => {
+    if (!category || category === 'system') {
+        if (!category) return undefined
+        return not(
+            or(
+                like(notifications.type, 'APPROVAL_%'),
+                like(notifications.type, 'WORKFLOW_%'),
+                like(notifications.type, 'ECL_%'),
+                like(notifications.type, 'ANALYTICS_%'),
+            )!
+        )
+    }
+
+    if (category === 'approval') {
+        return like(notifications.type, 'APPROVAL_%')
+    }
+
+    if (category === 'workflow') {
+        return like(notifications.type, 'WORKFLOW_%')
+    }
+
+    return or(
+        like(notifications.type, 'ECL_%'),
+        like(notifications.type, 'ANALYTICS_%')
+    )
 }
 
 export const NotificationRepository = {
@@ -132,12 +162,54 @@ export const NotificationRepository = {
         tenantId: string
         userId: string
         unreadOnly?: boolean
+        readStatus?: NotificationReadStatus
+        category?: NotificationCategory
+        search?: string
+        dateFrom?: Date
+        dateTo?: Date
         limit?: number
         offset?: number
-    }): Promise<UserNotificationRow[]> {
+    }): Promise<{ rows: UserNotificationRow[]; total: number }> {
         const dbx = getDatabase(input.tenantId)
         const limit = Math.max(1, Math.min(200, Number(input.limit || 50)))
         const offset = Math.max(0, Number(input.offset || 0))
+        const normalizedSearch = typeof input.search === 'string' ? input.search.trim() : ''
+        const normalizedReadStatus = input.readStatus || (input.unreadOnly ? 'unread' : 'all')
+
+        const predicates: any[] = [
+            eq(notificationDeliveries.tenantId, input.tenantId),
+            eq(notificationDeliveries.recipientUserId, input.userId),
+        ]
+
+        if (normalizedReadStatus === 'unread') {
+            predicates.push(isNull(notificationDeliveries.readAt))
+        } else if (normalizedReadStatus === 'read') {
+            predicates.push(isNotNull(notificationDeliveries.readAt))
+        }
+
+        if (normalizedSearch) {
+            predicates.push(
+                or(
+                    ilike(notifications.title, `%${normalizedSearch}%`),
+                    ilike(notifications.message, `%${normalizedSearch}%`)
+                )
+            )
+        }
+
+        if (input.dateFrom instanceof Date && !Number.isNaN(input.dateFrom.getTime())) {
+            predicates.push(gte(notifications.createdAt, input.dateFrom))
+        }
+
+        if (input.dateTo instanceof Date && !Number.isNaN(input.dateTo.getTime())) {
+            predicates.push(lte(notifications.createdAt, input.dateTo))
+        }
+
+        const categoryPredicate = buildCategoryPredicate(input.category)
+        if (categoryPredicate) {
+            predicates.push(categoryPredicate)
+        }
+
+        const whereClause = and(...predicates)
 
         const rows = await dbx
             .select({
@@ -161,18 +233,21 @@ export const NotificationRepository = {
             })
             .from(notificationDeliveries)
             .innerJoin(notifications, eq(notificationDeliveries.notificationId, notifications.id))
-            .where(
-                and(
-                    eq(notificationDeliveries.tenantId, input.tenantId),
-                    eq(notificationDeliveries.recipientUserId, input.userId),
-                    input.unreadOnly ? isNull(notificationDeliveries.readAt) : undefined,
-                )
-            )
+            .where(whereClause)
             .orderBy(desc(notifications.createdAt), desc(notificationDeliveries.createdAt))
             .limit(limit)
             .offset(offset)
 
-        return rows as UserNotificationRow[]
+        const [countRow] = await dbx
+            .select({ value: sql<number>`count(*)::int` })
+            .from(notificationDeliveries)
+            .innerJoin(notifications, eq(notificationDeliveries.notificationId, notifications.id))
+            .where(whereClause)
+
+        return {
+            rows: rows as UserNotificationRow[],
+            total: Number(countRow?.value || 0),
+        }
     },
 
     async getUnreadCount(tenantId: string, userId: string): Promise<number> {
@@ -233,6 +308,35 @@ export const NotificationRepository = {
                     eq(notificationDeliveries.tenantId, input.tenantId),
                     eq(notificationDeliveries.recipientUserId, input.userId),
                     isNull(notificationDeliveries.readAt),
+                )
+            )
+            .returning({ id: notificationDeliveries.id })
+
+        return rows.length
+    },
+
+    async markManyReadStatus(input: {
+        tenantId: string
+        userId: string
+        notificationIds: string[]
+        read: boolean
+    }): Promise<number> {
+        const dbx = getDatabase(input.tenantId)
+        const uniqueIds = Array.from(new Set((input.notificationIds || []).filter(Boolean)))
+        if (uniqueIds.length === 0) return 0
+
+        const rows = await dbx
+            .update(notificationDeliveries)
+            .set({
+                deliveryStatus: input.read ? 'read' : 'sent',
+                readAt: input.read ? new Date() : null,
+                updatedAt: new Date(),
+            })
+            .where(
+                and(
+                    eq(notificationDeliveries.tenantId, input.tenantId),
+                    eq(notificationDeliveries.recipientUserId, input.userId),
+                    inArray(notificationDeliveries.notificationId, uniqueIds),
                 )
             )
             .returning({ id: notificationDeliveries.id })

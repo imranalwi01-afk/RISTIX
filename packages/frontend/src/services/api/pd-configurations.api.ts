@@ -1,5 +1,5 @@
 // packages/frontend/src/services/api/pd-configurations.api.ts
-import { apiClient } from '../api.client';
+import { apiClient } from '../api-setup';
 
 // ============================================================================
 // INTERFACES
@@ -8,21 +8,21 @@ import { apiClient } from '../api.client';
 export interface PDConfiguration {
     id?: string;
     model_name: string;
-    population_segment?: number;
+    population_segment?: string | number;
     population_segment_id?: string;
     population_segment_desc?: string;
-    selected_method: number;
+    selected_method: string | number;
     selected_method_desc?: string;
-    migration_interval: number;
-    population_type?: number;
+    migration_interval: number | null;
+    population_type?: string | number | null;
     population_type_desc?: string;
-    historical_month: number;
-    first_historical_date?: string;
+    historical_month: number | null;
+    first_historical_date?: string | null;
     first_historical_date_string?: string;
-    multiplication?: number;
+    multiplication?: number | null;
     multiplication_string?: string;
     fl_flag: boolean;
-    fl_scalar_id?: string;
+    fl_scalar_id?: number | null;
     fl_scalar?: string;
     ia_flag: boolean;
     bucket: string;
@@ -39,21 +39,21 @@ export interface PDConfiguration {
 
 export interface CreatePDConfigurationDto {
     model_name: string;
-    population_segment?: number;
+    population_segment?: string | number;
     population_segment_id?: string;
     population_segment_desc?: string;
-    selected_method: number;
+    selected_method: string | number;
     selected_method_desc?: string;
-    migration_interval?: number;
-    population_type?: number;
+    migration_interval?: number | null;
+    population_type?: string | number | null;
     population_type_desc?: string;
-    historical_month?: number;
-    first_historical_date?: string;
+    historical_month?: number | null;
+    first_historical_date?: string | null;
     first_historical_date_string?: string;
-    multiplication?: number;
+    multiplication?: number | null;
     multiplication_string?: string;
     fl_flag?: boolean;
-    fl_scalar_id?: string;
+    fl_scalar_id?: number | null;
     fl_scalar?: string;
     ia_flag?: boolean;
     bucket: string;
@@ -76,7 +76,7 @@ export const pdConfigurationsApi = {
      */
     async getAll(params?: {
         search?: string;
-        selected_method?: number;
+        selected_method?: string | number;
         bucket?: string;
         is_active?: boolean;
     }): Promise<PDConfiguration[]> {
@@ -87,61 +87,62 @@ export const pdConfigurationsApi = {
         if (params?.is_active !== undefined) queryParams.append('is_active', params.is_active.toString());
 
         const url = queryParams.toString() ? `${BASE_URL}?${queryParams}` : BASE_URL;
-        const response = await apiClient.get<PDConfiguration[]>(url);
-        return response.data || [];
+        const response = await apiClient.get<any>(url);
+        return response.data?.data || [];
     },
 
     /**
      * Get single PD configuration by ID
      */
     async getById(id: string): Promise<PDConfiguration> {
-        const response = await apiClient.get<PDConfiguration>(`${BASE_URL}/${id}`);
-        if (!response.data) throw new Error('PD Configuration not found');
-        return response.data;
+        const response = await apiClient.get<any>(`${BASE_URL}/${id}`);
+        if (!response.data?.data) throw new Error('PD Configuration not found');
+        return response.data.data;
     },
 
     /**
      * Create new PD configuration
      */
     async create(data: CreatePDConfigurationDto): Promise<PDConfiguration> {
-        const response = await apiClient.post<PDConfiguration>(BASE_URL, data);
-        if (!response.data) throw new Error('Failed to create PD configuration');
-        return response.data;
+        const response = await apiClient.post<any>(BASE_URL, data);
+        if (!response.data?.data) throw new Error('Failed to create PD configuration');
+        return response.data.data;
     },
 
     /**
      * Update existing PD configuration
      */
     async update(id: string, data: UpdatePDConfigurationDto): Promise<PDConfiguration> {
-        const response = await apiClient.put<PDConfiguration>(`${BASE_URL}/${id}`, data);
-        if (!response.data) throw new Error('Failed to update PD configuration');
-        return response.data;
+        const response = await apiClient.put<any>(`${BASE_URL}/${id}`, data);
+        if (!response.data?.data) throw new Error('Failed to update PD configuration');
+        return response.data.data;
     },
 
     /**
      * Delete PD configuration
      */
-    async delete(id: string): Promise<void> {
-        await apiClient.delete(`${BASE_URL}/${id}`);
+    async delete(id: string): Promise<any> {
+        const response = await apiClient.delete(`${BASE_URL}/${id}`);
+        return response.data;
     },
 
     /**
      * Get calculation methods metadata
      */
-    async getMethods(): Promise<Array<{ value: number; label: string }>> {
-        const response = await apiClient.get<Array<{ value: number; label: string }>>(
+    async getMethods(): Promise<Array<{ value: string | number; label: string }>> {
+        const response = await apiClient.get<any>(
             `${BASE_URL}/metadata/methods`
         );
-        return response.data || [];
+        return response.data?.data || [];
     },
 
     /**
      * Get population types metadata
      */
-    async getPopulationTypes(): Promise<Array<{ value: number; label: string }>> {
-        const response = await apiClient.get<Array<{ value: number; label: string }>>(
+    async getPopulationTypes(): Promise<Array<{ value: string | number; label: string }>> {
+        const response = await apiClient.get<any>(
             `${BASE_URL}/metadata/population-types`
         );
-        return response.data || [];
+        return response.data?.data || [];
     },
 };

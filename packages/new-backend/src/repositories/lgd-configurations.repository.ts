@@ -7,7 +7,7 @@ import { DatabaseError, NotFoundError } from '../lib/errors'
 
 export interface LgdQueryOptions {
     search?: string
-    lgdMethod?: number
+    lgdMethod?: string | number
     isActive?: boolean
 }
 
@@ -27,7 +27,7 @@ export const LgdConfigurationsRepository = {
             }
 
             if (options?.lgdMethod !== undefined) {
-                conditions.push(eq(frs9ImpCaLgdConfig.lgdMethod, options.lgdMethod))
+                conditions.push(eq(frs9ImpCaLgdConfig.lgdMethod, Number(options.lgdMethod)))
             }
 
             if (options?.isActive !== undefined) {

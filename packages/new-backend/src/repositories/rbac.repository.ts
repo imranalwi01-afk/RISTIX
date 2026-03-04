@@ -532,6 +532,9 @@ export class UserRolesRepository {
 
             return db.query.userRoles.findMany({
                 where: and(...conditions),
+                with: {
+                    user: true,
+                },
             })
         })
     }

@@ -20,7 +20,7 @@ export const ifrs9ReportsController = {
             const limit = Number(c.req.query('limit') || 20);
 
             // Extract filter parameters
-            const prc_date = c.req.query('prc_date') || '2023-12-31';
+            const prc_date = c.req.query('prc_date') || '2022-10-31';
             const pd_config_id = c.req.query('pd_config_id') ? Number(c.req.query('pd_config_id')) : 1;
             const pd_method = c.req.query('pd_method') ? Number(c.req.query('pd_method')) : 1;
             const scalar_id = c.req.query('scalar_id') ? Number(c.req.query('scalar_id')) : undefined;
@@ -57,7 +57,7 @@ export const ifrs9ReportsController = {
             const limit = Number(c.req.query('limit') || 20);
 
             // Extract filter parameters
-            const prc_date = c.req.query('prc_date') || '2023-12-31';
+            const prc_date = c.req.query('prc_date') || '2022-10-31';
             const pd_config_id = c.req.query('pd_config_id') ? Number(c.req.query('pd_config_id')) : 1;
             const pd_method = c.req.query('pd_method') ? Number(c.req.query('pd_method')) : 1;
             const scalar_id = c.req.query('scalar_id') ? Number(c.req.query('scalar_id')) : undefined;
@@ -83,6 +83,40 @@ export const ifrs9ReportsController = {
             });
         } catch (error: any) {
             console.error('❌ [IFRS9] Error in getLifetimePDMonthly:', error);
+            return c.json({ success: false, message: error.message }, 500);
+        }
+    },
+
+    getLifetimePDAccountDetails: async (c: Context) => {
+        try {
+            const tenantId = (c as any).get('tenantId');
+            const page = Number(c.req.query('page') || 1);
+            const limit = Number(c.req.query('limit') || 100);
+
+            // Extract filter parameters
+            const prc_date = c.req.query('prc_date') || '2022-10-31';
+            const pd_config_id = c.req.query('pd_config_id') ? Number(c.req.query('pd_config_id')) : undefined;
+
+            const result = await ifrs9ReportsService.getLifetimePDAccountDetails(
+                tenantId,
+                page,
+                limit,
+                { prc_date, pd_config_id }
+            );
+
+            return c.json({
+                success: true,
+                data: result.data,
+                pagination: {
+                    page: result.page,
+                    limit: limit,
+                    total: result.total,
+                    totalPages: result.totalPages
+                },
+                message: result.total === 0 ? "No Lifetime PD Account Details available" : undefined
+            });
+        } catch (error: any) {
+            console.error('❌ [IFRS9] Error in getLifetimePDAccountDetails:', error);
             return c.json({ success: false, message: error.message }, 500);
         }
     },
@@ -130,7 +164,7 @@ export const ifrs9ReportsController = {
             const limit = Number(c.req.query('limit') || 20);
 
             // Extract filter parameters
-            const prc_date = c.req.query('prc_date') || '2023-12-31';
+            const prc_date = c.req.query('prc_date') || '2020-12-31';
             const ead_config_id = c.req.query('ead_config_id') ? Number(c.req.query('ead_config_id')) : undefined;
             const segment_id = c.req.query('segment_id') ? Number(c.req.query('segment_id')) : undefined;
 
@@ -154,6 +188,30 @@ export const ifrs9ReportsController = {
             });
         } catch (error: any) {
             console.error('❌ [IFRS9] Error in getEADModel:', error);
+            return c.json({ success: false, message: error.message }, 500);
+        }
+    },
+
+    getEADModelSummary: async (c: Context) => {
+        try {
+            const tenantId = (c as any).get('tenantId');
+            
+            // Extract filter parameters
+            const prc_date = c.req.query('prc_date') || '2023-12-31';
+            const ead_config_id = c.req.query('ead_config_id') ? Number(c.req.query('ead_config_id')) : undefined;
+
+            const result = await ifrs9ReportsService.getEADModelSummary(
+                tenantId,
+                { prc_date, ead_config_id }
+            );
+
+            return c.json({
+                success: true,
+                data: result.data,
+                message: (!result.data || result.data.length === 0) ? "No EAD Model Summary Data available" : undefined
+            });
+        } catch (error: any) {
+            console.error('❌ [IFRS9] Error in getEADModelSummary:', error);
             return c.json({ success: false, message: error.message }, 500);
         }
     },
@@ -199,9 +257,10 @@ export const ifrs9ReportsController = {
             const prc_date = c.req.query('prc_date') || '2023-12-31';
             const segment_id = c.req.query('segment_id') ? Number(c.req.query('segment_id')) : undefined;
             const stage = c.req.queries('stage') || (c.req.query('stage') ? [c.req.query('stage')!] : undefined);
+            const group_segment = c.req.query('group_segment') || undefined;
             const result = await ifrs9ReportsService.getECLMovement(
                 tenantId,
-                { prc_date, segment_id, stage }
+                { prc_date, segment_id, stage, group_segment }
             );
             return c.json({
                 success: true,
@@ -220,9 +279,10 @@ export const ifrs9ReportsController = {
             const prc_date = c.req.query('prc_date') || '2023-12-31';
             const segment_id = c.req.query('segment_id') ? Number(c.req.query('segment_id')) : undefined;
             const stage = c.req.queries('stage') || (c.req.query('stage') ? [c.req.query('stage')!] : undefined);
+            const group_segment = c.req.query('group_segment') || undefined;
             const result = await ifrs9ReportsService.getGCAMovement(
                 tenantId,
-                { prc_date, segment_id, stage }
+                { prc_date, segment_id, stage, group_segment }
             );
             return c.json({
                 success: true,

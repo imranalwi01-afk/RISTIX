@@ -11,6 +11,7 @@
 
 import { useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { frontendEnvironmentLoader } from '@/config/environment-loader-frontend';
 
 // Pages to prefetch during login
 const PREFETCH_ROUTES = [
@@ -26,7 +27,7 @@ const PREFETCH_ROUTES = [
   '/banking/ifrs9/calculations',
 ];
 
-// API endpoints to warm up (public-only to avoid noisy 401/403 during login screen)
+// API endpoints to warm up (public only to avoid noisy 401/403 on login screen)
 const WARMUP_ENDPOINTS = [
   '/auth/status',
   '/auth/login-data',
@@ -42,6 +43,16 @@ const stripApiSuffix = (value: string): string => {
 };
 
 const resolveApiBaseUrl = (): string => {
+  try {
+    const config = frontendEnvironmentLoader.getConfiguration();
+    const configuredBase = config?.api?.base || `${config?.api?.backend || ''}/api/v1`;
+    if (configuredBase && configuredBase.trim().length > 0) {
+      return trimTrailingSlash(configuredBase);
+    }
+  } catch {
+    // Ignore loader errors and fallback to env/runtime below.
+  }
+
   const fromApiBase = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (fromApiBase && fromApiBase.trim().length > 0) {
     const normalized = stripApiSuffix(fromApiBase);
@@ -84,12 +95,12 @@ export const useLoginPrefetch = () => {
   const warmupAPIs = useCallback(async () => {
     console.log('🔥 [LOGIN PREFETCH] Warming up APIs...');
     const apiBaseUrl = resolveApiBaseUrl();
-    
+
     // Fire-and-forget API calls to warm up backend connections
     WARMUP_ENDPOINTS.forEach(async (endpoint) => {
       try {
         const warmupUrl = `${apiBaseUrl}${endpoint}`;
-        fetch(warmupUrl, { 
+        fetch(warmupUrl, {
           method: 'GET',
           credentials: 'include',
           cache: 'no-store',

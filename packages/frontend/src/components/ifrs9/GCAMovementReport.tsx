@@ -35,6 +35,7 @@ import {
   ResponsiveContainer
 } from 'recharts';
 import BaseIfrs9Report from './BaseIfrs9Report';
+import ReportSummaryGrid, { KPIItem } from './ReportSummaryGrid';
 
 interface StageTransferStats {
   stage1To2: number;
@@ -70,37 +71,40 @@ interface SummaryStats {
 }
 
 const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
-  const items = [
+  const items: KPIItem[] = [
     {
       title: 'Opening GCA',
       value: stats.openingGCA,
       format: 'currency',
-      icon: <BalanceIcon sx={{ fontSize: 36 }} />,
-      gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-      mainColor: '#4facfe',
-      bgGradient: 'linear-gradient(135deg, rgba(79, 172, 254, 0.03) 0%, rgba(0, 242, 254, 0.03) 100%)'
+      icon: <BalanceIcon sx={{ fontSize: 32 }} />,
+      gradient: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
+      mainColor: '#1e40af',
+      bgGradient: 'linear-gradient(135deg, rgba(30, 64, 175, 0.02) 0%, rgba(59, 130, 246, 0.02) 100%)',
+      chipLabel: 'GCA TRACKER'
     },
     {
       title: 'Closing GCA',
       value: stats.closingGCA,
       format: 'currency',
-      icon: <BalanceIcon sx={{ fontSize: 36 }} />,
-      gradient: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-      mainColor: '#43e97b',
-      bgGradient: 'linear-gradient(135deg, rgba(67, 233, 123, 0.03) 0%, rgba(56, 249, 215, 0.03) 100%)'
+      icon: <BalanceIcon sx={{ fontSize: 32 }} />,
+      gradient: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+      mainColor: '#059669',
+      bgGradient: 'linear-gradient(135deg, rgba(5, 150, 105, 0.02) 0%, rgba(16, 185, 129, 0.02) 100%)',
+      chipLabel: 'GCA TRACKER'
     },
     {
       title: 'Net Movement',
       value: stats.netGCAMovement,
       format: 'currency',
-      icon: <GrowthIcon sx={{ fontSize: 36 }} />,
-      gradient: stats.netGCAMovement >= 0 
-        ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' 
-        : 'linear-gradient(135deg, #ff4e50 0%, #f9d423 100%)',
-      mainColor: stats.netGCAMovement >= 0 ? '#667eea' : '#ff4e50',
+      icon: <GrowthIcon sx={{ fontSize: 32 }} />,
+      gradient: stats.netGCAMovement >= 0
+        ? 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)'
+        : 'linear-gradient(135deg, #be123c 0%, #fb7185 100%)',
+      mainColor: stats.netGCAMovement >= 0 ? '#4f46e5' : '#be123c',
       bgGradient: stats.netGCAMovement >= 0
-        ? 'linear-gradient(135deg, rgba(102, 126, 234, 0.03) 0%, rgba(118, 75, 162, 0.03) 100%)'
-        : 'linear-gradient(135deg, rgba(255, 78, 80, 0.03) 0%, rgba(249, 212, 35, 0.03) 100%)'
+        ? 'linear-gradient(135deg, rgba(79, 70, 229, 0.02) 0%, rgba(99, 102, 241, 0.02) 100%)'
+        : 'linear-gradient(135deg, rgba(190, 18, 60, 0.02) 0%, rgba(251, 113, 133, 0.02) 100%)',
+      chipLabel: 'GCA TRACKER'
     },
     {
       title: 'Growth Rate',
@@ -108,154 +112,15 @@ const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
         ? `${((stats.netGCAMovement / stats.openingGCA) * 100).toFixed(1)}%`
         : '0.0%',
       format: 'raw',
-      icon: <ReportIcon sx={{ fontSize: 36 }} />,
-      gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-      mainColor: '#f5576c',
-      bgGradient: 'linear-gradient(135deg, rgba(240, 147, 251, 0.03) 0%, rgba(245, 87, 108, 0.03) 100%)'
+      icon: <ReportIcon sx={{ fontSize: 32 }} />,
+      gradient: 'linear-gradient(135deg, #475569 0%, #64748b 100%)',
+      mainColor: '#475569',
+      bgGradient: 'linear-gradient(135deg, rgba(71, 85, 105, 0.02) 0%, rgba(100, 116, 139, 0.02) 100%)',
+      chipLabel: 'GCA TRACKER'
     }
   ];
 
-  return (
-    <Grid container spacing={3} sx={{ mb: 6 }}>
-      {items.map((item, index) => (
-        <Grid size={{ xs: 12, sm: 6, md: 3 }} key={index}>
-          <Card sx={{
-            height: '100%',
-            borderRadius: '20px',
-            position: 'relative',
-            overflow: 'hidden',
-            background: `linear-gradient(to bottom, white 0%, ${alpha('#f8fafc', 0.5)} 100%)`,
-            backdropFilter: 'blur(20px)',
-            boxShadow: `
-              0 1px 3px ${alpha(item.mainColor, 0.08)},
-              0 4px 12px ${alpha(item.mainColor, 0.12)},
-              0 12px 32px ${alpha(item.mainColor, 0.08)}
-            `,
-            transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
-            border: `1px solid ${alpha(item.mainColor, 0.12)}`,
-            '&::before': {
-              content: '""',
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: item.bgGradient,
-              opacity: 0,
-              transition: 'opacity 0.4s ease',
-              pointerEvents: 'none',
-              zIndex: 0
-            },
-            '&:hover': {
-              transform: 'translateY(-12px) scale(1.02)',
-              boxShadow: `
-                0 4px 12px ${alpha(item.mainColor, 0.12)},
-                0 12px 32px ${alpha(item.mainColor, 0.2)},
-                0 24px 56px ${alpha(item.mainColor, 0.15)}
-              `,
-              borderColor: alpha(item.mainColor, 0.2),
-              '&::before': {
-                opacity: 1
-              },
-              '& .card-icon-container': {
-                transform: 'rotate(12deg) scale(1.15)',
-                boxShadow: `0 8px 24px ${alpha(item.mainColor, 0.5)}`
-              },
-              '& .value-text': {
-                transform: 'scale(1.05)',
-                letterSpacing: '-0.02em'
-              }
-            }
-          }}>
-            <CardContent sx={{ p: 4, height: '100%', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 1 }}>
-              <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <Typography 
-                  variant="caption" 
-                  sx={{ 
-                    fontWeight: 800, 
-                    textTransform: 'uppercase', 
-                    letterSpacing: 2, 
-                    color: 'text.secondary',
-                    opacity: 0.7,
-                    fontSize: '0.7rem',
-                    lineHeight: 1.4
-                  }}
-                >
-                  {item.title}
-                </Typography>
-                <Box
-                  className="card-icon-container"
-                  sx={{ 
-                    p: 2, 
-                    borderRadius: '16px', 
-                    background: item.gradient,
-                    color: 'white',
-                    display: 'flex',
-                    transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                    boxShadow: `
-                      0 4px 12px ${alpha(item.mainColor, 0.35)},
-                      0 2px 6px ${alpha(item.mainColor, 0.25)}
-                    `
-                  }}
-                >
-                  {item.icon}
-                </Box>
-              </Box>
-
-              <Box sx={{ mt: 'auto' }}>
-                <Typography 
-                  className="value-text"
-                  variant="h3" 
-                  sx={{ 
-                    fontWeight: 900,
-                    color: item.mainColor, // Fallback
-                    background: item.gradient,
-                    backgroundClip: 'text',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    mb: 1.5,
-                    letterSpacing: '-0.01em',
-                    lineHeight: 1.2,
-                    transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)'
-                  }}
-                >
-                  {item.format === 'currency'
-                    ? new Intl.NumberFormat('id-ID', {
-                      style: 'currency',
-                      currency: 'IDR',
-                      notation: 'compact',
-                      maximumFractionDigits: 1
-                    }).format(item.value as number)
-                    : item.value
-                  }
-                </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <Chip 
-                    size="small" 
-                    label="GCA TRACKER" 
-                    variant="outlined"
-                    sx={{ 
-                      height: 22, 
-                      fontSize: '0.65rem', 
-                      fontWeight: 800,
-                      borderColor: alpha(item.mainColor, 0.25),
-                      color: item.mainColor,
-                      letterSpacing: 1,
-                      transition: 'all 0.3s ease',
-                      '&:hover': {
-                        borderColor: alpha(item.mainColor, 0.5),
-                        bgcolor: alpha(item.mainColor, 0.05)
-                      }
-                    }} 
-                  />
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      ))}
-    </Grid>
-  );
+  return <ReportSummaryGrid items={items} mdCols={2} sx={{ mb: 6 }} />;
 };
 
 const StageTransferMatrix: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
@@ -270,8 +135,8 @@ const StageTransferMatrix: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
     <CardContent sx={{ p: 5 }}>
       <Box sx={{ mb: 4, position: 'relative' }}>
         <Typography variant="h5" fontWeight={800} sx={{ 
-          color: '#667eea', // Fallback
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          color: '#1e40af', 
+          background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
           backgroundClip: 'text',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
@@ -283,8 +148,8 @@ const StageTransferMatrix: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
           width: 80, 
           height: 4, 
           borderRadius: 2,
-          background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)',
-          opacity: 0.6
+          background: 'linear-gradient(90deg, #1e40af 0%, #3b82f6 100%)',
+          opacity: 0.4
         }} />
       </Box>
 
@@ -333,14 +198,14 @@ const StageTransferMatrix: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
                 variant="determinate" 
                 value={stats.openingGCA > 0 ? Math.min((stats.stageTransfers.stage1To2 / stats.openingGCA) * 100, 100) : 0}
                 sx={{ 
-                  height: 12, 
-                  borderRadius: '6px', 
-                  bgcolor: alpha('#ed6c02', 0.12),
-                  boxShadow: `inset 0 2px 4px ${alpha('#000', 0.1)}`,
+                  height: 10, 
+                  borderRadius: '5px', 
+                  bgcolor: alpha('#ea580c', 0.1),
+                  boxShadow: `inset 0 1px 2px ${alpha('#000', 0.05)}`,
                   '& .MuiLinearProgress-bar': { 
-                    bgcolor: '#ed6c02',
-                    borderRadius: '6px',
-                    background: 'linear-gradient(90deg, #ed6c02 0%, #ff9800 100%)',
+                    bgcolor: '#ea580c',
+                    borderRadius: '5px',
+                    background: 'linear-gradient(90deg, #ea580c 0%, #f97316 100%)',
                     transition: 'transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)'
                   } 
                 }}
@@ -363,14 +228,14 @@ const StageTransferMatrix: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
                 variant="determinate" 
                 value={stats.openingGCA > 0 ? Math.min((stats.stageTransfers.stage2To3 / stats.openingGCA) * 100, 100) : 0}
                 sx={{ 
-                  height: 12, 
-                  borderRadius: '6px', 
-                  bgcolor: alpha('#d32f2f', 0.12),
-                  boxShadow: `inset 0 2px 4px ${alpha('#000', 0.1)}`,
+                  height: 10, 
+                  borderRadius: '5px', 
+                  bgcolor: alpha('#be123c', 0.1),
+                  boxShadow: `inset 0 1px 2px ${alpha('#000', 0.05)}`,
                   '& .MuiLinearProgress-bar': { 
-                    bgcolor: '#d32f2f',
-                    borderRadius: '6px',
-                    background: 'linear-gradient(90deg, #d32f2f 0%, #f44336 100%)',
+                    bgcolor: '#be123c',
+                    borderRadius: '5px',
+                    background: 'linear-gradient(90deg, #be123c 0%, #fb7185 100%)',
                     transition: 'transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)'
                   } 
                 }}
@@ -423,14 +288,14 @@ const StageTransferMatrix: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
                 variant="determinate" 
                 value={stats.openingGCA > 0 ? Math.min((stats.stageTransfers.stage2To1 / stats.openingGCA) * 100, 100) : 0}
                 sx={{ 
-                  height: 12, 
-                  borderRadius: '6px', 
-                  bgcolor: alpha('#2e7d32', 0.12),
-                  boxShadow: `inset 0 2px 4px ${alpha('#000', 0.1)}`,
+                  height: 10, 
+                  borderRadius: '5px', 
+                  bgcolor: alpha('#059669', 0.1),
+                  boxShadow: `inset 0 1px 2px ${alpha('#000', 0.05)}`,
                   '& .MuiLinearProgress-bar': { 
-                    bgcolor: '#2e7d32',
-                    borderRadius: '6px',
-                    background: 'linear-gradient(90deg, #2e7d32 0%, #4caf50 100%)',
+                    bgcolor: '#059669',
+                    borderRadius: '5px',
+                    background: 'linear-gradient(90deg, #059669 0%, #10b981 100%)',
                     transition: 'transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)'
                   } 
                 }}
@@ -453,14 +318,14 @@ const StageTransferMatrix: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
                 variant="determinate" 
                 value={stats.openingGCA > 0 ? Math.min((stats.stageTransfers.stage3To2 / stats.openingGCA) * 100, 100) : 0}
                 sx={{ 
-                  height: 12, 
-                  borderRadius: '6px', 
-                  bgcolor: alpha('#0288d1', 0.12),
-                  boxShadow: `inset 0 2px 4px ${alpha('#000', 0.1)}`,
+                  height: 10, 
+                  borderRadius: '5px', 
+                  bgcolor: alpha('#0284c7', 0.1),
+                  boxShadow: `inset 0 1px 2px ${alpha('#000', 0.05)}`,
                   '& .MuiLinearProgress-bar': { 
-                    bgcolor: '#0288d1',
-                    borderRadius: '6px',
-                    background: 'linear-gradient(90deg, #0288d1 0%, #03a9f4 100%)',
+                    bgcolor: '#0284c7',
+                    borderRadius: '5px',
+                    background: 'linear-gradient(90deg, #0284c7 0%, #38bdf8 100%)',
                     transition: 'transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)'
                   } 
                 }}

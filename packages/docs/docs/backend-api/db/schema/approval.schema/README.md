@@ -16,8 +16,10 @@
 - [NewApprovalRequest](type-aliases/NewApprovalRequest.md)
 - [NewNotification](type-aliases/NewNotification.md)
 - [NewNotificationDelivery](type-aliases/NewNotificationDelivery.md)
+- [NewNotificationPreference](type-aliases/NewNotificationPreference.md)
 - [Notification](type-aliases/Notification.md)
 - [NotificationDelivery](type-aliases/NotificationDelivery.md)
+- [NotificationPreference](type-aliases/NotificationPreference.md)
 
 ## Variables
 
@@ -32,5 +34,7 @@
 - [approvalSchema](variables/approvalSchema.md)
 - [notificationDeliveries](variables/notificationDeliveries.md)
 - [notificationDeliveriesRelations](variables/notificationDeliveriesRelations.md)
+- [notificationPreferences](variables/notificationPreferences.md)
+- [notificationPreferencesRelations](variables/notificationPreferencesRelations.md)
 - [notifications](variables/notifications.md)
 - [notificationsRelations](variables/notificationsRelations.md)

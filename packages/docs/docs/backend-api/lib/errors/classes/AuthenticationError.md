@@ -4,7 +4,7 @@
 
 # Class: AuthenticationError
 
-Defined in: [src/lib/errors.ts:41](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/lib/errors.ts#L41)
+Defined in: [src/lib/errors.ts:41](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/lib/errors.ts#L41)
 
 Authentication error - token invalid or missing
 
@@ -124,7 +124,7 @@ The cause of the error.
 
 > `readonly` `optional` **code**: `string`
 
-Defined in: [src/lib/errors.ts:44](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/lib/errors.ts#L44)
+Defined in: [src/lib/errors.ts:44](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/lib/errors.ts#L44)
 
 #### Inherited from
 
@@ -160,7 +160,7 @@ Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1076
 
 > `readonly` **reason**: `"missing_token"` \| `"invalid_token"` \| `"expired_token"` \| `"invalid_credentials"` \| `"refactor_pending"` \| `"unexpected_error"`
 
-Defined in: [src/lib/errors.ts:43](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/lib/errors.ts#L43)
+Defined in: [src/lib/errors.ts:43](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/lib/errors.ts#L43)
 
 #### Inherited from
 

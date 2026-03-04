@@ -8,7 +8,7 @@ import { ifrs9ReportsController } from '../controllers/ifrs9-reports.controller'
  * IFRS9 Main Routes (STUB)
  * TODO: Implement IFRS9 calculations
  */
-export const ifrs9Routes = new OpenAPIHono<AppContext>()
+export const ifrs9Routes: any = new OpenAPIHono<AppContext>()
 
 // ============================================================================
 // SCHEMAS
@@ -68,7 +68,7 @@ ifrs9Routes.openapi(
             200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), data: z.any() }) } }, description: 'Summary' }
         }
     }),
-    (c: Context) => ifrs9CalculationsController.getSummary(c)
+    (c: any) => ifrs9CalculationsController.getSummary(c)
 )
 
 ifrs9Routes.openapi(
@@ -84,7 +84,7 @@ ifrs9Routes.openapi(
             200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), data: z.any() }) } }, description: 'Trend' }
         }
     }),
-    (c: Context) => ifrs9CalculationsController.getPortfolioTrend(c)
+    (c: any) => ifrs9CalculationsController.getPortfolioTrend(c)
 )
 
 ifrs9Routes.openapi(
@@ -97,7 +97,7 @@ ifrs9Routes.openapi(
             200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), data: z.array(z.string()) }) } }, description: 'Available Dates' }
         }
     }),
-    (c: Context) => ifrs9CalculationsController.getAvailableDates(c)
+    (c: any) => ifrs9CalculationsController.getAvailableDates(c)
 )
 
 ifrs9Routes.openapi(
@@ -110,7 +110,7 @@ ifrs9Routes.openapi(
             200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), data: z.any() }) } }, description: 'Batches' }
         }
     }),
-    (c: Context) => ifrs9CalculationsController.getBatches(c)
+    (c: any) => ifrs9CalculationsController.getBatches(c)
 )
 
 ifrs9Routes.openapi(
@@ -126,7 +126,7 @@ ifrs9Routes.openapi(
             200: { content: { 'application/json': { schema: z.any() } }, description: 'Result' }
         }
     }),
-    (c: Context) => ifrs9CalculationsController.runCalculation(c)
+    (c: any) => ifrs9CalculationsController.runCalculation(c)
 )
 
 // --- Legacy Stub Routes ---
@@ -141,7 +141,7 @@ ifrs9Routes.openapi(
             200: { content: { 'application/json': { schema: CalculationListResponse } }, description: 'List Calculations' }
         }
     }),
-    async (c: Context) => {
+    async (c: any) => {
         return c.json({
             success: true,
             data: [],
@@ -164,7 +164,7 @@ ifrs9Routes.openapi(
             200: { content: { 'application/json': { schema: CalculationListResponse } }, description: 'Batch Results' }
         }
     }),
-    async (c: Context) => ifrs9CalculationsController.getBatchResults(c)
+    async (c: any) => ifrs9CalculationsController.getBatchResults(c)
 )
 
 ifrs9Routes.openapi(
@@ -180,7 +180,7 @@ ifrs9Routes.openapi(
             200: { content: { 'application/json': { schema: CalculationResponse } }, description: 'Calculation Result' }
         }
     }),
-    async (c: Context) => {
+    async (c: any) => {
         const id = c.req.param('id')
         return c.json({
             success: true,
@@ -207,7 +207,7 @@ ifrs9Routes.openapi(
             200: { content: { 'application/json': { schema: CalculationResponse } }, description: 'Started' }
         }
     }),
-    async (c: Context) => {
+    async (c: any) => {
         return c.json({
             success: true,
             data: {

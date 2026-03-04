@@ -4,7 +4,7 @@
 
 # Interface: WatchlistQueryOptions
 
-Defined in: [src/repositories/master-account.repository.ts:7](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/master-account.repository.ts#L7)
+Defined in: [src/repositories/master-account.repository.ts:7](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/master-account.repository.ts#L7)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: [src/repositories/master-account.repository.ts:7](https://github.com
 
 > `optional` **assessmentStatus**: `string`
 
-Defined in: [src/repositories/master-account.repository.ts:13](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/master-account.repository.ts#L13)
+Defined in: [src/repositories/master-account.repository.ts:13](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/master-account.repository.ts#L13)
 
 ***
 
@@ -20,7 +20,7 @@ Defined in: [src/repositories/master-account.repository.ts:13](https://github.co
 
 > `optional` **dateFrom**: `string`
 
-Defined in: [src/repositories/master-account.repository.ts:16](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/master-account.repository.ts#L16)
+Defined in: [src/repositories/master-account.repository.ts:16](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/master-account.repository.ts#L16)
 
 ***
 
@@ -28,7 +28,7 @@ Defined in: [src/repositories/master-account.repository.ts:16](https://github.co
 
 > `optional` **dateTo**: `string`
 
-Defined in: [src/repositories/master-account.repository.ts:17](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/master-account.repository.ts#L17)
+Defined in: [src/repositories/master-account.repository.ts:17](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/master-account.repository.ts#L17)
 
 ***
 
@@ -36,7 +36,7 @@ Defined in: [src/repositories/master-account.repository.ts:17](https://github.co
 
 > `optional` **impairedFlag**: `"I"` \| `"N"`
 
-Defined in: [src/repositories/master-account.repository.ts:12](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/master-account.repository.ts#L12)
+Defined in: [src/repositories/master-account.repository.ts:12](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/master-account.repository.ts#L12)
 
 ***
 
@@ -44,7 +44,7 @@ Defined in: [src/repositories/master-account.repository.ts:12](https://github.co
 
 > **limit**: `number`
 
-Defined in: [src/repositories/master-account.repository.ts:9](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/master-account.repository.ts#L9)
+Defined in: [src/repositories/master-account.repository.ts:9](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/master-account.repository.ts#L9)
 
 ***
 
@@ -52,7 +52,7 @@ Defined in: [src/repositories/master-account.repository.ts:9](https://github.com
 
 > **page**: `number`
 
-Defined in: [src/repositories/master-account.repository.ts:8](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/master-account.repository.ts#L8)
+Defined in: [src/repositories/master-account.repository.ts:8](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/master-account.repository.ts#L8)
 
 ***
 
@@ -60,7 +60,7 @@ Defined in: [src/repositories/master-account.repository.ts:8](https://github.com
 
 > `optional` **search**: `string`
 
-Defined in: [src/repositories/master-account.repository.ts:10](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/master-account.repository.ts#L10)
+Defined in: [src/repositories/master-account.repository.ts:10](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/master-account.repository.ts#L10)
 
 ***
 
@@ -68,7 +68,7 @@ Defined in: [src/repositories/master-account.repository.ts:10](https://github.co
 
 > `optional` **sortField**: `string`
 
-Defined in: [src/repositories/master-account.repository.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/master-account.repository.ts#L14)
+Defined in: [src/repositories/master-account.repository.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/master-account.repository.ts#L14)
 
 ***
 
@@ -76,7 +76,7 @@ Defined in: [src/repositories/master-account.repository.ts:14](https://github.co
 
 > `optional` **sortOrder**: `"asc"` \| `"desc"`
 
-Defined in: [src/repositories/master-account.repository.ts:15](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/master-account.repository.ts#L15)
+Defined in: [src/repositories/master-account.repository.ts:15](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/master-account.repository.ts#L15)
 
 ***
 
@@ -84,4 +84,4 @@ Defined in: [src/repositories/master-account.repository.ts:15](https://github.co
 
 > `optional` **stage**: `number`
 
-Defined in: [src/repositories/master-account.repository.ts:11](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/repositories/master-account.repository.ts#L11)
+Defined in: [src/repositories/master-account.repository.ts:11](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/master-account.repository.ts#L11)

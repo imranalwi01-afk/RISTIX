@@ -40,6 +40,12 @@ out/
 !.env.example
 !.env.dual-template
 
+# Ops runtime env files (keep local, never commit secrets)
+ops/local/backend.env
+ops/local/frontend.env
+ops/**/backend.env
+ops/**/frontend.env
+
 # Logs
 *.log
 logs/

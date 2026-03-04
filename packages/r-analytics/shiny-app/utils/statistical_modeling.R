@@ -312,7 +312,7 @@ tabel_korelasi2 <- function(data, chunk_size = 1000) {
   # Generate kombinasi unik dari 2 variabel dengan sumber berbeda
   valid_combinations_2 <- Filter(
     function(combo) length(unique(variable_source[combo])) == 2,
-    combn(independent_vars, 2, simplify = FALSE)
+    utils::combn(independent_vars, 2, simplify = FALSE)
   )
 
   # Fungsi untuk memproses dalam partisi
@@ -354,7 +354,7 @@ tabel_korelasi <- function(data, threshold = 0, chunk_size = 1000) {
   # Generate kombinasi unik dari tiga variabel dengan sumber berbeda
   valid_combinations_3 <- Filter(
     function(combo) length(unique(variable_source[combo])) == 3,
-    combn(independent_vars, 3, simplify = FALSE)
+    utils::combn(independent_vars, 3, simplify = FALSE)
   )
 
   # Jika tidak ada kombinasi valid

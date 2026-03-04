@@ -85,9 +85,9 @@ const LifetimePDReport: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentFilters, setCurrentFilters] = useState<any>({
-    prcDate: format(new Date(), 'yyyy-MM-dd'),
+    prcDate: '2022-10-31',
     pdConfigId: '',
-    pdMethod: mapPdMethodToCode('PIT'),
+    pdMethod: mapPdMethodToCode('TTC'),
     isForwardLooking: false,
     scalarId: undefined,
     isCompareMode: false,
@@ -106,6 +106,8 @@ const LifetimePDReport: React.FC = () => {
         pd_method: filters.pdMethod,
         fl_flag: filters.isForwardLooking
       });
+      console.log('API getYearly Response:', response);
+      
       if (response.success) {
         setYearlyData(response.data);
         if (response.metadata) setValidationMetadata(response.metadata);
@@ -167,8 +169,23 @@ const LifetimePDReport: React.FC = () => {
 
   const handleRunAnalysis = async (config: any) => {
     console.log('Running analysis with config:', config);
+    
+    // Always apply filters so that the report can load data immediately
+    setCurrentFilters({
+      prcDate: format(config.procDate, 'yyyy-MM-dd'),
+      pdConfigId: config.pdConfigId,
+      pdMethod: mapPdMethodToCode(config.pdMethod),
+      isForwardLooking: config.isForwardLooking,
+      scalarId: config.scalarId,
+      isCompareMode: config.isCompareMode,
+      pdConfigIdB: config.pdConfigIdB,
+      pdMethodB: mapPdMethodToCode(config.pdMethodB),
+      scalarIdB: config.scalarIdB
+    });
+    setLastCalculation(new Date());
+    setConfigOpen(false);
+
     try {
-      setLoading(true);
       const payload = {
         calculationName: `PD Run ${format(config.procDate, 'yyyyMMdd')}`,
         calculationType: 'PD',
@@ -178,27 +195,10 @@ const LifetimePDReport: React.FC = () => {
         assumptions: `Method: ${config.pdMethod}, FL: ${config.isForwardLooking}`
       };
       
-      const response = await impairmentApi.runCalculation(payload);
-      if (response.data.success) {
-        setLastCalculation(new Date());
-        setCurrentFilters({
-          prcDate: format(config.procDate, 'yyyy-MM-dd'),
-          pdConfigId: config.pdConfigId,
-          pdMethod: mapPdMethodToCode(config.pdMethod),
-          isForwardLooking: config.isForwardLooking,
-          scalarId: config.scalarId,
-          isCompareMode: config.isCompareMode,
-          pdConfigIdB: config.pdConfigIdB,
-          pdMethodB: mapPdMethodToCode(config.pdMethodB),
-          scalarIdB: config.scalarIdB
-        });
-      }
+      // Trigger calculation in background seamlessly
+      await impairmentApi.runCalculation(payload);
     } catch (err) {
-      console.error('Run analysis error:', err);
-      setError('Failed to trigger analysis');
-    } finally {
-      setLoading(false);
-      setConfigOpen(false);
+      console.warn('Run analysis trigger failed (non-blocking):', err);
     }
   };
 
@@ -206,40 +206,39 @@ const LifetimePDReport: React.FC = () => {
   const chartData = useMemo(() => {
     if (!yearlyData || yearlyData.length === 0) return [];
     
-    // Backend (DS2) returns:
-    // bucket_year, fl_year, pd_rate (0-1)
-    const sorted = [...yearlyData].sort(
-      (a, b) => (a.bucket_year || a.fl_year || 0) - (b.bucket_year || b.fl_year || 0)
-    );
-    const sortedB = currentFilters.isCompareMode
-      ? [...yearlyDataB].sort(
-          (a, b) => (a.bucket_year || a.fl_year || 0) - (b.bucket_year || b.fl_year || 0)
-        )
-      : [];
+    const baseBucket = yearlyData[0];
+    const baseBucketB = currentFilters.isCompareMode && yearlyDataB?.length > 0 ? yearlyDataB[0] : {};
     
-    let survivalA = 1; // start at 100% survival
+    const yearKeys = Object.keys(baseBucket)
+      .filter(k => k.startsWith('year_'))
+      .sort((a, b) => {
+        const numA = parseInt(a.replace('year_', '')) || 0;
+        const numB = parseInt(b.replace('year_', '')) || 0;
+        return numA - numB;
+      });
+      
+    let survivalA = 1;
     let survivalB = 1;
     
-    return sorted.map((item, index) => {
-      const yearIndex = item.bucket_year || item.fl_year || index + 1;
-      const pdA = item.pd_rate || 0; // already 0-1
+    return yearKeys.map((key, index) => {
+      const yearVal = parseInt(key.replace('year_', '')) || index + 1;
+      const pdA = baseBucket[key] || 0;
       survivalA = survivalA * (1 - pdA);
       
-      const itemB = sortedB[index];
-      const pdB = itemB?.pd_rate || 0;
-      if (itemB) {
+      const pdB = baseBucketB[key];
+      if (pdB !== undefined) {
         survivalB = survivalB * (1 - pdB);
       }
 
       return {
-        year: `Year ${yearIndex}`,
-        bucketYear: yearIndex,
+        year: `Year ${yearVal}`,
+        bucketYear: yearVal,
         marginalPD: pdA,
-        marginalPDB: itemB ? pdB : undefined,
+        marginalPDB: pdB,
         survival: survivalA,
-        survivalB: itemB ? survivalB : undefined,
+        survivalB: pdB !== undefined ? survivalB : undefined,
         cumulativePD: 1 - survivalA,
-        cumulativePDB: itemB ? 1 - survivalB : undefined
+        cumulativePDB: pdB !== undefined ? 1 - survivalB : undefined
       };
     });
   }, [yearlyData, yearlyDataB, currentFilters.isCompareMode]);
@@ -247,23 +246,26 @@ const LifetimePDReport: React.FC = () => {
   const monthlyChartData = useMemo(() => {
     if (!monthlyData || monthlyData.length === 0) return [];
     
-    // Backend returns: bucket_month, fl_seq, pd_rate
-    const sorted = [...monthlyData].sort(
-      (a, b) => (a.bucket_month || a.fl_seq || 0) - (b.bucket_month || b.fl_seq || 0)
-    );
-    const sortedB = currentFilters.isCompareMode
-      ? [...monthlyDataB].sort(
-          (a, b) => (a.bucket_month || a.fl_seq || 0) - (b.bucket_month || b.fl_seq || 0)
-        )
-      : [];
+    const baseBucket = monthlyData[0];
+    const baseBucketB = currentFilters.isCompareMode && monthlyDataB?.length > 0 ? monthlyDataB[0] : {};
+    
+    const monthKeys = Object.keys(baseBucket)
+      .filter(k => k.startsWith('month_'))
+      .sort((a, b) => {
+        const numA = parseInt(a.replace('month_', '')) || 0;
+        const numB = parseInt(b.replace('month_', '')) || 0;
+        return numA - numB;
+      });
 
-    return sorted.map((item, index) => {
-      const monthIndex = item.bucket_month || item.fl_seq || index + 1;
-      const itemB = sortedB[index];
+    return monthKeys.map((key, index) => {
+      const monthVal = parseInt(key.replace('month_', '')) || index + 1;
+      const pdA = baseBucket[key] || 0;
+      const pdB = baseBucketB[key];
+
       return {
-        month: `M${monthIndex}`,
-        marginalPD: item.pd_rate || 0,
-        marginalPDB: itemB?.pd_rate || 0
+        month: `M${monthVal}`,
+        marginalPD: pdA,
+        marginalPDB: pdB
       };
     });
   }, [monthlyData, monthlyDataB, currentFilters.isCompareMode]);

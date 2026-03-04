@@ -17,9 +17,11 @@
 #' @return Boxplot scenario results with classification, frequency, and statistics
 Boxplot_Scenario <- function(x, intuisi) {
 
-  library(dplyr)
-  library(purrr)
-  library(tidyr)
+  suppressPackageStartupMessages({
+    library(dplyr)
+    library(purrr)
+    library(tidyr)
+  })
 
   klasifikasi_macro1 <- function(x) {
     Q1 <- quantile(x, 0.25, na.rm = TRUE)
@@ -66,8 +68,10 @@ Boxplot_Scenario <- function(x, intuisi) {
   colnames(df_klasifikasi) <- cols_to_classify
   df.klasifikasi <- df_klasifikasi
 
-  library(dplyr)
-  library(tidyr)
+  suppressPackageStartupMessages({
+    library(dplyr)
+    library(tidyr)
+  })
 
   # Urutan variabel asli
   urutan_var <- colnames(df_klasifikasi)

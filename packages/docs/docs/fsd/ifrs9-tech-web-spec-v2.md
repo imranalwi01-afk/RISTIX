@@ -86,9 +86,9 @@ _Last generated: 2026-02-15_
 | Table | Field | UI Header | Remarks | Note |
 |---|---|---|---|---|
 | FRS9_PARAM_PRODUCT | PKID |  |  |  |
-| FRS9_PARAM_PRODUCT | DATA_SOURCE * | Data Source |  |  |
-| FRS9_PARAM_PRODUCT | PRD_GROUP * | Product Group |  |  |
-| FRS9_PARAM_PRODUCT | PRD_TYPE * | Product Type |  |  |
+| FRS9_PARAM_PRODUCT | DATA_SOURCE * | Data Source | Combo Box (Business Setting 'B0028') | Added to close tech spec gap for controlled values |
+| FRS9_PARAM_PRODUCT | PRD_GROUP * | Product Group | Combo Box (Business Setting 'B0029') | Added to close tech spec gap for controlled values |
+| FRS9_PARAM_PRODUCT | PRD_TYPE * | Product Type | Combo Box (Business Setting 'B0030') | Added to close tech spec gap for controlled values |
 | FRS9_PARAM_PRODUCT | PRD_CODE * | Product Code |  |  |
 | FRS9_PARAM_PRODUCT | PRD_DESC | Product Desc |  |  |
 | FRS9_PARAM_PRODUCT | CURRENCY * | Currency | Combo Box (Business Setting 'B0001') |  |

@@ -4,7 +4,7 @@
 
 # Interface: ApprovalCheckResult
 
-Defined in: [src/lib/approval-helpers.ts:13](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/lib/approval-helpers.ts#L13)
+Defined in: [src/lib/approval-helpers.ts:13](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/lib/approval-helpers.ts#L13)
 
 Approval Helper Utilities
 Provides common functions for working with the approval workflow system
@@ -15,7 +15,7 @@ Provides common functions for working with the approval workflow system
 
 > **canSelfApprove**: `boolean`
 
-Defined in: [src/lib/approval-helpers.ts:15](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/lib/approval-helpers.ts#L15)
+Defined in: [src/lib/approval-helpers.ts:15](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/lib/approval-helpers.ts#L15)
 
 ***
 
@@ -23,7 +23,7 @@ Defined in: [src/lib/approval-helpers.ts:15](https://github.com/ifrspro/ifrs9-ia
 
 > `optional` **matrix**: `object`
 
-Defined in: [src/lib/approval-helpers.ts:16](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/lib/approval-helpers.ts#L16)
+Defined in: [src/lib/approval-helpers.ts:16](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/lib/approval-helpers.ts#L16)
 
 #### amountThresholds
 
@@ -91,7 +91,7 @@ Defined in: [src/lib/approval-helpers.ts:16](https://github.com/ifrspro/ifrs9-ia
 
 > `optional` **reason**: `string`
 
-Defined in: [src/lib/approval-helpers.ts:17](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/lib/approval-helpers.ts#L17)
+Defined in: [src/lib/approval-helpers.ts:17](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/lib/approval-helpers.ts#L17)
 
 ***
 
@@ -99,4 +99,4 @@ Defined in: [src/lib/approval-helpers.ts:17](https://github.com/ifrspro/ifrs9-ia
 
 > **requiresApproval**: `boolean`
 
-Defined in: [src/lib/approval-helpers.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/lib/approval-helpers.ts#L14)
+Defined in: [src/lib/approval-helpers.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/lib/approval-helpers.ts#L14)

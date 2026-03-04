@@ -20,15 +20,16 @@ import {
   Chip,
   Tooltip,
   Autocomplete,
-  CircularProgress
+  CircularProgress,
+  FormHelperText
 } from '@mui/material';
-import { 
-    Close as CloseIcon, 
-    Save as SaveIcon, 
-    Visibility as PreviewIcon,
-    Storage as TableIcon,
-    ViewColumn as ColumnIcon,
-    SettingsEthernet as OperatorIcon
+import {
+  Close as CloseIcon,
+  Save as SaveIcon,
+  Visibility as PreviewIcon,
+  Storage as TableIcon,
+  ViewColumn as ColumnIcon,
+  SettingsEthernet as OperatorIcon
 } from '@mui/icons-material';
 import { api } from '@/services/api';
 
@@ -61,7 +62,7 @@ export default function SegmentationRuleDialog({
   const [columns, setColumns] = useState<string[]>([]);
   const [operators, setOperators] = useState<string[]>([]);
   const [columnValues, setColumnValues] = useState<string[]>([]);
-  
+
   const [loading, setLoading] = useState({
     tables: false,
     columns: false,
@@ -76,25 +77,25 @@ export default function SegmentationRuleDialog({
       if (initialRule) {
         setFormData(initialRule);
         if (initialRule.table_name) {
-            loadColumns(initialRule.table_name);
-            if (initialRule.column_name) {
-                loadColumnValues(initialRule.table_name, initialRule.column_name);
-                if (initialRule.data_type) {
-                    loadOperators(initialRule.data_type);
-                }
+          loadColumns(initialRule.table_name);
+          if (initialRule.column_name) {
+            loadColumnValues(initialRule.table_name, initialRule.column_name);
+            if (initialRule.data_type) {
+              loadOperators(initialRule.data_type);
             }
+          }
         }
       } else {
         setFormData({
-            query_group: 1,
-            seq: 1,
-            table_name: '',
-            column_name: '',
-            data_type: '',
-            operator: '=',
-            value1: '',
-            value2: '',
-            condition: 'AND'
+          query_group: 1,
+          seq: 1,
+          table_name: '',
+          column_name: '',
+          data_type: '',
+          operator: '=',
+          value1: '',
+          value2: '',
+          condition: 'AND'
         });
       }
     }
@@ -173,32 +174,32 @@ export default function SegmentationRuleDialog({
 
   const handleChange = (field: string, value: any) => {
     setFormData((prev: any) => {
-        const newData = { ...prev, [field]: value };
-        
-        // Dynamic side effects
-        if (field === 'table_name') {
-            newData.column_name = '';
-            newData.data_type = '';
-            newData.operator = '=';
-            newData.value1 = '';
-            newData.value2 = '';
-            loadColumns(value);
-        }
-        
-        if (field === 'column_name') {
-            newData.data_type = '';
-            newData.operator = '=';
-            newData.value1 = '';
-            newData.value2 = '';
-            loadDataType(prev.table_name || newData.table_name, value);
-            loadColumnValues(prev.table_name || newData.table_name, value);
-        }
+      const newData = { ...prev, [field]: value };
 
-        if (field === 'data_type') {
-            loadOperators(value);
-        }
+      // Dynamic side effects
+      if (field === 'table_name') {
+        newData.column_name = '';
+        newData.data_type = '';
+        newData.operator = '=';
+        newData.value1 = '';
+        newData.value2 = '';
+        loadColumns(value);
+      }
 
-        return newData;
+      if (field === 'column_name') {
+        newData.data_type = '';
+        newData.operator = '=';
+        newData.value1 = '';
+        newData.value2 = '';
+        loadDataType(prev.table_name || newData.table_name, value);
+        loadColumnValues(prev.table_name || newData.table_name, value);
+      }
+
+      if (field === 'data_type') {
+        loadOperators(value);
+      }
+
+      return newData;
     });
   };
 
@@ -211,7 +212,7 @@ export default function SegmentationRuleDialog({
   const renderExpression = () => {
     const { condition, column_name, operator, value1, value2 } = formData;
     if (!column_name) return 'Definition incomplete...';
-    
+
     let expr = `${condition} (${column_name} ${operator} `;
     if (operator === 'BETWEEN') {
       expr += `'${value1 || '?'}' AND '${value2 || '?'}'`;
@@ -225,12 +226,12 @@ export default function SegmentationRuleDialog({
   };
 
   return (
-    <Dialog 
-        open={open} 
-        onClose={onClose} 
-        maxWidth="md" 
-        fullWidth
-        PaperProps={{ sx: { borderRadius: 2 } }}
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="md"
+      fullWidth
+      PaperProps={{ sx: { borderRadius: 2 } }}
     >
       <DialogTitle sx={{ m: 0, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: 'primary.main', color: 'primary.contrastText' }}>
         <Typography variant="h6" fontWeight="bold">
@@ -290,8 +291,9 @@ export default function SegmentationRuleDialog({
                 onChange={(e) => handleChange('table_name', e.target.value)}
               >
                 {loading.tables ? <MenuItem disabled><CircularProgress size={20} /></MenuItem> : null}
-                {tables.map(t => <MenuItem key={t} value={t}>{t}</MenuItem>)}
+                {tables.map((t, idx) => <MenuItem key={`${t}-${idx}`} value={t}>{t}</MenuItem>)}
               </Select>
+              <FormHelperText>Source: Database tables (from business settings schema)</FormHelperText>
             </FormControl>
           </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
@@ -305,8 +307,9 @@ export default function SegmentationRuleDialog({
                 onChange={(e) => handleChange('column_name', e.target.value)}
               >
                 {loading.columns ? <MenuItem disabled><CircularProgress size={20} /></MenuItem> : null}
-                {columns.map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
+                {columns.map((c, idx) => <MenuItem key={`${c}-${idx}`} value={c}>{c}</MenuItem>)}
               </Select>
+              <FormHelperText>Source: Columns of the selected table</FormHelperText>
             </FormControl>
           </Grid>
 
@@ -319,7 +322,7 @@ export default function SegmentationRuleDialog({
               disabled
               placeholder="Auto-detected..."
               InputProps={{
-                  startAdornment: loading.dataType ? <CircularProgress size={16} sx={{ mr: 1 }} /> : null
+                startAdornment: loading.dataType ? <CircularProgress size={16} sx={{ mr: 1 }} /> : null
               }}
             />
           </Grid>
@@ -334,81 +337,82 @@ export default function SegmentationRuleDialog({
                 onChange={(e) => handleChange('operator', e.target.value)}
               >
                 {loading.operators ? <MenuItem disabled><CircularProgress size={20} /></MenuItem> : null}
-                {operators.map(o => <MenuItem key={o} value={o}>{o}</MenuItem>)}
+                {operators.map((o, idx) => <MenuItem key={`${o}-${idx}`} value={o}>{o}</MenuItem>)}
               </Select>
+              <FormHelperText>Source: Operators for detected data type</FormHelperText>
             </FormControl>
           </Grid>
 
           {/* Values Row */}
           <Grid size={{ xs: 12, md: formData.operator === 'BETWEEN' ? 6 : 12 }}>
-             {columnValues.length > 0 ? (
-                 <Autocomplete
-                    freeSolo
-                    options={columnValues}
-                    value={formData.value1 || ''}
-                     onInputChange={(e, val) => handleChange('value1', val)}
-                     renderInput={(params: any) => (
-                         <TextField
-                             {...params}
-                             label={formData.operator === 'BETWEEN' ? "Start Value *" : "Value *"}
-                             fullWidth
-                             helperText="Select or type custom value"
-                         />
-                     )}
-                  />
-             ) : (
-                <TextField
-                    fullWidth
+            {columnValues.length > 0 ? (
+              <Autocomplete
+                freeSolo
+                options={columnValues}
+                value={formData.value1 || ''}
+                onInputChange={(e, val) => handleChange('value1', val)}
+                renderInput={(params: any) => (
+                  <TextField
+                    {...params}
                     label={formData.operator === 'BETWEEN' ? "Start Value *" : "Value *"}
-                    value={formData.value1 || ''}
-                    onChange={(e) => handleChange('value1', e.target.value)}
-                    type={formData.data_type === 'Number' ? 'number' : 'text'}
-                />
-             )}
+                    fullWidth
+                    helperText="Select or type custom value"
+                  />
+                )}
+              />
+            ) : (
+              <TextField
+                fullWidth
+                label={formData.operator === 'BETWEEN' ? "Start Value *" : "Value *"}
+                value={formData.value1 || ''}
+                onChange={(e) => handleChange('value1', e.target.value)}
+                type={formData.data_type === 'Number' ? 'number' : 'text'}
+              />
+            )}
           </Grid>
 
           {formData.operator === 'BETWEEN' && (
-              <Grid size={{ xs: 12, md: 6 }}>
-                 <TextField
-                    fullWidth
-                    label="End Value *"
-                    value={formData.value2 || ''}
-                    onChange={(e) => handleChange('value2', e.target.value)}
-                    type={formData.data_type === 'Number' ? 'number' : 'text'}
-                    required
-                />
-              </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                fullWidth
+                label="End Value *"
+                value={formData.value2 || ''}
+                onChange={(e) => handleChange('value2', e.target.value)}
+                type={formData.data_type === 'Number' ? 'number' : 'text'}
+                required
+              />
+            </Grid>
           )}
 
           {/* Live Preview Section */}
           <Grid size={{ xs: 12 }}>
-             <Box sx={{ 
-                 mt: 2, 
-                 p: 3, 
-                 bgcolor: '#eef2f6', 
-                 borderRadius: 2, 
-                 border: '1px dashed #1976d2',
-                 position: 'relative'
-             }}>
-                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-                    <Chip 
-                        icon={<PreviewIcon sx={{ fontSize: '14px !important' }} />} 
-                        label="LIVE EXPRESSION PREVIEW" 
-                        size="small" 
-                        color="primary" 
-                        variant="outlined"
-                        sx={{ fontWeight: 'bold', fontSize: '10px' }}
-                    />
-                </Stack>
-                <Typography variant="h6" sx={{ 
-                    fontFamily: 'monospace', 
-                    color: '#1565c0',
-                    wordBreak: 'break-all',
-                    letterSpacing: 0.5
-                }}>
-                    {renderExpression()}
-                </Typography>
-             </Box>
+            <Box sx={{
+              mt: 2,
+              p: 3,
+              bgcolor: '#eef2f6',
+              borderRadius: 2,
+              border: '1px dashed #1976d2',
+              position: 'relative'
+            }}>
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                <Chip
+                  icon={<PreviewIcon sx={{ fontSize: '14px !important' }} />}
+                  label="LIVE EXPRESSION PREVIEW"
+                  size="small"
+                  color="primary"
+                  variant="outlined"
+                  sx={{ fontWeight: 'bold', fontSize: '10px' }}
+                />
+              </Stack>
+              <Typography variant="h6" sx={{
+                fontFamily: 'monospace',
+                color: '#1565c0',
+                wordBreak: 'break-all',
+                letterSpacing: 0.5
+              }}>
+                {renderExpression()}
+              </Typography>
+            </Box>
           </Grid>
         </Grid>
       </DialogContent>
@@ -417,12 +421,12 @@ export default function SegmentationRuleDialog({
         <Button onClick={onClose} variant="outlined" color="inherit" sx={{ px: 4 }}>
           Discard
         </Button>
-        <Button 
-            onClick={handleSubmit} 
-            variant="contained" 
-            color="primary" 
-            startIcon={<SaveIcon />}
-            sx={{ px: 4 }}
+        <Button
+          onClick={handleSubmit}
+          variant="contained"
+          color="primary"
+          startIcon={<SaveIcon />}
+          sx={{ px: 4 }}
         >
           Confirm Rule
         </Button>

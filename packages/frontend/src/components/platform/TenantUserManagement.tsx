@@ -52,6 +52,7 @@ import {
 import { format } from 'date-fns';
 import { usersAPI, tenantsAPI, rolesAPI } from '@/services/api';
 import { exportToCsv } from '@/utils/export-csv';
+import { getErrorMessage } from '@/utils/error-message';
 
 // Types
 interface Tenant {
@@ -415,7 +416,7 @@ const TenantUserManagement = () => {
             fetchUsers();
         } catch (err: any) {
             console.error('Form submission failed:', err);
-            const msg = err.response?.data?.message || err.message || 'Operation failed';
+            const msg = getErrorMessage(err, 'Operation failed');
             setError(`Failed to save user: ${msg}`);
         } finally {
             setFormLoading(false);
@@ -453,7 +454,7 @@ const TenantUserManagement = () => {
             fetchUsers();
         } catch (err: any) {
             console.error('Failed to reset user password:', err);
-            const msg = err.response?.data?.message || err.response?.data?.error || err.message || 'Operation failed';
+            const msg = getErrorMessage(err, 'Operation failed');
             setError(`Failed to reset password: ${msg}`);
         } finally {
             setResetLoading(false);
@@ -511,7 +512,7 @@ const TenantUserManagement = () => {
             setInitialRoleIds(assignedIds);
         } catch (err: any) {
             console.error('Failed to open role assignment dialog:', err);
-            const msg = err?.response?.data?.error || err?.response?.data?.message || err?.message || 'Failed to load role assignments';
+            const msg = getErrorMessage(err, 'Failed to load role assignments');
             setError(msg);
         } finally {
             setRoleDialogLoading(false);
@@ -565,7 +566,7 @@ const TenantUserManagement = () => {
             }
         } catch (err: any) {
             console.error('Failed to save role assignments:', err);
-            const msg = err?.response?.data?.error || err?.response?.data?.message || err?.message || 'Failed to save role assignments';
+            const msg = getErrorMessage(err, 'Failed to save role assignments');
             setError(msg);
         } finally {
             setRoleDialogSaving(false);
@@ -611,7 +612,7 @@ const TenantUserManagement = () => {
             setSelectedPermissionCodes(Array.from(selected));
         } catch (err: any) {
             console.error('Failed to open permission dialog:', err);
-            const msg = err?.response?.data?.error || err?.response?.data?.message || err?.message || 'Failed to load role permissions';
+            const msg = getErrorMessage(err, 'Failed to load role permissions');
             setError(msg);
         } finally {
             setPermissionDialogLoading(false);
@@ -668,7 +669,7 @@ const TenantUserManagement = () => {
             closePermissionDialog();
         } catch (err: any) {
             console.error('Failed to save role permissions:', err);
-            const msg = err?.response?.data?.error || err?.response?.data?.message || err?.message || 'Failed to update role permissions';
+            const msg = getErrorMessage(err, 'Failed to update role permissions');
             setError(msg);
         } finally {
             setPermissionDialogSaving(false);

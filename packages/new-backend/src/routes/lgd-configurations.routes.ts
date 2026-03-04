@@ -19,7 +19,7 @@ const LgdConfigSchema = z.object({
     model_name: z.string().nullable(),
     segment_id: z.number().nullable(),
     lgd_method: z.union([z.string(), z.number()]).nullable(),
-    population_type: z.string().nullable(),
+    population_type: z.union([z.string(), z.number()]).nullable(),
     observation_period: z.string().nullable(),
     observation_start_date: z.string().nullable(),
     workout_period: z.number().nullable(),
@@ -36,18 +36,26 @@ const LgdConfigSchema = z.object({
 const CreateLgdConfigSchema = z.object({
     model_name: z.string().min(1).max(255),
     segment_id: z.number().int().optional(),
-    lgd_method: z.number().int(),
-    population_type: z.string().optional(),
-    observation_period: z.string().optional(),
-    workout_period: z.number().int().optional(),
+    lgd_method: z.union([z.string(), z.number()]),
+    population_type: z.union([z.string(), z.number()]).nullable().optional(),
+    observation_period: z.string().nullable().optional(),
+    workout_period: z.number().int().nullable().optional(),
     fl_flag: z.boolean().default(false),
-    fl_scalar_id: z.number().int().optional(),
+    fl_scalar_id: z.number().int().nullable().optional(),
     lgd_rate: z.number().optional(),
-    is_active: z.boolean().default(true),
-    observation_start_date: z.string().optional(),
+    is_active: z.boolean().optional(),
+    observation_start_date: z.string().nullable().optional(),
+}).superRefine((data, ctx) => {
+    if (data.fl_flag && data.fl_scalar_id == null) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "FL Scalar is required when FL Flag is true",
+            path: ["fl_scalar_id"]
+        });
+    }
 }).openapi('CreateLgdConfigInput')
 
-const UpdateLgdConfigSchema = CreateLgdConfigSchema.partial().openapi('UpdateLgdConfigInput')
+const UpdateLgdConfigSchema = CreateLgdConfigSchema.openapi('UpdateLgdConfigInput')
 
 const LgdListResponse = z.object({
     success: z.boolean(),
@@ -283,7 +291,7 @@ app.openapi(
                     'application/json': {
                         schema: z.object({
                             success: z.boolean(),
-                            data: z.array(z.object({ value: z.number(), label: z.string() }))
+                            data: z.array(z.object({ value: z.union([z.string(), z.number()]), label: z.string() }))
                         })
                     }
                 },

@@ -44,8 +44,10 @@ import { individualImpairmentAPI } from '../../../services/api/individual-impair
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 import ModernLoader from '@/components/common/ModernLoader';
 import { StatCard } from '@/components/common/StatCard';
+import { useAssessmentWorkspaceEmbedded } from '@/app/banking/individual/assessment/embedded-context';
 
 export const AssessmentOverride = () => {
+  const embedded = useAssessmentWorkspaceEmbedded();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any[]>([]);
@@ -156,25 +158,29 @@ export const AssessmentOverride = () => {
   ];
 
   return (
-    <Container maxWidth="xl" sx={{ position: 'relative', minHeight: '80vh' }}>
+    <Container
+      maxWidth="xl"
+      sx={embedded ? { position: 'relative', minHeight: '80vh', px: '0 !important' } : { position: 'relative', minHeight: '80vh' }}
+    >
       <ModernLoader
         open={loading}
         message="Loading Overrides"
         subMessage="Fetching assessment override requests..."
       />
 
-      {/* Breadcrumbs */}
-      <Breadcrumbs sx={{ mb: 2 }}>
-        <Link href="/banking/dashboard" underline="hover" color="inherit" sx={{ display: 'flex', alignItems: 'center' }}>
-          <HomeIcon sx={{ mr: 0.5 }} fontSize="inherit" /> Dashboard
-        </Link>
-        <Typography color="text.primary" sx={{ display: 'flex', alignItems: 'center' }}>
-          <ListIcon sx={{ mr: 0.5 }} fontSize="inherit" /> Impairment Override
-        </Typography>
-      </Breadcrumbs>
+      {!embedded && (
+        <Breadcrumbs sx={{ mb: 2 }}>
+          <Link href="/banking/dashboard" underline="hover" color="inherit" sx={{ display: 'flex', alignItems: 'center' }}>
+            <HomeIcon sx={{ mr: 0.5 }} fontSize="inherit" /> Dashboard
+          </Link>
+          <Typography color="text.primary" sx={{ display: 'flex', alignItems: 'center' }}>
+            <ListIcon sx={{ mr: 0.5 }} fontSize="inherit" /> Impairment Override
+          </Typography>
+        </Breadcrumbs>
+      )}
 
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" component="h1">
+        <Typography variant={embedded ? 'h6' : 'h4'} component="h1">
           Impairment Override Trigger
         </Typography>
         <Button
@@ -228,7 +234,7 @@ export const AssessmentOverride = () => {
 
 
       <Paper sx={{ height: 600, width: '100%', display: 'flex', flexDirection: 'column' }}>
-        <FullstackIndicator />
+        {!embedded && <FullstackIndicator />}
         <SafeDataGrid
           rows={data}
           columns={columns}

@@ -13,7 +13,7 @@ import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
 import { ifrs9ReportsController } from '../controllers/ifrs9-reports.controller'
 
-export const reportsRoutes = new OpenAPIHono<AppContext>()
+export const reportsRoutes: any = new OpenAPIHono<AppContext>()
 
 reportsRoutes.use('*', authMiddleware)
 
@@ -91,7 +91,7 @@ reportsRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    (c) => ifrs9ReportsController.getLifetimePDYearly(c)
+    (c: any) => ifrs9ReportsController.getLifetimePDYearly(c)
 )
 
 // GET /lifetime-pd/monthly
@@ -109,7 +109,7 @@ reportsRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    (c) => ifrs9ReportsController.getLifetimePDMonthly(c)
+    (c: any) => ifrs9ReportsController.getLifetimePDMonthly(c)
 )
 
 // GET /lifetime-pd/account-details
@@ -127,7 +127,7 @@ reportsRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    (c) => ifrs9ReportsController.getLifetimePDYearly(c) // Use Yearly fallback if not specialized
+    (c: any) => ifrs9ReportsController.getLifetimePDAccountDetails(c)
 )
 
 // GET /lifetime-lgd
@@ -145,7 +145,7 @@ reportsRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    (c) => ifrs9ReportsController.getLifetimeLGD(c)
+    (c: any) => ifrs9ReportsController.getLifetimeLGD(c)
 )
 
 // GET /ead-model
@@ -163,7 +163,25 @@ reportsRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    (c) => ifrs9ReportsController.getEADModel(c)
+    (c: any) => ifrs9ReportsController.getEADModel(c)
+)
+
+// GET /ead-model/summary
+reportsRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/ead-model/summary',
+        tags: ['Reports'],
+        summary: 'Get EAD Model Summary',
+        request: {
+            query: PaginationSchema
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: GenericListResponse(ReportDataSchema) } }, description: 'Report Data' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    (c: any) => ifrs9ReportsController.getEADModelSummary(c)
 )
 
 // GET /ecl-result
@@ -181,7 +199,7 @@ reportsRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    (c) => ifrs9ReportsController.getECLResult(c)
+    (c: any) => ifrs9ReportsController.getECLResult(c)
 )
 
 // GET /ecl-movement
@@ -199,7 +217,7 @@ reportsRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    (c) => ifrs9ReportsController.getECLMovement(c)
+    (c: any) => ifrs9ReportsController.getECLMovement(c)
 )
 
 // GET /gca-movement
@@ -217,7 +235,7 @@ reportsRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    (c) => ifrs9ReportsController.getGCAMovement(c)
+    (c: any) => ifrs9ReportsController.getGCAMovement(c)
 )
 
 // GET /nominative-report
@@ -235,7 +253,7 @@ reportsRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    (c) => ifrs9ReportsController.getNominativeReport(c)
+    (c: any) => ifrs9ReportsController.getNominativeReport(c)
 )
 
 // POST /export
@@ -249,5 +267,5 @@ reportsRoutes.openapi(
             200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), message: z.string() }) } }, description: 'Export Initiated' }
         }
     }),
-    (c) => ifrs9ReportsController.exportReport(c)
+    (c: any) => ifrs9ReportsController.exportReport(c)
 )

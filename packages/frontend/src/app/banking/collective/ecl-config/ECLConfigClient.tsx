@@ -73,6 +73,10 @@ import { GridColDef, GridRowId, GridToolbar } from '@mui/x-data-grid';
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 import { ApprovalNotification, ApprovalStatusBadge } from '@/components/approval';
 
+// Premium Layout Components
+import ReportPageLayout from '@/components/ifrs9/ReportPageLayout';
+import ReportDataGrid from '@/components/ifrs9/ReportDataGrid';
+
 // Types based on live database structure: frs9_imp_ca_ecl_configh + frs9_imp_ca_ecl_configd
 interface ECLConfigHeader {
   pkid: number;
@@ -769,118 +773,83 @@ export default function ECLConfigurationPage() {
   ];
 
   return (
-    <Container maxWidth="xl">
-      {/* Breadcrumb Navigation */}
-      <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
-        <Link
-          underline="hover"
-          color="inherit"
-          href="/banking/dashboard"
-          onClick={(e) => {
-            e.preventDefault();
-            router.push('/banking/dashboard');
-          }}
-          sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
-        >
-          <HomeIcon sx={{ mr: 0.5, fontSize: 16 }} />
-          Banking Dashboard
-        </Link>
-        <Typography color="text.primary" sx={{ display: 'flex', alignItems: 'center' }}>
-          <EclIcon sx={{ mr: 0.5, fontSize: 16 }} />
-          ECL Configuration
-        </Typography>
-      </Breadcrumbs>
-
-      {/* Page Header */}
-      <Box sx={{ mb: 4 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <EclIcon sx={{ mr: 2, fontSize: 32, color: 'primary.main' }} />
-            <Box>
-              <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
-                ECL Configuration
+    <ReportPageLayout
+      title="ECL Configuration"
+      description="Expected Credit Loss calculation configuration and management"
+      icon={<EclIcon />}
+      breadcrumbLabel="ECL Configuration"
+      actionButtons={[
+        {
+          label: 'Schedule',
+          icon: <ScheduleIcon />,
+          onClick: () => console.log('Schedule ECL batch job'),
+          variant: 'outlined',
+        },
+        {
+          label: 'Refresh',
+          icon: <RefreshIcon />,
+          onClick: loadEclConfigurations,
+          variant: 'outlined',
+          disabled: loading
+        },
+        {
+          label: 'Add ECL Configuration',
+          icon: <AddIcon />,
+          onClick: handleAdd,
+          variant: 'contained',
+          color: 'primary'
+        }
+      ]}
+    >
+      {/* Statistics Cards */}
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, gap: 2, mb: 3 }}>
+        <Box>
+          <Card>
+            <CardContent sx={{ textAlign: 'center', py: 2 }}>
+              <Typography variant="h4" color="primary.main" fontWeight="bold">
+                {eclConfigs.length}
               </Typography>
-              <Typography variant="subtitle1" color="text.secondary">
-                Expected Credit Loss calculation configuration and management
+              <Typography variant="body2" color="text.secondary">
+                ECL Models
               </Typography>
-            </Box>
-          </Box>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button
-              variant="outlined"
-              startIcon={<ScheduleIcon />}
-              onClick={() => console.log('Schedule ECL batch job')}
-            >
-              Schedule
-            </Button>
-            <Button
-              variant="outlined"
-              startIcon={<RefreshIcon />}
-              onClick={loadEclConfigurations}
-              disabled={loading}
-            >
-              Refresh
-            </Button>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleAdd}
-            >
-              Add ECL Configuration
-            </Button>
-          </Box>
+            </CardContent>
+          </Card>
         </Box>
-
-        {/* Statistics Cards */}
-        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 2, mb: 3 }}>
-          <Box>
-            <Card>
-              <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                <Typography variant="h4" color="primary.main" fontWeight="bold">
-                  {eclConfigs.length}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  ECL Models
-                </Typography>
-              </CardContent>
-            </Card>
-          </Box>
-          <Box>
-            <Card>
-              <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                <Typography variant="h4" color="success.main" fontWeight="bold">
-                  {eclConfigs.filter(c => c.active_flag).length}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Active Models
-                </Typography>
-              </CardContent>
-            </Card>
-          </Box>
-          <Box>
-            <Card>
-              <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                <Typography variant="h4" color="info.main" fontWeight="bold">
-                  {eclConfigs.reduce((sum, config) => sum + (config.details?.length || 0), 0)}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Total Segments
-                </Typography>
-              </CardContent>
-            </Card>
-          </Box>
-          <Box>
-            <Card>
-              <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                <Typography variant="h4" color="warning.main" fontWeight="bold">
-                  {mockModules.length}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Available Modules
-                </Typography>
-              </CardContent>
-            </Card>
-          </Box>
+        <Box>
+          <Card>
+            <CardContent sx={{ textAlign: 'center', py: 2 }}>
+              <Typography variant="h4" color="success.main" fontWeight="bold">
+                {eclConfigs.filter(c => c.active_flag).length}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Active Models
+              </Typography>
+            </CardContent>
+          </Card>
+        </Box>
+        <Box>
+          <Card>
+            <CardContent sx={{ textAlign: 'center', py: 2 }}>
+              <Typography variant="h4" color="info.main" fontWeight="bold">
+                {eclConfigs.reduce((sum, config) => sum + (config.details?.length || 0), 0)}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Total Segments
+              </Typography>
+            </CardContent>
+          </Card>
+        </Box>
+        <Box>
+          <Card>
+            <CardContent sx={{ textAlign: 'center', py: 2 }}>
+              <Typography variant="h4" color="warning.main" fontWeight="bold">
+                {mockModules.length}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Available Modules
+              </Typography>
+            </CardContent>
+          </Card>
         </Box>
       </Box>
 
@@ -920,8 +889,8 @@ export default function ECLConfigurationPage() {
                   onChange={(e) => setFilterModule(e.target.value as string)}
                 >
                   <MenuItem value="">All Modules</MenuItem>
-                  {mockModules.map((module) => (
-                    <MenuItem key={module.value} value={module.value}>
+                  {mockModules.map((module, idx) => (
+                    <MenuItem key={`${module.value}-${idx}`} value={module.value}>
                       {module.label}
                     </MenuItem>
                   ))}
@@ -958,21 +927,16 @@ export default function ECLConfigurationPage() {
             ECL Configurations ({filteredConfigs.length})
           </Typography>
           <Box sx={{ height: 600, width: '100%' }}>
-            <SafeDataGrid
+            <ReportDataGrid
               rows={filteredConfigs}
               columns={columns}
-              getRowId={(row) => row.pkid}
+              getRowId={(row: any) => row.pkid}
               loading={loading}
               pageSizeOptions={[10, 25, 50, 100]}
               initialState={{
                 pagination: { paginationModel: { pageSize: 25 } }
               }}
               disableRowSelectionOnClick
-              sx={{
-                '& .MuiDataGrid-row:hover': {
-                  backgroundColor: 'action.hover'
-                }
-              }}
             />
           </Box>
         </CardContent>
@@ -1021,8 +985,8 @@ export default function ECLConfigurationPage() {
                       label="Module"
                       onChange={(e) => handleHeaderFieldChange('module', e.target.value)}
                     >
-                      {mockModules.map((module) => (
-                        <MenuItem key={module.value} value={module.value}>
+                      {mockModules.map((module, idx) => (
+                        <MenuItem key={`${module.value}-${idx}`} value={module.value}>
                           {module.label}
                         </MenuItem>
                       ))}
@@ -1038,11 +1002,11 @@ export default function ECLConfigurationPage() {
                 <Box>
                   <DatePicker
                     label="Effective Date"
-                    value={headerFormData.effective_date ? new Date(headerFormData.effective_date) : null}
+                    value={headerFormData.effective_date ? new Date(headerFormData.effective_date as string) : null}
                     onChange={(newValue) => {
                       if (newValue) {
-                        const dateStr = newValue instanceof Date 
-                          ? newValue.toISOString().split('T')[0] 
+                        const dateStr = newValue instanceof Date
+                          ? newValue.toISOString().split('T')[0]
                           : (newValue as any).toISOString().split('T')[0];
                         handleHeaderFieldChange('effective_date', dateStr);
                       } else {
@@ -1091,8 +1055,8 @@ export default function ECLConfigurationPage() {
                       label="Segment"
                       onChange={(e) => handleDetailFieldChange('pf_segment_id', e.target.value)}
                     >
-                      {mockSegments.map((segment) => (
-                        <MenuItem key={segment.value} value={segment.value}>
+                      {mockSegments.map((segment, idx) => (
+                        <MenuItem key={`${segment.value}-${idx}`} value={segment.value}>
                           {segment.label}
                         </MenuItem>
                       ))}
@@ -1108,8 +1072,8 @@ export default function ECLConfigurationPage() {
                       label="Stage Rule"
                       onChange={(e) => handleDetailFieldChange('stage_rule_id', e.target.value)}
                     >
-                      {mockStageRules.map((rule) => (
-                        <MenuItem key={rule.value} value={rule.value}>
+                      {mockStageRules.map((rule, idx) => (
+                        <MenuItem key={`${rule.value}-${idx}`} value={rule.value}>
                           {rule.label}
                         </MenuItem>
                       ))}
@@ -1125,8 +1089,8 @@ export default function ECLConfigurationPage() {
                       label="PD Model"
                       onChange={(e) => handleDetailFieldChange('pd_model_id', e.target.value)}
                     >
-                      {mockPdModels.map((model) => (
-                        <MenuItem key={model.value} value={model.value}>
+                      {mockPdModels.map((model, idx) => (
+                        <MenuItem key={`${model.value}-${idx}`} value={model.value}>
                           {model.label}
                         </MenuItem>
                       ))}
@@ -1142,8 +1106,8 @@ export default function ECLConfigurationPage() {
                       label="LGD Model"
                       onChange={(e) => handleDetailFieldChange('lgd_model_id', e.target.value)}
                     >
-                      {mockLgdModels.map((model) => (
-                        <MenuItem key={model.value} value={model.value}>
+                      {mockLgdModels.map((model, idx) => (
+                        <MenuItem key={`${model.value}-${idx}`} value={model.value}>
                           {model.label}
                         </MenuItem>
                       ))}
@@ -1159,8 +1123,8 @@ export default function ECLConfigurationPage() {
                       label="EAD Model"
                       onChange={(e) => handleDetailFieldChange('ead_model_id', e.target.value)}
                     >
-                      {mockEadModels.map((model) => (
-                        <MenuItem key={model.value} value={model.value}>
+                      {mockEadModels.map((model, idx) => (
+                        <MenuItem key={`${model.value}-${idx}`} value={model.value}>
                           {model.label}
                         </MenuItem>
                       ))}
@@ -1260,6 +1224,6 @@ export default function ECLConfigurationPage() {
         requestId={approvalNotification.requestId}
         onClose={() => setApprovalNotification({ ...approvalNotification, open: false })}
       />
-    </Container>
+    </ReportPageLayout>
   );
 }

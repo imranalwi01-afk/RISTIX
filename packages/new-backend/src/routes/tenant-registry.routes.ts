@@ -5,7 +5,7 @@ import type { AppContext } from '../app'
  * Tenant Registry Routes (STUB)
  * TODO: Implement tenant management
  */
-export const tenantRegistryRoutes = new OpenAPIHono<AppContext>()
+export const tenantRegistryRoutes: any = new OpenAPIHono<AppContext>()
 
 // ============================================================================
 // SCHEMAS
@@ -56,7 +56,7 @@ tenantRegistryRoutes.openapi(
             200: { content: { 'application/json': { schema: TenantListResponse } }, description: 'List Tenants' }
         }
     }),
-    async (c) => {
+    async (c: any) => {
         return c.json({
             success: true,
             data: [],
@@ -80,7 +80,7 @@ tenantRegistryRoutes.openapi(
             404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' }
         }
     }),
-    async (c) => {
+    async (c: any) => {
         const id = c.req.param('id')
         return c.json({
             success: true,
@@ -103,7 +103,7 @@ tenantRegistryRoutes.openapi(
             201: { content: { 'application/json': { schema: TenantResponse } }, description: 'Created' }
         }
     }),
-    async (c) => {
+    async (c: any) => {
         const body = c.req.valid('json')
         return c.json({
             success: true,

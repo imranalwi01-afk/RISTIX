@@ -52,7 +52,14 @@ export class ApiClient {
     };
 
     // Add authentication token
-    const token = this.getAuthToken();
+    let token = this.getAuthToken();
+    
+    // ✅ SURGICAL FIX: Add demo token fallback for development
+    if (!token && process.env.NODE_ENV === 'development') {
+      token = 'demo_token_PLATFORM_SUPER_ADMIN';
+      console.log('🎭 [API CLIENT] Using demo token fallback for development');
+    }
+
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
@@ -63,10 +70,36 @@ export class ApiClient {
 
     if (contextSlug) {
       headers['X-Tenant-Slug'] = contextSlug;
+    } else if (!token?.startsWith('demo_token_') && process.env.NODE_ENV === 'development') {
+      // Fallback for demo mode if no slug present
+      headers['X-Tenant-Slug'] = 'iaf';
     }
 
     // Merge custom headers
     return { ...headers, ...customHeaders };
+  }
+
+  /**
+   * Parse API response safely.
+   * Handles 201/204 responses with empty bodies without throwing JSON parse errors.
+   */
+  private async parseResponse<T = any>(response: Response): Promise<ApiResponse<T>> {
+    const rawBody = await response.text();
+    if (!rawBody || rawBody.trim().length === 0) {
+      return {
+        success: true,
+        data: null as T,
+      };
+    }
+
+    try {
+      return JSON.parse(rawBody) as ApiResponse<T>;
+    } catch {
+      return {
+        success: true,
+        data: rawBody as T,
+      };
+    }
   }
 
   /**
@@ -86,7 +119,7 @@ export class ApiClient {
       throw new Error(`HTTP ${response.status}: ${response.statusText} for URL ${url}`);
     }
 
-    return response.json();
+    return this.parseResponse<T>(response);
   }
 
   /**
@@ -106,7 +139,7 @@ export class ApiClient {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
-    return response.json();
+    return this.parseResponse<T>(response);
   }
 
   /**
@@ -126,7 +159,7 @@ export class ApiClient {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
-    return response.json();
+    return this.parseResponse<T>(response);
   }
 
   /**
@@ -145,7 +178,7 @@ export class ApiClient {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
-    return response.json();
+    return this.parseResponse<T>(response);
   }
 
   /**
@@ -187,7 +220,7 @@ export class ApiClient {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
-    return response.json();
+    return this.parseResponse<T>(response);
   }
 }
 

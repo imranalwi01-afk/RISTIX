@@ -79,6 +79,13 @@ export const approvalAPI = {
     return response.data;
   },
 
+  // Update approval matrix
+  updateMatrix: async (id: string, data: any) => {
+    console.log(`✏️ Updating approval matrix ${id}`);
+    const response = await apiClient.put(`/approvals/matrices/${id}`, data);
+    return response.data;
+  },
+
   // Get approval routing overview + candidate approvers
   getRoutingOverview: async (params?: {
     entityType?: string;

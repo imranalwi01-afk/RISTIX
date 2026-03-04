@@ -1,28 +1,95 @@
-library(forecast)
-library(ggplot2)
-library(tidyverse)
-library(tseries)
-library(smooth)
-library(fpp2)
-library(aTSA)
-library(date)
-library(lubridate)
-library(shiny)
-library(shinydashboard)
-library(DT)
-library(data.table)
-library(dplyr)
-library(openxlsx)
-library(lmtest)
-library(car)
-library(combinat)
-library(MASS)
-library(nortest)
-library(tibble)
-library(plotly)
-library(shinyWidgets)
-library(DBI)
-library(RPostgres)
+# Aggressive suppression of package startup messages and conflicts
+options(tidyverse.quiet = TRUE)
+options(conflicts.policy = list(error = FALSE, warn = FALSE))
+
+# Load conflicted first to manage expectations
+suppressPackageStartupMessages(library(conflicted))
+
+# Define preferences early if possible, though they usually apply after loading
+# Date functions preferences (lubridate vs data.table)
+conflict_prefer("hour", "lubridate", quiet = TRUE)
+conflict_prefer("isoweek", "lubridate", quiet = TRUE)
+conflict_prefer("isoyear", "lubridate", quiet = TRUE)
+conflict_prefer("mday", "lubridate", quiet = TRUE)
+conflict_prefer("minute", "lubridate", quiet = TRUE)
+conflict_prefer("month", "lubridate", quiet = TRUE)
+conflict_prefer("quarter", "lubridate", quiet = TRUE)
+conflict_prefer("second", "lubridate", quiet = TRUE)
+conflict_prefer("wday", "lubridate", quiet = TRUE)
+conflict_prefer("week", "lubridate", quiet = TRUE)
+conflict_prefer("yday", "lubridate", quiet = TRUE)
+conflict_prefer("year", "lubridate", quiet = TRUE)
+
+# General preferences
+conflict_prefer("filter", "dplyr", quiet = TRUE)
+conflict_prefer("select", "dplyr", quiet = TRUE)
+conflict_prefer("between", "dplyr", quiet = TRUE)
+conflict_prefer("first", "dplyr", quiet = TRUE)
+conflict_prefer("last", "dplyr", quiet = TRUE)
+conflict_prefer("lag", "dplyr", quiet = TRUE)
+conflict_prefer("recode", "dplyr", quiet = TRUE)
+conflict_prefer("transpose", "purrr", quiet = TRUE)
+conflict_prefer("some", "purrr", quiet = TRUE)
+conflict_prefer("spread", "tidyr", quiet = TRUE)
+conflict_prefer("box", "shinydashboard", quiet = TRUE)
+conflict_prefer("dataTableOutput", "DT", quiet = TRUE)
+conflict_prefer("renderDataTable", "DT", quiet = TRUE)
+conflict_prefer("select", "dplyr", quiet = TRUE)
+conflict_prefer("validate", "shiny", quiet = TRUE)
+conflict_prefer("layout", "plotly", quiet = TRUE)
+conflict_prefer("date", "lubridate", quiet = TRUE)
+
+# Load all other libraries silently
+suppressPackageStartupMessages({
+  library(forecast)
+  library(ggplot2)
+  library(tidyverse)
+  library(tseries)
+  library(smooth)
+  library(fpp2)
+  library(aTSA)
+  library(date)
+  library(lubridate)
+  library(shiny)
+  library(shinydashboard)
+  library(DT)
+  library(data.table)
+  library(dplyr)
+  library(openxlsx)
+  library(lmtest)
+  library(car)
+  library(combinat)
+  library(MASS)
+  library(nortest)
+  library(tibble)
+  library(plotly)
+  library(shinyWidgets)
+  library(DBI)
+  library(RPostgres)
+})
+
+# Load database configuration with robust path fallback.
+database_config_candidates <- c(
+  "config/database.R",
+  file.path(getwd(), "config", "database.R"),
+  file.path(Sys.getenv("R_ANALYTICS_SHINY_APP_DIR", getwd()), "config", "database.R"),
+  "/opt/r-analytics/shiny-app/config/database.R"
+)
+
+database_config_path <- database_config_candidates[file.exists(database_config_candidates)][1]
+if (!is.na(database_config_path)) {
+  cat(sprintf("📖 Sourcing database config from: %s\n", database_config_path))
+  flush.console()
+  source(database_config_path)
+} else {
+  cat("⚠️ Warning: config/database.R not found\n")
+  flush.console()
+  warning(sprintf("config/database.R not found. Checked: %s", paste(unique(database_config_candidates), collapse = ", ")))
+}
+cat("✅ global.R basic setup complete\n")
+if (exists("PD")) cat(sprintf("📊 PD available: %d rows\n", nrow(PD)))
+if (exists("LGD")) cat(sprintf("📊 LGD available: %d rows\n", nrow(LGD)))
+flush.console()
 
 
 
@@ -433,7 +500,7 @@ tabel_korelasi2 <- function(data, chunk_size = 1000) {
   # Generate kombinasi unik dari 2 variabel dengan sumber berbeda
   valid_combinations_2 <- Filter(
     function(combo) length(unique(variable_source[combo])) == 2,
-    combn(independent_vars, 2, simplify = FALSE)
+    utils::combn(independent_vars, 2, simplify = FALSE)
   )
   
   # Fungsi untuk memproses dalam partisi
@@ -479,7 +546,7 @@ tabel_korelasi <- function(data, threshold = 0, chunk_size = 1000) {
   # Generate kombinasi unik dari tiga variabel dengan sumber berbeda
   valid_combinations_3 <- Filter(
     function(combo) length(unique(variable_source[combo])) == 3,
-    combn(independent_vars, 3, simplify = FALSE)
+    utils::combn(independent_vars, 3, simplify = FALSE)
   )
   
   # Jika tidak ada kombinasi valid
@@ -1019,6 +1086,41 @@ runreg3models3 <- function(data, target_var, regression_models, chunk_size = 100
 }
 
 
+# ------------------- Data Quality & Sanitization -------------------
+
+#' Check for invalid numeric values (Inf, -Inf, NaN)
+#' @param df Data frame to check
+#' @return A list with problematic columns and the dates where errors occur
+check_data_quality <- function(df) {
+  # Tentukan kolom tanggal
+  date_col <- names(df)[sapply(df, inherits, "Date")][1]
+  if (is.na(date_col)) date_col <- "Date" # Fallback if not formal Date class
+  
+  results <- list()
+  num_cols <- names(df)[sapply(df, is.numeric)]
+  
+  for (col in num_cols) {
+    invalid_idx <- which(is.infinite(df[[col]]) | is.nan(df[[col]]))
+    if (length(invalid_idx) > 0) {
+      dates <- if (date_col %in% names(df)) as.character(df[[date_col]][invalid_idx]) else paste("Row", invalid_idx)
+      results[[col]] <- dates
+    }
+  }
+  return(results)
+}
+
+#' Sanitize data by converting Inf/NaN to NA
+#' @param df Data frame to sanitize
+sanitize_data <- function(df) {
+  df[] <- lapply(df, function(x) {
+    if (is.numeric(x)) {
+      x[is.infinite(x) | is.nan(x)] <- NA
+    }
+    return(x)
+  })
+  return(df)
+}
+
 transform <- function(data) {
   vars <- names(data)
   data <- data %>%
@@ -1087,6 +1189,13 @@ transform <- function(data) {
         )
     }
   }
+  
+  # Data Quality Check & Sanitization
+  quality_report <- check_data_quality(data)
+  data <- sanitize_data(data)
+  
+  # Attach report as attribute
+  attr(data, "quality_report") <- quality_report
   
   return(data)
 }
@@ -1160,8 +1269,14 @@ transform2 <- function(data) {
         )
     }
   }
-  bad_cols <- sapply(data, function(col) any(is.infinite(col) | is.nan(col)))
-  data <- data[, !bad_cols, drop = FALSE]
+  
+  # Data Quality Check & Sanitization
+  quality_report <- check_data_quality(data)
+  data <- sanitize_data(data)
+  
+  # Attach report as attribute
+  attr(data, "quality_report") <- quality_report
+  
   return(data)
 }
 
@@ -1326,7 +1441,12 @@ transform_y <- function(df, transformations = c("logit", "average", "moving_aver
       df[[paste0("log_", col_name)]] <- log_transform(df[[col_name]])
     }
   }
-  
+
+  # Data Quality Check & Sanitization
+  quality_report <- check_data_quality(df)
+  df <- sanitize_data(df)
+  attr(df, "quality_report") <- quality_report
+
   return(df)
 }
 
@@ -1340,8 +1460,12 @@ inner_join_date <- function(df1, df2) {
   date_col2 <- names(df2)[sapply(df2, inherits, "Date")]
   
   # Periksa jika kedua tabel memiliki kolom tanggal yang valid
-  if (length(date_col1) == 0 | length(date_col2) == 0) {
-    stop("Kolom tanggal tidak ditemukan pada salah satu atau kedua tabel.")
+  if (length(date_col1) == 0 && length(date_col2) == 0) {
+    stop("Kolom tanggal tidak ditemukan pada kedua tabel (Dependent & Independent).")
+  } else if (length(date_col1) == 0) {
+    stop("Kolom tanggal tidak ditemukan pada tabel Dependent (Input pertama).")
+  } else if (length(date_col2) == 0) {
+    stop("Kolom tanggal tidak ditemukan pada tabel Independent (Input kedua).")
   }
   
   # Ganti nama kolom tanggal menjadi "Date" di kedua data frame
@@ -1540,14 +1664,19 @@ save_upload_to_db <- function(file_input, file_data, con,
     stop("File upload kosong atau gagal dikonversi ke binary.")
   }
   
+  # PostgreSQL sequence desync fix: Manually calculate the next ID
+  max_id_df <- dbGetQuery(con, "SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM upload_history")
+  next_id <- as.integer(max_id_df$next_id)
+  
   # Eksekusi insert ke DB
   query <- "
     INSERT INTO upload_history (
-      user_id, filename, file_type, purpose, rows, columns, data
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+      id, user_id, filename, file_type, purpose, rows, columns, data
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
   "
   
   dbExecute(con, query, params = list(
+    next_id,
     ifelse(is.null(user_id), Sys.info()[["user"]], user_id),
     filename,
     ext,
@@ -3495,5 +3624,4 @@ build_monthly_rows <- function(mpd_mat, cpd_mat = NULL, scenario_id, prc_date, p
     stringsAsFactors = FALSE
   )
 }
-
 

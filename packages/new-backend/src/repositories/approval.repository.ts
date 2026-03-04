@@ -109,6 +109,66 @@ export const ApprovalRepository = {
         return matrix
     },
 
+    /**
+     * Update approval matrix and optionally replace all of its levels atomically.
+     *
+     * @param input - Matrix update payload
+     * @returns Updated matrix with levels, or null when matrix is not found
+     */
+    updateMatrixWithLevels: async (input: {
+        tenantId: string
+        matrixId: string
+        data: Partial<NewApprovalMatrix>
+        levels?: Omit<NewApprovalLevel, 'matrixId'>[]
+    }) => {
+        const dbx = getDatabase(input.tenantId)
+
+        const existing = await dbx.query.approvalMatrices.findFirst({
+            where: and(
+                eq(approvalMatrices.id, input.matrixId),
+                eq(approvalMatrices.tenantId, input.tenantId)
+            ),
+        })
+
+        if (!existing) return null
+
+        await dbx.transaction(async (tx) => {
+            await tx
+                .update(approvalMatrices)
+                .set({
+                    ...input.data,
+                    updatedAt: new Date(),
+                })
+                .where(and(
+                    eq(approvalMatrices.id, input.matrixId),
+                    eq(approvalMatrices.tenantId, input.tenantId)
+                ))
+
+            if (input.levels) {
+                await tx
+                    .delete(approvalLevels)
+                    .where(eq(approvalLevels.matrixId, input.matrixId))
+
+                if (input.levels.length > 0) {
+                    await tx
+                        .insert(approvalLevels)
+                        .values(input.levels.map((level) => ({
+                            ...level,
+                            matrixId: input.matrixId,
+                        })))
+                }
+            }
+        })
+
+        return dbx.query.approvalMatrices.findFirst({
+            where: and(
+                eq(approvalMatrices.id, input.matrixId),
+                eq(approvalMatrices.tenantId, input.tenantId)
+            ),
+            with: { levels: { orderBy: [asc(approvalLevels.level)] } },
+        })
+    },
+
     // ---------------------------------------------------------------------------
     // REQUEST OPERATIONS
     // ---------------------------------------------------------------------------

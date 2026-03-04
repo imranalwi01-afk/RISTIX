@@ -1502,8 +1502,8 @@ export default function MenuManagement({ params }: { params: Promise<{}> }) {
                   <MenuItem value="">None (Root Menu)</MenuItem>
                   {menus
                     .filter(menu => !menu.parentId)
-                    .map(menu => (
-                      <MenuItem key={menu.id} value={menu.id}>
+                    .map((menu, idx) => (
+                      <MenuItem key={`${menu.id}-${idx}`} value={menu.id}>
                         {menu.label}
                       </MenuItem>
                     ))}
@@ -1519,8 +1519,8 @@ export default function MenuManagement({ params }: { params: Promise<{}> }) {
                   onChange={(e) => setFormData({ ...formData, roles: e.target.value as string[] })}
                   label="Roles"
                 >
-                  {roles.map(role => (
-                    <MenuItem key={role.id} value={role.id}>
+                  {roles.map((role, idx) => (
+                    <MenuItem key={`${role.id}-${idx}`} value={role.id}>
                       {role.name}
                     </MenuItem>
                   ))}
@@ -1551,8 +1551,8 @@ export default function MenuManagement({ params }: { params: Promise<{}> }) {
                   onChange={(e) => setFormData({ ...formData, permissions: e.target.value as string[] })}
                   label="Permissions"
                 >
-                  {availablePermissions.map(permission => (
-                    <MenuItem key={permission} value={permission}>
+                  {availablePermissions.map((permission, idx) => (
+                    <MenuItem key={`${permission}-${idx}`} value={permission}>
                       {permission}
                     </MenuItem>
                   ))}

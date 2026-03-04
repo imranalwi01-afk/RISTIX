@@ -1,5 +1,6 @@
 import { Effect, pipe } from 'effect'
 import { RuleBaseSettingsRepository } from '../repositories/rule-base-settings.repository'
+import { ParametersRepository } from '../repositories/parameters.repository'
 import { NotFoundError } from '../lib/errors'
 import { frs9ParamScenarioRulesh, frs9ParamScenarioRulesd } from '../db/schema'
 
@@ -34,7 +35,7 @@ export const RuleBaseSettingsService = {
             Effect.flatMap(header =>
                 header
                     ? Effect.succeed(transformHeader(header))
-                    : Effect.fail(new NotFoundError({ resource: 'Rule Header', id: String(id) }))
+                    : Effect.fail(new NotFoundError({ message: 'Rule Header not found', resource: 'Rule Header', id: String(id) }))
             )
         )
     },
@@ -84,7 +85,7 @@ export const RuleBaseSettingsService = {
             Effect.flatMap(updated =>
                 updated
                     ? Effect.succeed(transformHeader(updated))
-                    : Effect.fail(new NotFoundError({ resource: 'Rule Header', id: String(id) }))
+                    : Effect.fail(new NotFoundError({ message: 'Rule Header not found', resource: 'Rule Header', id: String(id) }))
             )
         )
     },
@@ -165,7 +166,7 @@ export const RuleBaseSettingsService = {
             Effect.flatMap(updated =>
                 updated
                     ? Effect.succeed(transformDetail(updated))
-                    : Effect.fail(new NotFoundError({ resource: 'Rule Detail', id: String(id) }))
+                    : Effect.fail(new NotFoundError({ message: 'Rule Detail not found', resource: 'Rule Detail', id: String(id) }))
             )
         )
     },
@@ -182,21 +183,30 @@ export const RuleBaseSettingsService = {
             Effect.flatMap(deleted =>
                 deleted
                     ? Effect.succeed({ message: 'Rule detail deleted successfully' })
-                    : Effect.fail(new NotFoundError({ resource: 'Rule Detail', id: String(id) }))
+                    : Effect.fail(new NotFoundError({ message: 'Rule Detail not found', resource: 'Rule Detail', id: String(id) }))
             )
         )
     },
 
     // Metadata Handlers
 
-    /** Get available rule types options. */
+    /**
+     * Get available rule types options.
+     * Dynamically sourced from Business Setting B0008 in FRS9_PARAM_COMMOND.
+     * Per tech spec: RULE_TYPE = Combo Box (Business Setting B0008)
+     */
     getRuleTypes: () => {
-        return Effect.succeed([
-            { value: 'DEFAULT', label: 'Default' },
-            { value: 'GL', label: 'GL Grouping' },
-            { value: 'STAGE', label: 'IFRS 9 Stage' },
-            { value: 'CUSTOM', label: 'Custom Rule' },
-        ])
+        return pipe(
+            ParametersRepository.findDetailByCode('B0008'),
+            Effect.map(details =>
+                details
+                    .filter(d => d.value1 !== null && d.value1 !== '')
+                    .map(d => ({
+                        value: d.value1!,
+                        label: d.value2 ?? d.value1!,
+                    }))
+            )
+        )
     },
 
     /**

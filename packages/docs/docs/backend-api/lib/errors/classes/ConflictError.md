@@ -4,7 +4,7 @@
 
 # Class: ConflictError
 
-Defined in: [src/lib/errors.ts:76](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/lib/errors.ts#L76)
+Defined in: [src/lib/errors.ts:76](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/lib/errors.ts#L76)
 
 Conflict error - duplicate resource or version mismatch
 
@@ -128,7 +128,7 @@ The cause of the error.
 
 > `readonly` `optional` **field**: `string`
 
-Defined in: [src/lib/errors.ts:79](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/lib/errors.ts#L79)
+Defined in: [src/lib/errors.ts:79](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/lib/errors.ts#L79)
 
 #### Inherited from
 
@@ -164,7 +164,7 @@ Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1076
 
 > `readonly` **resource**: `string`
 
-Defined in: [src/lib/errors.ts:78](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/lib/errors.ts#L78)
+Defined in: [src/lib/errors.ts:78](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/lib/errors.ts#L78)
 
 #### Inherited from
 
@@ -188,7 +188,7 @@ Defined in: node\_modules/typescript/lib/lib.es5.d.ts:1078
 
 > `readonly` `optional` **value**: `unknown`
 
-Defined in: [src/lib/errors.ts:80](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/lib/errors.ts#L80)
+Defined in: [src/lib/errors.ts:80](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/lib/errors.ts#L80)
 
 #### Inherited from
 

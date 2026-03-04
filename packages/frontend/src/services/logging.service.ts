@@ -171,16 +171,22 @@ class CentralizedLoggingService {
 
     const logsToSend = [...this.logBuffer];
     this.logBuffer = [];
+    const errorLogs = logsToSend.filter((entry) =>
+      entry.level === LogLevel.ERROR || entry.level === LogLevel.CRITICAL
+    );
+
+    if (errorLogs.length === 0) return;
 
     if (this.config.features.auditTrail && typeof window !== 'undefined') {
       try {
-        const response = await fetch(`${this.config.api.baseUrl}/audit/frontend-logs`, {
+        const response = await fetch(`${this.config.api.baseUrl}/monitoring/frontend-errors`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${getAuthToken() || ''}`
           },
-          body: JSON.stringify({ logs: logsToSend })
+          body: JSON.stringify({ logs: errorLogs }),
+          keepalive: true
         });
 
         if (!response.ok && this.config.app.environment === 'development') {
@@ -191,7 +197,7 @@ class CentralizedLoggingService {
           console.warn('Error sending logs to backend:', error);
         }
         // Put logs back in buffer if sending failed
-        this.logBuffer = [...logsToSend, ...this.logBuffer];
+        this.logBuffer = [...errorLogs, ...this.logBuffer];
       }
     }
   }

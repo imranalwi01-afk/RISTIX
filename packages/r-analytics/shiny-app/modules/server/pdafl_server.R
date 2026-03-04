@@ -34,6 +34,12 @@ pdafl_server <- function(input, output, session, con, PD) {
   # All utils/data_processing.R, utils/pd_calculations.R, and utils/database_utils.R
   # are loaded globally in app.R before modules are initialized
 
+  normalize_column_names <- function(df) {
+    if (!is.data.frame(df) || ncol(df) == 0) return(df)
+    names(df) <- tolower(names(df))
+    df
+  }
+
   # =============================================================================
   # MODULE INITIALIZATION AND DEBUG SETUP
   # =============================================================================
@@ -255,11 +261,12 @@ pdafl_server <- function(input, output, session, con, PD) {
       ORDER BY reporting_date DESC
       LIMIT $2'
 
-      historical_data <- dbGetQuery(con, query, params = list(segment_id, n_periods))
+      historical_data <- DBI::dbGetQuery(con, query, params = list(segment_id, n_periods))
+      historical_data <- normalize_column_names(historical_data)
 
       if (nrow(historical_data) > 0) {
         cat(" DEBUG [LOAD_HISTORICAL]: Loaded", nrow(historical_data), "historical records\n")
-        cat("  - Date range:", paste(range(historical_data$REPORTING_DATE), collapse = " to "), "\n")
+        cat("  - Date range:", paste(range(historical_data$reporting_date), collapse = " to "), "\n")
       } else {
         cat(" DEBUG [LOAD_HISTORICAL]: No historical data found\n")
       }
@@ -1004,9 +1011,46 @@ pdafl_server <- function(input, output, session, con, PD) {
   # SEGMENTATION AND DATA LOADING
   # =============================================================================
 
+  resolve_pd_col <- function(df, candidates) {
+    if (!is.data.frame(df) || ncol(df) == 0) return(NULL)
+    col_names <- names(df)
+    lower_names <- tolower(col_names)
+    for (candidate in candidates) {
+      idx <- match(tolower(candidate), lower_names)
+      if (!is.na(idx)) return(col_names[[idx]])
+    }
+    NULL
+  }
+
+  build_pd_segment_choices <- function(df) {
+    if (!is.data.frame(df) || nrow(df) == 0) {
+      return(c("No segmentation data found" = ""))
+    }
+
+    id_col <- resolve_pd_col(df, c("pkid", "pd_config_id", "config_id", "id"))
+    name_col <- resolve_pd_col(df, c("pd_model_name", "model_name", "name", "description"))
+
+    if (is.null(id_col) || is.null(name_col)) {
+      return(c("Segmentation config columns not found" = ""))
+    }
+
+    ids <- as.character(df[[id_col]])
+    labels <- as.character(df[[name_col]])
+    valid <- !is.na(ids) & nzchar(trimws(ids))
+    if (!any(valid)) {
+      return(c("No valid segmentation ID found" = ""))
+    }
+
+    ids <- ids[valid]
+    labels <- labels[valid]
+    labels[is.na(labels) | !nzchar(trimws(labels))] <- paste("PD", ids[is.na(labels) | !nzchar(trimws(labels))])
+
+    stats::setNames(ids, labels)
+  }
+
   # Dynamic UI for PD-AFL segmentation
   output$segmentationPDAFLUI <- renderUI({
-    selectInput("segmentpd", "Segmentation:", choices = setNames(PD$PKID, PD$PD_MODEL_NAME))
+    selectInput("segmentpd", "Segmentation:", choices = build_pd_segment_choices(PD))
   })
 
   # FIXED: Load issuer data using direct dbGetQuery exactly like original working version
@@ -1017,10 +1061,11 @@ pdafl_server <- function(input, output, session, con, PD) {
     # Use exact same pattern as original working version - with params list
     datais <- tryCatch({
       cat(" DEBUG [DATAISSUERRR0]: Executing frs9_imp_ca_pd_enr query\n")
-      result <- dbGetQuery(con, "SELECT prc_date, bucket_from, calc_amount
+      result <- DBI::dbGetQuery(con, "SELECT prc_date, bucket_from, calc_amount
       FROM frs9_imp_ca_pd_enr
       WHERE pd_config_id = $1",
                            params = list(input$segmentpd))
+      result <- normalize_column_names(result)
       cat(" DEBUG [DATAISSUERRR0]: Query successful\n")
       result
     }, error = function(e) {
@@ -1029,15 +1074,15 @@ pdafl_server <- function(input, output, session, con, PD) {
     })
 
     if(is.null(datais)) {
-      cat(" DEBUG [DATAISSUERRR0]: No data returned from FRS9_IMP_CA_PD_ENR\n")
+      cat(" DEBUG [DATAISSUERRR0]: No data returned from frs9_imp_ca_pd_enr\n")
       return(NULL)
     }
 
     cat("  - datais dimensions:", paste(dim(datais), collapse="x"), "\n")
     if(nrow(datais) > 0) {
-      cat("  - PRC_DATE range:", paste(range(datais$PRC_DATE, na.rm=TRUE), collapse=" to "), "\n")
-      cat("  - BUCKET_FROM values:", paste(unique(datais$BUCKET_FROM), collapse=", "), "\n")
-      cat("  - CALC_AMOUNT range:", paste(round(range(datais$CALC_AMOUNT, na.rm=TRUE)), collapse=" to "), "\n")
+      cat("  - prc_date range:", paste(range(datais$prc_date, na.rm=TRUE), collapse=" to "), "\n")
+      cat("  - bucket_from values:", paste(unique(datais$bucket_from), collapse=", "), "\n")
+      cat("  - calc_amount range:", paste(round(range(datais$calc_amount, na.rm=TRUE)), collapse=" to "), "\n")
     }
 
     cat(" DEBUG [DATAISSUERRR0]: Issuer data extraction completed\n")
@@ -1052,10 +1097,11 @@ pdafl_server <- function(input, output, session, con, PD) {
     # Use exact same pattern as original working version - with params list
     datacon <- tryCatch({
       cat(" DEBUG [KONFIG_ID]: Executing frs9_imp_ca_pd_config query\n")
-      result <- dbGetQuery(con, "SELECT population_type, observation_period, observation_start_date
+      result <- DBI::dbGetQuery(con, "SELECT population_type, observation_period, observation_start_date
       FROM frs9_imp_ca_pd_config
       WHERE pkid = $1",
                             params = list(input$segmentpd))
+      result <- normalize_column_names(result)
       cat(" DEBUG [KONFIG_ID]: Query successful\n")
       result
     }, error = function(e) {
@@ -1064,15 +1110,15 @@ pdafl_server <- function(input, output, session, con, PD) {
     })
 
     if(is.null(datacon)) {
-      cat(" DEBUG [KONFIG_ID]: No data returned from FRS9_IMP_CA_PD_CONFIG\n")
+      cat(" DEBUG [KONFIG_ID]: No data returned from frs9_imp_ca_pd_config\n")
       return(NULL)
     }
 
     cat("  - datacon dimensions:", paste(dim(datacon), collapse="x"), "\n")
     if(nrow(datacon) > 0) {
-      cat("  - POPULATION_TYPE:", datacon$POPULATION_TYPE[1], "\n")
-      cat("  - OBSERVATION_PERIOD:", datacon$OBSERVATION_PERIOD[1], "\n")
-      cat("  - OBSERVATION_START_DATE:", as.character(datacon$OBSERVATION_START_DATE[1]), "\n")
+      cat("  - population_type:", datacon$population_type[1], "\n")
+      cat("  - observation_period:", datacon$observation_period[1], "\n")
+      cat("  - observation_start_date:", as.character(datacon$observation_start_date[1]), "\n")
     }
 
     cat(" DEBUG [KONFIG_ID]: Configuration data extraction completed\n")
@@ -1102,18 +1148,18 @@ pdafl_server <- function(input, output, session, con, PD) {
 
     # Ensure Date type and access first row to avoid vector length issues
     cat(" DEBUG [DATAISSUERRR01]: Converting dates\n")
-    dataisu$PRC_DATE <- as.Date(dataisu$PRC_DATE)
-    config$OBSERVATION_START_DATE <- as.Date(config$OBSERVATION_START_DATE)
+    dataisu$prc_date <- as.Date(dataisu$prc_date)
+    config$observation_start_date <- as.Date(config$observation_start_date)
 
     cat(" DEBUG [DATAISSUERRR01]: Configuration values\n")
-    cat("  - POPULATION_TYPE:", config$POPULATION_TYPE[1], "\n")
-    cat("  - OBSERVATION_PERIOD:", config$OBSERVATION_PERIOD[1], "\n")
-    cat("  - OBSERVATION_START_DATE:", as.character(config$OBSERVATION_START_DATE[1]), "\n")
+    cat("  - population_type:", config$population_type[1], "\n")
+    cat("  - observation_period:", config$observation_period[1], "\n")
+    cat("  - observation_start_date:", as.character(config$observation_start_date[1]), "\n")
 
     # CRITICAL FIX: Use [1] to ensure scalar comparison
-    population_type <- config$POPULATION_TYPE[1]
-    observation_period <- config$OBSERVATION_PERIOD[1]
-    observation_start_date <- config$OBSERVATION_START_DATE[1]
+    population_type <- config$population_type[1]
+    observation_period <- config$observation_period[1]
+    observation_start_date <- config$observation_start_date[1]
 
     cat(" DEBUG [DATAISSUERRR01]: Scalar values extracted\n")
     cat("  - population_type (scalar):", population_type, "\n")
@@ -1128,7 +1174,7 @@ pdafl_server <- function(input, output, session, con, PD) {
       cat(" DEBUG [DATAISSUERRR01]: Filtering by observation period (POPULATION_TYPE = 2)\n")
 
       # Take last n periods according to OBSERVATION_PERIOD
-      unique_dates <- unique(dataisu$PRC_DATE)
+      unique_dates <- unique(dataisu$prc_date)
       cat("  - Total unique dates:", length(unique_dates), "\n")
       cat("  - Observation period:", observation_period, "\n")
 
@@ -1136,7 +1182,7 @@ pdafl_server <- function(input, output, session, con, PD) {
       cat("  - Last N dates selected:", length(last_n_dates), "\n")
       cat("  - Date range:", as.character(min(last_n_dates)), "to", as.character(max(last_n_dates)), "\n")
 
-      dataku <- dataisu[dataisu$PRC_DATE %in% last_n_dates, ]
+      dataku <- dataisu[dataisu$prc_date %in% last_n_dates, ]
       cat("  - Rows after date filter:", nrow(dataku), "\n")
 
       # Additional filter if start period is greater than start date
@@ -1146,7 +1192,7 @@ pdafl_server <- function(input, output, session, con, PD) {
 
       if(min_date < observation_start_date){
         cat(" DEBUG [DATAISSUERRR01]: Applying start date filter\n")
-        dataku <- dataku[dataku$PRC_DATE >= observation_start_date, ]
+        dataku <- dataku[dataku$prc_date >= observation_start_date, ]
         cat("  - Rows after start date filter:", nrow(dataku), "\n")
       }
     } else {
@@ -1166,9 +1212,10 @@ pdafl_server <- function(input, output, session, con, PD) {
     # Use exact same pattern as original working version - with params list
     dataemut <- tryCatch({
       cat(" DEBUG [DATAMMULTTT0]: Executing frs9_imp_ca_pd_mmult query\n")
-      result <- dbGetQuery(con, "SELECT * FROM frs9_imp_ca_pd_mmult
+      result <- DBI::dbGetQuery(con, "SELECT * FROM frs9_imp_ca_pd_mmult
       WHERE pd_config_id = $1",
                            params = list(input$segmentpd))
+      result <- normalize_column_names(result)
       cat(" DEBUG [DATAMMULTTT0]: Query successful\n")
       result
     }, error = function(e) {
@@ -1177,16 +1224,16 @@ pdafl_server <- function(input, output, session, con, PD) {
     })
 
     if(is.null(dataemut)) {
-      cat(" DEBUG [DATAMMULTTT0]: No data returned from FRS9_IMP_CA_PD_MMULT\n")
+      cat(" DEBUG [DATAMMULTTT0]: No data returned from frs9_imp_ca_pd_mmult\n")
       return(NULL)
     }
 
     cat("  - dataemut dimensions:", paste(dim(dataemut), collapse="x"), "\n")
 
     if(nrow(dataemut) > 0) {
-      cat("  - PRC_DATE range:", paste(range(dataemut$PRC_DATE, na.rm=TRUE), collapse=" to "), "\n")
-      cat("  - BUCKET_FROM values:", paste(unique(dataemut$BUCKET_FROM), collapse=", "), "\n")
-      cat("  - FL_SEQ values:", paste(unique(dataemut$FL_SEQ), collapse=", "), "\n")
+      cat("  - prc_date range:", paste(range(dataemut$prc_date, na.rm=TRUE), collapse=" to "), "\n")
+      cat("  - bucket_from values:", paste(unique(dataemut$bucket_from), collapse=", "), "\n")
+      cat("  - fl_seq values:", paste(unique(dataemut$fl_seq), collapse=", "), "\n")
     }
 
     cat(" DEBUG [DATAMMULTTT0]: Multiplication data extraction completed\n")
@@ -1217,7 +1264,7 @@ pdafl_server <- function(input, output, session, con, PD) {
 
     # Execute database query with error handling
     tryCatch({
-      result <- dbGetQuery(con, "
+      result <- DBI::dbGetQuery(con, "
         SELECT model_id, model_name, model_status, dependent_variable, r_squared, mape, created_date
         FROM frs9_r_model_summary
         WHERE id_deleted = FALSE
@@ -1265,7 +1312,7 @@ pdafl_server <- function(input, output, session, con, PD) {
   # Original app15.R line 2556-2565: Query ALL models ordered by created_date DESC
   observeEvent(input$refresh, {
     modelupload <- tryCatch(
-      dbGetQuery(con, 'SELECT "model_id","model_name" FROM "frs9_r_model_summary" ORDER BY created_date DESC'),
+      DBI::dbGetQuery(con, 'SELECT "model_id","model_name" FROM "frs9_r_model_summary" ORDER BY created_date DESC'),
       error = function(e) { NULL }
     )
     if (!is.null(modelupload) && nrow(modelupload) > 0) {
@@ -1282,7 +1329,7 @@ pdafl_server <- function(input, output, session, con, PD) {
 
     # FIXED: Use direct dbGetQuery with proper parameter binding like original working version
     result0 <- tryCatch({
-      dbGetQuery(con, 'SELECT "dependent_variable", "data_file" FROM "frs9_r_model_summary"
+      DBI::dbGetQuery(con, 'SELECT "dependent_variable", "data_file" FROM "frs9_r_model_summary"
       WHERE "model_name" = $1 LIMIT 1',
                  params = list(input$choose_model))
     }, error = function(e) {
@@ -1746,10 +1793,10 @@ pdafl_server <- function(input, output, session, con, PD) {
       return(NULL)
     }
 
-    dataissuer2 <- aggregate(CALC_AMOUNT~BUCKET_FROM, data=dataissuer_raw, sum)
+    dataissuer2 <- aggregate(calc_amount ~ bucket_from, data = dataissuer_raw, sum)
     cat("  - dataissuer2 dimensions:", paste(dim(dataissuer2), collapse="x"), "\n")
 
-    issuer <- dataissuer2$CALC_AMOUNT
+    issuer <- dataissuer2$calc_amount
     cat("  - issuer vector length:", length(issuer), "\n")
     cat("  - issuer values:", paste(round(issuer), collapse=", "), "\n")
 
@@ -1762,13 +1809,13 @@ pdafl_server <- function(input, output, session, con, PD) {
       return(NULL)
     }
 
-    latest_date <- datammult$PRC_DATE[nrow(datammult)]
+    latest_date <- datammult$prc_date[nrow(datammult)]
     cat("  - latest_date:", as.character(latest_date), "\n")
 
-    filtered_datammult <- datammult[datammult$PRC_DATE == latest_date & datammult$BUCKET_TO == 5, ]
+    filtered_datammult <- datammult[datammult$prc_date == latest_date & datammult$bucket_to == 5, ]
     cat("  - filtered_datammult dimensions:", paste(dim(filtered_datammult), collapse="x"), "\n")
 
-    ym.pd <- as.data.frame.matrix(xtabs(MMULT ~ BUCKET_FROM + FL_SEQ, data = filtered_datammult))
+    ym.pd <- as.data.frame.matrix(xtabs(mmult ~ bucket_from + fl_seq, data = filtered_datammult))
     cat("  - ym.pd dimensions:", paste(dim(ym.pd), collapse="x"), "\n")
 
     ym.pd[5,2:ncol(ym.pd)] <- 0
@@ -2266,7 +2313,7 @@ pdafl_server <- function(input, output, session, con, PD) {
 
   # Download comprehensive PDAFL results
   output$download_all_xlsx <- downloadHandler(
-    filename = function() paste0("PDAFL_All_",max(dataissuerrr01()$PRC_DATE)," rep-", Sys.Date(), ".xlsx"),
+    filename = function() paste0("PDAFL_All_", max(dataissuerrr01()$prc_date), " rep-", Sys.Date(), ".xlsx"),
     content = function(file) {
 
       wb <- createWorkbook()
@@ -2323,8 +2370,8 @@ pdafl_server <- function(input, output, session, con, PD) {
       # Header with report date
       report_text <- tryCatch({
         x <- dataissuerrr01()
-        if (!is.null(x) && "PRC_DATE" %in% names(x)) {
-          dt <- suppressWarnings(max(as.Date(x$PRC_DATE), na.rm = TRUE))
+        if (!is.null(x) && "prc_date" %in% names(x)) {
+          dt <- suppressWarnings(max(as.Date(x$prc_date), na.rm = TRUE))
           paste0("Report PD Date ", format(dt, "%Y-%m-%d"))
         } else {
           "Report PD Date -"
@@ -2404,7 +2451,7 @@ pdafl_server <- function(input, output, session, con, PD) {
   current_model_id <- reactive({
     req(input$choose_model)
     tryCatch({
-      res <- dbGetQuery(con, 'SELECT "model_id" FROM "frs9_r_model_summary" WHERE "model_name" = $1 LIMIT 1',
+      res <- DBI::dbGetQuery(con, 'SELECT "model_id" FROM "frs9_r_model_summary" WHERE "model_name" = $1 LIMIT 1',
                         params = list(input$choose_model))
       if (nrow(res) > 0) as.integer(res$model_id[[1]]) else NA_integer_
     }, error = function(e) {
@@ -2418,7 +2465,7 @@ pdafl_server <- function(input, output, session, con, PD) {
     req(hasilPD())
 
     # Metadata
-    prc_date     <- max(dataissuerrr01()$PRC_DATE, na.rm = TRUE)
+    prc_date     <- max(dataissuerrr01()$prc_date, na.rm = TRUE)
     pd_config_id <- as.integer(input$segmentpd)
     model_id     <- current_model_id()
     created_by   <- if (!is.null(session$user) && nzchar(session$user)) session$user else

@@ -126,13 +126,7 @@ const BusinessParameterDialog = memo(function BusinessParameterDialog({
         setFormData(prev => ({ ...prev, param_value: e.target.value }));
     }, []);
 
-    const handleCategoryChange = useCallback((e: any) => {
-        setFormData(prev => ({ ...prev, param_category: e.target.value }));
-    }, []);
 
-    const handleTypeChange = useCallback((e: any) => {
-        setFormData(prev => ({ ...prev, param_type: e.target.value }));
-    }, []);
 
     const handleEditableChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData(prev => ({ ...prev, is_editable: e.target.checked }));
@@ -160,7 +154,7 @@ const BusinessParameterDialog = memo(function BusinessParameterDialog({
                 param_value: formData.param_value.trim()
             });
             onClose();
-        } catch (err: any) {
+        } catch (err) {
             setError(err.message || 'Failed to save parameter');
         } finally {
             setLoading(false);
@@ -184,20 +178,6 @@ const BusinessParameterDialog = memo(function BusinessParameterDialog({
                         disabled={!!parameter}
                         inputProps={{ 'data-testid': 'input-param-code' }}
                     />
-                    <FormControl fullWidth>
-                        <InputLabel id="param-category-label">Parameter Category</InputLabel>
-                        <Select
-                            labelId="param-category-label"
-                            value={formData.param_category}
-                            onChange={handleCategoryChange}
-                            label="Parameter Category"
-                            data-testid="select-param-category"
-                        >
-                            <MenuItem value="B">Business</MenuItem>
-                            <MenuItem value="A">Application</MenuItem>
-                            <MenuItem value="S">System</MenuItem>
-                        </Select>
-                    </FormControl>
                     <TextField
                         fullWidth
                         label="Description"
@@ -206,34 +186,10 @@ const BusinessParameterDialog = memo(function BusinessParameterDialog({
                         placeholder="Enter parameter description"
                         required
                         multiline
-                        rows={2}
+                        rows={3}
                         sx={{ gridColumn: 'span 2' }}
                         inputProps={{ 'data-testid': 'input-param-desc' }}
                     />
-                    <TextField
-                        fullWidth
-                        label="Parameter Value"
-                        value={formData.param_value}
-                        onChange={handleParamValueChange}
-                        placeholder="Enter parameter value"
-                        required
-                        sx={{ gridColumn: 'span 2' }}
-                        inputProps={{ 'data-testid': 'input-param-value' }}
-                    />
-                    <FormControl fullWidth>
-                        <InputLabel id="param-type-label">Parameter Type</InputLabel>
-                        <Select
-                            labelId="param-type-label"
-                            value={formData.param_type}
-                            onChange={handleTypeChange}
-                            label="Parameter Type"
-                            data-testid="select-param-type"
-                        >
-                            <MenuItem value="BUSINESS">Business</MenuItem>
-                            <MenuItem value="APPLICATION">Application</MenuItem>
-                            <MenuItem value="SYSTEM">System</MenuItem>
-                        </Select>
-                    </FormControl>
                     <FormControlLabel
                         control={
                             <Switch

@@ -18,15 +18,11 @@ LABEL version="1.0.0"
 # 📄 COPY APPLICATION FILES
 # ============================================================================
 
-# Copy R application files if they exist
-COPY --chown=r-analytics:r-analytics shiny-app/*.R ./shiny-app/
-
-# Rename entry point to standard app.R
-RUN if [ -f ./shiny-app/app34.R ]; then mv ./shiny-app/app34.R ./shiny-app/app.R; fi
+# Copy R application files recursively
+COPY --chown=r-analytics:r-analytics shiny-app/ ./shiny-app/
 
 # Copy configuration files if they exist
 COPY --chown=r-analytics:r-analytics config/ ./config/
-# COPY --chown=r-analytics:r-analytics functions/ ./functions/ # Removed as directory is missing
 
 # Copy startup script
 COPY --chown=r-analytics:r-analytics docker-entrypoint.sh ./
@@ -35,21 +31,8 @@ RUN chmod +x docker-entrypoint.sh
 # Copy API/runtime files
 COPY --chown=r-analytics:r-analytics iaf-r-api.R start_api.R logger.R ./
 COPY --chown=r-analytics:r-analytics api/ ./api/
-
-# ============================================================================
-# 🌐 SHINY SERVER CONFIGURATION
-# ============================================================================
-
-# Create custom Shiny server configuration
-RUN echo "run_as r-analytics; \n\
-    server { \
-    listen 3838 0.0.0.0; \
-    location / { \
-    app_dir /opt/r-analytics/shiny-app; \
-    log_dir /opt/r-analytics/logs; \
-    directory_index on; \
-    } \
-    }" > /etc/shiny-server/shiny-server.conf
+COPY --chown=r-analytics:r-analytics src/ ./src/
+COPY --chown=r-analytics:r-analytics scripts/ ./scripts/
 
 # ============================================================================
 # 🔧 ENVIRONMENT CONFIGURATION
@@ -66,10 +49,10 @@ ENV R_ENABLE_CORS=true
 
 # Database connection defaults
 ENV DB_HOST=host.docker.internal
-ENV DB_PORT=5432
+ENV DB_PORT=5433
 ENV DB_USER=postgres
 ENV DB_PASSWORD=postgres
-ENV FRS9_DB_HOST=192.168.0.106
+ENV FRS9_DB_HOST=host.docker.internal
 ENV FRS9_DB_PORT=5433
 ENV FRS9_DB_USER=postgres
 ENV FRS9_DB_PASSWORD=postgres
@@ -77,7 +60,9 @@ ENV FRS9_DB_PASSWORD=postgres
 # R and Shiny configuration
 ENV R_LIBS_USER=/opt/r-analytics/R-libs
 ENV SHINY_HOST=0.0.0.0
-ENV SHINY_PORT=3838
+ENV SHINY_PORT=4236
+# Keep semver format to avoid Shiny compareVersion() failures when base image exports "latest".
+ENV SHINY_SERVER_VERSION=1.5.23
 
 # Create R library directory
 RUN mkdir -p $R_LIBS_USER && chown r-analytics:r-analytics $R_LIBS_USER
@@ -95,10 +80,10 @@ USER r-analytics
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:3838/ || exit 1
+    CMD curl -f http://localhost:4236/ || exit 1
 
 # Expose Shiny port and API port
-EXPOSE 3838 4241
+EXPOSE 4236 4241
 
 # Volume for logs and temporary files
 VOLUME ["/opt/r-analytics/logs", "/opt/r-analytics/temp"]

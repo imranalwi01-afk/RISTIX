@@ -7,6 +7,7 @@ import { GridColDef } from '@mui/x-data-grid';
 import { SafeDataGrid } from '@/components/shared/SafeDataGrid';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 import { api } from '@/services/api';
+import { useAssessmentWorkspaceEmbedded } from '../../assessment/embedded-context';
 
 const columns: GridColDef[] = [
   { field: 'fileName', headerName: 'File Name', width: 250 },
@@ -22,6 +23,7 @@ const columns: GridColDef[] = [
 ];
 
 export default function DCFUploadReportPage() {
+  const embedded = useAssessmentWorkspaceEmbedded();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -43,12 +45,14 @@ export default function DCFUploadReportPage() {
   }, []);
 
   return (
-    <Container maxWidth="xl">
-      <FullstackIndicator />
-      <PageHeader
-        title="Review DCF Upload Report"
-        subtitle="Validation results for DCF file uploads"
-      />
+    <Container maxWidth="xl" sx={embedded ? { px: '0 !important' } : undefined}>
+      {!embedded && <FullstackIndicator />}
+      {!embedded && (
+        <PageHeader
+          title="Review DCF Upload Report"
+          subtitle="Validation results for DCF file uploads"
+        />
+      )}
       <Card>
         <CardContent>
            <Box sx={{ height: 500, width: '100%' }}>

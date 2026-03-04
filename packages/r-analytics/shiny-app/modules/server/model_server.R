@@ -81,9 +81,9 @@ model_server <- function(input, output, session, dependent_data, independent_dat
     # Additional check: exclude variables that are transformations of Y (like logit_ODR when ODR is selected)
     if (!is.null(y_selected)) {
       # Common transformation patterns to exclude
-      if (y_selected == "ODR" && "logit_ODR" %in% x_choices) {
-        x_choices <- x_choices[x_choices != "logit_ODR"]
-        cat("🔍 DYNAMIC: Excluding logit_ODR (transformation of ODR)\n")
+      if (tolower(y_selected) == "odr" && any(tolower(x_choices) == "logit_odr")) {
+        x_choices <- x_choices[tolower(x_choices) != "logit_odr"]
+        cat("🔍 DYNAMIC: Excluding logit_odr (transformation of odr)\n")
       }
       # Add more transformation patterns as needed
       if (grepl("^logit_", y_selected) || grepl("^log_", y_selected) || grepl("^sqrt_", y_selected)) {
@@ -126,9 +126,9 @@ model_server <- function(input, output, session, dependent_data, independent_dat
       # Additional check: exclude variables that are transformations of Y
       if (!is.null(y_selected)) {
         # Common transformation patterns to exclude
-        if (y_selected == "ODR" && "logit_ODR" %in% all_x_choices) {
-          all_x_choices <- all_x_choices[all_x_choices != "logit_ODR"]
-          cat("✅ DYNAMIC: Excluding logit_ODR (transformation of ODR)\n")
+        if (tolower(y_selected) == "odr" && any(tolower(all_x_choices) == "logit_odr")) {
+          all_x_choices <- all_x_choices[tolower(all_x_choices) != "logit_odr"]
+          cat("✅ DYNAMIC: Excluding logit_odr (transformation of odr)\n")
         }
         # Add more transformation patterns as needed
         if (grepl("^logit_", y_selected) || grepl("^log_", y_selected) || grepl("^sqrt_", y_selected)) {
@@ -169,9 +169,9 @@ model_server <- function(input, output, session, dependent_data, independent_dat
       # Additional check: exclude variables that are transformations of Y
       if (!is.null(y_selected)) {
         # Common transformation patterns to exclude
-        if (y_selected == "ODR" && "logit_ODR" %in% x_choices) {
-          x_choices <- x_choices[x_choices != "logit_ODR"]
-          cat("🔄 DYNAMIC: Excluding logit_ODR (transformation of ODR)\n")
+        if (tolower(y_selected) == "odr" && any(tolower(x_choices) == "logit_odr")) {
+          x_choices <- x_choices[tolower(x_choices) != "logit_odr"]
+          cat("🔄 DYNAMIC: Excluding logit_odr (transformation of odr)\n")
         }
         # Add more transformation patterns as needed
         if (grepl("^logit_", y_selected) || grepl("^log_", y_selected) || grepl("^sqrt_", y_selected)) {
@@ -195,8 +195,8 @@ model_server <- function(input, output, session, dependent_data, independent_dat
           to_remove <- c(to_remove, y_selected)
         }
         # Remove transformations
-        if (y_selected == "ODR" && "logit_ODR" %in% current_x_selected) {
-          to_remove <- c(to_remove, "logit_ODR")
+        if (tolower(y_selected) == "odr" && any(tolower(current_x_selected) == "logit_odr")) {
+          to_remove <- c(to_remove, current_x_selected[tolower(current_x_selected) == "logit_odr"])
         }
         # Remove base variable if Y is a transformation
         if (!is.null(y_selected) && (grepl("^logit_", y_selected) || grepl("^log_", y_selected) || grepl("^sqrt_", y_selected))) {
@@ -522,15 +522,7 @@ model_server <- function(input, output, session, dependent_data, independent_dat
       # Check if data exists (this matches original req(df) logic)
       if(is.null(df)) {
         cat("⚠️ DEBUG [INTUITION_RAW]: independent_data() returned NULL - no data uploaded\n")
-        # Return sample intuition table with common variable names for demonstration
-        # This helps users understand the interface even without uploading data
-        sample_vars <- c("GDP", "INFL", "IR", "ER", "BI", "CPI", "M2", "TRADE", "UNEMP")
-        sample_table <- data.frame(
-          var = sample_vars,
-          sign = rep(0, length(sample_vars))
-        )
-        cat("✅ DEBUG [INTUITION_RAW]: Returning sample intuition table with", nrow(sample_table), "variables\n")
-        return(sample_table)
+        return(NULL)
       }
 
       req(df)
@@ -556,14 +548,7 @@ model_server <- function(input, output, session, dependent_data, independent_dat
 
     }, error = function(e) {
       cat("❌ DEBUG [INTUITION_RAW]: ERROR:", e$message, "\n")
-      # Return sample table on error instead of empty
-      sample_vars <- c("GDP", "INFL", "IR", "ER", "BI")
-      sample_table <- data.frame(
-        var = sample_vars,
-        sign = rep(0, length(sample_vars))
-      )
-      cat("⚠️ DEBUG [INTUITION_RAW]: Returning fallback sample table\n")
-      return(sample_table)
+      return(NULL)
     })
   })
 

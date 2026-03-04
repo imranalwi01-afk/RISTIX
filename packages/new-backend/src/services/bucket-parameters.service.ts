@@ -36,7 +36,7 @@ export const BucketParametersService = {
             Effect.flatMap(header =>
                 header
                     ? Effect.succeed(transformHeader(header))
-                    : Effect.fail(new NotFoundError({ resource: 'Bucket Header', id: String(id) }))
+                    : Effect.fail(new NotFoundError({ message: 'Bucket Header not found', resource: 'Bucket Header', id: String(id) }))
             )
         )
     },
@@ -98,7 +98,7 @@ export const BucketParametersService = {
             Effect.flatMap(updated =>
                 updated
                     ? Effect.succeed(transformHeader(updated))
-                    : Effect.fail(new NotFoundError({ resource: 'Bucket Header', id: String(id) }))
+                    : Effect.fail(new NotFoundError({ message: 'Bucket Header not found', resource: 'Bucket Header', id: String(id) }))
             )
         )
     },
@@ -187,7 +187,7 @@ export const BucketParametersService = {
             Effect.flatMap(updated =>
                 updated
                     ? Effect.succeed(transformDetail(updated))
-                    : Effect.fail(new NotFoundError({ resource: 'Bucket Detail', id: String(id) }))
+                    : Effect.fail(new NotFoundError({ message: 'Bucket Detail not found', resource: 'Bucket Detail', id: String(id) }))
             )
         )
     },
@@ -205,7 +205,7 @@ export const BucketParametersService = {
             Effect.flatMap(deleted =>
                 deleted
                     ? Effect.succeed({ message: 'Detail deleted' })
-                    : Effect.fail(new NotFoundError({ resource: 'Bucket Detail', id: String(id) }))
+                    : Effect.fail(new NotFoundError({ message: 'Bucket Detail not found', resource: 'Bucket Detail', id: String(id) }))
             )
         )
     }

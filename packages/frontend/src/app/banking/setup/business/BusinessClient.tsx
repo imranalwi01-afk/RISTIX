@@ -288,18 +288,38 @@ const BusinessParameterDialog: React.FC<{
             <DialogTitle>{parameter ? 'Edit Parameter' : 'Create Parameter'}</DialogTitle>
             <DialogContent sx={{ mt: 2 }}>
                 <Grid container spacing={2}>
-                    <Grid size={{ xs: 6 }}><TextField fullWidth label="Code" value={formData.param_code} onChange={e => setFormData({ ...formData, param_code: e.target.value })} disabled={!!parameter} /></Grid>
-                    <Grid size={{ xs: 6 }}>
-                        <FormControl fullWidth>
-                            <InputLabel>Category</InputLabel>
-                            <Select value={formData.param_category} onChange={e => setFormData({ ...formData, param_category: e.target.value })} label="Category">
-                                <MenuItem value="B">Business</MenuItem><MenuItem value="A">Application</MenuItem><MenuItem value="S">System</MenuItem>
-                            </Select>
-                        </FormControl>
+                    <Grid size={{ xs: 12 }}>
+                        <TextField
+                            fullWidth
+                            label="Code"
+                            value={formData.param_code}
+                            onChange={e => setFormData({ ...formData, param_code: e.target.value })}
+                            disabled={!!parameter}
+                            placeholder="e.g., B0001"
+                            required
+                        />
                     </Grid>
-                    <Grid size={{ xs: 12 }}><TextField fullWidth label="Description" value={formData.param_desc} onChange={e => setFormData({ ...formData, param_desc: e.target.value })} /></Grid>
-                    <Grid size={{ xs: 12 }}><TextField fullWidth label="Value" value={formData.param_value} onChange={e => setFormData({ ...formData, param_value: e.target.value })} /></Grid>
-                    <Grid size={{ xs: 6 }}><FormControlLabel control={<Switch checked={formData.active_flag} onChange={e => setFormData({ ...formData, active_flag: e.target.checked })} />} label="Active" /></Grid>
+                    <Grid size={{ xs: 12 }}>
+                        <TextField
+                            fullWidth
+                            label="Description"
+                            value={formData.param_desc}
+                            onChange={e => setFormData({ ...formData, param_desc: e.target.value })}
+                            placeholder="Enter parameter description"
+                            required
+                        />
+                    </Grid>
+                    <Grid size={{ xs: 12 }}>
+                        <FormControlLabel
+                            control={
+                                <Switch
+                                    checked={formData.active_flag}
+                                    onChange={e => setFormData({ ...formData, active_flag: e.target.checked })}
+                                />
+                            }
+                            label="Active"
+                        />
+                    </Grid>
                 </Grid>
             </DialogContent>
             <DialogActions>
@@ -363,7 +383,7 @@ export default function BusinessClient() {
                     param_code: item.paramCode || item.param_code || '',
                     param_desc: item.paramName || item.param_name || item.param_desc || '',
                     param_category: item.paramType || item.param_type || '',
-                    param_value: item.param_usage || item.param_usage || 'Configured in Details',
+                    param_value: item.paramUsage || item.param_usage || 'Configured in Details',
                     active_flag: item.is_active ?? true,
                     created_by: item.created_by || 'SYSTEM',
                     created_date: item.created_date || item.createddate || ''
@@ -389,7 +409,7 @@ export default function BusinessClient() {
                     setBusinessParameters(sorted);
                 }
             }
-        } catch (error: any) {
+        } catch (error) {
             setError(handleAPIError(error).message);
         } finally {
             setLoading(false);
@@ -447,7 +467,7 @@ export default function BusinessClient() {
             }
             setParamDialogOpen(false);
             loadBusinessParameters();
-        } catch (e: any) { setError(handleAPIError(e).message); }
+        } catch (e) { setError(handleAPIError(e).message); }
     };
 
     const handleDeleteParameter = async (row: BusinessParameter) => {
@@ -461,7 +481,7 @@ export default function BusinessClient() {
                 setSuccess('Deleted successfully');
             }
             loadBusinessParameters();
-        } catch (e: any) { setError(handleAPIError(e).message); }
+        } catch (e) { setError(handleAPIError(e).message); }
     };
 
     const handleSaveDetail = async (form: BusinessParameterDetailFormData) => {
@@ -488,7 +508,7 @@ export default function BusinessClient() {
             setSuccess('Detail saved');
             setDetailDialogOpen(false);
             setDetailRefreshTrigger(prev => prev + 1);
-        } catch (e: any) {
+        } catch (e) {
             const err = handleAPIError(e);
             setError(err.message);
         }
@@ -501,7 +521,7 @@ export default function BusinessClient() {
             await api.banking.businessSetup.deleteDetail(parseInt(detail.pkid || '0'));
             setSuccess('Detail deleted');
             setDetailRefreshTrigger(prev => prev + 1);
-        } catch (e: any) { setError(handleAPIError(e).message); }
+        } catch (e) { setError(handleAPIError(e).message); }
     };
 
     // Columns
@@ -576,10 +596,10 @@ export default function BusinessClient() {
                                 label="Category"
                                 sx={{ borderRadius: 2, bgcolor: 'background.paper' }}
                             >
-                                <MenuItem value="ALL">All</MenuItem>
-                                <MenuItem value="B">Business</MenuItem>
-                                <MenuItem value="A">Application</MenuItem>
-                                <MenuItem value="S">System</MenuItem>
+                                <MenuItem key="ALL-0" value="ALL">All</MenuItem>
+                                <MenuItem key="B-1" value="B">Business</MenuItem>
+                                <MenuItem key="A-2" value="A">Application</MenuItem>
+                                <MenuItem key="S-3" value="S">System</MenuItem>
                             </Select>
                         </FormControl>
                         <Button onClick={() => { setSearchTerm(''); setCategoryFilter('ALL'); }}><ClearIcon /></Button>

@@ -4,7 +4,7 @@
 
 # Interface: CreateUserInput
 
-Defined in: [src/services/users.service.ts:12](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/users.service.ts#L12)
+Defined in: [src/services/users.service.ts:12](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/users.service.ts#L12)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: [src/services/users.service.ts:12](https://github.com/ifrspro/ifrs9-
 
 > `optional` **department**: `string`
 
-Defined in: [src/services/users.service.ts:16](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/users.service.ts#L16)
+Defined in: [src/services/users.service.ts:16](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/users.service.ts#L16)
 
 ***
 
@@ -20,7 +20,7 @@ Defined in: [src/services/users.service.ts:16](https://github.com/ifrspro/ifrs9-
 
 > **email**: `string`
 
-Defined in: [src/services/users.service.ts:13](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/users.service.ts#L13)
+Defined in: [src/services/users.service.ts:13](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/users.service.ts#L13)
 
 ***
 
@@ -28,7 +28,7 @@ Defined in: [src/services/users.service.ts:13](https://github.com/ifrspro/ifrs9-
 
 > `optional` **isPlatformAdmin**: `boolean`
 
-Defined in: [src/services/users.service.ts:19](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/users.service.ts#L19)
+Defined in: [src/services/users.service.ts:19](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/users.service.ts#L19)
 
 ***
 
@@ -36,7 +36,7 @@ Defined in: [src/services/users.service.ts:19](https://github.com/ifrspro/ifrs9-
 
 > **password**: `string`
 
-Defined in: [src/services/users.service.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/users.service.ts#L14)
+Defined in: [src/services/users.service.ts:14](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/users.service.ts#L14)
 
 ***
 
@@ -44,7 +44,7 @@ Defined in: [src/services/users.service.ts:14](https://github.com/ifrspro/ifrs9-
 
 > `optional` **phone**: `string`
 
-Defined in: [src/services/users.service.ts:15](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/users.service.ts#L15)
+Defined in: [src/services/users.service.ts:15](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/users.service.ts#L15)
 
 ***
 
@@ -52,7 +52,7 @@ Defined in: [src/services/users.service.ts:15](https://github.com/ifrspro/ifrs9-
 
 > `optional` **position**: `string`
 
-Defined in: [src/services/users.service.ts:17](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/users.service.ts#L17)
+Defined in: [src/services/users.service.ts:17](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/users.service.ts#L17)
 
 ***
 
@@ -60,4 +60,4 @@ Defined in: [src/services/users.service.ts:17](https://github.com/ifrspro/ifrs9-
 
 > **tenantId**: `string`
 
-Defined in: [src/services/users.service.ts:18](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/users.service.ts#L18)
+Defined in: [src/services/users.service.ts:18](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/users.service.ts#L18)

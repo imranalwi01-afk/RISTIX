@@ -50,6 +50,7 @@ import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeD
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 import PageHeader from '@/components/banking/shared/PageHeader';
 import { api } from '@/services/api';
+import { useAssessmentWorkspaceEmbedded } from '../../assessment/embedded-context';
 
 // --- Types ---
 interface RepaymentRow {
@@ -86,6 +87,7 @@ const DEFAULT_CONFIG: ScenarioConfiguration = {
 };
 
 export default function ReviewScenarioPage() {
+  const embedded = useAssessmentWorkspaceEmbedded();
   // State
   const [loading, setLoading] = useState(false);
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
@@ -273,12 +275,14 @@ export default function ReviewScenarioPage() {
   ];
 
   return (
-    <Container maxWidth="xl">
-      <FullstackIndicator />
-      <PageHeader
-        title="Scenario Details"
-        subtitle="Configure impairment scenarios, weights, and repayment plans."
-      />
+    <Container maxWidth="xl" sx={embedded ? { px: '0 !important' } : undefined}>
+      {!embedded && <FullstackIndicator />}
+      {!embedded && (
+        <PageHeader
+          title="Scenario Details"
+          subtitle="Configure impairment scenarios, weights, and repayment plans."
+        />
+      )}
 
       <Box display="flex" justifyContent="flex-end" mb={2}>
         <Button

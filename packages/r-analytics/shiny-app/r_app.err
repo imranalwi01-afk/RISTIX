@@ -1,0 +1,13 @@
+
+Attaching package: 'combinat'
+
+The following object is masked from 'package:utils':
+
+    combn
+
+
+Listening on http://0.0.0.0:4236
+createTcpServer: address already in use
+Error in initialize(...) : Failed to create server
+Calls: <Anonymous> ... startApp -> startServer -> <Anonymous> -> initialize
+Execution halted

@@ -36,6 +36,7 @@ import {
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { usersAPI } from '@/services/api';
+import { getErrorMessage } from '@/utils/error-message';
 import UserForm, { UserFormData } from './UserForm';
 
 // Since the API type might be inferred, let's define a local interface matching usage
@@ -164,8 +165,7 @@ const UserManagement = () => {
             fetchUsers();
         } catch (err: any) {
             console.error('Form submission failed:', err);
-            // Extract message if possible
-            const msg = err.response?.data?.message || err.message || 'Operation failed';
+            const msg = getErrorMessage(err, 'Operation failed');
             setError(`Failed to save user: ${msg}`);
         } finally {
             setFormLoading(false);

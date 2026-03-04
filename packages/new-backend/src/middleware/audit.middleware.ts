@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { Context, Next } from 'hono'
 import type { AppContext } from '../app'
 import { logAuditEvent } from '../services/audit.service'

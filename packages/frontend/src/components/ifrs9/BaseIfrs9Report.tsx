@@ -34,7 +34,10 @@ import {
   IconButton,
   Tooltip,
   InputAdornment,
-  alpha
+  alpha,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails
 } from '@mui/material';
 import {
   CheckBox as CheckBoxIcon,
@@ -42,7 +45,9 @@ import {
   Visibility as ViewIcon,
   Info as InfoIcon,
   Launch as LaunchIcon,
-  SettingsSuggest as SettingsIcon
+  SettingsSuggest as SettingsIcon,
+  RadioButtonUnchecked as RadioButtonUncheckedIcon,
+  RadioButtonChecked as RadioButtonCheckedIcon
 } from '@mui/icons-material';
 import {
   DatePicker,
@@ -56,7 +61,9 @@ import {
   BarChart as ChartIcon,
   Search as SearchIcon,
   ClearAll as ClearIcon,
-  Assessment as AssessmentIcon
+  Assessment as AssessmentIcon,
+  ExpandMore as ExpandMoreIcon,
+  Tune as TuneIcon
 } from '@mui/icons-material';
 import { SafeDataGrid } from '@/components/shared/SafeDataGrid';
 import { GridColDef } from '@mui/x-data-grid';
@@ -79,9 +86,10 @@ export interface BaseIfrs9ReportProps {
   statusLabel?: string;
   granularity?: string;
   scope?: string;
-  onDataLoaded?: (data: Record<string, unknown>[]) => void;
+  onDataLoaded?: (data: Record<string, unknown>[], summary?: Record<string, any>) => void;
   children?: React.ReactNode;
   hideHeader?: boolean;
+  hideDataGrid?: boolean;
   externalFilters?: Partial<ReportFilters>;
 }
 
@@ -143,6 +151,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
   onDataLoaded,
   children,
   hideHeader,
+  hideDataGrid = false,
   externalFilters
 }) => {
   const { user } = useAuth();
@@ -160,11 +169,16 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [columns, setColumns] = useState<GridColDef[]>([]);
   const [filters, setFilters] = useState<ReportFilters>({
-    prc_date: new Date('2023-12-31'), // Use date with available FRS9PRO data
+    prc_date: reportType === 'ead-model' ? new Date('2020-12-31') : 
+              reportType.includes('pd') ? new Date('2022-10-31') : 
+              new Date('2023-12-31'),
     page: 1,
     limit: 20,
     segment_ids: [],
-    fl_flag: false
+    fl_flag: false,
+    ead_config_id: reportType === 'ead-model' ? 1 : undefined,
+    pd_config_id: reportType.includes('pd') ? 1 : undefined,
+    pd_method: reportType.includes('pd') ? 1 : undefined
   });
 
   const [pagination, setPagination] = useState({
@@ -174,6 +188,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
     totalPages: 0
   });
   const [showFilters, setShowFilters] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
   const [exportLoading, setExportLoading] = useState(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [exportOptions, setExportOptions] = useState({
@@ -184,6 +199,17 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
   const [scalars, setScalars] = useState<any[]>([]);
   const [lgdMethods, setLgdMethods] = useState<any[]>([]);
   const [configDrawerOpen, setConfigDrawerOpen] = useState(false);
+
+  // Client-side search filtering
+  const filteredData = React.useMemo(() => {
+    if (!searchTerm) return data;
+    const lowerTerm = searchTerm.toLowerCase();
+    return data.filter(row => {
+      return Object.values(row).some(val => 
+        String(val).toLowerCase().includes(lowerTerm)
+      );
+    });
+  }, [data, searchTerm]);
 
   // --- Handlers & Logic (Defined early to avoid hoisting issues) ---
 
@@ -317,11 +343,10 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
       }
 
       let response: ReportResponse;
-      const normalizedStage = Array.isArray(filters.stage) ? filters.stage.join(',') : filters.stage;
-      const params = {
+      const params: any = {
         ...filters,
-        stage: normalizedStage,
-        prc_date: filters.prc_date.toISOString().split('T')[0]
+        prc_date: filters.prc_date.toISOString().split('T')[0],
+        stage: Array.isArray(filters.stage) ? filters.stage.join(',') : filters.stage
       };
 
       // Route to appropriate API method based on report type
@@ -341,9 +366,15 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
         case 'lifetime-lgd':
           response = await api.banking.ifrs9Reports.lifetimeLGD.get(params);
           break;
-        case 'ead-model':
-          response = await api.banking.ifrs9Reports.eadModel.get(params);
+        case 'ead-model': {
+          const eadData = await api.banking.ifrs9Reports.eadModel.get(params);
+          const eadSummary = await api.banking.ifrs9Reports.eadModel.getSummary(params);
+          response = {
+            ...eadData,
+            summary: eadSummary.data?.[0] || null
+          };
           break;
+        }
         case 'ecl-result':
           response = await api.banking.ifrs9Reports.eclResult.get(params);
           break;
@@ -398,7 +429,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
 
         // Notify parent component
         if (onDataLoaded) {
-          onDataLoaded(response.data || []);
+          onDataLoaded(response.data || [], (response as any).summary);
         }
       } else {
         setError('Failed to fetch report data');
@@ -418,21 +449,28 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
   }, [fetchData]);
 
   const handleClear = useCallback(() => {
+    setSearchTerm('');
     setFilters({
-      prc_date: new Date('2023-12-31'),
+      prc_date: reportType === 'ead-model' ? new Date('2020-12-31') : 
+                reportType.includes('pd') ? new Date('2022-10-31') : 
+                new Date('2023-12-31'),
       page: 1,
       limit: 20,
       segment_ids: [],
       stage: [],
-      fl_flag: false
+      fl_flag: false,
+      ead_config_id: reportType === 'ead-model' ? 1 : undefined,
+      pd_config_id: reportType.includes('pd') ? 1 : undefined,
+      pd_method: reportType.includes('pd') ? 1 : undefined,
+      lgd_config_id: reportType === 'lifetime-lgd' ? 1 : undefined
     });
-  }, []);
+  }, [reportType]);
 
   // --- Effects ---
 
   // Export functionality - Client-side using xlsx library with Audit Header (T1)
   const handleExportExecute = async () => {
-    if (data.length === 0) {
+    if (filteredData.length === 0) {
       console.warn('No data to export');
       return;
     }
@@ -466,10 +504,10 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
 
       if (scope === 'summary' && supportsCharts) {
         worksheet = XLSX.utils.aoa_to_sheet(headerT1);
-        XLSX.utils.sheet_add_json(worksheet, data.slice(0, 10), { origin: 'A13' });
+        XLSX.utils.sheet_add_json(worksheet, filteredData.slice(0, 10), { origin: 'A13' });
       } else {
         worksheet = XLSX.utils.aoa_to_sheet(headerT1);
-        XLSX.utils.sheet_add_json(worksheet, data, { origin: 'A13' });
+        XLSX.utils.sheet_add_json(worksheet, filteredData, { origin: 'A13' });
       }
 
       const sheetName = title.substring(0, 31).replace(/[/\\*?[\]]/g, '');
@@ -477,8 +515,8 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
 
       // Auto-size columns
       const maxWidth = 30;
-      const colWidths = Object.keys(data[0] || {}).map(key => ({
-        wch: Math.min(maxWidth, Math.max(key.length, ...data.map(row => String(row[key] || '').length)))
+      const colWidths = Object.keys(filteredData[0] || {}).map(key => ({
+        wch: Math.min(maxWidth, Math.max(key.length, ...filteredData.map(row => String(row[key] || '').length)))
       }));
       worksheet['!cols'] = colWidths;
 
@@ -491,7 +529,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
         XLSX.writeFile(workbook, `${filename}.csv`, { bookType: 'csv' });
       }
 
-      console.log(`✅ Exported ${data.length} rows with audit header to ${filename}.${format}`);
+      console.log(`✅ Exported ${filteredData.length} rows with audit header to ${filename}.${format}`);
     } catch (err) {
       console.error('Export error:', err);
     } finally {
@@ -740,6 +778,27 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
         {/* Action buttons & Control Bar */}
         {!hideHeader && (
           <Box sx={{ mb: 4, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+            <TextField
+              placeholder="Search data..."
+              size="small"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon color="action" />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                width: 250,
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2,
+                  bgcolor: 'background.paper'
+                }
+              }}
+            />
+
             <Button
               variant={showFilters ? "contained" : "outlined"}
               startIcon={<FilterIcon />}
@@ -840,7 +899,6 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                     label="Processing Date"
                     value={filters.prc_date}
                     onChange={(date: unknown) => {
-                      // Handle Dayjs or Date
                       const finalDate = date && (date as { toDate?: () => Date }).toDate
                         ? (date as { toDate: () => Date }).toDate()
                         : (date as Date | null);
@@ -861,386 +919,296 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                   />
                 </Grid>
 
-                {/* Segment ID (Multi-select Autocomplete) */}
-                {optionalParams.includes('segment_id') && (
-                  <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                    <Autocomplete
-                      multiple
-                      size="small"
-                      options={segments}
-                      disableCloseOnSelect
-                      getOptionLabel={(option) => option.segment_name || String(option.id)}
-                      value={segments.filter(s => filters.segment_ids?.includes(Number(s.id)))}
-                      onChange={(_, newValue) => {
-                        handleFilterChange('segment_ids', newValue.map(v => Number(v.id)));
-                      }}
-                      renderOption={(props, option, { selected }) => {
-                        const { key, ...optionProps } = props;
-                        return (
-                          <li key={key} {...optionProps}>
-                            <Checkbox
-                              icon={<CheckBoxOutlineBlankIcon fontSize="small" />}
-                              checkedIcon={<CheckBoxIcon fontSize="small" />}
-                              style={{ marginRight: 8 }}
-                              checked={selected}
-                            />
-                            {option.segment_name}
-                          </li>
-                        );
-                      }}
-                      renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          InputProps={params.InputProps}
-                          label="Segment ID"
-                          placeholder="All Segments"
-                          sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                        />
-                      )}
-                      renderTags={(value, getTagProps) =>
-                        value.map((option, index) => {
-                          const { key, ...tagProps } = getTagProps({ index });
-                          return (
-                            <Chip
-                              key={key}
-                              label={option.segment_name}
-                              size="small"
-                              {...tagProps}
-                              sx={{ borderRadius: 1, fontWeight: 600 }}
-                            />
-                          );
-                        })
-                      }
-                    />
-                  </Grid>
-                )}
-
-                {optionalParams.includes('pd_config_id') && (
-                  <Grid size={{ xs: 12, sm: 4, md: 2 }}>
-                    <TextField
-                      label="PD Config ID"
-                      type="number"
-                      size="small"
-                      value={filters.pd_config_id || ''}
-                      onChange={(e) => handleFilterChange('pd_config_id', parseInt(e.target.value) || undefined)}
-                      fullWidth
-                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                    />
-                  </Grid>
-                )}
-
-                {optionalParams.includes('pd_method') && (
-                  <Grid size={{ xs: 12, sm: 4, md: 2 }}>
-                    <FormControl fullWidth size="small">
-                      <InputLabel>PD Method</InputLabel>
-                      <Select
-                        value={filters.pd_method || ''}
-                        onChange={(e) => handleFilterChange('pd_method', e.target.value ? Number(e.target.value) : undefined)}
-                        label="PD Method"
-                        sx={{ borderRadius: 2 }}
-                      >
-                        <MenuItem value="">All Methods</MenuItem>
-                        <MenuItem value={1}>TTC (Through-the-Cycle)</MenuItem>
-                        <MenuItem value={2}>PIT (Point-in-Time)</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                )}
-
-                {optionalParams.includes('scalar_id') && (
-                  <Grid size={{ xs: 12, sm: 4, md: 2 }}>
-                    <TextField
-                      label="Scalar ID"
-                      type="number"
-                      size="small"
-                      value={filters.scalar_id || ''}
-                      onChange={(e) => handleFilterChange('scalar_id', parseInt(e.target.value) || undefined)}
-                      fullWidth
-                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                    />
-                  </Grid>
-                )}
-
-                {optionalParams.includes('fl_flag') && (
-                  <Grid size={{ xs: 12, sm: 4, md: 2 }}>
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={filters.fl_flag || false}
-                          onChange={(e) => {
-                            handleFilterChange('fl_flag', e.target.checked);
-                            if (!e.target.checked) {
-                              handleFilterChange('scenario_id', undefined);
-                              handleFilterChange('scalar_id', undefined);
-                            }
-                          }}
-                          color="primary"
-                        />
-                      }
-                      label={
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          <Typography variant="body2" fontWeight={600}>Forward Looking</Typography>
-                          <Tooltip title="When ON, Scenario/Scalar are required">
-                            <InfoIcon sx={{ ml: 0.5, fontSize: 14, opacity: 0.5 }} />
-                          </Tooltip>
-                        </Box>
-                      }
-                      sx={{ mt: 0.5 }}
-                    />
-                  </Grid>
-                )}
-
-                {filters.fl_flag && (
-                  <>
-                    <Grid size={{ xs: 12, sm: 4, md: 2 }}>
-                      <FormControl fullWidth size="small" required>
-                        <InputLabel>Scenario</InputLabel>
-                        <Select
-                          value={filters.scenario_id || ''}
-                          onChange={(e) => handleFilterChange('scenario_id', Number(e.target.value))}
-                          label="Scenario"
-                          sx={{ borderRadius: 2 }}
-                        >
-                          <MenuItem value={1}>Baseline</MenuItem>
-                          <MenuItem value={2}>Optimistic</MenuItem>
-                          <MenuItem value={3}>Pessimistic</MenuItem>
-                        </Select>
-                      </FormControl>
-                    </Grid>
-                    <Grid size={{ xs: 12, sm: 4, md: 2 }}>
-                      <FormControl fullWidth size="small" required>
-                        <InputLabel>Scalar</InputLabel>
-                        <Select
-                          value={filters.scalar_id || ''}
-                          onChange={(e) => handleFilterChange('scalar_id', Number(e.target.value))}
-                          label="Scalar"
-                          sx={{ borderRadius: 2 }}
-                        >
-                          {scalars.map(s => (
-                            <MenuItem key={s.pkid} value={s.pkid}>{s.scalar_name}</MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    </Grid>
-                  </>
-                )}
-
-                {optionalParams.includes('stage') && (
-                  <Grid size={{ xs: 12, sm: 4, md: 2 }}>
-                    <Autocomplete
-                      multiple
-                      size="small"
-                      options={['1', '2', '3']}
-                      getOptionLabel={(option) => `Stage ${option}`}
-                      value={Array.isArray(filters.stage) ? filters.stage as string[] : (filters.stage ? [filters.stage as string] : [])}
-                      onChange={(_, newValue) => handleFilterChange('stage', newValue)}
-                      disableCloseOnSelect
-                      renderInput={(params) => (
-                        <TextField 
-                          {...params} 
-                          label="Stage" 
-                          placeholder="Stages"
-                          sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                        />
-                      )}
-                      renderOption={(props, option, { selected }) => {
-                        const { key, ...optionProps } = props;
-                        return (
-                          <li key={key} {...optionProps}>
-                            <Checkbox
-                              icon={<CheckBoxOutlineBlankIcon fontSize="small" />}
-                              checkedIcon={<CheckBoxIcon fontSize="small" />}
-                              style={{ marginRight: 8 }}
-                              checked={selected}
-                            />
-                            Stage {option}
-                          </li>
-                        );
-                      }}
-                      renderTags={(value, getTagProps) =>
-                        value.map((option, index) => {
-                          const { key, ...tagProps } = getTagProps({ index });
-                          return (
-                            <Chip
-                              key={key}
-                              label={`S${option}`}
-                              size="small"
-                              {...tagProps}
-                              sx={{ 
-                                height: 20, 
-                                fontSize: '0.7rem',
-                                bgcolor: option === '1' ? alpha('#10b981', 0.1) : 
-                                         option === '2' ? alpha('#f59e0b', 0.1) : 
-                                         alpha('#ef4444', 0.1),
-                                color: option === '1' ? '#059669' : 
-                                       option === '2' ? '#d97706' : 
-                                       '#dc2626',
-                                fontWeight: 800,
-                                margin: '1px !important'
-                              }}
-                            />
-                          );
-                        })
-                      }
+                {/* Optional parameters wrapped in Accordion for cleaner UI */}
+                {optionalParams.length > 0 && (
+                  <Grid size={{ xs: 12 }}>
+                    <Accordion 
+                      variant="outlined" 
                       sx={{ 
-                        '& .MuiOutlinedInput-root': { padding: '2px 8px' }
+                        mt: 2, 
+                        borderRadius: '12px !important', 
+                        borderColor: alpha(themeStyles.primary, 0.1),
+                        '&:before': { display: 'none' },
+                        boxShadow: 'none',
+                        bgcolor: alpha(themeStyles.primary, 0.005)
                       }}
-                    />
-                  </Grid>
-                )}
-
-                {optionalParams.includes('lgd_config_id') && (
-                  <Grid size={{ xs: 12, sm: 4, md: 2 }}>
-                    <TextField
-                      label="LGD Config ID"
-                      type="number"
-                      size="small"
-                      value={filters.lgd_config_id || ''}
-                      onChange={(e) => handleFilterChange('lgd_config_id', parseInt(e.target.value) || undefined)}
-                      fullWidth
-                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                      slotProps={{
-                        input: {
-                          endAdornment: (
-                            <InputAdornment position="end">
-                              <Tooltip title="View Calculation Config Detailed Summary">
-                                <IconButton
-                                  size="small"
-                                  onClick={() => setConfigDrawerOpen(true)}
-                                  sx={{
-                                    color: themeStyles.primary,
-                                    bgcolor: alpha(themeStyles.primary, 0.05),
-                                    '&:hover': { bgcolor: alpha(themeStyles.primary, 0.1) }
-                                  }}
-                                >
-                                  <LaunchIcon sx={{ fontSize: '1.2rem' }} />
-                                </IconButton>
-                              </Tooltip>
-                            </InputAdornment>
-                          )
-                        }
-                      }}
-                    />
-                  </Grid>
-                )}
-
-                {optionalParams.includes('lgd_method') && (
-                  <Grid size={{ xs: 12, sm: 4, md: 2 }}>
-                    <FormControl fullWidth size="small">
-                      <InputLabel>LGD Method</InputLabel>
-                      <Select
-                        value={filters.lgd_method || ''}
-                        onChange={(e) => handleFilterChange('lgd_method', e.target.value ? Number(e.target.value) : undefined)}
-                        label="LGD Method"
-                        sx={{ borderRadius: 2 }}
+                    >
+                      <AccordionSummary 
+                        expandIcon={<ExpandMoreIcon />}
+                        sx={{ px: 2, minHeight: 48, '& .MuiAccordionSummary-content': { my: 1 } }}
                       >
-                        <MenuItem value="">All Methods</MenuItem>
-                        {lgdMethods.length > 0 ? (
-                          lgdMethods.map(m => (
-                            <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>
-                          ))
-                        ) : [
-                          <MenuItem key={1} value={1}>Workout</MenuItem>,
-                          <MenuItem key={2} value={2}>Collateral</MenuItem>,
-                          <MenuItem key={3} value={3}>Hybrid</MenuItem>
-                        ]}
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                )}
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <TuneIcon sx={{ mr: 1, fontSize: 20, color: themeStyles.primary }} />
+                          <Typography variant="subtitle2" fontWeight={700} color={themeStyles.primary}>
+                            Advanced Parameters
+                          </Typography>
+                        </Box>
+                      </AccordionSummary>
+                      <AccordionDetails sx={{ px: 2, pb: 3, pt: 1 }}>
+                        <Grid container spacing={2.5}>
+                          {optionalParams.includes('segment_id') && (
+                            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                              <Autocomplete
+                                multiple
+                                size="small"
+                                options={segments}
+                                disableCloseOnSelect
+                                getOptionLabel={(option) => option.segment_name || String(option.id)}
+                                value={segments.filter(s => filters.segment_ids?.includes(Number(s.id)))}
+                                onChange={(_, newValue) => {
+                                  handleFilterChange('segment_ids', newValue.map(v => Number(v.id)));
+                                }}
+                                renderOption={(props, option, { selected }) => {
+                                  const { key, ...optionProps } = props;
+                                  return (
+                                    <li key={key} {...optionProps}>
+                                    <Checkbox
+                                      icon={<CheckBoxOutlineBlankIcon style={{ fontSize: '20px' }} />}
+                                      checkedIcon={<CheckBoxIcon style={{ fontSize: '20px' }} />}
+                                      style={{ marginRight: 8 }}
+                                      checked={selected}
+                                    />
+                                    {option.segment_name}
+                                  </li>
+                                  );
+                                }}
+                                renderInput={(params) => (
+                                  <TextField
+                                    {...(params as any)}
+                                    label="Segment ID"
+                                    placeholder="All Segments"
+                                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                                  />
+                                )}
+                                renderTags={(value, getTagProps) =>
+                                  value.map((option, index) => {
+                                    const { key, ...tagProps } = getTagProps({ index });
+                                    return (
+                                      <Chip
+                                        key={key}
+                                        label={option.segment_name}
+                                        size="small"
+                                        {...tagProps}
+                                        sx={{ borderRadius: 1, fontWeight: 600 }}
+                                      />
+                                    );
+                                  })
+                                }
+                              />
+                            </Grid>
+                          )}
 
-                {optionalParams.includes('model_id') && (
-                  <Grid size={{ xs: 12, sm: 4, md: 2 }}>
-                    <TextField
-                      label="Model ID"
-                      type="number"
-                      size="small"
-                      value={filters.model_id || ''}
-                      onChange={(e) => handleFilterChange('model_id', parseInt(e.target.value) || undefined)}
-                      fullWidth
-                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                      slotProps={{
-                        input: {
-                          endAdornment: (
-                            <InputAdornment position="end">
-                              <Tooltip title="View Model Development Details">
-                                <IconButton
-                                  size="small"
-                                  sx={{
-                                    color: themeStyles.primary,
-                                    bgcolor: alpha(themeStyles.primary, 0.05),
-                                    '&:hover': { bgcolor: alpha(themeStyles.primary, 0.1) }
-                                  }}
+                          {optionalParams.includes('pd_config_id') && (
+                            <Grid size={{ xs: 12, sm: 4, md: 2 }}>
+                              <TextField
+                                label="PD Config ID"
+                                type="number"
+                                size="small"
+                                value={filters.pd_config_id || ''}
+                                onChange={(e) => handleFilterChange('pd_config_id', parseInt(e.target.value) || undefined)}
+                                fullWidth
+                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                              />
+                            </Grid>
+                          )}
+
+                          {optionalParams.includes('pd_method') && (
+                            <Grid size={{ xs: 12, sm: 4, md: 2 }}>
+                              <FormControl fullWidth size="small">
+                                <InputLabel>PD Method</InputLabel>
+                                <Select
+                                  value={filters.pd_method || ''}
+                                  onChange={(e) => handleFilterChange('pd_method', e.target.value ? Number(e.target.value) : undefined)}
+                                  label="PD Method"
+                                  sx={{ borderRadius: 2 }}
                                 >
-                                  <SettingsIcon sx={{ fontSize: '1.2rem' }} />
-                                </IconButton>
-                              </Tooltip>
-                            </InputAdornment>
-                          )
-                        }
+                                  <MenuItem value="">All Methods</MenuItem>
+                                  <MenuItem value={1}>TTC (Through-the-Cycle)</MenuItem>
+                                  <MenuItem value={2}>PIT (Point-in-Time)</MenuItem>
+                                </Select>
+                              </FormControl>
+                            </Grid>
+                          )}
+
+                          {optionalParams.includes('ead_config_id') && (
+                            <Grid size={{ xs: 12, sm: 4, md: 2 }}>
+                              <TextField
+                                label="EAD Config ID"
+                                type="number"
+                                size="small"
+                                value={filters.ead_config_id || ''}
+                                onChange={(e) => handleFilterChange('ead_config_id', parseInt(e.target.value) || undefined)}
+                                fullWidth
+                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                              />
+                            </Grid>
+                          )}
+
+                          {optionalParams.includes('lgd_config_id') && (
+                            <Grid size={{ xs: 12, sm: 4, md: 2 }}>
+                              <TextField
+                                label="LGD Config ID"
+                                type="number"
+                                size="small"
+                                value={filters.lgd_config_id || ''}
+                                onChange={(e) => handleFilterChange('lgd_config_id', parseInt(e.target.value) || undefined)}
+                                fullWidth
+                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                                slotProps={{
+                                  input: {
+                                    endAdornment: (
+                                      <InputAdornment position="end">
+                                        <Tooltip title="View Calculation Config Detailed Summary">
+                                          <IconButton
+                                            size="small"
+                                            onClick={() => setConfigDrawerOpen(true)}
+                                            sx={{
+                                              color: themeStyles.primary,
+                                              bgcolor: alpha(themeStyles.primary, 0.05),
+                                              '&:hover': { bgcolor: alpha(themeStyles.primary, 0.1) }
+                                            }}
+                                          >
+                                            <LaunchIcon sx={{ fontSize: '1.2rem' }} />
+                                          </IconButton>
+                                        </Tooltip>
+                                      </InputAdornment>
+                                    )
+                                  }
+                                }}
+                              />
+                            </Grid>
+                          )}
+
+                          {optionalParams.includes('lgd_method') && (
+                            <Grid size={{ xs: 12, sm: 4, md: 2 }}>
+                              <FormControl fullWidth size="small">
+                                <InputLabel>LGD Method</InputLabel>
+                                <Select
+                                  value={filters.lgd_method || ''}
+                                  onChange={(e) => handleFilterChange('lgd_method', e.target.value ? Number(e.target.value) : undefined)}
+                                  label="LGD Method"
+                                  sx={{ borderRadius: 2 }}
+                                >
+                                  <MenuItem value="">All Methods</MenuItem>
+                                  {lgdMethods.length > 0 ? (
+                                    lgdMethods.map(m => (
+                                      <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>
+                                    ))
+                                  ) : [
+                                    <MenuItem key={1} value={1}>Workout</MenuItem>,
+                                    <MenuItem key={2} value={2}>Collateral</MenuItem>,
+                                    <MenuItem key={3} value={3}>Hybrid</MenuItem>
+                                  ]}
+                                </Select>
+                              </FormControl>
+                            </Grid>
+                          )}
+
+                          {optionalParams.includes('stage') && (
+                            <Grid size={{ xs: 12, sm: 4, md: 2 }}>
+                              <Autocomplete
+                                multiple
+                                size="small"
+                                options={['1', '2', '3']}
+                                getOptionLabel={(option) => `Stage ${option}`}
+                                value={Array.isArray(filters.stage) ? filters.stage as string[] : (filters.stage ? [filters.stage as string] : [])}
+                                onChange={(_, newValue) => handleFilterChange('stage', newValue)}
+                                disableCloseOnSelect
+                                renderInput={(params) => (
+                                  <TextField 
+                                    {...(params as any)} 
+                                    label="Stage" 
+                                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                                  />
+                                )}
+                              />
+                            </Grid>
+                          )}
+
+                          {optionalParams.includes('model_id') && (
+                            <Grid size={{ xs: 12, sm: 4, md: 2 }}>
+                              <TextField
+                                label="Model ID"
+                                type="number"
+                                size="small"
+                                value={filters.model_id || ''}
+                                onChange={(e) => handleFilterChange('model_id', parseInt(e.target.value) || undefined)}
+                                fullWidth
+                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                                slotProps={{
+                                  input: {
+                                    endAdornment: (
+                                      <InputAdornment position="end">
+                                        <Tooltip title="View Model Development Details">
+                                          <IconButton
+                                            size="small"
+                                            sx={{
+                                              color: themeStyles.primary,
+                                              bgcolor: alpha(themeStyles.primary, 0.05),
+                                              '&:hover': { bgcolor: alpha(themeStyles.primary, 0.1) }
+                                            }}
+                                          >
+                                            <SettingsIcon sx={{ fontSize: '1.2rem' }} />
+                                          </IconButton>
+                                        </Tooltip>
+                                      </InputAdornment>
+                                    )
+                                  }
+                                }}
+                              />
+                            </Grid>
+                          )}
+
+                          {optionalParams.includes('fl_flag') && (
+                            <Grid size={{ xs: 12, sm: 4, md: 2 }}>
+                              <FormControlLabel
+                                control={
+                                  <Switch
+                                    checked={filters.fl_flag || false}
+                                    onChange={(e) => handleFilterChange('fl_flag', e.target.checked)}
+                                    color="primary"
+                                  />
+                                }
+                                label={<Typography variant="body2" fontWeight={600}>Forward Looking</Typography>}
+                                sx={{ mt: 0.5 }}
+                              />
+                            </Grid>
+                          )}
+                        </Grid>
+                      </AccordionDetails>
+                    </Accordion>
+                  </Grid>
+                )}
+
+                {/* Filter Actions */}
+                <Grid size={{ xs: 12 }}>
+                  <Box sx={{ mt: 3, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                    <Button
+                      variant="outlined"
+                      startIcon={<ClearIcon />}
+                      onClick={handleClear}
+                      sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
+                    >
+                      Reset Defaults
+                    </Button>
+                    <Button
+                      variant="contained"
+                      startIcon={<RefreshIcon />}
+                      onClick={handleRun}
+                      disabled={loading}
+                      sx={{ 
+                        borderRadius: 2, 
+                        textTransform: 'none', 
+                        fontWeight: 700,
+                        background: themeStyles.gradient,
+                        boxShadow: `0 4px 12px ${alpha(themeStyles.primary, 0.4)}`
                       }}
-                    />
-                  </Grid>
-                )}
-
-                {optionalParams.includes('ead_config_id') && (
-                  <Grid size={{ xs: 12, sm: 4, md: 2 }}>
-                    <TextField
-                      label="EAD Config ID"
-                      type="number"
-                      size="small"
-                      value={filters.ead_config_id || ''}
-                      onChange={(e) => handleFilterChange('ead_config_id', parseInt(e.target.value) || undefined)}
-                      fullWidth
-                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                    />
-                  </Grid>
-                )}
-
-                {optionalParams.includes('branch_code') && (
-                  <Grid size={{ xs: 12, sm: 4, md: 2 }}>
-                    <TextField
-                      label="Branch Code"
-                      size="small"
-                      value={filters.branch_code || ''}
-                      onChange={(e) => handleFilterChange('branch_code', e.target.value)}
-                      fullWidth
-                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                    />
-                  </Grid>
-                )}
+                    >
+                      Run Analysis
+                    </Button>
+                  </Box>
+                </Grid>
               </Grid>
-
-              <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
-                <Button
-                  variant="contained"
-                  onClick={handleRun}
-                  disabled={loading}
-                  startIcon={loading ? <CircularProgress size={20} /> : <SearchIcon />}
-                  sx={{
-                    borderRadius: 2,
-                    px: 4,
-                    background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
-                    boxShadow: '0 4px 12px rgba(25, 118, 210, 0.3)',
-                    textTransform: 'none',
-                    fontWeight: 700
-                  }}
-                >
-                  {loading ? 'Processing...' : 'Run Analysis'}
-                </Button>
-                <Button
-                  variant="outlined"
-                  onClick={handleClear}
-                  startIcon={<ClearIcon />}
-                  sx={{
-                    borderRadius: 2,
-                    textTransform: 'none',
-                    fontWeight: 600
-                  }}
-                >
-                  Clear Filters
-                </Button>
-              </Box>
             </CardContent>
           </Card>
         )}
@@ -1256,10 +1224,10 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
         {children}
 
         {/* Data Grid */}
-        {columns.length > 0 ? (
+        {columns.length > 0 && !hideDataGrid ? (
           <Paper sx={{ height: 600, width: '100%' }}>
             <SafeDataGrid
-              rows={data}
+              rows={filteredData}
               columns={columns}
               loading={loading}
               pagination
@@ -1300,25 +1268,23 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
               }}
             />
           </Paper>
-        ) : (
+        ) : !hideDataGrid && !loading ? (
           // Show message when no columns available (shouldn't happen with new backend, but fallback)
-          !loading && (
-            <Paper sx={{ p: 4, textAlign: 'center' }}>
-              <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 600, mb: 1 }}>
-                No Data Available
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Unable to determine table structure. Please check your database connection and filter parameters.
-              </Typography>
-            </Paper>
-          )
-        )}
+          <Paper sx={{ p: 4, textAlign: 'center' }}>
+            <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 600, mb: 1 }}>
+              No Data Available
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Unable to determine table structure. Please check your database connection and filter parameters.
+            </Typography>
+          </Paper>
+        ) : null}
 
         {/* Summary */}
         {data.length > 0 && (
           <Box sx={{ mt: 2, p: 2, bgcolor: 'background.paper', borderRadius: 1 }}>
             <Typography variant="body2" color="text.secondary">
-              Showing {data.length} {data.length === 1 ? 'record' : 'records'}
+              Showing {filteredData.length} {filteredData.length === 1 ? 'record' : 'records'} (filtered from {data.length})
               {supportsPagination && ` (Page ${pagination.page} of ${pagination.totalPages})`}
               {' • '}
               Generated at {new Date().toLocaleString('id-ID')}
@@ -1338,9 +1304,37 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
               value={exportOptions.scope}
               onChange={(e) => setExportOptions(prev => ({ ...prev, scope: e.target.value }))}
             >
-              <FormControlLabel value="summary" control={<Radio />} label="Summary & Top Results" />
-              <FormControlLabel value="account" control={<Radio />} label="Account-level Details" />
-              <FormControlLabel value="all" control={<Radio />} label="All Data (ZIP)" disabled />
+              <FormControlLabel 
+                value="summary" 
+                control={
+                  <Radio 
+                    icon={<RadioButtonUncheckedIcon style={{ fontSize: '20px' }} />}
+                    checkedIcon={<RadioButtonCheckedIcon style={{ fontSize: '20px' }} />}
+                  />
+                } 
+                label="Summary & Top Results" 
+              />
+              <FormControlLabel 
+                value="account" 
+                control={
+                  <Radio 
+                    icon={<RadioButtonUncheckedIcon style={{ fontSize: '20px' }} />}
+                    checkedIcon={<RadioButtonCheckedIcon style={{ fontSize: '20px' }} />}
+                  />
+                } 
+                label="Account-level Details" 
+              />
+              <FormControlLabel 
+                value="all" 
+                control={
+                  <Radio 
+                    icon={<RadioButtonUncheckedIcon style={{ fontSize: '20px' }} />}
+                    checkedIcon={<RadioButtonCheckedIcon style={{ fontSize: '20px' }} />}
+                  />
+                } 
+                label="All Data (ZIP)" 
+                disabled 
+              />
             </RadioGroup>
 
             <Typography variant="subtitle2" fontWeight={700} gutterBottom sx={{ mt: 3 }}>
@@ -1351,13 +1345,41 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
               value={exportOptions.format}
               onChange={(e) => setExportOptions(prev => ({ ...prev, format: e.target.value }))}
             >
-              <FormControlLabel value="xlsx" control={<Radio />} label="Excel" />
-              <FormControlLabel value="csv" control={<Radio />} label="CSV" />
-              <FormControlLabel value="pdf" control={<Radio />} label="PDF" disabled />
+              <FormControlLabel 
+                value="xlsx" 
+                control={
+                  <Radio 
+                    icon={<RadioButtonUncheckedIcon style={{ fontSize: '20px' }} />}
+                    checkedIcon={<RadioButtonCheckedIcon style={{ fontSize: '20px' }} />}
+                  />
+                } 
+                label="Excel" 
+              />
+              <FormControlLabel 
+                value="csv" 
+                control={
+                  <Radio 
+                    icon={<RadioButtonUncheckedIcon style={{ fontSize: '20px' }} />}
+                    checkedIcon={<RadioButtonCheckedIcon style={{ fontSize: '20px' }} />}
+                  />
+                } 
+                label="CSV" 
+              />
+              <FormControlLabel 
+                value="pdf" 
+                control={
+                  <Radio 
+                    icon={<RadioButtonUncheckedIcon style={{ fontSize: '20px' }} />}
+                    checkedIcon={<RadioButtonCheckedIcon style={{ fontSize: '20px' }} />}
+                  />
+                } 
+                label="PDF" 
+                disabled 
+              />
             </RadioGroup>
 
             <Box sx={{ mt: 2, p: 2, borderRadius: 2, bgcolor: 'info.light', color: 'info.contrastText', display: 'flex', gap: 1.5 }}>
-              <InfoIcon fontSize="small" />
+              <InfoIcon style={{ fontSize: '20px' }} />
               <Typography variant="caption" fontWeight={600}>
                 Export will include Audit Header (T1) and calculation metadata.
               </Typography>

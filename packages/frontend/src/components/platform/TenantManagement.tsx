@@ -43,6 +43,7 @@ import {
 import { format } from 'date-fns';
 import { tenantsAPI } from '@/services/api';
 import { exportToCsv } from '@/utils/export-csv';
+import { getErrorMessage } from '@/utils/error-message';
 
 // Types
 interface Tenant {
@@ -54,6 +55,11 @@ interface Tenant {
     bankingMode?: string;
     isActive: boolean;
     createdAt?: string;
+    settings?: {
+        theme?: { primaryColor?: string; secondaryColor?: string; mode?: 'light' | 'dark' };
+        logoUrl?: string;
+        [key: string]: any;
+    };
 }
 
 interface TenantFormData {
@@ -65,6 +71,11 @@ interface TenantFormData {
     type?: string;
     bankingMode?: string;
     isActive?: boolean;
+    settings?: {
+        theme?: { primaryColor?: string; secondaryColor?: string; mode?: 'light' | 'dark' };
+        logoUrl?: string;
+        [key: string]: any;
+    };
 }
 
 const normalizeTenantType = (tenant: Tenant): 'banking' | 'fintech' | 'insurance' => {
@@ -115,7 +126,11 @@ const TenantManagement = () => {
         description: '',
         type: 'banking',
         bankingMode: 'conventional',
-        isActive: true
+        isActive: true,
+        settings: {
+            theme: { primaryColor: '#1976d2', secondaryColor: '#388e3c', mode: 'light' },
+            logoUrl: ''
+        }
     });
     const [formLoading, setFormLoading] = useState(false);
 
@@ -217,7 +232,11 @@ const TenantManagement = () => {
             description: '',
             type: 'banking',
             bankingMode: 'conventional',
-            isActive: true
+            isActive: true,
+            settings: {
+                theme: { primaryColor: '#1976d2', secondaryColor: '#388e3c', mode: 'light' },
+                logoUrl: ''
+            }
         });
         setIsFormOpen(true);
     };
@@ -231,7 +250,11 @@ const TenantManagement = () => {
             slug: tenant.slug || '',
             type: normalizeTenantType(tenant),
             bankingMode: normalizeBankingMode(tenant),
-            isActive: tenant.isActive
+            isActive: tenant.isActive,
+            settings: tenant.settings || {
+                theme: { primaryColor: '#1976d2', secondaryColor: '#388e3c', mode: 'light' },
+                logoUrl: ''
+            }
         });
         setIsFormOpen(true);
     };
@@ -279,7 +302,7 @@ const TenantManagement = () => {
             fetchTenants();
         } catch (err: any) {
             console.error('Form submission failed:', err);
-            const msg = err.response?.data?.message || err.message || 'Operation failed';
+            const msg = getErrorMessage(err, 'Operation failed');
             setError(`Failed to save tenant: ${msg}`);
         } finally {
             setFormLoading(false);
@@ -558,6 +581,80 @@ const TenantManagement = () => {
                                     value={formData.description}
                                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                 />
+                            </Grid>
+
+                            {/* BRANDING SETTINGS SECTION */}
+                            <Grid size={12}>
+                                <Typography variant="subtitle2" color="primary" sx={{ mt: 2, mb: 1, fontWeight: 'bold' }}>
+                                    Branding Settings
+                                </Typography>
+                            </Grid>
+
+                            <Grid size={12}>
+                                <TextField
+                                    fullWidth
+                                    label="Logo URL"
+                                    value={formData.settings?.logoUrl || ''}
+                                    onChange={(e) => setFormData({
+                                        ...formData,
+                                        settings: { ...formData.settings, logoUrl: e.target.value }
+                                    })}
+                                    placeholder="https://example.com/logo.png"
+                                    helperText="Direct URL to the tenant's exact brand logo."
+                                />
+                            </Grid>
+
+                            <Grid size={{ xs: 12, sm: 4 }}>
+                                <TextField
+                                    fullWidth
+                                    label="Primary Color"
+                                    type="color"
+                                    value={formData.settings?.theme?.primaryColor || '#1976d2'}
+                                    onChange={(e) => setFormData({
+                                        ...formData,
+                                        settings: {
+                                            ...formData.settings,
+                                            theme: { ...formData.settings?.theme, primaryColor: e.target.value }
+                                        }
+                                    })}
+                                    sx={{ '& input': { height: 40, cursor: 'pointer' } }}
+                                />
+                            </Grid>
+
+                            <Grid size={{ xs: 12, sm: 4 }}>
+                                <TextField
+                                    fullWidth
+                                    label="Secondary Color"
+                                    type="color"
+                                    value={formData.settings?.theme?.secondaryColor || '#388e3c'}
+                                    onChange={(e) => setFormData({
+                                        ...formData,
+                                        settings: {
+                                            ...formData.settings,
+                                            theme: { ...formData.settings?.theme, secondaryColor: e.target.value }
+                                        }
+                                    })}
+                                    sx={{ '& input': { height: 40, cursor: 'pointer' } }}
+                                />
+                            </Grid>
+
+                            <Grid size={{ xs: 12, sm: 4 }}>
+                                <TextField
+                                    select
+                                    fullWidth
+                                    label="Theme Mode"
+                                    value={formData.settings?.theme?.mode || 'light'}
+                                    onChange={(e) => setFormData({
+                                        ...formData,
+                                        settings: {
+                                            ...formData.settings,
+                                            theme: { ...formData.settings?.theme, mode: e.target.value as 'light' | 'dark' }
+                                        }
+                                    })}
+                                >
+                                    <MenuItem value="light">Light</MenuItem>
+                                    <MenuItem value="dark">Dark</MenuItem>
+                                </TextField>
                             </Grid>
                         </Grid>
                     </DialogContent>

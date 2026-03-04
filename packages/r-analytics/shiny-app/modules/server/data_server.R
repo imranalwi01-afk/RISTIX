@@ -19,9 +19,73 @@
 data_server <- function(input, output, session, con, PD, LGD, persistent_data) {
 
   # =============================================================================
+  # DIAGNOSTIC LOGGING
+  # =============================================================================
+  cat("📊 DEBUG [DATA_SERVER_START]: PD rows:", nrow(PD), "| LGD rows:", nrow(LGD), "\n")
+  flush.console()
+  if (nrow(PD) > 0) cat("  - Sample PD models:", paste(head(PD$pd_model_name, 3), collapse=", "), "...\n")
+  if (nrow(LGD) > 0) cat("  - Sample LGD models:", paste(head(LGD$lgd_model_name, 3), collapse=", "), "...\n")
+  flush.console()
+
+  # =============================================================================
   # UTILITY FUNCTIONS
   # =============================================================================
   # Utility functions are already sourced in app.R - no duplication needed
+
+  resolve_col <- function(df, candidates) {
+    if (!is.data.frame(df) || ncol(df) == 0) return(NULL)
+    col_names <- names(df)
+    lower_names <- tolower(col_names)
+    for (candidate in candidates) {
+      idx <- match(tolower(candidate), lower_names)
+      if (!is.na(idx)) return(col_names[[idx]])
+    }
+    NULL
+  }
+
+  normalize_column_names <- function(df) {
+    if (!is.data.frame(df) || ncol(df) == 0) return(df)
+    names(df) <- tolower(names(df))
+    df
+  }
+
+  build_segment_choices <- function(df, id_candidates, name_candidates, fallback_prefix) {
+    if (!is.data.frame(df) || nrow(df) == 0) {
+      return(c("No segmentation data found" = ""))
+    }
+
+    id_col <- resolve_col(df, id_candidates)
+    name_col <- resolve_col(df, name_candidates)
+
+    # CRITICAL FALLBACK: If column names don't match candidates, 
+    # just use the first two columns for ID and Name respectively.
+    if (is.null(id_col) || is.null(name_col)) {
+      if (ncol(df) >= 2) {
+        id_col <- names(df)[1]
+        name_col <- names(df)[2]
+      } else if (ncol(df) == 1) {
+        id_col <- names(df)[1]
+        name_col <- names(df)[1]
+      } else {
+        return(c("Segmentation config columns not found" = ""))
+      }
+    }
+
+    ids <- as.character(df[[id_col]])
+    labels <- as.character(df[[name_col]])
+    valid <- !is.na(ids) & nzchar(trimws(ids))
+
+    if (!any(valid)) {
+      return(c("No valid segmentation ID found" = ""))
+    }
+
+    ids <- ids[valid]
+    labels <- labels[valid]
+    label_missing <- is.na(labels) | !nzchar(trimws(labels))
+    labels[label_missing] <- paste(fallback_prefix, ids[label_missing])
+
+    stats::setNames(ids, labels)
+  }
 
   # =============================================================================
   # REACTIVE VALUES
@@ -31,6 +95,17 @@ data_server <- function(input, output, session, con, PD, LGD, persistent_data) {
   rv_df <- reactiveVal()  # Menyimpan df untuk digunakan ulang
   df1 <- reactiveVal(NULL)  # Data independent
 
+  output$dependent_data <- renderDT({
+    df <- rv_df()
+    if (is.null(df)) {
+      return(datatable(
+        data.frame(Info = "Select dependent + segmentation, then click Submit."),
+        options = list(dom = "t", paging = FALSE, searching = FALSE, ordering = FALSE)
+      ))
+    }
+    datatable(df, options = list(scrollX = TRUE))
+  })
+
   # =============================================================================
   # DEPENDENT VARIABLE LOGIC
   # =============================================================================
@@ -38,11 +113,23 @@ data_server <- function(input, output, session, con, PD, LGD, persistent_data) {
   # Dynamic UI for segmentation based on dependent variable selection
   output$segmentationUI <- renderUI({
     if (input$dependent == "PD") {
+      pd_choices <- build_segment_choices(
+        PD,
+        id_candidates = c("pkid", "pd_config_id", "config_id", "id"),
+        name_candidates = c("pd_model_name", "model_name", "name", "description"),
+        fallback_prefix = "PD"
+      )
       selectInput("segment", "Segmentation:",
-                  choices = setNames(PD$PKID, PD$PD_MODEL_NAME))
-    } else if (input$dependent == "LGD") {
+                  choices = pd_choices)
+    } else if (input$dependent == "lgd") {
+      lgd_choices <- build_segment_choices(
+        LGD,
+        id_candidates = c("pkid", "lgd_config_id", "config_id", "id"),
+        name_candidates = c("lgd_model_name", "model_name", "name", "description"),
+        fallback_prefix = "lgd"
+      )
       selectInput("segment", "Segmentation:",
-                  choices = setNames(LGD$PKID, LGD$LGD_MODEL_NAME))
+                  choices = lgd_choices)
     }
   })
 
@@ -65,6 +152,7 @@ data_server <- function(input, output, session, con, PD, LGD, persistent_data) {
         } else {
           read.csv(input$file_upload_other1$datapath, sep = input$csv_sep1)
         }
+        df <- normalize_column_names(df)
         log_data_operation("UPLOAD", "SUCCESS",
                           details = list(rows = nrow(df), cols = ncol(df)))
       } else {
@@ -74,21 +162,23 @@ data_server <- function(input, output, session, con, PD, LGD, persistent_data) {
     } else {
       # FIXED: Use direct dbGetQuery with proper parameter binding exactly like original working version
       tryCatch({
-        log_database("QUERY", "FRS9_IMP_CA_PD_ODR/LGD_H", "STARTED",
+        log_database("QUERY", "frs9_imp_ca_pd_odr/lgd_h", "STARTED",
                     details = list(dependent = input$dependent, segment = input$segment))
         if (input$dependent == "PD") {
-          df <- dbGetQuery(con, "SELECT * FROM frs9_imp_ca_pd_odr WHERE pd_config_id = $1",
-                          params = list(as.integer(input$segment)))
+          df <- DBI::dbGetQuery(con, "SELECT * FROM frs9_imp_ca_pd_odr WHERE pd_config_id::text = $1",
+                          params = list(as.character(input$segment)))
+          df <- normalize_column_names(df)
           log_database("QUERY", "frs9_imp_ca_pd_odr", "SUCCESS",
                       details = list(rows = nrow(df)))
         } else {
-          df <- dbGetQuery(con, "SELECT * FROM frs9_imp_ca_lgd_h WHERE lgd_config_id = $1",
-                          params = list(as.integer(input$segment)))
+          df <- DBI::dbGetQuery(con, "SELECT * FROM frs9_imp_ca_lgd_h WHERE lgd_config_id::text = $1",
+                          params = list(as.character(input$segment)))
+          df <- normalize_column_names(df)
           log_database("QUERY", "frs9_imp_ca_lgd_h", "SUCCESS",
                       details = list(rows = nrow(df)))
         }
       }, error = function(e) {
-        log_database("QUERY", "FRS9_IMP_CA", "FAILED",
+        log_database("QUERY", "frs9_imp_ca", "FAILED",
                     details = list(error = e$message, dependent = input$dependent))
         df <- data.frame(Warning = paste("No data found for", input$dependent))
       })
@@ -100,11 +190,6 @@ data_server <- function(input, output, session, con, PD, LGD, persistent_data) {
                            columns = if(is.null(df)) "NULL" else paste(names(df), collapse=", ")))
     rv_df(df)
     log_info("Reactive value rv_df successfully set", category = "DATA")
-
-    # Tampilkan ke UI
-    output$dependent_data <- renderDT({
-      datatable(rv_df(), options = list(scrollX = TRUE))
-    })
   })
 
   # Data transformation for dependent variable
@@ -128,19 +213,19 @@ data_server <- function(input, output, session, con, PD, LGD, persistent_data) {
 
       # Get the base dependent data
       if (input$dependent == "PD"){
-        if (!all(c("PRC_DATE", "ODR") %in% names(base_data))) {
+        if (!all(c("prc_date", "odr") %in% names(base_data))) {
           log_error("Missing required columns for PD transformation", category = "DATA",
-                   details = list(required = "PRC_DATE, ODR", available = paste(names(base_data), collapse=", ")))
-          data.frame(Error = "Missing required columns: PRC_DATE, ODR")
+                   details = list(required = "prc_date, odr", available = paste(names(base_data), collapse=", ")))
+          data.frame(Error = "Missing required columns: prc_date, odr")
         }
-        data_dependent <- base_data[,c("PRC_DATE","ODR")]
-      }else if(input$dependent == "LGD"){
-        if (!all(c("PRC_DATE", "LGD") %in% names(base_data))) {
+        data_dependent <- base_data[,c("prc_date","odr")]
+      }else if(input$dependent == "lgd"){
+        if (!all(c("prc_date", "lgd") %in% names(base_data))) {
           log_error("Missing required columns for LGD transformation", category = "DATA",
-                   details = list(required = "PRC_DATE, LGD", available = paste(names(base_data), collapse=", ")))
-          data.frame(Error = "Missing required columns: PRC_DATE, LGD")
+                   details = list(required = "prc_date, lgd", available = paste(names(base_data), collapse=", ")))
+          data.frame(Error = "Missing required columns: prc_date, lgd")
         }
-        data_dependent <- base_data[,c("PRC_DATE","LGD")]
+        data_dependent <- base_data[,c("prc_date","lgd")]
       }else if(input$dependent=="OTHERS"){
         data_dependent <- base_data
         data_dependent <- convert_dates(data_dependent)
@@ -198,9 +283,15 @@ data_server <- function(input, output, session, con, PD, LGD, persistent_data) {
   # Display transformed dependent data
   output$tabel_data_dependent_tr <- renderDT({
     cat("🔍 DEBUG [RENDER_DEPENDENT_TR]: renderDT for tabel_data_dependent_tr called\n")
-    req(data_dependent_tr())
+    transformed <- data_dependent_tr()
+    if (is.null(transformed) || !is.data.frame(transformed) || nrow(transformed) == 0) {
+      return(datatable(
+        data.frame(Info = "Transformed preview appears after Submit."),
+        options = list(dom = "t", paging = FALSE, searching = FALSE, ordering = FALSE)
+      ))
+    }
     cat("✅ DEBUG [RENDER_DEPENDENT_TR]: data_dependent_tr() available, rendering table\n")
-    datatable(data_dependent_tr(), options = list(scrollX = TRUE))
+    datatable(transformed, options = list(scrollX = TRUE))
   })
 
   # =============================================================================
@@ -314,9 +405,9 @@ data_server <- function(input, output, session, con, PD, LGD, persistent_data) {
     ext <- tools::file_ext(input_file$name)
     tryCatch({
       if (ext %in% c("xlsx", "xls")) {
-        readxl::read_excel(input_file$datapath)
+        normalize_column_names(readxl::read_excel(input_file$datapath))
       } else {
-        read.csv(input_file$datapath, sep = sep, stringsAsFactors = FALSE)
+        normalize_column_names(read.csv(input_file$datapath, sep = sep, stringsAsFactors = FALSE))
       }
     }, error = function(e) {
       showNotification(paste("Gagal membaca file:", e$message), type = "error")
@@ -515,7 +606,7 @@ data_server <- function(input, output, session, con, PD, LGD, persistent_data) {
     }
 
     tryCatch({
-      uploads <- dbGetQuery(con, 'SELECT id, filename FROM upload_history WHERE purpose = \'independent\' ORDER BY upload_time DESC')
+      uploads <- DBI::dbGetQuery(con, 'SELECT id, filename FROM upload_history WHERE purpose = \'independent\' ORDER BY upload_time DESC')
       choices <- setNames(uploads$id, uploads$filename)
       updateSelectInput(session, "download_upload_id", choices = choices)
       cat("✅ DEBUG [UPLOAD_HISTORY]: Updated", length(choices), "upload choices\n")
@@ -550,7 +641,7 @@ data_server <- function(input, output, session, con, PD, LGD, persistent_data) {
     }
 
     tryCatch({
-      uploads <- dbGetQuery(con, '
+      uploads <- DBI::dbGetQuery(con, '
         SELECT id, filename, file_type, rows, columns, upload_time
         FROM upload_history
         WHERE purpose = \'independent\'
@@ -588,7 +679,7 @@ data_server <- function(input, output, session, con, PD, LGD, persistent_data) {
                         details = list(upload_id = input$download_upload_id))
 
       # Delete from upload_history table
-      dbExecute(con, "DELETE FROM upload_history WHERE id = $1",
+      DBI::dbExecute(con, "DELETE FROM upload_history WHERE id = $1",
                 params = list(input$download_upload_id))
 
       log_database("DELETE", "upload_history", "SUCCESS",
@@ -597,7 +688,7 @@ data_server <- function(input, output, session, con, PD, LGD, persistent_data) {
       removeModal()
 
       # Refresh selectInput and DT
-      uploads <- dbGetQuery(con, "SELECT id, filename FROM upload_history WHERE purpose = 'independent' ORDER BY upload_time DESC")
+      uploads <- DBI::dbGetQuery(con, "SELECT id, filename FROM upload_history WHERE purpose = 'independent' ORDER BY upload_time DESC")
       updateSelectInput(session, "download_upload_id", choices = setNames(uploads$id, uploads$filename))
 
       # Show success notification
@@ -618,7 +709,7 @@ data_server <- function(input, output, session, con, PD, LGD, persistent_data) {
       req(input$download_upload_id)
 
       tryCatch({
-        fname <- dbGetQuery(con, "
+        fname <- DBI::dbGetQuery(con, "
           SELECT filename FROM upload_history WHERE id = $1
         ", params = list(input$download_upload_id))
 
@@ -725,180 +816,45 @@ data_server <- function(input, output, session, con, PD, LGD, persistent_data) {
       }
     }),
     joined_data = reactive({
-      # Use persistent data first, fall back to datagabung
-      if (!is.null(persistent_data$joined_data) && is.data.frame(persistent_data$joined_data)) {
-        cat("🔄 Using persistent joined_data\n")
-        persistent_data$joined_data
-      } else {
-        # Try to load saved joined data from database
-        if (!is.null(con)) {
-          tryCatch({
-            cat("🔍 DEBUG [DATA_SERVER]: Attempting to load saved joined data from database...\n")
-
-            # Query to get the most recent joined data
-            query <- "SELECT data_content, created_at FROM analytics_joined_data ORDER BY created_at DESC LIMIT 1"
-            result <- DBI::dbGetQuery(con, query)
-
-            if (nrow(result) > 0 && !is.null(result$data_content[1])) {
-              # Deserialize the data
-              joined_data <- unserialize(base64enc::base64decode(result$data_content[1]))
-
-              if (is.data.frame(joined_data) && nrow(joined_data) > 0) {
-                cat("✅ Loaded saved joined data from database (", nrow(joined_data), "rows)\n")
-                cat("📅 Date range:", range(joined_data$Date, na.rm = TRUE), "\n")
-                cat("📅 Saved on:", result$created_at[1], "\n")
-
-                # Store in persistent data
-                persistent_data$joined_data <<- joined_data
-
-                return(joined_data)
-              }
-            }
-          }, error = function(e) {
-            cat("⚠️ Could not load saved joined data from database:", e$message, "\n")
-          })
-        }
-
-        # Check if join operation has been triggered and has valid data
-        # Only call datagabung() if the join button has been clicked
-        if (is.null(input$join) || input$join == 0) {
-          # Join button not clicked yet and no saved data available
-          cat("⚠️ No joined data available - click 'Full Join' button to create joined data\n")
-          return(data.frame())
-        }
-
-        tryCatch({
-          cat("🔍 DEBUG [DATA_SERVER]: Calling datagabung()...\n")
-          result <- datagabung()
-          cat("🔍 DEBUG [DATA_SERVER]: datagabung() returned:\n")
-          cat("  - type:", class(result), "\n")
-          if (!is.null(result) && is.data.frame(result)) {
-            cat("  - dimensions:", paste(dim(result), collapse="x"), "\n")
-
-            # Store in persistent data
-            persistent_data$joined_data <<- result
-
-            # ✅ SAVE JOINED DATA TO DATABASE FOR PERSISTENCE
-            if (!is.null(con) && nrow(result) > 0) {
-              tryCatch({
-                cat("💾 Saving joined data to database for persistence...\n")
-
-                # Serialize the data
-                serialized_data <- base64enc::base64encode(serialize(result, NULL))
-
-                # Check if table exists, create if not
-                table_check_query <- "CREATE TABLE IF NOT EXISTS analytics_joined_data (
-                  id SERIAL PRIMARY KEY,
-                  data_content TEXT NOT NULL,
-                  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                  session_id VARCHAR(255)
-                )"
-
-                DBI::dbExecute(con, table_check_query)
-
-                # Insert the data
-                insert_query <- "INSERT INTO analytics_joined_data (data_content, session_id) VALUES ($1, $2)"
-                session_id <- session$token  # Get session identifier
-                DBI::dbExecute(con, insert_query, list(serialized_data, session_id))
-
-                # Clean up old records (keep only the latest)
-                cleanup_query <- "DELETE FROM analytics_joined_data WHERE id NOT IN (
-                  SELECT id FROM analytics_joined_data ORDER BY created_at DESC LIMIT 1
-                )"
-                DBI::dbExecute(con, cleanup_query)
-
-                cat("✅ Joined data saved to database successfully\n")
-              }, error = function(e) {
-                cat("❌ Failed to save joined data to database:", e$message, "\n")
-              })
-            }
-
-            # ✅ UPDATE DATE INPUTS AFTER SUCCESSFUL JOIN
-            # Update date inputs in Model tab based on joined data
-            if (nrow(result) > 0) {
-              cat("🔍 DEBUG [DATA_SERVER]: Updating date inputs from joined data...\n")
-
-              # Check for Date columns
-              date_colx <- names(result)[sapply(result, function(col) inherits(col, "Date"))]
-              if (length(date_colx) == 0) {
-                # Try to find datetime column if no Date column found
-                date_colx <- names(result)[sapply(result, function(col) inherits(col, "POSIXct") || inherits(col, "POSIXt"))]
-                if (length(date_colx) > 0) {
-                  cat("🔍 DEBUG [DATA_SERVER]: Found datetime column instead of Date column\n")
-                }
-              }
-
-              if (length(date_colx) > 0) {
-                date_col <- date_colx[1]
-                cat("✅ DEBUG [DATA_SERVER]: Using date column:", date_col, "\n")
-
-                # Get valid dates (remove NAs)
-                valid_dates <- result[[date_col]][!is.na(result[[date_col]])]
-                if (length(valid_dates) > 0) {
-                  # Update date inputs
-                  updateDateInput(session, "train_start", value = valid_dates[1],
-                                  min = min(valid_dates), max = max(valid_dates))
-
-                  updateDateInput(session, "train_split", value = valid_dates[round(length(valid_dates)/2)],
-                                  min = min(valid_dates), max = max(valid_dates))
-
-                  updateDateInput(session, "test_end", value = valid_dates[length(valid_dates)],
-                                  min = min(valid_dates), max = max(valid_dates))
-
-                  cat("✅ DEBUG [DATA_SERVER]: Date inputs updated successfully\n")
-                  cat("  - First date:", valid_dates[1], "\n")
-                  cat("  - Middle date:", valid_dates[round(length(valid_dates)/2)], "\n")
-                  cat("  - Last date:", valid_dates[length(valid_dates)], "\n")
-                } else {
-                  cat("⚠️ DEBUG [DATA_SERVER]: No valid dates found in column:", date_col, "\n")
-                }
-              } else {
-                cat("⚠️ DEBUG [DATA_SERVER]: No date/datetime columns found in joined data\n")
-              }
-            }
-
-            result
-          } else {
-            # Return empty data frame if no data available
-            cat("  - datagabung returned NULL or invalid data\n")
-            data.frame()
-          }
-        }, error = function(e) {
-          cat("⚠️ datagabung not available or error:", e$message, "\n")
-          data.frame()
-        })
+      # Check if join operation has been triggered and has valid data
+      if (is.null(input$join) || input$join == 0) {
+        cat("⚠️ No joined data available - click 'Full Join' button to create joined data\n")
+        return(data.frame())
       }
+
+      tryCatch({
+        cat("🔍 DEBUG [DATA_SERVER]: Calling datagabung()...\n")
+        result <- datagabung()
+        if (!is.null(result) && is.data.frame(result)) {
+           return(result)
+        } else {
+           return(data.frame())
+        }
+      }, error = function(e) {
+        cat("⚠️ datagabung not available or error:", e$message, "\n")
+        data.frame()
+      })
     }),
     data_status = reactive({
       # Return data processing status
       list(
         has_dependent = !is.null(persistent_data$dependent_data),
         has_independent = !is.null(persistent_data$independent_data),
-        has_joined = !is.null(persistent_data$joined_data),
+        has_joined = (!is.null(input$join) && input$join > 0 && is.data.frame(datagabung())),
         processed_rows = if (!is.null(persistent_data$dependent_data)) nrow(persistent_data$dependent_data) else 0
       )
     })
   ))
 
   # =============================================================================
-  # SESSION CLEANUP - Clear joined data when session ends
+  # RETURN VALUES (CRITICAL for modular architecture)
   # =============================================================================
-  session$onSessionEnded(function() {
-    cat("🧹 Session ended - clearing joined data from database...\n")
-
-    if (!is.null(con)) {
-      tryCatch({
-        # Clear joined data for this session
-        query <- "DELETE FROM analytics_joined_data WHERE session_id = $1"
-        session_id <- session$token
-        DBI::dbExecute(con, query, list(session_id))
-
-        cat("✅ Cleared joined data from database\n")
-      }, error = function(e) {
-        cat("⚠️ Failed to clear joined data:", e$message, "\n")
-      })
-    }
-  })
+  return(list(
+    dependent_transformed = data_dependent_tr,
+    independent_data = df1,
+    joined_data = datagabung,
+    base_data = rv_df
+  ))
 }
 
 # =============================================================================

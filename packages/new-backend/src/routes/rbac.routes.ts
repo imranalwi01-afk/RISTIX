@@ -8,7 +8,7 @@ import * as auditService from '../services/audit.service'
 import { createApprovalRequest } from '../services/approval.service'
 import { buildDefaultFourEyesRouting } from '../lib/approval-helpers'
 
-export const rbacRoutes = new OpenAPIHono<AppContext>()
+export const rbacRoutes: any = new OpenAPIHono<AppContext>()
 
 // Apply auth and tenant middleware to all routes
 rbacRoutes.use('*', authMiddleware)
@@ -186,17 +186,33 @@ const extractRolePermissionCodes = (role: any): string[] => {
     return Array.from(new Set(codes))
 }
 
+const isPendingApprovalRequest = (request: { status?: string } | null | undefined): boolean => {
+    const normalizedStatus = String(request?.status || '').trim().toLowerCase()
+    return normalizedStatus === '' || normalizedStatus === 'pending'
+}
+
 const buildApprovalAcceptedResponse = (
-    requestId: string,
+    request: { id: string; status?: string },
     message: string,
     extras?: Record<string, unknown>
-) => ({
-    success: true,
-    approvalRequired: true,
-    requestId,
-    message,
-    ...(extras || {}),
-})
+) => {
+    const isPending = isPendingApprovalRequest(request)
+    const isApproved = String(request.status || '').trim().toLowerCase() === 'approved'
+
+    return {
+        success: true,
+        approvalRequired: isPending,
+        autoApproved: !isPending && isApproved,
+        requestId: request.id,
+        message: isPending
+            ? message
+            : 'Request auto-approved and executed successfully.',
+        ...(extras || {}),
+    }
+}
+
+const getApprovalResponseStatus = (request: { status?: string }, nonPendingStatus = 200): number =>
+    isPendingApprovalRequest(request) ? 202 : nonPendingStatus
 
 const createStrictApprovalRequest = async (input: {
     tenantId: string
@@ -281,7 +297,7 @@ rbacRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         const tenantId = c.get('tenantId')!
         const query = c.req.valid('query')
 
@@ -373,7 +389,7 @@ rbacRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         try {
             const tenantId = c.get('tenantId')!
             const userId = c.get('userId')
@@ -401,10 +417,10 @@ rbacRoutes.openapi(
 
             return c.json(
                 buildApprovalAcceptedResponse(
-                    request.id,
+                    request,
                     'Role creation submitted for approval.'
                 ),
-                202
+                getApprovalResponseStatus(request)
             )
         } catch (error) {
             return runEffect(c, Effect.fail(error as any))
@@ -436,7 +452,7 @@ rbacRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         const tenantId = c.get('tenantId')!
 
         const effect = pipe(
@@ -484,7 +500,7 @@ rbacRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         const { roleId } = c.req.valid('param')
         const effect = pipe(
             rbacService.getRoleById(roleId),
@@ -562,7 +578,7 @@ rbacRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         try {
             const { roleId } = c.req.valid('param')
             const userId = c.get('userId')
@@ -594,10 +610,10 @@ rbacRoutes.openapi(
 
             return c.json(
                 buildApprovalAcceptedResponse(
-                    request.id,
+                    request,
                     'Role update submitted for approval.'
                 ),
-                202
+                getApprovalResponseStatus(request)
             )
         } catch (error) {
             return runEffect(c, Effect.fail(error as any))
@@ -634,7 +650,7 @@ rbacRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         try {
             const { roleId } = c.req.valid('param')
             const tenantId = c.get('tenantId')!
@@ -659,10 +675,79 @@ rbacRoutes.openapi(
 
             return c.json(
                 buildApprovalAcceptedResponse(
-                    request.id,
+                    request,
                     'Role deletion submitted for approval.'
                 ),
-                202
+                getApprovalResponseStatus(request)
+            )
+        } catch (error) {
+            return runEffect(c, Effect.fail(error as any))
+        }
+    }
+)
+
+/**
+ * POST /roles/:roleId/toggle - Toggle role active status (approval flow)
+ */
+rbacRoutes.openapi(
+    createRoute({
+        method: 'post',
+        path: '/{roleId}/toggle',
+        tags: ['RBAC'],
+        summary: 'Toggle Role Active Status',
+        security: [{ BearerAuth: [] }],
+        request: {
+            params: z.object({
+                roleId: z.string().openapi({ param: { name: 'roleId', in: 'path' } }),
+            }),
+        },
+        responses: {
+            202: {
+                content: {
+                    'application/json': {
+                        schema: z.object({
+                            success: z.boolean(),
+                            approvalRequired: z.boolean(),
+                            requestId: z.string(),
+                            message: z.string(),
+                        }),
+                    },
+                },
+                description: 'Role status toggle submitted for approval',
+            },
+        },
+    }),
+    async (c: any) => {
+        try {
+            const { roleId } = c.req.valid('param')
+            const tenantId = c.get('tenantId')!
+            const userId = c.get('userId') || 'system'
+            const role = await Effect.runPromise(rbacService.getRoleById(roleId, tenantId))
+            const nextIsActive = !Boolean(role.isActive)
+
+            const request = await createStrictApprovalRequest({
+                tenantId,
+                userId,
+                entityType: 'role',
+                entityId: roleId,
+                operation: 'update',
+                title: `${nextIsActive ? 'Enable' : 'Disable'} role: ${role.roleName}`,
+                description: `Role status update requested for ${role.roleName}.`,
+                payload: {
+                    id: roleId,
+                    roleName: role.roleName,
+                    isActive: nextIsActive,
+                    tenantId,
+                },
+                impactLevel: 'high',
+            })
+
+            return c.json(
+                buildApprovalAcceptedResponse(
+                    request,
+                    'Role status update submitted for approval.'
+                ),
+                getApprovalResponseStatus(request)
             )
         } catch (error) {
             return runEffect(c, Effect.fail(error as any))
@@ -700,7 +785,7 @@ rbacRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         const { roleId } = c.req.valid('param')
 
         const effect = pipe(
@@ -709,6 +794,79 @@ rbacRoutes.openapi(
                 roleId: role.id,
                 roleName: role.roleName,
                 permissions: role.permissions,
+            }))
+        )
+
+        return runEffect(c, effect)
+    }
+)
+
+/**
+ * GET /roles/:roleId/users - Get users assigned to role
+ */
+rbacRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/{roleId}/users',
+        tags: ['RBAC'],
+        summary: 'Get Users for Role',
+        security: [{ BearerAuth: [] }],
+        request: {
+            params: z.object({
+                roleId: z.string().openapi({ param: { name: 'roleId', in: 'path' } }),
+            }),
+        },
+        responses: {
+            200: {
+                description: 'Users assigned to role',
+                content: {
+                    'application/json': {
+                        schema: z.object({
+                            success: z.boolean(),
+                            data: z.object({
+                                roleId: z.string(),
+                                users: z.array(z.object({
+                                    id: z.string(),
+                                    userId: z.string(),
+                                    fullName: z.string().nullable(),
+                                    username: z.string().nullable(),
+                                    email: z.string().nullable(),
+                                    assignedAt: z.string().nullable(),
+                                    validFrom: z.string().nullable(),
+                                    validUntil: z.string().nullable(),
+                                    isTemporary: z.boolean(),
+                                    isActive: z.boolean(),
+                                })),
+                            }),
+                        }),
+                    },
+                },
+            },
+        },
+    }),
+    async (c: any) => {
+        const { roleId } = c.req.valid('param')
+        const tenantId = c.get('tenantId')!
+
+        const effect = pipe(
+            rbacService.getRoleUsers(roleId, tenantId),
+            Effect.map((rows: any[]) => ({
+                success: true,
+                data: {
+                    roleId,
+                    users: rows.map((row) => ({
+                        id: row.userId,
+                        userId: row.userId,
+                        fullName: row.user?.fullName ?? null,
+                        username: row.user?.username ?? null,
+                        email: row.user?.email ?? null,
+                        assignedAt: row.assignedAt ? row.assignedAt.toISOString() : null,
+                        validFrom: row.validFrom ? row.validFrom.toISOString() : null,
+                        validUntil: row.validUntil ? row.validUntil.toISOString() : null,
+                        isTemporary: Boolean(row.isTemporary),
+                        isActive: Boolean(row.isActive),
+                    })),
+                },
             }))
         )
 
@@ -763,13 +921,13 @@ rbacRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         try {
             const { roleId } = c.req.valid('param')
             const tenantId = c.get('tenantId')!
             const userId = c.get('userId') || 'system'
             const body = c.req.valid('json')
-            const requestedPermissions = body.permissions
+            const requestedPermissions: string[] = Array.isArray(body.permissions) ? body.permissions : []
             const approvalReason = body.approvalReason
 
             const [availablePermissions, currentRole] = await Promise.all([
@@ -781,13 +939,13 @@ rbacRoutes.openapi(
 
             const permissionLookup = new Map<string, string>()
             const permissionCodeById = new Map<string, string>()
-            for (const permission of availablePermissions) {
+            for (const permission of (availablePermissions as any[])) {
                 permissionLookup.set(permission.id, permission.id)
                 permissionLookup.set(permission.code, permission.id)
                 permissionCodeById.set(permission.id, permission.code)
             }
 
-            const unknownPermissions = requestedPermissions.filter((permission) => !permissionLookup.has(permission))
+            const unknownPermissions = requestedPermissions.filter((permission: string) => !permissionLookup.has(permission))
             if (unknownPermissions.length > 0) {
                 return c.json(
                     {
@@ -800,17 +958,17 @@ rbacRoutes.openapi(
             }
 
             const resolvedPermissionIds = requestedPermissions
-                .map((permission) => permissionLookup.get(permission))
-                .filter((permissionId): permissionId is string => typeof permissionId === 'string')
+                .map((permission: string) => permissionLookup.get(permission))
+                .filter((permissionId: unknown): permissionId is string => typeof permissionId === 'string')
 
             const resolvedPermissionCodes = resolvedPermissionIds
-                .map((id) => permissionCodeById.get(id))
-                .filter((code): code is string => typeof code === 'string')
+                .map((id: string) => permissionCodeById.get(id))
+                .filter((code: unknown): code is string => typeof code === 'string')
 
             const currentSet = new Set(currentPermissionCodes)
             const nextSet = new Set(resolvedPermissionCodes)
-            const added = resolvedPermissionCodes.filter((code) => !currentSet.has(code))
-            const removed = currentPermissionCodes.filter((code) => !nextSet.has(code))
+            const added = resolvedPermissionCodes.filter((code: string) => !currentSet.has(code))
+            const removed = currentPermissionCodes.filter((code: string) => !nextSet.has(code))
 
             const request = await Effect.runPromise(
                 createApprovalRequest({
@@ -847,14 +1005,12 @@ rbacRoutes.openapi(
             )
 
             return c.json(
-                {
-                    success: true,
-                    approvalRequired: true,
-                    requestId: request.id,
-                    message: 'Role permission update submitted for approval.',
-                    diff: { added, removed },
-                },
-                202
+                buildApprovalAcceptedResponse(
+                    request,
+                    'Role permission update submitted for approval.',
+                    { diff: { added, removed } }
+                ),
+                getApprovalResponseStatus(request)
             )
         } catch (error) {
             return runEffect(c, Effect.fail(error as any))
@@ -898,7 +1054,7 @@ rbacRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         const { userId } = c.req.valid('param')
         const tenantId = c.get('tenantId')!
 
@@ -967,7 +1123,7 @@ rbacRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         try {
             const { userId, roleId } = c.req.valid('param')
             const tenantId = c.get('tenantId')!
@@ -999,10 +1155,10 @@ rbacRoutes.openapi(
 
             return c.json(
                 buildApprovalAcceptedResponse(
-                    request.id,
+                    request,
                     'Role assignment submitted for approval.'
                 ),
-                202
+                getApprovalResponseStatus(request)
             )
         } catch (error) {
             return runEffect(c, Effect.fail(error as any))
@@ -1040,7 +1196,7 @@ rbacRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         try {
             const { userId, roleId } = c.req.valid('param')
             const tenantId = c.get('tenantId')!
@@ -1067,10 +1223,10 @@ rbacRoutes.openapi(
 
             return c.json(
                 buildApprovalAcceptedResponse(
-                    request.id,
+                    request,
                     'Role removal submitted for approval.'
                 ),
-                202
+                getApprovalResponseStatus(request)
             )
         } catch (error) {
             return runEffect(c, Effect.fail(error as any))
@@ -1111,7 +1267,7 @@ rbacRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         const { userId } = c.req.valid('param')
         const tenantId = c.get('tenantId')!
 
@@ -1168,7 +1324,7 @@ rbacRoutes.openapi(
             },
         },
     }),
-    async (c) => {
+    async (c: any) => {
         const { userId } = c.req.valid('param')
         const tenantId = c.get('tenantId')!
         const { resource, action } = c.req.valid('json')

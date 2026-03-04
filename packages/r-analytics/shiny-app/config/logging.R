@@ -11,11 +11,18 @@
 # LOGGING CONFIGURATION
 # =============================================================================
 
+resolve_log_dir <- function() {
+  configured <- Sys.getenv("R_ANALYTICS_LOG_DIR", "")
+  if (nzchar(configured)) return(configured)
+  if (file.exists("/.dockerenv")) return("/opt/r-analytics/logs")
+  "logs"
+}
+
 #' Logging Configuration Constants
 #' @description Global configuration for the logging system
 LOG_CONFIG <- list(
   # Log directory (relative to app root)
-  log_dir = "logs",
+  log_dir = resolve_log_dir(),
 
   # Log file names
   log_file_app = "ifrs9_app.log",
@@ -269,6 +276,7 @@ write_log <- function(level, message, category = "APP", details = NULL, log_file
       } else {
         cat(log_entry)
       }
+      flush.console()
     }
 
   }, error = function(e) {

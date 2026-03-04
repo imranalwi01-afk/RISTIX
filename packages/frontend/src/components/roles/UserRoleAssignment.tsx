@@ -83,7 +83,7 @@ import {
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import { format, parseISO } from 'date-fns';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/services/api';
 
 // Types
@@ -126,6 +126,7 @@ interface UserRoleAssignment {
 
 interface Permission {
   id: string;
+  code?: string;
   module: string;
   resource: string;
   action: string;
@@ -257,6 +258,7 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
   refreshTrigger = 0
 }) => {
   const theme = useTheme();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const processedDeepLinkRef = useRef<string | null>(null);
   const [currentTab, setCurrentTab] = useState(0);
@@ -284,6 +286,16 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
     if (!groupedPermissions || typeof groupedPermissions !== 'object') return [];
     return Object.values(groupedPermissions).flat();
   };
+  const canRoleApproveRequests = (role: Role): boolean => {
+    const approvalPermissionCodes = new Set([
+      'approval.requests.approve',
+      'approval.all',
+      'admin.super_admin',
+    ]);
+    return flattenPermissions(role.permissions).some((permission) =>
+      approvalPermissionCodes.has(String(permission.code || '').trim().toLowerCase())
+    );
+  };
   // Bulk assignment state
   const [bulkDialog, setBulkDialog] = useState<{
     open: boolean;
@@ -302,13 +314,6 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
   }>({
     open: false,
     user: null
-  });
-  const [roleDetailsDialog, setRoleDetailsDialog] = useState<{
-    open: boolean;
-    role: Role | null;
-  }>({
-    open: false,
-    role: null
   });
   const [manageUserRolesDialog, setManageUserRolesDialog] = useState<{
     open: boolean;
@@ -337,6 +342,7 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRoleType, setFilterRoleType] = useState<string>('all');
   const [filterUserStatus, setFilterUserStatus] = useState<string>('all');
+  const [approvalCoverageFilter, setApprovalCoverageFilter] = useState<'all' | 'can_approve' | 'no_approval'>('all');
   const [showInactiveUsers, setShowInactiveUsers] = useState(false);
   const [showInactiveRoles, setShowInactiveRoles] = useState(false);
   const [userPage, setUserPage] = useState(0);
@@ -481,9 +487,11 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
       if (!showInactiveRoles && !role.isActive) return false;
       if (searchTerm && !getRoleLabel(role).toLowerCase().includes(searchTerm.toLowerCase()) &&
         !role.name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+      if (approvalCoverageFilter === 'can_approve' && !canRoleApproveRequests(role)) return false;
+      if (approvalCoverageFilter === 'no_approval' && canRoleApproveRequests(role)) return false;
       return true;
     });
-  }, [roles, searchTerm, showInactiveRoles]);
+  }, [roles, searchTerm, showInactiveRoles, approvalCoverageFilter]);
 
   // Paginated data
   const paginatedUsers = useMemo(() => {
@@ -579,10 +587,11 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
     try {
       console.log(`🔗 Assigning role ${roleId} to user ${userId}`);
       const response = await api.roles.assignUser(roleId, userId);
-      const approvalRequired = Boolean(response?.approvalRequired || response?.data?.approvalRequired);
-      const requestId = response?.requestId || response?.data?.requestId;
+      const approvalRequired = Boolean(response?.approvalRequired);
+      const requestId = response?.requestId;
       if (approvalRequired) {
-        setNotice(`Role assignment submitted for approval${requestId ? ` (Request: ${requestId})` : ''}`);
+        const message = response?.message || 'Role assignment submitted for approval';
+        setNotice(`${message}${requestId ? ` (Request: ${requestId})` : ''}`);
       }
       onAssignmentChange?.();
       await fetchData();
@@ -596,10 +605,11 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
     try {
       console.log(`❌ Removing role ${roleId} from user ${userId}`);
       const response = await api.roles.removeUser(roleId, userId);
-      const approvalRequired = Boolean(response?.approvalRequired || response?.data?.approvalRequired);
-      const requestId = response?.requestId || response?.data?.requestId;
+      const approvalRequired = Boolean(response?.approvalRequired);
+      const requestId = response?.requestId;
       if (approvalRequired) {
-        setNotice(`Role removal submitted for approval${requestId ? ` (Request: ${requestId})` : ''}`);
+        const message = response?.message || 'Role removal submitted for approval';
+        setNotice(`${message}${requestId ? ` (Request: ${requestId})` : ''}`);
       }
       onAssignmentChange?.();
       await fetchData();
@@ -623,7 +633,7 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
       for (const roleId of bulkDialog.selectedRoles) {
         for (const userId of bulkDialog.selectedUsers) {
           const response = await api.roles.assignUser(roleId, userId);
-          if (response?.approvalRequired || response?.data?.approvalRequired) {
+          if (response?.approvalRequired) {
             approvalCount += 1;
           }
         }
@@ -655,7 +665,7 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
       for (const roleId of bulkDialog.selectedRoles) {
         for (const userId of bulkDialog.selectedUsers) {
           const response = await api.roles.removeUser(roleId, userId);
-          if (response?.approvalRequired || response?.data?.approvalRequired) {
+          if (response?.approvalRequired) {
             approvalCount += 1;
           }
         }
@@ -697,8 +707,13 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
     });
   };
 
-  const openRoleDetailsDialog = (role: Role) => {
-    setRoleDetailsDialog({ open: true, role });
+  const openRoleDetailsPage = (role: Role) => {
+    const mode = searchParams.get('mode');
+    const nextQuery = new URLSearchParams();
+    if (mode) nextQuery.set('mode', mode);
+    const query = nextQuery.toString();
+    const href = `/banking/maintenance/user-management/roles/${role.id}${query ? `?${query}` : ''}`;
+    router.push(href);
   };
 
   const openManageRoleUsersDialog = (role: Role) => {
@@ -725,14 +740,14 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
 
       for (const roleId of rolesToAssign) {
         const response = await api.roles.assignUser(roleId, user.id);
-        if (response?.approvalRequired || response?.data?.approvalRequired) {
+        if (response?.approvalRequired) {
           setNotice('User role assignment change submitted for approval.');
         }
       }
 
       for (const roleId of rolesToRemove) {
         const response = await api.roles.removeUser(roleId, user.id);
-        if (response?.approvalRequired || response?.data?.approvalRequired) {
+        if (response?.approvalRequired) {
           setNotice('User role assignment change submitted for approval.');
         }
       }
@@ -763,14 +778,14 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
 
       for (const userId of usersToAssign) {
         const response = await api.roles.assignUser(role.id, userId);
-        if (response?.approvalRequired || response?.data?.approvalRequired) {
+        if (response?.approvalRequired) {
           setNotice('Role user assignment change submitted for approval.');
         }
       }
 
       for (const userId of usersToRemove) {
         const response = await api.roles.removeUser(role.id, userId);
-        if (response?.approvalRequired || response?.data?.approvalRequired) {
+        if (response?.approvalRequired) {
           setNotice('Role user assignment change submitted for approval.');
         }
       }
@@ -778,7 +793,6 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
       onAssignmentChange?.();
       await fetchData();
       setManageRoleUsersDialog({ open: false, role: null, selectedUserIds: [], saving: false });
-      setRoleDetailsDialog({ open: false, role: null });
     } catch (err) {
       console.error('❌ Failed saving role user assignment:', err);
       setError('Failed to save user assignment for role');
@@ -1055,6 +1069,21 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
                   }
                   label="Show Inactive Users"
                 />
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 2 }}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Approval Coverage</InputLabel>
+                  <Select
+                    value={approvalCoverageFilter}
+                    onChange={(e) => setApprovalCoverageFilter(e.target.value as 'all' | 'can_approve' | 'no_approval')}
+                    label="Approval Coverage"
+                  >
+                    <MenuItem value="all">All Roles</MenuItem>
+                    <MenuItem value="can_approve">Can Approve</MenuItem>
+                    <MenuItem value="no_approval">No Approval</MenuItem>
+                  </Select>
+                </FormControl>
               </Grid>
 
               <Grid size={{ xs: 12, md: 2 }}>
@@ -1398,6 +1427,7 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
                   <TableCell>Status</TableCell>
                   <TableCell>Assigned Users</TableCell>
                   <TableCell>Permissions</TableCell>
+                  <TableCell>Approval Scope</TableCell>
                   <TableCell>Created</TableCell>
                   <TableCell>Actions</TableCell>
                 </TableRow>
@@ -1449,12 +1479,20 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
                       </Badge>
                     </TableCell>
                     <TableCell>
+                      <Chip
+                        size="small"
+                        label={canRoleApproveRequests(role) ? 'Can Approve' : 'No Approval'}
+                        color={canRoleApproveRequests(role) ? 'success' : 'default'}
+                        variant="outlined"
+                      />
+                    </TableCell>
+                    <TableCell>
                       {format(parseISO(role.createdAt), 'MMM dd, yyyy')}
                     </TableCell>
                     <TableCell>
                       <Box sx={{ display: 'flex', gap: 0.5 }}>
-                        <Tooltip title="View Role Details">
-                          <IconButton size="small" onClick={() => openRoleDetailsDialog(role)}>
+                        <Tooltip title="Open Role Details">
+                          <IconButton size="small" onClick={() => openRoleDetailsPage(role)}>
                             <ViewIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
@@ -1629,85 +1667,6 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
           <Button variant="contained" onClick={saveManagedUserRoles} disabled={manageUserRolesDialog.saving}>
             {manageUserRolesDialog.saving ? 'Saving...' : 'Save Role Assignment'}
           </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Role Details Dialog */}
-      <Dialog
-        open={roleDetailsDialog.open}
-        onClose={() => setRoleDetailsDialog({ open: false, role: null })}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>Role Details</DialogTitle>
-        <DialogContent dividers>
-          {roleDetailsDialog.role && (
-            <Box>
-              <Grid container spacing={2} sx={{ mb: 2 }}>
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <Typography variant="subtitle2" color="text.secondary">Role</Typography>
-                  <Typography>{getRoleLabel(roleDetailsDialog.role)}</Typography>
-                </Grid>
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <Typography variant="subtitle2" color="text.secondary">Role Code</Typography>
-                  <Typography>{roleDetailsDialog.role.name || 'UNNAMED_ROLE'}</Typography>
-                </Grid>
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <Typography variant="subtitle2" color="text.secondary">Type</Typography>
-                  <Chip size="small" label={roleDetailsDialog.role.type} color={getRoleTypeColor(roleDetailsDialog.role.type) as any} variant="outlined" />
-                </Grid>
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <Typography variant="subtitle2" color="text.secondary">Level</Typography>
-                  <Typography>{roleDetailsDialog.role.level}</Typography>
-                </Grid>
-                <Grid size={{ xs: 12 }}>
-                  <Typography variant="subtitle2" color="text.secondary">Description</Typography>
-                  <Typography>{roleDetailsDialog.role.description || '-'}</Typography>
-                </Grid>
-              </Grid>
-
-              <Divider sx={{ my: 2 }} />
-
-              <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                Assigned Users ({getAssignedUsersForRole(roleDetailsDialog.role.id).length})
-              </Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 2 }}>
-                {getAssignedUsersForRole(roleDetailsDialog.role.id).length === 0 ? (
-                  <Typography variant="body2" color="text.secondary">No users assigned</Typography>
-                ) : (
-                  getAssignedUsersForRole(roleDetailsDialog.role.id).map((user) => (
-                    <Chip key={`role-user-${user.id}`} size="small" label={user.fullName} />
-                  ))
-                )}
-              </Box>
-
-              <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                Permissions ({flattenPermissions(roleDetailsDialog.role.permissions).length})
-              </Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
-                {flattenPermissions(roleDetailsDialog.role.permissions).length === 0 ? (
-                  <Typography variant="body2" color="text.secondary">No permissions configured</Typography>
-                ) : (
-                  flattenPermissions(roleDetailsDialog.role.permissions).map((permission) => (
-                    <Chip
-                      key={`role-perm-${permission.id}`}
-                      size="small"
-                      variant="outlined"
-                      label={permission.displayName || `${permission.resource}.${permission.action}`}
-                    />
-                  ))
-                )}
-              </Box>
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setRoleDetailsDialog({ open: false, role: null })}>Close</Button>
-          {roleDetailsDialog.role && (
-            <Button variant="contained" onClick={() => openManageRoleUsersDialog(roleDetailsDialog.role!)}>
-              Manage Users
-            </Button>
-          )}
         </DialogActions>
       </Dialog>
 

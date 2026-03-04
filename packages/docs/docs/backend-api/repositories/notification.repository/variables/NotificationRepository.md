@@ -6,7 +6,7 @@
 
 > `const` **NotificationRepository**: `object`
 
-Defined in: src/repositories/notification.repository.ts:52
+Defined in: [src/repositories/notification.repository.ts:82](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/repositories/notification.repository.ts#L82)
 
 ## Type Declaration
 
@@ -44,11 +44,23 @@ Defined in: src/repositories/notification.repository.ts:52
 
 ### listForUser()
 
-> **listForUser**(`input`): `Promise`\<[`UserNotificationRow`](../interfaces/UserNotificationRow.md)[]\>
+> **listForUser**(`input`): `Promise`\<\{ `rows`: [`UserNotificationRow`](../interfaces/UserNotificationRow.md)[]; `total`: `number`; \}\>
 
 #### Parameters
 
 ##### input
+
+###### category?
+
+[`NotificationCategory`](../type-aliases/NotificationCategory.md)
+
+###### dateFrom?
+
+`Date`
+
+###### dateTo?
+
+`Date`
 
 ###### limit?
 
@@ -57,6 +69,14 @@ Defined in: src/repositories/notification.repository.ts:52
 ###### offset?
 
 `number`
+
+###### readStatus?
+
+[`NotificationReadStatus`](../type-aliases/NotificationReadStatus.md)
+
+###### search?
+
+`string`
 
 ###### tenantId
 
@@ -72,7 +92,7 @@ Defined in: src/repositories/notification.repository.ts:52
 
 #### Returns
 
-`Promise`\<[`UserNotificationRow`](../interfaces/UserNotificationRow.md)[]\>
+`Promise`\<\{ `rows`: [`UserNotificationRow`](../interfaces/UserNotificationRow.md)[]; `total`: `number`; \}\>
 
 ### markAllAsRead()
 
@@ -117,3 +137,31 @@ Defined in: src/repositories/notification.repository.ts:52
 #### Returns
 
 `Promise`\<`boolean`\>
+
+### markManyReadStatus()
+
+> **markManyReadStatus**(`input`): `Promise`\<`number`\>
+
+#### Parameters
+
+##### input
+
+###### notificationIds
+
+`string`[]
+
+###### read
+
+`boolean`
+
+###### tenantId
+
+`string`
+
+###### userId
+
+`string`
+
+#### Returns
+
+`Promise`\<`number`\>

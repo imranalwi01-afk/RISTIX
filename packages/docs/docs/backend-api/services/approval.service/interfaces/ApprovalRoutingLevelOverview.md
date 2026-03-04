@@ -4,7 +4,7 @@
 
 # Interface: ApprovalRoutingLevelOverview
 
-Defined in: [src/services/approval.service.ts:63](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/approval.service.ts#L63)
+Defined in: [src/services/approval.service.ts:64](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/approval.service.ts#L64)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: [src/services/approval.service.ts:63](https://github.com/ifrspro/ifr
 
 > **candidateCount**: `number`
 
-Defined in: [src/services/approval.service.ts:69](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/approval.service.ts#L69)
+Defined in: [src/services/approval.service.ts:71](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/approval.service.ts#L71)
 
 ***
 
@@ -20,7 +20,7 @@ Defined in: [src/services/approval.service.ts:69](https://github.com/ifrspro/ifr
 
 > **candidates**: [`ApprovalRoutingCandidate`](ApprovalRoutingCandidate.md)[]
 
-Defined in: [src/services/approval.service.ts:70](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/approval.service.ts#L70)
+Defined in: [src/services/approval.service.ts:72](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/approval.service.ts#L72)
 
 ***
 
@@ -28,7 +28,7 @@ Defined in: [src/services/approval.service.ts:70](https://github.com/ifrspro/ifr
 
 > **level**: `number`
 
-Defined in: [src/services/approval.service.ts:64](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/approval.service.ts#L64)
+Defined in: [src/services/approval.service.ts:65](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/approval.service.ts#L65)
 
 ***
 
@@ -36,7 +36,7 @@ Defined in: [src/services/approval.service.ts:64](https://github.com/ifrspro/ifr
 
 > **name**: `string`
 
-Defined in: [src/services/approval.service.ts:65](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/approval.service.ts#L65)
+Defined in: [src/services/approval.service.ts:66](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/approval.service.ts#L66)
 
 ***
 
@@ -44,15 +44,23 @@ Defined in: [src/services/approval.service.ts:65](https://github.com/ifrspro/ifr
 
 > **requiredCount**: `number`
 
-Defined in: [src/services/approval.service.ts:67](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/approval.service.ts#L67)
+Defined in: [src/services/approval.service.ts:69](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/approval.service.ts#L69)
 
 ***
 
-### requiredRoles
+### requiredPermissionCodes
 
-> **requiredRoles**: `string`[]
+> **requiredPermissionCodes**: `string`[]
 
-Defined in: [src/services/approval.service.ts:66](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/approval.service.ts#L66)
+Defined in: [src/services/approval.service.ts:68](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/approval.service.ts#L68)
+
+***
+
+### requiredRoleCodes
+
+> **requiredRoleCodes**: `string`[]
+
+Defined in: [src/services/approval.service.ts:67](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/approval.service.ts#L67)
 
 ***
 
@@ -60,4 +68,4 @@ Defined in: [src/services/approval.service.ts:66](https://github.com/ifrspro/ifr
 
 > `optional` **timeoutHours**: `number`
 
-Defined in: [src/services/approval.service.ts:68](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/approval.service.ts#L68)
+Defined in: [src/services/approval.service.ts:70](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/approval.service.ts#L70)

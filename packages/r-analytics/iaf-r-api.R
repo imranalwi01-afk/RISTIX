@@ -11,6 +11,12 @@ for (logger_path in c("logger.R", "/opt/r-analytics/logger.R", "../logger.R")) {
   }
 }
 
+if (file.exists("scripts/ifrs9/ifrs9_calculations.R")) {
+  source("scripts/ifrs9/ifrs9_calculations.R")
+} else if (file.exists("/opt/r-analytics/scripts/ifrs9/ifrs9_calculations.R")) {
+  source("/opt/r-analytics/scripts/ifrs9/ifrs9_calculations.R")
+}
+
 if (!exists("ra_log_info")) {
   stop("logger.R could not be loaded")
 }
@@ -70,6 +76,19 @@ get_db_config <- function() {
     password = get_preferred_env("FRS9_DB_PASSWORD", "DB_PASSWORD", "postgres"),
     schema = get_preferred_env("FRS9_DB_SCHEMA", "DB_SCHEMA", "public"),
     sslmode = Sys.getenv("DB_SSLMODE", "disable")
+  )
+}
+
+get_db_connection <- function() {
+  cfg <- get_db_config()
+  DBI::dbConnect(
+    RPostgres::Postgres(),
+    host = cfg$host,
+    port = cfg$port,
+    dbname = cfg$dbname,
+    user = cfg$user,
+    password = cfg$password,
+    sslmode = cfg$sslmode
   )
 }
 
@@ -333,20 +352,71 @@ function(req) {
     data <- jsonlite::fromJSON(body, simplifyVector = FALSE)
     ra_log_info("ECL calculation request received", context = list(requestId = request_id, hasPayload = !is.null(data)))
 
+    tenant_id <- data$tenant_id %||% "iaf"
+    calculation_date <- data$calculation_date %||% format(Sys.Date(), "%Y-%m-%d")
+    
+    # DB parameters override
+    params <- list(
+      pd_method = data$parameters$pd_method %||% "historical",
+      lgd_method = data$parameters$lgd_method %||% "historical",
+      ead_method = data$parameters$ead_method %||% "current"
+    )
+
+    con <- get_db_connection()
+    on.exit(try(DBI::dbDisconnect(con), silent = TRUE), add = TRUE)
+
+    # Note: Using qualified names to ensure public schema access in legacy connection
+    query <- paste0("
+      SELECT 
+        account_id,
+        outstanding,
+        dpd as days_past_due,
+        internal_rating_code as internal_rating,
+        start_date as origination_date,
+        prd_type as product_type,
+        account_status,
+        0 as collateral_value, /* Placeholder if not available in master */
+        'unknown' as collateral_type,
+        (CASE WHEN prd_group = 'SYARIAH' THEN TRUE ELSE FALSE END) as is_syariah_compliant
+      FROM public.frs9_master_account 
+      WHERE prc_date = '", calculation_date, "'
+    ")
+    
+    portfolio_data <- DBI::dbGetQuery(con, query)
+    
+    if (nrow(portfolio_data) == 0) {
+      return(api_response(
+        success = FALSE,
+        request_id = request_id,
+        message = paste("No portfolio data found for date:", calculation_date),
+        error = "Zero records fetched",
+        code = "NO_DATA_FOUND"
+      ))
+    }
+
+    # Perform actual ECL calculation
+    ra_log_info("Running ECL statistical computation", context = list(requestId = request_id, records = nrow(portfolio_data)))
+    ecl_results <- calculate_complete_ecl(portfolio_data, params)
+    
+    # Generate summary stats
+    summary <- aggregate_ecl_results(ecl_results)
+
     api_response(
       success = TRUE,
       request_id = request_id,
       message = "ECL calculation completed successfully",
       data = list(
         calculation_type = "ECL",
-        tenant = "iaf",
+        tenant = tenant_id,
+        calculation_date = calculation_date,
         result = list(
-          total_ecl = 1234567.89,
-          stage_1_ecl = 456789.12,
-          stage_2_ecl = 234567.89,
-          stage_3_ecl = 543210.88,
+          total_ecl = summary$total_ecl_final,
+          stage_1_ecl = sum(ecl_results$ECL_Final[ecl_results$IFRS9_Stage == 1], na.rm = TRUE),
+          stage_2_ecl = sum(ecl_results$ECL_Final[ecl_results$IFRS9_Stage == 2], na.rm = TRUE),
+          stage_3_ecl = sum(ecl_results$ECL_Final[ecl_results$IFRS9_Stage == 3], na.rm = TRUE),
           currency = "IDR"
-        )
+        ),
+        summary = summary
       )
     )
   }, error = function(e) {

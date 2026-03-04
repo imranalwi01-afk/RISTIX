@@ -74,7 +74,7 @@ export const getConsultantById = (id: string) =>
         try: async () => {
             const result = await db.select().from(consultants).where(eq(consultants.id, id)).execute()
             if (result.length === 0) {
-                throw new NotFoundError({ resource: 'Consultant', id })
+                throw new NotFoundError({ message: 'Consultant not found', resource: 'Consultant', id })
             }
             return result[0]
         },
@@ -117,7 +117,7 @@ export const updateConsultant = (id: string, data: Partial<NewConsultant>) =>
                 .execute()
 
             if (result.length === 0) {
-                throw new NotFoundError({ resource: 'Consultant', id })
+                throw new NotFoundError({ message: 'Consultant not found', resource: 'Consultant', id })
             }
             return result[0]
         },
@@ -143,7 +143,7 @@ export const deleteConsultant = (id: string) =>
                 .execute()
 
             if (result.length === 0) {
-                throw new NotFoundError({ resource: 'Consultant', id })
+                throw new NotFoundError({ message: 'Consultant not found', resource: 'Consultant', id })
             }
             return result[0]
         },

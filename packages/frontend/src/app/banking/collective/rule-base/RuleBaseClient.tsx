@@ -530,7 +530,7 @@ export default function RuleBaseSettingPage() {
         throw new Error(result.error || 'Failed to load rule base settings');
       }
 
-    } catch (error: any) {
+    } catch (error) {
       console.error('❌ Failed to load rule base settings:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       setError(`Failed to load rule base settings: ${errorMessage}`);
@@ -650,7 +650,7 @@ export default function RuleBaseSettingPage() {
       await loadHeaders();
       await loadPendingApprovals();
 
-    } catch (error: any) {
+    } catch (error) {
       console.error('❌ Failed to delete rule header:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       setError(`Failed to delete rule header: ${errorMessage}`);
@@ -702,7 +702,7 @@ export default function RuleBaseSettingPage() {
       await loadHeaders();
       await loadPendingApprovals();
 
-    } catch (error: any) {
+    } catch (error) {
       console.error('❌ Failed to save rule header:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       setError(`Failed to save rule header: ${errorMessage}`);
@@ -764,7 +764,7 @@ export default function RuleBaseSettingPage() {
       await loadHeaders();
       await loadPendingApprovals();
 
-    } catch (error: any) {
+    } catch (error) {
       console.error('❌ Failed to delete rule detail:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       setError(`Failed to delete rule detail: ${errorMessage}`);
@@ -826,7 +826,7 @@ export default function RuleBaseSettingPage() {
       await loadHeaders();
       await loadPendingApprovals();
 
-    } catch (error: any) {
+    } catch (error) {
       console.error('❌ Failed to save rule detail:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       setError(`Failed to save rule detail: ${errorMessage}`);
@@ -1005,8 +1005,8 @@ export default function RuleBaseSettingPage() {
                   data-testid="rule-type-select"
                 >
                   <MenuItem value="">All Types</MenuItem>
-                  {getUniqueRuleTypes().map((type) => (
-                    <MenuItem key={type} value={type}>{type}</MenuItem>
+                  {getUniqueRuleTypes().map((type, idx) => (
+                    <MenuItem key={`${type}-${idx}`} value={type}>{type}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
@@ -1154,16 +1154,16 @@ export default function RuleBaseSettingPage() {
                 data-testid="rule-type-field"
               >
                 {ruleTypes.length > 0 ? (
-                  ruleTypes.map((type) => (
-                    <MenuItem key={type.value} value={type.value}>{type.label}</MenuItem>
+                  ruleTypes.map((type, idx) => (
+                    <MenuItem key={`${type.value}-${idx}`} value={type.value}>{type.label}</MenuItem>
                   ))
                 ) : (
                   // Fallback if metadata fails
                   [
-                    <MenuItem key="STAGE" value="STAGE">STAGE</MenuItem>,
-                    <MenuItem key="DEFAULT" value="DEFAULT">DEFAULT</MenuItem>,
-                    <MenuItem key="GL" value="GL">GL</MenuItem>,
-                    <MenuItem key="CUSTOM" value="CUSTOM">CUSTOM</MenuItem>
+                    <MenuItem key="STAGE-0" value="STAGE">STAGE</MenuItem>,
+                    <MenuItem key="DEFAULT-1" value="DEFAULT">DEFAULT</MenuItem>,
+                    <MenuItem key="GL-2" value="GL">GL</MenuItem>,
+                    <MenuItem key="CUSTOM-3" value="CUSTOM">CUSTOM</MenuItem>
                   ]
                 )}
               </Select>
@@ -1340,13 +1340,13 @@ export default function RuleBaseSettingPage() {
                 data-testid="condition-select"
               >
                 {conditions.length > 0 ? (
-                  conditions.map((cond) => (
-                    <MenuItem key={cond.value} value={cond.value}>{cond.label}</MenuItem>
+                  conditions.map((cond, idx) => (
+                    <MenuItem key={`${cond.value}-${idx}`} value={cond.value}>{cond.label}</MenuItem>
                   ))
                 ) : (
                   [
-                    <MenuItem key="AND" value="AND">AND</MenuItem>,
-                    <MenuItem key="OR" value="OR">OR</MenuItem>
+                    <MenuItem key="AND-0" value="AND">AND</MenuItem>,
+                    <MenuItem key="OR-1" value="OR">OR</MenuItem>
                   ]
                 )}
               </Select>

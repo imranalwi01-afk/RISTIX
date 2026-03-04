@@ -1,7 +1,7 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
 import { legacyDb as db } from '../config'
 import { frs9ParamSegmenth } from '../db/schema'
-import { eq, and, like, desc } from 'drizzle-orm'
+import { eq, and, like, or } from 'drizzle-orm'
 import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
 
@@ -17,6 +17,7 @@ const SegmentSchema = z.object({
     id: z.number(),
     segment_name: z.string().nullable(),
     description: z.string().optional(),
+    segment_type: z.string().nullable(),
     active_flag: z.boolean().nullable(),
     created_by: z.string().nullable(),
     updated_by: z.string().nullable(),
@@ -57,12 +58,32 @@ const transformSegment = (segment: typeof frs9ParamSegmenth.$inferSelect) => ({
     id: segment.pkid,
     segment_name: segment.segment,
     description: segment.subSegment || '',
+    segment_type: segment.segmentType,
     active_flag: segment.activeFlag,
     created_by: segment.createdby,
     updated_by: segment.updatedby,
     created_date: segment.createddate,
     updated_date: segment.updateddate,
 })
+
+const normalizeSegmentType = (value?: string | null): string => (value || '').trim().toUpperCase()
+const getSegmentTypeCandidates = (value: string): string[] => {
+    const normalized = normalizeSegmentType(value)
+    if (!normalized) return []
+
+    if (normalized === 'PD' || normalized === 'LGD' || normalized === 'EAD') {
+        return [normalized, `${normalized} Segment`]
+    }
+
+    if (normalized.endsWith(' SEGMENT')) {
+        const shortType = normalized.replace(/\s+SEGMENT$/, '')
+        if (shortType === 'PD' || shortType === 'LGD' || shortType === 'EAD') {
+            return [shortType, `${shortType} Segment`]
+        }
+    }
+
+    return [value.trim()]
+}
 
 // ============================================================================
 // ENDPOINTS
@@ -80,7 +101,10 @@ populationSegmentsRoutes.openapi(
         request: {
             query: z.object({
                 search: z.string().optional(),
-                active_flag: z.string().optional()
+                active_flag: z.string().optional(),
+                activeFlag: z.string().optional(),
+                segment_type: z.string().optional(),
+                segmentType: z.string().optional()
             })
         },
         responses: {
@@ -90,21 +114,32 @@ populationSegmentsRoutes.openapi(
     }),
     async (c) => {
         try {
-            const { search, active_flag } = c.req.valid('query')
+            const { search, active_flag, activeFlag, segment_type, segmentType } = c.req.valid('query')
             const conditions = []
+            const activeFlagQuery = active_flag ?? activeFlag
+            const segmentTypeQuery = segment_type ?? segmentType
 
             if (search) {
                 conditions.push(like(frs9ParamSegmenth.segment, `%${search}%`))
             }
 
-            if (active_flag !== undefined) {
-                conditions.push(eq(frs9ParamSegmenth.activeFlag, active_flag === 'true'))
+            if (activeFlagQuery !== undefined) {
+                conditions.push(eq(frs9ParamSegmenth.activeFlag, activeFlagQuery === 'true'))
+            }
+
+            if (segmentTypeQuery) {
+                const candidates = getSegmentTypeCandidates(segmentTypeQuery)
+                if (candidates.length === 1) {
+                    conditions.push(eq(frs9ParamSegmenth.segmentType, candidates[0]))
+                } else if (candidates.length > 1) {
+                    conditions.push(or(...candidates.map((candidate) => eq(frs9ParamSegmenth.segmentType, candidate))))
+                }
             }
 
             const segments = await db
                 .select()
                 .from(frs9ParamSegmenth)
-                .where(and(...conditions))
+                .where(conditions.length > 0 ? and(...conditions) : undefined)
                 .orderBy(frs9ParamSegmenth.segment)
 
             return c.json({

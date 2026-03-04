@@ -4,7 +4,7 @@
 
 # Class: Ifrs9ReportsService
 
-Defined in: [src/services/ifrs9-reports.service.ts:47](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/ifrs9-reports.service.ts#L47)
+Defined in: [src/services/ifrs9-reports.service.ts:47](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/ifrs9-reports.service.ts#L47)
 
 ## Constructors
 
@@ -22,12 +22,16 @@ Defined in: [src/services/ifrs9-reports.service.ts:47](https://github.com/ifrspr
 
 > **getEADModel**(`tenantId`, `page`, `limit`, `params?`): `Promise`\<\{ `data`: `any`[]; `page`: `number`; `total`: `number`; `totalPages`: `number`; \}\>
 
-Defined in: [src/services/ifrs9-reports.service.ts:568](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/ifrs9-reports.service.ts#L568)
+Defined in: [src/services/ifrs9-reports.service.ts:574](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/ifrs9-reports.service.ts#L574)
 
 Get EAD Model Report (Payment Average by Tenor)
-SQL: SELECT TENOR AS [LT/MONTH], COUNTER AS SEQ, PAYM_AVG
+SQL: 
+```sql
+SELECT TENOR AS [LT/MONTH], COUNTER AS SEQ, PAYM_AVG
 FROM FRS9_IMP_CA_EAD_PAYM_AVG A 
-WHERE A.PRC_DATE =
+WHERE A.PRC_DATE = :PRC_DATE AND A.SEGMENT_ID = :EAD_CONFIG_ID
+PIVOT (SUM(PAYM_AVG) FOR SEQ IN (...))
+```
 
 #### Parameters
 
@@ -51,18 +55,13 @@ WHERE A.PRC_DATE =
 
 `Promise`\<\{ `data`: `any`[]; `page`: `number`; `total`: `number`; `totalPages`: `number`; \}\>
 
-#### DATE
-
-AND A.SEGMENT_ID = @EAD_CONFIG_ID
-PIVOT (SUM(PAYM_AVG) FOR SEQ IN (...))
-
 ***
 
 ### getEADPaymentAverage()
 
 > **getEADPaymentAverage**(`tenantId`, `page`, `limit`, `params?`): `Promise`\<\{ `data`: `any`[]; `page`: `number`; `total`: `number`; `totalPages`: `number`; \}\>
 
-Defined in: [src/services/ifrs9-reports.service.ts:642](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/ifrs9-reports.service.ts#L642)
+Defined in: [src/services/ifrs9-reports.service.ts:648](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/ifrs9-reports.service.ts#L648)
 
 Get EAD Payment Average by Tenor
 Queries: frs9_imp_ca_ead_paym_avg with pivot on counter
@@ -95,7 +94,7 @@ Queries: frs9_imp_ca_ead_paym_avg with pivot on counter
 
 > **getECLMovement**(`tenantId`, `params?`): `Promise`\<\{ `data`: `object`[]; \}\>
 
-Defined in: [src/services/ifrs9-reports.service.ts:710](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/ifrs9-reports.service.ts#L710)
+Defined in: [src/services/ifrs9-reports.service.ts:716](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/ifrs9-reports.service.ts#L716)
 
 Get ECL Movement Report
 Calculates Opening Balance, Provisions, Releases, Writes-offs, and Closing Balance
@@ -130,11 +129,15 @@ Calculates Opening Balance, Provisions, Releases, Writes-offs, and Closing Balan
 
 > **getECLResult**(`tenantId`, `page`, `limit`, `params?`): `Promise`\<\{ `data`: `any`[]; `page`: `number`; `total`: `number`; `totalPages`: `number`; \}\>
 
-Defined in: [src/services/ifrs9-reports.service.ts:225](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/ifrs9-reports.service.ts#L225)
+Defined in: [src/services/ifrs9-reports.service.ts:228](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/ifrs9-reports.service.ts#L228)
 
 Get ECL Result Report
-SQL Script: SELECT SUM(OUTSTANDING), SUM(ECL_CA_ONBS_AMT), SUM(ECL_FINAL_AMT), etc.
-FROM FRS9_MASTER_ACCOUNT WHERE PRC_DATE =
+SQL Script:
+```sql
+SELECT SUM(OUTSTANDING), SUM(ECL_CA_ONBS_AMT), SUM(ECL_FINAL_AMT), etc.
+FROM FRS9_MASTER_ACCOUNT WHERE PRC_DATE = :PRC_DATE AND SEGMENT_ID = :SEGMENT_ID AND STAGE = :STAGE
+GROUP BY PRC_DATE, BRANCH_CODE, SEGMENT_ID, GROUP_SEGMENT, SEGMENT, SUB_SEGMENT, CURRENCY, etc.
+```
 
 #### Parameters
 
@@ -158,25 +161,13 @@ FROM FRS9_MASTER_ACCOUNT WHERE PRC_DATE =
 
 `Promise`\<\{ `data`: `any`[]; `page`: `number`; `total`: `number`; `totalPages`: `number`; \}\>
 
-#### DATE
-
-AND SEGMENT_ID =
-
-#### SEGMENT
-
-AND STAGE =
-
-#### STAGE
-
-GROUP BY PRC_DATE, BRANCH_CODE, SEGMENT_ID, GROUP_SEGMENT, SEGMENT, SUB_SEGMENT, CURRENCY, etc.
-
 ***
 
 ### getGCAMovement()
 
 > **getGCAMovement**(`tenantId`, `params?`): `Promise`\<\{ `data`: (\{ `closing_gca`: `number`; `current_stage`: `number`; `new_business`: `number`; `opening_gca`: `number`; `repayments`: `number`; `stage1_to_stage2`: `number`; `stage2_to_stage1`: `number`; `write_offs`: `number`; \} \| \{ `closing_gca`: `number`; `current_stage`: `number`; `new_business?`: `undefined`; `opening_gca`: `number`; `repayments?`: `undefined`; `stage1_to_stage2?`: `undefined`; `stage2_to_stage1?`: `undefined`; `write_offs?`: `undefined`; \})[]; `page?`: `undefined`; `total?`: `undefined`; `totalPages?`: `undefined`; \} \| \{ `data`: `never`[]; `page`: `number`; `total`: `number`; `totalPages`: `number`; \}\>
 
-Defined in: [src/services/ifrs9-reports.service.ts:789](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/ifrs9-reports.service.ts#L789)
+Defined in: [src/services/ifrs9-reports.service.ts:795](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/ifrs9-reports.service.ts#L795)
 
 Get GCA Movement Report
 Calculates Gross Carrying Amount movement
@@ -211,7 +202,7 @@ Calculates Gross Carrying Amount movement
 
 > **getLifetimeLGDDetail**(`tenantId`, `page`, `limit`, `params?`): `Promise`\<\{ `data`: `any`[]; `page`: `number`; `total`: `number`; `totalPages`: `number`; \}\>
 
-Defined in: [src/services/ifrs9-reports.service.ts:426](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/ifrs9-reports.service.ts#L426)
+Defined in: [src/services/ifrs9-reports.service.ts:429](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/ifrs9-reports.service.ts#L429)
 
 Get Lifetime LGD Detail Report (Account Level with Recovery Pivot)
 Queries: frs9_account_id + frs9_imp_ca_lgd_data + frs9_imp_ca_lgd_rec_d
@@ -245,7 +236,7 @@ Implements pivot on SEQ for recovery sequences
 
 > **getLifetimeLGDSummary**(`tenantId`, `page`, `limit`, `params?`): `Promise`\<\{ `data`: `any`[]; `page`: `number`; `total`: `number`; `totalPages`: `number`; \}\>
 
-Defined in: [src/services/ifrs9-reports.service.ts:514](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/ifrs9-reports.service.ts#L514)
+Defined in: [src/services/ifrs9-reports.service.ts:517](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/ifrs9-reports.service.ts#L517)
 
 Get Lifetime LGD Summary Report
 Queries: frs9_imp_ca_lgd_h + frs9_imp_ca_lgd_config
@@ -278,7 +269,7 @@ Queries: frs9_imp_ca_lgd_h + frs9_imp_ca_lgd_config
 
 > **getLifetimePDMonthly**(`tenantId`, `page`, `limit`, `params?`): `Promise`\<\{ `data`: `any`[]; `page`: `number`; `total`: `number`; `totalPages`: `number`; \}\>
 
-Defined in: [src/services/ifrs9-reports.service.ts:172](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/ifrs9-reports.service.ts#L172)
+Defined in: [src/services/ifrs9-reports.service.ts:172](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/ifrs9-reports.service.ts#L172)
 
 Get Lifetime PD Report (Monthly)
 Queries: frs9_imp_ca_pd_structure with monthly pivot transformation
@@ -311,7 +302,7 @@ Queries: frs9_imp_ca_pd_structure with monthly pivot transformation
 
 > **getLifetimePDYearly**(`tenantId`, `page`, `limit`, `params?`): `Promise`\<\{ `data`: `any`[]; `page`: `number`; `total`: `number`; `totalPages`: `number`; \}\>
 
-Defined in: [src/services/ifrs9-reports.service.ts:121](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/ifrs9-reports.service.ts#L121)
+Defined in: [src/services/ifrs9-reports.service.ts:121](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/ifrs9-reports.service.ts#L121)
 
 Get Lifetime PD Report (Yearly)
 Queries: frs9_imp_ca_pd_structure with pivot transformation
@@ -344,7 +335,7 @@ Queries: frs9_imp_ca_pd_structure with pivot transformation
 
 > **getNominativeReport**(`tenantId`, `page`, `limit`, `params?`): `Promise`\<\{ `data`: `any`[]; `page`: `number`; `summary`: \{ `totalECL`: `number`; `totalOutstanding`: `number`; \}; `total`: `number`; `totalPages`: `number`; \} \| \{ `data`: `never`[]; `page`: `number`; `summary?`: `undefined`; `total`: `number`; `totalPages`: `number`; \}\>
 
-Defined in: [src/services/ifrs9-reports.service.ts:317](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/ifrs9-reports.service.ts#L317)
+Defined in: [src/services/ifrs9-reports.service.ts:320](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/ifrs9-reports.service.ts#L320)
 
 Get Nominative Report (Detailed Account Level)
 Queries: frs9_master_account - Account level IFRS9 data

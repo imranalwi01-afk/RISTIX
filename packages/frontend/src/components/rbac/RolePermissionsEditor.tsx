@@ -19,6 +19,7 @@ import {
 } from '@mui/material'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import { apiClient as api } from '@/services/api-client'
+import { getErrorMessage } from '@/utils/error-message'
 
 interface PermissionDefinition {
     label: string
@@ -68,7 +69,7 @@ export const RolePermissionsEditor: React.FC<RolePermissionsEditorProps> = ({
             setSelectedPermissions(roleRes.data.permissions || {})
             setHasChanges(false)
         } catch (err: any) {
-            setError(err.response?.data?.error || 'Failed to load permissions')
+            setError(getErrorMessage(err, 'Failed to load permissions'))
             console.error('Failed to load permissions', err)
         } finally {
             setLoading(false)
@@ -136,7 +137,7 @@ export const RolePermissionsEditor: React.FC<RolePermissionsEditorProps> = ({
             setHasChanges(false)
             onSave?.()
         } catch (err: any) {
-            setError(err.response?.data?.error || 'Failed to save permissions')
+            setError(getErrorMessage(err, 'Failed to save permissions'))
             console.error('Failed to save permissions', err)
         } finally {
             setSaving(false)

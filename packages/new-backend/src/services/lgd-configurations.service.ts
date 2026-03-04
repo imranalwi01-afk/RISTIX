@@ -1,5 +1,6 @@
 import { Effect, pipe } from 'effect'
 import { LgdConfigurationsRepository } from '../repositories/lgd-configurations.repository'
+import { ParametersRepository } from '../repositories/parameters.repository'
 import { NotFoundError } from '../lib/errors'
 import { frs9ImpCaLgdConfig } from '../db/schema'
 
@@ -18,7 +19,7 @@ export const LgdConfigurationsService = {
         return pipe(
             LgdConfigurationsRepository.findAll({
                 search: options.search,
-                lgdMethod: options.lgd_method ? parseInt(options.lgd_method) : undefined,
+                lgdMethod: options.lgd_method,
                 isActive: options.is_active ? options.is_active === 'true' : undefined
             }),
             Effect.map(configs => configs.map(transformLgdConfig))
@@ -37,7 +38,7 @@ export const LgdConfigurationsService = {
             Effect.flatMap(config =>
                 config
                     ? Effect.succeed(transformLgdConfig(config))
-                    : Effect.fail(new NotFoundError({ resource: 'LGD Configuration', id: String(id) }))
+                    : Effect.fail(new NotFoundError({ message: 'LGD Configuration not found', resource: 'LGD Configuration', id: String(id) }))
             )
         )
     },
@@ -53,8 +54,8 @@ export const LgdConfigurationsService = {
         const payload = {
             lgdModelName: data.modelName,
             segmentId: data.segmentId,
-            lgdMethod: data.lgdMethod,
-            populationType: data.populationType,
+            lgdMethod: data.lgdMethod != null ? Number(data.lgdMethod) : null,
+            populationType: data.populationType != null ? String(data.populationType) : null,
             observationPeriod: data.observationPeriod,
             workoutPeriod: data.workoutPeriod,
             flFlag: data.flFlag,
@@ -107,7 +108,7 @@ export const LgdConfigurationsService = {
             Effect.flatMap(updated =>
                 updated
                     ? Effect.succeed(transformLgdConfig(updated))
-                    : Effect.fail(new NotFoundError({ resource: 'LGD Configuration', id: String(id) }))
+                    : Effect.fail(new NotFoundError({ message: 'LGD Configuration not found', resource: 'LGD Configuration', id: String(id) }))
             )
         )
     },
@@ -124,26 +125,47 @@ export const LgdConfigurationsService = {
             Effect.flatMap(deleted =>
                 deleted
                     ? Effect.succeed({ message: 'LGD configuration deleted successfully' })
-                    : Effect.fail(new NotFoundError({ resource: 'LGD Configuration', id: String(id) }))
+                    : Effect.fail(new NotFoundError({ message: 'LGD Configuration not found', resource: 'LGD Configuration', id: String(id) }))
             )
         )
     },
 
-    /** Get available LGD methods options. */
+    /**
+     * Get available LGD method options.
+     * Dynamically sourced from Business Setting B0022 in FRS9_PARAM_COMMOND.
+     * Per tech spec: LGD_METHOD = Combo Box (Business Setting B0022)
+     */
     getMethods: () => {
-        return Effect.succeed([
-            { value: 1, label: 'Linear' },
-            { value: 2, label: 'Vintage' },
-            { value: 3, label: 'Recovery Rate' },
-        ])
+        return pipe(
+            ParametersRepository.findDetailByCode('B0022'),
+            Effect.map(details =>
+                details
+                    .filter(d => d.value1 !== null && d.value1 !== '')
+                    .map(d => ({
+                        value: d.value1!,
+                        label: d.value2 ?? d.value1!,
+                    }))
+            )
+        )
     },
 
-    /** Get available population types options. */
+    /**
+     * Get available LGD population type options.
+     * Dynamically sourced from Business Setting B0023 in FRS9_PARAM_COMMOND.
+     * Per tech spec: POLUPATION_TYPE = Combo Box (Business Setting B0023)
+     */
     getPopulationTypes: () => {
-        return Effect.succeed([
-            { value: 'Monthly', label: 'Monthly' },
-            { value: 'Quarterly', label: 'Quarterly' },
-        ])
+        return pipe(
+            ParametersRepository.findDetailByCode('B0023'),
+            Effect.map(details =>
+                details
+                    .filter(d => d.value1 !== null && d.value1 !== '')
+                    .map(d => ({
+                        value: d.value1!,
+                        label: d.value2 ?? d.value1!,
+                    }))
+            )
+        )
     }
 }
 

@@ -1,18 +1,88 @@
 import crypto from 'node:crypto';
-import { db, legacyDb } from '../config/database';
-import { sql, eq, desc, and, lte } from 'drizzle-orm';
-import { frs9ImpCaResultH, jobExecutions, jobDefinitions, frs9MasterAccount, frs9PrcDate } from '../db/schema';
+import { getDatabase, legacyDb } from '../config/database';
+import { sql, eq, desc, and } from 'drizzle-orm';
+import { frs9ImpCaResultH, jobExecutions, frs9MasterAccount, frs9PrcDate, frs9ImpCaEclConfigh } from '../db/schema';
 import { JobsRepository } from '../repositories/jobs.repository';
-// Note: We might need to check if we have specific tables for collective calculation results
-// For now, I'll use placeholders or generic query structures assuming standard IFRS9 tables
+import { addJob } from './queue.service';
 
 export class Ifrs9CalculationsService {
+    private static readonly IFRS9_PREVIEW_SP_NAME = 'sp_frs9_preview_sequence';
+    private static readonly IFRS9_SQL_SP_JOB_NAME = 'IFRS9 Preview Sequence';
+
+    private normalizeProcedureName(value: unknown): string {
+        return String(value || '').trim().toLowerCase();
+    }
+
+    private isIfrs9PreviewSqlSpParameters(parameters: any): boolean {
+        const procedureName = this.normalizeProcedureName(parameters?.procedureName);
+        return (
+            procedureName === Ifrs9CalculationsService.IFRS9_PREVIEW_SP_NAME
+            || procedureName.endsWith(`.${Ifrs9CalculationsService.IFRS9_PREVIEW_SP_NAME}`)
+        );
+    }
+
+    private isIfrs9CalculationExecution(execution: any): boolean {
+        const executionJobType = String(execution?.jobType || '').toUpperCase();
+        if (executionJobType === 'IFRS9_CALCULATION') return true;
+
+        if (executionJobType === 'SQL_SP') {
+            if (this.isIfrs9PreviewSqlSpParameters(execution?.parameters)) return true;
+            if (this.isIfrs9PreviewSqlSpParameters(execution?.defaultParameters)) return true;
+            if (this.isIfrs9PreviewSqlSpParameters(execution?.definition?.defaultParameters)) return true;
+        }
+
+        return false;
+    }
+
+    private buildIfrs9SqlSpDefaultParameters() {
+        return {
+            schemaName: 'public',
+            procedureName: Ifrs9CalculationsService.IFRS9_PREVIEW_SP_NAME,
+            targetDatabase: 'LEGACY',
+            parameters: [] as any[],
+        };
+    }
+
+    private async resolveConfigHeader(config: any): Promise<string> {
+        const explicitConfigHeader = String(
+            config?.configHeader
+            || config?.eclModelName
+            || config?.modelName
+            || ''
+        ).trim();
+
+        if (explicitConfigHeader) {
+            return explicitConfigHeader;
+        }
+
+        const [activeConfig] = await legacyDb
+            .select({
+                eclModelName: frs9ImpCaEclConfigh.eclModelName,
+            })
+            .from(frs9ImpCaEclConfigh)
+            .where(eq(frs9ImpCaEclConfigh.activeFlag, true))
+            .orderBy(
+                desc(frs9ImpCaEclConfigh.effectiveDate),
+                desc(frs9ImpCaEclConfigh.updateddate),
+                desc(frs9ImpCaEclConfigh.pkid),
+            )
+            .limit(1);
+
+        const fallbackConfigHeader = String(activeConfig?.eclModelName || '').trim();
+        if (fallbackConfigHeader) {
+            return fallbackConfigHeader;
+        }
+
+        throw new Error(
+            'No active ECL model found to run SP_FRS9_PREVIEW_SEQUENCE. Please activate ECL configuration first.'
+        );
+    }
 
     async getSummary(tenantId: string, requestedDate?: string) {
         try {
             // 1. Determine the process date to use
             let prcDate = requestedDate;
-            
+
             if (!prcDate) {
                 // If no date requested, find the latest process date in the result table
                 const latestResultDate = await legacyDb
@@ -21,7 +91,65 @@ export class Ifrs9CalculationsService {
                 prcDate = latestResultDate[0]?.maxDate;
             }
 
-            if (prcDate) {
+            if (requestedDate === 'all') {
+                console.log('📊 Calculating Grand Total (All Periods)...');
+                // Aggregrate summary for ALL dates (Cumulative Grand Total)
+                const result = await legacyDb
+                    .select({
+                        totalECL: sql<string>`cast(sum(${frs9ImpCaResultH.eclAmount}) as text)`,
+                        totalPortfolio: sql<string>`cast(sum(${frs9ImpCaResultH.outstanding}) as text)`,
+                        count: sql<string>`cast(count(*) as text)`
+                    })
+                    .from(frs9ImpCaResultH);
+
+                const row = result[0];
+                if (row && Number(row.count) > 0) {
+                    const totalECL = parseFloat(row.totalECL || '0');
+                    const totalPortfolio = parseFloat(row.totalPortfolio || '0');
+                    const count = parseInt(row.count || '0', 10);
+
+                    const stages = await legacyDb
+                        .select({
+                            stage: frs9ImpCaResultH.stage,
+                            ecl: sql<string>`cast(sum(${frs9ImpCaResultH.eclAmount}) as text)`,
+                            count: sql<string>`cast(count(*) as text)`
+                        })
+                        .from(frs9ImpCaResultH)
+                        .groupBy(frs9ImpCaResultH.stage);
+
+                    const findStage = (sNum: number) => stages.find(s => Number(s.stage) === sNum);
+
+                    const stage1 = parseFloat(findStage(1)?.ecl || '0');
+                    const stage2 = parseFloat(findStage(2)?.ecl || '0');
+                    const stage3 = parseFloat(findStage(3)?.ecl || '0');
+
+                    const stage1Count = parseInt(findStage(1)?.count || '0', 10);
+                    const stage2Count = parseInt(findStage(2)?.count || '0', 10);
+                    const stage3Count = parseInt(findStage(3)?.count || '0', 10);
+
+                    console.log(`✅ Grand Total Summary loaded: ${count} total system records`);
+
+                    return {
+                        totalECL,
+                        stage1ECL: stage1,
+                        stage2ECL: stage2,
+                        stage3ECL: stage3,
+                        stage1Count,
+                        stage2Count,
+                        stage3Count,
+                        totalPortfolio,
+                        totalExposure: totalPortfolio,
+                        totalAccounts: count,
+                        activeAccounts: count,
+                        eclRate: totalPortfolio > 0 ? (totalECL / totalPortfolio) * 100 : 0,
+                        impairedRatio: totalPortfolio > 0 ? (stage3 / totalPortfolio) : 0,
+                        coverageRatio: totalPortfolio > 0 ? (totalECL / totalPortfolio) : 0,
+                        lastUpdated: 'Cumulative Grand Total (All Periods)',
+                        currency: 'IDR',
+                        isFallback: false
+                    };
+                }
+            } else if (prcDate) {
                 // Aggregrate summary for the latest process date
                 const result = await legacyDb
                     .select({
@@ -33,7 +161,7 @@ export class Ifrs9CalculationsService {
                     .where(sql`date(${frs9ImpCaResultH.prcDate}) = ${prcDate}`);
 
                 const row = result[0];
-                
+
                 if (row && Number(row.count) > 0) {
                     const totalECL = Number(row.totalECL || 0);
                     const totalPortfolio = Number(row.totalPortfolio || 0);
@@ -53,7 +181,7 @@ export class Ifrs9CalculationsService {
                     const stage1 = Number(stages.find(s => s.stage === 1)?.ecl || 0);
                     const stage2 = Number(stages.find(s => s.stage === 2)?.ecl || 0);
                     const stage3 = Number(stages.find(s => s.stage === 3)?.ecl || 0);
-                    
+
                     const stage1Count = Number(stages.find(s => s.stage === 1)?.count || 0);
                     const stage2Count = Number(stages.find(s => s.stage === 2)?.count || 0);
                     const stage3Count = Number(stages.find(s => s.stage === 3)?.count || 0);
@@ -84,7 +212,7 @@ export class Ifrs9CalculationsService {
 
             // 2. FALLBACK: No calculation results found, try to get basic metrics from Master Account
             console.log('⚠️ No calculation results found, trying fallback to Master Account...');
-            
+
             let masterDate = requestedDate;
 
             if (!masterDate) {
@@ -102,7 +230,7 @@ export class Ifrs9CalculationsService {
                     })
                     .from(frs9MasterAccount)
                     .where(sql`date(${frs9MasterAccount.prcDate}) = ${masterDate}`);
-                
+
                 const row = masterSummary[0];
                 const totalExposure = Number(row?.totalExposure || 0);
                 const count = Number(row?.count || 0);
@@ -157,12 +285,8 @@ export class Ifrs9CalculationsService {
             // Using Repository instead of direct DB access to ensure schema consistency
             const executions = await JobsRepository.findExecutions(tenantId, 10);
 
-            // Filter only IFRS9_CALCULATION jobs
-            // Improved logic: check both the execution jobType and the definition jobType
-            const filtered = executions.filter(e => 
-                e.jobType === 'IFRS9_CALCULATION' || 
-                e.definition?.jobType === 'IFRS9_CALCULATION'
-            );
+            // Include legacy IFRS9_CALCULATION jobs and the new SQL_SP preview-sequence jobs.
+            const filtered = executions.filter((e: any) => this.isIfrs9CalculationExecution(e));
 
             return {
                 batches: filtered.map(e => ({
@@ -182,115 +306,150 @@ export class Ifrs9CalculationsService {
 
     async runCalculation(tenantId: string, config: any) {
         try {
-            console.log(`🚀 Triggering IFRS9 calculation for tenant ${tenantId} on ${config.processDate}`);
-            
-            // 1. Use Repository to find the Job Definition
-            console.log(`📡 Fetching job definitions for tenant: ${tenantId}...`);
+            const processDate = config.processDate || new Date().toISOString().split('T')[0];
+            console.log(`🚀 Queueing IFRS9 calculation (SP) for tenant ${tenantId} on ${processDate}`);
+
+            // 1. Resolve ECL model header for SP argument.
+            const configHeader = await this.resolveConfigHeader(config);
+
+            // 2. Resolve or create SQL_SP definition bound to SP_FRS9_PREVIEW_SEQUENCE.
             const allDefs = await JobsRepository.findAllDefinitions(tenantId);
-            console.log(`📊 Found ${allDefs.length} job definitions.`);
-            
-            let calculationJob = allDefs.find(d => d.jobType === 'IFRS9_CALCULATION');
+            let calculationJob = allDefs.find((definition: any) => (
+                String(definition.jobType || '').toUpperCase() === 'SQL_SP'
+                && this.isIfrs9PreviewSqlSpParameters(definition.defaultParameters)
+            ));
 
             if (!calculationJob) {
-                console.log('📝 IFRS9_CALCULATION job definition not found, creating a default one...');
-                calculationJob = await JobsRepository.createDefinition({
-                    id: crypto.randomUUID(),
-                    tenantId: tenantId as any,
-                    name: 'IFRS9 Impairment Sequence',
-                    description: 'Standard IFRS9 ECL Calculation',
-                    jobType: 'IFRS9_CALCULATION',
-                    isEnabled: true,
-                });
-                console.log('✅ Created default job definition:', calculationJob.id);
+                const legacyDefinition = allDefs.find((definition: any) => (
+                    String(definition.jobType || '').toUpperCase() === 'IFRS9_CALCULATION'
+                ));
+
+                if (legacyDefinition) {
+                    calculationJob = await JobsRepository.updateDefinition(
+                        legacyDefinition.id,
+                        {
+                            name: Ifrs9CalculationsService.IFRS9_SQL_SP_JOB_NAME,
+                            description: 'IFRS9 calculation execution using SP_FRS9_PREVIEW_SEQUENCE',
+                            jobType: 'SQL_SP',
+                            isEnabled: true,
+                            defaultParameters: this.buildIfrs9SqlSpDefaultParameters(),
+                            priority: 'HIGH',
+                            timeout: 3600,
+                            maxRetries: 0,
+                        } as any,
+                        tenantId,
+                    );
+                } else {
+                    calculationJob = await JobsRepository.createDefinition({
+                        id: crypto.randomUUID(),
+                        tenantId: tenantId as any,
+                        name: Ifrs9CalculationsService.IFRS9_SQL_SP_JOB_NAME,
+                        description: 'IFRS9 calculation execution using SP_FRS9_PREVIEW_SEQUENCE',
+                        jobType: 'SQL_SP',
+                        isEnabled: true,
+                        defaultParameters: this.buildIfrs9SqlSpDefaultParameters(),
+                        priority: 'HIGH',
+                        timeout: 3600,
+                        maxRetries: 0,
+                    } as any);
+                }
             }
 
-            // 2. Use Repository to create execution record (Start as RUNNING)
+            if (!calculationJob?.id) {
+                throw new Error('Unable to resolve IFRS9 SQL_SP job definition');
+            }
+
+            const targetDb = getDatabase(tenantId);
+            const [activeExecution] = await targetDb
+                .select({
+                    id: jobExecutions.id,
+                    startTime: jobExecutions.startTime,
+                })
+                .from(jobExecutions)
+                .where(and(
+                    eq(jobExecutions.jobDefinitionId, calculationJob.id),
+                    sql`${jobExecutions.endTime} is null and lower(${jobExecutions.status}) in ('pending', 'waiting', 'queued', 'active', 'running', 'pending_approval')`,
+                ))
+                .orderBy(desc(jobExecutions.startTime))
+                .limit(1);
+
+            if (activeExecution) {
+                return {
+                    success: false,
+                    status: 'CONFLICT',
+                    message: 'IFRS9 calculation is already running or queued.',
+                    activeExecutionId: activeExecution.id,
+                    startTime: activeExecution.startTime ? new Date(activeExecution.startTime).toISOString() : null,
+                };
+            }
+
+            const previewData = config.previewData ?? {
+                segmentIds: config.segmentIds ?? [],
+                calculationType: config.calculationType ?? null,
+                recalculate: Boolean(config.recalculate),
+                scenarios: config.scenarios ?? [],
+            };
+
+            const executionParameters = {
+                ...(calculationJob.defaultParameters || this.buildIfrs9SqlSpDefaultParameters()),
+                parameters: [configHeader, previewData, processDate],
+                processDate,
+                configHeader,
+                source: 'ifrs9-calculations',
+            };
+
+            // 3. Create execution row before queueing to avoid race with worker events.
             const executionId = crypto.randomUUID();
-            console.log(`📝 Creating execution record: ${executionId} for job: ${calculationJob.id}...`);
-            const execution = await JobsRepository.createExecution({
+            await JobsRepository.createExecution({
                 id: executionId,
                 jobDefinitionId: calculationJob.id,
                 tenantId: tenantId as any,
-                jobName: calculationJob.name,
-                jobType: calculationJob.jobType,
-                status: 'RUNNING',
+                jobName: calculationJob.name || Ifrs9CalculationsService.IFRS9_SQL_SP_JOB_NAME,
+                jobType: 'SQL_SP',
+                status: 'pending',
+                progress: 0,
+                parameters: executionParameters as any,
                 startTime: new Date(),
-                parameters: config,
-            });
-            console.log('✅ Created execution record.');
+                approvalStatus: 'not_required',
+            } as any);
 
-            // 3. --- MOCK CALCULATION ENGINE START ---
-            // In a real system, this would be an asyn worker.
-            // For this implementation, we run it inline to provide immediate dashboard results.
-            const processDate = config.processDate || new Date().toISOString().split('T')[0];
-            
-            console.log(`🔍 Mocking ECL results for date: ${processDate}...`);
-
-            // Clear existing results for this date to avoid duplicates
-            await legacyDb.delete(frs9ImpCaResultH).where(sql`date(${frs9ImpCaResultH.prcDate}) = ${processDate}`);
-
-            // Fetch source data from Master Account
-            const sourceData = await legacyDb
-                .select()
-                .from(frs9MasterAccount)
-                .where(sql`date(${frs9MasterAccount.prcDate}) = ${processDate}`)
-                .limit(1000); // Process a representative sample
-
-            if (sourceData.length > 0) {
-                console.log(`📊 Found ${sourceData.length} source records. Calculating ECL...`);
-                
-                // Perform Simple Mock ECL Calculation
-                const results = sourceData.map(record => {
-                    const outstanding = Number(record.outstanding || 0);
-                    // Mock Stage Logic: 80% Stage 1, 15% Stage 2, 5% Stage 3
-                    const rand = Math.random();
-                    let stage = 1;
-                    let eclRate = 0.01; // Stage 1: 1%
-                    
-                    if (rand > 0.95) {
-                        stage = 3;
-                        eclRate = 0.45; // Stage 3: 45%
-                    } else if (rand > 0.80) {
-                        stage = 2;
-                        eclRate = 0.12; // Stage 2: 12%
-                    }
-
-                    const eclAmount = outstanding * eclRate;
-
-                    return {
-                        prcDate: record.prcDate,
-                        accountId: record.pkid, // Use pkid as ID
-                        facilityNumber: record.accountNumber,
-                        cifNumber: record.cifNumber,
-                        segmentId: 1, // Default segment
-                        stage: stage,
-                        currency: record.currency || 'IDR',
-                        outstanding: record.outstanding,
-                        eclAmount: eclAmount.toString(),
-                        eclFinal: eclAmount.toString(),
-                        bucketGroup: record.bucketId?.toString() || 'Standard',
-                        internalRatingCode: record.internalRatingCode || 'B',
-                    };
+            // 4. Enqueue into Bull; worker executes SQL_SP via JobExecutorService.
+            try {
+                await addJob('SQL_SP', {
+                    definitionId: calculationJob.id,
+                    tenantId,
+                    parameters: executionParameters,
+                }, {
+                    jobId: executionId,
+                    priority: calculationJob.priority === 'CRITICAL' ? 0 : calculationJob.priority === 'HIGH' ? 1 : 5,
+                    attempts: (calculationJob.maxRetries || 0) + 1,
+                    timeout: (calculationJob.timeout || 3600) * 1000,
                 });
+            } catch (queueError: any) {
+                const queueErrorMessage = queueError?.message || 'Failed to enqueue job';
+                await JobsRepository.updateExecution(executionId, {
+                    status: 'failed',
+                    error: `Queue enqueue failed: ${queueErrorMessage}`,
+                    endTime: new Date(),
+                } as any, tenantId);
 
-                // Batch insert into results table
-                await legacyDb.insert(frs9ImpCaResultH).values(results as any);
-                console.log(`✅ Inserted ${results.length} calculation results into frs9ImpCaResultH`);
-            } else {
-                console.warn(`⚠️ No source data found in frs9MasterAccount for ${processDate}`);
+                return {
+                    success: false,
+                    status: 'FAILED',
+                    message: `Queue enqueue failed: ${queueErrorMessage}`,
+                    jobId: executionId,
+                    executionId,
+                };
             }
-
-            // 4. Update Execution Record to COMPLETED
-            await JobsRepository.updateExecution(executionId, {
-                status: 'COMPLETED',
-                endTime: new Date(),
-            });
-            // --- MOCK CALCULATION ENGINE END ---
 
             return {
                 success: true,
-                message: 'Calculation completed successfully',
-                jobId: executionId
+                status: 'QUEUED',
+                message: 'Calculation queued using SP_FRS9_PREVIEW_SEQUENCE',
+                jobId: executionId,
+                executionId,
+                processDate,
+                configHeader,
             };
         } catch (error: any) {
             console.error('Error triggering calculation:', error);
@@ -304,7 +463,7 @@ export class Ifrs9CalculationsService {
     async getPortfolioTrend(tenantId: string, endDate?: string) {
         try {
             const dateFilter = endDate ? eq(frs9ImpCaResultH.prcDate, endDate) : undefined;
-            
+
             // 1. Try Result Table first - Get ECL by stage over time
             const trendQuery = legacyDb
                 .select({
@@ -317,7 +476,7 @@ export class Ifrs9CalculationsService {
                 })
                 .from(frs9ImpCaResultH);
 
-            if (endDate) {
+            if (endDate && endDate !== 'all') {
                 trendQuery.where(sql`date(${frs9ImpCaResultH.prcDate}) <= ${endDate}`);
             }
 
@@ -336,14 +495,21 @@ export class Ifrs9CalculationsService {
                     })
                     .from(frs9MasterAccount);
 
-                if (endDate) {
+                if (endDate && endDate !== 'all') {
                     masterTrendQuery.where(sql`date(${frs9MasterAccount.prcDate}) <= ${endDate}`);
                 }
 
-                trend = await masterTrendQuery
+                trend = (await masterTrendQuery
                     .groupBy(frs9MasterAccount.prcDate)
                     .orderBy(desc(frs9MasterAccount.prcDate))
-                    .limit(12);
+                    .limit(12)).map(t => ({
+                        date: t.date,
+                        stage1: 0,
+                        stage2: 0,
+                        stage3: 0,
+                        totalECL: 0,
+                        totalPortfolio: Number(t.value || 0)
+                    })) as any;
             }
 
             if (!trend || trend.length === 0) {
@@ -388,7 +554,7 @@ export class Ifrs9CalculationsService {
             return {
                 data: results.map((r) => ({
                     accountId: r.accountId,
-                    accountNumber: r.accountNumber || r.facilityNumber || r.accountId?.toString(),
+                    accountNumber: r.facilityNumber || r.accountId?.toString(),
                     facilityNumber: r.facilityNumber,
                     cifNumber: r.cifNumber,
                     outstanding: Number(r.outstanding || 0),

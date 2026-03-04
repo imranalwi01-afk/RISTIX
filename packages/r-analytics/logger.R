@@ -79,6 +79,7 @@ ra_log <- function(level, message, context = NULL, service = NULL) {
 
   stream <- if (level %in% c("warn", "error")) stderr() else stdout()
   cat(line, "\n", file = stream, sep = "")
+  flush(stream)
   invisible(NULL)
 }
 

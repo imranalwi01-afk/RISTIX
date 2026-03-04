@@ -1,0 +1,39 @@
+[**Frontend API Reference v1.0.0**](../../../README.md)
+
+***
+
+# Function: useApiClient()
+
+> **useApiClient**(): `object`
+
+Defined in: [hooks/useApiClient.ts:5](https://github.com/ifrspro/ifrs9-iaf/blob/2301badfc5ea65510b50f0438f532e45a5ab486b/packages/frontend/src/hooks/useApiClient.ts#L5)
+
+## Returns
+
+`object`
+
+### apiCall()
+
+> **apiCall**: (`url`, `options?`) => `Promise`\<`any`\>
+
+#### Parameters
+
+##### url
+
+`string`
+
+##### options?
+
+`RequestInit`
+
+#### Returns
+
+`Promise`\<`any`\>
+
+### error
+
+> **error**: `string` \| `null`
+
+### loading
+
+> **loading**: `boolean`

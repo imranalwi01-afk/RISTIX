@@ -4,7 +4,7 @@
 
 # Interface: LifetimeLGDParams
 
-Defined in: [src/services/ifrs9-reports.service.ts:28](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/ifrs9-reports.service.ts#L28)
+Defined in: [src/services/ifrs9-reports.service.ts:28](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/ifrs9-reports.service.ts#L28)
 
 ## Properties
 
@@ -12,7 +12,7 @@ Defined in: [src/services/ifrs9-reports.service.ts:28](https://github.com/ifrspr
 
 > `optional` **lgd\_config\_id**: `number`
 
-Defined in: [src/services/ifrs9-reports.service.ts:30](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/ifrs9-reports.service.ts#L30)
+Defined in: [src/services/ifrs9-reports.service.ts:30](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/ifrs9-reports.service.ts#L30)
 
 ***
 
@@ -20,7 +20,7 @@ Defined in: [src/services/ifrs9-reports.service.ts:30](https://github.com/ifrspr
 
 > `optional` **lgd\_method**: `number`
 
-Defined in: [src/services/ifrs9-reports.service.ts:31](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/ifrs9-reports.service.ts#L31)
+Defined in: [src/services/ifrs9-reports.service.ts:31](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/ifrs9-reports.service.ts#L31)
 
 ***
 
@@ -28,7 +28,7 @@ Defined in: [src/services/ifrs9-reports.service.ts:31](https://github.com/ifrspr
 
 > `optional` **model\_id**: `number`
 
-Defined in: [src/services/ifrs9-reports.service.ts:32](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/ifrs9-reports.service.ts#L32)
+Defined in: [src/services/ifrs9-reports.service.ts:32](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/ifrs9-reports.service.ts#L32)
 
 ***
 
@@ -36,4 +36,4 @@ Defined in: [src/services/ifrs9-reports.service.ts:32](https://github.com/ifrspr
 
 > **prc\_date**: `string`
 
-Defined in: [src/services/ifrs9-reports.service.ts:29](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/ifrs9-reports.service.ts#L29)
+Defined in: [src/services/ifrs9-reports.service.ts:29](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/ifrs9-reports.service.ts#L29)

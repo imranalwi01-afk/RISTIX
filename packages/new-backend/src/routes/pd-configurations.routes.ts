@@ -18,9 +18,9 @@ const PdConfigSchema = z.object({
     id: z.number(),
     model_name: z.string().nullable(),
     population_segment_id: z.number().nullable(),
-    selected_method: z.number().nullable(),
+    selected_method: z.union([z.string(), z.number()]).nullable(),
     migration_interval: z.number().nullable(),
-    population_type: z.number().nullable(),
+    population_type: z.union([z.string(), z.number()]).nullable(),
     historical_month: z.number().nullable(),
     first_historical_date: z.string().nullable(),
     multiplication: z.string().nullable(),
@@ -38,19 +38,28 @@ const PdConfigSchema = z.object({
 const CreatePdConfigSchema = z.object({
     model_name: z.string().min(1).max(250),
     population_segment_id: z.union([z.number(), z.string().transform(val => parseInt(val))]),
-    selected_method: z.number().int(),
-    migration_interval: z.number().int(),
-    population_type: z.number().int(),
-    historical_month: z.number().int(),
-    first_historical_date: z.string().optional(),
-    multiplication: z.number().int().optional(),
+    selected_method: z.union([z.string(), z.number()]),
+    migration_interval: z.number().int().nullable().optional(),
+    population_type: z.union([z.string(), z.number()]).nullable().optional(),
+    historical_month: z.number().int().nullable().optional(),
+    first_historical_date: z.string().nullable().optional(),
+    multiplication: z.number().int().nullable().optional(),
     fl_flag: z.boolean().default(false),
+    fl_scalar_id: z.number().int().nullable().optional(),
     ia_flag: z.boolean().default(false),
     bucket: z.string().max(30).optional(),
     is_active: z.boolean().default(true)
+}).superRefine((data, ctx) => {
+    if (data.fl_flag && data.fl_scalar_id == null) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "FL Scalar is required when FL Flag is true",
+            path: ["fl_scalar_id"]
+        });
+    }
 }).openapi('CreatePdConfigInput')
 
-const UpdatePdConfigSchema = CreatePdConfigSchema.partial().openapi('UpdatePdConfigInput')
+const UpdatePdConfigSchema = CreatePdConfigSchema.openapi('UpdatePdConfigInput')
 
 const PdListResponse = z.object({
     success: z.boolean(),
@@ -64,7 +73,7 @@ const PdResponse = z.object({
 
 const MetadataResponse = z.object({
     success: z.boolean(),
-    data: z.array(z.object({ value: z.number(), label: z.string() }))
+    data: z.array(z.object({ value: z.union([z.string(), z.number()]), label: z.string() }))
 }).openapi('MetadataResponse')
 
 const ErrorResponse = z.object({

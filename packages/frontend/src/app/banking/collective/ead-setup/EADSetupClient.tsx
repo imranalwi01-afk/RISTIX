@@ -25,6 +25,7 @@ import {
   Select,
   FormControlLabel,
   Switch,
+  FormHelperText,
   Checkbox,
   CircularProgress
 } from '@mui/material';
@@ -43,7 +44,7 @@ import { bankingAPI } from '@/services/api';
 import { EADConfiguration } from '../../../../services/api/ead-configurations.api';
 import { FLScalarWithDetails } from '../../../../services/api/fl-scalar.api';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
-import { PopulationSegment } from '../../../../services/api/population-segments.api';
+import { PopulationSegment, filterPopulationSegmentsByType } from '../../../../services/api/population-segments.api';
 import { usePermission } from '@/hooks/usePermission';
 
 // Safe DataGrid wrapper to prevent bundling issues
@@ -102,15 +103,16 @@ export default function EADSetupPage() {
         api.banking.eadConfigurations.getAll(),
         api.banking.eadConfigurations.getMethods(),
         api.banking.eadConfigurations.getCalcMethods(),
-        api.banking.populationSegments.getAll({ active_flag: true })
+        api.banking.populationSegments.getAll({ active_flag: true, segment_type: 'EAD' })
       ]);
 
       setMethodOptions(methodsRes);
       setCalcMethodOptions(calcMethodsRes);
-      setPopulationSegments(segmentsRes);
+      const eadSegments = filterPopulationSegmentsByType(segmentsRes, 'EAD');
+      setPopulationSegments(eadSegments);
 
       const enrichedConfigs = configsRes.map(config => {
-        const segment = segmentsRes.find(s => String(s.id) === String(config.segment_id));
+        const segment = eadSegments.find(s => String(s.id) === String(config.segment_id));
         return {
           ...config,
           segment_name: segment?.segment_name || String(config.segment_id || 'Unknown'),
@@ -118,7 +120,7 @@ export default function EADSetupPage() {
       });
 
       setEadConfigs(enrichedConfigs);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Failed to load EAD data:', err);
       setError('Failed to load EAD configurations.');
     } finally {
@@ -198,7 +200,7 @@ export default function EADSetupPage() {
       setIsDialogOpen(false);
       setFormData({});
       setSelectedConfig(null);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Save failed:', err);
       setError('Failed to save configuration.');
     } finally {
@@ -222,7 +224,7 @@ export default function EADSetupPage() {
       }
       await loadData();
       await loadPendingApprovals();
-    } catch (err: any) {
+    } catch (err) {
       console.error('Delete failed:', err);
       setError('Failed to delete configuration.');
     } finally {
@@ -358,6 +360,9 @@ export default function EADSetupPage() {
                   <MenuItem key={s.id} value={s.id}>{s.segment_name}</MenuItem>
                 ))}
               </Select>
+              <FormHelperText error={!!formErrors.segment_id}>
+                {formErrors.segment_id || 'Source: Population Segments table'}
+              </FormHelperText>
             </FormControl>
 
             <FormControl fullWidth error={!!formErrors.ead_method}>
@@ -367,8 +372,11 @@ export default function EADSetupPage() {
                 label="EAD Method"
                 onChange={(e) => setFormData({ ...formData, ead_method: e.target.value })}
               >
-                {methodOptions.map(m => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
+                {methodOptions.map((m, idx) => <MenuItem key={`${m.value}-${idx}`} value={m.value}>{m.label}</MenuItem>)}
               </Select>
+              <FormHelperText error={!!formErrors.ead_method}>
+                {formErrors.ead_method || 'Source: Business Setting B0020'}
+              </FormHelperText>
             </FormControl>
 
             <FormControl fullWidth error={!!formErrors.calc_method}>
@@ -378,8 +386,11 @@ export default function EADSetupPage() {
                 label="Calc Method"
                 onChange={(e) => setFormData({ ...formData, calc_method: e.target.value })}
               >
-                {calcMethodOptions.map(m => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
+                {calcMethodOptions.map((m, idx) => <MenuItem key={`${m.value}-${idx}`} value={m.value}>{m.label}</MenuItem>)}
               </Select>
+              <FormHelperText error={!!formErrors.calc_method}>
+                {formErrors.calc_method || 'Source: Business Setting B0021'}
+              </FormHelperText>
             </FormControl>
 
             <Box sx={{ gridColumn: 'span 2' }}>

@@ -9,10 +9,14 @@ export class Ifrs9CalculationsController {
             console.warn('⚠️ No tenantId provided in context, falling back to default "iaf"');
             tenantId = 'iaf';
         }
-        
+
         // Check if it's already a UUID
         const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
         if (uuidRegex.test(tenantId)) return tenantId;
+
+        if (tenantId === 'iaf') {
+            return 'a24af6d2-3032-4d53-ae82-9cfa84f97a20';
+        }
 
         // Try to resolve slug to UUID
         try {

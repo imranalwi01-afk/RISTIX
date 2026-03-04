@@ -65,7 +65,7 @@ export const getUserById = (userId: string, tenantId?: string) =>
         Effect.flatMap((user) =>
             user
                 ? Effect.succeed(user)
-                : Effect.fail(new NotFoundError({ resource: 'User', id: userId }))
+                : Effect.fail(new NotFoundError({ message: 'User not found', resource: 'User', id: userId }))
         )
     )
 

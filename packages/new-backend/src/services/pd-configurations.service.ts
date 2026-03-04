@@ -1,5 +1,6 @@
 import { Effect, pipe } from 'effect'
 import { PdConfigurationsRepository } from '../repositories/pd-configurations.repository'
+import { ParametersRepository } from '../repositories/parameters.repository'
 import { NotFoundError } from '../lib/errors'
 import { frs9ImpCaPdConfig } from '../db/schema'
 
@@ -35,7 +36,7 @@ export const PdConfigurationsService = {
             Effect.flatMap(config =>
                 config
                     ? Effect.succeed(transformPdConfig(config))
-                    : Effect.fail(new NotFoundError({ resource: 'PD Configuration', id: String(id) }))
+                    : Effect.fail(new NotFoundError({ message: 'PD Configuration not found', resource: 'PD Configuration', id: String(id) }))
             )
         )
     },
@@ -52,9 +53,9 @@ export const PdConfigurationsService = {
         const payload = {
             pdModelName: data.model_name,
             segmentId: data.population_segment_id,
-            pdMethod: String(data.selected_method),
+            pdMethod: data.selected_method != null ? String(data.selected_method) : null,
             interval: data.migration_interval,
-            populationType: String(data.population_type),
+            populationType: data.population_type != null ? String(data.population_type) : null,
             observationPeriod: data.historical_month,
             observationStartDate: data.first_historical_date ? new Date(data.first_historical_date).toISOString() : null,
             multiplication: data.multiplication,
@@ -91,17 +92,17 @@ export const PdConfigurationsService = {
             updatedhost: 'localhost'
         }
 
-        if (data.model_name) updateData.pdModelName = data.model_name
-        if (data.population_segment_id) updateData.segmentId = data.population_segment_id
-        if (data.selected_method) updateData.pdMethod = String(data.selected_method)
-        if (data.migration_interval) updateData.interval = data.migration_interval
-        if (data.population_type) updateData.populationType = String(data.population_type)
-        if (data.historical_month) updateData.observationPeriod = data.historical_month
-        if (data.first_historical_date) updateData.observationStartDate = new Date(data.first_historical_date).toISOString()
+        if (data.model_name !== undefined) updateData.pdModelName = data.model_name
+        if (data.population_segment_id !== undefined) updateData.segmentId = data.population_segment_id
+        if (data.selected_method !== undefined) updateData.pdMethod = data.selected_method != null ? String(data.selected_method) : null
+        if (data.migration_interval !== undefined) updateData.interval = data.migration_interval
+        if (data.population_type !== undefined) updateData.populationType = data.population_type != null ? String(data.population_type) : null
+        if (data.historical_month !== undefined) updateData.observationPeriod = data.historical_month
+        if (data.first_historical_date !== undefined) updateData.observationStartDate = data.first_historical_date ? new Date(data.first_historical_date).toISOString() : null
         if (data.multiplication !== undefined) updateData.multiplication = data.multiplication
         if (data.fl_flag !== undefined) updateData.flFlag = data.fl_flag
         if (data.ia_flag !== undefined) updateData.iaFlag = data.ia_flag
-        if (data.bucket) updateData.bucketGroup = data.bucket
+        if (data.bucket !== undefined) updateData.bucketGroup = data.bucket
         if (data.is_active !== undefined) updateData.activeFlag = data.is_active
 
         return pipe(
@@ -109,7 +110,7 @@ export const PdConfigurationsService = {
             Effect.flatMap(updated =>
                 updated
                     ? Effect.succeed(transformPdConfig(updated))
-                    : Effect.fail(new NotFoundError({ resource: 'PD Configuration', id: String(id) }))
+                    : Effect.fail(new NotFoundError({ message: 'PD Configuration not found', resource: 'PD Configuration', id: String(id) }))
             )
         )
     },
@@ -129,19 +130,42 @@ export const PdConfigurationsService = {
 
     // Metadata
 
-    /** Get available PD methods options. */
+    /**
+     * Get available PD method options.
+     * Dynamically sourced from Business Setting B0018 in FRS9_PARAM_COMMOND.
+     * Per tech spec: PD_METHOD = Combo Box (Business Setting B0018)
+     */
     getMethods: () => {
-        return Effect.succeed([
-            { value: 1, label: 'NOA Migration' },
-            { value: 3, label: 'Proxy PD' },
-        ])
+        return pipe(
+            ParametersRepository.findDetailByCode('B0018'),
+            Effect.map(details =>
+                details
+                    .filter(d => d.value1 !== null && d.value1 !== '')
+                    .map(d => ({
+                        value: d.value1!,
+                        label: d.value2 ?? d.value1!,
+                    }))
+            )
+        )
     },
 
-    /** Get available population types options. */
+    /**
+     * Get available PD population type options.
+     * Dynamically sourced from Business Setting B0019 in FRS9_PARAM_COMMOND.
+     * Per tech spec: POPULATION_TYPE = Combo Box (Business Setting B0019)
+     */
     getPopulationTypes: () => {
-        return Effect.succeed([
-            { value: 2, label: 'Window Moving Period' },
-        ])
+        return pipe(
+            ParametersRepository.findDetailByCode('B0019'),
+            Effect.map(details =>
+                details
+                    .filter(d => d.value1 !== null && d.value1 !== '')
+                    .map(d => ({
+                        value: d.value1!,
+                        label: d.value2 ?? d.value1!,
+                    }))
+            )
+        )
     }
 }
 
@@ -150,9 +174,9 @@ const transformPdConfig = (config: typeof frs9ImpCaPdConfig.$inferSelect) => ({
     id: config.pkid,
     model_name: config.pdModelName,
     population_segment_id: config.segmentId,
-    selected_method: parseInt(config.pdMethod || '0'),
+    selected_method: config.pdMethod,
     migration_interval: config.interval,
-    population_type: parseInt(config.populationType || '0'),
+    population_type: config.populationType,
     historical_month: config.observationPeriod,
     first_historical_date: config.observationStartDate ? config.observationStartDate.split('T')[0] : null,
     multiplication: config.multiplication,

@@ -3,6 +3,9 @@ name: Docker Develop Publish
 on:
   push:
     branches: [ 'develop' ]
+    paths:
+      - 'packages/frontend/**'
+      - 'packages/new-backend/**'
   workflow_dispatch:
 
 env:
@@ -132,70 +135,12 @@ jobs:
           cache-to: type=gha,mode=max
 
   # ==============================================================================
-  # R ANALYTICS BUILD JOB
-  # ==============================================================================
-  analytics:
-    runs-on: ubuntu-latest
-    outputs:
-      changed: ${{ steps.filter.outputs.analytics }}
-    permissions:
-      contents: read
-      packages: write
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Check for changes in Analytics
-        id: filter
-        uses: dorny/paths-filter@v3
-        with:
-          filters: |
-            analytics:
-              - 'packages/r-analytics/**'
-
-      - name: Login to Container Registry
-        if: steps.filter.outputs.analytics == 'true' || github.event_name == 'workflow_dispatch'
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract Metadata (tags, labels)
-        if: steps.filter.outputs.analytics == 'true' || github.event_name == 'workflow_dispatch'
-        id: meta-analytics
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/r-analytics
-          tags: |
-            type=raw,value=develop
-            type=sha,format=long
-
-      - name: Set up Docker Buildx
-        if: steps.filter.outputs.analytics == 'true' || github.event_name == 'workflow_dispatch'
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build and Push (R Analytics)
-        if: steps.filter.outputs.analytics == 'true' || github.event_name == 'workflow_dispatch'
-        uses: docker/build-push-action@v5
-        with:
-          context: packages/r-analytics
-          file: packages/r-analytics/Dockerfile
-          push: true
-          tags: ${{ steps.meta-analytics.outputs.tags }}
-          labels: ${{ steps.meta-analytics.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-
-  # ==============================================================================
   # DEPLOY TO DEVELOPMENT (SELF-HOSTED WINDOWS RUNNER)
   # ==============================================================================
   deploy:
     name: Deploy to Development Server
     runs-on: [self-hosted, X64, Windows, badak]
-    needs: [frontend, backend, analytics]
+    needs: [frontend, backend]
 
     permissions:
       contents: read
@@ -215,10 +160,3 @@ jobs:
           cd C:\opt\ifrspro
           docker compose --profile app pull
           docker compose --profile app up -d
-
-      - name: Deploy analytics profile
-        if: needs.analytics.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
-        run: |
-          cd C:\opt\ifrspro
-          docker compose --profile analytics pull
-          docker compose --profile analytics up -d --force-recreate r-analytics

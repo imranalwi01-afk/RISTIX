@@ -187,6 +187,6 @@ export const withNotFound = <T>(
             Effect.flatMap((item) =>
                 item
                     ? Effect.succeed(item)
-                    : Effect.fail(new NotFoundError({ resource, id }))
+                    : Effect.fail(new NotFoundError({ message: `${resource} not found`, resource, id }))
             )
         )

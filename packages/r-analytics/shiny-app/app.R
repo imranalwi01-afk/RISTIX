@@ -6,18 +6,25 @@
 # ✅ FIXED: All UI modules properly imported and working
 # =============================================================================
 
+# Guard against non-semver values (e.g. "latest") that break compareVersion() in Shiny startup.
+shiny_server_version <- Sys.getenv("SHINY_SERVER_VERSION", "")
+if (nzchar(shiny_server_version) && !grepl("^[0-9]+(\\.[0-9]+)*$", shiny_server_version)) {
+  Sys.unsetenv("SHINY_SERVER_VERSION")
+}
+
 # Note: global.R is automatically loaded by Shiny
 # Do NOT manually load it here to avoid duplicate execution
 # Database connection and configuration data are loaded from global.R
-# This sets up: con, PD, LGD, database_setup
+# This sets up: con, PD, LGD (directly at top level, same as app34.R)
 
 # Load additional libraries (only ones not already loaded in global.R)
-library(shinythemes)
-library(openxlsx)
-library(combinat)
-library(nortest)
-library(shinyWidgets)
-library(shinycssloaders)
+suppressPackageStartupMessages({
+  library(openxlsx)
+  library(combinat)
+  library(nortest)
+  library(shinyWidgets)
+  library(shinycssloaders)
+})
 
 # Note: Core packages (shiny, shinydashboard, DT, data.table, dplyr, etc.)
 # are already loaded in global.R with conflict resolution
@@ -80,12 +87,14 @@ source("modules/ui/home_ui.R")
 source("modules/ui/data_ui.R")
 source("modules/ui/model_ui.R")
 source("modules/ui/forecast_ui.R")
+source("modules/ui/forecast_manual_ui.R")
 source("modules/ui/pdafl_ui.R")
 
 # Load all server modules once
 source("modules/server/data_server.R")
 source("modules/server/model_server.R")
 source("modules/server/forecast_server.R")
+source("modules/server/forecast_manual_server.R")
 source("modules/server/pdafl_server.R")
 
 # =============================================================================
@@ -114,7 +123,7 @@ if (Sys.getenv("R_ANALYTICS_DEBUG_MODE", "false") == "true") {
 
 # Ensure all required packages are loaded before UI definition
 required_packages <- c("shiny", "shinydashboard", "DT", "plotly",
-                        "shinythemes", "shinyWidgets", "shinycssloaders",
+                        "shinyWidgets", "shinycssloaders",
                         "future", "future.apply")
 missing_packages <- required_packages[!sapply(required_packages, function(pkg) {
   exists(pkg) && is.function(get(pkg))
@@ -132,200 +141,104 @@ if (length(missing_packages) > 0) {
 # This prevents using shiny objects before they're loaded
 
 # =============================================================================
-# ✅ IAF CORPORATE BRANDING (PROFESSIONAL STYLING)
+# ✅ RISTIX.PRO CUSTOM HEADER CSS (from app34.R)
 # =============================================================================
 
-# Note: Reactive values will be initialized inside server function
+customHeader <- tags$head(
+  tags$style(HTML("
+    /* ===== HEADER & NAVBAR ===== */
+    .skin-blue .main-header .logo {
+      background-color: #1976D2 !important;
+      color: #ffffff !important;
+      border: none !important;
+      height: 50px !important;
+      line-height: 50px !important;
+    }
+    .skin-blue .main-header .logo:hover {
+      background-color: #1565C0 !important;
+    }
+    .skin-blue .main-header .navbar {
+      background-color: #1976D2 !important;
+      border: none !important;
+      margin-bottom: 0 !important;
+      min-height: 50px !important;
+      box-shadow: none !important;
+    }
+    .skin-blue .main-header {
+      max-height: 50px !important;
+      box-shadow: none !important;
+      padding-bottom: 0 !important;
+    }
+    .skin-blue .main-header .navbar .sidebar-toggle {
+      color: #ffffff !important;
+    }
+    .skin-blue .main-header .navbar .sidebar-toggle:hover {
+      background-color: #1565C0 !important;
+    }
+    .skin-blue .main-header .navbar .nav > li > a {
+      color: #ffffff !important;
+    }
+    .skin-blue .main-header .navbar .nav > li > a:hover,
+    .skin-blue .main-header .navbar .nav > li > a:active,
+    .skin-blue .main-header .navbar .nav > li > a:focus {
+      background-color: #1565C0 !important;
+      color: #ffffff !important;
+    }
+    .navbar-nav > li.active > a {
+      background-color: #1565C0 !important;
+      color: #ffffff !important;
+      font-weight: bold;
+      box-shadow: inset 0 -3px 0 #FFD54F !important;
+      border-bottom: none !important;
+    }
+    .box.box-primary { border-top-color: #1976D2; }
+    .btn-success { background-color: #28a745; border-color: #28a745; }
+    .content-wrapper { margin-top: 0px !important; padding-top: 10px !important; }
+    .box { border-radius: 6px; border-top: 0 !important; border: 1px solid #1976D2 !important; }
+    .box-header { background-color: #1976D2 !important; color: #ffffff !important; font-weight: bold; border-bottom: 1px solid #1976D2 !important; }
+    .box-header .box-title { color: #ffffff !important; font-size: 16px; }
+    .box.box-primary { border-top-color: #1976D2 !important; }
+    .box.box-primary > .box-header { background-color: #1976D2 !important; color: #ffffff !important; }
+    .box-body { background-color: #ffffff; }
+    .box-footer { border-top: 1px solid #1976D2 !important; }
+    html, body { background-color: #ffffff !important; height: 100%; }
+    .wrapper { background-color: #ffffff !important; min-height: 100vh !important; }
+    .content-wrapper, .right-side { background-color: #ffffff !important; min-height: 100vh !important; }
+  "))
+)
 
 # =============================================================================
-# ✅ WORKING UI - SINGLE-LINE HEADER WITH HORIZONTAL NAVIGATION TABS
+# ✅ WORKING UI - RISTIX.PRO DASHBOARD (matching app34.R)
 # =============================================================================
 
-ui <- navbarPage(
-  title = div(
-    span("I9-Model", style = "font-weight:bold;color:#ffffff;font-size:28px;margin-right: 15px; font-family: Arial, sans-serif;"),
-    span("IFRS9 Analytics", style = "font-weight:normal;color:#ffffff;font-size:20px;")
-  ),
+ui <- dashboardPage(
+  skin = "blue",
 
-  # IAF Corporate Branding
-  theme = shinythemes::shinytheme("flatly"),
-
-  # Custom styling and JavaScript for IAF branding
-  header = tags$head(
-    tags$style(HTML("
-      .navbar {
-        background-color: #0078BD !important;
-        border-bottom: 3px solid #2D4B92 !important;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      }
-
-      .navbar-default .navbar-brand {
-        color: white !important;
-        padding-top: 10px;
-        padding-bottom: 10px;
-      }
-
-      .navbar-default .navbar-nav > li > a {
-        color: white !important;
-        font-weight: 500;
-        transition: all 0.3s ease;
-      }
-
-      .navbar-default .navbar-nav > li > a:hover {
-        background-color: #2D4B92 !important;
-        color: white !important;
-      }
-
-      .navbar-default .navbar-nav > .active > a {
-        background-color: #2D4B92 !important;
-        color: white !important;
-      }
-
-      .tab-content {
-        padding: 20px;
-      }
-
-      .btn-primary {
-        background-color: #0078BD;
-        border-color: #0078BD;
-        font-weight: 500;
-      }
-
-      .btn-primary:hover {
-        background-color: #0056b3;
-        border-color: #0056b3;
-      }
-
-      .box.box-primary {
-        border-top-color: #0078BD;
-      }
-
-      .breadcrumb {
-        background-color: #f8f9fa;
-        padding: 10px;
-        margin-bottom: 20px;
-        border-radius: 4px;
-        border: 1px solid #dee2e6;
-      }
-
-      .breadcrumb > li + li:before {
-        content: \"/\";
-        padding: 0 5px;
-        color: #6c757d;
-      }
-
-      .breadcrumb .active {
-        color: #0078BD;
-        font-weight: 500;
-      }
-    ")),
-
-    # JavaScript for tab detection and breadcrumb updates
-    tags$script(HTML("
-      $(document).ready(function() {
-        // Function to detect current active tab
-        function detectCurrentTab() {
-          var activeTab = $('.navbar-nav .active a').attr('data-value');
-          if (!activeTab) {
-            // Fallback: check href patterns
-            var activeHref = $('.navbar-nav .active a').attr('href');
-            if (activeHref && activeHref.includes('tab-')) {
-              var tabMap = {
-                '#tab-': ['home', 1],
-                '#tab-': ['data', 2],
-                '#tab-': ['model', 3],
-                '#tab-': ['forecast', 4],
-                '#tab-': ['pdafl', 5]
-              };
-              // Extract tab number and map to tab name
-              var tabNumber = activeHref.match(/tab-\\d+/)[0].replace('tab-', '');
-              var tabNames = ['home', 'data', 'model', 'forecast', 'pdafl'];
-              activeTab = tabNames[parseInt(tabNumber) - 1] || 'home';
-            }
-          }
-
-          if (activeTab) {
-            Shiny.setInput('current_tab_from_js', activeTab);
-          }
-        }
-
-        // Initial detection
-        setTimeout(detectCurrentTab, 500);
-
-        // Monitor tab changes
-        $('.navbar-nav a').on('shown.bs.tab', function(e) {
-          var dataValue = $(e.target).attr('data-value');
-          Shiny.setInput('current_tab_from_js', dataValue);
-        });
-
-        // Periodic check as fallback
-        setInterval(detectCurrentTab, 1000);
-      });
-    "))
-  ),
-
-  # Horizontal Navigation Tabs as per Wireframe (with single icons)
-  tabPanel(
-    title = "Dashboard",
-    value = "home",
-    icon = icon("home"),
-    div(
-      div(style = "background-color: #f8f9fa; padding: 10px; margin-bottom: 20px; border-radius: 4px; border: 1px solid #dee2e6; font-size: 14px;",
-        tags$span(style = "color: #6c757d;", "🏠 IFRS9 Analytics / "),
-        tags$span(style = "color: #0078BD; font-weight: 500;", "Dashboard")
-      ),
-      home_ui()
+  # ===== TOP NAVBAR =====
+  dashboardHeader(
+    title = span("RISTIX.PRO", style = "font-weight:bold"),
+    tags$li(
+      class = "dropdown",
+      tags$ul(
+        class = "nav navbar-nav",
+        tags$li(tags$a(href = "#shiny-tab-home", `data-toggle` = "tab", "Dashboard")),
+        tags$li(tags$a(href = "#shiny-tab-input", `data-toggle` = "tab", "Data")),
+        tags$li(tags$a(href = "#shiny-tab-model", `data-toggle` = "tab", "Model")),
+        tags$li(tags$a(href = "#shiny-tab-forecast", `data-toggle` = "tab", "Forecast")),
+        tags$li(tags$a(href = "#shiny-tab-forecast_manual", `data-toggle` = "tab", "Forecast Manual")),
+        tags$li(tags$a(href = "#shiny-tab-pdafl", `data-toggle` = "tab", "PD & AFL"))
+      )
     )
   ),
-
-  tabPanel(
-    title = "Data",
-    value = "data",
-    icon = icon("upload"),
-    div(
-      div(style = "background-color: #f8f9fa; padding: 10px; margin-bottom: 20px; border-radius: 4px; border: 1px solid #dee2e6; font-size: 14px;",
-        tags$span(style = "color: #6c757d;", "📊 IFRS9 Analytics / "),
-        tags$span(style = "color: #0078BD; font-weight: 500;", "Data Management")
-      ),
-      data_ui()
-    )
-  ),
-
-  tabPanel(
-    title = "Model",
-    value = "model",
-    icon = icon("chart-line"),
-    div(
-      div(style = "background-color: #f8f9fa; padding: 10px; margin-bottom: 20px; border-radius: 4px; border: 1px solid #dee2e6; font-size: 14px;",
-        tags$span(style = "color: #6c757d;", "📈 IFRS9 Analytics / "),
-        tags$span(style = "color: #0078BD; font-weight: 500;", "Statistical Model")
-      ),
-      model_ui()
-    )
-  ),
-
-  tabPanel(
-    title = "Forecast",
-    value = "forecast",
-    icon = icon("chart-area"),
-    div(
-      div(style = "background-color: #f8f9fa; padding: 10px; margin-bottom: 20px; border-radius: 4px; border: 1px solid #dee2e6; font-size: 14px;",
-        tags$span(style = "color: #6c757d;", "📊 IFRS9 Analytics / "),
-        tags$span(style = "color: #0078BD; font-weight: 500;", "Forecasting")
-      ),
-      forecast_ui()
-    )
-  ),
-
-  tabPanel(
-    title = "PD & AFL",
-    value = "pdafl",
-    icon = icon("calculator"),
-    div(
-      div(style = "background-color: #f8f9fa; padding: 10px; margin-bottom: 20px; border-radius: 4px; border: 1px solid #dee2e6; font-size: 14px;",
-        tags$span(style = "color: #6c757d;", "🧮 IFRS9 Analytics / "),
-        tags$span(style = "color: #0078BD; font-weight: 500;", "PD & AFL Analysis")
-      ),
+  dashboardSidebar(disable = TRUE),
+  dashboardBody(
+    customHeader,
+    tabItems(
+      home_ui(),
+      data_ui(),
+      model_ui(),
+      forecast_ui(),
+      forecast_manual_ui(),
       pdafl_ui()
     )
   )
@@ -442,6 +355,9 @@ server <- function(input, output, session) {
 
   # PD-AFL server module - handles PD & AFL calculations
   pdafl_results <- pdafl_server(input, output, session, con, PD)
+
+  # Forecast manual server module
+  forecast_manual_results <- forecast_manual_server(input, output, session, data_results)
 
   # =============================================================================
   # 🔄 DATA PERSISTENCE & DATE SYNCHRONIZATION

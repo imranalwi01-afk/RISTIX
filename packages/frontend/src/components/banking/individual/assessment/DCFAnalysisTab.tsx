@@ -30,8 +30,19 @@ import {
   AccountBalance as AccountBalanceIcon
 } from '@mui/icons-material';
 import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  Legend
+} from 'recharts';
+import {
   type IndividualImpairmentWatchlistItem,
-  type IndividualImpairmentAssessment
+  type IndividualImpairmentAssessment,
+  individualImpairmentAPI
 } from '@/services/api.individual-impairment';
 
 interface DCFAnalysisTabProps {
@@ -39,9 +50,11 @@ interface DCFAnalysisTabProps {
   assessment: IndividualImpairmentAssessment | null;
   onCalculate: (parameters: any) => void;
   loading: boolean;
+  calculationResults?: any;
+  onClearResults?: () => void;
 }
 
-export function DCFAnalysisTab({ account, assessment, onCalculate, loading }: DCFAnalysisTabProps) {
+export function DCFAnalysisTab({ account, assessment, onCalculate, loading, calculationResults, onClearResults }: DCFAnalysisTabProps) {
   const [parameters, setParameters] = useState({
     discountRate: 8.5,
     projectedGrowthRate: 2.0,
@@ -58,7 +71,40 @@ export function DCFAnalysisTab({ account, assessment, onCalculate, loading }: DC
   ]);
 
   const [activeScenario, setActiveScenario] = useState('base');
-  const [calculationResults, setCalculationResults] = useState<any>(null);
+  
+  // Load scenarios from API
+  React.useEffect(() => {
+    const fetchScenarios = async () => {
+      if (!account?.account_id) return;
+      try {
+        const response: any = await individualImpairmentAPI.getScenarios({ accountId: account.account_id });
+        if (response && response.data && Array.isArray(response.data) && response.data.length > 0) {
+            const mapped = response.data.map((s: any) => ({
+                name: s.scenarioName,
+                discountRate: Number(s.discountRate),
+                recoveryRate: Number(s.recoveryRate),
+                growthRate: Number(s.growthRate)
+            }));
+            setScenarioData(mapped);
+            
+            // Auto-select first scenario or Base Case
+            const base = mapped.find((s: any) => s.name.toLowerCase().includes('base')) || mapped[0];
+            if (base) {
+                setParameters(prev => ({
+                    ...prev,
+                    discountRate: base.discountRate,
+                    recoveryRate: base.recoveryRate,
+                    projectedGrowthRate: base.growthRate
+                }));
+                setActiveScenario(base.name.toLowerCase().replace(' ', ''));
+            }
+        }
+      } catch (err) {
+        console.error("Failed to load scenarios", err);
+      }
+    };
+    fetchScenarios();
+  }, [account?.account_id]);
 
   const handleParameterChange = (field: string, value: any) => {
     setParameters(prev => ({ ...prev, [field]: value }));
@@ -218,7 +264,8 @@ export function DCFAnalysisTab({ account, assessment, onCalculate, loading }: DC
                   <Button
                     variant="outlined"
                     startIcon={<ClearIcon />}
-                    onClick={() => setCalculationResults(null)}
+                    onClick={onClearResults}
+                    disabled={!onClearResults}
                   >
                     Clear
                   </Button>
@@ -317,6 +364,125 @@ export function DCFAnalysisTab({ account, assessment, onCalculate, loading }: DC
             </CardContent>
           </Card>
         </Grid>
+
+        {/* DCF Results - Full Width Below */}
+        {calculationResults && (
+          <Grid size={12}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  <CalculateIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                  DCF Calculation Results
+                </Typography>
+                <Divider sx={{ mb: 2 }} />
+
+                <Grid container spacing={2}>
+                  <Grid size={{ xs: 12, md: 3 }}>
+                    <Typography variant="body2" color="text.secondary">Present Value:</Typography>
+                    <Typography variant="h6" sx={{ color: 'primary.main', fontWeight: 'bold' }}>
+                      {formatCurrency(calculationResults.presentValue || 0)}
+                    </Typography>
+                  </Grid>
+                  <Grid size={{ xs: 12, md: 3 }}>
+                    <Typography variant="body2" color="text.secondary">Outstanding:</Typography>
+                    <Typography variant="h6">
+                      {formatCurrency(calculationResults.outstanding || 0)}
+                    </Typography>
+                  </Grid>
+                  <Grid size={{ xs: 12, md: 3 }}>
+                    <Typography variant="body2" color="text.secondary">Loss Given Default:</Typography>
+                    <Typography variant="h6" sx={{ color: 'error.main', fontWeight: 'bold' }}>
+                      {formatCurrency(calculationResults.lgd || 0)}
+                    </Typography>
+                  </Grid>
+                  <Grid size={{ xs: 12, md: 3 }}>
+                    <Typography variant="body2" color="text.secondary">Recommended Provision:</Typography>
+                    <Typography variant="h6" sx={{ color: 'warning.main', fontWeight: 'bold' }}>
+                      {formatCurrency(calculationResults.recommendedProvision || 0)}
+                    </Typography>
+                  </Grid>
+                </Grid>
+
+                {/* Cash Flow Chart */}
+                <Box sx={{ mt: 4, height: 350, width: '100%' }}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Cash Flow & Present Value Projection
+                  </Typography>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart
+                      data={calculationResults.details || []}
+                      margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                      <XAxis dataKey="period" />
+                      <YAxis 
+                        tickFormatter={(value) => new Intl.NumberFormat('id-ID', { notation: 'compact' }).format(value)}
+                      />
+                      <RechartsTooltip 
+                        formatter={(value: number) => formatCurrency(value)}
+                        labelFormatter={(label) => `Period: ${label}`}
+                      />
+                      <Legend />
+                      <Area 
+                        type="monotone" 
+                        dataKey="cashflow" 
+                        name="Cash Flow" 
+                        stackId="1" 
+                        stroke="#8884d8" 
+                        fill="#8884d8" 
+                        fillOpacity={0.6}
+                      />
+                      <Area 
+                        type="monotone" 
+                        dataKey="pv" 
+                        name="Present Value (PV)" 
+                        stackId="2" 
+                        stroke="#82ca9d" 
+                        fill="#82ca9d" 
+                        fillOpacity={0.6} 
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </Box>
+
+                {calculationResults.details && calculationResults.details.length > 0 && (
+                  <Box sx={{ mt: 3 }}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Cash Flow Details
+                    </Typography>
+                    <TableContainer>
+                      <Table size="small">
+                        <TableHead>
+                          <TableRow>
+                            <TableCell>Period</TableCell>
+                            <TableCell>Cash Flow</TableCell>
+                            <TableCell>Discount Factor</TableCell>
+                            <TableCell>Present Value</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {calculationResults.details.slice(0, 12).map((detail: any, index: number) => (
+                            <TableRow key={index}>
+                              <TableCell>{detail.period}</TableCell>
+                              <TableCell>{formatCurrency(detail.cashflow || 0)}</TableCell>
+                              <TableCell>{(detail.discountFactor || 0).toFixed(4)}</TableCell>
+                              <TableCell>{formatCurrency(detail.pv || 0)}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                    {calculationResults.details.length > 12 && (
+                      <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                        Showing first 12 periods of {calculationResults.details.length} total periods
+                      </Typography>
+                    )}
+                  </Box>
+                )}
+              </CardContent>
+            </Card>
+          </Grid>
+        )}
       </Grid>
     </Box>
   );

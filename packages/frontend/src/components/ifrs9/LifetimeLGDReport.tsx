@@ -245,79 +245,7 @@ const LGDCharts: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
   </Grid>
 );
 
-const LGDPivotTable: React.FC<{ data: any[]; columns: string[] }> = ({ data, columns }) => {
-  if (!data || data.length === 0) return null;
 
-  const baseColumns = columns.filter(col => !col.match(/^(seq|recovery|period)_\d+$/));
-  const dynamicColumns = columns.filter(col => col.match(/^(seq|recovery|period)_\d+$/));
-
-  // Required columns per spec: Segment, Collateral Type, Product, LGD%, Recovery PV, Discount Factor, Time-to-Recovery, EAD, Category, Model/Config Version
-  const specColumns = [
-    'segment_name', 'collateral_type', 'product_type', 'lgd_rate', 'recovery_amount_pv', 'discount_factor', 'time_to_recovery', 'ead_amount', 'risk_category', 'model_version'
-  ];
-
-  const finalBase = dynamicColumns.length > 0 ? baseColumns : specColumns.filter(c => columns.includes(c) || data[0]?.[c] !== undefined);
-  const finalDynamic = dynamicColumns.length > 0 ? dynamicColumns : [];
-
-  return (
-    <Card sx={{ borderRadius: 4, boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)', overflow: 'hidden', mt: 3 }}>
-      <Box sx={{ p: 3, borderBottom: '1px solid rgba(0,0,0,0.05)', bgcolor: '#f8faff' }}>
-        <Typography variant="h6" fontWeight={700}>
-          Recovery Sequence Analysis (Pivoted)
-        </Typography>
-      </Box>
-      <Box sx={{ width: '100%', overflow: 'hidden' }}>
-        <Box sx={{ maxHeight: 600, overflow: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
-            <thead style={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: '#764ba2', color: 'white' }}>
-              <tr>
-                {finalBase.map(col => (
-                  <th key={col} style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 700 }}>
-                    {col.replace(/_/g, ' ').toUpperCase()}
-                  </th>
-                ))}
-                {finalDynamic.map(col => (
-                  <th key={col} style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, minWidth: 100 }}>
-                    {col.replace(/^(seq|recovery|period)_/, '').toUpperCase()}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {data.slice(0, 100).map((row, index) => (
-                <tr key={index} style={{ borderBottom: '1px solid #f0f0f0', backgroundColor: index % 2 === 0 ? 'white' : '#fcfcff' }}>
-                  {finalBase.map(col => (
-                    <td key={col} style={{ padding: '12px 16px' }}>
-                      {col === 'product_type' ? (
-                        <Chip size="small" label={row[col]} sx={{ fontWeight: 600, bgcolor: alpha('#764ba2', 0.08), color: '#764ba2', border: 'none' }} />
-                      ) : (
-                        row[col] || '-'
-                      )}
-                    </td>
-                  ))}
-                  {finalDynamic.map(col => (
-                    <td key={col} style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 600 }}>
-                      {row[col] !== null && row[col] !== undefined ? (
-                        new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(row[col])
-                      ) : '-'}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Box>
-        {data.length > 100 && (
-          <Box sx={{ p: 2, textAlign: 'center' }}>
-            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
-              Showing first 100 records. Export to view full dataset.
-            </Typography>
-          </Box>
-        )}
-      </Box>
-    </Card>
-  );
-};
 
 const LifetimeLGDReport: React.FC = () => {
   const [summaryStats, setSummaryStats] = useState<SummaryStats>({
@@ -328,14 +256,7 @@ const LifetimeLGDReport: React.FC = () => {
     lgdDistribution: []
   });
 
-  const [pivotData, setPivotData] = useState<any[]>([]);
-  const [pivotColumns, setPivotColumns] = useState<string[]>([]);
-
   const handleDataLoaded = React.useCallback((data: any[]) => {
-    const { pivotData: pData, columns: pCols } = processPivotData(data);
-    setPivotData(pData);
-    setPivotColumns(pCols);
-
     if (data && data.length > 0) {
       let totalEad = 0;
       let weightedLgsSum = 0;
@@ -348,9 +269,9 @@ const LifetimeLGDReport: React.FC = () => {
         avgRecoveryRate: number;
         lgdDistribution: LGDDistributionItem[];
       }>((acc, row) => {
-        const ead = parseFloat(row.ead_amount as string) || parseFloat(row.ead as string) || 0;
-        const lgd = parseFloat(row.lgd_rate as string) || 0;
-        const recoveryPv = parseFloat(row.recovery_amount_pv as string) || parseFloat(row.recovery_amount as string) || 0;
+        const ead = parseFloat(row.ead_amount as string) || parseFloat(row.ead as string) || parseFloat(row.os_at_default as string) || parseFloat(row.outstanding as string) || 0;
+        const lgd = parseFloat(row.lgd_rate as string) || parseFloat(row.final_lgd as string) || parseFloat(row.lgd as string) || 0;
+        const recoveryPv = parseFloat(row.recovery_amount_pv as string) || parseFloat(row.recovery_amount as string) || parseFloat(row.total_recovery as string) || parseFloat(row.total_recovery_pv as string) || 0;
 
         acc.totalAccounts += 1;
         totalEad += ead;
@@ -394,28 +315,7 @@ const LifetimeLGDReport: React.FC = () => {
     }
   }, []);
 
-  const processPivotData = (data: any[]) => {
-    if (!data || data.length === 0) return { pivotData: [], columns: [] };
 
-    const firstRow = data[0];
-    const baseColumns = ['account_id', 'customer_name', 'segment_name', 'product_type'];
-
-    const dynamicColumns = Object.keys(firstRow).filter(key =>
-      key.match(/^(seq|recovery|period)_\d+$/)
-    ).sort((a, b) => {
-      const numA = parseInt(a.split('_')[1]);
-      const numB = parseInt(b.split('_')[1]);
-      return numA - numB;
-    });
-
-    const pivotCols = dynamicColumns.length > 0 ? dynamicColumns : Object.keys(firstRow).filter(k => !baseColumns.includes(k) && typeof firstRow[k] === 'number');
-    const allColumns = [...baseColumns.filter(k => k in firstRow), ...pivotCols];
-
-    return {
-      pivotData: data,
-      columns: allColumns
-    };
-  };
 
   const requiredParams = useMemo(() => ['prc_date'], []);
   const optionalParams = useMemo(() => ['lgd_config_id', 'lgd_method', 'model_id', 'segment_id', 'fl_flag'], []);
@@ -433,7 +333,6 @@ const LifetimeLGDReport: React.FC = () => {
     >
       <SummaryCards stats={summaryStats} />
       <LGDCharts stats={summaryStats} />
-      <LGDPivotTable data={pivotData} columns={pivotColumns} />
     </BaseIfrs9Report>
   );
 };

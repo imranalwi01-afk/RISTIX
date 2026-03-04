@@ -6,7 +6,7 @@
 
 > **createSingleResponse**\<`T`\>(`data`): [`SingleResponse`](../interfaces/SingleResponse.md)\<`T`\>
 
-Defined in: [src/lib/react-admin.ts:64](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/lib/react-admin.ts#L64)
+Defined in: [src/lib/react-admin.ts:64](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/lib/react-admin.ts#L64)
 
 Create a single item response compatible with react-admin
 

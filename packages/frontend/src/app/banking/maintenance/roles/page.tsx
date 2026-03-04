@@ -15,7 +15,7 @@ const normalizeTab = (value?: string): string => {
   return VALID_TABS.has(tab) ? tab : 'roles';
 };
 
-export default async function LegacyRolesPage({
+export default async function Page({
   searchParams,
 }: {
   searchParams: Promise<SearchParamsInput>;

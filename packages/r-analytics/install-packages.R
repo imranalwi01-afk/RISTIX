@@ -51,7 +51,9 @@ required_packages <- c(
   # Utilities
   "devtools",
   "testthat",
-  "logr"
+  "logr",
+  "conflicted",
+  "greybox"
 )
 
 # Function to install packages if not already installed

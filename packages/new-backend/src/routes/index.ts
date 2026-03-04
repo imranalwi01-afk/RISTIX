@@ -27,6 +27,7 @@ import { journalParameterRoutes } from './journal-parameters.routes'
 import { segmentationRoutes } from './segmentation.routes'
 import { impairmentRoutes } from './impairment.routes'
 import { amortizationRoutes } from './amortization.routes'
+import { forecastRoutes } from './forecast.routes'
 import { reportsRoutes } from './reports.routes'
 import { jobsRoutes } from './jobs.routes'
 import { consultantsRoutes } from './consultants.routes'
@@ -43,11 +44,13 @@ import { securityRoutes } from './security.routes'
 import { userActivityRoutes } from './user-activity.routes'
 import { userRegistrationRoutes } from './user-registration.routes'
 import { tenantRegistryRoutes } from './tenant-registry.routes'
+import { platformSettingsRoutes } from './platform-settings.routes'
 import { platformInfrastructureRoutes } from './platform-infrastructure.routes'
 import { adminDashboardRoutes } from './admin-dashboard.routes'
 import { ifrs9Routes } from './ifrs9.routes'
 import { securityConfigRoutes } from './security-config.routes'
 import { bankingResourceRoutes } from './banking-resource.routes'
+import { monitoringRoutes } from './monitoring.routes'
 
 // DEBUG ROUTE
 const debugRoutes = new OpenAPIHono<AppContext>()
@@ -69,6 +72,7 @@ routes.route('/approvals', approvalRoutes)
 routes.route('/notifications', notificationsRoutes)
 routes.route('/rbac', rbacRoutes)
 routes.route('/audit', auditRoutes)
+routes.route('/monitoring', monitoringRoutes)
 
 routes.route('/consultants', consultantsRoutes)
 routes.route('/platform-users', platformUsersRoutes)
@@ -93,6 +97,7 @@ routes.route('/banking/parameters/segmentation', segmentationRoutes)
 routes.route('/banking/individual/impairment', individualImpairmentRoutes)
 routes.route('/banking/ifrs9/impairment-module', impairmentRoutes)
 routes.route('/banking/ifrs9/amortization-module', amortizationRoutes)
+routes.route('/banking/ifrs9/forecast', forecastRoutes)
 
 // NEW STUB ROUTES - Main banking operations
 routes.route('/banking', bankingRoutes)
@@ -116,6 +121,7 @@ routes.route('/user-registration', userRegistrationRoutes)
 
 // NEW STUB ROUTES - Platform Management
 routes.route('/tenant-registry', tenantRegistryRoutes)
+routes.route('/platform/settings', platformSettingsRoutes)
 routes.route('/platform-infrastructure', platformInfrastructureRoutes)
 routes.route('/admin-dashboard', adminDashboardRoutes)
 

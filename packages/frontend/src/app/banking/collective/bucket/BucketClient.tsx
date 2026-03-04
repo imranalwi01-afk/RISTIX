@@ -412,7 +412,7 @@ export default function BucketParameterPage() {
         setError('Failed to load buckets from database');
         setBucketHeaders([]);
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error loading bucket headers:', error);
       setError(error.message || 'Failed to connect to database');
       setBucketHeaders([]);
@@ -491,7 +491,7 @@ export default function BucketParameterPage() {
       }
       loadBucketHeaders();
       loadPendingApprovals();
-    } catch (error: any) {
+    } catch (error) {
       setSnackbar({ open: true, message: error.message || 'Error deleting bucket parameter', type: 'error' });
     }
   };
@@ -538,7 +538,7 @@ export default function BucketParameterPage() {
       }
       loadBucketHeaders();
       loadPendingApprovals();
-    } catch (error: any) {
+    } catch (error) {
       setSnackbar({ open: true, message: error.message || 'Error deleting detail', type: 'error' });
     }
   };
@@ -570,7 +570,7 @@ export default function BucketParameterPage() {
       setHeaderDialogOpen(false);
       loadBucketHeaders();
       loadPendingApprovals();
-    } catch (error: any) {
+    } catch (error) {
       setSnackbar({ open: true, message: error.message || 'Error saving bucket parameter', type: 'error' });
     }
   };
@@ -603,7 +603,7 @@ export default function BucketParameterPage() {
       setDetailDialogOpen(false);
       loadBucketHeaders();
       loadPendingApprovals();
-    } catch (error: any) {
+    } catch (error) {
       setSnackbar({ open: true, message: error.message || 'Error saving bucket detail', type: 'error' });
     }
   };
@@ -717,8 +717,8 @@ export default function BucketParameterPage() {
                 data-testid="bucket-basis-select"
               >
                 <MenuItem value="">All Basis</MenuItem>
-                {basisOptions.map((option) => (
-                  <MenuItem key={option.value1} value={option.value1}>
+                {basisOptions.map((option, idx) => (
+                  <MenuItem key={`${option.value1}-${idx}`} value={option.value1}>
                     {option.paramdesc}
                   </MenuItem>
                 ))}
@@ -833,8 +833,8 @@ export default function BucketParameterPage() {
                     onChange={(e) => setHeaderFormData(prev => ({ ...prev, basis: e.target.value }))}
                     data-testid="bucket-basis-field"
                   >
-                    {basisOptions.map((option) => (
-                      <MenuItem key={option.value1} value={option.value1}>
+                    {basisOptions.map((option, idx) => (
+                      <MenuItem key={`${option.value1}-${idx}`} value={option.value1}>
                         {option.paramdesc}
                       </MenuItem>
                     ))}

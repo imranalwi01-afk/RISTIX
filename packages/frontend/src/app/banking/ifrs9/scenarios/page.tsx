@@ -58,50 +58,7 @@ import {
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 
-// Real API implementation with demo token for development
-const scenariosApi = {
-  getScenarios: async (status?: string) => {
-    const url = status 
-      ? `http://localhost:4232/api/v1/banking/individual/impairment/scenarios?status=${status}`
-      : 'http://localhost:4232/api/v1/banking/individual/impairment/scenarios';
-    
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer demo_token_ADMIN',
-        'X-Tenant-ID': 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be'
-      }
-    });
-    return await response.json();
-  },
-  
-  createScenario: async (data: any) => {
-    const response = await fetch('http://localhost:4232/api/v1/banking/individual/impairment/scenarios', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer demo_token_ADMIN',
-        'X-Tenant-ID': 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be'
-      },
-      body: JSON.stringify(data)
-    });
-    return await response.json();
-  },
-  
-  updateScenarioStatus: async (id: number, status: string) => {
-    const response = await fetch(`http://localhost:4232/api/v1/banking/individual/impairment/scenarios/${id}/status`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer demo_token_ADMIN',
-        'X-Tenant-ID': 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be'
-      },
-      body: JSON.stringify({ status })
-    });
-    return await response.json();
-  }
-};
+import { individualImpairmentAPI } from '../../../../services/api/individual-impairment.api';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -136,7 +93,7 @@ export default function IFRS9ScenariosPage() {
   const [editingScenario, setEditingScenario] = useState<any>(null);
   const [activeTab, setActiveTab] = useState(0);
   const [statusFilter, setStatusFilter] = useState('');
-  
+
   // Table pagination
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(25);
@@ -145,16 +102,15 @@ export default function IFRS9ScenariosPage() {
   const loadScenariosData = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
-      const response = await scenariosApi.getScenarios(statusFilter || undefined);
-      
-      if (response.success) {
-        setScenarios(response.data || []);
-      } else {
-        setError('Failed to load scenarios data');
-      }
+      const params = statusFilter ? { status: statusFilter } : undefined;
+      const response = await individualImpairmentAPI.getScenarios(params);
+      // individualImpairmentAPI returns data directly via apiClient
+      const items = Array.isArray(response) ? response : (response?.data ?? []);
+      setScenarios(items);
     } catch (err: any) {
+      console.error('Failed to load scenarios data:', err);
       setError(err.message || 'Failed to load scenarios data');
     } finally {
       setLoading(false);
@@ -183,14 +139,9 @@ export default function IFRS9ScenariosPage() {
 
   const handleStatusUpdate = async (scenario: any, newStatus: string) => {
     try {
-      const response = await scenariosApi.updateScenarioStatus(scenario.pkid, newStatus);
-      
-      if (response.status >= 200 && response.status < 300) {
-        await loadScenariosData();
-        alert(`Scenario status updated to ${newStatus}`);
-      } else {
-        alert('Failed to update scenario status');
-      }
+      await individualImpairmentAPI.updateScenarioStatus(scenario.pkid, newStatus);
+      await loadScenariosData();
+      alert(`Scenario status updated to ${newStatus}`);
     } catch (error: any) {
       alert('Error updating scenario status: ' + error.message);
     }
@@ -198,16 +149,11 @@ export default function IFRS9ScenariosPage() {
 
   const handleSave = async (data: any) => {
     try {
-      const response = await scenariosApi.createScenario(data);
-      
-      if (response.status >= 200 && response.status < 300) {
-        await loadScenariosData();
-        setCreateDialogOpen(false);
-        setEditingScenario(null);
-        alert('Scenario saved successfully');
-      } else {
-        alert('Failed to save scenario');
-      }
+      await individualImpairmentAPI.createScenario(data);
+      await loadScenariosData();
+      setCreateDialogOpen(false);
+      setEditingScenario(null);
+      alert('Scenario saved successfully');
     } catch (error: any) {
       alert('Error saving scenario: ' + error.message);
     }
@@ -349,7 +295,7 @@ export default function IFRS9ScenariosPage() {
 
       {/* Tab Panels */}
       <TabPanel value={activeTab} index={0}>
-        <ScenariosTable 
+        <ScenariosTable
           scenarios={paginatedData}
           loading={loading}
           onView={handleView}
@@ -366,7 +312,7 @@ export default function IFRS9ScenariosPage() {
       </TabPanel>
 
       <TabPanel value={activeTab} index={1}>
-        <ScenariosTable 
+        <ScenariosTable
           scenarios={paginatedData}
           loading={loading}
           onView={handleView}
@@ -383,7 +329,7 @@ export default function IFRS9ScenariosPage() {
       </TabPanel>
 
       <TabPanel value={activeTab} index={2}>
-        <ScenariosTable 
+        <ScenariosTable
           scenarios={paginatedData}
           loading={loading}
           onView={handleView}
@@ -400,7 +346,7 @@ export default function IFRS9ScenariosPage() {
       </TabPanel>
 
       <TabPanel value={activeTab} index={3}>
-        <ScenariosTable 
+        <ScenariosTable
           scenarios={paginatedData}
           loading={loading}
           onView={handleView}
@@ -516,8 +462,8 @@ export default function IFRS9ScenariosPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setCreateDialogOpen(false)}>Cancel</Button>
-          <Button 
-            variant="contained" 
+          <Button
+            variant="contained"
             type="submit"
             form="scenario-form"
           >
@@ -530,13 +476,13 @@ export default function IFRS9ScenariosPage() {
 }
 
 // Scenarios Table Component
-function ScenariosTable({ 
-  scenarios, 
-  loading, 
-  onView, 
-  onEdit, 
-  onStatusUpdate, 
-  getStatusColor, 
+function ScenariosTable({
+  scenarios,
+  loading,
+  onView,
+  onEdit,
+  onStatusUpdate,
+  getStatusColor,
   getStatusLabel,
   page,
   rowsPerPage,
@@ -642,7 +588,7 @@ function ScenariosTable({
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Edit Scenario">
-                        <IconButton 
+                        <IconButton
                           size="small"
                           onClick={() => onEdit(scenario)}
                         >
@@ -652,8 +598,8 @@ function ScenariosTable({
                       {scenario.status === 'PENDING' && (
                         <>
                           <Tooltip title="Approve">
-                            <IconButton 
-                              size="small" 
+                            <IconButton
+                              size="small"
                               color="success"
                               onClick={() => onStatusUpdate(scenario, 'APPROVED')}
                             >
@@ -661,8 +607,8 @@ function ScenariosTable({
                             </IconButton>
                           </Tooltip>
                           <Tooltip title="Reject">
-                            <IconButton 
-                              size="small" 
+                            <IconButton
+                              size="small"
                               color="error"
                               onClick={() => onStatusUpdate(scenario, 'DRAFT')}
                             >

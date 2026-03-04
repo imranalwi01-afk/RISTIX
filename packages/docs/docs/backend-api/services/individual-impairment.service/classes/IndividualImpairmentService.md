@@ -4,7 +4,7 @@
 
 # Class: IndividualImpairmentService
 
-Defined in: [src/services/individual-impairment.service.ts:27](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/individual-impairment.service.ts#L27)
+Defined in: [src/services/individual-impairment.service.ts:27](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/individual-impairment.service.ts#L27)
 
 ## Constructors
 
@@ -22,7 +22,7 @@ Defined in: [src/services/individual-impairment.service.ts:27](https://github.co
 
 > **addToWatchlist**(`data`): `Promise`\<`object`[]\>
 
-Defined in: [src/services/individual-impairment.service.ts:465](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/individual-impairment.service.ts#L465)
+Defined in: [src/services/individual-impairment.service.ts:465](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/individual-impairment.service.ts#L465)
 
 #### Parameters
 
@@ -40,7 +40,7 @@ Defined in: [src/services/individual-impairment.service.ts:465](https://github.c
 
 > **calculateDcf**(`tenantId`, `params`): `Promise`\<\{ `account_id`: `any`; `assumptions`: `any`; `details`: `object`[]; `lgd`: `number`; `outstanding`: `number`; `presentValue`: `number`; `recommendedProvision`: `number`; `savedId`: `bigint` \| `null`; `scenario`: `any`; \}\>
 
-Defined in: [src/services/individual-impairment.service.ts:270](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/individual-impairment.service.ts#L270)
+Defined in: [src/services/individual-impairment.service.ts:270](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/individual-impairment.service.ts#L270)
 
 #### Parameters
 
@@ -62,7 +62,7 @@ Defined in: [src/services/individual-impairment.service.ts:270](https://github.c
 
 > **createAssessment**(`data`): `Promise`\<`object`[]\>
 
-Defined in: [src/services/individual-impairment.service.ts:531](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/individual-impairment.service.ts#L531)
+Defined in: [src/services/individual-impairment.service.ts:531](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/individual-impairment.service.ts#L531)
 
 #### Parameters
 
@@ -80,7 +80,7 @@ Defined in: [src/services/individual-impairment.service.ts:531](https://github.c
 
 > **createAuditLog**(`entry`): `Promise`\<`never`[]\>
 
-Defined in: [src/services/individual-impairment.service.ts:113](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/individual-impairment.service.ts#L113)
+Defined in: [src/services/individual-impairment.service.ts:113](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/individual-impairment.service.ts#L113)
 
 #### Parameters
 
@@ -98,7 +98,7 @@ Defined in: [src/services/individual-impairment.service.ts:113](https://github.c
 
 > **createDcfCashflows**(`data`): `Promise`\<`never`[]\>
 
-Defined in: [src/services/individual-impairment.service.ts:266](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/individual-impairment.service.ts#L266)
+Defined in: [src/services/individual-impairment.service.ts:266](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/individual-impairment.service.ts#L266)
 
 #### Parameters
 
@@ -116,7 +116,7 @@ Defined in: [src/services/individual-impairment.service.ts:266](https://github.c
 
 > **createDcfUpload**(`data`): `Promise`\<`object`[]\>
 
-Defined in: [src/services/individual-impairment.service.ts:239](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/individual-impairment.service.ts#L239)
+Defined in: [src/services/individual-impairment.service.ts:239](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/individual-impairment.service.ts#L239)
 
 #### Parameters
 
@@ -134,7 +134,7 @@ Defined in: [src/services/individual-impairment.service.ts:239](https://github.c
 
 > **createOverride**(`data`): `Promise`\<`object`[]\>
 
-Defined in: [src/services/individual-impairment.service.ts:574](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/individual-impairment.service.ts#L574)
+Defined in: [src/services/individual-impairment.service.ts:574](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/individual-impairment.service.ts#L574)
 
 #### Parameters
 
@@ -152,7 +152,7 @@ Defined in: [src/services/individual-impairment.service.ts:574](https://github.c
 
 > **createReport**(`data`): `Promise`\<`object`[]\>
 
-Defined in: [src/services/individual-impairment.service.ts:137](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/individual-impairment.service.ts#L137)
+Defined in: [src/services/individual-impairment.service.ts:137](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/individual-impairment.service.ts#L137)
 
 #### Parameters
 
@@ -170,7 +170,7 @@ Defined in: [src/services/individual-impairment.service.ts:137](https://github.c
 
 > **createScenario**(`data`): `Promise`\<`object`[]\>
 
-Defined in: [src/services/individual-impairment.service.ts:199](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/individual-impairment.service.ts#L199)
+Defined in: [src/services/individual-impairment.service.ts:199](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/individual-impairment.service.ts#L199)
 
 #### Parameters
 
@@ -188,7 +188,7 @@ Defined in: [src/services/individual-impairment.service.ts:199](https://github.c
 
 > **getAssessment**(`tenantId`, `accountId`): `Promise`\<\{ `account_id`: `number`; `account_number`: `string`; `analyst_comments`: `string` \| `null`; `approval_status`: `string`; `assessment_basis`: `string`; `cif_name`: `string`; `cif_number`: `string`; `collectability`: `number` \| `null`; `createdby`: `string`; `createddate`: `string`; `currency`: `string`; `dpd`: `number` \| `null`; `eff_date`: `string`; `eff_interest_rate`: `number`; `ia_id`: `number`; `impaired_flag`: `string`; `impairment_reason`: `string` \| `null`; `interest_rate`: `number`; `method`: `string` \| `null`; `outstanding_balance`: `number`; `pkid`: `bigint`; `prc_date`: `string`; `previous_stage`: `number`; `rating_code`: `string` \| `null`; `reviewer_comments`: `null`; `stage`: `number`; `supporting_documents`: `string`[]; `updatedby`: `string` \| `null`; `updateddate`: `string` \| `null`; \} \| `null`\>
 
-Defined in: [src/services/individual-impairment.service.ts:486](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/individual-impairment.service.ts#L486)
+Defined in: [src/services/individual-impairment.service.ts:486](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/individual-impairment.service.ts#L486)
 
 #### Parameters
 
@@ -210,7 +210,7 @@ Defined in: [src/services/individual-impairment.service.ts:486](https://github.c
 
 > **getAssessmentHistory**(`tenantId`, `accountId`): `Promise`\<`object`[]\>
 
-Defined in: [src/services/individual-impairment.service.ts:37](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/individual-impairment.service.ts#L37)
+Defined in: [src/services/individual-impairment.service.ts:37](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/individual-impairment.service.ts#L37)
 
 #### Parameters
 
@@ -232,7 +232,7 @@ Defined in: [src/services/individual-impairment.service.ts:37](https://github.co
 
 > **getAuditTrails**(`tenantId`, `filters`): `Promise`\<`never`[]\>
 
-Defined in: [src/services/individual-impairment.service.ts:33](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/individual-impairment.service.ts#L33)
+Defined in: [src/services/individual-impairment.service.ts:33](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/individual-impairment.service.ts#L33)
 
 #### Parameters
 
@@ -264,7 +264,7 @@ Defined in: [src/services/individual-impairment.service.ts:33](https://github.co
 
 > **getDcfCalculations**(`tenantId`): `Promise`\<`object`[]\>
 
-Defined in: [src/services/individual-impairment.service.ts:258](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/individual-impairment.service.ts#L258)
+Defined in: [src/services/individual-impairment.service.ts:258](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/individual-impairment.service.ts#L258)
 
 #### Parameters
 
@@ -282,7 +282,7 @@ Defined in: [src/services/individual-impairment.service.ts:258](https://github.c
 
 > **getDcfCashflows**(`tenantId`, `uploadId`): `Promise`\<`object`[]\>
 
-Defined in: [src/services/individual-impairment.service.ts:251](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/individual-impairment.service.ts#L251)
+Defined in: [src/services/individual-impairment.service.ts:251](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/individual-impairment.service.ts#L251)
 
 #### Parameters
 
@@ -304,7 +304,7 @@ Defined in: [src/services/individual-impairment.service.ts:251](https://github.c
 
 > **getDcfUploads**(`tenantId`, `limit`, `offset`): `Promise`\<`object`[]\>
 
-Defined in: [src/services/individual-impairment.service.ts:231](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/individual-impairment.service.ts#L231)
+Defined in: [src/services/individual-impairment.service.ts:231](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/individual-impairment.service.ts#L231)
 
 #### Parameters
 
@@ -330,7 +330,7 @@ Defined in: [src/services/individual-impairment.service.ts:231](https://github.c
 
 > **getOverrides**(`tenantId`, `filters`): `Promise`\<`object`[]\>
 
-Defined in: [src/services/individual-impairment.service.ts:541](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/individual-impairment.service.ts#L541)
+Defined in: [src/services/individual-impairment.service.ts:541](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/individual-impairment.service.ts#L541)
 
 #### Parameters
 
@@ -362,7 +362,7 @@ Defined in: [src/services/individual-impairment.service.ts:541](https://github.c
 
 > **getReports**(`tenantId`, `filters`): `Promise`\<`object`[]\>
 
-Defined in: [src/services/individual-impairment.service.ts:121](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/individual-impairment.service.ts#L121)
+Defined in: [src/services/individual-impairment.service.ts:121](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/individual-impairment.service.ts#L121)
 
 #### Parameters
 
@@ -394,7 +394,7 @@ Defined in: [src/services/individual-impairment.service.ts:121](https://github.c
 
 > **getScenarios**(`tenantId`, `filters`): `Promise`\<`object`[]\>
 
-Defined in: [src/services/individual-impairment.service.ts:145](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/individual-impairment.service.ts#L145)
+Defined in: [src/services/individual-impairment.service.ts:145](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/individual-impairment.service.ts#L145)
 
 #### Parameters
 
@@ -426,7 +426,7 @@ Defined in: [src/services/individual-impairment.service.ts:145](https://github.c
 
 > **getStagingAnalysis**(`tenantId`, `filters`): `Promise`\<`RowList`\<`Record`\<`string`, `unknown`\>[]\>\>
 
-Defined in: [src/services/individual-impairment.service.ts:653](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/individual-impairment.service.ts#L653)
+Defined in: [src/services/individual-impairment.service.ts:653](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/individual-impairment.service.ts#L653)
 
 #### Parameters
 
@@ -462,7 +462,7 @@ Defined in: [src/services/individual-impairment.service.ts:653](https://github.c
 
 > **getStagingSummary**(`tenantId`): `Promise`\<`Record`\<`string`, `unknown`\>\>
 
-Defined in: [src/services/individual-impairment.service.ts:709](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/individual-impairment.service.ts#L709)
+Defined in: [src/services/individual-impairment.service.ts:709](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/individual-impairment.service.ts#L709)
 
 #### Parameters
 
@@ -480,7 +480,7 @@ Defined in: [src/services/individual-impairment.service.ts:709](https://github.c
 
 > **getWatchlist**(`tenantId`, `filters`): `Promise`\<\{ `data`: `object`[]; `total`: `number`; \}\>
 
-Defined in: [src/services/individual-impairment.service.ts:338](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/individual-impairment.service.ts#L338)
+Defined in: [src/services/individual-impairment.service.ts:338](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/individual-impairment.service.ts#L338)
 
 #### Parameters
 
@@ -528,7 +528,7 @@ Defined in: [src/services/individual-impairment.service.ts:338](https://github.c
 
 > **removeFromWatchlist**(`id`, `tenantId`): `Promise`\<`object`[]\>
 
-Defined in: [src/services/individual-impairment.service.ts:476](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/individual-impairment.service.ts#L476)
+Defined in: [src/services/individual-impairment.service.ts:476](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/individual-impairment.service.ts#L476)
 
 #### Parameters
 
@@ -550,7 +550,7 @@ Defined in: [src/services/individual-impairment.service.ts:476](https://github.c
 
 > **updateScenarioStatus**(`id`, `tenantId`, `status`, `approverId?`): `Promise`\<`object`[]\>
 
-Defined in: [src/services/individual-impairment.service.ts:215](https://github.com/ifrspro/ifrs9-iaf/blob/cf4905123c7eb3e9046f36ce3f92dd13536ac238/packages/new-backend/src/services/individual-impairment.service.ts#L215)
+Defined in: [src/services/individual-impairment.service.ts:215](https://github.com/ifrspro/ifrs9-iaf/blob/5a4b2221d62f9d823811e12bfc71b7ff82ae62fa/packages/new-backend/src/services/individual-impairment.service.ts#L215)
 
 #### Parameters
 

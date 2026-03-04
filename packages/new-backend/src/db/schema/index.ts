@@ -72,12 +72,14 @@ export {
     approvalActions,
     notifications,
     notificationDeliveries,
+    notificationPreferences,
     approvalMatricesRelations,
     approvalLevelsRelations,
     approvalRequestsRelations,
     approvalActionsRelations,
     notificationsRelations,
     notificationDeliveriesRelations,
+    notificationPreferencesRelations,
     type ApprovalMatrix,
     type NewApprovalMatrix,
     type ApprovalLevel,
@@ -90,6 +92,8 @@ export {
     type NewNotification,
     type NotificationDelivery,
     type NewNotificationDelivery,
+    type NotificationPreference,
+    type NewNotificationPreference,
 } from './approval.schema'
 
 // IFRS9 (Banking-specific tables) - Replaced by legacy schema
@@ -101,13 +105,23 @@ export * from './legacy'
 export {
     platformSchema,
     platformUsers,
+    platformSettings,
     tenants,
     tenantsRelations, // ✅ Export tenantsRelations
     type PlatformUser,
     type NewPlatformUser,
+    type PlatformSetting,
+    type NewPlatformSetting,
     type Tenant,
     type NewTenant,
 } from './platform.schema'
+
+// Individual Impairment
+export {
+    individualImpairmentScenarios,
+    type IndividualImpairmentScenario,
+    type NewIndividualImpairmentScenario,
+} from './individual-impairment.schema'
 
 // Jobs / Queue
 export {
