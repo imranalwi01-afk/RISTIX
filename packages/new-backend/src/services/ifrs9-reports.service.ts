@@ -14,7 +14,7 @@ import {
     frs9ImpCaEadPaymAvg,
     frs9ImpCaEadConfig,
     frs9MasterAccount,
-    frs9ImpCaResultD
+    frs9ImpCaResultD,
 } from '../db/schema';
 import { legacyDb } from '@/config';
 
@@ -51,6 +51,135 @@ export class Ifrs9ReportsService {
     private getPagination(page: number = 1, limit: number = 20) {
         const offset = (page - 1) * limit;
         return { limit, offset };
+    }
+
+    private toNumber(value: unknown): number {
+        if (value === null || value === undefined) return 0;
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    private endOfMonth(dateText: string): string {
+        const [year, month] = String(dateText).split('-').map((v) => Number(v));
+        if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) {
+            return dateText;
+        }
+        const eom = new Date(Date.UTC(year, month, 0));
+        return eom.toISOString().slice(0, 10);
+    }
+
+    private normalizeStageFilter(stage?: string | string[]): number[] | null {
+        const stageValues = Array.isArray(stage)
+            ? stage
+            : (stage ? [stage] : []);
+
+        const parsed = Array.from(new Set(
+            stageValues
+                .flatMap((value) => String(value).split(','))
+                .map((value) => Number(String(value).trim()))
+                .filter((value) => Number.isInteger(value) && value >= 1 && value <= 3)
+        ));
+
+        return parsed.length > 0 ? parsed : null;
+    }
+
+    private async refreshMovementData(prcDate: string) {
+        try {
+            await legacyDb.execute(sql`
+                CALL public.sp_frs9_imp_movement_data(${prcDate}::date, ${'M'}::char, ${0}::bigint)
+            `);
+        } catch (error) {
+            // Procedure can fail for missing period snapshots; keep existing movement rows if available.
+            console.warn('⚠️ Unable to refresh movement data via SP:', error);
+        }
+    }
+
+    private async fetchMovementRows(
+        prcDate: string,
+        groupSegment?: string,
+    ) {
+        const requestedEom = this.endOfMonth(prcDate);
+        await this.refreshMovementData(requestedEom);
+
+        const effectiveDateResult = await legacyDb.execute(sql`
+            SELECT MAX(prc_date) AS max_date
+            FROM public.frs9_imp_movement_data
+            WHERE prc_date <= ${requestedEom}::date
+        `);
+        const effectiveDate = (effectiveDateResult as any[])[0]?.max_date;
+        if (!effectiveDate) {
+            return { effectiveDate: null as string | null, rows: [] as any[] };
+        }
+
+        const whereSegment = (groupSegment && groupSegment.trim())
+            ? sql`AND lower(group_segment) = lower(${groupSegment.trim()})`
+            : sql``;
+
+        const rows = await legacyDb.execute(sql`
+            SELECT
+                prc_date,
+                urut,
+                group_segment,
+                stage1,
+                stage2,
+                stage3,
+                stage1_i,
+                stage2_i,
+                stage3_i,
+                gca_stage1,
+                gca_stage2,
+                gca_stage3,
+                gca_stage1_i,
+                gca_stage2_i,
+                gca_stage3_i,
+                poci
+            FROM public.frs9_imp_movement_data
+            WHERE prc_date = ${effectiveDate}::date
+              AND NULLIF(trim(group_segment), '') IS NOT NULL
+              ${whereSegment}
+            ORDER BY group_segment, urut
+        `);
+
+        return {
+            effectiveDate: String(effectiveDate),
+            rows: Array.from(rows as any[]),
+        };
+    }
+
+    private getStageEcl(row: any, stage: number): number {
+        if (!row) return 0;
+        if (stage === 1) return this.toNumber(row.stage1) + this.toNumber(row.stage1_i);
+        if (stage === 2) return this.toNumber(row.stage2) + this.toNumber(row.stage2_i);
+        return this.toNumber(row.stage3) + this.toNumber(row.stage3_i);
+    }
+
+    private getStageGca(row: any, stage: number): number {
+        if (!row) return 0;
+        if (stage === 1) return this.toNumber(row.gca_stage1) + this.toNumber(row.gca_stage1_i);
+        if (stage === 2) return this.toNumber(row.gca_stage2) + this.toNumber(row.gca_stage2_i);
+        return this.toNumber(row.gca_stage3) + this.toNumber(row.gca_stage3_i);
+    }
+
+    private getRowEclTotal(row: any, stageFilter: number[] | null): number {
+        if (!row) return 0;
+        const stages = stageFilter ?? [1, 2, 3];
+        const stageTotal = stages.reduce((sum, stage) => sum + this.getStageEcl(row, stage), 0);
+        // POCI is separate in movement table and should be included only for non-filtered totals.
+        const pociTotal = stageFilter ? 0 : this.toNumber(row.poci);
+        return stageTotal + pociTotal;
+    }
+
+    private getRowGcaTotal(row: any, stageFilter: number[] | null): number {
+        if (!row) return 0;
+        const stages = stageFilter ?? [1, 2, 3];
+        return stages.reduce((sum, stage) => sum + this.getStageGca(row, stage), 0);
+    }
+
+    private getRowEclTransferMagnitude(row: any, stageFilter: number[] | null): number {
+        if (!row) return 0;
+        const stages = stageFilter ?? [1, 2, 3];
+        const stageValues = stages.map((stage) => Math.abs(this.getStageEcl(row, stage)));
+        return stageValues.length > 0 ? Math.max(...stageValues) : 0;
     }
 
     /**
@@ -138,7 +267,7 @@ export class Ifrs9ReportsService {
             ];
 
             // Add scalar_id filter if provided
-            if (scalarId !== undefined && scalar_id !== null) {
+            if (scalarId !== undefined && scalarId !== null) {
                 conditions.push(eq(frs9ImpCaPdStructure.scalarId, scalarId));
             }
 
@@ -189,7 +318,7 @@ export class Ifrs9ReportsService {
             ];
 
             // Add scalar_id filter if provided
-            if (scalarId !== undefined && scalar_id !== null) {
+            if (scalarId !== undefined && scalarId !== null) {
                 conditions.push(eq(frs9ImpCaPdStructure.scalarId, scalarId));
             }
 
@@ -913,166 +1042,218 @@ export class Ifrs9ReportsService {
 
     /**
      * Get ECL Movement Report
-     * Calculates Opening Balance, Provisions, Releases, Writes-offs, and Closing Balance
+     * Source: frs9_imp_movement_data (generated by SP: sp_frs9_imp_movement_data)
      */
-    async getECLMovement(tenantId: string, params?: { prc_date: string, segment_id?: number, stage?: string | string[] }) {
+    async getECLMovement(tenantId: string, params?: { prc_date: string, segment_id?: number, stage?: string | string[], group_segment?: string }) {
         try {
             const prcDate = params?.prc_date || '2023-12-31';
-            const segmentId = params?.segment_id;
-            const stage = params?.stage;
+            const stageFilter = this.normalizeStageFilter(params?.stage);
+            const groupSegment = params?.group_segment;
 
-            // Robust Date Selection: Get the latest date <= requested date
-            const dateQuery = await legacyDb.execute(sql.raw(`
-                SELECT MAX(prc_date) as max_date 
-                FROM public.frs9_master_account 
-                WHERE prc_date <= '${prcDate}'
-            `));
+            const { effectiveDate, rows } = await this.fetchMovementRows(prcDate, groupSegment);
+            if (!effectiveDate || rows.length === 0) {
+                return { data: [] };
+            }
 
-            const effectiveDate = (dateQuery as any[])[0]?.max_date || prcDate;
+            const numericFields = [
+                'stage1', 'stage2', 'stage3',
+                'stage1_i', 'stage2_i', 'stage3_i',
+                'gca_stage1', 'gca_stage2', 'gca_stage3',
+                'gca_stage1_i', 'gca_stage2_i', 'gca_stage3_i',
+                'poci',
+            ];
 
-            // Base WHERE clause
-            let whereClause = `prc_date = '${effectiveDate}'`;
-            if (segmentId) whereClause += ` AND segment_id = ${segmentId}`;
+            const byGroup = new Map<string, Map<number, any>>();
+            for (const row of rows) {
+                const group = String(row.group_segment || '').trim();
+                const urut = this.toNumber(row.urut);
+                if (!group || urut <= 0) continue;
 
-            if (stage) {
-                if (Array.isArray(stage)) {
-                    const stageList = stage.map(s => `'${s}'`).join(',');
-                    whereClause += ` AND stage IN (${stageList})`;
-                } else {
-                    whereClause += ` AND stage = '${stage}'`;
+                if (!byGroup.has(group)) byGroup.set(group, new Map<number, any>());
+                const groupRows = byGroup.get(group)!;
+
+                if (!groupRows.has(urut)) {
+                    groupRows.set(urut, { urut, group_segment: group, prc_date: effectiveDate });
+                    for (const field of numericFields) {
+                        groupRows.get(urut)[field] = 0;
+                    }
+                }
+
+                const current = groupRows.get(urut)!;
+                for (const field of numericFields) {
+                    current[field] += this.toNumber(row[field]);
                 }
             }
 
-            // Aggregation query - Simplified casting and added COALESCE
-            const rawData = await legacyDb.execute(sql.raw(`
-                SELECT 
-                    COALESCE(SUM(ecl_final_amt), 0) AS closing_balance,
-                    COALESCE(SUM(ecl_ia_onbs_amt), 0) AS specific_provision,
-                    COALESCE(SUM(ecl_ca_onbs_amt), 0) AS collective_provision,
-                    COUNT(*) as account_count
-                FROM public.frs9_master_account
-                WHERE ${whereClause}
-            `));
+            const transferUruts = [2, 3, 4, 5, 6];
+            const movementUruts = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13];
+            const provisionUruts = [7, 8, 9, 10, 13];
 
-            const row = (rawData as any[])[0];
-            const closingBalance = Number(row?.closing_balance || 0);
+            const data = Array.from(byGroup.entries()).map(([group, urutRows]) => {
+                const getRow = (urut: number) => urutRows.get(urut);
+                const openingBalance = this.getRowEclTotal(getRow(1), stageFilter);
+                const finalBalanceRaw = this.getRowEclTotal(getRow(14), stageFilter);
+                const netMovementFromComponents = movementUruts.reduce(
+                    (sum, urut) => sum + this.getRowEclTotal(getRow(urut), stageFilter),
+                    0,
+                );
+                const closingBalance = finalBalanceRaw !== 0
+                    ? finalBalanceRaw
+                    : openingBalance + netMovementFromComponents;
 
-            // Mocking movement components for display
-            // Use Math.max to prevent negative opening balance if something is weird
-            const openingBalance = closingBalance > 0 ? closingBalance * 0.95 : 1000000000; // Fallback dummy if 0
-            const netMovement = closingBalance - openingBalance;
-            const newProvisions = netMovement > 0 ? netMovement : 0;
-            const releases = netMovement < 0 ? Math.abs(netMovement) : 0;
+                const stageTransfers = transferUruts.reduce(
+                    (sum, urut) => sum + this.getRowEclTransferMagnitude(getRow(urut), stageFilter),
+                    0,
+                );
 
-            return {
-                data: [{
+                let newProvisions = 0;
+                let releases = 0;
+                for (const urut of provisionUruts) {
+                    const value = this.getRowEclTotal(getRow(urut), stageFilter);
+                    if (value >= 0) {
+                        newProvisions += value;
+                    } else {
+                        releases += Math.abs(value);
+                    }
+                }
+
+                const writeOffs = Math.abs(this.getRowEclTotal(getRow(11), stageFilter));
+
+                return {
+                    prc_date: effectiveDate,
+                    group_segment: group,
                     opening_balance: openingBalance,
                     closing_balance: closingBalance,
                     new_provisions: newProvisions,
-                    releases: releases,
-                    write_offs: 0,
-                    stage_transfers: 0
-                }]
-            };
+                    releases,
+                    write_offs: writeOffs,
+                    stage_transfers: stageTransfers,
+                };
+            });
+
+            return { data };
         } catch (error) {
             console.error('❌ Error in getECLMovement service:', error);
-            // Return dummy data on error to prevent broken UI
-            return {
-                data: [{
-                    opening_balance: 0,
-                    closing_balance: 0,
-                    new_provisions: 0,
-                    releases: 0,
-                    write_offs: 0,
-                    stage_transfers: 0
-                }]
-            };
+            return { data: [] };
         }
     }
 
     /**
      * Get GCA Movement Report
-     * Calculates Gross Carrying Amount movement
+     * Source: frs9_imp_movement_data (generated by SP: sp_frs9_imp_movement_data)
      */
-    async getGCAMovement(tenantId: string, params?: { prc_date: string, segment_id?: number, stage?: string | string[] }) {
+    async getGCAMovement(tenantId: string, params?: { prc_date: string, segment_id?: number, stage?: string | string[], group_segment?: string }) {
         try {
             const prcDate = params?.prc_date || '2023-12-31';
-            const segmentId = params?.segment_id;
-            const stage = params?.stage;
+            const stageFilter = this.normalizeStageFilter(params?.stage);
+            const groupSegment = params?.group_segment;
 
-            // Robust Date Selection
-            const dateQuery = await legacyDb.execute(sql.raw(`
-                SELECT MAX(prc_date) as max_date 
-                FROM public.frs9_master_account 
-                WHERE prc_date <= '${prcDate}'
-            `));
+            const { effectiveDate, rows } = await this.fetchMovementRows(prcDate, groupSegment);
+            if (!effectiveDate || rows.length === 0) {
+                return { data: [] };
+            }
 
-            const effectiveDate = (dateQuery as any[])[0]?.max_date || prcDate;
-            let whereClause = `prc_date = '${effectiveDate}'`;
-            if (segmentId) whereClause += ` AND segment_id = ${segmentId}`;
+            const numericFields = [
+                'stage1', 'stage2', 'stage3',
+                'stage1_i', 'stage2_i', 'stage3_i',
+                'gca_stage1', 'gca_stage2', 'gca_stage3',
+                'gca_stage1_i', 'gca_stage2_i', 'gca_stage3_i',
+                'poci',
+            ];
 
-            if (stage) {
-                if (Array.isArray(stage)) {
-                    const stageList = stage.map(s => `'${s}'`).join(',');
-                    whereClause += ` AND stage IN (${stageList})`;
-                } else {
-                    whereClause += ` AND stage = '${stage}'`;
+            const byGroup = new Map<string, Map<number, any>>();
+            for (const row of rows) {
+                const group = String(row.group_segment || '').trim();
+                const urut = this.toNumber(row.urut);
+                if (!group || urut <= 0) continue;
+
+                if (!byGroup.has(group)) byGroup.set(group, new Map<number, any>());
+                const groupRows = byGroup.get(group)!;
+
+                if (!groupRows.has(urut)) {
+                    groupRows.set(urut, { urut, group_segment: group, prc_date: effectiveDate });
+                    for (const field of numericFields) {
+                        groupRows.get(urut)[field] = 0;
+                    }
+                }
+
+                const current = groupRows.get(urut)!;
+                for (const field of numericFields) {
+                    current[field] += this.toNumber(row[field]);
                 }
             }
 
-            const rawData = await legacyDb.execute(sql.raw(`
-                SELECT 
-                    COALESCE(SUM(outstanding), 0) AS closing_gca,
-                    COALESCE(SUM(CASE WHEN stage = '1' THEN outstanding ELSE 0 END), 0) AS stage1_gca,
-                    COALESCE(SUM(CASE WHEN stage = '2' THEN outstanding ELSE 0 END), 0) AS stage2_gca,
-                    COALESCE(SUM(CASE WHEN stage = '3' THEN outstanding ELSE 0 END), 0) AS stage3_gca
-                FROM public.frs9_master_account
-                WHERE ${whereClause}
-            `));
-
-            const row = (rawData as any[])[0];
-            const closingGCA = Number(row?.closing_gca || 0);
-
-            // Fetch stage transfer estimates or calculate if possible
-            // For now, providing realistic synthetic data based on total balance to avoid Rp 0
-            const openingGCA = closingGCA > 0 ? closingGCA * 0.985 : 5000000000;
-            const newBusiness = closingGCA * 0.05;
-            const repayments = openingGCA * 0.035;
-            
-            // Stage transfer estimates (approx 1-2% of relevant stage balances)
-            const stage1_gca = Number(row?.stage1_gca || 0);
-            const stage2_gca = Number(row?.stage2_gca || 0);
-            const stage3_gca = Number(row?.stage3_gca || 0);
-
-            return {
-                data: [{
-                    opening_gca: openingGCA,
-                    closing_gca: closingGCA,
-                    new_business: newBusiness,
-                    repayments: repayments,
-                    write_offs: 0,
-                    stage1_to_stage2: stage1_gca * 0.012,
-                    stage2_to_stage1: stage2_gca * 0.008,
-                    stage2_to_stage3: stage2_gca * 0.015,
-                    stage3_to_stage2: stage3_gca * 0.005,
-                    current_stage: 1
-                }, {
-                    opening_gca: stage1_gca * 0.98,
-                    closing_gca: stage1_gca,
-                    current_stage: 1
-                }, {
-                    opening_gca: stage2_gca * 1.02,
-                    closing_gca: stage2_gca,
-                    current_stage: 2
-                }, {
-                    opening_gca: stage3_gca * 1.05,
-                    closing_gca: stage3_gca,
-                    current_stage: 3
-                }]
+            const movementUruts = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13];
+            const stageTransferUrutMap: Record<number, number> = {
+                1: 2, // 1 -> 2
+                2: 4, // 2 -> 1
+                3: 5, // 2 -> 3
+                4: 6, // 3 -> 2
             };
+
+            const selectedStages = stageFilter ?? [1, 2, 3];
+            const firstSelectedStage = selectedStages[0] ?? 1;
+            const data: any[] = [];
+
+            for (const [group, urutRows] of byGroup.entries()) {
+                const getRow = (urut: number) => urutRows.get(urut);
+
+                const openingByStage = new Map<number, number>();
+                const closingByStage = new Map<number, number>();
+                for (const stage of selectedStages) {
+                    const openingStage = this.getStageGca(getRow(1), stage);
+                    const finalStageRaw = this.getStageGca(getRow(14), stage);
+                    const movementStage = movementUruts.reduce(
+                        (sum, urut) => sum + this.getStageGca(getRow(urut), stage),
+                        0,
+                    );
+                    const closingStage = finalStageRaw !== 0
+                        ? finalStageRaw
+                        : openingStage + movementStage;
+                    openingByStage.set(stage, openingStage);
+                    closingByStage.set(stage, closingStage);
+                }
+
+                const openingTotal = selectedStages.reduce((sum, stage) => sum + (openingByStage.get(stage) || 0), 0);
+                const closingTotal = selectedStages.reduce((sum, stage) => sum + (closingByStage.get(stage) || 0), 0);
+
+                const newBusinessRaw = this.getRowGcaTotal(getRow(7), stageFilter);
+                const closeRepaymentRaw = this.getRowGcaTotal(getRow(10), stageFilter);
+                const writeOffRaw = this.getRowGcaTotal(getRow(11), stageFilter);
+
+                const newBusiness = Math.max(newBusinessRaw, 0);
+                const repayments = Math.abs(closeRepaymentRaw);
+                const writeOffs = Math.abs(writeOffRaw);
+
+                const stage1To2 = Math.abs(this.getRowGcaTotal(getRow(stageTransferUrutMap[1]), stageFilter));
+                const stage2To1 = Math.abs(this.getRowGcaTotal(getRow(stageTransferUrutMap[2]), stageFilter));
+                const stage2To3 = Math.abs(this.getRowGcaTotal(getRow(stageTransferUrutMap[3]), stageFilter));
+                const stage3To2 = Math.abs(this.getRowGcaTotal(getRow(stageTransferUrutMap[4]), stageFilter));
+
+                for (const stage of selectedStages) {
+                    data.push({
+                        prc_date: effectiveDate,
+                        group_segment: group,
+                        current_stage: stage,
+                        opening_gca: openingByStage.get(stage) || 0,
+                        closing_gca: closingByStage.get(stage) || 0,
+                        new_business: stage === firstSelectedStage ? newBusiness : 0,
+                        repayments: stage === firstSelectedStage ? repayments : 0,
+                        write_offs: stage === firstSelectedStage ? writeOffs : 0,
+                        stage1_to_stage2: stage === firstSelectedStage ? stage1To2 : 0,
+                        stage2_to_stage1: stage === firstSelectedStage ? stage2To1 : 0,
+                        stage2_to_stage3: stage === firstSelectedStage ? stage2To3 : 0,
+                        stage3_to_stage2: stage === firstSelectedStage ? stage3To2 : 0,
+                        opening_total_gca: stage === firstSelectedStage ? openingTotal : 0,
+                        closing_total_gca: stage === firstSelectedStage ? closingTotal : 0,
+                    });
+                }
+            }
+
+            return { data };
         } catch (error) {
             console.error('❌ Error in getGCAMovement service:', error);
-            return { data: [], total: 0, page: 1, totalPages: 0 };
+            return { data: [] };
         }
     }
 }

@@ -22,8 +22,10 @@ import {
 } from '@mui/icons-material';
 import { individualImpairmentAPI, AuditTrail } from '../../../../../services/api/individual-impairment.api';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
+import { useAssessmentWorkspaceEmbedded } from '../../assessment/embedded-context';
 
 export default function CustomerHistoryPage() {
+  const embedded = useAssessmentWorkspaceEmbedded();
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<AuditTrail[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -79,27 +81,30 @@ export default function CustomerHistoryPage() {
   ];
 
   return (
-    <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
-      <FullstackIndicator />
+    <Container maxWidth="xl" sx={embedded ? { px: '0 !important' } : { mt: 4, mb: 4 }}>
+      {!embedded && <FullstackIndicator />}
 
-      {/* Breadcrumbs */}
-      <Breadcrumbs sx={{ mb: 2 }}>
-        <Link href="/banking/dashboard" underline="hover" color="inherit" sx={{ display: 'flex', alignItems: 'center' }}>
-          <HomeIcon sx={{ mr: 0.5 }} fontSize="inherit" /> Dashboard
-        </Link>
-        <Typography color="text.primary" sx={{ display: 'flex', alignItems: 'center' }}>
-          <HistoryIcon sx={{ mr: 0.5 }} fontSize="inherit" /> History
-        </Typography>
-        <Typography color="text.primary" sx={{ display: 'flex', alignItems: 'center' }}>
-          <PersonIcon sx={{ mr: 0.5 }} fontSize="inherit" /> Customer Details
-        </Typography>
-      </Breadcrumbs>
+      {!embedded && (
+        <Breadcrumbs sx={{ mb: 2 }}>
+          <Link href="/banking/dashboard" underline="hover" color="inherit" sx={{ display: 'flex', alignItems: 'center' }}>
+            <HomeIcon sx={{ mr: 0.5 }} fontSize="inherit" /> Dashboard
+          </Link>
+          <Typography color="text.primary" sx={{ display: 'flex', alignItems: 'center' }}>
+            <HistoryIcon sx={{ mr: 0.5 }} fontSize="inherit" /> History
+          </Typography>
+          <Typography color="text.primary" sx={{ display: 'flex', alignItems: 'center' }}>
+            <PersonIcon sx={{ mr: 0.5 }} fontSize="inherit" /> Customer Details
+          </Typography>
+        </Breadcrumbs>
+      )}
 
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Customer Audit Trail
-        </Typography>
-      </Box>
+      {!embedded && (
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+          <Typography variant="h4" component="h1" gutterBottom>
+            Customer Audit Trail
+          </Typography>
+        </Box>
+      )}
 
       {error && (
         <Typography color="error" sx={{ mb: 2 }}>

@@ -203,6 +203,12 @@ services:
     ports:
       - "4236:4236"
       - "4241:4241"
+    healthcheck:
+      test: [ "CMD-SHELL", "(curl -fsS http://localhost:4236/ >/dev/null || curl -fsS http://localhost:3838/ >/dev/null) && curl -fsS http://localhost:4241/health >/dev/null" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     networks:
       - ifrs9-dev
     volumes:

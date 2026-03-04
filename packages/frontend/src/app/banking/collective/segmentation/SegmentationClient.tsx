@@ -11,7 +11,6 @@ import {
   Container,
   Alert,
   Snackbar,
-  Drawer,
   Box,
   Card,
   CardContent,
@@ -35,6 +34,7 @@ import { SegmentationHeader } from '../../../../components/banking/collective/se
 import { SegmentationToolbar } from '../../../../components/banking/collective/segmentation/SegmentationToolbar';
 import { SegmentationTable } from '../../../../components/banking/collective/segmentation/SegmentationTable';
 import { SegmentationDetail } from '../../../../components/banking/collective/segmentation/SegmentationDetail';
+import { SegmentationDetailContainer } from '../../../../components/banking/collective/segmentation/SegmentationDetailContainer';
 import SegmentationFilterDrawer from './components/SegmentationFilterDrawer';
 
 // Hooks & Existing Services
@@ -61,6 +61,7 @@ interface SegmentationHeaderData {
 }
 
 const BANKING_TOP_OFFSET = 74; // Banking app bar (42) + breadcrumbs row (32)
+const DETAIL_CONTAINER_VARIANT: 'modal' | 'drawer' = 'modal';
 const EMPTY_FILTERS = {
   segmentType: '',
   status: '',
@@ -475,17 +476,11 @@ export default function SegmentationClient() {
       />
 
       {detailOpen && selectedHeader && (
-        <Drawer
-          anchor="right"
+        <SegmentationDetailContainer
           open={detailOpen}
           onClose={() => setDetailOpen(false)}
-          PaperProps={{
-            sx: {
-              width: { xs: '100%', md: '80%', lg: '70%' },
-              top: `${BANKING_TOP_OFFSET}px`,
-              height: `calc(100% - ${BANKING_TOP_OFFSET}px)`,
-            }
-          }}
+          variant={DETAIL_CONTAINER_VARIANT}
+          topOffset={BANKING_TOP_OFFSET}
         >
           <SegmentationDetail
             mode={detailMode}
@@ -493,7 +488,7 @@ export default function SegmentationClient() {
             onSubmit={(data, isDraft) => handleSave(data, isDraft)}
             onClose={() => setDetailOpen(false)}
           />
-        </Drawer>
+        </SegmentationDetailContainer>
       )}
 
       <SegmentationFilterDrawer

@@ -95,19 +95,7 @@ export class IndividualImpairmentService {
 
         } catch (error) {
             console.error('❌ Error fetching assessment history:', error);
-            // Fallback mock history
-            return [
-                {
-                    id: 'HIST-MOCK-1',
-                    entityId: String(accountId),
-                    entityType: 'ASSESSMENT',
-                    action: 'CREATE',
-                    actor: 'admin',
-                    timestamp: new Date().toISOString(),
-                    details: 'Mock Assessment created (Fallback)',
-                    status: 'PENDING'
-                }
-            ];
+            return [];
         }
     }
 
@@ -159,57 +147,6 @@ export class IndividualImpairmentService {
                 .where(and(...conditions))
                 .orderBy(desc(individualImpairmentScenarios.createdAt));
 
-            // If no custom scenarios found, return default templates
-            if (results.length === 0) {
-                return [
-                    {
-                        pkid: 1,
-                        scenarioCode: 'BASE_CASE',
-                        scenarioName: 'Base Case',
-                        description: 'Base economic scenario',
-                        status: 'APPROVED',
-                        activeFlag: true,
-                        createdDate: new Date().toISOString(),
-                        createdBy: 'System',
-                        discountRate: 8.5,
-                        recoveryRate: 60.0,
-                        growthRate: 2.0,
-                        timeHorizon: 60,
-                        paymentFrequency: 'monthly'
-                    },
-                    {
-                        pkid: 2,
-                        scenarioCode: 'OPTIMISTIC',
-                        scenarioName: 'Optimistic',
-                        description: 'Optimistic growth scenario',
-                        status: 'APPROVED',
-                        activeFlag: true,
-                        createdDate: new Date().toISOString(),
-                        createdBy: 'System',
-                        discountRate: 6.5,
-                        recoveryRate: 75.0,
-                        growthRate: 3.5,
-                        timeHorizon: 60,
-                        paymentFrequency: 'monthly'
-                    },
-                    {
-                        pkid: 3,
-                        scenarioCode: 'PESSIMISTIC',
-                        scenarioName: 'Pessimistic',
-                        description: 'Severe stress scenario',
-                        status: 'APPROVED',
-                        activeFlag: true,
-                        createdDate: new Date().toISOString(),
-                        createdBy: 'System',
-                        discountRate: 12.0,
-                        recoveryRate: 40.0,
-                        growthRate: 0.5,
-                        timeHorizon: 60,
-                        paymentFrequency: 'monthly'
-                    }
-                ];
-            }
-
             // Map DB result to Frontend format
             return results.map(r => ({
                 pkid: r.id,
@@ -229,7 +166,6 @@ export class IndividualImpairmentService {
 
         } catch (error) {
             console.error('Error fetching scenarios:', error);
-            // Fallback defaults on error
             return [];
         }
     }
@@ -923,8 +859,12 @@ export class IndividualImpairmentService {
                 ? sql`WHERE ${masterConditions.reduce((acc, condition, index) => index === 0 ? condition : sql`${acc} AND ${condition}`)}`
                 : sql``;
 
+            // Derive IA stage from override flag (legacy table has no ia.stage column)
+            const iaStageExpr = sql`CASE WHEN ia.impaired_flag = 'T' THEN 3 WHEN ia.impaired_flag = 'F' THEN 1 ELSE NULL END`;
             // We apply the stage filter AFTER computing the final unified stage
-            const stageFilter = filters.stage ? sql`HAVING COALESCE(MAX(ia.stage), MAX(ca.stage), MAX(m.stage)) = ${filters.stage}` : sql``;
+            const stageFilter = filters.stage
+                ? sql`HAVING COALESCE(MAX(${iaStageExpr}), MAX(ca.stage), MAX(m.stage)) = ${Number(filters.stage)}`
+                : sql``;
 
             const query = sql`
                 WITH latest_date AS (
@@ -932,7 +872,7 @@ export class IndividualImpairmentService {
                 )
                 SELECT 
                     m.prc_date as "prcDate",
-                    COALESCE(MAX(ia.stage), MAX(ca.stage), MAX(m.stage)) as "stage",
+                    COALESCE(MAX(${iaStageExpr}), MAX(ca.stage), MAX(m.stage)) as "stage",
                     m.segment as "segmentId",
                     SUM(CAST(m.outstanding AS DECIMAL)) as "totalOutstanding",
                     SUM(COALESCE(CAST(ia.ecl_ia_amt AS DECIMAL), CAST(ca.ecl_amount AS DECIMAL), 0)) as "totalECL",
@@ -1029,7 +969,11 @@ export class IndividualImpairmentService {
                     SELECT 
                         m.account_id,
                         m.outstanding,
-                        COALESCE(ia.stage, ca.stage, m.stage) as final_stage,
+                        COALESCE(
+                            CASE WHEN ia.impaired_flag = 'T' THEN 3 WHEN ia.impaired_flag = 'F' THEN 1 ELSE NULL END,
+                            ca.stage,
+                            m.stage
+                        ) as final_stage,
                         COALESCE(ia.ecl_ia_amt, ca.ecl_amount, 0) as final_ecl
                     FROM frs9_master_account m
                     LEFT JOIN frs9_imp_ia_header ia 

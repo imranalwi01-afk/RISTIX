@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { frontendEnvironmentLoader } from '@/config/environment-loader-frontend';
 
 interface PlatformSettings {
     platformName: string | null;
@@ -31,7 +32,9 @@ export function PlatformSettingsProvider({ children }: { children: React.ReactNo
 
         async function fetchSettings() {
             try {
-                const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/platform/settings/public`);
+                const envConfig = frontendEnvironmentLoader.getConfiguration();
+                const apiBase = (envConfig?.api?.base || envConfig?.api?.backend || '/api/v1').replace(/\/+$/, '');
+                const response = await fetch(`${apiBase}/platform/settings/public`);
                 if (response.ok) {
                     const result = await response.json();
                     if (result.success && result.data && mounted) {

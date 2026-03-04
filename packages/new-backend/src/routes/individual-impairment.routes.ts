@@ -371,26 +371,6 @@ individualImpairmentRoutes.openapi(
 
 individualImpairmentRoutes.openapi(
     createRoute({
-        method: 'get',
-        path: '/{accountId}',
-        tags: ['Individual Impairment'],
-        summary: 'Get Assessment',
-        request: {
-            params: z.object({ accountId: z.string() })
-        },
-        responses: {
-            200: { content: { 'application/json': { schema: AssessmentResponse } }, description: 'Assessment' },
-            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
-            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
-            401: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Unauthorized' },
-            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
-        }
-    }),
-    (c: any) => individualImpairmentController.getAssessment(c)
-)
-
-individualImpairmentRoutes.openapi(
-    createRoute({
         method: 'post',
         path: '/assessment',
         tags: ['Individual Impairment'],
@@ -730,5 +710,25 @@ individualImpairmentRoutes.openapi(
     (c: any) => individualImpairmentController.getDcfCashflows(c)
 )
 
-// End of individual impairment routes
+// Keep generic accountId route last so it doesn't shadow static routes like /scenarios.
+individualImpairmentRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/{accountId}',
+        tags: ['Individual Impairment'],
+        summary: 'Get Assessment',
+        request: {
+            params: z.object({ accountId: z.string() })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: AssessmentResponse } }, description: 'Assessment' },
+            400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
+            404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
+            401: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Unauthorized' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    (c: any) => individualImpairmentController.getAssessment(c)
+)
 
+// End of individual impairment routes

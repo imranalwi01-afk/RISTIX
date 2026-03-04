@@ -39,8 +39,10 @@ import {
 import * as XLSX from 'xlsx';
 import { individualImpairmentAPI } from '../../../../services/api/individual-impairment.api';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
+import { useAssessmentWorkspaceEmbedded } from '../assessment/embedded-context';
 
 export default function DcfUploadPage() {
+  const embedded = useAssessmentWorkspaceEmbedded();
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -160,21 +162,22 @@ export default function DcfUploadPage() {
   ];
 
   return (
-    <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
-      <FullstackIndicator />
+    <Container maxWidth="xl" sx={embedded ? { px: '0 !important' } : { mt: 4, mb: 4 }}>
+      {!embedded && <FullstackIndicator />}
 
-      {/* Breadcrumbs */}
-      <Breadcrumbs sx={{ mb: 2 }}>
-        <Link href="/banking/dashboard" underline="hover" color="inherit" sx={{ display: 'flex', alignItems: 'center' }}>
-          <HomeIcon sx={{ mr: 0.5 }} fontSize="inherit" /> Dashboard
-        </Link>
-        <Typography color="text.primary" sx={{ display: 'flex', alignItems: 'center' }}>
-          <ListIcon sx={{ mr: 0.5 }} fontSize="inherit" /> DCF Uploads
-        </Typography>
-      </Breadcrumbs>
+      {!embedded && (
+        <Breadcrumbs sx={{ mb: 2 }}>
+          <Link href="/banking/dashboard" underline="hover" color="inherit" sx={{ display: 'flex', alignItems: 'center' }}>
+            <HomeIcon sx={{ mr: 0.5 }} fontSize="inherit" /> Dashboard
+          </Link>
+          <Typography color="text.primary" sx={{ display: 'flex', alignItems: 'center' }}>
+            <ListIcon sx={{ mr: 0.5 }} fontSize="inherit" /> DCF Uploads
+          </Typography>
+        </Breadcrumbs>
+      )}
 
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" component="h1" gutterBottom>
+        <Typography variant={embedded ? 'h6' : 'h4'} component="h1" gutterBottom>
           DCF Uploads
         </Typography>
         <Button

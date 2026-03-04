@@ -125,6 +125,7 @@ const PERMISSION_OVERRIDES: Record<string, string | string[]> = {
     'role-management': 'admin.roles.manage',
     'menu-management': 'admin.system.manage',
     'job-monitoring': ['jobs.view', 'jobs.manage', 'admin.system.manage'],
+    'assessment-workspace': 'banking.individual.view',
     'workflow-management': 'approval.requests.approve',
     'approval-system': 'approval.requests.approve',
     'workflow-notifications': ['notifications.view', 'notifications.manage', 'approval.requests.approve'],

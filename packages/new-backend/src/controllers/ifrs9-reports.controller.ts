@@ -257,9 +257,10 @@ export const ifrs9ReportsController = {
             const prc_date = c.req.query('prc_date') || '2023-12-31';
             const segment_id = c.req.query('segment_id') ? Number(c.req.query('segment_id')) : undefined;
             const stage = c.req.queries('stage') || (c.req.query('stage') ? [c.req.query('stage')!] : undefined);
+            const group_segment = c.req.query('group_segment') || undefined;
             const result = await ifrs9ReportsService.getECLMovement(
                 tenantId,
-                { prc_date, segment_id, stage }
+                { prc_date, segment_id, stage, group_segment }
             );
             return c.json({
                 success: true,
@@ -278,9 +279,10 @@ export const ifrs9ReportsController = {
             const prc_date = c.req.query('prc_date') || '2023-12-31';
             const segment_id = c.req.query('segment_id') ? Number(c.req.query('segment_id')) : undefined;
             const stage = c.req.queries('stage') || (c.req.query('stage') ? [c.req.query('stage')!] : undefined);
+            const group_segment = c.req.query('group_segment') || undefined;
             const result = await ifrs9ReportsService.getGCAMovement(
                 tenantId,
-                { prc_date, segment_id, stage }
+                { prc_date, segment_id, stage, group_segment }
             );
             return c.json({
                 success: true,

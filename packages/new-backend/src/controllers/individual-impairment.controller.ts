@@ -450,7 +450,8 @@ export class IndividualImpairmentController {
     // Get Staging Summary - for dashboard cards
     async getStagingSummary(c: Context) {
         try {
-            const tenantId = c.get('tenantId');
+            const user = c.get('user');
+            const tenantId = user?.tenantId || c.get('tenantId');
             
             if (!tenantId) {
                 return c.json({ success: false, message: 'Tenant ID required' }, 400);

@@ -7,6 +7,7 @@ import { GridColDef } from '@mui/x-data-grid';
 import { SafeDataGrid } from '@/components/shared/SafeDataGrid';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 import { api } from '@/services/api';
+import { useAssessmentWorkspaceEmbedded } from '../../assessment/embedded-context';
 
 const columns: GridColDef[] = [
   { field: 'accountId', headerName: 'Account ID', width: 150 },
@@ -18,6 +19,7 @@ const columns: GridColDef[] = [
 ];
 
 export default function IADCFDetailPage() {
+  const embedded = useAssessmentWorkspaceEmbedded();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentUpload, setCurrentUpload] = useState<any>(null);
@@ -48,12 +50,14 @@ export default function IADCFDetailPage() {
   }, []);
 
   return (
-    <Container maxWidth="xl">
-      <FullstackIndicator />
-      <PageHeader
-        title="IA Discounted Cash Flow Detail"
-        subtitle="Detailed view of individual cash flow projections"
-      />
+    <Container maxWidth="xl" sx={embedded ? { px: '0 !important' } : undefined}>
+      {!embedded && <FullstackIndicator />}
+      {!embedded && (
+        <PageHeader
+          title="IA Discounted Cash Flow Detail"
+          subtitle="Detailed view of individual cash flow projections"
+        />
+      )}
       <Card>
         <CardContent>
           <Box mb={2}>
