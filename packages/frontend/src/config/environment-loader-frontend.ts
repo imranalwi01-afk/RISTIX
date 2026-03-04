@@ -5,16 +5,9 @@ const getEnv = (key: string): string => (process.env[key] || '').trim();
 
 const trimTrailingSlash = (value: string): string => value.replace(/\/+$/, '');
 
-const canonicalizeLegacyHosts = (value: string): string => {
-  return (value || '')
-    .replace('https://bifrs9-iaf.ifrspro.id', 'https://iaf-ifrs-be.ifrspro.id')
-    .replace('http://bifrs9-iaf.ifrspro.id', 'https://iaf-ifrs-be.ifrspro.id')
-    .replace('https://ifrs9-iaf.ifrspro.id', 'https://iaf-ifrs-be.ifrspro.id')
-    .replace('http://ifrs9-iaf.ifrspro.id', 'https://iaf-ifrs-be.ifrspro.id');
-};
-
 const stripApiSuffix = (value: string): string => {
-  let normalized = trimTrailingSlash(canonicalizeLegacyHosts(value || ''));
+  let normalized = trimTrailingSlash(value || '');
+
   while (/\/api(?:\/v1)?$/i.test(normalized)) {
     normalized = normalized.replace(/\/api(?:\/v1)?$/i, '');
   }
