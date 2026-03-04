@@ -139,6 +139,7 @@ export const SegmentationDetail: React.FC<SegmentationDetailProps> = ({
                     variant="outlined" 
                     startIcon={<SaveIcon />} 
                     onClick={() => handleSubmit(true)}
+                    data-testid="save-segmentation-btn"
                     sx={{ borderRadius: 2, textTransform: 'none', px: 3, fontWeight: 'bold' }}
                 >
                 Save Draft
@@ -147,6 +148,7 @@ export const SegmentationDetail: React.FC<SegmentationDetailProps> = ({
                     variant="contained" 
                     startIcon={<SubmitIcon />} 
                     onClick={() => handleSubmit(false)}
+                    data-testid="submit-segmentation-btn"
                     sx={{ borderRadius: 2, textTransform: 'none', px: 4, fontWeight: 'bold', boxShadow: '0 4px 12px rgba(25, 118, 210, 0.2)' }}
                 >
                 Submit for Approval

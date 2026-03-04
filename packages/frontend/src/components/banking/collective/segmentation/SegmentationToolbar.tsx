@@ -73,6 +73,7 @@ export const SegmentationToolbar: React.FC<SegmentationToolbarProps> = ({
                 </InputAdornment>
               )
             }}
+            inputProps={{ 'data-testid': 'segment-search-input' }}
           />
 
           <Tooltip title="Shortcut: F">
@@ -121,6 +122,7 @@ export const SegmentationToolbar: React.FC<SegmentationToolbarProps> = ({
                   variant="contained"
                   startIcon={<AddIcon />}
                   onClick={onAddClick}
+                  data-testid="add-segmentation-btn"
                   sx={{
                       borderRadius: 2,
                       textTransform: 'none',

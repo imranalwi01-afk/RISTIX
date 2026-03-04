@@ -126,6 +126,10 @@ const BusinessParameterDialog = memo(function BusinessParameterDialog({
         setFormData(prev => ({ ...prev, param_value: e.target.value }));
     }, []);
 
+    const handleParamCategoryChange = useCallback((e: any) => {
+        setFormData(prev => ({ ...prev, param_category: e.target.value }));
+    }, []);
+
 
 
     const handleEditableChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -189,6 +193,28 @@ const BusinessParameterDialog = memo(function BusinessParameterDialog({
                         rows={3}
                         sx={{ gridColumn: 'span 2' }}
                         inputProps={{ 'data-testid': 'input-param-desc' }}
+                    />
+                    <FormControl fullWidth>
+                        <InputLabel id="param-category-label">Category</InputLabel>
+                        <Select
+                            labelId="param-category-label"
+                            value={formData.param_category}
+                            label="Category"
+                            onChange={handleParamCategoryChange}
+                            inputProps={{ 'data-testid': 'select-param-category' }}
+                        >
+                            <MenuItem value="B">Business</MenuItem>
+                            <MenuItem value="A">Application</MenuItem>
+                            <MenuItem value="S">System</MenuItem>
+                        </Select>
+                    </FormControl>
+                    <TextField
+                        fullWidth
+                        label="Value"
+                        value={formData.param_value}
+                        onChange={handleParamValueChange}
+                        placeholder="Enter parameter value"
+                        inputProps={{ 'data-testid': 'input-param-value' }}
                     />
                     <FormControlLabel
                         control={

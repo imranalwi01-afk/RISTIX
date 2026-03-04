@@ -44,22 +44,12 @@ import { frontendEnvironmentLoader } from '../../config/environment-loader-front
 const getRAnalyticsUrl = () => {
   const config = frontendEnvironmentLoader.getConfiguration();
   const dashboardUrl = config.rAnalytics.dashboard;
-  
-  // If the configured URL is remote, use it
-  if (dashboardUrl && !dashboardUrl.includes('localhost') && !dashboardUrl.includes('127.0.0.1')) {
-    return dashboardUrl;
+
+  if (!dashboardUrl) {
+    console.error('❌ R Analytics Dashboard URL is NOT set in environment variables (NEXT_PUBLIC_R_ANALYTICS_URL)');
   }
-  
-  // Otherwise, handle localhost logic
-  if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname;
-    const isProductionDomain = hostname.includes('ifrspro.id') || hostname.includes('danafin.com');
-    if (!isProductionDomain && (hostname === 'localhost' || hostname === '127.0.0.1')) {
-      return 'http://localhost:4236';
-    }
-  }
-  
-  return 'https://iaf-ifrs-analytics.ifrspro.id';
+
+  return dashboardUrl || '';
 };
 
 // ============================================================================

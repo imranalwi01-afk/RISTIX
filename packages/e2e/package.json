@@ -5,6 +5,7 @@
     "private": true,
     "scripts": {
         "test": "playwright test",
+        "test:dev": "E2E_BASE_URL=https://iaf-ifrs.ifrspro.id playwright test",
         "test:ui": "playwright test --ui",
         "test:debug": "playwright test --debug",
         "codegen": "playwright codegen"

@@ -48,6 +48,7 @@ import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
+  Visibility as VisibilityIcon,
   FilterAlt as FilterIcon,
   Clear as ClearIcon,
   Download as DownloadIcon,
@@ -383,6 +384,12 @@ export default function ApplicationSettingPage() {
     setEditModalOpen(true);
   };
 
+  const handleView = async (row: ApplicationSettingDataTable) => {
+    setSelectedRecord(row);
+    await loadDetailData(row.CommonCode);
+    setViewModalOpen(true);
+  };
+
   const handleDelete = async (row: ApplicationSettingDataTable) => {
     if (!canManageApplication) return;
     if (!confirm(`Are you sure you want to delete "${row.CommonCode}"?`)) return;
@@ -577,21 +584,32 @@ export default function ApplicationSettingPage() {
       field: 'actions',
       headerName: 'Actions',
       type: 'actions',
-      width: 120,
-      getActions: (params: any) => canManageApplication ? [
+      width: 160,
+      getActions: (params: any) => [
+        <SafeGridActionsCellItem
+          key="view"
+          label="View"
+          icon={<VisibilityIcon color="info" />}
+          onClick={() => handleView(params.row)}
+          data-testid="btn-view-app-setting"
+        />,
+        ...(canManageApplication ? [
         <SafeGridActionsCellItem
           key="edit"
           label="Edit"
           icon={<EditIcon color="primary" />}
           onClick={() => handleEdit(params.row)}
+          data-testid="btn-edit-app-setting"
         />,
         <SafeGridActionsCellItem
           key="delete"
           label="Delete"
           icon={<DeleteIcon color="error" />}
           onClick={() => handleDelete(params.row)}
+          data-testid="btn-delete-app-setting"
         />
-      ] : []
+      ] : [])
+      ]
     }
   ];
 

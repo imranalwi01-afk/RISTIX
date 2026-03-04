@@ -57,6 +57,13 @@ test.describe('Banking Setup with Admin Login', () => {
                 })
             });
         });
+        await page.route('**/api/v1/auth/status', async route => {
+            await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({ success: true, data: { authenticated: false } })
+            });
+        });
 
         // Mock Login Data (Tenants)
         await page.route('**/auth/login-data*', async route => {
@@ -83,12 +90,12 @@ test.describe('Banking Setup with Admin Login', () => {
         });
 
         // Perform Login via UI
-        await page.goto('/login');
+        await page.goto('/login', { waitUntil: 'domcontentloaded', timeout: 120000 });
         // Wait for tenant to be auto-selected (check for the tenant select or hidden input if applicable, or just wait slightly)
         // Since logic auto-selects, we just proceed.
         await page.getByLabel('Email Address').fill(USER_EMAIL);
         await page.getByLabel('Password').fill(USER_PASS);
-        await page.getByRole('button', { name: /Sign In/i }).click();
+        await page.getByRole('button', { name: /Sign In to Workspace|Sign In|Access Control Center/i }).click();
 
         // Wait for redirect to dashboard or home
         await expect(page).toHaveURL(/dashboard|banking/, { timeout: 15000 });
@@ -149,7 +156,7 @@ test.describe('Banking Setup with Admin Login', () => {
         });
 
         // Navigate to Business Settings
-        await page.goto('/banking/setup/business');
+        await page.goto('/banking/setup/business', { waitUntil: 'domcontentloaded', timeout: 120000 });
 
         // READ Verification
         await expect(page.getByText('Mock Business Param')).toBeVisible();
@@ -216,7 +223,7 @@ test.describe('Banking Setup with Admin Login', () => {
         // 5. Open Detail View
         // We added a "View Details" button with an eye icon/tooltip
         // Re-navigate to reset state or just click the view button if row exists (mock data ensures row exists)
-        await page.goto('/banking/setup/business'); // Reload to ensure clean state
+        await page.goto('/banking/setup/business', { waitUntil: 'domcontentloaded', timeout: 120000 }); // Reload to ensure clean state
         await page.getByRole('button', { name: /View Details/i }).first().click();
 
         await expect(page.getByText('Business Setting Detail')).toBeVisible();
@@ -291,7 +298,7 @@ test.describe('Banking Setup with Admin Login', () => {
         });
 
         // Navigate to Application Settings
-        await page.goto('/banking/setup/application');
+        await page.goto('/banking/setup/application', { waitUntil: 'domcontentloaded', timeout: 120000 });
 
         // READ Verification
         await expect(page.getByText('Mock App Param')).toBeVisible();
