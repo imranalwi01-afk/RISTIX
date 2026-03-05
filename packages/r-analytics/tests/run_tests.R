@@ -10,12 +10,16 @@ if (!requireNamespace("testthat", quietly = TRUE)) {
 }
 library(testthat)
 
+script_arg <- grep("^--file=", commandArgs(trailingOnly = FALSE), value = TRUE)
+script_path <- if (length(script_arg) > 0) sub("^--file=", "", script_arg[1]) else ""
+tests_dir <- if (nzchar(script_path)) dirname(normalizePath(script_path)) else getwd()
+
 cat("====================================================================\n")
 cat("🚀 STARTING IFRS9 MODULAR PARITY TESTS\n")
 cat("====================================================================\n\n")
 
 # Run all test files in the current directory matching 'test_*.R'
-test_dir(".", reporter = "summary")
+test_dir(tests_dir, reporter = "summary")
 
 cat("\n====================================================================\n")
 cat("✅ TEST SUITE COMPLETED\n")
