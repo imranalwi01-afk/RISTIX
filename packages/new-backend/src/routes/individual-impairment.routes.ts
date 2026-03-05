@@ -52,6 +52,37 @@ const WatchlistListResponse = z.object({
     }).optional()
 }).openapi('WatchlistListResponse')
 
+const CustomerListItemSchema = z.object({
+    pkid: z.number().int().optional(),
+    prc_date: z.string().optional(),
+    account_id: z.number().int().optional(),
+    account_number: z.string().optional(),
+    cif_number: z.string().optional(),
+    cif_name: z.string().optional(),
+    group_segment: z.string().optional(),
+    segment: z.string().optional(),
+    sub_segment: z.string().optional(),
+    stage: z.number().int().optional(),
+    impaired_flag: z.string().optional(),
+    outstanding_balance: z.union([z.number(), z.string()]).optional(),
+    provision_amount: z.union([z.number(), z.string()]).optional(),
+    rating_code: z.string().optional(),
+    dpd: z.union([z.number(), z.string()]).optional(),
+    assessment_status: z.string().optional(),
+    remarks: z.string().nullable().optional()
+}).openapi('CustomerListItem')
+
+const CustomerListResponse = z.object({
+    success: z.boolean(),
+    data: z.array(CustomerListItemSchema),
+    pagination: z.object({
+        page: z.number(),
+        limit: z.number(),
+        total: z.number(),
+        totalPages: z.number()
+    }).optional()
+}).openapi('CustomerListResponse')
+
 const AddWatchlistSchema = z.object({
     accountId: z.number().int(),
     remarks: z.string().optional(),
@@ -289,6 +320,33 @@ individualImpairmentRoutes.openapi(
         }
     }),
     (c: any) => individualImpairmentController.getWatchlistSummary(c)
+)
+
+individualImpairmentRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/watchlist/customers',
+        tags: ['Individual Impairment'],
+        summary: 'Get Customer List',
+        description: 'Returns one latest row per account (distinct account/customer list) with optional date range and search.',
+        request: {
+            query: z.object({
+                search: z.string().optional(),
+                page: z.string().optional(),
+                limit: z.string().optional(),
+                dateFrom: z.string().optional(),
+                dateTo: z.string().optional(),
+                'filter[date_range][start]': z.string().optional(),
+                'filter[date_range][end]': z.string().optional()
+            })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: CustomerListResponse } }, description: 'Customer List' },
+            401: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Unauthorized' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    (c: any) => individualImpairmentController.getCustomerList(c)
 )
 
 individualImpairmentRoutes.openapi(

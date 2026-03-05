@@ -350,6 +350,20 @@ export class IndividualImpairmentService {
             if (dateTo) {
                 conditions.push(sql`${frs9MasterAccount.prcDate} <= ${dateTo}`);
             }
+            if (!dateFrom && !dateTo) {
+                // Default to latest full snapshot date (avoid tiny ad-hoc/test dates, e.g. only a few rows)
+                conditions.push(sql`${frs9MasterAccount.prcDate} = COALESCE(
+                    (
+                        SELECT prc_date
+                        FROM frs9_master_account
+                        GROUP BY prc_date
+                        HAVING COUNT(*) >= 100
+                        ORDER BY prc_date DESC
+                        LIMIT 1
+                    ),
+                    (SELECT MAX(prc_date) FROM frs9_master_account)
+                )`);
+            }
 
             if (rating_code) {
                 conditions.push(eq(frs9MasterAccount.internalRatingCode, rating_code));
@@ -429,6 +443,9 @@ export class IndividualImpairmentService {
                     priority_level: (Number(row.outstanding) > 1000000000) ? 'HIGH' : 'MEDIUM',
                     assessment_status: currentStatus,
                     notes: currentNotes,
+                    group_segment: row.groupSegment,
+                    segment: row.segment,
+                    sub_segment: row.subSegment,
                     createdby: 'SYSTEM',
                     createddate: row.prcDate, // Use process date as creation date for list
                     is_override: !!override
@@ -447,6 +464,143 @@ export class IndividualImpairmentService {
             };
         } catch (error) {
             console.error('❌ Database Query Failed in getWatchlist:', error);
+            return { data: [], total: 0 };
+        }
+    }
+
+    async getCustomerList(tenantId: string, filters: {
+        search?: string;
+        dateFrom?: string;
+        dateTo?: string;
+        limit?: number;
+        offset?: number;
+    }) {
+        try {
+            const { limit = 25, offset = 0, search, dateFrom, dateTo } = filters;
+            const conditions: any[] = [sql`m.account_number IS NOT NULL`];
+
+            if (search) {
+                const keyword = `%${search}%`;
+                conditions.push(sql`(
+                    m.account_number ILIKE ${keyword}
+                    OR m.cif_name ILIKE ${keyword}
+                    OR m.cif_number ILIKE ${keyword}
+                )`);
+            }
+
+            if (dateFrom) {
+                conditions.push(sql`m.prc_date >= ${dateFrom}`);
+            }
+
+            if (dateTo) {
+                conditions.push(sql`m.prc_date <= ${dateTo}`);
+            }
+
+            if (!dateFrom && !dateTo) {
+                // Default to latest full snapshot date to avoid tiny ad-hoc/test dates.
+                conditions.push(sql`m.prc_date = COALESCE(
+                    (
+                        SELECT prc_date
+                        FROM frs9_master_account
+                        GROUP BY prc_date
+                        HAVING COUNT(*) >= 100
+                        ORDER BY prc_date DESC
+                        LIMIT 1
+                    ),
+                    (SELECT MAX(prc_date) FROM frs9_master_account)
+                )`);
+            }
+
+            const whereClause = conditions.length > 0
+                ? sql`WHERE ${conditions.reduce((acc, condition, index) => index === 0 ? condition : sql`${acc} AND ${condition}`)}`
+                : sql``;
+
+            const countQuery = sql`
+                WITH filtered AS (
+                    SELECT DISTINCT m.account_number
+                    FROM frs9_master_account m
+                    ${whereClause}
+                )
+                SELECT COUNT(*) as total
+                FROM filtered
+            `;
+
+            const countResult = await legacyDb.execute(countQuery);
+            const total = Number(countResult?.[0]?.total || 0);
+            if (total === 0) return { data: [], total: 0 };
+
+            const query = sql`
+                WITH filtered AS (
+                    SELECT
+                        m.pkid,
+                        m.prc_date,
+                        m.account_id,
+                        m.account_number,
+                        m.cif_number,
+                        m.cif_name,
+                        m.group_segment,
+                        m.segment,
+                        m.sub_segment,
+                        m.stage,
+                        m.impaired_flag,
+                        m.outstanding,
+                        m.ecl_final_amt,
+                        m.internal_rating_code,
+                        m.dpd,
+                        ROW_NUMBER() OVER (
+                            PARTITION BY m.account_number
+                            ORDER BY m.prc_date DESC, m.pkid DESC
+                        ) as rn
+                    FROM frs9_master_account m
+                    ${whereClause}
+                ),
+                latest_header AS (
+                    SELECT DISTINCT ON (h.account_number)
+                        h.account_number,
+                        h.trigger_remarks,
+                        h.status
+                    FROM frs9_imp_ia_header h
+                    WHERE h.account_number IS NOT NULL
+                    ORDER BY h.account_number, h.createddate DESC NULLS LAST, h.pkid DESC
+                )
+                SELECT
+                    f.pkid,
+                    f.prc_date,
+                    f.account_id,
+                    f.account_number,
+                    f.cif_number,
+                    f.cif_name,
+                    f.group_segment,
+                    f.segment,
+                    f.sub_segment,
+                    COALESCE(NULLIF(REGEXP_REPLACE(CAST(f.stage AS TEXT), '[^0-9]', '', 'g'), '')::INTEGER, 1) as stage,
+                    CASE WHEN f.impaired_flag = true THEN 'I' ELSE 'N' END as impaired_flag,
+                    COALESCE(CAST(f.outstanding AS DECIMAL), 0) as outstanding_balance,
+                    COALESCE(CAST(f.ecl_final_amt AS DECIMAL), 0) as provision_amount,
+                    f.internal_rating_code as rating_code,
+                    COALESCE(f.dpd, 0) as dpd,
+                    COALESCE(
+                        CASE lh.status
+                            WHEN 0 THEN 'PENDING'
+                            WHEN 1 THEN 'APPROVED'
+                            WHEN 2 THEN 'REJECTED'
+                            ELSE NULL
+                        END,
+                        'PENDING'
+                    ) as assessment_status,
+                    NULLIF(TRIM(COALESCE(lh.trigger_remarks, '')), '') as remarks
+                FROM filtered f
+                LEFT JOIN latest_header lh ON lh.account_number = f.account_number
+                WHERE f.rn = 1
+                ORDER BY f.prc_date DESC, f.account_number
+                LIMIT ${limit}
+                OFFSET ${offset}
+            `;
+
+            const data = await legacyDb.execute(query);
+            return { data, total };
+        } catch (error) {
+            console.error('❌ Database Query Failed in getCustomerList:', error);
             return { data: [], total: 0 };
         }
     }
@@ -854,6 +1008,10 @@ export class IndividualImpairmentService {
             if (filters.endDate) {
                 masterConditions.push(sql`m.prc_date <= ${filters.endDate}`);
             }
+            // If no date filter is provided, default to the latest process date.
+            if (!filters.startDate && !filters.endDate) {
+                masterConditions.push(sql`m.prc_date = (SELECT prc_date FROM latest_date)`);
+            }
 
             const masterWhere = masterConditions.length > 0
                 ? sql`WHERE ${masterConditions.reduce((acc, condition, index) => index === 0 ? condition : sql`${acc} AND ${condition}`)}`
@@ -861,9 +1019,18 @@ export class IndividualImpairmentService {
 
             // Derive IA stage from override flag (legacy table has no ia.stage column)
             const iaStageExpr = sql`CASE WHEN ia.impaired_flag = 'T' THEN 3 WHEN ia.impaired_flag = 'F' THEN 1 ELSE NULL END`;
+            // Normalize stage values from text/int sources to a unified integer stage.
+            const caStageExpr = sql`NULLIF(REGEXP_REPLACE(CAST(ca.stage AS TEXT), '[^0-9]', '', 'g'), '')::INTEGER`;
+            const masterStageExpr = sql`NULLIF(REGEXP_REPLACE(CAST(m.stage AS TEXT), '[^0-9]', '', 'g'), '')::INTEGER`;
+            const unifiedStageExpr = sql`COALESCE(MAX(${iaStageExpr}), MAX(${caStageExpr}), MAX(${masterStageExpr}))`;
+
             // We apply the stage filter AFTER computing the final unified stage
+            const requestedStage = Number(filters.stage);
+            const hasValidStageFilter = filters.stage !== undefined && Number.isFinite(requestedStage);
             const stageFilter = filters.stage
-                ? sql`HAVING COALESCE(MAX(${iaStageExpr}), MAX(ca.stage), MAX(m.stage)) = ${Number(filters.stage)}`
+                ? hasValidStageFilter
+                    ? sql`HAVING ${unifiedStageExpr} = ${requestedStage}`
+                    : sql``
                 : sql``;
 
             const query = sql`
@@ -872,7 +1039,7 @@ export class IndividualImpairmentService {
                 )
                 SELECT 
                     m.prc_date as "prcDate",
-                    COALESCE(MAX(${iaStageExpr}), MAX(ca.stage), MAX(m.stage)) as "stage",
+                    ${unifiedStageExpr} as "stage",
                     m.segment as "segmentId",
                     SUM(CAST(m.outstanding AS DECIMAL)) as "totalOutstanding",
                     SUM(COALESCE(CAST(ia.ecl_ia_amt AS DECIMAL), CAST(ca.ecl_amount AS DECIMAL), 0)) as "totalECL",
@@ -883,8 +1050,6 @@ export class IndividualImpairmentService {
                 LEFT JOIN frs9_imp_ca_result_h ca 
                     ON m.account_id = ca.account_id AND m.prc_date = ca.prc_date
                 ${masterWhere}
-                -- If no date filter is provided, default to the latest date
-                ${(!filters.startDate && !filters.endDate) ? sql`AND m.prc_date = (SELECT prc_date FROM latest_date)` : sql``}
                 GROUP BY m.prc_date, m.segment
                 ${stageFilter}
                 ORDER BY m.prc_date DESC, "stage", m.segment
@@ -971,8 +1136,8 @@ export class IndividualImpairmentService {
                         m.outstanding,
                         COALESCE(
                             CASE WHEN ia.impaired_flag = 'T' THEN 3 WHEN ia.impaired_flag = 'F' THEN 1 ELSE NULL END,
-                            ca.stage,
-                            m.stage
+                            NULLIF(REGEXP_REPLACE(CAST(ca.stage AS TEXT), '[^0-9]', '', 'g'), '')::INTEGER,
+                            NULLIF(REGEXP_REPLACE(CAST(m.stage AS TEXT), '[^0-9]', '', 'g'), '')::INTEGER
                         ) as final_stage,
                         COALESCE(ia.ecl_ia_amt, ca.ecl_amount, 0) as final_ecl
                     FROM frs9_master_account m
