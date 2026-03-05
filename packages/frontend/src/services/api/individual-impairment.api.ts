@@ -22,8 +22,26 @@ export interface HistoryParams {
 
 export const individualImpairmentAPI = {
   // WATCHLIST
-  getWatchlist: async (params?: { segment?: string; status?: string }) => {
+  getWatchlist: async (params?: {
+    segment?: string;
+    status?: string;
+    search?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    page?: number;
+    limit?: number;
+  }) => {
     const response = await apiClient.get('/banking/individual/impairment/watchlist', { params });
+    return response.data;
+  },
+  getCustomerList: async (params?: {
+    search?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    page?: number;
+    limit?: number;
+  }) => {
+    const response = await apiClient.get('/banking/individual/impairment/watchlist/customers', { params });
     return response.data;
   },
   addToWatchlist: async (data: any) => {

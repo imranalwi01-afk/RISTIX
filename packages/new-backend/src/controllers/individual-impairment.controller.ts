@@ -27,8 +27,16 @@ export class IndividualImpairmentController {
             const status = c.req.query('filter[assessment_status]') || c.req.query('status');
             const impaired_flag = c.req.query('filter[impaired_flag]') || c.req.query('impairedFlag');
             const rating_code = c.req.query('filter[rating_code]') || c.req.query('ratingCode');
-            const dateFrom = c.req.query('dateFrom');
-            const dateTo = c.req.query('dateTo');
+            const dateFrom =
+                c.req.query('dateFrom') ||
+                c.req.query('filter[date_range][start]') ||
+                c.req.query('filter[date_range][from]') ||
+                c.req.query('filter[dateFrom]');
+            const dateTo =
+                c.req.query('dateTo') ||
+                c.req.query('filter[date_range][end]') ||
+                c.req.query('filter[date_range][to]') ||
+                c.req.query('filter[dateTo]');
 
             // 3. Call Service
             const result = await individualImpairmentService.getWatchlist(user.tenantId, { 
@@ -46,6 +54,50 @@ export class IndividualImpairmentController {
             // 4. Return Standard Pagination Response
             return c.json({ 
                 success: true, 
+                data: result.data,
+                pagination: {
+                    page,
+                    limit,
+                    total: result.total,
+                    totalPages: Math.ceil(result.total / limit)
+                }
+            });
+        } catch (error: any) {
+            return this.handleError(c, error);
+        }
+    }
+
+    async getCustomerList(c: Context) {
+        try {
+            const user = c.get('user');
+            if (!user?.tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
+
+            const page = Number(c.req.query('page')) || 1;
+            const limit = Number(c.req.query('limit')) || 25;
+            const offset = (page - 1) * limit;
+
+            const search = c.req.query('search');
+            const dateFrom =
+                c.req.query('dateFrom') ||
+                c.req.query('filter[date_range][start]') ||
+                c.req.query('filter[date_range][from]') ||
+                c.req.query('filter[dateFrom]');
+            const dateTo =
+                c.req.query('dateTo') ||
+                c.req.query('filter[date_range][end]') ||
+                c.req.query('filter[date_range][to]') ||
+                c.req.query('filter[dateTo]');
+
+            const result = await individualImpairmentService.getCustomerList(user.tenantId, {
+                search,
+                dateFrom,
+                dateTo,
+                limit,
+                offset
+            });
+
+            return c.json({
+                success: true,
                 data: result.data,
                 pagination: {
                     page,

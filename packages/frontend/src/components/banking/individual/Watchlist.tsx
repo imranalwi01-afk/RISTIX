@@ -50,8 +50,12 @@ export const Watchlist = () => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [searchKeyword, setSearchKeyword] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   // Dialog State
   const [openDialog, setOpenDialog] = useState(false);
@@ -62,12 +66,55 @@ export const Watchlist = () => {
     remarks: ''
   });
 
-  const loadData = async () => {
+  const normalizeSegment = (value: any): string => {
+    const raw = String(value || '').trim();
+    if (!raw) return 'Unknown';
+    const upper = raw.toUpperCase();
+    if (upper.includes('SME')) return 'SME';
+    if (upper.includes('RETAIL')) return 'Retail';
+    return raw;
+  };
+
+  const pickText = (...values: any[]): string | undefined => {
+    for (const value of values) {
+      const raw = value == null ? '' : String(value).trim();
+      if (raw) return raw;
+    }
+    return undefined;
+  };
+
+  const mapWatchlistRow = (row: any) => ({
+    ...row,
+    // Keep stable id for SafeDataGrid row key + actions.
+    id: row.id ?? row.pkid ?? row.account_id ?? row.accountId ?? row.account_number ?? row.accountNumber,
+    customerName: pickText(row.customerName, row.cif_name, row.cifName) ?? '-',
+    accountNumber: pickText(row.accountNumber, row.account_number, row.accountNo) ?? '-',
+    segment: normalizeSegment(
+      pickText(row.segment, row.sub_segment, row.group_segment, row.prd_group, row.prdGroup, row.prd_type, row.prdType)
+    ),
+    impairmentStatus: pickText(row.impairmentStatus, row.assessment_status, row.status) ?? 'WATCHLIST',
+    remarks: pickText(row.remarks, row.notes, row.trigger_remarks, row.triggerRemarks) ?? '-',
+    triggerDate: row.triggerDate ?? row.prc_date ?? row.createddate ?? row.createdDate ?? null,
+  });
+
+  const loadData = async (options?: { search?: string; dateFrom?: string; dateTo?: string }) => {
     setLoading(true);
     try {
-      const response = await individualImpairmentAPI.getWatchlist();
+      const effectiveSearch = options?.search ?? searchKeyword;
+      const effectiveDateFrom = options?.dateFrom ?? dateFrom;
+      const effectiveDateTo = options?.dateTo ?? dateTo;
+      const response = await individualImpairmentAPI.getWatchlist({
+        page: 1,
+        // Keep this high enough so this page can show complete snapshot with client-side pagination.
+        limit: 20000,
+        search: effectiveSearch || undefined,
+        dateFrom: effectiveDateFrom || undefined,
+        dateTo: effectiveDateTo || undefined,
+      });
       if (response.success) {
-        setData(response.data);
+        const rawRows = Array.isArray(response.data) ? response.data : [];
+        setData(rawRows.map(mapWatchlistRow));
+        setTotalCount(Number(response.pagination?.total ?? rawRows.length ?? 0));
       }
     } catch (err: any) {
       console.error('Failed to load watchlist:', err);
@@ -81,6 +128,17 @@ export const Watchlist = () => {
   useEffect(() => {
     loadData();
   }, []);
+
+  const handleApplyFilters = () => {
+    loadData();
+  };
+
+  const handleClearFilters = () => {
+    setSearchKeyword('');
+    setDateFrom('');
+    setDateTo('');
+    loadData({ search: '', dateFrom: '', dateTo: '' });
+  };
 
   const handleCreate = async () => {
     if (!formData.customerName || !formData.accountNumber) return;
@@ -151,7 +209,8 @@ export const Watchlist = () => {
           label="Assessment"
           onClick={() => {
             // Navigate to assessment or open dialog
-            router.push(`/banking/individual/assessment?accountId=${params.row.accountNumber}`);
+            const accountNo = params.row.accountNumber || params.row.account_number;
+            router.push(`/banking/individual/assessment?accountId=${accountNo}`);
           }}
           showInMenu={false}
         />,
@@ -159,7 +218,7 @@ export const Watchlist = () => {
           key="delete"
           icon={<DeleteIcon color="error" />}
           label="Remove"
-          onClick={() => handleDelete(params.row.id)}
+          onClick={() => handleDelete(String(params.row.id ?? params.row.account_id ?? params.row.accountNumber))}
         />
       ]
     }
@@ -200,12 +259,59 @@ export const Watchlist = () => {
         </Button>
       </Box>
 
+      <Paper sx={{ p: 2, mb: 3 }}>
+        <Grid container spacing={2} alignItems="center">
+          <Grid size={{ xs: 12, md: 4 }}>
+            <TextField
+              fullWidth
+              label="Search"
+              placeholder="Account Number / Customer Name / CIF"
+              value={searchKeyword}
+              onChange={(e) => setSearchKeyword(e.target.value)}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, md: 3 }}>
+            <TextField
+              fullWidth
+              label="Date From"
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, md: 3 }}>
+            <TextField
+              fullWidth
+              label="Date To"
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, md: 2 }}>
+            <Box sx={{ display: 'flex', gap: 1, justifyContent: { xs: 'flex-start', md: 'flex-end' } }}>
+              <Button variant="contained" startIcon={<SearchIcon />} onClick={handleApplyFilters}>
+                Apply
+              </Button>
+              <Button variant="outlined" onClick={handleClearFilters}>
+                Clear
+              </Button>
+            </Box>
+          </Grid>
+        </Grid>
+        <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+          Default (empty date range): latest full process snapshot. Set date range to view specific period.
+        </Typography>
+      </Paper>
+
       {/* 📊 Summary Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid size={{ xs: 12, md: 3 }}>
           <StatCard
             title="Total Watchlist"
-            value={data.length}
+            value={totalCount}
             icon={<PersonIcon sx={{ fontSize: 40 }} />}
             color="#1976d2"
             subtitle="Flagged Customers"
@@ -232,7 +338,7 @@ export const Watchlist = () => {
         <Grid size={{ xs: 12, md: 3 }}>
           <StatCard
             title="Needs Review"
-            value={data.length}
+            value={totalCount}
             icon={<WarningIcon sx={{ fontSize: 40 }} />}
             color="#d32f2f"
             subtitle="Pending Assessment"
@@ -249,7 +355,7 @@ export const Watchlist = () => {
           loading={loading}
           slots={{ toolbar: GridToolbar }}
           disableRowSelectionOnClick
-          getRowId={(row) => row.id || Math.random().toString()}
+          getRowId={(row) => row.id}
         />
       </Paper>
 
