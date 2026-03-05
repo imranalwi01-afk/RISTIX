@@ -1133,7 +1133,15 @@ transform <- function(data) {
     data <- data %>%
       mutate(
         # Y Transformation
-        !!paste0(var, "_Y") := (.data[[var]] / lag(.data[[var]], 12)) - 1
+        !!paste0(var, "_Y") := {
+          base_value <- lag(.data[[var]], 12)
+          current_value <- .data[[var]]
+          ifelse(
+            is.na(base_value) | is.na(current_value) | base_value == 0,
+            0,
+            (current_value / base_value) - 1
+          )
+        }
       )
     
     for (i in seq_along(lag_mapping)) {
@@ -1213,7 +1221,15 @@ transform2 <- function(data) {
     data <- data %>%
       mutate(
         # Y Transformation
-        !!paste0(var, "_Y") := (.data[[var]] / lag(.data[[var]], 12)) - 1
+        !!paste0(var, "_Y") := {
+          base_value <- lag(.data[[var]], 12)
+          current_value <- .data[[var]]
+          ifelse(
+            is.na(base_value) | is.na(current_value) | base_value == 0,
+            0,
+            (current_value / base_value) - 1
+          )
+        }
       )
     
     for (i in seq_along(lag_mapping)) {
@@ -2994,66 +3010,83 @@ Boxplot_Scenario=function(x,intuisi){
 
 
 #########################Forecast Boxplot Scenario Function#########################
-make_scenario <- function(base_df, intuition_df, sd_vec) {
-  
+normalize_scenario_var_name <- function(x) {
+  out <- toupper(trimws(as.character(x)))
+  repeat {
+    prev <- out
+    # Remove trailing lag suffixes first (_Lg1, _LAG12, etc.)
+    out <- gsub("_(LG|LAG)[0-9]+$", "", out, perl = TRUE)
+    # Remove trailing transform suffixes (_Y, _LN, _DIFF12)
+    out <- gsub("_(Y|LN|DIFF12)$", "", out, perl = TRUE)
+    if (identical(out, prev)) break
+  }
+  out
+}
+
+preflight_scenario_inputs <- function(base_df, intuition_df, sd_vec) {
   stopifnot(is.data.frame(base_df))
   stopifnot(is.data.frame(intuition_df))
-  
-  # =========================
-  # Normalisasi nama variabel base
-  # =========================
-  base_names <- colnames(base_df)
-  
-  core_names <- gsub("(_Y(_.*)?|_LG\\d+|_LAG\\d+)$", "", base_names)
-  
-  
-  # =========================
-  # Mapping INTUITION (by core name)
-  # =========================
-  intuition_map <- setNames(
-    intuition_df$sign,
-    intuition_df$var
-  )
-  
-  matched_intuition <- intuition_map[core_names]
-  
-  if (any(is.na(matched_intuition))) {
-    stop(
-      "Intuisi tidak ditemukan untuk variabel: ",
-      paste(base_names[is.na(matched_intuition)], collapse = ", ")
-    )
+
+  if (!all(c("var", "sign") %in% names(intuition_df))) {
+    stop("intuition_df wajib memiliki kolom: var dan sign")
   }
-  
-  # =========================
-  # NORMALISASI SD_VEC
-  # =========================
-  
-  # kalau 1-row data.frame (hasil_boxplot$diff.base[3,])
+
+  base_names <- colnames(base_df)
+  core_names <- normalize_scenario_var_name(base_names)
+
+  intuition_keys <- normalize_scenario_var_name(intuition_df$var)
+  intuition_map <- setNames(intuition_df$sign, intuition_keys)
+  matched_intuition <- intuition_map[core_names]
+
   if (is.data.frame(sd_vec)) {
-    
     if (nrow(sd_vec) != 1) {
       stop("sd_vec data.frame harus 1 baris (row stdev)")
     }
-    
     sd_raw <- as.numeric(sd_vec[1, ])
-    names(sd_raw) <- (colnames(sd_vec))
-    
+    names(sd_raw) <- normalize_scenario_var_name(colnames(sd_vec))
   } else {
-    # numeric vector
     sd_raw <- as.numeric(sd_vec)
-    names(sd_raw) <- (names(sd_vec))
+    names(sd_raw) <- normalize_scenario_var_name(names(sd_vec))
   }
-  
-  # mapping SD ke core name model
+
   matched_sd <- sd_raw[core_names]
+
+  missing_intuition <- base_names[is.na(matched_intuition)]
+  missing_sd <- base_names[is.na(matched_sd)]
+
+  list(
+    ok = length(missing_intuition) == 0 && length(missing_sd) == 0,
+    base_names = base_names,
+    core_names = core_names,
+    matched_intuition = matched_intuition,
+    matched_sd = matched_sd,
+    missing_intuition = missing_intuition,
+    missing_sd = missing_sd
+  )
+}
+
+make_scenario <- function(base_df, intuition_df, sd_vec) {
   
-  if (any(is.na(matched_sd))) {
+  preflight <- preflight_scenario_inputs(base_df, intuition_df, sd_vec)
+
+  if (length(preflight$missing_intuition) > 0) {
     stop(
-      "SD tidak ditemukan untuk variabel: ",
-      paste(base_names[is.na(matched_sd)], collapse = ", ")
+      "Intuisi tidak ditemukan untuk variabel: ",
+      paste(preflight$missing_intuition, collapse = ", ")
     )
   }
-  
+
+  if (length(preflight$missing_sd) > 0) {
+    stop(
+      "SD tidak ditemukan untuk variabel: ",
+      paste(preflight$missing_sd, collapse = ", ")
+    )
+  }
+
+  base_names <- preflight$base_names
+  matched_intuition <- preflight$matched_intuition
+  matched_sd <- preflight$matched_sd
+
   # rename SD sesuai kolom model
   names(matched_sd) <- base_names
   
@@ -3085,6 +3118,21 @@ forecast_mev_bxp=function(mev_base,db_boxplot,modely,z,coln,intuisi,metode="boxp
   mev_base=cbind(Date,mev_base)
   
   db_boxplotsd <- db_boxplot[3,]
+  preflight <- preflight_scenario_inputs(mev_base[, -1, drop = FALSE], intuisi, db_boxplotsd)
+  if (!preflight$ok) {
+    if (length(preflight$missing_intuition) > 0) {
+      stop(
+        "Preflight gagal: Intuisi tidak ditemukan untuk variabel: ",
+        paste(preflight$missing_intuition, collapse = ", ")
+      )
+    }
+    if (length(preflight$missing_sd) > 0) {
+      stop(
+        "Preflight gagal: SD tidak ditemukan untuk variabel: ",
+        paste(preflight$missing_sd, collapse = ", ")
+      )
+    }
+  }
   sdcriteria <- make_scenario(mev_base[,-1],intuisi,db_boxplotsd)
   
   db_boxplot <- db_boxplot[1:2,]
@@ -3624,4 +3672,3 @@ build_monthly_rows <- function(mpd_mat, cpd_mat = NULL, scenario_id, prc_date, p
     stringsAsFactors = FALSE
   )
 }
-

@@ -80,6 +80,8 @@ coverage/
 .Rhistory
 .RData
 .Ruserdata
+.r-libs/
+**/.r-libs/
 
 # Media & Uploads
 uploads/

@@ -126,6 +126,7 @@ const PERMISSION_OVERRIDES: Record<string, string | string[]> = {
     'menu-management': 'admin.system.manage',
     'job-monitoring': ['jobs.view', 'jobs.manage', 'admin.system.manage'],
     'assessment-workspace': 'banking.individual.view',
+    'assessment-workspace-old': 'banking.individual.view',
     'customer-list': 'banking.individual.view',
     'workflow-management': 'approval.requests.approve',
     'approval-system': 'approval.requests.approve',
@@ -384,6 +385,13 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
                 icon: <Assessment />,
                 description: 'End-to-end impairment assessment',
                 isNew: true
+            },
+            {
+                id: 'assessment-workspace-old',
+                label: '(Old) Assessment Workspace',
+                href: '/banking/individual/assessment-old',
+                icon: <HistoryToggleOff />,
+                description: 'Legacy workspace snapshot'
             },
             {
                 id: 'customer-list',
@@ -924,6 +932,7 @@ export const getIconForMenuItem = (code: string, level: number): React.ReactElem
         'ead-setup-management': <AccountBalance />,
         'ecl-configuration': <Calculate />,
         'assessment-override': <Assessment />,
+        'assessment-workspace-old': <HistoryToggleOff />,
         'customer-list': <People />,
         'impairment-module': <Warning />,
         'ecl-calculations': <Calculate />,
@@ -982,6 +991,7 @@ const MENU_ICON_MAP: Record<string, string> = {
     'ecl-configuration': 'calculate',
     'individual-impairment': 'person',
     'assessment-override': 'assessment',
+    'assessment-workspace-old': 'history_toggle_off',
     'customer-list': 'people',
     'list-individual-report': 'table_chart',
     'review-scenario': 'approval',
