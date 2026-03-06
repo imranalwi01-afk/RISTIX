@@ -6,6 +6,7 @@ const getPortfolioTrendMock = mock((c: any) => c.json({ success: true, data: [{ 
 const getAvailableDatesMock = mock((c: any) => c.json({ success: true, data: ['2026-01-31', '2026-02-29'] }))
 const getBatchesMock = mock((c: any) => c.json({ success: true, data: [{ batchId: 'batch-1' }] }))
 const runCalculationMock = mock((c: any) => c.json({ success: true, data: { executionId: 'exec-1' } }))
+const runPreviewCalculationMock = mock((c: any) => c.json({ success: true, data: { executionId: 'preview-1' } }))
 const getBatchResultsMock = mock((c: any) => c.json({ success: true, data: [{ calculationId: 'calc-1' }] }))
 
 mock.module('@/controllers/ifrs9-calculations.controller', () => ({
@@ -15,6 +16,7 @@ mock.module('@/controllers/ifrs9-calculations.controller', () => ({
     getAvailableDates: getAvailableDatesMock,
     getBatches: getBatchesMock,
     runCalculation: runCalculationMock,
+    runPreviewCalculation: runPreviewCalculationMock,
     getBatchResults: getBatchResultsMock,
   },
 }))
@@ -26,6 +28,7 @@ mock.module('../../controllers/ifrs9-calculations.controller', () => ({
     getAvailableDates: getAvailableDatesMock,
     getBatches: getBatchesMock,
     runCalculation: runCalculationMock,
+    runPreviewCalculation: runPreviewCalculationMock,
     getBatchResults: getBatchResultsMock,
   },
 }))
@@ -47,6 +50,7 @@ describe('ifrs9 routes response contracts', () => {
     getAvailableDatesMock.mockClear()
     getBatchesMock.mockClear()
     runCalculationMock.mockClear()
+    runPreviewCalculationMock.mockClear()
     getBatchResultsMock.mockClear()
   })
 
@@ -59,6 +63,11 @@ describe('ifrs9 routes response contracts', () => {
     const datesResponse = await app.request('/api/v1/ifrs9/available-dates')
     const batchesResponse = await app.request('/api/v1/ifrs9/calculation-batches')
     const eclResponse = await app.request('/api/v1/ifrs9/calculations/ecl', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ segment: 'retail' }),
+    })
+    const previewResponse = await app.request('/api/v1/ifrs9/calculations/ecl/preview', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ segment: 'retail' }),
@@ -78,12 +87,15 @@ describe('ifrs9 routes response contracts', () => {
 
     expect(eclResponse.status).toBe(200)
     expect((await eclResponse.json()).data.executionId).toBe('exec-1')
+    expect(previewResponse.status).toBe(200)
+    expect((await previewResponse.json()).data.executionId).toBe('preview-1')
 
     expect(getSummaryMock).toHaveBeenCalledTimes(1)
     expect(getPortfolioTrendMock).toHaveBeenCalledTimes(1)
     expect(getAvailableDatesMock).toHaveBeenCalledTimes(1)
     expect(getBatchesMock).toHaveBeenCalledTimes(1)
     expect(runCalculationMock).toHaveBeenCalledTimes(1)
+    expect(runPreviewCalculationMock).toHaveBeenCalledTimes(1)
   })
 
   test('GET /api/v1/ifrs9/calculations returns stub list envelope', async () => {

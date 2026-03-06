@@ -502,8 +502,9 @@ rbacRoutes.openapi(
     }),
     async (c: any) => {
         const { roleId } = c.req.valid('param')
+        const tenantId = c.get('tenantId')!
         const effect = pipe(
-            rbacService.getRoleById(roleId),
+            rbacService.getRoleById(roleId, tenantId),
             Effect.map((r: any) => ({
                 success: true,
                 data: {
@@ -787,9 +788,10 @@ rbacRoutes.openapi(
     }),
     async (c: any) => {
         const { roleId } = c.req.valid('param')
+        const tenantId = c.get('tenantId')!
 
         const effect = pipe(
-            rbacService.getRoleById(roleId),
+            rbacService.getRoleById(roleId, tenantId),
             Effect.map((role) => ({
                 roleId: role.id,
                 roleName: role.roleName,

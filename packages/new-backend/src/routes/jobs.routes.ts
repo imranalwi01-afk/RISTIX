@@ -97,6 +97,8 @@ const MetricsSchema = z.object({
 const SUPPORTED_JOB_TYPES = ['SQL_SP', 'INTERNAL_SCRIPT', 'SHELL_COMMAND'] as const
 const TERMINAL_STATUSES = new Set(['completed', 'failed', 'cancelled', 'rejected'])
 const ACTIVE_STATUSES = new Set(['active', 'running'])
+const ACTIVE_LIKE_STATUSES = ['pending', 'waiting', 'queued', 'active', 'running', 'pending_approval'] as const
+const ORPHAN_EXECUTION_GRACE_MS = 15 * 60 * 1000
 const ACTION_SUFFIXES = new Set([
     'view',
     'create',
@@ -502,7 +504,33 @@ const reconcileExecutionStatus = async (targetDb: any, execution: any) => {
     }
 
     const queueJob = await getJob(execution.id)
-    if (!queueJob) return execution
+    if (!queueJob) {
+        // Queue entry is gone while DB row still says active/running:
+        // mark stale rows as failed so monitoring does not show ghost executions forever.
+        if (ACTIVE_STATUSES.has(currentStatus) && !execution.endTime && execution.startTime) {
+            const startedAt = new Date(execution.startTime).getTime()
+            if (Number.isFinite(startedAt) && Date.now() - startedAt > ORPHAN_EXECUTION_GRACE_MS) {
+                const patch: Record<string, unknown> = {
+                    status: 'failed',
+                    endTime: new Date(),
+                    error: execution.error || 'Execution orphaned: queue job not found. Worker/Redis likely restarted.',
+                }
+
+                await targetDb
+                    .update(jobExecutions)
+                    .set(patch)
+                    .where(eq(jobExecutions.id, execution.id))
+                    .execute()
+
+                return {
+                    ...execution,
+                    ...patch,
+                }
+            }
+        }
+
+        return execution
+    }
 
     const queueState = await queueJob.getState()
     const mappedStatus = mapQueueStateToDbStatus(queueState)
@@ -531,6 +559,28 @@ const reconcileExecutionStatus = async (targetDb: any, execution: any) => {
         endTime: patch.endTime ?? execution.endTime,
         error: patch.error ?? execution.error,
     }
+}
+
+const reconcileDefinitionExecutions = async (
+    targetDb: any,
+    definitionId: string,
+) => {
+    const candidates = await targetDb
+        .select()
+        .from(jobExecutions)
+        .where(and(
+            eq(jobExecutions.jobDefinitionId, definitionId),
+            sql`${jobExecutions.endTime} is null and lower(${jobExecutions.status}) in (${sql.join(
+                ACTIVE_LIKE_STATUSES.map((status) => sql`${status}`),
+                sql`, `
+            )})`
+        ))
+        .orderBy(desc(jobExecutions.startTime))
+        .limit(50)
+
+    if (!candidates.length) return
+
+    await Promise.all(candidates.map((execution: any) => reconcileExecutionStatus(targetDb, execution)))
 }
 
 const parseBlockedPids = (value: unknown): number[] => {
@@ -735,6 +785,7 @@ jobsRoutes.openapi(
 
         // Build where conditions
         const conditions = []
+        if (tenantId) conditions.push(eq(jobExecutions.tenantId, tenantId))
         if (status) { conditions.push(eq(jobExecutions.status, status)) }
         if (jobType) { conditions.push(eq(jobExecutions.jobType, jobType)) }
 
@@ -852,10 +903,14 @@ jobsRoutes.openapi(
             }) as any))
         }
 
+        const executionWhereClause = tenantId
+            ? and(eq(jobExecutions.id, id), eq(jobExecutions.tenantId, tenantId))
+            : eq(jobExecutions.id, id)
+
         const execution = await targetDb
             .select()
             .from(jobExecutions)
-            .where(eq(jobExecutions.id, id))
+            .where(executionWhereClause)
             .limit(1)
 
         if (!execution.length) {
@@ -920,10 +975,13 @@ jobsRoutes.openapi(
         const id = c.req.param('id')!
         const tenantId = c.get('tenantId')
         const targetDb = getDatabase(tenantId)
+        const executionWhereClause = tenantId
+            ? and(eq(jobExecutions.id, id), eq(jobExecutions.tenantId, tenantId))
+            : eq(jobExecutions.id, id)
         const [execution] = await targetDb
             .select()
             .from(jobExecutions)
-            .where(eq(jobExecutions.id, id))
+            .where(executionWhereClause)
             .limit(1)
 
         if (!execution) {
@@ -1204,6 +1262,9 @@ jobsRoutes.openapi(
             } as any, 400)
         }
 
+        // Heal stale active-like rows for this definition before conflict check.
+        await reconcileDefinitionExecutions(targetDb, definition.id)
+
         const [activeExecution] = await targetDb
             .select({
                 id: jobExecutions.id,
@@ -1212,7 +1273,10 @@ jobsRoutes.openapi(
             .from(jobExecutions)
             .where(and(
                 eq(jobExecutions.jobDefinitionId, definition.id),
-                sql`${jobExecutions.endTime} is null and lower(${jobExecutions.status}) in ('pending', 'waiting', 'queued', 'active', 'running', 'pending_approval')`
+                sql`${jobExecutions.endTime} is null and lower(${jobExecutions.status}) in (${sql.join(
+                    ACTIVE_LIKE_STATUSES.map((status) => sql`${status}`),
+                    sql`, `
+                )})`
             ))
             .orderBy(desc(jobExecutions.startTime))
             .limit(1)

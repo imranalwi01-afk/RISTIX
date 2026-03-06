@@ -129,6 +129,22 @@ ifrs9Routes.openapi(
     (c: any) => ifrs9CalculationsController.runCalculation(c)
 )
 
+ifrs9Routes.openapi(
+    createRoute({
+        method: 'post',
+        path: '/calculations/ecl/preview',
+        tags: ['IFRS9'],
+        summary: 'Run ECL Preview Calculation',
+        request: {
+            body: { content: { 'application/json': { schema: z.any() } } }
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: z.any() } }, description: 'Result' }
+        }
+    }),
+    (c: any) => ifrs9CalculationsController.runPreviewCalculation(c)
+)
+
 // --- Legacy Stub Routes ---
 
 ifrs9Routes.openapi(

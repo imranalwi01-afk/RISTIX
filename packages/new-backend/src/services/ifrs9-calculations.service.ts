@@ -7,7 +7,9 @@ import { addJob } from './queue.service';
 
 export class Ifrs9CalculationsService {
     private static readonly IFRS9_PREVIEW_SP_NAME = 'sp_frs9_preview_sequence';
-    private static readonly IFRS9_SQL_SP_JOB_NAME = 'IFRS9 Preview Sequence';
+    private static readonly IFRS9_IMPAIRMENT_SP_NAME = 'sp_frs9_imp_sequence';
+    private static readonly IFRS9_PREVIEW_SQL_SP_JOB_NAME = 'IFRS9 Preview Sequence';
+    private static readonly IFRS9_IMPAIRMENT_SQL_SP_JOB_NAME = 'IFRS9 Impairment Sequence';
 
     private normalizeProcedureName(value: unknown): string {
         return String(value || '').trim().toLowerCase();
@@ -21,6 +23,14 @@ export class Ifrs9CalculationsService {
         );
     }
 
+    private isIfrs9ImpairmentSqlSpParameters(parameters: any): boolean {
+        const procedureName = this.normalizeProcedureName(parameters?.procedureName);
+        return (
+            procedureName === Ifrs9CalculationsService.IFRS9_IMPAIRMENT_SP_NAME
+            || procedureName.endsWith(`.${Ifrs9CalculationsService.IFRS9_IMPAIRMENT_SP_NAME}`)
+        );
+    }
+
     private isIfrs9CalculationExecution(execution: any): boolean {
         const executionJobType = String(execution?.jobType || '').toUpperCase();
         if (executionJobType === 'IFRS9_CALCULATION') return true;
@@ -29,18 +39,56 @@ export class Ifrs9CalculationsService {
             if (this.isIfrs9PreviewSqlSpParameters(execution?.parameters)) return true;
             if (this.isIfrs9PreviewSqlSpParameters(execution?.defaultParameters)) return true;
             if (this.isIfrs9PreviewSqlSpParameters(execution?.definition?.defaultParameters)) return true;
+            if (this.isIfrs9ImpairmentSqlSpParameters(execution?.parameters)) return true;
+            if (this.isIfrs9ImpairmentSqlSpParameters(execution?.defaultParameters)) return true;
+            if (this.isIfrs9ImpairmentSqlSpParameters(execution?.definition?.defaultParameters)) return true;
         }
 
         return false;
     }
 
-    private buildIfrs9SqlSpDefaultParameters() {
+    private buildIfrs9PreviewSqlSpDefaultParameters() {
         return {
             schemaName: 'public',
             procedureName: Ifrs9CalculationsService.IFRS9_PREVIEW_SP_NAME,
             targetDatabase: 'LEGACY',
             parameters: [] as any[],
         };
+    }
+
+    private buildIfrs9ImpairmentSqlSpDefaultParameters() {
+        return {
+            schemaName: 'public',
+            procedureName: Ifrs9CalculationsService.IFRS9_IMPAIRMENT_SP_NAME,
+            targetDatabase: 'LEGACY',
+            parameters: [] as any[],
+        };
+    }
+
+    private async syncLegacyProcessDate(processDate: string): Promise<void> {
+        const normalizedDate = String(processDate || '').trim();
+        if (!normalizedDate) return;
+
+        const [existingPrcDate] = await legacyDb
+            .select({ pkid: frs9PrcDate.pkid })
+            .from(frs9PrcDate)
+            .limit(1);
+
+        if (!existingPrcDate) {
+            console.warn('⚠️ frs9_prc_date is empty; IFRS9 process date could not be synchronized');
+            return;
+        }
+
+        await legacyDb
+            .update(frs9PrcDate)
+            .set({
+                currdate: normalizedDate as any,
+                updateddate: new Date().toISOString(),
+                updatedby: 'system',
+                updatedhost: 'new-backend',
+                remark: 'IFRS9 Impairment Sequence - queued',
+            })
+            .where(eq(frs9PrcDate.pkid, existingPrcDate.pkid));
     }
 
     private async resolveConfigHeader(config: any): Promise<string> {
@@ -304,10 +352,10 @@ export class Ifrs9CalculationsService {
         }
     }
 
-    async runCalculation(tenantId: string, config: any) {
+    async runPreviewCalculation(tenantId: string, config: any) {
         try {
             const processDate = config.processDate || new Date().toISOString().split('T')[0];
-            console.log(`🚀 Queueing IFRS9 calculation (SP) for tenant ${tenantId} on ${processDate}`);
+            console.log(`🚀 Queueing IFRS9 preview calculation (SP) for tenant ${tenantId} on ${processDate}`);
 
             // 1. Resolve ECL model header for SP argument.
             const configHeader = await this.resolveConfigHeader(config);
@@ -328,11 +376,11 @@ export class Ifrs9CalculationsService {
                     calculationJob = await JobsRepository.updateDefinition(
                         legacyDefinition.id,
                         {
-                            name: Ifrs9CalculationsService.IFRS9_SQL_SP_JOB_NAME,
+                            name: Ifrs9CalculationsService.IFRS9_PREVIEW_SQL_SP_JOB_NAME,
                             description: 'IFRS9 calculation execution using SP_FRS9_PREVIEW_SEQUENCE',
                             jobType: 'SQL_SP',
                             isEnabled: true,
-                            defaultParameters: this.buildIfrs9SqlSpDefaultParameters(),
+                            defaultParameters: this.buildIfrs9PreviewSqlSpDefaultParameters(),
                             priority: 'HIGH',
                             timeout: 3600,
                             maxRetries: 0,
@@ -343,11 +391,11 @@ export class Ifrs9CalculationsService {
                     calculationJob = await JobsRepository.createDefinition({
                         id: crypto.randomUUID(),
                         tenantId: tenantId as any,
-                        name: Ifrs9CalculationsService.IFRS9_SQL_SP_JOB_NAME,
+                        name: Ifrs9CalculationsService.IFRS9_PREVIEW_SQL_SP_JOB_NAME,
                         description: 'IFRS9 calculation execution using SP_FRS9_PREVIEW_SEQUENCE',
                         jobType: 'SQL_SP',
                         isEnabled: true,
-                        defaultParameters: this.buildIfrs9SqlSpDefaultParameters(),
+                        defaultParameters: this.buildIfrs9PreviewSqlSpDefaultParameters(),
                         priority: 'HIGH',
                         timeout: 3600,
                         maxRetries: 0,
@@ -391,11 +439,12 @@ export class Ifrs9CalculationsService {
             };
 
             const executionParameters = {
-                ...(calculationJob.defaultParameters || this.buildIfrs9SqlSpDefaultParameters()),
+                ...(calculationJob.defaultParameters || this.buildIfrs9PreviewSqlSpDefaultParameters()),
                 parameters: [configHeader, previewData, processDate],
                 processDate,
                 configHeader,
                 source: 'ifrs9-calculations',
+                executionMode: 'preview',
             };
 
             // 3. Create execution row before queueing to avoid race with worker events.
@@ -404,7 +453,7 @@ export class Ifrs9CalculationsService {
                 id: executionId,
                 jobDefinitionId: calculationJob.id,
                 tenantId: tenantId as any,
-                jobName: calculationJob.name || Ifrs9CalculationsService.IFRS9_SQL_SP_JOB_NAME,
+                jobName: calculationJob.name || Ifrs9CalculationsService.IFRS9_PREVIEW_SQL_SP_JOB_NAME,
                 jobType: 'SQL_SP',
                 status: 'pending',
                 progress: 0,
@@ -445,11 +494,139 @@ export class Ifrs9CalculationsService {
             return {
                 success: true,
                 status: 'QUEUED',
-                message: 'Calculation queued using SP_FRS9_PREVIEW_SEQUENCE',
+                message: 'Preview calculation queued using SP_FRS9_PREVIEW_SEQUENCE',
                 jobId: executionId,
                 executionId,
                 processDate,
                 configHeader,
+            };
+        } catch (error: any) {
+            console.error('Error triggering calculation:', error);
+            return {
+                success: false,
+                message: 'Failed to trigger calculation: ' + error.message
+            };
+        }
+    }
+
+    async runCalculation(tenantId: string, config: any) {
+        try {
+            const processDate = config.processDate || new Date().toISOString().split('T')[0];
+            console.log(`🚀 Queueing IFRS9 impairment calculation (SP) for tenant ${tenantId} on ${processDate}`);
+
+            // 1. Keep legacy process date synchronized before running full impairment sequence.
+            await this.syncLegacyProcessDate(processDate);
+
+            // 2. Resolve or create SQL_SP definition bound to SP_FRS9_IMP_SEQUENCE.
+            const allDefs = await JobsRepository.findAllDefinitions(tenantId);
+            let calculationJob = allDefs.find((definition: any) => (
+                String(definition.jobType || '').toUpperCase() === 'SQL_SP'
+                && this.isIfrs9ImpairmentSqlSpParameters(definition.defaultParameters)
+            ));
+
+            if (!calculationJob) {
+                calculationJob = await JobsRepository.createDefinition({
+                    id: crypto.randomUUID(),
+                    tenantId: tenantId as any,
+                    name: Ifrs9CalculationsService.IFRS9_IMPAIRMENT_SQL_SP_JOB_NAME,
+                    description: 'IFRS9 calculation execution using SP_FRS9_IMP_SEQUENCE',
+                    jobType: 'SQL_SP',
+                    isEnabled: true,
+                    defaultParameters: this.buildIfrs9ImpairmentSqlSpDefaultParameters(),
+                    priority: 'HIGH',
+                    timeout: 3600,
+                    maxRetries: 0,
+                } as any);
+            }
+
+            if (!calculationJob?.id) {
+                throw new Error('Unable to resolve IFRS9 SQL_SP impairment job definition');
+            }
+
+            const targetDb = getDatabase(tenantId);
+            const [activeExecution] = await targetDb
+                .select({
+                    id: jobExecutions.id,
+                    startTime: jobExecutions.startTime,
+                })
+                .from(jobExecutions)
+                .where(and(
+                    eq(jobExecutions.jobDefinitionId, calculationJob.id),
+                    sql`${jobExecutions.endTime} is null and lower(${jobExecutions.status}) in ('pending', 'waiting', 'queued', 'active', 'running', 'pending_approval')`,
+                ))
+                .orderBy(desc(jobExecutions.startTime))
+                .limit(1);
+
+            if (activeExecution) {
+                return {
+                    success: false,
+                    status: 'CONFLICT',
+                    message: 'IFRS9 impairment calculation is already running or queued.',
+                    activeExecutionId: activeExecution.id,
+                    startTime: activeExecution.startTime ? new Date(activeExecution.startTime).toISOString() : null,
+                };
+            }
+
+            const executionParameters = {
+                ...(calculationJob.defaultParameters || this.buildIfrs9ImpairmentSqlSpDefaultParameters()),
+                parameters: [] as any[],
+                processDate,
+                calculationType: config.calculationType ?? 'full',
+                recalculate: Boolean(config.recalculate),
+                scenarios: config.scenarios ?? [],
+                source: 'ifrs9-calculations',
+                executionMode: 'impairment',
+            };
+
+            const executionId = crypto.randomUUID();
+            await JobsRepository.createExecution({
+                id: executionId,
+                jobDefinitionId: calculationJob.id,
+                tenantId: tenantId as any,
+                jobName: calculationJob.name || Ifrs9CalculationsService.IFRS9_IMPAIRMENT_SQL_SP_JOB_NAME,
+                jobType: 'SQL_SP',
+                status: 'pending',
+                progress: 0,
+                parameters: executionParameters as any,
+                startTime: new Date(),
+                approvalStatus: 'not_required',
+            } as any);
+
+            try {
+                await addJob('SQL_SP', {
+                    definitionId: calculationJob.id,
+                    tenantId,
+                    parameters: executionParameters,
+                }, {
+                    jobId: executionId,
+                    priority: calculationJob.priority === 'CRITICAL' ? 0 : calculationJob.priority === 'HIGH' ? 1 : 5,
+                    attempts: (calculationJob.maxRetries || 0) + 1,
+                    timeout: (calculationJob.timeout || 3600) * 1000,
+                });
+            } catch (queueError: any) {
+                const queueErrorMessage = queueError?.message || 'Failed to enqueue job';
+                await JobsRepository.updateExecution(executionId, {
+                    status: 'failed',
+                    error: `Queue enqueue failed: ${queueErrorMessage}`,
+                    endTime: new Date(),
+                } as any, tenantId);
+
+                return {
+                    success: false,
+                    status: 'FAILED',
+                    message: `Queue enqueue failed: ${queueErrorMessage}`,
+                    jobId: executionId,
+                    executionId,
+                };
+            }
+
+            return {
+                success: true,
+                status: 'QUEUED',
+                message: 'Calculation queued using SP_FRS9_IMP_SEQUENCE',
+                jobId: executionId,
+                executionId,
+                processDate,
             };
         } catch (error: any) {
             console.error('Error triggering calculation:', error);
