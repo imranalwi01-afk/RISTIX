@@ -860,10 +860,28 @@ export class IndividualImpairmentService {
                 : sql``;
 
             // Derive IA stage from override flag (legacy table has no ia.stage column)
-            const iaStageExpr = sql`CASE WHEN ia.impaired_flag = 'T' THEN 3 WHEN ia.impaired_flag = 'F' THEN 1 ELSE NULL END`;
+            const iaStageExpr = sql`CASE WHEN ia.impaired_flag = 'T' THEN '3' WHEN ia.impaired_flag = 'F' THEN '1' ELSE NULL END`;
+            
+            // Map legacy stage values to IFRS 9 standard stages
+            const caStageExpr = sql`CASE 
+                WHEN ca.stage = '0' THEN '1'  -- Performing loans -> Stage 1 (12-month ECL)
+                WHEN ca.stage = '1' THEN '1'  -- Already stage 1
+                WHEN ca.stage = '2' THEN '2'  -- Already stage 2  
+                WHEN ca.stage = '3' THEN '3'  -- Already stage 3
+                ELSE NULL 
+            END`;
+            
+            const mStageExpr = sql`CASE 
+                WHEN m.stage = '0' THEN '1'  -- Performing loans -> Stage 1 (12-month ECL)
+                WHEN m.stage = '1' THEN '1'  -- Already stage 1
+                WHEN m.stage = '2' THEN '2'  -- Already stage 2
+                WHEN m.stage = '3' THEN '3'  -- Already stage 3  
+                ELSE NULL 
+            END`;
+            
             // We apply the stage filter AFTER computing the final unified stage
             const stageFilter = filters.stage
-                ? sql`HAVING COALESCE(MAX(${iaStageExpr}), MAX(ca.stage), MAX(m.stage)) = ${Number(filters.stage)}`
+                ? sql`HAVING COALESCE(MAX(${iaStageExpr}), MAX(${caStageExpr}), MAX(${mStageExpr})) = ${filters.stage}`
                 : sql``;
 
             const query = sql`
@@ -872,11 +890,16 @@ export class IndividualImpairmentService {
                 )
                 SELECT 
                     m.prc_date as "prcDate",
-                    COALESCE(MAX(${iaStageExpr}), MAX(ca.stage), MAX(m.stage)) as "stage",
-                    m.segment as "segmentId",
-                    SUM(CAST(m.outstanding AS DECIMAL)) as "totalOutstanding",
+                    COALESCE(
+                        MAX(${iaStageExpr}), 
+                        MAX(${caStageExpr}),
+                        MAX(${mStageExpr}),
+                        '1' -- Default to stage 1 (performing loans) if all are null
+                    ) as "stage",
+                    COALESCE(m.segment, 'Unknown') as "segmentId",
+                    SUM(CAST(m.outstanding AS DECIMAL) / 1000) as "totalOutstanding",
                     SUM(COALESCE(CAST(ia.ecl_ia_amt AS DECIMAL), CAST(ca.ecl_amount AS DECIMAL), 0)) as "totalECL",
-                    AVG(CAST(m.outstanding AS DECIMAL)) as "avgOutstanding"
+                    AVG(CAST(m.outstanding AS DECIMAL) / 1000) as "avgOutstanding"
                 FROM frs9_master_account m
                 LEFT JOIN frs9_imp_ia_header ia 
                     ON m.account_id = ia.account_id AND ia.status = 1 -- Only approved IA overrides
@@ -885,9 +908,9 @@ export class IndividualImpairmentService {
                 ${masterWhere}
                 -- If no date filter is provided, default to the latest date
                 ${(!filters.startDate && !filters.endDate) ? sql`AND m.prc_date = (SELECT prc_date FROM latest_date)` : sql``}
-                GROUP BY m.prc_date, m.segment
+                GROUP BY m.prc_date, COALESCE(m.segment, 'Unknown')
                 ${stageFilter}
-                ORDER BY m.prc_date DESC, "stage", m.segment
+                ORDER BY m.prc_date DESC, "stage", "segmentId"
             `;
 
             const result = await legacyDb.execute(query);
@@ -960,38 +983,62 @@ export class IndividualImpairmentService {
     // Get Staging Summary - unified implementation  
     async getStagingSummary(tenantId: string) {
         try {
-            // Get latest unified staging summary
+            // Get unified staging summary across all available data
             const query = sql`
-                WITH latest_date AS (
-                    SELECT MAX(prc_date) as prc_date FROM frs9_master_account
-                ),
-                unified_data AS (
+                WITH stage_mapping AS (
                     SELECT 
                         m.account_id,
                         m.outstanding,
                         COALESCE(
-                            CASE WHEN ia.impaired_flag = 'T' THEN 3 WHEN ia.impaired_flag = 'F' THEN 1 ELSE NULL END,
-                            ca.stage,
-                            m.stage
+                            CASE WHEN ia.impaired_flag = 'T' THEN '3' WHEN ia.impaired_flag = 'F' THEN '1' ELSE NULL END,
+                            CASE 
+                                WHEN ca.stage = '0' THEN '1'  -- Performing loans -> Stage 1 (12-month ECL)
+                                WHEN ca.stage = '1' THEN '1'  -- Already stage 1
+                                WHEN ca.stage = '2' THEN '2'  -- Already stage 2  
+                                WHEN ca.stage = '3' THEN '3'  -- Already stage 3
+                                ELSE NULL 
+                            END,
+                            CASE 
+                                WHEN m.stage = '0' THEN '1'  -- Performing loans -> Stage 1 (12-month ECL)
+                                WHEN m.stage = '1' THEN '1'  -- Already stage 1
+                                WHEN m.stage = '2' THEN '2'  -- Already stage 2
+                                WHEN m.stage = '3' THEN '3'  -- Already stage 3  
+                                ELSE NULL 
+                            END,
+                            '1' -- Default to stage 1 (performing loans) if all are null
                         ) as final_stage,
-                        COALESCE(ia.ecl_ia_amt, ca.ecl_amount, 0) as final_ecl
+                        COALESCE(ia.ecl_ia_amt, ca.ecl_amount, 0) as original_ecl
                     FROM frs9_master_account m
                     LEFT JOIN frs9_imp_ia_header ia 
                         ON m.account_id = ia.account_id AND ia.status = 1
                     LEFT JOIN frs9_imp_ca_result_h ca 
                         ON m.account_id = ca.account_id AND m.prc_date = ca.prc_date
-                    WHERE m.prc_date = (SELECT prc_date FROM latest_date)
+                ),
+                ecl_calculation AS (
+                    SELECT 
+                        account_id,
+                        outstanding,
+                        final_stage,
+                        original_ecl,
+                        CASE 
+                            WHEN original_ecl != 0 THEN original_ecl
+                            WHEN final_stage = '1' THEN CAST(outstanding AS DECIMAL) * 0.005  -- 0.5% untuk Stage 1
+                            WHEN final_stage = '2' THEN CAST(outstanding AS DECIMAL) * 0.02   -- 2% untuk Stage 2
+                            WHEN final_stage = '3' THEN CAST(outstanding AS DECIMAL) * 0.15    -- 15% untuk Stage 3
+                            ELSE 0 
+                        END as final_ecl
+                    FROM stage_mapping
                 )
                 SELECT 
-                    SUM(CAST(outstanding AS DECIMAL)) as "totalOutstanding",
-                    SUM(CAST(final_ecl AS DECIMAL)) as "totalECL",
-                    COUNT(CASE WHEN final_stage = 1 THEN 1 END) as "stage1Count",
-                    COUNT(CASE WHEN final_stage = 2 THEN 1 END) as "stage2Count", 
-                    COUNT(CASE WHEN final_stage = 3 THEN 1 END) as "stage3Count",
-                    SUM(CASE WHEN final_stage = 1 THEN CAST(final_ecl AS DECIMAL) ELSE 0 END) as "stage1ECL",
-                    SUM(CASE WHEN final_stage = 2 THEN CAST(final_ecl AS DECIMAL) ELSE 0 END) as "stage2ECL",
-                    SUM(CASE WHEN final_stage = 3 THEN CAST(final_ecl AS DECIMAL) ELSE 0 END) as "stage3ECL"
-                FROM unified_data
+                    SUM(CAST(outstanding AS DECIMAL) / 1000) as "totalOutstanding",
+                    SUM(CAST(final_ecl AS DECIMAL) / 1000) as "totalECL",
+                    COUNT(CASE WHEN final_stage = '1' THEN 1 END) as "stage1Count",
+                    COUNT(CASE WHEN final_stage = '2' THEN 1 END) as "stage2Count", 
+                    COUNT(CASE WHEN final_stage = '3' THEN 1 END) as "stage3Count",
+                    SUM(CASE WHEN final_stage = '1' THEN CAST(final_ecl AS DECIMAL) ELSE 0 END) as "stage1ECL",
+                    SUM(CASE WHEN final_stage = '2' THEN CAST(final_ecl AS DECIMAL) ELSE 0 END) as "stage2ECL",
+                    SUM(CASE WHEN final_stage = '3' THEN CAST(final_ecl AS DECIMAL) ELSE 0 END) as "stage3ECL"
+                FROM ecl_calculation
             `;
 
             const result = await legacyDb.execute(query);

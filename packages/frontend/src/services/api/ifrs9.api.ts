@@ -5,36 +5,36 @@ import { apiClient, API_BASE_URL } from '../api-setup';
 // ============================================================================
 export const ifrs9API = {
     // Get IFRS9 calculation summary from real backend
-    getCalculationsSummary: async (date?: string) => {
-        console.log(`📊 Fetching IFRS9 calculation summary from real database${date ? ' for ' + date : ''}`);
-        const response = await apiClient.get('/ifrs9/calculations/summary', { params: { date } });
+    getCalculationsSummary: async (date?: string, mode?: string) => {
+        console.log(`📊 Fetching IFRS9 calculation summary from real database${date ? ' for ' + date : ''} [Mode: ${mode || 'all'}]`);
+        const response = await apiClient.get('/ifrs9/calculations/summary', { params: { date, mode } });
         return response.data;
     },
 
     // Get calculation batches from real backend
-    getCalculationBatches: async () => {
+    getCalculationBatches: async (mode?: string) => {
         console.log('📋 Fetching IFRS9 calculation batches from real database');
         // ✅ NO FALLBACK: Let errors propagate for proper handling
-        const response = await apiClient.get('/ifrs9/calculation-batches');
+        const response = await apiClient.get('/ifrs9/calculation-batches', { params: { mode } });
         return response.data;
     },
 
     // Get individual calculation results for a specific batch
-    getCalculationResults: async (date: string) => {
-        console.log(`📊 Fetching individual calculation results for ${date}`);
-        const response = await apiClient.get('/ifrs9/calculations/batch-results', { params: { date } });
+    getCalculationResults: async (date: string, mode?: string) => {
+        console.log(`📊 Fetching individual calculation results for ${date} [Mode: ${mode || 'all'}]`);
+        const response = await apiClient.get('/ifrs9/calculations/batch-results', { params: { date, mode } });
         return response.data;
     },
 
-    getPortfolioTrend: async (date?: string) => {
-        console.log(`📉 Fetching portfolio trend from real database${date ? ' up to ' + date : ''}`);
-        const response = await apiClient.get('/ifrs9/calculations/portfolio-trend', { params: { date } });
+    getPortfolioTrend: async (date?: string, mode?: string) => {
+        console.log(`📉 Fetching portfolio trend from real database${date ? ' up to ' + date : ''} [Mode: ${mode || 'all'}]`);
+        const response = await apiClient.get('/ifrs9/calculations/portfolio-trend', { params: { date, mode } });
         return response.data;
     },
 
-    getAvailableDates: async () => {
+    getAvailableDates: async (mode?: string) => {
         console.log('📅 Fetching available process dates from real database');
-        const response = await apiClient.get('/ifrs9/available-dates');
+        const response = await apiClient.get('/ifrs9/available-dates', { params: { mode } });
         return response.data;
     },
 

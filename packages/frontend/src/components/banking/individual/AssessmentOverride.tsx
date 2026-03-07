@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   Box,
   Typography,
@@ -49,6 +50,9 @@ import { useAssessmentWorkspaceEmbedded } from '@/app/banking/individual/assessm
 export const AssessmentOverride = () => {
   const embedded = useAssessmentWorkspaceEmbedded();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const accountId = searchParams.get('accountId');
+
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -78,9 +82,35 @@ export const AssessmentOverride = () => {
     }
   };
 
+  const loadAssessmentData = async (accId: string) => {
+    setLoading(true);
+    try {
+      const response = await individualImpairmentAPI.getAssessment(accId);
+      if (response.success && response.data) {
+        const assessment = response.data;
+        setFormData({
+          customerName: assessment.cif_name || assessment.cifName || '',
+          accountNumber: assessment.account_number || assessment.accountNumber || '',
+          originalStage: `Stage ${assessment.previous_stage || 1}`,
+          overrideStage: `Stage ${assessment.stage || 2}`,
+          justification: assessment.impairment_reason || assessment.triggerRemarks || ''
+        });
+        setOpenDialog(true);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to load assessment data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    loadData();
-  }, []);
+    if (accountId) {
+      loadAssessmentData(accountId);
+    } else {
+      loadData();
+    }
+  }, [accountId]);
 
   const handleCreate = async () => {
     if (!formData.customerName || !formData.accountNumber || !formData.justification) return;

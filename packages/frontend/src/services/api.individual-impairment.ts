@@ -304,9 +304,9 @@ export const individualImpairmentAPI = {
   // Watchlist Management
   watchlist: {
     // Get watchlist summary
-    getSummary: async (date?: string) => {
+    getSummary: async (date?: string, mode?: string) => {
         console.log('📊 Fetching watchlist summary');
-        const response = await apiClient.get('/banking/individual/impairment/watchlist/summary', { params: { date } });
+        const response = await apiClient.get('/banking/individual/impairment/watchlist/summary', { params: { date, mode } });
         return response.data;
     },
 
@@ -325,6 +325,7 @@ export const individualImpairmentAPI = {
         balance_range?: { min?: number; max?: number };
         date_range?: { start?: string; end?: string };
         analyst?: string;
+        mode?: string;
       };
       sort?: {
         field?: string;
