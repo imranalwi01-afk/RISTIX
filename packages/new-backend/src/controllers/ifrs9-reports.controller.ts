@@ -195,7 +195,7 @@ export const ifrs9ReportsController = {
     getEADModelSummary: async (c: Context) => {
         try {
             const tenantId = (c as any).get('tenantId');
-            
+
             // Extract filter parameters
             const prc_date = c.req.query('prc_date') || '2023-12-31';
             const ead_config_id = c.req.query('ead_config_id') ? Number(c.req.query('ead_config_id')) : undefined;
@@ -302,6 +302,8 @@ export const ifrs9ReportsController = {
             const limit = Number(c.req.query('limit') || 20);
             // Extract filter parameters
             const prc_date = c.req.query('prc_date') || '2023-12-31';
+            const download_start_date = c.req.query('download_start_date') || undefined;
+            const download_end_date = c.req.query('download_end_date') || undefined;
             const segment = c.req.queries('segment') || (c.req.query('segment') ? [c.req.query('segment')!] : undefined);
             const stage = c.req.queries('stage') || (c.req.query('stage') ? [c.req.query('stage')!] : undefined);
             const branch_code = c.req.queries('branch_code') || (c.req.query('branch_code') ? [c.req.query('branch_code')!] : undefined);
@@ -309,7 +311,7 @@ export const ifrs9ReportsController = {
                 tenantId,
                 page,
                 limit,
-                { prc_date, segment, stage, branch_code }
+                { prc_date, download_start_date, download_end_date, segment, stage, branch_code }
             );
             return c.json({
                 success: true,
@@ -321,6 +323,7 @@ export const ifrs9ReportsController = {
                     totalPages: result.totalPages
                 },
                 summary: result.summary,
+                effectivePrcDate: result.effectivePrcDate,
                 message: result.total === 0 ? "No Nominative Report Data available" : undefined
             });
         } catch (error: any) {

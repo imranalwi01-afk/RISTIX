@@ -126,6 +126,9 @@ const PERMISSION_OVERRIDES: Record<string, string | string[]> = {
     'menu-management': 'admin.system.manage',
     'job-monitoring': ['jobs.view', 'jobs.manage', 'admin.system.manage'],
     'assessment-workspace': 'banking.individual.view',
+    'assessment-workspace-old': 'banking.individual.view',
+    'assessment-workspace-old-imran': 'banking.individual.view',
+    'customer-list': 'banking.individual.view',
     'workflow-management': 'approval.requests.approve',
     'approval-system': 'approval.requests.approve',
     'workflow-notifications': ['notifications.view', 'notifications.manage', 'approval.requests.approve'],
@@ -383,6 +386,27 @@ const BANKING_MENU_STRUCTURE: MenuItem[] = [
                 icon: <Assessment />,
                 description: 'End-to-end impairment assessment',
                 isNew: true
+            },
+            {
+                id: 'assessment-workspace-old',
+                label: '(Old) Assessment Workspace',
+                href: '/banking/individual/assessment-old',
+                icon: <HistoryToggleOff />,
+                description: 'Legacy workspace snapshot'
+            },
+            {
+                id: 'assessment-workspace-old-imran',
+                label: '(Old - Imran) Assessment Workspace',
+                href: '/banking/individual/assessment-old-imran',
+                icon: <HistoryToggleOff />,
+                description: 'Legacy workspace snapshot from Imran'
+            },
+            {
+                id: 'customer-list',
+                label: 'Customer List',
+                href: '/banking/individual/customer-list',
+                icon: <People />,
+                description: 'Distinct customer/account list'
             }
         ]
     },
@@ -916,6 +940,9 @@ export const getIconForMenuItem = (code: string, level: number): React.ReactElem
         'ead-setup-management': <AccountBalance />,
         'ecl-configuration': <Calculate />,
         'assessment-override': <Assessment />,
+        'assessment-workspace-old': <HistoryToggleOff />,
+        'assessment-workspace-old-imran': <HistoryToggleOff />,
+        'customer-list': <People />,
         'impairment-module': <Warning />,
         'ecl-calculations': <Calculate />,
         'ifrs9-staging': <Layers />,
@@ -973,6 +1000,9 @@ const MENU_ICON_MAP: Record<string, string> = {
     'ecl-configuration': 'calculate',
     'individual-impairment': 'person',
     'assessment-override': 'assessment',
+    'assessment-workspace-old': 'history_toggle_off',
+    'assessment-workspace-old-imran': 'history_toggle_off',
+    'customer-list': 'people',
     'list-individual-report': 'table_chart',
     'review-scenario': 'approval',
     'review-dcf-upload': 'cloud_upload',

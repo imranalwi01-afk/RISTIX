@@ -93,6 +93,7 @@ const NominativeReport: React.FC = () => {
 
   // UI State
   const [quickSearch, setQuickSearch] = useState('');
+  const [effectivePrcDate, setEffectivePrcDate] = useState<string | null>(null);
 
   // Column Definitions
   const columns = [
@@ -117,6 +118,8 @@ const NominativeReport: React.FC = () => {
       // 1. Fetch Nominative Report Data (Paginated)
       const tableParams: Record<string, string | number | string[] | undefined> = {
         prc_date: filters.asOfDate,
+        download_start_date: filters.downloadDateStart,
+        download_end_date: filters.downloadDateEnd,
         page: paginationModel.page + 1,
         limit: paginationModel.pageSize,
         segment: filters.profitCenters.length > 0 ? filters.profitCenters : undefined,
@@ -127,8 +130,8 @@ const NominativeReport: React.FC = () => {
       // The backend controller supports `stage` param.
       // If multiple stages are selected in UI, and backend only supports one, we might need to adjust.
       // For now, let's send the first one if only one is selected, or don't send if all are selected.
-      if (filters.stages.length === 1) {
-        tableParams.stage = filters.stages[0];
+      if (filters.stages.length > 0) {
+        tableParams.stage = filters.stages.map((stage) => String(stage));
       }
 
       const tableResponse = await reportsAPI.nominativeReport.get(tableParams);
@@ -137,6 +140,7 @@ const NominativeReport: React.FC = () => {
         setData(tableResponse.data);
         const total = tableResponse.pagination ? tableResponse.pagination.total : tableResponse.data.length;
         setTotalRows(total);
+        setEffectivePrcDate(tableResponse.effectivePrcDate ?? null);
 
         // Update Summary Stats from API Response (Dynamic based on filters)
         if (tableResponse.summary) {
@@ -173,6 +177,7 @@ const NominativeReport: React.FC = () => {
       branches: [],
       stages: [1, 2, 3]
     });
+    setEffectivePrcDate(null);
     setPaginationModel({ pageSize: 20, page: 0 });
   }, []);
 
@@ -181,7 +186,7 @@ const NominativeReport: React.FC = () => {
     try {
         setLoading(true);
         const params = {
-          prc_date: filters.asOfDate,
+          prc_date: effectivePrcDate ?? filters.asOfDate,
           branch_code: filters.branches.length > 0 ? filters.branches[0] : undefined,
           format: 'xlsx'
         };
@@ -192,7 +197,7 @@ const NominativeReport: React.FC = () => {
              const url = window.URL.createObjectURL(new Blob([response.data]));
              const link = document.createElement('a');
              link.href = url;
-             link.setAttribute('download', `Nominative_Report_${filters.asOfDate}.xlsx`);
+             link.setAttribute('download', `Nominative_Report_${effectivePrcDate ?? filters.asOfDate}.xlsx`);
              document.body.appendChild(link);
              link.click();
              link.parentNode?.removeChild(link);
@@ -212,7 +217,7 @@ const NominativeReport: React.FC = () => {
               const ws = XLSX.utils.json_to_sheet(exportData);
               const wb = XLSX.utils.book_new();
               XLSX.utils.book_append_sheet(wb, ws, "Nominative Report");
-              XLSX.writeFile(wb, `Nominative_Report_Page_${filters.asOfDate}.xlsx`);
+              XLSX.writeFile(wb, `Nominative_Report_Page_${effectivePrcDate ?? filters.asOfDate}.xlsx`);
         }
     } catch (error) {
       console.error('❌ Export failed:', error);
@@ -220,7 +225,7 @@ const NominativeReport: React.FC = () => {
     } finally {
         setLoading(false);
     }
-  }, [data, filters.asOfDate, filters.branches]);
+  }, [data, effectivePrcDate, filters.asOfDate, filters.branches]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -675,6 +680,13 @@ const NominativeReport: React.FC = () => {
                   />
                 </Grid>
 
+            {effectivePrcDate && effectivePrcDate !== filters.asOfDate && (
+              <Grid size={{ xs: 12 }}>
+                <Typography variant="body2" color="text.secondary">
+                  Snapshot used: <strong>{effectivePrcDate}</strong> (latest available data on or before selected As-of Date)
+                </Typography>
+              </Grid>
+            )}
 
 
             {/* Active Filter Chips */}

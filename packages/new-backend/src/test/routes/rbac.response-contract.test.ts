@@ -236,7 +236,20 @@ describe('rbac routes response contracts', () => {
     expect(response.status).toBe(200)
     expect(body.success).toBe(true)
     expect(body.data.id).toBe('role-maker')
-    expect(getRoleByIdMock).toHaveBeenCalledWith('role-maker')
+    expect(getRoleByIdMock).toHaveBeenCalledWith('role-maker', 'tenant-rbac-1')
+  })
+
+  test('GET /api/v1/roles/{id}/permissions resolves role in tenant scope', async () => {
+    const app = new OpenAPIHono()
+    app.route('/api/v1/roles', rbacRoutes)
+
+    const response = await app.request('/api/v1/roles/role-maker/permissions')
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body.success).toBe(true)
+    expect(body.data.roleId).toBe('role-maker')
+    expect(getRoleByIdMock).toHaveBeenCalledWith('role-maker', 'tenant-rbac-1')
   })
 
   test('POST /api/v1/roles creates approval request and returns 202', async () => {

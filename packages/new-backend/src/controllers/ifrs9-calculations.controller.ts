@@ -74,6 +74,20 @@ export class Ifrs9CalculationsController {
         }
     }
 
+    async runPreviewCalculation(c: Context) {
+        try {
+            const rawTenantId = c.get('tenantId');
+            const tenantId = await this.resolveTenantId(rawTenantId);
+            console.log(`🚀 Triggering preview calculation for tenant: ${tenantId}`);
+            const body = await c.req.json();
+            const result = await ifrs9CalculationsService.runPreviewCalculation(tenantId, body);
+            return c.json(result);
+        } catch (error: any) {
+            console.error('Error running preview calculation:', error);
+            return c.json({ success: false, message: error.message }, 500);
+        }
+    }
+
     async getPortfolioTrend(c: Context) {
         try {
             const rawTenantId = c.get('tenantId');

@@ -767,12 +767,21 @@ describe('jobs routes response contracts', () => {
         isEnabled: true,
       },
     ])
+    const activeExecution = {
+      id: 'execution-active-1',
+      startTime: new Date('2026-02-25T02:00:00.000Z'),
+    }
     enqueue(state.selectQueue, 'job_executions', [
-      {
-        id: 'execution-active-1',
-        startTime: new Date('2026-02-25T02:00:00.000Z'),
-      },
+      activeExecution,
     ])
+    enqueue(state.selectQueue, 'job_executions', [
+      activeExecution,
+    ])
+    state.getJobMap.set('execution-active-1', {
+      getState: async () => 'active',
+      finishedOn: null,
+      failedReason: null,
+    })
 
     const app = new OpenAPIHono()
     app.route('/api/v1/jobs', jobsRoutes)
@@ -834,6 +843,7 @@ describe('jobs routes response contracts', () => {
         isEnabled: true,
       },
     ])
+    enqueue(state.selectQueue, 'job_executions', [])
     enqueue(state.selectQueue, 'job_executions', [])
     enqueueError(state.updateExecuteErrorQueue, 'job_executions', { code: '23505' })
     enqueue(state.selectQueue, 'job_executions', [

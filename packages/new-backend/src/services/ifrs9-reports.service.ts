@@ -83,6 +83,76 @@ export class Ifrs9ReportsService {
         return parsed.length > 0 ? parsed : null;
     }
 
+    private normalizeTextFilter(values?: string[] | string): string[] | null {
+        const rawValues = Array.isArray(values) ? values : (values ? [values] : []);
+        const parsed = Array.from(new Set(
+            rawValues
+                .flatMap((value) => String(value).split(','))
+                .map((value) => value.trim())
+                .filter((value) => value.length > 0)
+        ));
+
+        return parsed.length > 0 ? parsed : null;
+    }
+
+    private escapeSqlLiteral(value: string): string {
+        return value.replace(/'/g, "''");
+    }
+
+    private async resolveNominativePrcDate(
+        requestedPrcDate?: string,
+        downloadStartDate?: string,
+        downloadEndDate?: string,
+    ): Promise<string | null> {
+        const whereConditions: string[] = [];
+
+        if (requestedPrcDate) {
+            whereConditions.push(`prc_date <= '${this.escapeSqlLiteral(requestedPrcDate)}'`);
+        }
+        if (downloadStartDate) {
+            whereConditions.push(`prc_date >= '${this.escapeSqlLiteral(downloadStartDate)}'`);
+        }
+        if (downloadEndDate) {
+            whereConditions.push(`prc_date <= '${this.escapeSqlLiteral(downloadEndDate)}'`);
+        }
+
+        const scopedWhereClause = whereConditions.length > 0
+            ? `WHERE ${whereConditions.join(' AND ')}`
+            : '';
+
+        const scopedDateResult = await legacyDb.execute(sql.raw(`
+            SELECT MAX(prc_date) AS effective_date
+            FROM public.frs9_imp_nominative
+            ${scopedWhereClause}
+        `));
+
+        const scopedDate = (scopedDateResult as any[])[0]?.effective_date;
+        if (scopedDate) {
+            return String(scopedDate).slice(0, 10);
+        }
+
+        if (requestedPrcDate) {
+            const lessEqualDateResult = await legacyDb.execute(sql.raw(`
+                SELECT MAX(prc_date) AS effective_date
+                FROM public.frs9_imp_nominative
+                WHERE prc_date <= '${this.escapeSqlLiteral(requestedPrcDate)}'
+            `));
+
+            const lessEqualDate = (lessEqualDateResult as any[])[0]?.effective_date;
+            if (lessEqualDate) {
+                return String(lessEqualDate).slice(0, 10);
+            }
+        }
+
+        const latestDateResult = await legacyDb.execute(sql.raw(`
+            SELECT MAX(prc_date) AS effective_date
+            FROM public.frs9_imp_nominative
+        `));
+
+        const latestDate = (latestDateResult as any[])[0]?.effective_date;
+        return latestDate ? String(latestDate).slice(0, 10) : null;
+    }
+
     private async refreshMovementData(prcDate: string) {
         try {
             await legacyDb.execute(sql`
@@ -504,72 +574,111 @@ export class Ifrs9ReportsService {
 
     /**
      * Get Nominative Report (Detailed Account Level)
-     * Queries: frs9_master_account - Account level IFRS9 data
+     * Queries: frs9_imp_nominative joined with frs9_master_account (branch enrichment)
      */
-    async getNominativeReport(tenantId: string, page: number, limit: number, params?: { prc_date?: string, segment?: string[], stage?: string | string[], branch_code?: string[] }) {
+    async getNominativeReport(
+        tenantId: string,
+        page: number,
+        limit: number,
+        params?: {
+            prc_date?: string,
+            download_start_date?: string,
+            download_end_date?: string,
+            segment?: string[] | string,
+            stage?: string | string[],
+            branch_code?: string[] | string
+        }
+    ) {
         try {
-            const prcDate = params?.prc_date || '2023-12-31';
-            const segment = params?.segment;
-            const stage = params?.stage;
-            const branchCode = params?.branch_code;
+            const requestedPrcDate = params?.prc_date || new Date().toISOString().slice(0, 10);
+            const downloadStartDate = params?.download_start_date;
+            const downloadEndDate = params?.download_end_date;
+            const segmentValues = this.normalizeTextFilter(params?.segment);
+            const stageValues = this.normalizeStageFilter(params?.stage);
+            const branchValues = this.normalizeTextFilter(params?.branch_code);
 
-            console.log('📊 [Nominative Report] Fetching with params:', { prcDate, segment, stage, branchCode });
+            const effectivePrcDate = await this.resolveNominativePrcDate(
+                requestedPrcDate,
+                downloadStartDate,
+                downloadEndDate,
+            );
 
-            // Build dynamic WHERE clause
-            let whereClause = `prc_date = '${prcDate}'`;
+            console.log('📊 [Nominative Report] Fetching with params:', {
+                requestedPrcDate,
+                effectivePrcDate,
+                downloadStartDate,
+                downloadEndDate,
+                segmentValues,
+                stageValues,
+                branchValues
+            });
 
-            // Handle multiple segments (Profit Centers)
-            if (segment && segment.length > 0) {
-                const segmentList = segment.map(s => `'${s}'`).join(',');
-                whereClause += ` AND segment IN (${segmentList})`;
+            if (!effectivePrcDate) {
+                return {
+                    data: [],
+                    total: 0,
+                    summary: {
+                        totalOutstanding: 0,
+                        totalECL: 0
+                    },
+                    page,
+                    totalPages: 0,
+                    effectivePrcDate: null
+                };
             }
 
-            if (stage !== undefined && stage !== null && stage !== '') {
-                if (Array.isArray(stage)) {
-                    const stageList = stage.map(s => `'${s}'`).join(',');
-                    whereClause += ` AND stage IN (${stageList})`;
-                } else {
-                    whereClause += ` AND stage = '${stage}'`;
-                }
+            // Nominative source aligned to tech spec section "Nominatif Report".
+            // Branch code is joined from master account for current UI compatibility.
+            let whereClause = `n.prc_date = '${this.escapeSqlLiteral(effectivePrcDate)}'`;
+
+            if (segmentValues) {
+                const segmentList = segmentValues
+                    .map((value) => `'${this.escapeSqlLiteral(value)}'`)
+                    .join(',');
+                whereClause += ` AND n.segment IN (${segmentList})`;
             }
 
-            // Handle multiple branch codes
-            if (branchCode && branchCode.length > 0) {
-                const branchList = branchCode.map(b => `'${b}'`).join(',');
-                whereClause += ` AND branch_code IN (${branchList})`;
+            if (stageValues) {
+                const stageList = stageValues.join(',');
+                whereClause += ` AND n.stage IN (${stageList})`;
             }
 
-            // Query account-level data from frs9_master_account
+            if (branchValues) {
+                const branchList = branchValues
+                    .map((value) => `'${this.escapeSqlLiteral(value)}'`)
+                    .join(',');
+                whereClause += ` AND COALESCE(m.branch_code, '') IN (${branchList})`;
+            }
+
+            const offset = Math.max(0, (page - 1) * limit);
+
             const rawData = await legacyDb.execute(sql.raw(`
                 SELECT 
-                    account_id,
-                    account_number,
-                    facility_number,
-                    cif_number,
-                    cif_name,
-                    branch_code,
-                    segment_id,
-                    segment,
-                    sub_segment,
-                    stage,
-                    bucket_id,
-                    currency,
-                    CAST(outstanding AS DECIMAL) AS outstanding,
-                    CAST(accrued_interest AS DECIMAL) AS accrued_interest,
-                    CAST(ecl_ca_onbs_amt AS DECIMAL) AS ecl_ca_onbs,
-                    CAST(ecl_ca_offbs_amt AS DECIMAL) AS ecl_ca_offbs,
-                    CAST(ecl_ia_onbs_amt AS DECIMAL) AS ecl_ia,
-                    CAST(ecl_final_amt AS DECIMAL) AS ecl_final,
-                    dpd,
-                    collectability,
-                    internal_rating_code,
-                    sicr_flag,
-                    impaired_flag,
-                    prc_date
-                FROM frs9_master_account
+                    n.account_id,
+                    n.account_number,
+                    n.facility_number,
+                    n.cif_number,
+                    n.cif_name,
+                    m.branch_code,
+                    n.segment,
+                    n.sub_segment,
+                    n.stage,
+                    n.currency,
+                    CAST(n.outstanding AS DECIMAL) AS outstanding,
+                    CAST(n.ecl AS DECIMAL) AS ecl_final_amt,
+                    CAST(n.ecl_coverage AS DECIMAL) AS ecl_coverage,
+                    n.dpd,
+                    n.ext_rating AS internal_rating_code,
+                    n.sicr AS sicr_flag,
+                    n.prc_date
+                FROM public.frs9_imp_nominative n
+                LEFT JOIN public.frs9_master_account m
+                    ON m.account_id = n.account_id
+                   AND m.prc_date = n.prc_date
                 WHERE ${whereClause}
-                ORDER BY account_number
+                ORDER BY n.account_number
                 LIMIT ${limit}
+                OFFSET ${offset}
             `));
 
             const rows = Array.from(rawData as any[]);
@@ -585,9 +694,12 @@ export class Ifrs9ReportsService {
             const summaryResult = await legacyDb.execute(sql.raw(`
                 SELECT 
                     COUNT(*) as total,
-                    COALESCE(SUM(CAST(outstanding AS DECIMAL)), 0) as total_outstanding,
-                    COALESCE(SUM(CAST(ecl_final_amt AS DECIMAL)), 0) as total_ecl
-                FROM public.frs9_master_account 
+                    COALESCE(SUM(CAST(n.outstanding AS DECIMAL)), 0) as total_outstanding,
+                    COALESCE(SUM(CAST(n.ecl AS DECIMAL)), 0) as total_ecl
+                FROM public.frs9_imp_nominative n
+                LEFT JOIN public.frs9_master_account m
+                    ON m.account_id = n.account_id
+                   AND m.prc_date = n.prc_date
                 WHERE ${whereClause}
             `));
 
@@ -602,11 +714,22 @@ export class Ifrs9ReportsService {
                     totalECL: Number(summaryRow.total_ecl || 0)
                 },
                 page,
-                totalPages: Math.ceil(total / limit)
+                totalPages: Math.ceil(total / limit),
+                effectivePrcDate
             };
         } catch (error) {
             console.error('❌ Error in getNominativeReport service:', error);
-            return { data: [], total: 0, page, totalPages: 0 };
+            return {
+                data: [],
+                total: 0,
+                summary: {
+                    totalOutstanding: 0,
+                    totalECL: 0
+                },
+                page,
+                totalPages: 0,
+                effectivePrcDate: null
+            };
         }
     }
 

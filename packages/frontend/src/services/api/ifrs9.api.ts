@@ -87,6 +87,13 @@ export const ifrs9API = {
         return response.data;
     },
 
+    // Run ECL preview calculation (used by ECL configuration page)
+    runECLPreviewCalculation: async (config: any) => {
+        console.log('🧪 Running ECL preview calculation with config:', config);
+        const response = await apiClient.post('/ifrs9/calculations/ecl/preview', config);
+        return response.data;
+    },
+
     // Export functionality for all report types
     export: async (reportType: string, params: any) => {
         try {

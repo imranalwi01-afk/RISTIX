@@ -633,39 +633,19 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
 
     const config = frontendEnvironmentLoader.getConfiguration();
     const currentDashboardUrl = API_CONFIG.R_DASHBOARD_URL;
-    const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 
-    console.log('🔍 EmbeddedShinyApp - URL Resolution:', {
+    console.log('🔍 EmbeddedShinyApp - Strict URL Resolution:', {
       configDashboard: currentDashboardUrl,
-      isLocalhost,
-      isProduction: config.isProduction,
       connectionMode,
       managedSession: shouldUseManagedSession,
-      envVar: process.env.NEXT_PUBLIC_R_ANALYTICS_URL
     });
 
-    let domainBase = '';
-
-    // ✅ PRIORITY 1: If we have a configured remote domain, use it regardless of localhost
-    if (currentDashboardUrl && !currentDashboardUrl.includes('localhost') && !currentDashboardUrl.includes('127.0.0.1')) {
-      console.log('📡 REMOTE DOMAIN DETECTED - Using configured URL:', currentDashboardUrl);
-      domainBase = currentDashboardUrl;
-    }
-    // ✅ PRIORITY 2: If we are not on localhost (and not forced production API), use whatever is configured
-    else if (!isLocalhost && !config.isProduction) {
-      domainBase = currentDashboardUrl;
-    }
-    // ✅ FALLBACK: Localhost development
-    else if (!config.isProduction && !isProductionEnvironment) {
-      console.log('💻 LOCALHOST DETECTED - Falling back to local R Analytics');
-      domainBase = `http://localhost:4236`;
+    if (!currentDashboardUrl) {
+      console.error('❌ R Analytics Dashboard URL is NOT set in environment variables (NEXT_PUBLIC_R_ANALYTICS_URL)');
     }
 
+    let domainBase = currentDashboardUrl || '';
 
-    // Last-resort fallback so direct embed always has a usable URL.
-    if (!domainBase) {
-      domainBase = currentDashboardUrl || 'http://localhost:4236';
-    }
 
     // Mark as initialized to prevent loops
     isInitialized.current = true;

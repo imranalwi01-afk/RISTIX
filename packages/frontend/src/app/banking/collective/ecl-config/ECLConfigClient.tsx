@@ -335,6 +335,9 @@ export default function ECLConfigurationPage() {
   const [filterModule, setFilterModule] = useState<string>('');
   const [currentTab, setCurrentTab] = useState(0);
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+  const [runStatus, setRunStatus] = useState<{ severity: 'success' | 'error' | 'info'; message: string } | null>(null);
+  const [runningConfigId, setRunningConfigId] = useState<number | null>(null);
+  const [runningAll, setRunningAll] = useState(false);
   const [approvalNotification, setApprovalNotification] = useState<{
     open: boolean;
     message: string;
@@ -654,6 +657,94 @@ export default function ECLConfigurationPage() {
     }
   };
 
+  const buildEclRunPayload = async (eclConfig?: ECLConfigHeader) => {
+    const processDate = new Date().toISOString().split('T')[0];
+    let configHeader = eclConfig?.ecl_model_name?.trim() || '';
+    let segmentIds: number[] = [];
+
+    if (eclConfig?.pkid) {
+      try {
+        const configDetailResponse: any = await api.banking.eclConfigurations.getById(eclConfig.pkid);
+        const configDetail = configDetailResponse?.data || configDetailResponse;
+        configHeader = configHeader || String(configDetail?.model_name || '').trim();
+
+        const detailRows = Array.isArray(configDetail?.details) ? configDetail.details : [];
+        segmentIds = Array.from(
+          new Set(
+            detailRows
+              .map((detail: any) => Number(detail?.pf_segment_id))
+              .filter((id: number) => Number.isFinite(id) && id > 0)
+          )
+        );
+      } catch (detailError) {
+        console.warn('Failed to load ECL configuration details; continuing with header-only payload.', detailError);
+      }
+    }
+
+    return {
+      processDate,
+      calculationType: 'full',
+      recalculate: false,
+      scenarios: ['Base', 'Optimistic', 'Pessimistic'],
+      segmentIds,
+      ...(configHeader ? { configHeader, eclModelName: configHeader } : {})
+    };
+  };
+
+  const handleRunEcl = async (eclConfig: ECLConfigHeader) => {
+    setRunStatus(null);
+    setError(null);
+    setRunningConfigId(eclConfig.pkid);
+
+    try {
+      const payload = await buildEclRunPayload(eclConfig);
+      const response: any = await api.ifrs9.runECLPreviewCalculation(payload);
+
+      if (!response?.success) {
+        throw new Error(response?.message || 'Failed to queue ECL calculation');
+      }
+
+      setRunStatus({
+        severity: 'success',
+        message: `ECL queued for "${eclConfig.ecl_model_name}" (Execution ID: ${response.executionId || response.jobId || '-'})`
+      });
+    } catch (runError: any) {
+      setRunStatus({
+        severity: 'error',
+        message: runError?.message || 'Failed to run ECL calculation'
+      });
+    } finally {
+      setRunningConfigId(null);
+    }
+  };
+
+  const handleRunAllEcl = async () => {
+    setRunStatus(null);
+    setError(null);
+    setRunningAll(true);
+
+    try {
+      const payload = await buildEclRunPayload();
+      const response: any = await api.ifrs9.runECLPreviewCalculation(payload);
+
+      if (!response?.success) {
+        throw new Error(response?.message || 'Failed to queue ECL calculation');
+      }
+
+      setRunStatus({
+        severity: 'success',
+        message: `ECL queued from ECL Configuration page (Execution ID: ${response.executionId || response.jobId || '-'})`
+      });
+    } catch (runError: any) {
+      setRunStatus({
+        severity: 'error',
+        message: runError?.message || 'Failed to run all ECL calculations'
+      });
+    } finally {
+      setRunningAll(false);
+    }
+  };
+
   // DataGrid columns
   const columns: GridColDef[] = [
     {
@@ -751,7 +842,8 @@ export default function ECLConfigurationPage() {
           key="run"
           icon={<RunIcon />}
           label="Run ECL"
-          onClick={() => console.log('Run ECL calculation for', params.row.pkid)}
+          onClick={() => handleRunEcl(params.row)}
+          disabled={runningConfigId !== null || runningAll}
           color="primary"
         />,
         <SafeGridActionsCellItem
@@ -859,6 +951,11 @@ export default function ECLConfigurationPage() {
           {error}
         </Alert>
       )}
+      {runStatus && (
+        <Alert severity={runStatus.severity} sx={{ mb: 3 }} onClose={() => setRunStatus(null)}>
+          {runStatus.message}
+        </Alert>
+      )}
 
       {/* Filters and Search */}
       <Card sx={{ mb: 3 }}>
@@ -902,9 +999,10 @@ export default function ECLConfigurationPage() {
                 variant="outlined"
                 startIcon={<RunIcon />}
                 fullWidth
-                onClick={() => console.log('Run all ECL calculations')}
+                onClick={handleRunAllEcl}
+                disabled={runningAll || runningConfigId !== null}
               >
-                Run All ECL
+                {runningAll ? 'Queueing...' : 'Run All ECL'}
               </Button>
             </Box>
             <Box sx={{ flex: 2, minWidth: 100 }}>
