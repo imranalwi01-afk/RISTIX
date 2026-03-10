@@ -91,6 +91,9 @@ export R_SERVICE_PORT="${API_PORT}"
 HEALTHCHECK_INTERVAL="${R_ANALYTICS_HEALTHCHECK_INTERVAL:-20}"
 HEALTHCHECK_TIMEOUT="${R_ANALYTICS_HEALTHCHECK_TIMEOUT:-5}"
 HEALTHCHECK_FAILURE_THRESHOLD="${R_ANALYTICS_HEALTHCHECK_FAILURES:-3}"
+STARTUP_GRACE_PERIOD="${R_ANALYTICS_STARTUP_GRACE_PERIOD:-120}"
+SERVICE_STATE_DIR="/tmp/r-analytics-service-state"
+mkdir -p "${SERVICE_STATE_DIR}"
 
 # Centralized log dir for Docker visibility.
 export R_ANALYTICS_LOG_DIR="${R_ANALYTICS_LOG_DIR:-/opt/r-analytics/logs}"
@@ -118,10 +121,14 @@ supervise_service() {
   local runner_fn="$2"
   local restart_delay=2
   local crash_count=0
+  local started_at_file="${SERVICE_STATE_DIR}/${service_name}.started_at"
+  local healthy_once_file="${SERVICE_STATE_DIR}/${service_name}.healthy"
 
   while true; do
     echo "Starting ${service_name}..."
     send_alert "service_starting" "${service_name}" "Starting ${service_name} process"
+    date +%s > "${started_at_file}"
+    rm -f "${healthy_once_file}"
 
     set +e
     "${runner_fn}"
@@ -146,11 +153,25 @@ monitor_endpoint() {
   local url="$2"
   local kill_pattern="$3"
   local failures=0
+  local started_at_file="${SERVICE_STATE_DIR}/${service_name}.started_at"
+  local healthy_once_file="${SERVICE_STATE_DIR}/${service_name}.healthy"
 
   while true; do
+    local now
+    now="$(date +%s)"
+    local started_at
+    started_at="$(cat "${started_at_file}" 2>/dev/null || echo "${now}")"
+    local startup_age=$((now - started_at))
+
     if curl -fsS -m "${HEALTHCHECK_TIMEOUT}" "${url}" >/dev/null; then
       failures=0
+      touch "${healthy_once_file}"
     else
+      if [ ! -f "${healthy_once_file}" ] && [ "${startup_age}" -lt "${STARTUP_GRACE_PERIOD}" ]; then
+        echo "[HEALTH] ${service_name} waiting for startup grace (${startup_age}s/${STARTUP_GRACE_PERIOD}s) url=${url}"
+        sleep "${HEALTHCHECK_INTERVAL}"
+        continue
+      fi
       failures=$((failures + 1))
       echo "[HEALTH] ${service_name} probe failed (${failures}/${HEALTHCHECK_FAILURE_THRESHOLD}) url=${url}"
       if [ "${failures}" -ge "${HEALTHCHECK_FAILURE_THRESHOLD}" ]; then
