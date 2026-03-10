@@ -68,7 +68,7 @@ import {
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 
-import { useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 
 import { GridColDef, GridRowId, GridToolbar } from '@mui/x-data-grid';
 
@@ -129,6 +129,7 @@ const mockPeriodTypes = [
 // API service for ECL Configuration - Use centralized api service
 import { api } from '../../../../services/api';
 import { bankingAPI } from '@/services/api';
+import { filterPopulationSegmentsByType } from '@/services/api/population-segments.api';
 import {
   eclConfigurationSchema,
   eclDetailConfigurationSchema,
@@ -140,6 +141,9 @@ interface LookupOption {
   label: string;
   segmentId?: string;
 }
+
+const ECL_PORTFOLIO_SEGMENT_TYPE = 'PF';
+const ECL_STAGE_RULE_TYPE = 'STAGE';
 
 const createEmptyHeaderFormData = (): Partial<ECLConfigHeader> => ({
   ecl_model_name: '',
@@ -178,7 +182,7 @@ const normalizePopulationSegmentOptions = (segments: any[]): LookupOption[] =>
   segments
     .map((segment: any) => ({
       value: String(segment.id ?? ''),
-      label: String(segment.segment_name ?? '').trim(),
+      label: String(segment.segment_name ?? segment.segment ?? '').trim(),
     }))
     .filter((item: LookupOption) => item.value && item.label);
 
@@ -190,17 +194,56 @@ const normalizeRuleOptions = (response: any): LookupOption[] =>
     }))
     .filter((item: LookupOption) => item.value && item.label);
 
-const normalizeModelOptions = (configs: any[], getSegmentId: (config: any) => unknown): LookupOption[] =>
+const normalizeModelOptions = (
+  configs: any[],
+  getSegmentId: (config: any) => unknown,
+  segmentLabelLookup: Map<string, string>
+): LookupOption[] =>
   configs
     .map((config: any) => ({
       value: String(config.id ?? config.pkid ?? ''),
-      label: String(config.model_name ?? '').trim(),
+      label: [
+        String(config.model_name ?? '').trim(),
+        segmentLabelLookup.get(String(getSegmentId(config) ?? '')) || '',
+      ].filter(Boolean).join(' - '),
       segmentId: String(getSegmentId(config) ?? ''),
     }))
     .filter((item: LookupOption) => item.value && item.label);
 
 const createLabelLookup = (options: LookupOption[]) =>
   new Map(options.map((option) => [String(option.value), option.label]));
+
+const normalizeModeToken = (value?: unknown): string => String(value ?? '').trim().toUpperCase();
+
+const filterRowsByBankingMode = <T extends Record<string, any>>(rows: T[], bankingMode: string): T[] => {
+  const target = normalizeModeToken(bankingMode);
+  if (!target || target === 'DUAL') return rows;
+
+  const filtered = rows.filter((row) => {
+    const modeCandidates = [
+      row.banking_mode,
+      row.bankingMode,
+      row.banking_type,
+      row.bankingType,
+      row.mode,
+    ];
+
+    return modeCandidates.some((candidate) => {
+      const token = normalizeModeToken(candidate);
+      return token === target || token.includes(target);
+    });
+  });
+
+  return filtered.length > 0 ? filtered : rows;
+};
+
+const getModelOptionsForSegment = (options: LookupOption[], selectedSegmentId?: string | number): LookupOption[] => {
+  const segmentId = String(selectedSegmentId ?? '').trim();
+  if (!segmentId) return options;
+
+  const matching = options.filter((option) => !option.segmentId || option.segmentId === segmentId);
+  return matching.length > 0 ? matching : options;
+};
 
 const hydrateEclDetails = (
   details: ECLConfigDetail[],
@@ -369,7 +412,8 @@ const eclConfigurationAPI = {
 
 
 export default function ECLConfigurationPage() {
-  const router = useRouter();
+  const searchParams = useSearchParams();
+  const bankingMode = (searchParams.get('mode') || 'conventional').toLowerCase();
   const [moduleOptions, setModuleOptions] = useState<LookupOption[]>([]);
   const [segmentOptions, setSegmentOptions] = useState<LookupOption[]>([]);
   const [stageRuleOptions, setStageRuleOptions] = useState<LookupOption[]>([]);
@@ -425,20 +469,30 @@ export default function ECLConfigurationPage() {
         headers,
       ] = await Promise.all([
         api.banking.businessSetup.getHeaderDetails('B0024'),
-        api.banking.populationSegments.getAll({ active_flag: true }),
-        bankingAPI.ruleBaseSetting.getHeaders({ limit: 200, active_flag: true }),
-        api.banking.pdConfigurations.getAll(),
-        api.banking.lgdConfigurations.getAll(),
-        api.banking.eadConfigurations.getAll(),
+        api.banking.populationSegments.getAll({ active_flag: true, segment_type: ECL_PORTFOLIO_SEGMENT_TYPE }),
+        bankingAPI.ruleBaseSetting.getHeaders({ limit: 200, active_flag: true, rule_type: ECL_STAGE_RULE_TYPE }),
+        api.banking.pdConfigurations.getAll({ is_active: true }),
+        api.banking.lgdConfigurations.getAll({ is_active: true }),
+        api.banking.eadConfigurations.getAll({ is_active: true }),
         eclConfigurationAPI.getHeaders(),
       ]);
 
+      const filteredSegments = filterPopulationSegmentsByType(
+        filterRowsByBankingMode(segmentResponse, bankingMode),
+        ECL_PORTFOLIO_SEGMENT_TYPE
+      );
+      const filteredStageRules = filterRowsByBankingMode(getResponseRows(ruleResponse), bankingMode);
+      const filteredPdConfigs = filterRowsByBankingMode(pdResponse, bankingMode);
+      const filteredLgdConfigs = filterRowsByBankingMode(lgdResponse, bankingMode);
+      const filteredEadConfigs = filterRowsByBankingMode(eadResponse, bankingMode);
+
       const modules = normalizeBusinessSettingOptions(moduleResponse);
-      const segments = normalizePopulationSegmentOptions(segmentResponse);
-      const stageRules = normalizeRuleOptions(ruleResponse);
-      const pdModels = normalizeModelOptions(pdResponse, (config) => config.population_segment_id ?? config.segment_id);
-      const lgdModels = normalizeModelOptions(lgdResponse, (config) => config.segment_id);
-      const eadModels = normalizeModelOptions(eadResponse, (config) => config.segment_id);
+      const segments = normalizePopulationSegmentOptions(filteredSegments);
+      const segmentLookup = createLabelLookup(segments);
+      const stageRules = normalizeRuleOptions(filteredStageRules);
+      const pdModels = normalizeModelOptions(filteredPdConfigs, (config) => config.population_segment_id ?? config.segment_id, segmentLookup);
+      const lgdModels = normalizeModelOptions(filteredLgdConfigs, (config) => config.segment_id, segmentLookup);
+      const eadModels = normalizeModelOptions(filteredEadConfigs, (config) => config.segment_id, segmentLookup);
 
       setModuleOptions(modules);
       setSegmentOptions(segments);
@@ -486,7 +540,7 @@ export default function ECLConfigurationPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [bankingMode]);
 
   const loadConfigDetail = useCallback(async (configId: number): Promise<ECLConfigHeader | null> => {
     try {
@@ -1320,7 +1374,7 @@ export default function ECLConfigurationPage() {
                       ))}
                     </Select>
                     <FormHelperText error={!!formErrors.pf_segment_id}>
-                      {formErrors.pf_segment_id || 'Source: Population segment master'}
+                      {formErrors.pf_segment_id || 'Source: Portfolio segment master (PF)'}
                     </FormHelperText>
                   </FormControl>
                 </Box>
@@ -1341,7 +1395,7 @@ export default function ECLConfigurationPage() {
                       ))}
                     </Select>
                     <FormHelperText error={!!formErrors.stage_rule_id}>
-                      {formErrors.stage_rule_id || 'Source: Rule base header'}
+                      {formErrors.stage_rule_id || 'Source: Rule base header (STAGE)'}
                     </FormHelperText>
                   </FormControl>
                 </Box>
@@ -1353,10 +1407,9 @@ export default function ECLConfigurationPage() {
                       value={detailFormData.pd_model_id || ''}
                       label="PD Model"
                       disabled={isViewOnly}
-                      onChange={(e) => handleDetailFieldChange('pd_model_id', e.target.value)}
+                      onChange={(e) => handleDetailFieldChange('pd_model_id', Number(e.target.value))}
                     >
-                      {pdModelOptions
-                        .filter((model) => !detailFormData.pf_segment_id || model.segmentId === String(detailFormData.pf_segment_id))
+                      {getModelOptionsForSegment(pdModelOptions, detailFormData.pf_segment_id)
                         .map((model, idx) => (
                         <MenuItem key={`${model.value}-${idx}`} value={model.value}>
                           {model.label}
@@ -1364,7 +1417,7 @@ export default function ECLConfigurationPage() {
                       ))}
                     </Select>
                     <FormHelperText error={!!formErrors.pd_model_id}>
-                      {formErrors.pd_model_id || 'Source: PD setup for selected segment'}
+                      {formErrors.pd_model_id || 'Source: PD Config'}
                     </FormHelperText>
                   </FormControl>
                 </Box>
@@ -1376,10 +1429,9 @@ export default function ECLConfigurationPage() {
                       value={detailFormData.lgd_model_id || ''}
                       label="LGD Model"
                       disabled={isViewOnly}
-                      onChange={(e) => handleDetailFieldChange('lgd_model_id', e.target.value)}
+                      onChange={(e) => handleDetailFieldChange('lgd_model_id', Number(e.target.value))}
                     >
-                      {lgdModelOptions
-                        .filter((model) => !detailFormData.pf_segment_id || model.segmentId === String(detailFormData.pf_segment_id))
+                      {getModelOptionsForSegment(lgdModelOptions, detailFormData.pf_segment_id)
                         .map((model, idx) => (
                         <MenuItem key={`${model.value}-${idx}`} value={model.value}>
                           {model.label}
@@ -1387,7 +1439,7 @@ export default function ECLConfigurationPage() {
                       ))}
                     </Select>
                     <FormHelperText error={!!formErrors.lgd_model_id}>
-                      {formErrors.lgd_model_id || 'Source: LGD setup for selected segment'}
+                      {formErrors.lgd_model_id || 'Source: LGD Config'}
                     </FormHelperText>
                   </FormControl>
                 </Box>
@@ -1399,10 +1451,9 @@ export default function ECLConfigurationPage() {
                       value={detailFormData.ead_model_id || ''}
                       label="EAD Model"
                       disabled={isViewOnly}
-                      onChange={(e) => handleDetailFieldChange('ead_model_id', e.target.value)}
+                      onChange={(e) => handleDetailFieldChange('ead_model_id', Number(e.target.value))}
                     >
-                      {eadModelOptions
-                        .filter((model) => !detailFormData.pf_segment_id || model.segmentId === String(detailFormData.pf_segment_id))
+                      {getModelOptionsForSegment(eadModelOptions, detailFormData.pf_segment_id)
                         .map((model, idx) => (
                         <MenuItem key={`${model.value}-${idx}`} value={model.value}>
                           {model.label}
@@ -1410,7 +1461,7 @@ export default function ECLConfigurationPage() {
                       ))}
                     </Select>
                     <FormHelperText error={!!formErrors.ead_model_id}>
-                      {formErrors.ead_model_id || 'Source: EAD setup for selected segment'}
+                      {formErrors.ead_model_id || 'Source: EAD Config'}
                     </FormHelperText>
                   </FormControl>
                 </Box>
