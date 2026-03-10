@@ -9,7 +9,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 
 import {
   Box,
@@ -158,6 +158,7 @@ export default function FLScalarManagementPage() {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [tabValue, setTabValue] = useState(0);
   const [scalarDetails, setScalarDetails] = useState<FLScalarDetail[]>([]);
+  const uploadInputRef = useRef<HTMLInputElement | null>(null);
 
   // ============================================================================
   // EFFECTS
@@ -244,6 +245,17 @@ export default function FLScalarManagementPage() {
     // Required field validations
     if (!formData.scalar_name?.trim()) {
       errors.scalar_name = 'Scalar Name is required';
+    }
+
+    const normalizedName = String(formData.scalar_name || '').trim().toLowerCase();
+    if (normalizedName) {
+      const hasDuplicate = scalars.some((scalar) =>
+        scalar.scalar_name.trim().toLowerCase() === normalizedName &&
+        scalar.pkid !== formData.pkid
+      );
+      if (hasDuplicate) {
+        errors.scalar_name = 'Data already exist';
+      }
     }
 
     // Detail validation
@@ -365,6 +377,47 @@ export default function FLScalarManagementPage() {
     setFormErrors({});
     setScalarDetails([]);
     setTabValue(0);
+  };
+
+  const handleUploadExcel = () => {
+    uploadInputRef.current?.click();
+  };
+
+  const handleUploadFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setSnackbar({
+      open: true,
+      message: `Selected file: ${file.name}`,
+      type: 'success'
+    });
+
+    event.target.value = '';
+  };
+
+  const handleDownloadTemplate = () => {
+    const csv = [
+      'scalar_name,period,weighted_scalar,active_flag',
+      'Sample Scalar,1,0.95,true',
+      'Sample Scalar,2,0.96787,true'
+    ].join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'fl-scalar-template.csv';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+
+    setSnackbar({
+      open: true,
+      message: 'FL Scalar template downloaded',
+      type: 'success'
+    });
   };
 
   const handleFormChange = (field: keyof FLScalarHeader, value: any) => {
@@ -740,11 +793,19 @@ export default function FLScalarManagementPage() {
             FL Scalar Configurations
           </Typography>
           <Box sx={{ display: 'flex', gap: 1 }}>
+            <input
+              ref={uploadInputRef}
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              onChange={handleUploadFileChange}
+              style={{ display: 'none' }}
+            />
             <Button
               variant="outlined"
               startIcon={<UploadIcon />}
               size="small"
               disabled={loading}
+              onClick={handleUploadExcel}
             >
               Upload Excel
             </Button>
@@ -753,6 +814,7 @@ export default function FLScalarManagementPage() {
               startIcon={<DownloadIcon />}
               size="small"
               disabled={loading}
+              onClick={handleDownloadTemplate}
             >
               Download Template
             </Button>

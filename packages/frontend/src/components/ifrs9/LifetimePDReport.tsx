@@ -13,6 +13,7 @@ import {
   Button,
   Stack,
   Tooltip,
+  Alert,
   useTheme,
   alpha
 } from '@mui/material';
@@ -34,6 +35,7 @@ import BaseIfrs9Report from './BaseIfrs9Report';
 import api from '@/services/api';
 import { impairmentApi } from '@/services/api/impairment.api';
 import { format } from 'date-fns';
+import * as XLSX from 'xlsx';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -84,8 +86,10 @@ const LifetimePDReport: React.FC = () => {
   const [validationMetadata, setValidationMetadata] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [effectivePrcDate, setEffectivePrcDate] = useState<string | null>(null);
   const [currentFilters, setCurrentFilters] = useState<any>({
     prcDate: '2022-10-31',
+    selectedSegments: [],
     pdConfigId: '',
     pdMethod: mapPdMethodToCode('TTC'),
     isForwardLooking: false,
@@ -110,9 +114,11 @@ const LifetimePDReport: React.FC = () => {
       
       if (response.success) {
         setYearlyData(response.data);
+        setEffectivePrcDate(response.effectivePrcDate ?? filters.prcDate);
         if (response.metadata) setValidationMetadata(response.metadata);
       } else {
         setError(response.message || 'Failed to fetch yearly data');
+        setEffectivePrcDate(null);
       }
 
       // Fetch comparison yearly data if active (Model B)
@@ -137,6 +143,9 @@ const LifetimePDReport: React.FC = () => {
       });
       if (monthlyResponse.success) {
         setMonthlyData(monthlyResponse.data);
+        if (!response?.effectivePrcDate && monthlyResponse.effectivePrcDate) {
+          setEffectivePrcDate(monthlyResponse.effectivePrcDate);
+        }
       }
 
       // Fetch comparison monthly data if active
@@ -154,6 +163,7 @@ const LifetimePDReport: React.FC = () => {
     } catch (err) {
       console.error('Fetch error:', err);
       setError('An error occurred while fetching data');
+      setEffectivePrcDate(null);
     } finally {
       setLoading(false);
     }
@@ -177,6 +187,7 @@ const LifetimePDReport: React.FC = () => {
       pdMethod: mapPdMethodToCode(config.pdMethod),
       isForwardLooking: config.isForwardLooking,
       scalarId: config.scalarId,
+      selectedSegments: config.selectedSegments || [],
       isCompareMode: config.isCompareMode,
       pdConfigIdB: config.pdConfigIdB,
       pdMethodB: mapPdMethodToCode(config.pdMethodB),
@@ -293,6 +304,59 @@ const LifetimePDReport: React.FC = () => {
   }, [chartData]);
 
   const currentGranularity = tabValue === 1 ? 'Monthly' : 'Yearly';
+  const hasReportData = yearlyData.length > 0 || monthlyData.length > 0;
+
+  const handleExport = useCallback((options: any) => {
+    if (!hasReportData) return;
+
+    const workbook = XLSX.utils.book_new();
+    const auditRows = [
+      ['Report Name', 'Yearly Lifetime PD'],
+      ['Requested Processing Date', currentFilters.prcDate],
+      ['Effective Processing Date', effectivePrcDate || currentFilters.prcDate],
+      ['PD Config ID', currentFilters.pdConfigId || 'All'],
+      ['PD Method', currentFilters.pdMethod],
+      ['Forward Looking', currentFilters.isForwardLooking ? 'Yes' : 'No'],
+      ['Segments', currentFilters.selectedSegments?.length ? currentFilters.selectedSegments.join(', ') : 'All Segments'],
+      ['Generated At', new Date().toISOString()],
+      []
+    ];
+
+    if (options.scope?.summary) {
+      const summarySheet = XLSX.utils.aoa_to_sheet([
+        ...auditRows,
+        ['Metric', 'Value'],
+        ['1Y Cumulative PD', `${kpiData.y1.toFixed(2)}%`],
+        ['3Y Cumulative PD', `${kpiData.y3.toFixed(2)}%`],
+        ['5Y Cumulative PD', `${kpiData.y5.toFixed(2)}%`],
+        ['Survival Rate', `${kpiData.survival.toFixed(2)}%`],
+      ]);
+      XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary');
+    }
+
+    if (options.scope?.bySegment && yearlyData.length > 0) {
+      const yearlySheet = XLSX.utils.json_to_sheet(yearlyData);
+      XLSX.utils.sheet_add_aoa(yearlySheet, auditRows, { origin: 'A1' });
+      XLSX.utils.book_append_sheet(workbook, yearlySheet, 'Yearly PD');
+    }
+
+    if (options.scope?.charts && monthlyData.length > 0) {
+      const monthlySheet = XLSX.utils.json_to_sheet(monthlyData);
+      XLSX.utils.sheet_add_aoa(monthlySheet, auditRows, { origin: 'A1' });
+      XLSX.utils.book_append_sheet(workbook, monthlySheet, 'Monthly PD');
+    }
+
+    const fileDate = effectivePrcDate || currentFilters.prcDate || new Date().toISOString().slice(0, 10);
+    const fileName = `lifetime-pd-${fileDate}.${options.format === 'csv' ? 'csv' : 'xlsx'}`;
+
+    if (options.format === 'csv') {
+      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+      XLSX.writeFile({ SheetNames: ['Summary'], Sheets: { Summary: firstSheet } }, fileName, { bookType: 'csv' });
+      return;
+    }
+
+    XLSX.writeFile(workbook, fileName);
+  }, [currentFilters, effectivePrcDate, hasReportData, kpiData, monthlyData, yearlyData]);
 
   return (
     <Box sx={{ p: 0 }}>
@@ -368,12 +432,12 @@ const LifetimePDReport: React.FC = () => {
               </Button>
             </Tooltip>
             <Tooltip title="Refresh Data">
-              <IconButton color="primary">
+              <IconButton color="primary" onClick={() => fetchData(currentFilters)} disabled={loading}>
                 <RefreshIcon />
               </IconButton>
             </Tooltip>
             <Tooltip title="Export Results">
-              <IconButton color="primary" onClick={() => setExportDialogOpen(true)}>
+              <IconButton color="primary" onClick={() => setExportDialogOpen(true)} disabled={!hasReportData}>
                 <DownloadIcon />
               </IconButton>
             </Tooltip>
@@ -389,6 +453,12 @@ const LifetimePDReport: React.FC = () => {
       />
 
       {/* Results KPIs */}
+      {effectivePrcDate && effectivePrcDate !== currentFilters.prcDate && (
+        <Alert severity="info" sx={{ mb: 3, borderRadius: 3 }}>
+          Snapshot used: <strong>{effectivePrcDate}</strong> (latest available data on or before the selected processing date).
+        </Alert>
+      )}
+
       <LifetimePDKPIs 
         y1pd={kpiData.y1}
         y3pd={kpiData.y3}
@@ -451,7 +521,7 @@ const LifetimePDReport: React.FC = () => {
           hideHeader
           requiredParams={['prc_date']}
           externalFilters={{
-            prc_date: currentFilters.prcDate ? new Date(currentFilters.prcDate) : null,
+            prc_date: effectivePrcDate ? new Date(effectivePrcDate) : currentFilters.prcDate ? new Date(currentFilters.prcDate) : null,
             pd_config_id: currentFilters.pdConfigId ? Number(currentFilters.pdConfigId) : undefined,
             pd_method: currentFilters.pdMethod,
             fl_flag: currentFilters.isForwardLooking
@@ -462,20 +532,7 @@ const LifetimePDReport: React.FC = () => {
         <LifetimePDExportDialog 
             open={exportDialogOpen} 
             onClose={() => setExportDialogOpen(false)}
-            onExport={(options) => {
-                const auditMetadata = {
-                  reportName: 'Yearly Lifetime PD',
-                  procDate: currentFilters.prcDate,
-                  segments: currentFilters.selectedSegments || 'All Segments',
-                  pdConfigId: currentFilters.pdConfigId,
-                  compareMode: currentFilters.isCompareMode,
-                  pdConfigIdB: currentFilters.pdConfigIdB,
-                  modelVersion: validationMetadata?.modelVersion || 'v2.1.0-prod',
-                  generatedAt: new Date().toISOString()
-                };
-                console.log('Initiating Export with Audit Metadata:', auditMetadata, options);
-                // Real implementation would call reportsAPI.export here
-            }}
+            onExport={handleExport}
         />
 
     </Box>

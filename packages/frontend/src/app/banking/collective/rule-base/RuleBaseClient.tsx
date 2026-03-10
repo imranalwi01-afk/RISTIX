@@ -109,6 +109,71 @@ interface RuleBaseDetail {
   createddate?: string;
 }
 
+const normalizeListPayload = (payload: unknown): string[] => {
+  const source =
+    payload && typeof payload === 'object' && 'data' in payload
+      ? (payload as { data: unknown }).data
+      : payload;
+
+  if (!Array.isArray(source)) return [];
+
+  return source
+    .map((item: unknown) => {
+      if (typeof item === 'string') return item.trim();
+      if (item && typeof item === 'object') {
+        if ('value' in item) return String((item as { value: unknown }).value ?? '').trim();
+        if ('label' in item) return String((item as { label: unknown }).label ?? '').trim();
+      }
+      return '';
+    })
+    .filter(Boolean);
+};
+
+const normalizeDataTypePayload = (payload: unknown): string => {
+  const source =
+    payload && typeof payload === 'object' && 'data' in payload
+      ? (payload as { data: unknown }).data
+      : payload;
+
+  if (typeof source === 'string') return source.trim();
+  if (source && typeof source === 'object') {
+    if ('data_type' in source) return String((source as { data_type: unknown }).data_type ?? '').trim();
+    if ('dataType' in source) return String((source as { dataType: unknown }).dataType ?? '').trim();
+    if ('data' in source && typeof (source as { data: unknown }).data === 'string') {
+      return String((source as { data: unknown }).data).trim();
+    }
+  }
+
+  return '';
+};
+
+const getRuleBaseHeaderValidationMessage = (header: Partial<RuleBaseHeader>): string | null => {
+  if (!String(header.rule_name || '').trim()) return 'Rule name is required';
+  if (!String(header.rule_type || '').trim()) return 'Rule type is required';
+  if (!String(header.updated_table || '').trim()) return 'Updated table is required';
+  if (!String(header.updated_column || '').trim()) return 'Updated column is required';
+  if (!String(header.value || '').trim()) return 'Value is required';
+  return null;
+};
+
+const getRuleBaseDetailValidationMessage = (detail: Partial<RuleBaseDetail>): string | null => {
+  if (!detail.query_group) return 'Query Group are required';
+  if (!detail.seq) return 'Sequence are required';
+  if (!String(detail.table_name || '').trim()) return 'Table Name are required';
+  if (!String(detail.column_name || '').trim()) return 'Column Name are required';
+  if (!String(detail.data_type || '').trim()) return 'Data Type are required';
+  if (!String(detail.operator || '').trim()) return 'Operator are required';
+  if (!String(detail.condition || '').trim()) return 'Condition are required';
+
+  const operator = String(detail.operator || '').trim().toUpperCase();
+  if (['IS NULL', 'IS NOT NULL'].includes(operator)) return null;
+
+  if (!String(detail.value1 || '').trim()) return 'Value 1 are required';
+  if (operator === 'BETWEEN' && !String(detail.value2 || '').trim()) return 'Value 2 are required';
+
+  return null;
+};
+
 // =====================================================
 // EXPANDABLE ROW COMPONENT - MASTER-DETAIL PATTERN
 // =====================================================
@@ -465,6 +530,19 @@ export default function RuleBaseSettingPage() {
   const [ruleTypes, setRuleTypes] = useState<{ label: string, value: string }[]>([]);
   const [conditions, setConditions] = useState<{ label: string, value: string }[]>([]);
   const [stages, setStages] = useState<{ label: string, value: string }[]>([]);
+  const [tableOptions, setTableOptions] = useState<string[]>([]);
+  const [headerColumnOptions, setHeaderColumnOptions] = useState<string[]>([]);
+  const [detailColumnOptions, setDetailColumnOptions] = useState<string[]>([]);
+  const [detailOperatorOptions, setDetailOperatorOptions] = useState<string[]>([]);
+  const [metadataLoading, setMetadataLoading] = useState({
+    tables: false,
+    headerColumns: false,
+    detailColumns: false,
+    detailDataType: false,
+    detailOperators: false
+  });
+  const headerValidationMessage = getRuleBaseHeaderValidationMessage(headerFormData);
+  const detailValidationMessage = getRuleBaseDetailValidationMessage(detailFormData);
 
   // Filter functions
   const applyFilters = () => {
@@ -551,6 +629,84 @@ export default function RuleBaseSettingPage() {
     }
   }, []);
 
+  const loadBusinessTables = useCallback(async () => {
+    setMetadataLoading(prev => ({ ...prev, tables: true }));
+    try {
+      const response = await bankingAPI.businessSettings.getTables();
+      setTableOptions(normalizeListPayload(response));
+    } catch (err) {
+      console.error('❌ Error loading business setting tables:', err);
+      setTableOptions([]);
+    } finally {
+      setMetadataLoading(prev => ({ ...prev, tables: false }));
+    }
+  }, []);
+
+  const loadHeaderColumns = useCallback(async (tableName: string) => {
+    if (!tableName) {
+      setHeaderColumnOptions([]);
+      return;
+    }
+
+    setMetadataLoading(prev => ({ ...prev, headerColumns: true }));
+    try {
+      const response = await bankingAPI.businessSettings.getColumns(tableName);
+      setHeaderColumnOptions(normalizeListPayload(response));
+    } catch (err) {
+      console.error('❌ Error loading header columns:', err);
+      setHeaderColumnOptions([]);
+    } finally {
+      setMetadataLoading(prev => ({ ...prev, headerColumns: false }));
+    }
+  }, []);
+
+  const loadDetailColumns = useCallback(async (tableName: string) => {
+    if (!tableName) {
+      setDetailColumnOptions([]);
+      return;
+    }
+
+    setMetadataLoading(prev => ({ ...prev, detailColumns: true }));
+    try {
+      const response = await bankingAPI.businessSettings.getColumns(tableName);
+      setDetailColumnOptions(normalizeListPayload(response));
+    } catch (err) {
+      console.error('❌ Error loading detail columns:', err);
+      setDetailColumnOptions([]);
+    } finally {
+      setMetadataLoading(prev => ({ ...prev, detailColumns: false }));
+    }
+  }, []);
+
+  const loadDetailDataTypeAndOperators = useCallback(async (tableName: string, columnName: string) => {
+    if (!tableName || !columnName) {
+      setDetailOperatorOptions([]);
+      setDetailFormData(prev => ({ ...prev, data_type: '', operator: '', value1: '', value2: '' }));
+      return;
+    }
+
+    setMetadataLoading(prev => ({ ...prev, detailDataType: true, detailOperators: true }));
+    try {
+      const dataTypeResponse = await bankingAPI.businessSettings.getDataType(columnName, tableName);
+      const dataType = normalizeDataTypePayload(dataTypeResponse);
+      const operatorResponse = await bankingAPI.businessSettings.getOperators(dataType || 'VARCHAR');
+      const operators = normalizeListPayload(operatorResponse);
+
+      setDetailFormData(prev => ({
+        ...prev,
+        data_type: dataType,
+        operator: operators.includes(String(prev.operator || '')) ? String(prev.operator || '') : prev.operator ? '' : String(prev.operator || '')
+      }));
+      setDetailOperatorOptions(operators);
+    } catch (err) {
+      console.error('❌ Error loading detail data type/operators:', err);
+      setDetailOperatorOptions([]);
+      setDetailFormData(prev => ({ ...prev, data_type: '', operator: '' }));
+    } finally {
+      setMetadataLoading(prev => ({ ...prev, detailDataType: false, detailOperators: false }));
+    }
+  }, []);
+
   // Load dropdown metadata from DS2 database
   const loadMetadata = async () => {
     try {
@@ -587,12 +743,31 @@ export default function RuleBaseSettingPage() {
     loadHeaders();
     loadMetadata();
     loadPendingApprovals();
+    loadBusinessTables();
   }, []);
 
   // Apply filters when dependencies change
   useEffect(() => {
     applyFilters();
   }, [searchTerm, filterRuleType, filterStatus, filterCreatedBy, headers]);
+
+  useEffect(() => {
+    if (headerDialogOpen && headerFormData.updated_table) {
+      loadHeaderColumns(headerFormData.updated_table);
+    }
+  }, [headerDialogOpen, headerFormData.updated_table, loadHeaderColumns]);
+
+  useEffect(() => {
+    if (detailDialogOpen && detailFormData.table_name) {
+      loadDetailColumns(detailFormData.table_name);
+    }
+  }, [detailDialogOpen, detailFormData.table_name, loadDetailColumns]);
+
+  useEffect(() => {
+    if (detailDialogOpen && detailFormData.table_name && detailFormData.column_name) {
+      loadDetailDataTypeAndOperators(detailFormData.table_name, detailFormData.column_name);
+    }
+  }, [detailDialogOpen, detailFormData.table_name, detailFormData.column_name, loadDetailDataTypeAndOperators]);
 
   // Header CRUD operations
   const handleCreateHeader = () => {
@@ -623,6 +798,18 @@ export default function RuleBaseSettingPage() {
       active_flag: header.active_flag
     });
     setHeaderDialogOpen(true);
+  };
+
+  const handleHeaderTableChange = (tableName: string) => {
+    setHeaderFormData(prev => ({
+      ...prev,
+      updated_table: tableName,
+      updated_column: ''
+    }));
+    setHeaderColumnOptions([]);
+    if (tableName) {
+      loadHeaderColumns(tableName);
+    }
   };
 
   const handleDeleteHeader = async (header: RuleBaseHeader) => {
@@ -661,8 +848,8 @@ export default function RuleBaseSettingPage() {
 
   const handleSaveHeader = async () => {
     if (!canManageRuleBase) return;
-    if (!headerFormData.rule_name?.trim() || !headerFormData.rule_type?.trim()) {
-      setError('Rule name and type are required');
+    if (headerValidationMessage) {
+      setError(headerValidationMessage);
       return;
     }
 
@@ -738,6 +925,47 @@ export default function RuleBaseSettingPage() {
     setDetailDialogOpen(true);
   };
 
+  const handleDetailTableChange = (tableName: string) => {
+    setDetailFormData(prev => ({
+      ...prev,
+      table_name: tableName,
+      column_name: '',
+      data_type: '',
+      operator: '',
+      value1: '',
+      value2: ''
+    }));
+    setDetailColumnOptions([]);
+    setDetailOperatorOptions([]);
+    if (tableName) {
+      loadDetailColumns(tableName);
+    }
+  };
+
+  const handleDetailColumnChange = (columnName: string) => {
+    setDetailFormData(prev => ({
+      ...prev,
+      column_name: columnName,
+      data_type: '',
+      operator: '',
+      value1: '',
+      value2: ''
+    }));
+    setDetailOperatorOptions([]);
+    if (columnName && detailFormData.table_name) {
+      loadDetailDataTypeAndOperators(detailFormData.table_name, columnName);
+    }
+  };
+
+  const handleDetailOperatorChange = (operator: string) => {
+    setDetailFormData(prev => ({
+      ...prev,
+      operator,
+      value1: '',
+      value2: ''
+    }));
+  };
+
   const handleDeleteDetail = async (detail: RuleBaseDetail) => {
     if (!canManageRuleBase) return;
     if (!confirm(`Are you sure you want to delete this rule detail?`)) {
@@ -775,8 +1003,8 @@ export default function RuleBaseSettingPage() {
 
   const handleSaveDetail = async () => {
     if (!canManageRuleBase) return;
-    if (!detailFormData.table_name?.trim() || !detailFormData.column_name?.trim()) {
-      setError('Table name and column name are required');
+    if (detailValidationMessage) {
+      setError(detailValidationMessage);
       return;
     }
 
@@ -1135,6 +1363,11 @@ export default function RuleBaseSettingPage() {
             <strong>Rule Configuration:</strong><br />
             Configure the main rule parameters that will be used for IFRS 9 collective impairment calculations.
           </Alert>
+          {headerValidationMessage ? (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              {headerValidationMessage}
+            </Alert>
+          ) : null}
           <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2 }}>
             <TextField
               label="Rule Name"
@@ -1168,24 +1401,44 @@ export default function RuleBaseSettingPage() {
                 )}
               </Select>
             </FormControl>
-            <TextField
-              label="Updated Table"
-              value={headerFormData.updated_table || ''}
-              onChange={(e) => setHeaderFormData(prev => ({ ...prev, updated_table: e.target.value }))}
-              fullWidth
-              required
-              placeholder="e.g., FRS9_MASTER_ACCOUNT"
-              data-testid="updated-table-field"
-            />
-            <TextField
-              label="Updated Column"
-              value={headerFormData.updated_column || ''}
-              onChange={(e) => setHeaderFormData(prev => ({ ...prev, updated_column: e.target.value }))}
-              fullWidth
-              required
-              placeholder="e.g., STAGE"
-              data-testid="updated-column-field"
-            />
+            <FormControl fullWidth required>
+              <InputLabel>Updated Table</InputLabel>
+              <Select
+                value={headerFormData.updated_table || ''}
+                onChange={(e) => handleHeaderTableChange(e.target.value)}
+                label="Updated Table"
+                data-testid="updated-table-field"
+              >
+                {metadataLoading.tables ? <MenuItem disabled>Loading...</MenuItem> : null}
+                {!metadataLoading.tables && tableOptions.length === 0 ? (
+                  <MenuItem disabled value="">
+                    No options from Business Settings B0012
+                  </MenuItem>
+                ) : null}
+                {tableOptions.map((tableName) => (
+                  <MenuItem key={tableName} value={tableName}>{tableName}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl fullWidth required disabled={!headerFormData.updated_table}>
+              <InputLabel>Updated Column</InputLabel>
+              <Select
+                value={headerFormData.updated_column || ''}
+                onChange={(e) => setHeaderFormData(prev => ({ ...prev, updated_column: e.target.value }))}
+                label="Updated Column"
+                data-testid="updated-column-field"
+              >
+                {metadataLoading.headerColumns ? <MenuItem disabled>Loading...</MenuItem> : null}
+                {!metadataLoading.headerColumns && headerColumnOptions.length === 0 ? (
+                  <MenuItem disabled value="">
+                    No options from Business Settings B0013
+                  </MenuItem>
+                ) : null}
+                {headerColumnOptions.map((columnName) => (
+                  <MenuItem key={columnName} value={columnName}>{columnName}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
             <TextField
               label="Value"
               value={headerFormData.value || ''}
@@ -1226,7 +1479,12 @@ export default function RuleBaseSettingPage() {
             Cancel
           </Button>
           {canManageRuleBase && (
-            <Button onClick={handleSaveHeader} variant="contained" disabled={loading} data-testid="save-rule-header-btn">
+            <Button
+              onClick={handleSaveHeader}
+              variant="contained"
+              disabled={loading || Boolean(headerValidationMessage)}
+              data-testid="save-rule-header-btn"
+            >
               {loading ? <CircularProgress size={20} /> : (selectedHeader ? 'Update' : 'Create')}
             </Button>
           )}
@@ -1243,6 +1501,11 @@ export default function RuleBaseSettingPage() {
             <strong>Detail Configuration:</strong><br />
             Configure the specific conditions and logic for this rule detail.
           </Alert>
+          {detailValidationMessage ? (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              {detailValidationMessage}
+            </Alert>
+          ) : null}
           <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2 }}>
             <TextField
               label="Query Group"
@@ -1264,55 +1527,74 @@ export default function RuleBaseSettingPage() {
               inputProps={{ min: 1 }}
               data-testid="detail-seq-field"
             />
-            <TextField
-              label="Table Name"
-              value={detailFormData.table_name || ''}
-              onChange={(e) => setDetailFormData(prev => ({ ...prev, table_name: e.target.value }))}
-              fullWidth
-              required
-              placeholder="e.g., FRS9_MASTER_ACCOUNT"
-              data-testid="table-field"
-            />
-            <TextField
-              label="Column Name"
-              value={detailFormData.column_name || ''}
-              onChange={(e) => setDetailFormData(prev => ({ ...prev, column_name: e.target.value }))}
-              fullWidth
-              required
-              placeholder="e.g., DPD"
-              data-testid="column-field"
-            />
+            <FormControl fullWidth required>
+              <InputLabel>Table Name</InputLabel>
+              <Select
+                value={detailFormData.table_name || ''}
+                onChange={(e) => handleDetailTableChange(e.target.value)}
+                label="Table Name"
+                data-testid="table-field"
+              >
+                {metadataLoading.tables ? <MenuItem disabled>Loading...</MenuItem> : null}
+                {!metadataLoading.tables && tableOptions.length === 0 ? (
+                  <MenuItem disabled value="">
+                    No options from Business Settings B0012
+                  </MenuItem>
+                ) : null}
+                {tableOptions.map((tableName) => (
+                  <MenuItem key={tableName} value={tableName}>{tableName}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl fullWidth required disabled={!detailFormData.table_name}>
+              <InputLabel>Column Name</InputLabel>
+              <Select
+                value={detailFormData.column_name || ''}
+                onChange={(e) => handleDetailColumnChange(e.target.value)}
+                label="Column Name"
+                data-testid="column-field"
+              >
+                {metadataLoading.detailColumns ? <MenuItem disabled>Loading...</MenuItem> : null}
+                {!metadataLoading.detailColumns && detailColumnOptions.length === 0 ? (
+                  <MenuItem disabled value="">
+                    No options from Business Settings B0013
+                  </MenuItem>
+                ) : null}
+                {detailColumnOptions.map((columnName) => (
+                  <MenuItem key={columnName} value={columnName}>{columnName}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
             <TextField
               label="Data Type"
               value={detailFormData.data_type || ''}
-              onChange={(e) => setDetailFormData(prev => ({ ...prev, data_type: e.target.value }))}
               fullWidth
               required
-              placeholder="e.g., NUMBER, VARCHAR, DATE"
+              disabled
+              placeholder="Auto-detected from Business Settings"
               data-testid="datatype-field"
+              InputProps={{
+                startAdornment: metadataLoading.detailDataType ? <CircularProgress size={16} sx={{ mr: 1 }} /> : undefined
+              }}
             />
             <FormControl fullWidth required>
               <InputLabel>Operator</InputLabel>
               <Select
-                value={detailFormData.operator || '='}
-                onChange={(e) => setDetailFormData(prev => ({ ...prev, operator: e.target.value }))}
+                value={detailFormData.operator || ''}
+                onChange={(e) => handleDetailOperatorChange(e.target.value)}
                 label="Operator"
+                disabled={!detailFormData.data_type}
                 data-testid="operator-select"
               >
-                <MenuItem value="=">=</MenuItem>
-                <MenuItem value="!=">!=</MenuItem>
-                <MenuItem value="<>">&lt;&gt;</MenuItem>
-                <MenuItem value=">">&gt;</MenuItem>
-                <MenuItem value=">=">&gt;=</MenuItem>
-                <MenuItem value="<">&lt;</MenuItem>
-                <MenuItem value="<=">&lt;=</MenuItem>
-                <MenuItem value="LIKE">LIKE</MenuItem>
-                <MenuItem value="NOT LIKE">NOT LIKE</MenuItem>
-                <MenuItem value="IN">IN</MenuItem>
-                <MenuItem value="NOT IN">NOT IN</MenuItem>
-                <MenuItem value="BETWEEN">BETWEEN</MenuItem>
-                <MenuItem value="IS NULL">IS NULL</MenuItem>
-                <MenuItem value="IS NOT NULL">IS NOT NULL</MenuItem>
+                {metadataLoading.detailOperators ? <MenuItem disabled>Loading...</MenuItem> : null}
+                {!metadataLoading.detailOperators && detailOperatorOptions.length === 0 ? (
+                  <MenuItem disabled value="">
+                    No options from Business Settings B0014
+                  </MenuItem>
+                ) : null}
+                {detailOperatorOptions.map((operator) => (
+                  <MenuItem key={operator} value={operator}>{operator}</MenuItem>
+                ))}
               </Select>
             </FormControl>
             <TextField
@@ -1320,6 +1602,7 @@ export default function RuleBaseSettingPage() {
               value={detailFormData.value1 || ''}
               onChange={(e) => setDetailFormData(prev => ({ ...prev, value1: e.target.value }))}
               fullWidth
+              disabled={['IS NULL', 'IS NOT NULL'].includes(String(detailFormData.operator || '').toUpperCase())}
               placeholder="Primary comparison value"
               data-testid="val1-field"
             />
@@ -1328,6 +1611,7 @@ export default function RuleBaseSettingPage() {
               value={detailFormData.value2 || ''}
               onChange={(e) => setDetailFormData(prev => ({ ...prev, value2: e.target.value }))}
               fullWidth
+              disabled={String(detailFormData.operator || '').toUpperCase() !== 'BETWEEN'}
               placeholder="Secondary value (for BETWEEN, etc.)"
               data-testid="val2-field"
             />
@@ -1359,22 +1643,34 @@ export default function RuleBaseSettingPage() {
               placeholder="e.g., SICR, DEFAULT, 1, 2, 3"
               data-testid="detail-type-field"
             />
-            <TextField
-              label="Stage From"
-              value={detailFormData.stage_from || ''}
-              onChange={(e) => setDetailFormData(prev => ({ ...prev, stage_from: e.target.value }))}
-              fullWidth
-              placeholder="Source stage (1, 2, or 3)"
-              data-testid="stage-from-field"
-            />
-            <TextField
-              label="Stage To"
-              value={detailFormData.stage_to || ''}
-              onChange={(e) => setDetailFormData(prev => ({ ...prev, stage_to: e.target.value }))}
-              fullWidth
-              placeholder="Target stage (1, 2, or 3)"
-              data-testid="stage-to-field"
-            />
+            <FormControl fullWidth>
+              <InputLabel>Stage From</InputLabel>
+              <Select
+                value={String(detailFormData.stage_from || '')}
+                onChange={(e) => setDetailFormData(prev => ({ ...prev, stage_from: e.target.value }))}
+                label="Stage From"
+                data-testid="stage-from-field"
+              >
+                <MenuItem value="">None</MenuItem>
+                {stages.map((stage) => (
+                  <MenuItem key={`from-${stage.value}`} value={stage.value}>{stage.label}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl fullWidth>
+              <InputLabel>Stage To</InputLabel>
+              <Select
+                value={String(detailFormData.stage_to || '')}
+                onChange={(e) => setDetailFormData(prev => ({ ...prev, stage_to: e.target.value }))}
+                label="Stage To"
+                data-testid="stage-to-field"
+              >
+                <MenuItem value="">None</MenuItem>
+                {stages.map((stage) => (
+                  <MenuItem key={`to-${stage.value}`} value={stage.value}>{stage.label}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           </Box>
         </DialogContent>
         <DialogActions>
@@ -1382,7 +1678,12 @@ export default function RuleBaseSettingPage() {
             Cancel
           </Button>
           {canManageRuleBase && (
-            <Button onClick={handleSaveDetail} variant="contained" disabled={loading} data-testid="save-rule-detail-btn">
+            <Button
+              onClick={handleSaveDetail}
+              variant="contained"
+              disabled={loading || Boolean(detailValidationMessage)}
+              data-testid="save-rule-detail-btn"
+            >
               {loading ? <CircularProgress size={20} /> : (selectedDetail ? 'Update' : 'Create')}
             </Button>
           )}

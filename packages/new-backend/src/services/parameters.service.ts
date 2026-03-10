@@ -325,8 +325,8 @@ export const ParametersService = {
         return pipe(
             ParametersRepository.deleteDetail(BigInt(id)),
             Effect.flatMap(deleted =>
-                (updated
-                    ? Effect.succeed(transformDetail(updated as any))
+                (deleted
+                    ? Effect.succeed(transformDetail(deleted as any))
                     : Effect.fail(new NotFoundError({ message: 'App Setting Detail not found', resource: 'App Setting Detail', id: String(id) }))) as any
             )
         )

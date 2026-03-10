@@ -80,6 +80,34 @@ interface BucketHeaderRowProps {
   pendingRequests?: any[];
 }
 
+const getBucketHeaderValidationMessage = (header: Partial<BucketParameterHeader>): string | null => {
+  if (!String(header.bucket_group || '').trim() || !String(header.basis || '').trim()) {
+    return 'Bucket group id and basis are required';
+  }
+
+  return null;
+};
+
+const getBucketDetailValidationMessage = (detail: Partial<BucketParameterDetail>): string | null => {
+  if (!String(detail.bucket_name || '').trim()) {
+    return 'Bucket name are required';
+  }
+
+  if (detail.range_start === undefined || detail.range_start === null || Number.isNaN(Number(detail.range_start))) {
+    return 'Range start is required';
+  }
+
+  if (
+    detail.range_end !== undefined &&
+    detail.range_end !== null &&
+    Number.isNaN(Number(detail.range_end))
+  ) {
+    return 'Range end must be numeric';
+  }
+
+  return null;
+};
+
 const BucketHeaderRow: React.FC<BucketHeaderRowProps> = ({
   header,
   basisOptions,
@@ -363,6 +391,8 @@ export default function BucketParameterPage() {
 
   // Error State
   const [error, setError] = useState<string | null>(null);
+  const headerValidationMessage = getBucketHeaderValidationMessage(headerFormData);
+  const detailValidationMessage = getBucketDetailValidationMessage(detailFormData);
 
   // ============================================================================
   // DATA LOADING FUNCTIONS
@@ -545,6 +575,11 @@ export default function BucketParameterPage() {
 
   const handleSaveHeader = async () => {
     if (!canManageBucket) return;
+    const validationMessage = getBucketHeaderValidationMessage(headerFormData);
+    if (validationMessage) {
+      setSnackbar({ open: true, message: validationMessage, type: 'error' });
+      return;
+    }
     try {
       if (editMode && !selectedHeader?.id) return;
 
@@ -577,6 +612,11 @@ export default function BucketParameterPage() {
 
   const handleSaveDetail = async () => {
     if (!canManageBucket) return;
+    const validationMessage = getBucketDetailValidationMessage(detailFormData);
+    if (validationMessage) {
+      setSnackbar({ open: true, message: validationMessage, type: 'error' });
+      return;
+    }
     try {
       if (!editMode && !selectedHeader?.id) return;
       if (editMode && !detailFormData.id) return;
@@ -813,6 +853,11 @@ export default function BucketParameterPage() {
         </DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 2 }}>
+            {headerValidationMessage ? (
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                {headerValidationMessage}
+              </Alert>
+            ) : null}
             <Box sx={{ pt: 2, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 3 }}>
               <Box>
                 <TextField
@@ -894,7 +939,14 @@ export default function BucketParameterPage() {
         <DialogActions>
           <Button onClick={() => setHeaderDialogOpen(false)}>Cancel</Button>
           {canManageBucket && (
-            <Button variant="contained" onClick={handleSaveHeader} data-testid="save-header-btn">Save</Button>
+            <Button
+              variant="contained"
+              onClick={handleSaveHeader}
+              data-testid="save-header-btn"
+              disabled={Boolean(headerValidationMessage)}
+            >
+              Save
+            </Button>
           )}
         </DialogActions>
       </Dialog>
@@ -906,6 +958,11 @@ export default function BucketParameterPage() {
         </DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 2 }}>
+            {detailValidationMessage ? (
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                {detailValidationMessage}
+              </Alert>
+            ) : null}
             <Box sx={{ pt: 2, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 3 }}>
               <Box sx={{ gridColumn: 'span 2' }}>
                 <TextField
@@ -956,7 +1013,14 @@ export default function BucketParameterPage() {
         <DialogActions>
           <Button onClick={() => setDetailDialogOpen(false)}>Cancel</Button>
           {canManageBucket && (
-            <Button variant="contained" onClick={handleSaveDetail} data-testid="save-detail-btn">Save</Button>
+            <Button
+              variant="contained"
+              onClick={handleSaveDetail}
+              data-testid="save-detail-btn"
+              disabled={Boolean(detailValidationMessage)}
+            >
+              Save
+            </Button>
           )}
         </DialogActions>
       </Dialog>

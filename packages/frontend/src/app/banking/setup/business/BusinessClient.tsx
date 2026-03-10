@@ -496,16 +496,25 @@ export default function BusinessClient() {
             };
 
             if (editingDetail) {
-                await api.banking.businessSetup.updateDetail(parseInt(editingDetail.pkid || '0'), payload);
+                const result = await api.banking.businessSetup.updateDetail(parseInt(editingDetail.pkid || '0'), payload);
+                if (result?.approvalRequired) {
+                    setSuccess('Detail update submitted for approval');
+                } else {
+                    setSuccess('Detail updated successfully');
+                }
             } else {
                 // Note: BusinessClient doesn't have a shared list of details for the current header 
                 // at the component level to check for duplicates easily without extra state.
                 // However, the backend format fix now ensures that if the server rejects it,
                 // the error notification will correctly display "Sequence already exists" 
                 // or "data already exist".
-                await api.banking.businessSetup.createDetail(currentDetailParamCode, payload);
+                const result = await api.banking.businessSetup.createDetail(currentDetailParamCode, payload);
+                if (result?.approvalRequired) {
+                    setSuccess('Detail creation submitted for approval');
+                } else {
+                    setSuccess('Detail created successfully');
+                }
             }
-            setSuccess('Detail saved');
             setDetailDialogOpen(false);
             setDetailRefreshTrigger(prev => prev + 1);
         } catch (e) {
@@ -518,8 +527,12 @@ export default function BusinessClient() {
         if (!canManageBusiness) return;
         if (!confirm('Delete detail?')) return;
         try {
-            await api.banking.businessSetup.deleteDetail(parseInt(detail.pkid || '0'));
-            setSuccess('Detail deleted');
+            const result = await api.banking.businessSetup.deleteDetail(parseInt(detail.pkid || '0'));
+            if (result?.approvalRequired) {
+                setSuccess('Detail deletion submitted for approval');
+            } else {
+                setSuccess('Detail deleted successfully');
+            }
             setDetailRefreshTrigger(prev => prev + 1);
         } catch (e) { setError(handleAPIError(e).message); }
     };

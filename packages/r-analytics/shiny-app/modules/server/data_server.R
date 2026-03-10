@@ -87,6 +87,27 @@ data_server <- function(input, output, session, con, PD, LGD, persistent_data) {
     stats::setNames(ids, labels)
   }
 
+  load_segment_config <- function(config_type) {
+    if (is.null(con)) {
+      return(data.frame())
+    }
+
+    query <- if (toupper(config_type) == "PD") {
+      "SELECT * FROM frs9_imp_ca_pd_config"
+    } else {
+      "SELECT * FROM frs9_imp_ca_lgd_config"
+    }
+
+    tryCatch(
+      DBI::dbGetQuery(con, query),
+      error = function(e) {
+        cat(sprintf("⚠️ DEBUG [SEGMENT_CONFIG_RELOAD]: Failed to reload %s config: %s\n", config_type, e$message))
+        flush.console()
+        data.frame()
+      }
+    )
+  }
+
   # =============================================================================
   # REACTIVE VALUES
   # =============================================================================
@@ -113,8 +134,9 @@ data_server <- function(input, output, session, con, PD, LGD, persistent_data) {
   # Dynamic UI for segmentation based on dependent variable selection
   output$segmentationUI <- renderUI({
     if (input$dependent == "PD") {
+      pd_source <- if (is.data.frame(PD) && nrow(PD) > 0) PD else load_segment_config("PD")
       pd_choices <- build_segment_choices(
-        PD,
+        pd_source,
         id_candidates = c("pkid", "pd_config_id", "config_id", "id"),
         name_candidates = c("pd_model_name", "model_name", "name", "description"),
         fallback_prefix = "PD"
@@ -122,8 +144,9 @@ data_server <- function(input, output, session, con, PD, LGD, persistent_data) {
       selectInput("segment", "Segmentation:",
                   choices = pd_choices)
     } else if (input$dependent == "lgd") {
+      lgd_source <- if (is.data.frame(LGD) && nrow(LGD) > 0) LGD else load_segment_config("LGD")
       lgd_choices <- build_segment_choices(
-        LGD,
+        lgd_source,
         id_candidates = c("pkid", "lgd_config_id", "config_id", "id"),
         name_candidates = c("lgd_model_name", "model_name", "name", "description"),
         fallback_prefix = "lgd"

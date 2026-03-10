@@ -112,6 +112,22 @@ export interface ReportFilters {
   limit?: number;
 }
 
+const getDefaultFilters = (reportType: BaseIfrs9ReportProps['reportType']): ReportFilters => ({
+  prc_date: reportType === 'ead-model' ? new Date('2020-12-31') :
+            reportType.includes('pd') ? new Date('2022-10-31') :
+            new Date('2023-12-31'),
+  page: 1,
+  limit: 20,
+  segment_id: undefined,
+  segment_ids: [],
+  stage: [],
+  fl_flag: false,
+  ead_config_id: reportType === 'ead-model' ? 1 : undefined,
+  pd_config_id: reportType.includes('pd') ? 1 : undefined,
+  pd_method: reportType.includes('pd') ? 1 : undefined,
+  lgd_config_id: reportType === 'lifetime-lgd' ? 1 : undefined
+});
+
 export interface ReportResponse {
   success: boolean;
   data: Record<string, unknown>[];
@@ -168,18 +184,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [columns, setColumns] = useState<GridColDef[]>([]);
-  const [filters, setFilters] = useState<ReportFilters>({
-    prc_date: reportType === 'ead-model' ? new Date('2020-12-31') : 
-              reportType.includes('pd') ? new Date('2022-10-31') : 
-              new Date('2023-12-31'),
-    page: 1,
-    limit: 20,
-    segment_ids: [],
-    fl_flag: false,
-    ead_config_id: reportType === 'ead-model' ? 1 : undefined,
-    pd_config_id: reportType.includes('pd') ? 1 : undefined,
-    pd_method: reportType.includes('pd') ? 1 : undefined
-  });
+  const [filters, setFilters] = useState<ReportFilters>(getDefaultFilters(reportType));
 
   const [pagination, setPagination] = useState({
     page: 1,
@@ -198,7 +203,9 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
   const [segments, setSegments] = useState<any[]>([]);
   const [scalars, setScalars] = useState<any[]>([]);
   const [lgdMethods, setLgdMethods] = useState<any[]>([]);
+  const [lgdConfigs, setLgdConfigs] = useState<any[]>([]);
   const [configDrawerOpen, setConfigDrawerOpen] = useState(false);
+  const [effectivePrcDate, setEffectivePrcDate] = useState<string | null>(null);
 
   // Client-side search filtering
   const filteredData = React.useMemo(() => {
@@ -235,12 +242,32 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
     const firstRow = data[0];
     const baseColumns: GridColDef[] = [];
 
+    const formatHeaderName = (key: string) => {
+      if (/^seq_\d+$/i.test(key)) {
+        return `RECOVERY SEQ ${key.split('_')[1]}`;
+      }
+
+      const explicitLabels: Record<string, string> = {
+        movement_order: 'MOVEMENT ORDER',
+        movement: 'MOVEMENT',
+        stage_1_collective: 'STAGE 1 COLLECTIVE',
+        stage_2_collective: 'STAGE 2 COLLECTIVE',
+        stage_3_collective: 'STAGE 3 COLLECTIVE',
+        stage_1_individual: 'STAGE 1 INDIVIDUAL',
+        stage_2_individual: 'STAGE 2 INDIVIDUAL',
+        stage_3_individual: 'STAGE 3 INDIVIDUAL',
+        total: 'TOTAL',
+      };
+
+      return explicitLabels[key] || key.replace(/_/g, ' ').toUpperCase();
+    };
+
     // Generate columns based on data structure
     Object.keys(firstRow).forEach(key => {
       const value = firstRow[key];
       const column: GridColDef = {
         field: key,
-        headerName: key.replace(/_/g, ' ').toUpperCase(),
+        headerName: formatHeaderName(key),
         width: 150,
         sortable: true,
         filterable: true
@@ -297,6 +324,14 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
           }).format(value);
         };
         column.width = 180;
+      }
+
+      if (key === 'movement') {
+        column.width = 280;
+      }
+
+      if (/^seq_\d+$/i.test(key)) {
+        column.width = 140;
       }
 
       // Apply default cell styling if renderCell wasn't already set differently
@@ -390,6 +425,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
 
       if (response.success) {
         setData(response.data || []);
+        setEffectivePrcDate((response as any).effectivePrcDate ?? null);
 
         // Use columns from backend if available (for empty data scenarios), otherwise generate from data
         let finalColumns: GridColDef[] = [];
@@ -432,6 +468,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
           onDataLoaded(response.data || [], (response as any).summary);
         }
       } else {
+        setEffectivePrcDate(null);
         setError('Failed to fetch report data');
       }
     } catch (err: unknown) {
@@ -450,20 +487,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
 
   const handleClear = useCallback(() => {
     setSearchTerm('');
-    setFilters({
-      prc_date: reportType === 'ead-model' ? new Date('2020-12-31') : 
-                reportType.includes('pd') ? new Date('2022-10-31') : 
-                new Date('2023-12-31'),
-      page: 1,
-      limit: 20,
-      segment_ids: [],
-      stage: [],
-      fl_flag: false,
-      ead_config_id: reportType === 'ead-model' ? 1 : undefined,
-      pd_config_id: reportType.includes('pd') ? 1 : undefined,
-      pd_method: reportType.includes('pd') ? 1 : undefined,
-      lgd_config_id: reportType === 'lifetime-lgd' ? 1 : undefined
-    });
+    setFilters(getDefaultFilters(reportType));
   }, [reportType]);
 
   // --- Effects ---
@@ -486,7 +510,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
       const headerT1 = [
         ['Report Name', title],
         ['Processing Date', filters.prc_date?.toISOString().split('T')[0] || 'N/A'],
-        ['Segments', filters.segment_ids?.length ? filters.segment_ids.join(', ') : 'All'],
+        ['Segments', filters.segment_id ? String(filters.segment_id) : 'All'],
         ['LGD Config / Method', `${filters.lgd_config_id || 'N/A'} / ${filters.lgd_method || 'N/A'}`],
         ['Model Version / ID', `v1.2 / ${filters.model_id || 'DEFAULT'}`],
         ['Forward Looking', filters.fl_flag ? `ON (Scenario=${filters.scenario_id}; Scalar=${filters.scalar_id})` : 'OFF'],
@@ -551,7 +575,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
   useEffect(() => {
     const loadLookups = async () => {
       try {
-        const [segData, scalData] = await Promise.all([
+      const [segData, scalData] = await Promise.all([
           api.banking.populationSegments.getAll({ active_flag: true }),
           api.banking.pdSetup.getFLScalars()
         ]);
@@ -559,8 +583,12 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
         setScalars(scalData || []);
 
         if (reportType === 'lifetime-lgd') {
-          const methods = await api.banking.lgdConfigurations.getMethods();
+          const [methods, configs] = await Promise.all([
+            api.banking.lgdConfigurations.getMethods(),
+            api.banking.lgdConfigurations.getAll(),
+          ]);
           setLgdMethods(methods || []);
+          setLgdConfigs(configs || []);
         }
       } catch (err) {
         console.error('Failed to load lookups:', err);
@@ -949,28 +977,14 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                           {optionalParams.includes('segment_id') && (
                             <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                               <Autocomplete
-                                multiple
                                 size="small"
                                 options={segments}
-                                disableCloseOnSelect
                                 getOptionLabel={(option) => option.segment_name || String(option.id)}
-                                value={segments.filter(s => filters.segment_ids?.includes(Number(s.id)))}
+                                value={segments.find((s) => Number(s.id) === Number(filters.segment_id)) || null}
                                 onChange={(_, newValue) => {
-                                  handleFilterChange('segment_ids', newValue.map(v => Number(v.id)));
-                                }}
-                                renderOption={(props, option, { selected }) => {
-                                  const { key, ...optionProps } = props;
-                                  return (
-                                    <li key={key} {...optionProps}>
-                                    <Checkbox
-                                      icon={<CheckBoxOutlineBlankIcon style={{ fontSize: '20px' }} />}
-                                      checkedIcon={<CheckBoxIcon style={{ fontSize: '20px' }} />}
-                                      style={{ marginRight: 8 }}
-                                      checked={selected}
-                                    />
-                                    {option.segment_name}
-                                  </li>
-                                  );
+                                  const selectedSegmentId = newValue ? Number(newValue.id) : undefined;
+                                  handleFilterChange('segment_id', selectedSegmentId);
+                                  handleFilterChange('segment_ids', selectedSegmentId ? [selectedSegmentId] : []);
                                 }}
                                 renderInput={(params) => (
                                   <TextField
@@ -980,20 +994,6 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                                     sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                                   />
                                 )}
-                                renderTags={(value, getTagProps) =>
-                                  value.map((option, index) => {
-                                    const { key, ...tagProps } = getTagProps({ index });
-                                    return (
-                                      <Chip
-                                        key={key}
-                                        label={option.segment_name}
-                                        size="small"
-                                        {...tagProps}
-                                        sx={{ borderRadius: 1, fontWeight: 600 }}
-                                      />
-                                    );
-                                  })
-                                }
                               />
                             </Grid>
                           )}
@@ -1046,36 +1046,39 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
 
                           {optionalParams.includes('lgd_config_id') && (
                             <Grid size={{ xs: 12, sm: 4, md: 2 }}>
-                              <TextField
-                                label="LGD Config ID"
-                                type="number"
-                                size="small"
-                                value={filters.lgd_config_id || ''}
-                                onChange={(e) => handleFilterChange('lgd_config_id', parseInt(e.target.value) || undefined)}
-                                fullWidth
-                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                                slotProps={{
-                                  input: {
-                                    endAdornment: (
-                                      <InputAdornment position="end">
-                                        <Tooltip title="View Calculation Config Detailed Summary">
-                                          <IconButton
-                                            size="small"
-                                            onClick={() => setConfigDrawerOpen(true)}
-                                            sx={{
-                                              color: themeStyles.primary,
-                                              bgcolor: alpha(themeStyles.primary, 0.05),
-                                              '&:hover': { bgcolor: alpha(themeStyles.primary, 0.1) }
-                                            }}
-                                          >
-                                            <LaunchIcon sx={{ fontSize: '1.2rem' }} />
-                                          </IconButton>
-                                        </Tooltip>
-                                      </InputAdornment>
-                                    )
+                              <FormControl fullWidth size="small">
+                                <InputLabel>LGD Config</InputLabel>
+                                <Select
+                                  value={filters.lgd_config_id || ''}
+                                  onChange={(e) => handleFilterChange('lgd_config_id', e.target.value ? Number(e.target.value) : undefined)}
+                                  label="LGD Config"
+                                  sx={{ borderRadius: 2 }}
+                                  endAdornment={
+                                    <InputAdornment position="end" sx={{ mr: 4 }}>
+                                      <Tooltip title="View Calculation Config Detailed Summary">
+                                        <IconButton
+                                          size="small"
+                                          onClick={() => setConfigDrawerOpen(true)}
+                                          sx={{
+                                            color: themeStyles.primary,
+                                            bgcolor: alpha(themeStyles.primary, 0.05),
+                                            '&:hover': { bgcolor: alpha(themeStyles.primary, 0.1) }
+                                          }}
+                                        >
+                                          <LaunchIcon sx={{ fontSize: '1.2rem' }} />
+                                        </IconButton>
+                                      </Tooltip>
+                                    </InputAdornment>
                                   }
-                                }}
-                              />
+                                >
+                                  <MenuItem value="">All Configurations</MenuItem>
+                                  {lgdConfigs.map((config) => (
+                                    <MenuItem key={config.id} value={config.id}>
+                                      {config.model_name || `Config ${config.id}`}
+                                    </MenuItem>
+                                  ))}
+                                </Select>
+                              </FormControl>
                             </Grid>
                           )}
 
@@ -1217,6 +1220,12 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
             {error}
+          </Alert>
+        )}
+
+        {effectivePrcDate && filters.prc_date && effectivePrcDate !== filters.prc_date.toISOString().split('T')[0] && (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Snapshot used: <strong>{effectivePrcDate}</strong> (latest available data on or before the selected processing date).
           </Alert>
         )}
 
