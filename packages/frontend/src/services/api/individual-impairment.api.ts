@@ -53,6 +53,28 @@ export const individualImpairmentAPI = {
     return response.data;
   },
 
+  // ASSESSMENT
+  getAssessment: async (accountId: string) => {
+    const response = await apiClient.get(`/banking/individual/impairment/assessment/${accountId}`);
+    return response.data;
+  },
+  createAssessment: async (data: any) => {
+    const response = await apiClient.post('/banking/individual/impairment/assessment', data);
+    return response.data;
+  },
+  submitAssessment: async (id: string, comments: string) => {
+    const response = await apiClient.post(`/banking/individual/impairment/assessment/${id}/submit`, { comments });
+    return response.data;
+  },
+  approveAssessment: async (id: string, comments: string) => {
+    const response = await apiClient.post(`/banking/individual/impairment/assessment/${id}/approve`, { comments });
+    return response.data;
+  },
+  rejectAssessment: async (id: string, reason: string) => {
+    const response = await apiClient.post(`/banking/individual/impairment/assessment/${id}/reject`, { reason });
+    return response.data;
+  },
+
   // OVERRIDES
   getOverrides: async (params?: { status?: string }) => {
     const response = await apiClient.get('/banking/individual/impairment/overrides', { params });

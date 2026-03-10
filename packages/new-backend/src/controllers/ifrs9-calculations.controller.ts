@@ -38,7 +38,8 @@ export class Ifrs9CalculationsController {
             const rawTenantId = c.get('tenantId');
             const tenantId = await this.resolveTenantId(rawTenantId);
             const date = c.req.query('date');
-            const summary = await ifrs9CalculationsService.getSummary(tenantId, date);
+            const mode = c.req.query('mode');
+            const summary = await ifrs9CalculationsService.getSummary(tenantId, date, mode);
             return c.json({ success: true, data: summary });
         } catch (error: any) {
             console.error('❌ Controller error fetching calculation summary:', error);
@@ -50,7 +51,8 @@ export class Ifrs9CalculationsController {
         try {
             const rawTenantId = c.get('tenantId');
             const tenantId = await this.resolveTenantId(rawTenantId);
-            const data = await ifrs9CalculationsService.getBatches(tenantId);
+            const mode = c.req.query('mode');
+            const data = await ifrs9CalculationsService.getBatches(tenantId, mode);
             return c.json({ success: true, data });
         } catch (error: any) {
             console.error('Error fetching calculation batches:', error);
@@ -91,7 +93,8 @@ export class Ifrs9CalculationsController {
             const rawTenantId = c.get('tenantId');
             const tenantId = await this.resolveTenantId(rawTenantId);
             const date = c.req.query('date');
-            const trend = await ifrs9CalculationsService.getPortfolioTrend(tenantId, date);
+            const mode = c.req.query('mode');
+            const trend = await ifrs9CalculationsService.getPortfolioTrend(tenantId, date, mode);
             return c.json({ success: true, data: trend || [] });
         } catch (error: any) {
             return c.json({ success: false, message: error.message }, 500);
@@ -102,7 +105,8 @@ export class Ifrs9CalculationsController {
         try {
             const rawTenantId = c.get('tenantId');
             const tenantId = await this.resolveTenantId(rawTenantId);
-            const dates = await ifrs9CalculationsService.getAvailableDates(tenantId);
+            const mode = c.req.query('mode');
+            const dates = await ifrs9CalculationsService.getAvailableDates(tenantId, mode);
             return c.json({ success: true, data: dates });
         } catch (error: any) {
             return c.json({ success: false, message: error.message }, 500);
@@ -114,6 +118,7 @@ export class Ifrs9CalculationsController {
             const rawTenantId = c.get('tenantId');
             const tenantId = await this.resolveTenantId(rawTenantId);
             const processDate = c.req.query("date");
+            const mode = c.req.query("mode");
 
             if (!processDate)
                 return c.json(
@@ -124,6 +129,7 @@ export class Ifrs9CalculationsController {
             const result = await ifrs9CalculationsService.getBatchResults(
                 tenantId,
                 processDate,
+                mode
             );
             return c.json({ success: true, data: { items: result.data } });
         } catch (error: any) {
