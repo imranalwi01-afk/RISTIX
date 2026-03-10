@@ -37,9 +37,10 @@ interface AssessmentFiltersProps {
   filters: typeof FILTER_DEFAULTS;
   onFilterChange: (field: string, value: string) => void;
   onReset: () => void;
+  mode?: string;
 }
 
-export const AssessmentFilters: React.FC<AssessmentFiltersProps> = ({ filters, onFilterChange, onReset }) => {
+export const AssessmentFilters: React.FC<AssessmentFiltersProps> = ({ filters, onFilterChange, onReset, mode }) => {
   const [searchTerm, setSearchTerm] = useState(filters.search);
   // Using 500ms debounce as per spec
   const debouncedSearch = useLocalDebounce(searchTerm, 500);

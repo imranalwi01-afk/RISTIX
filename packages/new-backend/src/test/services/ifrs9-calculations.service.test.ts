@@ -63,6 +63,7 @@ mock.module('../db/schema', () => ({
   frs9MasterAccount,
   frs9PrcDate: {},
   frs9ImpCaEclConfigh: {},
+  frs9ParamSegmenth: {},
 }))
 mock.module('@/db/schema', () => ({
   frs9ImpCaResultH,
@@ -70,11 +71,13 @@ mock.module('@/db/schema', () => ({
   frs9MasterAccount,
   frs9PrcDate: {},
   frs9ImpCaEclConfigh: {},
+  frs9ParamSegmenth: {},
 }))
 
 mock.module('drizzle-orm', () => ({
   sql: (_strings: TemplateStringsArray, ...values: unknown[]) => ({ values }),
   eq: (...values: unknown[]) => ({ values }),
+  inArray: (...values: unknown[]) => ({ values }),
   desc: (value: unknown) => value,
   and: (...values: unknown[]) => values,
   relations: () => ({}),
