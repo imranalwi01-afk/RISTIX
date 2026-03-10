@@ -109,6 +109,15 @@ export default function LGDSetupPage() {
   const [approvalNotification, setApprovalNotification] = useState<{ open: boolean, message: string }>({ open: false, message: '' });
   const [snackbar, setSnackbar] = useState<{ open: boolean, message: string, type: 'success' | 'error' }>({ open: false, message: '', type: 'success' });
 
+  const updateFormField = <K extends keyof LGDConfiguration>(field: K, value: LGDConfiguration[K]) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const lgdRateInputValue =
+    typeof formData.lgd_rate === 'number' && Number.isFinite(formData.lgd_rate)
+      ? formData.lgd_rate
+      : '';
+
   // Load Data
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -405,7 +414,7 @@ export default function LGDSetupPage() {
                 fullWidth
                 label="Model Name"
                 value={formData.model_name || ''}
-                onChange={(e) => setFormData({ ...formData, model_name: e.target.value })}
+                onChange={(e) => updateFormField('model_name', e.target.value)}
                 error={!!formErrors.model_name}
                 helperText={formErrors.model_name}
               />
@@ -414,7 +423,7 @@ export default function LGDSetupPage() {
                 <Select
                   value={formData.segment_id || ''}
                   label="Population Segment"
-                  onChange={(e) => setFormData({ ...formData, segment_id: Number(e.target.value) })}
+                  onChange={(e) => updateFormField('segment_id', Number(e.target.value))}
                 >
                   {populationSegments.map(s => (
                     <MenuItem key={s.id} value={s.id}>{s.segment_name}</MenuItem>
@@ -430,7 +439,7 @@ export default function LGDSetupPage() {
                 <Select
                   value={formData.lgd_method || ''}
                   label="Method"
-                  onChange={(e) => setFormData({ ...formData, lgd_method: e.target.value })}
+                  onChange={(e) => updateFormField('lgd_method', e.target.value)}
                 >
                   {methodOptions.map((m, idx) => <MenuItem key={`${m.value}-${idx}`} value={m.value}>{m.label}</MenuItem>)}
                 </Select>
@@ -444,7 +453,7 @@ export default function LGDSetupPage() {
                 <Select
                   value={formData.population_type || ''}
                   label="Population Type"
-                  onChange={(e) => setFormData({ ...formData, population_type: e.target.value })}
+                  onChange={(e) => updateFormField('population_type', e.target.value)}
                 >
                   {popTypeOptions.map((m, idx) => <MenuItem key={`${m.value}-${idx}`} value={m.value}>{m.label}</MenuItem>)}
                 </Select>
@@ -457,7 +466,7 @@ export default function LGDSetupPage() {
                 fullWidth
                 label="Observation Period"
                 value={formData.observation_period || ''}
-                onChange={(e) => setFormData({ ...formData, observation_period: e.target.value })}
+                onChange={(e) => updateFormField('observation_period', e.target.value)}
                 error={!!formErrors.observation_period}
                 helperText={formErrors.observation_period || 'e.g. 2020-2023 or 24 months'}
               />
@@ -465,7 +474,7 @@ export default function LGDSetupPage() {
               <DatePicker
                 label="Observation Start Date"
                 value={formData.observation_start_date ? dayjs(formData.observation_start_date) : null}
-                onChange={(date) => setFormData({ ...formData, observation_start_date: date ? dayjs(date).format('YYYY-MM-DD') : undefined })}
+                onChange={(date) => updateFormField('observation_start_date', date ? dayjs(date).format('YYYY-MM-DD') : undefined)}
                 slotProps={{
                   textField: {
                     fullWidth: true,
@@ -480,25 +489,25 @@ export default function LGDSetupPage() {
                 type="number"
                 label="Workout Period (Months)"
                 value={formData.workout_period || ''}
-                onChange={(e) => setFormData({ ...formData, workout_period: Number(e.target.value) })}
+                onChange={(e) => updateFormField('workout_period', e.target.value === '' ? undefined : Number(e.target.value))}
               />
 
               <TextField
                 fullWidth
                 type="number"
                 label="LGD Rate (%)"
-                value={formData.lgd_rate ?? ''}
-                onChange={(e) => setFormData({ ...formData, lgd_rate: Number(e.target.value) })}
+                value={lgdRateInputValue}
+                onChange={(e) => updateFormField('lgd_rate', e.target.value === '' ? undefined : Number(e.target.value))}
                 inputProps={{ step: 0.001 }}
               />
 
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <FormControlLabel
-                  control={<Switch checked={!!formData.is_active} onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })} />}
+                  control={<Switch checked={!!formData.is_active} onChange={(e) => updateFormField('is_active', e.target.checked)} />}
                   label="Active"
                 />
                 <FormControlLabel
-                  control={<Switch checked={!!formData.fl_flag} onChange={(e) => setFormData({ ...formData, fl_flag: e.target.checked })} />}
+                  control={<Switch checked={!!formData.fl_flag} onChange={(e) => updateFormField('fl_flag', e.target.checked)} />}
                   label="FL Flag"
                 />
               </Box>
@@ -509,7 +518,7 @@ export default function LGDSetupPage() {
                   <Select
                     value={formData.fl_scalar_id || ''}
                     label="FL Scalar"
-                    onChange={(e) => setFormData({ ...formData, fl_scalar_id: Number(e.target.value) })}
+                    onChange={(e) => updateFormField('fl_scalar_id', Number(e.target.value))}
                   >
                     {flScalars.map(s => (
                       <MenuItem key={s.pkid} value={s.pkid}>{s.scalar_name}</MenuItem>

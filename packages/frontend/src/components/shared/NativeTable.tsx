@@ -294,7 +294,7 @@ export function NativeTable<T = any>({
 
   // Desktop Table View (or mobile with horizontal scroll)
   return (
-    <Box sx={{ width: '100%', overflow: 'auto', ...sx }}>
+    <Box sx={{ width: '100%', overflow: 'hidden', ...sx }}>
       <Paper sx={{
         width: 0,
         minWidth: '100%',
