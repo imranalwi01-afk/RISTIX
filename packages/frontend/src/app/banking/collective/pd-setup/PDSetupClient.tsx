@@ -57,6 +57,7 @@ import { bankingAPI } from '@/services/api';
 import { PDStructureVisualization, FLScalarVisualization } from '@/components/banking/pd-setup/PDStructureVisualization';
 import { Assessment as ResultsIcon, Close as CloseIcon } from '@mui/icons-material';
 import { usePermission } from '@/hooks/usePermission';
+import { pdConfigurationSchema, validateWithSchema } from '@/lib/validation/collective-config.validation';
 
 // Safe DataGrid wrapper to prevent bundling issues
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
@@ -102,12 +103,12 @@ const PdSetupPage = () => {
   const [formData, setFormData] = useState<Partial<PDConfiguration>>({
     model_name: '',
     population_segment_id: undefined,
-    selected_method: '1',
-    migration_interval: 12,
-    population_type: '1',
-    historical_month: 24,
+    selected_method: undefined,
+    migration_interval: undefined,
+    population_type: undefined,
+    historical_month: undefined,
     first_historical_date: undefined,
-    multiplication: 1,
+    multiplication: undefined,
     fl_flag: false,
     ia_flag: false,
     bucket: '',
@@ -193,25 +194,9 @@ const PdSetupPage = () => {
 
   // Validations
   const validateForm = () => {
-    const errors: Record<string, string> = {};
-    if (!formData.model_name?.trim()) errors.model_name = 'Model Name is required';
-    if (isEditing && !formData.population_segment_id && !formData.population_segment) {
-      // Legacy support or new
-      // If editing legacy with no UUID, it's tricky. But user will pick from dropdown which sets UUID.
-    }
-    if (!formData.population_segment_id) {
-      // If we want to enforce UUID going forward:
-      // errors.population_segment_id = 'Segment is required';
-      // But for legacy compatibility in UI, we might skip if integer is present.
-      // Let's enforce selection for new/edits to migrate them effectively.
-      // errors.population_segment_id = 'Segment is required';
-    }
-    // Wait, let's just make it required if it's a new entry, 
-    // or if we want to force migration on edit.
-    if (!formData.bucket) errors.bucket = 'Bucket Group is required';
-
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
+    const result = validateWithSchema(pdConfigurationSchema, formData);
+    setFormErrors(result.errors);
+    return result.success;
   };
 
   const handleSave = async () => {
@@ -248,11 +233,26 @@ const PdSetupPage = () => {
       await loadData();
       await loadPendingApprovals();
       setIsDialogOpen(false);
-      setFormData({});
+      setFormData({
+        model_name: '',
+        population_segment_id: undefined,
+        selected_method: undefined,
+        migration_interval: undefined,
+        population_type: undefined,
+        historical_month: undefined,
+        first_historical_date: undefined,
+        multiplication: undefined,
+        fl_flag: false,
+        ia_flag: false,
+        bucket: '',
+        is_active: true
+      });
+      setFormErrors({});
       setSelectedConfig(null);
     } catch (err) {
       console.error('Save failed:', err);
-      setError('Failed to save configuration.');
+      const message = err instanceof Error ? err.message : 'Failed to save configuration.';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -278,7 +278,8 @@ const PdSetupPage = () => {
       await loadPendingApprovals();
     } catch (err) {
       console.error('Delete failed:', err);
-      setError('Failed to delete configuration.');
+      const message = err instanceof Error ? err.message : 'Failed to delete configuration.';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -400,12 +401,19 @@ const PdSetupPage = () => {
               setSelectedConfig(null);
               setFormData({
                 is_active: true,
-                selected_method: '1',
-                migration_interval: 12,
-                population_type: '1',
-                historical_month: 24,
-                multiplication: 1
+                model_name: '',
+                population_segment_id: undefined,
+                selected_method: undefined,
+                migration_interval: undefined,
+                population_type: undefined,
+                historical_month: undefined,
+                first_historical_date: undefined,
+                multiplication: undefined,
+                fl_flag: false,
+                ia_flag: false,
+                bucket: ''
               });
+              setFormErrors({});
               setIsEditing(false);
               setIsDialogOpen(true);
             }} data-testid="add-config-btn">Add Configuration</Button>
@@ -472,28 +480,36 @@ const PdSetupPage = () => {
                     value={formData.population_segment_id || ''}
                     label="Population Segment"
                     onChange={(e) => setFormData({ ...formData, population_segment_id: e.target.value })}
+                    error={!!formErrors.population_segment_id}
                     data-testid="segment-select"
                   >
                     {populationSegments.map(s => (
                       <MenuItem key={s.id} value={s.id}>{s.segment_name}</MenuItem>
                     ))}
                   </Select>
-                  <FormHelperText>Source: Population Segments table</FormHelperText>
+                  <FormHelperText error={!!formErrors.population_segment_id}>
+                    {formErrors.population_segment_id || 'Source: Population Segments table'}
+                  </FormHelperText>
                 </FormControl>
               </Box>
 
               <Box>
-                <FormControl fullWidth>
+                <FormControl fullWidth error={!!formErrors.selected_method}>
                   <InputLabel>Method</InputLabel>
                   <Select
-                    value={formData.selected_method || '1'}
+                    value={formData.selected_method || ''}
                     label="Method"
                     onChange={(e) => setFormData({ ...formData, selected_method: e.target.value })}
                     data-testid="method-select"
                   >
+                    <MenuItem value="">
+                      <em>Select Method</em>
+                    </MenuItem>
                     {methodOptions.map((m, idx) => <MenuItem key={`${m.value}-${idx}`} value={m.value}>{m.label}</MenuItem>)}
                   </Select>
-                  <FormHelperText>Source: Business Setting B0018</FormHelperText>
+                  <FormHelperText error={!!formErrors.selected_method}>
+                    {formErrors.selected_method || 'Source: Business Setting B0018'}
+                  </FormHelperText>
                 </FormControl>
               </Box>
 
@@ -505,12 +521,14 @@ const PdSetupPage = () => {
                   value={formData.migration_interval || ''}
                   onChange={(e) => setFormData({ ...formData, migration_interval: Number(e.target.value) })}
                   disabled={isFieldDisabled('migration_interval')}
+                  error={!!formErrors.migration_interval}
+                  helperText={formErrors.migration_interval}
                   data-testid="migration-interval-input"
                 />
               </Box>
 
               <Box>
-                <FormControl fullWidth>
+                <FormControl fullWidth error={!!formErrors.bucket}>
                   <InputLabel>Bucket Group</InputLabel>
                   <Select
                     value={formData.bucket || ''}
@@ -530,18 +548,23 @@ const PdSetupPage = () => {
               </Box>
 
               <Box>
-                <FormControl fullWidth>
+                <FormControl fullWidth error={!!formErrors.population_type}>
                   <InputLabel>Population Type</InputLabel>
                   <Select
-                    value={formData.population_type || '1'}
+                    value={formData.population_type || ''}
                     label="Population Type"
                     onChange={(e) => setFormData({ ...formData, population_type: e.target.value })}
                     disabled={isFieldDisabled('population_type')}
                     data-testid="population-type-select"
                   >
+                    <MenuItem value="">
+                      <em>Select Population Type</em>
+                    </MenuItem>
                     {popTypeOptions.map((m, idx) => <MenuItem key={`${m.value}-${idx}`} value={m.value}>{m.label}</MenuItem>)}
                   </Select>
-                  <FormHelperText>Source: Business Setting B0019</FormHelperText>
+                  <FormHelperText error={!!formErrors.population_type}>
+                    {formErrors.population_type || 'Source: Business Setting B0019'}
+                  </FormHelperText>
                 </FormControl>
               </Box>
 
@@ -553,6 +576,8 @@ const PdSetupPage = () => {
                   value={formData.historical_month || ''}
                   onChange={(e) => setFormData({ ...formData, historical_month: Number(e.target.value) })}
                   disabled={isFieldDisabled('historical_month')}
+                  error={!!formErrors.historical_month}
+                  helperText={formErrors.historical_month}
                   data-testid="historical-month-input"
                 />
               </Box>
@@ -563,7 +588,7 @@ const PdSetupPage = () => {
                   value={formData.first_historical_date ? dayjs(formData.first_historical_date) : null}
                   onChange={(date) => setFormData({ ...formData, first_historical_date: date ? dayjs(date).format('YYYY-MM-DD') : undefined })}
                   disabled={isFieldDisabled('first_historical_date')}
-                  slotProps={{ textField: { fullWidth: true, 'data-testid': 'first-historical-date-picker' } as any }}
+                  slotProps={{ textField: { fullWidth: true, error: !!formErrors.first_historical_date, helperText: formErrors.first_historical_date, 'data-testid': 'first-historical-date-picker' } as any }}
                 />
               </Box>
 
@@ -575,6 +600,8 @@ const PdSetupPage = () => {
                   value={formData.multiplication || ''}
                   onChange={(e) => setFormData({ ...formData, multiplication: Number(e.target.value) })}
                   disabled={isFieldDisabled('multiplication')}
+                  error={!!formErrors.multiplication}
+                  helperText={formErrors.multiplication}
                   data-testid="multiplication-input"
                 />
               </Box>
@@ -596,7 +623,7 @@ const PdSetupPage = () => {
 
               {formData.fl_flag && (
                 <Box>
-                  <FormControl fullWidth>
+                  <FormControl fullWidth error={!!formErrors.fl_scalar_id}>
                     <InputLabel>FL Scalar</InputLabel>
                     <Select
                       value={formData.fl_scalar_id || ''}
@@ -608,7 +635,9 @@ const PdSetupPage = () => {
                         <MenuItem key={fs.pkid} value={fs.pkid}>{fs.scalar_name}</MenuItem>
                       ))}
                     </Select>
-                    <FormHelperText>Source: FL Scalar Parameters</FormHelperText>
+                    <FormHelperText error={!!formErrors.fl_scalar_id}>
+                      {formErrors.fl_scalar_id || 'Source: FL Scalar Parameters'}
+                    </FormHelperText>
                   </FormControl>
                 </Box>
               )}

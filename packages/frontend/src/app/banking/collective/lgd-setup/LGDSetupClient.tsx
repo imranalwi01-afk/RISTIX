@@ -50,6 +50,7 @@ import { PopulationSegment, filterPopulationSegmentsByType } from '../../../../s
 import { FLScalarWithDetails } from '../../../../services/api/fl-scalar.api';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 import { usePermission } from '@/hooks/usePermission';
+import { lgdConfigurationSchema, validateWithSchema } from '@/lib/validation/collective-config.validation';
 
 // Safe DataGrid wrapper to prevent bundling issues
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
@@ -60,6 +61,20 @@ interface LGDConfigUI extends LGDConfiguration {
   method_name?: string;
   scalar_name?: string;
 }
+
+const createEmptyFormData = (): Partial<LGDConfiguration> => ({
+  model_name: '',
+  segment_id: undefined,
+  lgd_method: '',
+  population_type: '',
+  observation_period: '',
+  workout_period: undefined,
+  fl_flag: false,
+  fl_scalar_id: undefined,
+  lgd_rate: undefined,
+  is_active: true,
+  observation_start_date: undefined,
+});
 
 export default function LGDSetupPage() {
   const { hasAnyPermission } = usePermission();
@@ -85,19 +100,7 @@ export default function LGDSetupPage() {
   const [selectedConfig, setSelectedConfig] = useState<LGDConfigUI | null>(null);
 
   // Form Data
-  const [formData, setFormData] = useState<Partial<LGDConfiguration>>({
-    model_name: '',
-    segment_id: undefined,
-    lgd_method: '1',
-    population_type: 'Monthly',
-    observation_period: '',
-    workout_period: 12,
-    fl_flag: false,
-    fl_scalar_id: undefined,
-    lgd_rate: 0,
-    is_active: true,
-    observation_start_date: undefined
-  });
+  const [formData, setFormData] = useState<Partial<LGDConfiguration>>(createEmptyFormData());
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [searchTerm, setSearchTerm] = useState('');
@@ -178,27 +181,21 @@ export default function LGDSetupPage() {
 
   // Validations
   const validateForm = () => {
-    const errors: Record<string, string> = {};
-    if (!formData.model_name?.trim()) errors.model_name = 'Model Name is required';
-    if (!formData.segment_id) errors.segment_id = 'Segment is required';
-    if (!formData.lgd_method) errors.lgd_method = 'Method is required';
-
-    if (formData.fl_flag && !formData.fl_scalar_id) {
-      errors.fl_scalar_id = 'FL Scalar is required when FL Flag is active';
-    }
-
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
+    const result = validateWithSchema(lgdConfigurationSchema, formData);
+    setFormErrors(result.errors);
+    return result.success;
   };
 
   const handleSave = async () => {
     if (!canManageLgdSetup) return;
     if (!validateForm()) return;
+    setLoading(true);
+    setError(null);
     try {
       const payload: any = {
         model_name: formData.model_name,
         segment_id: formData.segment_id,
-        lgd_method: formData.lgd_method || '1',
+        lgd_method: formData.lgd_method,
         population_type: formData.population_type,
         observation_period: formData.observation_period,
         workout_period: formData.workout_period,
@@ -234,11 +231,12 @@ export default function LGDSetupPage() {
       await loadData();
       await loadPendingApprovals();
       setIsDialogOpen(false);
-      setFormData({});
+      setFormData(createEmptyFormData());
+      setFormErrors({});
       setSelectedConfig(null);
     } catch (err) {
       console.error('Save failed:', err);
-      setError('Failed to save configuration.');
+      setError(err instanceof Error ? err.message : 'Failed to save configuration.');
     } finally {
       setLoading(false);
     }
@@ -247,6 +245,8 @@ export default function LGDSetupPage() {
   const handleDelete = async (id: number) => {
     if (!canManageLgdSetup) return;
     if (!confirm('Are you sure you want to delete this configuration?')) return;
+    setLoading(true);
+    setError(null);
     try {
       const response = await api.banking.lgdConfigurations.delete(String(id)) as any;
       const isApprovalResponse = response.approvalRequired || response.status === 202;
@@ -264,7 +264,7 @@ export default function LGDSetupPage() {
       await loadPendingApprovals();
     } catch (err) {
       console.error('Delete failed:', err);
-      setError('Failed to delete configuration.');
+      setError(err instanceof Error ? err.message : 'Failed to delete configuration.');
     } finally {
       setLoading(false);
     }
@@ -351,13 +351,8 @@ export default function LGDSetupPage() {
           {canManageLgdSetup && (
             <Button variant="contained" startIcon={<AddIcon />} onClick={() => {
               setSelectedConfig(null);
-              setFormData({
-                is_active: true,
-                lgd_method: '1',
-                population_type: 'Monthly',
-                workout_period: 12,
-                fl_flag: false
-              });
+              setFormData(createEmptyFormData());
+              setFormErrors({});
               setIsEditing(false);
               setIsDialogOpen(true);
             }}>Add Configuration</Button>
@@ -433,7 +428,7 @@ export default function LGDSetupPage() {
               <FormControl fullWidth error={!!formErrors.lgd_method}>
                 <InputLabel>Method</InputLabel>
                 <Select
-                  value={formData.lgd_method || '1'}
+                  value={formData.lgd_method || ''}
                   label="Method"
                   onChange={(e) => setFormData({ ...formData, lgd_method: e.target.value })}
                 >
@@ -444,16 +439,18 @@ export default function LGDSetupPage() {
                 </FormHelperText>
               </FormControl>
 
-              <FormControl fullWidth>
+              <FormControl fullWidth error={!!formErrors.population_type}>
                 <InputLabel>Population Type</InputLabel>
                 <Select
-                  value={formData.population_type || 'Monthly'}
+                  value={formData.population_type || ''}
                   label="Population Type"
                   onChange={(e) => setFormData({ ...formData, population_type: e.target.value })}
                 >
                   {popTypeOptions.map((m, idx) => <MenuItem key={`${m.value}-${idx}`} value={m.value}>{m.label}</MenuItem>)}
                 </Select>
-                <FormHelperText>Source: Business Setting B0023</FormHelperText>
+                <FormHelperText error={!!formErrors.population_type}>
+                  {formErrors.population_type || 'Source: Business Setting B0023'}
+                </FormHelperText>
               </FormControl>
 
               <TextField
@@ -461,14 +458,21 @@ export default function LGDSetupPage() {
                 label="Observation Period"
                 value={formData.observation_period || ''}
                 onChange={(e) => setFormData({ ...formData, observation_period: e.target.value })}
-                helperText="e.g. 2020-2023 or 24 months"
+                error={!!formErrors.observation_period}
+                helperText={formErrors.observation_period || 'e.g. 2020-2023 or 24 months'}
               />
 
               <DatePicker
                 label="Observation Start Date"
                 value={formData.observation_start_date ? dayjs(formData.observation_start_date) : null}
                 onChange={(date) => setFormData({ ...formData, observation_start_date: date ? dayjs(date).format('YYYY-MM-DD') : undefined })}
-                slotProps={{ textField: { fullWidth: true } }}
+                slotProps={{
+                  textField: {
+                    fullWidth: true,
+                    error: !!formErrors.observation_start_date,
+                    helperText: formErrors.observation_start_date,
+                  }
+                }}
               />
 
               <TextField
@@ -483,7 +487,7 @@ export default function LGDSetupPage() {
                 fullWidth
                 type="number"
                 label="LGD Rate (%)"
-                value={formData.lgd_rate || 0}
+                value={formData.lgd_rate ?? ''}
                 onChange={(e) => setFormData({ ...formData, lgd_rate: Number(e.target.value) })}
                 inputProps={{ step: 0.001 }}
               />
@@ -521,7 +525,10 @@ export default function LGDSetupPage() {
           </LocalizationProvider>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+          <Button onClick={() => {
+            setIsDialogOpen(false);
+            setFormErrors({});
+          }}>Cancel</Button>
           {canManageLgdSetup && (
             <Button variant="contained" onClick={handleSave} disabled={loading}>{selectedConfig ? 'Update' : 'Create'}</Button>
           )}

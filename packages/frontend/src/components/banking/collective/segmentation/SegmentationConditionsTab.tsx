@@ -107,6 +107,62 @@ const isValidNumberList = (value: string) => {
   return tokens.length > 0 && tokens.every(isValidNumberValue);
 };
 
+const getRuleValidationMessage = (rule: Rule | null): string | null => {
+  if (!rule) return 'Rule data is missing.';
+
+  if (!rule.query_group) return 'Query Group is required.';
+  if (!rule.seq) return 'Sequence is required.';
+  if (!String(rule.table_name || '').trim()) return 'Table is required.';
+  if (!String(rule.column_name || '').trim()) return 'Column is required.';
+  if (!String(rule.data_type || '').trim()) return 'Data Type is required.';
+  if (!String(rule.operator || '').trim()) return 'Operator is required.';
+
+  const operator = String(rule.operator || '').trim();
+  const dataKind = getDataKind(rule.data_type);
+  const value1 = String(rule.value1 || '').trim();
+  const value2 = String(rule.value2 || '').trim();
+
+  if (['IS NULL', 'IS NOT NULL'].includes(operator)) {
+    return null;
+  }
+
+  if (!value1) return 'Value is required.';
+
+  if (isBetweenOperator(operator) && !value2) {
+    return 'End Value is required for BETWEEN.';
+  }
+
+  if (dataKind === 'date') {
+    if (!isValidDateValue(value1)) return 'Value must be a valid date (YYYY-MM-DD).';
+    if (isBetweenOperator(operator) && !isValidDateValue(value2)) {
+      return 'End Value must be a valid date (YYYY-MM-DD) for BETWEEN.';
+    }
+  }
+
+  if (dataKind === 'number') {
+    if (isSetOperator(operator)) {
+      if (!isValidNumberList(value1)) {
+        return 'Value must contain comma-separated numbers for this operator.';
+      }
+    } else if (!isValidNumberValue(value1)) {
+      return 'Value must be numeric for NUMBER data type.';
+    }
+
+    if (isBetweenOperator(operator) && !isValidNumberValue(value2)) {
+      return 'End Value must be numeric for BETWEEN.';
+    }
+  }
+
+  if (dataKind === 'boolean') {
+    const allowed = ['1', '0', 'TRUE', 'FALSE'];
+    if (!allowed.includes(value1.toUpperCase())) {
+      return 'Value must be True/False for BOOLEAN data type.';
+    }
+  }
+
+  return null;
+};
+
 export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps> = ({
   rules,
   onRulesChange,
@@ -263,49 +319,10 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
 
   const handleSave = () => {
     if (!editForm) return;
-
-    // Validation (simple)
-    if (!editForm.table_name || !editForm.column_name || !editForm.value1) {
-      alert('Please fill in all required fields (Table, Column, Value)');
+    const validationMessage = getRuleValidationMessage(editForm);
+    if (validationMessage) {
+      alert(validationMessage);
       return;
-    }
-    const dataKind = getDataKind(editForm.data_type);
-    const operator = editForm.operator || '';
-
-    if (dataKind === 'date') {
-      if (!isValidDateValue(editForm.value1)) {
-        alert('Value must be a valid date (YYYY-MM-DD).');
-        return;
-      }
-      if (isBetweenOperator(operator) && !isValidDateValue(String(editForm.value2 || ''))) {
-        alert('End Value must be a valid date (YYYY-MM-DD) for BETWEEN.');
-        return;
-      }
-    }
-
-    if (dataKind === 'number') {
-      if (isSetOperator(operator)) {
-        if (!isValidNumberList(editForm.value1)) {
-          alert('Value must contain comma-separated numbers for this operator.');
-          return;
-        }
-      } else if (!isValidNumberValue(editForm.value1)) {
-        alert('Value must be numeric for NUMBER data type.');
-        return;
-      }
-
-      if (isBetweenOperator(operator) && !isValidNumberValue(String(editForm.value2 || ''))) {
-        alert('End Value must be numeric for BETWEEN.');
-        return;
-      }
-    }
-
-    if (dataKind === 'boolean') {
-      const allowed = ['1', '0', 'TRUE', 'FALSE'];
-      if (!allowed.includes(String(editForm.value1 || '').trim().toUpperCase())) {
-        alert('Value must be True/False for BOOLEAN data type.');
-        return;
-      }
     }
 
     const updatedRules = [...rules];
@@ -350,6 +367,8 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
   const generatedTableName = (
     rules.find((rule) => String(rule.table_name || '').trim().length > 0)?.table_name || 'FRS9_MASTER_ACCOUNT'
   ).toLowerCase();
+  const editorValidationMessage = getRuleValidationMessage(editForm);
+  const isEditorValid = !editorValidationMessage;
 
   return (
     <Box>
@@ -384,10 +403,25 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
               {isAdding ? 'Defining New Rule' : `Editing Rule #${editingIndex! + 1}`}
             </Typography>
             <Stack direction="row" spacing={1}>
-              <Button size="small" variant="outlined" color="inherit" onClick={handleCancel} startIcon={<CancelIcon />}>Discard</Button>
-              <Button size="small" variant="contained" color="primary" onClick={handleSave} startIcon={<SaveIcon />}>Confirm Rule</Button>
+              <Button size="small" variant="outlined" color="inherit" onClick={handleCancel} startIcon={<CancelIcon />}>Cancel</Button>
+              <Button
+                size="small"
+                variant="contained"
+                color="primary"
+                onClick={handleSave}
+                startIcon={<SaveIcon />}
+                disabled={!isEditorValid}
+              >
+                {isAdding ? 'Create' : 'Update'}
+              </Button>
             </Stack>
           </Stack>
+
+          {editorValidationMessage ? (
+            <Alert severity="warning" sx={{ mb: 3, borderRadius: 2 }}>
+              {editorValidationMessage}
+            </Alert>
+          ) : null}
 
           <Grid container spacing={3}>
             {/* Control Group */}
@@ -471,7 +505,7 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
                   ) : null}
                   {tables.map(t => <MenuItem key={t} value={t}>{t}</MenuItem>)}
                 </Select>
-                <FormHelperText>Source: Business Setting B0012</FormHelperText>
+                <FormHelperText>Required. Source: Business Setting B0012</FormHelperText>
               </FormControl>
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
@@ -492,7 +526,7 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
                   ) : null}
                   {columns.map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
                 </Select>
-                <FormHelperText>Source: Business Setting B0013</FormHelperText>
+                <FormHelperText>Required. Source: Business Setting B0013</FormHelperText>
               </FormControl>
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
@@ -513,7 +547,7 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
                   ) : null}
                   {operators.map(o => <MenuItem key={o} value={o}>{o}</MenuItem>)}
                 </Select>
-                <FormHelperText>Source: Business Setting B0014</FormHelperText>
+                <FormHelperText>Required. Source: Business Setting B0014</FormHelperText>
               </FormControl>
             </Grid>
 
@@ -541,9 +575,9 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
                   renderInput={(params) => (
                     <TextField
                       {...params}
-                      label="Value"
+                      label="Value *"
                       placeholder="Select one or more values..."
-                      helperText="Source: Business Setting B0016"
+                      helperText="Required. Source: Business Setting B0016"
                       sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 }, bgcolor: 'white' }}
                       InputProps={{
                         ...params.InputProps,
@@ -562,11 +596,11 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
                   fullWidth
                   size="small"
                   type="date"
-                  label={isBetweenOperator(editForm.operator) ? 'Start Date' : 'Date'}
+                  label={isBetweenOperator(editForm.operator) ? 'Start Date *' : 'Date *'}
                   value={editForm.value1 || ''}
                   onChange={(e) => handleFieldChange('value1', e.target.value)}
                   slotProps={{ inputLabel: { shrink: true } }}
-                  helperText="Date Picker (YYYY-MM-DD)"
+                  helperText="Required. Date Picker (YYYY-MM-DD)"
                   sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 }, bgcolor: 'white' }}
                 />
               ) : currentDataKind === 'number' ? (
@@ -574,11 +608,11 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
                   fullWidth
                   size="small"
                   type={isSetOperator(editForm.operator) ? 'text' : 'number'}
-                  label={isSetOperator(editForm.operator) ? 'Value List' : 'Value'}
+                  label={isSetOperator(editForm.operator) ? 'Value List *' : 'Value *'}
                   value={editForm.value1 || ''}
                   onChange={(e) => handleFieldChange('value1', e.target.value)}
                   placeholder={isSetOperator(editForm.operator) ? 'e.g. 10,20,30' : undefined}
-                  helperText={isSetOperator(editForm.operator) ? 'Use comma-separated numeric values' : 'Numeric input only'}
+                  helperText={isSetOperator(editForm.operator) ? 'Required. Use comma-separated numeric values' : 'Required. Numeric input only'}
                   slotProps={{ htmlInput: isSetOperator(editForm.operator) ? { inputMode: 'text' } : { inputMode: 'decimal', step: 'any' } }}
                   sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 }, bgcolor: 'white' }}
                 />
@@ -587,7 +621,7 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
                   <InputLabel id="boolean-value-label">Value</InputLabel>
                   <Select
                     labelId="boolean-value-label"
-                    label="Value"
+                    label="Value *"
                     value={String(editForm.value1 || '')}
                     onChange={(e) => handleFieldChange('value1', e.target.value)}
                     sx={{ borderRadius: 1.5, bgcolor: 'white' }}
@@ -600,10 +634,10 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
                 <TextField
                   fullWidth
                   size="small"
-                  label={isBetweenOperator(editForm.operator) ? "Start Value" : "Value"}
+                  label={isBetweenOperator(editForm.operator) ? "Start Value *" : "Value *"}
                   value={editForm.value1 || ''}
                   onChange={(e) => handleFieldChange('value1', e.target.value)}
-                  helperText={editForm.operator ? 'Input value based on selected operator' : 'Select operator first'}
+                  helperText={editForm.operator ? 'Required. Input value based on selected operator' : 'Select operator first'}
                   sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 }, bgcolor: 'white' }}
                 />
               )}
@@ -616,11 +650,11 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
                     fullWidth
                     size="small"
                     type="date"
-                    label="End Date"
+                    label="End Date *"
                     value={editForm.value2 || ''}
                     onChange={(e) => handleFieldChange('value2', e.target.value)}
                     slotProps={{ inputLabel: { shrink: true } }}
-                    helperText="Date Picker (YYYY-MM-DD)"
+                    helperText="Required. Date Picker (YYYY-MM-DD)"
                     sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 }, bgcolor: 'white' }}
                   />
                 ) : currentDataKind === 'number' ? (
@@ -628,10 +662,10 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
                     fullWidth
                     size="small"
                     type="number"
-                    label="End Value"
+                    label="End Value *"
                     value={editForm.value2 || ''}
                     onChange={(e) => handleFieldChange('value2', e.target.value)}
-                    helperText="Numeric input only"
+                    helperText="Required. Numeric input only"
                     slotProps={{ htmlInput: { inputMode: 'decimal', step: 'any' } }}
                     sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 }, bgcolor: 'white' }}
                   />
@@ -639,9 +673,10 @@ export const SegmentationConditionsTab: React.FC<SegmentationConditionsTabProps>
                   <TextField
                     fullWidth
                     size="small"
-                    label="End Value"
+                    label="End Value *"
                     value={editForm.value2 || ''}
                     onChange={(e) => handleFieldChange('value2', e.target.value)}
+                    helperText="Required for BETWEEN"
                     sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 }, bgcolor: 'white' }}
                   />
                 )}

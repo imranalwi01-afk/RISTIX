@@ -47,7 +47,9 @@ import {
   TableRow,
   Accordion,
   AccordionSummary,
-  AccordionDetails
+  AccordionDetails,
+  Snackbar,
+  FormHelperText
 } from '@mui/material';
 import {
   Calculate as EclIcon,
@@ -61,7 +63,8 @@ import {
   ExpandMore as ExpandMoreIcon,
   PlayArrow as RunIcon,
   Schedule as ScheduleIcon,
-  Event as EventIcon
+  Event as EventIcon,
+  Visibility as VisibilityIcon
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 
@@ -115,49 +118,6 @@ interface ECLConfigDetail {
   createdby?: string;
   createddate?: string;
 }
-// Business parameters from live system
-const mockModules = [
-  { value: "1", label: "Commercial Module", code: "COMM" },
-  { value: "2", label: "Treasury Module", code: "TREAS" },
-  { value: "3", label: "Retail Module", code: "RETAIL" },
-  { value: "4", label: "Corporate Module", code: "CORP" }
-];
-
-const mockSegments = [
-  { value: 1, label: "All Segments", code: "ALL" },
-  { value: 5, label: "Treasury - Gov Bonds", code: "TREAS_GOV" },
-  { value: 6, label: "Treasury - Corporate Bonds", code: "TREAS_CORP" },
-  { value: 13, label: "Factoring", code: "FACTORING" },
-  { value: 16, label: "Repo", code: "REPO" },
-  { value: 17, label: "Treasury", code: "TREASURY" }
-];
-
-const mockStageRules = [
-  { value: 1, label: "Conservative Rule", code: "CONSERVATIVE" },
-  { value: 2, label: "Standard Rule", code: "STANDARD" },
-  { value: 3, label: "Aggressive Rule", code: "AGGRESSIVE" },
-  { value: 5, label: "Low Risk Rule", code: "LOW_RISK" }
-];
-
-const mockPdModels = [
-  { value: 1, label: "PD All Segment", code: "PD_ALL" },
-  { value: 4, label: "PD Repo Model", code: "PD_REPO" },
-  { value: 5, label: "PD Factoring Model", code: "PD_FACTORING" },
-  { value: 6, label: "PD Treasury Model", code: "PD_TREASURY" }
-];
-
-const mockLgdModels = [
-  { value: 1, label: "LGD All Segment", code: "LGD_ALL" },
-  { value: 2, label: "LGD Factoring", code: "LGD_FACTORING" },
-  { value: 3, label: "LGD Treasury", code: "LGD_TREASURY" }
-];
-
-const mockEadModels = [
-  { value: 1, label: "EAD All Segment", code: "EAD_ALL" },
-  { value: 2, label: "EAD Factoring", code: "EAD_FACTORING" },
-  { value: 3, label: "EAD Repo", code: "EAD_REPO" },
-  { value: 4, label: "EAD Treasury", code: "EAD_TREASURY" }
-];
 
 const mockPeriodTypes = [
   { value: 1, label: "Monthly", code: "MONTHLY" },
@@ -169,6 +129,97 @@ const mockPeriodTypes = [
 // API service for ECL Configuration - Use centralized api service
 import { api } from '../../../../services/api';
 import { bankingAPI } from '@/services/api';
+import {
+  eclConfigurationSchema,
+  eclDetailConfigurationSchema,
+  validateWithSchema,
+} from '@/lib/validation/collective-config.validation';
+
+interface LookupOption {
+  value: string;
+  label: string;
+  segmentId?: string;
+}
+
+const createEmptyHeaderFormData = (): Partial<ECLConfigHeader> => ({
+  ecl_model_name: '',
+  module: '',
+  effective_date: '',
+  active_flag: true,
+  details: []
+});
+
+const createEmptyDetailFormData = (): Partial<ECLConfigDetail> => ({
+  pf_segment_id: 0,
+  stage_rule_id: 0,
+  pd_model_id: 0,
+  lgd_model_id: 0,
+  ead_model_id: 0,
+  overlay_rate: 0,
+  period_type: 1,
+  period_date: ''
+});
+
+const getResponseRows = (response: any): any[] => {
+  if (Array.isArray(response)) return response;
+  if (Array.isArray(response?.data)) return response.data;
+  return [];
+};
+
+const normalizeBusinessSettingOptions = (response: any): LookupOption[] =>
+  getResponseRows(response)
+    .map((item: any, index: number) => ({
+      value: String(item.value1 ?? item.param_seq ?? item.id ?? index + 1),
+      label: String(item.paramdesc ?? item.param_desc ?? item.value2 ?? item.value1 ?? '').trim(),
+    }))
+    .filter((item: LookupOption) => item.value && item.label);
+
+const normalizePopulationSegmentOptions = (segments: any[]): LookupOption[] =>
+  segments
+    .map((segment: any) => ({
+      value: String(segment.id ?? ''),
+      label: String(segment.segment_name ?? '').trim(),
+    }))
+    .filter((item: LookupOption) => item.value && item.label);
+
+const normalizeRuleOptions = (response: any): LookupOption[] =>
+  getResponseRows(response)
+    .map((item: any) => ({
+      value: String(item.id ?? item.pkid ?? ''),
+      label: String(item.rule_name ?? item.label ?? '').trim(),
+    }))
+    .filter((item: LookupOption) => item.value && item.label);
+
+const normalizeModelOptions = (configs: any[], getSegmentId: (config: any) => unknown): LookupOption[] =>
+  configs
+    .map((config: any) => ({
+      value: String(config.id ?? config.pkid ?? ''),
+      label: String(config.model_name ?? '').trim(),
+      segmentId: String(getSegmentId(config) ?? ''),
+    }))
+    .filter((item: LookupOption) => item.value && item.label);
+
+const createLabelLookup = (options: LookupOption[]) =>
+  new Map(options.map((option) => [String(option.value), option.label]));
+
+const hydrateEclDetails = (
+  details: ECLConfigDetail[],
+  lookups: {
+    segments: Map<string, string>;
+    stageRules: Map<string, string>;
+    pdModels: Map<string, string>;
+    lgdModels: Map<string, string>;
+    eadModels: Map<string, string>;
+  }
+): ECLConfigDetail[] =>
+  details.map((detail) => ({
+    ...detail,
+    pf_segment_name: lookups.segments.get(String(detail.pf_segment_id ?? '')) || detail.pf_segment_name,
+    stage_rule_name: lookups.stageRules.get(String(detail.stage_rule_id ?? '')) || detail.stage_rule_name,
+    pd_model_name: lookups.pdModels.get(String(detail.pd_model_id ?? '')) || detail.pd_model_name,
+    lgd_model_name: lookups.lgdModels.get(String(detail.lgd_model_id ?? '')) || detail.lgd_model_name,
+    ead_model_name: lookups.eadModels.get(String(detail.ead_model_id ?? '')) || detail.ead_model_name,
+  }));
 
 // Alias to match existing usage patterns in this file
 const eclConfigurationAPI = {
@@ -187,14 +238,11 @@ const eclConfigurationAPI = {
 
       // Transform to match expected structure
       const transformed = resultData.map((item: any) => {
-        // Lookup module name from mockModules
-        const moduleInfo = mockModules.find(m => m.value === String(item.module));
-
         return {
           pkid: Number(item.id), // Ensure number
           ecl_model_name: item.model_name,
           module: String(item.module),
-          module_name: moduleInfo?.label || `Module ${item.module}`,
+          module_name: String(item.module || ''),
           effective_date: item.effective_date,
           active_flag: item.active_flag ?? true,
           last_run_period: item.last_run_period,
@@ -322,6 +370,12 @@ const eclConfigurationAPI = {
 
 export default function ECLConfigurationPage() {
   const router = useRouter();
+  const [moduleOptions, setModuleOptions] = useState<LookupOption[]>([]);
+  const [segmentOptions, setSegmentOptions] = useState<LookupOption[]>([]);
+  const [stageRuleOptions, setStageRuleOptions] = useState<LookupOption[]>([]);
+  const [pdModelOptions, setPdModelOptions] = useState<LookupOption[]>([]);
+  const [lgdModelOptions, setLgdModelOptions] = useState<LookupOption[]>([]);
+  const [eadModelOptions, setEadModelOptions] = useState<LookupOption[]>([]);
 
   // State management
   const [loading, setLoading] = useState(false);
@@ -343,28 +397,132 @@ export default function ECLConfigurationPage() {
     message: string;
     requestId?: string;
   }>({ open: false, message: '' });
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; type: 'success' | 'error' }>({
+    open: false,
+    message: '',
+    type: 'success',
+  });
+  const [isViewOnly, setIsViewOnly] = useState(false);
 
   // Form data state
-  const [headerFormData, setHeaderFormData] = useState<Partial<ECLConfigHeader>>({
-    ecl_model_name: '',
-    module: '',
-    effective_date: '',
-    active_flag: true,
-    details: []
-  });
+  const [headerFormData, setHeaderFormData] = useState<Partial<ECLConfigHeader>>(createEmptyHeaderFormData());
 
-  const [detailFormData, setDetailFormData] = useState<Partial<ECLConfigDetail>>({
-    pf_segment_id: 0,
-    stage_rule_id: 0,
-    pd_model_id: 0,
-    lgd_model_id: 0,
-    ead_model_id: 0,
-    overlay_rate: 100,
-    period_type: 1,
-    period_date: ''
-  });
+  const [detailFormData, setDetailFormData] = useState<Partial<ECLConfigDetail>>(createEmptyDetailFormData());
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  const loadEclConfigurations = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [
+        moduleResponse,
+        segmentResponse,
+        ruleResponse,
+        pdResponse,
+        lgdResponse,
+        eadResponse,
+        headers,
+      ] = await Promise.all([
+        api.banking.businessSetup.getHeaderDetails('B0024'),
+        api.banking.populationSegments.getAll({ active_flag: true }),
+        bankingAPI.ruleBaseSetting.getHeaders({ limit: 200, active_flag: true }),
+        api.banking.pdConfigurations.getAll(),
+        api.banking.lgdConfigurations.getAll(),
+        api.banking.eadConfigurations.getAll(),
+        eclConfigurationAPI.getHeaders(),
+      ]);
+
+      const modules = normalizeBusinessSettingOptions(moduleResponse);
+      const segments = normalizePopulationSegmentOptions(segmentResponse);
+      const stageRules = normalizeRuleOptions(ruleResponse);
+      const pdModels = normalizeModelOptions(pdResponse, (config) => config.population_segment_id ?? config.segment_id);
+      const lgdModels = normalizeModelOptions(lgdResponse, (config) => config.segment_id);
+      const eadModels = normalizeModelOptions(eadResponse, (config) => config.segment_id);
+
+      setModuleOptions(modules);
+      setSegmentOptions(segments);
+      setStageRuleOptions(stageRules);
+      setPdModelOptions(pdModels);
+      setLgdModelOptions(lgdModels);
+      setEadModelOptions(eadModels);
+
+      const lookups = {
+        modules: createLabelLookup(modules),
+        segments: createLabelLookup(segments),
+        stageRules: createLabelLookup(stageRules),
+        pdModels: createLabelLookup(pdModels),
+        lgdModels: createLabelLookup(lgdModels),
+        eadModels: createLabelLookup(eadModels),
+      };
+
+      const hydratedConfigs = await Promise.all(
+        headers.map(async (config) => {
+          try {
+            const detailResponse: any = await api.banking.eclConfigurations.getById(config.pkid);
+            const detailPayload = detailResponse?.data || detailResponse;
+            const details = hydrateEclDetails(detailPayload?.details || [], lookups);
+            return {
+              ...config,
+              module_name: lookups.modules.get(String(config.module ?? '')) || config.module_name,
+              details,
+            };
+          } catch (detailError) {
+            console.warn('Failed to hydrate ECL details for config', config.pkid, detailError);
+            return {
+              ...config,
+              module_name: lookups.modules.get(String(config.module ?? '')) || config.module_name,
+              details: config.details || [],
+            };
+          }
+        })
+      );
+
+      setEclConfigs(hydratedConfigs);
+    } catch (error) {
+      console.error('❌ [ECL-CONFIG] Error loading configurations:', error);
+      setError('Failed to load ECL configurations. Please try again.');
+      setEclConfigs([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const loadConfigDetail = useCallback(async (configId: number): Promise<ECLConfigHeader | null> => {
+    try {
+      const response: any = await api.banking.eclConfigurations.getById(configId);
+      const payload = response?.data || response;
+      if (!payload) return null;
+
+      const lookups = {
+        modules: createLabelLookup(moduleOptions),
+        segments: createLabelLookup(segmentOptions),
+        stageRules: createLabelLookup(stageRuleOptions),
+        pdModels: createLabelLookup(pdModelOptions),
+        lgdModels: createLabelLookup(lgdModelOptions),
+        eadModels: createLabelLookup(eadModelOptions),
+      };
+
+      return {
+        pkid: Number(payload.id),
+        ecl_model_name: payload.model_name,
+        module: String(payload.module || ''),
+        module_name: lookups.modules.get(String(payload.module || '')) || String(payload.module || ''),
+        effective_date: payload.effective_date,
+        active_flag: payload.active_flag ?? true,
+        last_run_period: payload.last_run_period,
+        last_run_status: payload.last_run_status,
+        last_run_date: payload.last_run_date,
+        createdby: payload.created_by,
+        createddate: payload.created_date,
+        details: hydrateEclDetails(payload.details || [], lookups),
+      };
+    } catch (detailError) {
+      console.error('Failed to load ECL configuration detail:', detailError);
+      setError('Failed to load ECL configuration detail.');
+      return null;
+    }
+  }, [eadModelOptions, lgdModelOptions, moduleOptions, pdModelOptions, segmentOptions, stageRuleOptions]);
 
   // Load ECL configurations on component mount
   const loadPendingApprovals = useCallback(async () => {
@@ -381,22 +539,6 @@ export default function ECLConfigurationPage() {
     loadEclConfigurations();
     loadPendingApprovals();
   }, [loadPendingApprovals]);
-
-  const loadEclConfigurations = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await eclConfigurationAPI.getHeaders();
-      console.log('🔍 [ECL-CONFIG] Loaded ECL configurations:', data.length, 'records');
-      setEclConfigs(data);
-    } catch (error) {
-      console.error('❌ [ECL-CONFIG] Error loading configurations:', error);
-      setError('Failed to load ECL configurations. Please try again.');
-      setEclConfigs([]); // Set empty array on error
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Filter and search functionality
   useEffect(() => {
@@ -420,27 +562,9 @@ export default function ECLConfigurationPage() {
 
   // Form validation
   const validateForm = useCallback(() => {
-    const errors: Record<string, string> = {};
-
-    if (!headerFormData.ecl_model_name?.trim()) {
-      errors.ecl_model_name = 'ECL Model Name is required';
-    }
-
-    if (!headerFormData.module?.trim()) {
-      errors.module = 'Module is required';
-    }
-
-    if (!headerFormData.effective_date?.trim()) {
-      errors.effective_date = 'Effective Date is required';
-    }
-
-    // Validate at least one detail entry
-    if (!headerFormData.details || headerFormData.details.length === 0) {
-      errors.details = 'At least one segment configuration is required';
-    }
-
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
+    const result = validateWithSchema(eclConfigurationSchema, headerFormData);
+    setFormErrors(result.errors);
+    return result.success;
   }, [headerFormData]);
 
   // Handle form field changes
@@ -455,21 +579,25 @@ export default function ECLConfigurationPage() {
 
   const handleDetailFieldChange = (field: string, value: any) => {
     setDetailFormData(prev => ({ ...prev, [field]: value }));
+    if (formErrors[field]) {
+      setFormErrors(prev => ({ ...prev, [field]: '' }));
+    }
   };
 
   // Add detail configuration
   const handleAddDetail = () => {
-    if (!detailFormData.pf_segment_id || !detailFormData.pd_model_id ||
-      !detailFormData.lgd_model_id || !detailFormData.ead_model_id) {
+    const result = validateWithSchema(eclDetailConfigurationSchema, detailFormData);
+    if (!result.success) {
+      setFormErrors(prev => ({ ...prev, ...result.errors }));
       return;
     }
 
-    const segmentInfo = mockSegments.find(s => s.value === detailFormData.pf_segment_id);
-    const stageRuleInfo = mockStageRules.find(r => r.value === detailFormData.stage_rule_id);
-    const pdModelInfo = mockPdModels.find(m => m.value === detailFormData.pd_model_id);
-    const lgdModelInfo = mockLgdModels.find(m => m.value === detailFormData.lgd_model_id);
-    const eadModelInfo = mockEadModels.find(m => m.value === detailFormData.ead_model_id);
-    const periodTypeInfo = mockPeriodTypes.find(t => t.value === detailFormData.period_type);
+    const segmentInfo = segmentOptions.find(s => s.value === String(detailFormData.pf_segment_id));
+    const stageRuleInfo = stageRuleOptions.find(r => r.value === String(detailFormData.stage_rule_id));
+    const pdModelInfo = pdModelOptions.find(m => m.value === String(detailFormData.pd_model_id));
+    const lgdModelInfo = lgdModelOptions.find(m => m.value === String(detailFormData.lgd_model_id));
+    const eadModelInfo = eadModelOptions.find(m => m.value === String(detailFormData.ead_model_id));
+    const periodTypeInfo = mockPeriodTypes.find(t => String(t.value) === String(detailFormData.period_type));
 
     const newDetail: ECLConfigDetail = {
       pkid: Date.now(),
@@ -498,16 +626,16 @@ export default function ECLConfigurationPage() {
     }));
 
     // Reset detail form
-    setDetailFormData({
-      pf_segment_id: 0,
-      stage_rule_id: 0,
-      pd_model_id: 0,
-      lgd_model_id: 0,
-      ead_model_id: 0,
-      overlay_rate: 100,
-      period_type: 1,
-      period_date: ''
-    });
+    setDetailFormData(createEmptyDetailFormData());
+    setFormErrors(prev => ({
+      ...prev,
+      details: '',
+      pf_segment_id: '',
+      stage_rule_id: '',
+      pd_model_id: '',
+      lgd_model_id: '',
+      ead_model_id: '',
+    }));
 
     // Clear details error if exists
     if (formErrors.details) {
@@ -526,50 +654,51 @@ export default function ECLConfigurationPage() {
   // CRUD operations
   const handleAdd = () => {
     setSelectedEclConfig(null);
-    setHeaderFormData({
-      ecl_model_name: '',
-      module: '',
-      effective_date: '',
-      active_flag: true,
-      details: []
-    });
-    setDetailFormData({
-      pf_segment_id: 0,
-      stage_rule_id: 0,
-      pd_model_id: 0,
-      lgd_model_id: 0,
-      ead_model_id: 0,
-      overlay_rate: 100,
-      period_type: 1,
-      period_date: ''
-    });
+    setHeaderFormData(createEmptyHeaderFormData());
+    setDetailFormData(createEmptyDetailFormData());
     setFormErrors({});
     setIsEditing(false);
+    setIsViewOnly(false);
     setCurrentTab(0);
     setIsDialogOpen(true);
   };
 
-  const handleEdit = (eclConfig: ECLConfigHeader) => {
-    setSelectedEclConfig(eclConfig);
+  const handleEdit = async (eclConfig: ECLConfigHeader) => {
+    const detailConfig = await loadConfigDetail(eclConfig.pkid);
+    if (!detailConfig) return;
+
+    setSelectedEclConfig(detailConfig);
     setHeaderFormData({
-      ecl_model_name: eclConfig.ecl_model_name,
-      module: eclConfig.module,
-      effective_date: eclConfig.effective_date,
-      active_flag: eclConfig.active_flag,
-      details: [...eclConfig.details]
+      ecl_model_name: detailConfig.ecl_model_name,
+      module: detailConfig.module,
+      effective_date: detailConfig.effective_date,
+      active_flag: detailConfig.active_flag,
+      details: [...detailConfig.details]
     });
-    setDetailFormData({
-      pf_segment_id: 0,
-      stage_rule_id: 0,
-      pd_model_id: 0,
-      lgd_model_id: 0,
-      ead_model_id: 0,
-      overlay_rate: 100,
-      period_type: 1,
-      period_date: ''
-    });
+    setDetailFormData(createEmptyDetailFormData());
     setFormErrors({});
     setIsEditing(true);
+    setIsViewOnly(false);
+    setCurrentTab(0);
+    setIsDialogOpen(true);
+  };
+
+  const handleView = async (eclConfig: ECLConfigHeader) => {
+    const detailConfig = await loadConfigDetail(eclConfig.pkid);
+    if (!detailConfig) return;
+
+    setSelectedEclConfig(detailConfig);
+    setHeaderFormData({
+      ecl_model_name: detailConfig.ecl_model_name,
+      module: detailConfig.module,
+      effective_date: detailConfig.effective_date,
+      active_flag: detailConfig.active_flag,
+      details: [...detailConfig.details]
+    });
+    setDetailFormData(createEmptyDetailFormData());
+    setFormErrors({});
+    setIsEditing(false);
+    setIsViewOnly(true);
     setCurrentTab(0);
     setIsDialogOpen(true);
   };
@@ -606,7 +735,11 @@ export default function ECLConfigurationPage() {
           requestId: savedConfig?.requestId
         });
       } else {
-        console.log('✅ [ECL-CONFIG] Saved ECL configuration:', savedConfig?.pkid);
+        setSnackbar({
+          open: true,
+          message: isEditing ? 'ECL configuration updated' : 'ECL configuration created',
+          type: 'success',
+        });
       }
 
       // Reload all configurations to get the latest data
@@ -614,9 +747,11 @@ export default function ECLConfigurationPage() {
       await loadPendingApprovals();
 
       setIsDialogOpen(false);
-      setHeaderFormData({});
-      setDetailFormData({});
+      setHeaderFormData(createEmptyHeaderFormData());
+      setDetailFormData(createEmptyDetailFormData());
+      setFormErrors({});
       setSelectedEclConfig(null);
+      setIsViewOnly(false);
 
     } catch (error) {
       console.error('❌ [ECL-CONFIG] Error saving configuration:', error);
@@ -643,7 +778,11 @@ export default function ECLConfigurationPage() {
           requestId: response?.requestId
         });
       } else {
-        console.log('✅ [ECL-CONFIG] Deleted ECL configuration:', eclConfig.pkid);
+        setSnackbar({
+          open: true,
+          message: 'ECL configuration deleted',
+          type: 'success',
+        });
       }
 
       // Reload all configurations to get the latest data
@@ -847,6 +986,13 @@ export default function ECLConfigurationPage() {
           color="primary"
         />,
         <SafeGridActionsCellItem
+          key="view"
+          icon={<VisibilityIcon color="info" />}
+          label="Detail"
+          onClick={() => handleView(params.row)}
+          color="inherit"
+        />,
+        <SafeGridActionsCellItem
           key="edit"
           icon={<EditIcon color="primary" />}
           label="Edit"
@@ -935,7 +1081,7 @@ export default function ECLConfigurationPage() {
           <Card>
             <CardContent sx={{ textAlign: 'center', py: 2 }}>
               <Typography variant="h4" color="warning.main" fontWeight="bold">
-                {mockModules.length}
+                {moduleOptions.length}
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Available Modules
@@ -945,6 +1091,13 @@ export default function ECLConfigurationPage() {
         </Box>
       </Box>
 
+      {snackbar.open && (
+        <Snackbar sx={{ mb: 3 }} open={snackbar.open} autoHideDuration={6000} onClose={() => setSnackbar({ ...snackbar, open: false })}>
+          <Alert severity={snackbar.type} onClose={() => setSnackbar({ ...snackbar, open: false })}>
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
+      )}
       {/* Error Alert */}
       {error && (
         <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
@@ -986,7 +1139,7 @@ export default function ECLConfigurationPage() {
                   onChange={(e) => setFilterModule(e.target.value as string)}
                 >
                   <MenuItem value="">All Modules</MenuItem>
-                  {mockModules.map((module, idx) => (
+                  {moduleOptions.map((module, idx) => (
                     <MenuItem key={`${module.value}-${idx}`} value={module.value}>
                       {module.label}
                     </MenuItem>
@@ -1049,7 +1202,7 @@ export default function ECLConfigurationPage() {
       >
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <EclIcon />
-          {isEditing ? 'Edit ECL Configuration' : 'Add ECL Configuration'}
+          {isViewOnly ? 'View ECL Configuration' : isEditing ? 'Edit ECL Configuration' : 'Add ECL Configuration'}
         </DialogTitle>
         <DialogContent dividers>
           <Tabs value={currentTab} onChange={(_, newValue) => setCurrentTab(newValue)}>
@@ -1069,6 +1222,7 @@ export default function ECLConfigurationPage() {
                     label="ECL Model Name"
                     value={headerFormData.ecl_model_name || ''}
                     onChange={(e) => handleHeaderFieldChange('ecl_model_name', e.target.value)}
+                    disabled={isViewOnly}
                     error={!!formErrors.ecl_model_name}
                     helperText={formErrors.ecl_model_name}
                     required
@@ -1081,9 +1235,10 @@ export default function ECLConfigurationPage() {
                     <Select
                       value={headerFormData.module || ''}
                       label="Module"
+                      disabled={isViewOnly}
                       onChange={(e) => handleHeaderFieldChange('module', e.target.value)}
                     >
-                      {mockModules.map((module, idx) => (
+                      {moduleOptions.map((module, idx) => (
                         <MenuItem key={`${module.value}-${idx}`} value={module.value}>
                           {module.label}
                         </MenuItem>
@@ -1102,6 +1257,7 @@ export default function ECLConfigurationPage() {
                     label="Effective Date"
                     value={headerFormData.effective_date ? new Date(headerFormData.effective_date as string) : null}
                     onChange={(newValue) => {
+                      if (isViewOnly) return;
                       if (newValue) {
                         const dateStr = newValue instanceof Date
                           ? newValue.toISOString().split('T')[0]
@@ -1114,6 +1270,7 @@ export default function ECLConfigurationPage() {
                     slotProps={{
                       textField: {
                         fullWidth: true,
+                        disabled: isViewOnly,
                         error: !!formErrors.effective_date,
                         helperText: formErrors.effective_date,
                         required: true,
@@ -1128,6 +1285,7 @@ export default function ECLConfigurationPage() {
                     control={
                       <Checkbox
                         checked={headerFormData.active_flag || false}
+                        disabled={isViewOnly}
                         onChange={(e) => handleHeaderFieldChange('active_flag', e.target.checked)}
                       />
                     }
@@ -1151,82 +1309,109 @@ export default function ECLConfigurationPage() {
                     <Select
                       value={detailFormData.pf_segment_id || ''}
                       label="Segment"
-                      onChange={(e) => handleDetailFieldChange('pf_segment_id', e.target.value)}
+                      disabled={isViewOnly}
+                      error={!!formErrors.pf_segment_id}
+                      onChange={(e) => handleDetailFieldChange('pf_segment_id', Number(e.target.value))}
                     >
-                      {mockSegments.map((segment, idx) => (
+                      {segmentOptions.map((segment, idx) => (
                         <MenuItem key={`${segment.value}-${idx}`} value={segment.value}>
                           {segment.label}
                         </MenuItem>
                       ))}
                     </Select>
+                    <FormHelperText error={!!formErrors.pf_segment_id}>
+                      {formErrors.pf_segment_id || 'Source: Population segment master'}
+                    </FormHelperText>
                   </FormControl>
                 </Box>
 
                 <Box>
-                  <FormControl fullWidth>
+                  <FormControl fullWidth error={!!formErrors.stage_rule_id}>
                     <InputLabel>Stage Rule</InputLabel>
                     <Select
                       value={detailFormData.stage_rule_id || ''}
                       label="Stage Rule"
-                      onChange={(e) => handleDetailFieldChange('stage_rule_id', e.target.value)}
+                      disabled={isViewOnly}
+                      onChange={(e) => handleDetailFieldChange('stage_rule_id', Number(e.target.value))}
                     >
-                      {mockStageRules.map((rule, idx) => (
+                      {stageRuleOptions.map((rule, idx) => (
                         <MenuItem key={`${rule.value}-${idx}`} value={rule.value}>
                           {rule.label}
                         </MenuItem>
                       ))}
                     </Select>
+                    <FormHelperText error={!!formErrors.stage_rule_id}>
+                      {formErrors.stage_rule_id || 'Source: Rule base header'}
+                    </FormHelperText>
                   </FormControl>
                 </Box>
 
                 <Box>
-                  <FormControl fullWidth required>
+                  <FormControl fullWidth required error={!!formErrors.pd_model_id}>
                     <InputLabel>PD Model</InputLabel>
                     <Select
                       value={detailFormData.pd_model_id || ''}
                       label="PD Model"
+                      disabled={isViewOnly}
                       onChange={(e) => handleDetailFieldChange('pd_model_id', e.target.value)}
                     >
-                      {mockPdModels.map((model, idx) => (
+                      {pdModelOptions
+                        .filter((model) => !detailFormData.pf_segment_id || model.segmentId === String(detailFormData.pf_segment_id))
+                        .map((model, idx) => (
                         <MenuItem key={`${model.value}-${idx}`} value={model.value}>
                           {model.label}
                         </MenuItem>
                       ))}
                     </Select>
+                    <FormHelperText error={!!formErrors.pd_model_id}>
+                      {formErrors.pd_model_id || 'Source: PD setup for selected segment'}
+                    </FormHelperText>
                   </FormControl>
                 </Box>
 
                 <Box>
-                  <FormControl fullWidth required>
+                  <FormControl fullWidth required error={!!formErrors.lgd_model_id}>
                     <InputLabel>LGD Model</InputLabel>
                     <Select
                       value={detailFormData.lgd_model_id || ''}
                       label="LGD Model"
+                      disabled={isViewOnly}
                       onChange={(e) => handleDetailFieldChange('lgd_model_id', e.target.value)}
                     >
-                      {mockLgdModels.map((model, idx) => (
+                      {lgdModelOptions
+                        .filter((model) => !detailFormData.pf_segment_id || model.segmentId === String(detailFormData.pf_segment_id))
+                        .map((model, idx) => (
                         <MenuItem key={`${model.value}-${idx}`} value={model.value}>
                           {model.label}
                         </MenuItem>
                       ))}
                     </Select>
+                    <FormHelperText error={!!formErrors.lgd_model_id}>
+                      {formErrors.lgd_model_id || 'Source: LGD setup for selected segment'}
+                    </FormHelperText>
                   </FormControl>
                 </Box>
 
                 <Box>
-                  <FormControl fullWidth required>
+                  <FormControl fullWidth required error={!!formErrors.ead_model_id}>
                     <InputLabel>EAD Model</InputLabel>
                     <Select
                       value={detailFormData.ead_model_id || ''}
                       label="EAD Model"
+                      disabled={isViewOnly}
                       onChange={(e) => handleDetailFieldChange('ead_model_id', e.target.value)}
                     >
-                      {mockEadModels.map((model, idx) => (
+                      {eadModelOptions
+                        .filter((model) => !detailFormData.pf_segment_id || model.segmentId === String(detailFormData.pf_segment_id))
+                        .map((model, idx) => (
                         <MenuItem key={`${model.value}-${idx}`} value={model.value}>
                           {model.label}
                         </MenuItem>
                       ))}
                     </Select>
+                    <FormHelperText error={!!formErrors.ead_model_id}>
+                      {formErrors.ead_model_id || 'Source: EAD setup for selected segment'}
+                    </FormHelperText>
                   </FormControl>
                 </Box>
 
@@ -1236,21 +1421,22 @@ export default function ECLConfigurationPage() {
                     label="Overlay Rate (%)"
                     type="number"
                     value={detailFormData.overlay_rate || ''}
+                    disabled={isViewOnly}
                     onChange={(e) => handleDetailFieldChange('overlay_rate', Number(e.target.value))}
                     inputProps={{ min: 0, max: 500, step: 1 }}
                   />
                 </Box>
 
                 <Box sx={{ gridColumn: 'span 2' }}>
-                  <Button
-                    variant="contained"
-                    startIcon={<AddIcon />}
-                    onClick={handleAddDetail}
-                    disabled={!detailFormData.pf_segment_id || !detailFormData.pd_model_id ||
-                      !detailFormData.lgd_model_id || !detailFormData.ead_model_id}
-                  >
-                    Add Segment Configuration
-                  </Button>
+                  {!isViewOnly && (
+                    <Button
+                      variant="contained"
+                      startIcon={<AddIcon />}
+                      onClick={handleAddDetail}
+                    >
+                      Add Segment Configuration
+                    </Button>
+                  )}
                 </Box>
               </Box>
 
@@ -1272,15 +1458,6 @@ export default function ECLConfigurationPage() {
                     <Typography variant="subtitle2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <Chip label={index + 1} size="small" />
                       {detail.pf_segment_name} - PD: {detail.pd_model_name}
-                      <IconButton
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleRemoveDetail(detail.pkid);
-                        }}
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
                     </Typography>
                   </AccordionSummary>
                   <AccordionDetails>
@@ -1296,6 +1473,17 @@ export default function ECLConfigurationPage() {
                         <Typography variant="body2"><strong>Overlay Rate:</strong> {detail.overlay_rate}%</Typography>
                       </Box>
                     </Box>
+                    {!isViewOnly && (
+                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                        <Button
+                          color="error"
+                          startIcon={<DeleteIcon />}
+                          onClick={() => handleRemoveDetail(detail.pkid)}
+                        >
+                          Remove Segment
+                        </Button>
+                      </Box>
+                    )}
                   </AccordionDetails>
                 </Accordion>
               ))}
@@ -1303,17 +1491,23 @@ export default function ECLConfigurationPage() {
           )}
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setIsDialogOpen(false)}>
-            Cancel
+          <Button onClick={() => {
+            setIsDialogOpen(false);
+            setFormErrors({});
+            setIsViewOnly(false);
+          }}>
+            {isViewOnly ? 'Close' : 'Cancel'}
           </Button>
-          <Button
-            variant="contained"
-            onClick={handleSave}
-            disabled={loading}
-            startIcon={loading ? <CircularProgress size={16} /> : null}
-          >
-            {isEditing ? 'Update' : 'Create'} Configuration
-          </Button>
+          {!isViewOnly && (
+            <Button
+              variant="contained"
+              onClick={handleSave}
+              disabled={loading}
+              startIcon={loading ? <CircularProgress size={16} /> : null}
+            >
+              {isEditing ? 'Update' : 'Create'} Configuration
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
       <ApprovalNotification

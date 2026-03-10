@@ -145,8 +145,12 @@ export function BusinessDetailDialog({ open, onClose, parameter }: BusinessDetai
 
         try {
             setLoading(true);
-            await bankingAPI.businessSetup.deleteDetail(detail.id);
-            setSuccess('Detail deleted successfully');
+            const result = await bankingAPI.businessSetup.deleteDetail(detail.id);
+            if (result?.approvalRequired) {
+                setSuccess('Detail deletion submitted for approval');
+            } else {
+                setSuccess('Detail deleted successfully');
+            }
             await loadDetails();
         } catch (err) {
             setError(`Failed to delete detail: ${handleAPIError(err).message}`);
@@ -185,12 +189,20 @@ export function BusinessDetailDialog({ open, onClose, parameter }: BusinessDetai
 
             if (editingDetail) {
                 // Update
-                await bankingAPI.businessSetup.updateDetail(editingDetail.id, payload);
-                setSuccess('Detail updated successfully');
+                const result = await bankingAPI.businessSetup.updateDetail(editingDetail.id, payload);
+                if (result?.approvalRequired) {
+                    setSuccess('Detail update submitted for approval');
+                } else {
+                    setSuccess('Detail updated successfully');
+                }
             } else {
                 // Create
-                await bankingAPI.businessSetup.createDetail(parameter.param_code, payload);
-                setSuccess('Detail created successfully');
+                const result = await bankingAPI.businessSetup.createDetail(parameter.param_code, payload);
+                if (result?.approvalRequired) {
+                    setSuccess('Detail creation submitted for approval');
+                } else {
+                    setSuccess('Detail created successfully');
+                }
             }
 
             setIsEditing(false);
@@ -427,5 +439,4 @@ export function BusinessDetailDialog({ open, onClose, parameter }: BusinessDetai
         </Dialog>
     );
 }
-
 

@@ -639,7 +639,8 @@ export class Ifrs9CalculationsService {
 
     async getPortfolioTrend(tenantId: string, endDate?: string) {
         try {
-            const dateFilter = endDate ? eq(frs9ImpCaResultH.prcDate, endDate) : undefined;
+            const normalizedEndDate = typeof endDate === 'string' ? endDate.trim() : undefined;
+            const hasDateLimit = Boolean(normalizedEndDate && normalizedEndDate !== 'all');
 
             // 1. Try Result Table first - Get ECL by stage over time
             const trendQuery = legacyDb
@@ -653,8 +654,8 @@ export class Ifrs9CalculationsService {
                 })
                 .from(frs9ImpCaResultH);
 
-            if (endDate && endDate !== 'all') {
-                trendQuery.where(sql`date(${frs9ImpCaResultH.prcDate}) <= ${endDate}`);
+            if (hasDateLimit) {
+                trendQuery.where(sql`date(${frs9ImpCaResultH.prcDate}) <= ${normalizedEndDate}`);
             }
 
             let trend = await trendQuery
@@ -672,8 +673,8 @@ export class Ifrs9CalculationsService {
                     })
                     .from(frs9MasterAccount);
 
-                if (endDate && endDate !== 'all') {
-                    masterTrendQuery.where(sql`date(${frs9MasterAccount.prcDate}) <= ${endDate}`);
+                if (hasDateLimit) {
+                    masterTrendQuery.where(sql`date(${frs9MasterAccount.prcDate}) <= ${normalizedEndDate}`);
                 }
 
                 trend = (await masterTrendQuery

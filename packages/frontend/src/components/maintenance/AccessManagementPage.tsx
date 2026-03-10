@@ -84,6 +84,14 @@ import { usePermission } from '@/hooks/usePermission';
 import UserManagementPanel from '@/components/maintenance/UserManagementPanel';
 import UserRoleAssignment from '@/components/roles/UserRoleAssignment';
 import {
+  buildPermissionMatrixItem,
+  buildPermissionSelectionGroups,
+  getPermissionCanonicalKey,
+  normalizePermissionFromApi,
+  normalizeRoleFromApi,
+  toDisplayLabel,
+} from '@/components/maintenance/access-management.utils';
+import {
   canUserApprove,
   getUserMaxHierarchyLevel,
   checkApprovalEligibility,
@@ -188,58 +196,6 @@ interface TabPanelProps {
   value: number;
 }
 
-const ACTION_KEYWORDS = new Set([
-  'view',
-  'create',
-  'update',
-  'edit',
-  'delete',
-  'manage',
-  'approve',
-  'reject',
-  'assign',
-  'export',
-  'import',
-  'run',
-  'execute',
-  'submit',
-  'read',
-  'write'
-]);
-
-const RESOURCE_GROUP_ALIASES: Record<string, string> = {
-  'banking.application_config': 'banking.setup.application',
-  'banking.business_config': 'banking.setup.business',
-  'banking.product_params': 'banking.parameter.product',
-  'banking.accounting_params': 'banking.parameter.journal',
-};
-
-const toKeySegments = (value?: string): string[] =>
-  (value || '')
-    .toLowerCase()
-    .replace(/[:]/g, '.')
-    .split(/[.\s/_-]+/)
-    .filter(Boolean);
-
-const toDisplayLabel = (key: string): string =>
-  key
-    .split('.')
-    .map(part => {
-      if (part === 'ifrs9') return 'IFRS9';
-      if (part.length <= 3) return part.toUpperCase();
-      return part.charAt(0).toUpperCase() + part.slice(1);
-    })
-    .join(' / ');
-
-const firstNonEmptyString = (...values: unknown[]): string | undefined => {
-  for (const value of values) {
-    if (typeof value === 'string' && value.trim().length > 0) {
-      return value.trim();
-    }
-  }
-  return undefined;
-};
-
 const extractCollection = <T,>(payload: unknown, keys: string[] = []): T[] => {
   if (Array.isArray(payload)) return payload as T[];
   if (!payload || typeof payload !== 'object') return [];
@@ -263,44 +219,6 @@ const extractCollection = <T,>(payload: unknown, keys: string[] = []): T[] => {
 
   return [];
 };
-
-const buildPermissionMatrixItem = (permission: Permission): PermissionMatrixItem => {
-  const code = permission.code?.trim().toLowerCase();
-  const codeSegments = code ? code.replace(/[:]/g, '.').split('.').filter(Boolean) : [];
-  const moduleSegment = toKeySegments(permission.module)[0] || 'banking';
-  const aliasKey = `${moduleSegment}.${permission.resource.toLowerCase()}`;
-  const actionSegment = permission.action.toLowerCase();
-
-  // Prefer explicit dotted codes from backend: banking.setup.application.create
-  if (codeSegments.length >= 3) {
-    const hasAction = ACTION_KEYWORDS.has(codeSegments[codeSegments.length - 1]);
-    const groupSegments = hasAction ? codeSegments.slice(0, -1) : codeSegments;
-    const categorySegments = groupSegments.length >= 2 ? groupSegments.slice(0, 2) : groupSegments;
-    const finalAction = hasAction ? codeSegments[codeSegments.length - 1] : 'access';
-    return {
-      permission,
-      fullKey: codeSegments.join('.'),
-      categoryKey: categorySegments.join('.'),
-      groupKey: groupSegments.join('.'),
-      actionKey: finalAction,
-    };
-  }
-
-  // Fallback for legacy permissions, with targeted aliases for setup/parameter menus.
-  const groupKey = RESOURCE_GROUP_ALIASES[aliasKey]
-    || [moduleSegment, ...toKeySegments(permission.resource)].join('.');
-  const categorySegments = groupKey.split('.').filter(Boolean).slice(0, 2);
-
-  return {
-    permission,
-    fullKey: `${groupKey}.${actionSegment}`,
-    categoryKey: categorySegments.join('.'),
-    groupKey,
-    actionKey: actionSegment,
-  };
-};
-
-const getPermissionCanonicalKey = (permission: Permission): string => buildPermissionMatrixItem(permission).fullKey;
 
 const TabPanel = ({ children, value, index, ...other }: TabPanelProps) => (
   <div
@@ -338,11 +256,6 @@ export default function AccessManagementPage() {
   const { hasAnyPermission } = usePermission();
   const canManageRoles = hasAnyPermission(['admin.roles.manage', 'admin.roles.create', 'admin.super_admin']);
   const canViewRoles = hasAnyPermission(['admin.roles.view', 'admin.roles.manage', 'admin.super_admin']);
-
-  // Helper function to flatten grouped permissions from API
-  const flattenPermissionsFromAPI = (groupedPermissions: Record<string, Permission[]>): Permission[] => {
-    return Object.values(groupedPermissions).flat();
-  };
 
   // Helper function to get permissions by category
   const getPermissionsByCategory = (groupedPermissions: Record<string, Permission[]>, category: string): Permission[] => {
@@ -478,57 +391,7 @@ export default function AccessManagementPage() {
   );
 
   const permissionSelectionGroups = useMemo<PermissionSelectionGroup[]>(() => {
-    const groups = new Map<string, PermissionSelectionGroup>();
-    const moduleCounts = new Map<string, number>();
-
-    permissions.forEach((permission) => {
-      const matrixItem = buildPermissionMatrixItem(permission);
-      const moduleKey = toKeySegments(permission.module)[0]
-        || matrixItem.categoryKey.split('.').filter(Boolean)[0]
-        || 'general';
-      moduleCounts.set(moduleKey, (moduleCounts.get(moduleKey) || 0) + 1);
-    });
-
-    permissions.forEach((permission) => {
-      const matrixItem = buildPermissionMatrixItem(permission);
-      const moduleKey = toKeySegments(permission.module)[0]
-        || matrixItem.categoryKey.split('.').filter(Boolean)[0]
-        || 'general';
-
-      let key: string = permission.category;
-      let label: string = permission.category.replace(/_/g, ' ');
-      let hint: string = 'Legacy category';
-
-      if (permissionGroupingMode === 'resource') {
-        key = matrixItem.groupKey;
-        label = toDisplayLabel(matrixItem.groupKey);
-        hint = toDisplayLabel(matrixItem.categoryKey || moduleKey);
-      } else if (permissionGroupingMode === 'module') {
-        key = moduleKey;
-        label = toDisplayLabel(moduleKey);
-        hint = `${moduleCounts.get(moduleKey) || 0} permissions`;
-      }
-
-      if (!groups.has(key)) {
-        groups.set(key, {
-          key,
-          label,
-          hint,
-          permissions: [],
-        });
-      }
-
-      groups.get(key)!.permissions.push(permission);
-    });
-
-    return Array.from(groups.values())
-      .map((group) => ({
-        ...group,
-        permissions: [...group.permissions].sort((a, b) =>
-          getPermissionCanonicalKey(a).localeCompare(getPermissionCanonicalKey(b))
-        ),
-      }))
-      .sort((a, b) => a.label.localeCompare(b.label));
+    return buildPermissionSelectionGroups(permissions, permissionGroupingMode);
   }, [permissions, permissionGroupingMode]);
 
   // Fetch data using REAL API - NO MOCK DATA
@@ -1014,70 +877,6 @@ export default function AccessManagementPage() {
     }
   };
 
-  // Normalize backend permission payload into the shape expected by the UI
-  const normalizePermissionFromApi = (perm: any): Permission => ({
-    id: perm.id,
-    code: perm.code,
-    module: firstNonEmptyString(perm.module) ?? 'core',
-    resource: perm.resource,
-    action: perm.action,
-    displayName: firstNonEmptyString(perm.displayName, perm.display_name, perm.name) ?? `${perm.resource} ${perm.action}`,
-    description: firstNonEmptyString(perm.description) ?? '',
-    category: (perm.category || 'CORE') as Permission['category'],
-    riskLevel: (perm.riskLevel || 'LOW') as Permission['riskLevel'],
-    requiresApproval: perm.requiresApproval ?? false,
-    requiredApprovalLevel: perm.requiredApprovalLevel ?? null,
-    requiredApprovers: perm.requiredApprovers ?? 1,
-    bankingSpecific: perm.bankingSpecific ?? (perm.module === 'banking'),
-    syariahRequired: perm.syariahRequired ?? false,
-  });
-
-  // Normalize backend role payload into the shape expected by the grid/UI
-  const normalizeRoleFromApi = (role: any): Role => {
-    const displayName = firstNonEmptyString(
-      role.displayName,
-      role.display_name,
-      role.roleName,
-      role.role_name,
-      role.name,
-      role.roleCode,
-      role.role_code
-    ) ?? `Role ${String(role.id ?? 'unknown').slice(0, 8)}`;
-
-    const name = firstNonEmptyString(
-      role.name,
-      role.roleCode,
-      role.role_code,
-      role.roleName,
-      role.role_name,
-      displayName
-    ) ?? 'UNNAMED_ROLE';
-
-    const type = (role.type ?? (role.isSystemRole ? 'SYSTEM' : 'CUSTOM')) as Role['type'];
-    const level = (role.level ?? (role.hierarchyLevel ? 'TENANT' : 'TENANT')) as Role['level'];
-
-    const bankingAccess = (role.bankingAccess
-      ?? role.bankingTypeSpecific
-      ?? role.supportsConventional
-      ?? role.supportsSyariah
-      ?? undefined) as Role['bankingAccess'] | undefined;
-
-    return {
-      ...role,
-      displayName,
-      name,
-      type,
-      level,
-      bankingAccess,
-      isActive: role.isActive ?? true,
-      isBuiltIn: role.isBuiltIn ?? role.isSystemRole ?? false,
-      assignedUsers: Number(role.assignedUsers ?? role.assigned_users ?? role.userCount ?? role.user_count ?? 0),
-      createdAt: (role.createdAt ?? role.created_at ?? new Date().toISOString()) as string,
-      updatedAt: role.updatedAt ?? role.updated_at,
-      permissions: flattenPermissionsFromAPI(role.permissions || {}),
-    };
-  };
-
   // DataGrid columns
   const roleColumns: GridColDef[] = [
     {
@@ -1347,6 +1146,7 @@ export default function AccessManagementPage() {
             label="Permissions"
             icon={<KeyIcon />}
             iconPosition="start"
+            data-testid="access-management-tab-permissions"
           />
           <Tab
             label="Role Matrix"
@@ -1392,6 +1192,7 @@ export default function AccessManagementPage() {
                     startIcon={<AddIcon />}
                     onClick={handleCreateRole}
                     size="small"
+                    data-testid="access-management-add-role"
                   >
                     Add Role
                   </Button>
@@ -1551,11 +1352,13 @@ export default function AccessManagementPage() {
               label="Permission Matrix"
               icon={<AssignmentIcon />}
               iconPosition="start"
+              data-testid="access-management-permissions-subtab-matrix"
             />
             <Tab
               label="Bulk Assignment"
               icon={<GroupIcon />}
               iconPosition="start"
+              data-testid="access-management-permissions-subtab-bulk"
             />
           </Tabs>
         </Paper>
@@ -1697,6 +1500,7 @@ export default function AccessManagementPage() {
                       onClick={handleBulkPermissionUpdate}
                       size="small"
                       color="primary"
+                      data-testid="access-management-matrix-save"
                     >
                       Save Changes
                     </Button>
@@ -1831,13 +1635,18 @@ export default function AccessManagementPage() {
 
                                     return (
                                       <TableCell key={`${role.id}-${item.permission.id}`} align="center">
-                                        <Checkbox
-                                          size="small"
-                                          checked={hasPermission}
-                                          onChange={(e) => handlePermissionToggle(role.id, item.permission.id, e.target.checked)}
-                                          disabled={role.isBuiltIn || !canManageRoles}
-                                          color="primary"
-                                        />
+                                        <Box
+                                          component="span"
+                                          data-testid={`access-management-permission-toggle-${role.id}-${item.permission.id}`}
+                                        >
+                                          <Checkbox
+                                            size="small"
+                                            checked={hasPermission}
+                                            onChange={(e) => handlePermissionToggle(role.id, item.permission.id, e.target.checked)}
+                                            disabled={role.isBuiltIn || !canManageRoles}
+                                            color="primary"
+                                          />
+                                        </Box>
                                       </TableCell>
                                     );
                                   })}
@@ -1871,6 +1680,7 @@ export default function AccessManagementPage() {
                       value={bulkAssignmentRole || ''}
                       onChange={(e) => setBulkAssignmentRole(e.target.value)}
                       label="Select Role"
+                      data-testid="access-management-bulk-role-select"
                     >
                       {roles.map((role) => (
                         <MenuItem key={role.id} value={role.id}>
@@ -1900,17 +1710,19 @@ export default function AccessManagementPage() {
                       </Typography>
                       <FormControlLabel
                         control={
-                          <Checkbox
-                            checked={selectAllPermissions}
-                            onChange={(e) => {
-                              setSelectAllPermissions(e.target.checked);
-                              if (e.target.checked) {
-                                setSelectedBulkPermissions(permissions.map(p => p.id));
-                              } else {
-                                setSelectedBulkPermissions([]);
-                              }
-                            }}
-                          />
+                          <Box component="span" data-testid="access-management-bulk-select-all">
+                            <Checkbox
+                              checked={selectAllPermissions}
+                              onChange={(e) => {
+                                setSelectAllPermissions(e.target.checked);
+                                if (e.target.checked) {
+                                  setSelectedBulkPermissions(permissions.map(p => p.id));
+                                } else {
+                                  setSelectedBulkPermissions([]);
+                                }
+                              }}
+                            />
+                          </Box>
                         }
                         label="Select All Permissions"
                       />
@@ -1935,17 +1747,22 @@ export default function AccessManagementPage() {
                                   return (
                                     <ListItem key={permission.id} dense>
                                       <ListItemIcon>
-                                        <Checkbox
-                                          size="small"
-                                          checked={isSelected}
-                                          onChange={(e) => {
-                                            if (e.target.checked) {
-                                              setSelectedBulkPermissions(prev => [...prev, permission.id]);
-                                            } else {
-                                              setSelectedBulkPermissions(prev => prev.filter(id => id !== permission.id));
-                                            }
-                                          }}
-                                        />
+                                        <Box
+                                          component="span"
+                                          data-testid={`access-management-bulk-permission-${permission.id}`}
+                                        >
+                                          <Checkbox
+                                            size="small"
+                                            checked={isSelected}
+                                            onChange={(e) => {
+                                              if (e.target.checked) {
+                                                setSelectedBulkPermissions(prev => [...prev, permission.id]);
+                                              } else {
+                                                setSelectedBulkPermissions(prev => prev.filter(id => id !== permission.id));
+                                              }
+                                            }}
+                                          />
+                                        </Box>
                                       </ListItemIcon>
                                       <ListItemText
                                         primary={permission.displayName}
@@ -1966,6 +1783,7 @@ export default function AccessManagementPage() {
                           onClick={handleBulkPermissionAssignment}
                           disabled={selectedBulkPermissions.length === 0}
                           startIcon={<SaveIcon />}
+                          data-testid="access-management-bulk-assign"
                         >
                           Assign Selected Permissions
                         </Button>
@@ -2394,6 +2212,7 @@ export default function AccessManagementPage() {
                 onChange={(e) => setRoleForm({ ...roleForm, name: e.target.value.toUpperCase() })}
                 disabled={roleDialog.mode === 'view' || (roleDialog.role?.isBuiltIn)}
                 placeholder="ROLE_NAME"
+                inputProps={{ 'data-testid': 'access-management-role-name' }}
               />
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
@@ -2404,6 +2223,7 @@ export default function AccessManagementPage() {
                 onChange={(e) => setRoleForm({ ...roleForm, displayName: e.target.value })}
                 disabled={roleDialog.mode === 'view'}
                 placeholder="Human readable name"
+                inputProps={{ 'data-testid': 'access-management-role-display-name' }}
               />
             </Grid>
             <Grid size={{ xs: 12 }}>
@@ -2416,6 +2236,7 @@ export default function AccessManagementPage() {
                 multiline
                 rows={3}
                 placeholder="Role description and responsibilities"
+                inputProps={{ 'data-testid': 'access-management-role-description' }}
               />
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
@@ -2479,7 +2300,7 @@ export default function AccessManagementPage() {
             {roleDialog.mode === 'view' ? 'Close' : 'Cancel'}
           </Button>
           {roleDialog.mode !== 'view' && (
-            <Button variant="contained" onClick={handleSaveRole}>
+            <Button variant="contained" onClick={handleSaveRole} data-testid="access-management-save-role">
               {roleDialog.mode === 'create' ? 'Create Role' : 'Update Role'}
             </Button>
           )}

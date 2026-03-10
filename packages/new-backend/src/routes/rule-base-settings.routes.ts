@@ -391,6 +391,7 @@ app.openapi(
         },
         responses: {
             201: { content: { 'application/json': { schema: RuleDetailItemResponse } }, description: 'Created' },
+            202: { content: { 'application/json': { schema: ApprovalWorkflowResponse } }, description: 'Pending Approval' },
             400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
@@ -399,6 +400,8 @@ app.openapi(
         const { ruleId } = c.req.valid('param')
         const data = c.req.valid('json')
         const userId = c.get('userId') as string || 'system'
+        const tenantId = c.get('tenantId') as string
+        const userPermissions = c.get('permissions') || []
         if (isNaN(ruleId)) return c.json({ success: false, message: 'Invalid ID' }, 400)
 
         const payload = {
@@ -415,7 +418,18 @@ app.openapi(
             stageFrom: data.stage_from,
             stageTo: data.stage_to
         }
-        return runEffect(c, RuleBaseSettingsService.createDetail(ruleId, payload, userId) as any) as any
+
+        const effect = interceptCreate(
+            tenantId,
+            userId,
+            userPermissions,
+            'rule_base_setting',
+            { ...payload, ruleId, scope: 'detail' },
+            () => RuleBaseSettingsService.createDetail(ruleId, payload, userId) as any
+        )
+        return runEffect(c, effect as any, (result: ApprovalResponse | { success: boolean; data: unknown }) =>
+            'approvalRequired' in result && result.approvalRequired ? 202 : 201
+        ) as any
     }
 )
 
@@ -437,6 +451,7 @@ app.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: RuleDetailItemResponse } }, description: 'Updated' },
+            202: { content: { 'application/json': { schema: ApprovalWorkflowResponse } }, description: 'Pending Approval' },
             400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Bad Request' },
             404: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Not Found' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
@@ -446,6 +461,8 @@ app.openapi(
         const { detailId } = c.req.valid('param')
         const data = c.req.valid('json')
         const userId = c.get('userId') as string || 'system'
+        const tenantId = c.get('tenantId') as string
+        const userPermissions = c.get('permissions') || []
         if (isNaN(detailId)) return c.json({ success: false, message: 'Invalid ID' }, 400)
 
         const payload = {
@@ -462,7 +479,19 @@ app.openapi(
             stageFrom: data.stage_from,
             stageTo: data.stage_to
         }
-        return runEffect(c, RuleBaseSettingsService.updateDetail(detailId, payload, userId) as any) as any
+
+        const effect = interceptUpdate(
+            tenantId,
+            userId,
+            userPermissions,
+            'rule_base_setting',
+            `detail:${detailId}`,
+            { ...payload, detailId, scope: 'detail' },
+            () => RuleBaseSettingsService.updateDetail(detailId, payload, userId) as any
+        )
+        return runEffect(c, effect as any, (result: ApprovalResponse | { success: boolean; data: unknown }) =>
+            'approvalRequired' in result && result.approvalRequired ? 202 : 200
+        ) as any
     }
 )
 
@@ -483,14 +512,29 @@ app.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Deleted' },
+            202: { content: { 'application/json': { schema: ApprovalWorkflowResponse } }, description: 'Pending Approval' },
             400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Invalid ID' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
     async (c) => {
         const { detailId } = c.req.valid('param')
+        const userId = c.get('userId') as string || 'system'
+        const tenantId = c.get('tenantId') as string
+        const userPermissions = c.get('permissions') || []
         if (isNaN(detailId)) return c.json({ success: false, message: 'Invalid ID' }, 400)
-        return runEffect(c, RuleBaseSettingsService.deleteDetail(detailId) as any) as any
+
+        const effect = interceptDelete(
+            tenantId,
+            userId,
+            userPermissions,
+            'rule_base_setting',
+            `detail:${detailId}`,
+            () => RuleBaseSettingsService.deleteDetail(detailId) as any
+        )
+        return runEffect(c, effect as any, (result: ApprovalResponse | { success: boolean; message: string }) =>
+            'approvalRequired' in result && result.approvalRequired ? 202 : 200
+        ) as any
     }
 )
 

@@ -53,6 +53,12 @@ interface SummaryStats {
   movementBreakdown: MovementBreakdownItem[];
 }
 
+interface MovementMatrixRow {
+  movement_order?: number;
+  movement?: string;
+  total?: number | string;
+}
+
 const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
   const items = [
     {
@@ -336,15 +342,59 @@ const ECLMovementReport: React.FC = () => {
 
   const handleDataLoaded = React.useCallback((data: Record<string, unknown>[]) => {
     if (data && data.length > 0) {
-      const stats = data.reduce((acc: SummaryStats, row) => {
-        acc.openingBalance += parseFloat(row.opening_balance as string) || 0;
-        acc.closingBalance += parseFloat(row.closing_balance as string) || 0;
-        acc.newProvisions += parseFloat(row.new_provisions as string) || 0;
-        acc.releases += parseFloat(row.releases as string) || 0;
-        acc.writeOffs += parseFloat(row.write_offs as string) || 0;
-        acc.stageTransfers += parseFloat(row.stage_transfers as string) || 0;
-        return acc;
-      }, {
+      const aggregated = new Map<number, MovementMatrixRow>();
+      data.forEach((row) => {
+        const order = Number(row.movement_order || 0);
+        if (!order) return;
+
+        const current = aggregated.get(order) || {
+          movement_order: order,
+          movement: String(row.movement || `Movement ${order}`),
+          total: 0,
+        };
+
+        current.total = (parseFloat(current.total as string) || 0) + (parseFloat(row.total as string) || 0);
+        aggregated.set(order, current);
+      });
+
+      const getAmount = (order: number) => parseFloat(String(aggregated.get(order)?.total || 0)) || 0;
+
+      const openingBalance = getAmount(1);
+      const closingBalance = getAmount(14);
+      const stageTransfers = [2, 3, 4, 5, 6].reduce((sum, order) => sum + Math.abs(getAmount(order)), 0);
+      const provisionValues = [7, 8, 9, 10, 13].map(getAmount);
+      const newProvisions = provisionValues.filter((value) => value > 0).reduce((sum, value) => sum + value, 0);
+      const releases = provisionValues.filter((value) => value < 0).reduce((sum, value) => sum + Math.abs(value), 0);
+      const writeOffs = Math.abs(getAmount(11));
+      const netMovement = closingBalance - openingBalance;
+
+      const movementBreakdown = Array.from(aggregated.values())
+        .sort((a, b) => Number(a.movement_order || 0) - Number(b.movement_order || 0))
+        .map((row) => {
+          const order = Number(row.movement_order || 0);
+          const total = parseFloat(String(row.total || 0)) || 0;
+          const type: MovementBreakdownItem['type'] =
+            order === 1 || order === 14 ? 'balance'
+              : [2, 3, 4, 5, 6].includes(order) ? 'transfer'
+                : total >= 0 ? 'increase'
+                  : 'decrease';
+          const color = type === 'balance'
+            ? (order === 1 ? '#6366f1' : '#8b5cf6')
+            : type === 'transfer'
+              ? '#3b82f6'
+              : type === 'increase'
+                ? '#ef4444'
+                : '#22c55e';
+
+          return {
+            category: String(row.movement || `Movement ${order}`),
+            amount: total,
+            color,
+            type,
+          };
+        });
+
+      setSummaryStats({
         openingBalance: 0,
         closingBalance: 0,
         netMovement: 0,
@@ -355,21 +405,15 @@ const ECLMovementReport: React.FC = () => {
         movementBreakdown: [] as MovementBreakdownItem[]
       });
 
-      const netMovement = stats.closingBalance - stats.openingBalance;
-
-      const movementData: MovementBreakdownItem[] = [
-        { category: 'Opening Balance', amount: stats.openingBalance, color: '#6366f1', type: 'balance' },
-        { category: 'New Provisions', amount: stats.newProvisions, color: '#ef4444', type: 'increase' },
-        { category: 'Stage Transfers', amount: stats.stageTransfers, color: '#3b82f6', type: 'transfer' },
-        { category: 'Releases', amount: -Math.abs(stats.releases), color: '#22c55e', type: 'decrease' },
-        { category: 'Write-offs', amount: -Math.abs(stats.writeOffs), color: '#10b981', type: 'decrease' },
-        { category: 'Closing Balance', amount: stats.closingBalance, color: '#8b5cf6', type: 'balance' }
-      ];
-
       setSummaryStats({
-        ...stats,
+        openingBalance,
+        closingBalance,
         netMovement,
-        movementBreakdown: movementData
+        newProvisions,
+        releases,
+        writeOffs,
+        stageTransfers,
+        movementBreakdown,
       });
     }
   }, []);

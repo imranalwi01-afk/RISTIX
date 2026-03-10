@@ -7,6 +7,12 @@ import {
   Card,
   CardContent,
   Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   alpha
 } from '@mui/material';
 import {
@@ -54,6 +60,89 @@ interface SummaryStats {
   segmentBreakdown: SegmentBreakdownItem[];
   stageDistribution: { name: string; value: number; color: string }[];
 }
+
+const MonitoringPanel: React.FC<{ stats: SummaryStats }> = ({ stats }) => (
+  <Card sx={{
+    mb: 5,
+    borderRadius: 4,
+    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
+    background: 'white'
+  }}>
+    <CardContent sx={{ p: 4 }}>
+      <Typography variant="h6" fontWeight={800} gutterBottom sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+        <AssessmentIcon color="primary" />
+        ECL Monitoring Overview
+      </Typography>
+      <Grid container spacing={3}>
+        <Grid size={{ xs: 12, md: 5 }}>
+          <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 3 }}>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 800 }}>Stage</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 800 }}>ECL Amount</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {stats.stageDistribution.map((stage) => (
+                  <TableRow key={stage.name}>
+                    <TableCell>{stage.name}</TableCell>
+                    <TableCell align="right">
+                      {new Intl.NumberFormat('id-ID', {
+                        style: 'currency',
+                        currency: 'IDR',
+                        notation: 'compact',
+                        maximumFractionDigits: 1
+                      }).format(stage.value)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Grid>
+        <Grid size={{ xs: 12, md: 7 }}>
+          <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 3 }}>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 800 }}>Segment</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 800 }}>Outstanding</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 800 }}>ECL</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 800 }}>Coverage</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {stats.segmentBreakdown.slice(0, 6).map((segment) => (
+                  <TableRow key={segment.segment}>
+                    <TableCell>{segment.segment}</TableCell>
+                    <TableCell align="right">
+                      {new Intl.NumberFormat('id-ID', {
+                        style: 'currency',
+                        currency: 'IDR',
+                        notation: 'compact',
+                        maximumFractionDigits: 1
+                      }).format(segment.outstanding)}
+                    </TableCell>
+                    <TableCell align="right">
+                      {new Intl.NumberFormat('id-ID', {
+                        style: 'currency',
+                        currency: 'IDR',
+                        notation: 'compact',
+                        maximumFractionDigits: 1
+                      }).format(segment.ecl)}
+                    </TableCell>
+                    <TableCell align="right">{segment.eclRatio.toFixed(2)}%</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Grid>
+      </Grid>
+    </CardContent>
+  </Card>
+);
 
 const SummaryCards: React.FC<{ stats: SummaryStats }> = ({ stats }) => {
   const { bankingMode } = useBankingTheme();
@@ -558,6 +647,7 @@ const ECLResultReport: React.FC = () => {
       onDataLoaded={handleDataLoaded}
     >
       <SummaryCards stats={summaryStats} />
+      <MonitoringPanel stats={summaryStats} />
       <StageBreakdownCard stats={summaryStats} />
       <ECLCharts stats={summaryStats} />
     </BaseIfrs9Report>
