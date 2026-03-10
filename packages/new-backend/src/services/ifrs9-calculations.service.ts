@@ -690,10 +690,8 @@ export class Ifrs9CalculationsService {
 
     async getPortfolioTrend(tenantId: string, endDate?: string) {
         try {
-            const segmentIds = mode ? await this.getSegmentIdsForMode(mode) : [];
-            const hasSegmentFilter = segmentIds.length > 0;
-
-            const dateFilter = endDate ? eq(frs9ImpCaResultH.prcDate, endDate) : undefined;
+            const normalizedEndDate = typeof endDate === 'string' ? endDate.trim() : undefined;
+            const hasDateLimit = Boolean(normalizedEndDate && normalizedEndDate !== 'all');
 
             // 1. Try Result Table first - Get ECL by stage over time
             const trendQuery = legacyDb
@@ -707,16 +705,8 @@ export class Ifrs9CalculationsService {
                 })
                 .from(frs9ImpCaResultH);
 
-            const conditions = [];
-            if (endDate && endDate !== 'all') {
-                conditions.push(sql`date(${frs9ImpCaResultH.prcDate}) <= ${endDate}`);
-            }
-            if (hasSegmentFilter) {
-                conditions.push(inArray(frs9ImpCaResultH.segmentId, segmentIds));
-            }
-            
-            if (conditions.length > 0) {
-                trendQuery.where(and(...conditions));
+            if (hasDateLimit) {
+                trendQuery.where(sql`date(${frs9ImpCaResultH.prcDate}) <= ${normalizedEndDate}`);
             }
 
             let trend = await trendQuery
@@ -734,16 +724,8 @@ export class Ifrs9CalculationsService {
                     })
                     .from(frs9MasterAccount);
 
-                const masterConditions = [];
-                if (endDate && endDate !== 'all') {
-                    masterConditions.push(sql`date(${frs9MasterAccount.prcDate}) <= ${endDate}`);
-                }
-                if (hasSegmentFilter) {
-                    masterConditions.push(inArray(frs9MasterAccount.segmentId, segmentIds));
-                }
-
-                if (masterConditions.length > 0) {
-                    masterTrendQuery.where(and(...masterConditions));
+                if (hasDateLimit) {
+                    masterTrendQuery.where(sql`date(${frs9MasterAccount.prcDate}) <= ${normalizedEndDate}`);
                 }
 
                 trend = (await masterTrendQuery
