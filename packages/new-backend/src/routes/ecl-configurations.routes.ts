@@ -61,7 +61,7 @@ const EclDetailInputSchema = z.object({
     eadModelId: z.number().int().optional(),
     overlayRate: z.number().optional().default(100),
     periodType: z.number().int().optional(),
-    periodDate: z.string().optional(),
+    periodDate: z.string().nullable().optional(),
 }).openapi('EclDetailInput')
 
 const CreateEclConfigSchema = z.object({

@@ -206,6 +206,17 @@ const normalizeModelOptions = (
 const createLabelLookup = (options: LookupOption[]) =>
   new Map(options.map((option) => [String(option.value), option.label]));
 
+const normalizeDetailPayload = (detail: Partial<ECLConfigDetail>) => ({
+  pfSegmentId: detail.pf_segment_id,
+  stageRuleId: detail.stage_rule_id,
+  pdModelId: detail.pd_model_id,
+  lgdModelId: detail.lgd_model_id,
+  eadModelId: detail.ead_model_id,
+  overlayRate: detail.overlay_rate,
+  periodType: detail.period_type,
+  periodDate: detail.period_date || undefined,
+});
+
 const normalizeModeToken = (value?: unknown): string => String(value ?? '').trim().toUpperCase();
 
 const filterRowsByBankingMode = <T extends Record<string, any>>(rows: T[], bankingMode: string): T[] => {
@@ -306,16 +317,7 @@ const eclConfigurationAPI = {
         effectiveDate: data.effective_date || new Date().toISOString(),
         activeFlag: data.active_flag ?? true,
         module: data.module,
-        details: (data.details || []).map(d => ({
-          pfSegmentId: d.pf_segment_id,
-          stageRuleId: d.stage_rule_id,
-          pdModelId: d.pd_model_id,
-          lgdModelId: d.lgd_model_id,
-          eadModelId: d.ead_model_id,
-          overlayRate: d.overlay_rate,
-          periodType: d.period_type,
-          periodDate: d.period_date
-        }))
+        details: (data.details || []).map(normalizeDetailPayload)
       });
       if ((result as any)?.approvalRequired) {
         return result as any;
@@ -353,16 +355,7 @@ const eclConfigurationAPI = {
         effectiveDate: data.effective_date,
         activeFlag: data.active_flag,
         module: data.module,
-        details: (data.details || []).map(d => ({
-          pfSegmentId: d.pf_segment_id,
-          stageRuleId: d.stage_rule_id,
-          pdModelId: d.pd_model_id,
-          lgdModelId: d.lgd_model_id,
-          eadModelId: d.ead_model_id,
-          overlayRate: d.overlay_rate,
-          periodType: d.period_type,
-          periodDate: d.period_date
-        }))
+        ...(data.details ? { details: data.details.map(normalizeDetailPayload) } : {})
       });
       if ((result as any)?.approvalRequired) {
         return result as any;
@@ -623,6 +616,25 @@ export default function ECLConfigurationPage() {
     return result.success;
   }, [headerFormData]);
 
+  const validateHeaderOnlyForm = useCallback(() => {
+    const nextErrors: Record<string, string> = {};
+
+    if (!headerFormData.ecl_model_name) {
+      nextErrors.ecl_model_name = 'ECL Model Name is required';
+    }
+
+    if (!headerFormData.module) {
+      nextErrors.module = 'Module is required';
+    }
+
+    if (!headerFormData.effective_date) {
+      nextErrors.effective_date = 'Effective Date is required';
+    }
+
+    setFormErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  }, [headerFormData.ecl_model_name, headerFormData.effective_date, headerFormData.module]);
+
   // Handle form field changes
   const handleHeaderFieldChange = (field: string, value: any) => {
     setHeaderFormData(prev => ({ ...prev, [field]: value }));
@@ -762,20 +774,25 @@ export default function ECLConfigurationPage() {
   };
 
   const handleSave = async () => {
-    if (!validateForm()) {
+    const isHeaderOnlyUpdate = isEditing && currentTab === 0;
+
+    if (!(isHeaderOnlyUpdate ? validateHeaderOnlyForm() : validateForm())) {
       return;
     }
 
     setLoading(true);
     setError(null);
     try {
-      const saveData = {
+      const saveData: Partial<ECLConfigHeader> = {
         ecl_model_name: headerFormData.ecl_model_name!,
         module: headerFormData.module!,
         effective_date: headerFormData.effective_date!,
         active_flag: headerFormData.active_flag!,
-        details: headerFormData.details || []
       };
+
+      if (!isEditing || currentTab === 1) {
+        saveData.details = headerFormData.details || [];
+      }
 
       let savedConfig: any;
 
@@ -1621,7 +1638,11 @@ export default function ECLConfigurationPage() {
               disabled={loading}
               startIcon={loading ? <CircularProgress size={16} /> : null}
             >
-              {isEditing ? 'Update' : 'Create'} Configuration
+              {isEditing
+                ? currentTab === 0
+                  ? 'Update Header'
+                  : 'Update Segment Configuration'
+                : 'Create Configuration'}
             </Button>
           )}
         </DialogActions>
