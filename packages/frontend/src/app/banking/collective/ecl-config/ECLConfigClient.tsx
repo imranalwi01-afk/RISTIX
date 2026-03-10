@@ -3,7 +3,7 @@
 // IFRS9 FRONTEND - ECL CONFIGURATION PAGE
 // ============================================================================
 // Database: frs9_imp_ca_ecl_configh (header) + frs9_imp_ca_ecl_configd (detail)
-// Business Parameter: B0023 (Module), B0024 (Period Type), B0020 (Segment)
+// Business Parameter: B0024 (Module), B0025 (Period Type), PF Segment master
 // Legacy Reference: Master-detail pattern for ECL Model configuration
 // ============================================================================
 
@@ -119,13 +119,6 @@ interface ECLConfigDetail {
   createddate?: string;
 }
 
-const mockPeriodTypes = [
-  { value: 1, label: "Monthly", code: "MONTHLY" },
-  { value: 2, label: "Quarterly", code: "QUARTERLY" },
-  { value: 3, label: "Semi-Annual", code: "SEMI_ANNUAL" },
-  { value: 4, label: "Annual", code: "ANNUAL" }
-];
-
 // API service for ECL Configuration - Use centralized api service
 import { api } from '../../../../services/api';
 import { bankingAPI } from '@/services/api';
@@ -159,8 +152,8 @@ const createEmptyDetailFormData = (): Partial<ECLConfigDetail> => ({
   pd_model_id: 0,
   lgd_model_id: 0,
   ead_model_id: 0,
-  overlay_rate: 0,
-  period_type: 1,
+  overlay_rate: 100,
+  period_type: 0,
   period_date: ''
 });
 
@@ -253,6 +246,7 @@ const hydrateEclDetails = (
     pdModels: Map<string, string>;
     lgdModels: Map<string, string>;
     eadModels: Map<string, string>;
+    periodTypes: Map<string, string>;
   }
 ): ECLConfigDetail[] =>
   details.map((detail) => ({
@@ -262,6 +256,7 @@ const hydrateEclDetails = (
     pd_model_name: lookups.pdModels.get(String(detail.pd_model_id ?? '')) || detail.pd_model_name,
     lgd_model_name: lookups.lgdModels.get(String(detail.lgd_model_id ?? '')) || detail.lgd_model_name,
     ead_model_name: lookups.eadModels.get(String(detail.ead_model_id ?? '')) || detail.ead_model_name,
+    period_type_name: lookups.periodTypes.get(String(detail.period_type ?? '')) || detail.period_type_name,
   }));
 
 // Alias to match existing usage patterns in this file
@@ -420,6 +415,7 @@ export default function ECLConfigurationPage() {
   const [pdModelOptions, setPdModelOptions] = useState<LookupOption[]>([]);
   const [lgdModelOptions, setLgdModelOptions] = useState<LookupOption[]>([]);
   const [eadModelOptions, setEadModelOptions] = useState<LookupOption[]>([]);
+  const [periodTypeOptions, setPeriodTypeOptions] = useState<LookupOption[]>([]);
 
   // State management
   const [loading, setLoading] = useState(false);
@@ -461,6 +457,7 @@ export default function ECLConfigurationPage() {
     try {
       const [
         moduleResponse,
+        periodTypeResponse,
         segmentResponse,
         ruleResponse,
         pdResponse,
@@ -469,6 +466,7 @@ export default function ECLConfigurationPage() {
         headers,
       ] = await Promise.all([
         api.banking.businessSetup.getHeaderDetails('B0024'),
+        api.banking.businessSetup.getHeaderDetails('B0025'),
         api.banking.populationSegments.getAll({ active_flag: true, segment_type: ECL_PORTFOLIO_SEGMENT_TYPE }),
         bankingAPI.ruleBaseSetting.getHeaders({ limit: 200, active_flag: true, rule_type: ECL_STAGE_RULE_TYPE }),
         api.banking.pdConfigurations.getAll({ is_active: true }),
@@ -487,6 +485,7 @@ export default function ECLConfigurationPage() {
       const filteredEadConfigs = filterRowsByBankingMode(eadResponse, bankingMode);
 
       const modules = normalizeBusinessSettingOptions(moduleResponse);
+      const periodTypes = normalizeBusinessSettingOptions(periodTypeResponse);
       const segments = normalizePopulationSegmentOptions(filteredSegments);
       const segmentLookup = createLabelLookup(segments);
       const stageRules = normalizeRuleOptions(filteredStageRules);
@@ -495,6 +494,7 @@ export default function ECLConfigurationPage() {
       const eadModels = normalizeModelOptions(filteredEadConfigs, (config) => config.segment_id, segmentLookup);
 
       setModuleOptions(modules);
+      setPeriodTypeOptions(periodTypes);
       setSegmentOptions(segments);
       setStageRuleOptions(stageRules);
       setPdModelOptions(pdModels);
@@ -508,6 +508,7 @@ export default function ECLConfigurationPage() {
         pdModels: createLabelLookup(pdModels),
         lgdModels: createLabelLookup(lgdModels),
         eadModels: createLabelLookup(eadModels),
+        periodTypes: createLabelLookup(periodTypes),
       };
 
       const hydratedConfigs = await Promise.all(
@@ -555,6 +556,7 @@ export default function ECLConfigurationPage() {
         pdModels: createLabelLookup(pdModelOptions),
         lgdModels: createLabelLookup(lgdModelOptions),
         eadModels: createLabelLookup(eadModelOptions),
+        periodTypes: createLabelLookup(periodTypeOptions),
       };
 
       return {
@@ -576,7 +578,7 @@ export default function ECLConfigurationPage() {
       setError('Failed to load ECL configuration detail.');
       return null;
     }
-  }, [eadModelOptions, lgdModelOptions, moduleOptions, pdModelOptions, segmentOptions, stageRuleOptions]);
+  }, [eadModelOptions, lgdModelOptions, moduleOptions, pdModelOptions, periodTypeOptions, segmentOptions, stageRuleOptions]);
 
   // Load ECL configurations on component mount
   const loadPendingApprovals = useCallback(async () => {
@@ -651,7 +653,7 @@ export default function ECLConfigurationPage() {
     const pdModelInfo = pdModelOptions.find(m => m.value === String(detailFormData.pd_model_id));
     const lgdModelInfo = lgdModelOptions.find(m => m.value === String(detailFormData.lgd_model_id));
     const eadModelInfo = eadModelOptions.find(m => m.value === String(detailFormData.ead_model_id));
-    const periodTypeInfo = mockPeriodTypes.find(t => String(t.value) === String(detailFormData.period_type));
+    const periodTypeInfo = periodTypeOptions.find(t => String(t.value) === String(detailFormData.period_type));
 
     const newDetail: ECLConfigDetail = {
       pkid: Date.now(),
@@ -689,6 +691,8 @@ export default function ECLConfigurationPage() {
       pd_model_id: '',
       lgd_model_id: '',
       ead_model_id: '',
+      period_type: '',
+      period_date: '',
     }));
 
     // Clear details error if exists
@@ -1356,6 +1360,9 @@ export default function ECLConfigurationPage() {
                 Add Segment Configuration
               </Typography>
 
+              {(() => {
+                const requiresPeriodDate = Number(detailFormData.period_type) === 5;
+                return (
               <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 3, mb: 3 }}>
                 <Box>
                   <FormControl fullWidth required>
@@ -1478,6 +1485,60 @@ export default function ECLConfigurationPage() {
                   />
                 </Box>
 
+                <Box>
+                  <FormControl fullWidth required error={!!formErrors.period_type}>
+                    <InputLabel>Period Type</InputLabel>
+                    <Select
+                      value={detailFormData.period_type || ''}
+                      label="Period Type"
+                      disabled={isViewOnly}
+                      onChange={(e) => {
+                        const nextValue = Number(e.target.value);
+                        handleDetailFieldChange('period_type', nextValue);
+                        if (nextValue !== 5) {
+                          handleDetailFieldChange('period_date', '');
+                        }
+                      }}
+                    >
+                      {periodTypeOptions.map((periodType, idx) => (
+                        <MenuItem key={`${periodType.value}-${idx}`} value={periodType.value}>
+                          {periodType.label}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                    <FormHelperText error={!!formErrors.period_type}>
+                      {formErrors.period_type || 'Source: Business Setting B0025'}
+                    </FormHelperText>
+                  </FormControl>
+                </Box>
+
+                <Box>
+                  <DatePicker
+                    label="Period Date"
+                    value={detailFormData.period_date ? new Date(detailFormData.period_date as string) : null}
+                    onChange={(newValue) => {
+                      if (isViewOnly || !requiresPeriodDate) return;
+                      if (newValue) {
+                        const dateStr = newValue instanceof Date
+                          ? newValue.toISOString().split('T')[0]
+                          : (newValue as any).toISOString().split('T')[0];
+                        handleDetailFieldChange('period_date', dateStr);
+                      } else {
+                        handleDetailFieldChange('period_date', '');
+                      }
+                    }}
+                    slotProps={{
+                      textField: {
+                        fullWidth: true,
+                        disabled: isViewOnly || !requiresPeriodDate,
+                        error: !!formErrors.period_date,
+                        helperText: formErrors.period_date || (requiresPeriodDate ? 'Required when Period Type = 5' : 'Enabled when Period Type = 5'),
+                        InputLabelProps: { shrink: true }
+                      }
+                    }}
+                  />
+                </Box>
+
                 <Box sx={{ gridColumn: 'span 2' }}>
                   {!isViewOnly && (
                     <Button
@@ -1490,6 +1551,8 @@ export default function ECLConfigurationPage() {
                   )}
                 </Box>
               </Box>
+                );
+              })()}
 
               <Divider sx={{ my: 2 }} />
 
@@ -1522,6 +1585,8 @@ export default function ECLConfigurationPage() {
                         <Typography variant="body2"><strong>LGD Model:</strong> {detail.lgd_model_name}</Typography>
                         <Typography variant="body2"><strong>EAD Model:</strong> {detail.ead_model_name}</Typography>
                         <Typography variant="body2"><strong>Overlay Rate:</strong> {detail.overlay_rate}%</Typography>
+                        <Typography variant="body2"><strong>Period Type:</strong> {detail.period_type_name || detail.period_type || '-'}</Typography>
+                        <Typography variant="body2"><strong>Period Date:</strong> {detail.period_date || '-'}</Typography>
                       </Box>
                     </Box>
                     {!isViewOnly && (

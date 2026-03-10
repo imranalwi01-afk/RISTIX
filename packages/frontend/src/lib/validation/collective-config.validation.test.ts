@@ -88,6 +88,7 @@ describe('collective config validation', () => {
       pd_model_id: '',
       lgd_model_id: '',
       ead_model_id: '',
+      period_type: 0,
     });
 
     expect(result.success).toBe(false);
@@ -95,5 +96,21 @@ describe('collective config validation', () => {
     expect(result.errors.pd_model_id).toBe('PD Model is required');
     expect(result.errors.lgd_model_id).toBe('LGD Model is required');
     expect(result.errors.ead_model_id).toBe('EAD Model is required');
+    expect(result.errors.period_type).toBe('Period Type is required');
+  });
+
+  test('ECL detail validation requires period date when period type is manual date', () => {
+    const result = validateWithSchema(eclDetailConfigurationSchema, {
+      pf_segment_id: 17,
+      stage_rule_id: 2,
+      pd_model_id: 11,
+      lgd_model_id: 12,
+      ead_model_id: 13,
+      period_type: 5,
+      period_date: '',
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.errors.period_date).toBe('Period Date is required for this Period Type');
   });
 });
