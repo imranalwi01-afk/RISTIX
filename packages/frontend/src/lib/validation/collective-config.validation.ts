@@ -164,6 +164,8 @@ export const eclDetailConfigurationSchema = z.object({
   pd_model_id: z.unknown(),
   lgd_model_id: z.unknown(),
   ead_model_id: z.unknown(),
+  period_type: z.unknown(),
+  period_date: z.unknown().optional(),
 }).superRefine((data, ctx) => {
   if (!hasSelectedValue(data.pf_segment_id)) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['pf_segment_id'], message: 'Segment is required' });
@@ -183,6 +185,14 @@ export const eclDetailConfigurationSchema = z.object({
 
   if (!hasValue(data.ead_model_id)) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['ead_model_id'], message: 'EAD Model is required' });
+  }
+
+  if (!hasSelectedValue(data.period_type)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['period_type'], message: 'Period Type is required' });
+  }
+
+  if (Number(data.period_type) === 5 && !hasValue(data.period_date)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['period_date'], message: 'Period Date is required for this Period Type' });
   }
 });
 
