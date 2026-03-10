@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { eq, and, desc, sql } from 'drizzle-orm'
-import { db, getDatabase } from '@/config/database'
+import { db, getDatabase, platformConnection } from '@/config/database'
 import { debugLog } from '@/lib/debug-logger'
 import {
     jobDefinitions,
@@ -69,10 +69,9 @@ export const JobsRepository = {
         
         try {
             // Use direct postgres connection to bypass Drizzle ORM issues
-            const { default: postgres } = await import('postgres');
-            const sql = postgres('postgresql://postgres:postgres@10.8.0.2:5433/ifrspro_platform_admin', { max: 1 });
+            // Using platformConnection from config to avoid hardcoded IP
             
-            const results = await sql`
+            const results = await platformConnection`
                 SELECT 
                     e.id,
                     e.job_definition_id as "jobDefinitionId",
@@ -103,8 +102,6 @@ export const JobsRepository = {
                 ORDER BY e.start_time DESC NULLS LAST
                 LIMIT ${limit}
             `;
-            
-            await sql.end();
             
             console.log(`[JobsRepository] findExecutions SUCCESS: Found ${results.length} executions`);
             return results;
