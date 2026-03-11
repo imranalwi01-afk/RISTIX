@@ -915,7 +915,7 @@ ui <- dashboardPage(
               ),
               box(
                 title = "📊 Model yang Sudah Disimpan", width = 12, status = "primary", solidHeader = TRUE,
-                DTOutput("model_summary_table_DB")
+                DT::DTOutput("model_summary_table_DB")
               )
             )
           )
@@ -953,7 +953,7 @@ ui <- dashboardPage(
             width = 8,
             box(
               width = 12, title = "Historical Model", solidHeader = TRUE, status = "primary",
-              DTOutput("model_summary_table_DB2")
+              DT::DTOutput("model_summary_table_DB2")
             )
           )
         ),
@@ -1007,7 +1007,7 @@ ui <- dashboardPage(
                     lapply(names(pd_tables_map), function(tbl_key) {
                       tagList(
                         h4(pd_tables_map[[tbl_key]]),
-                        DTOutput(paste0("pd_base_", tbl_key)), br()
+                        DT::DTOutput(paste0("pd_base_", tbl_key)), br()
                       )
                     })
                   ),
@@ -1016,7 +1016,7 @@ ui <- dashboardPage(
                     lapply(names(pd_tables_map), function(tbl_key) {
                       tagList(
                         h4(pd_tables_map[[tbl_key]]),
-                        DTOutput(paste0("pd_best_", tbl_key)), br()
+                        DT::DTOutput(paste0("pd_best_", tbl_key)), br()
                       )
                     })
                   ),
@@ -1025,7 +1025,7 @@ ui <- dashboardPage(
                     lapply(names(pd_tables_map), function(tbl_key) {
                       tagList(
                         h4(pd_tables_map[[tbl_key]]),
-                        DTOutput(paste0("pd_worst_", tbl_key)), br()
+                        DT::DTOutput(paste0("pd_worst_", tbl_key)), br()
                       )
                     })
                   ),
@@ -1042,7 +1042,7 @@ ui <- dashboardPage(
                         lapply(names(pd_final_map), function(tbl_key) {
                           tagList(
                             h4(pd_final_map[[tbl_key]]),
-                            DTOutput(paste0("pd_final_", tbl_key)), br()
+                            DT::DTOutput(paste0("pd_final_", tbl_key)), br()
                           )
                         })
                       )
@@ -3196,8 +3196,8 @@ server <- function(input, output, session) {
   })
 
 
-  output$model_summary_table_DB <- renderDT({
-    datatable(model_summary_data_DB(), options = list(pageLength = 5, autoWidth = TRUE), rownames = FALSE)
+  output$model_summary_table_DB <- DT::renderDT({
+    DT::datatable(model_summary_data_DB(), options = list(pageLength = 5, autoWidth = TRUE), rownames = FALSE)
   })
 
 
@@ -3213,8 +3213,8 @@ server <- function(input, output, session) {
     ignoreNULL = FALSE
   )
 
-  output$model_summary_table_DB2 <- renderDT({
-    datatable(model_summary_data_DB2(), options = list(pageLength = 5, autoWidth = TRUE, scrollX = TRUE), rownames = FALSE)
+  output$model_summary_table_DB2 <- DT::renderDT({
+    DT::datatable(model_summary_data_DB2(), options = list(pageLength = 5, autoWidth = TRUE, scrollX = TRUE), rownames = FALSE)
   })
 
 
@@ -3717,8 +3717,8 @@ server <- function(input, output, session) {
         local({
           s <- tolower(scenario)
           t <- tbl_key
-          output[[paste0("pd_", s, "_", t)]] <- renderDT({
-            datatable(
+          output[[paste0("pd_", s, "_", t)]] <- DT::renderDT({
+            DT::datatable(
               pd_data[[scenario]][[t]],
               options = list(scrollX = TRUE, scrollY = "250px", paging = FALSE)
             )
@@ -3736,9 +3736,9 @@ server <- function(input, output, session) {
     for (tbl_key in names(pd_final_map)) {
       local({
         t <- tbl_key
-        output[[paste0("pd_final_", t)]] <- renderDT({
+        output[[paste0("pd_final_", t)]] <- DT::renderDT({
           req(final_data[[t]])
-          datatable(
+          DT::datatable(
             final_data[[t]],
             options = list(scrollX = TRUE, scrollY = "250px", paging = FALSE)
           )
