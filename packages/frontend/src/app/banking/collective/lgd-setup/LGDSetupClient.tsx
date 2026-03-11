@@ -59,6 +59,7 @@ import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeD
 interface LGDConfigUI extends LGDConfiguration {
   segment_name?: string;
   method_name?: string;
+  population_type_name?: string;
   scalar_name?: string;
 }
 
@@ -140,6 +141,7 @@ export default function LGDSetupPage() {
       const enrichedConfigs = configsRes.map(config => {
         const segment = lgdSegments.find(s => String(s.id) === String(config.segment_id));
         const method = methodsRes.find(m => String(m.value) === String(config.lgd_method));
+        const populationType = popTypesRes.find(m => String(m.value) === String(config.population_type));
         // Note: flScalarsRes uses 'pkid', config uses 'fl_scalar_id'
         const scalar = flScalarsRes.find(s => String(s.pkid) === String(config.fl_scalar_id));
 
@@ -147,6 +149,7 @@ export default function LGDSetupPage() {
           ...config,
           segment_name: segment?.segment_name || String(config.segment_id || 'Unknown'),
           method_name: method?.label || String(config.lgd_method),
+          population_type_name: populationType?.label || String(config.population_type || ''),
           scalar_name: scalar?.scalar_name
         };
       });
@@ -283,7 +286,7 @@ export default function LGDSetupPage() {
     { field: 'model_name', headerName: 'Model Name', width: 200 },
     { field: 'segment_name', headerName: 'Segment', width: 150 },
     { field: 'method_name', headerName: 'Method', width: 150 },
-    { field: 'population_type', headerName: 'Pop Type', width: 120 },
+    { field: 'population_type_name', headerName: 'Pop Type', width: 160 },
     {
       field: 'fl_flag',
       headerName: 'FL Flag',
