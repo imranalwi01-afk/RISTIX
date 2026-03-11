@@ -249,6 +249,39 @@ const getModelOptionsForSegment = (options: LookupOption[], selectedSegmentId?: 
   return matching.length > 0 ? matching : options;
 };
 
+const formatShortDate = (value?: string | null): string => {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  }).format(date);
+};
+
+const formatDateTime = (value?: string | null): string => {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  const datePart = new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  }).format(date);
+
+  const timePart = new Intl.DateTimeFormat('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).format(date);
+
+  return `${datePart} ${timePart}`;
+};
+
 const hydrateEclDetails = (
   details: ECLConfigDetail[],
   lookups: {
@@ -999,7 +1032,7 @@ export default function ECLConfigurationPage() {
     },
     {
       field: 'details',
-      headerName: 'Segments',
+      headerName: 'Total Segments',
       width: 100,
       renderCell: (params) => (
         <Chip
@@ -1011,13 +1044,23 @@ export default function ECLConfigurationPage() {
       )
     },
     {
+      field: 'last_run_period',
+      headerName: 'Last Run Period',
+      width: 160,
+      renderCell: (params) => (
+        <Typography variant="body2" color="text.secondary">
+          {formatShortDate(params.row.last_run_period)}
+        </Typography>
+      )
+    },
+    {
       field: 'last_run_status',
       headerName: 'Last Run Status',
-      width: 130,
+      width: 160,
       renderCell: (params) => (
         params.value ? (
           <Chip
-            label={params.value}
+            label={String(params.value).toUpperCase()}
             size="small"
             color="warning"
             variant="outlined"
@@ -1027,6 +1070,16 @@ export default function ECLConfigurationPage() {
             Not run
           </Typography>
         )
+      )
+    },
+    {
+      field: 'last_run_date',
+      headerName: 'Last Run Date',
+      width: 220,
+      renderCell: (params) => (
+        <Typography variant="body2" color="text.secondary">
+          {formatDateTime(params.value)}
+        </Typography>
       )
     },
     {
@@ -1380,194 +1433,194 @@ export default function ECLConfigurationPage() {
               {(() => {
                 const requiresPeriodDate = Number(detailFormData.period_type) === 5;
                 return (
-              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 3, mb: 3 }}>
-                <Box>
-                  <FormControl fullWidth required>
-                    <InputLabel>Segment</InputLabel>
-                    <Select
-                      value={detailFormData.pf_segment_id || ''}
-                      label="Segment"
-                      disabled={isViewOnly}
-                      error={!!formErrors.pf_segment_id}
-                      onChange={(e) => handleDetailFieldChange('pf_segment_id', Number(e.target.value))}
-                    >
-                      {segmentOptions.map((segment, idx) => (
-                        <MenuItem key={`${segment.value}-${idx}`} value={segment.value}>
-                          {segment.label}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                    <FormHelperText error={!!formErrors.pf_segment_id}>
-                      {formErrors.pf_segment_id || 'Source: Portfolio segment master (PF)'}
-                    </FormHelperText>
-                  </FormControl>
-                </Box>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 3, mb: 3 }}>
+                    <Box>
+                      <FormControl fullWidth required>
+                        <InputLabel>Segment</InputLabel>
+                        <Select
+                          value={detailFormData.pf_segment_id || ''}
+                          label="Segment"
+                          disabled={isViewOnly}
+                          error={!!formErrors.pf_segment_id}
+                          onChange={(e) => handleDetailFieldChange('pf_segment_id', Number(e.target.value))}
+                        >
+                          {segmentOptions.map((segment, idx) => (
+                            <MenuItem key={`${segment.value}-${idx}`} value={segment.value}>
+                              {segment.label}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                        <FormHelperText error={!!formErrors.pf_segment_id}>
+                          {formErrors.pf_segment_id || 'Source: Portfolio segment master (PF)'}
+                        </FormHelperText>
+                      </FormControl>
+                    </Box>
 
-                <Box>
-                  <FormControl fullWidth error={!!formErrors.stage_rule_id}>
-                    <InputLabel>Stage Rule</InputLabel>
-                    <Select
-                      value={detailFormData.stage_rule_id || ''}
-                      label="Stage Rule"
-                      disabled={isViewOnly}
-                      onChange={(e) => handleDetailFieldChange('stage_rule_id', Number(e.target.value))}
-                    >
-                      {stageRuleOptions.map((rule, idx) => (
-                        <MenuItem key={`${rule.value}-${idx}`} value={rule.value}>
-                          {rule.label}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                    <FormHelperText error={!!formErrors.stage_rule_id}>
-                      {formErrors.stage_rule_id || 'Source: Rule base header (STAGE)'}
-                    </FormHelperText>
-                  </FormControl>
-                </Box>
+                    <Box>
+                      <FormControl fullWidth error={!!formErrors.stage_rule_id}>
+                        <InputLabel>Stage Rule</InputLabel>
+                        <Select
+                          value={detailFormData.stage_rule_id || ''}
+                          label="Stage Rule"
+                          disabled={isViewOnly}
+                          onChange={(e) => handleDetailFieldChange('stage_rule_id', Number(e.target.value))}
+                        >
+                          {stageRuleOptions.map((rule, idx) => (
+                            <MenuItem key={`${rule.value}-${idx}`} value={rule.value}>
+                              {rule.label}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                        <FormHelperText error={!!formErrors.stage_rule_id}>
+                          {formErrors.stage_rule_id || 'Source: Rule base header (STAGE)'}
+                        </FormHelperText>
+                      </FormControl>
+                    </Box>
 
-                <Box>
-                  <FormControl fullWidth required error={!!formErrors.pd_model_id}>
-                    <InputLabel>PD Model</InputLabel>
-                    <Select
-                      value={detailFormData.pd_model_id || ''}
-                      label="PD Model"
-                      disabled={isViewOnly}
-                      onChange={(e) => handleDetailFieldChange('pd_model_id', Number(e.target.value))}
-                    >
-                      {getModelOptionsForSegment(pdModelOptions, detailFormData.pf_segment_id)
-                        .map((model, idx) => (
-                        <MenuItem key={`${model.value}-${idx}`} value={model.value}>
-                          {model.label}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                    <FormHelperText error={!!formErrors.pd_model_id}>
-                      {formErrors.pd_model_id || 'Source: PD Config'}
-                    </FormHelperText>
-                  </FormControl>
-                </Box>
+                    <Box>
+                      <FormControl fullWidth required error={!!formErrors.pd_model_id}>
+                        <InputLabel>PD Model</InputLabel>
+                        <Select
+                          value={detailFormData.pd_model_id || ''}
+                          label="PD Model"
+                          disabled={isViewOnly}
+                          onChange={(e) => handleDetailFieldChange('pd_model_id', Number(e.target.value))}
+                        >
+                          {getModelOptionsForSegment(pdModelOptions, detailFormData.pf_segment_id)
+                            .map((model, idx) => (
+                              <MenuItem key={`${model.value}-${idx}`} value={model.value}>
+                                {model.label}
+                              </MenuItem>
+                            ))}
+                        </Select>
+                        <FormHelperText error={!!formErrors.pd_model_id}>
+                          {formErrors.pd_model_id || 'Source: PD Config'}
+                        </FormHelperText>
+                      </FormControl>
+                    </Box>
 
-                <Box>
-                  <FormControl fullWidth required error={!!formErrors.lgd_model_id}>
-                    <InputLabel>LGD Model</InputLabel>
-                    <Select
-                      value={detailFormData.lgd_model_id || ''}
-                      label="LGD Model"
-                      disabled={isViewOnly}
-                      onChange={(e) => handleDetailFieldChange('lgd_model_id', Number(e.target.value))}
-                    >
-                      {getModelOptionsForSegment(lgdModelOptions, detailFormData.pf_segment_id)
-                        .map((model, idx) => (
-                        <MenuItem key={`${model.value}-${idx}`} value={model.value}>
-                          {model.label}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                    <FormHelperText error={!!formErrors.lgd_model_id}>
-                      {formErrors.lgd_model_id || 'Source: LGD Config'}
-                    </FormHelperText>
-                  </FormControl>
-                </Box>
+                    <Box>
+                      <FormControl fullWidth required error={!!formErrors.lgd_model_id}>
+                        <InputLabel>LGD Model</InputLabel>
+                        <Select
+                          value={detailFormData.lgd_model_id || ''}
+                          label="LGD Model"
+                          disabled={isViewOnly}
+                          onChange={(e) => handleDetailFieldChange('lgd_model_id', Number(e.target.value))}
+                        >
+                          {getModelOptionsForSegment(lgdModelOptions, detailFormData.pf_segment_id)
+                            .map((model, idx) => (
+                              <MenuItem key={`${model.value}-${idx}`} value={model.value}>
+                                {model.label}
+                              </MenuItem>
+                            ))}
+                        </Select>
+                        <FormHelperText error={!!formErrors.lgd_model_id}>
+                          {formErrors.lgd_model_id || 'Source: LGD Config'}
+                        </FormHelperText>
+                      </FormControl>
+                    </Box>
 
-                <Box>
-                  <FormControl fullWidth required error={!!formErrors.ead_model_id}>
-                    <InputLabel>EAD Model</InputLabel>
-                    <Select
-                      value={detailFormData.ead_model_id || ''}
-                      label="EAD Model"
-                      disabled={isViewOnly}
-                      onChange={(e) => handleDetailFieldChange('ead_model_id', Number(e.target.value))}
-                    >
-                      {getModelOptionsForSegment(eadModelOptions, detailFormData.pf_segment_id)
-                        .map((model, idx) => (
-                        <MenuItem key={`${model.value}-${idx}`} value={model.value}>
-                          {model.label}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                    <FormHelperText error={!!formErrors.ead_model_id}>
-                      {formErrors.ead_model_id || 'Source: EAD Config'}
-                    </FormHelperText>
-                  </FormControl>
-                </Box>
+                    <Box>
+                      <FormControl fullWidth required error={!!formErrors.ead_model_id}>
+                        <InputLabel>EAD Model</InputLabel>
+                        <Select
+                          value={detailFormData.ead_model_id || ''}
+                          label="EAD Model"
+                          disabled={isViewOnly}
+                          onChange={(e) => handleDetailFieldChange('ead_model_id', Number(e.target.value))}
+                        >
+                          {getModelOptionsForSegment(eadModelOptions, detailFormData.pf_segment_id)
+                            .map((model, idx) => (
+                              <MenuItem key={`${model.value}-${idx}`} value={model.value}>
+                                {model.label}
+                              </MenuItem>
+                            ))}
+                        </Select>
+                        <FormHelperText error={!!formErrors.ead_model_id}>
+                          {formErrors.ead_model_id || 'Source: EAD Config'}
+                        </FormHelperText>
+                      </FormControl>
+                    </Box>
 
-                <Box>
-                  <TextField
-                    fullWidth
-                    label="Overlay Rate (%)"
-                    type="number"
-                    value={detailFormData.overlay_rate || ''}
-                    disabled={isViewOnly}
-                    onChange={(e) => handleDetailFieldChange('overlay_rate', Number(e.target.value))}
-                    inputProps={{ min: 0, max: 500, step: 1 }}
-                  />
-                </Box>
+                    <Box>
+                      <TextField
+                        fullWidth
+                        label="Overlay Rate (%)"
+                        type="number"
+                        value={detailFormData.overlay_rate || ''}
+                        disabled={isViewOnly}
+                        onChange={(e) => handleDetailFieldChange('overlay_rate', Number(e.target.value))}
+                        inputProps={{ min: 0, max: 500, step: 1 }}
+                      />
+                    </Box>
 
-                <Box>
-                  <FormControl fullWidth required error={!!formErrors.period_type}>
-                    <InputLabel>Period Type</InputLabel>
-                    <Select
-                      value={detailFormData.period_type || ''}
-                      label="Period Type"
-                      disabled={isViewOnly}
-                      onChange={(e) => {
-                        const nextValue = Number(e.target.value);
-                        handleDetailFieldChange('period_type', nextValue);
-                        if (nextValue !== 5) {
-                          handleDetailFieldChange('period_date', '');
-                        }
-                      }}
-                    >
-                      {periodTypeOptions.map((periodType, idx) => (
-                        <MenuItem key={`${periodType.value}-${idx}`} value={periodType.value}>
-                          {periodType.label}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                    <FormHelperText error={!!formErrors.period_type}>
-                      {formErrors.period_type || 'Source: Business Setting B0025'}
-                    </FormHelperText>
-                  </FormControl>
-                </Box>
+                    <Box>
+                      <FormControl fullWidth required error={!!formErrors.period_type}>
+                        <InputLabel>Period Type</InputLabel>
+                        <Select
+                          value={detailFormData.period_type || ''}
+                          label="Period Type"
+                          disabled={isViewOnly}
+                          onChange={(e) => {
+                            const nextValue = Number(e.target.value);
+                            handleDetailFieldChange('period_type', nextValue);
+                            if (nextValue !== 5) {
+                              handleDetailFieldChange('period_date', '');
+                            }
+                          }}
+                        >
+                          {periodTypeOptions.map((periodType, idx) => (
+                            <MenuItem key={`${periodType.value}-${idx}`} value={periodType.value}>
+                              {periodType.label}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                        <FormHelperText error={!!formErrors.period_type}>
+                          {formErrors.period_type || 'Source: Business Setting B0025'}
+                        </FormHelperText>
+                      </FormControl>
+                    </Box>
 
-                <Box>
-                  <DatePicker
-                    label="Period Date"
-                    value={detailFormData.period_date ? new Date(detailFormData.period_date as string) : null}
-                    onChange={(newValue) => {
-                      if (isViewOnly || !requiresPeriodDate) return;
-                      if (newValue) {
-                        const dateStr = newValue instanceof Date
-                          ? newValue.toISOString().split('T')[0]
-                          : (newValue as any).toISOString().split('T')[0];
-                        handleDetailFieldChange('period_date', dateStr);
-                      } else {
-                        handleDetailFieldChange('period_date', '');
-                      }
-                    }}
-                    slotProps={{
-                      textField: {
-                        fullWidth: true,
-                        disabled: isViewOnly || !requiresPeriodDate,
-                        error: !!formErrors.period_date,
-                        helperText: formErrors.period_date || (requiresPeriodDate ? 'Required when Period Type = 5' : 'Enabled when Period Type = 5'),
-                        InputLabelProps: { shrink: true }
-                      }
-                    }}
-                  />
-                </Box>
+                    <Box>
+                      <DatePicker
+                        label="Period Date"
+                        value={detailFormData.period_date ? new Date(detailFormData.period_date as string) : null}
+                        onChange={(newValue) => {
+                          if (isViewOnly || !requiresPeriodDate) return;
+                          if (newValue) {
+                            const dateStr = newValue instanceof Date
+                              ? newValue.toISOString().split('T')[0]
+                              : (newValue as any).toISOString().split('T')[0];
+                            handleDetailFieldChange('period_date', dateStr);
+                          } else {
+                            handleDetailFieldChange('period_date', '');
+                          }
+                        }}
+                        slotProps={{
+                          textField: {
+                            fullWidth: true,
+                            disabled: isViewOnly || !requiresPeriodDate,
+                            error: !!formErrors.period_date,
+                            helperText: formErrors.period_date || (requiresPeriodDate ? 'Required when Period Type = 5' : 'Enabled when Period Type = 5'),
+                            InputLabelProps: { shrink: true }
+                          }
+                        }}
+                      />
+                    </Box>
 
-                <Box sx={{ gridColumn: 'span 2' }}>
-                  {!isViewOnly && (
-                    <Button
-                      variant="contained"
-                      startIcon={<AddIcon />}
-                      onClick={handleAddDetail}
-                    >
-                      Add Segment Configuration
-                    </Button>
-                  )}
-                </Box>
-              </Box>
+                    <Box sx={{ gridColumn: 'span 2' }}>
+                      {!isViewOnly && (
+                        <Button
+                          variant="contained"
+                          startIcon={<AddIcon />}
+                          onClick={handleAddDetail}
+                        >
+                          Add Segment Configuration
+                        </Button>
+                      )}
+                    </Box>
+                  </Box>
                 );
               })()}
 
