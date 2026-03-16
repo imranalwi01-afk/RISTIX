@@ -39,7 +39,13 @@ import SegmentationFilterDrawer from './components/SegmentationFilterDrawer';
 
 // Hooks & Existing Services
 import { bankingAPI } from '@/services/api';
-import { ApprovalNotification, ApprovalStatusBadge } from '@/components/approval';
+import {
+  ApprovalNotification,
+  ApprovalStatusBadge,
+  buildApprovalNotification,
+  createClosedApprovalNotification,
+  type ApprovalNotificationState,
+} from '@/components/approval';
 import { usePermission } from '@/hooks/usePermission';
 import { getErrorMessage } from '@/utils/error-message';
 
@@ -97,19 +103,20 @@ export default function SegmentationClient() {
   const [selectedHeader, setSelectedHeader] = useState<SegmentationHeaderData | null>(null);
 
   // Permissions
-  const { hasPermission } = usePermission();
+  const { hasPermission, hasAnyPermission } = usePermission();
   const canManageSegmentation = hasPermission('banking.parameter.segmentation.manage');
   const canViewSegmentation = hasPermission('banking.parameter.segmentation.view');
   const canExportSegmentation = hasPermission('banking.parameter.segmentation.export');
+  const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all', 'admin.super_admin']);
 
   // UI Feedback
   const [error, setError] = useState<string | null>(null);
   const [snackbar, setSnackbar] = useState<{ open: boolean, message: string, type: 'success' | 'info' | 'warning' | 'error' }>({
     open: false, message: '', type: 'success'
   });
-  const [approvalNotification, setApprovalNotification] = useState<{ open: boolean, message: string }>({
-    open: false, message: ''
-  });
+  const [approvalNotification, setApprovalNotification] = useState<ApprovalNotificationState>(
+    createClosedApprovalNotification()
+  );
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const activeFiltersCount = Object.values(filters).filter((v) => String(v || '').trim().length > 0).length;
 
@@ -268,31 +275,7 @@ export default function SegmentationClient() {
       const response = await api.banking.segmentation.deleteHeader(header.id);
 
       if (response.approvalRequired) {
-        // Auto-approve for development/demo user
-        if (process.env.NODE_ENV === 'development') {
-          console.log('🔓 Auto-approving delete request for development');
-          try {
-            await api.banking.approval.approveRequest(response.requestId, {
-              comment: 'Auto-approved for development testing'
-            });
-            setSnackbar({
-              open: true,
-              message: 'Segmentation deleted successfully (auto-approved)',
-              type: 'success'
-            });
-          } catch (approveError) {
-            console.error('Auto-approve failed:', approveError);
-            setApprovalNotification({
-              open: true,
-              message: response.message || 'Deletion request submitted for approval'
-            });
-          }
-        } else {
-          setApprovalNotification({
-            open: true,
-            message: response.message || 'Deletion request submitted for approval'
-          });
-        }
+        setApprovalNotification(buildApprovalNotification(response, 'Deletion request submitted for approval'));
       } else {
         setSnackbar({ open: true, message: 'Segmentation deleted successfully', type: 'success' });
       }
@@ -350,10 +333,7 @@ export default function SegmentationClient() {
       }
 
       if (response.approvalRequired) {
-        setApprovalNotification({
-          open: true,
-          message: response.message || 'Request submitted for approval'
-        });
+        setApprovalNotification(buildApprovalNotification(response, 'Request submitted for approval'));
       } else {
         setSnackbar({
           open: true,
@@ -513,7 +493,10 @@ export default function SegmentationClient() {
       <ApprovalNotification
         open={approvalNotification.open}
         message={approvalNotification.message}
-        onClose={() => setApprovalNotification({ ...approvalNotification, open: false })}
+        requestId={approvalNotification.requestId}
+        actionLabel={canOpenApprovalInbox ? 'Open Approval' : undefined}
+        actionHref={canOpenApprovalInbox ? (approvalNotification.requestId ? `/banking/maintenance/approval?requestId=${encodeURIComponent(approvalNotification.requestId)}` : '/banking/maintenance/approval') : undefined}
+        onClose={() => setApprovalNotification(createClosedApprovalNotification())}
       />
     </Container>
   );

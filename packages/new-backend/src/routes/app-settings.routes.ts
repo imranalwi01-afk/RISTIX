@@ -3,6 +3,7 @@ import { Effect, pipe } from 'effect'
 import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
 import { ParametersService } from '../services/parameters.service'
+import * as auditService from '../services/audit.service'
 import { runEffect } from '../lib/effect/runtime'
 import { interceptCreate, interceptUpdate, interceptDelete } from '../middleware/approval-interceptor.middleware'
 import type { ApprovalResponse } from '../lib/approval-helpers'
@@ -357,15 +358,19 @@ app.openapi(
         const executeUpdate = () => ParametersService.updateAppSetting(code, data, userId) as Effect.Effect<any, any, never>
 
         const effect = pipe(
-            interceptUpdate(
-                tenantId,
-                userId,
-                userPermissions,
-                'parameter',
-                code,
-                data,
-                executeUpdate,
-                'medium'
+            ParametersService.getAppSetting(code) as Effect.Effect<any, any>,
+            Effect.flatMap((oldValues) =>
+                interceptUpdate(
+                    tenantId,
+                    userId,
+                    userPermissions,
+                    'parameter',
+                    code,
+                    data,
+                    executeUpdate,
+                    'medium',
+                    oldValues
+                )
             ),
             Effect.map((response: ApprovalResponse) => {
                 if (response.approvalRequired) {
@@ -406,14 +411,18 @@ app.openapi(
         const executeDelete = () => ParametersService.deleteAppSetting(code) as Effect.Effect<any, any, never>
 
         const effect = pipe(
-            interceptDelete(
-                tenantId,
-                userId,
-                userPermissions,
-                'parameter',
-                code,
-                executeDelete,
-                'high'
+            ParametersService.getAppSetting(code) as Effect.Effect<any, any>,
+            Effect.flatMap((oldValues) =>
+                interceptDelete(
+                    tenantId,
+                    userId,
+                    userPermissions,
+                    'parameter',
+                    code,
+                    executeDelete,
+                    'high',
+                    oldValues
+                )
             ),
             Effect.map((response: ApprovalResponse) => {
                 if (response.approvalRequired) {
@@ -446,8 +455,27 @@ app.openapi(
     async (c) => {
         const data = c.req.valid('json');
         const userId = c.get('userId') as string || 'system';
+        const tenantId = c.get('tenantId') as string
 
-        return runEffect(c, ParametersService.createAppSettingDetail(data, userId) as any) as any
+        const effect = pipe(
+            ParametersService.createAppSettingDetail(data, userId) as Effect.Effect<any, any>,
+            Effect.tap((created: any) =>
+                Effect.tryPromise({
+                    try: async () => {
+                        await auditService.logDataChange.create(
+                            'parameter_detail',
+                            String(created.id),
+                            created,
+                            userId,
+                            tenantId
+                        )
+                    },
+                    catch: (error) => error
+                })
+            )
+        )
+
+        return runEffect(c, effect as any) as any
     }
 )
 
@@ -472,8 +500,33 @@ app.openapi(
         const id = c.req.valid('param').id;
         const data = c.req.valid('json');
         const userId = c.get('userId') as string || 'system';
+        const tenantId = c.get('tenantId') as string
 
-        return runEffect(c, ParametersService.updateAppSettingDetail(id, data, userId) as any) as any
+        const effect = pipe(
+            ParametersService.getAppSettingDetail(id) as Effect.Effect<any, any>,
+            Effect.flatMap((oldValues) =>
+                pipe(
+                    ParametersService.updateAppSettingDetail(id, data, userId) as Effect.Effect<any, any>,
+                    Effect.tap((updated: any) =>
+                        Effect.tryPromise({
+                            try: async () => {
+                                await auditService.logDataChange.update(
+                                    'parameter_detail',
+                                    String(id),
+                                    oldValues,
+                                    updated,
+                                    userId,
+                                    tenantId
+                                )
+                            },
+                            catch: (error) => error
+                        })
+                    )
+                )
+            )
+        )
+
+        return runEffect(c, effect as any) as any
     }
 )
 
@@ -496,8 +549,33 @@ app.openapi(
     async (c) => {
         const id = c.req.valid('param').id;
         if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400);
+        const userId = c.get('userId') as string || 'system'
+        const tenantId = c.get('tenantId') as string
 
-        return runEffect(c, ParametersService.deleteAppSettingDetail(id) as any) as any
+        const effect = pipe(
+            ParametersService.getAppSettingDetail(id) as Effect.Effect<any, any>,
+            Effect.flatMap((oldValues) =>
+                pipe(
+                    ParametersService.deleteAppSettingDetail(id) as Effect.Effect<any, any>,
+                    Effect.tap(() =>
+                        Effect.tryPromise({
+                            try: async () => {
+                                await auditService.logDataChange.delete(
+                                    'parameter_detail',
+                                    String(id),
+                                    oldValues,
+                                    userId,
+                                    tenantId
+                                )
+                            },
+                            catch: (error) => error
+                        })
+                    )
+                )
+            )
+        )
+
+        return runEffect(c, effect as any) as any
     }
 )
 

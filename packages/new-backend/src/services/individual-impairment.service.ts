@@ -246,6 +246,120 @@ export class IndividualImpairmentService {
             .limit(100);
     }
 
+    async getIaResultDetail(
+        tenantId: string,
+        filters: { accountId?: number; accountNumber?: string }
+    ) {
+        const { accountId, accountNumber } = filters;
+
+        if (!accountId && !accountNumber) {
+            throw new Error('Account reference is required');
+        }
+
+        const headerConditions = [];
+
+        if (accountId) {
+            headerConditions.push(eq(frs9ImpIaResultH.accountId, Number(accountId)));
+        }
+
+        if (!accountId && accountNumber) {
+            headerConditions.push(eq(frs9ImpIaResultH.accountNumber, accountNumber));
+        }
+
+        const headers = await legacyDb.select()
+            .from(frs9ImpIaResultH)
+            .where(and(...headerConditions))
+            .orderBy(desc(frs9ImpIaResultH.createddate), desc(frs9ImpIaResultH.prcDate))
+            .limit(1);
+
+        if (!headers.length) {
+            return {
+                header: null,
+                details: []
+            };
+        }
+
+        const header = headers[0];
+
+        const detailConditions = [];
+
+        if (header.iaId != null) {
+            detailConditions.push(eq(frs9ImpIaResultD.iaId, Number(header.iaId)));
+        } else if (header.accountId != null) {
+            detailConditions.push(eq(frs9ImpIaResultD.accountId, Number(header.accountId)));
+            if (header.prcDate) {
+                detailConditions.push(eq(frs9ImpIaResultD.prcDate, header.prcDate));
+            }
+        }
+
+        const details = detailConditions.length > 0
+            ? await legacyDb.select()
+                .from(frs9ImpIaResultD)
+                .where(and(...detailConditions))
+                .orderBy(frs9ImpIaResultD.mob, frs9ImpIaResultD.periode)
+            : [];
+
+        const toNumber = (value: unknown) => {
+            if (value == null || value === '') return 0;
+            const parsed = Number(value);
+            return Number.isFinite(parsed) ? parsed : 0;
+        };
+
+        return {
+            header: {
+                pkid: Number(header.pkid),
+                iaId: header.iaId ? Number(header.iaId) : null,
+                prcDate: header.prcDate || null,
+                effectiveDate: header.prcDate || null,
+                accountId: header.accountId ? Number(header.accountId) : null,
+                accountNumber: header.accountNumber || '',
+                cifNumber: header.cifNumber || '',
+                cifName: header.cifName || '',
+                currency: header.currency || '',
+                dpd: header.dpd || 0,
+                collectability: header.collectability || 0,
+                ratingCode: header.ratingCode || '',
+                interestRate: toNumber(header.interestRate),
+                effInterestRate: toNumber(header.effInterestRate),
+                outstanding: toNumber(header.outstanding),
+                accruedInterest: toNumber(header.accruedInterest),
+                carryingAmt: toNumber(header.carryingAmt),
+                eadAmt: toNumber(header.eadAmt),
+                pvDcfAmt: toNumber(header.pvDcfAmt),
+                eclIaAmt: toNumber(header.eclIaAmt),
+                createdby: header.createdby || '',
+                createddate: header.createddate || null
+            },
+            details: details.map((row) => ({
+                pkid: Number(row.pkid),
+                iaId: row.iaId ? Number(row.iaId) : null,
+                prcDate: row.prcDate || null,
+                accountId: row.accountId ? Number(row.accountId) : null,
+                mob: row.mob || 0,
+                periode: row.periode || null,
+                principal: toNumber(row.principal),
+                interest: toNumber(row.interest),
+                installment: toNumber(row.installment),
+                collateral: toNumber(row.collateral),
+                poRate1: toNumber(row.poRate1),
+                rrRate1: toNumber(row.rrRate1),
+                default1: toNumber(row.default1),
+                poRate2: toNumber(row.poRate2),
+                rrRate2: toNumber(row.rrRate2),
+                default2: toNumber(row.default2),
+                poRate3: toNumber(row.poRate3),
+                rrRate3: toNumber(row.rrRate3),
+                default3: toNumber(row.default3),
+                pwAmt: toNumber(row.pwAmt),
+                discountFactor: toNumber(row.discountFactor),
+                pvAmt: toNumber(row.pvAmt),
+                beginningBalance: toNumber(row.beginningBalance),
+                eirAmt: toNumber(row.eirAmt),
+                endingBalance: toNumber(row.endingBalance)
+            }))
+        };
+    }
+
     async createDcfCashflows(data: any[]) {
         return [];
     }

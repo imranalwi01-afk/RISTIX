@@ -21,7 +21,13 @@ import { exportToXLSX, exportToCSV, exportToPDF } from '@/utils/exportUtils';
 import PageHeader from '@/components/banking/shared/PageHeader';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 import ModernLoader from '@/components/common/ModernLoader';
-import { PendingChangesDialog } from '@/components/approval';
+import {
+  ApprovalNotification,
+  PendingChangesDialog,
+  buildApprovalNotification,
+  createClosedApprovalNotification,
+  type ApprovalNotificationState,
+} from '@/components/approval';
 import { usePermission } from '@/hooks/usePermission';
 import ProductTable from './components/ProductTable';
 import ProductFormDialog from './components/ProductFormDialog';
@@ -85,6 +91,7 @@ export default function ProductParametersPage() {
   const canViewProduct = hasAnyPermission(['banking.parameter.product.view', 'banking.parameter.product.manage', 'banking.parameter.product', 'admin.super_admin']);
   const canManageProduct = hasAnyPermission(['banking.parameter.product.manage', 'banking.parameter.product.create', 'banking.parameter.product.update', 'banking.parameter.product.delete', 'admin.super_admin']);
   const canExportProduct = hasAnyPermission(['banking.parameter.product.export', 'banking.parameter.product.manage', 'admin.super_admin']);
+  const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all', 'admin.super_admin']);
 
   const searchParams = useSearchParams();
   const mode = searchParams.get('mode') || 'conventional';
@@ -103,6 +110,7 @@ export default function ProductParametersPage() {
 
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [approvalNotification, setApprovalNotification] = useState<ApprovalNotificationState>(createClosedApprovalNotification());
   const [exportMenuAnchor, setExportMenuAnchor] = useState<null | HTMLElement>(null);
 
   // Approval Modal State
@@ -272,7 +280,7 @@ export default function ProductParametersPage() {
 
       if (res.success) {
         if (res.approvalRequired) {
-          setSuccess(`${isEdit ? 'Update' : 'Creation'} submitted for approval`);
+          setApprovalNotification(buildApprovalNotification(res, `${isEdit ? 'Update' : 'Creation'} submitted for approval`));
         } else {
           setSuccess(`Product ${isEdit ? 'updated' : 'created'} successfully`);
         }
@@ -297,7 +305,7 @@ export default function ProductParametersPage() {
       const res = await api.banking.productParameters.delete(String(product.pkid));
       if (res.success) {
         if (res.approvalRequired) {
-          setSuccess('Deletion submitted for approval');
+          setApprovalNotification(buildApprovalNotification(res, 'Deletion submitted for approval'));
         } else {
           setSuccess('Product deleted successfully');
         }
@@ -439,6 +447,14 @@ export default function ProductParametersPage() {
           {error || success}
         </Alert>
       </Snackbar>
+      <ApprovalNotification
+        open={approvalNotification.open}
+        message={approvalNotification.message}
+        requestId={approvalNotification.requestId}
+        actionLabel={canOpenApprovalInbox ? 'Open Approval' : undefined}
+        actionHref={canOpenApprovalInbox ? (approvalNotification.requestId ? `/banking/maintenance/approval?requestId=${encodeURIComponent(approvalNotification.requestId)}` : '/banking/maintenance/approval') : undefined}
+        onClose={() => setApprovalNotification(createClosedApprovalNotification())}
+      />
     </Container>
   );
 }

@@ -103,6 +103,48 @@ export default function IndividualAssessmentWizardPage() {
     }
   }, [accountId, pagination.page, pagination.limit, filters]);
 
+  useEffect(() => {
+    if (accountId) {
+      // If accountId is present, switch to Override Trigger (index 2)
+      // or Reports (index 1) depending on user flow.
+      // Assuming Override Trigger is the main assessment form.
+      setActiveTab(2);
+    }
+  }, [accountId]);
+
+  // Handlers for Dashboard
+  const handlePageChange = (event: unknown, newPage: number) => {
+    setPagination(prev => ({ ...prev, page: newPage }));
+  };
+
+  const handleRowsPerPageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setPagination(prev => ({ ...prev, limit: parseInt(event.target.value, 10), page: 0 }));
+  };
+
+  const handleFilterChange = (field: string, value: string) => {
+    setFilters(prev => ({ ...prev, [field]: value }));
+    setPagination(prev => ({ ...prev, page: 0 }));
+  };
+
+  const handleResetFilters = () => {
+    setFilters(FILTER_DEFAULTS);
+    setPagination(prev => ({ ...prev, page: 0 }));
+  };
+
+  const handleAccountSelect = (account: IndividualImpairmentWatchlistItem) => {
+    const params = new URLSearchParams({
+      accountId: String(account.account_id),
+      accountNumber: account.account_number,
+      mode
+    });
+    router.push(`/banking/individual/assessment?${params.toString()}`);
+  };
+
+  const handleViewDetails = (account: IndividualImpairmentWatchlistItem) => {
+    // Switch to the "List Report" tab (index 1) for viewing details
+    setActiveTab(1);
+  };
+
   const sections = useMemo<SectionDef[]>(
     () => [
       {

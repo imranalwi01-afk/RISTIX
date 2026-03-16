@@ -203,6 +203,7 @@ const JournalFormDialog = memo(function JournalFormDialog({
                         disabled={optionsLoading}
                         error={!formData.glGroup.trim()}
                         helperText={!formData.glGroup.trim() ? 'Journal Group is required' : 'Source: Rule Based Setting (type = GL)'}
+                        SelectProps={{ inputProps: { 'data-testid': 'select-journal-group' } }}
                     >
                         {glGroupOptions.length > 0 ? (
                             glGroupOptions.map((option, idx) => (
@@ -222,6 +223,7 @@ const JournalFormDialog = memo(function JournalFormDialog({
                         disabled={optionsLoading}
                         error={!formData.currency.trim()}
                         helperText={!formData.currency.trim() ? 'Currency is required' : 'Source: Business Setting B0001'}
+                        SelectProps={{ inputProps: { 'data-testid': 'select-journal-currency' } }}
                     >
                         {currencyOptions.length > 0 ? (
                             currencyOptions.map((option, idx) => (
@@ -241,6 +243,7 @@ const JournalFormDialog = memo(function JournalFormDialog({
                         disabled={optionsLoading}
                         error={!formData.glType.trim()}
                         helperText={!formData.glType.trim() ? 'Journal Type is required' : 'Source: Business Setting B0005'}
+                        SelectProps={{ inputProps: { 'data-testid': 'select-journal-type' } }}
                     >
                         {journalTypeOptions.length > 0 ? (
                             journalTypeOptions.map((option, idx) => (
@@ -260,6 +263,7 @@ const JournalFormDialog = memo(function JournalFormDialog({
                         disabled={optionsLoading}
                         error={!formData.glCode.trim()}
                         helperText={!formData.glCode.trim() ? 'Journal Code is required' : 'Source: Business Setting B0006'}
+                        SelectProps={{ inputProps: { 'data-testid': 'select-journal-code' } }}
                     >
                         {journalCodeOptions.length > 0 ? (
                             journalCodeOptions.map((option, idx) => (
@@ -275,7 +279,7 @@ const JournalFormDialog = memo(function JournalFormDialog({
                         onChange={handleFieldChange('glNumber')}
                         fullWidth
                         placeholder="COA Number"
-                        slotProps={{ htmlInput: { maxLength: 20 } }}
+                        slotProps={{ htmlInput: { maxLength: 20, 'data-testid': 'input-journal-gl-number' } }}
                         helperText="Chart of Accounts number (optional)"
                     />
                     <TextField
@@ -288,6 +292,7 @@ const JournalFormDialog = memo(function JournalFormDialog({
                         disabled={optionsLoading}
                         error={!formData.dbcr.trim()}
                         helperText={!formData.dbcr.trim() ? 'DB/CR is required' : 'Source: Business Setting B0007'}
+                        SelectProps={{ inputProps: { 'data-testid': 'select-journal-dbcr' } }}
                     >
                         {dbcrOptions.length > 0 ? (
                             dbcrOptions.map((option, idx) => (
@@ -306,7 +311,7 @@ const JournalFormDialog = memo(function JournalFormDialog({
                         rows={3}
                         sx={{ gridColumn: 'span 2' }}
                         placeholder="Journal Description (optional)"
-                        slotProps={{ htmlInput: { maxLength: 255 } }}
+                        slotProps={{ htmlInput: { maxLength: 255, 'data-testid': 'input-journal-desc' } }}
                     />
                     <Box sx={{ gridColumn: 'span 2' }}>
                         <FormControlLabel
@@ -328,6 +333,7 @@ const JournalFormDialog = memo(function JournalFormDialog({
                     variant="contained"
                     disabled={loading || isSaving}
                     startIcon={(loading || isSaving) ? <CircularProgress size={20} color="inherit" /> : null}
+                    data-testid="btn-submit-journal"
                 >
                     {journal ? 'Update' : 'Create'}
                 </Button>

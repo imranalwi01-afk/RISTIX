@@ -105,8 +105,12 @@ export const pdConfigurationsApi = {
      */
     async create(data: CreatePDConfigurationDto): Promise<PDConfiguration> {
         const response = await apiClient.post<any>(BASE_URL, data);
-        if (!response.data?.data) throw new Error('Failed to create PD configuration');
-        return response.data.data;
+        if (!response.data?.data && !response.data?.approvalRequired && response.status !== 202) {
+            throw new Error('Failed to create PD configuration');
+        }
+        return response.data?.approvalRequired || response.status === 202
+            ? response.data
+            : response.data.data;
     },
 
     /**
@@ -114,8 +118,12 @@ export const pdConfigurationsApi = {
      */
     async update(id: string, data: UpdatePDConfigurationDto): Promise<PDConfiguration> {
         const response = await apiClient.put<any>(`${BASE_URL}/${id}`, data);
-        if (!response.data?.data) throw new Error('Failed to update PD configuration');
-        return response.data.data;
+        if (!response.data?.data && !response.data?.approvalRequired && response.status !== 202) {
+            throw new Error('Failed to update PD configuration');
+        }
+        return response.data?.approvalRequired || response.status === 202
+            ? response.data
+            : response.data.data;
     },
 
     /**

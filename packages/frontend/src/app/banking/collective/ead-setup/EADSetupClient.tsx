@@ -27,9 +27,16 @@ import {
   Switch,
   FormHelperText,
   Checkbox,
-  CircularProgress
+  CircularProgress,
+  Snackbar
 } from '@mui/material';
-import { ApprovalNotification, ApprovalStatusBadge } from '@/components/approval';
+import {
+  ApprovalNotification,
+  ApprovalStatusBadge,
+  buildApprovalNotification,
+  createClosedApprovalNotification,
+  type ApprovalNotificationState,
+} from '@/components/approval';
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -46,6 +53,7 @@ import { FLScalarWithDetails } from '../../../../services/api/fl-scalar.api';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
 import { PopulationSegment, filterPopulationSegmentsByType } from '../../../../services/api/population-segments.api';
 import { usePermission } from '@/hooks/usePermission';
+import { eadConfigurationSchema, validateWithSchema } from '@/lib/validation/collective-config.validation';
 
 // Safe DataGrid wrapper to prevent bundling issues
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
@@ -55,10 +63,19 @@ interface EADConfigUI extends EADConfiguration {
   segment_name?: string;
 }
 
+const createEmptyFormData = (): Partial<EADConfiguration> => ({
+  model_name: '',
+  segment_id: undefined,
+  ead_method: '',
+  calc_method: '',
+  is_active: true,
+});
+
 export default function EADSetupPage() {
   const { hasAnyPermission } = usePermission();
   const canViewEadSetup = hasAnyPermission(['banking.collective.ead_setup.view', 'banking.collective.ead_setup.manage', 'banking.collective.manage', 'banking.collective', 'admin.super_admin']);
   const canManageEadSetup = hasAnyPermission(['banking.collective.ead_setup.manage', 'banking.collective.ead_setup.create', 'banking.collective.ead_setup.update', 'banking.collective.ead_setup.delete', 'banking.collective.manage', 'admin.super_admin']);
+  const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all', 'admin.super_admin']);
   const router = useRouter();
 
   const [loading, setLoading] = useState(false);
@@ -77,22 +94,17 @@ export default function EADSetupPage() {
   const [selectedConfig, setSelectedConfig] = useState<EADConfigUI | null>(null);
 
   // Form Data
-  const [formData, setFormData] = useState<Partial<EADConfiguration>>({
-    model_name: '',
-    segment_id: undefined,
-    ead_method: 'CCF',
-    calc_method: 'Revolving',
-    is_active: true
-  });
+  const [formData, setFormData] = useState<Partial<EADConfiguration>>(createEmptyFormData());
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
-  const [approvalNotification, setApprovalNotification] = useState<{
-    open: boolean;
-    message: string;
-    requestId?: string;
-  }>({ open: false, message: '' });
+  const [approvalNotification, setApprovalNotification] = useState<ApprovalNotificationState>(createClosedApprovalNotification());
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; type: 'success' | 'error' }>({
+    open: false,
+    message: '',
+    type: 'success',
+  });
 
   // Load Data
   const loadData = useCallback(async () => {
@@ -158,20 +170,16 @@ export default function EADSetupPage() {
 
   // Validations
   const validateForm = () => {
-    const errors: Record<string, string> = {};
-    if (!formData.model_name?.trim()) errors.model_name = 'Model Name is required';
-    if (!formData.segment_id) errors.segment_id = 'Segment is required';
-    if (!formData.ead_method) errors.ead_method = 'EAD Method is required';
-    if (!formData.calc_method) errors.calc_method = 'Calc Method is required';
-
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
+    const result = validateWithSchema(eadConfigurationSchema, formData);
+    setFormErrors(result.errors);
+    return result.success;
   };
 
   const handleSave = async () => {
     if (!canManageEadSetup) return;
     if (!validateForm()) return;
     setLoading(true);
+    setError(null);
     try {
       const payload: any = {
         model_name: formData.model_name,
@@ -188,21 +196,24 @@ export default function EADSetupPage() {
       const isApprovalResponse = response?.approvalRequired || response?.status === 202;
 
       if (isApprovalResponse) {
-        setApprovalNotification({
+        setApprovalNotification(buildApprovalNotification(response, 'Request submitted for approval'));
+      } else {
+        setSnackbar({
           open: true,
-          message: response?.message || 'Request submitted for approval',
-          requestId: response?.requestId
+          message: isEditing ? 'Configuration updated' : 'Configuration created',
+          type: 'success',
         });
       }
 
       await loadData();
       await loadPendingApprovals();
       setIsDialogOpen(false);
-      setFormData({});
+      setFormData(createEmptyFormData());
+      setFormErrors({});
       setSelectedConfig(null);
     } catch (err) {
       console.error('Save failed:', err);
-      setError('Failed to save configuration.');
+      setError(err instanceof Error ? err.message : 'Failed to save configuration.');
     } finally {
       setLoading(false);
     }
@@ -212,21 +223,20 @@ export default function EADSetupPage() {
     if (!canManageEadSetup) return;
     if (!confirm('Are you sure you want to delete this configuration?')) return;
     setLoading(true);
+    setError(null);
     try {
       const response = await api.banking.eadConfigurations.delete(String(id));
       const isApprovalResponse = response?.approvalRequired || response?.status === 202;
       if (isApprovalResponse) {
-        setApprovalNotification({
-          open: true,
-          message: response?.message || 'Deletion request submitted for approval',
-          requestId: response?.requestId
-        });
+        setApprovalNotification(buildApprovalNotification(response, 'Deletion request submitted for approval'));
+      } else {
+        setSnackbar({ open: true, message: 'Configuration deleted', type: 'success' });
       }
       await loadData();
       await loadPendingApprovals();
     } catch (err) {
       console.error('Delete failed:', err);
-      setError('Failed to delete configuration.');
+      setError(err instanceof Error ? err.message : 'Failed to delete configuration.');
     } finally {
       setLoading(false);
     }
@@ -263,6 +273,7 @@ export default function EADSetupPage() {
           key="edit"
           icon={<EditIcon color="primary" />}
           label="Edit"
+          data-testid="edit-ead-config-btn"
           onClick={() => {
             setSelectedConfig(params.row);
             setFormData(params.row);
@@ -274,6 +285,7 @@ export default function EADSetupPage() {
           key="delete"
           icon={<DeleteIcon color="error" />}
           label="Delete"
+          data-testid="delete-ead-config-btn"
           onClick={() => handleDelete(params.row.id!)}
         />
       ] : []
@@ -295,21 +307,26 @@ export default function EADSetupPage() {
       <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Typography variant="h4" component="h1">EAD Setup Management</Typography>
         <Box>
-          <Button startIcon={<RefreshIcon />} onClick={loadData} disabled={loading} sx={{ mr: 1 }}>Refresh</Button>
+          <Button startIcon={<RefreshIcon />} onClick={loadData} disabled={loading} sx={{ mr: 1 }} data-testid="refresh-ead-btn">Refresh</Button>
           {canManageEadSetup && (
             <Button variant="contained" startIcon={<AddIcon />} onClick={() => {
               setSelectedConfig(null);
-              setFormData({
-                is_active: true,
-                ead_method: 'CCF',
-                calc_method: 'Revolving'
-              });
+              setFormData(createEmptyFormData());
+              setFormErrors({});
               setIsEditing(false);
               setIsDialogOpen(true);
-            }}>Add Configuration</Button>
+            }} data-testid="add-ead-config-btn">Add Configuration</Button>
           )}
         </Box>
       </Box>
+
+      {snackbar.open && (
+        <Snackbar sx={{ mb: 2 }} open={snackbar.open} autoHideDuration={6000} onClose={() => setSnackbar({ ...snackbar, open: false })}>
+          <Alert severity={snackbar.type} onClose={() => setSnackbar({ ...snackbar, open: false })}>
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
+      )}
 
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
 
@@ -320,6 +337,7 @@ export default function EADSetupPage() {
             label="Search"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            data-testid="search-ead-input"
             InputProps={{ startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} /> }}
           />
         </CardContent>
@@ -348,6 +366,7 @@ export default function EADSetupPage() {
               onChange={(e) => setFormData({ ...formData, model_name: e.target.value })}
               error={!!formErrors.model_name}
               helperText={formErrors.model_name}
+              data-testid="ead-model-name-input"
             />
             <FormControl fullWidth error={!!formErrors.segment_id}>
               <InputLabel>Population Segment</InputLabel>
@@ -355,6 +374,7 @@ export default function EADSetupPage() {
                 value={formData.segment_id || ''}
                 label="Population Segment"
                 onChange={(e) => setFormData({ ...formData, segment_id: Number(e.target.value) })}
+                data-testid="ead-segment-select"
               >
                 {populationSegments.map(s => (
                   <MenuItem key={s.id} value={s.id}>{s.segment_name}</MenuItem>
@@ -368,9 +388,10 @@ export default function EADSetupPage() {
             <FormControl fullWidth error={!!formErrors.ead_method}>
               <InputLabel>EAD Method</InputLabel>
               <Select
-                value={formData.ead_method || 'CCF'}
+                value={formData.ead_method || ''}
                 label="EAD Method"
                 onChange={(e) => setFormData({ ...formData, ead_method: e.target.value })}
+                data-testid="ead-method-select"
               >
                 {methodOptions.map((m, idx) => <MenuItem key={`${m.value}-${idx}`} value={m.value}>{m.label}</MenuItem>)}
               </Select>
@@ -382,9 +403,10 @@ export default function EADSetupPage() {
             <FormControl fullWidth error={!!formErrors.calc_method}>
               <InputLabel>Calc Method</InputLabel>
               <Select
-                value={formData.calc_method || 'Revolving'}
+                value={formData.calc_method || ''}
                 label="Calc Method"
                 onChange={(e) => setFormData({ ...formData, calc_method: e.target.value })}
+                data-testid="ead-calc-method-select"
               >
                 {calcMethodOptions.map((m, idx) => <MenuItem key={`${m.value}-${idx}`} value={m.value}>{m.label}</MenuItem>)}
               </Select>
@@ -395,7 +417,7 @@ export default function EADSetupPage() {
 
             <Box sx={{ gridColumn: 'span 2' }}>
               <FormControlLabel
-                control={<Switch checked={!!formData.is_active} onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })} />}
+                control={<Switch checked={!!formData.is_active} onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })} data-testid="ead-active-switch" />}
                 label="Active"
               />
             </Box>
@@ -403,9 +425,12 @@ export default function EADSetupPage() {
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+          <Button onClick={() => {
+            setIsDialogOpen(false);
+            setFormErrors({});
+          }} data-testid="cancel-ead-config-btn">Cancel</Button>
           {canManageEadSetup && (
-            <Button variant="contained" onClick={handleSave} disabled={loading}>{selectedConfig ? 'Update' : 'Create'}</Button>
+            <Button variant="contained" onClick={handleSave} disabled={loading} data-testid="save-ead-config-btn">{selectedConfig ? 'Update' : 'Create'}</Button>
           )}
         </DialogActions>
       </Dialog>
@@ -413,7 +438,9 @@ export default function EADSetupPage() {
         open={approvalNotification.open}
         message={approvalNotification.message}
         requestId={approvalNotification.requestId}
-        onClose={() => setApprovalNotification({ ...approvalNotification, open: false })}
+        actionLabel={canOpenApprovalInbox ? 'Open Approval' : undefined}
+        actionHref={canOpenApprovalInbox ? (approvalNotification.requestId ? `/banking/maintenance/approval?requestId=${encodeURIComponent(approvalNotification.requestId)}` : '/banking/maintenance/approval') : undefined}
+        onClose={() => setApprovalNotification(createClosedApprovalNotification())}
       />
       <FullstackIndicator />
     </Container>

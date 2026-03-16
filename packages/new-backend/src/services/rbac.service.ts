@@ -28,14 +28,13 @@ import { PermissionApprovalService } from './permission-approval.service'
  * Retrieve all roles for a given tenant.
  * 
  * @param tenantId - The unique identifier of the tenant
- * @param options - Optional filters (includeInactive, bankingType)
+ * @param options - Optional filters (includeInactive, search, type, level)
  * @returns An Effect that succeeds with an array of Roles
  */
 export const getRoles = (
     tenantId: string,
     options?: {
         includeInactive?: boolean;
-        bankingType?: string;
         search?: string;
         type?: string;
         level?: string;
@@ -47,7 +46,6 @@ export const getRoles = (
         Effect.flatMap(db =>
             rolesRepository.findByTenant(db, tenantId, {
                 includeInactive: options?.includeInactive,
-                bankingType: options?.bankingType,
                 search: options?.search,
                 systemRolesOnly: options?.type === 'SYSTEM'
             })

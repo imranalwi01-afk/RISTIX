@@ -42,6 +42,7 @@ export const ifrs9ReportsController = {
                     total: result.total,
                     totalPages: result.totalPages
                 },
+                effectivePrcDate: result.effectivePrcDate,
                 message: result.total === 0 ? "No Lifetime PD Data available" : undefined
             });
         } catch (error: any) {
@@ -79,6 +80,7 @@ export const ifrs9ReportsController = {
                     total: result.total,
                     totalPages: result.totalPages
                 },
+                effectivePrcDate: result.effectivePrcDate,
                 message: result.total === 0 ? "No Lifetime PD Monthly Data available" : undefined
             });
         } catch (error: any) {
@@ -113,6 +115,7 @@ export const ifrs9ReportsController = {
                     total: result.total,
                     totalPages: result.totalPages
                 },
+                effectivePrcDate: result.effectivePrcDate,
                 message: result.total === 0 ? "No Lifetime PD Account Details available" : undefined
             });
         } catch (error: any) {
@@ -132,12 +135,14 @@ export const ifrs9ReportsController = {
             const lgd_config_id = c.req.query('lgd_config_id') ? Number(c.req.query('lgd_config_id')) : 1;
             const lgd_method = c.req.query('lgd_method') ? Number(c.req.query('lgd_method')) : undefined;
             const model_id = c.req.query('model_id') ? Number(c.req.query('model_id')) : undefined;
+            const segment_id = c.req.query('segment_id') ? Number(c.req.query('segment_id')) : undefined;
+            const fl_flag = c.req.query('fl_flag') === 'true' ? true : c.req.query('fl_flag') === 'false' ? false : undefined;
 
             const result = await ifrs9ReportsService.getLifetimeLGDDetail(
                 tenantId,
                 page,
                 limit,
-                { prc_date, lgd_config_id, lgd_method, model_id }
+                { prc_date, lgd_config_id, lgd_method, model_id, segment_id, fl_flag }
             );
 
             return c.json({
@@ -149,6 +154,7 @@ export const ifrs9ReportsController = {
                     total: result.total,
                     totalPages: result.totalPages
                 },
+                effectivePrcDate: result.effectivePrcDate,
                 message: result.total === 0 ? "No Lifetime LGD Data available" : undefined
             });
         } catch (error: any) {
@@ -199,10 +205,11 @@ export const ifrs9ReportsController = {
             // Extract filter parameters
             const prc_date = c.req.query('prc_date') || '2023-12-31';
             const ead_config_id = c.req.query('ead_config_id') ? Number(c.req.query('ead_config_id')) : undefined;
+            const segment_id = c.req.query('segment_id') ? Number(c.req.query('segment_id')) : undefined;
 
             const result = await ifrs9ReportsService.getEADModelSummary(
                 tenantId,
-                { prc_date, ead_config_id }
+                { prc_date, ead_config_id, segment_id }
             );
 
             return c.json({
@@ -243,6 +250,7 @@ export const ifrs9ReportsController = {
                     total: result.total,
                     totalPages: result.totalPages
                 },
+                effectivePrcDate: result.effectivePrcDate,
                 message: result.total === 0 ? "No ECL Result Data available" : undefined
             });
         } catch (error: any) {
@@ -304,6 +312,7 @@ export const ifrs9ReportsController = {
             const prc_date = c.req.query('prc_date') || '2023-12-31';
             const download_start_date = c.req.query('download_start_date') || undefined;
             const download_end_date = c.req.query('download_end_date') || undefined;
+            const group_segment = c.req.queries('group_segment') || (c.req.query('group_segment') ? [c.req.query('group_segment')!] : undefined);
             const segment = c.req.queries('segment') || (c.req.query('segment') ? [c.req.query('segment')!] : undefined);
             const stage = c.req.queries('stage') || (c.req.query('stage') ? [c.req.query('stage')!] : undefined);
             const branch_code = c.req.queries('branch_code') || (c.req.query('branch_code') ? [c.req.query('branch_code')!] : undefined);
@@ -311,7 +320,7 @@ export const ifrs9ReportsController = {
                 tenantId,
                 page,
                 limit,
-                { prc_date, download_start_date, download_end_date, segment, stage, branch_code }
+                { prc_date, download_start_date, download_end_date, group_segment, segment, stage, branch_code }
             );
             return c.json({
                 success: true,

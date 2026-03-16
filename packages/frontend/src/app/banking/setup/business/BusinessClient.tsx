@@ -31,7 +31,14 @@ import PageHeader from '@/components/banking/shared/PageHeader';
 import EmptyState from '@/components/banking/shared/EmptyState';
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 import { GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
-import { ApprovalStatusBadge, PendingChangesDialog } from '@/components/approval';
+import {
+    ApprovalNotification,
+    ApprovalStatusBadge,
+    PendingChangesDialog,
+    buildApprovalNotification,
+    createClosedApprovalNotification,
+    type ApprovalNotificationState,
+} from '@/components/approval';
 import { usePermission } from '@/hooks/usePermission';
 
 // =====================================================
@@ -166,10 +173,10 @@ const BusinessDetailPanel = ({ row, onEditDetail, onDeleteDetail, onAddDetail, r
                                     <TableCell align="right">
                                         {canManage && (
                                             <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                                                <IconButton size="small" color="primary" onClick={() => onEditDetail(detail)} sx={{ p: 0.5 }}>
+                                                <IconButton size="small" color="primary" onClick={() => onEditDetail(detail)} sx={{ p: 0.5 }} data-testid="btn-edit-detail">
                                                     <EditIcon sx={{ fontSize: 18 }} />
                                                 </IconButton>
-                                                <IconButton size="small" color="error" onClick={() => onDeleteDetail(detail, loadDetails)} sx={{ p: 0.5 }}>
+                                                <IconButton size="small" color="error" onClick={() => onDeleteDetail(detail, loadDetails)} sx={{ p: 0.5 }} data-testid="btn-delete-detail">
                                                     <DeleteIcon sx={{ fontSize: 18 }} />
                                                 </IconButton>
                                             </Box>
@@ -240,18 +247,18 @@ const DetailDialog: React.FC<{
             <DialogContent sx={{ mt: 2 }}>
                 <Grid container spacing={2}>
                     <Grid size={{ xs: 12 }}><Typography variant="caption">Param Code: <strong>{paramCode}</strong></Typography></Grid>
-                    <Grid size={{ xs: 12, md: 6 }}><TextField fullWidth label="Sequence" type="number" value={formData.param_seq} onChange={e => setFormData({ ...formData, param_seq: parseInt(e.target.value) || 1 })} /></Grid>
+                    <Grid size={{ xs: 12, md: 6 }}><TextField fullWidth label="Sequence" type="number" value={formData.param_seq} onChange={e => setFormData({ ...formData, param_seq: parseInt(e.target.value) || 1 })} inputProps={{ 'data-testid': 'input-detail-seq' }} /></Grid>
                     <Grid size={{ xs: 12, md: 6 }} />
-                    <Grid size={{ xs: 12 }}><TextField fullWidth label="Value 1" value={formData.value1} onChange={e => setFormData({ ...formData, value1: e.target.value })} /></Grid>
-                    <Grid size={{ xs: 12, md: 6 }}><TextField fullWidth label="Value 2" value={formData.value2} onChange={e => setFormData({ ...formData, value2: e.target.value })} /></Grid>
-                    <Grid size={{ xs: 12, md: 6 }}><TextField fullWidth label="Value 3" value={formData.value3} onChange={e => setFormData({ ...formData, value3: e.target.value })} /></Grid>
-                    <Grid size={{ xs: 12 }}><TextField fullWidth multiline rows={2} label="Description" value={formData.paramdesc} onChange={e => setFormData({ ...formData, paramdesc: e.target.value })} /></Grid>
+                    <Grid size={{ xs: 12 }}><TextField fullWidth label="Value 1" value={formData.value1} onChange={e => setFormData({ ...formData, value1: e.target.value })} inputProps={{ 'data-testid': 'input-detail-value1' }} /></Grid>
+                    <Grid size={{ xs: 12, md: 6 }}><TextField fullWidth label="Value 2" value={formData.value2} onChange={e => setFormData({ ...formData, value2: e.target.value })} inputProps={{ 'data-testid': 'input-detail-value2' }} /></Grid>
+                    <Grid size={{ xs: 12, md: 6 }}><TextField fullWidth label="Value 3" value={formData.value3} onChange={e => setFormData({ ...formData, value3: e.target.value })} inputProps={{ 'data-testid': 'input-detail-value3' }} /></Grid>
+                    <Grid size={{ xs: 12 }}><TextField fullWidth multiline rows={2} label="Description" value={formData.paramdesc} onChange={e => setFormData({ ...formData, paramdesc: e.target.value })} inputProps={{ 'data-testid': 'input-detail-desc' }} /></Grid>
                 </Grid>
                 {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
             </DialogContent>
             <DialogActions>
                 <Button onClick={onClose}>Cancel</Button>
-                <Button onClick={handleSubmit} variant="contained">Save</Button>
+                <Button onClick={handleSubmit} variant="contained" data-testid="btn-submit-detail">Save</Button>
             </DialogActions>
         </Dialog>
     );
@@ -297,6 +304,7 @@ const BusinessParameterDialog: React.FC<{
                             disabled={!!parameter}
                             placeholder="e.g., B0001"
                             required
+                            inputProps={{ 'data-testid': 'input-param-code' }}
                         />
                     </Grid>
                     <Grid size={{ xs: 12 }}>
@@ -307,7 +315,33 @@ const BusinessParameterDialog: React.FC<{
                             onChange={e => setFormData({ ...formData, param_desc: e.target.value })}
                             placeholder="Enter parameter description"
                             required
+                            inputProps={{ 'data-testid': 'input-param-desc' }}
                         />
+                    </Grid>
+                    <Grid size={{ xs: 12 }}>
+                        <TextField
+                            fullWidth
+                            label="Value"
+                            value={formData.param_value}
+                            onChange={e => setFormData({ ...formData, param_value: e.target.value })}
+                            placeholder="Enter parameter value"
+                            inputProps={{ 'data-testid': 'input-param-value' }}
+                        />
+                    </Grid>
+                    <Grid size={{ xs: 12 }}>
+                        <FormControl fullWidth>
+                            <InputLabel>Category</InputLabel>
+                            <Select
+                                value={formData.param_category}
+                                onChange={e => setFormData({ ...formData, param_category: e.target.value })}
+                                label="Category"
+                                inputProps={{ 'data-testid': 'select-param-category' }}
+                            >
+                                <MenuItem value="B">Business</MenuItem>
+                                <MenuItem value="A">Application</MenuItem>
+                                <MenuItem value="S">System</MenuItem>
+                            </Select>
+                        </FormControl>
                     </Grid>
                     <Grid size={{ xs: 12 }}>
                         <FormControlLabel
@@ -324,7 +358,7 @@ const BusinessParameterDialog: React.FC<{
             </DialogContent>
             <DialogActions>
                 <Button onClick={onClose}>Cancel</Button>
-                <Button onClick={() => onSave(formData)} variant="contained">{parameter ? 'Update' : 'Create'}</Button>
+                <Button onClick={() => onSave(formData)} variant="contained" data-testid="btn-submit-business-setting">{parameter ? 'Update' : 'Create'}</Button>
             </DialogActions>
         </Dialog>
     );
@@ -337,6 +371,7 @@ const BusinessParameterDialog: React.FC<{
 
 export default function BusinessClient() {
     const { hasAnyPermission } = usePermission();
+    const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all', 'admin.super_admin']);
     const canViewBusiness = hasAnyPermission(['banking.setup.business.view', 'banking.setup.business.manage', 'banking.setup.business', 'admin.super_admin']);
     const canManageBusiness = hasAnyPermission(['banking.setup.business.manage', 'banking.setup.business.create', 'banking.setup.business.update', 'banking.setup.business.delete', 'admin.super_admin']);
 
@@ -344,6 +379,7 @@ export default function BusinessClient() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
+    const [approvalNotification, setApprovalNotification] = useState<ApprovalNotificationState>(createClosedApprovalNotification());
 
     // Pagination State (Segmentation Pattern)
     const [page, setPage] = useState(0);
@@ -448,7 +484,7 @@ export default function BusinessClient() {
             if (editingParameter) {
                 const result = await api.banking.businessSetup.update(editingParameter.param_code, payload);
                 if (result.approvalRequired) {
-                    setSuccess('Update submitted for approval');
+                    setApprovalNotification(buildApprovalNotification(result, 'Update submitted for approval'));
                 } else {
                     setSuccess('Updated successfully');
                 }
@@ -460,7 +496,7 @@ export default function BusinessClient() {
                 }
                 const result = await api.banking.businessSetup.create(payload);
                 if (result.approvalRequired) {
-                    setSuccess('Creation submitted for approval');
+                    setApprovalNotification(buildApprovalNotification(result, 'Creation submitted for approval'));
                 } else {
                     setSuccess('Created successfully');
                 }
@@ -476,7 +512,7 @@ export default function BusinessClient() {
         try {
             const result = await api.banking.businessSetup.delete(row.param_code);
             if (result.approvalRequired) {
-                setSuccess('Deletion submitted for approval');
+                setApprovalNotification(buildApprovalNotification(result, 'Deletion submitted for approval'));
             } else {
                 setSuccess('Deleted successfully');
             }
@@ -496,16 +532,25 @@ export default function BusinessClient() {
             };
 
             if (editingDetail) {
-                await api.banking.businessSetup.updateDetail(parseInt(editingDetail.pkid || '0'), payload);
+                const result = await api.banking.businessSetup.updateDetail(parseInt(editingDetail.pkid || '0'), payload);
+                if (result?.approvalRequired) {
+                    setApprovalNotification(buildApprovalNotification(result, 'Detail update submitted for approval'));
+                } else {
+                    setSuccess('Detail updated successfully');
+                }
             } else {
                 // Note: BusinessClient doesn't have a shared list of details for the current header 
                 // at the component level to check for duplicates easily without extra state.
                 // However, the backend format fix now ensures that if the server rejects it,
                 // the error notification will correctly display "Sequence already exists" 
                 // or "data already exist".
-                await api.banking.businessSetup.createDetail(currentDetailParamCode, payload);
+                const result = await api.banking.businessSetup.createDetail(currentDetailParamCode, payload);
+                if (result?.approvalRequired) {
+                    setApprovalNotification(buildApprovalNotification(result, 'Detail creation submitted for approval'));
+                } else {
+                    setSuccess('Detail created successfully');
+                }
             }
-            setSuccess('Detail saved');
             setDetailDialogOpen(false);
             setDetailRefreshTrigger(prev => prev + 1);
         } catch (e) {
@@ -518,8 +563,12 @@ export default function BusinessClient() {
         if (!canManageBusiness) return;
         if (!confirm('Delete detail?')) return;
         try {
-            await api.banking.businessSetup.deleteDetail(parseInt(detail.pkid || '0'));
-            setSuccess('Detail deleted');
+            const result = await api.banking.businessSetup.deleteDetail(parseInt(detail.pkid || '0'));
+            if (result?.approvalRequired) {
+                setApprovalNotification(buildApprovalNotification(result, 'Detail deletion submitted for approval'));
+            } else {
+                setSuccess('Detail deleted successfully');
+            }
             setDetailRefreshTrigger(prev => prev + 1);
         } catch (e) { setError(handleAPIError(e).message); }
     };
@@ -554,7 +603,7 @@ export default function BusinessClient() {
         {
             field: 'actions', headerName: 'Actions', type: 'actions', width: 100, align: 'right', headerAlign: 'right', getActions: (p) => canManageBusiness ? [
                 <SafeGridActionsCellItem key="e" label="Edit" icon={<EditIcon fontSize="small" />} onClick={() => { setEditingParameter(p.row); setParamDialogOpen(true); }} data-testid="btn-edit-business-setting" />,
-                <SafeGridActionsCellItem key="d" label="Delete" icon={<DeleteIcon fontSize="small" color="error" />} onClick={() => handleDeleteParameter(p.row)} />
+                <SafeGridActionsCellItem key="d" label="Delete" icon={<DeleteIcon fontSize="small" color="error" />} onClick={() => handleDeleteParameter(p.row)} data-testid="btn-delete-business-setting" />
             ] : []
         }
     ];
@@ -661,6 +710,14 @@ export default function BusinessClient() {
             />
 
             <Snackbar open={!!success} autoHideDuration={4000} onClose={() => setSuccess(null)}><Alert severity="success">{success}</Alert></Snackbar>
+            <ApprovalNotification
+                open={approvalNotification.open}
+                message={approvalNotification.message}
+                requestId={approvalNotification.requestId}
+                actionLabel={canOpenApprovalInbox ? 'Open Approval' : undefined}
+                actionHref={canOpenApprovalInbox ? (approvalNotification.requestId ? `/banking/maintenance/approval?requestId=${encodeURIComponent(approvalNotification.requestId)}` : '/banking/maintenance/approval') : undefined}
+                onClose={() => setApprovalNotification(createClosedApprovalNotification())}
+            />
             <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError(null)}><Alert severity="error">{error}</Alert></Snackbar>
         </Container>
     );

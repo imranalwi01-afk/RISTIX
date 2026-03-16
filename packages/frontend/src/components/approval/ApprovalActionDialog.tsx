@@ -65,8 +65,8 @@ export const ApprovalActionDialog: React.FC<ApprovalActionDialogProps> = ({
                     });
                     break;
                 case 'request_info':
-                    onError('Request Info action is not fully supported yet by backend', 'warning');
-                    return;
+                    response = await bankingAPI.approval.requestInfo(request.id, { comment: reason });
+                    break;
             }
 
             // Helper to extract result from flexible API responses
@@ -129,7 +129,7 @@ export const ApprovalActionDialog: React.FC<ApprovalActionDialogProps> = ({
     const isSubmitDisabled = submitting || !reason.trim() || (action === 'delegate' && !delegateTo.trim());
 
     return (
-        <Dialog open={open} onClose={() => !submitting && onClose()} maxWidth="sm" fullWidth>
+        <Dialog open={open} onClose={() => !submitting && onClose()} maxWidth="sm" fullWidth data-testid="approval-action-dialog">
             <DialogTitle>{getTitle()}</DialogTitle>
             <DialogContent>
                 <Box sx={{ mt: 1 }}>
@@ -148,6 +148,7 @@ export const ApprovalActionDialog: React.FC<ApprovalActionDialogProps> = ({
                         required
                         autoFocus
                         disabled={submitting}
+                        slotProps={{ htmlInput: { 'data-testid': 'approval-action-reason-input' } }}
                     />
 
                     {action === 'delegate' && (
@@ -159,12 +160,13 @@ export const ApprovalActionDialog: React.FC<ApprovalActionDialogProps> = ({
                             sx={{ mt: 2 }}
                             required
                             disabled={submitting}
+                            slotProps={{ htmlInput: { 'data-testid': 'approval-action-delegate-input' } }}
                         />
                     )}
                 </Box>
             </DialogContent>
             <DialogActions sx={{ px: 3, pb: 2 }}>
-                <Button onClick={onClose} disabled={submitting}>
+                <Button onClick={onClose} disabled={submitting} data-testid="approval-action-cancel-button">
                     Cancel
                 </Button>
                 <Button
@@ -172,6 +174,7 @@ export const ApprovalActionDialog: React.FC<ApprovalActionDialogProps> = ({
                     variant="contained"
                     disabled={isSubmitDisabled}
                     color={action === 'reject' ? 'error' : 'primary'}
+                    data-testid="approval-action-submit-button"
                 >
                     {submitting ? 'Submitting...' : 'Submit'}
                 </Button>

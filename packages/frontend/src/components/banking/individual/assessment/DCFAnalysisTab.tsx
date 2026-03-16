@@ -71,6 +71,12 @@ export function DCFAnalysisTab({ account, assessment, onCalculate, loading, calc
   ]);
 
   const [activeScenario, setActiveScenario] = useState('base');
+
+  const parseFiniteNumber = React.useCallback((rawValue: string, fallback: number) => {
+    if (rawValue.trim() === '') return 0;
+    const parsed = Number(rawValue);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }, []);
   
   // Load scenarios from API
   React.useEffect(() => {
@@ -202,7 +208,7 @@ export function DCFAnalysisTab({ account, assessment, onCalculate, loading, calc
                   label="Discount Rate (%)"
                   type="number"
                   value={parameters.discountRate}
-                  onChange={(e) => handleParameterChange('discountRate', parseFloat(e.target.value))}
+                  onChange={(e) => handleParameterChange('discountRate', parseFiniteNumber(e.target.value, parameters.discountRate))}
                   inputProps={{ step: 0.1, min: 0, max: 100 }}
                   size="small"
                   helperText="Annual discount rate for present value calculation"
@@ -212,7 +218,7 @@ export function DCFAnalysisTab({ account, assessment, onCalculate, loading, calc
                   label="Recovery Rate (%)"
                   type="number"
                   value={parameters.recoveryRate}
-                  onChange={(e) => handleParameterChange('recoveryRate', parseFloat(e.target.value))}
+                  onChange={(e) => handleParameterChange('recoveryRate', parseFiniteNumber(e.target.value, parameters.recoveryRate))}
                   inputProps={{ step: 1, min: 0, max: 100 }}
                   size="small"
                   helperText="Expected recovery rate of outstanding balance"
@@ -222,7 +228,7 @@ export function DCFAnalysisTab({ account, assessment, onCalculate, loading, calc
                   label="Growth Rate (%)"
                   type="number"
                   value={parameters.projectedGrowthRate}
-                  onChange={(e) => handleParameterChange('projectedGrowthRate', parseFloat(e.target.value))}
+                  onChange={(e) => handleParameterChange('projectedGrowthRate', parseFiniteNumber(e.target.value, parameters.projectedGrowthRate))}
                   inputProps={{ step: 0.1, min: -10, max: 20 }}
                   size="small"
                   helperText="Projected cash flow growth rate"
@@ -232,7 +238,7 @@ export function DCFAnalysisTab({ account, assessment, onCalculate, loading, calc
                   label="Time Horizon (months)"
                   type="number"
                   value={parameters.timeHorizon}
-                  onChange={(e) => handleParameterChange('timeHorizon', parseInt(e.target.value))}
+                  onChange={(e) => handleParameterChange('timeHorizon', Math.max(0, Math.trunc(parseFiniteNumber(e.target.value, parameters.timeHorizon))))}
                   inputProps={{ step: 1, min: 1, max: 360 }}
                   size="small"
                   helperText="Analysis period in months"

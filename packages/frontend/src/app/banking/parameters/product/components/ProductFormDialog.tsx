@@ -207,7 +207,7 @@ const ProductFormDialog = memo(function ProductFormDialog({
             disabled={isEdit}
             error={Boolean(errors.prdCode)}
             helperText={errors.prdCode}
-            slotProps={{ htmlInput: { maxLength: 50 } }}
+            slotProps={{ htmlInput: { maxLength: 50, 'data-testid': 'input-product-code' } }}
           />
 
           <TextField
@@ -218,6 +218,7 @@ const ProductFormDialog = memo(function ProductFormDialog({
             fullWidth
             error={Boolean(errors.dataSource)}
             helperText={withSourceHelper(errors.dataSource, 'B0028')}
+            SelectProps={{ inputProps: { 'data-testid': 'select-product-data-source' } }}
           >
             {dataSourceOptions.length > 0 ? (
               dataSourceOptions.map((option) => (
@@ -240,7 +241,7 @@ const ProductFormDialog = memo(function ProductFormDialog({
             error={Boolean(errors.prdDesc)}
             helperText={errors.prdDesc}
             sx={{ gridColumn: '1 / -1' }}
-            slotProps={{ htmlInput: { maxLength: 255 } }}
+            slotProps={{ htmlInput: { maxLength: 255, 'data-testid': 'input-product-desc' } }}
           />
 
           <TextField
@@ -251,6 +252,7 @@ const ProductFormDialog = memo(function ProductFormDialog({
             fullWidth
             error={Boolean(errors.prdGroup)}
             helperText={withSourceHelper(errors.prdGroup, 'B0029')}
+            SelectProps={{ inputProps: { 'data-testid': 'select-product-group' } }}
           >
             {productGroupOptions.length > 0 ? (
               productGroupOptions.map((option) => (
@@ -273,6 +275,7 @@ const ProductFormDialog = memo(function ProductFormDialog({
             fullWidth
             error={Boolean(errors.prdType)}
             helperText={withSourceHelper(errors.prdType, 'B0030')}
+            SelectProps={{ inputProps: { 'data-testid': 'select-product-type' } }}
           >
             {productTypeOptions.length > 0 ? (
               productTypeOptions.map((option) => (
@@ -295,6 +298,7 @@ const ProductFormDialog = memo(function ProductFormDialog({
             fullWidth
             error={Boolean(errors.currency)}
             helperText={withSourceHelper(errors.currency, 'B0001')}
+            SelectProps={{ inputProps: { 'data-testid': 'select-product-currency' } }}
           >
             {currencyOptions.length > 0 ? (
               currencyOptions.map((option) => (
@@ -316,6 +320,7 @@ const ProductFormDialog = memo(function ProductFormDialog({
             onChange={handleFieldChange('alFlag')}
             fullWidth
             helperText="Source: Business Setting B0003"
+            SelectProps={{ inputProps: { 'data-testid': 'select-product-instrument-class' } }}
           >
             {instrumentClassOptions.length > 0 ? (
               instrumentClassOptions.map((option) => (
@@ -338,6 +343,7 @@ const ProductFormDialog = memo(function ProductFormDialog({
             fullWidth
             sx={{ gridColumn: '1 / -1' }}
             helperText="Source: Business Setting B0002"
+            SelectProps={{ inputProps: { 'data-testid': 'select-product-amortization-type' } }}
           >
             {amortizationOptions.length > 0 ? (
               amortizationOptions.map((option) => (
@@ -399,7 +405,7 @@ const ProductFormDialog = memo(function ProductFormDialog({
         <Button onClick={onClose} disabled={loading || isExternalLoading}>
           Cancel
         </Button>
-        <Button onClick={handleSubmit} variant="contained" disabled={loading || isExternalLoading}>
+        <Button onClick={handleSubmit} variant="contained" disabled={loading || isExternalLoading} data-testid="btn-submit-product">
           {loading || isExternalLoading ? 'Saving...' : isEdit ? 'Update Product' : 'Save Product'}
         </Button>
       </DialogActions>

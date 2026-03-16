@@ -1,4 +1,5 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
+import { Effect, pipe } from 'effect'
 import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
 import { PdConfigurationsService } from '../services/pd-configurations.service'
@@ -234,14 +235,21 @@ app.openapi(
 
         if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
 
-        const effect = interceptUpdate(
-            tenantId,
-            userId,
-            userPermissions,
-            'pd_configuration',
-            id.toString(),
-            data,
-            () => PdConfigurationsService.update(id, data, userId) as any
+        const effect = pipe(
+            PdConfigurationsService.get(id) as Effect.Effect<any, any>,
+            Effect.flatMap((oldValues) =>
+                interceptUpdate(
+                    tenantId,
+                    userId,
+                    userPermissions,
+                    'pd_configuration',
+                    id.toString(),
+                    data,
+                    () => PdConfigurationsService.update(id, data, userId) as any,
+                    'medium',
+                    oldValues
+                )
+            )
         )
         return runEffect(c, effect, (result: any) => result.approvalRequired ? 202 : 200)
     }
@@ -278,13 +286,20 @@ app.openapi(
 
         if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
 
-        const effect = interceptDelete(
-            tenantId,
-            userId,
-            userPermissions,
-            'pd_configuration',
-            id.toString(),
-            () => PdConfigurationsService.delete(id) as any
+        const effect = pipe(
+            PdConfigurationsService.get(id) as Effect.Effect<any, any>,
+            Effect.flatMap((oldValues) =>
+                interceptDelete(
+                    tenantId,
+                    userId,
+                    userPermissions,
+                    'pd_configuration',
+                    id.toString(),
+                    () => PdConfigurationsService.delete(id) as any,
+                    'high',
+                    oldValues
+                )
+            )
         )
         return runEffect(c, effect, (result: any) => result.approvalRequired ? 202 : 200)
     }

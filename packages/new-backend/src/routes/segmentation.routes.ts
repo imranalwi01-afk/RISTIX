@@ -1,5 +1,5 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
-import { Effect } from 'effect'
+import { Effect, pipe } from 'effect'
 import { legacyDb as db } from '../config'
 import { frs9ParamSegmenth, frs9ParamSegmentd, frs9ParamCommond } from '../db/schema'
 import { eq, desc, asc, sql, and, or, ilike } from 'drizzle-orm'
@@ -7,6 +7,7 @@ import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
 import { interceptCreate, interceptUpdate, interceptDelete } from '../middleware/approval-interceptor.middleware'
 import { runEffect, handleEffectError } from '../lib/effect/runtime'
+import type { ApprovalResponse } from '../lib/approval-helpers'
 
 export const segmentationRoutes: any = new OpenAPIHono<AppContext>()
 
@@ -77,6 +78,84 @@ const ApprovalWorkflowResponse = z.object({
     data: z.any().optional(),
     message: z.string().optional()
 }).openapi('ApprovalWorkflowResponse')
+
+const getSegmentHeaderSnapshot = (id: number) =>
+    Effect.tryPromise({
+        try: async () => {
+            const [header] = await db
+                .select({
+                    id: frs9ParamSegmenth.pkid,
+                    group_segment: frs9ParamSegmenth.groupSegment,
+                    segment: frs9ParamSegmenth.segment,
+                    sub_segment: frs9ParamSegmenth.subSegment,
+                    segment_type: frs9ParamSegmenth.segmentType,
+                    seq: frs9ParamSegmenth.seq,
+                    active_flag: frs9ParamSegmenth.activeFlag,
+                    createdby: frs9ParamSegmenth.createdby,
+                    createddate: frs9ParamSegmenth.createddate,
+                    updatedby: frs9ParamSegmenth.updatedby,
+                    updateddate: frs9ParamSegmenth.updateddate
+                })
+                .from(frs9ParamSegmenth)
+                .where(eq(frs9ParamSegmenth.pkid, id))
+
+            if (!header) {
+                throw new Error('Segmentation header not found')
+            }
+
+            const details = await db.select({
+                id: frs9ParamSegmentd.pkid,
+                segment_id: frs9ParamSegmentd.segmentId,
+                query_group: frs9ParamSegmentd.queryGroup,
+                seq: frs9ParamSegmentd.seq,
+                table_name: frs9ParamSegmentd.tableName,
+                column_name: frs9ParamSegmentd.columnName,
+                data_type: frs9ParamSegmentd.dataType,
+                operator: frs9ParamSegmentd.operator,
+                value1: frs9ParamSegmentd.value1,
+                value2: frs9ParamSegmentd.value2,
+                condition: frs9ParamSegmentd.condition
+            })
+                .from(frs9ParamSegmentd)
+                .where(eq(frs9ParamSegmentd.segmentId, id))
+                .orderBy(asc(frs9ParamSegmentd.seq))
+
+            return { ...header, details }
+        },
+        catch: (error) => error
+    })
+
+const getSegmentDetailSnapshot = (detailId: number) =>
+    Effect.tryPromise({
+        try: async () => {
+            const [detail] = await db.select({
+                id: frs9ParamSegmentd.pkid,
+                segment_id: frs9ParamSegmentd.segmentId,
+                query_group: frs9ParamSegmentd.queryGroup,
+                seq: frs9ParamSegmentd.seq,
+                table_name: frs9ParamSegmentd.tableName,
+                column_name: frs9ParamSegmentd.columnName,
+                data_type: frs9ParamSegmentd.dataType,
+                operator: frs9ParamSegmentd.operator,
+                value1: frs9ParamSegmentd.value1,
+                value2: frs9ParamSegmentd.value2,
+                condition: frs9ParamSegmentd.condition,
+                createdby: frs9ParamSegmentd.createdby,
+                createddate: frs9ParamSegmentd.createddate,
+                updatedby: frs9ParamSegmentd.updatedby,
+                updateddate: frs9ParamSegmentd.updateddate
+            })
+                .from(frs9ParamSegmentd)
+                .where(eq(frs9ParamSegmentd.pkid, detailId))
+
+            if (!detail) {
+                throw new Error('Segmentation detail not found')
+            }
+
+            return detail
+        },
+        catch: (error) => error
+    })
 
 // ============================================================================
 // ENDPOINTS
@@ -435,62 +514,68 @@ segmentationRoutes.openapi(
         const tenantId = c.get('tenantId') as string
         const userPermissions = c.get('permissions') || []
 
-        const effect = interceptUpdate(
-            tenantId,
-            userId,
-            userPermissions,
-            'segmentation',
-            id.toString(),
-            headerData,
-            () => Effect.tryPromise({
-                try: async () => {
-                    return await db.transaction(async (tx) => {
-                        await tx.update(frs9ParamSegmenth)
-                            .set({
-                                groupSegment: headerData.group_segment,
-                                segment: headerData.segment,
-                                subSegment: headerData.sub_segment,
-                                segmentType: headerData.segment_type,
-                                seq: headerData.seq,
-                                activeFlag: headerData.active_flag,
-                                updatedby: userId,
-                                updateddate: new Date().toISOString(),
-                                updatedhost: 'localhost',
-                            })
-                            .where(eq(frs9ParamSegmenth.pkid, id));
-
-                        // Bulk update rules: Delete and Re-insert
-                        if (headerData.rules) {
-                            await tx.delete(frs9ParamSegmentd).where(eq(frs9ParamSegmentd.segmentId, id));
-                            if (headerData.rules.length > 0) {
-                                await tx.insert(frs9ParamSegmentd).values(
-                                    headerData.rules.map((rule: any) => ({
-                                        segmentId: id,
-                                        queryGroup: rule.query_group,
-                                        seq: rule.seq,
-                                        tableName: rule.table_name,
-                                        columnName: rule.column_name,
-                                        dataType: rule.data_type,
-                                        operator: rule.operator,
-                                        value1: rule.value1,
-                                        value2: rule.value2,
-                                        condition: rule.condition,
-                                        createdby: userId,
-                                        createdhost: 'localhost',
-                                        createddate: new Date().toISOString(),
+        const effect = pipe(
+            getSegmentHeaderSnapshot(id),
+            Effect.flatMap((oldValues) =>
+                interceptUpdate(
+                    tenantId,
+                    userId,
+                    userPermissions,
+                    'segmentation',
+                    id.toString(),
+                    headerData,
+                    () => Effect.tryPromise({
+                        try: async () => {
+                            return await db.transaction(async (tx) => {
+                                await tx.update(frs9ParamSegmenth)
+                                    .set({
+                                        groupSegment: headerData.group_segment,
+                                        segment: headerData.segment,
+                                        subSegment: headerData.sub_segment,
+                                        segmentType: headerData.segment_type,
+                                        seq: headerData.seq,
+                                        activeFlag: headerData.active_flag,
                                         updatedby: userId,
                                         updateddate: new Date().toISOString(),
-                                        updatedhost: 'localhost'
-                                    }))
-                                );
-                            }
-                        }
+                                        updatedhost: 'localhost',
+                                    })
+                                    .where(eq(frs9ParamSegmenth.pkid, id));
 
-                        return { success: true, data: { ...headerData, id } };
-                    });
-                },
-                catch: (error) => error
-            })
+                                if (headerData.rules) {
+                                    await tx.delete(frs9ParamSegmentd).where(eq(frs9ParamSegmentd.segmentId, id));
+                                    if (headerData.rules.length > 0) {
+                                        await tx.insert(frs9ParamSegmentd).values(
+                                            headerData.rules.map((rule: any) => ({
+                                                segmentId: id,
+                                                queryGroup: rule.query_group,
+                                                seq: rule.seq,
+                                                tableName: rule.table_name,
+                                                columnName: rule.column_name,
+                                                dataType: rule.data_type,
+                                                operator: rule.operator,
+                                                value1: rule.value1,
+                                                value2: rule.value2,
+                                                condition: rule.condition,
+                                                createdby: userId,
+                                                createdhost: 'localhost',
+                                                createddate: new Date().toISOString(),
+                                                updatedby: userId,
+                                                updateddate: new Date().toISOString(),
+                                                updatedhost: 'localhost'
+                                            }))
+                                        );
+                                    }
+                                }
+
+                                return { success: true, data: { ...headerData, id } };
+                            });
+                        },
+                        catch: (error) => error
+                    }),
+                    'medium',
+                    oldValues
+                )
+            )
         )
 
         const exit = await Effect.runPromiseExit(effect)
@@ -546,22 +631,29 @@ segmentationRoutes.openapi(
             }
         }
 
-        const effect = interceptDelete(
-            tenantId,
-            userId,
-            userPermissions,
-            'segmentation',
-            id.toString(),
-            () => Effect.tryPromise({
-                try: async () => {
-                    await db.transaction(async (tx) => {
-                        await tx.delete(frs9ParamSegmentd).where(eq(frs9ParamSegmentd.segmentId, id));
-                        await tx.delete(frs9ParamSegmenth).where(eq(frs9ParamSegmenth.pkid, id));
-                    });
-                    return { success: true, message: 'Deleted successfully' };
-                },
-                catch: (error) => error
-            })
+        const effect = pipe(
+            getSegmentHeaderSnapshot(id),
+            Effect.flatMap((oldValues) =>
+                interceptDelete(
+                    tenantId,
+                    userId,
+                    userPermissions,
+                    'segmentation',
+                    id.toString(),
+                    () => Effect.tryPromise({
+                        try: async () => {
+                            await db.transaction(async (tx) => {
+                                await tx.delete(frs9ParamSegmentd).where(eq(frs9ParamSegmentd.segmentId, id));
+                                await tx.delete(frs9ParamSegmenth).where(eq(frs9ParamSegmenth.pkid, id));
+                            });
+                            return { success: true, message: 'Deleted successfully' };
+                        },
+                        catch: (error) => error
+                    }),
+                    'high',
+                    oldValues
+                )
+            )
         )
 
         const exit = await Effect.runPromiseExit(effect)
@@ -642,6 +734,7 @@ segmentationRoutes.openapi(
         },
         responses: {
             201: { content: { 'application/json': { schema: SegmentHeaderResponse } }, description: 'Created' },
+            202: { content: { 'application/json': { schema: ApprovalWorkflowResponse } }, description: 'Pending Approval' },
             400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Invalid ID' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
@@ -650,40 +743,62 @@ segmentationRoutes.openapi(
         const id = c.req.valid('param').id
         if (isNaN(id)) return c.json({ error: 'Invalid ID' }, 400);
         const detailData = c.req.valid('json');
+        const userId = c.get('userId') as string || 'system'
+        const tenantId = c.get('tenantId') as string
+        const userPermissions = (c.get('permissions') as string[]) || []
 
         try {
-            const result = await db.insert(frs9ParamSegmentd).values({
-                segmentId: id,
-                queryGroup: detailData.query_group,
-                seq: detailData.seq,
-                tableName: detailData.table_name,
-                columnName: detailData.column_name,
-                dataType: detailData.data_type,
-                operator: detailData.operator,
-                value1: detailData.value1,
-                value2: detailData.value2,
-                condition: detailData.condition,
-                createdhost: 'localhost',
-                createddate: new Date().toISOString(),
-                createdby: 'SYSTEM'
-            }).returning({
-                id: frs9ParamSegmentd.pkid,
-                segment_id: frs9ParamSegmentd.segmentId,
-                query_group: frs9ParamSegmentd.queryGroup,
-                seq: frs9ParamSegmentd.seq,
-                table_name: frs9ParamSegmentd.tableName,
-                column_name: frs9ParamSegmentd.columnName,
-                data_type: frs9ParamSegmentd.dataType,
-                operator: frs9ParamSegmentd.operator,
-                value1: frs9ParamSegmentd.value1,
-                value2: frs9ParamSegmentd.value2,
-                condition: frs9ParamSegmentd.condition,
-                createdby: frs9ParamSegmentd.createdby,
-                createddate: frs9ParamSegmentd.createddate,
-                createdhost: frs9ParamSegmentd.createdhost,
-            });
+            const executeCreate = () => Effect.tryPromise({
+                try: async () => {
+                    const result = await db.insert(frs9ParamSegmentd).values({
+                        segmentId: id,
+                        queryGroup: detailData.query_group,
+                        seq: detailData.seq,
+                        tableName: detailData.table_name,
+                        columnName: detailData.column_name,
+                        dataType: detailData.data_type,
+                        operator: detailData.operator,
+                        value1: detailData.value1,
+                        value2: detailData.value2,
+                        condition: detailData.condition,
+                        createdhost: 'localhost',
+                        createddate: new Date().toISOString(),
+                        createdby: userId
+                    }).returning({
+                        id: frs9ParamSegmentd.pkid,
+                        segment_id: frs9ParamSegmentd.segmentId,
+                        query_group: frs9ParamSegmentd.queryGroup,
+                        seq: frs9ParamSegmentd.seq,
+                        table_name: frs9ParamSegmentd.tableName,
+                        column_name: frs9ParamSegmentd.columnName,
+                        data_type: frs9ParamSegmentd.dataType,
+                        operator: frs9ParamSegmentd.operator,
+                        value1: frs9ParamSegmentd.value1,
+                        value2: frs9ParamSegmentd.value2,
+                        condition: frs9ParamSegmentd.condition,
+                        createdby: frs9ParamSegmentd.createdby,
+                        createddate: frs9ParamSegmentd.createddate,
+                        createdhost: frs9ParamSegmentd.createdhost,
+                    });
 
-            return c.json({ success: true, data: result[0] }, 201);
+                    return { success: true, data: result[0] };
+                },
+                catch: (error) => error
+            })
+
+            const effect = interceptCreate(
+                tenantId,
+                userId,
+                userPermissions,
+                'segmentation',
+                { ...detailData, segment_id: id, scope: 'detail' },
+                executeCreate,
+                'medium'
+            )
+
+            return runEffect(c, effect as any, (result: ApprovalResponse | { success: true; data: unknown }) =>
+                'approvalRequired' in result && result.approvalRequired ? 202 : 201
+            )
         } catch (error) {
             return c.json({ error: 'Failed to create detail' }, 500);
         }
@@ -703,6 +818,7 @@ segmentationRoutes.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: SegmentHeaderResponse } }, description: 'Updated' },
+            202: { content: { 'application/json': { schema: ApprovalWorkflowResponse } }, description: 'Pending Approval' },
             400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Invalid ID' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
@@ -711,41 +827,71 @@ segmentationRoutes.openapi(
         const detailId = c.req.valid('param').detailId
         if (isNaN(detailId)) return c.json({ error: 'Invalid ID' }, 400);
         const detailData = c.req.valid('json');
+        const userId = c.get('userId') as string || 'system'
+        const tenantId = c.get('tenantId') as string
+        const userPermissions = (c.get('permissions') as string[]) || []
 
         try {
-            const result = await db.update(frs9ParamSegmentd)
-                .set({
-                    queryGroup: detailData.query_group,
-                    seq: detailData.seq,
-                    tableName: detailData.table_name,
-                    columnName: detailData.column_name,
-                    dataType: detailData.data_type,
-                    operator: detailData.operator,
-                    value1: detailData.value1,
-                    value2: detailData.value2,
-                    condition: detailData.condition,
-                    updateddate: new Date().toISOString(),
-                    updatedhost: 'localhost'
-                })
-                .where(eq(frs9ParamSegmentd.pkid, detailId))
-                .returning({
-                    id: frs9ParamSegmentd.pkid,
-                    segment_id: frs9ParamSegmentd.segmentId,
-                    query_group: frs9ParamSegmentd.queryGroup,
-                    seq: frs9ParamSegmentd.seq,
-                    table_name: frs9ParamSegmentd.tableName,
-                    column_name: frs9ParamSegmentd.columnName,
-                    data_type: frs9ParamSegmentd.dataType,
-                    operator: frs9ParamSegmentd.operator,
-                    value1: frs9ParamSegmentd.value1,
-                    value2: frs9ParamSegmentd.value2,
-                    condition: frs9ParamSegmentd.condition,
-                    updatedby: frs9ParamSegmentd.updatedby,
-                    updateddate: frs9ParamSegmentd.updateddate,
-                    updatedhost: frs9ParamSegmentd.updatedhost
-                });
+            const executeUpdate = () => Effect.tryPromise({
+                try: async () => {
+                    const result = await db.update(frs9ParamSegmentd)
+                        .set({
+                            queryGroup: detailData.query_group,
+                            seq: detailData.seq,
+                            tableName: detailData.table_name,
+                            columnName: detailData.column_name,
+                            dataType: detailData.data_type,
+                            operator: detailData.operator,
+                            value1: detailData.value1,
+                            value2: detailData.value2,
+                            condition: detailData.condition,
+                            updatedby: userId,
+                            updateddate: new Date().toISOString(),
+                            updatedhost: 'localhost'
+                        })
+                        .where(eq(frs9ParamSegmentd.pkid, detailId))
+                        .returning({
+                            id: frs9ParamSegmentd.pkid,
+                            segment_id: frs9ParamSegmentd.segmentId,
+                            query_group: frs9ParamSegmentd.queryGroup,
+                            seq: frs9ParamSegmentd.seq,
+                            table_name: frs9ParamSegmentd.tableName,
+                            column_name: frs9ParamSegmentd.columnName,
+                            data_type: frs9ParamSegmentd.dataType,
+                            operator: frs9ParamSegmentd.operator,
+                            value1: frs9ParamSegmentd.value1,
+                            value2: frs9ParamSegmentd.value2,
+                            condition: frs9ParamSegmentd.condition,
+                            updatedby: frs9ParamSegmentd.updatedby,
+                            updateddate: frs9ParamSegmentd.updateddate,
+                            updatedhost: frs9ParamSegmentd.updatedhost
+                        });
 
-            return c.json({ success: true, data: result[0] });
+                    return { success: true, data: result[0] };
+                },
+                catch: (error) => error
+            })
+
+            const effect = pipe(
+                getSegmentDetailSnapshot(detailId),
+                Effect.flatMap((oldValues) =>
+                    interceptUpdate(
+                        tenantId,
+                        userId,
+                        userPermissions,
+                        'segmentation',
+                        `detail:${detailId}`,
+                        { ...detailData, detail_id: detailId, scope: 'detail' },
+                        executeUpdate,
+                        'medium',
+                        oldValues
+                    )
+                )
+            )
+
+            return runEffect(c, effect as any, (result: ApprovalResponse | { success: true; data: unknown }) =>
+                'approvalRequired' in result && result.approvalRequired ? 202 : 200
+            )
         } catch (error) {
             return c.json({ error: 'Failed to update detail' }, 500);
         }
@@ -764,6 +910,7 @@ segmentationRoutes.openapi(
         },
         responses: {
             200: { content: { 'application/json': { schema: z.object({ success: z.boolean(), message: z.string() }) } }, description: 'Deleted' },
+            202: { content: { 'application/json': { schema: ApprovalWorkflowResponse } }, description: 'Pending Approval' },
             400: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Invalid ID' },
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
@@ -771,10 +918,38 @@ segmentationRoutes.openapi(
     async (c: any) => {
         const detailId = c.req.valid('param').detailId
         if (isNaN(detailId)) return c.json({ error: 'Invalid ID' }, 400);
+        const userId = c.get('userId') as string || 'system'
+        const tenantId = c.get('tenantId') as string
+        const userPermissions = (c.get('permissions') as string[]) || []
 
         try {
-            await db.delete(frs9ParamSegmentd).where(eq(frs9ParamSegmentd.pkid, detailId));
-            return c.json({ success: true, message: 'Deleted' });
+            const executeDelete = () => Effect.tryPromise({
+                try: async () => {
+                    await db.delete(frs9ParamSegmentd).where(eq(frs9ParamSegmentd.pkid, detailId));
+                    return { success: true, message: 'Deleted' };
+                },
+                catch: (error) => error
+            })
+
+            const effect = pipe(
+                getSegmentDetailSnapshot(detailId),
+                Effect.flatMap((oldValues) =>
+                    interceptDelete(
+                        tenantId,
+                        userId,
+                        userPermissions,
+                        'segmentation',
+                        `detail:${detailId}`,
+                        executeDelete,
+                        'high',
+                        oldValues
+                    )
+                )
+            )
+
+            return runEffect(c, effect as any, (result: ApprovalResponse | { success: true; message: string }) =>
+                'approvalRequired' in result && result.approvalRequired ? 202 : 200
+            )
         } catch (error) {
             return c.json({ error: 'Failed to delete detail' }, 500);
         }

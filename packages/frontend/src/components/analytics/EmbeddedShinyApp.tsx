@@ -294,6 +294,25 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
   const user = auth?.user;
   const token = auth?.token;
 
+  const buildDirectEmbedUrl = useCallback((baseUrl: string, iframe: boolean) => {
+    if (!baseUrl) return '';
+
+    try {
+      const url = new URL(baseUrl);
+      url.searchParams.set('iframe', iframe ? 'true' : 'false');
+      url.searchParams.set('tenant_slug', tenantSlug || user?.tenantSlug || 'iaf');
+      url.searchParams.set('banking_mode', bankingType);
+      url.searchParams.set('model_type', modelType);
+      if (user?.tenantId) {
+        url.searchParams.set('tenant_id', user.tenantId);
+      }
+      return url.toString();
+    } catch {
+      const separator = baseUrl.includes('?') ? '&' : '?';
+      return `${baseUrl}${separator}iframe=${iframe ? 'true' : 'false'}&tenant_slug=${encodeURIComponent(tenantSlug || user?.tenantSlug || 'iaf')}&banking_mode=${encodeURIComponent(bankingType)}&model_type=${encodeURIComponent(modelType)}`;
+    }
+  }, [bankingType, modelType, tenantSlug, user?.tenantId, user?.tenantSlug]);
+
   // Component state
   const [session, setSession] = useState<RSessionData | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
@@ -658,13 +677,13 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
         status: 'running',
         port: 4236,
         url: domainBase,
-        iframeUrl: domainBase,
+        iframeUrl: buildDirectEmbedUrl(domainBase, true),
         startTime: new Date().toISOString(),
         uptime: 0,
-        domainUrl: domainBase
+        domainUrl: buildDirectEmbedUrl(domainBase, false)
       };
 
-      console.log('📡 DIRECT EMBED - Final URL:', domainBase, { connectionMode });
+      console.log('📡 DIRECT EMBED - Final URL:', directSession.iframeUrl, { connectionMode });
       setSession(directSession);
       onSessionCreate?.(directSession);
       return;
@@ -678,7 +697,7 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
         isInitialized.current = false;
       });
     }
-  }, [autoStart, session, loading, error, tenantSlug, bankingType, onSessionCreate, createRSession, API_CONFIG, shouldUseManagedSession, connectionMode]);
+  }, [autoStart, session, loading, error, tenantSlug, bankingType, onSessionCreate, createRSession, API_CONFIG, shouldUseManagedSession, connectionMode, buildDirectEmbedUrl]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -982,10 +1001,10 @@ export const EmbeddedShinyApp: React.FC<EmbeddedShinyAppProps> = ({
                   status: 'running',
                   port: 4236,
                   url: productionDomain,
-                  iframeUrl: productionDomain,
+                  iframeUrl: buildDirectEmbedUrl(productionDomain, true),
                   startTime: new Date().toISOString(),
                   uptime: 0,
-                  domainUrl: productionDomain
+                  domainUrl: buildDirectEmbedUrl(productionDomain, false)
                 };
 
                 console.log('🔄 RETRY - Direct embed to production URL:', productionDomain);

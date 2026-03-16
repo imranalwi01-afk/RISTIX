@@ -34,7 +34,6 @@ const roleRecord = {
   isSystemRole: false,
   isActive: true,
   tenantId: 'tenant-rbac-1',
-  bankingTypeSpecific: 'BOTH',
   complianceLevel: null,
   permissions: {
     users: ['view'],

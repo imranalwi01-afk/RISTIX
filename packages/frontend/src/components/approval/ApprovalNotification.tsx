@@ -8,6 +8,9 @@ interface ApprovalNotificationProps {
     message: string;
     onClose: () => void;
     requestId?: string;
+    actionLabel?: string;
+    actionHref?: string;
+    onAction?: () => void;
 }
 
 export const ApprovalNotification: React.FC<ApprovalNotificationProps> = ({
@@ -15,7 +18,21 @@ export const ApprovalNotification: React.FC<ApprovalNotificationProps> = ({
     message,
     onClose,
     requestId,
+    actionLabel,
+    actionHref,
+    onAction,
 }) => {
+    const handleAction = () => {
+        if (onAction) {
+            onAction();
+            return;
+        }
+
+        if (actionHref && typeof window !== 'undefined') {
+            window.location.href = actionHref;
+        }
+    };
+
     return (
         <Snackbar
             open={open}
@@ -29,7 +46,12 @@ export const ApprovalNotification: React.FC<ApprovalNotificationProps> = ({
                 icon={<SuccessIcon fontSize="inherit" />}
                 sx={{ width: '100%', alignItems: 'center' }}
                 action={
-                    <Box sx={{ ml: 2 }}>
+                    <Box sx={{ ml: 2, display: 'flex', gap: 1 }}>
+                        {actionLabel && (actionHref || onAction) && (
+                            <Button color="inherit" size="small" onClick={handleAction}>
+                                {actionLabel}
+                            </Button>
+                        )}
                         <Button color="inherit" size="small" onClick={onClose}>
                             DISMISS
                         </Button>

@@ -132,6 +132,24 @@ export const BucketParametersService = {
     },
 
     /**
+     * Get a bucket detail by ID.
+     *
+     * @param id - The ID of the bucket detail
+     * @returns A promise resolving to the bucket detail
+     * @throws NotFoundError if the detail is not found
+     */
+    getDetail: (id: number) => {
+        return pipe(
+            BucketParametersRepository.findDetailById(BigInt(id)),
+            Effect.flatMap(detail =>
+                detail
+                    ? Effect.succeed(transformDetail(detail))
+                    : Effect.fail(new NotFoundError({ message: 'Bucket Detail not found', resource: 'Bucket Detail', id: String(id) }))
+            )
+        )
+    },
+
+    /**
      * Create a new bucket detail.
      * 
      * @param headerId - The ID of the parent bucket header

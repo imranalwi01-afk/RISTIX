@@ -4,6 +4,7 @@ import {
     DialogTitle,
     DialogContent,
     DialogActions,
+    Autocomplete,
     Box,
     Typography,
     Grid,
@@ -17,7 +18,8 @@ import {
     Chip,
     Checkbox,
     ListItemText,
-    FormHelperText,
+    Stack,
+    Divider,
 } from '@mui/material';
 import { Save as SaveIcon } from '@mui/icons-material';
 import { bankingAPI, api } from '@/services/api';
@@ -36,12 +38,35 @@ interface MatrixLevelEditor {
 interface RoleOption {
     code: string;
     label: string;
+    description?: string;
+    hierarchyLevel?: number | null;
+    levelLabel: string;
+}
+
+interface MatrixPayloadLevel {
+    level?: number;
+    name?: string;
+    requiredRoleCodes?: unknown;
+    required_role_codes?: unknown;
+    requiredRoles?: unknown;
+    requiredPermissionCodes?: string[] | null;
+    requiredCount?: number;
+    required_count?: number;
+    timeoutHours?: number | null;
+}
+
+interface MatrixPayload {
+    id?: string;
+    name?: string;
+    description?: string | null;
+    isActive?: boolean;
+    levels?: MatrixPayloadLevel[];
 }
 
 interface ApprovalMatrixEditorDialogProps {
     open: boolean;
     onClose: () => void;
-    matrix?: any; // The raw matrix object to edit
+    matrix?: MatrixPayload;
     onSuccess: () => void;
     onError: (message: string, severity: 'error' | 'warning') => void;
 }
@@ -134,9 +159,23 @@ const normalizeRoleOptions = (input: unknown): RoleOption[] => {
                 ?? code
             ).trim();
 
+            const hierarchyLevelValue = role.hierarchyLevel ?? role.hierarchy_level;
+            const hierarchyLevel =
+                typeof hierarchyLevelValue === 'number'
+                    ? hierarchyLevelValue
+                    : typeof hierarchyLevelValue === 'string' && hierarchyLevelValue.trim().length > 0
+                        ? Number(hierarchyLevelValue)
+                        : null;
+            const normalizedHierarchyLevel =
+                typeof hierarchyLevel === 'number' && Number.isFinite(hierarchyLevel) ? hierarchyLevel : null;
+            const description = typeof role.description === 'string' ? role.description.trim() : '';
+
             return {
                 code,
                 label: label || code,
+                description: description || undefined,
+                hierarchyLevel: normalizedHierarchyLevel,
+                levelLabel: normalizedHierarchyLevel == null ? 'Unassigned hierarchy' : `Hierarchy ${normalizedHierarchyLevel}`,
             } as RoleOption;
         })
         .filter((entry): entry is RoleOption => !!entry);
@@ -146,7 +185,12 @@ const normalizeRoleOptions = (input: unknown): RoleOption[] => {
         dedup.set(option.code, option);
     });
 
-    return Array.from(dedup.values()).sort((left, right) => left.label.localeCompare(right.label));
+    return Array.from(dedup.values()).sort((left, right) => {
+        const leftHierarchy = left.hierarchyLevel ?? Number.NEGATIVE_INFINITY;
+        const rightHierarchy = right.hierarchyLevel ?? Number.NEGATIVE_INFINITY;
+        if (leftHierarchy !== rightHierarchy) return rightHierarchy - leftHierarchy;
+        return left.label.localeCompare(right.label);
+    });
 };
 
 export const ApprovalMatrixEditorDialog: React.FC<ApprovalMatrixEditorDialogProps> = ({
@@ -167,6 +211,39 @@ export const ApprovalMatrixEditorDialog: React.FC<ApprovalMatrixEditorDialogProp
         () => new Map(availableRoles.map((role) => [role.code, role.label])),
         [availableRoles]
     );
+    const rolesByHierarchy = useMemo(() => {
+        const grouped = new Map<string, RoleOption[]>();
+        availableRoles.forEach((role) => {
+            const key = role.levelLabel;
+            const existing = grouped.get(key) ?? [];
+            existing.push(role);
+            grouped.set(key, existing);
+        });
+
+        return Array.from(grouped.entries())
+            .map(([groupLabel, roles]) => ({
+                groupLabel,
+                hierarchyLevel: roles[0]?.hierarchyLevel ?? null,
+                roles: [...roles].sort((left, right) => left.label.localeCompare(right.label)),
+            }))
+            .sort((left, right) => {
+                const leftHierarchy = left.hierarchyLevel ?? Number.NEGATIVE_INFINITY;
+                const rightHierarchy = right.hierarchyLevel ?? Number.NEGATIVE_INFINITY;
+                return rightHierarchy - leftHierarchy;
+            });
+    }, [availableRoles]);
+    const resolveSelectedRoles = (selectedCodes: string[]): RoleOption[] =>
+        selectedCodes.map((code) => {
+            const existingRole = availableRoles.find((role) => role.code === code);
+            if (existingRole) return existingRole;
+
+            return {
+                code,
+                label: code,
+                levelLabel: 'Unavailable roles',
+                hierarchyLevel: null,
+            };
+        });
 
     // Initialize state when matrix prop changes or dialog opens
     useEffect(() => {
@@ -298,6 +375,7 @@ export const ApprovalMatrixEditorDialog: React.FC<ApprovalMatrixEditorDialogProp
             onClose={() => !saving && onClose()}
             maxWidth="md"
             fullWidth
+            data-testid="approval-matrix-editor-dialog"
         >
             <DialogTitle>{matrix?.id ? 'Edit Approval Matrix' : 'Create Approval Matrix'}</DialogTitle>
             <DialogContent>
@@ -310,6 +388,7 @@ export const ApprovalMatrixEditorDialog: React.FC<ApprovalMatrixEditorDialogProp
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                                 disabled={saving}
+                                slotProps={{ htmlInput: { 'data-testid': 'approval-matrix-name-input' } }}
                             />
                         </Grid>
                         <Grid size={{ xs: 12, md: 6 }}>
@@ -320,6 +399,7 @@ export const ApprovalMatrixEditorDialog: React.FC<ApprovalMatrixEditorDialogProp
                                     value={isActive ? 'active' : 'inactive'}
                                     onChange={(e) => setIsActive(e.target.value === 'active')}
                                     disabled={saving}
+                                    data-testid="approval-matrix-status-select"
                                 >
                                     <MenuItem value="active">Active</MenuItem>
                                     <MenuItem value="inactive">Inactive</MenuItem>
@@ -335,6 +415,7 @@ export const ApprovalMatrixEditorDialog: React.FC<ApprovalMatrixEditorDialogProp
                                 value={description}
                                 onChange={(e) => setDescription(e.target.value)}
                                 disabled={saving}
+                                slotProps={{ htmlInput: { 'data-testid': 'approval-matrix-description-input' } }}
                             />
                         </Grid>
                     </Grid>
@@ -403,45 +484,122 @@ export const ApprovalMatrixEditorDialog: React.FC<ApprovalMatrixEditorDialogProp
                                         />
                                     </Grid>
                                     <Grid size={12}>
-                                        <FormControl fullWidth disabled={saving || rolesLoading}>
-                                            <InputLabel id={`required-roles-label-${index}`}>Required Roles</InputLabel>
-                                            <Select
-                                                multiple
-                                                labelId={`required-roles-label-${index}`}
-                                                label="Required Roles"
-                                                value={level.requiredRoleCodes}
-                                                onChange={(e) => updateLevelRoles(index, e.target.value as string[])}
-                                                renderValue={(selected) => {
-                                                    const selectedCodes = selected as string[];
-                                                    if (selectedCodes.length === 0) return 'No role restriction';
-                                                    return (
-                                                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                                                            {selectedCodes.map((code) => (
-                                                                <Chip
-                                                                    key={`${index}-${code}`}
-                                                                    size="small"
-                                                                    label={roleLabelMap.get(code) || code}
-                                                                />
-                                                            ))}
+                                        <Grid container spacing={1.5}>
+                                            <Grid size={{ xs: 12, md: 7 }}>
+                                                <Autocomplete
+                                                    multiple
+                                                    disableCloseOnSelect
+                                                    options={availableRoles}
+                                                    groupBy={(option) => option.levelLabel}
+                                                    value={resolveSelectedRoles(level.requiredRoleCodes)}
+                                                    onChange={(_, selectedRoles) =>
+                                                        updateLevelRoles(
+                                                            index,
+                                                            selectedRoles.map((role) => role.code)
+                                                        )
+                                                    }
+                                                    loading={rolesLoading}
+                                                    disabled={saving || rolesLoading}
+                                                    isOptionEqualToValue={(option, value) => option.code === value.code}
+                                                    getOptionLabel={(option) => option.label}
+                                                    renderInput={(params) => (
+                                                        <TextField
+                                                            {...params}
+                                                            label="Required Roles"
+                                                            inputProps={{
+                                                                ...params.inputProps,
+                                                                'data-testid': `approval-matrix-required-roles-input-${index}`,
+                                                            }}
+                                                            placeholder={availableRoles.length > 0 ? 'Search and assign approver roles' : 'No roles available'}
+                                                            helperText={
+                                                                rolesLoading
+                                                                    ? 'Loading tenant roles...'
+                                                                    : availableRoles.length === 0
+                                                                        ? 'No roles found. Leave empty to rely on permission codes.'
+                                                                        : 'Search by role name/code or pick from the hierarchy panel.'
+                                                            }
+                                                        />
+                                                    )}
+                                                    renderOption={(props, option, { selected }) => (
+                                                        <Box component="li" {...props}>
+                                                            <Checkbox sx={{ mr: 1 }} checked={selected} />
+                                                            <ListItemText
+                                                                primary={option.label}
+                                                                secondary={`${option.code}${option.hierarchyLevel == null ? '' : ` • Hierarchy ${option.hierarchyLevel}`}`}
+                                                            />
                                                         </Box>
-                                                    );
-                                                }}
-                                            >
-                                                {availableRoles.map((role) => (
-                                                    <MenuItem key={`required-role-${role.code}`} value={role.code}>
-                                                        <Checkbox checked={level.requiredRoleCodes.includes(role.code)} />
-                                                        <ListItemText primary={role.label} secondary={role.code} />
-                                                    </MenuItem>
-                                                ))}
-                                            </Select>
-                                            <FormHelperText>
-                                                {rolesLoading
-                                                    ? 'Loading tenant roles...'
-                                                    : availableRoles.length === 0
-                                                        ? 'No roles found. Leave empty to rely on permission codes.'
-                                                        : 'Select approver roles for this level. Leave empty for permission-only approval.'}
-                                            </FormHelperText>
-                                        </FormControl>
+                                                    )}
+                                                    renderTags={(selectedRoles, getTagProps) =>
+                                                        selectedRoles.map((role, tagIndex) => (
+                                                            <Chip
+                                                                {...getTagProps({ index: tagIndex })}
+                                                                key={`${index}-${role.code}`}
+                                                                size="small"
+                                                                label={roleLabelMap.get(role.code) || role.code}
+                                                            />
+                                                        ))
+                                                    }
+                                                />
+                                            </Grid>
+                                            <Grid size={{ xs: 12, md: 5 }}>
+                                                <Paper
+                                                    variant="outlined"
+                                                    sx={{
+                                                        p: 1.25,
+                                                        borderStyle: 'dashed',
+                                                        height: '100%',
+                                                        minHeight: 180,
+                                                    }}
+                                                >
+                                                    <Typography variant="subtitle2" sx={{ mb: 0.75 }}>
+                                                        Role Hierarchy
+                                                    </Typography>
+                                                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                                                        Click a role below to add or remove it from this approval level.
+                                                    </Typography>
+                                                    {rolesLoading ? (
+                                                        <Typography variant="body2" color="text.secondary">
+                                                            Loading hierarchy...
+                                                        </Typography>
+                                                    ) : rolesByHierarchy.length === 0 ? (
+                                                        <Typography variant="body2" color="text.secondary">
+                                                            No hierarchy data available for this tenant.
+                                                        </Typography>
+                                                    ) : (
+                                                        <Stack spacing={1}>
+                                                            {rolesByHierarchy.map((group, groupIndex) => (
+                                                                <Box key={`${index}-${group.groupLabel}`}>
+                                                                    {groupIndex > 0 ? <Divider sx={{ mb: 1 }} /> : null}
+                                                                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.75 }}>
+                                                                        {group.groupLabel}
+                                                                    </Typography>
+                                                                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+                                                                        {group.roles.map((role) => {
+                                                                            const selected = level.requiredRoleCodes.includes(role.code);
+                                                                            return (
+                                                                                <Chip
+                                                                                    key={`${index}-${group.groupLabel}-${role.code}`}
+                                                                                    label={role.label}
+                                                                                    variant={selected ? 'filled' : 'outlined'}
+                                                                                    color={selected ? 'primary' : 'default'}
+                                                                                    onClick={() => {
+                                                                                        const nextSelected = selected
+                                                                                            ? level.requiredRoleCodes.filter((code) => code !== role.code)
+                                                                                            : [...level.requiredRoleCodes, role.code];
+                                                                                        updateLevelRoles(index, nextSelected);
+                                                                                    }}
+                                                                                    title={role.description || role.code}
+                                                                                />
+                                                                            );
+                                                                        })}
+                                                                    </Box>
+                                                                </Box>
+                                                            ))}
+                                                        </Stack>
+                                                    )}
+                                                </Paper>
+                                            </Grid>
+                                        </Grid>
                                     </Grid>
                                     <Grid size={12}>
                                         <TextField
@@ -451,6 +609,7 @@ export const ApprovalMatrixEditorDialog: React.FC<ApprovalMatrixEditorDialogProp
                                             value={level.requiredPermissionCodes}
                                             onChange={(e) => updateMatrixLevel(index, 'requiredPermissionCodes', e.target.value)}
                                             disabled={saving}
+                                            slotProps={{ htmlInput: { 'data-testid': `approval-matrix-required-permissions-input-${index}` } }}
                                         />
                                     </Grid>
                                 </Grid>
@@ -468,6 +627,7 @@ export const ApprovalMatrixEditorDialog: React.FC<ApprovalMatrixEditorDialogProp
                     startIcon={<SaveIcon />}
                     onClick={handleSave}
                     disabled={saving || !name.trim()}
+                    data-testid="approval-matrix-save-button"
                 >
                     {saving ? 'Saving...' : 'Save Matrix'}
                 </Button>

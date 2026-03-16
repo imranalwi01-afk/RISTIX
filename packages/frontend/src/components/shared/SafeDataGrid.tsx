@@ -33,6 +33,7 @@ export function SafeGridActionsCellItem({ label, icon, onClick, showInMenu, ...o
 export interface SafeDataGridProps<T extends GridValidRowModel = any> extends Omit<DataGridProps, 'rows' | 'columns'> {
   rows: T[];
   columns: GridColDef<T>[];
+  getRowSx?: (params: { row: T; id: string | number }) => any;
   // Detail panel support (not in base DataGridProps)
   getDetailPanelContent?: (params: { row: T }) => any;
   getDetailPanelHeight?: (params: { row: T }) => number | 'auto';
@@ -93,6 +94,7 @@ export function SafeDataGrid<T extends GridValidRowModel = any>(props: SafeDataG
       columns={nativeColumns}
       loading={props.loading}
       getRowId={props.getRowId as ((row: T) => string | number) | undefined}
+      getRowSx={props.getRowSx}
       pageSizeOptions={props.pageSizeOptions as number[] | undefined}
       initialState={props.initialState}
       checkboxSelection={props.checkboxSelection}

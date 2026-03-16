@@ -72,18 +72,19 @@ export const lgdConfigurationsApi = {
         return response.data.data;
     },
 
-    async create(data: CreateLGDConfigurationDto): Promise<LGDConfiguration> {
+    async create(data: CreateLGDConfigurationDto): Promise<any> {
         const response = await apiClient.post<any>(BASE_URL, data);
-        return response.data?.data;
+        return response.data;
     },
 
-    async update(id: string, data: UpdateLGDConfigurationDto): Promise<LGDConfiguration> {
+    async update(id: string, data: UpdateLGDConfigurationDto): Promise<any> {
         const response = await apiClient.put<any>(`${BASE_URL}/${id}`, data);
-        return response.data?.data;
+        return response.data;
     },
 
-    async delete(id: string): Promise<void> {
-        await apiClient.delete(`${BASE_URL}/${id}`);
+    async delete(id: string): Promise<any> {
+        const response = await apiClient.delete<any>(`${BASE_URL}/${id}`);
+        return response.data;
     },
 
     async getMethods(): Promise<Array<{ value: string | number; label: string }>> {

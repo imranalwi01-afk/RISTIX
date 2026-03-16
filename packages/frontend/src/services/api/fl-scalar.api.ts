@@ -55,12 +55,12 @@ export const flScalarAPI = {
 
     create: async (data: CreateFLScalarRequest) => {
         const response = await apiClient.post<any>(BASE_URL, data);
-        return response.data?.data!;
+        return response.data;
     },
 
     update: async (id: string, data: UpdateFLScalarRequest) => {
         const response = await apiClient.put<any>(`${BASE_URL}/${id}`, data);
-        return response.data?.data!;
+        return response.data;
     },
 
     delete: async (id: string) => {

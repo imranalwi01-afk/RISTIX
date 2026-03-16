@@ -5,3 +5,8 @@ export { PendingChangesDialog } from './PendingChangesDialog';
 export { ApprovalNotification } from './ApprovalNotification';
 export { ApprovalActionDialog } from './ApprovalActionDialog';
 export { ApprovalMatrixEditorDialog } from './ApprovalMatrixEditorDialog';
+export {
+  buildApprovalNotification,
+  createClosedApprovalNotification,
+} from './approvalNotification.utils';
+export type { ApprovalNotificationState } from './approvalNotification.utils';

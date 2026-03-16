@@ -1291,8 +1291,8 @@ pdafl_server <- function(input, output, session, con, PD) {
   }, ignoreNULL = FALSE)
 
   # Output: Render Historical Model Data table
-  output$model_summary_table_DB2 <- renderDT({
-    datatable(model_summary_data_DB2(),
+  output$model_summary_table_DB2 <- DT::renderDT({
+    DT::datatable(model_summary_data_DB2(),
               options = list(
                 pageLength = 5,
                 autoWidth = TRUE,
@@ -2144,8 +2144,8 @@ pdafl_server <- function(input, output, session, con, PD) {
               table_data <- scenario_data[[t]]
 
               # Render the table with improved alignment and full width
-              output[[output_id]] <- renderDT({
-                datatable(
+              output[[output_id]] <- DT::renderDT({
+                DT::datatable(
                   table_data,
                   options = list(
                     scrollX = TRUE,
@@ -2160,8 +2160,8 @@ pdafl_server <- function(input, output, session, con, PD) {
               })
             } else {
               # Table not found - render error message
-              output[[output_id]] <- renderDT({
-                datatable(data.frame(Error = paste("Table", t, "not found")), options = list(dom='t'))
+              output[[output_id]] <- DT::renderDT({
+                DT::datatable(data.frame(Error = paste("Table", t, "not found")), options = list(dom='t'))
               })
             }
           })
@@ -2176,8 +2176,8 @@ pdafl_server <- function(input, output, session, con, PD) {
             t <- tbl_key
             output_id <- paste0("pd_", s, "_", t)
 
-            output[[output_id]] <- renderDT({
-              datatable(data.frame(Error = paste("Scenario", scenario, "not available")), options = list(dom='t'))
+            output[[output_id]] <- DT::renderDT({
+              DT::datatable(data.frame(Error = paste("Scenario", scenario, "not available")), options = list(dom='t'))
             })
           })
         }
@@ -2195,9 +2195,9 @@ pdafl_server <- function(input, output, session, con, PD) {
     for (tbl_key in names(pd_final_map)) {
       local({
         t <- tbl_key
-        output[[paste0("pd_final_", t)]] <- renderDT({
+        output[[paste0("pd_final_", t)]] <- DT::renderDT({
           req(final_data[[t]])
-          datatable(
+          DT::datatable(
             final_data[[t]],
             options = list(
               scrollX = TRUE,
@@ -2586,8 +2586,8 @@ pdafl_server <- function(input, output, session, con, PD) {
         local({
           s <- tolower(scenario)
           t <- tbl_key
-          output[[paste0("pd_", s, "_", t)]] <- renderDT({
-            datatable(
+          output[[paste0("pd_", s, "_", t)]] <- DT::renderDT({
+            DT::datatable(
               pd_data[[scenario]][[t]],
               options = list(scrollX = TRUE, scrollY = "250px", paging = FALSE)
             )
@@ -2605,9 +2605,9 @@ pdafl_server <- function(input, output, session, con, PD) {
     for (tbl_key in names(pd_final_map)) {
       local({
         t <- tbl_key
-        output[[paste0("pd_final_", t)]] <- renderDT({
+        output[[paste0("pd_final_", t)]] <- DT::renderDT({
           req(final_data[[t]])
-          datatable(
+          DT::datatable(
             final_data[[t]],
             options = list(scrollX = TRUE, scrollY = "250px", paging = FALSE)
           )

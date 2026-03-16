@@ -85,6 +85,7 @@ import { useTheme } from '@mui/material/styles';
 import { format, parseISO } from 'date-fns';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/services/api';
+import { getRoleResponsibility } from '@/components/roles/role-responsibility.utils';
 
 // Types
 interface User {
@@ -104,7 +105,6 @@ interface Role {
   description: string;
   type: 'SYSTEM' | 'BANKING' | 'CUSTOM';
   level: 'PLATFORM' | 'TENANT' | 'DEPARTMENT';
-  bankingAccess?: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
   isActive: boolean;
   isBuiltIn: boolean;
   permissions: Record<string, Permission[]>; // Grouped by category
@@ -242,7 +242,6 @@ const normalizeRoles = (input: unknown): Role[] =>
     description: String(role.description ?? ''),
     type: (role.type as Role['type']) ?? (role.isSystemRole ? 'SYSTEM' : 'CUSTOM'),
     level: (role.level as Role['level']) ?? 'TENANT',
-    bankingAccess: (role.bankingAccess as Role['bankingAccess']) ?? (role.banking_access as Role['bankingAccess']),
     isActive: Boolean(role.isActive ?? role.is_active ?? true),
     isBuiltIn: Boolean(role.isBuiltIn ?? role.is_built_in ?? false),
     permissions: normalizePermissions(role.permissions),
@@ -252,6 +251,9 @@ const normalizeRoles = (input: unknown): Role[] =>
 
 const getRoleLabel = (role: Role | null | undefined): string =>
   role?.displayName || role?.name || 'Unnamed Role';
+
+const getRoleResponsibilityLabel = (role: Role | null | undefined): string =>
+  getRoleResponsibility({ name: role?.name, displayName: role?.displayName }).label;
 
 const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
   onAssignmentChange,
@@ -712,7 +714,7 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
     const nextQuery = new URLSearchParams();
     if (mode) nextQuery.set('mode', mode);
     const query = nextQuery.toString();
-    const href = `/banking/maintenance/user-management/roles/${role.id}${query ? `?${query}` : ''}`;
+    const href = `/banking/maintenance/access-management/roles/${role.id}${query ? `?${query}` : ''}`;
     router.push(href);
   };
 
@@ -1234,6 +1236,9 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
                           <TableCell>
                             <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{getRoleLabel(role)}</Typography>
                             <Typography variant="caption" color="text.secondary">{role.name || 'UNNAMED_ROLE'}</Typography>
+                            <Box sx={{ mt: 0.5 }}>
+                              <Chip size="small" variant="outlined" label={getRoleResponsibilityLabel(role)} />
+                            </Box>
                           </TableCell>
                           <TableCell>
                             <Chip
@@ -1450,6 +1455,9 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
                         <Typography variant="caption" color="text.secondary">
                           {role.name || 'UNNAMED_ROLE'}
                         </Typography>
+                        <Box sx={{ mt: 0.5 }}>
+                          <Chip size="small" variant="outlined" label={getRoleResponsibilityLabel(role)} />
+                        </Box>
                       </Box>
                     </TableCell>
                     <TableCell>
@@ -1649,6 +1657,9 @@ const UserRoleAssignment: React.FC<UserRoleAssignmentProps> = ({
                       <TableCell>
                         <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{getRoleLabel(role)}</Typography>
                         <Typography variant="caption" color="text.secondary">{role.description || '-'}</Typography>
+                        <Box sx={{ mt: 0.5 }}>
+                          <Chip size="small" variant="outlined" label={getRoleResponsibilityLabel(role)} />
+                        </Box>
                       </TableCell>
                       <TableCell>
                         <Chip size="small" label={role.type} color={getRoleTypeColor(role.type) as any} variant="outlined" />

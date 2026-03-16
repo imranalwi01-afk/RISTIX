@@ -915,7 +915,7 @@ ui <- dashboardPage(
               ),
               box(
                 title = "📊 Model yang Sudah Disimpan", width = 12, status = "primary", solidHeader = TRUE,
-                DTOutput("model_summary_table_DB")
+                DT::DTOutput("model_summary_table_DB")
               )
             )
           )
@@ -953,7 +953,7 @@ ui <- dashboardPage(
             width = 8,
             box(
               width = 12, title = "Historical Model", solidHeader = TRUE, status = "primary",
-              DTOutput("model_summary_table_DB2")
+              DT::DTOutput("model_summary_table_DB2")
             )
           )
         ),
@@ -1007,7 +1007,7 @@ ui <- dashboardPage(
                     lapply(names(pd_tables_map), function(tbl_key) {
                       tagList(
                         h4(pd_tables_map[[tbl_key]]),
-                        DTOutput(paste0("pd_base_", tbl_key)), br()
+                        DT::DTOutput(paste0("pd_base_", tbl_key)), br()
                       )
                     })
                   ),
@@ -1016,7 +1016,7 @@ ui <- dashboardPage(
                     lapply(names(pd_tables_map), function(tbl_key) {
                       tagList(
                         h4(pd_tables_map[[tbl_key]]),
-                        DTOutput(paste0("pd_best_", tbl_key)), br()
+                        DT::DTOutput(paste0("pd_best_", tbl_key)), br()
                       )
                     })
                   ),
@@ -1025,7 +1025,7 @@ ui <- dashboardPage(
                     lapply(names(pd_tables_map), function(tbl_key) {
                       tagList(
                         h4(pd_tables_map[[tbl_key]]),
-                        DTOutput(paste0("pd_worst_", tbl_key)), br()
+                        DT::DTOutput(paste0("pd_worst_", tbl_key)), br()
                       )
                     })
                   ),
@@ -1042,7 +1042,7 @@ ui <- dashboardPage(
                         lapply(names(pd_final_map), function(tbl_key) {
                           tagList(
                             h4(pd_final_map[[tbl_key]]),
-                            DTOutput(paste0("pd_final_", tbl_key)), br()
+                            DT::DTOutput(paste0("pd_final_", tbl_key)), br()
                           )
                         })
                       )
@@ -3196,8 +3196,8 @@ server <- function(input, output, session) {
   })
 
 
-  output$model_summary_table_DB <- renderDT({
-    datatable(model_summary_data_DB(), options = list(pageLength = 5, autoWidth = TRUE), rownames = FALSE)
+  output$model_summary_table_DB <- DT::renderDT({
+    DT::datatable(model_summary_data_DB(), options = list(pageLength = 5, autoWidth = TRUE), rownames = FALSE)
   })
 
 
@@ -3213,8 +3213,8 @@ server <- function(input, output, session) {
     ignoreNULL = FALSE
   )
 
-  output$model_summary_table_DB2 <- renderDT({
-    datatable(model_summary_data_DB2(), options = list(pageLength = 5, autoWidth = TRUE, scrollX = TRUE), rownames = FALSE)
+  output$model_summary_table_DB2 <- DT::renderDT({
+    DT::datatable(model_summary_data_DB2(), options = list(pageLength = 5, autoWidth = TRUE, scrollX = TRUE), rownames = FALSE)
   })
 
 
@@ -3222,12 +3222,26 @@ server <- function(input, output, session) {
     selectInput("segmentpd", "Segmentation:", choices = setNames(PD$pkid, PD$pd_model_name))
   })
 
+  normalize_pdafl_column_names <- function(df) {
+    if (!is.data.frame(df) || ncol(df) == 0) return(df)
+    names(df) <- tolower(names(df))
+    df
+  }
+
+  pick_first_existing_column <- function(df, candidates) {
+    if (!is.data.frame(df) || ncol(df) == 0) return(NULL)
+    hits <- candidates[candidates %in% names(df)]
+    if (length(hits) == 0) return(NULL)
+    df[[hits[[1]]]]
+  }
+
   dataissuerrr0 <- eventReactive(input$runpdafl, {
     datais <- dbGetQuery(con, "SELECT prc_date, bucket_from, calc_amount
     FROM frs9_imp_ca_pd_enr
     WHERE pd_config_id = $1",
       params = list(input$segmentpd)
     )
+    datais <- normalize_pdafl_column_names(datais)
     datais
   })
 
@@ -3237,6 +3251,7 @@ server <- function(input, output, session) {
     WHERE pkid = $1",
       params = list(input$segmentpd)
     )
+    datacon <- normalize_pdafl_column_names(datacon)
     datacon
   })
 
@@ -3274,6 +3289,7 @@ server <- function(input, output, session) {
     WHERE pd_config_id = $1",
       params = list(input$segmentpd)
     )
+    dataemut <- normalize_pdafl_column_names(dataemut)
     dataemut
   })
 
@@ -3658,25 +3674,33 @@ server <- function(input, output, session) {
     # dataissuer2=aggregate(CALC_AMOUNT~BUCKET_FROM,data=dataissuerrr01(),sum)
     # issuer=dataissuer2$calc_amount
 
-    dataissuer2 <- dataissuerrr01() %>%
-      group_by(BUCKET_FROM) %>%
-      summarise(CALC_AMOUNT = sum(CALC_AMOUNT), .groups = "drop") %>%
-      complete(BUCKET_FROM = 1:5, fill = list(CALC_AMOUNT = 0))
+    dataissuer_raw <- normalize_pdafl_column_names(dataissuerrr01())
+    dataissuer2 <- dataissuer_raw %>%
+      group_by(bucket_from) %>%
+      summarise(calc_amount = sum(calc_amount), .groups = "drop") %>%
+      complete(bucket_from = 1:5, fill = list(calc_amount = 0))
     dataissuer2 <- data.frame(dataissuer2)
     issuer <- dataissuer2$calc_amount
 
 
-    datammult <- as.data.frame(datammulttt0())
+    datammult <- normalize_pdafl_column_names(as.data.frame(datammulttt0()))
     filtered_datammult <- datammult[datammult$prc_date == datammult$prc_date[nrow(datammult)] & datammult$bucket_to == 5, ]
     filtered_datammult$bucket_from <- factor(filtered_datammult$bucket_from, levels = 1:5)
 
-    ym.pd <- as.data.frame.matrix(xtabs(MMULT ~ BUCKET_FROM + FL_SEQ, data = filtered_datammult))
+    ym.pd <- as.data.frame.matrix(xtabs(mmult ~ bucket_from + fl_seq, data = filtered_datammult))
     ym.pd[5, 2:ncol(ym.pd)] <- 0
 
+    forecast_base <- pick_first_existing_column(fo.y.boxplot, c("ODR_60 BASE", "ODR BASE"))
+    forecast_best <- pick_first_existing_column(fo.y.boxplot, c("ODR_60 BEST", "ODR BEST"))
+    forecast_worst <- pick_first_existing_column(fo.y.boxplot, c("ODR_60 WORST", "ODR WORST"))
 
-    PD.Base <- PD_engine1(fo.y.boxplot$`ODR BASE`, datahisto$odr, issuer, ym.pd)
-    PD.Best <- PD_engine1(fo.y.boxplot$`ODR BEST`, datahisto$odr, issuer, ym.pd)
-    PD.Worst <- PD_engine1(fo.y.boxplot$`ODR WORST`, datahisto$odr, issuer, ym.pd)
+    if (is.null(forecast_base) || is.null(forecast_best) || is.null(forecast_worst)) {
+      stop("Forecast scenario columns not found in fo.y.boxplot")
+    }
+
+    PD.Base <- PD_engine1(forecast_base, datay2, issuer, ym.pd)
+    PD.Best <- PD_engine1(forecast_best, datay2, issuer, ym.pd)
+    PD.Worst <- PD_engine1(forecast_worst, datay2, issuer, ym.pd)
 
 
     list(
@@ -3717,8 +3741,8 @@ server <- function(input, output, session) {
         local({
           s <- tolower(scenario)
           t <- tbl_key
-          output[[paste0("pd_", s, "_", t)]] <- renderDT({
-            datatable(
+          output[[paste0("pd_", s, "_", t)]] <- DT::renderDT({
+            DT::datatable(
               pd_data[[scenario]][[t]],
               options = list(scrollX = TRUE, scrollY = "250px", paging = FALSE)
             )
@@ -3736,9 +3760,9 @@ server <- function(input, output, session) {
     for (tbl_key in names(pd_final_map)) {
       local({
         t <- tbl_key
-        output[[paste0("pd_final_", t)]] <- renderDT({
+        output[[paste0("pd_final_", t)]] <- DT::renderDT({
           req(final_data[[t]])
-          datatable(
+          DT::datatable(
             final_data[[t]],
             options = list(scrollX = TRUE, scrollY = "250px", paging = FALSE)
           )

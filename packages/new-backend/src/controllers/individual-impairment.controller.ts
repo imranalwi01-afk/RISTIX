@@ -415,6 +415,26 @@ export class IndividualImpairmentController {
         }
     }
 
+    async getIaResultDetail(c: Context) {
+        try {
+            const user = c.get('user');
+            if (!user?.tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
+
+            const accountIdRaw = c.req.query('accountId');
+            const accountNumber = c.req.query('accountNumber');
+            const accountId = accountIdRaw ? Number(accountIdRaw) : undefined;
+
+            const data = await individualImpairmentService.getIaResultDetail(user.tenantId, {
+                accountId: Number.isFinite(accountId) ? accountId : undefined,
+                accountNumber: accountNumber || undefined
+            });
+
+            return c.json({ success: true, data });
+        } catch (error: any) {
+            return this.handleError(c, error);
+        }
+    }
+
     async calculateDcf(c: Context) {
         try {
             const user = c.get('user');

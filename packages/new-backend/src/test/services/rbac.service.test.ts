@@ -22,7 +22,7 @@ const state = {
   approvalCtorCalls: [] as unknown[],
   approvalBulkCalls: [] as unknown[][],
 
-  findByTenantResult: [] as any[],
+  findByTenantResult: { data: [] as any[], total: 0, page: 1, limit: 100 } as any,
   findByIdResult: null as any,
   findByNameResult: null as any,
   createResult: null as any,
@@ -31,7 +31,7 @@ const state = {
 
   findByUserResult: [] as any[],
   assignResult: null as any,
-  removeResult: true as any,
+  removeResult: null as any,
 
   permissionsFindAllResult: [] as any[],
   rolePermissionsSetResult: true as any,
@@ -48,10 +48,19 @@ const createRole = (overrides: Record<string, unknown> = {}) => ({
 })
 
 const createUserRole = (overrides: Record<string, unknown> = {}) => ({
+  id: 'assignment-1',
+  tenantId: 'tenant-1',
+  userId: 'user-1',
   roleId: 'role-1',
   isActive: true,
+  assignedBy: null,
+  assignedAt: null,
+  createdAt: null,
+  updatedAt: null,
   validFrom: null,
   validUntil: null,
+  isTemporary: null,
+  temporaryReason: null,
   role: {
     rolePermissions: [],
   },
@@ -115,7 +124,14 @@ mock.module('@/repositories/rbac.repository', () => ({
     remove: (...args: unknown[]) => {
       state.removeCalls.push(args)
       if (state.throwOn === 'remove') return Effect.fail(new Error('remove failed'))
-      return Effect.succeed(state.removeResult)
+      return Effect.succeed(
+        state.removeResult ??
+          createUserRole({
+            userId: String(args[1] || 'user-1'),
+            roleId: String(args[2] || 'role-1'),
+            isActive: false,
+          })
+      )
     },
   },
   permissionsRepository: {
@@ -174,7 +190,7 @@ describe('rbac.service', () => {
     state.approvalCtorCalls = []
     state.approvalBulkCalls = []
 
-    state.findByTenantResult = []
+    state.findByTenantResult = { data: [], total: 0, page: 1, limit: 100 }
     state.findByIdResult = createRole()
     state.findByNameResult = null
     state.createResult = null
@@ -182,19 +198,23 @@ describe('rbac.service', () => {
     state.deleteResult = null
     state.findByUserResult = []
     state.assignResult = null
-    state.removeResult = true
+    state.removeResult = null
     state.permissionsFindAllResult = []
     state.rolePermissionsSetResult = true
     state.approvalMap = new Map<string, any>()
   })
 
   test('getRoles maps options and delegates to rolesRepository.findByTenant', async () => {
-    state.findByTenantResult = [createRole({ id: 'role-a' })]
+    state.findByTenantResult = {
+      data: [createRole({ id: 'role-a' })],
+      total: 1,
+      page: 1,
+      limit: 100,
+    }
 
     const result = await Effect.runPromise(
       rbacService.getRoles('tenant-1', {
         includeInactive: true,
-        bankingType: 'conventional',
         search: 'maker',
         type: 'SYSTEM',
       })
@@ -205,7 +225,6 @@ describe('rbac.service', () => {
     expect(state.findByTenantCalls[0][1]).toBe('tenant-1')
     expect(state.findByTenantCalls[0][2]).toEqual({
       includeInactive: true,
-      bankingType: 'conventional',
       search: 'maker',
       systemRolesOnly: true,
     })
@@ -362,7 +381,7 @@ describe('rbac.service', () => {
 
   test('removeRole delegates to repository remove', async () => {
     const result = await Effect.runPromise(rbacService.removeRole('user-9', 'role-9', 'tenant-1'))
-    expect(result.roleId).toBe('role-1')
+    expect(result.roleId).toBe('role-9')
     expect(result.isActive).toBe(false)
     expect(state.removeCalls.length).toBe(1)
     expect(state.removeCalls[0].slice(1)).toEqual(['user-9', 'role-9'])

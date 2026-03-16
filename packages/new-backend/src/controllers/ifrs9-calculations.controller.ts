@@ -15,7 +15,7 @@ export class Ifrs9CalculationsController {
         if (uuidRegex.test(tenantId)) return tenantId;
 
         if (tenantId === 'iaf') {
-            return 'a24af6d2-3032-4d53-ae82-9cfa84f97a20';
+            return 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be';
         }
 
         // Try to resolve slug to UUID

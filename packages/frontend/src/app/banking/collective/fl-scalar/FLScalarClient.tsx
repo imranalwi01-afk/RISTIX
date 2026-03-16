@@ -9,7 +9,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 
 import {
   Box,
@@ -40,7 +40,13 @@ import {
   CircularProgress,
   Snackbar,
 } from '@mui/material';
-import { ApprovalNotification, ApprovalStatusBadge } from '@/components/approval';
+import {
+  ApprovalNotification,
+  ApprovalStatusBadge,
+  buildApprovalNotification,
+  createClosedApprovalNotification,
+  type ApprovalNotificationState,
+} from '@/components/approval';
 import { bankingAPI } from '@/services/api';
 // Safe DataGrid wrapper to prevent bundling issues
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
@@ -138,6 +144,7 @@ export default function FLScalarManagementPage() {
   const { hasAnyPermission } = usePermission();
   const canViewFlScalar = hasAnyPermission(['banking.collective.fl_scalar.view', 'banking.collective.fl_scalar.manage', 'banking.collective.manage', 'banking.collective', 'admin.super_admin']);
   const canManageFlScalar = hasAnyPermission(['banking.collective.fl_scalar.manage', 'banking.collective.fl_scalar.create', 'banking.collective.fl_scalar.update', 'banking.collective.fl_scalar.delete', 'banking.collective.manage', 'admin.super_admin']);
+  const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all', 'admin.super_admin']);
 
   // State Management - INITIALIZED EMPTY (NO MOCK DATA!)
   const [scalars, setScalars] = useState<FLScalarWithDetails[]>([]);
@@ -150,7 +157,7 @@ export default function FLScalarManagementPage() {
   });
 
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
-  const [approvalNotification, setApprovalNotification] = useState<{ open: boolean, message: string }>({ open: false, message: '' });
+  const [approvalNotification, setApprovalNotification] = useState<ApprovalNotificationState>(createClosedApprovalNotification());
   const [snackbar, setSnackbar] = useState<{ open: boolean, message: string, type: 'success' | 'error' }>({ open: false, message: '', type: 'success' });
 
   // Dialog form state
@@ -158,6 +165,7 @@ export default function FLScalarManagementPage() {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [tabValue, setTabValue] = useState(0);
   const [scalarDetails, setScalarDetails] = useState<FLScalarDetail[]>([]);
+  const uploadInputRef = useRef<HTMLInputElement | null>(null);
 
   // ============================================================================
   // EFFECTS
@@ -246,6 +254,17 @@ export default function FLScalarManagementPage() {
       errors.scalar_name = 'Scalar Name is required';
     }
 
+    const normalizedName = String(formData.scalar_name || '').trim().toLowerCase();
+    if (normalizedName) {
+      const hasDuplicate = scalars.some((scalar) =>
+        scalar.scalar_name.trim().toLowerCase() === normalizedName &&
+        scalar.pkid !== formData.pkid
+      );
+      if (hasDuplicate) {
+        errors.scalar_name = 'Data already exist';
+      }
+    }
+
     // Detail validation
     if (!scalarDetails || scalarDetails.length === 0) {
       errors.details = 'At least one period scalar is required';
@@ -303,10 +322,7 @@ export default function FLScalarManagementPage() {
     const isApprovalResponse = result.approvalRequired || result.status === 202;
 
     if (isApprovalResponse) {
-      setApprovalNotification({
-        open: true,
-        message: result.message || 'Request submitted for approval'
-      });
+      setApprovalNotification(buildApprovalNotification(result, 'Request submitted for approval'));
     } else {
       setSnackbar({
         open: true,
@@ -332,10 +348,7 @@ export default function FLScalarManagementPage() {
       const isApprovalResponse = result.approvalRequired || result.status === 202;
 
       if (isApprovalResponse) {
-        setApprovalNotification({
-          open: true,
-          message: result.message || 'Deletion request submitted for approval'
-        });
+        setApprovalNotification(buildApprovalNotification(result, 'Deletion request submitted for approval'));
       } else {
         setSnackbar({ open: true, message: 'FL Scalar deleted successfully', type: 'success' });
       }
@@ -365,6 +378,47 @@ export default function FLScalarManagementPage() {
     setFormErrors({});
     setScalarDetails([]);
     setTabValue(0);
+  };
+
+  const handleUploadExcel = () => {
+    uploadInputRef.current?.click();
+  };
+
+  const handleUploadFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setSnackbar({
+      open: true,
+      message: `Selected file: ${file.name}`,
+      type: 'success'
+    });
+
+    event.target.value = '';
+  };
+
+  const handleDownloadTemplate = () => {
+    const csv = [
+      'scalar_name,period,weighted_scalar,active_flag',
+      'Sample Scalar,1,0.95,true',
+      'Sample Scalar,2,0.96787,true'
+    ].join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'fl-scalar-template.csv';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+
+    setSnackbar({
+      open: true,
+      message: 'FL Scalar template downloaded',
+      type: 'success'
+    });
   };
 
   const handleFormChange = (field: keyof FLScalarHeader, value: any) => {
@@ -427,6 +481,7 @@ export default function FLScalarManagementPage() {
           key="view"
           icon={<ViewIcon />}
           label="View"
+          data-testid={`fl-scalar-view-button-${params.id}`}
           onClick={() => openDialog('view', params.row)}
         />,
         ...(canManageFlScalar ? [
@@ -434,12 +489,14 @@ export default function FLScalarManagementPage() {
             key="edit"
             icon={<EditIcon color="primary" />}
             label="Edit"
+            data-testid={`fl-scalar-edit-button-${params.id}`}
             onClick={() => openDialog('edit', params.row)}
           />,
           <SafeGridActionsCellItem
             key="delete"
             icon={<DeleteIcon color="error" />}
             label="Delete"
+            data-testid={`fl-scalar-delete-button-${params.id}`}
             onClick={() => handleDelete(params.id)}
           />,
         ] : []),
@@ -545,6 +602,7 @@ export default function FLScalarManagementPage() {
                 error={!!formErrors.scalar_name}
                 helperText={formErrors.scalar_name}
                 required
+                slotProps={{ htmlInput: { 'data-testid': 'fl-scalar-name-input' } }}
               />
             </Box>
 
@@ -619,6 +677,7 @@ export default function FLScalarManagementPage() {
                 size="small"
                 startIcon={<AddIcon />}
                 onClick={addScalarPeriod}
+                data-testid="fl-scalar-add-period-button"
               >
                 Add Period
               </Button>
@@ -651,6 +710,7 @@ export default function FLScalarManagementPage() {
                         onChange={(e) => updateScalarDetail(index, 'period', Number(e.target.value))}
                         disabled={isReadOnly}
                         inputProps={{ min: 1, max: 100 }}
+                        slotProps={{ htmlInput: { 'data-testid': `fl-scalar-period-input-${index}` } }}
                       />
                     </TableCell>
                     <TableCell>
@@ -661,6 +721,7 @@ export default function FLScalarManagementPage() {
                         onChange={(e) => updateScalarDetail(index, 'weighted_scalar', Number(e.target.value))}
                         disabled={isReadOnly}
                         inputProps={{ min: 0, step: 0.001 }}
+                        slotProps={{ htmlInput: { 'data-testid': `fl-scalar-weighted-scalar-input-${index}` } }}
                       />
                     </TableCell>
                     {!isReadOnly && (
@@ -669,6 +730,7 @@ export default function FLScalarManagementPage() {
                           size="small"
                           color="error"
                           onClick={() => removeScalarPeriod(index)}
+                          data-testid={`fl-scalar-remove-period-button-${index}`}
                         >
                           <DeleteIcon />
                         </IconButton>
@@ -740,11 +802,20 @@ export default function FLScalarManagementPage() {
             FL Scalar Configurations
           </Typography>
           <Box sx={{ display: 'flex', gap: 1 }}>
+            <input
+              ref={uploadInputRef}
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              onChange={handleUploadFileChange}
+              style={{ display: 'none' }}
+            />
             <Button
               variant="outlined"
               startIcon={<UploadIcon />}
               size="small"
               disabled={loading}
+              onClick={handleUploadExcel}
+              data-testid="fl-scalar-upload-button"
             >
               Upload Excel
             </Button>
@@ -753,6 +824,8 @@ export default function FLScalarManagementPage() {
               startIcon={<DownloadIcon />}
               size="small"
               disabled={loading}
+              onClick={handleDownloadTemplate}
+              data-testid="fl-scalar-download-template-button"
             >
               Download Template
             </Button>
@@ -762,6 +835,7 @@ export default function FLScalarManagementPage() {
                 startIcon={<AddIcon />}
                 onClick={() => openDialog('create')}
                 disabled={loading}
+                data-testid="fl-scalar-create-button"
               >
                 Create FL Scalar
               </Button>
@@ -806,6 +880,7 @@ export default function FLScalarManagementPage() {
         maxWidth="md"
         fullWidth
         PaperProps={{ sx: { minHeight: 600 } }}
+        data-testid="fl-scalar-dialog"
       >
         <DialogTitle sx={{ pb: 1 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -829,6 +904,7 @@ export default function FLScalarManagementPage() {
               variant="contained"
               onClick={handleSave}
               disabled={loading}
+              data-testid="fl-scalar-save-button"
             >
               {dialogState.mode === 'edit' ? 'Update' : 'Create'}
             </Button>
@@ -838,7 +914,10 @@ export default function FLScalarManagementPage() {
       <ApprovalNotification
         open={approvalNotification.open}
         message={approvalNotification.message}
-        onClose={() => setApprovalNotification({ ...approvalNotification, open: false })}
+        requestId={approvalNotification.requestId}
+        actionLabel={canOpenApprovalInbox ? 'Open Approval' : undefined}
+        actionHref={canOpenApprovalInbox ? (approvalNotification.requestId ? `/banking/maintenance/approval?requestId=${encodeURIComponent(approvalNotification.requestId)}` : '/banking/maintenance/approval') : undefined}
+        onClose={() => setApprovalNotification(createClosedApprovalNotification())}
       />
       <FullstackIndicator />
     </Box>

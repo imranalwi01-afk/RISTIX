@@ -179,7 +179,7 @@ pdafl_ui <- function() {
             column(
               width = 9,
               box(width = 12, title = "Historical Model", solidHeader = TRUE, status = "primary",
-                  DTOutput("model_summary_table_DB2")
+                  DT::DTOutput("model_summary_table_DB2")
               ),
 
               # ==== RESULTS MOVED HERE ====
@@ -224,7 +224,7 @@ pdafl_ui <- function() {
                                     lapply(names(pd_tables_map), function(tbl_key) {
                                       tagList(
                                         h4(pd_tables_map[[tbl_key]]),
-                                        DTOutput(paste0("pd_base_", tbl_key)), br()
+                                        DT::DTOutput(paste0("pd_base_", tbl_key)), br()
                                       )
                                     })
                            ),
@@ -232,7 +232,7 @@ pdafl_ui <- function() {
                                     lapply(names(pd_tables_map), function(tbl_key) {
                                       tagList(
                                         h4(pd_tables_map[[tbl_key]]),
-                                        DTOutput(paste0("pd_best_", tbl_key)), br()
+                                        DT::DTOutput(paste0("pd_best_", tbl_key)), br()
                                       )
                                     })
                            ),
@@ -240,7 +240,7 @@ pdafl_ui <- function() {
                                     lapply(names(pd_tables_map), function(tbl_key) {
                                       tagList(
                                         h4(pd_tables_map[[tbl_key]]),
-                                        DTOutput(paste0("pd_worst_", tbl_key)), br()
+                                        DT::DTOutput(paste0("pd_worst_", tbl_key)), br()
                                       )
                                     })
                            ),
@@ -257,7 +257,7 @@ pdafl_ui <- function() {
                                           lapply(names(pd_final_map), function(tbl_key) {
                                             tagList(
                                               h4(pd_final_map[[tbl_key]]),
-                                              DTOutput(paste0("pd_final_", tbl_key)), br()
+                                              DT::DTOutput(paste0("pd_final_", tbl_key)), br()
                                             )
                                           })
                                       )
@@ -462,7 +462,7 @@ pdafl_ui_content <- function() {
       column(
         width = 9,
         box(width = 12, title = "Historical Model", solidHeader = TRUE, status = "primary",
-            DTOutput("model_summary_table_DB2")
+            DT::DTOutput("model_summary_table_DB2")
         ),
 
         # ==== RESULTS MOVED HERE ====
@@ -502,7 +502,7 @@ pdafl_ui_content <- function() {
                             lapply(names(pd_tables_map), function(tbl_key) {
                               tagList(
                                 h4(pd_tables_map[[tbl_key]]),
-                                DTOutput(paste0("pd_base_", tbl_key)), br()
+                                DT::DTOutput(paste0("pd_base_", tbl_key)), br()
                               )
                             })
                    ),
@@ -510,7 +510,7 @@ pdafl_ui_content <- function() {
                             lapply(names(pd_tables_map), function(tbl_key) {
                               tagList(
                                 h4(pd_tables_map[[tbl_key]]),
-                                DTOutput(paste0("pd_best_", tbl_key)), br()
+                                DT::DTOutput(paste0("pd_best_", tbl_key)), br()
                               )
                             })
                    ),
@@ -518,7 +518,7 @@ pdafl_ui_content <- function() {
                             lapply(names(pd_tables_map), function(tbl_key) {
                               tagList(
                                 h4(pd_tables_map[[tbl_key]]),
-                                DTOutput(paste0("pd_worst_", tbl_key)), br()
+                                DT::DTOutput(paste0("pd_worst_", tbl_key)), br()
                               )
                             })
                    ),
@@ -533,7 +533,7 @@ pdafl_ui_content <- function() {
                                   lapply(names(pd_final_map), function(tbl_key) {
                                     tagList(
                                       h4(pd_final_map[[tbl_key]]),
-                                      DTOutput(paste0("pd_final_", tbl_key)), br()
+                                      DT::DTOutput(paste0("pd_final_", tbl_key)), br()
                                     )
                                   })
                               )

@@ -15,6 +15,7 @@ import {
     frs9ImpCaEadConfig,
     frs9MasterAccount,
     frs9ImpCaResultD,
+    frs9ParamSegmenth,
 } from '../db/schema';
 import { legacyDb } from '@/config';
 
@@ -32,6 +33,8 @@ export interface LifetimeLGDParams {
     lgd_config_id?: number;
     lgd_method?: number;
     model_id?: number;
+    segment_id?: number;
+    fl_flag?: boolean;
 }
 
 export interface EADModelParams {
@@ -153,6 +156,96 @@ export class Ifrs9ReportsService {
         return latestDate ? String(latestDate).slice(0, 10) : null;
     }
 
+    private async resolveLatestPrcDate(
+        tableName: string,
+        requestedPrcDate?: string,
+        extraWhere: string[] = [],
+    ): Promise<string | null> {
+        const whereConditions = [...extraWhere];
+
+        if (requestedPrcDate) {
+            whereConditions.push(`prc_date <= '${this.escapeSqlLiteral(requestedPrcDate)}'`);
+        }
+
+        const whereClause = whereConditions.length > 0
+            ? `WHERE ${whereConditions.join(' AND ')}`
+            : '';
+
+        const effectiveDateResult = await legacyDb.execute(sql.raw(`
+            SELECT MAX(prc_date) AS effective_date
+            FROM ${tableName}
+            ${whereClause}
+        `));
+
+        const effectiveDate = (effectiveDateResult as any[])[0]?.effective_date;
+        return effectiveDate ? String(effectiveDate).slice(0, 10) : null;
+    }
+
+    private async resolveLifetimeLgdPrcDate(params?: LifetimeLGDParams): Promise<string | null> {
+        const conditions: string[] = [];
+
+        if (params?.lgd_config_id !== undefined) {
+            conditions.push(`lgd_config_id = ${Number(params.lgd_config_id)}`);
+        }
+
+        if (params?.lgd_method !== undefined) {
+            conditions.push(`lgd_method = ${Number(params.lgd_method)}`);
+        }
+
+        if (params?.model_id !== undefined) {
+            conditions.push(`model_id = ${Number(params.model_id)}`);
+        }
+
+        return this.resolveLatestPrcDate(
+            'public.frs9_imp_ca_lgd_h',
+            params?.prc_date,
+            conditions,
+        );
+    }
+
+    private async resolveEclResultPrcDate(params?: ECLResultParams): Promise<string | null> {
+        return this.resolveLatestPrcDate(
+            'public.frs9_master_account',
+            params?.prc_date,
+        );
+    }
+
+    private async resolveLifetimePdPrcDate(params?: LifetimePDParams): Promise<string | null> {
+        const conditions: string[] = [];
+
+        if (params?.pd_config_id !== undefined) {
+            conditions.push(`pd_config_id = ${Number(params.pd_config_id)}`);
+        }
+
+        if (params?.pd_method !== undefined) {
+            conditions.push(`pd_method = ${Number(params.pd_method)}`);
+        }
+
+        if (params?.scalar_id !== undefined) {
+            conditions.push(`scalar_id = ${Number(params.scalar_id)}`);
+        }
+
+        return this.resolveLatestPrcDate(
+            'public.frs9_imp_ca_pd_structure',
+            params?.prc_date,
+            conditions,
+        );
+    }
+
+    private async resolveLifetimePdAccountDetailsPrcDate(params?: LifetimePDParams): Promise<string | null> {
+        const conditions: string[] = [];
+
+        if (params?.pd_config_id !== undefined) {
+            conditions.push(`pd_config_id = ${Number(params.pd_config_id)}`);
+        }
+
+        return this.resolveLatestPrcDate(
+            'public.frs9_imp_ca_result_d',
+            params?.prc_date,
+            conditions,
+        );
+    }
+
     private async refreshMovementData(prcDate: string) {
         try {
             await legacyDb.execute(sql`
@@ -166,6 +259,7 @@ export class Ifrs9ReportsService {
 
     private async fetchMovementRows(
         prcDate: string,
+        segmentId?: number,
         groupSegment?: string,
     ) {
         const requestedEom = this.endOfMonth(prcDate);
@@ -181,8 +275,13 @@ export class Ifrs9ReportsService {
             return { effectiveDate: null as string | null, rows: [] as any[] };
         }
 
-        const whereSegment = (groupSegment && groupSegment.trim())
-            ? sql`AND lower(group_segment) = lower(${groupSegment.trim()})`
+        const resolvedGroupSegment = await this.resolveMovementGroupSegment(segmentId, groupSegment);
+        if (segmentId !== undefined && segmentId !== null && resolvedGroupSegment === null) {
+            return { effectiveDate: String(effectiveDate), rows: [] as any[] };
+        }
+
+        const whereSegment = (resolvedGroupSegment && resolvedGroupSegment.trim())
+            ? sql`AND lower(group_segment) = lower(${resolvedGroupSegment.trim()})`
             : sql``;
 
         const rows = await legacyDb.execute(sql`
@@ -214,6 +313,28 @@ export class Ifrs9ReportsService {
             effectiveDate: String(effectiveDate),
             rows: Array.from(rows as any[]),
         };
+    }
+
+    private async resolveMovementGroupSegment(
+        segmentId?: number,
+        groupSegment?: string,
+    ): Promise<string | null | undefined> {
+        if (groupSegment && groupSegment.trim()) {
+            return groupSegment.trim();
+        }
+
+        if (segmentId === undefined || segmentId === null) {
+            return undefined;
+        }
+
+        const segmentRow = await legacyDb
+            .select({ groupSegment: frs9ParamSegmenth.groupSegment })
+            .from(frs9ParamSegmenth)
+            .where(eq(frs9ParamSegmenth.pkid, segmentId))
+            .limit(1);
+
+        const resolvedGroupSegment = segmentRow[0]?.groupSegment?.trim();
+        return resolvedGroupSegment || null;
     }
 
     private getStageEcl(row: any, stage: number): number {
@@ -250,6 +371,104 @@ export class Ifrs9ReportsService {
         const stages = stageFilter ?? [1, 2, 3];
         const stageValues = stages.map((stage) => Math.abs(this.getStageEcl(row, stage)));
         return stageValues.length > 0 ? Math.max(...stageValues) : 0;
+    }
+
+    private getMovementLabel(urut: number): string {
+        const labels: Record<number, string> = {
+            1: 'Beginning Balance',
+            2: 'Transfer From Stage 1 to Stage 2',
+            3: 'Transfer From Stage 1 to Stage 3',
+            4: 'Transfer From Stage 2 to Stage 1',
+            5: 'Transfer From Stage 2 to Stage 3',
+            6: 'Transfer From Stage 3 to Stage 2',
+            7: 'New Financial Assets',
+            8: 'Change in Models',
+            9: 'Modification of Contractual Cash Flow with No Derecognition',
+            10: 'Derecognition / Repayments',
+            11: 'Write-offs',
+            12: 'Other Reclassifications',
+            13: 'Foreign Currencies Effects and Other Movements',
+            14: 'Ending Balance',
+        };
+
+        return labels[urut] || `Movement ${urut}`;
+    }
+
+    private buildMovementMatrixRows(
+        rows: any[],
+        effectiveDate: string,
+        stageFilter: number[] | null,
+        valueKind: 'ecl' | 'gca',
+    ) {
+        const numericFields = [
+            'stage1', 'stage2', 'stage3',
+            'stage1_i', 'stage2_i', 'stage3_i',
+            'gca_stage1', 'gca_stage2', 'gca_stage3',
+            'gca_stage1_i', 'gca_stage2_i', 'gca_stage3_i',
+            'poci',
+        ];
+
+        const aggregatedRows = new Map<number, any>();
+        for (const row of rows) {
+            const urut = this.toNumber(row.urut);
+            if (urut <= 0) continue;
+
+            if (!aggregatedRows.has(urut)) {
+                aggregatedRows.set(urut, { urut, prc_date: effectiveDate });
+                for (const field of numericFields) {
+                    aggregatedRows.get(urut)[field] = 0;
+                }
+            }
+
+            const current = aggregatedRows.get(urut)!;
+            for (const field of numericFields) {
+                current[field] += this.toNumber(row[field]);
+            }
+        }
+
+        const selectedStages = stageFilter ?? [1, 2, 3];
+        const includesStage = (stage: number) => selectedStages.includes(stage);
+
+        return Array.from(aggregatedRows.values())
+            .sort((a, b) => this.toNumber(a.urut) - this.toNumber(b.urut))
+            .map((row) => {
+                const stage1Collective = valueKind === 'ecl'
+                    ? (includesStage(1) ? this.toNumber(row.stage1) : 0)
+                    : (includesStage(1) ? this.toNumber(row.gca_stage1) : 0);
+                const stage2Collective = valueKind === 'ecl'
+                    ? (includesStage(2) ? this.toNumber(row.stage2) : 0)
+                    : (includesStage(2) ? this.toNumber(row.gca_stage2) : 0);
+                const stage3Collective = valueKind === 'ecl'
+                    ? (includesStage(3) ? this.toNumber(row.stage3) : 0)
+                    : (includesStage(3) ? this.toNumber(row.gca_stage3) : 0);
+                const stage1Individual = valueKind === 'ecl'
+                    ? (includesStage(1) ? this.toNumber(row.stage1_i) : 0)
+                    : (includesStage(1) ? this.toNumber(row.gca_stage1_i) : 0);
+                const stage2Individual = valueKind === 'ecl'
+                    ? (includesStage(2) ? this.toNumber(row.stage2_i) : 0)
+                    : (includesStage(2) ? this.toNumber(row.gca_stage2_i) : 0);
+                const stage3Individual = valueKind === 'ecl'
+                    ? (includesStage(3) ? this.toNumber(row.stage3_i) : 0)
+                    : (includesStage(3) ? this.toNumber(row.gca_stage3_i) : 0);
+                const poci = stageFilter ? 0 : this.toNumber(row.poci);
+                const total = stage1Collective + stage2Collective + stage3Collective
+                    + stage1Individual + stage2Individual + stage3Individual + poci;
+
+                return {
+                    id: `movement-${row.urut}`,
+                    prc_date: effectiveDate,
+                    movement_order: this.toNumber(row.urut),
+                    movement: this.getMovementLabel(this.toNumber(row.urut)),
+                    stage_1_collective: stage1Collective,
+                    stage_2_collective: stage2Collective,
+                    stage_3_collective: stage3Collective,
+                    stage_1_individual: stage1Individual,
+                    stage_2_individual: stage2Individual,
+                    stage_3_individual: stage3Individual,
+                    poci,
+                    total,
+                };
+            });
     }
 
     /**
@@ -321,17 +540,33 @@ export class Ifrs9ReportsService {
      */
     async getLifetimePDYearly(tenantId: string, page: number, limit: number, params?: LifetimePDParams) {
         try {
-            const prcDate = params?.prc_date || '2023-12-31';
+            const requestedPrcDate = params?.prc_date || '2023-12-31';
             const pdConfigId = params?.pd_config_id || 1;
             const pdMethod = params?.pd_method || 1;
             const scalarId = params?.scalar_id;
             const flFlag = params?.fl_flag ?? false;
+            const effectivePrcDate = await this.resolveLifetimePdPrcDate({
+                ...params,
+                pd_config_id: pdConfigId,
+                pd_method: pdMethod,
+            });
 
-            console.log('📊 [Lifetime PD Yearly] Fetching with params:', { prcDate, pdConfigId, pdMethod, scalarId, flFlag });
+            console.log('📊 [Lifetime PD Yearly] Fetching with params:', {
+                requestedPrcDate,
+                effectivePrcDate,
+                pdConfigId,
+                pdMethod,
+                scalarId,
+                flFlag,
+            });
+
+            if (!effectivePrcDate) {
+                return { data: [], total: 0, page, totalPages: 0, effectivePrcDate: null };
+            }
 
             // Build query conditions
             const conditions = [
-                eq(frs9ImpCaPdStructure.prcDate, prcDate),
+                eq(frs9ImpCaPdStructure.prcDate, effectivePrcDate),
                 eq(frs9ImpCaPdStructure.pdConfigId, pdConfigId),
                 eq(frs9ImpCaPdStructure.pdMethod, pdMethod)
             ];
@@ -358,11 +593,12 @@ export class Ifrs9ReportsService {
                 data: pivotData,
                 total: pivotData.length,
                 page,
-                totalPages: Math.ceil(pivotData.length / limit)
+                totalPages: Math.ceil(pivotData.length / limit),
+                effectivePrcDate
             };
         } catch (error) {
             console.error('❌ Error in getLifetimePDYearly service:', error);
-            return { data: [], total: 0, page, totalPages: 0 };
+            return { data: [], total: 0, page, totalPages: 0, effectivePrcDate: null };
         }
     }
 
@@ -372,17 +608,33 @@ export class Ifrs9ReportsService {
      */
     async getLifetimePDMonthly(tenantId: string, page: number, limit: number, params?: LifetimePDParams) {
         try {
-            const prcDate = params?.prc_date || '2023-12-31';
+            const requestedPrcDate = params?.prc_date || '2023-12-31';
             const pdConfigId = params?.pd_config_id || 1;
             const pdMethod = params?.pd_method || 1;
             const scalarId = params?.scalar_id;
             const flFlag = params?.fl_flag ?? false;
+            const effectivePrcDate = await this.resolveLifetimePdPrcDate({
+                ...params,
+                pd_config_id: pdConfigId,
+                pd_method: pdMethod,
+            });
 
-            console.log('📊 [Lifetime PD Monthly] Fetching with params:', { prcDate, pdConfigId, pdMethod, scalarId, flFlag });
+            console.log('📊 [Lifetime PD Monthly] Fetching with params:', {
+                requestedPrcDate,
+                effectivePrcDate,
+                pdConfigId,
+                pdMethod,
+                scalarId,
+                flFlag,
+            });
+
+            if (!effectivePrcDate) {
+                return { data: [], total: 0, page, totalPages: 0, effectivePrcDate: null };
+            }
 
             // Build query conditions
             const conditions = [
-                eq(frs9ImpCaPdStructure.prcDate, prcDate),
+                eq(frs9ImpCaPdStructure.prcDate, effectivePrcDate),
                 eq(frs9ImpCaPdStructure.pdConfigId, pdConfigId),
                 eq(frs9ImpCaPdStructure.pdMethod, pdMethod)
             ];
@@ -409,11 +661,12 @@ export class Ifrs9ReportsService {
                 data: pivotData,
                 total: pivotData.length,
                 page,
-                totalPages: Math.ceil(pivotData.length / limit)
+                totalPages: Math.ceil(pivotData.length / limit),
+                effectivePrcDate
             };
         } catch (error) {
             console.error('❌ Error in getLifetimePDMonthly service:', error);
-            return { data: [], total: 0, page, totalPages: 0 };
+            return { data: [], total: 0, page, totalPages: 0, effectivePrcDate: null };
         }
     }
 
@@ -423,13 +676,22 @@ export class Ifrs9ReportsService {
      */
     async getLifetimePDAccountDetails(tenantId: string, page: number, limit: number, params?: LifetimePDParams) {
         try {
-            const prcDate = params?.prc_date || '2023-12-31';
+            const requestedPrcDate = params?.prc_date || '2023-12-31';
             const pdConfigId = params?.pd_config_id;
+            const effectivePrcDate = await this.resolveLifetimePdAccountDetailsPrcDate(params);
             
-            console.log('📊 [Lifetime PD Account Details] Fetching with params:', { prcDate, pdConfigId });
+            console.log('📊 [Lifetime PD Account Details] Fetching with params:', {
+                requestedPrcDate,
+                effectivePrcDate,
+                pdConfigId,
+            });
+
+            if (!effectivePrcDate) {
+                return { data: [], total: 0, page, totalPages: 0, effectivePrcDate: null };
+            }
 
             const conditions = [
-                eq(frs9ImpCaResultD.prcDate, prcDate)
+                eq(frs9ImpCaResultD.prcDate, effectivePrcDate)
             ];
 
             if (pdConfigId !== undefined) {
@@ -467,11 +729,12 @@ export class Ifrs9ReportsService {
                 data: rawData,
                 total: total,
                 page,
-                totalPages: Math.ceil(total / limit)
+                totalPages: Math.ceil(total / limit),
+                effectivePrcDate
             };
         } catch (error) {
             console.error('❌ Error in getLifetimePDAccountDetails service:', error);
-            return { data: [], total: 0, page, totalPages: 0 };
+            return { data: [], total: 0, page, totalPages: 0, effectivePrcDate: null };
         }
     }
 
@@ -486,14 +749,25 @@ export class Ifrs9ReportsService {
      */
     async getECLResult(tenantId: string, page: number, limit: number, params?: ECLResultParams) {
         try {
-            const prcDate = params?.prc_date || '2023-12-31';
+            const requestedPrcDate = params?.prc_date || '2023-12-31';
             const segmentId = params?.segment_id;
             const stage = params?.stage;
+            const effectivePrcDate = await this.resolveEclResultPrcDate(params);
 
-            console.log('📊 [ECL Result] Fetching with params:', { prcDate, segmentId, stage });
+            console.log('📊 [ECL Result] Fetching with params:', { requestedPrcDate, effectivePrcDate, segmentId, stage });
+
+            if (!effectivePrcDate) {
+                return {
+                    data: [],
+                    total: 0,
+                    page,
+                    totalPages: 0,
+                    effectivePrcDate: null
+                };
+            }
 
             // Build dynamic WHERE clause
-            let whereClause = `prc_date = '${prcDate}'`;
+            let whereClause = `prc_date = '${this.escapeSqlLiteral(effectivePrcDate)}'`;
             if (segmentId !== undefined && segmentId !== null) {
                 whereClause += ` AND segment_id = ${segmentId}`;
             }
@@ -564,11 +838,12 @@ export class Ifrs9ReportsService {
                 data,
                 total: data.length,
                 page,
-                totalPages: Math.ceil(data.length / limit)
+                totalPages: Math.ceil(data.length / limit),
+                effectivePrcDate
             };
         } catch (error) {
             console.error('❌ Error in getECLResult service:', error);
-            return { data: [], total: 0, page, totalPages: 0 };
+            return { data: [], total: 0, page, totalPages: 0, effectivePrcDate: null };
         }
     }
 
@@ -584,6 +859,7 @@ export class Ifrs9ReportsService {
             prc_date?: string,
             download_start_date?: string,
             download_end_date?: string,
+            group_segment?: string[] | string,
             segment?: string[] | string,
             stage?: string | string[],
             branch_code?: string[] | string
@@ -593,6 +869,7 @@ export class Ifrs9ReportsService {
             const requestedPrcDate = params?.prc_date || new Date().toISOString().slice(0, 10);
             const downloadStartDate = params?.download_start_date;
             const downloadEndDate = params?.download_end_date;
+            const groupSegmentValues = this.normalizeTextFilter(params?.group_segment);
             const segmentValues = this.normalizeTextFilter(params?.segment);
             const stageValues = this.normalizeStageFilter(params?.stage);
             const branchValues = this.normalizeTextFilter(params?.branch_code);
@@ -608,6 +885,7 @@ export class Ifrs9ReportsService {
                 effectivePrcDate,
                 downloadStartDate,
                 downloadEndDate,
+                groupSegmentValues,
                 segmentValues,
                 stageValues,
                 branchValues
@@ -630,6 +908,13 @@ export class Ifrs9ReportsService {
             // Nominative source aligned to tech spec section "Nominatif Report".
             // Branch code is joined from master account for current UI compatibility.
             let whereClause = `n.prc_date = '${this.escapeSqlLiteral(effectivePrcDate)}'`;
+
+            if (groupSegmentValues) {
+                const groupSegmentList = groupSegmentValues
+                    .map((value) => `'${this.escapeSqlLiteral(value)}'`)
+                    .join(',');
+                whereClause += ` AND n.group_segment IN (${groupSegmentList})`;
+            }
 
             if (segmentValues) {
                 const segmentList = segmentValues
@@ -659,17 +944,24 @@ export class Ifrs9ReportsService {
                     n.facility_number,
                     n.cif_number,
                     n.cif_name,
+                    n.prc_date AS download_date,
                     m.branch_code,
+                    COALESCE(n.start_date, m.start_date) AS loan_start_date,
+                    COALESCE(n.maturity_date, m.maturity_date) AS loan_maturity_date,
+                    n.group_segment,
                     n.segment,
                     n.sub_segment,
                     n.stage,
                     n.currency,
+                    n.interest_rate,
                     CAST(n.outstanding AS DECIMAL) AS outstanding,
                     CAST(n.ecl AS DECIMAL) AS ecl_final_amt,
                     CAST(n.ecl_coverage AS DECIMAL) AS ecl_coverage,
                     n.dpd,
                     n.ext_rating AS internal_rating_code,
+                    n.rating_bucket,
                     n.sicr AS sicr_flag,
+                    CASE WHEN n.sicr THEN 'Yes' ELSE 'No' END AS watchlist,
                     n.prc_date
                 FROM public.frs9_imp_nominative n
                 LEFT JOIN public.frs9_master_account m
@@ -740,13 +1032,52 @@ export class Ifrs9ReportsService {
      */
     async getLifetimeLGDDetail(tenantId: string, page: number, limit: number, params?: LifetimeLGDParams) {
         try {
-            const prcDate = params?.prc_date || '2023-12-31';
+            const requestedPrcDate = params?.prc_date || '2023-12-31';
             const lgdConfigId = params?.lgd_config_id || 1;
+            const lgdMethod = params?.lgd_method;
+            const segmentId = params?.segment_id;
+            const flFlag = params?.fl_flag;
+            const effectivePrcDate = await this.resolveLifetimeLgdPrcDate({
+                ...params,
+                lgd_config_id: lgdConfigId,
+            });
 
-            console.log('📊 [Lifetime LGD Detail] Fetching with params:', { prcDate, lgdConfigId });
+            console.log('📊 [Lifetime LGD Detail] Fetching with params:', {
+                requestedPrcDate,
+                effectivePrcDate,
+                lgdConfigId,
+                lgdMethod,
+                paramsModelId: params?.model_id,
+                segmentId,
+                flFlag,
+            });
+
+            if (!effectivePrcDate) {
+                return { data: [], total: 0, page, totalPages: 0, effectivePrcDate: null };
+            }
 
             // Query with raw SQL for the complex join
-            // Added JOIN conditions to strictly match prc_date and lgd_config_id
+            const filters = [
+                sql`B.prc_date = ${effectivePrcDate}`,
+                sql`B.lgd_config_id = ${lgdConfigId}`,
+            ];
+
+            if (lgdMethod !== undefined) {
+                filters.push(sql`B.lgd_method = ${lgdMethod}`);
+            }
+
+            if (params?.model_id !== undefined) {
+                filters.push(sql`E.model_id = ${params.model_id}`);
+            }
+
+            if (segmentId !== undefined) {
+                filters.push(sql`F.segment_id = ${segmentId}`);
+            }
+
+            if (flFlag !== undefined) {
+                filters.push(sql`COALESCE(F.fl_flag, false) = ${flFlag}`);
+            }
+
             const rawData = await legacyDb.execute(sql`
                 SELECT 
                     A.account_number,
@@ -766,8 +1097,11 @@ export class Ifrs9ReportsService {
                 LEFT JOIN public.frs9_imp_ca_lgd_d D ON B.account_id = D.account_id
                     AND B.prc_date = D.prc_date 
                     AND B.lgd_config_id = D.lgd_config_id
-                WHERE B.prc_date <= ${prcDate}
-                AND B.lgd_config_id = ${lgdConfigId}
+                LEFT JOIN public.frs9_imp_ca_lgd_h E ON B.prc_date = E.prc_date
+                    AND B.lgd_config_id = E.lgd_config_id
+                    AND B.lgd_method = E.lgd_method
+                LEFT JOIN public.frs9_imp_ca_lgd_config F ON B.lgd_config_id = F.pkid
+                WHERE ${sql.join(filters, sql` AND `)}
                 ORDER BY A.account_number, C.seq
             `);
 
@@ -788,13 +1122,14 @@ export class Ifrs9ReportsService {
                 data: paginatedData,
                 total: pivotData.length,
                 page,
-                totalPages: Math.ceil(pivotData.length / limit)
+                totalPages: Math.ceil(pivotData.length / limit),
+                effectivePrcDate
             };
         } catch (error) {
             console.error('❌ Error in getLifetimeLGDDetail service:', error);
             // Re-throw error to be handled by controller, or return empty structure
             // Returning empty structure is safer to avoid 500 crashing the UI completely
-            return { data: [], total: 0, page, totalPages: 0 };
+            return { data: [], total: 0, page, totalPages: 0, effectivePrcDate: null };
         }
     }
 
@@ -837,10 +1172,18 @@ export class Ifrs9ReportsService {
      */
     async getLifetimeLGDSummary(tenantId: string, page: number, limit: number, params?: LifetimeLGDParams) {
         try {
-            const prcDate = params?.prc_date || '2023-12-31';
+            const requestedPrcDate = params?.prc_date || '2023-12-31';
             const lgdConfigId = params?.lgd_config_id || 1;
+            const effectivePrcDate = await this.resolveLifetimeLgdPrcDate({
+                ...params,
+                lgd_config_id: lgdConfigId,
+            });
 
-            console.log('📊 [Lifetime LGD Summary] Fetching with params:', { prcDate, lgdConfigId });
+            console.log('📊 [Lifetime LGD Summary] Fetching with params:', { requestedPrcDate, effectivePrcDate, lgdConfigId });
+
+            if (!effectivePrcDate) {
+                return { data: [], total: 0, page, totalPages: 0, effectivePrcDate: null };
+            }
 
             // Matching SQL:
             // SELECT PRC_DATE AS PERIOD, B.LGD_MODEL_NAME AS LGD_MODEL, EQV_OS AS TOTAL_EAD,
@@ -857,7 +1200,7 @@ export class Ifrs9ReportsService {
                     A.lgd AS lgd_rate
                 FROM public.frs9_imp_ca_lgd_h A
                 INNER JOIN public.frs9_imp_ca_lgd_config B ON A.lgd_config_id = B.pkid
-                WHERE A.prc_date = ${prcDate}
+                WHERE A.prc_date = ${effectivePrcDate}
                 AND A.lgd_config_id = ${lgdConfigId}
             `);
 
@@ -874,11 +1217,12 @@ export class Ifrs9ReportsService {
                 data,
                 total: data.length,
                 page,
-                totalPages: Math.ceil(data.length / limit)
+                totalPages: Math.ceil(data.length / limit),
+                effectivePrcDate
             };
         } catch (error) {
             console.error('❌ Error in getLifetimeLGDSummary service:', error);
-            return { data: [], total: 0, page, totalPages: 0 };
+            return { data: [], total: 0, page, totalPages: 0, effectivePrcDate: null };
         }
     }
 
@@ -895,6 +1239,7 @@ export class Ifrs9ReportsService {
     async getEADModel(tenantId: string, page: number, limit: number, params?: EADModelParams) {
         try {
             const prcDate = params?.prc_date || '2023-12-31';
+            const requestedSegmentId = params?.ead_config_id ?? params?.segment_id;
 
             // First, determine which segment ID actually has data for this date
             const segmentsQuery = await legacyDb
@@ -905,18 +1250,16 @@ export class Ifrs9ReportsService {
                 .orderBy(frs9ImpCaEadPaymAvg.segmentId);
 
             const activeSegments = segmentsQuery.map(s => s.segmentId);
-            
-            // Note: SQL uses SEGMENT_ID = @EAD_CONFIG_ID, so ead_config_id maps to segment_id
-            let segmentId = params?.ead_config_id || params?.segment_id;
-            
-            // If requested segment doesn't exist but others do, use the first available one
-            if (!segmentId || (activeSegments.length > 0 && !activeSegments.includes(segmentId))) {
-                segmentId = activeSegments.length > 0 ? activeSegments[0]! : 1;
-            } else if (!segmentId) {
-                segmentId = 1;
-            }
+            // Tech spec uses SEGMENT_ID = @EAD_CONFIG_ID, so if caller provides an ID we
+            // must respect it strictly and return empty when no matching data exists.
+            const segmentId = requestedSegmentId ?? (activeSegments.length > 0 ? activeSegments[0]! : 1);
 
-            console.log('📊 [EAD Model] Fetching with params:', { prcDate, segmentId, activeSegments });
+            console.log('📊 [EAD Model] Fetching with params:', {
+                prcDate,
+                requestedSegmentId,
+                segmentId,
+                activeSegments
+            });
 
             // Query frs9_imp_ca_ead_paym_avg matching SQL script
             const conditions = [
@@ -984,9 +1327,10 @@ export class Ifrs9ReportsService {
      * Get EAD Model Summary Report
      * Calculates metrics: Total Accounts, Avg EAD, Avg CCF, Avg Utilization
      */
-    async getEADModelSummary(tenantId: string, params?: { prc_date: string, ead_config_id?: number }) {
+    async getEADModelSummary(tenantId: string, params?: { prc_date: string, ead_config_id?: number, segment_id?: number }) {
         try {
             const prcDate = params?.prc_date || '2023-12-31';
+            const requestedSegmentId = params?.ead_config_id ?? params?.segment_id;
             
             // First determine which config IDs are active for this date
             const activeConfigsQuery = await legacyDb.execute(sql.raw(`
@@ -997,17 +1341,14 @@ export class Ifrs9ReportsService {
                 ORDER BY ead_config_id
             `));
             const activeConfigs = (activeConfigsQuery as any[]).map(r => r.ead_config_id).filter(id => id != null);
-            
-            let segmentId = params?.ead_config_id;
-            
-            // If no segment ID was provided, or if the provided one isn't in the active list, use the first available
-            if (!segmentId || (activeConfigs.length > 0 && !activeConfigs.includes(segmentId))) {
-               segmentId = activeConfigs.length > 0 ? activeConfigs[0] : 1;
-            } else if (!segmentId) {
-               segmentId = 1;
-            }
+            const segmentId = requestedSegmentId ?? (activeConfigs.length > 0 ? activeConfigs[0] : 1);
 
-            console.log('📊 [EAD Model Summary] Fetching with params:', { prcDate, segmentId, activeConfigs });
+            console.log('📊 [EAD Model Summary] Fetching with params:', {
+                prcDate,
+                requestedSegmentId,
+                segmentId,
+                activeConfigs
+            });
 
             // Query frs9_master_account for summary
             const rawData = await legacyDb.execute(sql.raw(`
@@ -1173,88 +1514,14 @@ export class Ifrs9ReportsService {
             const stageFilter = this.normalizeStageFilter(params?.stage);
             const groupSegment = params?.group_segment;
 
-            const { effectiveDate, rows } = await this.fetchMovementRows(prcDate, groupSegment);
+            const { effectiveDate, rows } = await this.fetchMovementRows(prcDate, params?.segment_id, groupSegment);
             if (!effectiveDate || rows.length === 0) {
                 return { data: [] };
             }
 
-            const numericFields = [
-                'stage1', 'stage2', 'stage3',
-                'stage1_i', 'stage2_i', 'stage3_i',
-                'gca_stage1', 'gca_stage2', 'gca_stage3',
-                'gca_stage1_i', 'gca_stage2_i', 'gca_stage3_i',
-                'poci',
-            ];
-
-            const byGroup = new Map<string, Map<number, any>>();
-            for (const row of rows) {
-                const group = String(row.group_segment || '').trim();
-                const urut = this.toNumber(row.urut);
-                if (!group || urut <= 0) continue;
-
-                if (!byGroup.has(group)) byGroup.set(group, new Map<number, any>());
-                const groupRows = byGroup.get(group)!;
-
-                if (!groupRows.has(urut)) {
-                    groupRows.set(urut, { urut, group_segment: group, prc_date: effectiveDate });
-                    for (const field of numericFields) {
-                        groupRows.get(urut)[field] = 0;
-                    }
-                }
-
-                const current = groupRows.get(urut)!;
-                for (const field of numericFields) {
-                    current[field] += this.toNumber(row[field]);
-                }
-            }
-
-            const transferUruts = [2, 3, 4, 5, 6];
-            const movementUruts = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13];
-            const provisionUruts = [7, 8, 9, 10, 13];
-
-            const data = Array.from(byGroup.entries()).map(([group, urutRows]) => {
-                const getRow = (urut: number) => urutRows.get(urut);
-                const openingBalance = this.getRowEclTotal(getRow(1), stageFilter);
-                const finalBalanceRaw = this.getRowEclTotal(getRow(14), stageFilter);
-                const netMovementFromComponents = movementUruts.reduce(
-                    (sum, urut) => sum + this.getRowEclTotal(getRow(urut), stageFilter),
-                    0,
-                );
-                const closingBalance = finalBalanceRaw !== 0
-                    ? finalBalanceRaw
-                    : openingBalance + netMovementFromComponents;
-
-                const stageTransfers = transferUruts.reduce(
-                    (sum, urut) => sum + this.getRowEclTransferMagnitude(getRow(urut), stageFilter),
-                    0,
-                );
-
-                let newProvisions = 0;
-                let releases = 0;
-                for (const urut of provisionUruts) {
-                    const value = this.getRowEclTotal(getRow(urut), stageFilter);
-                    if (value >= 0) {
-                        newProvisions += value;
-                    } else {
-                        releases += Math.abs(value);
-                    }
-                }
-
-                const writeOffs = Math.abs(this.getRowEclTotal(getRow(11), stageFilter));
-
-                return {
-                    prc_date: effectiveDate,
-                    group_segment: group,
-                    opening_balance: openingBalance,
-                    closing_balance: closingBalance,
-                    new_provisions: newProvisions,
-                    releases,
-                    write_offs: writeOffs,
-                    stage_transfers: stageTransfers,
-                };
-            });
-
-            return { data };
+            return {
+                data: this.buildMovementMatrixRows(rows, effectiveDate, stageFilter, 'ecl'),
+            };
         } catch (error) {
             console.error('❌ Error in getECLMovement service:', error);
             return { data: [] };
@@ -1271,109 +1538,14 @@ export class Ifrs9ReportsService {
             const stageFilter = this.normalizeStageFilter(params?.stage);
             const groupSegment = params?.group_segment;
 
-            const { effectiveDate, rows } = await this.fetchMovementRows(prcDate, groupSegment);
+            const { effectiveDate, rows } = await this.fetchMovementRows(prcDate, params?.segment_id, groupSegment);
             if (!effectiveDate || rows.length === 0) {
                 return { data: [] };
             }
 
-            const numericFields = [
-                'stage1', 'stage2', 'stage3',
-                'stage1_i', 'stage2_i', 'stage3_i',
-                'gca_stage1', 'gca_stage2', 'gca_stage3',
-                'gca_stage1_i', 'gca_stage2_i', 'gca_stage3_i',
-                'poci',
-            ];
-
-            const byGroup = new Map<string, Map<number, any>>();
-            for (const row of rows) {
-                const group = String(row.group_segment || '').trim();
-                const urut = this.toNumber(row.urut);
-                if (!group || urut <= 0) continue;
-
-                if (!byGroup.has(group)) byGroup.set(group, new Map<number, any>());
-                const groupRows = byGroup.get(group)!;
-
-                if (!groupRows.has(urut)) {
-                    groupRows.set(urut, { urut, group_segment: group, prc_date: effectiveDate });
-                    for (const field of numericFields) {
-                        groupRows.get(urut)[field] = 0;
-                    }
-                }
-
-                const current = groupRows.get(urut)!;
-                for (const field of numericFields) {
-                    current[field] += this.toNumber(row[field]);
-                }
-            }
-
-            const movementUruts = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13];
-            const stageTransferUrutMap: Record<number, number> = {
-                1: 2, // 1 -> 2
-                2: 4, // 2 -> 1
-                3: 5, // 2 -> 3
-                4: 6, // 3 -> 2
+            return {
+                data: this.buildMovementMatrixRows(rows, effectiveDate, stageFilter, 'gca'),
             };
-
-            const selectedStages = stageFilter ?? [1, 2, 3];
-            const firstSelectedStage = selectedStages[0] ?? 1;
-            const data: any[] = [];
-
-            for (const [group, urutRows] of byGroup.entries()) {
-                const getRow = (urut: number) => urutRows.get(urut);
-
-                const openingByStage = new Map<number, number>();
-                const closingByStage = new Map<number, number>();
-                for (const stage of selectedStages) {
-                    const openingStage = this.getStageGca(getRow(1), stage);
-                    const finalStageRaw = this.getStageGca(getRow(14), stage);
-                    const movementStage = movementUruts.reduce(
-                        (sum, urut) => sum + this.getStageGca(getRow(urut), stage),
-                        0,
-                    );
-                    const closingStage = finalStageRaw !== 0
-                        ? finalStageRaw
-                        : openingStage + movementStage;
-                    openingByStage.set(stage, openingStage);
-                    closingByStage.set(stage, closingStage);
-                }
-
-                const openingTotal = selectedStages.reduce((sum, stage) => sum + (openingByStage.get(stage) || 0), 0);
-                const closingTotal = selectedStages.reduce((sum, stage) => sum + (closingByStage.get(stage) || 0), 0);
-
-                const newBusinessRaw = this.getRowGcaTotal(getRow(7), stageFilter);
-                const closeRepaymentRaw = this.getRowGcaTotal(getRow(10), stageFilter);
-                const writeOffRaw = this.getRowGcaTotal(getRow(11), stageFilter);
-
-                const newBusiness = Math.max(newBusinessRaw, 0);
-                const repayments = Math.abs(closeRepaymentRaw);
-                const writeOffs = Math.abs(writeOffRaw);
-
-                const stage1To2 = Math.abs(this.getRowGcaTotal(getRow(stageTransferUrutMap[1]), stageFilter));
-                const stage2To1 = Math.abs(this.getRowGcaTotal(getRow(stageTransferUrutMap[2]), stageFilter));
-                const stage2To3 = Math.abs(this.getRowGcaTotal(getRow(stageTransferUrutMap[3]), stageFilter));
-                const stage3To2 = Math.abs(this.getRowGcaTotal(getRow(stageTransferUrutMap[4]), stageFilter));
-
-                for (const stage of selectedStages) {
-                    data.push({
-                        prc_date: effectiveDate,
-                        group_segment: group,
-                        current_stage: stage,
-                        opening_gca: openingByStage.get(stage) || 0,
-                        closing_gca: closingByStage.get(stage) || 0,
-                        new_business: stage === firstSelectedStage ? newBusiness : 0,
-                        repayments: stage === firstSelectedStage ? repayments : 0,
-                        write_offs: stage === firstSelectedStage ? writeOffs : 0,
-                        stage1_to_stage2: stage === firstSelectedStage ? stage1To2 : 0,
-                        stage2_to_stage1: stage === firstSelectedStage ? stage2To1 : 0,
-                        stage2_to_stage3: stage === firstSelectedStage ? stage2To3 : 0,
-                        stage3_to_stage2: stage === firstSelectedStage ? stage3To2 : 0,
-                        opening_total_gca: stage === firstSelectedStage ? openingTotal : 0,
-                        closing_total_gca: stage === firstSelectedStage ? closingTotal : 0,
-                    });
-                }
-            }
-
-            return { data };
         } catch (error) {
             console.error('❌ Error in getGCAMovement service:', error);
             return { data: [] };

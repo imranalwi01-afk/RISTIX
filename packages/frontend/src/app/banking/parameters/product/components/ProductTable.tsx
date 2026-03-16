@@ -158,6 +158,7 @@ export default function ProductTable({
           label="Edit"
           onClick={() => onEdit(params.row)}
           showInMenu={false}
+          data-testid="btn-edit-product"
           key="edit"
         />,
         <SafeGridActionsCellItem
@@ -165,6 +166,7 @@ export default function ProductTable({
           label="Clone"
           onClick={() => onClone(params.row)}
           showInMenu={false}
+          data-testid="btn-clone-product"
           key="clone"
         />,
         <SafeGridActionsCellItem
@@ -172,6 +174,7 @@ export default function ProductTable({
           label="Delete"
           onClick={() => onDelete(params.row)}
           showInMenu={false}
+          data-testid="btn-delete-product"
           key="delete"
         />
       ] : []

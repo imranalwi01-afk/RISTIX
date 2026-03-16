@@ -27,7 +27,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { Info as InfoIcon, Close as CloseIcon, ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
-import { productSegmentsApi } from '../../services/api/product-segments.api';
+import { productSegmentsApi, type ProductSegment } from '../../services/api/product-segments.api';
 import { pdConfigurationsApi } from '../../services/api/pd-configurations.api';
 import { flScalarAPI } from '../../services/api/fl-scalar.api';
 
@@ -38,9 +38,12 @@ interface LifetimePDConfigPanelProps {
 }
 
 export default function LifetimePDConfigPanel({ open, onClose, onRun }: LifetimePDConfigPanelProps) {
+  const getSegmentLabel = (segment: ProductSegment) =>
+    segment.segment || segment.subSegment || segment.groupSegment || String(segment.id);
+
   // Local state for form fields
   const [procDate, setProcDate] = useState<Date | null>(new Date('2022-10-31'));
-  const [selectedSegments, setSelectedSegments] = useState<any[]>([]);
+  const [selectedSegments, setSelectedSegments] = useState<ProductSegment[]>([]);
   const [pdConfigId, setPdConfigId] = useState('');
   const [pdMethod, setPdMethod] = useState('TTC');
   const [isForwardLooking, setIsForwardLooking] = useState(false);
@@ -53,7 +56,7 @@ export default function LifetimePDConfigPanel({ open, onClose, onRun }: Lifetime
   const [scalarIdB, setScalarIdB] = useState('');
 
   // Metadata states
-  const [segments, setSegments] = useState<any[]>([]);
+  const [segments, setSegments] = useState<ProductSegment[]>([]);
   const [pdConfigs, setPdConfigs] = useState<any[]>([]);
   const [scalars, setScalars] = useState<any[]>([]);
   const [loadingMetadata, setLoadingMetadata] = useState(false);
@@ -92,6 +95,8 @@ export default function LifetimePDConfigPanel({ open, onClose, onRun }: Lifetime
     onRun({
       procDate,
       selectedSegments,
+      selectedSegmentIds: selectedSegments.map((segment) => Number(segment.id)),
+      selectedSegmentLabels: selectedSegments.map((segment) => getSegmentLabel(segment)),
       pdConfigId,
       pdMethod,
       isForwardLooking,
@@ -142,10 +147,12 @@ export default function LifetimePDConfigPanel({ open, onClose, onRun }: Lifetime
         {/* Segment ID */}
         <Autocomplete
           multiple
-          options={segments.map(s => s.segment || s.groupSegment || s.id?.toString() || '')}
+          options={segments}
           loading={loadingMetadata}
+          getOptionLabel={(option) => `${getSegmentLabel(option)} (ID: ${option.id})`}
+          isOptionEqualToValue={(option, value) => String(option.id) === String(value.id)}
           value={selectedSegments}
-          onChange={(_: any, newValue: any) => setSelectedSegments(newValue)}
+          onChange={(_: any, newValue: ProductSegment[]) => setSelectedSegments(newValue)}
           renderInput={(params) => (
             <TextField
               {...params}
