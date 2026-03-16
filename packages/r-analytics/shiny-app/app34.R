@@ -3228,11 +3228,32 @@ server <- function(input, output, session) {
     df
   }
 
-  pick_first_existing_column <- function(df, candidates) {
+  normalize_pdafl_identifier <- function(value) {
+    tolower(gsub("[^a-z0-9]+", "", as.character(value)))
+  }
+
+  pick_first_existing_column <- function(df, candidates, fallback_patterns = character()) {
     if (!is.data.frame(df) || ncol(df) == 0) return(NULL)
-    hits <- candidates[candidates %in% names(df)]
-    if (length(hits) == 0) return(NULL)
-    df[[hits[[1]]]]
+    actual_names <- names(df)
+    normalized_names <- vapply(actual_names, normalize_pdafl_identifier, character(1))
+
+    for (candidate in candidates) {
+      hit_index <- which(normalized_names == normalize_pdafl_identifier(candidate))
+      if (length(hit_index) > 0) {
+        return(df[[actual_names[[hit_index[[1]]]]]])
+      }
+    }
+
+    if (length(fallback_patterns) > 0) {
+      for (pattern in fallback_patterns) {
+        hit_index <- grep(pattern, normalized_names, perl = TRUE)
+        if (length(hit_index) > 0) {
+          return(df[[actual_names[[hit_index[[1]]]]]])
+        }
+      }
+    }
+
+    NULL
   }
 
   dataissuerrr0 <- eventReactive(input$runpdafl, {
@@ -3690,12 +3711,36 @@ server <- function(input, output, session) {
     ym.pd <- as.data.frame.matrix(xtabs(mmult ~ bucket_from + fl_seq, data = filtered_datammult))
     ym.pd[5, 2:ncol(ym.pd)] <- 0
 
-    forecast_base <- pick_first_existing_column(fo.y.boxplot, c("ODR_60 BASE", "ODR BASE"))
-    forecast_best <- pick_first_existing_column(fo.y.boxplot, c("ODR_60 BEST", "ODR BEST"))
-    forecast_worst <- pick_first_existing_column(fo.y.boxplot, c("ODR_60 WORST", "ODR WORST"))
+    forecast_base_candidates <- c(
+      paste0(vary, " BASE"),
+      paste0("BT_", vary, " BASE"),
+      "ODR_60 BASE",
+      "ODR BASE"
+    )
+    forecast_best_candidates <- c(
+      paste0(vary, " BEST"),
+      paste0("BT_", vary, " BEST"),
+      "ODR_60 BEST",
+      "ODR BEST"
+    )
+    forecast_worst_candidates <- c(
+      paste0(vary, " WORST"),
+      paste0("BT_", vary, " WORST"),
+      "ODR_60 WORST",
+      "ODR WORST"
+    )
+
+    forecast_base <- pick_first_existing_column(fo.y.boxplot, forecast_base_candidates, c("base$"))
+    forecast_best <- pick_first_existing_column(fo.y.boxplot, forecast_best_candidates, c("best$"))
+    forecast_worst <- pick_first_existing_column(fo.y.boxplot, forecast_worst_candidates, c("worst$"))
 
     if (is.null(forecast_base) || is.null(forecast_best) || is.null(forecast_worst)) {
-      stop("Forecast scenario columns not found in fo.y.boxplot")
+      stop(
+        sprintf(
+          "Forecast scenario columns not found in fo.y.boxplot. Available columns: %s",
+          paste(colnames(fo.y.boxplot), collapse = ", ")
+        )
+      )
     }
 
     PD.Base <- PD_engine1(forecast_base, datay2, issuer, ym.pd)
