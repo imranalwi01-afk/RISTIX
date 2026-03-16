@@ -40,6 +40,41 @@ pdafl_server <- function(input, output, session, con, PD) {
     df
   }
 
+  normalize_pdafl_identifier <- function(value) {
+    tolower(gsub("[^a-z0-9]+", "", as.character(value)))
+  }
+
+  pick_first_existing_column <- function(df, candidates, fallback_patterns = character()) {
+    if (!is.data.frame(df) || ncol(df) == 0) return(NULL)
+
+    actual_names <- names(df)
+    normalized_names <- vapply(actual_names, normalize_pdafl_identifier, character(1))
+
+    for (candidate in candidates) {
+      hit_index <- which(normalized_names == normalize_pdafl_identifier(candidate))
+      if (length(hit_index) > 0) {
+        return(list(
+          name = actual_names[[hit_index[[1]]]],
+          values = df[[actual_names[[hit_index[[1]]]]]]
+        ))
+      }
+    }
+
+    if (length(fallback_patterns) > 0) {
+      for (pattern in fallback_patterns) {
+        hit_index <- grep(pattern, normalized_names, perl = TRUE)
+        if (length(hit_index) > 0) {
+          return(list(
+            name = actual_names[[hit_index[[1]]]],
+            values = df[[actual_names[[hit_index[[1]]]]]]
+          ))
+        }
+      }
+    }
+
+    NULL
+  }
+
   # =============================================================================
   # MODULE INITIALIZATION AND DEBUG SETUP
   # =============================================================================
@@ -1787,13 +1822,16 @@ pdafl_server <- function(input, output, session, con, PD) {
     cat("  - datay2 range:", if(length(datay2) > 0) paste(round(range(datay2, na.rm=TRUE), 4), collapse=" to ") else "EMPTY", "\n")
 
     cat(" DEBUG [HASILPD]: Getting issuer data\n")
-    dataissuer_raw <- dataissuerrr01()
+    dataissuer_raw <- normalize_column_names(dataissuerrr01())
     if(is.null(dataissuer_raw) || nrow(dataissuer_raw) == 0) {
       cat(" DEBUG [HASILPD]: dataissuerrr01() returned NULL or empty\n")
       return(NULL)
     }
 
-    dataissuer2 <- aggregate(calc_amount ~ bucket_from, data = dataissuer_raw, sum)
+    dataissuer2 <- dataissuer_raw %>%
+      group_by(bucket_from) %>%
+      summarise(calc_amount = sum(calc_amount), .groups = "drop") %>%
+      complete(bucket_from = 1:5, fill = list(calc_amount = 0))
     cat("  - dataissuer2 dimensions:", paste(dim(dataissuer2), collapse="x"), "\n")
 
     issuer <- dataissuer2$calc_amount
@@ -1801,7 +1839,7 @@ pdafl_server <- function(input, output, session, con, PD) {
     cat("  - issuer values:", paste(round(issuer), collapse=", "), "\n")
 
     cat(" DEBUG [HASILPD]: Processing multiplication data\n")
-    datammult <- as.data.frame(datammulttt0())
+    datammult <- normalize_column_names(as.data.frame(datammulttt0()))
     cat("  - datammult dimensions:", if(is.null(datammult)) "NULL" else paste(dim(datammult), collapse="x"), "\n")
 
     if(is.null(datammult) || nrow(datammult) == 0) {
@@ -1815,6 +1853,7 @@ pdafl_server <- function(input, output, session, con, PD) {
     filtered_datammult <- datammult[datammult$prc_date == latest_date & datammult$bucket_to == 5, ]
     cat("  - filtered_datammult dimensions:", paste(dim(filtered_datammult), collapse="x"), "\n")
 
+    filtered_datammult$bucket_from <- factor(filtered_datammult$bucket_from, levels = 1:5)
     ym.pd <- as.data.frame.matrix(xtabs(mmult ~ bucket_from + fl_seq, data = filtered_datammult))
     cat("  - ym.pd dimensions:", paste(dim(ym.pd), collapse="x"), "\n")
 
@@ -1834,11 +1873,49 @@ pdafl_server <- function(input, output, session, con, PD) {
     cat("    - dimensions:", paste(dim(fo.y.boxplot), collapse="x"), "\n")
     cat("    - column names:", paste(colnames(fo.y.boxplot), collapse=", "), "\n")
 
-    # Use correct column names as in original working version
-    forecast_base <- fo.y.boxplot$`ODR_60 BASE`
-    forecast_best <- fo.y.boxplot$`ODR_60 BEST`
-    forecast_worst <- fo.y.boxplot$`ODR_60 WORST`
+    forecast_base_candidates <- c(
+      paste0(vary, " BASE"),
+      paste0("BT_", vary, " BASE"),
+      "ODR_60 BASE",
+      "ODR BASE"
+    )
+    forecast_best_candidates <- c(
+      paste0(vary, " BEST"),
+      paste0("BT_", vary, " BEST"),
+      "ODR_60 BEST",
+      "ODR BEST"
+    )
+    forecast_worst_candidates <- c(
+      paste0(vary, " WORST"),
+      paste0("BT_", vary, " WORST"),
+      "ODR_60 WORST",
+      "ODR WORST"
+    )
 
+    cat("  - forecast_base candidates:", paste(forecast_base_candidates, collapse=", "), "\n")
+    cat("  - forecast_best candidates:", paste(forecast_best_candidates, collapse=", "), "\n")
+    cat("  - forecast_worst candidates:", paste(forecast_worst_candidates, collapse=", "), "\n")
+
+    forecast_base_match <- pick_first_existing_column(fo.y.boxplot, forecast_base_candidates, c("base$"))
+    forecast_best_match <- pick_first_existing_column(fo.y.boxplot, forecast_best_candidates, c("best$"))
+    forecast_worst_match <- pick_first_existing_column(fo.y.boxplot, forecast_worst_candidates, c("worst$"))
+
+    if(is.null(forecast_base_match) || is.null(forecast_best_match) || is.null(forecast_worst_match)) {
+      stop(
+        paste0(
+          "Forecast scenario columns not found in fo.y.boxplot. Available columns: ",
+          paste(colnames(fo.y.boxplot), collapse=", ")
+        )
+      )
+    }
+
+    forecast_base <- forecast_base_match$values
+    forecast_best <- forecast_best_match$values
+    forecast_worst <- forecast_worst_match$values
+
+    cat("  - forecast_base matched column:", forecast_base_match$name, "\n")
+    cat("  - forecast_best matched column:", forecast_best_match$name, "\n")
+    cat("  - forecast_worst matched column:", forecast_worst_match$name, "\n")
     cat("  - forecast_base class:", class(forecast_base), "\n")
     cat("  - forecast_best class:", class(forecast_best), "\n")
     cat("  - forecast_worst class:", class(forecast_worst), "\n")
