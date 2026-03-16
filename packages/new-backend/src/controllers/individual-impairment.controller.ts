@@ -131,10 +131,12 @@ export class IndividualImpairmentController {
     async removeFromWatchlist(c: Context) {
         try {
             const user = c.get('user');
-            if (!user?.tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
+            const tenantId = user?.tenantId;
+            if (!tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
 
             const id = c.req.param('id');
-            await individualImpairmentService.removeFromWatchlist(id, user.tenantId);
+            if (!id) return c.json({ success: false, message: 'ID required' }, 400);
+            await individualImpairmentService.removeFromWatchlist(id, tenantId);
             return c.json({ success: true, message: 'Removed from watchlist' });
         } catch (error: any) {
             return this.handleError(c, error);
@@ -358,12 +360,16 @@ export class IndividualImpairmentController {
     async updateScenarioStatus(c: Context) {
         try {
             const user = c.get('user');
-            if (!user?.tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
+            const tenantId = user?.tenantId;
+            const userId = user?.id;
+            if (!tenantId || !userId) return c.json({ success: false, message: 'Unauthorized' }, 401);
 
             const id = c.req.param('id');
             const { status } = await c.req.json(); // { status: "APPROVED" }
+            if (!id) return c.json({ success: false, message: 'ID required' }, 400);
+            if (!status) return c.json({ success: false, message: 'Status required' }, 400);
 
-            const data = await individualImpairmentService.updateScenarioStatus(id, user.tenantId, status, user.id);
+            const data = await individualImpairmentService.updateScenarioStatus(id, tenantId, status, userId);
             return c.json({ success: true, data: data[0] });
         } catch (error: any) {
             return this.handleError(c, error);
@@ -386,10 +392,12 @@ export class IndividualImpairmentController {
     async getDcfCashflows(c: Context) {
         try {
             const user = c.get('user');
-            if (!user?.tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
+            const tenantId = user?.tenantId;
+            if (!tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
 
             const uploadId = c.req.param('uploadId');
-            const data = await individualImpairmentService.getDcfCashflows(user.tenantId, uploadId);
+            if (!uploadId) return c.json({ success: false, message: 'Upload ID required' }, 400);
+            const data = await individualImpairmentService.getDcfCashflows(tenantId, uploadId);
             return c.json({ success: true, data });
         } catch (error: any) {
             return this.handleError(c, error);

@@ -1145,7 +1145,10 @@ export class IndividualImpairmentService {
         try {
             // Get unified staging summary across all available data
             const query = sql`
-                WITH stage_mapping AS (
+                WITH latest_date AS (
+                    SELECT MAX(prc_date) as prc_date FROM frs9_master_account
+                ),
+                stage_mapping AS (
                     SELECT 
                         m.account_id,
                         m.outstanding,
@@ -1173,6 +1176,7 @@ export class IndividualImpairmentService {
                         ON m.account_id = ia.account_id AND ia.status = 1
                     LEFT JOIN frs9_imp_ca_result_h ca 
                         ON m.account_id = ca.account_id AND m.prc_date = ca.prc_date
+                    WHERE m.prc_date = (SELECT prc_date FROM latest_date)
                 ),
                 ecl_calculation AS (
                     SELECT 

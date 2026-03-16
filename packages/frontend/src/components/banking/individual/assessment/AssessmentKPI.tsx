@@ -19,7 +19,6 @@ interface AssessmentKPIProps {
     totalProvisions: number;
     dataDate?: string;
   };
-  mode?: string;
 }
 
 interface KPICardProps {
@@ -119,7 +118,7 @@ const KPICard: React.FC<KPICardProps> = ({ title, value, gradient, icon, loading
 );
 
 // Main AssessmentKPI component
-export const AssessmentKPI: React.FC<AssessmentKPIProps> = ({ watchlist, loading, summary, mode = 'conventional' }) => {
+export const AssessmentKPI: React.FC<AssessmentKPIProps> = ({ watchlist, loading, summary }) => {
   // Use summary data if available, otherwise fallback to watchlist aggregation (which is inaccurate for paginated data)
   // Fallback is only for initial load or if summary API fails
   
@@ -173,14 +172,7 @@ export const AssessmentKPI: React.FC<AssessmentKPIProps> = ({ watchlist, loading
         loading={loading && !summary}
         delay={300}
       />
-      <KPICard
-        title="Banking Mode"
-        value={mode.toUpperCase()}
-        gradient="linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%)"
-        icon={<span style={{ fontSize: 28, fontWeight: 'bold' }}>🏦</span>}
-        loading={false}
-        delay={400}
-      />
+
       {summary?.dataDate && (
         <Box sx={{ gridColumn: '1 / -1', mt: 1, textAlign: 'right' }}>
             <Typography variant="caption" color="text.secondary">

@@ -688,7 +688,7 @@ export class Ifrs9CalculationsService {
         }
     }
 
-    async getPortfolioTrend(tenantId: string, endDate?: string) {
+    async getPortfolioTrend(tenantId: string, endDate?: string, mode?: string) {
         try {
             const segmentIds = mode ? await this.getSegmentIdsForMode(mode) : [];
             const hasSegmentFilter = segmentIds.length > 0;
