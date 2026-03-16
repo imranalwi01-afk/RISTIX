@@ -6,7 +6,7 @@
 // Matches new backend structure (UUIDs, snake_case)
 // ============================================================================
 
-import { apiClient } from './api.client';
+import { apiClient } from './api-setup';
 import { ApiResponse } from '@/types/api';
 
 // ============================================================================
@@ -86,6 +86,17 @@ export interface BucketParameterPaginationParams {
 export class BucketParameterAPI {
   private readonly baseUrl = '/banking/collective/bucket';
 
+  private unwrap<T>(payload: ApiResponse<T> | undefined): ApiResponse<T> {
+    if (payload) {
+      return payload;
+    }
+
+    return {
+      success: false,
+      error: 'Empty response from bucket parameter API'
+    } as ApiResponse<T>;
+  }
+
   // ==========================================================================
   // HEADER OPERATIONS
   // ==========================================================================
@@ -104,18 +115,19 @@ export class BucketParameterAPI {
       if (params?.limit) queryParams.append('limit', params.limit.toString());
 
       const url = `${this.baseUrl}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-      const response = await apiClient.get<BucketParameterHeader[]>(url);
+      const response = await apiClient.get<ApiResponse<BucketParameterHeader[]>>(url);
+      const payload = this.unwrap(response.data);
 
       // Map backend fields to frontend fields for compatibility if needed
-      if (response.success && response.data) {
-        response.data = response.data.map(h => ({
+      if (payload.success && payload.data) {
+        payload.data = payload.data.map(h => ({
           ...h,
           bucket_name: h.bucket_name || h.bucket_group || '',
           bucket_description: h.bucket_description || h.bucket_group_desc
         }));
       }
 
-      return response;
+      return payload;
     } catch (error) {
       console.error('Error fetching bucket parameter headers:', error);
       throw error;
@@ -127,17 +139,18 @@ export class BucketParameterAPI {
    */
   async getHeader(id: string | number): Promise<ApiResponse<BucketParameterHeader>> {
     try {
-      const response = await apiClient.get<BucketParameterHeader>(`${this.baseUrl}/${id}`);
+      const response = await apiClient.get<ApiResponse<BucketParameterHeader>>(`${this.baseUrl}/${id}`);
+      const payload = this.unwrap(response.data);
 
-      if (response.success && response.data) {
-        response.data = {
-          ...response.data,
-          bucket_name: response.data.bucket_name || response.data.bucket_group || '',
-          bucket_description: response.data.bucket_description || response.data.bucket_group_desc
+      if (payload.success && payload.data) {
+        payload.data = {
+          ...payload.data,
+          bucket_name: payload.data.bucket_name || payload.data.bucket_group || '',
+          bucket_description: payload.data.bucket_description || payload.data.bucket_group_desc
         };
       }
 
-      return response;
+      return payload;
     } catch (error) {
       console.error('Error fetching bucket parameter header:', error);
       throw error;
@@ -156,8 +169,8 @@ export class BucketParameterAPI {
         bucket_group_desc: data.bucket_group_desc || data.bucket_description || ''
       };
 
-      const response = await apiClient.post<BucketParameterHeader>(this.baseUrl, payload);
-      return response;
+      const response = await apiClient.post<ApiResponse<BucketParameterHeader>>(this.baseUrl, payload);
+      return this.unwrap(response.data);
     } catch (error) {
       console.error('Error creating bucket parameter header:', error);
       throw error;
@@ -175,8 +188,8 @@ export class BucketParameterAPI {
         bucket_group_desc: data.bucket_group_desc || data.bucket_description || ''
       };
 
-      const response = await apiClient.put<BucketParameterHeader>(`${this.baseUrl}/${id}`, payload);
-      return response;
+      const response = await apiClient.put<ApiResponse<BucketParameterHeader>>(`${this.baseUrl}/${id}`, payload);
+      return this.unwrap(response.data);
     } catch (error) {
       console.error('Error updating bucket parameter header:', error);
       throw error;
@@ -188,8 +201,8 @@ export class BucketParameterAPI {
    */
   async deleteHeader(id: string | number): Promise<ApiResponse<void>> {
     try {
-      const response = await apiClient.delete<void>(`${this.baseUrl}/${id}`);
-      return response;
+      const response = await apiClient.delete<ApiResponse<void>>(`${this.baseUrl}/${id}`);
+      return this.unwrap(response.data);
     } catch (error) {
       console.error('Error deleting bucket parameter header:', error);
       throw error;
@@ -205,10 +218,11 @@ export class BucketParameterAPI {
    */
   async getDetails(headerId: string | number): Promise<ApiResponse<BucketParameterDetail[]>> {
     try {
-      const response = await apiClient.get<BucketParameterDetail[]>(`${this.baseUrl}/${headerId}/details`);
+      const response = await apiClient.get<ApiResponse<BucketParameterDetail[]>>(`${this.baseUrl}/${headerId}/details`);
+      const payload = this.unwrap(response.data);
 
-      if (response.success && response.data) {
-        response.data = response.data.map(d => ({
+      if (payload.success && payload.data) {
+        payload.data = payload.data.map(d => ({
           ...d,
           range_from: d.range_from ?? d.range_start ?? 0,
           range_to: d.range_to ?? d.range_end ?? 0,
@@ -218,7 +232,7 @@ export class BucketParameterAPI {
         }));
       }
 
-      return response;
+      return payload;
     } catch (error) {
       console.error('Error fetching bucket parameter details:', error);
       throw error;
@@ -239,8 +253,8 @@ export class BucketParameterAPI {
         bucket_id: data.bucket_id ?? data.seq
       };
 
-      const response = await apiClient.post<BucketParameterDetail>(`${this.baseUrl}/${headerId}/details`, payload);
-      return response;
+      const response = await apiClient.post<ApiResponse<BucketParameterDetail>>(`${this.baseUrl}/${headerId}/details`, payload);
+      return this.unwrap(response.data);
     } catch (error) {
       console.error('Error creating bucket parameter detail:', error);
       throw error;
@@ -260,8 +274,8 @@ export class BucketParameterAPI {
         bucket_id: data.bucket_id ?? data.seq
       };
 
-      const response = await apiClient.put<BucketParameterDetail>(`${this.baseUrl}/details/${detailId}`, payload);
-      return response;
+      const response = await apiClient.put<ApiResponse<BucketParameterDetail>>(`${this.baseUrl}/details/${detailId}`, payload);
+      return this.unwrap(response.data);
     } catch (error) {
       console.error('Error updating bucket parameter detail:', error);
       throw error;
@@ -273,8 +287,8 @@ export class BucketParameterAPI {
    */
   async deleteDetail(detailId: string | number): Promise<ApiResponse<void>> {
     try {
-      const response = await apiClient.delete<void>(`${this.baseUrl}/details/${detailId}`);
-      return response;
+      const response = await apiClient.delete<ApiResponse<void>>(`${this.baseUrl}/details/${detailId}`);
+      return this.unwrap(response.data);
     } catch (error) {
       console.error('Error deleting bucket parameter detail:', error);
       throw error;
