@@ -31,15 +31,11 @@ export const roles = coreSchema.table(
     'roles',
     {
         id: uuid('id').primaryKey().defaultRandom(),
-        legacyId: integer('legacy_id'),
         roleCode: varchar('role_code', { length: 50 }).notNull().unique(),
         roleName: varchar('role_name', { length: 100 }).notNull(),
         description: text('description'),
-        permissions: jsonb('permissions').default('{}'),
         isActive: boolean('is_active').default(true),
 
-        // Banking-specific fields
-        bankingTypeSpecific: varchar('banking_type_specific', { length: 20 }),
         complianceLevel: varchar('compliance_level', { length: 50 }),
         hierarchyLevel: integer('hierarchy_level').notNull().default(1),
 

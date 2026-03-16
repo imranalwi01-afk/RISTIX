@@ -23,6 +23,7 @@ import { env, isProduction } from './config'
 }
 import { routes } from './routes'
 import { businessSettingsRoutes } from './routes/business-settings.routes'
+import { auditMiddleware } from './middleware'
 import { errorHandler } from './middleware/error-handler'
 import { platformDb } from './config/database'
 import { platformTenants } from './db/schema/platform.schema'
@@ -181,6 +182,9 @@ export function createApp() {
         return c.json({ success: true, fixed: results.length, details: results })
     })
     // === END INTERNAL FIX ROUTE ===
+
+    // Audit all write API requests after downstream auth/tenant middleware resolve user context.
+    app.use('/api/v1/*', auditMiddleware)
 
     // API routes
     app.route('/api/v1/banking/business-settings', businessSettingsRoutes) // Explicit mount for business settings

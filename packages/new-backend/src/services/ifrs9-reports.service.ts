@@ -15,6 +15,7 @@ import {
     frs9ImpCaEadConfig,
     frs9MasterAccount,
     frs9ImpCaResultD,
+    frs9ParamSegmenth,
 } from '../db/schema';
 import { legacyDb } from '@/config';
 
@@ -258,6 +259,7 @@ export class Ifrs9ReportsService {
 
     private async fetchMovementRows(
         prcDate: string,
+        segmentId?: number,
         groupSegment?: string,
     ) {
         const requestedEom = this.endOfMonth(prcDate);
@@ -273,8 +275,13 @@ export class Ifrs9ReportsService {
             return { effectiveDate: null as string | null, rows: [] as any[] };
         }
 
-        const whereSegment = (groupSegment && groupSegment.trim())
-            ? sql`AND lower(group_segment) = lower(${groupSegment.trim()})`
+        const resolvedGroupSegment = await this.resolveMovementGroupSegment(segmentId, groupSegment);
+        if (segmentId !== undefined && segmentId !== null && resolvedGroupSegment === null) {
+            return { effectiveDate: String(effectiveDate), rows: [] as any[] };
+        }
+
+        const whereSegment = (resolvedGroupSegment && resolvedGroupSegment.trim())
+            ? sql`AND lower(group_segment) = lower(${resolvedGroupSegment.trim()})`
             : sql``;
 
         const rows = await legacyDb.execute(sql`
@@ -306,6 +313,28 @@ export class Ifrs9ReportsService {
             effectiveDate: String(effectiveDate),
             rows: Array.from(rows as any[]),
         };
+    }
+
+    private async resolveMovementGroupSegment(
+        segmentId?: number,
+        groupSegment?: string,
+    ): Promise<string | null | undefined> {
+        if (groupSegment && groupSegment.trim()) {
+            return groupSegment.trim();
+        }
+
+        if (segmentId === undefined || segmentId === null) {
+            return undefined;
+        }
+
+        const segmentRow = await legacyDb
+            .select({ groupSegment: frs9ParamSegmenth.groupSegment })
+            .from(frs9ParamSegmenth)
+            .where(eq(frs9ParamSegmenth.pkid, segmentId))
+            .limit(1);
+
+        const resolvedGroupSegment = segmentRow[0]?.groupSegment?.trim();
+        return resolvedGroupSegment || null;
     }
 
     private getStageEcl(row: any, stage: number): number {
@@ -379,23 +408,19 @@ export class Ifrs9ReportsService {
             'poci',
         ];
 
-        const byGroup = new Map<string, Map<number, any>>();
+        const aggregatedRows = new Map<number, any>();
         for (const row of rows) {
-            const group = String(row.group_segment || '').trim();
             const urut = this.toNumber(row.urut);
-            if (!group || urut <= 0) continue;
+            if (urut <= 0) continue;
 
-            if (!byGroup.has(group)) byGroup.set(group, new Map<number, any>());
-            const groupRows = byGroup.get(group)!;
-
-            if (!groupRows.has(urut)) {
-                groupRows.set(urut, { urut, group_segment: group, prc_date: effectiveDate });
+            if (!aggregatedRows.has(urut)) {
+                aggregatedRows.set(urut, { urut, prc_date: effectiveDate });
                 for (const field of numericFields) {
-                    groupRows.get(urut)[field] = 0;
+                    aggregatedRows.get(urut)[field] = 0;
                 }
             }
 
-            const current = groupRows.get(urut)!;
+            const current = aggregatedRows.get(urut)!;
             for (const field of numericFields) {
                 current[field] += this.toNumber(row[field]);
             }
@@ -404,49 +429,46 @@ export class Ifrs9ReportsService {
         const selectedStages = stageFilter ?? [1, 2, 3];
         const includesStage = (stage: number) => selectedStages.includes(stage);
 
-        return Array.from(byGroup.entries()).flatMap(([group, urutRows]) =>
-            Array.from(urutRows.values())
-                .sort((a, b) => this.toNumber(a.urut) - this.toNumber(b.urut))
-                .map((row) => {
-                    const stage1Collective = valueKind === 'ecl'
-                        ? (includesStage(1) ? this.toNumber(row.stage1) : 0)
-                        : (includesStage(1) ? this.toNumber(row.gca_stage1) : 0);
-                    const stage2Collective = valueKind === 'ecl'
-                        ? (includesStage(2) ? this.toNumber(row.stage2) : 0)
-                        : (includesStage(2) ? this.toNumber(row.gca_stage2) : 0);
-                    const stage3Collective = valueKind === 'ecl'
-                        ? (includesStage(3) ? this.toNumber(row.stage3) : 0)
-                        : (includesStage(3) ? this.toNumber(row.gca_stage3) : 0);
-                    const stage1Individual = valueKind === 'ecl'
-                        ? (includesStage(1) ? this.toNumber(row.stage1_i) : 0)
-                        : (includesStage(1) ? this.toNumber(row.gca_stage1_i) : 0);
-                    const stage2Individual = valueKind === 'ecl'
-                        ? (includesStage(2) ? this.toNumber(row.stage2_i) : 0)
-                        : (includesStage(2) ? this.toNumber(row.gca_stage2_i) : 0);
-                    const stage3Individual = valueKind === 'ecl'
-                        ? (includesStage(3) ? this.toNumber(row.stage3_i) : 0)
-                        : (includesStage(3) ? this.toNumber(row.gca_stage3_i) : 0);
-                    const poci = stageFilter ? 0 : this.toNumber(row.poci);
-                    const total = stage1Collective + stage2Collective + stage3Collective
-                        + stage1Individual + stage2Individual + stage3Individual + poci;
+        return Array.from(aggregatedRows.values())
+            .sort((a, b) => this.toNumber(a.urut) - this.toNumber(b.urut))
+            .map((row) => {
+                const stage1Collective = valueKind === 'ecl'
+                    ? (includesStage(1) ? this.toNumber(row.stage1) : 0)
+                    : (includesStage(1) ? this.toNumber(row.gca_stage1) : 0);
+                const stage2Collective = valueKind === 'ecl'
+                    ? (includesStage(2) ? this.toNumber(row.stage2) : 0)
+                    : (includesStage(2) ? this.toNumber(row.gca_stage2) : 0);
+                const stage3Collective = valueKind === 'ecl'
+                    ? (includesStage(3) ? this.toNumber(row.stage3) : 0)
+                    : (includesStage(3) ? this.toNumber(row.gca_stage3) : 0);
+                const stage1Individual = valueKind === 'ecl'
+                    ? (includesStage(1) ? this.toNumber(row.stage1_i) : 0)
+                    : (includesStage(1) ? this.toNumber(row.gca_stage1_i) : 0);
+                const stage2Individual = valueKind === 'ecl'
+                    ? (includesStage(2) ? this.toNumber(row.stage2_i) : 0)
+                    : (includesStage(2) ? this.toNumber(row.gca_stage2_i) : 0);
+                const stage3Individual = valueKind === 'ecl'
+                    ? (includesStage(3) ? this.toNumber(row.stage3_i) : 0)
+                    : (includesStage(3) ? this.toNumber(row.gca_stage3_i) : 0);
+                const poci = stageFilter ? 0 : this.toNumber(row.poci);
+                const total = stage1Collective + stage2Collective + stage3Collective
+                    + stage1Individual + stage2Individual + stage3Individual + poci;
 
-                    return {
-                        id: `${group}-${row.urut}`,
-                        prc_date: effectiveDate,
-                        group_segment: group,
-                        movement_order: this.toNumber(row.urut),
-                        movement: this.getMovementLabel(this.toNumber(row.urut)),
-                        stage_1_collective: stage1Collective,
-                        stage_2_collective: stage2Collective,
-                        stage_3_collective: stage3Collective,
-                        stage_1_individual: stage1Individual,
-                        stage_2_individual: stage2Individual,
-                        stage_3_individual: stage3Individual,
-                        poci,
-                        total,
-                    };
-                })
-        );
+                return {
+                    id: `movement-${row.urut}`,
+                    prc_date: effectiveDate,
+                    movement_order: this.toNumber(row.urut),
+                    movement: this.getMovementLabel(this.toNumber(row.urut)),
+                    stage_1_collective: stage1Collective,
+                    stage_2_collective: stage2Collective,
+                    stage_3_collective: stage3Collective,
+                    stage_1_individual: stage1Individual,
+                    stage_2_individual: stage2Individual,
+                    stage_3_individual: stage3Individual,
+                    poci,
+                    total,
+                };
+            });
     }
 
     /**
@@ -1217,6 +1239,7 @@ export class Ifrs9ReportsService {
     async getEADModel(tenantId: string, page: number, limit: number, params?: EADModelParams) {
         try {
             const prcDate = params?.prc_date || '2023-12-31';
+            const requestedSegmentId = params?.ead_config_id ?? params?.segment_id;
 
             // First, determine which segment ID actually has data for this date
             const segmentsQuery = await legacyDb
@@ -1227,18 +1250,16 @@ export class Ifrs9ReportsService {
                 .orderBy(frs9ImpCaEadPaymAvg.segmentId);
 
             const activeSegments = segmentsQuery.map(s => s.segmentId);
-            
-            // Note: SQL uses SEGMENT_ID = @EAD_CONFIG_ID, so ead_config_id maps to segment_id
-            let segmentId = params?.ead_config_id || params?.segment_id;
-            
-            // If requested segment doesn't exist but others do, use the first available one
-            if (!segmentId || (activeSegments.length > 0 && !activeSegments.includes(segmentId))) {
-                segmentId = activeSegments.length > 0 ? activeSegments[0]! : 1;
-            } else if (!segmentId) {
-                segmentId = 1;
-            }
+            // Tech spec uses SEGMENT_ID = @EAD_CONFIG_ID, so if caller provides an ID we
+            // must respect it strictly and return empty when no matching data exists.
+            const segmentId = requestedSegmentId ?? (activeSegments.length > 0 ? activeSegments[0]! : 1);
 
-            console.log('📊 [EAD Model] Fetching with params:', { prcDate, segmentId, activeSegments });
+            console.log('📊 [EAD Model] Fetching with params:', {
+                prcDate,
+                requestedSegmentId,
+                segmentId,
+                activeSegments
+            });
 
             // Query frs9_imp_ca_ead_paym_avg matching SQL script
             const conditions = [
@@ -1306,9 +1327,10 @@ export class Ifrs9ReportsService {
      * Get EAD Model Summary Report
      * Calculates metrics: Total Accounts, Avg EAD, Avg CCF, Avg Utilization
      */
-    async getEADModelSummary(tenantId: string, params?: { prc_date: string, ead_config_id?: number }) {
+    async getEADModelSummary(tenantId: string, params?: { prc_date: string, ead_config_id?: number, segment_id?: number }) {
         try {
             const prcDate = params?.prc_date || '2023-12-31';
+            const requestedSegmentId = params?.ead_config_id ?? params?.segment_id;
             
             // First determine which config IDs are active for this date
             const activeConfigsQuery = await legacyDb.execute(sql.raw(`
@@ -1319,17 +1341,14 @@ export class Ifrs9ReportsService {
                 ORDER BY ead_config_id
             `));
             const activeConfigs = (activeConfigsQuery as any[]).map(r => r.ead_config_id).filter(id => id != null);
-            
-            let segmentId = params?.ead_config_id;
-            
-            // If no segment ID was provided, or if the provided one isn't in the active list, use the first available
-            if (!segmentId || (activeConfigs.length > 0 && !activeConfigs.includes(segmentId))) {
-               segmentId = activeConfigs.length > 0 ? activeConfigs[0] : 1;
-            } else if (!segmentId) {
-               segmentId = 1;
-            }
+            const segmentId = requestedSegmentId ?? (activeConfigs.length > 0 ? activeConfigs[0] : 1);
 
-            console.log('📊 [EAD Model Summary] Fetching with params:', { prcDate, segmentId, activeConfigs });
+            console.log('📊 [EAD Model Summary] Fetching with params:', {
+                prcDate,
+                requestedSegmentId,
+                segmentId,
+                activeConfigs
+            });
 
             // Query frs9_master_account for summary
             const rawData = await legacyDb.execute(sql.raw(`
@@ -1495,7 +1514,7 @@ export class Ifrs9ReportsService {
             const stageFilter = this.normalizeStageFilter(params?.stage);
             const groupSegment = params?.group_segment;
 
-            const { effectiveDate, rows } = await this.fetchMovementRows(prcDate, groupSegment);
+            const { effectiveDate, rows } = await this.fetchMovementRows(prcDate, params?.segment_id, groupSegment);
             if (!effectiveDate || rows.length === 0) {
                 return { data: [] };
             }
@@ -1519,7 +1538,7 @@ export class Ifrs9ReportsService {
             const stageFilter = this.normalizeStageFilter(params?.stage);
             const groupSegment = params?.group_segment;
 
-            const { effectiveDate, rows } = await this.fetchMovementRows(prcDate, groupSegment);
+            const { effectiveDate, rows } = await this.fetchMovementRows(prcDate, params?.segment_id, groupSegment);
             if (!effectiveDate || rows.length === 0) {
                 return { data: [] };
             }

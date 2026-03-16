@@ -1,7 +1,9 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
+import { Effect, pipe } from 'effect'
 import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
 import { BucketParametersService } from '../services/bucket-parameters.service'
+import * as auditService from '../services/audit.service'
 import { runEffect } from '../lib/effect/runtime'
 import { interceptCreate, interceptUpdate, interceptDelete } from '../middleware/approval-interceptor.middleware'
 import type { ApprovalResponse } from '../lib/approval-helpers'
@@ -213,14 +215,21 @@ app.openapi(
 
         if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
 
-        const effect = interceptUpdate(
-            tenantId,
-            userId,
-            userPermissions,
-            'bucket_parameter',
-            id.toString(),
-            data,
-            () => BucketParametersService.updateHeader(id, data, userId) as any
+        const effect = pipe(
+            BucketParametersService.getHeader(id) as Effect.Effect<any, any>,
+            Effect.flatMap((oldValues) =>
+                interceptUpdate(
+                    tenantId,
+                    userId,
+                    userPermissions,
+                    'bucket_parameter',
+                    id.toString(),
+                    data,
+                    () => BucketParametersService.updateHeader(id, data, userId) as any,
+                    'medium',
+                    oldValues
+                )
+            )
         )
         return runEffect(c, effect, (result: any) => result.approvalRequired ? 202 : 200)
     }
@@ -250,13 +259,20 @@ app.openapi(
         const userPermissions = c.get('permissions') || []
         if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
 
-        const effect = interceptDelete(
-            tenantId,
-            userId,
-            userPermissions,
-            'bucket_parameter',
-            id.toString(),
-            () => BucketParametersService.deleteHeader(id) as any
+        const effect = pipe(
+            BucketParametersService.getHeader(id) as Effect.Effect<any, any>,
+            Effect.flatMap((oldValues) =>
+                interceptDelete(
+                    tenantId,
+                    userId,
+                    userPermissions,
+                    'bucket_parameter',
+                    id.toString(),
+                    () => BucketParametersService.deleteHeader(id) as any,
+                    'high',
+                    oldValues
+                )
+            )
         )
         return runEffect(c, effect, (result: any) => result.approvalRequired ? 202 : 200)
     }
@@ -312,10 +328,29 @@ app.openapi(
         const { id } = c.req.valid('param')
         const data = c.req.valid('json')
         const userId = c.get('userId') as string || 'system'
+        const tenantId = c.get('tenantId') as string
 
         if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
 
-        return runEffect(c, BucketParametersService.createDetail(id, data, userId) as any) as any
+        const effect = pipe(
+            BucketParametersService.createDetail(id, data, userId) as Effect.Effect<any, any>,
+            Effect.tap((created: any) =>
+                Effect.tryPromise({
+                    try: async () => {
+                        await auditService.logDataChange.create(
+                            'bucket_parameter_detail',
+                            String(created.id),
+                            created,
+                            userId,
+                            tenantId
+                        )
+                    },
+                    catch: (error) => error
+                })
+            )
+        )
+
+        return runEffect(c, effect as any) as any
     }
 )
 
@@ -341,10 +376,35 @@ app.openapi(
         const { detailId } = c.req.valid('param')
         const data = c.req.valid('json')
         const userId = c.get('userId') as string || 'system'
+        const tenantId = c.get('tenantId') as string
 
         if (isNaN(detailId)) return c.json({ success: false, message: 'Invalid ID' }, 400)
 
-        return runEffect(c, BucketParametersService.updateDetail(detailId, data, userId) as any) as any
+        const effect = pipe(
+            BucketParametersService.getDetail(detailId) as Effect.Effect<any, any>,
+            Effect.flatMap((oldValues) =>
+                pipe(
+                    BucketParametersService.updateDetail(detailId, data, userId) as Effect.Effect<any, any>,
+                    Effect.tap((updated: any) =>
+                        Effect.tryPromise({
+                            try: async () => {
+                                await auditService.logDataChange.update(
+                                    'bucket_parameter_detail',
+                                    String(detailId),
+                                    oldValues,
+                                    updated,
+                                    userId,
+                                    tenantId
+                                )
+                            },
+                            catch: (error) => error
+                        })
+                    )
+                )
+            )
+        )
+
+        return runEffect(c, effect as any) as any
     }
 )
 
@@ -367,8 +427,33 @@ app.openapi(
     async (c) => {
         const { detailId } = c.req.valid('param')
         if (isNaN(detailId)) return c.json({ success: false, message: 'Invalid ID' }, 400)
+        const userId = c.get('userId') as string || 'system'
+        const tenantId = c.get('tenantId') as string
 
-        return runEffect(c, BucketParametersService.deleteDetail(detailId) as any) as any
+        const effect = pipe(
+            BucketParametersService.getDetail(detailId) as Effect.Effect<any, any>,
+            Effect.flatMap((oldValues) =>
+                pipe(
+                    BucketParametersService.deleteDetail(detailId) as Effect.Effect<any, any>,
+                    Effect.tap(() =>
+                        Effect.tryPromise({
+                            try: async () => {
+                                await auditService.logDataChange.delete(
+                                    'bucket_parameter_detail',
+                                    String(detailId),
+                                    oldValues,
+                                    userId,
+                                    tenantId
+                                )
+                            },
+                            catch: (error) => error
+                        })
+                    )
+                )
+            )
+        )
+
+        return runEffect(c, effect as any) as any
     }
 )
 

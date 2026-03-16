@@ -1,4 +1,5 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
+import { Effect, pipe } from 'effect'
 import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
 import { LgdConfigurationsService } from '../services/lgd-configurations.service'
@@ -227,14 +228,21 @@ app.openapi(
             observationStartDate: data.observation_start_date
         }
 
-        const effect = interceptUpdate(
-            tenantId,
-            userId,
-            userPermissions,
-            'lgd_configuration',
-            id.toString(),
-            payload,
-            () => LgdConfigurationsService.update(id, payload, userId) as any
+        const effect = pipe(
+            LgdConfigurationsService.get(id) as Effect.Effect<any, any>,
+            Effect.flatMap((oldValues) =>
+                interceptUpdate(
+                    tenantId,
+                    userId,
+                    userPermissions,
+                    'lgd_configuration',
+                    id.toString(),
+                    payload,
+                    () => LgdConfigurationsService.update(id, payload, userId) as any,
+                    'medium',
+                    oldValues
+                )
+            )
         )
         return runEffect(c, effect, (result: any) => result.approvalRequired ? 202 : 200)
     }
@@ -266,13 +274,20 @@ app.openapi(
         const tenantId = c.get('tenantId') as string
         const userPermissions = c.get('permissions') || []
 
-        const effect = interceptDelete(
-            tenantId,
-            userId,
-            userPermissions,
-            'lgd_configuration',
-            id.toString(),
-            () => LgdConfigurationsService.delete(id) as any
+        const effect = pipe(
+            LgdConfigurationsService.get(id) as Effect.Effect<any, any>,
+            Effect.flatMap((oldValues) =>
+                interceptDelete(
+                    tenantId,
+                    userId,
+                    userPermissions,
+                    'lgd_configuration',
+                    id.toString(),
+                    () => LgdConfigurationsService.delete(id) as any,
+                    'high',
+                    oldValues
+                )
+            )
         )
         return runEffect(c, effect, (result: any) => result.approvalRequired ? 202 : 200)
     }

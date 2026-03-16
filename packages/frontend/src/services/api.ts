@@ -233,7 +233,6 @@ export const rolesAPI = {
     search?: string;
     type?: 'SYSTEM' | 'BANKING' | 'CUSTOM';
     level?: 'PLATFORM' | 'TENANT' | 'DEPARTMENT';
-    bankingAccess?: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
     isActive?: boolean;
   }, tenantId?: string) => {
     console.log(`🔒 Fetching roles from tenant database with real API${tenantId ? ` (tenant: ${tenantId})` : ''}`, params);
@@ -261,8 +260,6 @@ export const rolesAPI = {
     permissions?: string[];
     type?: 'SYSTEM' | 'BANKING' | 'CUSTOM';
     level?: 'PLATFORM' | 'TENANT' | 'DEPARTMENT';
-    bankingTypeSpecific?: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
-    bankingAccess?: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
     complianceLevel?: string;
     hierarchyLevel?: number;
     isActive?: boolean;
@@ -274,7 +271,6 @@ export const rolesAPI = {
       roleName: roleData.roleName || roleData.name || roleData.displayName,
       description: roleData.description,
       permissions: roleData.permissions || [],
-      bankingTypeSpecific: roleData.bankingTypeSpecific || roleData.bankingAccess,
       complianceLevel: roleData.complianceLevel,
       hierarchyLevel: roleData.hierarchyLevel,
       isActive: roleData.isActive,
@@ -290,8 +286,6 @@ export const rolesAPI = {
     displayName?: string;
     description?: string;
     permissions?: string[];
-    bankingTypeSpecific?: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
-    bankingAccess?: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
     complianceLevel?: string;
     hierarchyLevel?: number;
     isActive?: boolean;
@@ -303,7 +297,6 @@ export const rolesAPI = {
       roleName: roleData.roleName || roleData.name || roleData.displayName,
       description: roleData.description,
       permissions: roleData.permissions,
-      bankingTypeSpecific: roleData.bankingTypeSpecific || roleData.bankingAccess,
       complianceLevel: roleData.complianceLevel,
       hierarchyLevel: roleData.hierarchyLevel,
       isActive: roleData.isActive,
@@ -440,6 +433,7 @@ export const auditAPI = {
     userId?: string;
     entityType?: string;
     entityId?: string;
+    requestId?: string;
     startDate?: string;
     endDate?: string;
     search?: string;
@@ -1414,6 +1408,7 @@ export const bankingAPI = {
       get: async (params: {
         prc_date: string;
         ead_config_id?: number;
+        segment_id?: number;
       }) => {
         console.log('📊 Getting EAD Model data from DS2 database');
         const response = await apiClient.get('/ifrs9/reports/ead-model', { params });
@@ -1422,6 +1417,7 @@ export const bankingAPI = {
       getSummary: async (params: {
         prc_date: string;
         ead_config_id?: number;
+        segment_id?: number;
       }) => {
         console.log('📊 Getting EAD Model Summary data from DS2 database');
         const response = await apiClient.get('/ifrs9/reports/ead-model/summary', { params });
@@ -1449,6 +1445,7 @@ export const bankingAPI = {
         prc_date: string;
         segment_id?: number;
         stage?: string;
+        group_segment?: string;
       }) => {
         console.log('📊 Getting ECL Movement data from DS2 database');
         const response = await apiClient.get('/ifrs9/reports/ecl-movement', { params });
@@ -1462,6 +1459,7 @@ export const bankingAPI = {
         prc_date: string;
         segment_id?: number;
         stage?: string;
+        group_segment?: string;
       }) => {
         console.log('📊 Getting GCA Movement data from DS2 database');
         const response = await apiClient.get('/ifrs9/reports/gca-movement', { params });

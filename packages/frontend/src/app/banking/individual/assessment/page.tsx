@@ -132,7 +132,12 @@ export default function IndividualAssessmentWizardPage() {
   };
 
   const handleAccountSelect = (account: IndividualImpairmentWatchlistItem) => {
-    router.push(`/banking/individual/assessment?accountId=${account.account_number}&mode=${mode}`);
+    const params = new URLSearchParams({
+      accountId: String(account.account_id),
+      accountNumber: account.account_number,
+      mode
+    });
+    router.push(`/banking/individual/assessment?${params.toString()}`);
   };
 
   const handleViewDetails = (account: IndividualImpairmentWatchlistItem) => {

@@ -29,7 +29,13 @@ import {
   FormHelperText,
   Snackbar
 } from '@mui/material';
-import { ApprovalNotification, ApprovalStatusBadge } from '@/components/approval';
+import {
+  ApprovalNotification,
+  ApprovalStatusBadge,
+  buildApprovalNotification,
+  createClosedApprovalNotification,
+  type ApprovalNotificationState,
+} from '@/components/approval';
 import { bankingAPI } from '@/services/api';
 import {
   Add as AddIcon,
@@ -81,6 +87,7 @@ export default function LGDSetupPage() {
   const { hasAnyPermission } = usePermission();
   const canViewLgdSetup = hasAnyPermission(['banking.collective.lgd_setup.view', 'banking.collective.lgd_setup.manage', 'banking.collective.manage', 'banking.collective', 'admin.super_admin']);
   const canManageLgdSetup = hasAnyPermission(['banking.collective.lgd_setup.manage', 'banking.collective.lgd_setup.create', 'banking.collective.lgd_setup.update', 'banking.collective.lgd_setup.delete', 'banking.collective.manage', 'admin.super_admin']);
+  const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all', 'admin.super_admin']);
 
   const router = useRouter();
 
@@ -107,7 +114,7 @@ export default function LGDSetupPage() {
   const [searchTerm, setSearchTerm] = useState('');
 
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
-  const [approvalNotification, setApprovalNotification] = useState<{ open: boolean, message: string }>({ open: false, message: '' });
+  const [approvalNotification, setApprovalNotification] = useState<ApprovalNotificationState>(createClosedApprovalNotification());
   const [snackbar, setSnackbar] = useState<{ open: boolean, message: string, type: 'success' | 'error' }>({ open: false, message: '', type: 'success' });
 
   const updateFormField = <K extends keyof LGDConfiguration>(field: K, value: LGDConfiguration[K]) => {
@@ -228,10 +235,7 @@ export default function LGDSetupPage() {
       const isApprovalResponse = response.approvalRequired || response.status === 202;
 
       if (isApprovalResponse) {
-        setApprovalNotification({
-          open: true,
-          message: response.message || 'Request submitted for approval'
-        });
+        setApprovalNotification(buildApprovalNotification(response, 'Request submitted for approval'));
       } else {
         setSnackbar({
           open: true,
@@ -264,10 +268,7 @@ export default function LGDSetupPage() {
       const isApprovalResponse = response.approvalRequired || response.status === 202;
 
       if (isApprovalResponse) {
-        setApprovalNotification({
-          open: true,
-          message: response.message || 'Deletion request submitted for approval'
-        });
+        setApprovalNotification(buildApprovalNotification(response, 'Deletion request submitted for approval'));
       } else {
         setSnackbar({ open: true, message: 'Configuration deleted', type: 'success' });
       }
@@ -327,6 +328,7 @@ export default function LGDSetupPage() {
           key="edit"
           icon={<EditIcon color="primary" />}
           label="Edit"
+          data-testid="edit-lgd-config-btn"
           onClick={() => {
             setSelectedConfig(params.row);
             setFormData(params.row);
@@ -338,6 +340,7 @@ export default function LGDSetupPage() {
           key="delete"
           icon={<DeleteIcon color="error" />}
           label="Delete"
+          data-testid="delete-lgd-config-btn"
           onClick={() => handleDelete(params.row.id!)}
         />
       ] : []
@@ -359,7 +362,7 @@ export default function LGDSetupPage() {
       <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Typography variant="h4" component="h1">LGD Setup Management</Typography>
         <Box>
-          <Button startIcon={<RefreshIcon />} onClick={loadData} disabled={loading} sx={{ mr: 1 }}>Refresh</Button>
+          <Button startIcon={<RefreshIcon />} onClick={loadData} disabled={loading} sx={{ mr: 1 }} data-testid="refresh-lgd-btn">Refresh</Button>
           {canManageLgdSetup && (
             <Button variant="contained" startIcon={<AddIcon />} onClick={() => {
               setSelectedConfig(null);
@@ -367,7 +370,7 @@ export default function LGDSetupPage() {
               setFormErrors({});
               setIsEditing(false);
               setIsDialogOpen(true);
-            }}>Add Configuration</Button>
+            }} data-testid="add-lgd-config-btn">Add Configuration</Button>
           )}
         </Box>
       </Box>
@@ -390,6 +393,7 @@ export default function LGDSetupPage() {
               label="Search"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              data-testid="search-lgd-input"
               InputProps={{ startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} /> }}
             />
           </Box>
@@ -420,6 +424,7 @@ export default function LGDSetupPage() {
                 onChange={(e) => updateFormField('model_name', e.target.value)}
                 error={!!formErrors.model_name}
                 helperText={formErrors.model_name}
+                data-testid="lgd-model-name-input"
               />
               <FormControl fullWidth error={!!formErrors.segment_id}>
                 <InputLabel>Population Segment</InputLabel>
@@ -427,6 +432,7 @@ export default function LGDSetupPage() {
                   value={formData.segment_id || ''}
                   label="Population Segment"
                   onChange={(e) => updateFormField('segment_id', Number(e.target.value))}
+                  data-testid="lgd-segment-select"
                 >
                   {populationSegments.map(s => (
                     <MenuItem key={s.id} value={s.id}>{s.segment_name}</MenuItem>
@@ -443,6 +449,7 @@ export default function LGDSetupPage() {
                   value={formData.lgd_method || ''}
                   label="Method"
                   onChange={(e) => updateFormField('lgd_method', e.target.value)}
+                  data-testid="lgd-method-select"
                 >
                   {methodOptions.map((m, idx) => <MenuItem key={`${m.value}-${idx}`} value={m.value}>{m.label}</MenuItem>)}
                 </Select>
@@ -457,6 +464,7 @@ export default function LGDSetupPage() {
                   value={formData.population_type || ''}
                   label="Population Type"
                   onChange={(e) => updateFormField('population_type', e.target.value)}
+                  data-testid="lgd-population-type-select"
                 >
                   {popTypeOptions.map((m, idx) => <MenuItem key={`${m.value}-${idx}`} value={m.value}>{m.label}</MenuItem>)}
                 </Select>
@@ -472,6 +480,7 @@ export default function LGDSetupPage() {
                 onChange={(e) => updateFormField('observation_period', e.target.value)}
                 error={!!formErrors.observation_period}
                 helperText={formErrors.observation_period || 'e.g. 2020-2023 or 24 months'}
+                data-testid="lgd-observation-period-input"
               />
 
               <DatePicker
@@ -483,7 +492,8 @@ export default function LGDSetupPage() {
                     fullWidth: true,
                     error: !!formErrors.observation_start_date,
                     helperText: formErrors.observation_start_date,
-                  }
+                    'data-testid': 'lgd-observation-start-date-input',
+                  } as any
                 }}
               />
 
@@ -493,6 +503,7 @@ export default function LGDSetupPage() {
                 label="Workout Period (Months)"
                 value={formData.workout_period || ''}
                 onChange={(e) => updateFormField('workout_period', e.target.value === '' ? undefined : Number(e.target.value))}
+                data-testid="lgd-workout-period-input"
               />
 
               <TextField
@@ -502,6 +513,7 @@ export default function LGDSetupPage() {
                 value={lgdRateInputValue}
                 onChange={(e) => updateFormField('lgd_rate', e.target.value === '' ? undefined : Number(e.target.value))}
                 inputProps={{ step: 0.001 }}
+                data-testid="lgd-rate-input"
               />
 
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -510,7 +522,7 @@ export default function LGDSetupPage() {
                   label="Active"
                 />
                 <FormControlLabel
-                  control={<Switch checked={!!formData.fl_flag} onChange={(e) => updateFormField('fl_flag', e.target.checked)} />}
+                  control={<Switch checked={!!formData.fl_flag} onChange={(e) => updateFormField('fl_flag', e.target.checked)} data-testid="lgd-fl-flag-switch" />}
                   label="FL Flag"
                 />
               </Box>
@@ -522,6 +534,7 @@ export default function LGDSetupPage() {
                     value={formData.fl_scalar_id || ''}
                     label="FL Scalar"
                     onChange={(e) => updateFormField('fl_scalar_id', Number(e.target.value))}
+                    data-testid="lgd-fl-scalar-select"
                   >
                     {flScalars.map(s => (
                       <MenuItem key={s.pkid} value={s.pkid}>{s.scalar_name}</MenuItem>
@@ -540,16 +553,19 @@ export default function LGDSetupPage() {
           <Button onClick={() => {
             setIsDialogOpen(false);
             setFormErrors({});
-          }}>Cancel</Button>
+          }} data-testid="cancel-lgd-config-btn">Cancel</Button>
           {canManageLgdSetup && (
-            <Button variant="contained" onClick={handleSave} disabled={loading}>{selectedConfig ? 'Update' : 'Create'}</Button>
+            <Button variant="contained" onClick={handleSave} disabled={loading} data-testid="save-lgd-config-btn">{selectedConfig ? 'Update' : 'Create'}</Button>
           )}
         </DialogActions>
       </Dialog>
       <ApprovalNotification
         open={approvalNotification.open}
         message={approvalNotification.message}
-        onClose={() => setApprovalNotification({ ...approvalNotification, open: false })}
+        requestId={approvalNotification.requestId}
+        actionLabel={canOpenApprovalInbox ? 'Open Approval' : undefined}
+        actionHref={canOpenApprovalInbox ? (approvalNotification.requestId ? `/banking/maintenance/approval?requestId=${encodeURIComponent(approvalNotification.requestId)}` : '/banking/maintenance/approval') : undefined}
+        onClose={() => setApprovalNotification(createClosedApprovalNotification())}
       />
       <FullstackIndicator />
     </Container>

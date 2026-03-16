@@ -245,6 +245,67 @@ const DcfCalculationListResponse = z.object({
     data: z.array(DcfCalculationSchema)
 }).openapi('DcfCalculationListResponse')
 
+const IaResultHeaderSchema = z.object({
+    pkid: z.number(),
+    iaId: z.number().nullable(),
+    prcDate: z.string().nullable(),
+    effectiveDate: z.string().nullable(),
+    accountId: z.number().nullable(),
+    accountNumber: z.string(),
+    cifNumber: z.string(),
+    cifName: z.string(),
+    currency: z.string(),
+    dpd: z.number(),
+    collectability: z.number(),
+    ratingCode: z.string(),
+    interestRate: z.number(),
+    effInterestRate: z.number(),
+    outstanding: z.number(),
+    accruedInterest: z.number(),
+    carryingAmt: z.number(),
+    eadAmt: z.number(),
+    pvDcfAmt: z.number(),
+    eclIaAmt: z.number(),
+    createdby: z.string(),
+    createddate: z.string().nullable()
+}).openapi('IaResultHeader')
+
+const IaResultDetailSchema = z.object({
+    pkid: z.number(),
+    iaId: z.number().nullable(),
+    prcDate: z.string().nullable(),
+    accountId: z.number().nullable(),
+    mob: z.number(),
+    periode: z.string().nullable(),
+    principal: z.number(),
+    interest: z.number(),
+    installment: z.number(),
+    collateral: z.number(),
+    poRate1: z.number(),
+    rrRate1: z.number(),
+    default1: z.number(),
+    poRate2: z.number(),
+    rrRate2: z.number(),
+    default2: z.number(),
+    poRate3: z.number(),
+    rrRate3: z.number(),
+    default3: z.number(),
+    pwAmt: z.number(),
+    discountFactor: z.number(),
+    pvAmt: z.number(),
+    beginningBalance: z.number(),
+    eirAmt: z.number(),
+    endingBalance: z.number()
+}).openapi('IaResultDetail')
+
+const IaResultDetailResponse = z.object({
+    success: z.boolean(),
+    data: z.object({
+        header: IaResultHeaderSchema.nullable(),
+        details: z.array(IaResultDetailSchema)
+    })
+}).openapi('IaResultDetailResponse')
+
 const CreateBatchUploadSchema = z.object({
     fileName: z.string(),
     batchId: z.string().optional(),
@@ -730,6 +791,27 @@ individualImpairmentRoutes.openapi(
         }
     }),
     (c: any) => individualImpairmentController.getDcfCalculations(c)
+)
+
+individualImpairmentRoutes.openapi(
+    createRoute({
+        method: 'get',
+        path: '/ia-results/detail',
+        tags: ['Individual Impairment'],
+        summary: 'Get latest individual impairment result detail',
+        request: {
+            query: z.object({
+                accountId: z.string().optional(),
+                accountNumber: z.string().optional()
+            })
+        },
+        responses: {
+            200: { content: { 'application/json': { schema: IaResultDetailResponse } }, description: 'IA Result Detail' },
+            401: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Unauthorized' },
+            500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
+        }
+    }),
+    (c: any) => individualImpairmentController.getIaResultDetail(c)
 )
 
 individualImpairmentRoutes.openapi(

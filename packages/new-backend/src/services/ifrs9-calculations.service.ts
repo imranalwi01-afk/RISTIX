@@ -688,7 +688,7 @@ export class Ifrs9CalculationsService {
         }
     }
 
-    async getPortfolioTrend(tenantId: string, endDate?: string) {
+    async getPortfolioTrend(tenantId: string, endDate?: string, _mode?: string) {
         try {
             const normalizedEndDate = typeof endDate === 'string' ? endDate.trim() : undefined;
             const hasDateLimit = Boolean(normalizedEndDate && normalizedEndDate !== 'all');

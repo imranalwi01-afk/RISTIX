@@ -2,6 +2,7 @@ import { Effect, pipe } from 'effect'
 import { getDatabase } from '@/config/database'
 import { ApprovalRepository } from '@/repositories/approval.repository'
 import { createApprovalRequest } from '@/services/approval.service'
+import * as auditService from '@/services/audit.service'
 import type { ApprovalMatrix } from '@/db/schema'
 import {
     shouldAutoApprove,
@@ -33,6 +34,7 @@ export interface InterceptorContext {
     operation: 'create' | 'update' | 'delete'
     data: Record<string, any>
     entityId?: string
+    oldValues?: Record<string, any>
     impactLevel?: 'low' | 'medium' | 'high' | 'critical'
 }
 
@@ -179,6 +181,7 @@ export const interceptCRUDOperation = <T>(
                     requestData: {
                         operation: context.operation,
                         entityType: context.entityType,
+                        oldValues: context.oldValues,
                         data: context.data,
                         approvalRouting: !checkResult.matrix && requiresStrictFourEyes(context.entityType)
                             ? { levels: buildDefaultFourEyesRouting(context.entityType) }
@@ -187,6 +190,35 @@ export const interceptCRUDOperation = <T>(
                     requestedBy: context.userId,
                     impactLevel: context.impactLevel || 'medium',
                 }),
+                Effect.tap((approvalRequest) =>
+                    Effect.sync(() => {
+                        void auditService.logApproval.requested(
+                            approvalRequest.id,
+                            approvalRequest.title,
+                            context.userId,
+                            context.tenantId,
+                            {
+                                entityType: context.entityType,
+                                description: buildApprovalDescription(
+                                    context.operation,
+                                    context.entityType,
+                                    context.data
+                                ),
+                                oldValues: context.oldValues,
+                                newValues: {
+                                    operation: context.operation,
+                                    entityType: context.entityType,
+                                    entityId: context.entityId,
+                                    oldValues: context.oldValues,
+                                    data: context.data,
+                                },
+                                metadata: {
+                                    source: 'approval-interceptor',
+                                },
+                            }
+                        )
+                    })
+                ),
                 Effect.map((approvalRequest): InterceptorResult<T> => ({
                     shouldExecute: false,
                     approvalRequired: true,
@@ -272,7 +304,8 @@ export const interceptUpdate = <T>(
     entityId: string,
     data: Record<string, any>,
     executeUpdate: () => Effect.Effect<T, any>,
-    impactLevel?: 'low' | 'medium' | 'high' | 'critical'
+    impactLevel?: 'low' | 'medium' | 'high' | 'critical',
+    oldValues?: Record<string, any>
 ): Effect.Effect<ApprovalResponse, any> => {
     // Development bypass for segmentation operations
     if ((process.env.NODE_ENV === 'development' || userPermissions.includes('*')) && entityType === 'segmentation') {
@@ -295,6 +328,7 @@ export const interceptUpdate = <T>(
             operation: 'update',
             data,
             entityId,
+            oldValues,
             impactLevel,
         },
         executeUpdate
@@ -311,7 +345,8 @@ export const interceptDelete = <T>(
     entityType: string,
     entityId: string,
     executeDelete: () => Effect.Effect<T, any>,
-    impactLevel?: 'low' | 'medium' | 'high' | 'critical'
+    impactLevel?: 'low' | 'medium' | 'high' | 'critical',
+    oldValues?: Record<string, any>
 ): Effect.Effect<ApprovalResponse, any> => {
     // Debug logging
     console.log('🔍 DELETE Debug Info:', {
@@ -345,6 +380,7 @@ export const interceptDelete = <T>(
             operation: 'delete',
             data: { id: entityId },
             entityId,
+            oldValues,
             impactLevel,
         },
         executeDelete

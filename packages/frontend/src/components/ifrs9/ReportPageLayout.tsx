@@ -30,6 +30,7 @@ export interface ReportPageLayoutProps {
     variant?: 'text' | 'outlined' | 'contained';
     color?: 'inherit' | 'primary' | 'secondary' | 'success' | 'error' | 'info' | 'warning';
     disabled?: boolean;
+    dataTestId?: string;
   }>;
   children: React.ReactNode;
 }
@@ -103,7 +104,7 @@ const ReportPageLayout: React.FC<ReportPageLayoutProps> = ({
           <Box sx={{ display: 'flex', gap: 1 }}>
             {Array.isArray(actionButtons) 
               ? actionButtons.map((btn, idx) => (
-                  <MuiButton key={idx} variant={btn.variant || 'outlined'} color={btn.color || 'inherit'} startIcon={btn.icon} onClick={btn.onClick} disabled={btn.disabled}>
+                  <MuiButton key={idx} variant={btn.variant || 'outlined'} color={btn.color || 'inherit'} startIcon={btn.icon} onClick={btn.onClick} disabled={btn.disabled} data-testid={btn.dataTestId}>
                     {btn.label}
                   </MuiButton>
                 ))

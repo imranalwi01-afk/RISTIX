@@ -375,6 +375,7 @@ export const ApprovalMatrixEditorDialog: React.FC<ApprovalMatrixEditorDialogProp
             onClose={() => !saving && onClose()}
             maxWidth="md"
             fullWidth
+            data-testid="approval-matrix-editor-dialog"
         >
             <DialogTitle>{matrix?.id ? 'Edit Approval Matrix' : 'Create Approval Matrix'}</DialogTitle>
             <DialogContent>
@@ -387,6 +388,7 @@ export const ApprovalMatrixEditorDialog: React.FC<ApprovalMatrixEditorDialogProp
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                                 disabled={saving}
+                                slotProps={{ htmlInput: { 'data-testid': 'approval-matrix-name-input' } }}
                             />
                         </Grid>
                         <Grid size={{ xs: 12, md: 6 }}>
@@ -397,6 +399,7 @@ export const ApprovalMatrixEditorDialog: React.FC<ApprovalMatrixEditorDialogProp
                                     value={isActive ? 'active' : 'inactive'}
                                     onChange={(e) => setIsActive(e.target.value === 'active')}
                                     disabled={saving}
+                                    data-testid="approval-matrix-status-select"
                                 >
                                     <MenuItem value="active">Active</MenuItem>
                                     <MenuItem value="inactive">Inactive</MenuItem>
@@ -412,6 +415,7 @@ export const ApprovalMatrixEditorDialog: React.FC<ApprovalMatrixEditorDialogProp
                                 value={description}
                                 onChange={(e) => setDescription(e.target.value)}
                                 disabled={saving}
+                                slotProps={{ htmlInput: { 'data-testid': 'approval-matrix-description-input' } }}
                             />
                         </Grid>
                     </Grid>
@@ -502,6 +506,10 @@ export const ApprovalMatrixEditorDialog: React.FC<ApprovalMatrixEditorDialogProp
                                                         <TextField
                                                             {...params}
                                                             label="Required Roles"
+                                                            inputProps={{
+                                                                ...params.inputProps,
+                                                                'data-testid': `approval-matrix-required-roles-input-${index}`,
+                                                            }}
                                                             placeholder={availableRoles.length > 0 ? 'Search and assign approver roles' : 'No roles available'}
                                                             helperText={
                                                                 rolesLoading
@@ -601,6 +609,7 @@ export const ApprovalMatrixEditorDialog: React.FC<ApprovalMatrixEditorDialogProp
                                             value={level.requiredPermissionCodes}
                                             onChange={(e) => updateMatrixLevel(index, 'requiredPermissionCodes', e.target.value)}
                                             disabled={saving}
+                                            slotProps={{ htmlInput: { 'data-testid': `approval-matrix-required-permissions-input-${index}` } }}
                                         />
                                     </Grid>
                                 </Grid>
@@ -618,6 +627,7 @@ export const ApprovalMatrixEditorDialog: React.FC<ApprovalMatrixEditorDialogProp
                     startIcon={<SaveIcon />}
                     onClick={handleSave}
                     disabled={saving || !name.trim()}
+                    data-testid="approval-matrix-save-button"
                 >
                     {saving ? 'Saving...' : 'Save Matrix'}
                 </Button>

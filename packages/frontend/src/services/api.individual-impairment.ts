@@ -296,6 +296,64 @@ export interface HistoryParams {
   offset?: number;
 }
 
+export interface IADcfResultHeader {
+  pkid: number;
+  iaId: number | null;
+  prcDate: string | null;
+  effectiveDate: string | null;
+  accountId: number | null;
+  accountNumber: string;
+  cifNumber: string;
+  cifName: string;
+  currency: string;
+  dpd: number;
+  collectability: number;
+  ratingCode: string;
+  interestRate: number;
+  effInterestRate: number;
+  outstanding: number;
+  accruedInterest: number;
+  carryingAmt: number;
+  eadAmt: number;
+  pvDcfAmt: number;
+  eclIaAmt: number;
+  createdby: string;
+  createddate: string | null;
+}
+
+export interface IADcfResultDetailRow {
+  pkid: number;
+  iaId: number | null;
+  prcDate: string | null;
+  accountId: number | null;
+  mob: number;
+  periode: string | null;
+  principal: number;
+  interest: number;
+  installment: number;
+  collateral: number;
+  poRate1: number;
+  rrRate1: number;
+  default1: number;
+  poRate2: number;
+  rrRate2: number;
+  default2: number;
+  poRate3: number;
+  rrRate3: number;
+  default3: number;
+  pwAmt: number;
+  discountFactor: number;
+  pvAmt: number;
+  beginningBalance: number;
+  eirAmt: number;
+  endingBalance: number;
+}
+
+export interface IADcfResultDetail {
+  header: IADcfResultHeader | null;
+  details: IADcfResultDetailRow[];
+}
+
 // ============================================================================
 // INDIVIDUAL IMPAIRMENT API SERVICE
 // ============================================================================
@@ -543,6 +601,10 @@ export const individualImpairmentAPI = {
   },
   getDcfCalculations: async () => {
     const response = await apiClient.get('/banking/individual/impairment/dcf-calculations');
+    return response.data;
+  },
+  getIaResultDetail: async (params: { accountId?: number | string; accountNumber?: string }) => {
+    const response = await apiClient.get('/banking/individual/impairment/ia-results/detail', { params });
     return response.data;
   },
 

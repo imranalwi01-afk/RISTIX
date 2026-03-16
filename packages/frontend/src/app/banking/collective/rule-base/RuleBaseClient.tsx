@@ -63,7 +63,13 @@ import {
 import { useRouter } from 'next/navigation';
 import { bankingAPI } from '../../../../services/api';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
-import { ApprovalNotification, ApprovalStatusBadge } from '@/components/approval';
+import {
+  ApprovalNotification,
+  ApprovalStatusBadge,
+  buildApprovalNotification,
+  createClosedApprovalNotification,
+  type ApprovalNotificationState,
+} from '@/components/approval';
 import { useCallback } from 'react';
 import { usePermission } from '@/hooks/usePermission';
 
@@ -490,6 +496,7 @@ export default function RuleBaseSettingPage() {
   const { hasAnyPermission } = usePermission();
   const canViewRuleBase = hasAnyPermission(['banking.collective.rule_base.view', 'banking.collective.rule_base.manage', 'banking.collective.manage', 'banking.collective', 'admin.super_admin']);
   const canManageRuleBase = hasAnyPermission(['banking.collective.rule_base.manage', 'banking.collective.rule_base.create', 'banking.collective.rule_base.update', 'banking.collective.rule_base.delete', 'banking.collective.manage', 'admin.super_admin']);
+  const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all', 'admin.super_admin']);
 
   const router = useRouter();
 
@@ -519,7 +526,7 @@ export default function RuleBaseSettingPage() {
   const [refreshTriggers, setRefreshTriggers] = useState<Record<number, number>>({});
 
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
-  const [approvalNotification, setApprovalNotification] = useState<{ open: boolean, message: string }>({ open: false, message: '' });
+  const [approvalNotification, setApprovalNotification] = useState<ApprovalNotificationState>(createClosedApprovalNotification());
   const [snackbar, setSnackbar] = useState<{ open: boolean, message: string, type: 'success' | 'error' }>({ open: false, message: '', type: 'success' });
 
   const triggerRefresh = (headerId: number) => {
@@ -826,10 +833,7 @@ export default function RuleBaseSettingPage() {
       const isApprovalResponse = response.approvalRequired || response.status === 202;
 
       if (isApprovalResponse) {
-        setApprovalNotification({
-          open: true,
-          message: response.message || 'Deletion request submitted for approval'
-        });
+        setApprovalNotification(buildApprovalNotification(response, 'Deletion request submitted for approval'));
       } else {
         setSuccess('Rule header deleted successfully');
       }
@@ -877,10 +881,7 @@ export default function RuleBaseSettingPage() {
       const isApprovalResponse = response.approvalRequired || response.status === 202;
 
       if (isApprovalResponse) {
-        setApprovalNotification({
-          open: true,
-          message: response.message || 'Request submitted for approval'
-        });
+        setApprovalNotification(buildApprovalNotification(response, 'Request submitted for approval'));
       } else {
         setSuccess(selectedHeader ? 'Rule header updated successfully' : 'Rule header created successfully');
       }
@@ -980,10 +981,7 @@ export default function RuleBaseSettingPage() {
       const isApprovalResponse = response.approvalRequired || response.status === 202;
 
       if (isApprovalResponse) {
-        setApprovalNotification({
-          open: true,
-          message: response.message || 'Deletion request submitted for approval'
-        });
+        setApprovalNotification(buildApprovalNotification(response, 'Deletion request submitted for approval'));
       } else {
         setSuccess('Rule detail deleted successfully');
       }
@@ -1037,10 +1035,7 @@ export default function RuleBaseSettingPage() {
       const isApprovalResponse = response.approvalRequired || response.status === 202;
 
       if (isApprovalResponse) {
-        setApprovalNotification({
-          open: true,
-          message: response.message || 'Request submitted for approval'
-        });
+        setApprovalNotification(buildApprovalNotification(response, 'Request submitted for approval'));
       } else {
         setSuccess(selectedDetail ? 'Rule detail updated successfully' : 'Rule detail created successfully');
       }
@@ -1692,7 +1687,10 @@ export default function RuleBaseSettingPage() {
       <ApprovalNotification
         open={approvalNotification.open}
         message={approvalNotification.message}
-        onClose={() => setApprovalNotification({ ...approvalNotification, open: false })}
+        requestId={approvalNotification.requestId}
+        actionLabel={canOpenApprovalInbox ? 'Open Approval' : undefined}
+        actionHref={canOpenApprovalInbox ? (approvalNotification.requestId ? `/banking/maintenance/approval?requestId=${encodeURIComponent(approvalNotification.requestId)}` : '/banking/maintenance/approval') : undefined}
+        onClose={() => setApprovalNotification(createClosedApprovalNotification())}
       />
     </Container>
   );

@@ -17,15 +17,15 @@ INSERT INTO ifrs9.rule_base_setting_headers (
     description
 ) VALUES
 -- Default Rule (Active)
-('a24af6d2-3032-4d53-ae82-9cfa84f97a20', 'Default Rule', 'DEFAULT', 'FRS9_MASTER_ACCOUNT', 'DEFAULT_FLAG', '1', 1, true, 'Default rule for flagging accounts'),
+('f7b3a087-8a42-40c4-baca-9dc92cc0a2be', 'Default Rule', 'DEFAULT', 'FRS9_MASTER_ACCOUNT', 'DEFAULT_FLAG', '1', 1, true, 'Default rule for flagging accounts'),
 
 -- DEFAULT-RULE01 (Inactive)
-('a24af6d2-3032-4d53-ae82-9cfa84f97a20', 'DEFAULT-RULE01', 'DEFAULT', 'FRS9_MASTER_ACCOUNT', 'DEFAULT_FLAG', '1', 1, false, 'Alternative default rule'),
+('f7b3a087-8a42-40c4-baca-9dc92cc0a2be', 'DEFAULT-RULE01', 'DEFAULT', 'FRS9_MASTER_ACCOUNT', 'DEFAULT_FLAG', '1', 1, false, 'Alternative default rule'),
 
 -- GL-IMP (Inactive)
-('a24af6d2-3032-4d53-ae82-9cfa84f97a20', 'GL-IMP', 'GL', 'FRS9_MASTER_ACCOUNT', 'GL_GROUP', 'GLIMP', 4, false, 'GL impairment grouping rule'),
+('f7b3a087-8a42-40c4-baca-9dc92cc0a2be', 'GL-IMP', 'GL', 'FRS9_MASTER_ACCOUNT', 'GL_GROUP', 'GLIMP', 4, false, 'GL impairment grouping rule'),
 
 -- Stage - EIPH (Active)
-('a24af6d2-3032-4d53-ae82-9cfa84f97a20', 'Stage - EIPH', 'STAGE', 'FRS9_MASTER_ACCOUNT', 'STAGE', 'Stage Rule', 1, true, 'IFRS 9 stage classification rule')
+('f7b3a087-8a42-40c4-baca-9dc92cc0a2be', 'Stage - EIPH', 'STAGE', 'FRS9_MASTER_ACCOUNT', 'STAGE', 'Stage Rule', 1, true, 'IFRS 9 stage classification rule')
 
 ON CONFLICT (tenant_id, rule_name) DO NOTHING;

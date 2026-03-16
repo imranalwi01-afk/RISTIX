@@ -142,6 +142,25 @@ export const RuleBaseSettingsRepository = {
     },
 
     /**
+     * Find a rule detail by ID.
+     *
+     * @param id - The detail ID
+     * @returns An Effect resolving to the detail or null
+     */
+    findDetailById: (id: bigint) => {
+        return Effect.tryPromise({
+            try: async () => {
+                const results = await db
+                    .select()
+                    .from(frs9ParamScenarioRulesd)
+                    .where(eq(frs9ParamScenarioRulesd.pkid, Number(id)))
+                return results[0] || null
+            },
+            catch: (error) => new DatabaseError({ message: 'Failed to find rule detail', operation: 'query', cause: error })
+        })
+    },
+
+    /**
      * Create a new rule detail.
      * 
      * @param data - The detail data

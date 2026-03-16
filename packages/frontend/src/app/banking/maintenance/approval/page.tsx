@@ -9,7 +9,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -66,7 +66,7 @@ import {
   Edit as EditIcon,
   Save as SaveIcon,
 } from '@mui/icons-material';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { GridColDef } from '@mui/x-data-grid';
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
 import { bankingAPI } from '@/services/api';
@@ -144,6 +144,22 @@ const getRequestedByDisplay = (req: any): string => {
   if (fallbackCandidates.length > 0) return fallbackCandidates[0];
 
   return 'Unknown User';
+};
+
+const matchesApprovalSearch = (request: ApprovalRequest, rawSearchTerm: string): boolean => {
+  const searchLower = rawSearchTerm.trim().toLowerCase();
+  if (!searchLower) return true;
+
+  return [
+    request.id,
+    request.entityId,
+    request.requestTitle,
+    request.requestedByName,
+    request.description,
+    request.requestType,
+  ]
+    .filter((value): value is string => typeof value === 'string' && value.length > 0)
+    .some((value) => value.toLowerCase().includes(searchLower));
 };
 
 interface ApprovalStatistics {
@@ -372,7 +388,10 @@ const resolveRoutingForRequest = (
 
 export default function ApprovalManagementPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
+  const deepLinkedRequestId = searchParams.get('requestId');
+  const handledDeepLinkRef = useRef<string | null>(null);
 
   // State management
   const [activeTab, setActiveTab] = useState(0);
@@ -426,6 +445,24 @@ export default function ApprovalManagementPage() {
     severity: 'success' as 'success' | 'error' | 'info' | 'warning'
   });
 
+  const getDeepLinkedRowSx = ({ id }: { id: string | number }) => {
+    if (!deepLinkedRequestId || String(id) !== deepLinkedRequestId) {
+      return undefined;
+    }
+
+    return {
+      backgroundColor: 'rgba(25, 118, 210, 0.08)',
+      borderLeft: '4px solid',
+      borderLeftColor: 'primary.main',
+      '& td': {
+        fontWeight: 600,
+      },
+      '&:hover': {
+        backgroundColor: 'rgba(25, 118, 210, 0.12)',
+      },
+    };
+  };
+
 
 
   // Load data
@@ -435,6 +472,25 @@ export default function ApprovalManagementPage() {
     loadApprovalRouting();
     // Statistics loaded after requests since we calculate them client-side
   }, []);
+
+  useEffect(() => {
+    if (!deepLinkedRequestId || approvalRequests.length === 0) return;
+    if (handledDeepLinkRef.current === deepLinkedRequestId) return;
+
+    const matchedRequest = approvalRequests.find((request) => request.id === deepLinkedRequestId);
+    if (!matchedRequest) {
+      return;
+    }
+
+    handledDeepLinkRef.current = deepLinkedRequestId;
+    setActiveTab(matchedRequest.status === 'pending' ? 0 : 2);
+    handleViewDetails(matchedRequest);
+  }, [deepLinkedRequestId, approvalRequests]);
+
+  useEffect(() => {
+    if (!deepLinkedRequestId) return;
+    setSearchTerm((current) => current || deepLinkedRequestId);
+  }, [deepLinkedRequestId]);
 
   const loadApprovalRequests = async () => {
     try {
@@ -668,13 +724,7 @@ export default function ApprovalManagementPage() {
 
     // Apply search filter
     if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase();
-      filtered = filtered.filter(request =>
-        request.requestTitle.toLowerCase().includes(searchLower) ||
-        request.requestedByName.toLowerCase().includes(searchLower) ||
-        request.description?.toLowerCase().includes(searchLower) ||
-        request.requestType.toLowerCase().includes(searchLower)
-      );
+      filtered = filtered.filter((request) => matchesApprovalSearch(request, searchTerm));
     }
 
     // Apply status filter
@@ -703,6 +753,32 @@ export default function ApprovalManagementPage() {
   // Utility functions
   const showSnackbar = (message: string, severity: 'success' | 'error' | 'info' | 'warning') => {
     setSnackbar({ open: true, message, severity });
+  };
+
+  const escapeCsvValue = (value: unknown): string => {
+    if (value == null) return '';
+    const stringValue = String(value);
+    if (/[",\n]/.test(stringValue)) {
+      return `"${stringValue.replace(/"/g, '""')}"`;
+    }
+    return stringValue;
+  };
+
+  const downloadCsv = (filename: string, headers: string[], rows: Array<Record<string, unknown>>) => {
+    const csv = [
+      headers.join(','),
+      ...rows.map((row) => headers.map((header) => escapeCsvValue(row[header])).join(',')),
+    ].join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
 
@@ -789,6 +865,116 @@ export default function ApprovalManagementPage() {
     });
 
     router.push(`/platform/rbac?${query.toString()}`);
+  };
+
+  const getHistoryRequestsForExport = (): ApprovalRequest[] => {
+    let historyRequests = approvalRequests.filter(
+      (req) => req.status === 'approved' || req.status === 'rejected' || req.status === 'completed' || req.status === 'cancelled'
+    );
+
+    if (searchTerm) {
+      historyRequests = historyRequests.filter((request) => matchesApprovalSearch(request, searchTerm));
+    }
+
+    if (statusFilter !== 'all') {
+      historyRequests = historyRequests.filter((request) => request.status === statusFilter);
+    }
+
+    return historyRequests;
+  };
+
+  const handleExport = () => {
+    const dateSuffix = new Date().toISOString().slice(0, 10);
+
+    if (activeTab === 0) {
+      const headers = ['id', 'requestTitle', 'requestType', 'requestedByName', 'requestedAt', 'status', 'priority', 'approvalsReceived', 'approvalsRequired', 'dueDate'];
+      const rows = filteredRequests.map((request) => ({
+        id: request.id,
+        requestTitle: request.requestTitle,
+        requestType: request.requestType,
+        requestedByName: request.requestedByName,
+        requestedAt: request.requestedAt,
+        status: request.status,
+        priority: request.priority,
+        approvalsReceived: request.approvalsReceived,
+        approvalsRequired: request.approvalsRequired,
+        dueDate: request.dueDate || '',
+      }));
+      downloadCsv(`approval-pending-${dateSuffix}.csv`, headers, rows);
+      showSnackbar('Pending approvals exported.', 'success');
+      return;
+    }
+
+    if (activeTab === 2) {
+      const historyRequests = getHistoryRequestsForExport();
+      const headers = ['id', 'requestTitle', 'requestType', 'requestedByName', 'requestedAt', 'completedAt', 'status', 'approvalsReceived', 'approvalsRequired'];
+      const rows = historyRequests.map((request) => ({
+        id: request.id,
+        requestTitle: request.requestTitle,
+        requestType: request.requestType,
+        requestedByName: request.requestedByName,
+        requestedAt: request.requestedAt,
+        completedAt: request.completedAt || '',
+        status: request.status,
+        approvalsReceived: request.approvalsReceived,
+        approvalsRequired: request.approvalsRequired,
+      }));
+      downloadCsv(`approval-history-${dateSuffix}.csv`, headers, rows);
+      showSnackbar('Approval history exported.', 'success');
+      return;
+    }
+
+    if (activeTab === 3) {
+      const headers = ['id', 'name', 'entityType', 'operationType', 'bankingMode', 'isActive', 'levels'];
+      const rows: Record<string, unknown>[] = approvalMatrices.map((matrix) => ({
+        id: matrix.id,
+        name: matrix.name,
+        entityType: matrix.entityType,
+        operationType: matrix.operationType || '',
+        bankingMode: matrix.bankingMode || '',
+        isActive: matrix.isActive ? 'active' : 'inactive',
+        levels: matrix.levels.map((level) => `L${level.level}:${level.name}[roles=${(level.requiredRoleCodes || []).join('|') || '-'};count=${level.requiredCount || 1}]`).join(' || '),
+      }));
+      downloadCsv(`approval-matrices-${dateSuffix}.csv`, headers, rows);
+      showSnackbar('Approval matrices exported.', 'success');
+      return;
+    }
+
+    if (activeTab === 4) {
+      const headers = ['matrixName', 'entityType', 'operationType', 'isActive', 'level', 'levelName', 'requiredRoles', 'requiredPermissions', 'candidateCount', 'candidates'];
+      const rows: Record<string, unknown>[] = approvalRouting.flatMap((routing) =>
+        routing.levels.length > 0
+          ? routing.levels.map((level) => ({
+              matrixName: routing.matrixName,
+              entityType: routing.entityType,
+              operationType: routing.operationType,
+              isActive: routing.isActive ? 'active' : 'inactive',
+              level: String(level.level),
+              levelName: level.name,
+              requiredRoles: (level.requiredRoleCodes || []).join('|'),
+              requiredPermissions: (level.requiredPermissionCodes || []).join('|'),
+              candidateCount: level.candidateCount,
+              candidates: level.candidates.map((candidate) => `${candidate.fullName}<${candidate.email}>`).join(' | '),
+            }))
+          : [{
+              matrixName: routing.matrixName,
+              entityType: routing.entityType,
+              operationType: routing.operationType,
+              isActive: routing.isActive ? 'active' : 'inactive',
+              level: '',
+              levelName: '',
+              requiredRoles: '',
+              requiredPermissions: '',
+              candidateCount: 0,
+              candidates: '',
+            }]
+      );
+      downloadCsv(`approval-routing-${dateSuffix}.csv`, headers, rows);
+      showSnackbar('Approval routing exported.', 'success');
+      return;
+    }
+
+    showSnackbar('Export is only available for Pending, History, Approval Matrix, and Routing tabs.', 'info');
   };
 
   const handleRefresh = () => {
@@ -913,6 +1099,7 @@ export default function ApprovalManagementPage() {
             key="view"
             icon={<ViewIcon />}
             label="View Details"
+            data-testid={`approval-view-button-${request.id}`}
             onClick={() => handleViewDetails(request)}
           />,
         ];
@@ -923,6 +1110,7 @@ export default function ApprovalManagementPage() {
               key="open-rbac"
               icon={<SecurityIcon color="primary" />}
               label="Open RBAC"
+              data-testid={`approval-open-rbac-button-${request.id}`}
               onClick={() => openRolePermissionInRBAC(request)}
             />
           );
@@ -934,24 +1122,41 @@ export default function ApprovalManagementPage() {
               key="approve"
               icon={<ApproveIcon color="success" />}
               label="Approve"
+              data-testid={`approval-approve-button-${request.id}`}
               onClick={() => handleApprovalAction(request, 'approve')}
             />,
             <SafeGridActionsCellItem
               key="reject"
               icon={<RejectIcon color="error" />}
               label="Reject"
+              data-testid={`approval-reject-button-${request.id}`}
               onClick={() => handleApprovalAction(request, 'reject')}
+            />,
+            <SafeGridActionsCellItem
+              key="request-info"
+              icon={<InfoIcon color="info" />}
+              label="Request Info"
+              data-testid={`approval-request-info-button-${request.id}`}
+              onClick={() => handleApprovalAction(request, 'request_info')}
+            />,
+            <SafeGridActionsCellItem
+              key="delegate"
+              icon={<DelegateIcon color="secondary" />}
+              label="Delegate"
+              data-testid={`approval-delegate-button-${request.id}`}
+              onClick={() => handleApprovalAction(request, 'delegate')}
             />
           );
 
           if (request.requestedBy === user?.id) {
             actions.push(
-              <SafeGridActionsCellItem
-                key="cancel"
-                icon={<CancelRequestIcon color="warning" />}
-                label="Cancel Request"
-                onClick={() => handleApprovalAction(request, 'cancel')}
-              />
+                <SafeGridActionsCellItem
+                  key="cancel"
+                  icon={<CancelRequestIcon color="warning" />}
+                  label="Cancel Request"
+                  data-testid={`approval-cancel-button-${request.id}`}
+                  onClick={() => handleApprovalAction(request, 'cancel')}
+                />
             );
           }
         }
@@ -967,11 +1172,12 @@ export default function ApprovalManagementPage() {
       <Paper sx={{ mb: 3, p: 2 }}>
         <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap' }}>
           <TextField
-            placeholder="Search requests..."
+            placeholder="Search requests or Request ID..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             size="small"
             sx={{ minWidth: 200 }}
+            slotProps={{ htmlInput: { 'data-testid': 'approval-search-input' } }}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
@@ -1038,6 +1244,7 @@ export default function ApprovalManagementPage() {
           rows={filteredRequests}
           columns={columns}
           loading={loading}
+          getRowSx={getDeepLinkedRowSx}
           disableRowSelectionOnClick
           pageSizeOptions={[10, 25, 50]}
           initialState={{
@@ -1178,9 +1385,17 @@ export default function ApprovalManagementPage() {
 
   const renderApprovalHistory = () => {
     // Filter for completed requests (approved or rejected)
-    const historyRequests = approvalRequests.filter(
+    let historyRequests = approvalRequests.filter(
       req => req.status === 'approved' || req.status === 'rejected' || req.status === 'completed' || req.status === 'cancelled'
     );
+
+    if (searchTerm) {
+      historyRequests = historyRequests.filter((request) => matchesApprovalSearch(request, searchTerm));
+    }
+
+    if (statusFilter !== 'all') {
+      historyRequests = historyRequests.filter((request) => request.status === statusFilter);
+    }
 
     const historyColumns: GridColDef[] = [
       {
@@ -1254,6 +1469,7 @@ export default function ApprovalManagementPage() {
               size="small"
               onClick={() => handleViewDetails(params.row)}
               color="primary"
+              data-testid={`approval-history-view-button-${params.row.id}`}
             >
               <ViewIcon />
             </IconButton>
@@ -1262,6 +1478,7 @@ export default function ApprovalManagementPage() {
                 size="small"
                 color="secondary"
                 onClick={() => openRolePermissionInRBAC(params.row)}
+                data-testid={`approval-history-open-rbac-button-${params.row.id}`}
               >
                 <SecurityIcon fontSize="small" />
               </IconButton>
@@ -1284,6 +1501,7 @@ export default function ApprovalManagementPage() {
                 value={statusFilter}
                 label="Status"
                 onChange={(e) => setStatusFilter(e.target.value)}
+                data-testid="approval-history-status-select"
               >
                 <MenuItem value="all">All</MenuItem>
                 <MenuItem value="approved">Approved</MenuItem>
@@ -1294,9 +1512,10 @@ export default function ApprovalManagementPage() {
             </FormControl>
             <TextField
               size="small"
-              placeholder="Search..."
+              placeholder="Search requests or Request ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              slotProps={{ htmlInput: { 'data-testid': 'approval-history-search-input' } }}
               InputProps={{
                 startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />,
               }}
@@ -1320,6 +1539,7 @@ export default function ApprovalManagementPage() {
             <SafeDataGrid
               rows={historyRequests}
               columns={historyColumns}
+              getRowSx={getDeepLinkedRowSx}
               initialState={{
                 pagination: {
                   paginationModel: { pageSize: 10 },
@@ -1360,6 +1580,7 @@ export default function ApprovalManagementPage() {
             startIcon={<RefreshIcon />}
             onClick={loadApprovalMatrices}
             disabled={matricesLoading}
+            data-testid="approval-matrix-refresh-button"
           >
             Refresh Matrices
           </Button>
@@ -1393,6 +1614,7 @@ export default function ApprovalManagementPage() {
                         size="small"
                         color="primary"
                         onClick={() => setMatrixEditDialog({ open: true, matrix })}
+                        data-testid={`approval-matrix-edit-button-${matrix.id}`}
                       >
                         <EditIcon fontSize="small" />
                       </IconButton>
@@ -1472,6 +1694,7 @@ export default function ApprovalManagementPage() {
                 value={routingEntityFilter}
                 label="Entity Type"
                 onChange={(event) => setRoutingEntityFilter(String(event.target.value))}
+                data-testid="approval-routing-entity-select"
               >
                 <MenuItem value="all">All Entities</MenuItem>
                 {routingEntityOptions.map((entity, idx) => (
@@ -1487,6 +1710,7 @@ export default function ApprovalManagementPage() {
                 value={routingOperationFilter}
                 label="Operation"
                 onChange={(event) => setRoutingOperationFilter(event.target.value as 'all' | 'create' | 'update' | 'delete')}
+                data-testid="approval-routing-operation-select"
               >
                 <MenuItem value="all">All Operations</MenuItem>
                 <MenuItem value="create">Create</MenuItem>
@@ -1503,6 +1727,7 @@ export default function ApprovalManagementPage() {
               value={routingDepartmentFilter}
               onChange={(event) => setRoutingDepartmentFilter(event.target.value)}
               placeholder="e.g. Risk Management"
+              slotProps={{ htmlInput: { 'data-testid': 'approval-routing-department-input' } }}
             />
           </Grid>
           <Grid size={{ xs: 12, md: 2 }}>
@@ -1512,6 +1737,7 @@ export default function ApprovalManagementPage() {
               startIcon={<RefreshIcon />}
               onClick={() => loadApprovalRouting()}
               disabled={routingLoading}
+              data-testid="approval-routing-apply-button"
             >
               Apply
             </Button>
@@ -1643,7 +1869,8 @@ export default function ApprovalManagementPage() {
             <Button
               variant="outlined"
               startIcon={<ExportIcon />}
-              onClick={() => showSnackbar('Export functionality coming soon', 'info')}
+              onClick={handleExport}
+              data-testid="approval-export-button"
             >
               Export
             </Button>
@@ -1669,26 +1896,31 @@ export default function ApprovalManagementPage() {
             icon={<PendingIcon />}
             label="Pending Approvals"
             iconPosition="start"
+            data-testid="approval-tab-pending"
           />
           <Tab
             icon={<StatsIcon />}
             label="Statistics"
             iconPosition="start"
+            data-testid="approval-tab-statistics"
           />
           <Tab
             icon={<HistoryIcon />}
             label="History"
             iconPosition="start"
+            data-testid="approval-tab-history"
           />
           <Tab
             icon={<MatrixIcon />}
             label="Approval Matrix"
             iconPosition="start"
+            data-testid="approval-tab-matrix"
           />
           <Tab
             icon={<RoutingIcon />}
             label="Routing"
             iconPosition="start"
+            data-testid="approval-tab-routing"
           />
         </Tabs>
       </Paper>
@@ -1709,6 +1941,17 @@ export default function ApprovalManagementPage() {
         action={actionDialog.action}
         onClose={() => setActionDialog({ open: false })}
         onSuccess={(requestId, nextStatus) => {
+          const actionSuccessMessage = actionDialog.action === 'approve'
+            ? 'Request approved successfully'
+            : actionDialog.action === 'reject'
+              ? 'Request rejected successfully'
+              : actionDialog.action === 'request_info'
+                ? 'Request information requested successfully'
+              : actionDialog.action === 'cancel'
+                ? 'Request cancelled successfully'
+                : actionDialog.action === 'delegate'
+                  ? 'Request delegated successfully'
+                  : 'Request updated successfully';
           setApprovalRequests((prev) =>
             prev.map((req) =>
               req.id === requestId
@@ -1725,7 +1968,7 @@ export default function ApprovalManagementPage() {
                 : req
             )
           );
-          showSnackbar(`Request ${actionDialog.action}ed successfully`, 'success');
+          showSnackbar(actionSuccessMessage, 'success');
           setActionDialog({ open: false });
           loadApprovalRequests();
         }}

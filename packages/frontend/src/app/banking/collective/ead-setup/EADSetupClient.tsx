@@ -30,7 +30,13 @@ import {
   CircularProgress,
   Snackbar
 } from '@mui/material';
-import { ApprovalNotification, ApprovalStatusBadge } from '@/components/approval';
+import {
+  ApprovalNotification,
+  ApprovalStatusBadge,
+  buildApprovalNotification,
+  createClosedApprovalNotification,
+  type ApprovalNotificationState,
+} from '@/components/approval';
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -69,6 +75,7 @@ export default function EADSetupPage() {
   const { hasAnyPermission } = usePermission();
   const canViewEadSetup = hasAnyPermission(['banking.collective.ead_setup.view', 'banking.collective.ead_setup.manage', 'banking.collective.manage', 'banking.collective', 'admin.super_admin']);
   const canManageEadSetup = hasAnyPermission(['banking.collective.ead_setup.manage', 'banking.collective.ead_setup.create', 'banking.collective.ead_setup.update', 'banking.collective.ead_setup.delete', 'banking.collective.manage', 'admin.super_admin']);
+  const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all', 'admin.super_admin']);
   const router = useRouter();
 
   const [loading, setLoading] = useState(false);
@@ -92,11 +99,7 @@ export default function EADSetupPage() {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
-  const [approvalNotification, setApprovalNotification] = useState<{
-    open: boolean;
-    message: string;
-    requestId?: string;
-  }>({ open: false, message: '' });
+  const [approvalNotification, setApprovalNotification] = useState<ApprovalNotificationState>(createClosedApprovalNotification());
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; type: 'success' | 'error' }>({
     open: false,
     message: '',
@@ -193,11 +196,7 @@ export default function EADSetupPage() {
       const isApprovalResponse = response?.approvalRequired || response?.status === 202;
 
       if (isApprovalResponse) {
-        setApprovalNotification({
-          open: true,
-          message: response?.message || 'Request submitted for approval',
-          requestId: response?.requestId
-        });
+        setApprovalNotification(buildApprovalNotification(response, 'Request submitted for approval'));
       } else {
         setSnackbar({
           open: true,
@@ -229,11 +228,7 @@ export default function EADSetupPage() {
       const response = await api.banking.eadConfigurations.delete(String(id));
       const isApprovalResponse = response?.approvalRequired || response?.status === 202;
       if (isApprovalResponse) {
-        setApprovalNotification({
-          open: true,
-          message: response?.message || 'Deletion request submitted for approval',
-          requestId: response?.requestId
-        });
+        setApprovalNotification(buildApprovalNotification(response, 'Deletion request submitted for approval'));
       } else {
         setSnackbar({ open: true, message: 'Configuration deleted', type: 'success' });
       }
@@ -278,6 +273,7 @@ export default function EADSetupPage() {
           key="edit"
           icon={<EditIcon color="primary" />}
           label="Edit"
+          data-testid="edit-ead-config-btn"
           onClick={() => {
             setSelectedConfig(params.row);
             setFormData(params.row);
@@ -289,6 +285,7 @@ export default function EADSetupPage() {
           key="delete"
           icon={<DeleteIcon color="error" />}
           label="Delete"
+          data-testid="delete-ead-config-btn"
           onClick={() => handleDelete(params.row.id!)}
         />
       ] : []
@@ -310,7 +307,7 @@ export default function EADSetupPage() {
       <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Typography variant="h4" component="h1">EAD Setup Management</Typography>
         <Box>
-          <Button startIcon={<RefreshIcon />} onClick={loadData} disabled={loading} sx={{ mr: 1 }}>Refresh</Button>
+          <Button startIcon={<RefreshIcon />} onClick={loadData} disabled={loading} sx={{ mr: 1 }} data-testid="refresh-ead-btn">Refresh</Button>
           {canManageEadSetup && (
             <Button variant="contained" startIcon={<AddIcon />} onClick={() => {
               setSelectedConfig(null);
@@ -318,7 +315,7 @@ export default function EADSetupPage() {
               setFormErrors({});
               setIsEditing(false);
               setIsDialogOpen(true);
-            }}>Add Configuration</Button>
+            }} data-testid="add-ead-config-btn">Add Configuration</Button>
           )}
         </Box>
       </Box>
@@ -340,6 +337,7 @@ export default function EADSetupPage() {
             label="Search"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            data-testid="search-ead-input"
             InputProps={{ startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} /> }}
           />
         </CardContent>
@@ -368,6 +366,7 @@ export default function EADSetupPage() {
               onChange={(e) => setFormData({ ...formData, model_name: e.target.value })}
               error={!!formErrors.model_name}
               helperText={formErrors.model_name}
+              data-testid="ead-model-name-input"
             />
             <FormControl fullWidth error={!!formErrors.segment_id}>
               <InputLabel>Population Segment</InputLabel>
@@ -375,6 +374,7 @@ export default function EADSetupPage() {
                 value={formData.segment_id || ''}
                 label="Population Segment"
                 onChange={(e) => setFormData({ ...formData, segment_id: Number(e.target.value) })}
+                data-testid="ead-segment-select"
               >
                 {populationSegments.map(s => (
                   <MenuItem key={s.id} value={s.id}>{s.segment_name}</MenuItem>
@@ -391,6 +391,7 @@ export default function EADSetupPage() {
                 value={formData.ead_method || ''}
                 label="EAD Method"
                 onChange={(e) => setFormData({ ...formData, ead_method: e.target.value })}
+                data-testid="ead-method-select"
               >
                 {methodOptions.map((m, idx) => <MenuItem key={`${m.value}-${idx}`} value={m.value}>{m.label}</MenuItem>)}
               </Select>
@@ -405,6 +406,7 @@ export default function EADSetupPage() {
                 value={formData.calc_method || ''}
                 label="Calc Method"
                 onChange={(e) => setFormData({ ...formData, calc_method: e.target.value })}
+                data-testid="ead-calc-method-select"
               >
                 {calcMethodOptions.map((m, idx) => <MenuItem key={`${m.value}-${idx}`} value={m.value}>{m.label}</MenuItem>)}
               </Select>
@@ -415,7 +417,7 @@ export default function EADSetupPage() {
 
             <Box sx={{ gridColumn: 'span 2' }}>
               <FormControlLabel
-                control={<Switch checked={!!formData.is_active} onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })} />}
+                control={<Switch checked={!!formData.is_active} onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })} data-testid="ead-active-switch" />}
                 label="Active"
               />
             </Box>
@@ -426,9 +428,9 @@ export default function EADSetupPage() {
           <Button onClick={() => {
             setIsDialogOpen(false);
             setFormErrors({});
-          }}>Cancel</Button>
+          }} data-testid="cancel-ead-config-btn">Cancel</Button>
           {canManageEadSetup && (
-            <Button variant="contained" onClick={handleSave} disabled={loading}>{selectedConfig ? 'Update' : 'Create'}</Button>
+            <Button variant="contained" onClick={handleSave} disabled={loading} data-testid="save-ead-config-btn">{selectedConfig ? 'Update' : 'Create'}</Button>
           )}
         </DialogActions>
       </Dialog>
@@ -436,7 +438,9 @@ export default function EADSetupPage() {
         open={approvalNotification.open}
         message={approvalNotification.message}
         requestId={approvalNotification.requestId}
-        onClose={() => setApprovalNotification({ ...approvalNotification, open: false })}
+        actionLabel={canOpenApprovalInbox ? 'Open Approval' : undefined}
+        actionHref={canOpenApprovalInbox ? (approvalNotification.requestId ? `/banking/maintenance/approval?requestId=${encodeURIComponent(approvalNotification.requestId)}` : '/banking/maintenance/approval') : undefined}
+        onClose={() => setApprovalNotification(createClosedApprovalNotification())}
       />
       <FullstackIndicator />
     </Container>

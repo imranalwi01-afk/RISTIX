@@ -2,6 +2,9 @@ import { describe, expect, test } from 'bun:test';
 import {
   buildPermissionMatrixItem,
   buildPermissionSelectionGroups,
+  buildPermissionSelectionSections,
+  getPermissionCategoryDisplayLabel,
+  getPermissionGroupDisplayLabel,
   getPermissionCanonicalKey,
   normalizePermissionFromApi,
   normalizeRoleFromApi,
@@ -84,6 +87,46 @@ describe('access-management utils', () => {
     expect(groups[0]?.key).toBe('banking');
     expect(groups[0]?.hint).toBe('1 permissions');
     expect(groups[1]?.key).toBe('reporting');
+  });
+
+  test('buildPermissionSelectionSections groups permissions by menu key', () => {
+    const sections = buildPermissionSelectionSections([
+      makePermission({
+        id: 'perm-1',
+        code: 'banking.collective.bucket.view',
+        resource: 'bucket',
+      }),
+      makePermission({
+        id: 'perm-2',
+        code: 'banking.collective.bucket.create',
+        resource: 'bucket',
+        action: 'create',
+      }),
+      makePermission({
+        id: 'perm-3',
+        code: 'banking.collective.ead.view',
+        resource: 'ead',
+      }),
+    ]);
+
+    expect(sections).toHaveLength(2);
+    expect(sections[0]?.key).toBe('banking.collective.bucket');
+    expect(sections[0]?.label).toBe('Collective Impairment > Bucket Parameter');
+    expect(sections[0]?.permissions).toHaveLength(2);
+    expect(sections[1]?.key).toBe('banking.collective.ead');
+    expect(sections[1]?.label).toBe('Collective Impairment > EAD Setup Management');
+    expect(sections[1]?.permissions).toHaveLength(1);
+  });
+
+  test('uses sidebar-aware labels for menu and category grouping', () => {
+    expect(getPermissionCategoryDisplayLabel('banking.collective')).toBe('Collective Impairment');
+    expect(getPermissionGroupDisplayLabel('banking.collective.pd')).toBe('PD Setup Management');
+    expect(getPermissionGroupDisplayLabel('banking.collective.pd', 'breadcrumb'))
+      .toBe('Collective Impairment > PD Setup Management');
+    expect(getPermissionGroupDisplayLabel('banking.collective.lgd', 'breadcrumb'))
+      .toBe('Collective Impairment > LGD Setup Management');
+    expect(getPermissionGroupDisplayLabel('banking.collective.ead', 'breadcrumb'))
+      .toBe('Collective Impairment > EAD Setup Management');
   });
 
   test('normalizePermissionFromApi fills frontend defaults', () => {
