@@ -567,6 +567,17 @@ const PlatformRBACManagement = () => {
                     {success}
                 </Alert>
             )}
+            {requestParam && (
+                <Alert severity="info" sx={{ mb: 2 }} data-testid="platform-rbac-request-context">
+                    Opened from approval request: <strong>{requestParam}</strong>
+                    {(selectedRole || roleParam) ? (
+                        <> | Focused role: <strong>{selectedRole?.roleName || roleParam}</strong></>
+                    ) : null}
+                    {(selectedTenant || tenantParam) ? (
+                        <> | Tenant: <strong>{selectedTenant?.code || tenantParam}</strong></>
+                    ) : null}
+                </Alert>
+            )}
 
             <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
                 <Grid container spacing={2} alignItems="center">
@@ -632,6 +643,7 @@ const PlatformRBACManagement = () => {
                                         ),
                                     }}
                                     sx={{ mb: 1.5 }}
+                                    slotProps={{ htmlInput: { 'data-testid': 'platform-rbac-role-search-input' } }}
                                 />
                                 <List sx={{ maxHeight: 420, overflowY: 'auto', p: 0 }}>
                                     {filteredRoles.map((role) => (
@@ -640,6 +652,7 @@ const PlatformRBACManagement = () => {
                                             selected={selectedRoleId === role.id}
                                             onClick={() => setSelectedRoleId(role.id)}
                                             sx={{ borderRadius: 1, mb: 0.5 }}
+                                            data-testid={`platform-rbac-role-item-${role.id}`}
                                         >
                                             <ListItemText
                                                 primary={role.roleName}
@@ -671,11 +684,6 @@ const PlatformRBACManagement = () => {
                                     </Stack>
                                     <Chip label={`${permissionDraftCodes.length} selected`} color="primary" variant="outlined" />
                                 </Stack>
-                                {requestParam && (
-                                    <Alert severity="info" sx={{ mb: 2 }}>
-                                        Opened from approval request: <strong>{requestParam}</strong>
-                                    </Alert>
-                                )}
 
                                 <TextField
                                     size="small"
@@ -692,9 +700,10 @@ const PlatformRBACManagement = () => {
                                     }}
                                     sx={{ mb: 1.5 }}
                                     disabled={!selectedRole}
+                                    slotProps={{ htmlInput: { 'data-testid': 'platform-rbac-permission-search-input' } }}
                                 />
 
-                                <Paper variant="outlined" sx={{ maxHeight: 420, overflowY: 'auto', p: 1.5 }}>
+                                <Paper variant="outlined" sx={{ maxHeight: 420, overflowY: 'auto', p: 1.5 }} data-testid="platform-rbac-permission-matrix">
                                     {!selectedRole ? (
                                         <Typography variant="body2" color="text.secondary" p={1}>
                                             Select a role first.
@@ -775,6 +784,7 @@ const PlatformRBACManagement = () => {
                                         startIcon={<SaveIcon />}
                                         onClick={savePermissions}
                                         disabled={!selectedRole || savingPermissions}
+                                        data-testid="platform-rbac-save-permissions-button"
                                     >
                                         {savingPermissions ? 'Saving...' : 'Save Permissions'}
                                     </Button>

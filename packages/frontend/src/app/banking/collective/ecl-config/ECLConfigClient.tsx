@@ -74,7 +74,14 @@ import { GridColDef, GridRowId, GridToolbar } from '@mui/x-data-grid';
 
 // Safe DataGrid wrapper to prevent bundling issues
 import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeDataGrid';
-import { ApprovalNotification, ApprovalStatusBadge } from '@/components/approval';
+import {
+  ApprovalNotification,
+  ApprovalStatusBadge,
+  buildApprovalNotification,
+  createClosedApprovalNotification,
+  type ApprovalNotificationState,
+} from '@/components/approval';
+import { usePermission } from '@/hooks/usePermission';
 
 // Premium Layout Components
 import ReportPageLayout from '@/components/ifrs9/ReportPageLayout';
@@ -433,6 +440,8 @@ const eclConfigurationAPI = {
 
 
 export default function ECLConfigurationPage() {
+  const { hasAnyPermission } = usePermission();
+  const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all', 'admin.super_admin']);
   const searchParams = useSearchParams();
   const bankingMode = (searchParams.get('mode') || 'conventional').toLowerCase();
   const [moduleOptions, setModuleOptions] = useState<LookupOption[]>([]);
@@ -458,11 +467,7 @@ export default function ECLConfigurationPage() {
   const [runStatus, setRunStatus] = useState<{ severity: 'success' | 'error' | 'info'; message: string } | null>(null);
   const [runningConfigId, setRunningConfigId] = useState<number | null>(null);
   const [runningAll, setRunningAll] = useState(false);
-  const [approvalNotification, setApprovalNotification] = useState<{
-    open: boolean;
-    message: string;
-    requestId?: string;
-  }>({ open: false, message: '' });
+  const [approvalNotification, setApprovalNotification] = useState<ApprovalNotificationState>(createClosedApprovalNotification());
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; type: 'success' | 'error' }>({
     open: false,
     message: '',
@@ -837,11 +842,7 @@ export default function ECLConfigurationPage() {
 
       const isApprovalResponse = savedConfig?.approvalRequired || savedConfig?.status === 202;
       if (isApprovalResponse) {
-        setApprovalNotification({
-          open: true,
-          message: savedConfig?.message || 'Request submitted for approval',
-          requestId: savedConfig?.requestId
-        });
+        setApprovalNotification(buildApprovalNotification(savedConfig, 'Request submitted for approval'));
       } else {
         setSnackbar({
           open: true,
@@ -880,11 +881,7 @@ export default function ECLConfigurationPage() {
       const response: any = await eclConfigurationAPI.deleteHeader(eclConfig.pkid);
       const isApprovalResponse = response?.approvalRequired || response?.status === 202;
       if (isApprovalResponse) {
-        setApprovalNotification({
-          open: true,
-          message: response?.message || 'Deletion request submitted for approval',
-          requestId: response?.requestId
-        });
+        setApprovalNotification(buildApprovalNotification(response, 'Deletion request submitted for approval'));
       } else {
         setSnackbar({
           open: true,
@@ -1117,6 +1114,7 @@ export default function ECLConfigurationPage() {
           key="view"
           icon={<VisibilityIcon color="info" />}
           label="Detail"
+          data-testid="view-ecl-config-btn"
           onClick={() => handleView(params.row)}
           color="inherit"
         />,
@@ -1124,6 +1122,7 @@ export default function ECLConfigurationPage() {
           key="edit"
           icon={<EditIcon color="primary" />}
           label="Edit"
+          data-testid="edit-ecl-config-btn"
           onClick={() => handleEdit(params.row)}
           color="primary"
         />,
@@ -1131,6 +1130,7 @@ export default function ECLConfigurationPage() {
           key="delete"
           icon={<DeleteIcon color="error" />}
           label="Delete"
+          data-testid="delete-ecl-config-btn"
           onClick={() => handleDelete(params.row)}
           color="error"
         />
@@ -1156,14 +1156,16 @@ export default function ECLConfigurationPage() {
           icon: <RefreshIcon />,
           onClick: loadEclConfigurations,
           variant: 'outlined',
-          disabled: loading
+          disabled: loading,
+          dataTestId: 'refresh-ecl-config-btn'
         },
         {
           label: 'Add ECL Configuration',
           icon: <AddIcon />,
           onClick: handleAdd,
           variant: 'contained',
-          color: 'primary'
+          color: 'primary',
+          dataTestId: 'add-ecl-config-btn'
         }
       ]}
     >
@@ -1253,6 +1255,7 @@ export default function ECLConfigurationPage() {
                 placeholder="Search by model name, module..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                data-testid="search-ecl-config-input"
                 InputProps={{
                   startAdornment: <SearchIcon color="action" sx={{ mr: 1 }} />
                 }}
@@ -1265,6 +1268,7 @@ export default function ECLConfigurationPage() {
                   value={filterModule}
                   label="Filter by Module"
                   onChange={(e) => setFilterModule(e.target.value as string)}
+                  data-testid="filter-ecl-module-select"
                 >
                   <MenuItem value="">All Modules</MenuItem>
                   {moduleOptions.map((module, idx) => (
@@ -1334,8 +1338,8 @@ export default function ECLConfigurationPage() {
         </DialogTitle>
         <DialogContent dividers>
           <Tabs value={currentTab} onChange={(_, newValue) => setCurrentTab(newValue)}>
-            <Tab label="Header Information" />
-            <Tab label="Segment Configuration" />
+            <Tab label="Header Information" data-testid="ecl-header-tab" />
+            <Tab label="Segment Configuration" data-testid="ecl-segment-tab" />
           </Tabs>
 
           {currentTab === 0 && (
@@ -1354,6 +1358,7 @@ export default function ECLConfigurationPage() {
                     error={!!formErrors.ecl_model_name}
                     helperText={formErrors.ecl_model_name}
                     required
+                    data-testid="ecl-model-name-input"
                   />
                 </Box>
 
@@ -1365,6 +1370,7 @@ export default function ECLConfigurationPage() {
                       label="Module"
                       disabled={isViewOnly}
                       onChange={(e) => handleHeaderFieldChange('module', e.target.value)}
+                      data-testid="ecl-module-select"
                     >
                       {moduleOptions.map((module, idx) => (
                         <MenuItem key={`${module.value}-${idx}`} value={module.value}>
@@ -1402,8 +1408,9 @@ export default function ECLConfigurationPage() {
                         error: !!formErrors.effective_date,
                         helperText: formErrors.effective_date,
                         required: true,
-                        InputLabelProps: { shrink: true }
-                      }
+                        InputLabelProps: { shrink: true },
+                        'data-testid': 'ecl-effective-date-input'
+                      } as any
                     }}
                   />
                 </Box>
@@ -1415,6 +1422,7 @@ export default function ECLConfigurationPage() {
                         checked={headerFormData.active_flag || false}
                         disabled={isViewOnly}
                         onChange={(e) => handleHeaderFieldChange('active_flag', e.target.checked)}
+                        data-testid="ecl-active-flag-checkbox"
                       />
                     }
                     label="Active Configuration"
@@ -1443,6 +1451,7 @@ export default function ECLConfigurationPage() {
                           disabled={isViewOnly}
                           error={!!formErrors.pf_segment_id}
                           onChange={(e) => handleDetailFieldChange('pf_segment_id', Number(e.target.value))}
+                          data-testid="ecl-segment-select"
                         >
                           {segmentOptions.map((segment, idx) => (
                             <MenuItem key={`${segment.value}-${idx}`} value={segment.value}>
@@ -1464,6 +1473,7 @@ export default function ECLConfigurationPage() {
                           label="Stage Rule"
                           disabled={isViewOnly}
                           onChange={(e) => handleDetailFieldChange('stage_rule_id', Number(e.target.value))}
+                          data-testid="ecl-stage-rule-select"
                         >
                           {stageRuleOptions.map((rule, idx) => (
                             <MenuItem key={`${rule.value}-${idx}`} value={rule.value}>
@@ -1485,6 +1495,7 @@ export default function ECLConfigurationPage() {
                           label="PD Model"
                           disabled={isViewOnly}
                           onChange={(e) => handleDetailFieldChange('pd_model_id', Number(e.target.value))}
+                          data-testid="ecl-pd-model-select"
                         >
                           {getModelOptionsForSegment(pdModelOptions, detailFormData.pf_segment_id)
                             .map((model, idx) => (
@@ -1507,6 +1518,7 @@ export default function ECLConfigurationPage() {
                           label="LGD Model"
                           disabled={isViewOnly}
                           onChange={(e) => handleDetailFieldChange('lgd_model_id', Number(e.target.value))}
+                          data-testid="ecl-lgd-model-select"
                         >
                           {getModelOptionsForSegment(lgdModelOptions, detailFormData.pf_segment_id)
                             .map((model, idx) => (
@@ -1529,6 +1541,7 @@ export default function ECLConfigurationPage() {
                           label="EAD Model"
                           disabled={isViewOnly}
                           onChange={(e) => handleDetailFieldChange('ead_model_id', Number(e.target.value))}
+                          data-testid="ecl-ead-model-select"
                         >
                           {getModelOptionsForSegment(eadModelOptions, detailFormData.pf_segment_id)
                             .map((model, idx) => (
@@ -1552,6 +1565,7 @@ export default function ECLConfigurationPage() {
                         disabled={isViewOnly}
                         onChange={(e) => handleDetailFieldChange('overlay_rate', Number(e.target.value))}
                         inputProps={{ min: 0, max: 500, step: 1 }}
+                        data-testid="ecl-overlay-rate-input"
                       />
                     </Box>
 
@@ -1569,6 +1583,7 @@ export default function ECLConfigurationPage() {
                               handleDetailFieldChange('period_date', '');
                             }
                           }}
+                          data-testid="ecl-period-type-select"
                         >
                           {periodTypeOptions.map((periodType, idx) => (
                             <MenuItem key={`${periodType.value}-${idx}`} value={periodType.value}>
@@ -1603,8 +1618,9 @@ export default function ECLConfigurationPage() {
                             disabled: isViewOnly || !requiresPeriodDate,
                             error: !!formErrors.period_date,
                             helperText: formErrors.period_date || (requiresPeriodDate ? 'Required when Period Type = 5' : 'Enabled when Period Type = 5'),
-                            InputLabelProps: { shrink: true }
-                          }
+                            InputLabelProps: { shrink: true },
+                            'data-testid': 'ecl-period-date-input'
+                          } as any
                         }}
                       />
                     </Box>
@@ -1615,6 +1631,7 @@ export default function ECLConfigurationPage() {
                           variant="contained"
                           startIcon={<AddIcon />}
                           onClick={handleAddDetail}
+                          data-testid="add-ecl-segment-config-btn"
                         >
                           Add Segment Configuration
                         </Button>
@@ -1681,7 +1698,7 @@ export default function ECLConfigurationPage() {
             setIsDialogOpen(false);
             setFormErrors({});
             setIsViewOnly(false);
-          }}>
+          }} data-testid="cancel-ecl-config-btn">
             {isViewOnly ? 'Close' : 'Cancel'}
           </Button>
           {!isViewOnly && (
@@ -1689,6 +1706,7 @@ export default function ECLConfigurationPage() {
               variant="contained"
               onClick={handleSave}
               disabled={loading}
+              data-testid="save-ecl-config-btn"
               startIcon={loading ? <CircularProgress size={16} /> : null}
             >
               {isEditing
@@ -1704,7 +1722,9 @@ export default function ECLConfigurationPage() {
         open={approvalNotification.open}
         message={approvalNotification.message}
         requestId={approvalNotification.requestId}
-        onClose={() => setApprovalNotification({ ...approvalNotification, open: false })}
+        actionLabel={canOpenApprovalInbox ? 'Open Approval' : undefined}
+        actionHref={canOpenApprovalInbox ? (approvalNotification.requestId ? `/banking/maintenance/approval?requestId=${encodeURIComponent(approvalNotification.requestId)}` : '/banking/maintenance/approval') : undefined}
+        onClose={() => setApprovalNotification(createClosedApprovalNotification())}
       />
     </ReportPageLayout>
   );

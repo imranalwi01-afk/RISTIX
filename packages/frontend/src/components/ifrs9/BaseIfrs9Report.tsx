@@ -108,6 +108,7 @@ export interface ReportFilters {
   stage?: string | string[];
   fl_flag?: boolean;
   branch_code?: string;
+  group_segment?: string;
   page?: number;
   limit?: number;
 }
@@ -122,6 +123,7 @@ const getDefaultFilters = (reportType: BaseIfrs9ReportProps['reportType']): Repo
   segment_ids: [],
   stage: [],
   fl_flag: false,
+  group_segment: undefined,
   ead_config_id: reportType === 'ead-model' ? 1 : undefined,
   pd_config_id: reportType.includes('pd') ? 1 : undefined,
   pd_method: reportType.includes('pd') ? 1 : undefined,
@@ -652,6 +654,18 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
     }
   }, [bankingMode]);
 
+  const groupSegmentOptions = React.useMemo(
+    () =>
+      Array.from(
+        new Set(
+          segments
+            .map((segment) => String(segment.group_segment || segment.groupSegment || '').trim())
+            .filter((value) => value.length > 0)
+        )
+      ).sort((a, b) => a.localeCompare(b)),
+    [segments]
+  );
+
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <Box sx={{ p: 0, position: 'relative', minHeight: '60vh' }}>
@@ -893,7 +907,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                 transition: 'all 0.2s ease'
               }}
             >
-              {exportLoading ? 'Processing...' : 'Export Excellence'}
+              {exportLoading ? 'Processing...' : 'Export to Excel'}
             </Button>
           </Box>
         )}
@@ -991,6 +1005,25 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                                     {...(params as any)}
                                     label="Segment ID"
                                     placeholder="All Segments"
+                                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                                  />
+                                )}
+                              />
+                            </Grid>
+                          )}
+
+                          {optionalParams.includes('group_segment') && (
+                            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                              <Autocomplete
+                                size="small"
+                                options={groupSegmentOptions}
+                                value={filters.group_segment || null}
+                                onChange={(_, newValue) => handleFilterChange('group_segment', newValue || undefined)}
+                                renderInput={(params) => (
+                                  <TextField
+                                    {...(params as any)}
+                                    label="Group Segment"
+                                    placeholder="All Group Segments"
                                     sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                                   />
                                 )}
@@ -1192,7 +1225,7 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                       onClick={handleClear}
                       sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
                     >
-                      Reset Defaults
+                      Reset Filter
                     </Button>
                     <Button
                       variant="contained"
@@ -1267,10 +1300,10 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
                 noRowsOverlay: () => (
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', flexDirection: 'column', gap: 1 }}>
                     <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 600 }}>
-                      No Lifetime PD Data Available
+                      No Report Data Available
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Please check your filter parameters (Processing Date, PD Config ID, PD Method)
+                      Please check your filter parameters and selected processing date.
                     </Typography>
                   </Box>
                 )
@@ -1300,10 +1333,10 @@ const BaseIfrs9Report: React.FC<BaseIfrs9ReportProps> = ({
             </Typography>
           </Box>
         )}
-        {/* Export Excellence Dialog */}
+        {/* Export Dialog */}
         <Dialog open={exportDialogOpen} onClose={() => setExportDialogOpen(false)} maxWidth="xs" fullWidth>
           <DialogTitle sx={{ fontWeight: 800, bgcolor: alpha(themeStyles.primary, 0.03) }}>
-            Export Excellence
+            Export to Excel
           </DialogTitle>
           <DialogContent sx={{ mt: 2 }}>
             <Typography variant="subtitle2" fontWeight={700} gutterBottom>

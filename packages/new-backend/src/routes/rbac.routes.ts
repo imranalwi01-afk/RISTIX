@@ -42,7 +42,6 @@ const RoleSchema = z.object({
     roleCode: z.string().openapi({ example: 'DATA_ENTRY' }),
     description: z.string().nullable().optional().openapi({ example: 'Data entry clerk' }),
     permissions: z.record(z.array(PermissionSchema)).openapi({ example: { 'CORE': [], 'BANKING': [], 'IFRS9': [], 'REPORTING': [], 'ADMIN': [] } }),
-    bankingTypeSpecific: z.enum(['CONVENTIONAL', 'SYARIAH', 'BOTH']).nullable().optional(),
     complianceLevel: z.string().nullable().optional(),
     hierarchyLevel: z.number().int().default(1),
     isSystemRole: z.boolean().optional(),
@@ -65,8 +64,6 @@ const CreateRoleSchema = z.object({
     name: z.string().min(2).max(100).optional().openapi({ example: 'NEW_ROLE' }),
     description: z.string().optional().openapi({ example: 'New role description' }),
     permissions: z.array(z.string()).default([]), // Array of permission codes
-    bankingTypeSpecific: z.enum(['CONVENTIONAL', 'SYARIAH', 'BOTH']).optional(),
-    bankingAccess: z.enum(['CONVENTIONAL', 'SYARIAH', 'BOTH']).optional(),
     complianceLevel: z.string().optional(),
     hierarchyLevel: z.number().int().min(1).max(10).default(1),
 })
@@ -98,8 +95,6 @@ const UpdateRoleSchema = z.object({
     name: z.string().min(2).max(100).optional(),
     description: z.string().optional(),
     permissions: z.array(z.string()).optional(), // Array of permission codes
-    bankingTypeSpecific: z.enum(['CONVENTIONAL', 'SYARIAH', 'BOTH']).nullish(),
-    bankingAccess: z.enum(['CONVENTIONAL', 'SYARIAH', 'BOTH']).nullish(),
     hierarchyLevel: z.number().int().min(1).max(10).optional(),
     isActive: z.boolean().optional(),
 })
@@ -171,7 +166,6 @@ const roleToApiResponse = (r: any) => ({
         })
         return acc
     }, {} as Record<string, any[]>),
-    bankingTypeSpecific: r.bankingTypeSpecific,
     complianceLevel: r.complianceLevel,
     hierarchyLevel: r.hierarchyLevel,
     isSystemRole: r.isSystemRole,
@@ -185,6 +179,22 @@ const extractRolePermissionCodes = (role: any): string[] => {
         .filter((code: unknown): code is string => typeof code === 'string' && code.length > 0)
     return Array.from(new Set(codes))
 }
+
+const groupRolePermissionCodes = (role: any): Record<string, string[]> =>
+    ((role as any)?.rolePermissions || []).reduce((acc: Record<string, string[]>, rp: any) => {
+        const category = String(rp?.permission?.category || 'CORE')
+        const code = rp?.permission?.code
+        if (typeof code !== 'string' || code.length === 0) {
+            return acc
+        }
+        if (!acc[category]) {
+            acc[category] = []
+        }
+        if (!acc[category].includes(code)) {
+            acc[category].push(code)
+        }
+        return acc
+    }, {})
 
 const isPendingApprovalRequest = (request: { status?: string } | null | undefined): boolean => {
     const normalizedStatus = String(request?.status || '').trim().toLowerCase()
@@ -222,6 +232,7 @@ const createStrictApprovalRequest = async (input: {
     operation: 'create' | 'update' | 'delete'
     title: string
     description: string
+    oldValues?: Record<string, unknown>
     payload: Record<string, unknown>
     impactLevel?: 'low' | 'medium' | 'high' | 'critical'
 }) => {
@@ -235,6 +246,7 @@ const createStrictApprovalRequest = async (input: {
             requestData: {
                 operation: input.operation,
                 entityType: input.entityType,
+                oldValues: input.oldValues,
                 data: input.payload,
                 approvalRouting: { levels: buildDefaultFourEyesRouting(input.entityType) },
             },
@@ -247,7 +259,18 @@ const createStrictApprovalRequest = async (input: {
         request.id,
         request.title,
         input.userId,
-        input.tenantId
+        input.tenantId,
+        {
+            entityType: input.entityType,
+            description: input.description,
+            oldValues: input.oldValues,
+            newValues: {
+                operation: input.operation,
+                entityType: input.entityType,
+                entityId: input.entityId,
+                payload: input.payload,
+            },
+        }
     )
 
     return request
@@ -273,7 +296,6 @@ rbacRoutes.openapi(
                 limit: z.string().optional().openapi({ example: '10' }),
                 search: z.string().optional(),
                 includeInactive: z.string().optional().openapi({ example: 'true' }),
-                bankingType: z.string().optional(),
                 type: z.string().optional().openapi({ example: 'SYSTEM' }),
                 level: z.string().optional().openapi({ example: 'TENANT' }),
             }),
@@ -304,12 +326,10 @@ rbacRoutes.openapi(
         const page = parseInt(query.page || '1')
         const limit = parseInt(query.limit || '100')
         const includeInactive = query.includeInactive === 'true'
-        const bankingType = query.bankingType
 
         const effect = pipe(
             rbacService.getRoles(tenantId, {
                 includeInactive,
-                bankingType,
                 search: query.search,
                 type: query.type,
                 level: query.level
@@ -340,7 +360,6 @@ rbacRoutes.openapi(
                         });
                         return acc;
                     }, {} as Record<string, any[]>),
-                    bankingTypeSpecific: r.bankingTypeSpecific,
                     complianceLevel: r.complianceLevel,
                     hierarchyLevel: r.hierarchyLevel,
                     isSystemRole: r.isSystemRole,
@@ -407,7 +426,6 @@ rbacRoutes.openapi(
                     roleName: normalizedRoleName,
                     roleCode: normalizedRoleName,
                     description: body.description,
-                    bankingTypeSpecific: body.bankingTypeSpecific ?? body.bankingAccess,
                     complianceLevel: body.complianceLevel,
                     hierarchyLevel: body.hierarchyLevel,
                     tenantId,
@@ -532,7 +550,6 @@ rbacRoutes.openapi(
                         });
                         return acc;
                     }, {} as Record<string, any[]>),
-                    bankingTypeSpecific: r.bankingTypeSpecific,
                     complianceLevel: r.complianceLevel,
                     hierarchyLevel: r.hierarchyLevel,
                     isSystemRole: r.isSystemRole,
@@ -597,11 +614,18 @@ rbacRoutes.openapi(
                 operation: 'update',
                 title: `Update role: ${currentRole.roleName}`,
                 description: `Role update requested for ${currentRole.roleName}.`,
+                oldValues: {
+                    id: currentRole.id,
+                    roleName: currentRole.roleName,
+                    description: currentRole.description,
+                    hierarchyLevel: currentRole.hierarchyLevel,
+                    isActive: currentRole.isActive,
+                    permissionCodes: extractRolePermissionCodes(currentRole),
+                },
                 payload: {
                     id: roleId,
                     roleName: normalizedRoleName ?? currentRole.roleName,
                     description: body.description ?? currentRole.description,
-                    bankingTypeSpecific: body.bankingTypeSpecific ?? body.bankingAccess ?? currentRole.bankingTypeSpecific,
                     hierarchyLevel: body.hierarchyLevel ?? currentRole.hierarchyLevel,
                     isActive: typeof body.isActive === 'boolean' ? body.isActive : currentRole.isActive,
                     tenantId,
@@ -666,6 +690,14 @@ rbacRoutes.openapi(
                 operation: 'delete',
                 title: `Delete role: ${role.roleName}`,
                 description: `Role deletion requested for ${role.roleName}.`,
+                oldValues: {
+                    id: role.id,
+                    roleName: role.roleName,
+                    description: role.description,
+                    hierarchyLevel: role.hierarchyLevel,
+                    isActive: role.isActive,
+                    permissionCodes: extractRolePermissionCodes(role),
+                },
                 payload: {
                     id: roleId,
                     roleName: role.roleName,
@@ -734,6 +766,11 @@ rbacRoutes.openapi(
                 operation: 'update',
                 title: `${nextIsActive ? 'Enable' : 'Disable'} role: ${role.roleName}`,
                 description: `Role status update requested for ${role.roleName}.`,
+                oldValues: {
+                    id: role.id,
+                    roleName: role.roleName,
+                    isActive: role.isActive,
+                },
                 payload: {
                     id: roleId,
                     roleName: role.roleName,
@@ -795,7 +832,7 @@ rbacRoutes.openapi(
             Effect.map((role) => ({
                 roleId: role.id,
                 roleName: role.roleName,
-                permissions: role.permissions,
+                permissions: groupRolePermissionCodes(role),
             }))
         )
 
@@ -1003,7 +1040,22 @@ rbacRoutes.openapi(
                 request.id,
                 request.title,
                 userId,
-                tenantId
+                tenantId,
+                {
+                    entityType: 'role_permission',
+                    oldValues: {
+                        roleId,
+                        roleName: currentRole.roleName,
+                        permissionCodes: currentPermissionCodes,
+                    },
+                    newValues: {
+                        roleId,
+                        roleName: currentRole.roleName,
+                        permissionIds: resolvedPermissionIds,
+                        permissionCodes: resolvedPermissionCodes,
+                        diff: { added, removed },
+                    },
+                }
             )
 
             return c.json(
@@ -1072,7 +1124,7 @@ rbacRoutes.openapi(
                         role: (ur as any).role ? {
                             ...(ur as any).role,
                             description: (ur as any).role.description ?? null,
-                            permissions: (ur as any).role.permissions ?? null,
+                            permissions: groupRolePermissionCodes((ur as any).role),
                             tenantId: (ur as any).role.tenantId ?? null,
                         } : undefined,
                         assignedAt: ur.assignedAt?.toISOString() ?? null,
@@ -1141,6 +1193,7 @@ rbacRoutes.openapi(
                 operation: 'create',
                 title: `Assign role ${role.roleName} to user ${userId}`,
                 description: `Role assignment requested for ${role.roleName}.`,
+                oldValues: {},
                 payload: {
                     userId,
                     roleId,
@@ -1213,6 +1266,11 @@ rbacRoutes.openapi(
                 operation: 'delete',
                 title: `Remove role ${role.roleName} from user ${userId}`,
                 description: `Role removal requested for ${role.roleName}.`,
+                oldValues: {
+                    userId,
+                    roleId,
+                    roleName: role.roleName,
+                },
                 payload: {
                     userId,
                     roleId,

@@ -119,6 +119,23 @@ export const RuleBaseSettingsService = {
     },
 
     /**
+     * Get a rule detail by ID.
+     *
+     * @param id - The detail ID
+     * @returns An Effect resolving to the detail or NotFoundError
+     */
+    getDetail: (id: number) => {
+        return pipe(
+            RuleBaseSettingsRepository.findDetailById(BigInt(id)),
+            Effect.flatMap(detail =>
+                detail
+                    ? Effect.succeed(transformDetail(detail))
+                    : Effect.fail(new NotFoundError({ message: 'Rule Detail not found', resource: 'Rule Detail', id: String(id) }))
+            )
+        )
+    },
+
+    /**
      * Create a new rule detail.
      * 
      * @param ruleId - The rule header ID

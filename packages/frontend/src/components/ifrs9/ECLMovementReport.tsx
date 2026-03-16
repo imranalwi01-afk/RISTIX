@@ -419,7 +419,7 @@ const ECLMovementReport: React.FC = () => {
   }, []);
 
   const requiredParams = useMemo(() => ['prc_date'], []);
-  const optionalParams = useMemo(() => ['segment_id', 'stage'], []);
+  const optionalParams = useMemo(() => ['segment_id', 'group_segment', 'stage'], []);
 
   return (
     <BaseIfrs9Report

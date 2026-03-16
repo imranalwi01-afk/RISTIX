@@ -1,4 +1,5 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
+import { Effect, pipe } from 'effect'
 import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
 import { RuleBaseSettingsService } from '../services/rule-base-settings.service'
@@ -287,14 +288,21 @@ app.openapi(
             activeFlag: data.active_flag
         }
 
-        const effect = interceptUpdate(
-            tenantId,
-            userId,
-            userPermissions,
-            'rule_base_setting',
-            id.toString(),
-            payload,
-            () => RuleBaseSettingsService.updateHeader(id, payload, userId) as any
+        const effect = pipe(
+            RuleBaseSettingsService.getHeader(id) as Effect.Effect<any, any>,
+            Effect.flatMap((oldValues) =>
+                interceptUpdate(
+                    tenantId,
+                    userId,
+                    userPermissions,
+                    'rule_base_setting',
+                    id.toString(),
+                    payload,
+                    () => RuleBaseSettingsService.updateHeader(id, payload, userId) as any,
+                    'medium',
+                    oldValues
+                )
+            )
         )
         return runEffect(c, effect, (result: any) => result.approvalRequired ? 202 : 200)
     }
@@ -329,13 +337,20 @@ app.openapi(
         const userPermissions = c.get('permissions') || []
         if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
 
-        const effect = interceptDelete(
-            tenantId,
-            userId,
-            userPermissions,
-            'rule_base_setting',
-            id.toString(),
-            () => RuleBaseSettingsService.deleteHeader(id) as any
+        const effect = pipe(
+            RuleBaseSettingsService.getHeader(id) as Effect.Effect<any, any>,
+            Effect.flatMap((oldValues) =>
+                interceptDelete(
+                    tenantId,
+                    userId,
+                    userPermissions,
+                    'rule_base_setting',
+                    id.toString(),
+                    () => RuleBaseSettingsService.deleteHeader(id) as any,
+                    'high',
+                    oldValues
+                )
+            )
         )
         return runEffect(c, effect, (result: any) => result.approvalRequired ? 202 : 200)
     }
@@ -480,14 +495,21 @@ app.openapi(
             stageTo: data.stage_to
         }
 
-        const effect = interceptUpdate(
-            tenantId,
-            userId,
-            userPermissions,
-            'rule_base_setting',
-            `detail:${detailId}`,
-            { ...payload, detailId, scope: 'detail' },
-            () => RuleBaseSettingsService.updateDetail(detailId, payload, userId) as any
+        const effect = pipe(
+            RuleBaseSettingsService.getDetail(detailId) as Effect.Effect<any, any>,
+            Effect.flatMap((oldValues) =>
+                interceptUpdate(
+                    tenantId,
+                    userId,
+                    userPermissions,
+                    'rule_base_setting',
+                    `detail:${detailId}`,
+                    { ...payload, detailId, scope: 'detail' },
+                    () => RuleBaseSettingsService.updateDetail(detailId, payload, userId) as any,
+                    'medium',
+                    oldValues
+                )
+            )
         )
         return runEffect(c, effect as any, (result: ApprovalResponse | { success: boolean; data: unknown }) =>
             'approvalRequired' in result && result.approvalRequired ? 202 : 200
@@ -524,13 +546,20 @@ app.openapi(
         const userPermissions = c.get('permissions') || []
         if (isNaN(detailId)) return c.json({ success: false, message: 'Invalid ID' }, 400)
 
-        const effect = interceptDelete(
-            tenantId,
-            userId,
-            userPermissions,
-            'rule_base_setting',
-            `detail:${detailId}`,
-            () => RuleBaseSettingsService.deleteDetail(detailId) as any
+        const effect = pipe(
+            RuleBaseSettingsService.getDetail(detailId) as Effect.Effect<any, any>,
+            Effect.flatMap((oldValues) =>
+                interceptDelete(
+                    tenantId,
+                    userId,
+                    userPermissions,
+                    'rule_base_setting',
+                    `detail:${detailId}`,
+                    () => RuleBaseSettingsService.deleteDetail(detailId) as any,
+                    'high',
+                    oldValues
+                )
+            )
         )
         return runEffect(c, effect as any, (result: ApprovalResponse | { success: boolean; message: string }) =>
             'approvalRequired' in result && result.approvalRequired ? 202 : 200

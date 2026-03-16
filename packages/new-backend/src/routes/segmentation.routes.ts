@@ -1,5 +1,5 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
-import { Effect } from 'effect'
+import { Effect, pipe } from 'effect'
 import { legacyDb as db } from '../config'
 import { frs9ParamSegmenth, frs9ParamSegmentd, frs9ParamCommond } from '../db/schema'
 import { eq, desc, asc, sql, and, or, ilike } from 'drizzle-orm'
@@ -78,6 +78,84 @@ const ApprovalWorkflowResponse = z.object({
     data: z.any().optional(),
     message: z.string().optional()
 }).openapi('ApprovalWorkflowResponse')
+
+const getSegmentHeaderSnapshot = (id: number) =>
+    Effect.tryPromise({
+        try: async () => {
+            const [header] = await db
+                .select({
+                    id: frs9ParamSegmenth.pkid,
+                    group_segment: frs9ParamSegmenth.groupSegment,
+                    segment: frs9ParamSegmenth.segment,
+                    sub_segment: frs9ParamSegmenth.subSegment,
+                    segment_type: frs9ParamSegmenth.segmentType,
+                    seq: frs9ParamSegmenth.seq,
+                    active_flag: frs9ParamSegmenth.activeFlag,
+                    createdby: frs9ParamSegmenth.createdby,
+                    createddate: frs9ParamSegmenth.createddate,
+                    updatedby: frs9ParamSegmenth.updatedby,
+                    updateddate: frs9ParamSegmenth.updateddate
+                })
+                .from(frs9ParamSegmenth)
+                .where(eq(frs9ParamSegmenth.pkid, id))
+
+            if (!header) {
+                throw new Error('Segmentation header not found')
+            }
+
+            const details = await db.select({
+                id: frs9ParamSegmentd.pkid,
+                segment_id: frs9ParamSegmentd.segmentId,
+                query_group: frs9ParamSegmentd.queryGroup,
+                seq: frs9ParamSegmentd.seq,
+                table_name: frs9ParamSegmentd.tableName,
+                column_name: frs9ParamSegmentd.columnName,
+                data_type: frs9ParamSegmentd.dataType,
+                operator: frs9ParamSegmentd.operator,
+                value1: frs9ParamSegmentd.value1,
+                value2: frs9ParamSegmentd.value2,
+                condition: frs9ParamSegmentd.condition
+            })
+                .from(frs9ParamSegmentd)
+                .where(eq(frs9ParamSegmentd.segmentId, id))
+                .orderBy(asc(frs9ParamSegmentd.seq))
+
+            return { ...header, details }
+        },
+        catch: (error) => error
+    })
+
+const getSegmentDetailSnapshot = (detailId: number) =>
+    Effect.tryPromise({
+        try: async () => {
+            const [detail] = await db.select({
+                id: frs9ParamSegmentd.pkid,
+                segment_id: frs9ParamSegmentd.segmentId,
+                query_group: frs9ParamSegmentd.queryGroup,
+                seq: frs9ParamSegmentd.seq,
+                table_name: frs9ParamSegmentd.tableName,
+                column_name: frs9ParamSegmentd.columnName,
+                data_type: frs9ParamSegmentd.dataType,
+                operator: frs9ParamSegmentd.operator,
+                value1: frs9ParamSegmentd.value1,
+                value2: frs9ParamSegmentd.value2,
+                condition: frs9ParamSegmentd.condition,
+                createdby: frs9ParamSegmentd.createdby,
+                createddate: frs9ParamSegmentd.createddate,
+                updatedby: frs9ParamSegmentd.updatedby,
+                updateddate: frs9ParamSegmentd.updateddate
+            })
+                .from(frs9ParamSegmentd)
+                .where(eq(frs9ParamSegmentd.pkid, detailId))
+
+            if (!detail) {
+                throw new Error('Segmentation detail not found')
+            }
+
+            return detail
+        },
+        catch: (error) => error
+    })
 
 // ============================================================================
 // ENDPOINTS
@@ -436,62 +514,68 @@ segmentationRoutes.openapi(
         const tenantId = c.get('tenantId') as string
         const userPermissions = c.get('permissions') || []
 
-        const effect = interceptUpdate(
-            tenantId,
-            userId,
-            userPermissions,
-            'segmentation',
-            id.toString(),
-            headerData,
-            () => Effect.tryPromise({
-                try: async () => {
-                    return await db.transaction(async (tx) => {
-                        await tx.update(frs9ParamSegmenth)
-                            .set({
-                                groupSegment: headerData.group_segment,
-                                segment: headerData.segment,
-                                subSegment: headerData.sub_segment,
-                                segmentType: headerData.segment_type,
-                                seq: headerData.seq,
-                                activeFlag: headerData.active_flag,
-                                updatedby: userId,
-                                updateddate: new Date().toISOString(),
-                                updatedhost: 'localhost',
-                            })
-                            .where(eq(frs9ParamSegmenth.pkid, id));
-
-                        // Bulk update rules: Delete and Re-insert
-                        if (headerData.rules) {
-                            await tx.delete(frs9ParamSegmentd).where(eq(frs9ParamSegmentd.segmentId, id));
-                            if (headerData.rules.length > 0) {
-                                await tx.insert(frs9ParamSegmentd).values(
-                                    headerData.rules.map((rule: any) => ({
-                                        segmentId: id,
-                                        queryGroup: rule.query_group,
-                                        seq: rule.seq,
-                                        tableName: rule.table_name,
-                                        columnName: rule.column_name,
-                                        dataType: rule.data_type,
-                                        operator: rule.operator,
-                                        value1: rule.value1,
-                                        value2: rule.value2,
-                                        condition: rule.condition,
-                                        createdby: userId,
-                                        createdhost: 'localhost',
-                                        createddate: new Date().toISOString(),
+        const effect = pipe(
+            getSegmentHeaderSnapshot(id),
+            Effect.flatMap((oldValues) =>
+                interceptUpdate(
+                    tenantId,
+                    userId,
+                    userPermissions,
+                    'segmentation',
+                    id.toString(),
+                    headerData,
+                    () => Effect.tryPromise({
+                        try: async () => {
+                            return await db.transaction(async (tx) => {
+                                await tx.update(frs9ParamSegmenth)
+                                    .set({
+                                        groupSegment: headerData.group_segment,
+                                        segment: headerData.segment,
+                                        subSegment: headerData.sub_segment,
+                                        segmentType: headerData.segment_type,
+                                        seq: headerData.seq,
+                                        activeFlag: headerData.active_flag,
                                         updatedby: userId,
                                         updateddate: new Date().toISOString(),
-                                        updatedhost: 'localhost'
-                                    }))
-                                );
-                            }
-                        }
+                                        updatedhost: 'localhost',
+                                    })
+                                    .where(eq(frs9ParamSegmenth.pkid, id));
 
-                        return { success: true, data: { ...headerData, id } };
-                    });
-                },
-                catch: (error) => error
-            })
+                                if (headerData.rules) {
+                                    await tx.delete(frs9ParamSegmentd).where(eq(frs9ParamSegmentd.segmentId, id));
+                                    if (headerData.rules.length > 0) {
+                                        await tx.insert(frs9ParamSegmentd).values(
+                                            headerData.rules.map((rule: any) => ({
+                                                segmentId: id,
+                                                queryGroup: rule.query_group,
+                                                seq: rule.seq,
+                                                tableName: rule.table_name,
+                                                columnName: rule.column_name,
+                                                dataType: rule.data_type,
+                                                operator: rule.operator,
+                                                value1: rule.value1,
+                                                value2: rule.value2,
+                                                condition: rule.condition,
+                                                createdby: userId,
+                                                createdhost: 'localhost',
+                                                createddate: new Date().toISOString(),
+                                                updatedby: userId,
+                                                updateddate: new Date().toISOString(),
+                                                updatedhost: 'localhost'
+                                            }))
+                                        );
+                                    }
+                                }
+
+                                return { success: true, data: { ...headerData, id } };
+                            });
+                        },
+                        catch: (error) => error
+                    }),
+                    'medium',
+                    oldValues
+                )
+            )
         )
 
         const exit = await Effect.runPromiseExit(effect)
@@ -547,22 +631,29 @@ segmentationRoutes.openapi(
             }
         }
 
-        const effect = interceptDelete(
-            tenantId,
-            userId,
-            userPermissions,
-            'segmentation',
-            id.toString(),
-            () => Effect.tryPromise({
-                try: async () => {
-                    await db.transaction(async (tx) => {
-                        await tx.delete(frs9ParamSegmentd).where(eq(frs9ParamSegmentd.segmentId, id));
-                        await tx.delete(frs9ParamSegmenth).where(eq(frs9ParamSegmenth.pkid, id));
-                    });
-                    return { success: true, message: 'Deleted successfully' };
-                },
-                catch: (error) => error
-            })
+        const effect = pipe(
+            getSegmentHeaderSnapshot(id),
+            Effect.flatMap((oldValues) =>
+                interceptDelete(
+                    tenantId,
+                    userId,
+                    userPermissions,
+                    'segmentation',
+                    id.toString(),
+                    () => Effect.tryPromise({
+                        try: async () => {
+                            await db.transaction(async (tx) => {
+                                await tx.delete(frs9ParamSegmentd).where(eq(frs9ParamSegmentd.segmentId, id));
+                                await tx.delete(frs9ParamSegmenth).where(eq(frs9ParamSegmenth.pkid, id));
+                            });
+                            return { success: true, message: 'Deleted successfully' };
+                        },
+                        catch: (error) => error
+                    }),
+                    'high',
+                    oldValues
+                )
+            )
         )
 
         const exit = await Effect.runPromiseExit(effect)
@@ -781,15 +872,21 @@ segmentationRoutes.openapi(
                 catch: (error) => error
             })
 
-            const effect = interceptUpdate(
-                tenantId,
-                userId,
-                userPermissions,
-                'segmentation',
-                `detail:${detailId}`,
-                { ...detailData, detail_id: detailId, scope: 'detail' },
-                executeUpdate,
-                'medium'
+            const effect = pipe(
+                getSegmentDetailSnapshot(detailId),
+                Effect.flatMap((oldValues) =>
+                    interceptUpdate(
+                        tenantId,
+                        userId,
+                        userPermissions,
+                        'segmentation',
+                        `detail:${detailId}`,
+                        { ...detailData, detail_id: detailId, scope: 'detail' },
+                        executeUpdate,
+                        'medium',
+                        oldValues
+                    )
+                )
             )
 
             return runEffect(c, effect as any, (result: ApprovalResponse | { success: true; data: unknown }) =>
@@ -834,14 +931,20 @@ segmentationRoutes.openapi(
                 catch: (error) => error
             })
 
-            const effect = interceptDelete(
-                tenantId,
-                userId,
-                userPermissions,
-                'segmentation',
-                `detail:${detailId}`,
-                executeDelete,
-                'high'
+            const effect = pipe(
+                getSegmentDetailSnapshot(detailId),
+                Effect.flatMap((oldValues) =>
+                    interceptDelete(
+                        tenantId,
+                        userId,
+                        userPermissions,
+                        'segmentation',
+                        `detail:${detailId}`,
+                        executeDelete,
+                        'high',
+                        oldValues
+                    )
+                )
             )
 
             return runEffect(c, effect as any, (result: ApprovalResponse | { success: true; message: string }) =>

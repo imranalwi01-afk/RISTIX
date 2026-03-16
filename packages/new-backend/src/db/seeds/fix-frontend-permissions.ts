@@ -2,28 +2,20 @@
 import { tenantDb as db } from '../../config'
 import { roles, rolePermissions, permissions } from '../schema'
 import { eq, inArray } from 'drizzle-orm'
+import {
+    BANKING_PERMISSION_CATALOG,
+    MAKER_CHECKER_FRONTEND_PERMISSION_CODES,
+} from './banking-permissions.catalog'
 
-const TENANT_ID = 'a24af6d2-3032-4d53-ae82-9cfa84f97a20'
+const TENANT_ID = 'f7b3a087-8a42-40c4-baca-9dc92cc0a2be'
 
 async function fixPermissions() {
     console.log('🏗️  Fixing permissions for Frontend compatibility in TENANT database...')
 
     try {
-        // 1. Define missing/correct permissions for Frontend
-        // Based on BankingSidebarUtils.tsx and derivePermissionCodes
-        const frontendPermissions = [
-            { code: 'banking.dashboard.view', name: 'View Dashboard', description: 'Access to system dashboard', category: 'BANKING_DASHBOARD', resource: 'dashboard', action: 'view' },
-            { code: 'banking.setup.application', name: 'System Setup Access', description: 'Access to system setup menu', category: 'BANKING_SETUP', resource: 'setup.application', action: 'access' },
-            { code: 'banking.setup.application.manage', name: 'Manage Application Setup', description: 'Manage application configuration', category: 'BANKING_SETUP', resource: 'setup.application', action: 'manage' },
-            { code: 'banking.setup.business.manage', name: 'Manage Business Setup', description: 'Manage business configuration', category: 'BANKING_SETUP', resource: 'setup.business', action: 'manage' },
-            { code: 'banking.parameter', name: 'Parameter Access', description: 'Access to parameter management menu', category: 'BANKING_PARAMETER', resource: 'parameter', action: 'access' },
-            { code: 'banking.parameter.product.manage', name: 'Manage Product Parameters', description: 'Manage product parameters', category: 'BANKING_PARAMETER', resource: 'parameter.product', action: 'manage' },
-            { code: 'banking.parameter.journal.manage', name: 'Manage Journal Parameters', description: 'Manage journal/accounting parameters', category: 'BANKING_PARAMETER', resource: 'parameter.journal', action: 'manage' },
-            { code: 'admin.maintenance.access', name: 'Admin Maintenance', description: 'Access to maintenance menu', category: 'ADMINISTRATION', resource: 'maintenance', action: 'access' },
-            { code: 'admin.users.manage', name: 'Admin Users', description: 'Manage users', category: 'ADMINISTRATION', resource: 'users', action: 'manage' },
-            { code: 'admin.roles.manage', name: 'Admin Roles', description: 'Manage roles', category: 'ADMINISTRATION', resource: 'roles', action: 'manage' },
-            { code: 'approval.requests.approve', name: 'View Approvals', description: 'Access approval system in workflow', category: 'approval', resource: 'approvals', action: 'approve' },
-        ]
+        const frontendPermissions = BANKING_PERMISSION_CATALOG.filter((permission) =>
+            MAKER_CHECKER_FRONTEND_PERMISSION_CODES.includes(permission.code)
+        )
 
         console.log('🔑 Syncing permissions to core.permissions...')
         for (const perm of frontendPermissions) {

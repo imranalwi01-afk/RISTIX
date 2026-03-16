@@ -65,7 +65,6 @@ interface Role {
   description: string;
   type: 'SYSTEM' | 'BANKING' | 'CUSTOM';
   level: 'PLATFORM' | 'TENANT' | 'DEPARTMENT';
-  bankingAccess?: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
   isActive: boolean;
   isBuiltIn: boolean;
   permissions: Record<string, Permission[]>; // Grouped by category
@@ -405,14 +404,6 @@ const RoleHierarchyVisualization: React.FC<RoleHierarchyVisualizationProps> = ({
                     {flattenPermissions(role.permissions).length} permission{flattenPermissions(role.permissions).length !== 1 ? 's' : ''}
                   </Typography>
 
-                  {role.bankingAccess && (
-                    <Chip
-                      label={role.bankingAccess}
-                      size="small"
-                      variant="outlined"
-                      color="info"
-                    />
-                  )}
                 </Box>
               </Grid>
 
@@ -657,12 +648,6 @@ const RoleHierarchyVisualization: React.FC<RoleHierarchyVisualizationProps> = ({
                   <ListItemText
                     primary="Level"
                     secondary={selectedRole.level}
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemText
-                    primary="Banking Access"
-                    secondary={selectedRole.bankingAccess || 'N/A'}
                   />
                 </ListItem>
                 <ListItem>

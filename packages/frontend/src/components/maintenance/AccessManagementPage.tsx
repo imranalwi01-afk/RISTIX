@@ -83,13 +83,16 @@ import { Can } from '@/components/rbac/Can';
 import { usePermission } from '@/hooks/usePermission';
 import UserManagementPanel from '@/components/maintenance/UserManagementPanel';
 import UserRoleAssignment from '@/components/roles/UserRoleAssignment';
+import { getRoleResponsibility } from '@/components/roles/role-responsibility.utils';
 import {
   buildPermissionMatrixItem,
+  getPermissionCategoryDisplayLabel,
+  getPermissionGroupDisplayLabel,
   buildPermissionSelectionGroups,
+  buildPermissionSelectionSections,
   getPermissionCanonicalKey,
   normalizePermissionFromApi,
   normalizeRoleFromApi,
-  toDisplayLabel,
 } from '@/components/maintenance/access-management.utils';
 import {
   canUserApprove,
@@ -109,7 +112,6 @@ interface Role {
   description: string;
   type: 'SYSTEM' | 'BANKING' | 'CUSTOM';
   level: 'PLATFORM' | 'TENANT' | 'DEPARTMENT';
-  bankingAccess?: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
   isActive: boolean;
   isBuiltIn: boolean;
   permissions: Permission[];
@@ -185,7 +187,6 @@ const ACCESS_MANAGEMENT_BASE_PATH = '/banking/maintenance/access-management';
 interface RoleFilters {
   type?: string;
   level?: string;
-  bankingAccess?: string;
   isActive?: boolean;
   searchTerm?: string;
 }
@@ -309,7 +310,6 @@ export default function AccessManagementPage() {
     description: string;
     type: 'SYSTEM' | 'BANKING' | 'CUSTOM';
     level: 'PLATFORM' | 'TENANT' | 'DEPARTMENT';
-    bankingAccess: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
     isActive: boolean;
   }>({
     name: '',
@@ -317,7 +317,6 @@ export default function AccessManagementPage() {
     description: '',
     type: 'CUSTOM',
     level: 'TENANT',
-    bankingAccess: 'CONVENTIONAL',
     isActive: true,
   });
 
@@ -355,7 +354,7 @@ export default function AccessManagementPage() {
       if (!categoryMap.has(categoryKey)) {
         categoryMap.set(categoryKey, {
           key: categoryKey,
-          label: toDisplayLabel(categoryKey),
+          label: getPermissionCategoryDisplayLabel(categoryKey),
           groups: [],
         });
         categoryGroupMap.set(categoryKey, new Map());
@@ -365,7 +364,7 @@ export default function AccessManagementPage() {
       if (!groupsInCategory.has(groupKey)) {
         groupsInCategory.set(groupKey, {
           key: groupKey,
-          label: toDisplayLabel(groupKey),
+          label: getPermissionGroupDisplayLabel(groupKey),
           permissions: [],
         });
       }
@@ -394,6 +393,10 @@ export default function AccessManagementPage() {
     return buildPermissionSelectionGroups(permissions, permissionGroupingMode);
   }, [permissions, permissionGroupingMode]);
 
+  const getPermissionSections = useCallback((groupPermissions: Permission[]) => {
+    return buildPermissionSelectionSections(groupPermissions);
+  }, []);
+
   // Fetch data using REAL API - NO MOCK DATA
   const fetchRoles = useCallback(async () => {
     setLoading(true);
@@ -407,7 +410,6 @@ export default function AccessManagementPage() {
       if (filters.searchTerm) params.search = filters.searchTerm;
       if (filters.type && filters.type !== 'all') params.type = filters.type;
       if (filters.level && filters.level !== 'all') params.level = filters.level;
-      if (filters.bankingAccess && filters.bankingAccess !== 'all') params.bankingAccess = filters.bankingAccess;
       if (filters.isActive !== undefined) params.isActive = filters.isActive;
 
       // Fetch roles and permissions from real API
@@ -528,7 +530,6 @@ export default function AccessManagementPage() {
       description: '',
       type: 'CUSTOM',
       level: 'TENANT',
-      bankingAccess: 'CONVENTIONAL',
       isActive: true,
     });
     setRoleDialog({
@@ -546,7 +547,6 @@ export default function AccessManagementPage() {
       description: role.description,
       type: role.type,
       level: role.level,
-      bankingAccess: role.bankingAccess || 'CONVENTIONAL',
       isActive: role.isActive,
     });
     setRoleDialog({
@@ -561,7 +561,7 @@ export default function AccessManagementPage() {
     const nextQuery = new URLSearchParams();
     if (mode) nextQuery.set('mode', mode);
     const queryString = nextQuery.toString();
-    router.push(`/banking/maintenance/user-management/roles/${role.id}${queryString ? `?${queryString}` : ''}`);
+    router.push(`/banking/maintenance/access-management/roles/${role.id}${queryString ? `?${queryString}` : ''}`);
   };
 
   const handleManagePermissions = (role: Role) => {
@@ -592,7 +592,6 @@ export default function AccessManagementPage() {
         description: roleForm.description,
         type: roleForm.type,
         level: roleForm.level,
-        bankingAccess: roleForm.bankingAccess,
         isActive: roleForm.isActive,
         // Add selected permissions from the form (get from permissionDialog if editing)
         permissions: permissionDialog.selectedPermissions
@@ -868,15 +867,6 @@ export default function AccessManagementPage() {
     }
   };
 
-  const getBankingAccessColor = (access?: string) => {
-    switch (access) {
-      case 'CONVENTIONAL': return 'primary';
-      case 'SYARIAH': return 'secondary';
-      case 'BOTH': return 'success';
-      default: return 'default';
-    }
-  };
-
   // DataGrid columns
   const roleColumns: GridColDef[] = [
     {
@@ -894,6 +884,32 @@ export default function AccessManagementPage() {
           </Typography>
         </Box>
       ),
+    },
+    {
+      field: 'responsibility',
+      headerName: 'Responsibility',
+      width: 190,
+      sortable: false,
+      renderCell: (params: GridRenderCellParams) => {
+        const responsibility = getRoleResponsibility({
+          name: params.row.name,
+          displayName: params.row.displayName,
+        });
+
+        return (
+          <Box>
+            <Chip
+              size="small"
+              variant="outlined"
+              color={responsibility.color}
+              label={responsibility.label}
+            />
+            <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
+              {responsibility.scope}
+            </Typography>
+          </Box>
+        );
+      },
     },
     {
       field: 'type',
@@ -919,23 +935,6 @@ export default function AccessManagementPage() {
           variant="filled"
           color="default"
         />
-      ),
-    },
-    {
-      field: 'bankingAccess',
-      headerName: 'Banking Access',
-      width: 130,
-      renderCell: (params: GridRenderCellParams) => (
-        params.row.bankingAccess ? (
-          <Chip
-            label={params.row.bankingAccess}
-            size="small"
-            color={getBankingAccessColor(params.row.bankingAccess) as any}
-            variant="outlined"
-          />
-        ) : (
-          <Typography variant="caption" color="text.secondary">-</Typography>
-        )
       ),
     },
     {
@@ -1229,21 +1228,6 @@ export default function AccessManagementPage() {
                     <MenuItem value="PLATFORM">Platform</MenuItem>
                     <MenuItem value="TENANT">Tenant</MenuItem>
                     <MenuItem value="DEPARTMENT">Department</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid size={{ xs: 12, md: 3 }}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Banking Access</InputLabel>
-                  <Select
-                    value={filters.bankingAccess || ''}
-                    onChange={(e) => handleFilterChange('bankingAccess', e.target.value)}
-                    label="Banking Access"
-                  >
-                    <MenuItem value="">All</MenuItem>
-                    <MenuItem value="CONVENTIONAL">Conventional</MenuItem>
-                    <MenuItem value="SYARIAH">Syariah</MenuItem>
-                    <MenuItem value="BOTH">Both</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
@@ -1697,7 +1681,7 @@ export default function AccessManagementPage() {
                       onChange={(e) => setPermissionGroupingMode(e.target.value as PermissionGroupingMode)}
                       label="Group Permissions By"
                     >
-                      <MenuItem value="resource">Resource (Recommended)</MenuItem>
+                      <MenuItem value="resource">Menu (Recommended)</MenuItem>
                       <MenuItem value="module">Module</MenuItem>
                       <MenuItem value="category">Legacy Category</MenuItem>
                     </Select>
@@ -1741,37 +1725,52 @@ export default function AccessManagementPage() {
                               </Box>
                             </AccordionSummary>
                             <AccordionDetails>
-                              <List dense>
-                                {group.permissions.map((permission) => {
-                                  const isSelected = selectedBulkPermissions.includes(permission.id);
-                                  return (
-                                    <ListItem key={permission.id} dense>
-                                      <ListItemIcon>
-                                        <Box
-                                          component="span"
-                                          data-testid={`access-management-bulk-permission-${permission.id}`}
-                                        >
-                                          <Checkbox
-                                            size="small"
-                                            checked={isSelected}
-                                            onChange={(e) => {
-                                              if (e.target.checked) {
-                                                setSelectedBulkPermissions(prev => [...prev, permission.id]);
-                                              } else {
-                                                setSelectedBulkPermissions(prev => prev.filter(id => id !== permission.id));
-                                              }
-                                            }}
+                              {getPermissionSections(group.permissions).map((section) => (
+                                <Box key={section.key} sx={{ mb: 2 }}>
+                                  {group.key !== section.key && (
+                                    <Box sx={{ mb: 1, px: 1 }}>
+                                      <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+                                        {section.label}
+                                      </Typography>
+                                      <Typography variant="caption" color="text.secondary">
+                                        {section.hint}
+                                      </Typography>
+                                    </Box>
+                                  )}
+                                  <List dense sx={{ pt: 0 }}>
+                                    {section.permissions.map((permission) => {
+                                      const isSelected = selectedBulkPermissions.includes(permission.id);
+                                      return (
+                                        <ListItem key={permission.id} dense sx={{ pl: group.key !== section.key ? 1 : 0 }}>
+                                          <ListItemIcon>
+                                            <Box
+                                              component="span"
+                                              data-testid={`access-management-bulk-permission-${permission.id}`}
+                                            >
+                                              <Checkbox
+                                                size="small"
+                                                checked={isSelected}
+                                                onChange={(e) => {
+                                                  if (e.target.checked) {
+                                                    setSelectedBulkPermissions(prev => [...prev, permission.id]);
+                                                  } else {
+                                                    setSelectedBulkPermissions(prev => prev.filter(id => id !== permission.id));
+                                                  }
+                                                }}
+                                              />
+                                            </Box>
+                                          </ListItemIcon>
+                                          <ListItemText
+                                            primary={permission.displayName}
+                                            secondary={getPermissionCanonicalKey(permission)}
                                           />
-                                        </Box>
-                                      </ListItemIcon>
-                                      <ListItemText
-                                        primary={permission.displayName}
-                                        secondary={getPermissionCanonicalKey(permission)}
-                                      />
-                                    </ListItem>
-                                  );
-                                })}
-                              </List>
+                                        </ListItem>
+                                      );
+                                    })}
+                                  </List>
+                                  {group.key !== section.key && <Divider sx={{ mt: 1 }} />}
+                                </Box>
+                              ))}
                             </AccordionDetails>
                           </Accordion>
                         ))}
@@ -2077,15 +2076,6 @@ export default function AccessManagementPage() {
                                 variant="outlined"
                                 sx={{ fontSize: '0.6rem' }}
                               />
-                              {role.bankingAccess && (
-                                <Chip
-                                  label={role.bankingAccess}
-                                  size="small"
-                                  color={getBankingAccessColor(role.bankingAccess) as any}
-                                  variant="filled"
-                                  sx={{ fontSize: '0.6rem' }}
-                                />
-                              )}
                             </Box>
                           </Box>
                         </Box>
@@ -2267,20 +2257,6 @@ export default function AccessManagementPage() {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid size={{ xs: 12, md: 4 }}>
-              <FormControl fullWidth disabled={roleDialog.mode === 'view'}>
-                <InputLabel>Banking Access</InputLabel>
-                <Select
-                  value={roleForm.bankingAccess}
-                  onChange={(e) => setRoleForm({ ...roleForm, bankingAccess: e.target.value as any })}
-                  label="Banking Access"
-                >
-                  <MenuItem value="CONVENTIONAL">Conventional</MenuItem>
-                  <MenuItem value="SYARIAH">Syariah</MenuItem>
-                  <MenuItem value="BOTH">Both</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
             <Grid size={{ xs: 12 }}>
               <FormControlLabel
                 control={
@@ -2377,7 +2353,7 @@ export default function AccessManagementPage() {
                   onChange={(e) => setPermissionGroupingMode(e.target.value as PermissionGroupingMode)}
                   label="Group Permissions By"
                 >
-                  <MenuItem value="resource">Resource (Recommended)</MenuItem>
+                  <MenuItem value="resource">Menu (Recommended)</MenuItem>
                   <MenuItem value="module">Module</MenuItem>
                   <MenuItem value="category">Legacy Category</MenuItem>
                 </Select>
@@ -2444,58 +2420,73 @@ export default function AccessManagementPage() {
                     </Box>
                   </AccordionSummary>
                   <AccordionDetails>
-                    <Grid container spacing={1}>
-                      {group.permissions.map((permission) => (
-                        <Grid size={{ xs: 12, sm: 6, md: 4 }} key={permission.id}>
-                          <FormControlLabel
-                            control={
-                              <Checkbox
-                                size="small"
-                                checked={permissionDialog.selectedPermissions.includes(permission.id)}
-                                onChange={(e) => {
-                                  const selected = permissionDialog.selectedPermissions;
-                                  if (e.target.checked) {
-                                    setPermissionDialog({
-                                      ...permissionDialog,
-                                      selectedPermissions: [...selected, permission.id]
-                                    });
-                                  } else {
-                                    setPermissionDialog({
-                                      ...permissionDialog,
-                                      selectedPermissions: selected.filter(id => id !== permission.id)
-                                    });
-                                  }
-                                }}
-                              />
-                            }
-                            label={
-                              <Box sx={{ minWidth: 0 }}>
-                                <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                                  {permission.displayName}
-                                </Typography>
-                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                                  {getPermissionCanonicalKey(permission)}
-                                </Typography>
-                                <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5 }}>
-                                  <Chip
-                                    label={permission.riskLevel}
+                    {getPermissionSections(group.permissions).map((section) => (
+                      <Box key={section.key} sx={{ mb: 2 }}>
+                        {group.key !== section.key && (
+                          <Box sx={{ mb: 1 }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+                              {section.label}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {section.hint}
+                            </Typography>
+                          </Box>
+                        )}
+                        <Grid container spacing={1}>
+                          {section.permissions.map((permission) => (
+                            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={permission.id}>
+                              <FormControlLabel
+                                control={
+                                  <Checkbox
                                     size="small"
-                                    color={getRiskLevelColor(permission.riskLevel) as any}
-                                    variant="outlined"
+                                    checked={permissionDialog.selectedPermissions.includes(permission.id)}
+                                    onChange={(e) => {
+                                      const selected = permissionDialog.selectedPermissions;
+                                      if (e.target.checked) {
+                                        setPermissionDialog({
+                                          ...permissionDialog,
+                                          selectedPermissions: [...selected, permission.id]
+                                        });
+                                      } else {
+                                        setPermissionDialog({
+                                          ...permissionDialog,
+                                          selectedPermissions: selected.filter(id => id !== permission.id)
+                                        });
+                                      }
+                                    }}
                                   />
-                                  {permission.requiresApproval && (
-                                    <Chip label="Approval" size="small" color="warning" variant="filled" />
-                                  )}
-                                  {permission.syariahRequired && (
-                                    <Chip label="Syariah" size="small" color="secondary" variant="outlined" />
-                                  )}
-                                </Box>
-                              </Box>
-                            }
-                          />
+                                }
+                                label={
+                                  <Box sx={{ minWidth: 0 }}>
+                                    <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                                      {permission.displayName}
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                                      {getPermissionCanonicalKey(permission)}
+                                    </Typography>
+                                    <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5 }}>
+                                      <Chip
+                                        label={permission.riskLevel}
+                                        size="small"
+                                        color={getRiskLevelColor(permission.riskLevel) as any}
+                                        variant="outlined"
+                                      />
+                                      {permission.requiresApproval && (
+                                        <Chip label="Approval" size="small" color="warning" variant="filled" />
+                                      )}
+                                      {permission.syariahRequired && (
+                                        <Chip label="Syariah" size="small" color="secondary" variant="outlined" />
+                                      )}
+                                    </Box>
+                                  </Box>
+                                }
+                              />
+                            </Grid>
+                          ))}
                         </Grid>
-                      ))}
-                    </Grid>
+                        {group.key !== section.key && <Divider sx={{ mt: 1.5 }} />}
+                      </Box>
+                    ))}
                   </AccordionDetails>
                 </Accordion>
               );

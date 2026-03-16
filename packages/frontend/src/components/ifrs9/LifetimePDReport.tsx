@@ -21,6 +21,7 @@ import {
   FilterList as FilterListIcon,
   Refresh as RefreshIcon,
   Download as DownloadIcon,
+  ClearAll as ClearAllIcon,
   CheckCircle as CheckCircleIcon,
   AccessTime as AccessTimeIcon
 } from '@mui/icons-material';
@@ -71,6 +72,20 @@ const mapPdMethodToCode = (method: string | number | undefined): number => {
   }
 };
 
+const getDefaultLifetimePdFilters = () => ({
+  prcDate: '2022-10-31',
+  selectedSegments: [],
+  selectedSegmentIds: [],
+  pdConfigId: '',
+  pdMethod: mapPdMethodToCode('TTC'),
+  isForwardLooking: false,
+  scalarId: undefined,
+  isCompareMode: false,
+  pdConfigIdB: '',
+  pdMethodB: mapPdMethodToCode('PIT'),
+  scalarIdB: undefined
+});
+
 const LifetimePDReport: React.FC = () => {
   const theme = useTheme();
   const [tabValue, setTabValue] = useState(0);
@@ -87,18 +102,7 @@ const LifetimePDReport: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [effectivePrcDate, setEffectivePrcDate] = useState<string | null>(null);
-  const [currentFilters, setCurrentFilters] = useState<any>({
-    prcDate: '2022-10-31',
-    selectedSegments: [],
-    pdConfigId: '',
-    pdMethod: mapPdMethodToCode('TTC'),
-    isForwardLooking: false,
-    scalarId: undefined,
-    isCompareMode: false,
-    pdConfigIdB: '',
-    pdMethodB: mapPdMethodToCode('PIT'),
-    scalarIdB: undefined
-  });
+  const [currentFilters, setCurrentFilters] = useState<any>(getDefaultLifetimePdFilters);
 
   const fetchData = useCallback(async (filters: any) => {
     setLoading(true);
@@ -108,6 +112,7 @@ const LifetimePDReport: React.FC = () => {
         prc_date: filters.prcDate,
         pd_config_id: filters.pdConfigId ? Number(filters.pdConfigId) : undefined,
         pd_method: filters.pdMethod,
+        scalar_id: filters.scalarId ? Number(filters.scalarId) : undefined,
         fl_flag: filters.isForwardLooking
       });
       console.log('API getYearly Response:', response);
@@ -127,6 +132,7 @@ const LifetimePDReport: React.FC = () => {
           prc_date: filters.prcDate,
           pd_config_id: Number(filters.pdConfigIdB),
           pd_method: filters.pdMethodB,
+          scalar_id: filters.scalarIdB ? Number(filters.scalarIdB) : undefined,
           fl_flag: filters.isForwardLooking
         });
         if (responseB.success) setYearlyDataB(responseB.data);
@@ -139,6 +145,7 @@ const LifetimePDReport: React.FC = () => {
         prc_date: filters.prcDate,
         pd_config_id: filters.pdConfigId ? Number(filters.pdConfigId) : undefined,
         pd_method: filters.pdMethod,
+        scalar_id: filters.scalarId ? Number(filters.scalarId) : undefined,
         fl_flag: filters.isForwardLooking
       });
       if (monthlyResponse.success) {
@@ -154,6 +161,7 @@ const LifetimePDReport: React.FC = () => {
           prc_date: filters.prcDate,
           pd_config_id: Number(filters.pdConfigIdB),
           pd_method: filters.pdMethodB,
+          scalar_id: filters.scalarIdB ? Number(filters.scalarIdB) : undefined,
           fl_flag: filters.isForwardLooking
         });
         if (monthlyResponseB.success) setMonthlyDataB(monthlyResponseB.data);
@@ -187,7 +195,8 @@ const LifetimePDReport: React.FC = () => {
       pdMethod: mapPdMethodToCode(config.pdMethod),
       isForwardLooking: config.isForwardLooking,
       scalarId: config.scalarId,
-      selectedSegments: config.selectedSegments || [],
+      selectedSegments: config.selectedSegmentLabels || [],
+      selectedSegmentIds: config.selectedSegmentIds || [],
       isCompareMode: config.isCompareMode,
       pdConfigIdB: config.pdConfigIdB,
       pdMethodB: mapPdMethodToCode(config.pdMethodB),
@@ -200,7 +209,7 @@ const LifetimePDReport: React.FC = () => {
       const payload = {
         calculationName: `PD Run ${format(config.procDate, 'yyyyMMdd')}`,
         calculationType: 'PD',
-        portfolioId: config.selectedSegments?.[0] || 'ALL',
+        portfolioId: config.selectedSegmentIds?.[0] || 'ALL',
         reportingDate: format(config.procDate, 'yyyy-MM-dd'),
         currency: 'IDR',
         assumptions: `Method: ${config.pdMethod}, FL: ${config.isForwardLooking}`
@@ -212,6 +221,11 @@ const LifetimePDReport: React.FC = () => {
       console.warn('Run analysis trigger failed (non-blocking):', err);
     }
   };
+
+  const handleResetFilters = useCallback(() => {
+    setCurrentFilters(getDefaultLifetimePdFilters());
+    setTabValue(0);
+  }, []);
 
   // Transform backend data for charts
   const chartData = useMemo(() => {
@@ -318,6 +332,7 @@ const LifetimePDReport: React.FC = () => {
       ['PD Method', currentFilters.pdMethod],
       ['Forward Looking', currentFilters.isForwardLooking ? 'Yes' : 'No'],
       ['Segments', currentFilters.selectedSegments?.length ? currentFilters.selectedSegments.join(', ') : 'All Segments'],
+      ['Segment IDs', currentFilters.selectedSegmentIds?.length ? currentFilters.selectedSegmentIds.join(', ') : 'All Segments'],
       ['Generated At', new Date().toISOString()],
       []
     ];
@@ -436,6 +451,11 @@ const LifetimePDReport: React.FC = () => {
                 <RefreshIcon />
               </IconButton>
             </Tooltip>
+            <Tooltip title="Reset Filter">
+              <IconButton color="primary" onClick={handleResetFilters} disabled={loading}>
+                <ClearAllIcon />
+              </IconButton>
+            </Tooltip>
             <Tooltip title="Export Results">
               <IconButton color="primary" onClick={() => setExportDialogOpen(true)} disabled={!hasReportData}>
                 <DownloadIcon />
@@ -524,6 +544,7 @@ const LifetimePDReport: React.FC = () => {
             prc_date: effectivePrcDate ? new Date(effectivePrcDate) : currentFilters.prcDate ? new Date(currentFilters.prcDate) : null,
             pd_config_id: currentFilters.pdConfigId ? Number(currentFilters.pdConfigId) : undefined,
             pd_method: currentFilters.pdMethod,
+            scalar_id: currentFilters.scalarId ? Number(currentFilters.scalarId) : undefined,
             fl_flag: currentFilters.isForwardLooking
           }}
           onDataLoaded={(data) => console.log('Account Details Loaded:', data.length)}

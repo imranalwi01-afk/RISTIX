@@ -205,10 +205,11 @@ export const ifrs9ReportsController = {
             // Extract filter parameters
             const prc_date = c.req.query('prc_date') || '2023-12-31';
             const ead_config_id = c.req.query('ead_config_id') ? Number(c.req.query('ead_config_id')) : undefined;
+            const segment_id = c.req.query('segment_id') ? Number(c.req.query('segment_id')) : undefined;
 
             const result = await ifrs9ReportsService.getEADModelSummary(
                 tenantId,
-                { prc_date, ead_config_id }
+                { prc_date, ead_config_id, segment_id }
             );
 
             return c.json({

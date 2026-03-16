@@ -59,6 +59,30 @@ export const ParametersService = {
     },
 
     /**
+     * Get a specific app/business setting detail by ID.
+     *
+     * @param id - The detail ID
+     * @returns An Effect resolving to the parameter detail
+     * @throws NotFoundError if the detail is not found
+     */
+    getAppSettingDetail: (id: number) => {
+        return pipe(
+            Effect.tryPromise({
+                try: async () => {
+                    const results = await legacyDb.select().from(frs9ParamCommond).where(eq(frs9ParamCommond.pkid, BigInt(id)))
+                    return results[0] || null
+                },
+                catch: (e) => new DatabaseError({ message: 'Failed to fetch detail', operation: 'query', cause: e })
+            }),
+            Effect.flatMap(detail =>
+                (detail
+                    ? Effect.succeed(transformDetail(detail))
+                    : Effect.fail(new NotFoundError({ message: 'App Setting Detail not found', resource: 'App Setting Detail', id: String(id) }))) as any
+            )
+        )
+    },
+
+    /**
      * Create a new app setting.
      * 
      * @param data - The setting data

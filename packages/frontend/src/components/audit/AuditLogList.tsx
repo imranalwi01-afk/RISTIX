@@ -22,7 +22,11 @@ import {
     Collapse,
     Card,
     CardContent,
-    Grid
+    Grid,
+    FormControl,
+    InputLabel,
+    Select,
+    MenuItem,
 } from '@mui/material';
 import {
     Search,
@@ -38,6 +42,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs, { Dayjs } from 'dayjs';
 import { auditAPI } from '@/services/api';
+import AuditDiffViewer from '@/components/audit/AuditDiffViewer';
 
 interface AuditLog {
     id: string;
@@ -53,6 +58,12 @@ interface AuditLog {
     newValues?: any;
 }
 
+const getRequestId = (log: AuditLog): string | null => {
+    if (typeof log.metadata?.requestId === 'string') return log.metadata.requestId;
+    if (typeof log.metadata?.request_id === 'string') return log.metadata.request_id;
+    return null;
+};
+
 const AuditLogList: React.FC = () => {
     const [logs, setLogs] = useState<AuditLog[]>([]);
     const [loading, setLoading] = useState(false);
@@ -60,6 +71,7 @@ const AuditLogList: React.FC = () => {
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [total, setTotal] = useState(0);
     const [searchQuery, setSearchQuery] = useState('');
+    const [requestIdQuery, setRequestIdQuery] = useState('');
     const [showFilters, setShowFilters] = useState(false);
     const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
@@ -68,6 +80,8 @@ const AuditLogList: React.FC = () => {
     const [startDate, setStartDate] = useState<Dayjs | null>(null);
     const [endDate, setEndDate] = useState<Dayjs | null>(null);
 
+    const eventTypeOptions = ['approval', 'auth', 'data', 'job', 'permission', 'system'];
+
     const fetchLogs = useCallback(async () => {
         setLoading(true);
         try {
@@ -75,6 +89,7 @@ const AuditLogList: React.FC = () => {
                 page: page + 1,
                 limit: rowsPerPage,
                 search: searchQuery || undefined,
+                requestId: requestIdQuery || undefined,
                 eventType: eventType || undefined,
                 startDate: startDate ? startDate.toISOString() : undefined,
                 endDate: endDate ? endDate.toISOString() : undefined,
@@ -90,7 +105,7 @@ const AuditLogList: React.FC = () => {
         } finally {
             setLoading(false);
         }
-    }, [page, rowsPerPage, searchQuery, eventType, startDate, endDate]);
+    }, [page, rowsPerPage, searchQuery, requestIdQuery, eventType, startDate, endDate]);
 
     useEffect(() => {
         fetchLogs();
@@ -109,8 +124,10 @@ const AuditLogList: React.FC = () => {
         try {
             const data = await auditAPI.exportLogs(format, {
                 eventType,
+                requestId: requestIdQuery || undefined,
                 startDate: startDate?.toISOString(),
                 endDate: endDate?.toISOString(),
+                search: searchQuery || undefined,
             });
 
             const blob = new Blob([data], { type: format === 'csv' ? 'text/csv' : 'application/json' });
@@ -128,6 +145,15 @@ const AuditLogList: React.FC = () => {
 
     const toggleRowExpansion = (id: string) => {
         setExpandedRow(expandedRow === id ? null : id);
+    };
+
+    const resetFilters = () => {
+        setSearchQuery('');
+        setRequestIdQuery('');
+        setEventType('');
+        setStartDate(null);
+        setEndDate(null);
+        setPage(0);
     };
 
     return (
@@ -157,7 +183,7 @@ const AuditLogList: React.FC = () => {
             <Paper sx={{ p: 2, mb: 3 }}>
                 <TextField
                     fullWidth
-                    placeholder="Search logs..."
+                    placeholder="Search logs, entities, actions, or Request ID..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     InputProps={{
@@ -174,15 +200,32 @@ const AuditLogList: React.FC = () => {
                     <LocalizationProvider dateAdapter={AdapterDayjs}>
                         <Grid container spacing={2} sx={{ mb: 2 }}>
                             <Grid size={{ xs: 12, md: 4 }}>
+                                <FormControl fullWidth size="small">
+                                    <InputLabel>Event Type</InputLabel>
+                                    <Select
+                                        value={eventType}
+                                        label="Event Type"
+                                        onChange={(e) => setEventType(e.target.value)}
+                                    >
+                                        <MenuItem value="">All Events</MenuItem>
+                                        {eventTypeOptions.map((option) => (
+                                            <MenuItem key={option} value={option}>
+                                                {option}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                            </Grid>
+                            <Grid size={{ xs: 12, md: 4 }}>
                                 <TextField
                                     fullWidth
-                                    label="Event Type"
-                                    value={eventType}
-                                    onChange={(e) => setEventType(e.target.value)}
+                                    label="Request ID"
+                                    value={requestIdQuery}
+                                    onChange={(e) => setRequestIdQuery(e.target.value)}
                                     size="small"
                                 />
                             </Grid>
-                            <Grid size={{ xs: 12, md: 4 }}>
+                            <Grid size={{ xs: 12, md: 2 }}>
                                 <DatePicker
                                     label="Start Date"
                                     value={startDate}
@@ -190,13 +233,23 @@ const AuditLogList: React.FC = () => {
                                     slotProps={{ textField: { fullWidth: true, size: 'small' } }}
                                 />
                             </Grid>
-                            <Grid size={{ xs: 12, md: 4 }}>
+                            <Grid size={{ xs: 12, md: 2 }}>
                                 <DatePicker
                                     label="End Date"
                                     value={endDate}
                                     onChange={(newValue: any) => setEndDate(newValue)}
                                     slotProps={{ textField: { fullWidth: true, size: 'small' } }}
                                 />
+                            </Grid>
+                            <Grid size={{ xs: 12 }}>
+                                <Stack direction="row" spacing={1} justifyContent="flex-end">
+                                    <Button variant="text" onClick={resetFilters}>
+                                        Reset Filters
+                                    </Button>
+                                    <Button variant="outlined" onClick={() => { setPage(0); fetchLogs(); }}>
+                                        Apply Filters
+                                    </Button>
+                                </Stack>
                             </Grid>
                         </Grid>
                     </LocalizationProvider>
@@ -253,20 +306,51 @@ const AuditLogList: React.FC = () => {
                                                         <Typography variant="h6" gutterBottom component="div">
                                                             Details
                                                         </Typography>
-                                                        <Grid container spacing={2}>
-                                                            <Grid size={{ xs: 6 }}>
-                                                                <Typography variant="subtitle2">Changed Fields:</Typography>
-                                                                <pre style={{ fontSize: '0.8rem', background: '#f5f5f5', padding: '8px', borderRadius: '4px' }}>
-                                                                    {JSON.stringify(log.oldValues, null, 2)}
-                                                                </pre>
-                                                            </Grid>
-                                                            <Grid size={{ xs: 6 }}>
-                                                                <Typography variant="subtitle2">New Values:</Typography>
-                                                                <pre style={{ fontSize: '0.8rem', background: '#f5f5f5', padding: '8px', borderRadius: '4px' }}>
-                                                                    {JSON.stringify(log.newValues, null, 2)}
-                                                                </pre>
-                                                            </Grid>
-                                                        </Grid>
+                                                        <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap' }}>
+                                                            <Chip size="small" label={`Event: ${log.eventType}`} variant="outlined" />
+                                                            <Chip size="small" label={`Action: ${log.action}`} variant="outlined" />
+                                                            {log.entityType && (
+                                                                <Chip
+                                                                    size="small"
+                                                                    label={`Entity: ${log.entityType}`}
+                                                                    variant="outlined"
+                                                                />
+                                                            )}
+                                                            {getRequestId(log) && (
+                                                                <Chip
+                                                                    size="small"
+                                                                    color="info"
+                                                                    variant="outlined"
+                                                                    label={`Request ID: ${getRequestId(log)}`}
+                                                                />
+                                                            )}
+                                                        </Stack>
+
+                                                        <AuditDiffViewer oldValues={log.oldValues} newValues={log.newValues} />
+
+                                                        {log.metadata && (
+                                                            <Card variant="outlined" sx={{ mt: 2 }}>
+                                                                <CardContent>
+                                                                    <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                                                                        Metadata
+                                                                    </Typography>
+                                                                    <Box
+                                                                        component="pre"
+                                                                        sx={{
+                                                                            m: 0,
+                                                                            p: 1.5,
+                                                                            bgcolor: '#f5f5f5',
+                                                                            borderRadius: 1,
+                                                                            fontSize: '0.8rem',
+                                                                            whiteSpace: 'pre-wrap',
+                                                                            wordBreak: 'break-word',
+                                                                        }}
+                                                                    >
+                                                                        {JSON.stringify(log.metadata, null, 2)}
+                                                                    </Box>
+                                                                </CardContent>
+                                                            </Card>
+                                                        )}
                                                     </Box>
                                                 </Collapse>
                                             </TableCell>

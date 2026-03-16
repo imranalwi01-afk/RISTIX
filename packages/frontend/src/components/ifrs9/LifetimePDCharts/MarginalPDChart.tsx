@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, CardContent, Typography } from '@mui/material';
+import { Box, Card, CardContent, Typography } from '@mui/material';
 import {
   BarChart,
   Bar,
@@ -16,14 +16,7 @@ interface MarginalPDChartProps {
 }
 
 export default function MarginalPDChart({ data }: MarginalPDChartProps) {
-  // Mock data if none provided
-  const chartData = data?.length > 0 ? data : [
-    { year: 'Y1', marginalPD: 0.02 },
-    { year: 'Y2', marginalPD: 0.03 },
-    { year: 'Y3', marginalPD: 0.035 },
-    { year: 'Y4', marginalPD: 0.04 },
-    { year: 'Y5', marginalPD: 0.045 },
-  ];
+  const chartData = data?.length > 0 ? data : [];
 
   const isComparison = chartData.some(d => d.marginalPDB !== undefined);
 
@@ -38,6 +31,13 @@ export default function MarginalPDChart({ data }: MarginalPDChartProps) {
         <Typography variant="h6" fontWeight={700} gutterBottom sx={{ mb: 3 }}>
           Marginal PD Structure
         </Typography>
+        {chartData.length === 0 ? (
+          <Box sx={{ height: 350, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Typography variant="body2" color="text.secondary">
+              No marginal PD data available for the selected filters.
+            </Typography>
+          </Box>
+        ) : (
         <ResponsiveContainer width="100%" height={350}>
           <BarChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.1} />
@@ -71,6 +71,7 @@ export default function MarginalPDChart({ data }: MarginalPDChartProps) {
             )}
           </BarChart>
         </ResponsiveContainer>
+        )}
       </CardContent>
     </Card>
   );

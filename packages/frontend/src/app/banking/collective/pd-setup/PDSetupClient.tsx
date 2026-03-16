@@ -52,7 +52,13 @@ import { useRouter } from 'next/navigation';
 import { api } from '@/services/api';
 import { PDConfiguration } from '@/services/api/pd-configurations.api';
 import { PopulationSegment, filterPopulationSegmentsByType } from '@/services/api/population-segments.api';
-import { ApprovalNotification, ApprovalStatusBadge } from '@/components/approval';
+import {
+  ApprovalNotification,
+  ApprovalStatusBadge,
+  buildApprovalNotification,
+  createClosedApprovalNotification,
+  type ApprovalNotificationState,
+} from '@/components/approval';
 import { bankingAPI } from '@/services/api';
 import { PDStructureVisualization, FLScalarVisualization } from '@/components/banking/pd-setup/PDStructureVisualization';
 import { Assessment as ResultsIcon, Close as CloseIcon } from '@mui/icons-material';
@@ -72,6 +78,7 @@ const PdSetupPage = () => {
   const { hasAnyPermission } = usePermission();
   const canViewPdSetup = hasAnyPermission(['banking.collective.pd_setup.view', 'banking.collective.pd_setup.manage', 'banking.collective.manage', 'banking.collective', 'admin.super_admin']);
   const canManagePdSetup = hasAnyPermission(['banking.collective.pd_setup.manage', 'banking.collective.pd_setup.create', 'banking.collective.pd_setup.update', 'banking.collective.pd_setup.delete', 'banking.collective.manage', 'admin.super_admin']);
+  const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all', 'admin.super_admin']);
 
   const theme = useTheme();
   const router = useRouter();
@@ -119,7 +126,7 @@ const PdSetupPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
-  const [approvalNotification, setApprovalNotification] = useState<{ open: boolean, message: string }>({ open: false, message: '' });
+  const [approvalNotification, setApprovalNotification] = useState<ApprovalNotificationState>(createClosedApprovalNotification());
   const [snackbar, setSnackbar] = useState<{ open: boolean, message: string, type: 'success' | 'error' }>({ open: false, message: '', type: 'success' });
 
   // Load Data
@@ -218,10 +225,7 @@ const PdSetupPage = () => {
       const isApprovalResponse = response.approvalRequired || response.status === 202;
 
       if (isApprovalResponse) {
-        setApprovalNotification({
-          open: true,
-          message: response.message || 'Request submitted for approval'
-        });
+        setApprovalNotification(buildApprovalNotification(response, 'Request submitted for approval'));
       } else {
         setSnackbar({
           open: true,
@@ -266,10 +270,7 @@ const PdSetupPage = () => {
       const isApprovalResponse = response.approvalRequired || response.status === 202;
 
       if (isApprovalResponse) {
-        setApprovalNotification({
-          open: true,
-          message: response.message || 'Deletion request submitted for approval'
-        });
+        setApprovalNotification(buildApprovalNotification(response, 'Deletion request submitted for approval'));
       } else {
         setSnackbar({ open: true, message: 'Configuration deleted', type: 'success' });
       }
@@ -355,6 +356,7 @@ const PdSetupPage = () => {
             key="edit"
             icon={<EditIcon color="primary" />}
             label="Edit"
+            data-testid="edit-pd-config-btn"
             onClick={() => {
               setSelectedConfig(params.row);
               setFormData(params.row);
@@ -366,6 +368,7 @@ const PdSetupPage = () => {
             key="delete"
             icon={<DeleteIcon color="error" />}
             label="Delete"
+            data-testid="delete-pd-config-btn"
             onClick={() => handleDelete(params.row.id)}
           />
         ] : []),
@@ -719,7 +722,10 @@ const PdSetupPage = () => {
       <ApprovalNotification
         open={approvalNotification.open}
         message={approvalNotification.message}
-        onClose={() => setApprovalNotification({ ...approvalNotification, open: false })}
+        requestId={approvalNotification.requestId}
+        actionLabel={canOpenApprovalInbox ? 'Open Approval' : undefined}
+        actionHref={canOpenApprovalInbox ? (approvalNotification.requestId ? `/banking/maintenance/approval?requestId=${encodeURIComponent(approvalNotification.requestId)}` : '/banking/maintenance/approval') : undefined}
+        onClose={() => setApprovalNotification(createClosedApprovalNotification())}
       />
     </Container>
   );

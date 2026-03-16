@@ -59,7 +59,13 @@ import {
 import { useRouter } from 'next/navigation';
 import { bucketParameterAPI, BucketParameterHeader, BucketParameterDetail } from '../../../../services/api.bucketparameter';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
-import { ApprovalNotification, ApprovalStatusBadge } from '@/components/approval';
+import {
+  ApprovalNotification,
+  ApprovalStatusBadge,
+  buildApprovalNotification,
+  createClosedApprovalNotification,
+  type ApprovalNotificationState,
+} from '@/components/approval';
 import { bankingAPI } from '@/services/api';
 import { usePermission } from '@/hooks/usePermission';
 
@@ -355,6 +361,7 @@ export default function BucketParameterPage() {
   const { hasAnyPermission } = usePermission();
   const canViewBucket = hasAnyPermission(['banking.collective.bucket.view', 'banking.collective.bucket.manage', 'banking.collective.manage', 'banking.collective', 'admin.super_admin']);
   const canManageBucket = hasAnyPermission(['banking.collective.bucket.manage', 'banking.collective.bucket.create', 'banking.collective.bucket.update', 'banking.collective.bucket.delete', 'banking.collective.manage', 'admin.super_admin']);
+  const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all', 'admin.super_admin']);
 
   const router = useRouter();
 
@@ -386,7 +393,7 @@ export default function BucketParameterPage() {
   const [detailFormData, setDetailFormData] = useState<Partial<BucketParameterDetail>>({});
 
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
-  const [approvalNotification, setApprovalNotification] = useState<{ open: boolean, message: string }>({ open: false, message: '' });
+  const [approvalNotification, setApprovalNotification] = useState<ApprovalNotificationState>(createClosedApprovalNotification());
   const [snackbar, setSnackbar] = useState<{ open: boolean, message: string, type: 'success' | 'error' }>({ open: false, message: '', type: 'success' });
 
   // Error State
@@ -512,10 +519,7 @@ export default function BucketParameterPage() {
       const isApprovalResponse = response.approvalRequired || response.status === 202;
 
       if (isApprovalResponse) {
-        setApprovalNotification({
-          open: true,
-          message: response.message || 'Deletion request submitted for approval'
-        });
+        setApprovalNotification(buildApprovalNotification(response, 'Deletion request submitted for approval'));
       } else {
         setSnackbar({ open: true, message: 'Bucket group deleted', type: 'success' });
       }
@@ -559,10 +563,7 @@ export default function BucketParameterPage() {
       const isApprovalResponse = response.approvalRequired || response.status === 202;
 
       if (isApprovalResponse) {
-        setApprovalNotification({
-          open: true,
-          message: response.message || 'Deletion request submitted for approval'
-        });
+        setApprovalNotification(buildApprovalNotification(response, 'Deletion request submitted for approval'));
       } else {
         setSnackbar({ open: true, message: 'Detail deleted successfully', type: 'success' });
       }
@@ -590,10 +591,7 @@ export default function BucketParameterPage() {
       const isApprovalResponse = response.approvalRequired || response.status === 202;
 
       if (isApprovalResponse) {
-        setApprovalNotification({
-          open: true,
-          message: response.message || 'Request submitted for approval'
-        });
+        setApprovalNotification(buildApprovalNotification(response, 'Request submitted for approval'));
       } else {
         setSnackbar({
           open: true,
@@ -628,10 +626,7 @@ export default function BucketParameterPage() {
       const isApprovalResponse = response.approvalRequired || response.status === 202;
 
       if (isApprovalResponse) {
-        setApprovalNotification({
-          open: true,
-          message: response.message || 'Request submitted for approval'
-        });
+        setApprovalNotification(buildApprovalNotification(response, 'Request submitted for approval'));
       } else {
         setSnackbar({
           open: true,
@@ -1027,7 +1022,10 @@ export default function BucketParameterPage() {
       <ApprovalNotification
         open={approvalNotification.open}
         message={approvalNotification.message}
-        onClose={() => setApprovalNotification({ ...approvalNotification, open: false })}
+        requestId={approvalNotification.requestId}
+        actionLabel={canOpenApprovalInbox ? 'Open Approval' : undefined}
+        actionHref={canOpenApprovalInbox ? (approvalNotification.requestId ? `/banking/maintenance/approval?requestId=${encodeURIComponent(approvalNotification.requestId)}` : '/banking/maintenance/approval') : undefined}
+        onClose={() => setApprovalNotification(createClosedApprovalNotification())}
       />
     </Container>
   );

@@ -51,6 +51,13 @@ export const approvalAPI = {
     return response.data;
   },
 
+  // Request more information from submitter
+  requestInfo: async (id: string, data?: { comment?: string }) => {
+    console.log(`ℹ️ Requesting more information for ${id}`);
+    const response = await apiClient.post(`/approvals/requests/${id}/request-info`, data || {});
+    return response.data;
+  },
+
   // Cancel a request
   cancelRequest: async (id: string, data?: { reason?: string }) => {
     console.log(`🛑 Cancelling request ${id}`);

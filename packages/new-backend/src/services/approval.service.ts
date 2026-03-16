@@ -541,9 +541,11 @@ export const processApprovalAction = (
             }
 
             if (input.action === 'request_info') {
-                // Logic to notify requester for more info
+                await ApprovalRepository.updateRequest(input.requestId, {
+                    status: 'info_requested',
+                })
                 await notifyRequester(request, 'info_requested', input.comment)
-                return { completed: false, status: 'pending' }
+                return { completed: false, status: 'info_requested' }
             }
 
             if (input.action === 'delegate') {

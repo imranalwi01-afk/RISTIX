@@ -8,6 +8,27 @@ import { eq, and, desc, gte, lte, like, sql, or } from 'drizzle-orm'
 
 export const auditRoutes = new OpenAPIHono<AppContext>()
 
+const buildRequestIdCondition = (requestId: string) =>
+    or(
+        sql`cast(${auditLogs.entityId} as text) = ${requestId}`,
+        sql`coalesce(${auditLogs.metadata}->>'requestId', '') = ${requestId}`,
+        sql`coalesce(${auditLogs.metadata}->>'request_id', '') = ${requestId}`
+    )!
+
+const buildAuditSearchCondition = (search: string) => {
+    const pattern = `%${search}%`
+
+    return or(
+        like(auditLogs.description, pattern),
+        like(auditLogs.entityName, pattern),
+        like(auditLogs.action, pattern),
+        like(auditLogs.entityType, pattern),
+        sql`cast(${auditLogs.entityId} as text) ilike ${pattern}`,
+        sql`coalesce(${auditLogs.metadata}->>'requestId', '') ilike ${pattern}`,
+        sql`coalesce(${auditLogs.metadata}->>'request_id', '') ilike ${pattern}`
+    )!
+}
+
 // Apply auth middleware
 auditRoutes.use('*', authMiddleware)
 auditRoutes.use('*', tenantMiddleware)
@@ -120,6 +141,7 @@ auditRoutes.openapi(
                 userId: z.string().optional(),
                 entityType: z.string().optional(),
                 entityId: z.string().optional(),
+                requestId: z.string().optional(),
                 riskLevel: z.string().optional(),
                 startDate: z.string().optional(),
                 endDate: z.string().optional(),
@@ -153,6 +175,7 @@ auditRoutes.openapi(
         if (query.userId) { conditions.push(eq(auditLogs.userId, query.userId)) }
         if (query.entityType) { conditions.push(eq(auditLogs.entityType, query.entityType)) }
         if (query.entityId) { conditions.push(eq(auditLogs.entityId, query.entityId)) }
+        if (query.requestId) { conditions.push(buildRequestIdCondition(query.requestId)) }
         // auditLogs definition in schema (from file view) does not seem to have riskLevel?
         // Checking previous view_file of audit.schema.ts... 
         // It shows eventType, action, description, entityType...
@@ -193,12 +216,7 @@ auditRoutes.openapi(
         }
 
         if (query.search) {
-            conditions.push(
-                or(
-                    like(auditLogs.description, `%${query.search}%`),
-                    like(auditLogs.entityName, `%${query.search}%`)
-                )!
-            )
+            conditions.push(buildAuditSearchCondition(query.search))
         }
 
         const whereClause = and(...conditions)
@@ -412,8 +430,10 @@ auditRoutes.openapi(
                             format: z.enum(['csv', 'json']).default('csv'),
                             filters: z.object({
                                 eventType: z.string().optional(),
+                                requestId: z.string().optional(),
                                 startDate: z.string().optional(),
-                                endDate: z.string().optional()
+                                endDate: z.string().optional(),
+                                search: z.string().optional(),
                             } as any).optional()
                         } as any)
                     }
@@ -440,12 +460,20 @@ auditRoutes.openapi(
             conditions.push(eq(auditLogs.eventType, filters.eventType))
         }
 
+        if (filters?.requestId) {
+            conditions.push(buildRequestIdCondition(filters.requestId))
+        }
+
         if (filters?.startDate) {
             conditions.push(gte(auditLogs.createdAt, new Date(filters.startDate)))
         }
 
         if (filters?.endDate) {
             conditions.push(lte(auditLogs.createdAt, new Date(filters.endDate)))
+        }
+
+        if (filters?.search) {
+            conditions.push(buildAuditSearchCondition(filters.search))
         }
 
         const currentDb = getDatabase(tenantId)

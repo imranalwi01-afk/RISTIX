@@ -108,7 +108,9 @@ export const pdConfigurationsApi = {
         if (!response.data?.data && !response.data?.approvalRequired && response.status !== 202) {
             throw new Error('Failed to create PD configuration');
         }
-        return response.data.data;
+        return response.data?.approvalRequired || response.status === 202
+            ? response.data
+            : response.data.data;
     },
 
     /**
@@ -119,7 +121,9 @@ export const pdConfigurationsApi = {
         if (!response.data?.data && !response.data?.approvalRequired && response.status !== 202) {
             throw new Error('Failed to update PD configuration');
         }
-        return response.data.data;
+        return response.data?.approvalRequired || response.status === 202
+            ? response.data
+            : response.data.data;
     },
 
     /**

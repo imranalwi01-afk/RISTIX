@@ -22,7 +22,6 @@ export interface AccessManagementRole {
   description: string;
   type: 'SYSTEM' | 'BANKING' | 'CUSTOM';
   level: 'PLATFORM' | 'TENANT' | 'DEPARTMENT';
-  bankingAccess?: 'CONVENTIONAL' | 'SYARIAH' | 'BOTH';
   isActive: boolean;
   isBuiltIn: boolean;
   permissions: AccessManagementPermission[];
@@ -48,6 +47,168 @@ export interface PermissionSelectionGroup {
   hint: string;
   permissions: AccessManagementPermission[];
 }
+
+export interface PermissionSelectionSection {
+  key: string;
+  label: string;
+  hint: string;
+  permissions: AccessManagementPermission[];
+}
+
+const SIDEBAR_CATEGORY_LABELS: Record<string, string> = {
+  'banking.dashboard': 'Dashboard',
+  'banking.setup': 'System Setup',
+  'banking.parameter': 'Parameter Management',
+  'banking.collective': 'Collective Impairment',
+  'banking.individual': 'Individual Impairment',
+  'banking.processing': 'IFRS 9',
+  'banking.reports': 'IFRS 9 Reports',
+  'banking.reports.ifrs9': 'IFRS 9 Reports',
+  'banking.analytics': 'Advanced Analytics',
+  'approval': 'Workflow Management',
+  'approval.requests': 'Workflow Management',
+  'banking.configuration': 'Tools',
+  'admin.maintenance': 'Admin & Maintenance',
+  'admin.roles': 'Admin & Maintenance',
+  'admin.users': 'Admin & Maintenance',
+  'admin.system': 'Admin & Maintenance',
+  'jobs': 'Admin & Maintenance',
+};
+
+const SIDEBAR_GROUP_LABELS: Record<string, { label: string; breadcrumb: string }> = {
+  'banking.dashboard': {
+    label: 'Dashboard',
+    breadcrumb: 'Dashboard',
+  },
+  'banking.setup.application': {
+    label: 'Application Configuration',
+    breadcrumb: 'System Setup > Application Configuration',
+  },
+  'banking.setup.business': {
+    label: 'Business Configuration',
+    breadcrumb: 'System Setup > Business Configuration',
+  },
+  'banking.parameter.product': {
+    label: 'Product Parameters',
+    breadcrumb: 'Parameter Management > Product Parameters',
+  },
+  'banking.parameter.journal': {
+    label: 'Accounting Parameters',
+    breadcrumb: 'Parameter Management > Accounting Parameters',
+  },
+  'banking.parameter.segmentation': {
+    label: 'Segmentation Configuration',
+    breadcrumb: 'Collective Impairment > Segmentation Configuration',
+  },
+  'banking.collective': {
+    label: 'Collective Impairment',
+    breadcrumb: 'Collective Impairment',
+  },
+  'banking.collective.rule_base': {
+    label: 'Rule Base Setting',
+    breadcrumb: 'Collective Impairment > Rule Base Setting',
+  },
+  'banking.collective.bucket': {
+    label: 'Bucket Parameter',
+    breadcrumb: 'Collective Impairment > Bucket Parameter',
+  },
+  'banking.collective.pd': {
+    label: 'PD Setup Management',
+    breadcrumb: 'Collective Impairment > PD Setup Management',
+  },
+  'banking.collective.fl': {
+    label: 'FL Scalar',
+    breadcrumb: 'Collective Impairment > FL Scalar',
+  },
+  'banking.collective.fl_scalar': {
+    label: 'FL Scalar',
+    breadcrumb: 'Collective Impairment > FL Scalar',
+  },
+  'banking.collective.lgd': {
+    label: 'LGD Setup Management',
+    breadcrumb: 'Collective Impairment > LGD Setup Management',
+  },
+  'banking.collective.ead': {
+    label: 'EAD Setup Management',
+    breadcrumb: 'Collective Impairment > EAD Setup Management',
+  },
+  'banking.collective.ecl': {
+    label: 'ECL Configuration',
+    breadcrumb: 'Collective Impairment > ECL Configuration',
+  },
+  'banking.individual': {
+    label: 'Individual Impairment',
+    breadcrumb: 'Individual Impairment',
+  },
+  'banking.individual.assessment': {
+    label: 'Assessment Workspace',
+    breadcrumb: 'Individual Impairment > Assessment Workspace',
+  },
+  'banking.reports.ifrs9.nominative': {
+    label: 'Nominative Report',
+    breadcrumb: 'IFRS 9 Reports > Nominative Report',
+  },
+  'banking.reports.ifrs9.lifetime_pd': {
+    label: 'Lifetime PD',
+    breadcrumb: 'IFRS 9 Reports > Lifetime PD',
+  },
+  'banking.reports.ifrs9.lifetime_lgd': {
+    label: 'Lifetime LGD',
+    breadcrumb: 'IFRS 9 Reports > Lifetime LGD',
+  },
+  'banking.reports.ifrs9.ead_model': {
+    label: 'EAD Model',
+    breadcrumb: 'IFRS 9 Reports > EAD Model',
+  },
+  'banking.reports.ifrs9.ecl_result': {
+    label: 'ECL Result',
+    breadcrumb: 'IFRS 9 Reports > ECL Result',
+  },
+  'banking.reports.ifrs9.ecl_movement': {
+    label: 'ECL Movement',
+    breadcrumb: 'IFRS 9 Reports > ECL Movement',
+  },
+  'banking.reports.ifrs9.gca_movement': {
+    label: 'GCA Movement',
+    breadcrumb: 'IFRS 9 Reports > GCA Movement',
+  },
+  'banking.analytics.r': {
+    label: 'R Analytics',
+    breadcrumb: 'Advanced Analytics > R Analytics',
+  },
+  'approval.requests': {
+    label: 'Approval System',
+    breadcrumb: 'Workflow Management > Approval System',
+  },
+  'notifications': {
+    label: 'Notifications',
+    breadcrumb: 'Workflow Management > Notifications',
+  },
+  'banking.configuration.ifrs9': {
+    label: 'Tools',
+    breadcrumb: 'Tools',
+  },
+  'admin.maintenance.access': {
+    label: 'Access Management',
+    breadcrumb: 'Admin & Maintenance > Access Management',
+  },
+  'admin.users': {
+    label: 'User Management',
+    breadcrumb: 'Admin & Maintenance > User Management',
+  },
+  'admin.roles': {
+    label: 'Role Management',
+    breadcrumb: 'Admin & Maintenance > Role Management',
+  },
+  'admin.system': {
+    label: 'Menu Management',
+    breadcrumb: 'Admin & Maintenance > Menu Management',
+  },
+  'jobs': {
+    label: 'Job Monitoring',
+    breadcrumb: 'Admin & Maintenance > Job Monitoring',
+  },
+};
 
 const ACTION_KEYWORDS = new Set([
   'view',
@@ -91,6 +252,35 @@ export const toDisplayLabel = (key: string): string =>
       return part.charAt(0).toUpperCase() + part.slice(1);
     })
     .join(' / ');
+
+const getMappedLabel = (key: string, mapping: Record<string, string>): string | undefined => {
+  const normalizedKey = key.trim().toLowerCase();
+  const sortedEntries = Object.entries(mapping).sort((left, right) => right[0].length - left[0].length);
+
+  for (const [prefix, label] of sortedEntries) {
+    if (normalizedKey === prefix || normalizedKey.startsWith(`${prefix}.`)) {
+      return label;
+    }
+  }
+
+  return undefined;
+};
+
+export const getPermissionCategoryDisplayLabel = (key: string): string =>
+  getMappedLabel(key, SIDEBAR_CATEGORY_LABELS) || toDisplayLabel(key);
+
+export const getPermissionGroupDisplayLabel = (
+  key: string,
+  variant: 'leaf' | 'breadcrumb' = 'leaf'
+): string => {
+  const normalizedKey = key.trim().toLowerCase();
+  const mapped = SIDEBAR_GROUP_LABELS[normalizedKey];
+  if (mapped) {
+    return variant === 'breadcrumb' ? mapped.breadcrumb : mapped.label;
+  }
+
+  return toDisplayLabel(key);
+};
 
 const firstNonEmptyString = (...values: unknown[]): string | undefined => {
   for (const value of values) {
@@ -171,11 +361,11 @@ export const buildPermissionSelectionGroups = (
 
     if (permissionGroupingMode === 'resource') {
       key = matrixItem.groupKey;
-      label = toDisplayLabel(matrixItem.groupKey);
-      hint = toDisplayLabel(matrixItem.categoryKey || moduleKey);
+      label = getPermissionGroupDisplayLabel(matrixItem.groupKey, 'breadcrumb');
+      hint = getPermissionCategoryDisplayLabel(matrixItem.categoryKey || moduleKey);
     } else if (permissionGroupingMode === 'module') {
       key = moduleKey;
-      label = toDisplayLabel(moduleKey);
+      label = getPermissionCategoryDisplayLabel(moduleKey);
       hint = `${moduleCounts.get(moduleKey) || 0} permissions`;
     }
 
@@ -195,6 +385,37 @@ export const buildPermissionSelectionGroups = (
     .map((group) => ({
       ...group,
       permissions: [...group.permissions].sort((left, right) =>
+        getPermissionCanonicalKey(left).localeCompare(getPermissionCanonicalKey(right))
+      ),
+    }))
+    .sort((left, right) => left.label.localeCompare(right.label));
+};
+
+export const buildPermissionSelectionSections = (
+  permissions: AccessManagementPermission[]
+): PermissionSelectionSection[] => {
+  const sections = new Map<string, PermissionSelectionSection>();
+
+  permissions.forEach((permission) => {
+    const matrixItem = buildPermissionMatrixItem(permission);
+
+    if (!sections.has(matrixItem.groupKey)) {
+      sections.set(matrixItem.groupKey, {
+        key: matrixItem.groupKey,
+        label: getPermissionGroupDisplayLabel(matrixItem.groupKey, 'breadcrumb'),
+        hint: `${permissions.length} permissions`,
+        permissions: [],
+      });
+    }
+
+    sections.get(matrixItem.groupKey)!.permissions.push(permission);
+  });
+
+  return Array.from(sections.values())
+    .map((section) => ({
+      ...section,
+      hint: `${section.permissions.length} permissions`,
+      permissions: [...section.permissions].sort((left, right) =>
         getPermissionCanonicalKey(left).localeCompare(getPermissionCanonicalKey(right))
       ),
     }))
@@ -248,11 +469,6 @@ export const normalizeRoleFromApi = (role: Record<string, unknown>): AccessManag
   const type = (role.type ?? (role.isSystemRole ? 'SYSTEM' : 'CUSTOM')) as AccessManagementRole['type'];
   const level = (role.level ?? (role.hierarchyLevel ? 'TENANT' : 'TENANT')) as AccessManagementRole['level'];
 
-  const bankingAccess = (role.bankingAccess
-    ?? role.bankingTypeSpecific
-    ?? role.supportsConventional
-    ?? role.supportsSyariah
-    ?? undefined) as AccessManagementRole['bankingAccess'] | undefined;
   const groupedPermissions =
     role.permissions && typeof role.permissions === 'object'
       ? role.permissions as Record<string, AccessManagementPermission[]>
@@ -265,7 +481,6 @@ export const normalizeRoleFromApi = (role: Record<string, unknown>): AccessManag
     description: firstNonEmptyString(role.description) ?? '',
     type,
     level,
-    bankingAccess,
     isActive: typeof role.isActive === 'boolean' ? role.isActive : true,
     isBuiltIn:
       typeof role.isBuiltIn === 'boolean'

@@ -51,7 +51,14 @@ import { exportToXLSX, exportToCSV, exportToPDF } from '@/utils/exportUtils';
 import PageHeader from '@/components/banking/shared/PageHeader';
 import EmptyState from '@/components/banking/shared/EmptyState';
 import { FullstackIndicator } from '@/components/common/feedback/FullstackIndicator';
-import { ApprovalStatusBadge, PendingChangesDialog } from '@/components/approval';
+import {
+  ApprovalNotification,
+  ApprovalStatusBadge,
+  PendingChangesDialog,
+  buildApprovalNotification,
+  createClosedApprovalNotification,
+  type ApprovalNotificationState,
+} from '@/components/approval';
 import { usePermission } from '@/hooks/usePermission';
 
 // Extracted memoized dialog component
@@ -67,6 +74,7 @@ export default function JournalParametersPage() {
   const canViewJournal = hasAnyPermission(['banking.parameter.journal.view', 'banking.parameter.journal.manage', 'banking.parameter.journal', 'admin.super_admin']);
   const canManageJournal = hasAnyPermission(['banking.parameter.journal.manage', 'banking.parameter.journal.create', 'banking.parameter.journal.update', 'banking.parameter.journal.delete', 'admin.super_admin']);
   const canExportJournal = hasAnyPermission(['banking.parameter.journal.export', 'banking.parameter.journal.manage', 'admin.super_admin']);
+  const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all', 'admin.super_admin']);
 
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -75,6 +83,7 @@ export default function JournalParametersPage() {
   const [selectedJournal, setSelectedJournal] = useState<JournalParameter | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [approvalNotification, setApprovalNotification] = useState<ApprovalNotificationState>(createClosedApprovalNotification());
   const [exportMenuAnchor, setExportMenuAnchor] = useState<null | HTMLElement>(null);
 
   // Approval Modal State
@@ -198,12 +207,14 @@ export default function JournalParametersPage() {
           icon={<EditIcon color="primary" />}
           label="Edit"
           onClick={() => params?.row && handleEdit(params.row)}
+          data-testid="btn-edit-journal"
           key="edit"
         />,
         <SafeGridActionsCellItem
           icon={<DeleteIcon color="error" />}
           label="Delete"
           onClick={() => params?.row && handleDelete(params.row)}
+          data-testid="btn-delete-journal"
           key="delete"
         />
       ] : []
@@ -368,9 +379,8 @@ export default function JournalParametersPage() {
       setLoading(true);
       console.log('🗑️ Deleting journal entry:', journal.glCode);
       const result = await api.banking.journalParameters.delete(journal.pkid);
-      // Check if approval is required
       if (result.approvalRequired) {
-        setSuccess('Deletion submitted for approval');
+        setApprovalNotification(buildApprovalNotification(result, 'Deletion submitted for approval'));
       } else {
         console.log('✅ Journal entry deleted successfully');
         setSuccess('Journal entry deleted successfully');
@@ -407,18 +417,16 @@ export default function JournalParametersPage() {
       if (selectedJournal) {
         console.log('✏️ Updating journal entry:', payload.glCode);
         const result = await api.banking.journalParameters.update(selectedJournal.pkid, payload);
-        // Check if approval is required
         if (result.approvalRequired) {
-          setSuccess('Update submitted for approval');
+          setApprovalNotification(buildApprovalNotification(result, 'Update submitted for approval'));
         } else {
           setSuccess('Journal entry updated successfully');
         }
       } else {
         console.log('➕ Creating journal entry:', payload.glCode);
         const result = await api.banking.journalParameters.create(payload);
-        // Check if approval is required
         if (result.approvalRequired) {
-          setSuccess('Creation submitted for approval');
+          setApprovalNotification(buildApprovalNotification(result, 'Creation submitted for approval'));
         } else {
           setSuccess('Journal entry created successfully');
         }
@@ -523,6 +531,7 @@ export default function JournalParametersPage() {
                 startIcon={<DownloadIcon />}
                 onClick={(e) => setExportMenuAnchor(e.currentTarget)}
                 disabled={loading || data.length === 0}
+                data-testid="btn-export-journal"
               >
                 Export
               </Button>
@@ -533,6 +542,7 @@ export default function JournalParametersPage() {
                 startIcon={<AddIcon />}
                 onClick={handleCreate}
                 disabled={loading}
+                data-testid="btn-add-journal"
               >
                 Add Journal Entry
               </Button>
@@ -578,6 +588,7 @@ export default function JournalParametersPage() {
               sx={{ flex: '1 1 300px', minWidth: 200 }}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              inputProps={{ 'data-testid': 'input-search-journal' }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -630,7 +641,7 @@ export default function JournalParametersPage() {
 
             <Box sx={{ display: 'flex', gap: 1 }}>
               <Button variant="contained" size="small" onClick={loadData} startIcon={<FilterIcon />}>Apply</Button>
-              <Button variant="outlined" size="small" onClick={clearFilters} startIcon={<ClearIcon />}>Clear</Button>
+              <Button variant="outlined" size="small" onClick={clearFilters} startIcon={<ClearIcon />} data-testid="btn-reset-journal-filters">Clear</Button>
             </Box>
           </Box>
 
@@ -726,6 +737,14 @@ export default function JournalParametersPage() {
       <Snackbar open={!!success} autoHideDuration={4000} onClose={() => setSuccess(null)}>
         <Alert severity="success">{success}</Alert>
       </Snackbar>
+      <ApprovalNotification
+        open={approvalNotification.open}
+        message={approvalNotification.message}
+        requestId={approvalNotification.requestId}
+        actionLabel={canOpenApprovalInbox ? 'Open Approval' : undefined}
+        actionHref={canOpenApprovalInbox ? (approvalNotification.requestId ? `/banking/maintenance/approval?requestId=${encodeURIComponent(approvalNotification.requestId)}` : '/banking/maintenance/approval') : undefined}
+        onClose={() => setApprovalNotification(createClosedApprovalNotification())}
+      />
       <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError(null)}>
         <Alert severity="error">{error}</Alert>
       </Snackbar>

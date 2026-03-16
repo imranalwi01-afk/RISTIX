@@ -53,6 +53,7 @@ export interface NativeTableProps<T = any> {
   columns: NativeTableColumn<T>[];
   loading?: boolean;
   getRowId?: (row: T) => string | number;
+  getRowSx?: (params: { row: T; id: string | number }) => any;
   pageSizeOptions?: number[];
   initialState?: {
     pagination?: {
@@ -94,6 +95,7 @@ export function NativeTable<T = any>({
   columns,
   loading = false,
   getRowId = (row: T) => (row as any).id,
+  getRowSx,
   pageSizeOptions = [5, 10, 25, 50],
   initialState,
   checkboxSelection = false,
@@ -225,9 +227,17 @@ export function NativeTable<T = any>({
           const rowId = getRowId(row);
           const isSelected = selected.has(rowId);
           const isExpanded = expandedRows.has(rowId);
+          const rowSx = getRowSx?.({ row, id: rowId });
 
           return (
-            <Card key={rowId} sx={{ mb: 2, border: isSelected ? `2px solid ${theme.palette.primary.main}` : undefined }}>
+            <Card
+              key={rowId}
+              sx={{
+                mb: 2,
+                border: isSelected ? `2px solid ${theme.palette.primary.main}` : undefined,
+                ...rowSx,
+              }}
+            >
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                   {getDetailPanelContent && (
@@ -333,10 +343,11 @@ export function NativeTable<T = any>({
                 const rowId = getRowId(row);
                 const isSelected = selected.has(rowId);
                 const isExpanded = expandedRows.has(rowId);
+                const rowSx = getRowSx?.({ row, id: rowId });
 
                 return (
                   <React.Fragment key={rowId}>
-                    <TableRow hover selected={isSelected}>
+                    <TableRow hover selected={isSelected} sx={rowSx}>
                       {getDetailPanelContent && (
                         <TableCell>
                           <IconButton size="small" onClick={() => handleToggleExpand(rowId)}>

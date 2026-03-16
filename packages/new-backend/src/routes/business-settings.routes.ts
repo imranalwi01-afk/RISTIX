@@ -467,15 +467,19 @@ app.openapi(
             ParametersService.updateAppSetting(code, data, userId) as Effect.Effect<any, any>
 
         const effect = pipe(
-            interceptUpdate(
-                tenantId,
-                userId,
-                userPermissions,
-                'parameter',
-                code,
-                data,
-                executeUpdate,
-                'medium'
+            ParametersService.getAppSetting(code) as Effect.Effect<any, any>,
+            Effect.flatMap((oldValues) =>
+                interceptUpdate(
+                    tenantId,
+                    userId,
+                    userPermissions,
+                    'parameter',
+                    code,
+                    data,
+                    executeUpdate,
+                    'medium',
+                    oldValues
+                )
             ),
             Effect.map((response: ApprovalResponse) => {
                 if (response.approvalRequired) {
@@ -520,14 +524,18 @@ app.openapi(
             ParametersService.deleteAppSetting(code) as Effect.Effect<any, any>
 
         const effect = pipe(
-            interceptDelete(
-                tenantId,
-                userId,
-                userPermissions,
-                'parameter',
-                code,
-                executeDelete,
-                'high'
+            ParametersService.getAppSetting(code) as Effect.Effect<any, any>,
+            Effect.flatMap((oldValues) =>
+                interceptDelete(
+                    tenantId,
+                    userId,
+                    userPermissions,
+                    'parameter',
+                    code,
+                    executeDelete,
+                    'high',
+                    oldValues
+                )
             ),
             Effect.map((response: ApprovalResponse) => {
                 if (response.approvalRequired) {
@@ -673,14 +681,18 @@ app.openapi(
             ParametersService.deleteAppSettingDetail(id) as Effect.Effect<any, any>
 
         const effect = pipe(
-            interceptDelete(
-                tenantId,
-                userId,
-                userPermissions,
-                'parameter',
-                `detail:${id}`,
-                executeDelete,
-                'high'
+            ParametersService.getAppSettingDetail(id) as Effect.Effect<any, any>,
+            Effect.flatMap((oldValues) =>
+                interceptDelete(
+                    tenantId,
+                    userId,
+                    userPermissions,
+                    'parameter',
+                    `detail:${id}`,
+                    executeDelete,
+                    'high',
+                    oldValues
+                )
             ),
             Effect.map((response: ApprovalResponse) => {
                 if (response.approvalRequired) {
@@ -725,15 +737,19 @@ app.openapi(
             ParametersService.updateAppSettingDetail(id, data, userId) as Effect.Effect<any, any>
 
         const effect = pipe(
-            interceptUpdate(
-                tenantId,
-                userId,
-                userPermissions,
-                'parameter',
-                `detail:${id}`,
-                { ...data, detailId: id, scope: 'detail' },
-                executeUpdate,
-                'medium'
+            ParametersService.getAppSettingDetail(id) as Effect.Effect<any, any>,
+            Effect.flatMap((oldValues) =>
+                interceptUpdate(
+                    tenantId,
+                    userId,
+                    userPermissions,
+                    'parameter',
+                    `detail:${id}`,
+                    { ...data, detailId: id, scope: 'detail' },
+                    executeUpdate,
+                    'medium',
+                    oldValues
+                )
             ),
             Effect.map((response: ApprovalResponse) => {
                 if (response.approvalRequired) {

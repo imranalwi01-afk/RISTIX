@@ -29,6 +29,13 @@ import {
     CloudUpload as CloudUploadIcon
 } from '@mui/icons-material';
 import { bankingAPI, handleAPIError } from '../../../../../services/api';
+import {
+    ApprovalNotification,
+    buildApprovalNotification,
+    createClosedApprovalNotification,
+    type ApprovalNotificationState,
+} from '@/components/approval';
+import { usePermission } from '@/hooks/usePermission';
 
 // Interface matching Backend
 export interface BusinessParameterDetail {
@@ -64,10 +71,13 @@ interface BusinessDetailDialogProps {
 }
 
 export function BusinessDetailDialog({ open, onClose, parameter }: BusinessDetailDialogProps) {
+    const { hasAnyPermission } = usePermission();
+    const canOpenApprovalInbox = hasAnyPermission(['approval.requests.approve', 'approval.all', 'admin.super_admin']);
     const [loading, setLoading] = useState(false);
     const [details, setDetails] = useState<BusinessParameterDetail[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
+    const [approvalNotification, setApprovalNotification] = useState<ApprovalNotificationState>(createClosedApprovalNotification());
 
     // Form State
     const [isEditing, setIsEditing] = useState(false);
@@ -147,7 +157,7 @@ export function BusinessDetailDialog({ open, onClose, parameter }: BusinessDetai
             setLoading(true);
             const result = await bankingAPI.businessSetup.deleteDetail(detail.id);
             if (result?.approvalRequired) {
-                setSuccess('Detail deletion submitted for approval');
+                setApprovalNotification(buildApprovalNotification(result, 'Detail deletion submitted for approval'));
             } else {
                 setSuccess('Detail deleted successfully');
             }
@@ -191,7 +201,7 @@ export function BusinessDetailDialog({ open, onClose, parameter }: BusinessDetai
                 // Update
                 const result = await bankingAPI.businessSetup.updateDetail(editingDetail.id, payload);
                 if (result?.approvalRequired) {
-                    setSuccess('Detail update submitted for approval');
+                    setApprovalNotification(buildApprovalNotification(result, 'Detail update submitted for approval'));
                 } else {
                     setSuccess('Detail updated successfully');
                 }
@@ -199,7 +209,7 @@ export function BusinessDetailDialog({ open, onClose, parameter }: BusinessDetai
                 // Create
                 const result = await bankingAPI.businessSetup.createDetail(parameter.param_code, payload);
                 if (result?.approvalRequired) {
-                    setSuccess('Detail creation submitted for approval');
+                    setApprovalNotification(buildApprovalNotification(result, 'Detail creation submitted for approval'));
                 } else {
                     setSuccess('Detail created successfully');
                 }
@@ -264,6 +274,14 @@ export function BusinessDetailDialog({ open, onClose, parameter }: BusinessDetai
                 {/* Notifications */}
                 {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
                 {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>{success}</Alert>}
+                <ApprovalNotification
+                    open={approvalNotification.open}
+                    message={approvalNotification.message}
+                    requestId={approvalNotification.requestId}
+                    actionLabel={canOpenApprovalInbox ? 'Open Approval' : undefined}
+                    actionHref={canOpenApprovalInbox ? (approvalNotification.requestId ? `/banking/maintenance/approval?requestId=${encodeURIComponent(approvalNotification.requestId)}` : '/banking/maintenance/approval') : undefined}
+                    onClose={() => setApprovalNotification(createClosedApprovalNotification())}
+                />
 
                 {/* Form Mode */}
                 {isEditing ? (
@@ -439,4 +457,3 @@ export function BusinessDetailDialog({ open, onClose, parameter }: BusinessDetai
         </Dialog>
     );
 }
-

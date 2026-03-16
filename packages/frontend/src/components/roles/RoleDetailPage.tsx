@@ -25,22 +25,20 @@ import {
 } from '@mui/icons-material';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/services/api';
+import {
+  buildPermissionMatrixItem,
+  getPermissionCanonicalKey,
+  getPermissionCategoryDisplayLabel,
+  getPermissionGroupDisplayLabel,
+  normalizePermissionFromApi,
+  type AccessManagementPermission,
+} from '@/components/maintenance/access-management.utils';
+import { getRoleResponsibility } from '@/components/roles/role-responsibility.utils';
 
 type RoleType = 'SYSTEM' | 'BANKING' | 'CUSTOM';
 type RoleLevel = 'PLATFORM' | 'TENANT' | 'DEPARTMENT';
 
-interface Permission {
-  id: string;
-  code?: string;
-  displayName?: string;
-  description?: string;
-  category?: string;
-  module?: string;
-  resource?: string;
-  action?: string;
-  riskLevel?: string;
-  requiresApproval?: boolean;
-}
+type Permission = AccessManagementPermission;
 
 interface Role {
   id: string;
@@ -134,18 +132,9 @@ const normalizeRole = (raw: Record<string, unknown>): Role => ({
 
 const normalizePermissions = (raw: unknown): Permission[] => {
   const permissions = extractCollection<Record<string, unknown>>(raw, ['permissions']);
-  return permissions.map((item) => ({
-    id: String(item.id ?? ''),
-    code: typeof item.code === 'string' ? item.code : undefined,
-    displayName: typeof item.displayName === 'string' ? item.displayName : undefined,
-    description: typeof item.description === 'string' ? item.description : undefined,
-    category: typeof item.category === 'string' ? item.category : 'GENERAL',
-    module: typeof item.module === 'string' ? item.module : 'core',
-    resource: typeof item.resource === 'string' ? item.resource : '',
-    action: typeof item.action === 'string' ? item.action : '',
-    riskLevel: typeof item.riskLevel === 'string' ? item.riskLevel : undefined,
-    requiresApproval: Boolean(item.requiresApproval ?? item.requires_approval ?? false),
-  })).filter((permission) => permission.id.length > 0);
+  return permissions
+    .map((item) => normalizePermissionFromApi(item))
+    .filter((permission) => permission.id.length > 0);
 };
 
 const extractRolePermissionIds = (permissions: unknown): string[] => {
@@ -189,23 +178,43 @@ const toPermissionLabel = (permission: Permission): string => {
   return `${resource}.${action}`;
 };
 
-const groupByCategory = (permissions: Permission[]): Array<{
-  category: string;
+const groupByMenu = (permissions: Permission[]): Array<{
+  key: string;
+  label: string;
+  categoryLabel: string;
   permissions: Permission[];
 }> => {
-  const map = new Map<string, Permission[]>();
+  const map = new Map<string, {
+    key: string;
+    label: string;
+    categoryLabel: string;
+    permissions: Permission[];
+  }>();
+
   permissions.forEach((permission) => {
-    const key = (permission.category || 'GENERAL').toUpperCase();
-    if (!map.has(key)) map.set(key, []);
-    map.get(key)!.push(permission);
+    const item = buildPermissionMatrixItem(permission);
+    const key = item.groupKey;
+
+    if (!map.has(key)) {
+      map.set(key, {
+        key,
+        label: getPermissionGroupDisplayLabel(key, 'breadcrumb'),
+        categoryLabel: getPermissionCategoryDisplayLabel(item.categoryKey || 'general'),
+        permissions: [],
+      });
+    }
+
+    map.get(key)!.permissions.push(permission);
   });
 
   return Array.from(map.entries())
-    .map(([category, items]) => ({
-      category,
-      permissions: items.sort((a, b) => toPermissionLabel(a).localeCompare(toPermissionLabel(b))),
+    .map(([, group]) => ({
+      ...group,
+      permissions: group.permissions.sort((a, b) =>
+        getPermissionCanonicalKey(a).localeCompare(getPermissionCanonicalKey(b))
+      ),
     }))
-    .sort((a, b) => a.category.localeCompare(b.category));
+    .sort((a, b) => a.label.localeCompare(b.label));
 };
 
 const normalizeCode = (value: unknown): string =>
@@ -348,7 +357,7 @@ export default function RoleDetailPage({ roleId }: { roleId: string }) {
     });
   }, [permissions, search]);
 
-  const permissionGroups = useMemo(() => groupByCategory(filteredPermissions), [filteredPermissions]);
+  const permissionGroups = useMemo(() => groupByMenu(filteredPermissions), [filteredPermissions]);
 
   const selectedPermissionSet = useMemo(() => new Set(selectedPermissionIds), [selectedPermissionIds]);
 
@@ -361,6 +370,11 @@ export default function RoleDetailPage({ roleId }: { roleId: string }) {
     }
     return false;
   }, [initialPermissionIds, selectedPermissionIds]);
+
+  const responsibility = useMemo(
+    () => getRoleResponsibility({ name: role?.name, displayName: role?.displayName }),
+    [role]
+  );
 
   const highRiskCount = useMemo(() => {
     const byId = new Map(permissions.map((permission) => [permission.id, permission]));
@@ -507,6 +521,24 @@ export default function RoleDetailPage({ roleId }: { roleId: string }) {
           <Card variant="outlined" sx={{ mb: 2 }}>
             <CardContent>
               <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+                Role Responsibility
+              </Typography>
+              <Stack direction="row" spacing={1} sx={{ mb: 1, flexWrap: 'wrap' }}>
+                <Chip size="small" label={responsibility.label} color={responsibility.color} variant="outlined" />
+                <Chip size="small" label={responsibility.scope} variant="outlined" />
+                {responsibility.approvalLane && (
+                  <Chip size="small" label={responsibility.approvalLane} color="info" variant="outlined" />
+                )}
+              </Stack>
+              <Typography variant="body2" color="text.secondary">
+                {responsibility.summary}
+              </Typography>
+            </CardContent>
+          </Card>
+
+          <Card variant="outlined" sx={{ mb: 2 }}>
+            <CardContent>
+              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
                 Approval Eligibility
               </Typography>
 
@@ -575,7 +607,7 @@ export default function RoleDetailPage({ roleId }: { roleId: string }) {
                 Permissions
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Permission groups are shown vertically. Select per permission or per category.
+                Permission groups are shown per menu. Select per permission or per menu section.
               </Typography>
 
               <TextField
@@ -598,7 +630,7 @@ export default function RoleDetailPage({ roleId }: { roleId: string }) {
                     const someSelected = selectedCount > 0 && selectedCount < ids.length;
 
                     return (
-                      <Box key={group.category} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1.5 }}>
+                      <Box key={group.key} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1.5 }}>
                         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
                           <FormControlLabel
                             control={(
@@ -608,7 +640,16 @@ export default function RoleDetailPage({ roleId }: { roleId: string }) {
                                 onChange={(event) => toggleCategory(group.permissions, event.target.checked)}
                               />
                             )}
-                            label={<Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{group.category}</Typography>}
+                            label={(
+                              <Box>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                                  {group.label}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  {group.categoryLabel}
+                                </Typography>
+                              </Box>
+                            )}
                           />
                           <Chip size="small" label={`${selectedCount}/${ids.length}`} variant="outlined" />
                         </Stack>
