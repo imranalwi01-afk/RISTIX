@@ -55,6 +55,7 @@ import {
   ApprovalNotification,
   ApprovalStatusBadge,
   PendingChangesDialog,
+  buildApprovalConflictNotification,
   buildApprovalNotification,
   createClosedApprovalNotification,
   type ApprovalNotificationState,
@@ -84,6 +85,12 @@ export default function JournalParametersPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [approvalNotification, setApprovalNotification] = useState<ApprovalNotificationState>(createClosedApprovalNotification());
+  const showApprovalConflict = (error: unknown, fallbackMessage: string) => {
+    const notification = buildApprovalConflictNotification(error, fallbackMessage);
+    if (!notification) return false;
+    setApprovalNotification(notification);
+    return true;
+  };
   const [exportMenuAnchor, setExportMenuAnchor] = useState<null | HTMLElement>(null);
 
   // Approval Modal State
@@ -389,8 +396,10 @@ export default function JournalParametersPage() {
 
     } catch (error: any) {
       console.error('❌ Failed to delete journal entry:', error);
-      const errorInfo = handleAPIError(error);
-      setError(`Failed to delete journal entry: ${errorInfo.message}`);
+      if (!showApprovalConflict(error, 'Deletion submitted for approval')) {
+        const errorInfo = handleAPIError(error);
+        setError(`Failed to delete journal entry: ${errorInfo.message}`);
+      }
     } finally {
       setLoading(false);
     }

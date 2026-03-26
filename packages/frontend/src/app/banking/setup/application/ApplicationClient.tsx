@@ -64,6 +64,7 @@ import {
   ApprovalNotification,
   ApprovalStatusBadge,
   PendingChangesDialog,
+  buildApprovalConflictNotification,
   buildApprovalNotification,
   createClosedApprovalNotification,
   type ApprovalNotificationState,
@@ -223,6 +224,12 @@ export default function ApplicationSettingPage() {
   const [selectedRecord, setSelectedRecord] = useState<ApplicationSettingDataTable | null>(null);
   const [selectedDetail, setSelectedDetail] = useState<ApplicationSettingDetailDataTable | null>(null);
   const [approvalNotification, setApprovalNotification] = useState<ApprovalNotificationState>(createClosedApprovalNotification());
+  const showApprovalConflict = (error: unknown, fallbackMessage: string) => {
+    const notification = buildApprovalConflictNotification(error, fallbackMessage);
+    if (!notification) return false;
+    setApprovalNotification(notification);
+    return true;
+  };
 
   const [detailData, setDetailData] = useState<ApplicationSettingDetailDataTable[]>([]);
 
@@ -412,7 +419,9 @@ export default function ApplicationSettingPage() {
       }
       await loadData();
     } catch (e) {
-      setError(handleAPIError(e).message);
+      if (!showApprovalConflict(e, 'Deletion submitted for approval')) {
+        setError(handleAPIError(e).message);
+      }
     } finally {
       setLoading(false);
     }
@@ -451,7 +460,9 @@ export default function ApplicationSettingPage() {
       setEditModalOpen(false);
       loadData();
     } catch (e) {
-      setError(handleAPIError(e).message);
+      if (!showApprovalConflict(e, 'Request submitted for approval')) {
+        setError(handleAPIError(e).message);
+      }
     } finally {
       setLoading(false);
     }
@@ -488,7 +499,9 @@ export default function ApplicationSettingPage() {
       if (selectedRecord) loadDetailData(selectedRecord.CommonCode); // For View Dialog
 
     } catch (e) {
-      setError(handleAPIError(e).message);
+      if (!showApprovalConflict(e, 'Detail deletion submitted for approval')) {
+        setError(handleAPIError(e).message);
+      }
     }
   }
   // Export function removed temporarily due to missing dependencies
@@ -560,7 +573,9 @@ export default function ApplicationSettingPage() {
       // For now, the detail panel itself fetches on mount/update so we are good if we trigger a re-render or if the user collapses/expands
       loadData(); // This refreshes the parent, but details are fetched by the panel
     } catch (e) {
-      setError(handleAPIError(e).message);
+      if (!showApprovalConflict(e, 'Request submitted for approval')) {
+        setError(handleAPIError(e).message);
+      }
     } finally {
       setDetailLoading(false);
     }
@@ -922,7 +937,9 @@ export default function ApplicationSettingPage() {
                                       }
                                     } catch (error) {
                                       console.error('❌ Failed to delete detail:', error);
-                                      setError(`Failed to delete detail: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                                      if (!showApprovalConflict(error, 'Detail deletion submitted for approval')) {
+                                        setError(`Failed to delete detail: ${handleAPIError(error).message}`);
+                                      }
                                     } finally {
                                       setDetailLoading(false);
                                     }

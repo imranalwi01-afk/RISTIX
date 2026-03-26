@@ -43,6 +43,7 @@ import {
 import {
   ApprovalNotification,
   ApprovalStatusBadge,
+  buildApprovalConflictNotification,
   buildApprovalNotification,
   createClosedApprovalNotification,
   type ApprovalNotificationState,
@@ -158,6 +159,12 @@ export default function FLScalarManagementPage() {
 
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const [approvalNotification, setApprovalNotification] = useState<ApprovalNotificationState>(createClosedApprovalNotification());
+  const showApprovalConflict = (error: unknown, fallbackMessage: string) => {
+    const notification = buildApprovalConflictNotification(error, fallbackMessage);
+    if (!notification) return false;
+    setApprovalNotification(notification);
+    return true;
+  };
   const [snackbar, setSnackbar] = useState<{ open: boolean, message: string, type: 'success' | 'error' }>({ open: false, message: '', type: 'success' });
 
   // Dialog form state
@@ -312,28 +319,35 @@ export default function FLScalarManagementPage() {
   };
 
   const handleSaveResult = async (isEdit: boolean, saveData: any) => {
-    let result: any;
-    if (isEdit) {
-      result = await api.banking.flScalar.update(formData.pkid!.toString(), saveData);
-    } else {
-      result = await api.banking.flScalar.create(saveData);
+    try {
+      let result: any;
+      if (isEdit) {
+        result = await api.banking.flScalar.update(formData.pkid!.toString(), saveData);
+      } else {
+        result = await api.banking.flScalar.create(saveData);
+      }
+
+      const isApprovalResponse = result.approvalRequired || result.status === 202;
+
+      if (isApprovalResponse) {
+        setApprovalNotification(buildApprovalNotification(result, 'Request submitted for approval'));
+      } else {
+        setSnackbar({
+          open: true,
+          message: isEdit ? 'FL Scalar updated' : 'FL Scalar created',
+          type: 'success'
+        });
+      }
+
+      await loadScalars();
+      await loadPendingApprovals();
+      closeDialog();
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      if (!showApprovalConflict(err, 'Request submitted for approval')) {
+        setError(`Failed to save FL Scalar: ${errorMessage}`);
+      }
     }
-
-    const isApprovalResponse = result.approvalRequired || result.status === 202;
-
-    if (isApprovalResponse) {
-      setApprovalNotification(buildApprovalNotification(result, 'Request submitted for approval'));
-    } else {
-      setSnackbar({
-        open: true,
-        message: isEdit ? 'FL Scalar updated' : 'FL Scalar created',
-        type: 'success'
-      });
-    }
-
-    await loadScalars();
-    await loadPendingApprovals();
-    closeDialog();
   };
 
   const handleDelete = async (id: GridRowId) => {
@@ -356,8 +370,10 @@ export default function FLScalarManagementPage() {
       await loadScalars();
       await loadPendingApprovals();
     } catch (err) {
-      const errorMessage = `Failed to delete FL Scalar: ${err.message || err}`;
-      setError(errorMessage);
+      const errorMessage = `Failed to delete FL Scalar: ${err instanceof Error ? err.message : String(err)}`;
+      if (!showApprovalConflict(err, 'Deletion request submitted for approval')) {
+        setError(errorMessage);
+      }
     } finally {
       setLoading(false);
     }

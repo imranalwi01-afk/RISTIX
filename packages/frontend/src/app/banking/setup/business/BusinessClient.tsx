@@ -35,6 +35,7 @@ import {
     ApprovalNotification,
     ApprovalStatusBadge,
     PendingChangesDialog,
+    buildApprovalConflictNotification,
     buildApprovalNotification,
     createClosedApprovalNotification,
     type ApprovalNotificationState,
@@ -380,6 +381,12 @@ export default function BusinessClient() {
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
     const [approvalNotification, setApprovalNotification] = useState<ApprovalNotificationState>(createClosedApprovalNotification());
+    const showApprovalConflict = (error: unknown, fallbackMessage: string) => {
+        const notification = buildApprovalConflictNotification(error, fallbackMessage);
+        if (!notification) return false;
+        setApprovalNotification(notification);
+        return true;
+    };
 
     // Pagination State (Segmentation Pattern)
     const [page, setPage] = useState(0);
@@ -503,7 +510,11 @@ export default function BusinessClient() {
             }
             setParamDialogOpen(false);
             loadBusinessParameters();
-        } catch (e) { setError(handleAPIError(e).message); }
+        } catch (e) {
+            if (!showApprovalConflict(e, editingParameter ? 'Update submitted for approval' : 'Creation submitted for approval')) {
+                setError(handleAPIError(e).message);
+            }
+        }
     };
 
     const handleDeleteParameter = async (row: BusinessParameter) => {
@@ -517,7 +528,11 @@ export default function BusinessClient() {
                 setSuccess('Deleted successfully');
             }
             loadBusinessParameters();
-        } catch (e) { setError(handleAPIError(e).message); }
+        } catch (e) {
+            if (!showApprovalConflict(e, 'Deletion submitted for approval')) {
+                setError(handleAPIError(e).message);
+            }
+        }
     };
 
     const handleSaveDetail = async (form: BusinessParameterDetailFormData) => {
@@ -555,7 +570,9 @@ export default function BusinessClient() {
             setDetailRefreshTrigger(prev => prev + 1);
         } catch (e) {
             const err = handleAPIError(e);
-            setError(err.message);
+            if (!showApprovalConflict(e, editingDetail ? 'Detail update submitted for approval' : 'Detail creation submitted for approval')) {
+                setError(err.message);
+            }
         }
     };
 
@@ -570,7 +587,11 @@ export default function BusinessClient() {
                 setSuccess('Detail deleted successfully');
             }
             setDetailRefreshTrigger(prev => prev + 1);
-        } catch (e) { setError(handleAPIError(e).message); }
+        } catch (e) {
+            if (!showApprovalConflict(e, 'Detail deletion submitted for approval')) {
+                setError(handleAPIError(e).message);
+            }
+        }
     };
 
     // Columns

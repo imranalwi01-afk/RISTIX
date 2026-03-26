@@ -222,10 +222,20 @@ export const createApprovalRequest = (
 
             if (existingPending) {
                 throw new ConflictError({
-                    message: 'A similar approval request is already pending',
+                    message: `A similar approval request is already pending for ${input.entityType} "${input.title}"`,
                     resource: 'approval_request',
                     field: input.entityId ? 'entity_id' : 'title',
                     value: input.entityId ?? input.title,
+                    details: {
+                        duplicateRequestId: existingPending.id,
+                        entityType: input.entityType,
+                        entityId: input.entityId ?? null,
+                        title: input.title,
+                        operation: operation ?? null,
+                        requestedBy: input.requestedBy,
+                        existingStatus: existingPending.status,
+                        existingCreatedAt: existingPending.createdAt,
+                    },
                 })
             }
 
@@ -411,10 +421,29 @@ export const processApprovalAction = (
                     && resolvedApproverContext.permissions.has(SUPER_ADMIN_PERMISSION_CODE)
 
                 if (!eligibleByRouting && !canBypassLevelRouting) {
+                    const userRoleCodes = Array.from(resolvedApproverContext.roleCodes).sort()
+                    const userApprovalPermissions = Array.from(resolvedApproverContext.permissions)
+                        .filter((permission) =>
+                            permission === 'approval.requests.approve'
+                            || permission === 'approval.all'
+                            || permission === 'admin.super_admin'
+                        )
+                        .sort()
+
                     throw new AuthorizationError({
-                        message: `You are not eligible to approve level ${request.currentLevel}`,
+                        message: `You are not eligible to approve level ${request.currentLevel}. Required roles: ${currentLevelConfig.requiredRoleCodes.join(', ') || 'none'}. Required permissions: ${currentLevelConfig.requiredPermissionCodes.join(', ') || 'none'}. Your roles: ${userRoleCodes.join(', ') || 'none'}. Your approval permissions: ${userApprovalPermissions.join(', ') || 'none'}.`,
                         requiredPermission: `approval.level.${request.currentLevel}`,
                         userId: input.approverId,
+                        details: {
+                            requestId: request.id,
+                            entityType: request.entityType,
+                            currentLevel: request.currentLevel,
+                            requiredRoleCodes: currentLevelConfig.requiredRoleCodes,
+                            requiredPermissionCodes: currentLevelConfig.requiredPermissionCodes,
+                            userRoleCodes,
+                            userApprovalPermissions,
+                            matrixId: request.matrixId ?? null,
+                        },
                     })
                 }
 

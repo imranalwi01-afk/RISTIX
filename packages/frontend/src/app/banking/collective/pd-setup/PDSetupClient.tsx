@@ -55,6 +55,7 @@ import { PopulationSegment, filterPopulationSegmentsByType } from '@/services/ap
 import {
   ApprovalNotification,
   ApprovalStatusBadge,
+  buildApprovalConflictNotification,
   buildApprovalNotification,
   createClosedApprovalNotification,
   type ApprovalNotificationState,
@@ -127,6 +128,12 @@ const PdSetupPage = () => {
 
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const [approvalNotification, setApprovalNotification] = useState<ApprovalNotificationState>(createClosedApprovalNotification());
+  const showApprovalConflict = (error: unknown, fallbackMessage: string) => {
+    const notification = buildApprovalConflictNotification(error, fallbackMessage);
+    if (!notification) return false;
+    setApprovalNotification(notification);
+    return true;
+  };
   const [snackbar, setSnackbar] = useState<{ open: boolean, message: string, type: 'success' | 'error' }>({ open: false, message: '', type: 'success' });
 
   // Load Data
@@ -255,8 +262,10 @@ const PdSetupPage = () => {
       setSelectedConfig(null);
     } catch (err) {
       console.error('Save failed:', err);
-      const message = err instanceof Error ? err.message : 'Failed to save configuration.';
-      setError(message);
+      if (!showApprovalConflict(err, 'Request submitted for approval')) {
+        const message = err instanceof Error ? err.message : 'Failed to save configuration.';
+        setError(message);
+      }
     } finally {
       setLoading(false);
     }
@@ -279,8 +288,10 @@ const PdSetupPage = () => {
       await loadPendingApprovals();
     } catch (err) {
       console.error('Delete failed:', err);
-      const message = err instanceof Error ? err.message : 'Failed to delete configuration.';
-      setError(message);
+      if (!showApprovalConflict(err, 'Deletion request submitted for approval')) {
+        const message = err instanceof Error ? err.message : 'Failed to delete configuration.';
+        setError(message);
+      }
     } finally {
       setLoading(false);
     }

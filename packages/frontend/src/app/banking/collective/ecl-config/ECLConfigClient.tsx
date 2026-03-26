@@ -77,6 +77,7 @@ import { SafeDataGrid, SafeGridActionsCellItem } from '@/components/shared/SafeD
 import {
   ApprovalNotification,
   ApprovalStatusBadge,
+  buildApprovalConflictNotification,
   buildApprovalNotification,
   createClosedApprovalNotification,
   type ApprovalNotificationState,
@@ -468,6 +469,12 @@ export default function ECLConfigurationPage() {
   const [runningConfigId, setRunningConfigId] = useState<number | null>(null);
   const [runningAll, setRunningAll] = useState(false);
   const [approvalNotification, setApprovalNotification] = useState<ApprovalNotificationState>(createClosedApprovalNotification());
+  const showApprovalConflict = (error: unknown, fallbackMessage: string) => {
+    const notification = buildApprovalConflictNotification(error, fallbackMessage);
+    if (!notification) return false;
+    setApprovalNotification(notification);
+    return true;
+  };
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; type: 'success' | 'error' }>({
     open: false,
     message: '',
@@ -864,7 +871,9 @@ export default function ECLConfigurationPage() {
 
     } catch (error) {
       console.error('❌ [ECL-CONFIG] Error saving configuration:', error);
-      setError(isEditing ? 'Failed to update ECL configuration.' : 'Failed to create ECL configuration.');
+      if (!showApprovalConflict(error, 'Request submitted for approval')) {
+        setError(isEditing ? 'Failed to update ECL configuration.' : 'Failed to create ECL configuration.');
+      }
     } finally {
       setLoading(false);
     }
@@ -895,7 +904,9 @@ export default function ECLConfigurationPage() {
       await loadPendingApprovals();
     } catch (error) {
       console.error('❌ [ECL-CONFIG] Error deleting configuration:', error);
-      setError('Failed to delete ECL configuration.');
+      if (!showApprovalConflict(error, 'Deletion request submitted for approval')) {
+        setError('Failed to delete ECL configuration.');
+      }
     } finally {
       setLoading(false);
     }

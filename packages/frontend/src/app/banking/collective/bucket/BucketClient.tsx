@@ -62,6 +62,7 @@ import { FullstackIndicator } from '@/components/common/feedback/FullstackIndica
 import {
   ApprovalNotification,
   ApprovalStatusBadge,
+  buildApprovalConflictNotification,
   buildApprovalNotification,
   createClosedApprovalNotification,
   type ApprovalNotificationState,
@@ -394,6 +395,12 @@ export default function BucketParameterPage() {
 
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const [approvalNotification, setApprovalNotification] = useState<ApprovalNotificationState>(createClosedApprovalNotification());
+  const showApprovalConflict = (error: unknown, fallbackMessage: string) => {
+    const notification = buildApprovalConflictNotification(error, fallbackMessage);
+    if (!notification) return false;
+    setApprovalNotification(notification);
+    return true;
+  };
   const [snackbar, setSnackbar] = useState<{ open: boolean, message: string, type: 'success' | 'error' }>({ open: false, message: '', type: 'success' });
 
   // Error State
@@ -526,7 +533,9 @@ export default function BucketParameterPage() {
       loadBucketHeaders();
       loadPendingApprovals();
     } catch (error) {
-      setSnackbar({ open: true, message: error.message || 'Error deleting bucket parameter', type: 'error' });
+      if (!showApprovalConflict(error, 'Deletion request submitted for approval')) {
+        setSnackbar({ open: true, message: error.message || 'Error deleting bucket parameter', type: 'error' });
+      }
     }
   };
 
@@ -570,7 +579,9 @@ export default function BucketParameterPage() {
       loadBucketHeaders();
       loadPendingApprovals();
     } catch (error) {
-      setSnackbar({ open: true, message: error.message || 'Error deleting detail', type: 'error' });
+      if (!showApprovalConflict(error, 'Deletion request submitted for approval')) {
+        setSnackbar({ open: true, message: error.message || 'Error deleting detail', type: 'error' });
+      }
     }
   };
 
@@ -604,7 +615,9 @@ export default function BucketParameterPage() {
       loadBucketHeaders();
       loadPendingApprovals();
     } catch (error) {
-      setSnackbar({ open: true, message: error.message || 'Error saving bucket parameter', type: 'error' });
+      if (!showApprovalConflict(error, 'Request submitted for approval')) {
+        setSnackbar({ open: true, message: error.message || 'Error saving bucket parameter', type: 'error' });
+      }
     }
   };
 
@@ -639,7 +652,9 @@ export default function BucketParameterPage() {
       loadBucketHeaders();
       loadPendingApprovals();
     } catch (error) {
-      setSnackbar({ open: true, message: error.message || 'Error saving bucket detail', type: 'error' });
+      if (!showApprovalConflict(error, 'Request submitted for approval')) {
+        setSnackbar({ open: true, message: error.message || 'Error saving bucket detail', type: 'error' });
+      }
     }
   };
 

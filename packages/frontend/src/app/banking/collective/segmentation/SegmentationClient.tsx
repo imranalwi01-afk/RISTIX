@@ -42,6 +42,7 @@ import { bankingAPI } from '@/services/api';
 import {
   ApprovalNotification,
   ApprovalStatusBadge,
+  buildApprovalConflictNotification,
   buildApprovalNotification,
   createClosedApprovalNotification,
   type ApprovalNotificationState,
@@ -117,6 +118,12 @@ export default function SegmentationClient() {
   const [approvalNotification, setApprovalNotification] = useState<ApprovalNotificationState>(
     createClosedApprovalNotification()
   );
+  const showApprovalConflict = (error: unknown, fallbackMessage: string) => {
+    const notification = buildApprovalConflictNotification(error, fallbackMessage);
+    if (!notification) return false;
+    setApprovalNotification(notification);
+    return true;
+  };
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const activeFiltersCount = Object.values(filters).filter((v) => String(v || '').trim().length > 0).length;
 
@@ -283,11 +290,13 @@ export default function SegmentationClient() {
       loadHeaders();
       loadPendingApprovals();
     } catch (err) {
-      setSnackbar({
-        open: true,
-        message: getErrorMessage(err, 'Delete failed'),
-        type: 'error'
-      });
+      if (!showApprovalConflict(err, 'Deletion request submitted for approval')) {
+        setSnackbar({
+          open: true,
+          message: getErrorMessage(err, 'Delete failed'),
+          type: 'error'
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -346,11 +355,13 @@ export default function SegmentationClient() {
       loadHeaders();
       loadPendingApprovals();
     } catch (err) {
-      setSnackbar({
-        open: true,
-        message: getErrorMessage(err, 'Save failed'),
-        type: 'error'
-      });
+      if (!showApprovalConflict(err, 'Request submitted for approval')) {
+        setSnackbar({
+          open: true,
+          message: getErrorMessage(err, 'Save failed'),
+          type: 'error'
+        });
+      }
     } finally {
       setLoading(false);
     }

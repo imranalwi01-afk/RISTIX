@@ -66,6 +66,7 @@ import { FullstackIndicator } from '@/components/common/feedback/FullstackIndica
 import {
   ApprovalNotification,
   ApprovalStatusBadge,
+  buildApprovalConflictNotification,
   buildApprovalNotification,
   createClosedApprovalNotification,
   type ApprovalNotificationState,
@@ -527,6 +528,12 @@ export default function RuleBaseSettingPage() {
 
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const [approvalNotification, setApprovalNotification] = useState<ApprovalNotificationState>(createClosedApprovalNotification());
+  const showApprovalConflict = (error: unknown, fallbackMessage: string) => {
+    const notification = buildApprovalConflictNotification(error, fallbackMessage);
+    if (!notification) return false;
+    setApprovalNotification(notification);
+    return true;
+  };
   const [snackbar, setSnackbar] = useState<{ open: boolean, message: string, type: 'success' | 'error' }>({ open: false, message: '', type: 'success' });
 
   const triggerRefresh = (headerId: number) => {
@@ -843,8 +850,10 @@ export default function RuleBaseSettingPage() {
 
     } catch (error) {
       console.error('❌ Failed to delete rule header:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      setError(`Failed to delete rule header: ${errorMessage}`);
+      if (!showApprovalConflict(error, 'Deletion request submitted for approval')) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+        setError(`Failed to delete rule header: ${errorMessage}`);
+      }
     } finally {
       setLoading(false);
     }
@@ -892,8 +901,10 @@ export default function RuleBaseSettingPage() {
 
     } catch (error) {
       console.error('❌ Failed to save rule header:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      setError(`Failed to save rule header: ${errorMessage}`);
+      if (!showApprovalConflict(error, 'Request submitted for approval')) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+        setError(`Failed to save rule header: ${errorMessage}`);
+      }
     } finally {
       setLoading(false);
     }
@@ -992,8 +1003,10 @@ export default function RuleBaseSettingPage() {
 
     } catch (error) {
       console.error('❌ Failed to delete rule detail:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      setError(`Failed to delete rule detail: ${errorMessage}`);
+      if (!showApprovalConflict(error, 'Deletion request submitted for approval')) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+        setError(`Failed to delete rule detail: ${errorMessage}`);
+      }
     } finally {
       setLoading(false);
     }
@@ -1051,8 +1064,10 @@ export default function RuleBaseSettingPage() {
 
     } catch (error) {
       console.error('❌ Failed to save rule detail:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      setError(`Failed to save rule detail: ${errorMessage}`);
+      if (!showApprovalConflict(error, 'Request submitted for approval')) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+        setError(`Failed to save rule detail: ${errorMessage}`);
+      }
     } finally {
       setLoading(false);
     }
