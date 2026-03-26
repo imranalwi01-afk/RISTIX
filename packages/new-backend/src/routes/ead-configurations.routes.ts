@@ -7,6 +7,7 @@ import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
 import { interceptCreate, interceptUpdate, interceptDelete } from '../middleware/approval-interceptor.middleware'
 import { runEffect } from '../lib/effect/runtime'
+import { buildErrorResponse } from '../lib/http/error-response'
 
 export const eadConfigurationsRoutes = new OpenAPIHono<AppContext>()
 
@@ -187,7 +188,7 @@ eadConfigurationsRoutes.openapi(
     async (c) => {
         try {
             const { id } = c.req.valid('param')
-            if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400) as any;
+            if (isNaN(id)) return c.json(buildErrorResponse(c, { error: 'Invalid ID', message: 'Invalid ID', code: 'BAD_REQUEST' }), 400) as any;
 
             const [config] = await db
                 .select()
@@ -282,7 +283,7 @@ eadConfigurationsRoutes.openapi(
     }),
     async (c) => {
         const { id } = c.req.valid('param')
-        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400) as any;
+        if (isNaN(id)) return c.json(buildErrorResponse(c, { error: 'Invalid ID', message: 'Invalid ID', code: 'BAD_REQUEST' }), 400) as any;
         const userId = c.get('userId') as string
         const tenantId = c.get('tenantId') as string
         const userPermissions = c.get('permissions') || []
@@ -351,7 +352,7 @@ eadConfigurationsRoutes.openapi(
     }),
     async (c) => {
         const { id } = c.req.valid('param')
-        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400);
+        if (isNaN(id)) return c.json(buildErrorResponse(c, { error: 'Invalid ID', message: 'Invalid ID', code: 'BAD_REQUEST' }), 400);
 
         const userId = c.get('userId') as string
         const tenantId = c.get('tenantId') as string

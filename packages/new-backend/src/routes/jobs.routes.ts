@@ -5,12 +5,19 @@ import { getDatabase, legacyConnection } from '../config/database'
 import { approvalRequests, jobDefinitions, jobExecutions } from '../db/schema'
 import { eq, desc, and, sql, inArray } from 'drizzle-orm'
 import { addJob, getJob } from '../services/queue.service'
+import { buildErrorResponse } from '../lib/http/error-response'
 
 export const jobsRoutes = new OpenAPIHono<AppContext>()
 
 // Apply auth middleware
 jobsRoutes.use('*', authMiddleware)
 jobsRoutes.use('*', tenantMiddleware)
+
+const badRequest = (c: any, message: string) =>
+    c.json(buildErrorResponse(c, { error: message, message, code: 'BAD_REQUEST' }), 400)
+
+const notFound = (c: any, message: string) =>
+    c.json(buildErrorResponse(c, { error: message, message, code: 'NOT_FOUND' }), 404)
 
 // =============================================================================
 // SCHEMA DEFINITIONS
@@ -914,7 +921,7 @@ jobsRoutes.openapi(
             .limit(1)
 
         if (!execution.length) {
-            return c.json({ error: 'Execution not found' } as any, 404)
+            return notFound(c, 'Execution not found')
         }
 
         const e = await reconcileExecutionStatus(targetDb, execution[0])
@@ -985,7 +992,7 @@ jobsRoutes.openapi(
             .limit(1)
 
         if (!execution) {
-            return c.json({ error: 'Execution not found' } as any, 404)
+            return notFound(c, 'Execution not found')
         }
 
         const runtime = await getRuntimeSummary(execution)
@@ -1088,7 +1095,7 @@ jobsRoutes.openapi(
             .limit(1)
 
         if (!definition.length) {
-            return c.json({ error: 'Definition not found' } as any, 404)
+            return notFound(c, 'Definition not found')
         }
 
         const d = definition[0]
@@ -1249,11 +1256,11 @@ jobsRoutes.openapi(
             .limit(1)
 
         if (!definition) {
-            return c.json({ error: 'Job definition not found' } as any, 404)
+            return notFound(c, 'Job definition not found')
         }
 
         if (!definition.isEnabled) {
-            return c.json({ error: 'Job is disabled' } as any, 400)
+            return badRequest(c, 'Job is disabled')
         }
 
         if (!SUPPORTED_JOB_TYPES.includes(String(definition.jobType).toUpperCase() as any)) {
@@ -1539,7 +1546,7 @@ jobsRoutes.openapi(
         const job = await getJob(id)
 
         if (!job) {
-            return c.json({ error: 'Job not found' } as any, 404)
+            return notFound(c, 'Job not found')
         }
 
         // Control actions would be implemented here
@@ -1595,7 +1602,7 @@ jobsRoutes.openapi(
             .limit(1)
 
         if (!definition) {
-            return c.json({ error: 'Job definition not found' } as any, 404)
+            return notFound(c, 'Job definition not found')
         }
 
         const [updated] = await getDatabase(tenantId)
@@ -1742,19 +1749,19 @@ jobsRoutes.openapi(
             .limit(1)
 
         if (!execution) {
-            return c.json({ error: 'Execution not found' } as any, 404)
+            return notFound(c, 'Execution not found')
         }
 
         if (execution.approvalStatus !== 'pending') {
-            return c.json({ error: 'Execution is not pending approval' } as any, 400)
+            return badRequest(c, 'Execution is not pending approval')
         }
 
         if (execution.triggeredBy && execution.triggeredBy === userId) {
-            return c.json({ error: 'You cannot approve your own job execution' } as any, 400)
+            return badRequest(c, 'You cannot approve your own job execution')
         }
 
         if (!execution.approvalRequestId) {
-            return c.json({ error: 'Approval request is missing for this execution' } as any, 400)
+            return badRequest(c, 'Approval request is missing for this execution')
         }
 
         const jobApprovalService = await import('../services/job-approval.service')
@@ -1793,8 +1800,11 @@ jobsRoutes.openapi(
                     : 400
 
             return c.json({
-                success: false,
-                error: message,
+                ...buildErrorResponse(c, {
+                    error: message,
+                    message,
+                    code: statusCode === 404 ? 'NOT_FOUND' : statusCode === 409 ? 'CONFLICT' : 'BAD_REQUEST',
+                }),
             } as any, statusCode as any)
         }
     }
@@ -1869,15 +1879,15 @@ jobsRoutes.openapi(
             .limit(1)
 
         if (!execution) {
-            return c.json({ error: 'Execution not found' } as any, 404)
+            return notFound(c, 'Execution not found')
         }
 
         if (execution.approvalStatus !== 'pending') {
-            return c.json({ error: 'Execution is not pending approval' } as any, 400)
+            return badRequest(c, 'Execution is not pending approval')
         }
 
         if (!execution.approvalRequestId) {
-            return c.json({ error: 'Approval request is missing for this execution' } as any, 400)
+            return badRequest(c, 'Approval request is missing for this execution')
         }
 
         const jobApprovalService = await import('../services/job-approval.service')
@@ -1910,8 +1920,11 @@ jobsRoutes.openapi(
                     : 400
 
             return c.json({
-                success: false,
-                error: message,
+                ...buildErrorResponse(c, {
+                    error: message,
+                    message,
+                    code: statusCode === 404 ? 'NOT_FOUND' : statusCode === 409 ? 'CONFLICT' : 'BAD_REQUEST',
+                }),
             } as any, statusCode as any)
         }
     }

@@ -6,6 +6,7 @@ import { authMiddleware } from '../middleware'
 import { runEffect } from '../lib/effect'
 import { parsePaginationParams, parseFilterParams } from '../lib/react-admin'
 import * as tenantsService from '../services/tenants.service'
+import { buildErrorResponse } from '../lib/http/error-response'
 
 /**
  * Tenants Routes
@@ -34,6 +35,15 @@ const requirePlatformAdmin = (c: any) => {
         throw new Error('Unauthorized: Platform Admin access required')
     }
 }
+
+const forbidden = (c: any, message: string) =>
+    c.json(buildErrorResponse(c, { error: message, message, code: 'FORBIDDEN' }), 403)
+
+const badRequest = (c: any, message: string) =>
+    c.json(buildErrorResponse(c, { error: message, message, code: 'BAD_REQUEST' }), 400)
+
+const notFound = (c: any, message: string) =>
+    c.json(buildErrorResponse(c, { error: message, message, code: 'NOT_FOUND' }), 404)
 
 const toSettingsObject = (value: unknown): Record<string, unknown> | null => {
     if (value && typeof value === 'object' && !Array.isArray(value)) {
@@ -134,7 +144,7 @@ tenantsRoutes.openapi(
         },
     }),
     async (c: any) => {
-        try { requirePlatformAdmin(c) } catch (e: any) { return c.json({ success: false, error: e.message }, 403) }
+        try { requirePlatformAdmin(c) } catch (e: any) { return forbidden(c, e.message) }
 
         const pagination = parsePaginationParams(c)
         const filters = parseFilterParams(c)
@@ -215,7 +225,7 @@ tenantsRoutes.openapi(
         },
     }),
     async (c: any) => {
-        try { requirePlatformAdmin(c) } catch (e: any) { return c.json({ success: false, error: e.message }, 403) }
+        try { requirePlatformAdmin(c) } catch (e: any) { return forbidden(c, e.message) }
 
         const body = c.req.valid('json')
 
@@ -275,7 +285,7 @@ tenantsRoutes.openapi(
     async (c: any) => {
         const tenantId = c.get('tenantId')
         if (!tenantId) {
-            return c.json({ success: false, error: 'No tenant context' } as any, 400)
+            return badRequest(c, 'No tenant context')
         }
 
         const effect = pipe(
@@ -298,7 +308,7 @@ tenantsRoutes.openapi(
         try {
             return runEffect(c, effect)
         } catch (e: any) {
-            return c.json({ success: false, error: e.message }, 404)
+            return notFound(c, e.message)
         }
     }
 )
@@ -345,7 +355,7 @@ tenantsRoutes.openapi(
 
         const tenant = await Effect.runPromise(tenantsService.getTenantBySlug(slug))
         if (!tenant) {
-            return c.json({ success: false, error: 'Tenant not found' } as any, 404)
+            return notFound(c, 'Tenant not found')
         }
         return c.json({
             success: true,
@@ -416,7 +426,7 @@ tenantsRoutes.openapi(
         try {
             return runEffect(c, effect)
         } catch (e: any) {
-            return c.json({ success: false, error: e.message } as any, 404)
+            return notFound(c, e.message)
         }
     }
 )
@@ -472,7 +482,7 @@ tenantsRoutes.openapi(
         },
     }),
     async (c: any) => {
-        try { requirePlatformAdmin(c) } catch (e: any) { return c.json({ success: false, error: e.message }, 403) }
+        try { requirePlatformAdmin(c) } catch (e: any) { return forbidden(c, e.message) }
 
         const { id } = c.req.valid('param')
         const body = c.req.valid('json')
@@ -497,7 +507,7 @@ tenantsRoutes.openapi(
         try {
             return runEffect(c, effect)
         } catch (e: any) {
-            return c.json({ success: false, error: e.message } as any, 404)
+            return notFound(c, e.message)
         }
     }
 )
@@ -540,7 +550,7 @@ tenantsRoutes.openapi(
         },
     }),
     async (c: any) => {
-        try { requirePlatformAdmin(c) } catch (e: any) { return c.json({ success: false, error: e.message }, 403) }
+        try { requirePlatformAdmin(c) } catch (e: any) { return forbidden(c, e.message) }
 
         const { id } = c.req.valid('param')
         const effect = pipe(
@@ -582,7 +592,7 @@ tenantsRoutes.openapi(
         }
     }),
     async (c: any) => {
-        try { requirePlatformAdmin(c) } catch (e: any) { return c.json({ success: false, error: e.message }, 403) }
+        try { requirePlatformAdmin(c) } catch (e: any) { return forbidden(c, e.message) }
 
         const { id } = c.req.valid('param' as any)
 
@@ -624,7 +634,7 @@ tenantsRoutes.openapi(
         }
     }),
     async (c: any) => {
-        try { requirePlatformAdmin(c) } catch (e: any) { return c.json({ success: false, error: e.message }, 403) }
+        try { requirePlatformAdmin(c) } catch (e: any) { return forbidden(c, e.message) }
 
         const { id } = c.req.valid('param' as any)
 

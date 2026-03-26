@@ -8,6 +8,7 @@ import { authMiddleware } from '../middleware'
 import { interceptCreate, interceptUpdate, interceptDelete } from '../middleware/approval-interceptor.middleware'
 import { runEffect, handleEffectError } from '../lib/effect/runtime'
 import type { ApprovalResponse } from '../lib/approval-helpers'
+import { buildErrorResponse } from '../lib/http/error-response'
 
 export const segmentationRoutes: any = new OpenAPIHono<AppContext>()
 
@@ -68,7 +69,11 @@ const MetadataListResponse = z.object({
 const ErrorResponse = z.object({
     success: z.literal(false),
     error: z.string(),
-    message: z.string().optional()
+    message: z.string().optional(),
+    code: z.string().optional(),
+    requestId: z.string().nullable().optional(),
+    timestamp: z.string().optional(),
+    details: z.unknown().optional(),
 }).openapi('ErrorResponse')
 
 const ApprovalWorkflowResponse = z.object({
@@ -157,6 +162,15 @@ const getSegmentDetailSnapshot = (detailId: number) =>
         catch: (error) => error
     })
 
+const badRequest = (c: any, message: string) =>
+    c.json(buildErrorResponse(c, { error: message, message, code: 'BAD_REQUEST' }), 400)
+
+const notFound = (c: any, message: string) =>
+    c.json(buildErrorResponse(c, { error: message, message, code: 'NOT_FOUND' }), 404)
+
+const serverError = (c: any, message: string, details?: unknown) =>
+    c.json(buildErrorResponse(c, { error: message, message, code: 'SEGMENTATION_ERROR', details }), 500)
+
 // ============================================================================
 // ENDPOINTS
 // ============================================================================
@@ -192,7 +206,7 @@ segmentationRoutes.openapi(
             });
         } catch (error) {
             console.error('Error fetching segment types:', error);
-            return c.json({ success: false, error: 'Failed to fetch segment types' }, 500);
+            return serverError(c, 'Failed to fetch segment types', String(error));
         }
     }
 )
@@ -285,7 +299,7 @@ segmentationRoutes.openapi(
             });
         } catch (error) {
             console.error('Error fetching segments:', error);
-            return c.json({ error: 'Failed to fetch segments' }, 500);
+            return serverError(c, 'Failed to fetch segments', String(error));
         }
     }
 )
@@ -309,7 +323,7 @@ segmentationRoutes.openapi(
     }),
     async (c: any) => {
         const id = c.req.valid('param').id
-        if (isNaN(id)) return c.json({ error: 'Invalid ID' }, 400);
+        if (isNaN(id)) return badRequest(c, 'Invalid ID');
 
         try {
             const result = await db.select({
@@ -329,12 +343,12 @@ segmentationRoutes.openapi(
             }).from(frs9ParamSegmenth).where(eq(frs9ParamSegmenth.pkid, id));
 
             const header = result[0];
-            if (!header) return c.json({ error: 'Segment not found' }, 404);
+            if (!header) return notFound(c, 'Segment not found');
 
             return c.json({ success: true, data: header });
         } catch (error) {
             console.error('Error fetching segment details:', error);
-            return c.json({ error: 'Failed to fetch segment details' }, 500);
+            return serverError(c, 'Failed to fetch segment details', String(error));
         }
     }
 )
@@ -419,7 +433,7 @@ segmentationRoutes.openapi(
                 return c.json(result, 201);
             } catch (error) {
                 console.error('Direct create failed:', error);
-                return c.json({ error: 'Create failed' }, 500);
+                return serverError(c, 'Create failed', String(error));
             }
         }
 
@@ -507,7 +521,7 @@ segmentationRoutes.openapi(
     }),
     async (c: any) => {
         const id = c.req.valid('param').id
-        if (isNaN(id)) return c.json({ error: 'Invalid ID' }, 400);
+        if (isNaN(id)) return badRequest(c, 'Invalid ID');
 
         const headerData = c.req.valid('json');
         const userId = c.get('userId') as string || 'system'
@@ -607,7 +621,7 @@ segmentationRoutes.openapi(
     }),
     async (c: any) => {
         const id = c.req.valid('param').id
-        if (isNaN(id)) return c.json({ error: 'Invalid ID' }, 400);
+        if (isNaN(id)) return badRequest(c, 'Invalid ID');
 
         const userId = c.get('userId') as string || 'system'
         const tenantId = c.get('tenantId') as string
@@ -627,7 +641,7 @@ segmentationRoutes.openapi(
                 });
             } catch (error) {
                 console.error('Direct delete failed:', error);
-                return c.json({ error: 'Delete failed' }, 500);
+                return serverError(c, 'Delete failed', String(error));
             }
         }
 
@@ -688,7 +702,7 @@ segmentationRoutes.openapi(
     }),
     async (c: any) => {
         const id = c.req.valid('param').id
-        if (isNaN(id)) return c.json({ error: 'Invalid ID' }, 400);
+        if (isNaN(id)) return badRequest(c, 'Invalid ID');
 
         try {
             const details = await db.select({
@@ -716,7 +730,7 @@ segmentationRoutes.openapi(
 
             return c.json({ success: true, data: details });
         } catch (error) {
-            return c.json({ error: 'Failed to fetch details' }, 500);
+            return serverError(c, 'Failed to fetch details', String(error));
         }
     }
 )
@@ -741,7 +755,7 @@ segmentationRoutes.openapi(
     }),
     async (c: any) => {
         const id = c.req.valid('param').id
-        if (isNaN(id)) return c.json({ error: 'Invalid ID' }, 400);
+        if (isNaN(id)) return badRequest(c, 'Invalid ID');
         const detailData = c.req.valid('json');
         const userId = c.get('userId') as string || 'system'
         const tenantId = c.get('tenantId') as string
@@ -800,7 +814,7 @@ segmentationRoutes.openapi(
                 'approvalRequired' in result && result.approvalRequired ? 202 : 201
             )
         } catch (error) {
-            return c.json({ error: 'Failed to create detail' }, 500);
+            return serverError(c, 'Failed to create detail', String(error));
         }
     }
 )
@@ -825,7 +839,7 @@ segmentationRoutes.openapi(
     }),
     async (c: any) => {
         const detailId = c.req.valid('param').detailId
-        if (isNaN(detailId)) return c.json({ error: 'Invalid ID' }, 400);
+        if (isNaN(detailId)) return badRequest(c, 'Invalid ID');
         const detailData = c.req.valid('json');
         const userId = c.get('userId') as string || 'system'
         const tenantId = c.get('tenantId') as string
@@ -893,7 +907,7 @@ segmentationRoutes.openapi(
                 'approvalRequired' in result && result.approvalRequired ? 202 : 200
             )
         } catch (error) {
-            return c.json({ error: 'Failed to update detail' }, 500);
+            return serverError(c, 'Failed to update detail', String(error));
         }
     }
 )
@@ -917,7 +931,7 @@ segmentationRoutes.openapi(
     }),
     async (c: any) => {
         const detailId = c.req.valid('param').detailId
-        if (isNaN(detailId)) return c.json({ error: 'Invalid ID' }, 400);
+        if (isNaN(detailId)) return badRequest(c, 'Invalid ID');
         const userId = c.get('userId') as string || 'system'
         const tenantId = c.get('tenantId') as string
         const userPermissions = (c.get('permissions') as string[]) || []
@@ -951,7 +965,7 @@ segmentationRoutes.openapi(
                 'approvalRequired' in result && result.approvalRequired ? 202 : 200
             )
         } catch (error) {
-            return c.json({ error: 'Failed to delete detail' }, 500);
+            return serverError(c, 'Failed to delete detail', String(error));
         }
     }
 )

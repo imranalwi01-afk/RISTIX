@@ -4,6 +4,7 @@ import { frs9ParamSegmenth } from '../db/schema'
 import { eq, and, like, or } from 'drizzle-orm'
 import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
+import { buildErrorResponse } from '../lib/http/error-response'
 
 export const populationSegmentsRoutes = new OpenAPIHono<AppContext>()
 
@@ -47,7 +48,11 @@ const SegmentResponse = z.object({
 const ErrorResponse = z.object({
     success: z.boolean(),
     message: z.string(),
-    error: z.string().optional()
+    error: z.string().optional(),
+    code: z.string().optional(),
+    requestId: z.string().nullable().optional(),
+    timestamp: z.string().optional(),
+    details: z.unknown().optional(),
 }).openapi('ErrorResponse')
 
 // ============================================================================
@@ -112,7 +117,7 @@ populationSegmentsRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    async (c) => {
+    async (c): Promise<any> => {
         try {
             const { search, active_flag, activeFlag, segment_type, segmentType } = c.req.valid('query')
             const conditions = []
@@ -148,7 +153,15 @@ populationSegmentsRoutes.openapi(
             } as any)
         } catch (error) {
             console.error('Error fetching population segments:', error)
-            return c.json({ success: false, message: 'Failed to fetch population segments', error: String(error) }, 500)
+            return c.json(
+                buildErrorResponse(c, {
+                    error: 'Failed to fetch population segments',
+                    message: 'Failed to fetch population segments',
+                    code: 'POPULATION_SEGMENT_ERROR',
+                    details: String(error),
+                }),
+                500
+            )
         }
     }
 )
@@ -170,10 +183,19 @@ populationSegmentsRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    async (c) => {
+    async (c): Promise<any> => {
         try {
             const { id } = c.req.valid('param')
-            if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400);
+            if (isNaN(id)) {
+                return c.json(
+                    buildErrorResponse(c, {
+                        error: 'Invalid ID',
+                        message: 'Invalid ID',
+                        code: 'BAD_REQUEST',
+                    }),
+                    400
+                )
+            }
 
             const [segment] = await db
                 .select()
@@ -181,12 +203,27 @@ populationSegmentsRoutes.openapi(
                 .where(eq(frs9ParamSegmenth.pkid, id))
 
             if (!segment) {
-                return c.json({ success: false, message: 'Population segment not found' }, 404)
+                return c.json(
+                    buildErrorResponse(c, {
+                        error: 'Population segment not found',
+                        message: 'Population segment not found',
+                        code: 'NOT_FOUND',
+                    }),
+                    404
+                )
             }
 
             return c.json({ success: true, data: transformSegment(segment) } as any)
         } catch (error) {
-            return c.json({ success: false, message: 'Failed to fetch population segment', error: String(error) }, 500)
+            return c.json(
+                buildErrorResponse(c, {
+                    error: 'Failed to fetch population segment',
+                    message: 'Failed to fetch population segment',
+                    code: 'POPULATION_SEGMENT_ERROR',
+                    details: String(error),
+                }),
+                500
+            )
         }
     }
 )
@@ -206,7 +243,7 @@ populationSegmentsRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    async (c) => {
+    async (c): Promise<any> => {
         try {
             const userId = c.get('userId') as string || 'system'
             const data = c.req.valid('json')
@@ -233,7 +270,15 @@ populationSegmentsRoutes.openapi(
             } as any, 201)
         } catch (error) {
             console.error('Error creating population segment:', error)
-            return c.json({ success: false, message: 'Failed to create population segment', error: String(error) }, 500)
+            return c.json(
+                buildErrorResponse(c, {
+                    error: 'Failed to create population segment',
+                    message: 'Failed to create population segment',
+                    code: 'POPULATION_SEGMENT_ERROR',
+                    details: String(error),
+                }),
+                500
+            )
         }
     }
 )
@@ -256,10 +301,19 @@ populationSegmentsRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    async (c) => {
+    async (c): Promise<any> => {
         try {
             const { id } = c.req.valid('param')
-            if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400);
+            if (isNaN(id)) {
+                return c.json(
+                    buildErrorResponse(c, {
+                        error: 'Invalid ID',
+                        message: 'Invalid ID',
+                        code: 'BAD_REQUEST',
+                    }),
+                    400
+                )
+            }
 
             const userId = c.get('userId') as string || 'system'
             const data = c.req.valid('json')
@@ -281,7 +335,14 @@ populationSegmentsRoutes.openapi(
                 .returning()
 
             if (!updated) {
-                return c.json({ success: false, message: 'Population segment not found' }, 404)
+                return c.json(
+                    buildErrorResponse(c, {
+                        error: 'Population segment not found',
+                        message: 'Population segment not found',
+                        code: 'NOT_FOUND',
+                    }),
+                    404
+                )
             }
 
             return c.json({
@@ -291,7 +352,15 @@ populationSegmentsRoutes.openapi(
             } as any)
         } catch (error) {
             console.error('Error updating population segment:', error)
-            return c.json({ success: false, message: 'Failed to update population segment', error: String(error) }, 500)
+            return c.json(
+                buildErrorResponse(c, {
+                    error: 'Failed to update population segment',
+                    message: 'Failed to update population segment',
+                    code: 'POPULATION_SEGMENT_ERROR',
+                    details: String(error),
+                }),
+                500
+            )
         }
     }
 )
@@ -313,10 +382,19 @@ populationSegmentsRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    async (c) => {
+    async (c): Promise<any> => {
         try {
             const { id } = c.req.valid('param')
-            if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400);
+            if (isNaN(id)) {
+                return c.json(
+                    buildErrorResponse(c, {
+                        error: 'Invalid ID',
+                        message: 'Invalid ID',
+                        code: 'BAD_REQUEST',
+                    }),
+                    400
+                )
+            }
 
             const [deleted] = await db
                 .delete(frs9ParamSegmenth)
@@ -324,13 +402,28 @@ populationSegmentsRoutes.openapi(
                 .returning()
 
             if (!deleted) {
-                return c.json({ success: false, message: 'Population segment not found' }, 404)
+                return c.json(
+                    buildErrorResponse(c, {
+                        error: 'Population segment not found',
+                        message: 'Population segment not found',
+                        code: 'NOT_FOUND',
+                    }),
+                    404
+                )
             }
 
             return c.json({ success: true, message: 'Population segment deleted successfully' } as any)
         } catch (error) {
             console.error('Error deleting population segment:', error)
-            return c.json({ success: false, message: 'Failed to delete population segment', error: String(error) }, 500)
+            return c.json(
+                buildErrorResponse(c, {
+                    error: 'Failed to delete population segment',
+                    message: 'Failed to delete population segment',
+                    code: 'POPULATION_SEGMENT_ERROR',
+                    details: String(error),
+                }),
+                500
+            )
         }
     }
 )
