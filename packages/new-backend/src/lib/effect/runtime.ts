@@ -12,6 +12,7 @@ import {
     type CommonError,
 } from '@lib/errors'
 import { sendDiscordAlert } from '@/services/discord-alert.service'
+import { buildErrorResponse } from '@/lib/http/error-response'
 
 /**
  * Run an Effect and convert the result to a Hono response
@@ -50,20 +51,20 @@ export function handleEffectError(c: Context, cause: unknown): Response {
 
     if (!error) {
         console.error('Unknown error:', cause)
-        return c.json(createErrorPayload(c, { error: 'Internal server error', message: 'Internal server error' }) as any, 500)
+        return c.json(buildErrorResponse(c, { error: 'Internal server error', message: 'Internal server error' }) as any, 500)
     }
 
     switch (error._tag) {
         case 'DatabaseError':
             console.error('Database error:', error)
             return c.json(
-                createErrorPayload(c, { error: 'Database operation failed', message: 'Database operation failed', code: 'DB_ERROR' }) as any,
+                buildErrorResponse(c, { error: 'Database operation failed', message: 'Database operation failed', code: 'DB_ERROR' }) as any,
                 500
             )
 
         case 'ValidationError':
             return c.json(
-                createErrorPayload(c, {
+                buildErrorResponse(c, {
                     success: false,
                     error: error.message,
                     message: error.message, // Standardize with frontend expectations
@@ -75,7 +76,7 @@ export function handleEffectError(c: Context, cause: unknown): Response {
 
         case 'NotFoundError':
             return c.json(
-                createErrorPayload(c, {
+                buildErrorResponse(c, {
                     success: false,
                     error: `${error.resource} with id ${error.id} not found`,
                     code: 'NOT_FOUND',
@@ -85,7 +86,7 @@ export function handleEffectError(c: Context, cause: unknown): Response {
 
         case 'AuthenticationError':
             return c.json(
-                createErrorPayload(c, { success: false, error: error.message, message: error.message, code: 'UNAUTHENTICATED' }) as any,
+                buildErrorResponse(c, { success: false, error: error.message, message: error.message, code: 'UNAUTHENTICATED' }) as any,
                 401
             )
 
@@ -96,7 +97,7 @@ export function handleEffectError(c: Context, cause: unknown): Response {
                 requiredPermission: error.requiredPermission,
             })
             return c.json(
-                createErrorPayload(c, {
+                buildErrorResponse(c, {
                     success: false,
                     error: error.message,
                     message: error.message,
@@ -123,7 +124,7 @@ export function handleEffectError(c: Context, cause: unknown): Response {
                 })
             }
             return c.json(
-                createErrorPayload(c, {
+                buildErrorResponse(c, {
                     success: false,
                     error: error.message,
                     message: error.message,
@@ -136,7 +137,7 @@ export function handleEffectError(c: Context, cause: unknown): Response {
 
         case 'RateLimitError':
             return c.json(
-                createErrorPayload(c, { success: false, error: error.message, message: error.message, code: 'RATE_LIMITED' }) as any,
+                buildErrorResponse(c, { success: false, error: error.message, message: error.message, code: 'RATE_LIMITED' }) as any,
                 429
             )
 
@@ -149,7 +150,7 @@ export function handleEffectError(c: Context, cause: unknown): Response {
                 details: error.details,
             })
             return c.json(
-                createErrorPayload(c, {
+                buildErrorResponse(c, {
                     success: false,
                     error: error.message,
                     message: error.message, // Standardize with frontend expectations
@@ -162,19 +163,7 @@ export function handleEffectError(c: Context, cause: unknown): Response {
         default:
             console.error('Unhandled error:', error)
             void maybeSendDiscordAlert(c, error as any, 500, { code: 'INTERNAL_ERROR' })
-            return c.json(createErrorPayload(c, { success: false, error: 'Internal server error', message: 'Internal server error' }) as any, 500)
-    }
-}
-
-function createErrorPayload(
-    c: Context,
-    payload: Record<string, unknown>
-): Record<string, unknown> {
-    return {
-        success: false,
-        requestId: c.get('requestId') || null,
-        timestamp: new Date().toISOString(),
-        ...payload,
+            return c.json(buildErrorResponse(c, { success: false, error: 'Internal server error', message: 'Internal server error' }) as any, 500)
     }
 }
 

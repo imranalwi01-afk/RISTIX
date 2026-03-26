@@ -1,5 +1,6 @@
 import { Context } from 'hono';
 import { forecastService } from '../services/forecast.service';
+import { buildErrorResponse } from '../lib/http/error-response';
 
 export class ForecastController {
 
@@ -7,7 +8,7 @@ export class ForecastController {
     async getForecasts(c: Context) {
         try {
             const user = c.get('user');
-            if (!user?.tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
+            if (!user?.tenantId) return c.json(buildErrorResponse(c, { error: 'Unauthorized', message: 'Unauthorized', code: 'UNAUTHORIZED' }), 401);
 
             const limit = Number(c.req.query('limit')) || 50;
             const offset = Number(c.req.query('offset')) || 0;
@@ -24,7 +25,7 @@ export class ForecastController {
     async triggerForecast(c: Context) {
         try {
             const user = c.get('user');
-            if (!user?.tenantId) return c.json({ success: false, message: 'Unauthorized' }, 401);
+            if (!user?.tenantId) return c.json(buildErrorResponse(c, { error: 'Unauthorized', message: 'Unauthorized', code: 'UNAUTHORIZED' }), 401);
 
             const body = await c.req.json();
 
@@ -39,7 +40,14 @@ export class ForecastController {
 
     private handleError(c: Context, error: any) {
         console.error('Forecast Controller Error:', error.message);
-        return c.json({ success: false, message: 'System Error: ' + error.message }, 500);
+        return c.json(
+            buildErrorResponse(c, {
+                error: 'System Error: ' + error.message,
+                message: 'System Error: ' + error.message,
+                code: 'FORECAST_ERROR',
+            }),
+            500
+        );
     }
 }
 

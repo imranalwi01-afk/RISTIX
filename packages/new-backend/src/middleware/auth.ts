@@ -9,6 +9,7 @@ import { getDatabase } from '@/config/database'
 import { redis } from '@/config/redis'
 import type { AppContext } from '../app'
 import { withRequestIds } from '../lib/logger'
+import { buildErrorResponse } from '../lib/http/error-response'
 
 type RoutePermissionRule = {
     prefix: string
@@ -168,11 +169,11 @@ export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
             authHeader: authHeader ? `${authHeader.substring(0, 15)}...` : 'null'
         }, '[AUTH] Missing or invalid authorization header')
         return c.json(
-            {
-                success: false,
+            buildErrorResponse(c, {
                 error: 'Missing or invalid authorization header',
+                message: 'Missing or invalid authorization header',
                 code: 'UNAUTHENTICATED',
-            },
+            }),
             401
         )
     }
@@ -227,11 +228,11 @@ export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
             console.warn(`[AUTH DEBUG] Session not found in Redis: ${sessionKey}`)
             baseLogger.warn({ jti: payload.jti, sessionKey }, '[AUTH] Session not found in Redis')
             return c.json(
-                {
-                    success: false,
+                buildErrorResponse(c, {
                     error: 'Session not found or expired',
+                    message: 'Session not found or expired',
                     code: 'SESSION_EXPIRED',
-                },
+                }),
                 401
             )
         }
@@ -351,12 +352,12 @@ export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
                 '[AUTHZ] Missing required permission for route'
             )
             return c.json(
-                {
-                    success: false,
+                buildErrorResponse(c, {
                     error: `Missing required permission for ${c.req.method} ${c.req.path}`,
+                    message: `Missing required permission for ${c.req.method} ${c.req.path}`,
                     requiredPermissions,
                     code: 'UNAUTHORIZED',
-                },
+                }),
                 403
             )
         }
@@ -375,11 +376,11 @@ export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
             
         baseLogger.error({ err: error, dbUrl, authStage, payloadTenantId }, '[AUTH] authentication error')
         return c.json(
-            {
-                success: false,
+            buildErrorResponse(c, {
                 error: message,
+                message,
                 code: 'INVALID_TOKEN',
-            },
+            }),
             401
         )
     }
@@ -402,7 +403,7 @@ export function requirePermission(resource: string, action: string) {
         }
 
         if (!user || !tenantId) {
-            return c.json({ success: false, error: 'Unauthorized', code: 'UNAUTHORIZED' }, 401)
+            return c.json(buildErrorResponse(c, { error: 'Unauthorized', message: 'Unauthorized', code: 'UNAUTHORIZED' }), 401)
         }
 
         const { hasPermission } = await import('../services/rbac.service')
@@ -413,11 +414,11 @@ export function requirePermission(resource: string, action: string) {
 
         if (!authorized) {
             return c.json(
-                {
-                    success: false,
+                buildErrorResponse(c, {
                     error: `Missing required permission: ${resource}:${action}`,
+                    message: `Missing required permission: ${resource}:${action}`,
                     code: 'UNAUTHORIZED',
-                },
+                }),
                 403
             )
         }
@@ -456,7 +457,7 @@ export const tenantMiddleware = createMiddleware<AppContext>(async (c, next) => 
             targetTenantId = targetTenant.id
         } else if (!requestedTenantId) {
             // Slug provided but not found, and no ID fallback
-            return c.json({ success: false, error: 'Target tenant slug not found', code: 'TENANT_NOT_FOUND' }, 404)
+            return c.json(buildErrorResponse(c, { error: 'Target tenant slug not found', message: 'Target tenant slug not found', code: 'TENANT_NOT_FOUND' }), 404)
         }
     }
 
@@ -467,7 +468,7 @@ export const tenantMiddleware = createMiddleware<AppContext>(async (c, next) => 
         if (targetTenant) {
             targetTenantId = targetTenant.id
         } else {
-            return c.json({ success: false, error: 'Target tenant not found', code: 'TENANT_NOT_FOUND' }, 404)
+            return c.json(buildErrorResponse(c, { error: 'Target tenant not found', message: 'Target tenant not found', code: 'TENANT_NOT_FOUND' }), 404)
         }
     }
 
@@ -479,7 +480,7 @@ export const tenantMiddleware = createMiddleware<AppContext>(async (c, next) => 
             if (!requestedTenantSlug && uuidRegex.test(requestedTenantId || '')) {
                 const targetTenant = await TenantRepository.findById(targetTenantId)
                 if (!targetTenant) {
-                    return c.json({ success: false, error: 'Target tenant not found', code: 'TENANT_NOT_FOUND' }, 404)
+                    return c.json(buildErrorResponse(c, { error: 'Target tenant not found', message: 'Target tenant not found', code: 'TENANT_NOT_FOUND' }), 404)
                 }
             }
 
@@ -489,11 +490,11 @@ export const tenantMiddleware = createMiddleware<AppContext>(async (c, next) => 
         } else {
             log.warn({ userId: c.get('userId'), userTenantId, targetTenantId }, '[TENANT] Unauthorized impersonation attempt')
             return c.json(
-                {
-                    success: false,
+                buildErrorResponse(c, {
                     error: 'Access denied to target tenant',
+                    message: 'Access denied to target tenant',
                     code: 'TENANT_ACCESS_DENIED',
-                },
+                }),
                 403
             )
         }

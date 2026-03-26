@@ -41,6 +41,7 @@ export const getErrorMessage = (
   if (responseData && typeof responseData === 'object' && !Array.isArray(responseData)) {
     const body = responseData as Record<string, unknown>;
     const candidates = [body.error, body.message, body.detail, body.title];
+    const rootRequestId = typeof body.requestId === 'string' ? body.requestId : null;
 
     for (const candidate of candidates) {
       if (typeof candidate === 'string' && candidate.trim().length > 0) {
@@ -78,6 +79,10 @@ export const getErrorMessage = (
           if (detailParts.length > 0) {
             message = `${message} ${detailParts.join('. ')}.`;
           }
+        }
+
+        if (rootRequestId && !message.includes(`Request ID: ${rootRequestId}`)) {
+          message = `${message} Request ID: ${rootRequestId}.`;
         }
 
         return formatByStatus(message);

@@ -4,6 +4,7 @@ import { frs9ParamSegmenth } from '../db/schema'
 import { eq, desc } from 'drizzle-orm'
 import type { AppContext } from '../app'
 import { authMiddleware } from '../middleware'
+import { buildErrorResponse } from '../lib/http/error-response'
 
 export const productSegmentsRoutes = new OpenAPIHono<AppContext>()
 
@@ -55,7 +56,11 @@ const ProductSegmentResponse = z.object({
 const ErrorResponse = z.object({
     success: z.boolean(),
     message: z.string(),
-    error: z.string().optional()
+    error: z.string().optional(),
+    code: z.string().optional(),
+    requestId: z.string().nullable().optional(),
+    timestamp: z.string().optional(),
+    details: z.unknown().optional(),
 }).openapi('ErrorResponse')
 
 // ============================================================================
@@ -94,7 +99,7 @@ productSegmentsRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    async (c) => {
+    async (c): Promise<any> => {
         try {
             const segments = await db
                 .select()
@@ -107,7 +112,7 @@ productSegmentsRoutes.openapi(
             } as any)
         } catch (error) {
             console.error('Error fetching product segments:', error)
-            return c.json({ success: false, message: 'Failed to fetch product segments', error: String(error) }, 500)
+            return c.json(buildErrorResponse(c, { error: 'Failed to fetch product segments', message: 'Failed to fetch product segments', code: 'PRODUCT_SEGMENT_ERROR', details: { cause: String(error) } }), 500)
         }
     }
 )
@@ -129,10 +134,10 @@ productSegmentsRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    async (c) => {
+    async (c): Promise<any> => {
         try {
             const { id } = c.req.valid('param')
-            if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400);
+            if (isNaN(id)) return c.json(buildErrorResponse(c, { error: 'Invalid ID', message: 'Invalid ID', code: 'BAD_REQUEST' }), 400);
 
             const [segment] = await db
                 .select()
@@ -140,13 +145,13 @@ productSegmentsRoutes.openapi(
                 .where(eq(frs9ParamSegmenth.pkid, id))
 
             if (!segment) {
-                return c.json({ success: false, message: 'Segment not found' }, 404)
+                return c.json(buildErrorResponse(c, { error: 'Segment not found', message: 'Segment not found', code: 'NOT_FOUND' }), 404)
             }
 
             return c.json({ success: true, data: transformSegment(segment) } as any)
         } catch (error) {
             console.error('Error fetching product segment:', error)
-            return c.json({ success: false, message: 'Failed to fetch product segment', error: String(error) }, 500)
+            return c.json(buildErrorResponse(c, { error: 'Failed to fetch product segment', message: 'Failed to fetch product segment', code: 'PRODUCT_SEGMENT_ERROR', details: { cause: String(error) } }), 500)
         }
     }
 )
@@ -166,7 +171,7 @@ productSegmentsRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    async (c) => {
+    async (c): Promise<any> => {
         try {
             const userId = c.get('userId') as string || 'system'
             const data = c.req.valid('json')
@@ -196,7 +201,7 @@ productSegmentsRoutes.openapi(
             }, 201)
         } catch (error) {
             console.error('Error creating product segment:', error)
-            return c.json({ success: false, message: 'Failed to create product segment', error: String(error) }, 500)
+            return c.json(buildErrorResponse(c, { error: 'Failed to create product segment', message: 'Failed to create product segment', code: 'PRODUCT_SEGMENT_ERROR', details: { cause: String(error) } }), 500)
         }
     }
 )
@@ -218,10 +223,19 @@ productSegmentsRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    async (c) => {
+    async (c): Promise<any> => {
         try {
             const { id } = c.req.valid('param')
-            if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400) as any;
+            if (isNaN(id)) {
+                return c.json(
+                    buildErrorResponse(c, {
+                        error: 'Invalid ID',
+                        message: 'Invalid ID',
+                        code: 'BAD_REQUEST',
+                    }),
+                    400
+                ) as any
+            }
 
             const userId = c.get('userId') as string || 'system'
             const data = c.req.valid('json')
@@ -246,7 +260,14 @@ productSegmentsRoutes.openapi(
                 .returning()
 
             if (!updated) {
-                return c.json({ success: false, message: 'Segment not found' }, 404)
+                return c.json(
+                    buildErrorResponse(c, {
+                        error: 'Segment not found',
+                        message: 'Segment not found',
+                        code: 'NOT_FOUND',
+                    }),
+                    404
+                )
             }
 
             return c.json({
@@ -256,7 +277,15 @@ productSegmentsRoutes.openapi(
             })
         } catch (error) {
             console.error('Error updating product segment:', error)
-            return c.json({ success: false, message: 'Failed to update product segment', error: String(error) }, 500)
+            return c.json(
+                buildErrorResponse(c, {
+                    error: 'Failed to update product segment',
+                    message: 'Failed to update product segment',
+                    code: 'PRODUCT_SEGMENT_ERROR',
+                    details: String(error),
+                }),
+                500
+            )
         }
     }
 )
@@ -278,10 +307,19 @@ productSegmentsRoutes.openapi(
             500: { content: { 'application/json': { schema: ErrorResponse } }, description: 'Error' }
         }
     }),
-    async (c) => {
+    async (c): Promise<any> => {
         try {
             const { id } = c.req.valid('param')
-            if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400);
+            if (isNaN(id)) {
+                return c.json(
+                    buildErrorResponse(c, {
+                        error: 'Invalid ID',
+                        message: 'Invalid ID',
+                        code: 'BAD_REQUEST',
+                    }),
+                    400
+                )
+            }
 
             const [deleted] = await db
                 .delete(frs9ParamSegmenth)
@@ -289,13 +327,28 @@ productSegmentsRoutes.openapi(
                 .returning()
 
             if (!deleted) {
-                return c.json({ success: false, message: 'Segment not found' }, 404)
+                return c.json(
+                    buildErrorResponse(c, {
+                        error: 'Segment not found',
+                        message: 'Segment not found',
+                        code: 'NOT_FOUND',
+                    }),
+                    404
+                )
             }
 
             return c.json({ success: true, message: 'Product segment deleted successfully' } as any)
         } catch (error) {
             console.error('Error deleting product segment:', error)
-            return c.json({ success: false, message: 'Failed to delete product segment', error: String(error) }, 500)
+            return c.json(
+                buildErrorResponse(c, {
+                    error: 'Failed to delete product segment',
+                    message: 'Failed to delete product segment',
+                    code: 'PRODUCT_SEGMENT_ERROR',
+                    details: String(error),
+                }),
+                500
+            )
         }
     }
 )
