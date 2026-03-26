@@ -9,6 +9,7 @@ import { runEffect } from '../lib/effect'
 import { parsePaginationParams, parseFilterParams } from '../lib/react-admin'
 import { DatabaseError } from '../lib/errors'
 import * as tenantsService from '../services/tenants.service'
+import { buildErrorResponse } from '../lib/http/error-response'
 
 export const platformUsersRoutes: any = new OpenAPIHono<AppContext>()
 
@@ -338,7 +339,7 @@ platformUsersRoutes.openapi(
 
         const result = await Effect.runPromise(effect)
         if (!result) {
-            return c.json({ success: false, error: 'Platform user not found', code: 'NOT_FOUND' }, 404)
+            return c.json(buildErrorResponse(c, { error: 'Platform user not found', message: 'Platform user not found', code: 'NOT_FOUND' }), 404)
         }
 
         return c.json(result)

@@ -5,6 +5,7 @@ import { authMiddleware, tenantMiddleware } from '../middleware'
 import { db, getDatabase } from '../config/database'
 import { auditLogs, userActivityLogs, dataAccessLogs } from '../db/schema'
 import { eq, and, desc, gte, lte, like, sql, or } from 'drizzle-orm'
+import { buildErrorResponse } from '../lib/http/error-response'
 
 export const auditRoutes = new OpenAPIHono<AppContext>()
 
@@ -309,7 +310,7 @@ auditRoutes.openapi(
             .limit(1)
 
         if (!log) {
-            return c.json({ error: 'Audit log not found' } as any, 404)
+            return c.json(buildErrorResponse(c, { error: 'Audit log not found', message: 'Audit log not found', code: 'NOT_FOUND' }) as any, 404)
         }
 
         return c.json({
