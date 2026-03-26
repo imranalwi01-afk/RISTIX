@@ -257,7 +257,6 @@ usersRoutes.openapi(
             isSystemUser ||
             userPermissions.includes('admin.super_admin') ||
             userPermissions.includes('admin.users.manage') ||
-            userPermissions.includes('SUPER_ADMIN') ||
             userPermissions.includes('MANAGE_USERS')
 
         if (!canResetPassword) {

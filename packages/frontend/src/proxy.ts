@@ -214,7 +214,7 @@ function hasRouteAccess(user: any, pathname: string): {
 
   const userPermissions = user.permissions || [];
   const permissionContext = buildPermissionContext(userPermissions);
-  if (permissionContext.isSuperAdmin || userPermissions.includes('SUPER_ADMIN')) {
+  if (permissionContext.isSuperAdmin) {
     console.log(`[ProxyDebug] Super admin permission for ${user.email} - access granted`);
     return { allowed: true, reason: 'super_admin_bypass' };
   }

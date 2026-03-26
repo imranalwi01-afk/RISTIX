@@ -508,7 +508,6 @@ export const login = (
             if (!resolvedTenantId) {
                 const hasPlatformAccess =
                     permissions.includes('admin.super_admin') ||
-                    permissions.includes('SUPER_ADMIN') ||
                     permissions.includes('PLATFORM_ADMIN') ||
                     permissions.includes('admin.system.manage')
 
@@ -544,7 +543,6 @@ export const login = (
                         !resolvedTenantId &&
                         (
                             permissions.includes('admin.super_admin') ||
-                            permissions.includes('SUPER_ADMIN') ||
                             permissions.includes('admin.system.manage') ||
                             permissions.includes('MANAGE_SYSTEM') || // backward-compat
                             permissions.includes('PLATFORM_ADMIN')

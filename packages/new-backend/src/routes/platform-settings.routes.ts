@@ -61,7 +61,6 @@ platformSettingsRoutes.put('/:key', authMiddleware, async (c: any, next: any) =>
     const canManagePlatformSettings =
         Boolean(c.get('isSystemUser')) ||
         permissions.includes('admin.super_admin') ||
-        permissions.includes('SUPER_ADMIN') ||
         permissions.includes('PLATFORM_SUPER_ADMIN') ||
         permissions.includes('PLATFORM_ADMIN') ||
         permissions.includes('admin.system.manage')

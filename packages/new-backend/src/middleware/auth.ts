@@ -23,15 +23,12 @@ const LEGACY_PERMISSION_ALIASES: Record<string, string> = {
     MANAGE_ROLES: 'admin.roles.manage',
     VIEW_DASHBOARD: 'banking.dashboard.view',
     VIEW_ANALYTICS: 'banking.analytics.view',
-    VIEW_LOANS: 'banking.portfolio.loans.view',
-    MANAGE_LOANS: 'banking.portfolio.loans.manage',
     VIEW_IFRS9_REPORTS: 'banking.reports.ifrs9.view',
     MANAGE_IFRS9_CONFIG: 'banking.configuration.ifrs9.manage',
     VIEW_COLLECTIVE_IMPAIRMENT: 'banking.collective.view',
     VIEW_INDIVIDUAL_IMPAIRMENT: 'banking.individual.view',
     VIEW_IFRS9_PROCESSING: 'banking.processing.view',
     VIEW_R_ANALYTICS: 'banking.analytics.r.view',
-    SUPER_ADMIN: 'admin.super_admin',
 }
 
 const ROUTE_PERMISSION_RULES: RoutePermissionRule[] = [
@@ -152,7 +149,6 @@ const getRequiredPermissionCandidates = (path: string, method: string): string[]
 const hasAnyPermission = (permissions: string[], candidates: string[]): boolean => {
     if (permissions.includes('*')) return true
     if (permissions.includes('admin.super_admin')) return true
-    if (permissions.includes('SUPER_ADMIN')) return true
     if (permissions.includes('PLATFORM_ADMIN')) return true
     return candidates.some((candidate) => permissions.includes(candidate))
 }
@@ -327,7 +323,6 @@ export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
             isPlatformSession ||
             !!(user as any).isPlatformAdmin ||
             resolvedPermissions.includes('admin.super_admin') ||
-            resolvedPermissions.includes('SUPER_ADMIN') ||
             resolvedPermissions.includes('PLATFORM_ADMIN') ||
             resolvedPermissions.includes('admin.system.manage')
 

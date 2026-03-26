@@ -18,7 +18,6 @@ platformUsersRoutes.use('*', async (c: any, next: any) => {
     const canManagePlatformUsers =
         Boolean(c.get('isSystemUser')) ||
         permissions.includes('admin.super_admin') ||
-        permissions.includes('SUPER_ADMIN') ||
         permissions.includes('PLATFORM_ADMIN') ||
         permissions.includes('admin.system.manage')
 
