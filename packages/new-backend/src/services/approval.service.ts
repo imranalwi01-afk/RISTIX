@@ -524,7 +524,7 @@ export const processApprovalAction = (
 
                     if (isComplete) {
                         // Execute the approved action (e.g., create user, update config)
-                        await executeApprovedAction(request)
+                        await executeApprovedAction(request, input.approverId)
                         await notifyApprovalCompletion(request, 'approved')
                     } else if (currentLevelComplete) {
                         // Only notify next level when current level has collected enough approvers.
@@ -549,7 +549,7 @@ export const processApprovalAction = (
                 })
 
                 if (isComplete) {
-                    await executeApprovedAction(request)
+                    await executeApprovedAction(request, input.approverId)
                     await notifyApprovalCompletion(request, 'approved')
                 } else {
                     await notifyNextLevelApprovers(request)
@@ -668,7 +668,7 @@ export const cancelApprovalRequest = (
 /**
  * Execute the actual logic that was requested once approved
  */
-async function executeApprovedAction(request: any): Promise<void> {
+async function executeApprovedAction(request: any, approvedBy?: string): Promise<void> {
     console.log(`[ApprovalService] Executing approved action for ${request.entityType}:${request.entityId}`)
 
     const requestData = request.requestData as any
@@ -677,7 +677,7 @@ async function executeApprovedAction(request: any): Promise<void> {
         return
     }
 
-    const { operation, entityType, data } = requestData
+    const { operation, entityType, data, oldValues } = requestData
     const tenantId = request.tenantId
 
     try {
@@ -708,14 +708,38 @@ async function executeApprovedAction(request: any): Promise<void> {
             case 'parameter':
             case 'app_setting':
             case 'business_setting':
-                await executeParameterAction(operation, data, tenantId, entityType)
+                await executeParameterAction(operation, data, tenantId, entityType, request.entityId, request.requestedBy ?? approvedBy)
                 break
 
             case 'pd_configuration':
             case 'lgd_configuration':
             case 'ead_configuration':
             case 'ecl_configuration':
-                await executeConfigurationAction(operation, data, tenantId, entityType)
+                await executeConfigurationAction(operation, data, tenantId, entityType, request.entityId, request.requestedBy ?? approvedBy)
+                break
+
+            case 'bucket_parameter':
+                await executeBucketParameterAction(operation, data, tenantId, request.entityId, request.requestedBy ?? approvedBy)
+                break
+
+            case 'rule_base_setting':
+                await executeRuleBaseSettingAction(operation, data, tenantId, request.entityId, request.requestedBy ?? approvedBy)
+                break
+
+            case 'segmentation':
+                await executeSegmentationAction(operation, data, tenantId, request.entityId, request.requestedBy ?? approvedBy)
+                break
+
+            case 'fl_scalar':
+                await executeFlScalarAction(operation, data, tenantId, request.entityId, request.requestedBy ?? approvedBy)
+                break
+
+            case 'product_parameter':
+                await executeProductParameterAction(operation, data, tenantId, request.entityId, request.requestedBy ?? approvedBy)
+                break
+
+            case 'journal_parameter':
+                await executeJournalParameterAction(operation, data, tenantId, request.entityId, request.requestedBy ?? approvedBy)
                 break
 
             case 'role_permission':
@@ -855,21 +879,66 @@ async function executeParameterAction(
     operation: 'create' | 'update' | 'delete',
     data: any,
     _tenantId: string,
-    _entityType: string
+    entityType: string,
+    entityId?: string | null,
+    actorId?: string
 ): Promise<void> {
     const { ParametersService } = await import('./parameters.service')
+    const effectiveActorId = actorId || 'system'
+    const scope = data?.scope
+    const numericDetailId = entityId && entityId.startsWith('detail:') ? Number(entityId.slice('detail:'.length)) : Number(data?.detailId ?? data?.id)
+    const headerCode = typeof entityId === 'string' && !entityId.startsWith('detail:') ? entityId : (data?.paramCode ?? data?.parentCode)
+    const payloadWithParamType =
+        entityType === 'business_setting' || data?.paramType === 'B'
+            ? { ...data, paramType: 'B' }
+            : data
+
+    if (scope === 'detail' || (entityId && entityId.startsWith('detail:'))) {
+        switch (operation) {
+            case 'create':
+                await Effect.runPromise(ParametersService.createAppSettingDetail(payloadWithParamType, effectiveActorId) as any)
+                return
+            case 'update':
+                if (!Number.isFinite(numericDetailId)) {
+                    throw new Error('Missing parameter detail id in approval payload')
+                }
+                await Effect.runPromise(ParametersService.updateAppSettingDetail(numericDetailId, payloadWithParamType, effectiveActorId) as any)
+                return
+            case 'delete':
+                if (!Number.isFinite(numericDetailId)) {
+                    throw new Error('Missing parameter detail id in approval payload')
+                }
+                await Effect.runPromise(ParametersService.deleteAppSettingDetail(numericDetailId) as any)
+                return
+        }
+        return
+    }
 
     switch (operation) {
         case 'create':
-            await Effect.runPromise(ParametersService.createAppSetting(data, 'system') as any)
-            break
+            await Effect.runPromise(ParametersService.createAppSetting(payloadWithParamType, effectiveActorId) as any)
+            return
         case 'update':
-            await Effect.runPromise(ParametersService.updateAppSetting(data.paramCode, data, 'system') as any)
-            break
+            if (!headerCode) {
+                throw new Error('Missing parameter code in approval payload')
+            }
+            await Effect.runPromise(ParametersService.updateAppSetting(headerCode, payloadWithParamType, effectiveActorId) as any)
+            return
         case 'delete':
-            await Effect.runPromise(ParametersService.deleteAppSetting(data.paramCode) as any)
-            break
+            if (!headerCode) {
+                throw new Error('Missing parameter code in approval payload')
+            }
+            await Effect.runPromise(ParametersService.deleteAppSetting(headerCode) as any)
+            return
     }
+}
+
+function parseNumericEntityId(entityId?: string | null, fallback?: unknown): number {
+    const raw = typeof entityId === 'string' && entityId.includes(':')
+        ? entityId.split(':').pop()
+        : entityId ?? fallback
+    const numericId = Number(raw)
+    return Number.isFinite(numericId) ? numericId : Number.NaN
 }
 
 /**
@@ -879,11 +948,551 @@ async function executeConfigurationAction(
     operation: 'create' | 'update' | 'delete',
     data: any,
     tenantId: string,
-    entityType: string
+    entityType: string,
+    entityId?: string | null,
+    actorId?: string
 ): Promise<void> {
-    // Configuration services would be imported and executed here
-    // This is a placeholder for now
-    console.log(`[ApprovalService] Executing ${operation} for ${entityType}`, data)
+    const effectiveActorId = actorId || 'system'
+
+    switch (entityType) {
+        case 'lgd_configuration': {
+            const { LgdConfigurationsService } = await import('./lgd-configurations.service')
+            const numericEntityId = entityId ? Number(entityId) : Number(data?.id)
+
+            switch (operation) {
+                case 'create':
+                    await Effect.runPromise(LgdConfigurationsService.create(data, effectiveActorId) as any)
+                    return
+                case 'update':
+                    if (!Number.isFinite(numericEntityId)) {
+                        throw new Error('Missing LGD configuration id in approval payload')
+                    }
+                    await Effect.runPromise(LgdConfigurationsService.update(numericEntityId, data, effectiveActorId) as any)
+                    return
+                case 'delete':
+                    if (!Number.isFinite(numericEntityId)) {
+                        throw new Error('Missing LGD configuration id in approval payload')
+                    }
+                    await Effect.runPromise(LgdConfigurationsService.delete(numericEntityId) as any)
+                    return
+            }
+            return
+        }
+
+        case 'pd_configuration': {
+            const { PdConfigurationsService } = await import('./pd-configurations.service')
+            const numericEntityId = entityId ? Number(entityId) : Number(data?.id)
+
+            switch (operation) {
+                case 'create':
+                    await Effect.runPromise(PdConfigurationsService.create(data, effectiveActorId) as any)
+                    return
+                case 'update':
+                    if (!Number.isFinite(numericEntityId)) {
+                        throw new Error('Missing PD configuration id in approval payload')
+                    }
+                    await Effect.runPromise(PdConfigurationsService.update(numericEntityId, data, effectiveActorId) as any)
+                    return
+                case 'delete':
+                    if (!Number.isFinite(numericEntityId)) {
+                        throw new Error('Missing PD configuration id in approval payload')
+                    }
+                    await Effect.runPromise(PdConfigurationsService.delete(numericEntityId) as any)
+                    return
+            }
+            return
+        }
+
+        case 'ecl_configuration': {
+            const { EclConfigurationsService } = await import('./ecl-configurations.service')
+            const numericEntityId = entityId ? Number(entityId) : Number(data?.id)
+
+            switch (operation) {
+                case 'create':
+                    await Effect.runPromise(EclConfigurationsService.create(data, effectiveActorId) as any)
+                    return
+                case 'update':
+                    if (!Number.isFinite(numericEntityId)) {
+                        throw new Error('Missing ECL configuration id in approval payload')
+                    }
+                    await Effect.runPromise(EclConfigurationsService.update(numericEntityId, data, effectiveActorId) as any)
+                    return
+                case 'delete':
+                    if (!Number.isFinite(numericEntityId)) {
+                        throw new Error('Missing ECL configuration id in approval payload')
+                    }
+                    await Effect.runPromise(EclConfigurationsService.delete(numericEntityId) as any)
+                    return
+            }
+            return
+        }
+
+        case 'ead_configuration': {
+            const [{ legacyDb: db }, { frs9ImpCaEadConfig }, { eq }] = await Promise.all([
+                import('../config'),
+                import('../db/schema'),
+                import('drizzle-orm'),
+            ])
+            const numericEntityId = entityId ? Number(entityId) : Number(data?.id)
+            const now = new Date().toISOString()
+
+            switch (operation) {
+                case 'create':
+                    await db.insert(frs9ImpCaEadConfig).values({
+                        eadModelName: data.model_name,
+                        segmentId: data.segment_id,
+                        eadMethod: data.ead_method,
+                        calcMethod: data.calc_method,
+                        activeFlag: data.is_active,
+                        createdby: effectiveActorId,
+                        createdhost: 'localhost',
+                        createddate: now,
+                        updatedby: effectiveActorId,
+                        updatedhost: 'localhost',
+                        updateddate: now,
+                    } as any)
+                    return
+                case 'update':
+                    if (!Number.isFinite(numericEntityId)) {
+                        throw new Error('Missing EAD configuration id in approval payload')
+                    }
+                    await db
+                        .update(frs9ImpCaEadConfig)
+                        .set({
+                            eadModelName: data.model_name,
+                            segmentId: data.segment_id,
+                            eadMethod: data.ead_method,
+                            calcMethod: data.calc_method,
+                            activeFlag: data.is_active,
+                            updatedby: effectiveActorId,
+                            updatedhost: 'localhost',
+                            updateddate: now,
+                        } as any)
+                        .where(eq(frs9ImpCaEadConfig.pkid, numericEntityId))
+                    return
+                case 'delete':
+                    if (!Number.isFinite(numericEntityId)) {
+                        throw new Error('Missing EAD configuration id in approval payload')
+                    }
+                    await db.delete(frs9ImpCaEadConfig).where(eq(frs9ImpCaEadConfig.pkid, numericEntityId))
+                    return
+            }
+            return
+        }
+
+        default:
+            console.warn(`[ApprovalService] No configuration executor defined for entity type: ${entityType}`)
+    }
+}
+
+async function executeBucketParameterAction(
+    operation: 'create' | 'update' | 'delete',
+    data: any,
+    _tenantId: string,
+    entityId?: string | null,
+    actorId?: string
+): Promise<void> {
+    const { BucketParametersService } = await import('./bucket-parameters.service')
+    const effectiveActorId = actorId || 'system'
+    const numericEntityId = parseNumericEntityId(entityId, data?.id)
+
+    switch (operation) {
+        case 'create':
+            await Effect.runPromise(BucketParametersService.createHeader(data, effectiveActorId) as any)
+            return
+        case 'update':
+            if (!Number.isFinite(numericEntityId)) {
+                throw new Error('Missing bucket parameter id in approval payload')
+            }
+            await Effect.runPromise(BucketParametersService.updateHeader(numericEntityId, data, effectiveActorId) as any)
+            return
+        case 'delete':
+            if (!Number.isFinite(numericEntityId)) {
+                throw new Error('Missing bucket parameter id in approval payload')
+            }
+            await Effect.runPromise(BucketParametersService.deleteHeader(numericEntityId) as any)
+            return
+    }
+}
+
+async function executeRuleBaseSettingAction(
+    operation: 'create' | 'update' | 'delete',
+    data: any,
+    _tenantId: string,
+    entityId?: string | null,
+    actorId?: string
+): Promise<void> {
+    const { RuleBaseSettingsService } = await import('./rule-base-settings.service')
+    const effectiveActorId = actorId || 'system'
+    const isDetailScope = data?.scope === 'detail' || Boolean(entityId && entityId.startsWith('detail:'))
+    const numericEntityId = parseNumericEntityId(entityId, data?.detailId ?? data?.id)
+
+    if (isDetailScope) {
+        switch (operation) {
+            case 'create':
+                if (!Number.isFinite(Number(data?.ruleId))) {
+                    throw new Error('Missing rule header id in rule detail approval payload')
+                }
+                await Effect.runPromise(RuleBaseSettingsService.createDetail(Number(data.ruleId), data, effectiveActorId) as any)
+                return
+            case 'update':
+                if (!Number.isFinite(numericEntityId)) {
+                    throw new Error('Missing rule detail id in approval payload')
+                }
+                await Effect.runPromise(RuleBaseSettingsService.updateDetail(numericEntityId, data, effectiveActorId) as any)
+                return
+            case 'delete':
+                if (!Number.isFinite(numericEntityId)) {
+                    throw new Error('Missing rule detail id in approval payload')
+                }
+                await Effect.runPromise(RuleBaseSettingsService.deleteDetail(numericEntityId) as any)
+                return
+        }
+        return
+    }
+
+    const numericHeaderId = parseNumericEntityId(entityId, data?.id)
+    switch (operation) {
+        case 'create':
+            await Effect.runPromise(RuleBaseSettingsService.createHeader(data, effectiveActorId) as any)
+            return
+        case 'update':
+            if (!Number.isFinite(numericHeaderId)) {
+                throw new Error('Missing rule base header id in approval payload')
+            }
+            await Effect.runPromise(RuleBaseSettingsService.updateHeader(numericHeaderId, data, effectiveActorId) as any)
+            return
+        case 'delete':
+            if (!Number.isFinite(numericHeaderId)) {
+                throw new Error('Missing rule base header id in approval payload')
+            }
+            await Effect.runPromise(RuleBaseSettingsService.deleteHeader(numericHeaderId) as any)
+            return
+    }
+}
+
+async function executeSegmentationAction(
+    operation: 'create' | 'update' | 'delete',
+    data: any,
+    _tenantId: string,
+    entityId?: string | null,
+    actorId?: string
+): Promise<void> {
+    const [{ legacyDb: db }, schema, { eq }] = await Promise.all([
+        import('../config'),
+        import('../db/schema'),
+        import('drizzle-orm'),
+    ])
+    const effectiveActorId = actorId || 'system'
+    const now = new Date().toISOString()
+    const isDetailScope = data?.scope === 'detail' || Boolean(entityId && entityId.startsWith('detail:'))
+    const numericEntityId = parseNumericEntityId(entityId, data?.detail_id ?? data?.segment_id ?? data?.id)
+    const { frs9ParamSegmenth, frs9ParamSegmentd } = schema
+
+    if (isDetailScope) {
+        switch (operation) {
+            case 'create':
+                if (!Number.isFinite(Number(data?.segment_id))) {
+                    throw new Error('Missing segment header id in segmentation detail approval payload')
+                }
+                await db.insert(frs9ParamSegmentd).values({
+                    segmentId: Number(data.segment_id),
+                    queryGroup: data.query_group,
+                    seq: data.seq,
+                    tableName: data.table_name,
+                    columnName: data.column_name,
+                    dataType: data.data_type,
+                    operator: data.operator,
+                    value1: data.value1,
+                    value2: data.value2,
+                    condition: data.condition,
+                    createdby: effectiveActorId,
+                    createdhost: 'localhost',
+                    createddate: now,
+                } as any)
+                return
+            case 'update':
+                if (!Number.isFinite(numericEntityId)) {
+                    throw new Error('Missing segmentation detail id in approval payload')
+                }
+                await db.update(frs9ParamSegmentd)
+                    .set({
+                        queryGroup: data.query_group,
+                        seq: data.seq,
+                        tableName: data.table_name,
+                        columnName: data.column_name,
+                        dataType: data.data_type,
+                        operator: data.operator,
+                        value1: data.value1,
+                        value2: data.value2,
+                        condition: data.condition,
+                        updatedby: effectiveActorId,
+                        updateddate: now,
+                        updatedhost: 'localhost',
+                    } as any)
+                    .where(eq(frs9ParamSegmentd.pkid, numericEntityId))
+                return
+            case 'delete':
+                if (!Number.isFinite(numericEntityId)) {
+                    throw new Error('Missing segmentation detail id in approval payload')
+                }
+                await db.delete(frs9ParamSegmentd).where(eq(frs9ParamSegmentd.pkid, numericEntityId))
+                return
+        }
+        return
+    }
+
+    const numericHeaderId = parseNumericEntityId(entityId, data?.id)
+    switch (operation) {
+        case 'create':
+            await db.transaction(async (tx) => {
+                const [header] = await tx.insert(frs9ParamSegmenth).values({
+                    groupSegment: data.group_segment,
+                    segment: data.segment,
+                    subSegment: data.sub_segment,
+                    segmentType: data.segment_type,
+                    seq: data.seq,
+                    activeFlag: data.active_flag,
+                    createdby: data.createdby || effectiveActorId,
+                    createdhost: 'localhost',
+                    createddate: now,
+                } as any).returning({ id: frs9ParamSegmenth.pkid })
+
+                if (Array.isArray(data.rules) && data.rules.length > 0) {
+                    await tx.insert(frs9ParamSegmentd).values(
+                        data.rules.map((rule: any) => ({
+                            segmentId: header.id,
+                            queryGroup: rule.query_group,
+                            seq: rule.seq,
+                            tableName: rule.table_name,
+                            columnName: rule.column_name,
+                            dataType: rule.data_type,
+                            operator: rule.operator,
+                            value1: rule.value1,
+                            value2: rule.value2,
+                            condition: rule.condition,
+                            createdby: effectiveActorId,
+                            createdhost: 'localhost',
+                            createddate: now,
+                        }))
+                    )
+                }
+            })
+            return
+        case 'update':
+            if (!Number.isFinite(numericHeaderId)) {
+                throw new Error('Missing segmentation header id in approval payload')
+            }
+            await db.transaction(async (tx) => {
+                await tx.update(frs9ParamSegmenth)
+                    .set({
+                        groupSegment: data.group_segment,
+                        segment: data.segment,
+                        subSegment: data.sub_segment,
+                        segmentType: data.segment_type,
+                        seq: data.seq,
+                        activeFlag: data.active_flag,
+                        updatedby: effectiveActorId,
+                        updateddate: now,
+                        updatedhost: 'localhost',
+                    } as any)
+                    .where(eq(frs9ParamSegmenth.pkid, numericHeaderId))
+
+                if (Array.isArray(data.rules)) {
+                    await tx.delete(frs9ParamSegmentd).where(eq(frs9ParamSegmentd.segmentId, numericHeaderId))
+                    if (data.rules.length > 0) {
+                        await tx.insert(frs9ParamSegmentd).values(
+                            data.rules.map((rule: any) => ({
+                                segmentId: numericHeaderId,
+                                queryGroup: rule.query_group,
+                                seq: rule.seq,
+                                tableName: rule.table_name,
+                                columnName: rule.column_name,
+                                dataType: rule.data_type,
+                                operator: rule.operator,
+                                value1: rule.value1,
+                                value2: rule.value2,
+                                condition: rule.condition,
+                                createdby: effectiveActorId,
+                                createdhost: 'localhost',
+                                createddate: now,
+                                updatedby: effectiveActorId,
+                                updateddate: now,
+                                updatedhost: 'localhost',
+                            }))
+                        )
+                    }
+                }
+            })
+            return
+        case 'delete':
+            if (!Number.isFinite(numericHeaderId)) {
+                throw new Error('Missing segmentation header id in approval payload')
+            }
+            await db.transaction(async (tx) => {
+                await tx.delete(frs9ParamSegmentd).where(eq(frs9ParamSegmentd.segmentId, numericHeaderId))
+                await tx.delete(frs9ParamSegmenth).where(eq(frs9ParamSegmenth.pkid, numericHeaderId))
+            })
+            return
+    }
+}
+
+async function executeFlScalarAction(
+    operation: 'create' | 'update' | 'delete',
+    data: any,
+    _tenantId: string,
+    entityId?: string | null,
+    actorId?: string
+): Promise<void> {
+    const [{ legacyDb: db }, schema, { eq }] = await Promise.all([
+        import('../config'),
+        import('../db/schema'),
+        import('drizzle-orm'),
+    ])
+    const effectiveActorId = actorId || 'system'
+    const now = new Date().toISOString()
+    const numericEntityId = parseNumericEntityId(entityId, data?.id)
+    const { frs9ImpCaFlScalarh, frs9ImpCaFlScalard } = schema
+
+    switch (operation) {
+        case 'create':
+            await db.transaction(async (tx) => {
+                const [header] = await tx.insert(frs9ImpCaFlScalarh).values({
+                    scalarName: data.scalar_name,
+                    activeFlag: data.active_flag,
+                    createdby: effectiveActorId,
+                    createdhost: 'localhost',
+                    createddate: now,
+                    updatedby: effectiveActorId,
+                    updatedhost: 'localhost',
+                    updateddate: now,
+                } as any).returning()
+
+                if (Array.isArray(data.details) && data.details.length > 0) {
+                    await tx.insert(frs9ImpCaFlScalard).values(
+                        data.details.map((detail: any) => ({
+                            scalarId: header.pkid,
+                            period: detail.period,
+                            weightedScalar: detail.weighted_scalar,
+                            createdby: effectiveActorId,
+                            createdhost: 'localhost',
+                            createddate: now,
+                            updatedby: effectiveActorId,
+                            updatedhost: 'localhost',
+                            updateddate: now,
+                        }))
+                    )
+                }
+            })
+            return
+        case 'update':
+            if (!Number.isFinite(numericEntityId)) {
+                throw new Error('Missing FL scalar id in approval payload')
+            }
+            await db.transaction(async (tx) => {
+                const [header] = await tx.update(frs9ImpCaFlScalarh)
+                    .set({
+                        scalarName: data.scalar_name,
+                        activeFlag: data.active_flag,
+                        updatedby: effectiveActorId,
+                        updateddate: now,
+                        updatedhost: 'localhost',
+                    } as any)
+                    .where(eq(frs9ImpCaFlScalarh.pkid, numericEntityId))
+                    .returning()
+
+                if (!header) {
+                    throw new Error('FL Scalar not found')
+                }
+
+                await tx.delete(frs9ImpCaFlScalard).where(eq(frs9ImpCaFlScalard.scalarId, numericEntityId))
+                if (Array.isArray(data.details) && data.details.length > 0) {
+                    await tx.insert(frs9ImpCaFlScalard).values(
+                        data.details.map((detail: any) => ({
+                            scalarId: numericEntityId,
+                            period: detail.period,
+                            weightedScalar: detail.weighted_scalar,
+                            createdby: effectiveActorId,
+                            createdhost: 'localhost',
+                            createddate: now,
+                            updatedby: effectiveActorId,
+                            updatedhost: 'localhost',
+                            updateddate: now,
+                        }))
+                    )
+                }
+            })
+            return
+        case 'delete':
+            if (!Number.isFinite(numericEntityId)) {
+                throw new Error('Missing FL scalar id in approval payload')
+            }
+            await db.transaction(async (tx) => {
+                await tx.delete(frs9ImpCaFlScalard).where(eq(frs9ImpCaFlScalard.scalarId, numericEntityId))
+                await tx.delete(frs9ImpCaFlScalarh).where(eq(frs9ImpCaFlScalarh.pkid, numericEntityId))
+            })
+            return
+    }
+}
+
+async function executeProductParameterAction(
+    operation: 'create' | 'update' | 'delete',
+    data: any,
+    _tenantId: string,
+    entityId?: string | null,
+    actorId?: string
+): Promise<void> {
+    const { ProductParametersService } = await import('./product-parameters.service')
+    const effectiveActorId = actorId || 'system'
+    const numericEntityId = parseNumericEntityId(entityId, data?.id)
+
+    switch (operation) {
+        case 'create':
+            await Effect.runPromise(ProductParametersService.create(data, effectiveActorId) as any)
+            return
+        case 'update':
+            if (!Number.isFinite(numericEntityId)) {
+                throw new Error('Missing product parameter id in approval payload')
+            }
+            await Effect.runPromise(ProductParametersService.update(numericEntityId, data, effectiveActorId) as any)
+            return
+        case 'delete':
+            if (!Number.isFinite(numericEntityId)) {
+                throw new Error('Missing product parameter id in approval payload')
+            }
+            await Effect.runPromise(ProductParametersService.delete(numericEntityId) as any)
+            return
+    }
+}
+
+async function executeJournalParameterAction(
+    operation: 'create' | 'update' | 'delete',
+    data: any,
+    _tenantId: string,
+    entityId?: string | null,
+    actorId?: string
+): Promise<void> {
+    const { JournalParametersService } = await import('./journal-parameters.service')
+    const effectiveActorId = actorId || 'system'
+    const numericEntityId = parseNumericEntityId(entityId, data?.id)
+
+    switch (operation) {
+        case 'create':
+            await Effect.runPromise(JournalParametersService.create(data, effectiveActorId) as any)
+            return
+        case 'update':
+            if (!Number.isFinite(numericEntityId)) {
+                throw new Error('Missing journal parameter id in approval payload')
+            }
+            await Effect.runPromise(JournalParametersService.update(numericEntityId, data, effectiveActorId) as any)
+            return
+        case 'delete':
+            if (!Number.isFinite(numericEntityId)) {
+                throw new Error('Missing journal parameter id in approval payload')
+            }
+            await Effect.runPromise(JournalParametersService.delete(numericEntityId) as any)
+            return
+    }
 }
 
 /**
@@ -1296,7 +1905,7 @@ async function autoApproveCreatedRequest(request: any, approverId: string): Prom
 
     const finalized = await ApprovalRepository.findRequestById(String(request.id))
     if (finalized) {
-        await executeApprovedAction(finalized)
+        await executeApprovedAction(finalized, approverId)
         await notifyApprovalCompletion(finalized, 'approved')
         return finalized
     }
