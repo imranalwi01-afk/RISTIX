@@ -381,57 +381,6 @@ segmentationRoutes.openapi(
             permissionsLength: userPermissions.length
         });
 
-        // Direct execution for demo user/admin
-        if (userPermissions.includes('*')) {
-            console.log('🔓 Admin bypass: Direct create for segmentation');
-            try {
-                const result = await db.transaction(async (tx) => {
-                    const insertResult = await tx.insert(frs9ParamSegmenth).values({
-                        groupSegment: headerData.group_segment,
-                        segment: headerData.segment,
-                        subSegment: headerData.sub_segment,
-                        segmentType: headerData.segment_type,
-                        seq: headerData.seq,
-                        activeFlag: headerData.active_flag,
-                        createdby: headerData.createdby || userId,
-                        createdhost: 'localhost',
-                        createddate: new Date().toISOString()
-                    }).returning({
-                        id: frs9ParamSegmenth.pkid
-                    });
-
-                    const headerId = insertResult[0].id;
-
-                    // Insert rules if provided
-                    if (headerData.rules && headerData.rules.length > 0) {
-                        await tx.insert(frs9ParamSegmentd).values(
-                            headerData.rules.map((rule: any) => ({
-                                segmentId: headerId,
-                                queryGroup: rule.query_group,
-                                seq: rule.seq,
-                                tableName: rule.table_name,
-                                columnName: rule.column_name,
-                                dataType: rule.data_type,
-                                operator: rule.operator,
-                                value1: rule.value1,
-                                value2: rule.value2,
-                                condition: rule.condition,
-                                createdby: userId,
-                                createdhost: 'localhost',
-                                createddate: new Date().toISOString()
-                            }))
-                        );
-                    }
-
-                    return { success: true, data: { ...headerData, id: headerId } };
-                });
-                return c.json(result, 201);
-            } catch (error) {
-                console.error('Direct create failed:', error);
-                return serverError(c, 'Create failed', String(error));
-            }
-        }
-
         const effect = interceptCreate(
             tenantId,
             userId,
@@ -621,24 +570,6 @@ segmentationRoutes.openapi(
         const userId = c.get('userId') as string || 'system'
         const tenantId = c.get('tenantId') as string
         const userPermissions = c.get('permissions') || []
-
-        // Direct execution for demo user/admin
-        if (userPermissions.includes('*')) {
-            console.log('🔓 Admin bypass: Direct delete for segmentation');
-            try {
-                await db.transaction(async (tx) => {
-                    await tx.delete(frs9ParamSegmentd).where(eq(frs9ParamSegmentd.segmentId, id));
-                    await tx.delete(frs9ParamSegmenth).where(eq(frs9ParamSegmenth.pkid, id));
-                });
-                return c.json({ 
-                    success: true, 
-                    message: 'Deleted successfully (admin bypass)' 
-                });
-            } catch (error) {
-                console.error('Direct delete failed:', error);
-                return serverError(c, 'Delete failed', String(error));
-            }
-        }
 
         const effect = pipe(
             getSegmentHeaderSnapshot(id),
