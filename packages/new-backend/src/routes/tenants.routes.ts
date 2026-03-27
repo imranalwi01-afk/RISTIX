@@ -7,6 +7,7 @@ import { runEffect } from '../lib/effect'
 import { parsePaginationParams, parseFilterParams } from '../lib/react-admin'
 import * as tenantsService from '../services/tenants.service'
 import { buildErrorResponse } from '../lib/http/error-response'
+import { forbidden, badRequest, notFound } from '../lib/http/route-errors'
 
 /**
  * Tenants Routes
@@ -35,15 +36,6 @@ const requirePlatformAdmin = (c: any) => {
         throw new Error('Unauthorized: Platform Admin access required')
     }
 }
-
-const forbidden = (c: any, message: string) =>
-    c.json(buildErrorResponse(c, { error: message, message, code: 'FORBIDDEN' }), 403)
-
-const badRequest = (c: any, message: string) =>
-    c.json(buildErrorResponse(c, { error: message, message, code: 'BAD_REQUEST' }), 400)
-
-const notFound = (c: any, message: string) =>
-    c.json(buildErrorResponse(c, { error: message, message, code: 'NOT_FOUND' }), 404)
 
 const toSettingsObject = (value: unknown): Record<string, unknown> | null => {
     if (value && typeof value === 'object' && !Array.isArray(value)) {

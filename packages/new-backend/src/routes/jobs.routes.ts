@@ -6,18 +6,13 @@ import { approvalRequests, jobDefinitions, jobExecutions } from '../db/schema'
 import { eq, desc, and, sql, inArray } from 'drizzle-orm'
 import { addJob, getJob } from '../services/queue.service'
 import { buildErrorResponse } from '../lib/http/error-response'
+import { badRequest, notFound } from '../lib/http/route-errors'
 
 export const jobsRoutes = new OpenAPIHono<AppContext>()
 
 // Apply auth middleware
 jobsRoutes.use('*', authMiddleware)
 jobsRoutes.use('*', tenantMiddleware)
-
-const badRequest = (c: any, message: string) =>
-    c.json(buildErrorResponse(c, { error: message, message, code: 'BAD_REQUEST' }), 400)
-
-const notFound = (c: any, message: string) =>
-    c.json(buildErrorResponse(c, { error: message, message, code: 'NOT_FOUND' }), 404)
 
 // =============================================================================
 // SCHEMA DEFINITIONS

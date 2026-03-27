@@ -2,30 +2,12 @@ import { Context } from 'hono';
 import { ifrs9CalculationsService } from '../services/ifrs9-calculations.service';
 import { tenantsRepository } from '../repositories/tenants.repository';
 import { Effect } from 'effect';
-import { buildErrorResponse } from '../lib/http/error-response';
+import { internalError, badRequest } from '../lib/http/route-errors';
 
 export class Ifrs9CalculationsController {
     private handleError(c: Context, error: unknown): Response {
         const message = error instanceof Error ? error.message : 'IFRS 9 calculation request failed';
-        return c.json(
-            buildErrorResponse(c, {
-                error: message,
-                message,
-                code: 'IFRS9_CALCULATION_ERROR',
-            }),
-            500
-        );
-    }
-
-    private badRequest(c: Context, message: string): Response {
-        return c.json(
-            buildErrorResponse(c, {
-                error: message,
-                message,
-                code: 'BAD_REQUEST',
-            }),
-            400
-        );
+        return internalError(c, message, 'IFRS9_CALCULATION_ERROR');
     }
 
     private async resolveTenantId(tenantId: string | null): Promise<string> {
@@ -145,7 +127,7 @@ export class Ifrs9CalculationsController {
             const mode = c.req.query("mode");
 
             if (!processDate)
-                return this.badRequest(c, 'Process date required');
+                return badRequest(c, 'Process date required');
 
             const result = await ifrs9CalculationsService.getBatchResults(
                 tenantId,

@@ -58,7 +58,14 @@ export function handleEffectError(c: Context, cause: unknown): Response {
         case 'DatabaseError':
             console.error('Database error:', error)
             return c.json(
-                buildErrorResponse(c, { error: 'Database operation failed', message: 'Database operation failed', code: 'DB_ERROR' }) as any,
+                buildErrorResponse(c, {
+                    error: error.message || 'Database operation failed',
+                    message: error.message || 'Database operation failed',
+                    code: 'DB_ERROR',
+                    details: {
+                        operation: error.operation,
+                    },
+                }) as any,
                 500
             )
 
@@ -75,14 +82,18 @@ export function handleEffectError(c: Context, cause: unknown): Response {
             )
 
         case 'NotFoundError':
-            return c.json(
-                buildErrorResponse(c, {
-                    success: false,
-                    error: `${error.resource} with id ${error.id} not found`,
-                    code: 'NOT_FOUND',
-                }) as any,
-                404
-            )
+            {
+                const message = `${error.resource} with id ${error.id} not found`
+                return c.json(
+                    buildErrorResponse(c, {
+                        success: false,
+                        error: message,
+                        message,
+                        code: 'NOT_FOUND',
+                    }) as any,
+                    404
+                )
+            }
 
         case 'AuthenticationError':
             return c.json(

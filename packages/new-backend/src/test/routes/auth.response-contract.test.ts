@@ -12,6 +12,7 @@ let tenantLookupMode: TenantLookupMode = 'success'
 const loginAuditMock = mock(() => Effect.succeed(void 0))
 const loginFailedAuditMock = mock(() => Effect.succeed(void 0))
 const logoutAuditMock = mock(() => Effect.succeed(void 0))
+const noopAuditLogMock = mock(async () => undefined)
 
 const makeMockAccessToken = (tenantId: string): string => {
   const payload = Buffer.from(JSON.stringify({ tenantId })).toString('base64')
@@ -156,6 +157,17 @@ mock.module('@/services/audit.service', () => ({
     loginFailed: loginFailedAuditMock,
     logout: logoutAuditMock,
   },
+  logApproval: {
+    requested: noopAuditLogMock,
+    approved: noopAuditLogMock,
+    rejected: noopAuditLogMock,
+    cancelled: noopAuditLogMock,
+    delegated: noopAuditLogMock,
+  },
+  logDataChange: {
+    create: noopAuditLogMock,
+    update: noopAuditLogMock,
+  },
 }))
 
 mock.module('../../services/audit.service', () => ({
@@ -163,6 +175,17 @@ mock.module('../../services/audit.service', () => ({
     login: loginAuditMock,
     loginFailed: loginFailedAuditMock,
     logout: logoutAuditMock,
+  },
+  logApproval: {
+    requested: noopAuditLogMock,
+    approved: noopAuditLogMock,
+    rejected: noopAuditLogMock,
+    cancelled: noopAuditLogMock,
+    delegated: noopAuditLogMock,
+  },
+  logDataChange: {
+    create: noopAuditLogMock,
+    update: noopAuditLogMock,
   },
 }))
 
@@ -198,6 +221,7 @@ describe('auth routes response contracts', () => {
     loginAuditMock.mockClear()
     loginFailedAuditMock.mockClear()
     logoutAuditMock.mockClear()
+    noopAuditLogMock.mockClear()
   })
 
   test('POST /api/v1/auth/login returns success envelope with user and tokens', async () => {

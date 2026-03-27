@@ -31,6 +31,8 @@ export const buildApprovalConflictNotification = (
     response?: {
       status?: number;
       data?: {
+        duplicateRequestId?: unknown;
+        requestId?: unknown;
         details?: {
           duplicateRequestId?: unknown;
           requestId?: unknown;
@@ -46,8 +48,12 @@ export const buildApprovalConflictNotification = (
 
   const details = err?.response?.data?.details;
   const requestId =
-    typeof details?.duplicateRequestId === 'string'
-      ? details.duplicateRequestId
+    typeof err?.response?.data?.duplicateRequestId === 'string'
+      ? err.response.data.duplicateRequestId
+      : typeof details?.duplicateRequestId === 'string'
+        ? details.duplicateRequestId
+        : typeof err?.response?.data?.requestId === 'string'
+          ? err.response.data.requestId
       : typeof details?.requestId === 'string'
         ? details.requestId
         : undefined;

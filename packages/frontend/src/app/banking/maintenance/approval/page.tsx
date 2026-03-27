@@ -169,6 +169,12 @@ interface ApprovalStatistics {
   rejectedRequests: number;
   averageApprovalTime: number;
   overdueRequests: number;
+  infoRequestedRequests: number;
+  delegatedRequests: number;
+  criticalPendingRequests: number;
+  uniqueRequestTypes: number;
+  pendingByLevel: Array<{ level: number; count: number }>;
+  byRequestType: Array<{ requestType: string; count: number }>;
 }
 
 interface ApprovalAction {
@@ -410,6 +416,8 @@ export default function ApprovalManagementPage() {
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [bankingTypeFilter, setBankingTypeFilter] = useState('all');
   const [requestTypeFilter, setRequestTypeFilter] = useState('all');
+  const [levelFilter, setLevelFilter] = useState('all');
+  const [riskLevelFilter, setRiskLevelFilter] = useState('all');
   const [routingEntityFilter, setRoutingEntityFilter] = useState('all');
   const [routingOperationFilter, setRoutingOperationFilter] = useState<'all' | 'create' | 'update' | 'delete'>('all');
   const [routingDepartmentFilter, setRoutingDepartmentFilter] = useState('');
@@ -557,9 +565,45 @@ export default function ApprovalManagementPage() {
     const approved = requests.filter(r => r.status === 'approved').length;
     const rejected = requests.filter(r => r.status === 'rejected').length;
     const overdue = requests.filter(r => r.expiresAt && new Date(r.expiresAt) < new Date() && r.status === 'pending').length;
+    const infoRequested = requests.filter(r => r.status === 'info_requested').length;
+    const delegated = requests.filter(r => r.status === 'delegated').length;
+    const criticalPending = requests.filter(r => r.status === 'pending' && r.priority === 'critical').length;
 
-    // Mock avg time calculation for now
-    const avgTime = 2.5;
+    const completedRequests = requests.filter(
+      (r) => r.completedAt && ['approved', 'rejected', 'completed', 'cancelled'].includes(r.status)
+    );
+    const totalApprovalTimeMs = completedRequests.reduce((sum, request) => {
+      const startedAt = new Date(request.requestedAt).getTime();
+      const completedAt = request.completedAt ? new Date(request.completedAt).getTime() : startedAt;
+      if (Number.isNaN(startedAt) || Number.isNaN(completedAt) || completedAt < startedAt) return sum;
+      return sum + (completedAt - startedAt);
+    }, 0);
+    const avgTime = completedRequests.length > 0
+      ? Number((totalApprovalTimeMs / completedRequests.length / (1000 * 60 * 60 * 24)).toFixed(1))
+      : 0;
+
+    const pendingByLevel = Array.from(
+      requests
+        .filter((request) => request.status === 'pending' && typeof request.currentLevel === 'number')
+        .reduce((map, request) => {
+          const level = request.currentLevel as number;
+          map.set(level, (map.get(level) || 0) + 1);
+          return map;
+        }, new Map<number, number>())
+        .entries()
+    )
+      .map(([level, count]) => ({ level, count }))
+      .sort((a, b) => a.level - b.level);
+
+    const byRequestType = Array.from(
+      requests.reduce((map, request) => {
+        const key = request.requestType || 'unknown';
+        map.set(key, (map.get(key) || 0) + 1);
+        return map;
+      }, new Map<string, number>()).entries()
+    )
+      .map(([requestType, count]) => ({ requestType, count }))
+      .sort((a, b) => b.count - a.count);
 
     setStatistics({
       totalRequests: total,
@@ -567,7 +611,13 @@ export default function ApprovalManagementPage() {
       approvedRequests: approved,
       rejectedRequests: rejected,
       averageApprovalTime: avgTime,
-      overdueRequests: overdue
+      overdueRequests: overdue,
+      infoRequestedRequests: infoRequested,
+      delegatedRequests: delegated,
+      criticalPendingRequests: criticalPending,
+      uniqueRequestTypes: byRequestType.length,
+      pendingByLevel,
+      byRequestType,
     });
   };
 
@@ -747,8 +797,16 @@ export default function ApprovalManagementPage() {
       filtered = filtered.filter(request => request.requestType === requestTypeFilter);
     }
 
+    if (levelFilter !== 'all') {
+      filtered = filtered.filter((request) => String(request.currentLevel ?? 'unknown') === levelFilter);
+    }
+
+    if (riskLevelFilter !== 'all') {
+      filtered = filtered.filter((request) => (request.riskLevel || 'unknown') === riskLevelFilter);
+    }
+
     setFilteredRequests(filtered);
-  }, [searchTerm, statusFilter, priorityFilter, bankingTypeFilter, requestTypeFilter, approvalRequests]);
+  }, [searchTerm, statusFilter, priorityFilter, bankingTypeFilter, requestTypeFilter, levelFilter, riskLevelFilter, approvalRequests]);
 
   // Utility functions
   const showSnackbar = (message: string, severity: 'success' | 'error' | 'info' | 'warning') => {
@@ -1193,6 +1251,7 @@ export default function ApprovalManagementPage() {
               value={statusFilter}
               label="Status"
               onChange={(e) => setStatusFilter(e.target.value)}
+              data-testid="approval-status-select"
             >
               <MenuItem value="all">All</MenuItem>
               <MenuItem value="pending">Pending</MenuItem>
@@ -1207,6 +1266,7 @@ export default function ApprovalManagementPage() {
               value={priorityFilter}
               label="Priority"
               onChange={(e) => setPriorityFilter(e.target.value)}
+              data-testid="approval-priority-select"
             >
               <MenuItem value="all">All</MenuItem>
               <MenuItem value="critical">Critical</MenuItem>
@@ -1222,10 +1282,68 @@ export default function ApprovalManagementPage() {
               value={bankingTypeFilter}
               label="Banking Type"
               onChange={(e) => setBankingTypeFilter(e.target.value)}
+              data-testid="approval-banking-type-select"
             >
               <MenuItem value="all">All</MenuItem>
               <MenuItem value="conventional">Conventional</MenuItem>
               <MenuItem value="syariah">Syariah</MenuItem>
+            </Select>
+          </FormControl>
+
+          <FormControl size="small" sx={{ minWidth: 160 }}>
+            <InputLabel>Request Type</InputLabel>
+            <Select
+              value={requestTypeFilter}
+              label="Request Type"
+              onChange={(e) => setRequestTypeFilter(e.target.value)}
+              data-testid="approval-request-type-select"
+            >
+              <MenuItem value="all">All</MenuItem>
+              {Array.from(new Set(approvalRequests.map((request) => request.requestType).filter(Boolean)))
+                .sort()
+                .map((requestType) => (
+                  <MenuItem key={requestType} value={requestType}>
+                    {requestType.replace(/_/g, ' ')}
+                  </MenuItem>
+                ))}
+            </Select>
+          </FormControl>
+
+          <FormControl size="small" sx={{ minWidth: 120 }}>
+            <InputLabel>Level</InputLabel>
+            <Select
+              value={levelFilter}
+              label="Level"
+              onChange={(e) => setLevelFilter(e.target.value)}
+              data-testid="approval-level-select"
+            >
+              <MenuItem value="all">All</MenuItem>
+              {Array.from(new Set(approvalRequests
+                .map((request) => request.currentLevel)
+                .filter((level): level is number => typeof level === 'number')))
+                .sort((a, b) => a - b)
+                .map((level) => (
+                  <MenuItem key={level} value={String(level)}>
+                    Level {level}
+                  </MenuItem>
+                ))}
+            </Select>
+          </FormControl>
+
+          <FormControl size="small" sx={{ minWidth: 140 }}>
+            <InputLabel>Risk Level</InputLabel>
+            <Select
+              value={riskLevelFilter}
+              label="Risk Level"
+              onChange={(e) => setRiskLevelFilter(e.target.value)}
+              data-testid="approval-risk-level-select"
+            >
+              <MenuItem value="all">All</MenuItem>
+              {['critical', 'high', 'medium', 'low'].map((level) => (
+                <MenuItem key={level} value={level}>
+                  {level.charAt(0).toUpperCase() + level.slice(1)}
+                </MenuItem>
+              ))}
             </Select>
           </FormControl>
 
@@ -1235,6 +1353,22 @@ export default function ApprovalManagementPage() {
             onClick={handleRefresh}
           >
             Refresh
+          </Button>
+
+          <Button
+            variant="text"
+            onClick={() => {
+              setSearchTerm('');
+              setStatusFilter('all');
+              setPriorityFilter('all');
+              setBankingTypeFilter('all');
+              setRequestTypeFilter('all');
+              setLevelFilter('all');
+              setRiskLevelFilter('all');
+            }}
+            data-testid="approval-reset-filters-button"
+          >
+            Reset Filters
           </Button>
         </Box>
       </Paper>
@@ -1339,6 +1473,78 @@ export default function ApprovalManagementPage() {
           </Card>
         </Grid>
 
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography color="text.secondary" gutterBottom variant="h6">
+                    Info Requested
+                  </Typography>
+                  <Typography variant="h4" component="div" color="info.main">
+                    {statistics.infoRequestedRequests}
+                  </Typography>
+                </Box>
+                <InfoIcon sx={{ fontSize: 40, color: 'info.main' }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography color="text.secondary" gutterBottom variant="h6">
+                    Delegated
+                  </Typography>
+                  <Typography variant="h4" component="div" color="secondary.main">
+                    {statistics.delegatedRequests}
+                  </Typography>
+                </Box>
+                <DelegateIcon sx={{ fontSize: 40, color: 'secondary.main' }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography color="text.secondary" gutterBottom variant="h6">
+                    Critical Pending
+                  </Typography>
+                  <Typography variant="h4" component="div" color="error.main">
+                    {statistics.criticalPendingRequests}
+                  </Typography>
+                </Box>
+                <NotificationIcon sx={{ fontSize: 40, color: 'error.main' }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography color="text.secondary" gutterBottom variant="h6">
+                    Entity Types
+                  </Typography>
+                  <Typography variant="h4" component="div" color="primary.main">
+                    {statistics.uniqueRequestTypes}
+                  </Typography>
+                </Box>
+                <FilterIcon sx={{ fontSize: 40, color: 'primary.main' }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
         <Grid size={{ xs: 12 }}>
           <Card>
             <CardHeader
@@ -1376,6 +1582,53 @@ export default function ApprovalManagementPage() {
                   </Typography>
                 </Box>
               </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid size={{ xs: 12, md: 6 }}>
+          <Card>
+            <CardHeader title="Pending By Level" subheader="Current pending workload by approval stage" />
+            <CardContent>
+              {statistics.pendingByLevel.length === 0 ? (
+                <Typography variant="body2" color="text.secondary">
+                  No pending requests currently assigned to a specific approval level.
+                </Typography>
+              ) : (
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  {statistics.pendingByLevel.map((entry) => (
+                    <Chip
+                      key={entry.level}
+                      color="warning"
+                      variant="outlined"
+                      label={`Level ${entry.level}: ${entry.count}`}
+                    />
+                  ))}
+                </Box>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid size={{ xs: 12, md: 6 }}>
+          <Card>
+            <CardHeader title="Top Request Types" subheader="Most active approval entities in this tenant" />
+            <CardContent>
+              {statistics.byRequestType.length === 0 ? (
+                <Typography variant="body2" color="text.secondary">
+                  No request type activity available yet.
+                </Typography>
+              ) : (
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  {statistics.byRequestType.slice(0, 8).map((entry) => (
+                    <Chip
+                      key={entry.requestType}
+                      variant="outlined"
+                      label={`${entry.requestType.replace(/_/g, ' ')}: ${entry.count}`}
+                    />
+                  ))}
+                </Box>
+              )}
             </CardContent>
           </Card>
         </Grid>

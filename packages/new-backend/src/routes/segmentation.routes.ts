@@ -9,6 +9,7 @@ import { interceptCreate, interceptUpdate, interceptDelete } from '../middleware
 import { runEffect, handleEffectError } from '../lib/effect/runtime'
 import type { ApprovalResponse } from '../lib/approval-helpers'
 import { buildErrorResponse } from '../lib/http/error-response'
+import { badRequest, notFound, internalError } from '../lib/http/route-errors'
 
 export const segmentationRoutes: any = new OpenAPIHono<AppContext>()
 
@@ -162,14 +163,8 @@ const getSegmentDetailSnapshot = (detailId: number) =>
         catch: (error) => error
     })
 
-const badRequest = (c: any, message: string) =>
-    c.json(buildErrorResponse(c, { error: message, message, code: 'BAD_REQUEST' }), 400)
-
-const notFound = (c: any, message: string) =>
-    c.json(buildErrorResponse(c, { error: message, message, code: 'NOT_FOUND' }), 404)
-
 const serverError = (c: any, message: string, details?: unknown) =>
-    c.json(buildErrorResponse(c, { error: message, message, code: 'SEGMENTATION_ERROR', details }), 500)
+    internalError(c, message, 'SEGMENTATION_ERROR', details)
 
 // ============================================================================
 // ENDPOINTS
