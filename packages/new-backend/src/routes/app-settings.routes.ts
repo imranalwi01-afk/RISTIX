@@ -7,6 +7,7 @@ import * as auditService from '../services/audit.service'
 import { runEffect } from '../lib/effect/runtime'
 import { interceptCreate, interceptUpdate, interceptDelete } from '../middleware/approval-interceptor.middleware'
 import type { ApprovalResponse } from '../lib/approval-helpers'
+import { buildErrorResponse } from '../lib/http/error-response'
 
 const app = new OpenAPIHono<AppContext>()
 
@@ -548,7 +549,7 @@ app.openapi(
     }),
     async (c) => {
         const id = c.req.valid('param').id;
-        if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400);
+        if (isNaN(id)) return c.json(buildErrorResponse(c, { error: 'Invalid ID', message: 'Invalid ID', code: 'BAD_REQUEST' }), 400);
         const userId = c.get('userId') as string || 'system'
         const tenantId = c.get('tenantId') as string
 

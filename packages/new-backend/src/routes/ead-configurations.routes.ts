@@ -163,7 +163,7 @@ eadConfigurationsRoutes.openapi(
             } as any)
         } catch (error) {
             console.error('Error fetching EAD configurations:', error)
-            return c.json({ success: false, message: 'Failed to fetch EAD configurations', error: String(error) }, 500)
+            return c.json(buildErrorResponse(c, { error: 'Failed to fetch EAD configurations', message: 'Failed to fetch EAD configurations', code: 'EAD_CONFIGURATION_ERROR', details: String(error) }), 500)
         }
     }
 )
@@ -196,12 +196,12 @@ eadConfigurationsRoutes.openapi(
                 .where(eq(frs9ImpCaEadConfig.pkid, id))
 
             if (!config) {
-                return c.json({ success: false, message: 'EAD configuration not found' }, 404) as any
+                return c.json(buildErrorResponse(c, { error: 'EAD configuration not found', message: 'EAD configuration not found', code: 'NOT_FOUND' }), 404) as any
             }
 
             return c.json({ success: true, data: transformEadConfig(config) } as any)
         } catch (error) {
-            return c.json({ success: false, message: 'Failed to fetch EAD configuration', error: String(error) }, 500)
+            return c.json(buildErrorResponse(c, { error: 'Failed to fetch EAD configuration', message: 'Failed to fetch EAD configuration', code: 'EAD_CONFIGURATION_ERROR', details: String(error) }), 500)
         }
     }
 )
