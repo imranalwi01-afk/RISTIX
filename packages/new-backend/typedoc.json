@@ -1,12 +1,13 @@
 {
     "$schema": "https://typedoc.org/schema.json",
+    "entryPointStrategy": "expand",
     "entryPoints": [
-        "./src/index.ts",
         "./src/services/*.ts",
         "./src/routes/*.ts",
         "./src/repositories/*.ts",
         "./src/db/schema/*.ts",
         "./src/lib/*.ts",
+        "./src/queue/bull-setup.ts",
         "./src/app.ts"
     ],
     "out": "../../packages/docs/docs/backend-api",
@@ -16,7 +17,11 @@
     "theme": "default",
     "name": "Backend API Reference",
     "includeVersion": true,
-    "readme": "README.md",
+    "readme": "none",
+    "entryFileName": "index",
+    "outputFileStrategy": "modules",
+    "flattenOutputFiles": true,
+    "membersWithOwnFile": [],
     "skipErrorChecking": true,
     "hideGenerator": true,
     "cleanOutputDir": true,

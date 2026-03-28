@@ -7,6 +7,11 @@
 // ✅ ENHANCED: Intelligent menu grouping and sorting
 // ============================================================================
 
+/**
+ * Transforms flat menu payloads into the hierarchical structure rendered by the banking sidebar.
+ * This is part of the generated docs because menu composition and access-driven rendering
+ * are shared concerns across the frontend.
+ */
 import { MenuItem } from '@/services/menu.service';
 
 // Extended interface to handle compatibility between different MenuItem definitions

@@ -1,6 +1,11 @@
 // packages/frontend/src/services/menu.service.ts
 // Frontend menu service for IAF project
 
+/**
+ * Frontend menu access and transformation service.
+ * This module wraps menu loading, caching, hierarchy shaping, and access filtering
+ * so the sidebar and admin menu tooling use the same behavior.
+ */
 import { api } from './api';
 import { menuConfig, hasMenuAccess } from '@/config/menu-config';
 
@@ -141,7 +146,7 @@ export interface ApiResponse {
   };
 }
 
-class MenuService {
+export class MenuService {
   // Cache for menu data to avoid repeated API calls
   private menuCache: Map<string, { data: any; timestamp: number }> = new Map();
   private CACHE_DURATION = 5 * 60 * 1000; // 5 minutes

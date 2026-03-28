@@ -2,8 +2,9 @@
 'use client';
 
 /**
- * Async Export Utilities for Large Datasets
- * Handles exports >50k rows with progress tracking and email notification
+ * Client-side coordination layer for large export jobs.
+ * It decides when to switch from synchronous export to a background flow
+ * and exposes job lifecycle helpers for progress-aware UI.
  */
 
 export interface AsyncExportJob {
@@ -27,7 +28,7 @@ export interface AsyncExportOptions {
   onProgress?: (progress: number) => void;
 }
 
-class AsyncExportManager {
+export class AsyncExportManager {
   private jobs: Map<string, AsyncExportJob> = new Map();
   private readonly SYNC_LIMIT = 50000;
 

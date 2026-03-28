@@ -1,4 +1,8 @@
-
+/**
+ * Executes tenant and legacy job workloads behind the scheduling and workflow layer.
+ * This service is the main bridge between job definitions and actual SQL, script,
+ * or shell execution at runtime.
+ */
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import * as schema from '../db/schema';
 import { sql } from 'drizzle-orm';
@@ -16,13 +20,13 @@ export type JobResult = {
     executionTimeMs: number;
 };
 
-type SqlRuntimeMetadata = {
+export type SqlRuntimeMetadata = {
     dbBackendPid: number;
     dbName: string;
     dbSessionStart?: string;
 };
 
-type ExecutorOptions = {
+export type ExecutorOptions = {
     onSqlRuntime?: (metadata: SqlRuntimeMetadata) => Promise<void> | void;
 };
 

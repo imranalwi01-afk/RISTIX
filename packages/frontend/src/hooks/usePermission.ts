@@ -1,3 +1,8 @@
+/**
+ * Shared permission hook for frontend authorization checks.
+ * It normalizes Redux, local storage, and token-derived permissions into a single
+ * evaluation surface used by guarded pages and conditional UI rendering.
+ */
 import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store';
@@ -9,8 +14,8 @@ import {
     normalizePermissionInput,
 } from '@/utils/permission-evaluator';
 
-type ActionOrResource = string | string[];
-type MatchMode = 'any' | 'all';
+export type ActionOrResource = string | string[];
+export type MatchMode = 'any' | 'all';
 
 const toList = (value: ActionOrResource): string[] => (Array.isArray(value) ? value : [value]);
 
