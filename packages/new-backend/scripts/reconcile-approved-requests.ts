@@ -22,41 +22,43 @@ import {
     frs9ParamSegmentd,
     frs9ParamSegmenth,
 } from '../src/db/schema'
-
-type Operation = 'create' | 'update' | 'delete'
-type ReconciliationState =
-    | 'already_applied'
-    | 'missing_side_effect'
-    | 'ambiguous'
-    | 'unsupported'
-    | 'error'
-    | 'replayed'
-    | 'replay_failed'
+import {
+    buildReconciliationCsv,
+    buildReconciliationJsonReport,
+    type ReconciliationReportFormat,
+} from '../src/lib/approval-reconciliation-report'
+import {
+    assessBucketHeaderRequest,
+    assessFlScalarHeaderRequest,
+    assessLegacyHeaderOperation,
+    assessParameterDetailRequest,
+    assessProductHeaderRequest,
+    assessJournalHeaderRequest,
+    assessRuleBaseHeaderRequest,
+    assessRuleBaseDetailRequest,
+    assessSegmentationDetailRequest,
+    assessSegmentationHeaderRequest,
+    maybeReplayAssessment,
+    same,
+    toBigIntId,
+    toNumericId,
+    type Assessment,
+    type ReconciliationResult,
+    type Operation,
+} from '../src/lib/approval-reconciliation'
 
 type ApprovedRequestRow = typeof approvalRequests.$inferSelect
 
-interface ScriptOptions {
+export interface ScriptOptions {
     envFile?: string
     tenantId?: string
     requestId?: string
     entityType?: string
+    reportFormat: ReconciliationReportFormat
+    outputFile?: string
     apply: boolean
     includeAmbiguous: boolean
     limit: number
-}
-
-interface ReconciliationResult {
-    requestId: string
-    entityType: string
-    operation: string
-    title: string
-    state: ReconciliationState
-    reason: string
-}
-
-interface Assessment {
-    state: Exclude<ReconciliationState, 'replayed' | 'replay_failed' | 'error'>
-    reason: string
 }
 
 let tenantDb: any
@@ -88,6 +90,7 @@ const SUPPORTED_ENTITY_TYPES = new Set([
 
 function parseArgs(argv: string[]): ScriptOptions {
     const options: ScriptOptions = {
+        reportFormat: 'console',
         apply: false,
         includeAmbiguous: false,
         limit: 200,
@@ -107,6 +110,19 @@ function parseArgs(argv: string[]): ScriptOptions {
                 break
             case '--entity-type':
                 options.entityType = argv[++i]
+                break
+            case '--report-format':
+            case '--format':
+                {
+                    const value = String(argv[++i] ?? '').trim().toLowerCase()
+                    if (value !== 'console' && value !== 'json' && value !== 'csv') {
+                        throw new Error(`Unsupported report format: ${value}`)
+                    }
+                    options.reportFormat = value as ReconciliationReportFormat
+                }
+                break
+            case '--output-file':
+                options.outputFile = argv[++i]
                 break
             case '--limit':
                 options.limit = Number(argv[++i] ?? '200') || 200
@@ -141,6 +157,8 @@ Options:
   --tenant-id <id>         Filter by tenant id
   --request-id <id>        Reconcile a single approval request
   --entity-type <type>     Filter by entity type
+  --report-format <type>   Output report as console, json, or csv (default: console)
+  --output-file <path>     Write JSON/CSV report to a file (format inferred from extension if omitted)
   --limit <n>              Maximum requests to scan (default: 200)
   --apply                  Replay side effects for rows marked missing_side_effect
   --include-ambiguous      Also replay rows marked ambiguous
@@ -173,7 +191,35 @@ function loadEnvFile(envFile: string) {
     }
 }
 
-async function initializeRuntime(options: ScriptOptions) {
+function inferReportFormat(options: ScriptOptions): ReconciliationReportFormat {
+    if (options.outputFile) {
+        const extension = path.extname(options.outputFile).toLowerCase()
+        if (extension === '.json') return 'json'
+        if (extension === '.csv') return 'csv'
+    }
+    return options.reportFormat
+}
+
+function ensureParentDirectory(filePath: string) {
+    const directory = path.dirname(filePath)
+    if (!fs.existsSync(directory)) {
+        fs.mkdirSync(directory, { recursive: true })
+    }
+}
+
+export function setReconciliationRuntimeForTests(runtime: {
+    tenantDb: any
+    legacyDb: any
+    closeDatabase?: (() => Promise<void>) | (() => void)
+    replayApprovedRequestSideEffect?: (request: any, approvedBy?: string) => Promise<void>
+}) {
+    tenantDb = runtime.tenantDb
+    legacyDb = runtime.legacyDb
+    closeDatabase = runtime.closeDatabase || (async () => undefined)
+    replayApprovedRequestSideEffect = runtime.replayApprovedRequestSideEffect || (async () => undefined)
+}
+
+export async function initializeRuntime(options: ScriptOptions) {
     if (options.envFile) {
         const resolvedEnvFile = path.isAbsolute(options.envFile)
             ? options.envFile
@@ -201,28 +247,6 @@ function normalizeOperation(value: unknown): Operation | null {
         return op
     }
     return null
-}
-
-function same(a: unknown, b: unknown): boolean {
-    const normalize = (value: unknown) =>
-        value === null || value === undefined
-            ? ''
-            : String(value).trim().toLowerCase()
-    return normalize(a) === normalize(b)
-}
-
-function toNumericId(value: unknown): number | null {
-    const parsed = Number(value)
-    return Number.isFinite(parsed) ? parsed : null
-}
-
-function toBigIntId(value: unknown): bigint | null {
-    try {
-        if (value === null || value === undefined || value === '') return null
-        return BigInt(String(value))
-    } catch {
-        return null
-    }
 }
 
 function parseRequestData(request: ApprovedRequestRow): {
@@ -261,7 +285,7 @@ async function fetchApprovedRequests(options: ScriptOptions): Promise<ApprovedRe
         .limit(options.limit)
 }
 
-async function assessRequest(request: ApprovedRequestRow): Promise<Assessment> {
+export async function assessRequest(request: ApprovedRequestRow): Promise<Assessment> {
     const { operation, entityType, data } = parseRequestData(request)
 
     if (!operation) {
@@ -455,29 +479,7 @@ async function assessParameterRequest(operation: Operation, request: ApprovedReq
         const rowByKey = paramCode && Number.isFinite(paramSeq)
             ? await legacyDb.select().from(frs9ParamCommond).where(and(eq(frs9ParamCommond.paramCode, String(paramCode)), eq(frs9ParamCommond.paramSeq, paramSeq))).limit(1)
             : []
-        const row = rowById[0] ?? rowByKey[0]
-
-        if (operation === 'create') {
-            return row
-                ? { state: 'already_applied', reason: `parameter detail exists (${paramCode}:${paramSeq})` }
-                : { state: 'missing_side_effect', reason: 'parameter detail row not found by id/code+seq' }
-        }
-
-        if (operation === 'delete') {
-            return row
-                ? { state: 'missing_side_effect', reason: 'parameter detail row still exists after approved delete' }
-                : { state: 'already_applied', reason: 'parameter detail row no longer exists' }
-        }
-
-        if (!row) {
-            return { state: 'ambiguous', reason: 'parameter detail update target not found' }
-        }
-
-        if (same(row.value1, data?.value1) && same(row.value2, data?.value2) && same(row.value3, data?.value3)) {
-            return { state: 'already_applied', reason: 'parameter detail matches approved payload' }
-        }
-
-        return { state: 'ambiguous', reason: 'parameter detail exists but values do not conclusively match approved payload' }
+        return assessParameterDetailRequest(operation, request, data, { rowById, rowByKey })
     }
 
     const paramCode = String(request.entityId || data?.paramCode || '')
@@ -597,16 +599,7 @@ async function assessBucketRequest(operation: Operation, request: ApprovedReques
     const rowByKey = data?.bucket_group
         ? await legacyDb.select().from(frs9ParamBucketh).where(eq(frs9ParamBucketh.bucketGroup, String(data.bucket_group))).limit(1)
         : []
-    const row = rowById[0] ?? rowByKey[0]
-
-    return assessLegacyHeaderOperation(operation, row, {
-        createMissing: 'bucket header row not found by id/bucket_group',
-        deleteExisting: 'bucket header row still exists after approved delete',
-        updateMatch: row
-            ? same(row.bucketGroup, data?.bucket_group) && same(row.basis, data?.basis)
-            : false,
-        label: 'bucket parameter',
-    })
+    return assessBucketHeaderRequest(operation, data, { rowById, rowByKey })
 }
 
 async function assessRuleBaseRequest(operation: Operation, request: ApprovedRequestRow, data: any): Promise<Assessment> {
@@ -626,16 +619,7 @@ async function assessRuleBaseRequest(operation: Operation, request: ApprovedRequ
                 eq(frs9ParamScenarioRulesd.columnName, String(data.column_name)),
             )).limit(1)
             : []
-        const row = rowById[0] ?? rowByKey[0]
-
-        return assessLegacyHeaderOperation(operation, row, {
-            createMissing: 'rule detail row not found by id/composite business key',
-            deleteExisting: 'rule detail row still exists after approved delete',
-            updateMatch: row
-                ? same(row.operator, data?.operator) && same(row.value1, data?.value1) && same(row.detailType, data?.detail_type)
-                : false,
-            label: 'rule detail',
-        })
+        return assessRuleBaseDetailRequest(operation, request, data, { rowById, rowByKey })
     }
 
     const id = toNumericId(request.entityId ?? data?.id)
@@ -648,16 +632,7 @@ async function assessRuleBaseRequest(operation: Operation, request: ApprovedRequ
             eq(frs9ParamScenarioRulesh.ruleType, String(data.rule_type)),
         )).limit(1)
         : []
-    const row = rowById[0] ?? rowByKey[0]
-
-    return assessLegacyHeaderOperation(operation, row, {
-        createMissing: 'rule header row not found by id/rule_name+rule_type',
-        deleteExisting: 'rule header row still exists after approved delete',
-        updateMatch: row
-            ? same(row.ruleName, data?.rule_name) && same(row.ruleType, data?.rule_type)
-            : false,
-        label: 'rule header',
-    })
+    return assessRuleBaseHeaderRequest(operation, data, { rowById, rowByKey })
 }
 
 async function assessSegmentationRequest(operation: Operation, request: ApprovedRequestRow, data: any): Promise<Assessment> {
@@ -677,16 +652,7 @@ async function assessSegmentationRequest(operation: Operation, request: Approved
                 eq(frs9ParamSegmentd.columnName, String(data.column_name)),
             )).limit(1)
             : []
-        const row = rowById[0] ?? rowByKey[0]
-
-        return assessLegacyHeaderOperation(operation, row, {
-            createMissing: 'segmentation detail row not found by id/composite business key',
-            deleteExisting: 'segmentation detail row still exists after approved delete',
-            updateMatch: row
-                ? same(row.operator, data?.operator) && same(row.value1, data?.value1)
-                : false,
-            label: 'segmentation detail',
-        })
+        return assessSegmentationDetailRequest(operation, data, { rowById, rowByKey })
     }
 
     const id = toNumericId(request.entityId ?? data?.id)
@@ -700,16 +666,7 @@ async function assessSegmentationRequest(operation: Operation, request: Approved
             eq(frs9ParamSegmenth.subSegment, String(data.sub_segment)),
         )).limit(1)
         : []
-    const row = rowById[0] ?? rowByKey[0]
-
-    return assessLegacyHeaderOperation(operation, row, {
-        createMissing: 'segmentation header row not found by id/group+segment+sub-segment',
-        deleteExisting: 'segmentation header row still exists after approved delete',
-        updateMatch: row
-            ? same(row.groupSegment, data?.group_segment) && same(row.segment, data?.segment) && same(row.subSegment, data?.sub_segment)
-            : false,
-        label: 'segmentation header',
-    })
+    return assessSegmentationHeaderRequest(operation, data, { rowById, rowByKey })
 }
 
 async function assessFlScalarRequest(operation: Operation, request: ApprovedRequestRow, data: any): Promise<Assessment> {
@@ -720,16 +677,7 @@ async function assessFlScalarRequest(operation: Operation, request: ApprovedRequ
     const rowByKey = data?.scalar_name
         ? await legacyDb.select().from(frs9ImpCaFlScalarh).where(eq(frs9ImpCaFlScalarh.scalarName, String(data.scalar_name))).limit(1)
         : []
-    const row = rowById[0] ?? rowByKey[0]
-
-    return assessLegacyHeaderOperation(operation, row, {
-        createMissing: 'FL scalar header row not found by id/scalar_name',
-        deleteExisting: 'FL scalar header row still exists after approved delete',
-        updateMatch: row
-            ? same(row.scalarName, data?.scalar_name)
-            : false,
-        label: 'FL scalar',
-    })
+    return assessFlScalarHeaderRequest(operation, data, { rowById, rowByKey })
 }
 
 async function assessProductRequest(operation: Operation, request: ApprovedRequestRow, data: any): Promise<Assessment> {
@@ -740,16 +688,7 @@ async function assessProductRequest(operation: Operation, request: ApprovedReque
     const rowByKey = data?.prdCode
         ? await legacyDb.select().from(frs9ParamProduct).where(eq(frs9ParamProduct.prdCode, String(data.prdCode))).limit(1)
         : []
-    const row = rowById[0] ?? rowByKey[0]
-
-    return assessLegacyHeaderOperation(operation, row, {
-        createMissing: 'product parameter row not found by id/prdCode',
-        deleteExisting: 'product parameter row still exists after approved delete',
-        updateMatch: row
-            ? same(row.prdCode, data?.prdCode) && same(row.prdDesc, data?.prdDesc)
-            : false,
-        label: 'product parameter',
-    })
+    return assessProductHeaderRequest(operation, data, { rowById, rowByKey })
 }
 
 async function assessJournalRequest(operation: Operation, request: ApprovedRequestRow, data: any): Promise<Assessment> {
@@ -764,86 +703,18 @@ async function assessJournalRequest(operation: Operation, request: ApprovedReque
             eq(frs9ParamJournal.dbcr, String(data.dbcr ?? '')),
         )).limit(1)
         : []
-    const row = rowById[0] ?? rowByKey[0]
-
-    return assessLegacyHeaderOperation(operation, row, {
-        createMissing: 'journal parameter row not found by id/composite business key',
-        deleteExisting: 'journal parameter row still exists after approved delete',
-        updateMatch: row
-            ? same(row.glCode, data?.glCode) && same(row.glNumber, data?.glNumber) && same(row.glDesc, data?.glDesc)
-            : false,
-        label: 'journal parameter',
-    })
+    return assessJournalHeaderRequest(operation, data, { rowById, rowByKey })
 }
 
-function assessLegacyHeaderOperation(
-    operation: Operation,
-    row: unknown,
-    config: {
-        createMissing: string
-        deleteExisting: string
-        updateMatch: boolean
-        label: string
-    }
-): Assessment {
-    if (operation === 'create') {
-        return row
-            ? { state: 'already_applied', reason: `${config.label} already exists` }
-            : { state: 'missing_side_effect', reason: config.createMissing }
-    }
-
-    if (operation === 'delete') {
-        return row
-            ? { state: 'missing_side_effect', reason: config.deleteExisting }
-            : { state: 'already_applied', reason: `${config.label} no longer exists` }
-    }
-
-    if (!row) {
-        return { state: 'ambiguous', reason: `${config.label} update target not found` }
-    }
-
-    return config.updateMatch
-        ? { state: 'already_applied', reason: `${config.label} matches approved payload` }
-        : { state: 'ambiguous', reason: `${config.label} exists but current values do not conclusively match approved payload` }
-}
-
-async function maybeReplayRequest(request: ApprovedRequestRow, assessment: Assessment, options: ScriptOptions): Promise<ReconciliationResult> {
+export async function maybeReplayRequest(request: ApprovedRequestRow, assessment: Assessment, options: ScriptOptions): Promise<ReconciliationResult> {
     const { operation } = parseRequestData(request)
-    const eligible =
-        assessment.state === 'missing_side_effect' ||
-        (options.includeAmbiguous && assessment.state === 'ambiguous')
-
-    if (!options.apply || !eligible) {
-        return {
-            requestId: request.id,
-            entityType: request.entityType,
-            operation: operation ?? 'unknown',
-            title: request.title,
-            state: assessment.state,
-            reason: assessment.reason,
-        }
-    }
-
-    try {
-        await replayApprovedRequestSideEffect(request, request.completedBy ?? request.requestedBy ?? undefined)
-        return {
-            requestId: request.id,
-            entityType: request.entityType,
-            operation: operation ?? 'unknown',
-            title: request.title,
-            state: 'replayed',
-            reason: `replayed successfully from state ${assessment.state}`,
-        }
-    } catch (error) {
-        return {
-            requestId: request.id,
-            entityType: request.entityType,
-            operation: operation ?? 'unknown',
-            title: request.title,
-            state: 'replay_failed',
-            reason: error instanceof Error ? error.message : String(error),
-        }
-    }
+    return maybeReplayAssessment(
+        request,
+        operation,
+        assessment,
+        options,
+        replayApprovedRequestSideEffect
+    )
 }
 
 function printSummary(results: ReconciliationResult[]) {
@@ -873,7 +744,60 @@ function printSummary(results: ReconciliationResult[]) {
     }
 }
 
-async function main() {
+function printEntitySummary(results: ReconciliationResult[]) {
+    const byEntity = results.reduce<Record<string, Record<string, number>>>((acc, item) => {
+        acc[item.entityType] = acc[item.entityType] || {}
+        acc[item.entityType][item.state] = (acc[item.entityType][item.state] || 0) + 1
+        return acc
+    }, {})
+
+    console.log('\nEntity summary:')
+    for (const entityType of Object.keys(byEntity).sort()) {
+        const summary = Object.entries(byEntity[entityType])
+            .map(([state, count]) => `${state}=${count}`)
+            .join(', ')
+        console.log(`- ${entityType}: ${summary}`)
+    }
+}
+
+function emitReport(results: ReconciliationResult[], options: ScriptOptions) {
+    const effectiveFormat = inferReportFormat(options)
+
+    if (effectiveFormat === 'console' && !options.outputFile) {
+        printSummary(results)
+        printEntitySummary(results)
+        return
+    }
+
+    const filters = {
+        tenantId: options.tenantId,
+        requestId: options.requestId,
+        entityType: options.entityType,
+        apply: options.apply,
+        includeAmbiguous: options.includeAmbiguous,
+        limit: options.limit,
+    }
+
+    const content = effectiveFormat === 'json'
+        ? JSON.stringify(buildReconciliationJsonReport(results, { filters }), null, 2)
+        : buildReconciliationCsv(results)
+
+    if (options.outputFile) {
+        const resolved = path.isAbsolute(options.outputFile)
+            ? options.outputFile
+            : path.resolve(process.cwd(), options.outputFile)
+        ensureParentDirectory(resolved)
+        fs.writeFileSync(resolved, content, 'utf-8')
+        console.log(`\nReconciliation report written to ${resolved}`)
+    } else {
+        console.log(content)
+    }
+
+    printSummary(results)
+    printEntitySummary(results)
+}
+
+export async function main() {
     const options = parseArgs(process.argv.slice(2))
     await initializeRuntime(options)
     console.log('Scanning approved approval requests...')
@@ -902,16 +826,18 @@ async function main() {
         }
     }
 
-    printSummary(results)
+    emitReport(results, options)
 }
 
-main()
-    .catch((error) => {
-        console.error('Failed to reconcile approved requests:', error)
-        process.exitCode = 1
-    })
-    .finally(async () => {
-        if (closeDatabase) {
-            await closeDatabase()
-        }
-    })
+if (import.meta.main) {
+    main()
+        .catch((error) => {
+            console.error('Failed to reconcile approved requests:', error)
+            process.exitCode = 1
+        })
+        .finally(async () => {
+            if (closeDatabase) {
+                await closeDatabase()
+            }
+        })
+}
