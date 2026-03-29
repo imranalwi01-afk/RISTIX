@@ -1,4 +1,6 @@
 import { and, desc, eq } from 'drizzle-orm'
+import fs from 'node:fs'
+import path from 'node:path'
 import {
     approvalRequests,
     rolePermissions,
@@ -20,8 +22,6 @@ import {
     frs9ParamSegmentd,
     frs9ParamSegmenth,
 } from '../src/db/schema'
-import { closeDatabase, legacyDb, tenantDb } from '../src/config/database'
-import { replayApprovedRequestSideEffect } from '../src/services/approval.service'
 
 type Operation = 'create' | 'update' | 'delete'
 type ReconciliationState =
@@ -36,6 +36,7 @@ type ReconciliationState =
 type ApprovedRequestRow = typeof approvalRequests.$inferSelect
 
 interface ScriptOptions {
+    envFile?: string
     tenantId?: string
     requestId?: string
     entityType?: string
@@ -57,6 +58,11 @@ interface Assessment {
     state: Exclude<ReconciliationState, 'replayed' | 'replay_failed' | 'error'>
     reason: string
 }
+
+let tenantDb: any
+let legacyDb: any
+let closeDatabase: (() => Promise<void>) | (() => void)
+let replayApprovedRequestSideEffect: (request: any, approvedBy?: string) => Promise<void>
 
 const SUPPORTED_ENTITY_TYPES = new Set([
     'user',
@@ -90,6 +96,9 @@ function parseArgs(argv: string[]): ScriptOptions {
     for (let i = 0; i < argv.length; i += 1) {
         const arg = argv[i]
         switch (arg) {
+            case '--env-file':
+                options.envFile = argv[++i]
+                break
             case '--tenant-id':
                 options.tenantId = argv[++i]
                 break
@@ -128,6 +137,7 @@ Usage:
   bun run scripts/reconcile-approved-requests.ts [options]
 
 Options:
+  --env-file <path>       Explicit env file to load and override current process env
   --tenant-id <id>         Filter by tenant id
   --request-id <id>        Reconcile a single approval request
   --entity-type <type>     Filter by entity type
@@ -136,6 +146,53 @@ Options:
   --include-ambiguous      Also replay rows marked ambiguous
   -h, --help               Show this help
 `)
+}
+
+function loadEnvFile(envFile: string) {
+    const resolvedCandidates = path.isAbsolute(envFile)
+        ? [envFile]
+        : [
+            path.resolve(process.cwd(), envFile),
+            path.resolve(process.cwd(), '..', envFile),
+            path.resolve(process.cwd(), '..', '..', envFile),
+        ]
+
+    const resolved = resolvedCandidates.find((candidate) => fs.existsSync(candidate))
+    if (!resolved) {
+        throw new Error(`Env file not found: ${resolvedCandidates[0]}`)
+    }
+
+    const content = fs.readFileSync(resolved, 'utf-8')
+    for (const line of content.split('\n')) {
+        const match = line.match(/^\s*([\w_]+)\s*=\s*(.*)?\s*$/)
+        if (!match) continue
+        const key = match[1]
+        let value = match[2] ? match[2].trim() : ''
+        value = value.replace(/^["'](.*)["']$/, '$1')
+        process.env[key] = value
+    }
+}
+
+async function initializeRuntime(options: ScriptOptions) {
+    if (options.envFile) {
+        const resolvedEnvFile = path.isAbsolute(options.envFile)
+            ? options.envFile
+            : [
+                path.resolve(process.cwd(), options.envFile),
+                path.resolve(process.cwd(), '..', options.envFile),
+                path.resolve(process.cwd(), '..', '..', options.envFile),
+            ].find((candidate) => fs.existsSync(candidate)) ?? path.resolve(process.cwd(), options.envFile)
+        process.env.ENV_FILE = resolvedEnvFile
+        loadEnvFile(resolvedEnvFile)
+    }
+
+    const databaseModule = await import('../src/config/database')
+    const approvalServiceModule = await import('../src/services/approval.service')
+
+    tenantDb = databaseModule.tenantDb
+    legacyDb = databaseModule.legacyDb
+    closeDatabase = databaseModule.closeDatabase
+    replayApprovedRequestSideEffect = approvalServiceModule.replayApprovedRequestSideEffect
 }
 
 function normalizeOperation(value: unknown): Operation | null {
@@ -818,6 +875,7 @@ function printSummary(results: ReconciliationResult[]) {
 
 async function main() {
     const options = parseArgs(process.argv.slice(2))
+    await initializeRuntime(options)
     console.log('Scanning approved approval requests...')
     console.log(JSON.stringify(options, null, 2))
 
@@ -853,5 +911,7 @@ main()
         process.exitCode = 1
     })
     .finally(async () => {
-        await closeDatabase()
+        if (closeDatabase) {
+            await closeDatabase()
+        }
     })
