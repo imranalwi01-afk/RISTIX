@@ -44,6 +44,16 @@ Use this guide to manage segmentation headers and details that are used by colle
 - detail rows match the intended filter logic
 - the segment can be selected by dependent pages after approval
 
+## Suggested Screenshots
+
+![Segmentation list page](/img/user-guides/banking/segmentation.png)
+
+Segmentation list with search, filter shortcut, and action buttons used to validate the live state after approval.
+
+![Segmentation create form](/img/user-guides/banking/segmentation-form.png)
+
+Live segmentation header form before submit. Use this as action evidence for create or edit approval scenarios.
+
 ## Common Problems
 
 ### Segmentation is applied immediately
@@ -58,3 +68,16 @@ Check approval history, audit trace, and whether the request was approved before
 
 - [Submit a Setup Change for Approval](../setup/submit-setup-change)
 - [Approval Inbox Guide](../approval/approval-inbox)
+- [Audit and Request Trace Guide](../audit/audit-and-request-trace)
+- [Testing Traceability Matrix](../../qa-uat/testing-traceability-matrix)
+
+## Covered by Tests
+
+- `packages/e2e/tests/collective-model-approval-flow.spec.ts`
+
+## QA Quick Checklist
+
+- create, update, and delete segmentation changes go through approval
+- approved segmentation appears in the live list
+- dependent setup or report pages can select the approved segment
+- immediate auto-apply does not happen for approval-driven changes

@@ -42,6 +42,10 @@ Use this guide to manage EAD configuration records and confirm that approved cha
 
 EAD setup list showing segment, method, calculation method, and current row status.
 
+![EAD Setup create form](/img/user-guides/banking/ead-setup-form.png)
+
+Live EAD configuration dialog before submit. Capture this view to validate selected segment and method inputs before approval.
+
 ## Common Problems
 
 ### EAD Model report shows unrelated data
@@ -56,6 +60,11 @@ Check the request status and audit trail by request ID.
 
 - [Run an IFRS 9 Report](../reports/run-ifrs9-report)
 - [Validate Report Filters and Exports](../reports/validate-report-filters-and-exports)
+- [Testing Traceability Matrix](../../qa-uat/testing-traceability-matrix)
+
+## Covered by Tests
+
+- `packages/e2e/tests/collective-model-approval-flow.spec.ts`
 
 ## QA Quick Checklist
 

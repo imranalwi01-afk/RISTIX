@@ -51,6 +51,14 @@ If you already have a request ID, start with that.
 
 Audit view showing summary cards, search, and the activity table used to trace changes by request ID.
 
+![Expanded audit row with field-level diff and metadata](/img/user-guides/banking/audit-row-expanded.png)
+
+Expanded audit evidence showing old and new values, metadata, and request-level detail.
+
+![Exported audit CSV sample](/img/user-guides/banking/export-result-audit.png)
+
+Export evidence captured from a real audit CSV download, used when QA or support needs to compare the exported file with the on-screen audit rows.
+
 ## Expected Result
 
 You should be able to answer:
@@ -74,6 +82,12 @@ Check in this order:
 
 - [Approval Inbox Guide](../approval/approval-inbox)
 - [Common Errors and What They Mean](../../troubleshooting/common-errors)
+- [Testing Traceability Matrix](../../qa-uat/testing-traceability-matrix)
+
+## Covered by Tests
+
+- `packages/e2e/tests/approval-error-audit.spec.ts`
+- `packages/e2e/tests/approval-rbac-export.spec.ts`
 
 ## QA Quick Checklist
 

@@ -44,6 +44,16 @@ Use this guide to manage FL scalar records and their period-level values.
 - weighted scalar values match expectations
 - related report or calculation flow can select the scalar where applicable
 
+## Suggested Screenshots
+
+![FL Scalar list page](/img/user-guides/banking/fl-scalar.png)
+
+FL scalar management page showing the scalar list and action buttons.
+
+![FL Scalar create form](/img/user-guides/banking/fl-scalar-form.png)
+
+Live FL scalar dialog before entering scalar periods. Capture this state as evidence for create or edit approval submissions.
+
 ## Common Problems
 
 ### Period rows are missing after approval
@@ -54,3 +64,8 @@ Confirm whether the request was for header only or included detail period rows, 
 
 - [Submit a Setup Change for Approval](../setup/submit-setup-change)
 - [Approval Inbox Guide](../approval/approval-inbox)
+- [Testing Traceability Matrix](../../qa-uat/testing-traceability-matrix)
+
+## Covered by Tests
+
+- `packages/e2e/tests/fl-scalar-approval-flow.spec.ts`

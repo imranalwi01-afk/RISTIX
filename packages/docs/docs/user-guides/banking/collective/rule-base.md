@@ -46,6 +46,10 @@ Use this guide to create or maintain rule base configuration, including headers 
 
 Rule base list with search filters, status badges, detail counts, and action buttons.
 
+![Rule Base header form](/img/user-guides/banking/rule-base-form.png)
+
+Live rule header dialog before submission. Capture this state when testing create or edit approval requests for rule headers.
+
 ## Common Problems
 
 ### 409 conflict on save
@@ -60,6 +64,11 @@ Check audit and approval request trace, then verify whether the request was for 
 
 - [Submit a Setup Change for Approval](../setup/submit-setup-change)
 - [Approval Inbox Guide](../approval/approval-inbox)
+- [Testing Traceability Matrix](../../qa-uat/testing-traceability-matrix)
+
+## Covered by Tests
+
+- `packages/e2e/tests/collective-approval-flow.spec.ts`
 
 ## QA Quick Checklist
 

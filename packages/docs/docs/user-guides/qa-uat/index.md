@@ -11,6 +11,7 @@ Use this section when documentation needs to support formal execution, evidence 
 ## Contents
 
 - [QA/UAT Execution Pack Template](./uat-execution-pack-template)
+- [Testing Traceability Matrix](./testing-traceability-matrix)
 
 ## When to Use This Section
 
@@ -20,3 +21,4 @@ Use QA or UAT packs when you need:
 - pass or fail tracking
 - request ID traceability
 - sign-off by business or operational stakeholders
+- a clear map from user guide to E2E coverage

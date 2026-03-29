@@ -58,6 +58,10 @@ After approval:
 
 PD setup list showing model name, segment, method, bucket group, and actions.
 
+![PD Setup create form](/img/user-guides/banking/pd-setup-form.png)
+
+Live PD configuration form before save. Use this screenshot as action evidence for create or edit approval scenarios.
+
 ## Common Problems
 
 ### Approved but not visible
@@ -77,6 +81,11 @@ This usually means a similar request is already pending.
 - [Submit a Setup Change for Approval](../setup/submit-setup-change)
 - [Approval Inbox Guide](../approval/approval-inbox)
 - [Audit and Request Trace Guide](../audit/audit-and-request-trace)
+- [Testing Traceability Matrix](../../qa-uat/testing-traceability-matrix)
+
+## Covered by Tests
+
+- `packages/e2e/tests/collective-model-approval-flow.spec.ts`
 
 ## QA Quick Checklist
 

@@ -43,6 +43,10 @@ Use this guide to maintain bucket parameter groups used in collective impairment
 
 Bucket parameter list with basis filter, search bar, and bucket group actions.
 
+![Bucket Parameter create form](/img/user-guides/banking/bucket-parameter-form.png)
+
+Live bucket group form showing the key header fields before save. Capture this dialog when testing create or edit approval flow.
+
 ## Common Problems
 
 ### 401 when opening the page
@@ -57,6 +61,11 @@ Usually means a similar bucket approval request is already pending.
 
 - [Approval Inbox Guide](../approval/approval-inbox)
 - [Common Errors and What They Mean](../../troubleshooting/common-errors)
+- [Testing Traceability Matrix](../../qa-uat/testing-traceability-matrix)
+
+## Covered by Tests
+
+- `packages/e2e/tests/collective-approval-flow.spec.ts`
 
 ## QA Quick Checklist
 

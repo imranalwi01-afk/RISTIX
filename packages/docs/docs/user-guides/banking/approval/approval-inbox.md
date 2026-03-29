@@ -61,6 +61,26 @@ Before approving, check:
 
 Approval inbox showing pending requests, status filters, and the main review queue.
 
+![Approval detail dialog with approver eligibility and request diff](/img/user-guides/banking/approval-detail-dialog.png)
+
+Approval detail dialog showing request payload, approver candidates, and the decision context before approve or reject.
+
+## Error-State Evidence
+
+The approval page now returns verbose messages for authorization and conflict errors.
+
+- live `403` approval evidence:
+
+![Approval action rejected with a live 403 access-denied message](/img/user-guides/banking/approval-403-error.png)
+
+- live `409` duplicate pending evidence:
+
+![Live 409 conflict evidence with duplicate request metadata](/img/user-guides/banking/approval-409-conflict.png)
+
+- automated coverage reference:
+  `packages/e2e/tests/approval-error-audit.spec.ts`
+- use the audit or approval export to keep a request-level record when the UI blocks the action
+
 ## If You Get Access Denied
 
 This usually means one of these:
@@ -84,6 +104,15 @@ Expected result:
 - [Checker and Approver Guide](../../roles/checker-and-approver)
 - [Admin and Superadmin Guide](../../roles/admin-and-superadmin)
 - [Audit and Request Trace Guide](../audit/audit-and-request-trace)
+- [Testing Traceability Matrix](../../qa-uat/testing-traceability-matrix)
+
+## Covered by Tests
+
+- `packages/e2e/tests/approval-inbox-flow.spec.ts`
+- `packages/e2e/tests/approval-delegate-history.spec.ts`
+- `packages/e2e/tests/approval-matrix-routing.spec.ts`
+- `packages/e2e/tests/approval-rbac-export.spec.ts`
+- `packages/e2e/tests/approval-error-audit.spec.ts`
 
 ## QA Quick Checklist
 

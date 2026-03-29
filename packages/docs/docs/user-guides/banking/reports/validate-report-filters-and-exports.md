@@ -56,12 +56,53 @@ Use this as a reference for validating whether the selected filters produced vis
 ![ECL Result report showing run-ready filters and disabled export state](/img/user-guides/banking/report-ecl-result.png)
 
 Use this to verify export enablement, monitoring widgets, and reset behavior after changing filters.
-- exported file example or mismatch evidence
+
+![Report toolbar reference before dataset is ready](/img/user-guides/banking/report-export-button-before-load.png)
+
+Use this as action-level evidence from a no-result report session before a usable exported dataset is available.
+
+![Report toolbar reference after dataset is ready](/img/user-guides/banking/report-export-button-after-load.png)
+
+Use this as action-level evidence from a loaded report session where the export control is present in the toolbar after data is available.
+
+![Successful report export evidence generated from live EAD Model report data](/img/user-guides/banking/report-export-success.png)
+
+Use this as manual evidence that a real report dataset can be exported into an Excel workbook. The file was generated from the live `EAD Model` report dataset using the same client-side `xlsx` flow used by the report pages.
+
+![Successful report export evidence generated from live GCA Movement report data](/img/user-guides/banking/report-export-success-gca-movement.png)
+
+Use this as an additional example for movement-style reports where the exported workbook is generated from live `GCA Movement` rows.
+
+![Successful report export evidence generated from live Nominative report data](/img/user-guides/banking/report-export-success-nominative.png)
+
+Use this as an additional example for account-level report exports using the live `Nominative Report` dataset.
+
+![Successful report export evidence generated from live ECL Movement report data](/img/user-guides/banking/report-export-success-ecl-movement.png)
+
+Use this as an additional example for movement-style exports using the live `ECL Movement` dataset.
+
+![Successful report export evidence generated from live Lifetime PD report data](/img/user-guides/banking/report-export-success-lifetime-pd.png)
+
+Use this as an additional example for multi-sheet report exports. The generated workbook includes both `Yearly PD` and `Monthly PD` sheets from live `Lifetime PD` data.
+
+![Live report export endpoint returning 403 from the ECL Result report page](/img/user-guides/banking/report-export-evidence.png)
+
+Use this as a separate operational finding: the generic backend export endpoint still returned `403` in the captured ECL Result session, so QA should distinguish between:
+
+- client-side report export that succeeds from live data
+- backend generic export endpoint behavior that still needs follow-up
 
 ## Related Guides
 
 - [Run an IFRS 9 Report](./run-ifrs9-report)
 - [Audit and Request Trace Guide](../audit/audit-and-request-trace)
+- [Testing Traceability Matrix](../../qa-uat/testing-traceability-matrix)
+
+## Covered by Tests
+
+- no dedicated report E2E suite yet
+- use the manual scenario [IFRS 9 Report Validation and Export Flow](../../scenarios/report-validation-and-export)
+- use `packages/e2e/tests/approval-rbac-export.spec.ts` as reference for export interaction behavior
 
 ## QA Quick Checklist
 

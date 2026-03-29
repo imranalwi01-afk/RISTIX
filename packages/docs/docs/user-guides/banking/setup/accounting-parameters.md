@@ -41,6 +41,10 @@ Use this guide to maintain accounting or journal parameter records used by banki
 
 Accounting parameter page with search, filters, and approved journal rows.
 
+![Journal Parameter create form](/img/user-guides/banking/accounting-parameters-form.png)
+
+Live journal parameter form before submission. Use this as evidence when validating create or edit actions that require approval.
+
 ## Common Problems
 
 ### Conflict when submitting
@@ -55,6 +59,11 @@ Check approval history and audit by request ID before resubmitting.
 
 - [Approval Inbox Guide](../approval/approval-inbox)
 - [Audit and Request Trace Guide](../audit/audit-and-request-trace)
+- [Testing Traceability Matrix](../../qa-uat/testing-traceability-matrix)
+
+## Covered by Tests
+
+- `packages/e2e/tests/parameter-approval-flow.spec.ts`
 
 ## QA Quick Checklist
 

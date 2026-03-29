@@ -40,6 +40,10 @@ Use this guide to maintain business configuration data used by the banking tenan
 
 Business configuration list with search, category filter, and approved rows visible.
 
+![Business Configuration create form](/img/user-guides/banking/business-configuration-form.png)
+
+Live business configuration form before submit. Use this as action evidence for header creation or major edits.
+
 ## Common Problems
 
 ### Live page did not change after approval
@@ -54,6 +58,11 @@ Check:
 
 - [Approval Inbox Guide](../approval/approval-inbox)
 - [Audit and Request Trace Guide](../audit/audit-and-request-trace)
+- [Testing Traceability Matrix](../../qa-uat/testing-traceability-matrix)
+
+## Covered by Tests
+
+- `packages/e2e/tests/setup-approval-flow.spec.ts`
 
 ## QA Quick Checklist
 

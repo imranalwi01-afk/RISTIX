@@ -10,6 +10,7 @@ Use this section for operational tasks inside the banking application.
 
 ## Start by Intent
 
+- `I need a practical operating manual`: start with [Operator Handbook](../operator-handbook)
 - `I need to submit or edit data`: start with [Setup and Parameter Guides](./setup) or [Collective Setup Guides](./collective)
 - `I need to approve or review a request`: start with [Approval Inbox Guide](./approval/approval-inbox)
 - `I need to trace what happened`: start with [Audit and Request Trace Guide](./audit/audit-and-request-trace)
@@ -24,6 +25,7 @@ Use this section for operational tasks inside the banking application.
 - [IFRS 9 Report Guides](./reports)
 - [Approval Inbox Guide](./approval/approval-inbox)
 - [Audit and Request Trace Guide](./audit/audit-and-request-trace)
+- [Operator Handbook](../operator-handbook)
 - [End-to-End Scenarios](../scenarios)
 - [IAF User Role Matrix](./iaf-user-role-matrix)
 - [Banking Sidebar Sitemap](./sidebar-sitemap)
@@ -38,3 +40,4 @@ Use this section for operational tasks inside the banking application.
 
 - [QA and UAT Packs](../qa-uat)
 - [QA/UAT Execution Pack Template](../qa-uat/uat-execution-pack-template)
+- [Testing Traceability Matrix](../qa-uat/testing-traceability-matrix)

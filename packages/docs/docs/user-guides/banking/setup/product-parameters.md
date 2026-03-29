@@ -41,6 +41,10 @@ Use this guide to maintain product parameter data and validate that approved cha
 
 Product parameter list showing current rows, filter bar, and mutation actions.
 
+![Product Parameter create or edit form](/img/user-guides/banking/product-parameter-form.png)
+
+Product parameter form used during create or edit before the request is submitted for approval.
+
 ## Common Problems
 
 ### Approved but not visible
@@ -51,6 +55,12 @@ Check request status, audit trace, and whether the approval was completed after 
 
 - [Submit a Setup Change for Approval](./submit-setup-change)
 - [Common Errors and What They Mean](../../troubleshooting/common-errors)
+- [Testing Traceability Matrix](../../qa-uat/testing-traceability-matrix)
+
+## Covered by Tests
+
+- `packages/e2e/tests/parameter-approval-flow.spec.ts`
+- `packages/e2e/tests/approval-error-audit.spec.ts`
 
 ## QA Quick Checklist
 

@@ -15,6 +15,7 @@ Use these documents when you want to complete a business task in the application
 Choose one of these reading paths:
 
 - `Start Here` if you are a new user or QA tester
+- `Operator Handbook` if you want a daily operating manual
 - `By Role` if you want guides for Maker, Approver, or Admin responsibilities
 - `By Task` if you want to perform setup, approval, audit, or reporting work
 - `By Scenario` if you want an end-to-end walkthrough from submission to validation
@@ -23,6 +24,7 @@ Choose one of these reading paths:
 ## Start Here
 
 - [First Login and Navigation](./getting-started/first-login-and-navigation)
+- [Operator Handbook](./operator-handbook)
 - [IAF User Role Matrix](./banking/iaf-user-role-matrix)
 - [Banking Sidebar Sitemap](./banking/sidebar-sitemap)
 
@@ -47,6 +49,14 @@ Choose one of these reading paths:
 
 - [Common Errors and What They Mean](./troubleshooting/common-errors)
 
+## Operator Handbook
+
+- [Operator Handbook](./operator-handbook)
+- [Daily Operations Handbook](./operator-handbook/daily-operations)
+- [Role and Responsibility Matrix](./operator-handbook/role-and-responsibility-matrix)
+- [Approval and Escalation Playbook](./operator-handbook/approval-and-escalation-playbook)
+- [Start and End of Day Checklist](./operator-handbook/start-and-end-of-day-checklist)
+
 ## By Task
 
 - [Banking User Guides](./banking)
@@ -65,6 +75,7 @@ Choose one of these reading paths:
 
 - [QA and UAT Packs](./qa-uat)
 - [QA/UAT Execution Pack Template](./qa-uat/uat-execution-pack-template)
+- [Testing Traceability Matrix](./qa-uat/testing-traceability-matrix)
 
 ## Writing Style of This Section
 

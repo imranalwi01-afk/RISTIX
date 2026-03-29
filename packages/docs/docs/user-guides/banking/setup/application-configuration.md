@@ -48,6 +48,10 @@ Use this guide to manage application configuration headers and details that cont
 
 Application setup page showing the header list, search controls, and action buttons used during change submission and validation.
 
+![Application Configuration create form](/img/user-guides/banking/application-configuration-form.png)
+
+Live create dialog for an application configuration header. Capture this state before save to preserve evidence for the submitted request.
+
 ## Common Problems
 
 ### 409 conflict
@@ -63,6 +67,11 @@ Trace the request by request ID and check whether the approved action was for he
 - [Submit a Setup Change for Approval](./submit-setup-change)
 - [Approval Inbox Guide](../approval/approval-inbox)
 - [Audit and Request Trace Guide](../audit/audit-and-request-trace)
+- [Testing Traceability Matrix](../../qa-uat/testing-traceability-matrix)
+
+## Covered by Tests
+
+- `packages/e2e/tests/setup-approval-flow.spec.ts`
 
 ## QA Quick Checklist
 

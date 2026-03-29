@@ -101,9 +101,15 @@ Expected result:
 
 ![LGD Setup Management page](/img/user-guides/banking/lgd-setup.png)
 
+![LGD Setup create or edit form](/img/user-guides/banking/lgd-setup-form.png)
+
 ![Approval inbox with pending requests and filters](/img/user-guides/banking/approval-inbox.png)
 
+![Approval detail dialog with approver eligibility and request diff](/img/user-guides/banking/approval-detail-dialog.png)
+
 ![Audit log list with filters and summary cards](/img/user-guides/banking/audit-trace.png)
+
+![Expanded audit row with field-level diff and metadata](/img/user-guides/banking/audit-row-expanded.png)
 
 ## QA or UAT Evidence Checklist
 
@@ -120,3 +126,10 @@ Expected result:
 - [Approval Inbox Guide](../banking/approval/approval-inbox)
 - [Audit and Request Trace Guide](../banking/audit/audit-and-request-trace)
 - [QA/UAT Execution Pack Template](../qa-uat/uat-execution-pack-template)
+- [Testing Traceability Matrix](../qa-uat/testing-traceability-matrix)
+
+## Covered by Tests
+
+- `packages/e2e/tests/collective-model-approval-flow.spec.ts`
+- `packages/e2e/tests/approval-inbox-flow.spec.ts`
+- `packages/e2e/tests/approval-error-audit.spec.ts`

@@ -49,6 +49,10 @@ After approval:
 
 LGD setup list showing approved models, population type, FL flag, and actions.
 
+![LGD Setup create or edit form](/img/user-guides/banking/lgd-setup-form.png)
+
+LGD setup form used to prepare a new model or edit an existing one before the change enters approval.
+
 ## Common Problems
 
 ### Approved but not visible
@@ -67,6 +71,12 @@ Search the approval inbox using the returned request ID or title before trying t
 
 - [Approval Inbox Guide](../approval/approval-inbox)
 - [Audit and Request Trace Guide](../audit/audit-and-request-trace)
+- [Testing Traceability Matrix](../../qa-uat/testing-traceability-matrix)
+
+## Covered by Tests
+
+- `packages/e2e/tests/collective-model-approval-flow.spec.ts`
+- `packages/e2e/tests/approval-inbox-flow.spec.ts`
 
 ## QA Quick Checklist
 

@@ -18,6 +18,7 @@ Use this template for module testing, approval lifecycle validation, and evidenc
 - Reviewed By:
 - Related Guide:
 - Related Scenario:
+- Automated Coverage Reference:
 
 ## Objective
 
@@ -58,6 +59,12 @@ Validate that an LGD setup change is submitted for approval, approved by the cor
 - approval inbox row if applicable
 - final live page
 - audit trace or export result
+
+## Traceability Check
+
+- confirm the related guide is listed in the [Testing Traceability Matrix](./testing-traceability-matrix)
+- record the exact E2E suite names referenced by the matrix
+- note whether this execution is supplementing or replacing missing automated coverage
 
 ## Defects or Notes
 

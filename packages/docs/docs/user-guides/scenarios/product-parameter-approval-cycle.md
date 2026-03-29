@@ -77,7 +77,11 @@ Expected result:
 
 ![Product Parameters list page](/img/user-guides/banking/product-parameters.png)
 
+![Product Parameter create or edit form](/img/user-guides/banking/product-parameter-form.png)
+
 ![Approval inbox with pending requests and filters](/img/user-guides/banking/approval-inbox.png)
+
+![Approval detail dialog with approver eligibility and request diff](/img/user-guides/banking/approval-detail-dialog.png)
 
 ## QA or UAT Evidence Checklist
 
@@ -92,3 +96,10 @@ Expected result:
 - [Submit a Setup Change for Approval](../banking/setup/submit-setup-change)
 - [Approval Inbox Guide](../banking/approval/approval-inbox)
 - [QA/UAT Execution Pack Template](../qa-uat/uat-execution-pack-template)
+- [Testing Traceability Matrix](../qa-uat/testing-traceability-matrix)
+
+## Covered by Tests
+
+- `packages/e2e/tests/parameter-approval-flow.spec.ts`
+- `packages/e2e/tests/approval-inbox-flow.spec.ts`
+- `packages/e2e/tests/approval-error-audit.spec.ts`

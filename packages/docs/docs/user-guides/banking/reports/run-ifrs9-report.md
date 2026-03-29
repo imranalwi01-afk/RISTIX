@@ -56,6 +56,22 @@ Example report page after the analysis has been loaded successfully.
 
 Another report layout showing filter placement, run action, and monitoring widgets.
 
+![Report toolbar reference before exported data is ready](/img/user-guides/banking/report-export-button-before-load.png)
+
+Use this as a quick UI reference for the report toolbar before a usable dataset is ready to export.
+
+![Report toolbar reference after exported data is ready](/img/user-guides/banking/report-export-button-after-load.png)
+
+Use this as a quick UI reference for the toolbar state after a report has loaded and export is available from the page controls.
+
+![Successful Lifetime PD export evidence with Yearly and Monthly sheets](/img/user-guides/banking/report-export-success-lifetime-pd.png)
+
+Use this as an export reference for `Lifetime PD`, especially when validating that both yearly and monthly datasets are included in the workbook.
+
+![Successful ECL Movement export evidence generated from live movement data](/img/user-guides/banking/report-export-success-ecl-movement.png)
+
+Use this as an export reference for movement-style reports after the report data has been loaded and validated.
+
 ## Common Problems
 
 ### Report does not appear

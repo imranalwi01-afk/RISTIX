@@ -42,6 +42,10 @@ Use this guide to maintain ECL configuration records that influence ECL processi
 
 ECL configuration page with model summary cards, search filters, and run or schedule actions.
 
+![ECL Configuration create form](/img/user-guides/banking/ecl-configuration-form.png)
+
+Live ECL configuration header form. Use this as action evidence before submission or when reviewing required header fields.
+
 ## Common Problems
 
 ### Monitoring panel looks empty or stale
@@ -56,6 +60,11 @@ Trace the request in approval and audit first.
 
 - [Run an IFRS 9 Report](../reports/run-ifrs9-report)
 - [Audit and Request Trace Guide](../audit/audit-and-request-trace)
+- [Testing Traceability Matrix](../../qa-uat/testing-traceability-matrix)
+
+## Covered by Tests
+
+- `packages/e2e/tests/collective-model-approval-flow.spec.ts`
 
 ## QA Quick Checklist
 

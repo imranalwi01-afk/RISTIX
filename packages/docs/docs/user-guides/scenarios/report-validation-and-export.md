@@ -71,6 +71,8 @@ Expected result:
 
 ![ECL Result report with analysis configuration and monitoring cards](/img/user-guides/banking/report-ecl-result.png)
 
+![Exported audit CSV sample](/img/user-guides/banking/export-result-audit.png)
+
 ## QA or UAT Evidence Checklist
 
 - initial filter state
@@ -84,3 +86,10 @@ Expected result:
 - [Run an IFRS 9 Report](../banking/reports/run-ifrs9-report)
 - [Validate Report Filters and Exports](../banking/reports/validate-report-filters-and-exports)
 - [QA/UAT Execution Pack Template](../qa-uat/uat-execution-pack-template)
+- [Testing Traceability Matrix](../qa-uat/testing-traceability-matrix)
+
+## Covered by Tests
+
+- no dedicated report E2E suite yet
+- use the manual checklist in this scenario and [QA/UAT Execution Pack Template](../qa-uat/uat-execution-pack-template)
+- use `packages/e2e/tests/approval-rbac-export.spec.ts` as a reference for export interaction coverage

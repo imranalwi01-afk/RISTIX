@@ -25,6 +25,19 @@ Meaning:
 - you can open the feature, but you are not allowed to perform that specific action
 - in approval, this often means your role does not match the current level
 
+Evidence:
+
+- live manual example from approval action:
+
+![Approval action rejected with a live 403 access-denied message](/img/user-guides/banking/approval-403-error.png)
+
+- live manual example from a create action blocked by route permission:
+
+![Bucket create attempt returning a live 403 missing-permission message](/img/user-guides/banking/bucket-create-403-error.png)
+
+- see `packages/e2e/tests/approval-error-audit.spec.ts`
+- see [Approval Inbox Guide](../banking/approval/approval-inbox) for the related approval decision context
+
 What to do:
 
 1. read the required roles or permissions in the error message
@@ -37,6 +50,15 @@ Meaning:
 
 - the system found a conflicting request or data condition
 - common example: a similar approval request is already pending
+
+Evidence:
+
+- live manual duplicate-pending example:
+
+![Live 409 conflict evidence with duplicate request metadata](/img/user-guides/banking/approval-409-conflict.png)
+
+- see `packages/e2e/tests/approval-error-audit.spec.ts`
+- use the duplicate request ID or linked request from the approval UI when available
 
 What to do:
 
@@ -88,3 +110,4 @@ What to do:
 - [Approval Inbox Guide](../banking/approval/approval-inbox)
 - [Audit and Request Trace Guide](../banking/audit/audit-and-request-trace)
 - [First Login and Navigation](../getting-started/first-login-and-navigation)
+- [Testing Traceability Matrix](../qa-uat/testing-traceability-matrix)
