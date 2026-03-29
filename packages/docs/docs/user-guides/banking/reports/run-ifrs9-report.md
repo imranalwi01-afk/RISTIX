@@ -91,6 +91,11 @@ Some reports intentionally disable export until the report is generated.
 - [Validate Report Filters and Exports](./validate-report-filters-and-exports)
 - [Common Errors and What They Mean](../../troubleshooting/common-errors)
 
+## Covered by Tests
+
+- `packages/e2e/tests/approval-rbac-export.spec.ts`
+- `packages/e2e/tests/approval-error-audit.spec.ts`
+
 ## QA Quick Checklist
 
 - report loads for a valid processing date

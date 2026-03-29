@@ -758,6 +758,16 @@ async function executeApprovedAction(request: any, approvedBy?: string): Promise
 }
 
 /**
+ * Replay the side effect for an already-approved request.
+ *
+ * Intended for operational reconciliation of older approval requests whose
+ * status reached `approved` before the executor wrote the live row.
+ */
+export async function replayApprovedRequestSideEffect(request: any, approvedBy?: string): Promise<void> {
+    await executeApprovedAction(request, approvedBy)
+}
+
+/**
  * Execute user-related actions
  */
 async function executeUserAction(

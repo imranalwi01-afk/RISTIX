@@ -111,3 +111,10 @@ What to do:
 - [Audit and Request Trace Guide](../banking/audit/audit-and-request-trace)
 - [First Login and Navigation](../getting-started/first-login-and-navigation)
 - [Testing Traceability Matrix](../qa-uat/testing-traceability-matrix)
+
+## Covered by Tests
+
+- `packages/e2e/tests/approval-error-audit.spec.ts`
+- `packages/new-backend/src/test/routes/approval.response-contract.test.ts`
+- `packages/new-backend/src/test/routes/auth.response-contract.test.ts`
+- `packages/new-backend/src/test/routes/audit.response-contract.test.ts`

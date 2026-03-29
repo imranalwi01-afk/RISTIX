@@ -93,6 +93,14 @@ Approval queue showing how the submitted request appears for review and follow-u
 - [Audit and Request Trace Guide](../audit/audit-and-request-trace)
 - [Common Errors and What They Mean](../../troubleshooting/common-errors)
 
+## Covered by Tests
+
+- `packages/e2e/tests/setup-approval-flow.spec.ts`
+- `packages/e2e/tests/parameter-approval-flow.spec.ts`
+- `packages/e2e/tests/collective-approval-flow.spec.ts`
+- `packages/e2e/tests/collective-model-approval-flow.spec.ts`
+- `packages/e2e/tests/fl-scalar-approval-flow.spec.ts`
+
 ## QA Quick Checklist
 
 - create, update, and delete all show the expected response
